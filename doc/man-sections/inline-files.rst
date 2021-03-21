@@ -4,8 +4,8 @@ INLINE FILE SUPPORT
 OpenVPN allows including files in the main configuration for the ``--ca``,
 ``--cert``, ``--dh``, ``--extra-certs``, ``--key``, ``--pkcs12``,
 ``--secret``, ``--crl-verify``, ``--http-proxy-user-pass``, ``--tls-auth``,
-``--auth-gen-token-secret``, ``--tls-crypt``, ``--tls-crypt-v2`` and
-``--verify-hash`` options.
+``--auth-gen-token-secret``, ``--peer-fingerprint``, ``--tls-crypt``,
+``--tls-crypt-v2`` and ``--verify-hash`` options.
 
 Each inline file started by the line ``<option>`` and ended by the line
 ``</option>``

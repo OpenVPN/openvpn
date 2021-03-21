@@ -560,6 +560,7 @@ struct options
     const char *remote_cert_eku;
     struct verify_hash_list *verify_hash;
     hash_algo_type verify_hash_algo;
+    int verify_hash_depth;
     unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
 
 #ifdef ENABLE_PKCS11

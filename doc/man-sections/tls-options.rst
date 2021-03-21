@@ -271,7 +271,8 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   man-in-the-middle attack where an authorized client attempts to connect
   to another client by impersonating the server. The attack is easily
   prevented by having clients verify the server certificate using any one
-  of ``--remote-cert-tls``, ``--verify-x509-name``, or ``--tls-verify``.
+  of ``--remote-cert-tls``, ``--verify-x509-name``, ``--peer-fingerprint``
+  or ``--tls-verify``.
 
 --tls-auth args
   Add an additional layer of HMAC authentication on top of the TLS control
@@ -591,6 +592,25 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
     </verify-hash>
 
 If the option is inlined, ``algo`` is always :code:`SHA256`.
+
+--peer-fingerprint args
+   Specify a SHA256 fingerprint or list of SHA256 fingerprints to verify
+   the peer certificate against. The peer certificate must match one of the
+   fingerprint or certificate verification will fail. The option can also
+   be inlined
+
+  Valid syntax:
+  ::
+
+    peer-fingerprint AD:B0:95:D8:09:...
+
+  or inline:
+  ::
+
+    <peer-fingerprint>
+    00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff
+    11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00
+    </peer-fingerprint>
 
 --verify-x509-name args
   Accept connections only if a host's X.509 name is equal to **name.** The

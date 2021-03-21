@@ -8117,26 +8117,45 @@ add_option(struct options *options,
         options->extra_certs_file = p[1];
         options->extra_certs_file_inline = is_inline;
     }
-    else if (streq(p[0], "verify-hash") && p[1] && !p[3])
+    else if ((streq(p[0], "verify-hash") && p[1] && !p[3])
+             || (streq(p[0], "peer-fingerprint") && p[1] && !p[2]))
     {
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INLINE);
+
+        int verify_hash_depth = 0;
+        if (streq(p[0], "verify-hash"))
+        {
+            /* verify level 1 cert, i.e. the CA that signed the leaf cert */
+            verify_hash_depth = 1;
+        }
+
         options->verify_hash_algo = MD_SHA256;
 
         int digest_len = SHA256_DIGEST_LENGTH;
 
-        if ((!p[2] && !is_inline) || (p[2] && streq(p[2], "SHA1")))
+        if (options->verify_hash && options->verify_hash_depth != verify_hash_depth)
         {
-            options->verify_hash_algo = MD_SHA1;
-            msg(M_WARN, "DEPRECATED FEATURE: Usage of SHA1 fingerprints for "
-                "verify-hash is deprecated. You should switch to SHA256.");
-            options->verify_hash_algo = MD_SHA1;
-            digest_len = SHA_DIGEST_LENGTH;
-        }
-        else if (p[2] && !streq(p[2], "SHA256"))
-        {
-            msg(msglevel, "invalid or unsupported hashing algorithm: %s "
-                          "(only SHA1 and SHA256 are valid)", p[2]);
+            msg(msglevel, "ERROR: Setting %s not allowed. --verify-hash and"
+                          " --peer-fingerprint are mutually exclusive", p[0]);
             goto err;
+        }
+
+        if (streq(p[0], "verify-hash"))
+        {
+            if ((!p[2] && !is_inline) || (p[2] && streq(p[2], "SHA1")))
+            {
+                options->verify_hash_algo = MD_SHA1;
+                msg(M_WARN, "DEPRECATED FEATURE: Usage of SHA1 fingerprints for "
+                    "verify-hash is deprecated. You should switch to SHA256.");
+                options->verify_hash_algo = SHA_DIGEST_LENGTH;
+                digest_len = SHA_DIGEST_LENGTH;
+            }
+            else if (p[2] && !streq(p[2], "SHA256"))
+            {
+                msg(msglevel, "invalid or unsupported hashing algorithm: %s "
+                              "(only SHA1 and SHA256 are supported)", p[2]);
+                goto err;
+            }
         }
 
         struct verify_hash_list *newlist;
@@ -8147,6 +8166,7 @@ add_option(struct options *options,
         if (!options->verify_hash)
         {
             options->verify_hash = newlist;
+            options->verify_hash_depth = verify_hash_depth;
         }
         else
         {

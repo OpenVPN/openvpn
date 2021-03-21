@@ -19,6 +19,12 @@ Compatibility with OpenSSL in FIPS mode
     and if less than 100MB RAM are available, use setrlimit() to upgrade
     the limit.  See Trac #1390.  Not available on OpenSolaris.
 
+Certificate pinning/verify peer fingerprint
+    The ``--peer-fingerprint`` option has been introduced to give users an
+    easy to use alternative to the ``tls-verify`` for matching the
+    fingerprint of the peer. The option takes use a number of allowed
+    SHA256 certificate fingerprints.
+
 
 Deprecated features
 -------------------

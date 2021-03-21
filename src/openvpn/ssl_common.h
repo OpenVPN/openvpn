@@ -284,6 +284,7 @@ struct tls_options
     unsigned remote_cert_ku[MAX_PARMS];
     const char *remote_cert_eku;
     struct verify_hash_list *verify_hash;
+    int verify_hash_depth;
     hash_algo_type verify_hash_algo;
 #ifdef ENABLE_X509ALTUSERNAME
     char *x509_username_field[MAX_PARMS];
