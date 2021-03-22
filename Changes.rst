@@ -37,6 +37,9 @@ Deprecated features
     This was a very limited and not-well-tested way to run OpenVPN, on TCP
     and TAP mode only.
 
+``verify-hash`` has been deprecated
+    This option has very limited usefulness and should be replaced by either
+    a better ``--ca`` configuration or with a ``--tls-verify`` script.
 
 Overview of changes in 2.5
 ==========================

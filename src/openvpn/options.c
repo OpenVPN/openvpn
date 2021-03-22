@@ -8140,6 +8140,9 @@ add_option(struct options *options,
         int verify_hash_depth = 0;
         if (streq(p[0], "verify-hash"))
         {
+            msg(M_WARN, "DEPRECATED OPTION: The option --verify-hash is deprecated. "
+            "You should switch to the either use the level 1 certificate as "
+            "--ca option, use --tls-verify or use --peer-fingerprint");
             /* verify level 1 cert, i.e. the CA that signed the leaf cert */
             verify_hash_depth = 1;
         }
@@ -8160,8 +8163,6 @@ add_option(struct options *options,
             if ((!p[2] && !is_inline) || (p[2] && streq(p[2], "SHA1")))
             {
                 options->verify_hash_algo = MD_SHA1;
-                msg(M_WARN, "DEPRECATED FEATURE: Usage of SHA1 fingerprints for "
-                    "verify-hash is deprecated. You should switch to SHA256.");
                 options->verify_hash_algo = SHA_DIGEST_LENGTH;
                 digest_len = SHA_DIGEST_LENGTH;
             }

@@ -564,7 +564,7 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   :code:`1.2`.
 
 --verify-hash args
-  Specify SHA1 or SHA256 fingerprint for level-1 cert.
+  **DEPRECATED** Specify SHA1 or SHA256 fingerprint for level-1 cert.
 
   Valid syntax:
   ::
