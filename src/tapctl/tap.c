@@ -2,7 +2,7 @@
  *  tapctl -- Utility to manipulate TUN/TAP adapters on Windows
  *            https://community.openvpn.net/openvpn/wiki/Tapctl
  *
- *  Copyright (C) 2018-2020 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2021 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -73,14 +73,15 @@ find_function(const WCHAR *libname, const char *funcname, HMODULE *m)
        return NULL;
     }
 
-    size_t len = _countof(libpath) - wcslen(libpath) - 1;
-    if (len < wcslen(libname) + 1)
+    /* +1 for the path seperator '\' */
+    const size_t path_length = wcslen(libpath) + 1 + wcslen(libname);
+    if (path_length >= _countof(libpath))
     {
        SetLastError(ERROR_INSUFFICIENT_BUFFER);
        return NULL;
     }
-    wcsncat(libpath, L"\\", len);
-    wcsncat(libpath, libname, len-1);
+    wcscat_s(libpath, _countof(libpath), L"\\");
+    wcscat_s(libpath, _countof(libpath), libname);
 
     *m = LoadLibraryW(libpath);
     if (*m == NULL)
