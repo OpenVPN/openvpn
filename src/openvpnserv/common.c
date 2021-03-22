@@ -228,12 +228,14 @@ out:
 LPCTSTR
 GetLastErrorText()
 {
+    DWORD error;
     static TCHAR buf[256];
     DWORD len;
     LPTSTR tmp = NULL;
 
+    error = GetLastError();
     len = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY,
-                        NULL, GetLastError(), LANG_NEUTRAL, (LPTSTR)&tmp, 0, NULL);
+                        NULL, error, LANG_NEUTRAL, (LPTSTR)&tmp, 0, NULL);
 
     if (len == 0 || (long) _countof(buf) < (long) len + 14)
     {
@@ -242,7 +244,7 @@ GetLastErrorText()
     else
     {
         tmp[_tcslen(tmp) - 2] = TEXT('\0'); /* remove CR/LF characters */
-        openvpn_sntprintf(buf, _countof(buf), TEXT("%s (0x%x)"), tmp, GetLastError());
+        openvpn_sntprintf(buf, _countof(buf), TEXT("%s (0x%x)"), tmp, error);
     }
 
     if (tmp)
