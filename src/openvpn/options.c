@@ -2711,18 +2711,23 @@ options_postprocess_verify_ce(const struct options *options,
         else
         {
 #ifdef ENABLE_CRYPTO_MBEDTLS
-            if (!(options->ca_file))
+            if (!(options->ca_file || options->verify_hash_no_ca))
             {
-                msg(M_USAGE, "You must define CA file (--ca)");
+                msg(M_USAGE, "You must define CA file (--ca) and/or "
+                    "peer fingeprint verification "
+                    "(--peer-fingerprint)");
             }
             if (options->ca_path)
             {
                 msg(M_USAGE, "Parameter --capath cannot be used with the mbed TLS version version of OpenVPN.");
             }
 #else  /* ifdef ENABLE_CRYPTO_MBEDTLS */
-            if ((!(options->ca_file)) && (!(options->ca_path)))
+            if ((!(options->ca_file)) && (!(options->ca_path))
+                && (!(options->verify_hash_no_ca)))
             {
-                msg(M_USAGE, "You must define CA file (--ca) or CA path (--capath)");
+                msg(M_USAGE, "You must define CA file (--ca) or CA path "
+                    "(--capath) and/or peer fingeprint verification "
+                    "(--peer-fingerprint)");
             }
 #endif
             if (pull)
@@ -3205,6 +3210,13 @@ options_postprocess_mutate(struct options *o)
         options_postprocess_http_proxy_override(o);
     }
 #endif
+    if (!o->ca_file && !o->ca_path && o->verify_hash
+        && o->verify_hash_depth == 0)
+    {
+        msg(M_INFO, "Using certificate fingerprint to verify peer (no CA "
+            "option set). ");
+        o->verify_hash_no_ca = true;
+    }
 
 #if P2MP
     /*
@@ -3440,8 +3452,11 @@ options_postprocess_filechecks(struct options *options)
     errs |= check_file_access_inline(options->dh_file_inline, CHKACC_FILE,
                                      options->dh_file, R_OK, "--dh");
 
-    errs |= check_file_access_inline(options->ca_file_inline, CHKACC_FILE,
-                                     options->ca_file, R_OK, "--ca");
+    if (!options->verify_hash_no_ca)
+    {
+        errs |= check_file_access_inline(options->ca_file_inline, CHKACC_FILE,
+                                         options->ca_file, R_OK, "--ca");
+    }
 
     errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE,
                                      options->ca_path, R_OK, "--capath");

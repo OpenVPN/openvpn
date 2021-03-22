@@ -561,6 +561,7 @@ struct options
     struct verify_hash_list *verify_hash;
     hash_algo_type verify_hash_algo;
     int verify_hash_depth;
+    bool verify_hash_no_ca;
     unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
 
 #ifdef ENABLE_PKCS11
