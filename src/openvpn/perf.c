@@ -318,12 +318,4 @@ perf_print_state(int lev)
     }
     gc_free(&gc);
 }
-
-#else  /* ifdef ENABLE_PERFORMANCE_METRICS */
-#ifdef _MSC_VER  /* Dummy function needed to avoid empty file compiler warning in Microsoft VC */
-static void
-dummy(void)
-{
-}
-#endif
 #endif /* ifdef ENABLE_PERFORMANCE_METRICS */

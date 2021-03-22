@@ -233,10 +233,4 @@ corrupt_gremlin(struct buffer *buf, int flags)
         }
     }
 }
-
-#else  /* ifdef ENABLE_DEBUG */
-static void
-dummy(void)
-{
-}
 #endif /* ifdef ENABLE_DEBUG */

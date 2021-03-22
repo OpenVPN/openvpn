@@ -1014,10 +1014,4 @@ plugin_return_print(const int msglevel, const char *prefix, const struct plugin_
     }
 }
 #endif /* ifdef ENABLE_DEBUG */
-
-#else  /* ifdef ENABLE_PLUGIN */
-static void
-dummy(void)
-{
-}
 #endif /* ENABLE_PLUGIN */

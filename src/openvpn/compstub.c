@@ -175,10 +175,4 @@ const struct compress_alg comp_stub_alg = {
     stub_compress,
     stub_decompress
 };
-
-#else  /* if defined(USE_COMP) */
-static void
-dummy(void)
-{
-}
 #endif /* USE_STUB */

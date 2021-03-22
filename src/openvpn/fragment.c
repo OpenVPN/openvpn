@@ -436,10 +436,4 @@ fragment_wakeup(struct fragment_master *f, struct frame *frame)
     /* delete fragments with expired TTLs */
     fragment_ttl_reap(f);
 }
-
-#else  /* ifdef ENABLE_FRAGMENT */
-static void
-dummy(void)
-{
-}
 #endif /* ifdef ENABLE_FRAGMENT */

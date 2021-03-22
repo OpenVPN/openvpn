@@ -94,10 +94,4 @@ shaper_msg(struct shaper *s)
     msg(M_INFO, "Output Traffic Shaping initialized at %d bytes per second",
         s->bytes_per_second);
 }
-
-#else  /* ifdef ENABLE_FEATURE_SHAPER */
-static void
-dummy(void)
-{
-}
 #endif /* ENABLE_FEATURE_SHAPER */

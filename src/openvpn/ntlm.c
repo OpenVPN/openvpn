@@ -412,10 +412,4 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
     return ((const char *)make_base64_string2((unsigned char *)phase3,
                                               phase3_bufpos, gc));
 }
-
-#else  /* if NTLM */
-static void
-dummy(void)
-{
-}
 #endif /* if NTLM */
