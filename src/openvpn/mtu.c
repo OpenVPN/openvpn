@@ -166,7 +166,7 @@ frame_print(const struct frame *frame,
 #define MTUDISC_NOT_SUPPORTED_MSG "--mtu-disc is not supported on this OS"
 
 void
-set_mtu_discover_type(int sd, int mtu_type, sa_family_t proto_af)
+set_mtu_discover_type(socket_descriptor_t sd, int mtu_type, sa_family_t proto_af)
 {
     if (mtu_type >= 0)
     {

@@ -846,7 +846,7 @@ mac_addr_safe(const char *mac_addr)
 }
 
 static int
-socket_get_sndbuf(int sd)
+socket_get_sndbuf(socket_descriptor_t sd)
 {
 #if defined(HAVE_GETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_SNDBUF)
     int val;
@@ -863,7 +863,7 @@ socket_get_sndbuf(int sd)
 }
 
 static void
-socket_set_sndbuf(int sd, int size)
+socket_set_sndbuf(socket_descriptor_t sd, int size)
 {
 #if defined(HAVE_SETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_SNDBUF)
     if (setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *) &size, sizeof(size)) != 0)
@@ -874,7 +874,7 @@ socket_set_sndbuf(int sd, int size)
 }
 
 static int
-socket_get_rcvbuf(int sd)
+socket_get_rcvbuf(socket_descriptor_t sd)
 {
 #if defined(HAVE_GETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_RCVBUF)
     int val;
@@ -891,7 +891,7 @@ socket_get_rcvbuf(int sd)
 }
 
 static bool
-socket_set_rcvbuf(int sd, int size)
+socket_set_rcvbuf(socket_descriptor_t sd, int size)
 {
 #if defined(HAVE_SETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_RCVBUF)
     if (setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *) &size, sizeof(size)) != 0)
@@ -904,7 +904,7 @@ socket_set_rcvbuf(int sd, int size)
 }
 
 static void
-socket_set_buffers(int fd, const struct socket_buffer_size *sbs)
+socket_set_buffers(socket_descriptor_t fd, const struct socket_buffer_size *sbs)
 {
     if (sbs)
     {
@@ -934,7 +934,7 @@ socket_set_buffers(int fd, const struct socket_buffer_size *sbs)
  */
 
 static bool
-socket_set_tcp_nodelay(int sd, int state)
+socket_set_tcp_nodelay(socket_descriptor_t sd, int state)
 {
 #if defined(_WIN32) || (defined(HAVE_SETSOCKOPT) && defined(IPPROTO_TCP) && defined(TCP_NODELAY))
     if (setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *) &state, sizeof(state)) != 0)
@@ -954,7 +954,7 @@ socket_set_tcp_nodelay(int sd, int state)
 }
 
 static inline void
-socket_set_mark(int sd, int mark)
+socket_set_mark(socket_descriptor_t sd, int mark)
 {
 #if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
     if (mark && setsockopt(sd, SOL_SOCKET, SO_MARK, (void *) &mark, sizeof(mark)) != 0)
@@ -965,7 +965,7 @@ socket_set_mark(int sd, int mark)
 }
 
 static bool
-socket_set_flags(int sd, unsigned int sockflags)
+socket_set_flags(socket_descriptor_t sd, unsigned int sockflags)
 {
     if (sockflags & SF_TCP_NODELAY)
     {

@@ -209,7 +209,7 @@ void frame_print(const struct frame *frame,
                  int level,
                  const char *prefix);
 
-void set_mtu_discover_type(int sd, int mtu_type, sa_family_t proto_af);
+void set_mtu_discover_type(socket_descriptor_t sd, int mtu_type, sa_family_t proto_af);
 
 int translate_mtu_discover_type_name(const char *name);
 

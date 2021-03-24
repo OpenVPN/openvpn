@@ -36,7 +36,7 @@
 
 /* Set a file descriptor to non-blocking */
 bool
-set_nonblock_action(int fd)
+set_nonblock_action(socket_descriptor_t fd)
 {
 #ifdef _WIN32
     u_long arg = 1;
@@ -55,7 +55,7 @@ set_nonblock_action(int fd)
 
 /* Set a file descriptor to not be passed across execs */
 bool
-set_cloexec_action(int fd)
+set_cloexec_action(socket_descriptor_t fd)
 {
 #ifndef _WIN32
     if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0)
@@ -68,7 +68,7 @@ set_cloexec_action(int fd)
 
 /* Set a file descriptor to non-blocking */
 void
-set_nonblock(int fd)
+set_nonblock(socket_descriptor_t fd)
 {
     if (!set_nonblock_action(fd))
     {
@@ -78,7 +78,7 @@ set_nonblock(int fd)
 
 /* Set a file descriptor to not be passed across execs */
 void
-set_cloexec(int fd)
+set_cloexec(socket_descriptor_t fd)
 {
     if (!set_cloexec_action(fd))
     {
