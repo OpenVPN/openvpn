@@ -199,7 +199,7 @@ crypto_clear_error(void)
 void
 crypto_print_openssl_errors(const unsigned int flags)
 {
-    size_t err = 0;
+    unsigned long err = 0;
 
     while ((err = ERR_get_error()))
     {

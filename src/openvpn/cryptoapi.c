@@ -997,7 +997,7 @@ pkey_rsa_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
     }
 
     msg(D_LOW, "cryptoapicert: calling priv_enc_CNG with alg = %ls", alg);
-    *siglen = priv_enc_CNG(cd, alg, tbs, (int)tbslen, sig, *siglen,
+    *siglen = priv_enc_CNG(cd, alg, tbs, (int)tbslen, sig, (int)*siglen,
                            cng_padding_type(padding), (DWORD)saltlen);
 
     return (*siglen == 0) ? 0 : 1;
