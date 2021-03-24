@@ -2470,6 +2470,47 @@ multi_client_connect_early_setup(struct multi_context *m,
 }
 
 /**
+ *  Do the necessary modification for doing the compress migrate. This is
+ *  implemented as a connect handler as it fits the modify config for a client
+ *  paradigm and also is early enough in the chain to be overwritten by another
+ *  ccd/script to do compression on a special client.
+ */
+static enum client_connect_return
+multi_client_connect_compress_migrate(struct multi_context *m,
+                                      struct multi_instance *mi,
+                                      bool deferred,
+                                      unsigned int *option_types_found)
+{
+#ifdef USE_COMP
+    struct options *o = &mi->context.options;
+    const char *const peer_info = mi->context.c2.tls_multi->peer_info;
+
+    if (!peer_info)
+    {
+        return CC_RET_SUCCEEDED;
+    }
+
+    if (o->comp.flags & COMP_F_MIGRATE && mi->context.c2.tls_multi->remote_usescomp)
+    {
+        if(strstr(peer_info, "IV_COMP_STUBv2=1"))
+        {
+            push_option(o, "compress stub-v2", M_USAGE);
+        }
+        else
+        {
+            /* Client is old and does not support STUBv2 but since it
+             * announced comp-lzo via OCC we assume it uses comp-lzo, so
+             * switch to that and push the uncompressed variant. */
+            push_option(o, "comp-lzo no", M_USAGE);
+            o->comp.alg = COMP_ALG_STUB;
+            *option_types_found |= OPT_P_COMP;
+        }
+    }
+#endif
+    return CC_RET_SUCCEEDED;
+}
+
+/**
  * Try to source a dynamic config file from the
  * --client-config-dir directory.
  */
@@ -2537,6 +2578,7 @@ typedef enum client_connect_return (*multi_client_connect_handler)
     bool from_deferred, unsigned int *option_types_found);
 
 static const multi_client_connect_handler client_connect_handlers[] = {
+    multi_client_connect_compress_migrate,
     multi_client_connect_source_ccd,
     multi_client_connect_call_plugin_v1,
     multi_client_connect_call_plugin_v2,

@@ -572,6 +572,7 @@ struct tls_multi
     bool use_peer_id;
 
     char *remote_ciphername;    /**< cipher specified in peer's config file */
+    bool remote_usescomp;       /**< remote announced comp-lzo in OCC string */
 
     /*
      * Our session objects.

@@ -75,3 +75,44 @@ extract_iv_proto(const char *peer_info)
     }
     return 0;
 }
+
+const char *
+options_string_compat_lzo(const char *options, struct gc_arena *gc)
+{
+    /* Example string without and with comp-lzo, i.e. input/output of this function */
+    /* w/o comp: 'V4,dev-type tun,link-mtu 1457,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server' */
+    /* comp-lzo: 'V4,dev-type tun,link-mtu 1458,tun-mtu 1400,proto UDPv4,comp-lzo,auth SHA1,keysize 128,key-method 2,tls-server' */
+
+    /* Note: since this function is used only in a very limited scope it makes
+     * assumptions how the string looks. Since we locally generated the string
+     * we can make these assumptions */
+
+    /* Check that the link-mtu string is in options */
+    const char *tmp = strstr(options, ",link-mtu");
+    if (!tmp)
+    {
+        return options;
+    }
+
+    /* Get old link_mtu size */
+    int link_mtu;
+    if (sscanf(tmp, ",link-mtu %d,", &link_mtu) != 1 || link_mtu < 100 || link_mtu > 9900)
+    {
+        return options;
+    }
+
+    /* 1 byte for the possibility of 999 to 1000 and 1 byte for the null
+     * terminator */
+    struct buffer buf = alloc_buf_gc(strlen(options) + strlen(",comp-lzo") + 2, gc);
+
+    buf_write(&buf, options, (int)(tmp - options));
+
+    /* Increase link-mtu by one for the comp-lzo opcode */
+    buf_printf(&buf, ",link-mtu %d", link_mtu + 1);
+
+    tmp += strlen(",link-mtu ") + (link_mtu < 1000 ? 3 : 4);
+
+    buf_printf(&buf, "%s,comp-lzo", tmp);
+
+    return BSTR(&buf);
+}

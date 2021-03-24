@@ -7783,6 +7783,12 @@ add_option(struct options *options,
                 options->comp.alg = COMP_ALGV2_UNCOMPRESSED;
                 options->comp.flags |= COMP_F_ADVERTISE_STUBS_ONLY;
             }
+            else if (streq(p[1], "migrate"))
+            {
+                options->comp.alg = COMP_ALG_UNDEF;
+                options->comp.flags = COMP_F_MIGRATE;
+
+            }
             else if (options->comp.flags & COMP_F_ALLOW_STUB_ONLY)
             {
                 /* Also printed on a push to hint at configuration problems */

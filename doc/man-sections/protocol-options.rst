@@ -84,10 +84,10 @@ configured in a compatible way between both the local and remote side.
 --compress algorithm
   **DEPRECATED** Enable a compression algorithm.  Compression is generally
   not recommended.  VPN tunnels which use compression are susceptible to
-  the VORALCE attack vector.
+  the VORALCE attack vector. See also the :code:`migrate` parameter below.
 
   The ``algorithm`` parameter may be :code:`lzo`, :code:`lz4`,
-  :code:`lz4-v2`, :code:`stub`, :code:`stub-v2` or empty.
+  :code:`lz4-v2`, :code:`stub`, :code:`stub-v2`, :code:`migrate` or empty.
   LZO and LZ4 are different compression algorithms, with LZ4 generally
   offering the best performance with least CPU usage.
 
@@ -105,6 +105,15 @@ configured in a compatible way between both the local and remote side.
 
   Note: the :code:`stub` (or empty) option is NOT compatible with the older
   option ``--comp-lzo no``.
+
+  Using :code:`migrate` as compression algorithm enables a special migration mode.
+  It allows migration away from the ``--compress``/``--comp-lzo`` options to no compression.
+  This option sets the server to no compression mode and the server behaves identical to
+  a server without a compression option for all clients without a compression in their
+  config. However, if a client is detected that indicates that compression is used (via OCC),
+  the server will automatically add ``--push compress stub-v2`` to the client specific
+  configuration if supported by the client and otherwise switch to ``comp-lzo no``
+  and add ``--push comp-lzo`` to the client specific configuration.
 
   ***Security Considerations***
 

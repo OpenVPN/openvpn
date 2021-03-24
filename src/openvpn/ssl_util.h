@@ -54,4 +54,19 @@ extract_var_peer_info(const char *peer_info,
  */
 unsigned int
 extract_iv_proto(const char *peer_info);
+
+/**
+ * Takes a locally produced OCC string for TLS server mode and modifies as
+ * if the option comp-lzo was enabled. This is to send a client in
+ * comp-lzo migrate mode the expected OCC string.
+ *
+ * Note: This function expects the string to be in the locally generated
+ * format and does not accept arbitrary strings.
+ *
+ * @param options   the locally generated OCC string
+ * @param gc        gc_arena to allocate the returned string in
+ * @return          the modified string or options on error
+ */
+const char *
+options_string_compat_lzo(const char *options, struct gc_arena *gc);
 #endif
