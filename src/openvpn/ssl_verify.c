@@ -906,6 +906,39 @@ key_state_test_auth_control_file(struct key_state *ks)
 
 #endif /* ifdef PLUGIN_DEF_AUTH */
 
+/* This function is called when a session's primary key state first becomes KS_TRUE */
+void ssl_session_fully_authenticated(struct tls_multi *multi, struct tls_session* session)
+{
+    struct key_state *ks = &session->key[KS_PRIMARY];
+    if (ks->key_id == 0)
+    {
+        /* A key id of 0 indicates a new session and the client will
+         * get the auth-token as part of the initial push reply */
+        return;
+    }
+
+    /*
+     * Auth token already sent to client, update auth-token on client.
+     * The initial auth-token is sent as part of the push message, for this
+     * update we need to schedule an extra push message.
+     *
+     * Otherwise the auth-token get pushed out as part of the "normal"
+     * push-reply
+     */
+    if (multi->auth_token_initial)
+    {
+        /*
+         * We do not explicitly schedule the sending of the
+         * control message here but control message are only
+         * postponed when the control channel  is not yet fully
+         * established and furthermore since this is called in
+         * the middle of authentication, there are other messages
+         * (new data channel keys) that are sent anyway and will
+         * trigger scheduling
+         */
+        send_push_reply_auth_token(multi);
+    }
+}
 /*
  * Return current session authentication state.  Return
  * value is TLS_AUTHENTICATION_x.
@@ -975,6 +1008,12 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
                         case ACF_SUCCEEDED:
                         case ACF_DISABLED:
                             success = true;
+                            /* i=0 is the TM_ACTIVE/KS_PRIMARY session */
+                            if (i == 0 && ks->authenticated == KS_AUTH_DEFERRED)
+                            {
+                                ssl_session_fully_authenticated(multi,
+                                                                &multi->session[TM_ACTIVE]);
+                            }
                             ks->authenticated = KS_AUTH_TRUE;
                             break;
 
@@ -1385,31 +1424,14 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
              */
             generate_auth_token(up, multi);
         }
-        /*
-         * Auth token already sent to client, update auth-token on client.
-         * The initial auth-token is sent as part of the push message, for this
-         * update we need to schedule an extra push message.
-         *
-         * Otherwise the auth-token get pushed out as part of the "normal"
-         * push-reply
-         */
-        if (multi->auth_token_initial)
-        {
-            /*
-             * We do not explicitly schedule the sending of the
-             * control message here but control message are only
-             * postponed when the control channel  is not yet fully
-             * established and furthermore since this is called in
-             * the middle of authentication, there are other messages
-             * (new data channel keys) that are sent anyway and will
-             * trigger schedueling
-             */
-            send_push_reply_auth_token(multi);
-        }
         msg(D_HANDSHAKE, "TLS: Username/Password authentication %s for username '%s' %s",
             (ks->authenticated == KS_AUTH_DEFERRED) ? "deferred" : "succeeded",
             up->username,
             (session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME) ? "[CN SET]" : "");
+        if (ks->authenticated == KS_AUTH_TRUE)
+        {
+            ssl_session_fully_authenticated(multi, session);
+        }
     }
     else
     {
