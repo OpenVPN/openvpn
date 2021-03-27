@@ -45,7 +45,7 @@ struct test_context {
     struct tls_multi multi;
     struct key_type kt;
     struct user_pass up;
-    struct tls_session session;
+    struct tls_session *session;
 };
 
 /* Dummy functions that do nothing to mock the functionality */
@@ -100,10 +100,11 @@ setup(void **state)
     }
     ctx->multi.opt.auth_token_generate = true;
     ctx->multi.opt.auth_token_lifetime = 3000;
+    ctx->session = &ctx->multi.session[TM_ACTIVE];
 
-    ctx->session.opt = calloc(1, sizeof(struct tls_options));
-    ctx->session.opt->renegotiate_seconds = 120;
-    ctx->session.opt->auth_token_lifetime = 3000;
+    ctx->session->opt = calloc(1, sizeof(struct tls_options));
+    ctx->session->opt->renegotiate_seconds = 120;
+    ctx->session->opt->auth_token_lifetime = 3000;
 
     strcpy(ctx->up.username, "test user name");
     strcpy(ctx->up.password, "ignored");
@@ -122,7 +123,7 @@ teardown(void **state)
     free_key_ctx(&ctx->multi.opt.auth_token_key);
     wipe_auth_token(&ctx->multi);
 
-    free(ctx->session.opt);
+    free(ctx->session->opt);
     free(ctx);
 
     return 0;
@@ -135,7 +136,7 @@ auth_token_basic_test(void **state)
 
     generate_auth_token(&ctx->up, &ctx->multi);
     strcpy(ctx->up.password, ctx->multi.auth_token);
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK);
 }
 
@@ -146,7 +147,7 @@ auth_token_fail_invalid_key(void **state)
 
     generate_auth_token(&ctx->up, &ctx->multi);
     strcpy(ctx->up.password, ctx->multi.auth_token);
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK);
 
     /* Change auth-token key */
@@ -155,13 +156,13 @@ auth_token_fail_invalid_key(void **state)
     free_key_ctx(&ctx->multi.opt.auth_token_key);
     init_key_ctx(&ctx->multi.opt.auth_token_key, &key, &ctx->kt, false, "TEST");
 
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session), 0);
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session), 0);
 
     /* Load original test key again */
     memset(&key, 0, sizeof(key));
     free_key_ctx(&ctx->multi.opt.auth_token_key);
     init_key_ctx(&ctx->multi.opt.auth_token_key, &key, &ctx->kt, false, "TEST");
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK);
 
 }
@@ -176,32 +177,32 @@ auth_token_test_timeout(void **state)
     strcpy(ctx->up.password, ctx->multi.auth_token);
 
     /* No time has passed */
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK);
 
     /* Token before validity, should be rejected */
     now = 100000 - 100;
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED);
 
     /* Token still in validity, should be accepted */
-    now = 100000 + 2*ctx->session.opt->renegotiate_seconds - 20;
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    now = 100000 + 2*ctx->session->opt->renegotiate_seconds - 20;
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK);
 
     /* Token past validity, should be rejected */
-    now = 100000 + 2*ctx->session.opt->renegotiate_seconds + 20;
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    now = 100000 + 2*ctx->session->opt->renegotiate_seconds + 20;
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED);
 
     /* Check if the mode for a client that never updates its token works */
     ctx->multi.auth_token_initial = strdup(ctx->up.password);
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK);
 
     /* But not when we reached our timeout */
-    now = 100000 + ctx->session.opt->auth_token_lifetime + 1;
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    now = 100000 + ctx->session->opt->auth_token_lifetime + 1;
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED);
 
     free(ctx->multi.auth_token_initial);
@@ -209,22 +210,22 @@ auth_token_test_timeout(void **state)
 
     /* regenerate the token util it hits the expiry */
     now = 100000;
-    while (now < 100000 + ctx->session.opt->auth_token_lifetime + 1)
+    while (now < 100000 + ctx->session->opt->auth_token_lifetime + 1)
     {
-        assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+        assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                          AUTH_TOKEN_HMAC_OK);
         generate_auth_token(&ctx->up, &ctx->multi);
         strcpy(ctx->up.password, ctx->multi.auth_token);
-        now += ctx->session.opt->renegotiate_seconds;
+        now += ctx->session->opt->renegotiate_seconds;
     }
 
 
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED);
     ctx->multi.opt.auth_token_lifetime = 0;
 
     /* Non expiring token should be fine */
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK);
 }
 
@@ -253,7 +254,7 @@ auth_token_test_known_keys(void **state)
     assert_string_equal(now0key0, ctx->multi.auth_token);
 
     strcpy(ctx->up.password, ctx->multi.auth_token);
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK);
 }
 
@@ -277,25 +278,25 @@ auth_token_test_empty_user(void **state)
 
     generate_auth_token(&ctx->up, &ctx->multi);
     strcpy(ctx->up.password, ctx->multi.auth_token);
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK);
 
     now = 100000;
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED);
     strcpy(ctx->up.username, "test user name");
 
     now = 0;
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_VALID_EMPTYUSER);
 
     strcpy(ctx->up.username, "test user name");
     now = 100000;
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED|AUTH_TOKEN_VALID_EMPTYUSER);
 
     zerohmac(ctx->up.password);
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session),
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      0);
 }
 
@@ -304,30 +305,32 @@ auth_token_test_env(void **state)
 {
     struct test_context *ctx = (struct test_context *) *state;
 
-    ctx->multi.auth_token_state_flags = 0;
+    struct key_state *ks = &ctx->multi.session[TM_ACTIVE].key[KS_PRIMARY];
+    
+    ks->auth_token_state_flags = 0;
     ctx->multi.auth_token = NULL;
-    add_session_token_env(&ctx->session, &ctx->multi, &ctx->up);
+    add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
     assert_string_equal(lastsesion_statevalue, "Initial");
 
-    ctx->multi.auth_token_state_flags = 0;
+    ks->auth_token_state_flags = 0;
     strcpy(ctx->up.password, now0key0);
-    add_session_token_env(&ctx->session, &ctx->multi, &ctx->up);
+    add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
     assert_string_equal(lastsesion_statevalue, "Invalid");
 
-    ctx->multi.auth_token_state_flags = AUTH_TOKEN_HMAC_OK;
-    add_session_token_env(&ctx->session, &ctx->multi, &ctx->up);
+    ks->auth_token_state_flags = AUTH_TOKEN_HMAC_OK;
+    add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
     assert_string_equal(lastsesion_statevalue, "Authenticated");
 
-    ctx->multi.auth_token_state_flags = AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED;
-    add_session_token_env(&ctx->session, &ctx->multi, &ctx->up);
+    ks->auth_token_state_flags = AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED;
+    add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
     assert_string_equal(lastsesion_statevalue, "Expired");
 
-    ctx->multi.auth_token_state_flags = AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_VALID_EMPTYUSER;
-    add_session_token_env(&ctx->session, &ctx->multi, &ctx->up);
+    ks->auth_token_state_flags = AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_VALID_EMPTYUSER;
+    add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
     assert_string_equal(lastsesion_statevalue, "AuthenticatedEmptyUser");
 
-    ctx->multi.auth_token_state_flags = AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED|AUTH_TOKEN_VALID_EMPTYUSER;
-    add_session_token_env(&ctx->session, &ctx->multi, &ctx->up);
+    ks->auth_token_state_flags = AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED|AUTH_TOKEN_VALID_EMPTYUSER;
+    add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
     assert_string_equal(lastsesion_statevalue, "ExpiredEmptyUser");
 }
 
@@ -351,7 +354,7 @@ auth_token_test_random_keys(void **state)
     assert_string_equal(random_token, ctx->multi.auth_token);
 
     strcpy(ctx->up.password, ctx->multi.auth_token);
-    assert_true(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session));
+    assert_true(verify_auth_token(&ctx->up, &ctx->multi, ctx->session));
 }
 
 
@@ -363,11 +366,11 @@ auth_token_test_key_load(void **state)
     free_key_ctx(&ctx->multi.opt.auth_token_key);
     auth_token_init_secret(&ctx->multi.opt.auth_token_key, zeroinline, true);
     strcpy(ctx->up.password, now0key0);
-    assert_true(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session));
+    assert_true(verify_auth_token(&ctx->up, &ctx->multi, ctx->session));
 
     free_key_ctx(&ctx->multi.opt.auth_token_key);
     auth_token_init_secret(&ctx->multi.opt.auth_token_key, allx01inline, true);
-    assert_false(verify_auth_token(&ctx->up, &ctx->multi, &ctx->session));
+    assert_false(verify_auth_token(&ctx->up, &ctx->multi, ctx->session));
 }
 
 int

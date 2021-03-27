@@ -166,6 +166,8 @@ enum ks_auth_state {
 struct key_state
 {
     int state;
+    /** The state of the auth-token sent from the client */
+    int auth_token_state_flags;
 
     /**
      * Key id for this key_state,  inherited from struct tls_session.
@@ -582,8 +584,6 @@ struct tls_multi
      * OpenVPN 3 clients sometimes wipes or replaces the username with a
      * username hint from their config.
      */
-    int auth_token_state_flags;
-    /**< The state of the auth-token sent from the client last time */
 
     /* For P_DATA_V2 */
     uint32_t peer_id;

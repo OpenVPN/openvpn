@@ -57,6 +57,7 @@ add_session_token_env(struct tls_session *session, struct tls_multi *multi,
         return;
     }
 
+    int auth_token_state_flags = session->key[KS_PRIMARY].auth_token_state_flags;
 
     const char *state;
 
@@ -64,9 +65,9 @@ add_session_token_env(struct tls_session *session, struct tls_multi *multi,
     {
         state = "Initial";
     }
-    else if (multi->auth_token_state_flags & AUTH_TOKEN_HMAC_OK)
+    else if (auth_token_state_flags & AUTH_TOKEN_HMAC_OK)
     {
-        switch (multi->auth_token_state_flags & (AUTH_TOKEN_VALID_EMPTYUSER|AUTH_TOKEN_EXPIRED))
+        switch (auth_token_state_flags & (AUTH_TOKEN_VALID_EMPTYUSER|AUTH_TOKEN_EXPIRED))
         {
             case 0:
                 state = "Authenticated";
@@ -98,8 +99,8 @@ add_session_token_env(struct tls_session *session, struct tls_multi *multi,
 
     /* We had a valid session id before */
     const char *session_id_source;
-    if (multi->auth_token_state_flags & AUTH_TOKEN_HMAC_OK
-        &!(multi->auth_token_state_flags & AUTH_TOKEN_EXPIRED))
+    if (auth_token_state_flags & AUTH_TOKEN_HMAC_OK
+        && !(auth_token_state_flags & AUTH_TOKEN_EXPIRED))
     {
         session_id_source = up->password;
     }
@@ -236,7 +237,8 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
      * a new token with the empty username since we do not want to loose
      * the information that the username cannot be trusted
      */
-    if (multi->auth_token_state_flags & AUTH_TOKEN_VALID_EMPTYUSER)
+    struct key_state *ks = &multi->session[TM_ACTIVE].key[KS_PRIMARY];
+    if (ks->auth_token_state_flags & AUTH_TOKEN_VALID_EMPTYUSER)
     {
         hmac_ctx_update(ctx, (const uint8_t *) "", 0);
     }
