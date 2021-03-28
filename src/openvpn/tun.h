@@ -130,7 +130,7 @@ struct tuntap_options {
     int dns6_len;
 };
 
-#elif TARGET_LINUX
+#elif defined(TARGET_LINUX)
 
 struct tuntap_options {
     int txqueuelen;
