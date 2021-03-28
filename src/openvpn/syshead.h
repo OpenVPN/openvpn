@@ -392,8 +392,6 @@ typedef int MIB_TCP_STATE;
 #ifdef PEDANTIC
 #undef HAVE_CPP_VARARG_MACRO_GCC
 #undef HAVE_CPP_VARARG_MACRO_ISO
-#undef EMPTY_ARRAY_SIZE
-#define EMPTY_ARRAY_SIZE 1
 #undef inline
 #define inline
 #endif

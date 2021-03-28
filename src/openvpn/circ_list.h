@@ -34,7 +34,7 @@
         int x_size; \
         int x_cap; \
         int x_sizeof; \
-        type x_list[EMPTY_ARRAY_SIZE]; \
+        type x_list[]; \
     }
 
 #define CIRC_LIST_PUSH(obj, item) \

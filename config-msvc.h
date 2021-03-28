@@ -119,7 +119,6 @@
 #define inline __inline
 #endif
 
-#define EMPTY_ARRAY_SIZE 0
 #define TARGET_WIN32 1
 #define TARGET_ALIAS "Windows-MSVC"
 
