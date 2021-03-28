@@ -236,26 +236,22 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
 
     void usage_small(void);
 
-#ifndef HAVE_VARARG_MACROS
     /* the macro has checked this otherwise */
     if (!msg_test(flags))
     {
         return;
     }
-#endif
 
     e = openvpn_errno();
 
     /*
      * Apply muting filter.
      */
-#ifndef HAVE_VARARG_MACROS
     /* the macro has checked this otherwise */
     if (!dont_mute(flags))
     {
         return;
     }
-#endif
 
     gc_init(&gc);
 
