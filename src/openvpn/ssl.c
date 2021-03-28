@@ -2295,7 +2295,8 @@ error:
  * to the TLS control channel (cleartext).
  */
 static bool
-key_method_2_write(struct buffer *buf, struct tls_session *session)
+key_method_2_write(struct buffer *buf, struct tls_multi *multi,
+                   struct tls_session *session)
 {
     struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
 
@@ -2386,12 +2387,17 @@ key_method_2_write(struct buffer *buf, struct tls_session *session)
         goto error;
     }
 
-    /* Generate tunnel keys if we're a TLS server.
-     * If we're a p2mp server and IV_NCP >= 2 is negotiated, the first key
-     * generation is postponed until after the pull/push, so we can process pushed
-     * cipher directives.
+    /*
+     * Generate tunnel keys if we're a TLS server.
+     *
+     * If we're a p2mp server to allow NCP, the first key
+     * generation is postponed until after the connect script finished and the
+     * NCP options can be processed. Since that always happens at after connect
+     * script options are available the CAS_SUCCEEDED status is identical to
+     * NCP options are processed and we have no extra state for NCP finished.
      */
-    if (session->opt->server && !(session->opt->mode == MODE_SERVER && ks->key_id <= 0))
+    if (session->opt->server && (session->opt->mode != MODE_SERVER
+            || multi->multi_state == CAS_SUCCEEDED))
     {
         if (ks->authenticated > KS_AUTH_FALSE)
         {
@@ -2847,7 +2853,7 @@ tls_process(struct tls_multi *multi,
         if (!buf->len && ((ks->state == S_START && !session->opt->server)
                           || (ks->state == S_GOT_KEY && session->opt->server)))
         {
-            if (!key_method_2_write(buf, session))
+            if (!key_method_2_write(buf, multi, session))
             {
                 goto error;
             }
