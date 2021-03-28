@@ -41,6 +41,12 @@ Deprecated features
     This option has very limited usefulness and should be replaced by either
     a better ``--ca`` configuration or with a ``--tls-verify`` script.
 
+``secret`` has been deprecated
+    static key mode (non-TLS) is no longer considered "good and secure enough"
+    for today's requirements.  Use TLS mode instead.  If deploying a PKI CA
+    is considered "too complicated", using ``--peer-fingerprint`` makes
+    TLS mode about as easy as using ``--secret``.
+
 Overview of changes in 2.5
 ==========================
 

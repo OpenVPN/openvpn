@@ -235,7 +235,7 @@ configured in a compatible way between both the local and remote side.
   disables cipher negotiation.
 
 --secret args
-  Enable Static Key encryption mode (non-TLS). Use pre-shared secret
+  **DEPRECATED** Enable Static Key encryption mode (non-TLS). Use pre-shared secret
   ``file`` which was generated with ``--genkey``.
 
   Valid syntaxes:
