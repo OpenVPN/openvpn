@@ -18,9 +18,6 @@
     <ClCompile Include="service.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="automatic.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="common.c">
       <Filter>Source Files</Filter>
     </ClCompile>

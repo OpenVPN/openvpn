@@ -31,7 +31,6 @@ endif
 
 openvpnserv_SOURCES = \
         common.c \
-	automatic.c \
 	interactive.c \
 	service.c service.h \
 	validate.c validate.h \

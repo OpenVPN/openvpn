@@ -224,18 +224,11 @@ int
 _tmain(int argc, TCHAR *argv[])
 {
     /*
-     * Automatic + Interactive service (as a SERVICE_WIN32_SHARE_PROCESS)
+     * Interactive service (as a SERVICE_WIN32_SHARE_PROCESS)
      * This is the default.
      */
     const SERVICE_TABLE_ENTRY dispatchTable_shared[] = {
-        { automatic_service.name, ServiceStartAutomatic },
         { interactive_service.name, ServiceStartInteractive },
-        { NULL, NULL }
-    };
-
-    /* Automatic service only (as a SERVICE_WIN32_OWN_PROCESS) */
-    const SERVICE_TABLE_ENTRY dispatchTable_automatic[] = {
-        { TEXT(""), ServiceStartAutomaticOwn },
         { NULL, NULL }
     };
 
@@ -247,8 +240,7 @@ _tmain(int argc, TCHAR *argv[])
 
     const SERVICE_TABLE_ENTRY *dispatchTable = dispatchTable_shared;
 
-    openvpn_service[0] = automatic_service;
-    openvpn_service[1] = interactive_service;
+    openvpn_service[interactive] = interactive_service;
 
     for (int i = 1; i < argc; i++)
     {
@@ -264,29 +256,33 @@ _tmain(int argc, TCHAR *argv[])
             }
             else if (_tcsicmp(TEXT("start"), argv[i] + 1) == 0)
             {
-                BOOL is_auto = argc < i + 2 || _tcsicmp(TEXT("interactive"), argv[i + 1]) != 0;
-                return CmdStartService(is_auto ? automatic : interactive);
+                return CmdStartService(interactive);
             }
             else if (argc > i + 2 && _tcsicmp(TEXT("instance"), argv[i] + 1) == 0)
             {
-                dispatchTable = _tcsicmp(TEXT("interactive"), argv[i + 1]) != 0 ?
-                                dispatchTable_automatic :
-                                dispatchTable_interactive;
-
-                service_instance = argv[i + 2];
-                i += 2;
+                if (_tcsicmp(TEXT("interactive"), argv[i+1]) == 0)
+                {
+                    dispatchTable = dispatchTable_interactive;
+                    service_instance = argv[i + 2];
+                    i += 2;
+                }
+                else
+                {
+                    MsgToEventLog(M_ERR, L"Invalid argument to -instance <%s>. Service not started.", argv[i+1]);
+                    return 1;
+                }
             }
             else
             {
-                _tprintf(TEXT("%s -install        to install the services\n"), APPNAME);
-                _tprintf(TEXT("%s -start <name>   to start a service (\"automatic\" or \"interactive\")\n"), APPNAME);
-                _tprintf(TEXT("%s -remove         to remove the services\n"), APPNAME);
+                _tprintf(TEXT("%s -install        to install the interactive service\n"), APPNAME);
+                _tprintf(TEXT("%s -start [name]   to start the service (name = \"interactive\" is optional)\n"), APPNAME);
+                _tprintf(TEXT("%s -remove         to remove the service\n"), APPNAME);
 
                 _tprintf(TEXT("\nService run-time parameters:\n"));
-                _tprintf(TEXT("-instance <name> <id>\n")
-                         TEXT("   Runs the service as an alternate instance. <name> can be \"automatic\" or\n")
-                         TEXT("   \"interactive\". The service settings will be loaded from\n")
-                         TEXT("   HKLM\\Software\\" PACKAGE_NAME "<id> registry key, and the interactive service will accept\n")
+                _tprintf(TEXT("-instance interactive <id>\n")
+                         TEXT("   Runs the service as an alternate instance.\n")
+                         TEXT("   The service settings will be loaded from\n")
+                         TEXT("   HKLM\\Software\\" PACKAGE_NAME "<id> registry key, and the service will accept\n")
                          TEXT("   requests on \\\\.\\pipe\\" PACKAGE "<id>\\service named pipe.\n"));
 
                 return 0;
