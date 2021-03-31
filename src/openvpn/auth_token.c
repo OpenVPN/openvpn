@@ -99,7 +99,7 @@ add_session_token_env(struct tls_session *session, struct tls_multi *multi,
     /* We had a valid session id before */
     const char *session_id_source;
     if (multi->auth_token_state_flags & AUTH_TOKEN_HMAC_OK
-        &!(multi->auth_token_state_flags & AUTH_TOKEN_EXPIRED))
+        && !(multi->auth_token_state_flags & AUTH_TOKEN_EXPIRED))
     {
         session_id_source = up->password;
     }
