@@ -52,6 +52,10 @@
                                  *   the reliability layer for one VPN
                                  *   tunnel in one direction can store. */
 
+#define N_ACK_RETRANSMIT 3      /**< We retry sending a packet early if
+                                 *   this many later packets have been
+                                 *   ACKed. */
+
 /**
  * The acknowledgment structure in which packet IDs are stored for later
  * acknowledgment.
@@ -72,6 +76,9 @@ struct reliable_entry
     interval_t timeout;
     time_t next_try;
     packet_id_type packet_id;
+    size_t n_acks;  /* Number of acks received for packets with higher PID.
+                     * Used for fast retransmission when there were at least
+                     * N_ACK_RETRANSMIT. */
     int opcode;
     struct buffer buf;
 };
