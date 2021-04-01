@@ -3101,7 +3101,7 @@ do_init_frame(struct context *c)
      */
     if (c->options.ce.tun_mtu_extra_defined)
     {
-        tun_adjust_frame_parameters(&c->c2.frame, c->options.ce.tun_mtu_extra);
+        frame_add_to_extra_tun(&c->c2.frame, c->options.ce.tun_mtu_extra);
     }
 
     /*

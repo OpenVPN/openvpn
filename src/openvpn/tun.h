@@ -316,16 +316,6 @@ void check_subnet_conflict(const in_addr_t ip,
 void warn_on_use_of_common_subnets(openvpn_net_ctx_t *ctx);
 
 /*
- * Inline functions
- */
-
-static inline void
-tun_adjust_frame_parameters(struct frame *frame, int size)
-{
-    frame_add_to_extra_tun(frame, size);
-}
-
-/*
  * Should ifconfig be called before or after
  * tun dev open?
  */
