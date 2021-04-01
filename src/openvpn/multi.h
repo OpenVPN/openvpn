@@ -150,14 +150,6 @@ struct multi_instance {
  * server-mode.
  */
 struct multi_context {
-#define MC_UNDEF                      0
-#define MC_SINGLE_THREADED            (1<<0)
-#define MC_MULTI_THREADED_MASTER      (1<<1)
-#define MC_MULTI_THREADED_WORKER      (1<<2)
-#define MC_MULTI_THREADED_SCHEDULER   (1<<3)
-#define MC_WORK_THREAD                (MC_MULTI_THREADED_WORKER|MC_MULTI_THREADED_SCHEDULER)
-    int thread_mode;
-
     struct multi_instance **instances;  /**< Array of multi_instances. An instance can be
                                          * accessed using peer-id as an index. */
 
@@ -261,7 +253,7 @@ const char *multi_instance_string(const struct multi_instance *mi, bool null, st
  * Called by mtcp.c, mudp.c, or other (to be written) protocol drivers
  */
 
-void multi_init(struct multi_context *m, struct context *t, bool tcp_mode, int thread_mode);
+void multi_init(struct multi_context *m, struct context *t, bool tcp_mode);
 
 void multi_uninit(struct multi_context *m);
 

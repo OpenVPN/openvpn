@@ -300,7 +300,7 @@ tunnel_server_udp(struct context *top)
     }
 
     /* initialize global multi_context object */
-    multi_init(&multi, top, false, MC_SINGLE_THREADED);
+    multi_init(&multi, top, false);
 
     /* initialize our cloned top object */
     multi_top_init(&multi, top);

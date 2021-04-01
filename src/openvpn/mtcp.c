@@ -789,7 +789,7 @@ tunnel_server_tcp(struct context *top)
     }
 
     /* initialize global multi_context object */
-    multi_init(&multi, top, true, MC_SINGLE_THREADED);
+    multi_init(&multi, top, true);
 
     /* initialize our cloned top object */
     multi_top_init(&multi, top);
