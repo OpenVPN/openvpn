@@ -676,5 +676,15 @@ multi_set_pending(struct multi_context *m, struct multi_instance *mi)
 {
     m->pending = mi;
 }
+/**
+ * Assigns a peer-id to a a client and adds the instance to the
+ * the instances array of the \c multi_context structure.
+ *
+ * @param m            - The single \c multi_context structure.
+ * @param mi           - The \c multi_instance of the VPN tunnel to be
+ *                       postprocessed.
+ */
+void multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi);
+
 
 #endif /* MULTI_H */

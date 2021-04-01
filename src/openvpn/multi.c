@@ -4046,6 +4046,27 @@ init_management_callback_multi(struct multi_context *m)
 #endif /* ifdef ENABLE_MANAGEMENT */
 }
 
+void multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
+{
+    /* max_clients must be less then max peer-id value */
+    ASSERT(m->max_clients < MAX_PEER_ID);
+
+    for (int i = 0; i < m->max_clients; ++i)
+    {
+        if (!m->instances[i])
+        {
+            mi->context.c2.tls_multi->peer_id = i;
+            m->instances[i] = mi;
+            break;
+        }
+    }
+
+    /* should not really end up here, since multi_create_instance returns null
+     * if amount of clients exceeds max_clients */
+    ASSERT(mi->context.c2.tls_multi->peer_id < m->max_clients);
+}
+
+
 /*
  * Top level event loop.
  */
