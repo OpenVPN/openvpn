@@ -165,9 +165,6 @@ struct tuntap
 
     char *actual_name; /* actual name of TUN/TAP dev, usually including unit number */
 
-    /* number of TX buffers */
-    int txqueuelen;
-
     /* ifconfig parameters */
     in_addr_t local;
     in_addr_t remote_netmask;
