@@ -293,10 +293,6 @@ struct tls_options
     char *x509_username_field[2];
 #endif
 
-    /* allow openvpn config info to be
-     * passed over control channel */
-    bool pass_config_info;
-
     /* struct crypto_option flags */
     unsigned int crypto_flags;
 
