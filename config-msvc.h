@@ -48,7 +48,6 @@
 #define HAVE_CHDIR 1
 #define HAVE_CHSIZE 1
 #define HAVE_CTIME 1
-#define HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH 1
 #define HAVE_IN_PKTINFO 1
 #define HAVE_MEMSET 1
 #define HAVE_PUTENV 1

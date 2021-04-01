@@ -1872,11 +1872,6 @@ tls_session_update_crypto_params(struct tls_session *session,
     {
         msg(D_HANDSHAKE, "Data Channel: using negotiated cipher '%s'",
             options->ciphername);
-        if (options->keysize)
-        {
-            msg(D_HANDSHAKE, "NCP: overriding user-set keysize with default");
-            options->keysize = 0;
-        }
     }
     else
     {
@@ -1887,7 +1882,7 @@ tls_session_update_crypto_params(struct tls_session *session,
     }
 
     init_key_type(&session->opt->key_type, options->ciphername,
-                  options->authname, options->keysize, true, true);
+                  options->authname, true, true);
 
     bool packet_id_long_form = cipher_kt_mode_ofb_cfb(session->opt->key_type.cipher);
     session->opt->crypto_flags &= ~(CO_PACKET_ID_LONG_FORM);

@@ -301,14 +301,12 @@ int read_key(struct key *key, const struct key_type *kt, struct buffer *buf);
  * @param kt          The struct key_type to initialize
  * @param ciphername  The name of the cipher to use
  * @param authname    The name of the HMAC digest to use
- * @param keysize     The length of the cipher key to use, in bytes.  Only valid
- *                    for ciphers that support variable length keys.
  * @param tls_mode    Specifies whether we are running in TLS mode, which allows
  *                    more ciphers than static key mode.
  * @param warn        Print warnings when null cipher / auth is used.
  */
 void init_key_type(struct key_type *kt, const char *ciphername,
-                   const char *authname, int keysize, bool tls_mode, bool warn);
+                   const char *authname, bool tls_mode, bool warn);
 
 /*
  * Key context functions

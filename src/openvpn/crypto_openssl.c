@@ -292,10 +292,8 @@ show_available_ciphers(void)
 #ifndef ENABLE_SMALL
     printf("The following ciphers and cipher modes are available for use\n"
            "with " PACKAGE_NAME ".  Each cipher shown below may be used as a\n"
-           "parameter to the --data-ciphers (or --cipher) option.  The\n"
-           "default key size is shown as well as whether or not it can be\n"
-           "changed with the --keysize directive.  Using a GCM or CBC mode\n"
-           "is recommended.  In static key mode only CBC mode is allowed.\n\n");
+           "parameter to the --data-ciphers (or --cipher) option. In static \n"
+           "key mode only CBC mode is allowed.\n\n");
 #endif
 
     for (nid = 0; nid < 10000; ++nid)
@@ -776,12 +774,6 @@ cipher_ctx_init(EVP_CIPHER_CTX *ctx, const uint8_t *key, int key_len,
     {
         crypto_msg(M_FATAL, "EVP cipher init #1");
     }
-#ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
-    if (!EVP_CIPHER_CTX_set_key_length(ctx, key_len))
-    {
-        crypto_msg(M_FATAL, "EVP set key size");
-    }
-#endif
     if (!EVP_CipherInit_ex(ctx, NULL, NULL, key, NULL, enc))
     {
         crypto_msg(M_FATAL, "EVP cipher init #2");

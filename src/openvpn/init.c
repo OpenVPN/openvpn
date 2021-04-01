@@ -2599,7 +2599,7 @@ do_init_crypto_static(struct context *c, const unsigned int flags)
     {
         /* Get cipher & hash algorithms */
         init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname,
-                      options->keysize, options->test_crypto, true);
+                      options->test_crypto, true);
 
         /* Read cipher and hmac keys from shared secret file */
         crypto_read_openvpn_key(&c->c1.ks.key_type, &c->c1.ks.static_key,
@@ -2772,7 +2772,7 @@ do_init_crypto_tls_c1(struct context *c)
             /* Do not warn if the if the cipher is used only in OCC */
             bool warn = !options->ncp_enabled || options->enable_ncp_fallback;
             init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname,
-                          options->keysize, true, warn);
+                          true, warn);
         }
         /* Initialize PRNG with config-specified digest */
         prng_init(options->prng_hash, options->prng_nonce_secret_len);
@@ -4449,7 +4449,6 @@ inherit_context_child(struct context *dest,
     /* inherit pre-NCP ciphers */
     dest->options.ciphername = src->options.ciphername;
     dest->options.authname = src->options.authname;
-    dest->options.keysize = src->options.keysize;
 
     /* inherit auth-token */
     dest->c1.ks.auth_token_key = src->c1.ks.auth_token_key;

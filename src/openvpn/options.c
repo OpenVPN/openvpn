@@ -531,10 +531,6 @@ static const char usage_message[] =
     "--ncp-disable   : (DEPRECATED) Disable cipher negotiation.\n"
     "--prng alg [nsl] : For PRNG, use digest algorithm alg, and\n"
     "                   nonce_secret_len=nsl.  Set alg=none to disable PRNG.\n"
-#ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
-    "--keysize n     : (DEPRECATED) Size of cipher key in bits (optional).\n"
-    "                  If unspecified, defaults to cipher-specific default.\n"
-#endif
 #ifndef ENABLE_CRYPTO_MBEDTLS
     "--engine [name] : Enable OpenSSL hardware crypto engine functionality.\n"
 #endif
@@ -1733,7 +1729,6 @@ show_settings(const struct options *o)
     SHOW_STR(authname);
     SHOW_STR(prng_hash);
     SHOW_INT(prng_nonce_secret_len);
-    SHOW_INT(keysize);
 #ifndef ENABLE_CRYPTO_MBEDTLS
     SHOW_BOOL(engine);
 #endif /* ENABLE_CRYPTO_MBEDTLS */
@@ -2538,11 +2533,6 @@ options_postprocess_verify_ce(const struct options *options,
         {
             msg(M_USAGE, "--vlan-tagging requires --mode server");
         }
-    }
-
-    if (options->keysize)
-    {
-        msg(M_WARN, "WARNING: --keysize is DEPRECATED and will be removed in OpenVPN 2.6");
     }
 
     /*
@@ -3619,7 +3609,6 @@ pre_pull_save(struct options *o)
         /* NCP related options that can be overwritten by a push */
         o->pre_pull->ciphername = o->ciphername;
         o->pre_pull->authname = o->authname;
-        o->pre_pull->keysize = o->keysize;
 
         /* Ping related options should be reset to the config values on reconnect */
         o->pre_pull->ping_rec_timeout = o->ping_rec_timeout;
@@ -3675,7 +3664,6 @@ pre_pull_restore(struct options *o, struct gc_arena *gc)
 
         o->ciphername = pp->ciphername;
         o->authname = pp->authname;
-        o->keysize = pp->keysize;
 
         o->ping_rec_timeout = pp->ping_rec_timeout;
         o->ping_rec_timeout_action = pp->ping_rec_timeout_action;
@@ -3724,8 +3712,7 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
             frame_add_to_extra_frame(&fake_frame, 64/8 + 64/8);
         }
 
-        init_key_type(&fake_kt, ciphername, o->authname, o->keysize, true,
-                      false);
+        init_key_type(&fake_kt, ciphername, o->authname, true, false);
 
         crypto_adjust_frame_parameters(&fake_frame, &fake_kt, o->replay,
                                        cipher_kt_mode_ofb_cfb(fake_kt.cipher));
@@ -3903,14 +3890,12 @@ options_string(const struct options *o,
 
         if (strcmp(o->ciphername, "BF-CBC") == 0)
         {
-            init_key_type(&kt, "none", o->authname, o->keysize, true,
-                          false);
+            init_key_type(&kt, "none", o->authname, true, false);
             keysize = 128;
         }
         else
         {
-            init_key_type(&kt, o->ciphername, o->authname, o->keysize, true,
-                          false);
+            init_key_type(&kt, o->ciphername, o->authname, true, false);
             ciphername = cipher_kt_name(kt.cipher);
             keysize = kt.cipher_length * 8;
         }
@@ -8122,21 +8107,6 @@ add_option(struct options *options,
         }
     }
 #endif /* ENABLE_CRYPTO_MBEDTLS */
-#ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
-    else if (streq(p[0], "keysize") && p[1] && !p[2])
-    {
-        int keysize;
-
-        VERIFY_PERMISSION(OPT_P_NCP);
-        keysize = atoi(p[1]) / 8;
-        if (keysize < 0 || keysize > MAX_CIPHER_KEY_LENGTH)
-        {
-            msg(msglevel, "Bad keysize: %s", p[1]);
-            goto err;
-        }
-        options->keysize = keysize;
-    }
-#endif
 #ifdef ENABLE_PREDICTION_RESISTANCE
     else if (streq(p[0], "use-prediction-resistance") && !p[1])
     {

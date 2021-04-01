@@ -878,7 +878,7 @@ if test "${with_crypto_library}" = "openssl"; then
 		)
 	fi
 
-	AC_CHECK_FUNCS([SSL_CTX_new EVP_CIPHER_CTX_set_key_length],
+	AC_CHECK_FUNCS([SSL_CTX_new],
 				   ,
 				   [AC_MSG_ERROR([openssl check failed])]
 	)

@@ -77,7 +77,6 @@ struct options_pre_pull
 
     const char* ciphername;
     const char* authname;
-    int keysize;
 
     int ping_send_timeout;
     int ping_rec_timeout;
@@ -521,7 +520,6 @@ struct options
     bool ncp_enabled;
     const char *ncp_ciphers;
     const char *authname;
-    int keysize;
     const char *prng_hash;
     int prng_nonce_secret_len;
     const char *engine;
