@@ -198,11 +198,5 @@ comp_non_stub_enabled(const struct compress_options *info)
            && info->alg != COMP_ALG_UNDEF;
 }
 
-static inline bool
-comp_unswapped_prefix(const struct compress_options *info)
-{
-    return !(info->flags & COMP_F_SWAP);
-}
-
 #endif /* USE_COMP */
 #endif /* ifndef OPENVPN_COMP_H */

@@ -301,12 +301,6 @@ frame_add_to_extra_buffer(struct frame *frame, const int increment)
 }
 
 static inline void
-frame_add_to_align_adjust(struct frame *frame, const int increment)
-{
-    frame->align_adjust += increment;
-}
-
-static inline void
 frame_align_to_extra_frame(struct frame *frame)
 {
     frame->align_adjust = frame->extra_frame + frame->extra_link;
