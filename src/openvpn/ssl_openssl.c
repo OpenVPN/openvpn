@@ -335,6 +335,12 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
     sslopt |= SSL_OP_CIPHER_SERVER_PREFERENCE;
 #endif
     sslopt |= SSL_OP_NO_COMPRESSION;
+    /* Disable TLS renegotiations. OpenVPN's renegotiation creates new SSL
+     * session and does not depend on this feature. And TLS renegotiations have
+     * been problematic in the past */
+#ifdef SSL_OP_NO_RENEGOTIATION
+    sslopt |= SSL_OP_NO_RENEGOTIATION;
+#endif
 
     SSL_CTX_set_options(ctx->ctx, sslopt);
 

@@ -1098,6 +1098,10 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
     {
         mbedtls_ssl_conf_curves(ks_ssl->ssl_config, ssl_ctx->groups);
     }
+    /* Disable TLS renegotiations. OpenVPN's renegotiation creates new SSL
+     * session and does not depend on this feature. And TLS renegotiations have
+     * been problematic in the past */
+    mbedtls_ssl_conf_renegotiation(ks_ssl->ssl_config, MBEDTLS_SSL_RENEGOTIATION_DISABLED);
 
     /* Disable record splitting (for now).  OpenVPN assumes records are sent
      * unfragmented, and changing that will require thorough review and
