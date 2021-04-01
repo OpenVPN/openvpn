@@ -992,9 +992,7 @@ key_state_free(struct key_state *ks, bool clear)
 
     packet_id_free(&ks->crypto_options.packet_id);
 
-#ifdef PLUGIN_DEF_AUTH
     key_state_rm_auth_control_files(ks);
-#endif
 
     if (clear)
     {
