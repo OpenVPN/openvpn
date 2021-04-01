@@ -474,18 +474,6 @@ socket_descriptor_t socket_do_accept(socket_descriptor_t sd,
                                      struct link_socket_actual *act,
                                      const bool nowait);
 
-/*
- * proto related
- */
-bool proto_is_net(int proto);
-
-bool proto_is_dgram(int proto);
-
-bool proto_is_udp(int proto);
-
-bool proto_is_tcp(int proto);
-
-
 #if UNIX_SOCK_SUPPORT
 
 socket_descriptor_t create_socket_unix(void);
@@ -571,6 +559,44 @@ enum proto_num {
     PROTO_TCP_CLIENT,
     PROTO_N
 };
+
+static inline bool
+proto_is_net(int proto)
+{
+    ASSERT(proto >= 0 && proto < PROTO_N);
+    return proto != PROTO_NONE;
+}
+
+/**
+ * @brief Returns if the protocol being used is UDP
+ */
+static inline bool
+proto_is_udp(int proto)
+{
+    ASSERT(proto >= 0 && proto < PROTO_N);
+    return proto == PROTO_UDP;
+}
+
+/**
+ * @brief Return if the protocol is datagram (UDP)
+ *
+ */
+static inline bool
+proto_is_dgram(int proto)
+{
+    return proto_is_udp(proto);
+}
+
+/**
+  * @brief returns if the proto is a TCP variant (tcp-server, tcp-client or tcp)
+ */
+static inline bool
+proto_is_tcp(int proto)
+{
+    ASSERT(proto >= 0 && proto < PROTO_N);
+    return proto == PROTO_TCP_CLIENT || proto == PROTO_TCP_SERVER;
+}
+
 
 int ascii2proto(const char *proto_name);
 

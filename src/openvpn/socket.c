@@ -3101,42 +3101,6 @@ static const struct proto_names proto_names[] = {
     {"tcp6",        "TCPv6", AF_INET6, PROTO_TCP},
 };
 
-bool
-proto_is_net(int proto)
-{
-    if (proto < 0 || proto >= PROTO_N)
-    {
-        ASSERT(0);
-    }
-    return proto != PROTO_NONE;
-}
-
-bool
-proto_is_dgram(int proto)
-{
-    return proto_is_udp(proto);
-}
-
-bool
-proto_is_udp(int proto)
-{
-    if (proto < 0 || proto >= PROTO_N)
-    {
-        ASSERT(0);
-    }
-    return proto == PROTO_UDP;
-}
-
-bool
-proto_is_tcp(int proto)
-{
-    if (proto < 0 || proto >= PROTO_N)
-    {
-        ASSERT(0);
-    }
-    return proto == PROTO_TCP_CLIENT || proto == PROTO_TCP_SERVER;
-}
-
 int
 ascii2proto(const char *proto_name)
 {
