@@ -530,17 +530,6 @@ tls_initial_packet_received(const struct tls_multi *multi)
     return multi->n_sessions > 0;
 }
 
-static inline bool
-tls_test_auth_deferred_interval(const struct tls_multi *multi)
-{
-    if (multi)
-    {
-        const struct key_state *ks = &multi->session[TM_ACTIVE].key[KS_PRIMARY];
-        return now < ks->auth_deferred_expire;
-    }
-    return false;
-}
-
 static inline int
 tls_test_payload_len(const struct tls_multi *multi)
 {
