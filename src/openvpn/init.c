@@ -3363,62 +3363,6 @@ do_link_socket_new(struct context *c)
 }
 
 /*
- * bind the TCP/UDP socket
- */
-static void
-do_init_socket_1(struct context *c, const int mode)
-{
-    unsigned int sockflags = c->options.sockflags;
-
-#if PORT_SHARE
-    if (c->options.port_share_host && c->options.port_share_port)
-    {
-        sockflags |= SF_PORT_SHARE;
-    }
-#endif
-
-    link_socket_init_phase1(c->c2.link_socket,
-                            c->options.ce.local,
-                            c->options.ce.local_port,
-                            c->options.ce.remote,
-                            c->options.ce.remote_port,
-                            c->c1.dns_cache,
-                            c->options.ce.proto,
-                            c->options.ce.af,
-                            c->options.ce.bind_ipv6_only,
-                            mode,
-                            c->c2.accept_from,
-                            c->c1.http_proxy,
-                            c->c1.socks_proxy,
-#ifdef ENABLE_DEBUG
-                            c->options.gremlin,
-#endif
-                            c->options.ce.bind_local,
-                            c->options.ce.remote_float,
-                            &c->c1.link_socket_addr,
-                            c->options.ipchange,
-                            c->plugins,
-                            c->options.resolve_retry_seconds,
-                            c->options.ce.mtu_discover_type,
-                            c->options.rcvbuf,
-                            c->options.sndbuf,
-                            c->options.mark,
-                            c->options.bind_dev,
-                            &c->c2.server_poll_interval,
-                            sockflags);
-}
-
-/*
- * finalize the TCP/UDP socket
- */
-static void
-do_init_socket_2(struct context *c)
-{
-    link_socket_init_phase2(c->c2.link_socket, &c->c2.frame,
-                            c->sig);
-}
-
-/*
  * Print MTU INFO
  */
 static void
@@ -4282,7 +4226,7 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     /* bind the TCP/UDP socket */
     if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
     {
-        do_init_socket_1(c, link_socket_mode);
+        link_socket_init_phase1(c, link_socket_mode);
     }
 
     /* initialize tun/tap device object,
@@ -4326,7 +4270,7 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     /* finalize the TCP/UDP socket */
     if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
     {
-        do_init_socket_2(c);
+        link_socket_init_phase2(c);
     }
 
     /*

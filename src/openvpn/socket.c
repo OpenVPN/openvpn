@@ -1876,77 +1876,60 @@ link_socket_new(void)
 }
 
 void
-link_socket_init_phase1(struct link_socket *sock,
-                        const char *local_host,
-                        const char *local_port,
-                        const char *remote_host,
-                        const char *remote_port,
-                        struct cached_dns_entry *dns_cache,
-                        int proto,
-                        sa_family_t af,
-                        bool bind_ipv6_only,
-                        int mode,
-                        const struct link_socket *accept_from,
-                        struct http_proxy_info *http_proxy,
-                        struct socks_proxy_info *socks_proxy,
-#ifdef ENABLE_DEBUG
-                        int gremlin,
-#endif
-                        bool bind_local,
-                        bool remote_float,
-                        struct link_socket_addr *lsa,
-                        const char *ipchange_command,
-                        const struct plugin_list *plugins,
-                        int resolve_retry_seconds,
-                        int mtu_discover_type,
-                        int rcvbuf,
-                        int sndbuf,
-                        int mark,
-                        const char *bind_dev,
-                        struct event_timeout *server_poll_timeout,
-                        unsigned int sockflags)
+link_socket_init_phase1(struct context *c, int mode)
 {
+    struct link_socket *sock = c->c2.link_socket;
+    struct options *o = &c->options;
     ASSERT(sock);
 
-    sock->local_host = local_host;
-    sock->local_port = local_port;
+    const char *remote_host = o->ce.remote;
+    const char *remote_port = o->ce.remote_port;
+
+    sock->local_host = o->ce.local;
+    sock->local_port = o->ce.local_port;
     sock->remote_host = remote_host;
     sock->remote_port = remote_port;
-    sock->dns_cache = dns_cache;
-    sock->http_proxy = http_proxy;
-    sock->socks_proxy = socks_proxy;
-    sock->bind_local = bind_local;
-    sock->resolve_retry_seconds = resolve_retry_seconds;
-    sock->mtu_discover_type = mtu_discover_type;
+    sock->dns_cache = c->c1.dns_cache;
+    sock->http_proxy = c->c1.http_proxy;
+    sock->socks_proxy = c->c1.socks_proxy;
+    sock->bind_local = o->ce.bind_local;
+    sock->resolve_retry_seconds = o->resolve_retry_seconds;
+    sock->mtu_discover_type = o->ce.mtu_discover_type;
 
 #ifdef ENABLE_DEBUG
-    sock->gremlin = gremlin;
+    sock->gremlin = o->gremlin;
 #endif
 
-    sock->socket_buffer_sizes.rcvbuf = rcvbuf;
-    sock->socket_buffer_sizes.sndbuf = sndbuf;
+    sock->socket_buffer_sizes.rcvbuf = o->rcvbuf;
+    sock->socket_buffer_sizes.sndbuf = o->sndbuf;
 
-    sock->sockflags = sockflags;
-    sock->mark = mark;
-    sock->bind_dev = bind_dev;
+    sock->sockflags = o->sockflags;
+#if PORT_SHARE
+    if (o->port_share_host && o->port_share_port)
+    {
+        sock->sockflags |= SF_PORT_SHARE;
+    }
+#endif
+    sock->mark = o->mark;
+    sock->bind_dev = o->bind_dev;
 
-    sock->info.proto = proto;
-    sock->info.af = af;
-    sock->info.remote_float = remote_float;
-    sock->info.lsa = lsa;
-    sock->info.bind_ipv6_only = bind_ipv6_only;
-    sock->info.ipchange_command = ipchange_command;
-    sock->info.plugins = plugins;
-    sock->server_poll_timeout = server_poll_timeout;
+    sock->info.proto = o->ce.proto;
+    sock->info.af = o->ce.af;
+    sock->info.remote_float = o->ce.remote_float;
+    sock->info.lsa = &c->c1.link_socket_addr;
+    sock->info.bind_ipv6_only = o->ce.bind_ipv6_only;
+    sock->info.ipchange_command = o->ipchange;
+    sock->info.plugins = c->plugins;
+    sock->server_poll_timeout = &c->c2.server_poll_interval;
 
     sock->mode = mode;
     if (mode == LS_MODE_TCP_ACCEPT_FROM)
     {
-        ASSERT(accept_from);
+        ASSERT(c->c2.accept_from);
         ASSERT(sock->info.proto == PROTO_TCP_SERVER);
-        sock->sd = accept_from->sd;
+        sock->sd = c->c2.accept_from->sd;
         /* inherit (possibly guessed) info AF from parent context */
-        sock->info.af = accept_from->info.af;
+        sock->info.af = c->c2.accept_from->info.af;
     }
 
     /* are we running in HTTP proxy mode? */
@@ -1955,8 +1938,8 @@ link_socket_init_phase1(struct link_socket *sock,
         ASSERT(sock->info.proto == PROTO_TCP_CLIENT);
 
         /* the proxy server */
-        sock->remote_host = http_proxy->options.server;
-        sock->remote_port = http_proxy->options.port;
+        sock->remote_host = c->c1.http_proxy->options.server;
+        sock->remote_port = c->c1.http_proxy->options.port;
 
         /* the OpenVPN server we will use the proxy to connect to */
         sock->proxy_dest_host = remote_host;
@@ -1966,8 +1949,8 @@ link_socket_init_phase1(struct link_socket *sock,
     else if (sock->socks_proxy)
     {
         /* the proxy server */
-        sock->remote_host = socks_proxy->server;
-        sock->remote_port = socks_proxy->port;
+        sock->remote_host = c->c1.socks_proxy->server;
+        sock->remote_port = c->c1.socks_proxy->port;
 
         /* the OpenVPN server we will use the proxy to connect to */
         sock->proxy_dest_host = remote_host;
@@ -2188,10 +2171,12 @@ phase2_socks_client(struct link_socket *sock, struct signal_info *sig_info)
 
 /* finalize socket initialization */
 void
-link_socket_init_phase2(struct link_socket *sock,
-                        const struct frame *frame,
-                        struct signal_info *sig_info)
+link_socket_init_phase2(struct context *c)
 {
+    struct link_socket *sock = c->c2.link_socket;
+    const struct frame *frame = &c->c2.frame;
+    struct signal_info *sig_info = c->sig;
+
     const char *remote_dynamic = NULL;
     int sig_save = 0;
 

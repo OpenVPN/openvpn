@@ -292,43 +292,9 @@ int openvpn_connect(socket_descriptor_t sd,
 /*
  * Initialize link_socket object.
  */
-/* *INDENT-OFF* uncrustify misparses this function declarion because of
- * embedded #if/#endif tell it to skip this section */
-void
-link_socket_init_phase1(struct link_socket *sock,
-                        const char *local_host,
-                        const char *local_port,
-                        const char *remote_host,
-                        const char *remote_port,
-                        struct cached_dns_entry *dns_cache,
-                        int proto,
-                        sa_family_t af,
-                        bool bind_ipv6_only,
-                        int mode,
-                        const struct link_socket *accept_from,
-                        struct http_proxy_info *http_proxy,
-                        struct socks_proxy_info *socks_proxy,
-#ifdef ENABLE_DEBUG
-                        int gremlin,
-#endif
-                        bool bind_local,
-                        bool remote_float,
-                        struct link_socket_addr *lsa,
-                        const char *ipchange_command,
-                        const struct plugin_list *plugins,
-                        int resolve_retry_seconds,
-                        int mtu_discover_type,
-                        int rcvbuf,
-                        int sndbuf,
-                        int mark,
-                        const char *bind_dev,
-                        struct event_timeout *server_poll_timeout,
-                        unsigned int sockflags);
-/* Reenable uncrustify *INDENT-ON* */
+void link_socket_init_phase1(struct context *c, int mode);
 
-void link_socket_init_phase2(struct link_socket *sock,
-                             const struct frame *frame,
-                             struct signal_info *sig_info);
+void link_socket_init_phase2(struct context *c);
 
 void do_preresolve(struct context *c);
 
