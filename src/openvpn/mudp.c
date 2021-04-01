@@ -195,12 +195,10 @@ multi_process_io_udp(struct multi_context *m)
     {
         strcat(buf, "TW/");
     }
-#ifdef ENABLE_ASYNC_PUSH
     else if (status & FILE_CLOSED)
     {
         strcat(buf, "FC/");
     }
-#endif
     printf("IO %s\n", buf);
 #endif /* ifdef MULTI_DEBUG_EVENT_LOOP */
 

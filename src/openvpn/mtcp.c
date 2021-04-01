@@ -59,13 +59,8 @@
 #define MTCP_SOCKET      ((void *)1)
 #define MTCP_TUN         ((void *)2)
 #define MTCP_SIG         ((void *)3) /* Only on Windows */
-#ifdef ENABLE_MANAGEMENT
 #define MTCP_MANAGEMENT ((void *)4)
-#endif
-
-#ifdef ENABLE_ASYNC_PUSH
 #define MTCP_FILE_CLOSE_WRITE ((void *)5)
-#endif
 
 #define MTCP_N           ((void *)16) /* upper bound on MTCP_x */
 

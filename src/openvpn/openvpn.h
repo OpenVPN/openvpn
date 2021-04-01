@@ -252,13 +252,9 @@ struct context_2
 #define TUN_WRITE         (1<<3)
 #define ES_ERROR          (1<<4)
 #define ES_TIMEOUT        (1<<5)
-#ifdef ENABLE_MANAGEMENT
 #define MANAGEMENT_READ  (1<<6)
 #define MANAGEMENT_WRITE (1<<7)
-#endif
-#ifdef ENABLE_ASYNC_PUSH
 #define FILE_CLOSED       (1<<8)
-#endif
 
     unsigned int event_set_status;
 
