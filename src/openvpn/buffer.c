@@ -709,7 +709,6 @@ string_alloc(const char *str, struct gc_arena *gc)
              */
 #ifdef DMALLOC
             ret = openvpn_dmalloc(file, line, n);
-            memset(ret, 0, n);
 #else
             ret = calloc(1, n);
 #endif
