@@ -2485,14 +2485,9 @@ multi_client_connect_compress_migrate(struct multi_context *m,
     struct options *o = &mi->context.options;
     const char *const peer_info = mi->context.c2.tls_multi->peer_info;
 
-    if (!peer_info)
-    {
-        return CC_RET_SUCCEEDED;
-    }
-
     if (o->comp.flags & COMP_F_MIGRATE && mi->context.c2.tls_multi->remote_usescomp)
     {
-        if(strstr(peer_info, "IV_COMP_STUBv2=1"))
+        if(peer_info && strstr(peer_info, "IV_COMP_STUBv2=1"))
         {
             push_option(o, "compress stub-v2", M_USAGE);
         }
