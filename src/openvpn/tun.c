@@ -281,7 +281,6 @@ out:
 static bool
 do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
 {
-    DWORD len;
     bool ret = false;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
