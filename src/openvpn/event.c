@@ -555,7 +555,10 @@ ep_del(struct event_set *es, event_t event)
 
     ASSERT(!eps->fast);
     CLEAR(ev);
-    epoll_ctl(eps->epfd, EPOLL_CTL_DEL, event, &ev);
+    if (epoll_ctl(eps->epfd, EPOLL_CTL_DEL, event, &ev) < 0)
+    {
+        msg(M_WARN|M_ERRNO, "EVENT: epoll_ctl EPOLL_CTL_DEL failed, sd=%d", (int)event);
+    }
 }
 
 static void
@@ -844,7 +847,8 @@ po_wait(struct event_set *es, const struct timeval *tv, struct event_set_return 
             }
             else if (pfdp->revents)
             {
-                msg(D_EVENT_ERRORS, "Error: poll: unknown revents=0x%04x", (unsigned int)pfdp->revents);
+                msg(D_EVENT_ERRORS, "Error: poll: unknown revents=0x%04x for fd=%d",
+                    (unsigned int)pfdp->revents, pfdp->fd);
             }
             ++pfdp;
         }

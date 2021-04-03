@@ -690,15 +690,15 @@ x_check_status(int status,
         {
             if (extended_msg)
             {
-                msg(x_cs_info_level, "%s %s [%s]: %s (code=%d)", description,
+                msg(x_cs_info_level, "%s %s [%s]: %s (fd=%d,code=%d)", description,
                     sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
-                    extended_msg, strerror(my_errno), my_errno);
+                    extended_msg, strerror(my_errno), sock ? sock->sd : -1, my_errno);
             }
             else
             {
-                msg(x_cs_info_level, "%s %s: %s (code=%d)", description,
+                msg(x_cs_info_level, "%s %s: %s (fd=%d,code=%d)", description,
                     sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
-                    strerror(my_errno), my_errno);
+                    strerror(my_errno), sock ? sock->sd : -1, my_errno);
             }
 
             if (x_cs_err_delay_ms)
