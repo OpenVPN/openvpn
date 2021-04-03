@@ -2984,11 +2984,11 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
          * and an auth_control_file, we assume it got just added and add
          * inotify watch to that file
          */
-        if (ks && ks->auth_control_file && was_unauthenticated
+        if (ks && ks->plugin_auth.auth_control_file && was_unauthenticated
             && (ks->authenticated == KS_AUTH_DEFERRED))
         {
             add_inotify_file_watch(m, mi, m->top.c2.inotify_fd,
-                                   ks->auth_control_file);
+                                   ks->plugin_auth.auth_control_file);
         }
 #endif
 
