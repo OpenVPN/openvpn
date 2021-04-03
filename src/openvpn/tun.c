@@ -1206,10 +1206,12 @@ static void
 do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
                  const struct env_set *es, openvpn_net_ctx_t *ctx)
 {
+#if !defined(_WIN32) && !defined(TARGET_ANDROID)
     /*
      * We only handle TUN/TAP devices here, not --dev null devices.
      */
     bool tun = is_tun_p2p(tt);
+#endif
 
 #if !defined(TARGET_LINUX)
     const char *ifconfig_local = NULL;
@@ -1533,7 +1535,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         msg(M_INFO,
             "******** NOTE:  Please manually set the IP/netmask of '%s' to %s/%s (if it is not already set)",
             ifname, ifconfig_local,
-            print_in_addr_t(tt->adapter_netmask, 0, &gc));
+            ifconfig_remote_netmask);
     }
     else if (tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ || tt->options.ip_win32_type == IPW32_SET_ADAPTIVE)
     {
