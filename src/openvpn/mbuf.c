@@ -29,8 +29,6 @@
 
 #include "syshead.h"
 
-#if P2MP
-
 #include "buffer.h"
 #include "error.h"
 #include "integer.h"
@@ -171,4 +169,3 @@ mbuf_dereference_instance(struct mbuf_set *ms, struct multi_instance *mi)
         }
     }
 }
-#endif /* P2MP */

@@ -74,14 +74,11 @@ void check_tls_errors_co(struct context *c);
 
 void check_tls_errors_nco(struct context *c);
 
-#if P2MP
 void check_incoming_control_channel(struct context *c);
 
 void check_scheduled_exit(struct context *c);
 
 void check_push_request(struct context *c);
-
-#endif /* P2MP */
 
 #ifdef ENABLE_FRAGMENT
 void check_fragment(struct context *c);
@@ -336,10 +333,7 @@ void reschedule_multi_process(struct context *c);
 
 void process_ip_header(struct context *c, unsigned int flags, struct buffer *buf);
 
-#if P2MP
 void schedule_exit(struct context *c, const int n_seconds, const int signal);
-
-#endif
 
 static inline struct link_socket_info *
 get_link_socket_info(struct context *c)

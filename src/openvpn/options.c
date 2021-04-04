@@ -403,7 +403,6 @@ static const char usage_message[] =
     "--vlan-tagging  : Enable 802.1Q-based VLAN tagging.\n"
     "--vlan-accept tagged|untagged|all : Set VLAN tagging mode. Default is 'all'.\n"
     "--vlan-pvid v   : Sets the Port VLAN Identifier. Defaults to 1.\n"
-#if P2MP
     "\n"
     "Multi-Client Server options (when --mode server is used):\n"
     "--server network netmask : Helper option to easily configure server mode.\n"
@@ -508,7 +507,6 @@ static const char usage_message[] =
     "                  waiting for a response before trying the next server.\n"
     "--allow-recursive-routing : When this option is set, OpenVPN will not drop\n"
     "                  incoming tun packets with same destination as host.\n"
-#endif /* if P2MP */
     "--explicit-exit-notify [n] : On exit/restart, send exit signal to\n"
     "                  server/remote. n = # of retries, default=1.\n"
     "\n"
@@ -844,9 +842,7 @@ init_options(struct options *o, const bool init_gc)
     o->max_routes_per_client = 256;
     o->stale_routes_check_interval = 0;
     o->ifconfig_pool_persist_refresh_freq = 600;
-#if P2MP
     o->scheduled_exit_interval = 5;
-#endif
     o->ncp_enabled = true;
     o->ncp_ciphers = "AES-256-GCM:AES-128-GCM";
     o->authname = "SHA1";
@@ -1289,8 +1285,6 @@ print_vlan_accept(enum vlan_acceptable_frames mode)
     return NULL;
 }
 
-#if P2MP
-
 #ifndef ENABLE_SMALL
 
 static void
@@ -1418,7 +1412,6 @@ option_iroute_ipv6(struct options *o,
     ir->next = o->iroutes_ipv6;
     o->iroutes_ipv6 = ir;
 }
-#endif /* P2MP */
 
 #ifndef ENABLE_SMALL
 static void
@@ -1612,9 +1605,7 @@ show_settings(const struct options *o)
     SHOW_INT(ifconfig_ipv6_netbits);
     SHOW_STR(ifconfig_ipv6_remote);
 
-#ifdef ENABLE_FEATURE_SHAPER
     SHOW_INT(shaper);
-#endif
     SHOW_INT(mtu_test);
 
     SHOW_BOOL(mlock);
@@ -1839,9 +1830,7 @@ show_settings(const struct options *o)
     SHOW_BOOL(pkcs11_id_management);
 #endif                  /* ENABLE_PKCS11 */
 
-#if P2MP
     show_p2mp_parms(o);
-#endif
 
 #ifdef _WIN32
     SHOW_BOOL(show_net_up);
@@ -2101,9 +2090,7 @@ options_postprocess_verify_ce(const struct options *options,
     }
 
     /* will we be pulling options from server? */
-#if P2MP
     pull = options->pull;
-#endif
 
     /*
      * Sanity check on --local, --remote, and --ifconfig
@@ -2742,10 +2729,13 @@ options_postprocess_verify_ce(const struct options *options,
 
                 if (sum == 0)
                 {
-#if P2MP
                     if (!options->auth_user_pass_file)
-#endif
-                    msg(M_USAGE, "No client-side authentication method is specified.  You must use either --cert/--key, --pkcs12, or --auth-user-pass");
+                    {
+                        msg(M_USAGE, "No client-side authentication method is "
+                                     "specified.  You must use either "
+                                     "--cert/--key, --pkcs12, or "
+                                     "--auth-user-pass");
+                    }
                 }
                 else if (sum == 2)
                 {
@@ -2833,12 +2823,10 @@ options_postprocess_verify_ce(const struct options *options,
     }
 #undef MUST_BE_UNDEF
 
-#if P2MP
     if (options->auth_user_pass_file && !options->pull)
     {
         msg(M_USAGE, "--auth-user-pass requires --pull");
     }
-#endif
 
     uninit_options(&defaults);
 }
@@ -2856,7 +2844,6 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         }
     }
 
-#if P2MP
     if (o->client)
     {
         if (ce->proto == PROTO_TCP)
@@ -2864,7 +2851,6 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
             ce->proto = PROTO_TCP_CLIENT;
         }
     }
-#endif
 
     if (ce->proto == PROTO_TCP_CLIENT && !ce->local
         && !ce->local_port_defined && !ce->bind_defined)
@@ -3217,12 +3203,10 @@ options_postprocess_mutate(struct options *o)
         o->verify_hash_no_ca = true;
     }
 
-#if P2MP
     /*
      * Save certain parms before modifying options via --pull
      */
     pre_pull_save(o);
-#endif
 }
 
 /*
@@ -3529,12 +3513,9 @@ options_postprocess_filechecks(struct options *options)
                               options->management_user_pass, R_OK,
                               "--management user/password file");
 #endif /* ENABLE_MANAGEMENT */
-#if P2MP
     errs |= check_file_access(CHKACC_FILE|CHKACC_ACPTSTDIN|CHKACC_PRIVATE,
                               options->auth_user_pass_file, R_OK,
                               "--auth-user-pass");
-#endif /* P2MP */
-
     /* ** System related ** */
     errs |= check_file_access(CHKACC_FILE, options->chroot_dir,
                               R_OK|X_OK, "--chroot directory");
@@ -3574,8 +3555,6 @@ options_postprocess(struct options *options)
     options_postprocess_filechecks(options);
 #endif /* !ENABLE_SMALL */
 }
-
-#if P2MP
 
 /*
  * Save/Restore certain option defaults before --pull is applied.
@@ -3675,7 +3654,6 @@ pre_pull_restore(struct options *o, struct gc_arena *gc)
     o->data_channel_use_ekm = false;
 }
 
-#endif /* if P2MP */
 /**
  * Calculate the link-mtu to advertise to our peer.  The actual value is not
  * relevant, because we will possibly perform data channel cipher negotiation
@@ -4301,8 +4279,6 @@ print_topology(const int topology)
     }
 }
 
-#if P2MP
-
 /*
  * Manage auth-retry variable
  */
@@ -4356,8 +4332,6 @@ auth_retry_print(void)
             return "???";
     }
 }
-
-#endif /* if P2MP */
 
 /*
  * Print the help message.
@@ -5093,8 +5067,6 @@ options_string_import(struct options *options,
     read_config_string("[CONFIG-STRING]", options, config, msglevel, permission_mask, option_types_found, es);
 }
 
-#if P2MP
-
 #define VERIFY_PERMISSION(mask) {                                            \
         if (!verify_permission(p[0], file, line, (mask), permission_mask,        \
                                option_types_found, msglevel, options, is_inline)) \
@@ -5155,12 +5127,6 @@ verify_permission(const char *name,
 #endif
     return true;
 }
-
-#else  /* if P2MP */
-
-#define VERIFY_PERMISSION(mask)
-
-#endif /* if P2MP */
 
 /*
  * Check that an option doesn't have too
@@ -6166,7 +6132,6 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "shaper") && p[1] && !p[2])
     {
-#ifdef ENABLE_FEATURE_SHAPER
         int shaper;
 
         VERIFY_PERMISSION(OPT_P_SHAPER);
@@ -6178,11 +6143,6 @@ add_option(struct options *options,
             goto err;
         }
         options->shaper = shaper;
-#else /* ENABLE_FEATURE_SHAPER */
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        msg(msglevel, "--shaper requires the gettimeofday() function which is missing");
-        goto err;
-#endif /* ENABLE_FEATURE_SHAPER */
     }
     else if (streq(p[0], "port") && p[1] && !p[2])
     {
@@ -6760,7 +6720,6 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->occ = false;
     }
-#if P2MP
     else if (streq(p[0], "server") && p[1] && p[2] && !p[4])
     {
         const int lev = M_WARN;
@@ -7350,7 +7309,6 @@ add_option(struct options *options,
         }
     }
 #endif
-#endif /* if P2MP */
     else if (streq(p[0], "msg-channel") && p[1])
     {
 #ifdef _WIN32

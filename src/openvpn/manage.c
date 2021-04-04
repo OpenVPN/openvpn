@@ -1416,7 +1416,6 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "auth-retry"))
     {
-#if P2MP
         if (p[1])
         {
             if (auth_retry_set(M_CLIENT, p[1]))
@@ -1432,9 +1431,6 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
         {
             msg(M_CLIENT, "SUCCESS: auth-retry=%s", auth_retry_print());
         }
-#else  /* if P2MP */
-        msg(M_CLIENT, "ERROR: auth-retry feature is unavailable");
-#endif
     }
     else if (streq(p[0], "state"))
     {

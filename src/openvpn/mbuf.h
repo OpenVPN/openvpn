@@ -28,8 +28,6 @@
  * Handle both multicast and broadcast functions.
  */
 
-#if P2MP
-
 /* define this to enable special test mode */
 /*#define MBUF_TEST*/
 
@@ -111,5 +109,4 @@ mbuf_peek(struct mbuf_set *ms)
     }
 }
 
-#endif /* if P2MP */
 #endif /* ifndef MBUF_H */

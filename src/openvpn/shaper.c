@@ -31,8 +31,6 @@
 #include "shaper.h"
 #include "memdbg.h"
 
-#ifdef ENABLE_FEATURE_SHAPER
-
 /*
  * We want to wake up in delay microseconds.  If timeval is larger
  * than delay, set timeval to delay.
@@ -94,4 +92,3 @@ shaper_msg(struct shaper *s)
     msg(M_INFO, "Output Traffic Shaping initialized at %d bytes per second",
         s->bytes_per_second);
 }
-#endif /* ENABLE_FEATURE_SHAPER */

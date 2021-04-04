@@ -37,8 +37,6 @@
 
 #include "memdbg.h"
 
-#if P2MP
-
 static void
 ifconfig_pool_entry_free(struct ifconfig_pool_entry *ipe, bool hard)
 {
@@ -835,5 +833,3 @@ ifconfig_pool_test(in_addr_t start, in_addr_t end)
 }
 
 #endif /* ifdef IFCONFIG_POOL_TEST */
-
-#endif /* if P2MP */

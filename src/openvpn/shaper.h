@@ -26,8 +26,6 @@
 
 /*#define SHAPER_DEBUG*/
 
-#ifdef ENABLE_FEATURE_SHAPER
-
 #include "basic.h"
 #include "integer.h"
 #include "misc.h"
@@ -172,7 +170,5 @@ shaper_change_pct(struct shaper *s, int pct)
     return s->bytes_per_second != orig_bandwidth;
 }
 #endif
-
-#endif /* ENABLE_FEATURE_SHAPER */
 
 #endif /* ifndef SHAPER_H */

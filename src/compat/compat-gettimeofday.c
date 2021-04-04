@@ -93,7 +93,7 @@ gettimeofday(struct timeval *tv, void *tz)
     {
         /* We try to dampen out backtracks of less than backtrack_hold_seconds.
          * Larger backtracks will be passed through and dealt with by the
-         * TIME_BACKTRACK_PROTECTION code (if enabled) */
+         * TIME_BACKTRACK_PROTECTION code */
         if (sec > last_sec - backtrack_hold_seconds)
         {
             sec = last_sec;

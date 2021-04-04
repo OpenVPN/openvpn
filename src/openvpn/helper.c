@@ -149,11 +149,9 @@ helper_client_server(struct options *o)
 {
     struct gc_arena gc = gc_new();
 
-#if P2MP
-
-/*
- * Get tun/tap/null device type
- */
+    /*
+     * Get tun/tap/null device type
+     */
     const int dev = dev_type_enum(o->dev, o->dev_type);
     const int topology = o->topology;
 
@@ -493,8 +491,6 @@ helper_client_server(struct options *o)
         o->pull = true;
         o->tls_client = true;
     }
-
-#endif /* P2MP */
 
     gc_free(&gc);
 }

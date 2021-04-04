@@ -189,8 +189,6 @@ check_tls_errors_nco(struct context *c)
     register_signal(c, c->c2.tls_exit_signal, "tls-error"); /* SOFT-SIGUSR1 -- TLS error */
 }
 
-#if P2MP
-
 /*
  * Handle incoming configuration
  * messages on the control channel.
@@ -269,8 +267,6 @@ check_push_request(struct context *c)
     event_timeout_modify_wakeup(&c->c2.push_request_interval, PUSH_REQUEST_INTERVAL);
 }
 
-#endif /* P2MP */
-
 /*
  * Things that need to happen immediately after connection initiation should go here.
  *
@@ -286,7 +282,6 @@ check_connection_established(struct context *c)
 
     if (CONNECTION_ESTABLISHED(c))
     {
-#if P2MP
         /* if --pull was specified, send a push request to server */
         if (c->c2.tls_multi && c->options.pull)
         {
@@ -313,7 +308,6 @@ check_connection_established(struct context *c)
             reset_coarse_timers(c);
         }
         else
-#endif /* if P2MP */
         {
             do_up(c, false, 0);
         }
@@ -428,7 +422,6 @@ get_server_poll_remaining_time(struct event_timeout *server_poll_timeout)
     int remaining = event_timeout_remaining(server_poll_timeout);
     return max_int(0, remaining);
 }
-#if P2MP
 
 void
 check_server_poll_timeout(struct context *c)
@@ -465,8 +458,6 @@ check_scheduled_exit(struct context *c)
 {
     register_signal(c, c->c2.scheduled_exit_signal, "delayed-exit");
 }
-
-#endif /* if P2MP */
 
 /*
  * Should we write timer-triggered status file.
@@ -635,13 +626,12 @@ process_coarse_timers(struct context *c)
     {
         check_connection_established(c);
     }
-#if P2MP
+
     /* see if we should send a push_request (option --pull) */
     if (event_timeout_trigger(&c->c2.push_request_interval, &c->c2.timeval, ETT_DEFAULT))
     {
         check_push_request(c);
     }
-#endif
 
 #ifdef PLUGIN_PF
     if (c->c2.pf.enabled
@@ -676,7 +666,6 @@ process_coarse_timers(struct context *c)
         return;
     }
 
-#if P2MP
     if (c->c2.tls_multi)
     {
         if (c->options.ce.connect_timeout
@@ -697,7 +686,6 @@ process_coarse_timers(struct context *c)
             return;
         }
     }
-#endif
 
     /* Should we send an OCC_REQUEST message? */
     check_send_occ_req(c);
@@ -1583,13 +1571,12 @@ process_outgoing_link(struct context *c)
              * Let the traffic shaper know how many bytes
              * we wrote.
              */
-#ifdef ENABLE_FEATURE_SHAPER
             if (c->options.shaper)
             {
                 shaper_wrote_bytes(&c->c2.shaper, BLEN(&c->c2.to_link)
                                    + datagram_overhead(c->options.ce.proto));
             }
-#endif
+
             /*
              * Let the pinger know that we sent a packet.
              */
@@ -1843,14 +1830,12 @@ pre_select(struct context *c)
         return;
     }
 
-#if P2MP
     /* check for incoming control messages on the control channel like
      * push request/reply, or authentication failure and 2FA messages */
     if (tls_test_payload_len(c->c2.tls_multi) > 0)
     {
         check_incoming_control_channel(c);
     }
-#endif
 
     /* Should we send an OCC message? */
     check_send_occ_msg(c);
@@ -1919,7 +1904,6 @@ io_wait_dowork(struct context *c, const unsigned int flags)
              * quota, don't send -- instead compute the delay we must wait
              * until it will be OK to send the packet.
              */
-#ifdef ENABLE_FEATURE_SHAPER
             int delay = 0;
 
             /* set traffic shaping delay in microseconds */
@@ -1936,9 +1920,6 @@ io_wait_dowork(struct context *c, const unsigned int flags)
             {
                 shaper_soonest_event(&c->c2.timeval, delay);
             }
-#else /* ENABLE_FEATURE_SHAPER */
-            socket |= EVENT_WRITE;
-#endif /* ENABLE_FEATURE_SHAPER */
         }
         else
         {

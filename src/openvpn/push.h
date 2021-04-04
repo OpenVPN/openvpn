@@ -24,8 +24,6 @@
 #ifndef PUSH_H
 #define PUSH_H
 
-#if P2MP
-
 #include "forward.h"
 
 #define PUSH_MSG_ERROR            0
@@ -100,5 +98,4 @@ void send_push_reply_auth_token(struct tls_multi *multi);
 void
 receive_auth_pending(struct context *c, const struct buffer *buffer);
 
-#endif /* if P2MP */
 #endif /* ifndef PUSH_H */

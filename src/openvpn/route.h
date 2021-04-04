@@ -230,7 +230,6 @@ struct route_ipv6_list {
     struct gc_arena gc;
 };
 
-#if P2MP
 /* internal OpenVPN route */
 struct iroute {
     in_addr_t network;
@@ -243,7 +242,6 @@ struct iroute_ipv6 {
     unsigned int netbits;
     struct iroute_ipv6 *next;
 };
-#endif
 
 struct route_option_list *new_route_option_list(struct gc_arena *a);
 

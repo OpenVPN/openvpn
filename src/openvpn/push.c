@@ -39,8 +39,6 @@
 #include "memdbg.h"
 #include "ssl_util.h"
 
-#if P2MP
-
 static char push_reply_cmd[] = "PUSH_REPLY";
 
 /*
@@ -1053,4 +1051,3 @@ remove_iroutes_from_push_route_list(struct options *o)
         gc_free(&gc);
     }
 }
-#endif /* if P2MP */

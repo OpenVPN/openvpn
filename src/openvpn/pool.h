@@ -24,8 +24,6 @@
 #ifndef POOL_H
 #define POOL_H
 
-#if P2MP
-
 /*#define IFCONFIG_POOL_TEST*/
 
 #include "basic.h"
@@ -102,5 +100,4 @@ void ifconfig_pool_test(in_addr_t start, in_addr_t end);
 
 #endif
 
-#endif /* if P2MP */
 #endif /* ifndef POOL_H */

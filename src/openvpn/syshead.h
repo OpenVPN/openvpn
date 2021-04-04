@@ -406,13 +406,6 @@ typedef int MIB_TCP_STATE;
 #endif
 
 /*
- * Do we have nanoseconds gettimeofday?
- */
-#if defined(HAVE_GETTIMEOFDAY) || defined(_WIN32)
-#define HAVE_GETTIMEOFDAY_NANOSECONDS 1
-#endif
-
-/*
  * Do we have the capability to report extended socket errors?
  */
 #if defined(HAVE_LINUX_TYPES_H) && defined(HAVE_LINUX_ERRQUEUE_H) && defined(HAVE_SOCK_EXTENDED_ERR) && defined(HAVE_MSGHDR) && defined(HAVE_CMSGHDR) && defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR) && defined(IP_RECVERR) && defined(MSG_ERRQUEUE) && defined(SOL_IP) && defined(HAVE_IOVEC)
@@ -510,16 +503,6 @@ socket_defined(const socket_descriptor_t sd)
 #endif
 
 /*
- * Do we have point-to-multipoint capability?
- */
-
-#if defined(HAVE_GETTIMEOFDAY_NANOSECONDS)
-#define P2MP 1
-#else
-#define P2MP 0
-#endif
-
-/*
  * HTTPS port sharing capability
  */
 #if defined(ENABLE_PORT_SHARE) && defined(SCM_RIGHTS) && defined(HAVE_MSGHDR) && defined(HAVE_CMSGHDR) && defined(HAVE_IOVEC) && defined(CMSG_FIRSTHDR) && defined(CMSG_NXTHDR) && defined(HAVE_RECVMSG) && defined(HAVE_SENDMSG)
@@ -594,21 +577,6 @@ socket_defined(const socket_descriptor_t sd)
 #if 0
 #undef EPOLL
 #define EPOLL 0
-#endif
-
-/*
- * Reduce sensitivity to system clock instability
- * and backtracks.
- */
-#if defined(HAVE_GETTIMEOFDAY_NANOSECONDS)
-#define TIME_BACKTRACK_PROTECTION 1
-#endif
-
-/*
- * Enable traffic shaper.
- */
-#if defined(HAVE_GETTIMEOFDAY_NANOSECONDS)
-#define ENABLE_FEATURE_SHAPER 1
 #endif
 
 /*

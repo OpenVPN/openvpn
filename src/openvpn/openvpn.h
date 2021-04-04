@@ -189,7 +189,6 @@ struct context_1
     struct socks_proxy_info *socks_proxy;
     bool socks_proxy_owned;
 
-#if P2MP
     /* persist --ifconfig-pool db to file */
     struct ifconfig_pool_persist *ifconfig_pool_persist;
     bool ifconfig_pool_persist_owned;
@@ -203,7 +202,6 @@ struct context_1
     struct user_pass *auth_user_pass;
     /**< Username and password for
      *   authentication. */
-#endif
 };
 
 
@@ -278,12 +276,10 @@ struct context_2
     struct frame frame_fragment_omit;
 #endif
 
-#ifdef ENABLE_FEATURE_SHAPER
     /*
      * Traffic shaper object.
      */
     struct shaper shaper;
-#endif
 
     /*
      * Statistics
@@ -435,8 +431,6 @@ struct context_2
     /* don't wait for TUN/TAP/UDP to be ready to accept write */
     bool fast_io;
 
-#if P2MP
-
     /* --ifconfig endpoints to be pushed to client */
     bool push_request_received;
     bool push_ifconfig_defined;
@@ -463,7 +457,6 @@ struct context_2
 
     struct event_timeout scheduled_exit;
     int scheduled_exit_signal;
-#endif /* if P2MP */
 
     /* packet filter */
 #ifdef ENABLE_PF

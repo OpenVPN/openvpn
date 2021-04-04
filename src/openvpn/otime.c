@@ -35,8 +35,6 @@
 
 time_t now = 0;            /* GLOBAL */
 
-#if TIME_BACKTRACK_PROTECTION
-
 static time_t now_adj = 0; /* GLOBAL */
 time_t now_usec = 0;       /* GLOBAL */
 
@@ -78,8 +76,6 @@ update_now_usec(struct timeval *tv)
         now_usec = tv->tv_usec;
     }
 }
-
-#endif /* TIME_BACKTRACK_PROTECTION */
 
 /*
  * Return a numerical string describing a struct timeval.
