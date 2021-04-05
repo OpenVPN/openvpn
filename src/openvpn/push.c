@@ -732,6 +732,7 @@ int
 process_incoming_push_request(struct context *c)
 {
     int ret = PUSH_MSG_ERROR;
+    struct key_state *ks = &c->c2.tls_multi->session[TM_ACTIVE].key[KS_PRIMARY];
 
     if (tls_authentication_status(c->c2.tls_multi, 0) == TLS_AUTHENTICATION_FAILED
         || c->c2.tls_multi->multi_state == CAS_FAILED)
@@ -740,7 +741,8 @@ process_incoming_push_request(struct context *c)
         send_auth_failed(c, client_reason);
         ret = PUSH_MSG_AUTH_FAILURE;
     }
-    else if (c->c2.tls_multi->multi_state == CAS_SUCCEEDED)
+    else if (c->c2.tls_multi->multi_state == CAS_SUCCEEDED
+             && ks->authenticated == KS_AUTH_TRUE)
     {
         time_t now;
 
