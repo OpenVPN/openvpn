@@ -1125,37 +1125,41 @@ bool
 ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret,
              int secret_len, uint8_t *output, int output_len)
 {
+    bool ret = false;
     EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_TLS1_PRF, NULL);
     if (!EVP_PKEY_derive_init(pctx))
     {
-        return false;
+        goto out;
     }
 
     if (!EVP_PKEY_CTX_set_tls1_prf_md(pctx, EVP_md5_sha1()))
     {
-        return false;
+        goto out;
     }
 
     if (!EVP_PKEY_CTX_set1_tls1_prf_secret(pctx, secret, secret_len))
     {
-        return false;
+        goto out;
     }
 
     if (!EVP_PKEY_CTX_add1_tls1_prf_seed(pctx, seed, seed_len))
     {
-        return false;
+        goto out;
     }
 
     size_t out_len = output_len;
     if (!EVP_PKEY_derive(pctx, output, &out_len))
     {
-        return false;
+        goto out;
     }
     if (out_len != output_len)
     {
-        return false;
+        goto out;
     }
-    return true;
+    ret = true;
+out:
+    EVP_PKEY_CTX_free(pctx);
+    return ret;
 }
 #else  /* if OPENSSL_VERSION_NUMBER >= 0x10100000L */
 /*
