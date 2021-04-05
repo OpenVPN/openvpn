@@ -1125,8 +1125,13 @@ bool
 ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret,
              int secret_len, uint8_t *output, int output_len)
 {
-    bool ret = false;
     EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_TLS1_PRF, NULL);
+    if (!pctx)
+    {
+        return false;
+    }
+
+    bool ret = false;
     if (!EVP_PKEY_derive_init(pctx))
     {
         goto out;
