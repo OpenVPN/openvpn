@@ -652,6 +652,7 @@ int
 process_incoming_push_request(struct context *c)
 {
     int ret = PUSH_MSG_ERROR;
+    struct key_state *ks = &c->c2.tls_multi->session[TM_ACTIVE].key[KS_PRIMARY];
 
 #ifdef ENABLE_ASYNC_PUSH
     c->c2.push_request_received = true;
@@ -662,7 +663,12 @@ process_incoming_push_request(struct context *c)
         send_auth_failed(c, client_reason);
         ret = PUSH_MSG_AUTH_FAILURE;
     }
-    else if (!c->c2.push_reply_deferred && c->c2.context_auth == CAS_SUCCEEDED)
+    else if (!c->c2.push_reply_deferred && c->c2.context_auth == CAS_SUCCEEDED
+             && ks->authenticated
+ #ifdef ENABLE_DEF_AUTH
+             && !ks->auth_deferred
+ #endif
+             )
     {
         time_t now;
 
