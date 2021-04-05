@@ -1592,7 +1592,6 @@ openvpn_PRF(const uint8_t *secret,
             uint8_t *output,
             int output_len)
 {
-    bool ret = true;
     /* concatenate seed components */
 
     struct buffer seed = alloc_buf(strlen(label)
@@ -1614,10 +1613,8 @@ openvpn_PRF(const uint8_t *secret,
     }
 
     /* compute PRF */
-    if (!ssl_tls1_PRF(BPTR(&seed), BLEN(&seed), secret, secret_len, output, output_len))
-    {
-        ret = false;
-    }
+    bool ret = ssl_tls1_PRF(BPTR(&seed), BLEN(&seed), secret, secret_len,
+                            output, output_len);
 
     buf_clear(&seed);
     free_buf(&seed);
