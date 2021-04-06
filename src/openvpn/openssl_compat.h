@@ -46,6 +46,11 @@
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)) && !defined(ENABLE_CRYPTO_WOLFSSL)
+#define EVP_CTRL_AEAD_SET_TAG EVP_CTRL_GCM_SET_TAG
+#define EVP_CTRL_AEAD_GET_TAG EVP_CTRL_GCM_GET_TAG
+#endif
+
 #if !defined(HAVE_EVP_MD_CTX_RESET)
 /**
  * Reset a message digest context
