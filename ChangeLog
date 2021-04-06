@@ -1,6 +1,37 @@
 OpenVPN Change Log
 Copyright (C) 2002-2020 OpenVPN Inc <sales@openvpn.net>
 
+2021.04.20 -- Version 2.5.2
+
+Arne Schwabe (10):
+      Avoid generating unecessary mbed debug messages
+      Restore also ping related options on a reconnect
+      Cleanup print_details and add signature/ED certificate print
+      Always disable TLS renegotiations
+      Also restore/save route-gateway options on SIGUSR1 reconnects
+      Move context_auth from context_2 to tls_multi and name it multi_state
+      Fix condition to generate session keys
+      Move auth_token_state from multi to key_state
+      Ensure auth-token is only sent on a fully authenticated session
+      Ensure key state is authenticated before sending push reply
+
+Gert Doering (2):
+      Fix potential NULL ptr crash if compiled with DMALLOC
+
+Max Fillinger (2):
+      In init_ssl, open the correct CRL path pre-chroot
+      Abort if CRL file can't be stat-ed in ssl_init
+
+Richard Bonhomme (1):
+      Do not print Diffie Hellman parameters file to log file
+
+Simon Rozman (1):
+      openvpnserv: Cache last error before it is overridden
+
+Vladislav Grishenko (1):
+      Fix IPv4 default gateway with multiple route tables
+
+
 2021.02.24 -- Version 2.5.1
 
 Arne Schwabe (5):

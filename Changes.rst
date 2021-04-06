@@ -1,3 +1,48 @@
+Overview of changes in 2.5.2
+============================
+
+Bugfixes
+--------
+- CVE-2020-15078
+  see https://community.openvpn.net/openvpn/wiki/SecurityAnnouncements
+
+  This bug allows - under very specific circumstances - to trick a
+  server using delayed authentication (plugin or management) into
+  returning a PUSH_REPLY before the AUTH_FAILED message, which can
+  possibly be used to gather information about a VPN setup.
+
+  In combination with "--auth-gen-token" or an user-specific token auth
+  solution it can be possible to get access to a VPN with an
+  otherwise-invalid account.
+
+- restore pushed "ping" settings correctly on a SIGUSR1 restart
+
+- avoid generating unecessary mbed debug messages - this is actually
+  a workaround for an mbedTLS 2.25 bug when using Curve25519 and Curve448
+  ED curves - mbedTLS crashes on preparing debug infos that we do not
+  actually need unless running with "--verb 8"
+
+- do not print inlined (<dh>...</dh>) Diffie Hellman parameters to log file
+
+- fix Linux/SITNL default route lookup in case of multiple routing tables
+  with more than one default route present (always use "main table" for now)
+
+- Fix CRL file handling in combination with chroot
+
+User-visible Changes
+--------------------
+
+- OpenVPN will now refuse to start if CRL file is not present at startup
+  time.  At "reload time" absense of the CRL file is still OK (and the
+  in memory copy is used) but at startup it is now considered an error.
+
+
+New features
+------------
+- printing of the TLS ciphers negotiated has been extended, especially
+  displaying TLS 1.3 and EC certificates more correctly.
+
+
 Overview of changes in 2.5.1
 ============================
 
