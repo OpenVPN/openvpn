@@ -47,24 +47,6 @@ ifdef(
 	[AC_DEFUN([AC_PROG_SED], [AC_CHECK_PROGS([SED], [sed])])]
 )
 ifdef(
-	[AC_TYPE_INT8_T],
-	,
-	[
-		AC_CHECK_HEADERS([inttypes.h stdint.h])
-		test -z "${ac_cv_header_inttypes_h}${ac_cv_header_stdint_h}" && \
-			AC_MSG_ERROR([Required inttypes.h stdint.h not found])
-		
-		AC_DEFUN([AC_TYPE_INT8_T], [])
-		AC_DEFUN([AC_TYPE_INT16_T], [])
-		AC_DEFUN([AC_TYPE_INT32_T], [])
-		AC_DEFUN([AC_TYPE_INT64_T], [])
-		AC_DEFUN([AC_TYPE_UINT8_T], [])
-		AC_DEFUN([AC_TYPE_UINT16_T], [])
-		AC_DEFUN([AC_TYPE_UINT32_T], [])
-		AC_DEFUN([AC_TYPE_UINT64_T], [])
-	]
-)
-ifdef(
 	[PKG_CHECK_VAR],
 	,
 	[

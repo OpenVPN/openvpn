@@ -118,11 +118,9 @@
 #include <stdlib.h>
 #endif
 
-#ifdef HAVE_INTTYPES_H
+/* These headers belong to C99 and should be always be present */
 #include <inttypes.h>
-#elif defined(HAVE_STDINT_H)
 #include <stdint.h>
-#endif
 
 #ifdef HAVE_STDARG_H
 #include <stdarg.h>
