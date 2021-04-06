@@ -846,50 +846,6 @@ if test "${with_crypto_library}" = "openssl"; then
 	# have this feature
 	have_export_keying_material="yes"
 
-	AC_CHECK_FUNCS(
-		[ \
-			HMAC_CTX_new \
-			HMAC_CTX_free \
-			HMAC_CTX_reset \
-			EVP_MD_CTX_new \
-			EVP_MD_CTX_free \
-			EVP_MD_CTX_reset \
-			EVP_CIPHER_CTX_reset \
-			OpenSSL_version \
-			SSL_CTX_get_default_passwd_cb \
-			SSL_CTX_get_default_passwd_cb_userdata \
-			SSL_CTX_set1_groups \
-			SSL_CTX_set_security_level \
-			X509_get0_notBefore \
-			X509_get0_notAfter \
-			X509_get0_pubkey \
-			X509_STORE_get0_objects \
-			X509_OBJECT_free \
-			X509_OBJECT_get_type \
-			EVP_PKEY_get0_RSA \
-			EVP_PKEY_get0_DSA \
-			EVP_PKEY_get0_EC_KEY \
-			RSA_set_flags \
-			RSA_bits \
-			RSA_get0_key \
-			RSA_set0_key \
-			DSA_get0_pqg \
-			DSA_bits \
-			RSA_meth_new \
-			RSA_meth_free \
-			RSA_meth_set_pub_enc \
-			RSA_meth_set_pub_dec \
-			RSA_meth_set_priv_enc \
-			RSA_meth_set_priv_dec \
-			RSA_meth_set_init \
-			RSA_meth_set_sign \
-			RSA_meth_set_finish \
-			RSA_meth_set0_app_data \
-			RSA_meth_get0_app_data \
-			EC_GROUP_order_bits
-		]
-	)
-
 	CFLAGS="${saved_CFLAGS}"
 	LIBS="${saved_LIBS}"
 
@@ -998,46 +954,6 @@ elif test "${with_crypto_library}" = "wolfssl"; then
 
 	# wolfSSL signal EKM support
 	have_export_keying_material="yes"
-
-	AC_DEFINE([HAVE_HMAC_CTX_NEW], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_HMAC_CTX_FREE], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_HMAC_CTX_RESET], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_EVP_MD_CTX_NEW], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_EVP_MD_CTX_FREE], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_EVP_MD_CTX_RESET], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_EVP_CIPHER_CTX_RESET], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_OPENSSL_VERSION], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_SSL_CTX_GET_DEFAULT_PASSWD_CB], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_SSL_CTX_GET_DEFAULT_PASSWD_CB_USERDATA], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_SSL_CTX_SET_SECURITY_LEVEL], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_X509_GET0_NOTBEFORE], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_X509_GET0_NOTAFTER], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_X509_GET0_PUBKEY], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_X509_STORE_GET0_OBJECTS], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_X509_OBJECT_FREE], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_X509_OBJECT_GET_TYPE], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_EVP_PKEY_ID], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_EVP_PKEY_GET0_RSA], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_EVP_PKEY_GET0_DSA], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_EVP_PKEY_GET0_EC_KEY], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_SET_FLAGS], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_BITS], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_GET0_KEY], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_SET0_KEY], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_DSA_GET0_PQG], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_DSA_BITS], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_METH_NEW], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_METH_FREE], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_METH_SET_PUB_ENC], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_METH_SET_PUB_DEC], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_METH_SET_PRIV_ENC], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_METH_SET_PRIV_DEC], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_METH_SET_INIT], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_METH_SET_SIGN], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_METH_SET_FINISH], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_METH_SET0_APP_DATA], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_RSA_METH_GET0_APP_DATA], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
-	AC_DEFINE([HAVE_EC_GROUP_ORDER_BITS], [1], [Emulate AC_CHECK_FUNCS since these are defined as macros])
 
 	if test "${enable_wolfssl_options_h}" = "yes"; then
 		AC_DEFINE([EXTERNAL_OPTS_OPENVPN], [1], [Include options.h from wolfSSL library])
