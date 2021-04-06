@@ -117,9 +117,7 @@ gettimeofday(struct timeval *tv, void *tz)
 
 #else  /* ifdef _WIN32 */
 
-#ifdef HAVE_TIME_H
 #include <time.h>
-#endif
 
 int
 gettimeofday(struct timeval *tv, void *tz)

@@ -354,10 +354,8 @@ platform_unlink(const char *filename)
     BOOL ret = DeleteFileW(wide_string(filename, &gc));
     gc_free(&gc);
     return (ret != 0);
-#elif defined(HAVE_UNLINK)
+#else
     return (unlink(filename) == 0);
-#else  /* if defined(_WIN32) */
-    return false;
 #endif
 }
 

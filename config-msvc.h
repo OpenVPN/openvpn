@@ -5,7 +5,6 @@
 #define ENABLE_PF 1
 #define ENABLE_CRYPTO_OPENSSL 1
 #define ENABLE_DEBUG 1
-#define ENABLE_EUREPHIA 1
 #define ENABLE_FRAGMENT 1
 #define ENABLE_HTTP_PROXY 1
 #define ENABLE_LZO 1
@@ -17,13 +16,9 @@
 #define ENABLE_PORT_SHARE 1
 #define ENABLE_SOCKS 1
 
-#define HAVE_ERRNO_H 1
 #define HAVE_FCNTL_H 1
-#define HAVE_CTYPE_H 1
-#define HAVE_STDARG_H 1
 #define HAVE_STDIO_H 1
 #define HAVE_STDLIB_H 1
-#define HAVE_STRDUP 1
 #define HAVE_STRERROR 1
 #define HAVE_STRINGS_H 1
 #define HAVE_STRING_H 1
@@ -31,8 +26,6 @@
 #define HAVE_SYSTEM 1
 #define HAVE_TIME 1
 #define HAVE_TIME_H 1
-#define HAVE_UNLINK 1
-#define HAVE_VSNPRINTF 1
 #define HAVE_WINDOWS_H 1
 #define HAVE_WINSOCK2_H 1
 #define HAVE_WS2TCPIP_H 1
@@ -47,11 +40,7 @@
 #define HAVE_ACCESS 1
 #define HAVE_CHDIR 1
 #define HAVE_CHSIZE 1
-#define HAVE_CTIME 1
 #define HAVE_IN_PKTINFO 1
-#define HAVE_MEMSET 1
-#define HAVE_PUTENV 1
-#define HAVE_STAT 1
 
 #define HAVE_OPENSSL_ENGINE 1
 /* hardcode usage of OpenSSL 1.1.x */

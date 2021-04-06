@@ -414,10 +414,9 @@ AX_TYPE_SOCKLEN_T
 AC_CHECK_SIZEOF([unsigned int])
 AC_CHECK_SIZEOF([unsigned long])
 AC_CHECK_HEADERS([ \
-	stdio.h stdarg.h limits.h \
-	time.h errno.h fcntl.h io.h direct.h \
-	ctype.h sys/types.h sys/socket.h \
-	signal.h unistd.h dlfcn.h \
+	fcntl.h io.h direct.h \
+	sys/types.h sys/socket.h \
+	unistd.h dlfcn.h \
 	netinet/in.h netinet/in_systm.h \
 	netinet/tcp.h arpa/inet.h netdb.h \
 	windows.h winsock2.h ws2tcpip.h \
@@ -426,16 +425,14 @@ AC_CHECK_HEADERS([ \
 AC_CHECK_HEADERS([ \
 	sys/time.h sys/ioctl.h sys/stat.h \
 	sys/mman.h sys/file.h sys/wait.h \
-	unistd.h signal.h libgen.h stropts.h \
+	unistd.h libgen.h stropts.h \
 	syslog.h pwd.h grp.h termios.h \
 	sys/sockio.h sys/uio.h linux/sockios.h \
 	linux/types.h poll.h sys/epoll.h err.h \
 ])
 
 SOCKET_INCLUDES="
-#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
@@ -591,9 +588,7 @@ AC_CHECK_DECLS(
 	,
 	[AC_DEFINE([SIGHUP], [1], [SIGHUP replacement])],
 	[[
-		#ifdef HAVE_SIGNAL_H
 		#include <signal.h>
-		#endif
 	]]
 )
 AC_CHECK_DECLS(
@@ -601,9 +596,7 @@ AC_CHECK_DECLS(
 	,
 	[AC_DEFINE([SIGINT], [2], [SIGINT replacement])],
 	[[
-		#ifdef HAVE_SIGNAL_H
 		#include <signal.h>
-		#endif
 	]]
 )
 AC_CHECK_DECLS(
@@ -611,9 +604,7 @@ AC_CHECK_DECLS(
 	,
 	[AC_DEFINE([SIGUSR1], [10], [SIGUSR1 replacement])],
 	[[
-		#ifdef HAVE_SIGNAL_H
 		#include <signal.h>
-		#endif
 	]]
 )
 AC_CHECK_DECLS(
@@ -621,9 +612,7 @@ AC_CHECK_DECLS(
 	,
 	[AC_DEFINE([SIGUSR2], [12], [SIGUSR2 replacement])],
 	[[
-		#ifdef HAVE_SIGNAL_H
 		#include <signal.h>
-		#endif
 	]]
 )
 AC_CHECK_DECLS(
@@ -631,9 +620,7 @@ AC_CHECK_DECLS(
 	,
 	[AC_DEFINE([SIGTERM], [15], [SIGTERM replacement])],
 	[[
-		#ifdef HAVE_SIGNAL_H
 		#include <signal.h>
-		#endif
 	]]
 )
 
@@ -642,9 +629,8 @@ AC_FUNC_FORK
 AC_CHECK_FUNCS([ \
 	daemon chroot getpwnam setuid nice system getpid dup dup2 \
 	syslog openlog mlockall getrlimit getgrnam setgid \
-	setgroups stat flock readv writev time gettimeofday \
-	ctime memset vsnprintf strdup \
-	setsid chdir putenv getpeername unlink \
+	setgroups flock readv writev time gettimeofday \
+	setsid chdir getpeername unlink \
 	chsize ftruncate execve getpeereid umask basename dirname access \
 	epoll_create strsep \
 ])

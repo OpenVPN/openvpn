@@ -78,9 +78,7 @@
 #include <sys/time.h>
 #endif
 
-#ifdef HAVE_TIME_H
 #include <time.h>
-#endif
 
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
@@ -114,40 +112,19 @@
 #include <sys/file.h>
 #endif
 
-#ifdef HAVE_STDLIB_H
-#include <stdlib.h>
-#endif
-
 /* These headers belong to C99 and should be always be present */
+#include <stdlib.h>
 #include <inttypes.h>
 #include <stdint.h>
-
-#ifdef HAVE_STDARG_H
 #include <stdarg.h>
-#endif
+#include <signal.h>
+#include <limits.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <errno.h>
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#endif
-
-#ifdef HAVE_SIGNAL_H
-#include <signal.h>
-#endif
-
-#ifdef HAVE_LIMITS_H
-#include <limits.h>
-#endif
-
-#ifdef HAVE_STDIO_H
-#include <stdio.h>
-#endif
-
-#ifdef HAVE_CTYPE_H
-#include <ctype.h>
-#endif
-
-#ifdef HAVE_ERRNO_H
-#include <errno.h>
 #endif
 
 #ifdef HAVE_ERR_H
@@ -199,9 +176,7 @@
 #include <strings.h>
 #endif
 #else
-#ifdef HAVE_STRING_H
 #include <string.h>
-#endif
 #endif
 
 #ifdef HAVE_ARPA_INET_H

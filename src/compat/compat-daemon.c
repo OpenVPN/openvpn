@@ -33,9 +33,7 @@
 #include <unistd.h>
 #endif
 
-#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
 
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
@@ -49,9 +47,7 @@
 #include <fcntl.h>
 #endif
 
-#ifdef HAVE_ERRNO_H
 #include <errno.h>
-#endif
 
 int
 daemon(int nochdir, int noclose)
