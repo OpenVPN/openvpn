@@ -53,23 +53,6 @@
 #define HAVE_PUTENV 1
 #define HAVE_STAT 1
 
-#define HAVE_SOCKET 1
-#define HAVE_RECV 1
-#define HAVE_RECVFROM 1
-#define HAVE_SEND 1
-#define HAVE_SENDTO 1
-#define HAVE_LISTEN 1
-#define HAVE_ACCEPT 1
-#define HAVE_CONNECT 1
-#define HAVE_BIND 1
-#define HAVE_SELECT 1
-#define HAVE_GETHOSTBYNAME 1
-#define HAVE_INET_NTOA 1
-#define HAVE_SETSOCKOPT 1
-#define HAVE_GETSOCKOPT 1
-#define HAVE_GETSOCKNAME 1
-#define HAVE_POLL 1
-
 #define HAVE_OPENSSL_ENGINE 1
 /* hardcode usage of OpenSSL 1.1.x */
 #define HAVE_EVP_MD_CTX_RESET 1
@@ -154,10 +137,4 @@ typedef uint16_t in_port_t;
 
 #ifdef HAVE_CONFIG_MSVC_LOCAL_H
 #include <config-msvc-local.h>
-#endif
-
-/* Vista and above has implementation of inet_ntop / inet_pton */
-#if _WIN32_WINNT >= _WIN32_WINNT_VISTA
-    #define HAVE_INET_NTOP
-    #define HAVE_INET_PTON
 #endif

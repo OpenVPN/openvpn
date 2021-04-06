@@ -172,7 +172,7 @@ set_mtu_discover_type(socket_descriptor_t sd, int mtu_type, sa_family_t proto_af
     {
         switch (proto_af)
         {
-#if defined(HAVE_SETSOCKOPT) && defined(IP_MTU_DISCOVER)
+#if defined(IP_MTU_DISCOVER)
             case AF_INET:
                 if (setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER,
                                (void *) &mtu_type, sizeof(mtu_type)))
@@ -183,7 +183,7 @@ set_mtu_discover_type(socket_descriptor_t sd, int mtu_type, sa_family_t proto_af
                 break;
 
 #endif
-#if defined(HAVE_SETSOCKOPT) && defined(IPV6_MTU_DISCOVER)
+#if defined(IPV6_MTU_DISCOVER)
             case AF_INET6:
                 if (setsockopt(sd, IPPROTO_IPV6, IPV6_MTU_DISCOVER,
                                (void *) &mtu_type, sizeof(mtu_type)))

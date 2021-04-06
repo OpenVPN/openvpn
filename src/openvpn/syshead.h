@@ -399,7 +399,7 @@ typedef int MIB_TCP_STATE;
 /*
  * Do we have the capability to support the --passtos option?
  */
-#if defined(IPPROTO_IP) && defined(IP_TOS) && defined(HAVE_SETSOCKOPT)
+#if defined(IPPROTO_IP) && defined(IP_TOS)
 #define PASSTOS_CAPABILITY 1
 #else
 #define PASSTOS_CAPABILITY 0
@@ -557,8 +557,10 @@ socket_defined(const socket_descriptor_t sd)
 
 /*
  * Is poll available on this platform?
+ * (Note: on win32 select is faster than poll and we avoid
+ * using poll there)
  */
-#if defined(HAVE_POLL) && defined(HAVE_POLL_H)
+#if defined(HAVE_POLL_H) || !defined(_WIN32)
 #define POLL 1
 #else
 #define POLL 0
@@ -582,7 +584,7 @@ socket_defined(const socket_descriptor_t sd)
 /*
  * Is non-blocking connect() supported?
  */
-#if defined(HAVE_GETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_ERROR) && defined(EINPROGRESS) && defined(ETIMEDOUT)
+#if defined(SOL_SOCKET) && defined(SO_ERROR) && defined(EINPROGRESS) && defined(ETIMEDOUT)
 #define CONNECT_NONBLOCK
 #endif
 

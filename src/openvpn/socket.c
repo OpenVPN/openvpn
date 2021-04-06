@@ -848,7 +848,7 @@ mac_addr_safe(const char *mac_addr)
 static int
 socket_get_sndbuf(socket_descriptor_t sd)
 {
-#if defined(HAVE_GETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_SNDBUF)
+#if defined(SOL_SOCKET) && defined(SO_SNDBUF)
     int val;
     socklen_t len;
 
@@ -865,7 +865,7 @@ socket_get_sndbuf(socket_descriptor_t sd)
 static void
 socket_set_sndbuf(socket_descriptor_t sd, int size)
 {
-#if defined(HAVE_SETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_SNDBUF)
+#if defined(SOL_SOCKET) && defined(SO_SNDBUF)
     if (setsockopt(sd, SOL_SOCKET, SO_SNDBUF, (void *) &size, sizeof(size)) != 0)
     {
         msg(M_WARN, "NOTE: setsockopt SO_SNDBUF=%d failed", size);
@@ -876,7 +876,7 @@ socket_set_sndbuf(socket_descriptor_t sd, int size)
 static int
 socket_get_rcvbuf(socket_descriptor_t sd)
 {
-#if defined(HAVE_GETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_RCVBUF)
+#if defined(SOL_SOCKET) && defined(SO_RCVBUF)
     int val;
     socklen_t len;
 
@@ -893,7 +893,7 @@ socket_get_rcvbuf(socket_descriptor_t sd)
 static bool
 socket_set_rcvbuf(socket_descriptor_t sd, int size)
 {
-#if defined(HAVE_SETSOCKOPT) && defined(SOL_SOCKET) && defined(SO_RCVBUF)
+#if defined(SOL_SOCKET) && defined(SO_RCVBUF)
     if (setsockopt(sd, SOL_SOCKET, SO_RCVBUF, (void *) &size, sizeof(size)) != 0)
     {
         msg(M_WARN, "NOTE: setsockopt SO_RCVBUF=%d failed", size);
@@ -936,7 +936,7 @@ socket_set_buffers(socket_descriptor_t fd, const struct socket_buffer_size *sbs)
 static bool
 socket_set_tcp_nodelay(socket_descriptor_t sd, int state)
 {
-#if defined(_WIN32) || (defined(HAVE_SETSOCKOPT) && defined(IPPROTO_TCP) && defined(TCP_NODELAY))
+#if defined(_WIN32) || (defined(IPPROTO_TCP) && defined(TCP_NODELAY))
     if (setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *) &state, sizeof(state)) != 0)
     {
         msg(M_WARN, "NOTE: setsockopt TCP_NODELAY=%d failed", state);
@@ -947,7 +947,7 @@ socket_set_tcp_nodelay(socket_descriptor_t sd, int state)
         dmsg(D_OSBUF, "Socket flags: TCP_NODELAY=%d succeeded", state);
         return true;
     }
-#else  /* if defined(_WIN32) || (defined(HAVE_SETSOCKOPT) && defined(IPPROTO_TCP) && defined(TCP_NODELAY)) */
+#else  /* if defined(_WIN32) || (defined(IPPROTO_TCP) && defined(TCP_NODELAY)) */
     msg(M_WARN, "NOTE: setsockopt TCP_NODELAY=%d failed (No kernel support)", state);
     return false;
 #endif

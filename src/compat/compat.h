@@ -60,16 +60,6 @@ int daemon(int nochdir, int noclose);
 
 #endif
 
-#ifndef HAVE_INET_NTOP
-const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
-
-#endif
-
-#ifndef HAVE_INET_PTON
-int inet_pton(int af, const char *src, void *dst);
-
-#endif
-
 #ifndef HAVE_STRSEP
 char *strsep(char **stringp, const char *delim);
 
