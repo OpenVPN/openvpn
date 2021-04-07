@@ -2993,6 +2993,12 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
             add_inotify_file_watch(m, mi, m->top.c2.inotify_fd,
                                    ks->plugin_auth.auth_control_file);
         }
+        if (ks && ks->script_auth.auth_control_file && was_unauthenticated
+            && (ks->authenticated == KS_AUTH_DEFERRED))
+        {
+            add_inotify_file_watch(m, mi, m->top.c2.inotify_fd,
+                                   ks->script_auth.auth_control_file);
+        }
 #endif
 
         if (!IS_SIG(&mi->context))

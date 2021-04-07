@@ -222,6 +222,7 @@ struct key_state
     time_t acf_last_mod;
 
     struct auth_deferred_status plugin_auth;
+    struct auth_deferred_status script_auth;
 };
 
 /** Control channel wrapping (--tls-auth/--tls-crypt) context */

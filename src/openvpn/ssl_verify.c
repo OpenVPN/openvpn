@@ -1102,20 +1102,25 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
             }
             else
             {
-                unsigned int s1 = ACF_DISABLED;
-                unsigned int s2 = ACF_DISABLED;
-                s1 = key_state_test_auth_control_file(&ks->plugin_auth);
+                unsigned int auth_plugin = ACF_DISABLED;
+                unsigned int auth_script = ACF_DISABLED;
+                unsigned int auth_man = ACF_DISABLED;
+                auth_plugin = key_state_test_auth_control_file(&ks->plugin_auth);
+                auth_script = key_state_test_auth_control_file(&ks->script_auth);
 #ifdef ENABLE_MANAGEMENT
-                s2 = man_def_auth_test(ks);
+                auth_man = man_def_auth_test(ks);
 #endif
-                ASSERT(s1 < 4 && s2 < 4);
+                ASSERT(auth_plugin < 4 && auth_script < 4 && auth_man < 4);
 
-                if (s1 == ACF_FAILED || s2 == ACF_FAILED)
+                if (auth_plugin == ACF_FAILED || auth_script == ACF_FAILED
+                   || auth_man == ACF_FAILED)
                 {
                     ks->authenticated = KS_AUTH_FALSE;
                     failed_auth = true;
                 }
-                else if (s1 == ACF_UNDEFINED || s2 == ACF_UNDEFINED)
+                else if (auth_plugin == ACF_UNDEFINED
+                         || auth_script == ACF_UNDEFINED
+                         || auth_man == ACF_UNDEFINED)
                 {
                     if (now < ks->auth_deferred_expire)
                     {
@@ -1124,7 +1129,10 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
                 }
                 else
                 {
-                    /* s1 and s2 are either ACF_DISABLED or ACF_SUCCEDED */
+                    /* all auth states (auth_plugin, auth_script, auth_man)
+                     * are either ACF_DISABLED or ACF_SUCCEDED now, which
+                     * translates to "not checked" or "auth succeeded"
+                     */
                     success = true;
                     ks->authenticated = KS_AUTH_TRUE;
                 }
@@ -1204,14 +1212,15 @@ tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, con
 /*
  * Verify the user name and password using a script
  */
-static bool
+static int
 verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
                         const struct user_pass *up)
 {
     struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
     const char *tmp_file = "";
-    bool ret = false;
+    int retval = OPENVPN_PLUGIN_FUNC_ERROR;
+    struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
 
     /* Set environmental variables prior to calling script */
     setenv_str(session->opt->es, "script_type", "user-pass-verify");
@@ -1239,25 +1248,58 @@ verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
             /* pass temp file name to script */
             argv_printf_cat(&argv, "%s", tmp_file);
         }
-        else
-        {
-            msg(D_TLS_ERRORS, "TLS Auth Error: could not create write "
-                "username/password to temp file");
-        }
     }
     else
     {
+        setenv_str(session->opt->es, "username", up->username);
         setenv_str(session->opt->es, "password", up->password);
     }
 
-    /* call command */
-    ret = openvpn_run_script(&argv, session->opt->es, 0,
-                             "--auth-user-pass-verify");
+    /* generate filename for deferred auth control file */
+    if (!key_state_gen_auth_control_files(&ks->script_auth, session->opt))
+    {
+        msg(D_TLS_ERRORS, "TLS Auth Error (%s): "
+                          "could not create deferred auth control file", __func__);
+        return OPENVPN_PLUGIN_FUNC_ERROR;
+    }
 
+    /* call command */
+    int script_ret = openvpn_run_script(&argv, session->opt->es, S_EXITCODE,
+                                        "--auth-user-pass-verify");
+    switch (script_ret)
+    {
+       case 0:
+           retval = OPENVPN_PLUGIN_FUNC_SUCCESS;
+           break;
+       case 2:
+           retval = OPENVPN_PLUGIN_FUNC_DEFERRED;
+           break;
+       default:
+           retval = OPENVPN_PLUGIN_FUNC_ERROR;
+           break;
+    }
+    if (retval == OPENVPN_PLUGIN_FUNC_DEFERRED)
+    {
+        /* Check if we the plugin has written the pending auth control
+         * file and send the pending auth to the client */
+        if(!key_state_check_auth_pending_file(&ks->script_auth,
+                                              multi))
+        {
+            retval = OPENVPN_PLUGIN_FUNC_ERROR;
+            key_state_rm_auth_control_files(&ks->script_auth);
+        }
+
+    }
+    else
+    {
+        /* purge auth control filename (and file itself) for non-deferred returns */
+        key_state_rm_auth_control_files(&ks->script_auth);
+    }
     if (!session->opt->auth_user_pass_verify_script_via_file)
     {
         setenv_del(session->opt->es, "password");
     }
+
 done:
     if (tmp_file && strlen(tmp_file) > 0)
     {
@@ -1266,7 +1308,7 @@ done:
 
     argv_free(&argv);
     gc_free(&gc);
-    return ret;
+    return retval;
 }
 
 /*
@@ -1387,8 +1429,6 @@ void
 verify_user_pass(struct user_pass *up, struct tls_multi *multi,
                  struct tls_session *session)
 {
-    int s1 = OPENVPN_PLUGIN_FUNC_SUCCESS;
-    bool s2 = true;
     struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
 
 #ifdef ENABLE_MANAGEMENT
@@ -1448,30 +1488,32 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
         }
     }
 
+    int plugin_status = OPENVPN_PLUGIN_FUNC_SUCCESS;
+    int script_status = OPENVPN_PLUGIN_FUNC_SUCCESS;
     /* Set the environment variables used by all auth variants */
     if (!set_verify_user_pass_env(up, multi, session))
     {
         skip_auth = true;
-        s1 = OPENVPN_PLUGIN_FUNC_ERROR;
+        plugin_status = OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
     /* call plugin(s) and/or script */
     if (!skip_auth)
     {
 #ifdef ENABLE_MANAGEMENT
-        if (man_def_auth==KMDA_DEF)
+        if (man_def_auth == KMDA_DEF)
         {
             man_def_auth = verify_user_pass_management(session, multi, up);
         }
 #endif
         if (plugin_defined(session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY))
         {
-            s1 = verify_user_pass_plugin(session, multi, up);
+            plugin_status = verify_user_pass_plugin(session, multi, up);
         }
 
         if (session->opt->auth_user_pass_verify_script)
         {
-            s2 = verify_user_pass_script(session, multi, up);
+            script_status = verify_user_pass_script(session, multi, up);
         }
     }
 
@@ -1482,19 +1524,25 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
         msg(D_TLS_ERRORS,
             "TLS Auth Error: --username-as-common name specified and username is longer than the maximum permitted Common Name length of %d characters",
             TLS_USERNAME_LEN);
-        s1 = OPENVPN_PLUGIN_FUNC_ERROR;
+        plugin_status = OPENVPN_PLUGIN_FUNC_ERROR;
+        script_status = OPENVPN_PLUGIN_FUNC_ERROR;
     }
     /* auth succeeded? */
-    if ((s1 == OPENVPN_PLUGIN_FUNC_SUCCESS
-         || s1 == OPENVPN_PLUGIN_FUNC_DEFERRED
-         ) && s2
+    bool plugin_ok = plugin_status == OPENVPN_PLUGIN_FUNC_SUCCESS
+        || plugin_status == OPENVPN_PLUGIN_FUNC_DEFERRED;
+
+    bool script_ok =  script_status == OPENVPN_PLUGIN_FUNC_SUCCESS
+        || script_status ==  OPENVPN_PLUGIN_FUNC_DEFERRED;
+
+    if (script_ok && plugin_ok && tls_lock_username(multi, up->username)
 #ifdef ENABLE_MANAGEMENT
         && man_def_auth != KMDA_ERROR
 #endif
-        && tls_lock_username(multi, up->username))
+        )
     {
         ks->authenticated = KS_AUTH_TRUE;
-        if (s1 == OPENVPN_PLUGIN_FUNC_DEFERRED)
+        if (plugin_status == OPENVPN_PLUGIN_FUNC_DEFERRED
+            || script_status == OPENVPN_PLUGIN_FUNC_DEFERRED)
         {
             ks->authenticated = KS_AUTH_DEFERRED;
         }

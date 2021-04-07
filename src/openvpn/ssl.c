@@ -1019,6 +1019,7 @@ key_state_free(struct key_state *ks, bool clear)
     packet_id_free(&ks->crypto_options.packet_id);
 
     key_state_rm_auth_control_files(&ks->plugin_auth);
+    key_state_rm_auth_control_files(&ks->script_auth);
 
     if (clear)
     {
