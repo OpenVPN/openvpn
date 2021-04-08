@@ -81,6 +81,9 @@ struct options_pre_connect
     int ping_rec_timeout_action;
 
     int foreign_option_index;
+#ifdef USE_COMP
+    struct compress_options comp;
+#endif
 };
 
 #if !defined(ENABLE_CRYPTO_OPENSSL) && !defined(ENABLE_CRYPTO_MBEDTLS)

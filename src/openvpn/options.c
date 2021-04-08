@@ -3593,6 +3593,11 @@ pre_connect_save(struct options *o)
     o->pre_connect->ping_rec_timeout = o->ping_rec_timeout;
     o->pre_connect->ping_rec_timeout_action = o->ping_rec_timeout_action;
     o->pre_connect->ping_send_timeout = o->ping_send_timeout;
+
+    /* Miscellaneous Options */
+#ifdef USE_COMP
+    o->pre_connect->comp = o->comp;
+#endif
 }
 
 void
@@ -3645,6 +3650,11 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
         o->ping_rec_timeout = pp->ping_rec_timeout;
         o->ping_rec_timeout_action = pp->ping_rec_timeout_action;
         o->ping_send_timeout = pp->ping_send_timeout;
+
+        /* Miscellaneous Options */
+#ifdef USE_COMP
+        o->comp = pp->comp;
+#endif
     }
 
     o->push_continuation = 0;
