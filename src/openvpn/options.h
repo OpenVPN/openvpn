@@ -657,8 +657,8 @@ struct options
      * to the routing tables that would move packets into the tunnel. */
     bool allow_recursive_routing;
 
-    /* Use RFC5705 key export to generate data channel keys */
-    bool data_channel_use_ekm;
+    /* data channel crypto flags set by push/pull. Reuses the CO_* crypto_flags */
+    unsigned int data_channel_crypto_flags;
 };
 
 #define streq(x, y) (!strcmp((x), (y)))

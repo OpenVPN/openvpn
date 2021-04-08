@@ -3671,7 +3671,7 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
 
     o->push_continuation = 0;
     o->push_option_types_found = 0;
-    o->data_channel_use_ekm = false;
+    o->data_channel_crypto_flags = 0;
 }
 
 /**
@@ -7977,7 +7977,7 @@ add_option(struct options *options,
 #ifdef HAVE_EXPORT_KEYING_MATERIAL
         if (streq(p[1], "tls-ekm"))
         {
-            options->data_channel_use_ekm = true;
+            options->data_channel_crypto_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
         }
         else
 #endif

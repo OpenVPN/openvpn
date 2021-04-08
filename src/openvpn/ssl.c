@@ -1885,10 +1885,8 @@ tls_session_update_crypto_params(struct tls_session *session,
         return false;
     }
 
-    if (options->data_channel_use_ekm)
-    {
-        session->opt->crypto_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
-    }
+    /* Import crypto settings that might be set by pull/push */
+    session->opt->crypto_flags |= options->data_channel_crypto_flags;
 
     if (strcmp(options->ciphername, session->opt->config_ciphername))
     {

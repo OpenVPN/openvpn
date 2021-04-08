@@ -1783,7 +1783,10 @@ multi_client_set_protocol_options(struct context *c)
     }
 
 #ifdef HAVE_EXPORT_KEYING_MATERIAL
-    o->data_channel_use_ekm = (proto & IV_PROTO_TLS_KEY_EXPORT);
+    if (proto & IV_PROTO_TLS_KEY_EXPORT)
+    {
+        o->data_channel_crypto_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
+    }
 #endif
 
     /* Select cipher if client supports Negotiable Crypto Parameters */
