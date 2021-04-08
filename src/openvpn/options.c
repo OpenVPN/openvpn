@@ -3204,9 +3204,10 @@ options_postprocess_mutate(struct options *o)
     }
 
     /*
-     * Save certain parms before modifying options via --pull
+     * Save certain parms before modifying options during connect, especially
+     * when using --pull
      */
-    pre_pull_save(o);
+    pre_connect_save(o);
 }
 
 /*
@@ -3561,46 +3562,43 @@ options_postprocess(struct options *options)
  */
 
 void
-pre_pull_save(struct options *o)
+pre_connect_save(struct options *o)
 {
-    if (o->pull)
+    ALLOC_OBJ_CLEAR_GC(o->pre_connect, struct options_pre_connect, &o->gc);
+    o->pre_connect->tuntap_options = o->tuntap_options;
+    o->pre_connect->tuntap_options_defined = true;
+    o->pre_connect->foreign_option_index = o->foreign_option_index;
+
+    if (o->routes)
     {
-        ALLOC_OBJ_CLEAR_GC(o->pre_pull, struct options_pre_pull, &o->gc);
-        o->pre_pull->tuntap_options = o->tuntap_options;
-        o->pre_pull->tuntap_options_defined = true;
-        o->pre_pull->foreign_option_index = o->foreign_option_index;
-        if (o->routes)
-        {
-            o->pre_pull->routes = clone_route_option_list(o->routes, &o->gc);
-            o->pre_pull->routes_defined = true;
-        }
-        if (o->routes_ipv6)
-        {
-            o->pre_pull->routes_ipv6 = clone_route_ipv6_option_list(o->routes_ipv6, &o->gc);
-            o->pre_pull->routes_ipv6_defined = true;
-        }
-        if (o->client_nat)
-        {
-            o->pre_pull->client_nat = clone_client_nat_option_list(o->client_nat, &o->gc);
-            o->pre_pull->client_nat_defined = true;
-        }
-
-        /* NCP related options that can be overwritten by a push */
-        o->pre_pull->ciphername = o->ciphername;
-        o->pre_pull->authname = o->authname;
-
-        /* Ping related options should be reset to the config values on reconnect */
-        o->pre_pull->ping_rec_timeout = o->ping_rec_timeout;
-        o->pre_pull->ping_rec_timeout_action = o->ping_rec_timeout_action;
-        o->pre_pull->ping_send_timeout = o->ping_send_timeout;
+        o->pre_connect->routes = clone_route_option_list(o->routes, &o->gc);
+        o->pre_connect->routes_defined = true;
+    }
+    if (o->routes_ipv6)
+    {
+        o->pre_connect->routes_ipv6 = clone_route_ipv6_option_list(o->routes_ipv6, &o->gc);
+        o->pre_connect->routes_ipv6_defined = true;
+    }
+    if (o->client_nat)
+    {
+        o->pre_connect->client_nat = clone_client_nat_option_list(o->client_nat, &o->gc);
+        o->pre_connect->client_nat_defined = true;
     }
 
+    /* NCP related options that can be overwritten by a push */
+    o->pre_connect->ciphername = o->ciphername;
+    o->pre_connect->authname = o->authname;
+
+    /* Ping related options should be reset to the config values on reconnect */
+    o->pre_connect->ping_rec_timeout = o->ping_rec_timeout;
+    o->pre_connect->ping_rec_timeout_action = o->ping_rec_timeout_action;
+    o->pre_connect->ping_send_timeout = o->ping_send_timeout;
 }
 
 void
-pre_pull_restore(struct options *o, struct gc_arena *gc)
+pre_connect_restore(struct options *o, struct gc_arena *gc)
 {
-    const struct options_pre_pull *pp = o->pre_pull;
+    const struct options_pre_connect *pp = o->pre_connect;
     if (pp)
     {
         CLEAR(o->tuntap_options);

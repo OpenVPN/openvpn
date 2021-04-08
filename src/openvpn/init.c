@@ -4051,10 +4051,8 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         }
     }
 
-    if (c->options.pull)
-    {
-        pre_pull_restore(&c->options, &c->c2.gc);
-    }
+    /* Resets all values to the initial values from the config where needed */
+    pre_connect_restore(&c->options, &c->c2.gc);
 
     /* map in current connection entry */
     next_connection_entry(c);

@@ -59,7 +59,7 @@
 extern const char title_string[];
 
 /* certain options are saved before --pull modifications are applied */
-struct options_pre_pull
+struct options_pre_connect
 {
     bool tuntap_options_defined;
     struct tuntap_options tuntap_options;
@@ -492,7 +492,7 @@ struct options
     int push_continuation;
     unsigned int push_option_types_found;
     const char *auth_user_pass_file;
-    struct options_pre_pull *pre_pull;
+    struct options_pre_connect *pre_connect;
 
     int scheduled_exit_interval;
 
@@ -786,9 +786,9 @@ char *options_string_extract_option(const char *options_string,
 
 void options_postprocess(struct options *options);
 
-void pre_pull_save(struct options *o);
+void pre_connect_save(struct options *o);
 
-void pre_pull_restore(struct options *o, struct gc_arena *gc);
+void pre_connect_restore(struct options *o, struct gc_arena *gc);
 
 bool apply_push_options(struct options *options,
                         struct buffer *buf,
