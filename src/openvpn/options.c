@@ -3318,14 +3318,8 @@ check_file_access_chroot(const char *chroot, const int type, const char *file, c
     {
         struct gc_arena gc = gc_new();
         struct buffer chroot_file;
-        int len = 0;
 
-        /* Build up a new full path including chroot directory */
-        len = strlen(chroot) + strlen(PATH_SEPARATOR_STR) + strlen(file) + 1;
-        chroot_file = alloc_buf_gc(len, &gc);
-        buf_printf(&chroot_file, "%s%s%s", chroot, PATH_SEPARATOR_STR, file);
-        ASSERT(chroot_file.len > 0);
-
+        chroot_file = prepend_dir(chroot, file, &gc);
         ret = check_file_access(type, BSTR(&chroot_file), mode, opt);
         gc_free(&gc);
     }
