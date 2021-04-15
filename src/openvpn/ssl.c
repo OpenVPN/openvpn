@@ -558,7 +558,15 @@ tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
     }
     else if (platform_stat(crl_file, &crl_stat) < 0)
     {
-        msg(M_WARN, "WARNING: Failed to stat CRL file, not (re)loading CRL.");
+        /* If crl_last_mtime is zero, the CRL file has not been read before. */
+        if (ssl_ctx->crl_last_mtime == 0)
+        {
+            msg(M_FATAL, "ERROR: Failed to stat CRL file during initialization, exiting.");
+        }
+        else
+        {
+            msg(M_WARN, "WARNING: Failed to stat CRL file, not reloading CRL.");
+        }
         return;
     }
 
