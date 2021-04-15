@@ -197,4 +197,10 @@ void output_peer_info_env(struct env_set *es, const char *peer_info);
 int
 get_num_elements(const char *string, char delimiter);
 
+/**
+ * Prepend a directory to a path.
+ */
+struct buffer
+prepend_dir(const char *dir, const char *path, struct gc_arena *gc);
+
 #endif /* ifndef MISC_H */

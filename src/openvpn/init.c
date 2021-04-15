@@ -2734,7 +2734,7 @@ do_init_crypto_tls_c1(struct context *c)
          * Initialize the OpenSSL library's global
          * SSL context.
          */
-        init_ssl(options, &(c->c1.ks.ssl_ctx));
+        init_ssl(options, &(c->c1.ks.ssl_ctx), c->c0 && c->c0->uid_gid_chroot_set);
         if (!tls_ctx_initialised(&c->c1.ks.ssl_ctx))
         {
 #if P2MP

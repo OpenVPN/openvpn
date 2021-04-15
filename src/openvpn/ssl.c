@@ -583,7 +583,7 @@ tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
  * All files are in PEM format.
  */
 void
-init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
+init_ssl(const struct options *options, struct tls_root_ctx *new_ctx, bool in_chroot)
 {
     ASSERT(NULL != new_ctx);
 
@@ -701,7 +701,24 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx)
     /* Read CRL */
     if (options->crl_file && !(options->ssl_flags & SSLF_CRL_VERIFY_DIR))
     {
-        tls_ctx_reload_crl(new_ctx, options->crl_file, options->crl_file_inline);
+        /* If we're running with the chroot option, we may run init_ssl() before
+         * and after chroot-ing. We can use the crl_file path as-is if we're
+         * not going to chroot, or if we already are inside the chroot.
+         *
+         * If we're going to chroot later, we need to prefix the path of the
+         * chroot directory to crl_file.
+         */
+        if (!options->chroot_dir || in_chroot || options->crl_file_inline)
+        {
+            tls_ctx_reload_crl(new_ctx, options->crl_file, options->crl_file_inline);
+        }
+        else
+        {
+            struct gc_arena gc = gc_new();
+            struct buffer crl_file_buf = prepend_dir(options->chroot_dir, options->crl_file, &gc);
+            tls_ctx_reload_crl(new_ctx, BSTR(&crl_file_buf), options->crl_file_inline);
+            gc_free(&gc);
+        }
     }
 
     /* Once keys and cert are loaded, load ECDH parameters */

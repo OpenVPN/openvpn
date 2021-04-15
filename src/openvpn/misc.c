@@ -787,3 +787,14 @@ get_num_elements(const char *string, char delimiter)
 
     return element_count;
 }
+
+struct buffer
+prepend_dir(const char *dir, const char *path, struct gc_arena *gc)
+{
+    size_t len = strlen(dir) + strlen(PATH_SEPARATOR_STR) + strlen(path) + 1;
+    struct buffer combined_path = alloc_buf_gc(len, gc);
+    buf_printf(&combined_path, "%s%s%s", dir, PATH_SEPARATOR_STR, path);
+    ASSERT(combined_path.len > 0);
+
+    return combined_path;
+}
