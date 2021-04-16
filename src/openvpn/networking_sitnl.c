@@ -426,6 +426,7 @@ typedef struct {
     inet_address_t gw;
     char iface[IFNAMSIZ];
     bool default_only;
+    unsigned int table;
 } route_res_t;
 
 static int
@@ -435,13 +436,17 @@ sitnl_route_save(struct nlmsghdr *n, void *arg)
     struct rtmsg *r = NLMSG_DATA(n);
     struct rtattr *rta = RTM_RTA(r);
     int len = n->nlmsg_len - NLMSG_LENGTH(sizeof(*r));
-    unsigned int ifindex = 0;
+    unsigned int table, ifindex = 0;
+    void *gw = NULL;
 
     /* filter-out non-zero dst prefixes */
     if (res->default_only && r->rtm_dst_len != 0)
     {
         return 1;
     }
+
+    /* route table, ignored with RTA_TABLE */
+    table = r->rtm_table;
 
     while (RTA_OK(rta, len))
     {
@@ -458,11 +463,22 @@ sitnl_route_save(struct nlmsghdr *n, void *arg)
 
             /* GW for the route */
             case RTA_GATEWAY:
-                memcpy(&res->gw, RTA_DATA(rta), res->addr_size);
+                gw = RTA_DATA(rta);
+                break;
+
+            /* route table */
+            case RTA_TABLE:
+                table = *(unsigned int *)RTA_DATA(rta);
                 break;
         }
 
         rta = RTA_NEXT(rta, len);
+    }
+
+    /* filter out any route not coming from the selected table */
+    if (res->table && res->table != table)
+    {
+        return 1;
     }
 
     if (!if_indextoname(ifindex, res->iface))
@@ -470,6 +486,11 @@ sitnl_route_save(struct nlmsghdr *n, void *arg)
         msg(M_WARN | M_ERRNO, "%s: rtnl: can't get ifname for index %d",
             __func__, ifindex);
         return -1;
+    }
+
+    if (gw)
+    {
+        memcpy(&res->gw, gw, res->addr_size);
     }
 
     return 0;
@@ -507,6 +528,7 @@ sitnl_route_best_gw(sa_family_t af_family, const inet_address_t *dst,
             {
                 req.n.nlmsg_flags |= NLM_F_DUMP;
                 res.default_only = true;
+                res.table = RT_TABLE_MAIN;
             }
             else
             {
