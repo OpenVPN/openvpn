@@ -3598,6 +3598,9 @@ pre_pull_save(struct options *o)
             o->pre_pull->client_nat_defined = true;
         }
 
+        o->pre_pull->route_default_gateway = o->route_default_gateway;
+        o->pre_pull->route_ipv6_default_gateway = o->route_ipv6_default_gateway;
+
         /* Ping related options should be reset to the config values on reconnect */
         o->pre_pull->ping_rec_timeout = o->ping_rec_timeout;
         o->pre_pull->ping_rec_timeout_action = o->ping_rec_timeout_action;
@@ -3636,6 +3639,9 @@ pre_pull_restore(struct options *o, struct gc_arena *gc)
         {
             o->routes_ipv6 = NULL;
         }
+
+        o->route_default_gateway = pp->route_default_gateway;
+        o->route_ipv6_default_gateway = pp->route_ipv6_default_gateway;
 
         if (pp->client_nat_defined)
         {

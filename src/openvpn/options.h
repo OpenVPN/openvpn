@@ -72,6 +72,9 @@ struct options_pre_pull
     bool routes_ipv6_defined;
     struct route_ipv6_option_list *routes_ipv6;
 
+    const char *route_default_gateway;
+    const char *route_ipv6_default_gateway;
+
     bool client_nat_defined;
     struct client_nat_option_list *client_nat;
 
