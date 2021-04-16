@@ -3585,6 +3585,9 @@ pre_connect_save(struct options *o)
         o->pre_connect->client_nat_defined = true;
     }
 
+    o->pre_connect->route_default_gateway = o->route_default_gateway;
+    o->pre_connect->route_ipv6_default_gateway = o->route_ipv6_default_gateway;
+
     /* NCP related options that can be overwritten by a push */
     o->pre_connect->ciphername = o->ciphername;
     o->pre_connect->authname = o->authname;
@@ -3631,6 +3634,9 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
         {
             o->routes_ipv6 = NULL;
         }
+
+        o->route_default_gateway = pp->route_default_gateway;
+        o->route_ipv6_default_gateway = pp->route_ipv6_default_gateway;
 
         if (pp->client_nat_defined)
         {
