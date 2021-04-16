@@ -183,6 +183,12 @@ routing.
   :code:`DISABLE-NBT`
         Disable Netbios-over-TCP/IP.
 
+  :code: `PROXY_HTTP` ``host`` ``port``
+        Sets a HTTP proxy that should be used when connected to the VPN.
+
+        This option currently only works on OpenVPN for Android and requires
+        Android 10 or later.
+
 --ifconfig args
   Set TUN/TAP adapter parameters. It requires the *IP address* of the local
   VPN endpoint. For TUN devices in point-to-point mode, the next argument

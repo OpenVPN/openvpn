@@ -128,6 +128,10 @@ struct tuntap_options {
 
     struct in6_addr dns6[N_DHCP_ADDR];
     int dns6_len;
+#if defined(TARGET_ANDROID)
+    const char *http_proxy;
+    int http_proxy_port;
+#endif
 };
 
 #elif defined(TARGET_LINUX)

@@ -7435,22 +7435,22 @@ add_option(struct options *options,
     }
 #endif /* ifdef _WIN32 */
 #if defined(_WIN32) || defined(TARGET_ANDROID)
-    else if (streq(p[0], "dhcp-option") && p[1] && !p[3])
+    else if (streq(p[0], "dhcp-option") && p[1])
     {
         struct tuntap_options *o = &options->tuntap_options;
         VERIFY_PERMISSION(OPT_P_IPWIN32);
         bool ipv6dns = false;
 
         if ((streq(p[1], "DOMAIN") || streq(p[1], "ADAPTER_DOMAIN_SUFFIX"))
-            && p[2])
+            && p[2] && !p[3])
         {
             o->domain = p[2];
         }
-        else if (streq(p[1], "NBS") && p[2])
+        else if (streq(p[1], "NBS") && p[2] && !p[3])
         {
             o->netbios_scope = p[2];
         }
-        else if (streq(p[1], "NBT") && p[2])
+        else if (streq(p[1], "NBT") && p[2] && !p[3])
         {
             int t;
             t = atoi(p[2]);
@@ -7461,7 +7461,8 @@ add_option(struct options *options,
             }
             o->netbios_node_type = t;
         }
-        else if ((streq(p[1], "DNS") || streq(p[1], "DNS6")) && p[2] && (!strstr(p[2], ":") || ipv6_addr_safe(p[2])))
+        else if ((streq(p[1], "DNS") || streq(p[1], "DNS6")) && p[2] && !p[3]
+                && (!strstr(p[2], ":") || ipv6_addr_safe(p[2])))
         {
             if (strstr(p[2], ":"))
             {
@@ -7474,19 +7475,19 @@ add_option(struct options *options,
                 dhcp_option_address_parse("DNS", p[2], o->dns, &o->dns_len, msglevel);
             }
         }
-        else if (streq(p[1], "WINS") && p[2])
+        else if (streq(p[1], "WINS") && p[2] && !p[3])
         {
             dhcp_option_address_parse("WINS", p[2], o->wins, &o->wins_len, msglevel);
         }
-        else if (streq(p[1], "NTP") && p[2])
+        else if (streq(p[1], "NTP") && p[2] && !p[3])
         {
             dhcp_option_address_parse("NTP", p[2], o->ntp, &o->ntp_len, msglevel);
         }
-        else if (streq(p[1], "NBDD") && p[2])
+        else if (streq(p[1], "NBDD") && p[2] && !p[3])
         {
             dhcp_option_address_parse("NBDD", p[2], o->nbdd, &o->nbdd_len, msglevel);
         }
-        else if (streq(p[1], "DOMAIN-SEARCH") && p[2])
+        else if (streq(p[1], "DOMAIN-SEARCH") && p[2] && !p[3])
         {
             if (o->domain_search_list_len < N_SEARCH_LIST_LEN)
             {
@@ -7502,6 +7503,13 @@ add_option(struct options *options,
         {
             o->disable_nbt = 1;
         }
+#if defined(TARGET_ANDROID)
+        else if (streq(p[1], "PROXY_HTTP") && p[3] && !p[4])
+        {
+            o->http_proxy_port = atoi(p[3]);
+            o->http_proxy = p[2];
+        }
+#endif
         else
         {
             msg(msglevel, "--dhcp-option: unknown option type '%s' or missing or unknown parameter", p[1]);

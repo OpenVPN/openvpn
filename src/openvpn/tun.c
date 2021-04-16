@@ -1870,6 +1870,13 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         management_android_control(management, "DNSDOMAIN", tt->options.domain);
     }
 
+    if (tt->options.http_proxy)
+    {
+        struct buffer buf = alloc_buf_gc(strlen(tt->options.http_proxy) + 20, &gc);
+        buf_printf(&buf, "%s %d", tt->options.http_proxy, tt->options.http_proxy_port);
+        management_android_control(management, "HTTPPROXY", BSTR(&buf));
+    }
+
     int android_method = managment_android_persisttun_action(management);
 
     /* Android 4.4 workaround */
