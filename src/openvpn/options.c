@@ -2541,7 +2541,7 @@ options_postprocess_verify_ce(const struct options *options,
         msg(M_USAGE, "specify only one of --tls-server, --tls-client, or --secret");
     }
 
-    if (!options->tls_server || !options->tls_client)
+    if (!options->tls_server && !options->tls_client)
     {
         msg(M_INFO, "DEPRECATION: No tls-client or tls-server option in "
                     "configuration detected. OpenVPN 2.7 will remove the "
