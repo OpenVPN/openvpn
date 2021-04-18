@@ -488,6 +488,19 @@ struct tls_session
  */
 #define KEY_SCAN_SIZE 3
 
+
+/* client authentication state, CAS_SUCCEEDED must be 0 since
+ * non multi code path still checks this variable but does not initialise it
+ * so the code depends on zero initialisation */
+enum client_connect_status {
+    CAS_SUCCEEDED=0,
+    CAS_PENDING,
+    CAS_PENDING_DEFERRED,
+    CAS_PENDING_DEFERRED_PARTIAL,   /**< at least handler succeeded, no result yet*/
+    CAS_FAILED,
+};
+
+
 /**
  * Security parameter state for a single VPN tunnel.
  * @ingroup control_processor
@@ -523,6 +536,7 @@ struct tls_multi
 
     int n_sessions;             /**< Number of sessions negotiated thus
                                  *   far. */
+    enum client_connect_status multi_state;
 
     /*
      * Number of errors.
