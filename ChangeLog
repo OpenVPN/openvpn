@@ -1,6 +1,23 @@
 OpenVPN Change Log
 Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
 
+2021.04.20 -- Version 2.4.11
+
+Arne Schwabe (1):
+      Ensure key state is authenticated before sending push reply
+
+Gert Doering (2):
+      clean up / rewrite sample-plugins/defer/simple.c
+      Fix potential NULL ptr crash if compiled with DMALLOC
+
+Greg Cox (5):
+      Fix naming error in sample-plugins/defer/simple.c
+      Documentation fixes around openvpn_plugin_func_v3 in openvpn-plugin.h.in
+      Update openvpn_plugin_func_v2 to _v3 in sample-plugins/defer/simple.c
+      More explicit versioning compatibility in sample-plugins/defer/simple.c
+      Explain structver usage in sample defer plugin.
+
+
 2020.12.09 -- Version 2.4.10
 
 Antonio Quartulli (1):

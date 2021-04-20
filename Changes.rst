@@ -321,6 +321,31 @@ Maintainer-visible changes
   i386/i686 builds on RHEL5.
 
 
+Version 2.4.11
+=============
+This is primarily a maintenance release with minor bugfixes and improvements.
+
+Bug fixes
+---------
+- CVE-2020-15078
+  see https://community.openvpn.net/openvpn/wiki/SecurityAnnouncements
+
+  This bug allows - under very specific circumstances - to trick a
+  server using delayed authentication (plugin or management) into
+  returning a PUSH_REPLY before the AUTH_FAILED message, which can
+  possibly be used to gather information about a VPN setup.
+
+  In combination with "--auth-gen-token" or an user-specific token auth
+  solution it can be possible to get access to a VPN with an
+  otherwise-invalid account.
+
+- Fix potential NULL ptr crash if compiled with DMALLOC
+
+Enhancements
+------------
+ - multiple patches to improve "sample defer plugin" + documentation
+
+
 Version 2.4.10
 =============
 This is primarily a maintenance release with minor bugfixes and improvements.
