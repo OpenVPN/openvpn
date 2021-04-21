@@ -463,11 +463,6 @@ socket_defined(const socket_descriptor_t sd)
 }
 
 /*
- * Should statistics counters be 64 bits?
- */
-#define USE_64_BIT_COUNTERS
-
-/*
  * Should we enable the use of execve() for calling subprocesses,
  * instead of system()?
  */
