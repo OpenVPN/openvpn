@@ -1101,6 +1101,18 @@ parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_aren
         bs[0] = *cp++;
         bs[1] = *cp++;
         bs[2] = 0;
+
+        /* the format string "%x" passed to sscanf will ignore any space and
+         * will still try to parse the other character. However, this is not
+         * expected format for a fingerprint, therefore explictly check for
+         * blanks in the string and error out if any is found
+         */
+        if (bs[0] == ' ' || bs[1] == ' ')
+        {
+            msg(msglevel, "format error in hash fingerprint unexpected blank: %s",
+                str);
+        }
+
         byte = 0;
         if (sscanf(bs, "%x", &byte) != 1)
         {
