@@ -728,16 +728,17 @@ cipher_kt_mode_aead(const cipher_kt_t *cipher)
 {
     if (cipher)
     {
-        switch (EVP_CIPHER_nid(cipher))
+        if (EVP_CIPHER_mode(cipher) == OPENVPN_MODE_GCM)
         {
-            case NID_aes_128_gcm:
-            case NID_aes_192_gcm:
-            case NID_aes_256_gcm:
-#ifdef NID_chacha20_poly1305
-            case NID_chacha20_poly1305:
-#endif
-                return true;
+            return true;
         }
+
+#ifdef NID_chacha20_poly1305
+        if (EVP_CIPHER_nid(cipher) == NID_chacha20_poly1305)
+        {
+            return true;
+        }
+#endif
     }
 
     return false;
