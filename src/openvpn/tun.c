@@ -5606,7 +5606,7 @@ windows_set_mtu(const int iface_index, const short family,
 
     if (err != NO_ERROR)
     {
-        msg(M_WARN, "TUN: Setting %s mtu failed: %s [status=%u if_index=%d]",
+        msg(M_WARN, "TUN: Setting %s mtu failed: %s [status=%lu if_index=%d]",
             family_name, strerror_win32(err, &gc), err, iface_index);
     }
     else

@@ -2360,7 +2360,6 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
 #else
     int metric;
 #endif
-    const char *device = tt->actual_name;
     bool gateway_needed = false;
 
     if ((r6->flags & (RT_DEFINED|RT_ADDED)) != (RT_DEFINED|RT_ADDED))
@@ -2369,6 +2368,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     }
 
 #ifndef _WIN32
+    const char *device = tt->actual_name;
     if (r6->iface != NULL)              /* vpn server special route */
     {
         device = r6->iface;
@@ -2713,7 +2713,7 @@ get_default_gateway_row(const MIB_IPFORWARDTABLE *routes)
             const DWORD index = row->dwForwardIfIndex;
             const DWORD metric = row->dwForwardMetric1;
 
-            dmsg(D_ROUTE_DEBUG, "GDGR: route[%d] %s/%s i=%d m=%d",
+            dmsg(D_ROUTE_DEBUG, "GDGR: route[%lu] %s/%s i=%d m=%d",
                  i,
                  print_in_addr_t((in_addr_t) net, 0, &gc),
                  print_in_addr_t((in_addr_t) mask, 0, &gc),
