@@ -372,6 +372,16 @@ bool tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
 void tls_pre_encrypt(struct tls_multi *multi,
                      struct buffer *buf, struct crypto_options **opt);
 
+/**
+ * Selects the primary encryption that should be used to encrypt data of an
+ * outgoing packet.
+ * @ingroup data_crypto
+ *
+ * If no key is found NULL is returned instead.
+ *
+ * @param multi - The TLS state for this packet's destination VPN tunnel.
+ */
+struct key_state *tls_select_encryption_key(struct tls_multi *multi);
 
 /**
  * Prepend a one-byte OpenVPN data channel P_DATA_V1 opcode to the packet.

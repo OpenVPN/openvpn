@@ -3798,6 +3798,31 @@ error:
     return false;
 }
 
+struct key_state *tls_select_encryption_key(struct tls_multi *multi)
+{
+    struct key_state *ks_select = NULL;
+    for (int i = 0; i < KEY_SCAN_SIZE; ++i)
+    {
+        struct key_state *ks = get_key_scan(multi, i);
+        if (ks->state >= S_ACTIVE
+            && ks->authenticated == KS_AUTH_TRUE
+            && ks->crypto_options.key_ctx_bi.initialized)
+        {
+            if (!ks_select)
+            {
+                ks_select = ks;
+            }
+            if (now >= ks->auth_deferred_expire)
+            {
+                ks_select = ks;
+                break;
+            }
+        }
+    }
+    return ks_select;
+}
+
+
 /* Choose the key with which to encrypt a data packet */
 void
 tls_pre_encrypt(struct tls_multi *multi,
@@ -3811,26 +3836,7 @@ tls_pre_encrypt(struct tls_multi *multi,
         return;
     }
 
-    struct key_state *ks_select = NULL;
-    for (int i = 0; i < KEY_SCAN_SIZE; ++i)
-    {
-        struct key_state *ks = get_key_scan(multi, i);
-        if (ks->state >= S_ACTIVE
-            && (ks->authenticated == KS_AUTH_TRUE)
-            && ks->crypto_options.key_ctx_bi.initialized
-            )
-        {
-            if (!ks_select)
-            {
-                ks_select = ks;
-            }
-            if (now >= ks->auth_deferred_expire)
-            {
-                ks_select = ks;
-                break;
-            }
-        }
-    }
+    struct key_state *ks_select = tls_select_encryption_key(multi);
 
     if (ks_select)
     {
