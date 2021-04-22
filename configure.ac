@@ -1140,14 +1140,6 @@ if test -n "${GIT}" -a -d "${srcdir}/.git"; then
 fi
 AC_MSG_RESULT([${GIT_CHECKOUT}])
 
-if test -n "${SP_PLATFORM_WINDOWS}"; then
-	AC_DEFINE_UNQUOTED([PATH_SEPARATOR], ['\\\\'], [Path separator]) #"
-	AC_DEFINE_UNQUOTED([PATH_SEPARATOR_STR], ["\\\\"], [Path separator]) #"
-else
-	AC_DEFINE_UNQUOTED([PATH_SEPARATOR], ['/'], [Path separator])
-	AC_DEFINE_UNQUOTED([PATH_SEPARATOR_STR], ["/"], [Path separator])
-fi
-
 dnl enable --x509-username-field feature if requested
 if test "${enable_x509_alt_username}" = "yes"; then
 	if test "${with_crypto_library}" = "mbedtls" ; then

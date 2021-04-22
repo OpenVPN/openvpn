@@ -436,9 +436,11 @@ typedef unsigned short sa_family_t;
  * Directory separation char
  */
 #ifdef _WIN32
-#define OS_SPECIFIC_DIRSEP '\\'
+#define PATH_SEPARATOR '\\'
+#define PATH_SEPARATOR_STR "\\"
 #else
-#define OS_SPECIFIC_DIRSEP '/'
+#define PATH_SEPARATOR '/'
+#define PATH_SEPARATOR_STR "/"
 #endif
 
 /*

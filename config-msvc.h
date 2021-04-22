@@ -81,9 +81,6 @@
 #define HAVE_EVP_CIPHER_CTX_RESET 1
 #define HAVE_DIINSTALLDEVICE 1
 
-#define PATH_SEPARATOR     '\\'
-#define PATH_SEPARATOR_STR "\\"
-
 #ifndef __cplusplus
 #define inline __inline
 #endif

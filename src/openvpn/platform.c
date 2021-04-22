@@ -486,7 +486,7 @@ platform_gen_path(const char *directory, const char *filename,
         struct buffer out = alloc_buf_gc(outsize, gc);
         char dirsep[2];
 
-        dirsep[0] = OS_SPECIFIC_DIRSEP;
+        dirsep[0] = PATH_SEPARATOR;
         dirsep[1] = '\0';
 
         if (directory)
