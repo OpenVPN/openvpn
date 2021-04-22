@@ -38,6 +38,7 @@ int_test_success(void **state)
     assert_int_equal(*answer, 42);
 }
 
+__attribute__((unused))
 static void
 failing_test(void **state)
 {
