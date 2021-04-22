@@ -624,4 +624,13 @@ get_key_scan(struct tls_multi *multi, int index)
     }
 }
 
+/**  gets an item  of \c key_state objects in the
+ *   order they should be scanned by data
+ *   channel modules. */
+static inline const struct key_state *
+get_primary_key(const struct tls_multi *multi)
+{
+        return &multi->session[TM_ACTIVE].key[KS_PRIMARY];
+}
+
 #endif /* SSL_COMMON_H_ */

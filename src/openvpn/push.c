@@ -222,7 +222,7 @@ receive_cr_response(struct context *c, const struct buffer *buffer)
     struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
     struct man_def_auth_context *mda = session->opt->mda_context;
     struct env_set *es = session->opt->es;
-    int key_id = session->key[KS_PRIMARY].key_id;
+    int key_id = get_primary_key(c->c2.tls_multi)->key_id;
 
 
     management_notify_client_cr_response(key_id, mda, es, m);
@@ -300,7 +300,7 @@ receive_auth_pending(struct context *c, const struct buffer *buffer)
                 "to %us", c->options.handshake_window,
                 min_uint(max_timeout, server_timeout));
 
-    struct key_state *ks = &c->c2.tls_multi->session[TM_ACTIVE].key[KS_PRIMARY];
+    const struct key_state *ks = get_primary_key(c->c2.tls_multi);
     c->c2.push_request_timeout = ks->established + min_uint(max_timeout, server_timeout);
 }
 
@@ -365,7 +365,7 @@ bool
 send_auth_pending_messages(struct tls_multi *tls_multi, const char *extra,
                            unsigned int timeout)
 {
-    struct key_state *ks = &tls_multi->session[TM_ACTIVE].key[KS_PRIMARY];
+    struct key_state *ks = get_key_scan(tls_multi, 0);
 
     static const char info_pre[] = "INFO_PRE,";
 
@@ -472,8 +472,7 @@ cleanup:
 bool
 send_push_request(struct context *c)
 {
-    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-    struct key_state *ks = &session->key[KS_PRIMARY];
+    const struct key_state *ks = get_primary_key(c->c2.tls_multi);
 
     /* We timeout here under two conditions:
      * a) we reached the hard limit of push_request_timeout

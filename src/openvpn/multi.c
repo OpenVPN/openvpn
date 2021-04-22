@@ -1799,8 +1799,7 @@ multi_client_set_protocol_options(struct context *c)
      * cipher -> so log the fact and push the "what we have now" cipher
      * (so the client is always told what we expect it to use)
      */
-    const struct tls_session *session = &tls_multi->session[TM_ACTIVE];
-    if (session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized)
+    if (get_primary_key(tls_multi)->crypto_options.key_ctx_bi.initialized)
     {
         msg(M_INFO, "PUSH: client wants to negotiate cipher (NCP), but "
             "server has already generated data channel keys, "
