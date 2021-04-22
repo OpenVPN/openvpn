@@ -100,10 +100,6 @@
 #include <fcntl.h>
 #endif
 
-#ifdef HAVE_IO_H
-#include <io.h>
-#endif
-
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
@@ -153,10 +149,6 @@
 
 #ifdef HAVE_POLL_H
 #include <poll.h>
-#endif
-
-#ifdef HAVE_SYS_EPOLL_H
-#include <sys/epoll.h>
 #endif
 
 #ifdef ENABLE_SELINUX
@@ -342,6 +334,8 @@ typedef int MIB_TCP_STATE;
 #include <iphlpapi.h>
 #include <wininet.h>
 #include <shellapi.h>
+#include <io.h>
+
 /* The following two headers are needed of PF_INET6 */
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -538,12 +532,6 @@ socket_defined(const socket_descriptor_t sd)
 #if defined(HAVE_EPOLL_CREATE) && defined(HAVE_SYS_EPOLL_H)
 #define EPOLL 1
 #else
-#define EPOLL 0
-#endif
-
-/* Disable EPOLL */
-#if 0
-#undef EPOLL
 #define EPOLL 0
 #endif
 

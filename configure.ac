@@ -419,7 +419,6 @@ AC_CHECK_HEADERS([ \
 	unistd.h dlfcn.h \
 	netinet/in.h netinet/in_systm.h \
 	netinet/tcp.h arpa/inet.h netdb.h \
-	windows.h winsock2.h ws2tcpip.h \
 	versionhelpers.h \
 ])
 AC_CHECK_HEADERS([ \
@@ -445,13 +444,13 @@ SOCKET_INCLUDES="
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
-#ifdef HAVE_WINDOWS_H
+#ifdef _WIN32
 #include <windows.h>
 #endif
-#ifdef HAVE_WINSOCK2_H
+#ifdef _WIN32
 #include <winsock2.h>
 #endif
-#ifdef HAVE_WS2TCPIP_H
+#ifdef _WIN32
 #include <ws2tcpip.h>
 #endif
 #ifdef HAVE_NETINET_IN_SYSTM_H
@@ -630,8 +629,8 @@ AC_CHECK_FUNCS([ \
 	daemon chroot getpwnam setuid nice system getpid dup dup2 \
 	syslog openlog mlockall getrlimit getgrnam setgid \
 	setgroups flock readv writev time gettimeofday \
-	setsid chdir getpeername unlink \
-	chsize ftruncate execve getpeereid umask basename dirname access \
+	setsid chdir getpeername \
+	chsize ftruncate execve getpeereid basename dirname access \
 	epoll_create strsep \
 ])
 

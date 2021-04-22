@@ -35,6 +35,10 @@
 #include "event.h"
 #include "fdmisc.h"
 
+#if EPOLL
+#include <sys/epoll.h>
+#endif
+
 #include "memdbg.h"
 
 /*

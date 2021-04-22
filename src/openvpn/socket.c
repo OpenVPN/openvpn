@@ -1385,14 +1385,6 @@ socket_listen_accept(socket_descriptor_t sd,
     return new_sd;
 }
 
-/* older mingw versions and WinXP do not have this define,
- * but Vista and up support the functionality - just define it here
- */
-#ifdef _WIN32
-#ifndef IPV6_V6ONLY
-#define IPV6_V6ONLY 27
-#endif
-#endif
 void
 socket_bind(socket_descriptor_t sd,
             struct addrinfo *local,
@@ -3913,10 +3905,7 @@ socket_bind_unix(socket_descriptor_t sd,
                  const char *prefix)
 {
     struct gc_arena gc = gc_new();
-
-#ifdef HAVE_UMASK
     const mode_t orig_umask = umask(0);
-#endif
 
     if (bind(sd, (struct sockaddr *) local, sizeof(struct sockaddr_un)))
     {
@@ -3927,10 +3916,7 @@ socket_bind_unix(socket_descriptor_t sd,
             sockaddr_unix_name(local, "NULL"));
     }
 
-#ifdef HAVE_UMASK
     umask(orig_umask);
-#endif
-
     gc_free(&gc);
 }
 
@@ -3975,12 +3961,10 @@ void
 socket_delete_unix(const struct sockaddr_un *local)
 {
     const char *name = sockaddr_unix_name(local, NULL);
-#ifdef HAVE_UNLINK
     if (name && strlen(name))
     {
         unlink(name);
     }
-#endif
 }
 
 bool
