@@ -30,7 +30,6 @@
 #define HAVE_WINSOCK2_H 1
 #define HAVE_WS2TCPIP_H 1
 #define HAVE_IO_H 1
-#define HAVE_DIRECT_H 1
 #define HAVE_SYS_TYPES_H 1
 #define HAVE_SYS_STAT_H 1
 #define HAVE_LZO_LZO1X_H 1

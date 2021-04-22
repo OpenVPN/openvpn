@@ -100,10 +100,6 @@
 #include <fcntl.h>
 #endif
 
-#ifdef HAVE_DIRECT_H
-#include <direct.h>
-#endif
-
 #ifdef HAVE_IO_H
 #include <io.h>
 #endif

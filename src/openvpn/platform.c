@@ -39,6 +39,10 @@
 
 #include "platform.h"
 
+#if _WIN32
+#include <direct.h>
+#endif
+
 /* Redefine the top level directory of the filesystem
  * to restrict access to files for security */
 void
