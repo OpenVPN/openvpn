@@ -232,17 +232,7 @@ struct context_2
     int event_set_max;
     bool event_set_owned;
 
-    /* event flags returned by io_wait */
-#define SOCKET_READ       (1<<0)
-#define SOCKET_WRITE      (1<<1)
-#define TUN_READ          (1<<2)
-#define TUN_WRITE         (1<<3)
-#define ES_ERROR          (1<<4)
-#define ES_TIMEOUT        (1<<5)
-#define MANAGEMENT_READ  (1<<6)
-#define MANAGEMENT_WRITE (1<<7)
-#define FILE_CLOSED       (1<<8)
-
+    /* bitmask for event status. Check event.h for possible values */
     unsigned int event_set_status;
 
     struct link_socket *link_socket;     /* socket used for TCP/UDP connection to remote */

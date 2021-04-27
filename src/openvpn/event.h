@@ -32,9 +32,47 @@
  * rwflags passed to event_ctl and returned by
  * struct event_set_return.
  */
-#define EVENT_UNDEF    4
-#define EVENT_READ     (1<<0)
-#define EVENT_WRITE    (1<<1)
+#define READ_SHIFT      0
+#define WRITE_SHIFT     1
+
+#define EVENT_UNDEF     4
+#define EVENT_READ      (1 << READ_SHIFT)
+#define EVENT_WRITE     (1 << WRITE_SHIFT)
+
+/* event flags returned by io_wait.
+ *
+ * All these events are defined as bits in a bitfield.
+ * Each event 'type' owns two bits in the bitfield: one for the READ
+ * event and one for the WRITE event.
+ *
+ * For this reason, the specific event bit is calculated by adding
+ * the event type identifier (always a multiple of 2, as defined
+ * below) to 0 for READ and 1 for WRITE.
+ *
+ * E.g.
+ * MANAGEMENT_SHIFT = 6;  <---- event type identifier
+ * MANAGEMENT_READ = (1 << (6 + 0)),  <---- READ event
+ * MANAGEMENT_WRITE = (1 << (6 + 1))  <---- WRITE event
+ *
+ * 'error' and 'file_close' are special and use read/write for different
+ * signals.
+ */
+
+#define SOCKET_SHIFT        0
+#define SOCKET_READ         (1 << (SOCKET_SHIFT + READ_SHIFT))
+#define SOCKET_WRITE        (1 << (SOCKET_SHIFT + WRITE_SHIFT))
+#define TUN_SHIFT           2
+#define TUN_READ            (1 << (TUN_SHIFT + READ_SHIFT))
+#define TUN_WRITE           (1 << (TUN_SHIFT + WRITE_SHIFT))
+#define ERR_SHIFT           4
+#define ES_ERROR            (1 << (ERR_SHIFT + READ_SHIFT))
+#define ES_TIMEOUT          (1 << (ERR_SHIFT + WRITE_SHIFT))
+#define MANAGEMENT_SHIFT    6
+#define MANAGEMENT_READ     (1 << (MANAGEMENT_SHIFT + READ_SHIFT))
+#define MANAGEMENT_WRITE    (1 << (MANAGEMENT_SHIFT + WRITE_SHIFT))
+#define FILE_SHIFT          8
+#define FILE_CLOSED         (1 << (FILE_SHIFT + READ_SHIFT))
+
 /*
  * Initialization flags passed to event_set_init
  */
