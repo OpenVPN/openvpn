@@ -768,8 +768,8 @@ cipher_ctx_final_check_tag(mbedtls_cipher_context_t *ctx, uint8_t *dst,
 
 void
 cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
-                       unsigned char *src,
-                       unsigned char *dst)
+                       unsigned char src[DES_KEY_LENGTH],
+                       unsigned char dst[DES_KEY_LENGTH])
 {
     mbedtls_des_context ctx;
 
