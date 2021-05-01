@@ -44,7 +44,7 @@ typedef int interval_t;
  * Printf formats for special types
  */
 #ifdef _WIN64
-#define ptr_format              "0x%I64x"
+#define ptr_format              "0x%016" PRIx64
 #else
 #define ptr_format              "0x%08lx"
 #endif
