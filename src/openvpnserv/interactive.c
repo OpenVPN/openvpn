@@ -1594,6 +1594,9 @@ Undo(undo_lists_t *lists)
                                              interface_data->metric_v6);
                     }
                     break;
+                case _undo_type_max:
+                    /* unreachable */
+                    break;
             }
 
             /* Remove from the list and free memory */
