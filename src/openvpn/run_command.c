@@ -233,11 +233,11 @@ openvpn_popen(const struct argv *a,  const struct env_set *es)
 {
     struct gc_arena gc = gc_new();
     int ret = -1;
-    static bool warn_shown = false;
 
     if (a && a->argv[0])
     {
 #if defined(ENABLE_FEATURE_EXECVE)
+        static bool warn_shown = false;
         if (script_security() >= SSEC_BUILT_IN)
         {
             const char *cmd = a->argv[0];
