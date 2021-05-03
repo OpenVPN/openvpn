@@ -536,13 +536,6 @@ socket_defined(const socket_descriptor_t sd)
 #endif
 
 /*
- * Is non-blocking connect() supported?
- */
-#if defined(SOL_SOCKET) && defined(SO_ERROR) && defined(EINPROGRESS) && defined(ETIMEDOUT)
-#define CONNECT_NONBLOCK
-#endif
-
-/*
  * Compression support
  */
 #if defined(ENABLE_LZO) || defined(ENABLE_LZ4)    \

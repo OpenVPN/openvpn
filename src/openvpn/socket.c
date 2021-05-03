@@ -1451,7 +1451,6 @@ openvpn_connect(socket_descriptor_t sd,
     protect_fd_nonlocal(sd, remote);
 #endif
 
-#ifdef CONNECT_NONBLOCK
     set_nonblock(sd);
     status = connect(sd, remote, af_addr_size(remote->sa_family));
     if (status)
@@ -1532,13 +1531,6 @@ openvpn_connect(socket_descriptor_t sd,
             }
         }
     }
-#else  /* ifdef CONNECT_NONBLOCK */
-    status = connect(sd, remote, af_addr_size(remote->sa_family));
-    if (status)
-    {
-        status = openvpn_errno();
-    }
-#endif /* ifdef CONNECT_NONBLOCK */
 
     return status;
 }
@@ -1575,13 +1567,8 @@ socket_connect(socket_descriptor_t *sd,
     struct gc_arena gc = gc_new();
     int status;
 
-#ifdef CONNECT_NONBLOCK
-    msg(M_INFO, "Attempting to establish TCP connection with %s [nonblock]",
-        print_sockaddr(dest, &gc));
-#else
     msg(M_INFO, "Attempting to establish TCP connection with %s",
         print_sockaddr(dest, &gc));
-#endif
 
 #ifdef ENABLE_MANAGEMENT
     if (management)
