@@ -70,6 +70,7 @@ test_compat_lzo_string(void **state)
     /* 999 -> 1000, 3 to 4 chars */
     assert_string_equal(output, "V4,dev-type tun,link-mtu 1000,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server,comp-lzo");
 
+    gc_free(&gc);
 };
 
 const struct CMUnitTest misc_tests[] = {
