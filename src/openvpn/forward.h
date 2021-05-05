@@ -68,43 +68,11 @@ extern counter_type link_read_bytes_global;
 
 extern counter_type link_write_bytes_global;
 
-void check_tls(struct context *c);
-
-void check_tls_errors_co(struct context *c);
-
-void check_tls_errors_nco(struct context *c);
-
-void check_incoming_control_channel(struct context *c);
-
-void check_scheduled_exit(struct context *c);
-
-void check_push_request(struct context *c);
-
-#ifdef ENABLE_FRAGMENT
-void check_fragment(struct context *c);
-
-#endif /* ENABLE_FRAGMENT */
-
-void check_connection_established(struct context *c);
-
-void check_add_routes(struct context *c);
-
-void check_inactivity_timeout(struct context *c);
-
-void check_server_poll_timeout(struct context *c);
-
-void check_status_file(struct context *c);
-
 void io_wait_dowork(struct context *c, const unsigned int flags);
 
 void pre_select(struct context *c);
 
 void process_io(struct context *c);
-
-const char *wait_status_string(struct context *c, struct gc_arena *gc);
-
-void show_wait_status(struct context *c);
-
 
 /**********************************************************************/
 /**
@@ -394,8 +362,6 @@ p2p_iow_flags(const struct context *c)
 static inline void
 io_wait(struct context *c, const unsigned int flags)
 {
-    void io_wait_dowork(struct context *c, const unsigned int flags);
-
     if (c->c2.fast_io && (flags & (IOW_TO_TUN|IOW_TO_LINK|IOW_MBUF)))
     {
         /* fast path -- only for TUN/TAP/UDP writes */
