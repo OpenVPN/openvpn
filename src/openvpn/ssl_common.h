@@ -152,6 +152,15 @@ struct auth_deferred_status
     unsigned int auth_control_status;
 };
 
+/* key_state_test_auth_control_file return values, these specify the
+ * current status of a deferred authentication */
+enum auth_deferred_result {
+    ACF_PENDING,      /**< deferred auth still pending */
+    ACF_SUCCEEDED,    /**< deferred auth has suceeded */
+    ACF_DISABLED,     /**< deferred auth is not used */
+    ACF_FAILED        /**< deferred auth has failed */
+};
+
 /**
  * Security parameter state of one TLS and data channel %key session.
  * @ingroup control_processor
@@ -217,7 +226,7 @@ struct key_state
 
 #ifdef ENABLE_MANAGEMENT
     unsigned int mda_key_id;
-    unsigned int mda_status;
+    enum auth_deferred_result mda_status;
 #endif
     time_t acf_last_mod;
 
@@ -552,8 +561,9 @@ struct tls_multi
     char *locked_username;
     struct cert_hash_set *locked_cert_hash_set;
 
-    /* Time of last call to tls_authentication_status */
-    time_t tas_last;
+    /* Time of last when we updated the cached state of
+     * tls_authentication_status deferred files */
+    time_t tas_cache_last_update;
 
     /*
      * An error message to send to client on AUTH_FAILED

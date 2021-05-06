@@ -69,8 +69,7 @@ enum tls_auth_status
 {
     TLS_AUTHENTICATION_SUCCEEDED=0,
     TLS_AUTHENTICATION_FAILED=1,
-    TLS_AUTHENTICATION_DEFERRED=2,
-    TLS_AUTHENTICATION_UNDEFINED=3
+    TLS_AUTHENTICATION_DEFERRED=2
 };
 
 /**
@@ -85,9 +84,9 @@ enum tls_auth_status
  * from KS_AUTH_DEFERRED to KS_AUTH_FALSE/KS_AUTH_TRUE if the deferred
  * authentication has succeeded after last call.
  *
- * @param   latency     if not null,  return TLS_AUTHENTICATION_UNDEFINED if
- *                      the last call for this multi struct has been less
- *                      than latency seconds ago
+ * @param   latency     if not null, return a cached result from the last
+ *                      call if the last call for this multi struct has 
+ *                      been less than latency seconds ago
  * @param   multi       the tls_multi struct to operate on
  *
  * @return              Current authentication status of the tls_multi

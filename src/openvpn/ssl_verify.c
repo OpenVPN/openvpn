@@ -845,13 +845,6 @@ cleanup:
 * user/password authentication.
 *************************************************************************** */
 
-/* key_state_test_auth_control_file return values,
- * NOTE: acf_merge indexing depends on these values */
-#define ACF_UNDEFINED 0
-#define ACF_SUCCEEDED 1
-#define ACF_DISABLED  2
-#define ACF_FAILED    3
-
 void
 auth_set_client_reason(struct tls_multi *multi, const char *client_reason)
 {
@@ -866,7 +859,7 @@ auth_set_client_reason(struct tls_multi *multi, const char *client_reason)
 
 #ifdef ENABLE_MANAGEMENT
 
-static inline unsigned int
+static inline enum auth_deferred_result
 man_def_auth_test(const struct key_state *ks)
 {
     if (management_enable_def_auth(management))
@@ -1041,13 +1034,23 @@ key_state_gen_auth_control_files(struct auth_deferred_status *ads,
     return (acf && apf);
 }
 
-static unsigned int
-key_state_test_auth_control_file(struct auth_deferred_status *ads)
+/**
+ * Checks the auth control status from a file. The function will try 
+ * to read and update the cached status if the status is still pending 
+ * and the parameter cached is false. 
+ * The function returns the most recent known status.
+ *
+ * @param ads       deferred status control structure
+ * @param cached    Return only cached status
+ * @return          ACF_* as per enum
+ */
+static enum auth_deferred_result
+key_state_test_auth_control_file(struct auth_deferred_status *ads, bool cached)
 {
     if (ads->auth_control_file)
     {
         unsigned int ret = ads->auth_control_status;
-        if (ret == ACF_UNDEFINED)
+        if (ret == ACF_PENDING && !cached)
         {
             FILE *fp = fopen(ads->auth_control_file, "r");
             if (fp)
@@ -1084,11 +1087,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
     /* at least one key already failed authentication */
     bool failed_auth = false;
 
-    if (latency && multi->tas_last + latency >= now)
-    {
-        return TLS_AUTHENTICATION_UNDEFINED;
-    }
-    multi->tas_last = now;
+    bool cached = multi->tas_cache_last_update + latency >= now;
 
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
@@ -1102,11 +1101,11 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
             }
             else
             {
-                unsigned int auth_plugin = ACF_DISABLED;
-                unsigned int auth_script = ACF_DISABLED;
-                unsigned int auth_man = ACF_DISABLED;
-                auth_plugin = key_state_test_auth_control_file(&ks->plugin_auth);
-                auth_script = key_state_test_auth_control_file(&ks->script_auth);
+                enum auth_deferred_result auth_plugin = ACF_DISABLED;
+                enum auth_deferred_result auth_script = ACF_DISABLED;
+                enum auth_deferred_result auth_man = ACF_DISABLED;
+                auth_plugin = key_state_test_auth_control_file(&ks->plugin_auth, cached);
+                auth_script = key_state_test_auth_control_file(&ks->script_auth, cached);
 #ifdef ENABLE_MANAGEMENT
                 auth_man = man_def_auth_test(ks);
 #endif
@@ -1118,9 +1117,9 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
                     ks->authenticated = KS_AUTH_FALSE;
                     failed_auth = true;
                 }
-                else if (auth_plugin == ACF_UNDEFINED
-                         || auth_script == ACF_UNDEFINED
-                         || auth_man == ACF_UNDEFINED)
+                else if (auth_plugin == ACF_PENDING
+                         || auth_script == ACF_PENDING
+                         || auth_man == ACF_PENDING)
                 {
                     if (now < ks->auth_deferred_expire)
                     {
@@ -1138,6 +1137,12 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
                 }
             }
         }
+    }
+
+    /* we did not rely on a cached result, remember the cache update time */
+    if (!cached)
+    {
+        multi->tas_cache_last_update = now;
     }
 
 #if 0

@@ -331,10 +331,18 @@ __attribute__ ((format(__printf__, 4, 5)))
 
 /*
  * Send auth failed message from server to client.
+ *
+ * Does nothing if an exit is already scheduled
  */
 void
 send_auth_failed(struct context *c, const char *client_reason)
 {
+    if (event_timeout_defined(&c->c2.scheduled_exit))
+    {
+        msg(D_TLS_DEBUG, "exit already scheduled for context");
+        return;
+    }
+
     struct gc_arena gc = gc_new();
     static const char auth_failed[] = "AUTH_FAILED";
     size_t len;
@@ -851,7 +859,8 @@ process_incoming_push_request(struct context *c)
 {
     int ret = PUSH_MSG_ERROR;
 
-    if (tls_authentication_status(c->c2.tls_multi, 0) == TLS_AUTHENTICATION_FAILED
+
+    if (tls_authentication_status(c->c2.tls_multi, TLS_MULTI_AUTH_STATUS_INTERVAL) == TLS_AUTHENTICATION_FAILED
         || c->c2.tls_multi->multi_state == CAS_FAILED)
     {
         const char *client_reason = tls_client_reason(c->c2.tls_multi);
