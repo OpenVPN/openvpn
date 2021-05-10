@@ -561,9 +561,12 @@ struct tls_multi
     char *locked_username;
     struct cert_hash_set *locked_cert_hash_set;
 
-    /* Time of last when we updated the cached state of
+    /** Time of last when we updated the cached state of
      * tls_authentication_status deferred files */
     time_t tas_cache_last_update;
+
+    /** The number of times we updated the cache */
+    unsigned int tas_cache_num_updates;
 
     /*
      * An error message to send to client on AUTH_FAILED

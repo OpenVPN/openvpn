@@ -1073,8 +1073,28 @@ key_state_test_auth_control_file(struct auth_deferred_status *ads, bool cached)
     return ACF_DISABLED;
 }
 
+/**
+ * The minimum times to have passed to update the cache. Older versions
+ * of OpenVPN had code path that did not do any caching, so we start
+ * with no caching (0) here as well to have the same super quick initial
+ * reaction.
+ */
+static time_t cache_intervals[] = {0, 0, 0, 0, 0, 1, 1, 2, 2, 4, 8};
+
+/**
+ * uses cache_intervals times to determine if we should update the
+ * cache.
+ */
+static bool
+tls_authentication_status_use_cache(struct tls_multi *multi)
+{
+    unsigned int idx = min_uint(multi->tas_cache_num_updates, SIZE(cache_intervals) - 1);
+    time_t latency = cache_intervals[idx];
+    return multi->tas_cache_last_update + latency >= now;
+}
+
 enum tls_auth_status
-tls_authentication_status(struct tls_multi *multi, const int latency)
+tls_authentication_status(struct tls_multi *multi)
 {
     bool deferred = false;
 
@@ -1087,7 +1107,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
     /* at least one key already failed authentication */
     bool failed_auth = false;
 
-    bool cached = multi->tas_cache_last_update + latency >= now;
+    bool cached = tls_authentication_status_use_cache(multi);
 
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
@@ -1143,6 +1163,7 @@ tls_authentication_status(struct tls_multi *multi, const int latency)
     if (!cached)
     {
         multi->tas_cache_last_update = now;
+        multi->tas_cache_num_updates++;
     }
 
 #if 0

@@ -75,7 +75,7 @@ enum tls_auth_status
 /**
  * Return current session authentication state of the tls_multi structure
  * This will return TLS_AUTHENTICATION_SUCCEEDED only if the session is
- * fully authenicated, i.e. VPN traffic is allowed over it.
+ * fully authenticated, i.e. VPN traffic is allowed over it.
  *
  * Checks the status of all active keys and checks if the deferred
  * authentication has succeeded.
@@ -84,15 +84,12 @@ enum tls_auth_status
  * from KS_AUTH_DEFERRED to KS_AUTH_FALSE/KS_AUTH_TRUE if the deferred
  * authentication has succeeded after last call.
  *
- * @param   latency     if not null, return a cached result from the last
- *                      call if the last call for this multi struct has 
- *                      been less than latency seconds ago
  * @param   multi       the tls_multi struct to operate on
  *
  * @return              Current authentication status of the tls_multi
  */
 enum tls_auth_status
-tls_authentication_status(struct tls_multi *multi, const int latency);
+tls_authentication_status(struct tls_multi *multi);
 
 /** Check whether the \a ks \c key_state has finished the key exchange part
  *  of the OpenVPN hand shake. This is that the key_method_2read/write

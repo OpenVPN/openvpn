@@ -91,9 +91,6 @@
 #define TLS_MULTI_HORIZON 2     /* call tls_multi_process frequently for n seconds after
                                  * every packet sent/received action */
 
-/* Interval that tls_multi_process should call tls_authentication_status */
-#define TLS_MULTI_AUTH_STATUS_INTERVAL 10
-
 /*
  * Buffer sizes (also see mtu.h).
  */

@@ -3110,7 +3110,7 @@ tls_multi_process(struct tls_multi *multi,
 
     update_time();
 
-    enum tls_auth_status tas = tls_authentication_status(multi, TLS_MULTI_AUTH_STATUS_INTERVAL);
+    enum tls_auth_status tas = tls_authentication_status(multi);
 
     /*
      * If lame duck session expires, kill it.

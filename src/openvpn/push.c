@@ -860,7 +860,7 @@ process_incoming_push_request(struct context *c)
     int ret = PUSH_MSG_ERROR;
 
 
-    if (tls_authentication_status(c->c2.tls_multi, TLS_MULTI_AUTH_STATUS_INTERVAL) == TLS_AUTHENTICATION_FAILED
+    if (tls_authentication_status(c->c2.tls_multi) == TLS_AUTHENTICATION_FAILED
         || c->c2.tls_multi->multi_state == CAS_FAILED)
     {
         const char *client_reason = tls_client_reason(c->c2.tls_multi);
