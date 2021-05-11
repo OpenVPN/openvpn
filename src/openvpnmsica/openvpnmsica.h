@@ -146,6 +146,19 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall);
 DLLEXP_DECL UINT __stdcall
 ProcessDeferredAction(_In_ MSIHANDLE hInstall);
 
+
+/**
+ * Schedule reboot after installation if reboot
+ * indication file is found in user's temp directory
+ *
+ * @param hInstall      Handle to the installation provided to the DLL custom action
+ *
+ * @return ERROR_SUCCESS on success; An error code otherwise
+ *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
+ */
+DLLEXP_DECL UINT __stdcall
+CheckAndScheduleReboot(_In_ MSIHANDLE hInstall);
+
 #ifdef __cplusplus
 }
 #endif
