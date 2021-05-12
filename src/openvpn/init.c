@@ -2552,6 +2552,7 @@ key_schedule_free(struct key_schedule *ks, bool free_ssl_ctx)
     if (tls_ctx_initialised(&ks->ssl_ctx) && free_ssl_ctx)
     {
         tls_ctx_free(&ks->ssl_ctx);
+        free_key_ctx(&ks->auth_token_key);
     }
     CLEAR(*ks);
 }
