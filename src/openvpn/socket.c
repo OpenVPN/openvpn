@@ -1227,7 +1227,6 @@ socket_do_accept(socket_descriptor_t sd,
 
     CLEAR(*act);
 
-#ifdef HAVE_GETPEERNAME
     if (nowait)
     {
         new_sd = getpeername(sd, &act->dest.addr.sa, &remote_len);
@@ -1241,12 +1240,6 @@ socket_do_accept(socket_descriptor_t sd,
             new_sd = sd;
         }
     }
-#else  /* ifdef HAVE_GETPEERNAME */
-    if (nowait)
-    {
-        msg(M_WARN, "TCP: this OS does not provide the getpeername() function");
-    }
-#endif
     else
     {
         new_sd = accept(sd, &act->dest.addr.sa, &remote_len);

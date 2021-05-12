@@ -184,11 +184,7 @@ platform_getpid(void)
 #ifdef _WIN32
     return (unsigned int) GetCurrentProcessId();
 #else
-#ifdef HAVE_GETPID
     return (unsigned int) getpid();
-#else
-    return 0;
-#endif
 #endif
 }
 
