@@ -272,9 +272,6 @@ void netcmd_semaphore_release(void);
 /* Set Win32 security attributes structure to allow all access */
 bool init_security_attributes_allow_all(struct security_attributes *obj);
 
-/* return true if filename is safe to be used on Windows */
-bool win_safe_filename(const char *fn);
-
 /* add constant environmental variables needed by Windows */
 struct env_set;
 
@@ -290,9 +287,6 @@ void fork_to_self(const char *cmdline);
 
 /* Find temporary directory */
 const char *win_get_tempdir(void);
-
-/* Convert a string from UTF-8 to UCS-2 */
-WCHAR *wide_string(const char *utf8, struct gc_arena *gc);
 
 bool win_wfp_block_dns(const NET_IFINDEX index, const HANDLE msg_channel);
 

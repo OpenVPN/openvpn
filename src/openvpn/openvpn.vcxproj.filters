@@ -207,6 +207,9 @@
     <ClCompile Include="win32.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="win32-util.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="comp.c">
       <Filter>Source Files</Filter>
     </ClCompile>

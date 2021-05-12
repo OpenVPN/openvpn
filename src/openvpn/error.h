@@ -31,6 +31,10 @@
 
 #include <assert.h>
 
+#if _WIN32
+#include <windows.h>
+#endif
+
 /* #define ABORT_ON_ERROR */
 
 #ifdef ENABLE_PKCS11
