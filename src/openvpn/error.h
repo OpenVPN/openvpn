@@ -202,8 +202,14 @@ FILE *msg_fp(const unsigned int flags);
 #define ASSERT(x) do { if (!(x)) {assert_failed(__FILE__, __LINE__, NULL);}} while (false)
 #endif
 
+#ifdef _MSC_VER
+__declspec(noreturn)
+#endif
 void assert_failed(const char *filename, int line, const char *condition)
-__attribute__((__noreturn__));
+#ifndef _MSC_VER
+__attribute__((__noreturn__))
+#endif
+;
 
 /* Poor-man's static_assert() for when not supplied by assert.h, taken from
  * Linux's sys/cdefs.h under GPLv2 */
