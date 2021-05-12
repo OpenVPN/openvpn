@@ -2673,22 +2673,6 @@ do_init_tls_wrap_key(struct context *c)
 }
 
 /*
- * Initialise the auth-token key context
- */
-static void
-do_init_auth_token_key(struct context *c)
-{
-    if (!c->options.auth_token_generate)
-    {
-        return;
-    }
-
-    auth_token_init_secret(&c->c1.ks.auth_token_key,
-                           c->options.auth_token_secret_file,
-                           c->options.auth_token_secret_file_inline);
-}
-
-/*
  * Initialize the persistent component of OpenVPN's TLS mode,
  * which is preserved across SIGUSR1 resets.
  */
@@ -2762,7 +2746,12 @@ do_init_crypto_tls_c1(struct context *c)
         do_init_tls_wrap_key(c);
 
         /* initialise auth-token crypto support */
-        do_init_auth_token_key(c);
+        if (c->options.auth_token_generate)
+        {
+            auth_token_init_secret(&c->c1.ks.auth_token_key,
+                                   c->options.auth_token_secret_file,
+                                   c->options.auth_token_secret_file_inline);
+        }
 
 #if 0 /* was: #if ENABLE_INLINE_FILES --  Note that enabling this code will break restarts */
         if (options->priv_key_file_inline)
