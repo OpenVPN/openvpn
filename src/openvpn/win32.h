@@ -30,6 +30,7 @@
 #include "mtu.h"
 #include "openvpn-msg.h"
 #include "argv.h"
+#include "win32-util.h"
 
 /* location of executables */
 #define SYS_PATH_ENV_VAR_NAME "SystemRoot"  /* environmental variable name that normally contains the system path */
