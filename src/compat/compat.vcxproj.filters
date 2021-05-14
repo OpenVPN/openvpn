@@ -24,12 +24,6 @@
     <ClCompile Include="compat-gettimeofday.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="compat-inet_ntop.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="compat-inet_pton.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="compat-daemon.c">
       <Filter>Source Files</Filter>
     </ClCompile>
