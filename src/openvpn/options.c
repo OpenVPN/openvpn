@@ -1145,8 +1145,13 @@ parse_hash_fingerprint_multiline(const char *str, int nbytes, int msglevel,
     const char *line;
     while ((line = strsep(&lines, "\n")))
     {
-        /* skip empty lines */
-        if (strlen(line) == 0)
+        /* ignore leading whitespace */
+        while(isspace(*line))
+        {
+            line++;
+        }
+        /* skip empty lines and comment lines */
+        if (strlen(line) == 0 || *line == '#' || *line == ';')
         {
             continue;
         }
