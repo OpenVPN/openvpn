@@ -86,7 +86,6 @@ placed in a configuration file.
 .. include:: man-sections/connection-profiles.rst
 .. include:: man-sections/inline-files.rst
 .. include:: man-sections/signals.rst
-.. include:: man-sections/examples.rst
 
 
 FAQ
@@ -134,6 +133,7 @@ Report all bugs to the OpenVPN team info@openvpn.net
 SEE ALSO
 ========
 
+``openvpn-examples``\(5),
 ``dhcpcd``\(8),
 ``ifconfig``\(8),
 ``openssl``\(1),

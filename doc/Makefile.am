@@ -20,6 +20,7 @@ dist_doc_DATA = \
 dist_noinst_DATA = \
 	README.plugins interactive-service-notes.rst \
 	openvpn.8.rst \
+	openvpn-examples.5.rst \
 	man-sections/advanced-options.rst \
 	man-sections/client-options.rst \
 	man-sections/connection-profiles.rst \
@@ -52,6 +53,14 @@ else
 	@echo "Missing python-docutils - skipping man page generation"
 endif
 
+openvpn-examples.5 :
+if HAVE_PYDOCUTILS
+	$(RST2MAN) $(srcdir)/$@.rst > $@
+else
+	@echo "Missing python-docutils - skipping man page generation"
+endif
+
+
 openvpn.8.html:
 if HAVE_PYDOCUTILS
 	$(RST2HTML) $(srcdir)/openvpn.8.rst > $@
@@ -59,19 +68,27 @@ else
 	@echo "Missing python-docutils - skipping man/html page generation"
 endif
 
+openvpn-examples.5.html:
 if HAVE_PYDOCUTILS
-dist_noinst_DATA += openvpn.8
-dist_html_DATA = openvpn.8.html
+	$(RST2HTML) $(srcdir)/openvpn-examples.5.rst > $@
+else
+	@echo "Missing python-docutils - skipping man/html page generation"
+endif
+
+
+if HAVE_PYDOCUTILS
+dist_noinst_DATA += openvpn.8 openvpn-examples.5
+dist_html_DATA = openvpn.8.html openvpn-examples.5.html
 
 # Failsafe - do not delete these files unless we can recreate them
 CLEANFILES = \
-	 openvpn.8 openvpn.8.html
+	 openvpn.8 openvpn.8.html openvpn-examples.5 openvpn-examples.5.html
 
 endif
 
 if WIN32
 else
-dist_man_MANS = openvpn.8
+dist_man_MANS = openvpn.8 openvpn-examples.5
 endif
 
-dist-hook : openvpn.8 openvpn.8.html
+dist-hook : openvpn.8 openvpn.8.html openvpn-examples.5 openvpn-examples.5.html
