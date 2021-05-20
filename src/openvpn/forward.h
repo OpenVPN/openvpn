@@ -411,6 +411,17 @@ io_wait(struct context *c, const unsigned int flags)
     }
 }
 
-#define CONNECTION_ESTABLISHED(c) (get_link_socket_info(c)->connection_established)
+static inline bool
+connection_established(struct context *c)
+{
+    if (c->c2.tls_multi)
+    {
+        return c->c2.tls_multi->multi_state >= CAS_CONNECT_DONE;
+    }
+    else
+    {
+        return get_link_socket_info(c)->connection_established;
+    }
+}
 
 #endif /* FORWARD_H */

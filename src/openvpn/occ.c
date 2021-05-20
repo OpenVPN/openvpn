@@ -185,7 +185,7 @@ check_send_occ_req_dowork(struct context *c)
 void
 check_send_occ_load_test_dowork(struct context *c)
 {
-    if (CONNECTION_ESTABLISHED(c))
+    if (connection_established(c))
     {
         const struct mtu_load_test *entry;
 

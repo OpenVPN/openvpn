@@ -867,7 +867,7 @@ process_incoming_push_request(struct context *c)
         send_auth_failed(c, client_reason);
         ret = PUSH_MSG_AUTH_FAILURE;
     }
-    else if (c->c2.tls_multi->multi_state == CAS_SUCCEEDED)
+    else if (c->c2.tls_multi->multi_state >= CAS_CONNECT_DONE)
     {
         time_t now;
 

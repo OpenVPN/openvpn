@@ -206,7 +206,7 @@ struct context_1
 
 
 static inline bool
-is_cas_pending(enum client_connect_status cas)
+is_cas_pending(enum multi_status cas)
 {
     return cas == CAS_PENDING || cas == CAS_PENDING_DEFERRED
            || cas == CAS_PENDING_DEFERRED_PARTIAL;
@@ -237,6 +237,8 @@ struct context_2
 
     struct link_socket *link_socket;     /* socket used for TCP/UDP connection to remote */
     bool link_socket_owned;
+
+    /** This variable is used instead link_socket->info for P2MP UDP childs */
     struct link_socket_info *link_socket_info;
     const struct link_socket *accept_from; /* possibly do accept() on a parent link_socket */
 

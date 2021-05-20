@@ -504,12 +504,18 @@ struct tls_session
 /* client authentication state, CAS_SUCCEEDED must be 0 since
  * non multi code path still checks this variable but does not initialise it
  * so the code depends on zero initialisation */
-enum client_connect_status {
-    CAS_SUCCEEDED=0,
+
+/* CAS_NOT_CONNECTED is the initial state for every context. When the *first*
+ * tls_session reaches S_ACTIVE, this state machine moves to CAS_PENDING (server)
+ * or CAS_CONNECT_DONE (client/p2p) as clients skip the stages associated with
+ * connect scripts/plugins */
+enum multi_status {
+    CAS_NOT_CONNECTED,
     CAS_PENDING,
     CAS_PENDING_DEFERRED,
     CAS_PENDING_DEFERRED_PARTIAL,   /**< at least handler succeeded, no result yet*/
     CAS_FAILED,
+    CAS_CONNECT_DONE,
 };
 
 
@@ -548,7 +554,7 @@ struct tls_multi
 
     int n_sessions;             /**< Number of sessions negotiated thus
                                  *   far. */
-    enum client_connect_status multi_state;
+    enum multi_status multi_state;
 
     /*
      * Number of errors.

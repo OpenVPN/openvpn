@@ -2381,19 +2381,22 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
      * If we're a p2mp server to allow NCP, the first key
      * generation is postponed until after the connect script finished and the
      * NCP options can be processed. Since that always happens at after connect
-     * script options are available the CAS_SUCCEEDED status is identical to
-     * NCP options are processed and we have no extra state for NCP finished.
+     * script options are available the CAS_CONNECT_DONE status is identical to
+     * NCP options are processed and do not wait for NCP being finished.
      */
-    if (session->opt->server && (session->opt->mode != MODE_SERVER
-            || multi->multi_state == CAS_SUCCEEDED))
+    if (ks->authenticated > KS_AUTH_FALSE && session->opt->server
+        && ((session->opt->mode == MODE_SERVER && multi->multi_state >= CAS_CONNECT_DONE)
+            || (session->opt->mode == MODE_POINT_TO_POINT && !session->opt->pull)))
     {
-        if (ks->authenticated > KS_AUTH_FALSE)
+        /* if key_id >= 1, is a renegotiation, so we use the already established
+         * parameters and do not need to delay anything. */
+
+        /* key-id == 0 and multi_state >= CAS_CONNECT_DONE is a special case of
+         * the server reusing the session of a reconnecting client. */
+        if (!tls_session_generate_data_channel_keys(session))
         {
-            if (!tls_session_generate_data_channel_keys(session))
-            {
-                msg(D_TLS_ERRORS, "TLS Error: server generate_key_expansion failed");
-                goto error;
-            }
+            msg(D_TLS_ERRORS, "TLS Error: server generate_key_expansion failed");
+            goto error;
         }
     }
 
@@ -2800,6 +2803,21 @@ tls_process(struct tls_multi *multi,
 
                 /* Set outgoing address for data channel packets */
                 link_socket_set_outgoing_addr(to_link_socket_info, &ks->remote_addr, session->common_name, session->opt->es);
+
+                /* Check if we need to advance the tls_multi state machine */
+                if (multi->multi_state == CAS_NOT_CONNECTED)
+                {
+                    if (session->opt->mode == MODE_SERVER)
+                    {
+                        /* On a server we continue with running connect scripts next */
+                        multi->multi_state = CAS_PENDING;
+                    }
+                    else
+                    {
+                        /* Skip the connect script related states */
+                        multi->multi_state = CAS_CONNECT_DONE;
+                    }
+                }
 
                 /* Flush any payload packets that were buffered before our state transitioned to S_ACTIVE */
                 flush_payload_buffer(ks);

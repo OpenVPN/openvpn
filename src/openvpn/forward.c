@@ -280,7 +280,7 @@ static void
 check_connection_established(struct context *c)
 {
 
-    if (CONNECTION_ESTABLISHED(c))
+    if (connection_established(c))
     {
         /* if --pull was specified, send a push request to server */
         if (c->c2.tls_multi && c->options.pull)
@@ -536,7 +536,7 @@ encrypt_sign(struct context *c, bool comp_frag)
      * has not yet succeeded. In non-TLS tls_multi mode is not defined
      * and we always pass packets.
      */
-    if (c->c2.tls_multi && c->c2.tls_multi->multi_state != CAS_SUCCEEDED)
+    if (c->c2.tls_multi && c->c2.tls_multi->multi_state < CAS_CONNECT_DONE)
     {
         c->c2.buf.len = 0;
     }
@@ -971,7 +971,7 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
          * has not yet succeeded. In non-TLS mode tls_multi is not defined
          * and we always pass packets.
          */
-        if (c->c2.tls_multi && c->c2.tls_multi->multi_state != CAS_SUCCEEDED)
+        if (c->c2.tls_multi && c->c2.tls_multi->multi_state < CAS_CONNECT_DONE)
         {
             c->c2.buf.len = 0;
         }
