@@ -8311,6 +8311,11 @@ add_option(struct options *options,
         }
 #endif
     }
+    else if (streq(p[0], "auth-token-user") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_ECHO);
+        ssl_set_auth_token_user(p[1]);
+    }
     else if (streq(p[0], "single-session") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);

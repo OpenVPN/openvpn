@@ -50,6 +50,14 @@ configuration.
   after a failed auth. Older clients will keep using the token value and
   react according to ``--auth-retry``
 
+--auth-token-user base64username
+  Companion option to ``--auth-token``. This options allows to override
+  the username used by the client when reauthenticating with the ``auth-token``.
+  It also allows to use ``--auth-token`` in setups that normally do not use
+  username and password.
+
+  The username has to be base64 encoded.
+
 --auth-user-pass
   Authenticate with server using username/password.
 

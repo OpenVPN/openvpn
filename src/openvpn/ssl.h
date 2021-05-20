@@ -450,6 +450,8 @@ void ssl_purge_auth(const bool auth_user_pass_only);
 
 void ssl_set_auth_token(const char *token);
 
+void ssl_set_auth_token_user(const char *username);
+
 bool ssl_clean_auth_token(void);
 
 #ifdef ENABLE_MANAGEMENT

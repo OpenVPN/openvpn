@@ -56,6 +56,9 @@ const char *hostname_randomize(const char *hostname, struct gc_arena *gc);
 struct user_pass
 {
     bool defined;
+    /* For auth-token username and token can be set individually, so we
+     * use this second bool to track if the token (password) is defined */
+    bool token_defined;
     bool nocache;
 
 /* max length of username/password */
@@ -138,18 +141,30 @@ void fail_user_pass(const char *prefix,
 void purge_user_pass(struct user_pass *up, const bool force);
 
 /**
- * Sets the auth-token to token if a username is available from either
- * up or already present in tk. The method will also purge up if
+ * Sets the auth-token to token. If a username is available from
+ * either up or already present in tk that will be used as default
+ * username for the token. The method will also purge up if
  * the auth-nocache option is active.
  *
  * @param up        (non Auth-token) Username/password
  * @param tk        auth-token userpass to set
- * @param token     token to use as password for the
+ * @param token     token to use as password for the auth-token
  *
  * @note    all parameters to this function must not be null.
  */
 void set_auth_token(struct user_pass *up, struct user_pass *tk,
                     const char *token);
+
+/**
+ * Sets the auth-token username by base64 decoding the passed
+ * username
+ *
+ * @param tk        auth-token userpass to set
+ * @param username  base64 encoded username to set
+ *
+ * @note    all parameters to this function must not be null.
+ */
+void set_auth_token_user(struct user_pass *tk, const char *username);
 
 /*
  * Process string received by untrusted peer before
