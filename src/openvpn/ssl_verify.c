@@ -1074,6 +1074,60 @@ key_state_test_auth_control_file(struct auth_deferred_status *ads, bool cached)
 }
 
 /**
+ * This method takes a key_state and if updates the state
+ * of the key if it is deferred.
+ * @param cached    If auth control files should be tried to be opened or th
+ *                  cached results should be used
+ * @param ks        The key_state to update
+ */
+static void
+update_key_auth_status(bool cached, struct key_state *ks)
+{
+    if (ks->authenticated == KS_AUTH_FALSE)
+    {
+        return;
+    }
+    else
+    {
+        enum auth_deferred_result auth_plugin = ACF_DISABLED;
+        enum auth_deferred_result auth_script = ACF_DISABLED;
+        enum auth_deferred_result auth_man = ACF_DISABLED;
+        auth_plugin = key_state_test_auth_control_file(&ks->plugin_auth, cached);
+        auth_script = key_state_test_auth_control_file(&ks->script_auth, cached);
+#ifdef ENABLE_MANAGEMENT
+        auth_man = man_def_auth_test(ks);
+#endif
+        ASSERT(auth_plugin < 4 && auth_script < 4 && auth_man < 4);
+
+        if (auth_plugin == ACF_FAILED || auth_script == ACF_FAILED
+           || auth_man == ACF_FAILED)
+        {
+            ks->authenticated = KS_AUTH_FALSE;
+            return;
+        }
+        else if (auth_plugin == ACF_PENDING || auth_script == ACF_PENDING
+                 || auth_man == ACF_PENDING)
+        {
+            if (now >= ks->auth_deferred_expire)
+            {
+                /* Window to authenticate the key has expired, mark
+                 * the key as unauthenticated */
+                ks->authenticated = KS_AUTH_FALSE;
+            }
+        }
+        else
+        {
+            /* all auth states (auth_plugin, auth_script, auth_man)
+             * are either ACF_DISABLED or ACF_SUCCEDED now, which
+             * translates to "not checked" or "auth succeeded"
+             */
+            ks->authenticated = KS_AUTH_TRUE;
+        }
+    }
+}
+
+
+/**
  * The minimum times to have passed to update the cache. Older versions
  * of OpenVPN had code path that did not do any caching, so we start
  * with no caching (0) here as well to have the same super quick initial
@@ -1115,46 +1169,19 @@ tls_authentication_status(struct tls_multi *multi)
         if (TLS_AUTHENTICATED(multi, ks))
         {
             active++;
+            update_key_auth_status(cached, ks);
+
             if (ks->authenticated == KS_AUTH_FALSE)
             {
                 failed_auth = true;
             }
-            else
+            else if (ks->authenticated == KS_AUTH_DEFERRED)
             {
-                enum auth_deferred_result auth_plugin = ACF_DISABLED;
-                enum auth_deferred_result auth_script = ACF_DISABLED;
-                enum auth_deferred_result auth_man = ACF_DISABLED;
-                auth_plugin = key_state_test_auth_control_file(&ks->plugin_auth, cached);
-                auth_script = key_state_test_auth_control_file(&ks->script_auth, cached);
-#ifdef ENABLE_MANAGEMENT
-                auth_man = man_def_auth_test(ks);
-#endif
-                ASSERT(auth_plugin < 4 && auth_script < 4 && auth_man < 4);
-
-                if (auth_plugin == ACF_FAILED || auth_script == ACF_FAILED
-                   || auth_man == ACF_FAILED)
-                {
-                    ks->authenticated = KS_AUTH_FALSE;
-                    failed_auth = true;
-                }
-                else if (auth_plugin == ACF_PENDING
-                         || auth_script == ACF_PENDING
-                         || auth_man == ACF_PENDING)
-                {
-                    if (now < ks->auth_deferred_expire)
-                    {
-                        deferred = true;
-                    }
-                }
-                else
-                {
-                    /* all auth states (auth_plugin, auth_script, auth_man)
-                     * are either ACF_DISABLED or ACF_SUCCEDED now, which
-                     * translates to "not checked" or "auth succeeded"
-                     */
-                    success = true;
-                    ks->authenticated = KS_AUTH_TRUE;
-                }
+                deferred = true;
+            }
+            else if (ks->authenticated == KS_AUTH_TRUE)
+            {
+                success = true;
             }
         }
     }
