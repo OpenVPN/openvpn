@@ -289,10 +289,6 @@ check_pull_client_ncp(struct context *c, const int found)
         return true;
     }
 
-    if (!c->options.ncp_enabled)
-    {
-        return true;
-    }
     /* If the server did not push a --cipher, we will switch to the
      * remote cipher if it is in our ncp-ciphers list */
     if(tls_poor_mans_ncp(&c->options, c->c2.tls_multi->remote_ciphername))

@@ -512,7 +512,6 @@ struct options
     const char *ciphername;
     bool enable_ncp_fallback;      /**< If defined fall back to
                                     * ciphername if NCP fails */
-    bool ncp_enabled;
     const char *ncp_ciphers;
     const char *authname;
     const char *prng_hash;

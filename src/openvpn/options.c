@@ -526,7 +526,6 @@ static const char usage_message[] =
     "                  (default=%s).\n"
     "                  Set alg=none to disable encryption.\n"
     "--data-ciphers list : List of ciphers that are allowed to be negotiated.\n"
-    "--ncp-disable   : (DEPRECATED) Disable cipher negotiation.\n"
     "--prng alg [nsl] : For PRNG, use digest algorithm alg, and\n"
     "                   nonce_secret_len=nsl.  Set alg=none to disable PRNG.\n"
 #ifndef ENABLE_CRYPTO_MBEDTLS
@@ -843,7 +842,6 @@ init_options(struct options *o, const bool init_gc)
     o->stale_routes_check_interval = 0;
     o->ifconfig_pool_persist_refresh_freq = 600;
     o->scheduled_exit_interval = 5;
-    o->ncp_enabled = true;
     o->ncp_ciphers = "AES-256-GCM:AES-128-GCM";
     o->authname = "SHA1";
     o->prng_hash = "SHA1";
@@ -1719,7 +1717,6 @@ show_settings(const struct options *o)
     SHOW_STR_INLINE(shared_secret_file);
     SHOW_PARM(key_direction, keydirection2ascii(o->key_direction, false, true), "%s");
     SHOW_STR(ciphername);
-    SHOW_BOOL(ncp_enabled);
     SHOW_STR(ncp_ciphers);
     SHOW_STR(authname);
     SHOW_STR(prng_hash);
@@ -3085,7 +3082,6 @@ options_postprocess_cipher(struct options *o)
     if (!o->pull && !(o->mode == MODE_SERVER))
     {
         /* we are in the classic P2P mode */
-        o->ncp_enabled = false;
         msg( M_WARN, "Cipher negotiation is disabled since neither "
              "P2MP client nor server mode is enabled");
 
@@ -3102,18 +3098,6 @@ options_postprocess_cipher(struct options *o)
     /* pull or P2MP mode */
     if (!o->ciphername)
     {
-        if (!o->ncp_enabled)
-        {
-            msg(M_USAGE, "--ncp-disable needs an explicit --cipher or "
-                         "--data-ciphers-fallback config option");
-        }
-
-        msg(M_WARN, "--cipher is not set. Previous OpenVPN version defaulted to "
-            "BF-CBC as fallback when cipher negotiation failed in this case. "
-            "If you need this fallback please add '--data-ciphers-fallback "
-            "BF-CBC' to your configuration and/or add BF-CBC to "
-            "--data-ciphers.");
-
         /* We still need to set the ciphername to BF-CBC since various other
          * parts of OpenVPN assert that the ciphername is set */
         o->ciphername = "BF-CBC";
@@ -3155,13 +3139,10 @@ options_postprocess_mutate(struct options *o)
     options_postprocess_cipher(o);
     options_postprocess_mutate_invariant(o);
 
-    if (o->ncp_enabled)
+    o->ncp_ciphers = mutate_ncp_cipher_list(o->ncp_ciphers, &o->gc);
+    if (o->ncp_ciphers == NULL)
     {
-        o->ncp_ciphers = mutate_ncp_cipher_list(o->ncp_ciphers, &o->gc);
-        if (o->ncp_ciphers == NULL)
-        {
-            msg(M_USAGE, "NCP cipher list contains unsupported ciphers or is too long.");
-        }
+        msg(M_USAGE, "NCP cipher list contains unsupported ciphers or is too long.");
     }
 
     if (o->remote_list && !o->connection_list)
@@ -3911,8 +3892,7 @@ options_string(const struct options *o,
         }
         /* Only announce the cipher to our peer if we are willing to
          * support it */
-        if (p2p_nopull || !o->ncp_enabled
-            || tls_item_in_cipher_list(ciphername, o->ncp_ciphers))
+        if (p2p_nopull || tls_item_in_cipher_list(ciphername, o->ncp_ciphers))
         {
             buf_printf(&out, ",cipher %s", ciphername);
         }
@@ -7996,14 +7976,6 @@ add_option(struct options *options,
         {
             msg(msglevel, "Unknown key-derivation method %s", p[1]);
         }
-    }
-    else if (streq(p[0], "ncp-disable") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INSTANCE);
-        options->ncp_enabled = false;
-        msg(M_WARN, "DEPRECATED OPTION: ncp-disable. Disabling "
-            "cipher negotiation is a deprecated debug feature that "
-            "will be removed in OpenVPN 2.6");
     }
     else if (streq(p[0], "prng") && p[1] && !p[3])
     {

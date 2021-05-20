@@ -65,8 +65,8 @@ configured in a compatible way between both the local and remote side.
   The default is :code:`BF-CBC`, an abbreviation for Blowfish in Cipher
   Block Chaining mode. When cipher negotiation (NCP) is allowed,
   OpenVPN 2.4 and newer on both client and server side will automatically
-  upgrade to :code:`AES-256-GCM`.  See ``--data-ciphers`` and
-  ``--ncp-disable`` for more details on NCP.
+  upgrade to :code:`AES-256-GCM`.  See ``--data-ciphers`` for more details
+  on NCP.
 
   Using :code:`BF-CBC` is no longer recommended, because of its 64-bit
   block size. This small block size allows attacks based on collisions, as
@@ -234,10 +234,6 @@ configured in a compatible way between both the local and remote side.
     connect to peers that are running OpenVPN 2.3 and older version, and
     have been configured with `--enable-small`
     (typically used on routers or other embedded devices).
-
---ncp-disable
-  **DEPRECATED** Disable "Negotiable Crypto Parameters". This completely
-  disables cipher negotiation.
 
 --secret args
   **DEPRECATED** Enable Static Key encryption mode (non-TLS). Use pre-shared secret

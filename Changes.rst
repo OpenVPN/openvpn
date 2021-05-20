@@ -57,6 +57,10 @@ Deprecated features
     is considered "too complicated", using ``--peer-fingerprint`` makes
     TLS mode about as easy as using ``--secret``.
 
+``ncp-disable`` has been removed
+    This option mainly served a role as debug option when NCP was first
+    introduced. It should now no longer be necessary.
+
 Overview of changes in 2.5
 ==========================
 

@@ -2230,16 +2230,12 @@ pull_permission_mask(const struct context *c)
         | OPT_P_EXPLICIT_NOTIFY
         | OPT_P_ECHO
         | OPT_P_PULL_MODE
-        | OPT_P_PEER_ID;
+        | OPT_P_PEER_ID
+        | OPT_P_NCP;
 
     if (!c->options.route_nopull)
     {
         flags |= (OPT_P_ROUTE | OPT_P_IPWIN32);
-    }
-
-    if (c->options.ncp_enabled)
-    {
-        flags |= OPT_P_NCP;
     }
 
     return flags;
@@ -2724,8 +2720,6 @@ do_init_crypto_tls_c1(struct context *c)
         *
         * Therefore, the key structure has to be initialized when:
         * - any non-BF-CBC cipher was selected; or
-        * - BF-CBC is selected and NCP is disabled (explicit request to
-        *   use the BF-CBC cipher); or
         * - BF-CBC is selected, NCP is enabled and fallback is enabled
         *   (BF-CBC will be the fallback).
         * - BF-CBC is in data-ciphers and we negotiate to use BF-CBC:
@@ -2735,12 +2729,12 @@ do_init_crypto_tls_c1(struct context *c)
         * Note that BF-CBC will still be part of the OCC string to retain
         * backwards compatibility with older clients.
         */
-        if (!streq(options->ciphername, "BF-CBC") || !options->ncp_enabled
-            || (options->ncp_enabled && tls_item_in_cipher_list("BF-CBC", options->ncp_ciphers))
+        if (!streq(options->ciphername, "BF-CBC")
+            || tls_item_in_cipher_list("BF-CBC", options->ncp_ciphers)
             || options->enable_ncp_fallback)
         {
             /* Do not warn if the if the cipher is used only in OCC */
-            bool warn = !options->ncp_enabled || options->enable_ncp_fallback;
+            bool warn = options->enable_ncp_fallback;
             init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname,
                           true, warn);
         }
@@ -2842,7 +2836,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.tcp_mode = link_socket_proto_connection_oriented(options->ce.proto);
     to.config_ciphername = c->options.ciphername;
     to.config_ncp_ciphers = c->options.ncp_ciphers;
-    to.ncp_enabled = options->ncp_enabled;
     to.transition_window = options->transition_window;
     to.handshake_window = options->handshake_window;
     to.packet_timeout = options->tls_timeout;

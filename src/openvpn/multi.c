@@ -1791,10 +1791,6 @@ multi_client_set_protocol_options(struct context *c)
 #endif
 
     /* Select cipher if client supports Negotiable Crypto Parameters */
-    if (!o->ncp_enabled)
-    {
-        return true;
-    }
 
     /* if we have already created our key, we cannot *change* our own
      * cipher -> so log the fact and push the "what we have now" cipher
