@@ -24,6 +24,11 @@
 #ifndef _SERVICE_H
 #define _SERVICE_H
 
+/* We do not support non-unicode builds */
+#ifndef UNICODE
+#define UNICODE
+#endif
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #elif defined(_MSC_VER)
