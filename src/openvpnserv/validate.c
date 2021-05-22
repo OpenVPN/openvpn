@@ -68,7 +68,7 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
     /* convert fname to full path */
     if (PathIsRelativeW(fname) )
     {
-        openvpn_swprintf(tmp, _countof(tmp), L"%s\\%s", workdir, fname);
+        openvpn_swprintf(tmp, _countof(tmp), L"%ls\\%ls", workdir, fname);
         config_file = tmp;
     }
     else
@@ -182,7 +182,7 @@ IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group)
         ret = IsUserInGroup(sid, token_groups, admin_group[i]);
         if (ret)
         {
-            MsgToEventLog(M_INFO, TEXT("Authorizing user '%s@%s' by virtue of membership in group '%s'"),
+            MsgToEventLog(M_INFO, TEXT("Authorizing user '%ls@%ls' by virtue of membership in group '%ls'"),
                           username, domain, admin_group[i]);
             goto out;
         }
@@ -302,7 +302,7 @@ IsUserInGroup(PSID sid, const PTOKEN_GROUPS token_groups, const WCHAR *group_nam
     if (err != NERR_Success && err != NERR_GroupNotFound)
     {
         SetLastError(err);
-        MsgToEventLog(M_SYSERR, TEXT("In NetLocalGroupGetMembers for group '%s'"), group_name);
+        MsgToEventLog(M_SYSERR, TEXT("In NetLocalGroupGetMembers for group '%ls'"), group_name);
     }
 
     return ret;

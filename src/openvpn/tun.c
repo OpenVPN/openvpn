@@ -4833,7 +4833,7 @@ get_adapter_index_method_1(const char *guid)
     DWORD index;
     ULONG aindex;
     wchar_t wbuf[256];
-    openvpn_swprintf(wbuf, SIZE(wbuf), L"\\DEVICE\\TCPIP_%S", guid);
+    openvpn_swprintf(wbuf, SIZE(wbuf), L"\\DEVICE\\TCPIP_%hs", guid);
     if (GetAdapterIndex(wbuf, &aindex) != NO_ERROR)
     {
         index = TUN_ADAPTER_INDEX_INVALID;
