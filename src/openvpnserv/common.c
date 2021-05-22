@@ -75,7 +75,7 @@ GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size, LPCTSTR default_v
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        return MsgToEventLog(M_SYSERR, TEXT("Error querying registry value: HKLM\\SOFTWARE\\" PACKAGE_NAME "%s\\%s"), service_instance, value);
+        return MsgToEventLog(M_SYSERR, TEXT("Error querying registry value: HKLM\\SOFTWARE\\" PACKAGE_NAME "%ls\\%ls"), service_instance, value);
     }
 
     return ERROR_SUCCESS;
@@ -93,13 +93,13 @@ GetOpenvpnSettings(settings_t *s)
     TCHAR install_path[MAX_PATH];
     TCHAR default_value[MAX_PATH];
 
-    openvpn_swprintf(reg_path, _countof(reg_path), TEXT("SOFTWARE\\" PACKAGE_NAME "%s"), service_instance);
+    openvpn_swprintf(reg_path, _countof(reg_path), TEXT("SOFTWARE\\" PACKAGE_NAME "%ls"), service_instance);
 
     LONG status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path, 0, KEY_READ, &key);
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        return MsgToEventLog(M_SYSERR, TEXT("Could not open Registry key HKLM\\%s not found"), reg_path);
+        return MsgToEventLog(M_SYSERR, TEXT("Could not open Registry key HKLM\\%ls not found"), reg_path);
     }
 
     /* The default value of REG_KEY is the install path */
@@ -110,7 +110,7 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
 
-    openvpn_swprintf(default_value, _countof(default_value), TEXT("%s\\bin\\openvpn.exe"),
+    openvpn_swprintf(default_value, _countof(default_value), TEXT("%ls\\bin\\openvpn.exe"),
                       install_path);
     error = GetRegString(key, TEXT("exe_path"), s->exe_path, sizeof(s->exe_path), default_value);
     if (error != ERROR_SUCCESS)
@@ -118,7 +118,7 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
 
-    openvpn_swprintf(default_value, _countof(default_value), TEXT("%s\\config"), install_path);
+    openvpn_swprintf(default_value, _countof(default_value), TEXT("%ls\\config"), install_path);
     error = GetRegString(key, TEXT("config_dir"), s->config_dir, sizeof(s->config_dir),
                          default_value);
     if (error != ERROR_SUCCESS)
@@ -133,7 +133,7 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
 
-    openvpn_swprintf(default_value, _countof(default_value), TEXT("%s\\log"), install_path);
+    openvpn_swprintf(default_value, _countof(default_value), TEXT("%ls\\log"), install_path);
     error = GetRegString(key, TEXT("log_dir"), s->log_dir, sizeof(s->log_dir), default_value);
     if (error != ERROR_SUCCESS)
     {
@@ -184,7 +184,7 @@ GetOpenvpnSettings(settings_t *s)
     else
     {
         SetLastError(ERROR_INVALID_DATA);
-        error = MsgToEventLog(M_SYSERR, TEXT("Unknown priority name: %s"), priority);
+        error = MsgToEventLog(M_SYSERR, TEXT("Unknown priority name: %ls"), priority);
         goto out;
     }
 
@@ -200,7 +200,7 @@ GetOpenvpnSettings(settings_t *s)
     else
     {
         SetLastError(ERROR_INVALID_DATA);
-        error = MsgToEventLog(M_ERR, TEXT("Log file append flag (given as '%s') must be '0' or '1'"), append);
+        error = MsgToEventLog(M_ERR, TEXT("Log file append flag (given as '%ls') must be '0' or '1'"), append);
         goto out;
     }
 
@@ -229,7 +229,7 @@ GetLastErrorText()
     else
     {
         tmp[wcslen(tmp) - 2] = TEXT('\0'); /* remove CR/LF characters */
-        openvpn_swprintf(buf, _countof(buf), TEXT("%s (0x%x)"), tmp, error);
+        openvpn_swprintf(buf, _countof(buf), TEXT("%ls (0x%x)"), tmp, error);
     }
 
     if (tmp)
@@ -260,7 +260,7 @@ MsgToEventLog(DWORD flags, LPCTSTR format, ...)
     if (hEventSource != NULL)
     {
         openvpn_swprintf(msg[0], _countof(msg[0]),
-                          TEXT("%s%s%s: %s"), APPNAME, service_instance,
+                          TEXT("%ls%ls%ls: %ls"), APPNAME, service_instance,
                           (flags & MSG_FLAGS_ERROR) ? TEXT(" error") : TEXT(""), err_msg);
 
         va_start(arglist, format);
