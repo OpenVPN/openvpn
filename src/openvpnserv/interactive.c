@@ -338,11 +338,7 @@ ReturnError(HANDLE pipe, DWORD error, LPCWSTR func, DWORD count, LPHANDLE events
                                 (LPWSTR) &result, 0, (va_list *) args);
 
     WritePipeAsync(pipe, result, (DWORD)(wcslen(result) * 2), count, events);
-#ifdef UNICODE
     MsgToEventLog(MSG_FLAGS_ERROR, result);
-#else
-    MsgToEventLog(MSG_FLAGS_ERROR, "%S", result);
-#endif
 
     if (error != ERROR_OPENVPN_STARTUP)
     {
@@ -776,11 +772,7 @@ BlockDNSErrHandler(DWORD err, const char *msg)
         err_str = buf;
     }
 
-#ifdef UNICODE
     MsgToEventLog(M_ERR, L"%S (status = %lu): %s", msg, err, err_str);
-#else
-    MsgToEventLog(M_ERR, "%s (status = %lu): %s", msg, err, err_str);
-#endif
 
 }
 
@@ -799,13 +791,7 @@ HandleBlockDNSMessage(const block_dns_message_t *msg, undo_lists_t *lists)
     HANDLE engine = NULL;
     LPCWSTR exe_path;
 
-#ifdef UNICODE
     exe_path = settings.exe_path;
-#else
-    WCHAR wide_path[MAX_PATH];
-    MultiByteToWideChar(CP_UTF8, 0, settings.exe_path, MAX_PATH, wide_path, MAX_PATH);
-    exe_path = wide_path;
-#endif
 
     if (msg->header.type == msg_add_block_dns)
     {
@@ -1046,8 +1032,7 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
     }
 
     /* Path of netsh */
-    swprintf(argv0, _countof(argv0), L"%s\\%s", get_win_sys_path(), L"netsh.exe");
-    argv0[_countof(argv0) - 1] = L'\0';
+    openvpn_swprintf(argv0, _countof(argv0), L"%s\\%s", get_win_sys_path(), L"netsh.exe");
 
     /* cmd template:
      * netsh interface $proto $action dns $if_name $addr [validate=no]
@@ -1063,7 +1048,7 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
         goto out;
     }
 
-    openvpn_sntprintf(cmdline, ncmdline, fmt, proto, action, if_name, addr);
+    openvpn_swprintf(cmdline, ncmdline, fmt, proto, action, if_name, addr);
 
     if (IsWindows7OrGreater())
     {
@@ -1093,8 +1078,7 @@ wmic_nicconfig_cmd(const wchar_t *action, const NET_IFINDEX if_index,
     wchar_t *cmdline = NULL;
     int timeout = 10000; /* in msec */
 
-    swprintf(argv0, _countof(argv0), L"%s\\%s", get_win_sys_path(), L"wbem\\wmic.exe");
-    argv0[_countof(argv0) - 1] = L'\0';
+    openvpn_swprintf(argv0, _countof(argv0), L"%s\\%s", get_win_sys_path(), L"wbem\\wmic.exe");
 
     const wchar_t *fmt;
     /* comma separated list must be enclosed in parenthesis */
@@ -1115,7 +1099,7 @@ wmic_nicconfig_cmd(const wchar_t *action, const NET_IFINDEX if_index,
         return ERROR_OUTOFMEMORY;
     }
 
-    openvpn_sntprintf(cmdline, ncmdline, fmt, if_index, action,
+    openvpn_swprintf(cmdline, ncmdline, fmt, if_index, action,
                       data? data : L"");
     err = ExecCommand(argv0, cmdline, timeout);
 
@@ -1300,8 +1284,7 @@ HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)
     wchar_t argv0[MAX_PATH];
 
     /* Path of netsh */
-    swprintf(argv0, _countof(argv0), L"%s\\%s", get_win_sys_path(), L"netsh.exe");
-    argv0[_countof(argv0) - 1] = L'\0';
+    openvpn_swprintf(argv0, _countof(argv0), L"%s\\%s", get_win_sys_path(), L"netsh.exe");
 
     /* cmd template:
      * netsh interface ipv4 set address name=$if_index source=dhcp
@@ -1319,7 +1302,7 @@ HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)
         return err;
     }
 
-    openvpn_sntprintf(cmdline, ncmdline, fmt, dhcp->iface.index);
+    openvpn_swprintf(cmdline, ncmdline, fmt, dhcp->iface.index);
 
     err = ExecCommand(argv0, cmdline, timeout);
 
@@ -1790,7 +1773,7 @@ RunOpenvpn(LPVOID p)
         goto out;
     }
 
-    openvpn_sntprintf(ovpn_pipe_name, _countof(ovpn_pipe_name),
+    openvpn_swprintf(ovpn_pipe_name, _countof(ovpn_pipe_name),
                       TEXT("\\\\.\\pipe\\" PACKAGE "%s\\service_%lu"), service_instance, GetCurrentThreadId());
     ovpn_pipe = CreateNamedPipe(ovpn_pipe_name,
                                 PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE | FILE_FLAG_OVERLAPPED,
@@ -1823,7 +1806,7 @@ RunOpenvpn(LPVOID p)
         ReturnLastError(pipe, L"malloc");
         goto out;
     }
-    openvpn_sntprintf(cmdline, cmdline_size, L"openvpn %s --msg-channel %lu",
+    openvpn_swprintf(cmdline, cmdline_size, L"openvpn %s --msg-channel %lu",
                       sud.options, svc_pipe);
 
     if (!CreateEnvironmentBlock(&user_env, imp_token, FALSE))
@@ -1839,13 +1822,7 @@ RunOpenvpn(LPVOID p)
     startup_info.hStdOutput = stdout_write;
     startup_info.hStdError = stdout_write;
 
-#ifdef UNICODE
     exe_path = settings.exe_path;
-#else
-    WCHAR wide_path[MAX_PATH];
-    MultiByteToWideChar(CP_UTF8, 0, settings.exe_path, MAX_PATH, wide_path, MAX_PATH);
-    exe_path = wide_path;
-#endif
 
     /* TODO: make sure HKCU is correct or call LoadUserProfile() */
     if (!CreateProcessAsUserW(pri_token, exe_path, cmdline, &ovpn_sa, NULL, TRUE,
@@ -1995,7 +1972,7 @@ CreateClientPipeInstance(VOID)
         initialized = TRUE;
     }
 
-    openvpn_sntprintf(pipe_name, _countof(pipe_name), TEXT("\\\\.\\pipe\\" PACKAGE "%s\\service"), service_instance);
+    openvpn_swprintf(pipe_name, _countof(pipe_name), TEXT("\\\\.\\pipe\\" PACKAGE "%s\\service"), service_instance);
     pipe = CreateNamedPipe(pipe_name, flags,
                            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
                            PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0, NULL);
