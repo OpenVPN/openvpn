@@ -1117,7 +1117,8 @@ tap_set_adapter_name(
     }
 
     /* rename adapter via netsh call */
-    const TCHAR* szFmt = _T("netsh interface set interface name=\"%s\" newname=\"%s\"");
+    const TCHAR* szFmt = TEXT("netsh interface set interface name=\"%")
+                         TEXT(PRIsLPTSTR) TEXT("\" newname=\"%") TEXT(PRIsLPTSTR) TEXT("\"");
     size_t ncmdline = _tcslen(szFmt) + _tcslen(szOldName) + _tcslen(szName) + 1;
     WCHAR* szCmdLine = malloc(ncmdline * sizeof(TCHAR));
     _stprintf_s(szCmdLine, ncmdline, szFmt, szOldName, szName);
