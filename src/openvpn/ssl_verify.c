@@ -913,7 +913,7 @@ check_auth_pending_method(const char *peer_info, const char *method)
             supported = true;
             break;
         }
-        client_method = strtok(NULL, ":");
+        client_method = strtok(NULL, ",");
     }
 
     gc_free(&gc);
