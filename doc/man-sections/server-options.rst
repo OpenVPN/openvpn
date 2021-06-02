@@ -487,6 +487,10 @@ fast hardware. SSL/TLS authentication must be used in this mode.
         The UI version of a UI if one is running, for example
         :code:`de.blinkt.openvpn 0.5.47` for the Android app.
 
+  :code:`IV_SSO=[crtext,][openurl,][proxy_url]`
+        Additional authentication methods supported by the client.
+        This may be set by the client UI/GUI using ``--setenv``
+
   When ``--push-peer-info`` is enabled the additional information consists
   of the following data:
 
