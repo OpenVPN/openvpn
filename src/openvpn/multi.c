@@ -2596,11 +2596,6 @@ static const multi_client_connect_handler client_connect_handlers[] = {
 static void
 multi_connection_established(struct multi_context *m, struct multi_instance *mi)
 {
-    if (tls_authentication_status(mi->context.c2.tls_multi) != TLS_AUTHENTICATION_SUCCEEDED)
-    {
-        return;
-    }
-
     /* We are only called for the CAS_PENDING_x states, so we
      * can ignore other states here */
     bool from_deferred = (mi->context.c2.tls_multi->multi_state != CAS_PENDING);
@@ -3970,7 +3965,7 @@ management_client_auth(void *arg,
         {
             if (auth)
             {
-                if (is_cas_pending(mi->context.c2.tls_multi->multi_state))
+                if (mi->context.c2.tls_multi->multi_state <= CAS_WAITING_AUTH)
                 {
                     set_cc_config(mi, cc_config);
                     cc_config_owned = false;

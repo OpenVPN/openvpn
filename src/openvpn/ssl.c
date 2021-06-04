@@ -2810,7 +2810,7 @@ tls_process(struct tls_multi *multi,
                     if (session->opt->mode == MODE_SERVER)
                     {
                         /* On a server we continue with running connect scripts next */
-                        multi->multi_state = CAS_PENDING;
+                        multi->multi_state = CAS_WAITING_AUTH;
                     }
                     else
                     {
@@ -3135,6 +3135,13 @@ tls_multi_process(struct tls_multi *multi,
     update_time();
 
     enum tls_auth_status tas = tls_authentication_status(multi);
+
+    /* If we have successfully authenticated and are still waiting for the authentication to finish
+     * move the state machine for the multi context forward */
+    if (multi->multi_state == CAS_WAITING_AUTH && tas == TLS_AUTHENTICATION_SUCCEEDED)
+    {
+        multi->multi_state = CAS_PENDING;
+    }
 
     /*
      * If lame duck session expires, kill it.

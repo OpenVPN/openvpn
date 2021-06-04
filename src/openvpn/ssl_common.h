@@ -511,6 +511,7 @@ struct tls_session
  * connect scripts/plugins */
 enum multi_status {
     CAS_NOT_CONNECTED,
+    CAS_WAITING_AUTH,               /**< TLS connection established but deferred auth not finished */
     CAS_PENDING,
     CAS_PENDING_DEFERRED,
     CAS_PENDING_DEFERRED_PARTIAL,   /**< at least handler succeeded, no result yet*/
