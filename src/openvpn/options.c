@@ -2069,11 +2069,12 @@ check_ca_required(const struct options *options)
         return;
     }
 
-    msg(M_USAGE, "You must define CA file (--ca)"
+    const char* str = "You must define CA file (--ca)"
 #ifndef ENABLE_CRYPTO_MBEDTLS
         " or CA path (--capath)"
 #endif
-        " and/or peer fingeprint verification " "(--peer-fingerprint)");
+        " and/or peer fingerprint verification (--peer-fingerprint)";
+    msg(M_USAGE, str);
 }
 
 static void
