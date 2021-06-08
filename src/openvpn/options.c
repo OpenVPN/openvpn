@@ -2056,6 +2056,28 @@ connection_entry_preload_key(const char **key_file, bool *key_inline,
 }
 
 static void
+check_ca_required(const struct options *options)
+{
+    if (options->verify_hash_no_ca
+        || options->pkcs12_file
+        || options->ca_file
+#ifndef ENABLE_CRYPTO_MBEDTLS
+        || options->ca_path
+#endif
+       )
+    {
+        return;
+    }
+
+    const char* str = "You must define CA file (--ca)"
+#ifndef ENABLE_CRYPTO_MBEDTLS
+        " or CA path (--capath)"
+#endif
+        " and/or peer fingerprint verification (--peer-fingerprint)";
+    msg(M_USAGE, str);
+}
+
+static void
 options_postprocess_verify_ce(const struct options *options,
                               const struct connection_entry *ce)
 {
@@ -2592,11 +2614,10 @@ options_postprocess_verify_ce(const struct options *options,
 
     if (options->tls_server || options->tls_client)
     {
+        check_ca_required(options);
 #ifdef ENABLE_PKCS11
         if (options->pkcs11_providers[0])
         {
-            notnull(options->ca_file, "CA file (--ca)");
-
             if (options->pkcs11_id_management && options->pkcs11_id != NULL)
             {
                 msg(M_USAGE, "Parameter --pkcs11-id cannot be used when --pkcs11-id-management is also specified.");
@@ -2657,10 +2678,6 @@ options_postprocess_verify_ce(const struct options *options,
 #ifdef ENABLE_CRYPTOAPI
         if (options->cryptoapi_cert)
         {
-            if ((!(options->ca_file)) && (!(options->ca_path)))
-            {
-                msg(M_USAGE, "You must define CA file (--ca) or CA path (--capath)");
-            }
             if (options->cert_file)
             {
                 msg(M_USAGE, "Parameter --cert cannot be used when --cryptoapicert is also specified.");
@@ -2718,25 +2735,11 @@ options_postprocess_verify_ce(const struct options *options,
         else
         {
 #ifdef ENABLE_CRYPTO_MBEDTLS
-            if (!(options->ca_file || options->verify_hash_no_ca))
-            {
-                msg(M_USAGE, "You must define CA file (--ca) and/or "
-                    "peer fingeprint verification "
-                    "(--peer-fingerprint)");
-            }
             if (options->ca_path)
             {
                 msg(M_USAGE, "Parameter --capath cannot be used with the mbed TLS version version of OpenVPN.");
             }
-#else  /* ifdef ENABLE_CRYPTO_MBEDTLS */
-            if ((!(options->ca_file)) && (!(options->ca_path))
-                && (!(options->verify_hash_no_ca)))
-            {
-                msg(M_USAGE, "You must define CA file (--ca) or CA path "
-                    "(--capath) and/or peer fingeprint verification "
-                    "(--peer-fingerprint)");
-            }
-#endif
+#endif  /* ifdef ENABLE_CRYPTO_MBEDTLS */
             if (pull)
             {
 
@@ -5363,7 +5366,7 @@ add_option(struct options *options,
         {
             /* only message-related ECHO are logged, since other ECHOs
              * can potentially include security-sensitive strings */
-            if (strncmp(p[1], "msg", 3) == 0)
+            if (p[1] && strncmp(p[1], "msg", 3) == 0)
             {
                 msg(M_INFO, "%s:%s",
                     pull_mode ? "ECHO-PULL" : "ECHO",
