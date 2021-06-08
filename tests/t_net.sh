@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-IFACE="dummy0"
+IFACE="ovpn-dummy0"
 UNIT_TEST="./unit_tests/openvpn/networking_testdriver"
 MAX_TEST=${1:-7}
 
