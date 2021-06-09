@@ -2,7 +2,7 @@
 # reformat-all.sh - Reformat all git files in the checked out
 #                   git branch using uncrustify.
 #
-# Copyright (C) 2016-2018 - David Sommerseth <davids@openvpn.net>
+# Copyright (C) 2016-2021 - David Sommerseth <davids@openvpn.net>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License

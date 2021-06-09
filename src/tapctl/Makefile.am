@@ -1,8 +1,8 @@
 #
 #  tapctl -- Utility to manipulate TUN/TAP interfaces on Windows
 #
-#  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
-#  Copyright (C) 2018 Simon Rozman <simon@rozman.si>
+#  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+#  Copyright (C) 2018-2021 Simon Rozman <simon@rozman.si>
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License version 2

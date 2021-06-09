@@ -2,7 +2,8 @@
 # update-copyright-sh - Simple tool to update the Copyright lines
 #                       in all files checked into git
 #
-# Copyright (C) 2016-2018 David Sommerseth <davids@openvpn.net>
+# Copyright (C) 2016-2021 OpenVPN Inc <sales@openvpn.net>
+# Copyright (C) 2016-2021 David Sommerseth <davids@openvpn.net>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -30,7 +31,7 @@ fi
 
 # Only update Copyright lines with these owners
 # The 'or' operator is GNU sed specific, and must be \|
-UPDATE_COPYRIGHT_LINES="@openvpn\.net\|@fox-it\.com\|@sophos.com\|@eurephia\.net\|@greenie\.muc\.de"
+UPDATE_COPYRIGHT_LINES="@openvpn\.net\|@fox-it\.com\|@sophos.com\|@eurephia\.org\|@greenie\.muc\.de\|@rozman.si\|@unstable\.cc\|@rfc2549.org\|@karger\.me\|selva.nair@"
 COPY_YEAR="$1"
 
 cd "$(git rev-parse --show-toplevel)"
