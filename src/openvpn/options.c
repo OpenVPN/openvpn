@@ -2069,7 +2069,7 @@ check_ca_required(const struct options *options)
         return;
     }
 
-    const char* str = "You must define CA file (--ca)"
+    const char* const str = "You must define CA file (--ca)"
 #ifndef ENABLE_CRYPTO_MBEDTLS
         " or CA path (--capath)"
 #endif
