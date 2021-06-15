@@ -74,7 +74,7 @@ index 2edab39..b2ac746 100644
 +++ b/lib/Makefile.w32-vc
 @@ -60,9 +60,9 @@ OPENSSL_HOME = ..\..\openssl-0.9.8a
  !endif
-
+ 
  !ifdef OPENSSL
 -OPENSSL_STATIC = libeay32.lib
 +OPENSSL_STATIC = libcrypto.lib
@@ -82,7 +82,7 @@ index 2edab39..b2ac746 100644
 -OPENSSL_DYNAMIC = libeay32.lib
 +OPENSSL_DYNAMIC = libcrypto.lib
  #OPENSSL_DYNAMIC = libeay32d.lib
-
+ 
  OPENSSL_INC=$(OPENSSL_HOME)\include
---
+-- 
 2.23.0.windows.1
