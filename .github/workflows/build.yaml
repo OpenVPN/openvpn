@@ -181,3 +181,49 @@ jobs:
         run: make -j4
       - name: make check
         run: make check
+
+  msvc:
+      strategy:
+        matrix:
+          plat: [ARM64, Win32, x64]
+          include:
+            - plat: ARM64
+              triplet: arm64
+            - plat: Win32
+              triplet: x86
+            - plat: x64
+              triplet: x64
+
+      env:
+        BUILD_CONFIGURATION: Release
+        VCPKG_OVERLAY_PORTS: ${{ github.workspace }}/contrib/vcpkg-ports
+        VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}/contrib/vcpkg-triplets
+
+      runs-on: windows-latest
+      steps:
+      - uses: actions/checkout@v2
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v1
+
+      - name: Restore artifacts, or run vcpkg, build and cache artifacts
+        uses: lukka/run-vcpkg@main
+        with:
+          vcpkgArguments: 'openssl lz4 lzo pkcs11-helper tap-windows6'
+          vcpkgTriplet: '${{ matrix.triplet }}-windows-ovpn'
+          vcpkgGitCommitId: '7d472dd25830da92108eb76642c667aaa40512cb'
+          cleanAfterBuild: false
+
+      - name: Build
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: |
+          vcpkg integrate install
+          msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="${{ matrix.plat }}" .
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: artifacts-${{ matrix.plat }}
+          path: |
+            ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.exe
+            ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.dll
