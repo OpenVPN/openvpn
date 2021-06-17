@@ -154,11 +154,13 @@ crypto_init_lib_engine(const char *engine_name)
 void
 crypto_init_lib(void)
 {
+#ifndef _WIN32
 #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
     OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG, NULL);
 #else
     OPENSSL_config(NULL);
 #endif
+#endif /* _WIN32 */
     /*
      * If you build the OpenSSL library and OpenVPN with
      * CRYPTO_MDEBUG, you will get a listing of OpenSSL
