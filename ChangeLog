@@ -1,6 +1,37 @@
 OpenVPN Change Log
 Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
 
+2021.06.17 -- Version 2.5.3
+
+Arne Schwabe (3):
+      Add missing free_key_ctx for auth_token
+      Add github actions
+      Implement auth-token-user
+
+David Sommerseth (1):
+      Update copyrights
+
+Lev Stipakov (8):
+      openvpnmsica: properly schedule reboot in the end of installation
+      msvc: add ARM64 configuration
+      msvc: standalone building
+      contrib/vcpkg-ports: add pkcs11-helper port
+      vcpkg-ports: restore trailing whitespaces in .patch files
+      GitHub actions: add MSVC build
+      crypto_openssl.c: disable explicit initialization on Windows (CVE-2121-3606)
+      contrib/vcpkg-ports: add openssl port with --no-autoload-config option set (CVE-2121-3606)
+
+Matthias Andree (1):
+      Fix SIGSEGV (NULL deref) receiving push "echo"
+
+Max Fillinger (1):
+      Fix build with mbedtls w/o SSL renegotiation support
+
+Selva Nair (2):
+      Improve documentation of AUTH_PENDING related directives
+      Apply the connect-retry backoff to only one side of a connection
+
+
 2021.04.20 -- Version 2.5.2
 
 Arne Schwabe (10):

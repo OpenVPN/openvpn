@@ -1,3 +1,42 @@
+Overview of changes in 2.5.3
+============================
+Bugfixes
+--------
+- CVE-2121-3606
+  see https://community.openvpn.net/openvpn/wiki/SecurityAnnouncements
+
+  OpenVPN windows builds could possibly load OpenSSL Config files from
+  world writeable locations, thus posing a security risk to OpenVPN.
+
+  As a fix, disable OpenSSL config loading completely on Windows.
+
+- disable connect-retry backoff for p2p (--secret) instances
+  (Trac #1010, #1384)
+
+- fix build with mbedtls w/o SSL renegotiation support
+
+- Fix SIGSEGV (NULL deref) receiving push "echo" (Trac #1409)
+
+- MSI installers: properly schedule reboot in the end of installation
+
+- fix small memory leak in free_key_ctx for auth_token
+
+
+User-visible Changes
+--------------------
+- update copyright messages in files and --version output
+
+New features
+------------
+- add --auth-token-user option (for --auth-token deployments without
+  --auth-user-pass in client config)
+
+- improve MSVC building for Windows
+
+- official MSI installers will now contain arm64 drivers and binaries
+  (x86, amd64, arm64)
+
+
 Overview of changes in 2.5.2
 ============================
 
