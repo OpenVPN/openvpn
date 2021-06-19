@@ -52,6 +52,9 @@
 
 #include "ssl_verify_openssl.h"
 
+#ifdef ENABLE_CRYPTO_WOLFSSL
+#include <wolfssl/options.h>
+#endif
 #include <openssl/err.h>
 #include <openssl/pkcs12.h>
 #include <openssl/x509.h>

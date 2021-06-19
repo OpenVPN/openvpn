@@ -29,6 +29,9 @@
 #ifndef SSL_OPENSSL_H_
 #define SSL_OPENSSL_H_
 
+#ifdef ENABLE_CRYPTO_WOLFSSL
+#include <wolfssl/options.h>
+#endif
 #include <openssl/ssl.h>
 
 /**
