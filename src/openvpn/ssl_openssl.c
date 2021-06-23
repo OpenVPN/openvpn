@@ -523,7 +523,7 @@ tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)
 void
 tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
 {
-#ifdef HAVE_SSL_CTX_SET_SECURITY_LEVEL
+#if OPENSSL_VERSION_NUMBER > 0x10100000L && !defined(LIBRESSL_VERSION_NUMBER)
     /* OpenSSL does not have certificate profiles, but a complex set of
      * callbacks that we could try to implement to achieve something similar.
      * For now, use OpenSSL's security levels to achieve similar (but not equal)
@@ -545,13 +545,13 @@ tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
     {
         msg(M_FATAL, "ERROR: Invalid cert profile: %s", profile);
     }
-#else  /* ifdef HAVE_SSL_CTX_SET_SECURITY_LEVEL */
+#else  /* if OPENSSL_VERSION_NUMBER > 0x10100000L */
     if (profile)
     {
-        msg(M_WARN, "WARNING: OpenSSL 1.0.2 does not support --tls-cert-profile"
-            ", ignoring user-set profile: '%s'", profile);
+        msg(M_WARN, "WARNING: OpenSSL 1.0.2 and LibreSSL do not support "
+            "--tls-cert-profile, ignoring user-set profile: '%s'", profile);
     }
-#endif /* ifdef HAVE_SSL_CTX_SET_SECURITY_LEVEL */
+#endif /* if OPENSSL_VERSION_NUMBER > 0x10100000L */
 }
 
 void
