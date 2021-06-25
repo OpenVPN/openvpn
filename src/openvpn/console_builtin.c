@@ -58,23 +58,17 @@
 static bool
 get_console_input_win32(const char *prompt, const bool echo, char *input, const int capacity)
 {
-    HANDLE in = INVALID_HANDLE_VALUE;
-    HANDLE err = INVALID_HANDLE_VALUE;
-    DWORD len = 0;
-
     ASSERT(prompt);
     ASSERT(input);
     ASSERT(capacity > 0);
 
     input[0] = '\0';
 
-    in = GetStdHandle(STD_INPUT_HANDLE);
-    err = get_orig_stderr();
-
-    if (in == INVALID_HANDLE_VALUE
-        || err == INVALID_HANDLE_VALUE
+    HANDLE in = GetStdHandle(STD_INPUT_HANDLE);
+    int orig_stderr = get_orig_stderr(); // guaranteed to be always valid
+    if ((in == INVALID_HANDLE_VALUE)
         || win32_service_interrupt(&win32_signal)
-        || !WriteFile(err, prompt, strlen(prompt), &len, NULL))
+        || (_write(orig_stderr, prompt, strlen(prompt)) == -1))
     {
         msg(M_WARN|M_ERRNO, "get_console_input_win32(): unexpected error");
         return false;
@@ -102,6 +96,8 @@ get_console_input_win32(const char *prompt, const bool echo, char *input, const 
         }
     }
 
+    DWORD len = 0;
+
     if (is_console)
     {
         winput = malloc(capacity * sizeof(WCHAR));
@@ -124,7 +120,7 @@ get_console_input_win32(const char *prompt, const bool echo, char *input, const 
 
     if (!echo)
     {
-        WriteFile(err, "\r\n", 2, &len, NULL);
+        _write(orig_stderr, "\r\n", 2);
     }
     if (is_console)
     {
