@@ -5,3 +5,5 @@ set(VCPKG_LIBRARY_LINKAGE dynamic)
 if(PORT STREQUAL "lz4")
     set(VCPKG_LIBRARY_LINKAGE static)
 endif()
+
+set(OPENSSL_NO_AUTOLOAD_CONFIG ON)
