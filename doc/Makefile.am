@@ -9,10 +9,16 @@
 #  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 
-MAINTAINERCLEANFILES = \
-	$(srcdir)/Makefile.in
-
 SUBDIRS = doxygen
+
+#
+# List of man and HTML pages we build when rst2man/rst2html is available
+#
+# NOTE: Remember to add source .rst files to $(dist_noinst_DATA) below
+#       This could be automated with GNU Make, but we need BSD Make support
+#
+build_man_pages = openvpn.8 openvpn-examples.5
+build_html_pages = openvpn.8.html openvpn-examples.5.html
 
 dist_doc_DATA = \
 	management-notes.txt gui-notes.txt
@@ -46,49 +52,41 @@ dist_noinst_DATA = \
 	man-sections/vpn-network-options.rst \
 	man-sections/windows-options.rst
 
-openvpn.8 :
+
+######  GENERIC  RULES  ##########
+
+SUFFIXES = .8.rst .8 .8.html .5.rst .5 .5.html
+
+MAINTAINERCLEANFILES = \
+	$(srcdir)/Makefile.in
+
+.8.rst.8 .5.rst.5 :
 if HAVE_PYDOCUTILS
-	$(RST2MAN) $(srcdir)/$@.rst > $@
+	$(RST2MAN) $< > $@
 else
-	@echo "Missing python-docutils - skipping man page generation"
+	@echo "Missing python-docutils - skipping man page generation ($@)"
 endif
 
-openvpn-examples.5 :
+.8.rst.8.html .5.rst.5.html :
 if HAVE_PYDOCUTILS
-	$(RST2MAN) $(srcdir)/$@.rst > $@
+	$(RST2HTML) $< > $@
 else
-	@echo "Missing python-docutils - skipping man page generation"
-endif
-
-
-openvpn.8.html:
-if HAVE_PYDOCUTILS
-	$(RST2HTML) $(srcdir)/openvpn.8.rst > $@
-else
-	@echo "Missing python-docutils - skipping man/html page generation"
-endif
-
-openvpn-examples.5.html:
-if HAVE_PYDOCUTILS
-	$(RST2HTML) $(srcdir)/openvpn-examples.5.rst > $@
-else
-	@echo "Missing python-docutils - skipping man/html page generation"
+	@echo "Missing python-docutils - skipping html page generation ($@)"
 endif
 
 
 if HAVE_PYDOCUTILS
-dist_noinst_DATA += openvpn.8 openvpn-examples.5
-dist_html_DATA = openvpn.8.html openvpn-examples.5.html
+dist_noinst_DATA += $(build_man_pages)
+dist_html_DATA = $(build_html_pages)
 
 # Failsafe - do not delete these files unless we can recreate them
-CLEANFILES = \
-	 openvpn.8 openvpn.8.html openvpn-examples.5 openvpn-examples.5.html
+CLEANFILES = $(build_man_pages) $(build_html_pages)
 
 endif
 
 if WIN32
 else
-dist_man_MANS = openvpn.8 openvpn-examples.5
+dist_man_MANS = $(build_man_pages)
 endif
 
-dist-hook : openvpn.8 openvpn.8.html openvpn-examples.5 openvpn-examples.5.html
+dist-hook : $(build_man_pages) $(build_html_pages)
