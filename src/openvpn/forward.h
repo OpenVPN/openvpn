@@ -416,7 +416,7 @@ connection_established(struct context *c)
 {
     if (c->c2.tls_multi)
     {
-        return c->c2.tls_multi->multi_state >= CAS_CONNECT_DONE;
+        return c->c2.tls_multi->multi_state >= CAS_WAITING_OPTIONS_IMPORT;
     }
     else
     {

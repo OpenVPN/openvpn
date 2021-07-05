@@ -64,7 +64,8 @@
  *      material.
  *   -# \c S_GOT_KEY, have received remote part of \c key_source2 random
  *      material.
- *   -# \c S_ACTIVE, normal operation
+ *   -# \c S_ACTIVE, control channel successfully established
+ *   -# \c S_GENERATED_KEYS, the data channel keys have been generated
  *
  * Servers follow the same order, except for \c S_SENT_KEY and \c
  * S_GOT_KEY being reversed, because the server first receives the
@@ -92,7 +93,9 @@
 #define S_ACTIVE          6     /**< Operational \c key_state state
                                  *   immediately after negotiation has
                                  *   completed while still within the
-                                 *   handshake window. */
+                                 *   handshake window.  Deferred auth and
+                                 *   client connect can still be pending. */
+#define S_GENERATED_KEYS  7     /**< The data channel keys have been generated */
 /* Note that earlier versions also had a S_OP_NORMAL state that was
  * virtually identical with S_ACTIVE and the code still assumes everything
  * >= S_ACTIVE to be fully operational */
@@ -516,6 +519,7 @@ enum multi_status {
     CAS_PENDING_DEFERRED,
     CAS_PENDING_DEFERRED_PARTIAL,   /**< at least handler succeeded, no result yet*/
     CAS_FAILED,
+    CAS_WAITING_OPTIONS_IMPORT,     /**< client with pull or p2p waiting for first time options import */
     CAS_CONNECT_DONE,
 };
 
