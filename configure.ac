@@ -274,6 +274,13 @@ AC_ARG_ENABLE(
 	[enable_wolfssl_options_h="yes"]
 )
 
+AC_ARG_ENABLE(
+	[dpi-trickery],
+	[AS_HELP_STRING([--enable-dpi-trickery], [enable dpi trickery @<:@default=no@:>@])],
+	,
+	[dpi-trickery="no"]
+)
+
 AC_ARG_VAR([PLUGINDIR], [Path of plug-in directory @<:@default=LIBDIR/openvpn/plugins@:>@])
 if test -n "${PLUGINDIR}"; then
 	plugindir="${PLUGINDIR}"
@@ -1009,6 +1016,10 @@ fi
 dnl
 dnl check for LZ4 library
 dnl
+
+if test "${enable_dpi_trickery}" = "yes"; then
+	AC_DEFINE([ENABLE_DPI_TRICKERY], [1], [Enable DPI trickery])
+fi
 
 AC_ARG_VAR([LZ4_CFLAGS], [C compiler flags for lz4])
 AC_ARG_VAR([LZ4_LIBS], [linker flags for lz4])

@@ -94,6 +94,13 @@ show_tls_performance_stats(void)
 
 #endif /* ifdef MEASURE_TLS_HANDSHAKE_STATS */
 
+
+#ifdef ENABLE_DPI_TRICKERY
+
+static int dpi_trickery_ack_attempts = 0; /* GLOBAL */
+
+#endif /* ifdef ENABLE_DPI_TRICKERY */
+
 /**
  * SSL/TLS Cipher suite name translation table
  */
@@ -943,6 +950,9 @@ key_state_init(struct tls_session *session, struct key_state *ks)
     ks->state = S_INITIAL;
     ks->key_id = session->key_id;
 
+#if defined(ENABLE_DPI_TRICKERY)
+    dpi_trickery_ack_attempts = getenv("OPENVPN_DPI_TRICKERY_ACK_ATTEMPTS") ? atoi(getenv("OPENVPN_DPI_TRICKERY_ACK_ATTEMPTS")) : 0;
+#endif
     /*
      * key_id increments to KEY_ID_MASK then recycles back to 1.
      * This way you know that if key_id is 0, it is the first key.
@@ -2979,6 +2989,11 @@ tls_process(struct tls_multi *multi,
     /* Send 1 or more ACKs (each received control packet gets one ACK) */
     if (!to_link->len && !reliable_ack_empty(ks->rec_ack))
     {
+#if defined(ENABLE_DPI_TRICKERY)
+        --dpi_trickery_ack_attempts;
+        dmsg(D_TLS_DEBUG, "dpi_trickery_ack_attempts=%d", dpi_trickery_ack_attempts);
+        if (dpi_trickery_ack_attempts < 0) {
+#endif
         struct buffer buf = ks->ack_write_buf;
         ASSERT(buf_init(&buf, FRAME_HEADROOM(&multi->opt.frame)));
         write_control_auth(session, ks, &buf, to_link_addr, P_ACK_V1,
@@ -2986,6 +3001,9 @@ tls_process(struct tls_multi *multi,
         *to_link = buf;
         active = true;
         dmsg(D_TLS_DEBUG, "Dedicated ACK -> TCP/UDP");
+#if defined(ENABLE_DPI_TRICKERY)
+        }
+#endif
     }
 
     /* When should we wake up again? */
