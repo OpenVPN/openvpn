@@ -34,6 +34,7 @@
 #include "mtu.h"
 #include "route.h"
 #include "tun.h"
+#include "networking.h"
 #include "socket.h"
 #include "plugin.h"
 #include "manage.h"
@@ -275,6 +276,8 @@ struct options
     bool ifconfig_noexec;
     bool ifconfig_nowarn;
     int shaper;
+
+    enum net_backend net_backend;
 
     int proto_force;
 

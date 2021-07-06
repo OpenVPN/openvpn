@@ -193,6 +193,7 @@ openvpn_main(int argc, char *argv[])
             open_plugins(&c, true, OPENVPN_PLUGIN_INIT_PRE_CONFIG_PARSE);
 #endif
 
+            net_init(c.options.net_backend);
             net_ctx_init(&c, &c.net_ctx);
 
             /* init verbosity and mute levels */

@@ -178,6 +178,9 @@ static const char usage_message[] =
     "--topology t    : Set --dev tun topology: 'net30', 'p2p', or 'subnet'.\n"
 #ifdef ENABLE_IPROUTE
     "--iproute cmd   : Use this command instead of default " IPROUTE_PATH ".\n"
+#ifdef ENABLE_SITNL
+    "                  It will use the iproute networking backend instead of netlink.\n"
+#endif /* ENABLE_SITNL */
 #endif
     "--ifconfig l rn : TUN: configure device to use IP address l as a local\n"
     "                  endpoint and rn as a remote endpoint.  l & rn should be\n"
@@ -886,6 +889,8 @@ init_options(struct options *o, const bool init_gc)
     }
 #endif /* _WIN32 */
     o->allow_recursive_routing = false;
+
+    o->net_backend = NET_BACKEND_DEFAULT;
 }
 
 void
@@ -5603,6 +5608,7 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         iproute_path = p[1];
+        options->net_backend = NET_BACKEND_IPROUTE;
     }
 #endif
     else if (streq(p[0], "ifconfig") && p[1] && p[2] && !p[3])

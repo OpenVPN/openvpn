@@ -23,16 +23,49 @@
 
 #include "syshead.h"
 
+enum net_backend
+{
+#ifdef ENABLE_SITNL
+    NET_BACKEND_SITNL,
+#endif
+#ifdef ENABLE_IPROUTE
+    NET_BACKEND_IPROUTE,
+#endif
+    NET_BACKEND_NONE,
+};
+
+/* First compiled value will 0 and so the default implementation */
+#define NET_BACKEND_DEFAULT ((enum net_backend)0)
+
 struct context;
+typedef char openvpn_net_iface_t;
 
 #ifdef ENABLE_SITNL
 #include "networking_sitnl.h"
-#elif ENABLE_IPROUTE
+#endif /* ENABLE_SITNL */
+#if ENABLE_IPROUTE
 #include "networking_iproute2.h"
+#endif /* ENABLE_IPROUTE */
+
+#if defined(ENABLE_IPROUTE) || defined(ENABLE_SITNL)
+typedef union {
+#if ENABLE_SITNL
+    openvpn_net_sitnl_ctx_t sitnl;
+#endif /* ENABLE_SITNL */
+#if ENABLE_IPROUTE
+    openvpn_net_iproute2_ctx_t iproute2;
+#endif /* ENABLE_IPROUTE */
+} openvpn_net_ctx_t;
+
 #else
 /* define mock types to ensure code builds on any platform */
 typedef void *openvpn_net_ctx_t;
-typedef void *openvpn_net_iface_t;
+
+static inline void
+net_init(enum net_backend backend)
+{
+    (void)backend;
+}
 
 static inline int
 net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
@@ -51,9 +84,67 @@ net_ctx_free(openvpn_net_ctx_t *ctx)
 {
     (void)ctx;
 }
-#endif /* ifdef ENABLE_SITNL */
+#endif /* ENABLE_SITNL || ENABLE_IPROUTE */
 
 #if defined(ENABLE_SITNL) || defined(ENABLE_IPROUTE)
+
+/**
+ * Networking implementation functions
+ */
+struct net_ops {
+    int (*ctx_init)(struct context *c, openvpn_net_ctx_t *ctx);
+    void (*ctx_reset)(openvpn_net_ctx_t *ctx);
+    void (*ctx_free)(openvpn_net_ctx_t *ctx);
+    int (*iface_up)(openvpn_net_ctx_t *ctx,
+                        const openvpn_net_iface_t *iface, bool up);
+    int (*iface_mtu_set)(openvpn_net_ctx_t *ctx,
+                        const openvpn_net_iface_t *iface, uint32_t mtu);
+    int (*addr_v4_add)(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                       const in_addr_t *addr, int prefixlen);
+    int (*addr_v6_add)(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                       const struct in6_addr *addr, int prefixlen);
+    int (*addr_v4_del)(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                       const in_addr_t *addr, int prefixlen);
+    int (*addr_v6_del)(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                       const struct in6_addr *addr, int prefixlen);
+    int (*addr_ptp_v4_add)(openvpn_net_ctx_t *ctx,
+                           const openvpn_net_iface_t *iface,
+                           const in_addr_t *local, const in_addr_t *remote);
+    int (*addr_ptp_v4_del)(openvpn_net_ctx_t *ctx,
+                           const openvpn_net_iface_t *iface,
+                           const in_addr_t *local, const in_addr_t *remote);
+    int (*route_v4_add)(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+                        int prefixlen, const in_addr_t *gw,
+                        const openvpn_net_iface_t *iface, uint32_t table,
+                        int metric);
+    int (*route_v6_add)(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                        int prefixlen, const struct in6_addr *gw,
+                        const openvpn_net_iface_t *iface, uint32_t table,
+                        int metric);
+    int (*route_v4_del)(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+                        int prefixlen, const in_addr_t *gw,
+                        const openvpn_net_iface_t *iface, uint32_t table,
+                        int metric);
+    int (*route_v6_del)(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                        int prefixlen, const struct in6_addr *gw,
+                        const openvpn_net_iface_t *iface, uint32_t table,
+                        int metric);
+    int (*route_v4_best_gw)(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+                            in_addr_t *best_gw,
+                            openvpn_net_iface_t *best_iface);
+    int (*route_v6_best_gw)(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
+                            struct in6_addr *best_gw,
+                            openvpn_net_iface_t *best_iface);
+};
+
+
+/**
+ * Initialize the networking backend
+ *
+ * @param backend   networking stack backend
+ */
+void
+net_init(enum net_backend backend);
 
 /**
  * Initialize the platform specific context object

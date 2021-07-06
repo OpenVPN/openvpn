@@ -22,7 +22,8 @@
 #ifndef NETWORKING_SITNL_H_
 #define NETWORKING_SITNL_H_
 
-typedef char openvpn_net_iface_t;
-typedef void *openvpn_net_ctx_t;
+typedef void *openvpn_net_sitnl_ctx_t;
+
+extern const struct net_ops net_sitnl_ops;
 
 #endif /* NETWORKING_SITNL_H_ */
