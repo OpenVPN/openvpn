@@ -60,11 +60,11 @@ while true; do
   [ -z "${fopt}" ] && break
 
   case ${fopt} in
-		dhcp-option\ DOMAIN\ *)
+        dhcp-option\ DOMAIN\ *|dhcp-option\ DOMAIN-SEARCH\ *)
            ndoms=$((ndoms + 1))
-           domains="${domains} ${fopt#dhcp-option DOMAIN }"
+           domains="${domains} ${fopt#dhcp-option DOMAIN* }"
            ;;
-		dhcp-option\ DNS\ *)
+        dhcp-option\ DNS\ *)
            nns=$((nns + 1))
            if [ $nns -le 3 ]; then
              dns="${dns}${dns:+$nl}nameserver ${fopt#dhcp-option DNS }"
@@ -75,7 +75,7 @@ while true; do
         *)
            printf "%s\n" "Unknown option \"${fopt}\" - ignored" >&2
            ;;
-	esac
+  esac
   i=$((i + 1))
 done
 
