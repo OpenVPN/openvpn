@@ -9,7 +9,7 @@ as published by the Free Software Foundation.
 
 To get the latest release of OpenVPN, go to:
 
-	https://openvpn.net/index.php/download/community-downloads.html
+	https://openvpn.net/community-downloads/
 
 To Build and Install,
 
@@ -24,10 +24,10 @@ or see the file INSTALL for more info.
 *************************************************************************
 
 For detailed information on OpenVPN, including examples, see the man page
-  http://openvpn.net/man.html
+  https://openvpn.net/community-resources/reference-manual-for-openvpn-2-0/
 
 For a sample VPN configuration, see
-  http://openvpn.net/howto.html
+  https://openvpn.net/community-resources/how-to/
 
 To report an issue, see
   https://community.openvpn.net/openvpn/report
@@ -56,15 +56,15 @@ Other Files & Directories:
 * sample/sample-config-files/
 
   A collection of OpenVPN config files and scripts from
-  the HOWTO at http://openvpn.net/howto.html
+  the HOWTO at https://openvpn.net/community-resources/how-to/
 
 *************************************************************************
 
-Note that easy-rsa and tap-windows are now maintained in their own subprojects.
+Note that easy-rsa and tap-windows6 are now maintained in their own subprojects.
 Their source code is available here:
 
   https://github.com/OpenVPN/easy-rsa
-  https://github.com/OpenVPN/tap-windows
+  https://github.com/OpenVPN/tap-windows6
 
 The old cross-compilation environment (domake-win) and the Python-based
 buildsystem have been replaced with openvpn-build:
