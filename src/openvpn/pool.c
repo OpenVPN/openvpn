@@ -180,12 +180,6 @@ ifconfig_pool_init(const bool ipv4_pool, enum pool_type type, in_addr_t start,
                 ASSERT(0);
         }
 
-        if (pool_ipv4_size < 2)
-        {
-            msg(M_FATAL, "IPv4 pool size is too small (%d), must be at least 2",
-                pool_ipv4_size);
-        }
-
         msg(D_IFCONFIG_POOL, "IFCONFIG POOL IPv4: base=%s size=%d",
             print_in_addr_t(pool->ipv4.base, 0, &gc), pool_ipv4_size);
 
