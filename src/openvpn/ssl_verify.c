@@ -1512,6 +1512,15 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
     if (session->opt->auth_token_generate && is_auth_token(up->password))
     {
         ks->auth_token_state_flags = verify_auth_token(up, multi, session);
+
+        /* If this is the first time we see an auth-token in this multi session,
+         * save it as initial auth token. This ensures using the
+         * same session ID and initial timestamp in new tokens */
+        if (!multi->auth_token_initial)
+        {
+            multi->auth_token_initial = strdup(up->password);
+        }
+
         if (session->opt->auth_token_call_auth)
         {
             /*
@@ -1631,27 +1640,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
              */
             generate_auth_token(up, multi);
         }
-        /*
-         * Auth token already sent to client, update auth-token on client.
-         * The initial auth-token is sent as part of the push message, for this
-         * update we need to schedule an extra push message.
-         *
-         * Otherwise the auth-token get pushed out as part of the "normal"
-         * push-reply
-         */
-        if (multi->auth_token_initial)
-        {
-            /*
-             * We do not explicitly schedule the sending of the
-             * control message here but control message are only
-             * postponed when the control channel  is not yet fully
-             * established and furthermore since this is called in
-             * the middle of authentication, there are other messages
-             * (new data channel keys) that are sent anyway and will
-             * trigger schedueling
-             */
-            send_push_reply_auth_token(multi);
-        }
+
         msg(D_HANDSHAKE, "TLS: Username/Password authentication %s for username '%s' %s",
             (ks->authenticated == KS_AUTH_DEFERRED) ? "deferred" : "succeeded",
             up->username,

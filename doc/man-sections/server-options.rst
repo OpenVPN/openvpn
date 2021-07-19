@@ -35,7 +35,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   token is reached or after not being renewed for more than 2 \*
   ``reneg-sec`` seconds. Clients will be sent renewed tokens on every TLS
   renogiation to keep the client's token updated. This is done to
-  invalidate a token if a client is disconnected for a sufficently long
+  invalidate a token if a client is disconnected for a sufficiently long
   time, while at the same time permitting much longer token lifetimes for
   active clients.
 
@@ -46,7 +46,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   When the :code:`external-auth` keyword is present the normal
   authentication method will always be called even if auth-token succeeds.
   Normally other authentications method are skipped if auth-token
-  verification suceeds or fails.
+  verification succeeds or fails.
 
   This option postpones this decision to the external authentication
   methods and checks the validity of the account and do other checks.

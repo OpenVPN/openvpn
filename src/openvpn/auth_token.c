@@ -21,6 +21,8 @@
 const char *auth_token_pem_name = "OpenVPN auth-token server key";
 
 #define AUTH_TOKEN_SESSION_ID_LEN 12
+#define AUTH_TOKEN_SESSION_ID_BASE64_LEN (AUTH_TOKEN_SESSION_ID_LEN * 8 / 6)
+
 #if AUTH_TOKEN_SESSION_ID_LEN % 3
 #error AUTH_TOKEN_SESSION_ID_LEN needs to be multiple a 3
 #endif
@@ -109,11 +111,11 @@ add_session_token_env(struct tls_session *session, struct tls_multi *multi,
         /*
          * No session before, generate a new session token for the new session
          */
-        if (!multi->auth_token)
+        if (!multi->auth_token_initial)
         {
             generate_auth_token(up, multi);
         }
-        session_id_source = multi->auth_token;
+        session_id_source = multi->auth_token_initial;
     }
     /*
      * In the auth-token the auth token is already base64 encoded
@@ -184,7 +186,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
 
     uint8_t sessid[AUTH_TOKEN_SESSION_ID_LEN];
 
-    if (multi->auth_token)
+    if (multi->auth_token_initial)
     {
         /* Just enough space to fit 8 bytes+ 1 extra to decode a non padded
          * base64 string (multiple of 3 bytes). 9 bytes => 12 bytes base64
@@ -192,13 +194,16 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
          */
         char old_tstamp_decode[9];
 
-        /*
-         * reuse the same session id and timestamp and null terminate it at
-         * for base64 decode it only decodes the session id part of it
-         */
-        char *old_sessid = multi->auth_token + strlen(SESSION_ID_PREFIX);
+        /* Make a copy of the string to not modify multi->auth_token_initial */
+        char *initial_token_copy = string_alloc(multi->auth_token_initial, &gc);
+
+        char *old_sessid = initial_token_copy + strlen(SESSION_ID_PREFIX);
         char *old_tsamp_initial = old_sessid + AUTH_TOKEN_SESSION_ID_LEN*8/6;
 
+        /*
+         * We null terminate the old token just after the session ID to let
+         * our base64 decode function only decode the session ID
+         */
         old_tsamp_initial[12] = '\0';
         ASSERT(openvpn_base64_decode(old_tsamp_initial, old_tstamp_decode, 9) == 9);
 
@@ -211,11 +216,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
         initial_timestamp = *tstamp_ptr;
 
         old_tsamp_initial[0] = '\0';
-        ASSERT(openvpn_base64_decode(old_sessid, sessid, AUTH_TOKEN_SESSION_ID_LEN)==AUTH_TOKEN_SESSION_ID_LEN);
-
-
-        /* free the auth-token, we will replace it with a new one */
-        free(multi->auth_token);
+        ASSERT(openvpn_base64_decode(old_sessid, sessid, AUTH_TOKEN_SESSION_ID_LEN) == AUTH_TOKEN_SESSION_ID_LEN);
     }
     else if (!rand_bytes(sessid, AUTH_TOKEN_SESSION_ID_LEN))
     {
@@ -272,10 +273,21 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
 
     free(b64output);
 
+    /* free the auth-token if defined, we will replace it with a new one */
+    free(multi->auth_token);
     multi->auth_token = strdup((char *)BPTR(&session_token));
 
     dmsg(D_SHOW_KEYS, "Generated token for client: %s (%s)",
          multi->auth_token, up->username);
+
+    if (!multi->auth_token_initial)
+    {
+        /*
+         * Save the initial auth token to continue using the same session ID
+         * and timestamp in updates
+         */
+        multi->auth_token_initial = strdup(multi->auth_token);
+    }
 
     gc_free(&gc);
 }
@@ -343,23 +355,17 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
     }
     else
     {
-        msg(M_WARN, "--auth-token-gen: HMAC on token from client failed (%s)",
+        msg(M_WARN, "--auth-gen-token: HMAC on token from client failed (%s)",
             up->username);
         return 0;
     }
 
     /* Accept session tokens that not expired are in the acceptable range
      * for renogiations */
-    bool in_renog_time = now >= timestamp
-                         && now < timestamp + 2 * session->opt->renegotiate_seconds;
+    bool in_renegotiation_time = now >= timestamp
+                                 && now < timestamp + 2 * session->opt->renegotiate_seconds;
 
-    /* We could still have a client that does not update
-     * its auth-token, so also allow the initial auth-token */
-    bool initialtoken = multi->auth_token_initial
-                        && memcmp_constant_time(up->password, multi->auth_token_initial,
-                                                strlen(multi->auth_token_initial)) == 0;
-
-    if (!in_renog_time && !initialtoken)
+    if (!in_renegotiation_time)
     {
         ret |= AUTH_TOKEN_EXPIRED;
     }
@@ -383,7 +389,20 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
     {
         /* Tell client that the session token is expired */
         auth_set_client_reason(multi, "SESSION: token expired");
-        msg(M_INFO, "--auth-token-gen: auth-token from client expired");
+        msg(M_INFO, "--auth-gen-token: auth-token from client expired");
+    }
+
+    /* Check that we do have the same session ID in the token as in our stored
+     * auth-token to ensure that it did not change.
+     * This also compares the prefix and session part of the
+     * tokens, which should be identical if the session ID stayed the same */
+    if (multi->auth_token_initial
+        && memcmp_constant_time(multi->auth_token_initial, up->password,
+                                strlen(SESSION_ID_PREFIX) + AUTH_TOKEN_SESSION_ID_BASE64_LEN))
+    {
+        msg(M_WARN, "--auth-gen-token: session id in token changed (Rejecting "
+                    "token.");
+        ret = 0;
     }
     return ret;
 }
@@ -406,5 +425,29 @@ wipe_auth_token(struct tls_multi *multi)
         }
         multi->auth_token = NULL;
         multi->auth_token_initial = NULL;
+    }
+}
+
+void
+resend_auth_token_renegotiation(struct tls_multi *multi, struct tls_session *session)
+{
+    /*
+     * Auth token already sent to client, update auth-token on client.
+     * The initial auth-token is sent as part of the push message, for this
+     * update we need to schedule an extra push message.
+     *
+     * Otherwise the auth-token get pushed out as part of the "normal"
+     * push-reply
+     */
+    bool is_renegotiation = session->key[KS_PRIMARY].key_id != 0;
+
+    if (multi->auth_token_initial && is_renegotiation)
+    {
+        /*
+         * We do not explicitly reschedule the sending of the
+         * control message here. This might delay this reply
+         * a few seconds but this message is not time critical
+         */
+        send_push_reply_auth_token(multi);
     }
 }

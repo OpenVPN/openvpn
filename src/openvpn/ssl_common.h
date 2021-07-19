@@ -95,7 +95,10 @@
                                  *   completed while still within the
                                  *   handshake window.  Deferred auth and
                                  *   client connect can still be pending. */
-#define S_GENERATED_KEYS  7     /**< The data channel keys have been generated */
+#define S_GENERATED_KEYS  7     /**< The data channel keys have been generated
+                                  *  The TLS session is fully authenticated
+                                  *  when reaching this state. */
+
 /* Note that earlier versions also had a S_OP_NORMAL state that was
  * virtually identical with S_ACTIVE and the code still assumes everything
  * >= S_ACTIVE to be fully operational */
@@ -596,8 +599,8 @@ struct tls_multi
                           *   user/pass authentications in this session.
                           */
     char *auth_token_initial;
-    /**< The first auth-token we sent to a client, for clients that do
-     * not update their auth-token (older OpenVPN3 core versions)
+    /**< The first auth-token we sent to a client. We use this to remember
+     * the session ID and initial timestamp when generating new auth-token.
      */
 #define  AUTH_TOKEN_HMAC_OK              (1<<0)
     /**< Auth-token sent from client has valid hmac */

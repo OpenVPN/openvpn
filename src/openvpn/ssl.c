@@ -3115,13 +3115,18 @@ tls_multi_process(struct tls_multi *multi,
 
             if (ks->state == S_ACTIVE && ks->authenticated == KS_AUTH_TRUE)
             {
-                /* This will move ks->state from S_ACTIVE to S_GENERATED_KEYS */
+                /* Session is now fully authenticated.
+                 * tls_session_generate_data_channel_keys will move ks->state
+                 * from S_ACTIVE to S_GENERATED_KEYS */
                 if (!tls_session_generate_data_channel_keys(session))
                 {
                     msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
                     ks->authenticated = KS_AUTH_FALSE;
                     ks->state = S_ERROR;
                 }
+
+                /* Update auth token on the client if needed */
+                resend_auth_token_renegotiation(multi, session);
             }
         }
     }

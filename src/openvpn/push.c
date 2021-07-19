@@ -527,14 +527,6 @@ prepare_auth_token_push_reply(struct tls_multi *tls_multi, struct gc_arena *gc,
         push_option_fmt(gc, push_list, M_USAGE,
                         "auth-token %s",
                         tls_multi->auth_token);
-        if (!tls_multi->auth_token_initial)
-        {
-            /*
-             * Save the initial auth token for clients that ignore
-             * the updates to the token
-             */
-            tls_multi->auth_token_initial = strdup(tls_multi->auth_token);
-        }
     }
 }
 

@@ -174,7 +174,10 @@ auth_token_test_timeout(void **state)
 
     now = 100000;
     generate_auth_token(&ctx->up, &ctx->multi);
+
     strcpy(ctx->up.password, ctx->multi.auth_token);
+    free(ctx->multi.auth_token_initial);
+    ctx->multi.auth_token_initial = NULL;
 
     /* No time has passed */
     assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
@@ -194,11 +197,6 @@ auth_token_test_timeout(void **state)
     now = 100000 + 2*ctx->session->opt->renegotiate_seconds + 20;
     assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED);
-
-    /* Check if the mode for a client that never updates its token works */
-    ctx->multi.auth_token_initial = strdup(ctx->up.password);
-    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
-                     AUTH_TOKEN_HMAC_OK);
 
     /* But not when we reached our timeout */
     now = 100000 + ctx->session->opt->auth_token_lifetime + 1;
@@ -244,10 +242,10 @@ auth_token_test_known_keys(void **state)
 
     now = 0;
     /* Preload the session id so the same session id is used here */
-    ctx->multi.auth_token = strdup(now0key0);
+    ctx->multi.auth_token_initial = strdup(now0key0);
 
     /* Zero the hmac part to ensure we have a newly generated token */
-    zerohmac(ctx->multi.auth_token);
+    zerohmac(ctx->multi.auth_token_initial);
 
     generate_auth_token(&ctx->up, &ctx->multi);
 
@@ -266,6 +264,38 @@ setenv_str(struct env_set *es, const char *name, const char *value)
     {
         lastsesion_statevalue = value;
     }
+}
+
+void
+auth_token_test_session_mismatch(void **state)
+{
+    struct test_context *ctx = (struct test_context *) *state;
+
+    /* Generate first auth token and check it is correct */
+    generate_auth_token(&ctx->up, &ctx->multi);
+    strcpy(ctx->up.password, ctx->multi.auth_token);
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
+                     AUTH_TOKEN_HMAC_OK);
+
+    char *token_sessiona = strdup(ctx->multi.auth_token);
+
+    /* Generate second token */
+    wipe_auth_token(&ctx->multi);
+
+    generate_auth_token(&ctx->up, &ctx->multi);
+    strcpy(ctx->up.password, ctx->multi.auth_token);
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
+                     AUTH_TOKEN_HMAC_OK);
+
+    assert_int_not_equal(0, memcmp(ctx->multi.auth_token_initial + strlen(SESSION_ID_PREFIX),
+                                   token_sessiona + strlen(SESSION_ID_PREFIX),
+                                   AUTH_TOKEN_SESSION_ID_BASE64_LEN));
+
+    /* The first token is valid but should trigger the invalid response since
+     * the session id is not the same */
+    strcpy(ctx->up.password, token_sessiona);
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session), 0);
+    free(token_sessiona);
 }
 
 static void
@@ -341,13 +371,13 @@ auth_token_test_random_keys(void **state)
 
     now = 0x5c331e9c;
     /* Preload the session id so the same session id is used here */
-    ctx->multi.auth_token = strdup(random_token);
+    ctx->multi.auth_token_initial = strdup(random_token);
 
     free_key_ctx(&ctx->multi.opt.auth_token_key);
     auth_token_init_secret(&ctx->multi.opt.auth_token_key, random_key, true);
 
     /* Zero the hmac part to ensure we have a newly generated token */
-    zerohmac(ctx->multi.auth_token);
+    zerohmac(ctx->multi.auth_token_initial);
 
     generate_auth_token(&ctx->up, &ctx->multi);
 
@@ -385,6 +415,7 @@ main(void)
         cmocka_unit_test_setup_teardown(auth_token_test_random_keys, setup, teardown),
         cmocka_unit_test_setup_teardown(auth_token_test_key_load, setup, teardown),
         cmocka_unit_test_setup_teardown(auth_token_test_timeout, setup, teardown),
+        cmocka_unit_test_setup_teardown(auth_token_test_session_mismatch, setup, teardown)
     };
 
 #if defined(ENABLE_CRYPTO_OPENSSL)
