@@ -31,6 +31,7 @@ dist_noinst_DATA = \
 	man-sections/client-options.rst \
 	man-sections/connection-profiles.rst \
 	man-sections/encryption-options.rst \
+	man-sections/example-fingerprint.rst \
 	man-sections/examples.rst \
 	man-sections/generic-options.rst \
 	man-sections/inline-files.rst \

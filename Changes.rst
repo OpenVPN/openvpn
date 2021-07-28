@@ -25,6 +25,10 @@ Certificate pinning/verify peer fingerprint
     fingerprint of the peer. The option takes use a number of allowed
     SHA256 certificate fingerprints.
 
+    See the man page section "Small OpenVPN setup with peer-fingerprint"
+    for a tutorial on how to use this feature. This is also available online
+    under https://github.com/openvpn/openvpn/blob/master/doc/man-sections/example-fingerprint.rst
+
 TLS mode with self-signed certificates
     When ``--peer-fingerprint`` is used, the ``--ca`` and ``--capath`` option
     become optional. This allows for small OpenVPN setups without setting up

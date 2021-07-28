@@ -14,4 +14,5 @@ INTRODUCTION
 
 This man page gives a few simple examples to create OpenVPN setups and configuration files.
 
+.. include:: man-sections/example-fingerprint.rst
 .. include:: man-sections/examples.rst
