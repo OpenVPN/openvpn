@@ -3081,16 +3081,16 @@ options_postprocess_cipher(struct options *o)
 {
     if (!o->pull && !(o->mode == MODE_SERVER))
     {
-        /* we are in the classic P2P mode */
-        msg( M_WARN, "Cipher negotiation is disabled since neither "
-             "P2MP client nor server mode is enabled");
-
         /* If the cipher is not set, use the old default of BF-CBC. We will
          * warn that this is deprecated on cipher initialisation, no need
          * to warn here as well */
         if (!o->ciphername)
         {
             o->ciphername = "BF-CBC";
+        }
+        else
+        {
+            o->enable_ncp_fallback = true;
         }
         return;
     }

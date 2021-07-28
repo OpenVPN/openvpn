@@ -119,6 +119,11 @@
 /** Supports signaling keywords with AUTH_PENDING, e.g. timeout=xy */
 #define IV_PROTO_AUTH_PENDING_KW (1<<4)
 
+/** Support doing NCP in P2P mode. This mode works by both peers looking at
+ * each other's IV_ variables and deterministically deciding both on the same
+ * result. */
+#define IV_PROTO_NCP_P2P         (1<<5)
+
 /* Default field in X509 to be username */
 #define X509_USERNAME_FIELD_DEFAULT "CN"
 

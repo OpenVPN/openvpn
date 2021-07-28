@@ -68,6 +68,7 @@ static const char *saved_pid_file_name; /* GLOBAL */
 #define CF_INIT_TLS_AUTH_STANDALONE (1<<2)
 
 static void do_init_first_time(struct context *c);
+static bool do_deferred_p2p_ncp(struct context *c);
 
 void
 context_clear(struct context *c)
@@ -2151,6 +2152,14 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
                 return false;
             }
         }
+        else if (c->mode == MODE_POINT_TO_POINT)
+        {
+            if (!do_deferred_p2p_ncp(c))
+            {
+                msg(D_TLS_ERRORS, "ERROR: Failed to apply P2P negotiated protocol options");
+                return false;
+            }
+        }
 
         /* if --up-delay specified, open tun, do ifconfig, and run up script now */
         if (c->options.up_delay || PULL_DEFINED(&c->options))
@@ -2241,6 +2250,71 @@ pull_permission_mask(const struct context *c)
     return flags;
 }
 
+static
+void adjust_mtu_peerid(struct context *c)
+{
+    frame_add_to_extra_frame(&c->c2.frame, 3);     /* peer-id overhead */
+    if (!c->options.ce.link_mtu_defined)
+    {
+        frame_add_to_link_mtu(&c->c2.frame, 3);
+        msg(D_PUSH, "OPTIONS IMPORT: adjusting link_mtu to %d",
+            EXPANDED_SIZE(&c->c2.frame));
+    }
+    else
+    {
+        msg(M_WARN, "OPTIONS IMPORT: WARNING: peer-id set, but link-mtu"
+                    " fixed by config - reducing tun-mtu to %d, expect"
+                    " MTU problems", TUN_MTU_SIZE(&c->c2.frame));
+    }
+}
+
+static bool
+do_deferred_p2p_ncp(struct context *c)
+{
+    if (!c->c2.tls_multi)
+    {
+        return true;
+    }
+
+    if (c->c2.tls_multi->use_peer_id)
+    {
+        adjust_mtu_peerid(c);
+    }
+
+    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
+
+    const char *ncp_cipher = get_p2p_ncp_cipher(session, c->c2.tls_multi->peer_info,
+                                                &c->options.gc);
+
+    if (ncp_cipher)
+    {
+        c->options.ciphername = ncp_cipher;
+    }
+    else if (!c->options.enable_ncp_fallback)
+    {
+        msg(D_TLS_ERRORS, "ERROR: failed to negotiate cipher with peer and "
+                          "--data-ciphers-fallback not enabled. No usable "
+                          "data channel cipher");
+        return false;
+    }
+
+    struct frame *frame_fragment = NULL;
+#ifdef ENABLE_FRAGMENT
+    if (c->options.ce.fragment)
+    {
+        frame_fragment = &c->c2.frame_fragment;
+    }
+#endif
+
+    if (!tls_session_update_crypto_params(session, &c->options, &c->c2.frame,
+                                         frame_fragment))
+    {
+        msg(D_TLS_ERRORS, "ERROR: failed to set crypto cipher");
+        return false;
+    }
+    return true;
+}
+
 /*
  * Handle non-tun-related pulled options.
  */
@@ -2328,19 +2402,7 @@ do_deferred_options(struct context *c, const unsigned int found)
         msg(D_PUSH, "OPTIONS IMPORT: peer-id set");
         c->c2.tls_multi->use_peer_id = true;
         c->c2.tls_multi->peer_id = c->options.peer_id;
-        frame_add_to_extra_frame(&c->c2.frame, +3);     /* peer-id overhead */
-        if (!c->options.ce.link_mtu_defined)
-        {
-            frame_add_to_link_mtu(&c->c2.frame, +3);
-            msg(D_PUSH, "OPTIONS IMPORT: adjusting link_mtu to %d",
-                EXPANDED_SIZE(&c->c2.frame));
-        }
-        else
-        {
-            msg(M_WARN, "OPTIONS IMPORT: WARNING: peer-id set, but link-mtu"
-                " fixed by config - reducing tun-mtu to %d, expect"
-                " MTU problems", TUN_MTU_SIZE(&c->c2.frame) );
-        }
+        adjust_mtu_peerid(c);
     }
 
     /* process (potentially pushed) crypto options */
@@ -2860,16 +2922,21 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.pull = options->pull;
     if (options->push_peer_info)        /* all there is */
     {
-        to.push_peer_info_detail = 2;
+        to.push_peer_info_detail = 3;
     }
     else if (options->pull)             /* pull clients send some details */
     {
-        to.push_peer_info_detail = 1;
+        to.push_peer_info_detail = 2;
     }
-    else                                /* default: no peer-info at all */
+    else if (options->mode == MODE_SERVER) /* server: no peer info at all */
     {
         to.push_peer_info_detail = 0;
     }
+    else                  /* default: minimal info to allow NCP in P2P mode */
+    {
+        to.push_peer_info_detail = 1;
+    }
+
 
     /* should we not xmit any packets until we get an initial
      * response from client? */

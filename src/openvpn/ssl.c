@@ -1875,32 +1875,16 @@ cleanup:
 }
 
 bool
-tls_session_update_crypto_params(struct tls_session *session,
-                                 struct options *options, struct frame *frame,
+tls_session_update_crypto_params_do_work(struct tls_session *session,
+                                 struct options* options, struct frame *frame,
                                  struct frame *frame_fragment)
 {
     if (session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized)
     {
         /* keys already generated, nothing to do */
         return true;
+
     }
-
-    bool cipher_allowed_as_fallback = options->enable_ncp_fallback
-                                      && streq(options->ciphername, session->opt->config_ciphername);
-
-    if (!session->opt->server && !cipher_allowed_as_fallback
-        && !tls_item_in_cipher_list(options->ciphername, options->ncp_ciphers))
-    {
-        msg(D_TLS_ERRORS, "Error: pushed cipher not allowed - %s not in %s",
-            options->ciphername, options->ncp_ciphers);
-        /* undo cipher push, abort connection setup */
-        options->ciphername = session->opt->config_ciphername;
-        return false;
-    }
-
-    /* Import crypto settings that might be set by pull/push */
-    session->opt->crypto_flags |= options->data_channel_crypto_flags;
-
     if (strcmp(options->ciphername, session->opt->config_ciphername))
     {
         msg(D_HANDSHAKE, "Data Channel: using negotiated cipher '%s'",
@@ -1951,6 +1935,32 @@ tls_session_update_crypto_params(struct tls_session *session,
 
     return tls_session_generate_data_channel_keys(session);
 }
+
+bool
+tls_session_update_crypto_params(struct tls_session *session,
+                                 struct options *options, struct frame *frame,
+                                 struct frame *frame_fragment)
+{
+
+    bool cipher_allowed_as_fallback = options->enable_ncp_fallback
+        && streq(options->ciphername, session->opt->config_ciphername);
+
+    if (!session->opt->server && !cipher_allowed_as_fallback
+        && !tls_item_in_cipher_list(options->ciphername, options->ncp_ciphers))
+    {
+        msg(D_TLS_ERRORS, "Error: negotiated cipher not allowed - %s not in %s",
+            options->ciphername, options->ncp_ciphers);
+        /* undo cipher push, abort connection setup */
+        options->ciphername = session->opt->config_ciphername;
+        return false;
+    }
+
+    /* Import crypto settings that might be set by pull/push */
+    session->opt->crypto_flags |= options->data_channel_crypto_flags;
+
+    return tls_session_update_crypto_params_do_work(session, options, frame, frame_fragment);
+}
+
 
 static bool
 random_bytes_to_buf(struct buffer *buf,
@@ -2140,17 +2150,30 @@ read_string_alloc(struct buffer *buf)
     return str;
 }
 
+/**
+ * Prepares the IV_ and UV_ variables that are part of the
+ * exchange to signal the peer's capabilities. The amount
+ * of variables is determined by session->opt->push_peer_info_detail
+ *
+ *     0     nothing. Used on a TLS P2MP server side to send no information
+ *           to the client
+ *     1     minimal info needed for NCP in P2P mode
+ *     2     when --pull is enabled, the "default" set of variables
+ *     3     all information including MAC address and library versions
+ *
+ * @param buf       the buffer to write these variables to
+ * @param session   the TLS session object
+ * @return          true if no error was encountered
+ */
 static bool
 push_peer_info(struct buffer *buf, struct tls_session *session)
 {
     struct gc_arena gc = gc_new();
     bool ret = false;
+    struct buffer out = alloc_buf_gc(512 * 3, &gc);
 
-    if (session->opt->push_peer_info_detail > 0)
+    if (session->opt->push_peer_info_detail > 1)
     {
-        struct env_set *es = session->opt->es;
-        struct buffer out = alloc_buf_gc(512*3, &gc);
-
         /* push version */
         buf_printf(&out, "IV_VER=%s\n", PACKAGE_VERSION);
 
@@ -2172,7 +2195,11 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 #elif defined(_WIN32)
         buf_printf(&out, "IV_PLAT=win\n");
 #endif
+    }
 
+    /* These are the IV variable that are sent to peers in p2p mode */
+    if (session->opt->push_peer_info_detail > 0)
+    {
         /* support for P_DATA_V2 */
         int iv_proto = IV_PROTO_DATA_V2;
 
@@ -2195,21 +2222,30 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 
                 buf_printf(&out, "IV_NCP=2\n");
             }
-            buf_printf(&out, "IV_CIPHERS=%s\n", session->opt->config_ncp_ciphers);
+        }
+        else
+        {
+            /* We are not using pull or p2mp server, instead do P2P NCP */
+            iv_proto |= IV_PROTO_NCP_P2P;
+        }
+
+        buf_printf(&out, "IV_CIPHERS=%s\n", session->opt->config_ncp_ciphers);
 
 #ifdef HAVE_EXPORT_KEYING_MATERIAL
-            iv_proto |= IV_PROTO_TLS_KEY_EXPORT;
+        iv_proto |= IV_PROTO_TLS_KEY_EXPORT;
 #endif
-        }
 
         buf_printf(&out, "IV_PROTO=%d\n", iv_proto);
 
-        /* push compression status */
+        if (session->opt->push_peer_info_detail > 1)
+        {
+            /* push compression status */
 #ifdef USE_COMP
-        comp_generate_peer_info_string(&session->opt->comp_options, &out);
+            comp_generate_peer_info_string(&session->opt->comp_options, &out);
 #endif
+        }
 
-        if (session->opt->push_peer_info_detail >= 2)
+        if (session->opt->push_peer_info_detail > 2)
         {
             /* push mac addr */
             struct route_gateway_info rgi;
@@ -2224,20 +2260,24 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 #endif
         }
 
-        /* push env vars that begin with UV_, IV_PLAT_VER and IV_GUI_VER */
-        for (struct env_item *e = es->list; e != NULL; e = e->next)
+        if (session->opt->push_peer_info_detail > 1)
         {
-            if (e->string)
+            struct env_set *es = session->opt->es;
+            /* push env vars that begin with UV_, IV_PLAT_VER and IV_GUI_VER */
+            for (struct env_item *e = es->list; e != NULL; e = e->next)
             {
-                if ((((strncmp(e->string, "UV_", 3)==0
-                       || strncmp(e->string, "IV_PLAT_VER=", sizeof("IV_PLAT_VER=")-1)==0)
-                      && session->opt->push_peer_info_detail >= 2)
-                     || (strncmp(e->string,"IV_GUI_VER=",sizeof("IV_GUI_VER=")-1)==0)
-                     || (strncmp(e->string,"IV_SSO=",sizeof("IV_SSO=")-1)==0)
-                     )
-                    && buf_safe(&out, strlen(e->string)+1))
+                if (e->string)
                 {
-                    buf_printf(&out, "%s\n", e->string);
+                    if ((((strncmp(e->string, "UV_", 3) == 0
+                        || strncmp(e->string, "IV_PLAT_VER=", sizeof("IV_PLAT_VER=") - 1) == 0)
+                        && session->opt->push_peer_info_detail >= 2)
+                        || (strncmp(e->string, "IV_GUI_VER=", sizeof("IV_GUI_VER=") - 1) == 0)
+                        || (strncmp(e->string, "IV_SSO=", sizeof("IV_SSO=") - 1) == 0)
+                    )
+                        && buf_safe(&out, strlen(e->string) + 1))
+                    {
+                        buf_printf(&out, "%s\n", e->string);
+                    }
                 }
             }
         }
@@ -2378,6 +2418,14 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
     if (!push_peer_info(buf, session))
     {
         goto error;
+    }
+
+    if (session->opt->server && session->opt->mode != MODE_SERVER
+        && ks->key_id == 0)
+    {
+        /* tls-server option set and not P2MP server, so we
+         * are a P2P client running in tls-server mode */
+        p2p_mode_ncp(multi, session);
     }
 
     return true;
@@ -2578,6 +2626,13 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
         }
 
         setenv_del(session->opt->es, "exported_keying_material");
+    }
+
+    if (!session->opt->server && !session->opt->pull && ks->key_id == 0)
+    {
+        /* We are a p2p tls-client without pull, enable common
+         * protocol options */
+        p2p_mode_ncp(multi, session);
     }
 
     gc_free(&gc);

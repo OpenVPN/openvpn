@@ -324,3 +324,146 @@ check_pull_client_ncp(struct context *c, const int found)
         return false;
     }
 }
+
+const char*
+get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info,
+                   struct gc_arena *gc)
+{
+    /* we use a local gc arena to keep the temporary strings needed by strsep */
+    struct gc_arena gc_local = gc_new();
+    const char *peer_ciphers = extract_var_peer_info(peer_info, "IV_CIPHERS=", &gc_local);
+
+    if (!peer_ciphers)
+    {
+        gc_free(&gc_local);
+        return NULL;
+    }
+
+    const char* server_ciphers;
+    const char* client_ciphers;
+
+    if (session->opt->server)
+    {
+        server_ciphers = session->opt->config_ncp_ciphers;
+        client_ciphers = peer_ciphers;
+    }
+    else
+    {
+        client_ciphers = session->opt->config_ncp_ciphers;
+        server_ciphers = peer_ciphers;
+    }
+
+    /* Find the first common cipher from TLS server and TLS client. We
+     * use the preference of the server here to make it deterministic */
+    char *tmp_ciphers = string_alloc(server_ciphers, &gc_local);
+
+    const char *token;
+    while ((token = strsep(&tmp_ciphers, ":")))
+    {
+        if (tls_item_in_cipher_list(token, client_ciphers))
+        {
+            break;
+        }
+    }
+
+    const char *ret = NULL;
+    if (token != NULL)
+    {
+        ret = string_alloc(token, gc);
+    }
+    gc_free(&gc_local);
+
+    return ret;
+}
+
+static void
+p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session)
+{
+    /* will return 0 if peer_info is null */
+    const unsigned int iv_proto_peer = extract_iv_proto(multi->peer_info);
+
+    /* The other peer does not support P2P NCP */
+    if (!(iv_proto_peer & IV_PROTO_NCP_P2P))
+    {
+        return;
+    }
+
+    if (iv_proto_peer & IV_PROTO_DATA_V2)
+    {
+        multi->use_peer_id = true;
+        multi->peer_id = 0x76706e; // 'v' 'p' 'n'
+    }
+
+#if defined(HAVE_EXPORT_KEYING_MATERIAL)
+    if (iv_proto_peer & IV_PROTO_TLS_KEY_EXPORT)
+    {
+        session->opt->crypto_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
+
+        if (multi->use_peer_id)
+        {
+            /* Using a non hardcoded peer-id makes a tiny bit harder to
+             * fingerprint packets and also gives each connection a unique
+             * peer-id that can be useful for NAT tracking etc. */
+
+            uint8_t peerid[3];
+            if (!key_state_export_keying_material(session, EXPORT_P2P_PEERID_LABEL,
+                                                  strlen(EXPORT_P2P_PEERID_LABEL),
+                                                  &peerid, 3))
+            {
+                /* Non DCO setup might still work but also this should never
+                 * happen or very likely the TLS encryption key exporter will
+                 * also fail */
+                msg(M_NONFATAL, "TLS key export for P2P peer id failed. "
+                                "Continuing anyway, expect problems");
+            }
+            else
+            {
+                multi->peer_id = (peerid[0] << 16) + (peerid[1] << 8) + peerid[2];
+            }
+
+        }
+    }
+#endif
+}
+
+void
+p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session)
+{
+    /* Set the common options */
+    p2p_ncp_set_options(multi, session);
+
+    struct gc_arena gc = gc_new();
+
+    /* Query the common cipher here to log it as part of our message.
+     * We postpone switching the cipher to do_up */
+    const char* common_cipher = get_p2p_ncp_cipher(session, multi->peer_info, &gc);
+
+    if (!common_cipher)
+    {
+        struct buffer out = alloc_buf_gc(128, &gc);
+        struct key_state *ks = get_key_scan(multi, KS_PRIMARY);
+
+        const cipher_ctx_t *ctx = ks->crypto_options.key_ctx_bi.encrypt.cipher;
+        const cipher_kt_t *cipher = cipher_ctx_get_cipher_kt(ctx);
+        const char *fallback_name = cipher_kt_name(cipher);
+
+        if (!cipher)
+        {
+            /* at this point we do not really know if our fallback is
+             * not enabled or if we use 'none' cipher as fallback, so
+             * keep this ambiguity here and print fallback-cipher: none
+             */
+            fallback_name = "none";
+        }
+
+        buf_printf(&out, "(not negotiated, fallback-cipher: %s)", fallback_name);
+        common_cipher = BSTR(&out);
+    }
+
+    msg(D_TLS_DEBUG_LOW, "P2P mode NCP negotiation result: "
+                         "TLS_export=%d, DATA_v2=%d, peer-id %d, cipher=%s",
+        (bool)(session->opt->crypto_flags & CO_USE_TLS_KEY_MATERIAL_EXPORT),
+        multi->use_peer_id, multi->peer_id, common_cipher);
+
+    gc_free(&gc);
+}

@@ -32,6 +32,7 @@
 
 #include "buffer.h"
 #include "options.h"
+#include "ssl_common.h"
 
 /**
  * Returns whether the client supports NCP either by
@@ -114,5 +115,29 @@ bool tls_item_in_cipher_list(const char *item, const char *list);
  * about its length.
  */
 #define MAX_NCP_CIPHERS_LENGTH 127
+
+/**
+ * Determines if there is common cipher of both peer by looking at the
+ * IV_CIPHER peer info. In contrast of the server mode NCP that tries to
+ * accomandate all kind of corner cases in P2P mode NCP only takes IV_CIPHER
+ * into account and falls back to previous behaviour if this fails.
+ */
+void p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session);
+
+/**
+ * Determines the best common cipher from both peers IV_CIPHER lists. The
+ * first cipher from the tls-server that is also in the tls-client IV_CIPHER
+ * list will be returned. If no common cipher can be found, both peer
+ * will continue to use whatever cipher is their default and NULL will be
+ * returned.
+ *
+ * @param session       tls_session
+ * @param peer_info     peer info of the peer
+ * @param gc            gc arena that will be used to allocate the returned cipher
+ * @return              common cipher if one exist.
+ */
+const char *
+get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info,
+                   struct gc_arena *gc);
 
 #endif /* ifndef OPENVPN_SSL_NCP_H */

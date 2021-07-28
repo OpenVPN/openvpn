@@ -44,6 +44,17 @@
 const char *bf_chacha = "BF-CBC:CHACHA20-POLY1305";
 const char *aes_ciphers = "AES-256-GCM:AES-128-GCM";
 
+
+/* Define this function here as dummy since including the ssl_*.c files
+ * leads to having to include even more unrelated code */
+bool
+key_state_export_keying_material(struct tls_session *session,
+                                 const char* label, size_t label_size,
+                                 void *ekm, size_t ekm_size)
+{
+    ASSERT(0);
+}
+
 static void
 test_check_ncp_ciphers_list(void **state)
 {

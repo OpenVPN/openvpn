@@ -289,6 +289,16 @@ struct tls_options
     bool disable_occ;
     int mode;
     bool pull;
+    /**
+     * The detail of info we push in peer info
+     *
+     * 0 - nothing at all, P2MP server only
+     * 1 - only the most basic information to negotiate cipher and features
+     *     for P2P NCP
+     * 2 - normal setting for clients
+     * 3 - full information including "sensitive data" like IV_HWADDR
+     *     enabled by --push-peer-info
+     */
     int push_peer_info_detail;
     int transition_window;
     int handshake_window;
