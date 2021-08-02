@@ -1570,32 +1570,23 @@ add_route(struct route_ipv4 *r,
           const struct env_set *es,
           openvpn_net_ctx_t *ctx)
 {
-    struct gc_arena gc;
-    struct argv argv = argv_new();
-#if !defined(TARGET_LINUX)
-    const char *network;
-#if !defined(TARGET_AIX)
-    const char *netmask;
-#endif
-    const char *gateway;
-#endif
     bool status = false;
     int is_local_route;
 
     if (!(r->flags & RT_DEFINED))
     {
-        argv_free(&argv);
         return;
     }
 
-    gc_init(&gc);
+    struct argv argv = argv_new();
+    struct gc_arena gc = gc_new();
 
 #if !defined(TARGET_LINUX)
-    network = print_in_addr_t(r->network, 0, &gc);
+    const char *network = print_in_addr_t(r->network, 0, &gc);
 #if !defined(TARGET_AIX)
-    netmask = print_in_addr_t(r->netmask, 0, &gc);
+    const char *netmask = print_in_addr_t(r->netmask, 0, &gc);
 #endif
-    gateway = print_in_addr_t(r->gateway, 0, &gc);
+    const char *gateway = print_in_addr_t(r->gateway, 0, &gc);
 #endif
 
     is_local_route = local_route(r->network, r->netmask, r->gateway, rgi);
@@ -1878,23 +1869,17 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
                unsigned int flags, const struct env_set *es,
                openvpn_net_ctx_t *ctx)
 {
-    struct gc_arena gc;
-    struct argv argv = argv_new();
-
-    const char *network;
-    const char *gateway;
     bool status = false;
     const char *device = tt->actual_name;
-#if defined(TARGET_LINUX)
-    int metric;
-#endif
     bool gateway_needed = false;
 
     if (!(r6->flags & RT_DEFINED) )
     {
-        argv_free(&argv);
         return;
     }
+
+    struct argv argv = argv_new();
+    struct gc_arena gc = gc_new();
 
 #ifndef _WIN32
     if (r6->iface != NULL)              /* vpn server special route */
@@ -1907,12 +1892,9 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
     }
 #endif
 
-    gc_init(&gc);
-
     route_ipv6_clear_host_bits(r6);
-
-    network = print_in6_addr( r6->network, 0, &gc);
-    gateway = print_in6_addr( r6->gateway, 0, &gc);
+    const char *network = print_in6_addr( r6->network, 0, &gc);
+    const char *gateway = print_in6_addr( r6->gateway, 0, &gc);
 
 #if defined(TARGET_DARWIN)    \
     || defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY)    \
@@ -1963,7 +1945,7 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
     }
 
 #if defined(TARGET_LINUX)
-    metric = -1;
+    int metric = -1;
     if ((r6->flags & RT_METRIC_DEFINED) && (r6->metric > 0))
     {
         metric = r6->metric;
