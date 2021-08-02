@@ -2266,12 +2266,6 @@ options_postprocess_verify_ce(const struct options *options,
     }
 #endif
 
-    if (!proto_is_udp(ce->proto) && ce->explicit_exit_notification)
-    {
-        msg(M_USAGE,
-            "--explicit-exit-notify can only be used with --proto udp");
-    }
-
     if (!ce->remote && ce->proto == PROTO_TCP_CLIENT)
     {
         msg(M_USAGE, "--remote MUST be used in TCP Client mode");
@@ -2978,6 +2972,13 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         connection_entry_preload_key(&ce->tls_crypt_v2_file,
                                      &ce->tls_crypt_v2_file_inline, &o->gc);
     }
+
+    if (!proto_is_udp(ce->proto) && ce->explicit_exit_notification)
+    {
+        msg(M_WARN, "NOTICE: --explicit-exit-notify ignored for --proto tcp");
+        ce->explicit_exit_notification = 0;
+    }
+
 }
 
 #ifdef _WIN32
