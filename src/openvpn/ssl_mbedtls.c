@@ -62,6 +62,21 @@
 #include <mbedtls/oid.h>
 #include <mbedtls/pem.h>
 
+/**
+ * Compatibility: mbedtls_ctr_drbg_update was deprecated in mbedtls 2.16 and
+ * replaced with mbedtls_ctr_drbg_update_ret, which returns an error code.
+ * For older versions, we call mbedtls_ctr_drbg_update and return 0 (success).
+ */
+#if MBEDTLS_VERSION_NUMBER < 0x02100000
+static int mbedtls_ctr_drbg_update_ret(mbedtls_ctr_drbg_context *ctx,
+                                       const unsigned char *additional,
+                                       size_t add_len)
+{
+    mbedtls_ctr_drbg_update(ctx, additional, add_len);
+    return 0;
+}
+#endif
+
 static const mbedtls_x509_crt_profile openvpn_x509_crt_profile_legacy =
 {
     /* Hashes from SHA-1 and above */
@@ -950,7 +965,10 @@ tls_ctx_personalise_random(struct tls_root_ctx *ctx)
 
         if (0 != memcmp(old_sha256_hash, sha256_hash, sizeof(sha256_hash)))
         {
-            mbedtls_ctr_drbg_update(cd_ctx, sha256_hash, 32);
+            if (!mbed_ok(mbedtls_ctr_drbg_update_ret(cd_ctx, sha256_hash, 32)))
+            {
+                msg(M_WARN, "WARNING: failed to personalise random, could not update CTR_DRBG");
+            }
             memcpy(old_sha256_hash, sha256_hash, sizeof(old_sha256_hash));
         }
     }
