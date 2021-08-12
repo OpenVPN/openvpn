@@ -898,6 +898,12 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 		[have_export_keying_material="no"]
 	)
 
+	AC_CHECK_FUNC(
+		[mbedtls_ctr_drbg_update_ret],
+		AC_DEFINE([HAVE_CTR_DRBG_UPDATE_RET], [1],
+			  [Use mbedtls_ctr_drbg_update_ret from mbed TLS]),
+	)
+
 	CFLAGS="${saved_CFLAGS}"
 	LIBS="${saved_LIBS}"
 	AC_DEFINE([ENABLE_CRYPTO_MBEDTLS], [1], [Use mbed TLS library])

@@ -66,8 +66,11 @@
  * Compatibility: mbedtls_ctr_drbg_update was deprecated in mbedtls 2.16 and
  * replaced with mbedtls_ctr_drbg_update_ret, which returns an error code.
  * For older versions, we call mbedtls_ctr_drbg_update and return 0 (success).
+ *
+ * Note: this change was backported to other mbedTLS branches, therefore we
+ * rely on function detection at configure time.
  */
-#if MBEDTLS_VERSION_NUMBER < 0x02100000
+#ifndef HAVE_CTR_DRBG_UPDATE_RET
 static int mbedtls_ctr_drbg_update_ret(mbedtls_ctr_drbg_context *ctx,
                                        const unsigned char *additional,
                                        size_t add_len)
