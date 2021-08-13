@@ -573,7 +573,7 @@ OPENVPN_PLUGIN_DEF openvpn_plugin_handle_t OPENVPN_PLUGIN_FUNC(openvpn_plugin_op
  * auth_pending_file is
  * line 1: timeout in seconds
  * line 2: Pending auth method the client needs to support (e.g. openurl)
- * line 3: EXTRA (e.g. OPEN_URL:http://www.example.com)
+ * line 3: EXTRA (e.g. WEBAUTH::http://www.example.com)
  *
  * In addition the OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER and
  * OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2 are called when OpenVPN tries to
