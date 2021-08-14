@@ -658,7 +658,7 @@ implementations the name IV_SSO is kept in lieu of a better name.
 The management interface of the client receives notification of
 pending auth via
 
->STATE:datetime,AUTH_PENDING,[timeout number]
+>STATE:datetime,AUTH_PENDING,[timeout number],,,,,
 
 If {EXTRA} is present the client is informed using INFOMSG
 notification as
