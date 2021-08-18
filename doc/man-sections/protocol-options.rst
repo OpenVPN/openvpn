@@ -192,7 +192,8 @@ configured in a compatible way between both the local and remote side.
 --data-ciphers cipher-list
   Restrict the allowed ciphers to be negotiated to the ciphers in
   ``cipher-list``. ``cipher-list`` is a colon-separated list of ciphers,
-  and defaults to :code:`AES-256-GCM:AES-128-GCM`.
+  and defaults to :code:`AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305` when
+  Chacha20-Poly1305 is available and otherwise :code:`AES-256-GCM:AES-128-GCM`.
 
   For servers, the first cipher from ``cipher-list`` that is also
   supported by the client will be pushed to clients that support cipher

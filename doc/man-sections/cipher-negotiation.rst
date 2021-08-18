@@ -18,7 +18,8 @@ with a AUTH_FAILED message (as seen in client log):
 OpenVPN 2.5 will only allow the ciphers specified in ``--data-ciphers``. To ensure
 backwards compatibility also if a cipher is specified using the ``--cipher`` option
 it is automatically added to this list. If both options are unset the default is
-:code:`AES-256-GCM:AES-128-GCM`.
+:code:`AES-256-GCM:AES-128-GCM`. In 2.6 and later the default is changed to
+:code:`AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305` when Chacha20-Poly1305 is available.
 
 OpenVPN 2.4 clients
 -------------------

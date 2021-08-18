@@ -842,7 +842,6 @@ init_options(struct options *o, const bool init_gc)
     o->stale_routes_check_interval = 0;
     o->ifconfig_pool_persist_refresh_freq = 600;
     o->scheduled_exit_interval = 5;
-    o->ncp_ciphers = "AES-256-GCM:AES-128-GCM";
     o->authname = "SHA1";
     o->prng_hash = "SHA1";
     o->prng_nonce_secret_len = 16;
@@ -3077,6 +3076,29 @@ options_postprocess_verify(const struct options *o)
     }
 }
 
+/**
+ * Checks for availibility of Chacha20-Poly1305 and sets
+ * the ncp_cipher to either AES-256-GCM:AES-128-GCM or
+ * AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305.
+ */
+static void
+options_postprocess_setdefault_ncpciphers(struct options *o)
+{
+    if (o->ncp_ciphers)
+    {
+        /* custom --data-ciphers set, keep list */
+        return;
+    }
+    else if (cipher_kt_get("CHACHA20-POLY1305"))
+    {
+        o->ncp_ciphers = "AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305";
+    }
+    else
+    {
+        o->ncp_ciphers = "AES-256-GCM:AES-128-GCM";
+    }
+}
+
 static void
 options_postprocess_cipher(struct options *o)
 {
@@ -3137,6 +3159,7 @@ options_postprocess_mutate(struct options *o)
     helper_keepalive(o);
     helper_tcp_nodelay(o);
 
+    options_postprocess_setdefault_ncpciphers(o);
     options_postprocess_cipher(o);
     options_postprocess_mutate_invariant(o);
 
