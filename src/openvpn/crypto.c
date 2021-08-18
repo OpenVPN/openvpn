@@ -1806,6 +1806,12 @@ print_cipher(const cipher_kt_t *cipher)
     {
         printf(", TLS client/server mode only");
     }
+#ifdef OPENSSL_FIPS
+    if (FIPS_mode() && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_FIPS))
+    {
+        printf(", disabled by FIPS mode");
+    }
+#endif
 
     printf(")\n");
 }

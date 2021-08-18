@@ -599,7 +599,17 @@ cipher_kt_get(const char *ciphername)
         return NULL;
     }
 
+#ifdef OPENSSL_FIPS
+    /* Rhel 8/CentOS 8 have a patched OpenSSL version that return a cipher
+     * here that is actually not usable if in FIPS mode */
 
+    if (FIPS_mode() && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_FIPS))
+    {
+        msg(D_LOW, "Cipher algorithm '%s' is known by OpenSSL library but "
+                    "currently disabled by running in FIPS mode.", ciphername);
+        return NULL;
+    }
+#endif
     if (EVP_CIPHER_key_length(cipher) > MAX_CIPHER_KEY_LENGTH)
     {
         msg(D_LOW, "Cipher algorithm '%s' uses a default key size (%d bytes) "
