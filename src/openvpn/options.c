@@ -625,7 +625,7 @@ static const char usage_message[] =
     "                  see --secret option for more info.\n"
     "--tls-crypt-v2 key : For clients: use key as a client-specific tls-crypt key.\n"
     "                  For servers: use key to decrypt client-specific keys.  For\n"
-    "                  key generation (--tls-crypt-v2-genkey): use key to\n"
+    "                  key generation (--genkey tls-crypt-v2-client): use key to\n"
     "                  encrypt generated client-specific key.  (See --tls-crypt.)\n"
     "--genkey tls-crypt-v2-client [keyfile] [base64 metadata]: Generate a\n"
     "                  fresh tls-crypt-v2 client key, and store to\n"
