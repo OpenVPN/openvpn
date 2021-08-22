@@ -58,7 +58,7 @@ Implementation
 When setting up a tls-crypt-v2 group (similar to generating a tls-crypt or
 tls-auth key previously):
 
-1. Generate a tls-crypt-v2 server key using OpenVPN's ``--tls-crypt-v2-genkey server``.
+1. Generate a tls-crypt-v2 server key using OpenVPN's ``--genkey tls-crypt-v2-server``.
    This key contains 2 512-bit keys, of which we use:
 
    * the first 256 bits of key 1 as AES-256-CTR encryption key ``Ke``
@@ -73,7 +73,7 @@ tls-auth key previously):
 
 When provisioning a client, create a client-specific tls-crypt key:
 
-1. Generate 2048 bits client-specific key ``Kc`` using OpenVPN's ``--tls-crypt-v2-genkey client``
+1. Generate 2048 bits client-specific key ``Kc`` using OpenVPN's ``--genkey tls-crypt-v2-client``
 
 2. Optionally generate metadata
 
