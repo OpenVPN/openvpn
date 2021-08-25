@@ -206,6 +206,14 @@ jobs:
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v1
 
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install rst2html
+        run: python -m pip install --upgrade pip rst2html
+
       - name: Restore artifacts, or run vcpkg, build and cache artifacts
         uses: lukka/run-vcpkg@main
         with:
@@ -228,3 +236,4 @@ jobs:
             ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.exe
             ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.dll
             ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.pdb
+            doc/openvpn.8.html
