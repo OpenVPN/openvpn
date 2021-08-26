@@ -227,3 +227,4 @@ jobs:
           path: |
             ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.exe
             ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.dll
+            ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.pdb
