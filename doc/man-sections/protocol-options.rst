@@ -99,7 +99,7 @@ configured in a compatible way between both the local and remote side.
   Especially :code:`stub-v2` is essentially identical to no compression and
   no compression framing as its header indicates IP version 5 in a tun setup
   and can (ab)used to complete disable compression to clients. (See the
-  :code:`migrate option below)
+  :code:`migrate` option below)
 
   If the ``algorithm`` parameter is :code:`stub`, :code:`stub-v2` or empty,
   compression will be turned off, but the packet framing for compression
