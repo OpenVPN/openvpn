@@ -42,7 +42,6 @@
 #include "sig.h"
 #include "misc.h"
 #include "mbuf.h"
-#include "pf.h"
 #include "pool.h"
 #include "plugin.h"
 #include "manage.h"
@@ -437,9 +436,6 @@ struct context_2
     int scheduled_exit_signal;
 
     /* packet filter */
-#ifdef ENABLE_PF
-    struct pf_context pf;
-#endif
 
 #ifdef ENABLE_MANAGEMENT
     struct man_def_auth_context mda_context;

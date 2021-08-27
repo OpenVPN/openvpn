@@ -207,12 +207,6 @@ openvpn_plugin_open_v3(const int v3structver,
         |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_LEARN_ADDRESS)
         |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_FINAL);
 
-    /* ENABLE_PF should only be called if we're actually willing to do PF */
-    if (context->test_packet_filter)
-    {
-        ret->type_mask |= OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_ENABLE_PF);
-    }
-
     ret->handle = (openvpn_plugin_handle_t *) context;
     plugin_log(PLOG_NOTE, MODULE, "initialization succeeded");
     return OPENVPN_PLUGIN_FUNC_SUCCESS;
@@ -314,134 +308,6 @@ auth_user_pass_verify(struct plugin_context *context,
     exit(0);
 }
 
-static int
-tls_final(struct plugin_context *context, struct plugin_per_client_context *pcc, const char *argv[], const char *envp[])
-{
-    if (!context->test_packet_filter)   /* no PF testing, nothing to do */
-    {
-        return OPENVPN_PLUGIN_FUNC_SUCCESS;
-    }
-
-    if (pcc->generated_pf_file)         /* we already have created a file */
-    {
-        return OPENVPN_PLUGIN_FUNC_ERROR;
-    }
-
-    const char *pff = get_env("pf_file", envp);
-    const char *cn = get_env("username", envp);
-    if (!pff || !cn)                    /* required vars missing */
-    {
-        return OPENVPN_PLUGIN_FUNC_ERROR;
-    }
-
-    pcc->generated_pf_file = true;
-
-    /* the PF API is, basically
-     *  - OpenVPN sends a filename (pf_file) to the plugin
-     *  - OpenVPN main loop will check every second if that file shows up
-     *  - when it does, it will be read & used for the pf config
-     * the pre-created file needs to be removed in ...ENABLE_PF
-     * to make deferred PF setup work
-     *
-     * the regular PF hook does not know the client username or CN, so
-     * this is deferred to the TLS_FINAL hook which knows these things
-     */
-
-    /* do the double fork dance (see above for more verbose comments)
-     */
-    pid_t p1 = fork();
-    if (p1 < 0)                 /* Fork failed */
-    {
-        return OPENVPN_PLUGIN_FUNC_ERROR;
-    }
-    if (p1 > 0)                 /* parent process */
-    {
-        waitpid(p1, NULL, 0);
-        return OPENVPN_PLUGIN_FUNC_SUCCESS;     /* no _DEFERRED here! */
-    }
-
-    /* first gen child process, fork() again and exit() right away */
-    pid_t p2 = fork();
-    if (p2 < 0)
-    {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "BACKGROUND: fork(2) failed");
-        exit(1);
-    }
-
-    if (p2 != 0)                            /* new parent: exit right away */
-    {
-        exit(0);
-    }
-
-    /* (grand-)child process
-     *  - never call "return" now (would mess up openvpn)
-     *  - return status is communicated by file
-     *  - then exit()
-     */
-
-    /* at this point, the plugin can take its time, because OpenVPN will
-     * no longer block waiting for the call to finish
-     *
-     * in this example, we build a PF file by copying over a file
-     * named "<username>.pf" to the OpenVPN-provided pf file name
-     *
-     * a real example could do a LDAP lookup, a REST call, ...
-     */
-    plugin_log(PLOG_NOTE, MODULE, "in async/deferred tls_final handler, sleep(%d)", context->test_packet_filter);
-    sleep(context->test_packet_filter);
-
-    char buf[256];
-    snprintf(buf, sizeof(buf), "%s.pf", cn );
-
-    /* there is a small race condition here - OpenVPN could detect our
-     * file while we have only written half of it.  So "perfect" code
-     * needs to create this with a temp file name, and then rename() it
-     * after it has been written.  But I am lazy.
-     */
-
-    int w_fd = open( pff, O_WRONLY|O_CREAT, 0600 );
-    if (w_fd < 0)
-    {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "can't write to '%s'", pff);
-        exit(0);
-    }
-
-    int r_fd = open( buf, O_RDONLY );
-    if (r_fd < 0)
-    {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "can't read '%s', creating empty pf file", buf);
-        close(w_fd);
-        exit(0);
-    }
-
-    char data[1024];
-
-    int r;
-    do
-    {
-        r = read(r_fd, data, sizeof(data));
-        if (r < 0)
-        {
-            plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "error reading '%s'", buf);
-            close(r_fd);
-            close(w_fd);
-            exit(0);
-        }
-        int w = write(w_fd, data, r);
-        if (w < 0 || w != r)
-        {
-            plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "error writing %d bytes to '%s'", r, pff);
-            close(r_fd);
-            close(w_fd);
-            exit(0);
-        }
-    }
-    while(r > 0);
-
-    plugin_log(PLOG_NOTE, MODULE, "copied PF config from '%s' to '%s', job done", buf, pff);
-    exit(0);
-}
-
 OPENVPN_EXPORT int
 openvpn_plugin_func_v3(const int v3structver,
                        struct openvpn_plugin_args_func_in const *args,
@@ -496,21 +362,7 @@ openvpn_plugin_func_v3(const int v3structver,
 
         case OPENVPN_PLUGIN_TLS_FINAL:
             plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_TLS_FINAL");
-            return tls_final(context, pcc, argv, envp);
-
-        case OPENVPN_PLUGIN_ENABLE_PF:
-            plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_ENABLE_PF");
-
-            /* OpenVPN pre-creates the file, which gets in the way of
-             * deferred pf setup - so remove it here, and re-create
-             * it in the background handler (in tls_final()) when ready
-             */
-            const char *pff = get_env("pf_file", envp);
-            if (pff)
-            {
-                (void) unlink(pff);
-            }
-            return OPENVPN_PLUGIN_FUNC_SUCCESS;           /* must succeed */
+            return OPENVPN_PLUGIN_FUNC_SUCCESS;
 
         default:
             plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_?");

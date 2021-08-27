@@ -433,10 +433,6 @@ which mode OpenVPN is configured as.
     success/failure via :code:`auth_control_file` when using deferred auth
     method and pending authentification via :code:`pending_auth_file`.
 
-
-  * :code:`OPENVPN_PLUGIN_ENABLE_PF` plugin hook to pass filtering rules
-    via ``pf_file``
-
 --use-prediction-resistance
   Enable prediction resistance on mbed TLS's RNG.
 

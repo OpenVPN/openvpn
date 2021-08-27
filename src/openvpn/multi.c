@@ -39,7 +39,6 @@
 #include "push.h"
 #include "run_command.h"
 #include "otime.h"
-#include "pf.h"
 #include "gremlin.h"
 #include "mstats.h"
 #include "ssl_verify.h"
@@ -507,19 +506,6 @@ ungenerate_prefix(struct multi_instance *mi)
 {
     mi->msg_prefix[0] = '\0';
     set_prefix(mi);
-}
-
-static const char *
-mi_prefix(const struct multi_instance *mi)
-{
-    if (mi && mi->msg_prefix[0])
-    {
-        return mi->msg_prefix;
-    }
-    else
-    {
-        return "UNDEF_I";
-    }
 }
 
 /*
@@ -2827,35 +2813,6 @@ multi_bcast(struct multi_context *m,
             mi = (struct multi_instance *) he->value;
             if (mi != sender_instance && !mi->halt)
             {
-#ifdef ENABLE_PF
-                if (sender_instance)
-                {
-                    if (!pf_c2c_test(&sender_instance->context.c2.pf,
-                                     sender_instance->context.c2.tls_multi,
-                                     &mi->context.c2.pf,
-                                     mi->context.c2.tls_multi,
-                                     "bcast_c2c"))
-                    {
-                        msg(D_PF_DROPPED_BCAST, "PF: client[%s] -> client[%s] packet dropped by BCAST packet filter",
-                            mi_prefix(sender_instance),
-                            mi_prefix(mi));
-                        continue;
-                    }
-                }
-                if (sender_addr)
-                {
-                    if (!pf_addr_test(&mi->context.c2.pf, &mi->context,
-                                      sender_addr, "bcast_src_addr"))
-                    {
-                        struct gc_arena gc = gc_new();
-                        msg(D_PF_DROPPED_BCAST, "PF: addr[%s] -> client[%s] packet dropped by BCAST packet filter",
-                            mroute_addr_print_ex(sender_addr, MAPF_SHOW_ARP, &gc),
-                            mi_prefix(mi));
-                        gc_free(&gc);
-                        continue;
-                    }
-                }
-#endif /* ifdef ENABLE_PF */
                 if (vid != 0 && vid != mi->context.options.vlan_pvid)
                 {
                     continue;
@@ -3199,8 +3156,6 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                 /* extract packet source and dest addresses */
                 mroute_flags = mroute_extract_addr_from_packet(&src,
                                                                &dest,
-                                                               NULL,
-                                                               NULL,
                                                                0,
                                                                &c->c2.to_tun,
                                                                DEV_TYPE_TUN);
@@ -3243,17 +3198,6 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                         /* if dest addr is a known client, route to it */
                         if (mi)
                         {
-#ifdef ENABLE_PF
-                            if (!pf_c2c_test(&c->c2.pf, c->c2.tls_multi,
-                                             &mi->context.c2.pf,
-                                             mi->context.c2.tls_multi,
-                                             "tun_c2c"))
-                            {
-                                msg(D_PF_DROPPED, "PF: client -> client[%s] packet dropped by TUN packet filter",
-                                    mi_prefix(mi));
-                            }
-                            else
-#endif
                             {
                                 multi_unicast(m, &c->c2.to_tun, mi);
                                 register_activity(c, BLEN(&c->c2.to_tun));
@@ -3262,23 +3206,10 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                         }
                     }
                 }
-#ifdef ENABLE_PF
-                if (c->c2.to_tun.len && !pf_addr_test(&c->c2.pf, c, &dest,
-                                                      "tun_dest_addr"))
-                {
-                    msg(D_PF_DROPPED, "PF: client -> addr[%s] packet dropped by TUN packet filter",
-                        mroute_addr_print_ex(&dest, MAPF_SHOW_ARP, &gc));
-                    c->c2.to_tun.len = 0;
-                }
-#endif
             }
             else if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TAP)
             {
                 uint16_t vid = 0;
-#ifdef ENABLE_PF
-                struct mroute_addr edest;
-                mroute_addr_reset(&edest);
-#endif
 
                 if (m->top.options.vlan_tagging)
                 {
@@ -3296,12 +3227,6 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                 /* extract packet source and dest addresses */
                 mroute_flags = mroute_extract_addr_from_packet(&src,
                                                                &dest,
-                                                               NULL,
-#ifdef ENABLE_PF
-                                                               &edest,
-#else
-                                                               NULL,
-#endif
                                                                vid,
                                                                &c->c2.to_tun,
                                                                DEV_TYPE_TAP);
@@ -3325,17 +3250,6 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                                 /* if dest addr is a known client, route to it */
                                 if (mi)
                                 {
-#ifdef ENABLE_PF
-                                    if (!pf_c2c_test(&c->c2.pf, c->c2.tls_multi,
-                                                     &mi->context.c2.pf,
-                                                     mi->context.c2.tls_multi,
-                                                     "tap_c2c"))
-                                    {
-                                        msg(D_PF_DROPPED, "PF: client -> client[%s] packet dropped by TAP packet filter",
-                                            mi_prefix(mi));
-                                    }
-                                    else
-#endif
                                     {
                                         multi_unicast(m, &c->c2.to_tun, mi);
                                         register_activity(c, BLEN(&c->c2.to_tun));
@@ -3344,16 +3258,6 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                                 }
                             }
                         }
-#ifdef ENABLE_PF
-                        if (c->c2.to_tun.len && !pf_addr_test(&c->c2.pf, c,
-                                                              &edest,
-                                                              "tap_dest_addr"))
-                        {
-                            msg(D_PF_DROPPED, "PF: client -> addr[%s] packet dropped by TAP packet filter",
-                                mroute_addr_print_ex(&edest, MAPF_SHOW_ARP, &gc));
-                            c->c2.to_tun.len = 0;
-                        }
-#endif
                     }
                     else
                     {
@@ -3396,19 +3300,6 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
         const int dev_type = TUNNEL_TYPE(m->top.c1.tuntap);
         int16_t vid = 0;
 
-#ifdef ENABLE_PF
-        struct mroute_addr esrc, *e1, *e2;
-        if (dev_type == DEV_TYPE_TUN)
-        {
-            e1 = NULL;
-            e2 = &src;
-        }
-        else
-        {
-            e1 = e2 = &esrc;
-            mroute_addr_reset(&esrc);
-        }
-#endif
 
 #ifdef MULTI_DEBUG_EVENT_LOOP
         printf("TUN -> TCP/UDP [%d]\n", BLEN(&m->top.c2.buf));
@@ -3435,12 +3326,6 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
 
         mroute_flags = mroute_extract_addr_from_packet(&src,
                                                        &dest,
-#ifdef ENABLE_PF
-                                                       e1,
-#else
-                                                       NULL,
-#endif
-                                                       NULL,
                                                        vid,
                                                        &m->top.c2.buf,
                                                        dev_type);
@@ -3453,11 +3338,7 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
             if (mroute_flags & (MROUTE_EXTRACT_BCAST|MROUTE_EXTRACT_MCAST))
             {
                 /* for now, treat multicast as broadcast */
-#ifdef ENABLE_PF
-                multi_bcast(m, &m->top.c2.buf, NULL, e2, vid);
-#else
                 multi_bcast(m, &m->top.c2.buf, NULL, NULL, vid);
-#endif
             }
             else
             {
@@ -3470,15 +3351,6 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
 
                     set_prefix(m->pending);
 
-#ifdef ENABLE_PF
-                    if (!pf_addr_test(&c->c2.pf, c, e2, "tun_tap_src_addr"))
-                    {
-                        msg(D_PF_DROPPED, "PF: addr[%s] -> client packet dropped by packet filter",
-                            mroute_addr_print_ex(&src, MAPF_SHOW_ARP, &gc));
-                        buf_reset_len(&c->c2.buf);
-                    }
-                    else
-#endif
                     {
                         if (multi_output_queue_ready(m, m->pending))
                         {
@@ -3997,25 +3869,6 @@ management_get_peer_info(void *arg, const unsigned long cid)
 
 #endif /* ifdef ENABLE_MANAGEMENT */
 
-#ifdef MANAGEMENT_PF
-static bool
-management_client_pf(void *arg,
-                     const unsigned long cid,
-                     struct buffer_list *pf_config)  /* ownership transferred */
-{
-    struct multi_context *m = (struct multi_context *) arg;
-    struct multi_instance *mi = lookup_by_cid(m, cid);
-    bool ret = false;
-
-    if (mi && pf_config)
-    {
-        ret = pf_load_from_buffer_list(&mi->context, pf_config);
-    }
-
-    buffer_list_free(pf_config);
-    return ret;
-}
-#endif /* ifdef MANAGEMENT_PF */
 
 void
 init_management_callback_multi(struct multi_context *m)
@@ -4037,9 +3890,6 @@ init_management_callback_multi(struct multi_context *m)
         cb.client_auth = management_client_auth;
         cb.client_pending_auth = management_client_pending_auth;
         cb.get_peer_info = management_get_peer_info;
-#ifdef MANAGEMENT_PF
-        cb.client_pf = management_client_pf;
-#endif
         management_set_callback(management, &cb);
     }
 #endif /* ifdef ENABLE_MANAGEMENT */

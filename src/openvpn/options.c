@@ -391,10 +391,6 @@ static const char usage_message[] =
     "--management-client-auth : gives management interface client the responsibility\n"
     "                           to authenticate clients after their client certificate\n"
     "			      has been verified.\n"
-#ifdef MANAGEMENT_PF
-    "--management-client-pf : management interface clients must specify a packet\n"
-    "                         filter file for each connecting client.\n"
-#endif
 #endif /* ifdef ENABLE_MANAGEMENT */
 #ifdef ENABLE_PLUGIN
     "--plugin m [str]: Load plug-in module m passing str as an argument\n"
@@ -5543,13 +5539,6 @@ add_option(struct options *options,
         options->management_flags |= MF_CLIENT_AUTH;
     }
 #endif /* ifdef ENABLE_MANAGEMENT */
-#ifdef MANAGEMENT_PF
-    else if (streq(p[0], "management-client-pf") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->management_flags |= (MF_CLIENT_PF | MF_CLIENT_AUTH);
-    }
-#endif
     else if (streq(p[0], "management-log-cache") && p[1] && !p[2])
     {
         int cache;

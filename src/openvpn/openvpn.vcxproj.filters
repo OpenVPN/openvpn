@@ -129,9 +129,6 @@
     <ClCompile Include="perf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pf.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ping.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -390,9 +387,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="perf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ping.h">

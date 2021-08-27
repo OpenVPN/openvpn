@@ -36,7 +36,6 @@
 #include "mss.h"
 #include "event.h"
 #include "occ.h"
-#include "pf.h"
 #include "ping.h"
 #include "ps.h"
 #include "dhcp.h"
@@ -633,14 +632,6 @@ process_coarse_timers(struct context *c)
     {
         check_push_request(c);
     }
-
-#ifdef PLUGIN_PF
-    if (c->c2.pf.enabled
-        && event_timeout_trigger(&c->c2.pf.reload, &c->c2.timeval, ETT_DEFAULT))
-    {
-        pf_check_reload(c);
-    }
-#endif
 
     /* process --route options */
     if (event_timeout_trigger(&c->c2.route_wakeup, &c->c2.timeval, ETT_DEFAULT))

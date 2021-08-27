@@ -4347,13 +4347,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     }
 #endif
 
-#ifdef ENABLE_PF
-    if (child)
-    {
-        pf_init_context(c);
-    }
-#endif
-
     /* Check for signals */
     if (IS_SIG(c))
     {
@@ -4413,10 +4406,6 @@ close_instance(struct context *c)
         {
             management_notify_client_close(management, &c->c2.mda_context, NULL);
         }
-#endif
-
-#ifdef ENABLE_PF
-        pf_destroy_context(&c->c2.pf);
 #endif
 
 #ifdef ENABLE_PLUGIN

@@ -77,6 +77,12 @@ Compression no longer enabled by default
     By default, OpenVPN 2.5 still allowed a server to enable compression by
     pushing compression related options.
 
+PF (Packet Filtering) support has been removed
+   The built-in PF functionality has been removed from the code base. This
+   feature wasn't really easy to use and was long unmaintained.
+   This implies that also ``--management-client-pf`` and any other compile
+   time or run time related option do not exist any longer.
+
 
 User-visible Changes
 --------------------

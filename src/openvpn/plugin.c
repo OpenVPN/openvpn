@@ -119,9 +119,6 @@ plugin_type_name(const int type)
         case OPENVPN_PLUGIN_TLS_FINAL:
             return "PLUGIN_TLS_FINAL";
 
-        case OPENVPN_PLUGIN_ENABLE_PF:
-            return "PLUGIN_ENABLE_PF";
-
         case OPENVPN_PLUGIN_ROUTE_PREDOWN:
             return "PLUGIN_ROUTE_PREDOWN";
 
@@ -804,7 +801,6 @@ plugin_call_ssl(const struct plugin_list *pl,
         int i;
         const char **envp;
         const int n = plugin_n(pl);
-        bool success = false;
         bool error = false;
         bool deferred = false;
 
@@ -825,7 +821,6 @@ plugin_call_ssl(const struct plugin_list *pl,
             switch (status)
             {
                 case OPENVPN_PLUGIN_FUNC_SUCCESS:
-                    success = true;
                     break;
 
                 case OPENVPN_PLUGIN_FUNC_DEFERRED:
@@ -845,11 +840,7 @@ plugin_call_ssl(const struct plugin_list *pl,
 
         gc_free(&gc);
 
-        if (type == OPENVPN_PLUGIN_ENABLE_PF && success)
-        {
-            return OPENVPN_PLUGIN_FUNC_SUCCESS;
-        }
-        else if (error)
+        if (error)
         {
             return OPENVPN_PLUGIN_FUNC_ERROR;
         }

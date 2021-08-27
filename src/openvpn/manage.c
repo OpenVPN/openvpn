@@ -108,9 +108,6 @@ man_help(void)
     msg(M_CLIENT, "                                      to the client and wait for a final client-auth/client-deny");
     msg(M_CLIENT, "client-kill CID [M]    : Kill client instance CID with message M (def=RESTART)");
     msg(M_CLIENT, "env-filter [level]     : Set env-var filter level");
-#ifdef MANAGEMENT_PF
-    msg(M_CLIENT, "client-pf CID          : Define packet filter for client CID (MULTILINE)");
-#endif
     msg(M_CLIENT, "rsa-sig                : Enter a signature in response to >RSA_SIGN challenge");
     msg(M_CLIENT, "                         Enter signature base64 on subsequent lines followed by END");
     msg(M_CLIENT, "pk-sig                 : Enter a signature in response to >PK_SIGN challenge");
@@ -918,31 +915,6 @@ in_extra_dispatch(struct management *man)
             }
             break;
 
-#ifdef MANAGEMENT_PF
-        case IEC_CLIENT_PF:
-            if (man->persist.callback.client_pf)
-            {
-                const bool status = (*man->persist.callback.client_pf)
-                                        (man->persist.callback.arg,
-                                        man->connection.in_extra_cid,
-                                        man->connection.in_extra);
-                man->connection.in_extra = NULL;
-                if (status)
-                {
-                    msg(M_CLIENT, "SUCCESS: client-pf command succeeded");
-                }
-                else
-                {
-                    msg(M_CLIENT, "ERROR: client-pf command failed");
-                }
-            }
-            else
-            {
-                msg(M_CLIENT, "ERROR: The client-pf command is not supported by the current daemon mode");
-            }
-            break;
-
-#endif /* ifdef MANAGEMENT_PF */
         case IEC_PK_SIGN:
             man->connection.ext_key_state = EKS_READY;
             buffer_list_free(man->connection.ext_key_input);
@@ -1125,22 +1097,6 @@ man_env_filter(struct management *man, const int level)
     msg(M_CLIENT, "SUCCESS: env_filter_level=%d", level);
 }
 
-#ifdef MANAGEMENT_PF
-
-static void
-man_client_pf(struct management *man, const char *cid_str)
-{
-    struct man_connection *mc = &man->connection;
-    mc->in_extra_cid = 0;
-    mc->in_extra_kid = 0;
-    if (parse_cid(cid_str, &mc->in_extra_cid))
-    {
-        mc->in_extra_cmd = IEC_CLIENT_PF;
-        in_extra_reset(mc, IER_NEW);
-    }
-}
-
-#endif /* MANAGEMENT_PF */
 
 static void
 man_pk_sig(struct management *man, const char *cmd_name)
@@ -1567,15 +1523,6 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
             man_client_pending_auth(man, p[1], p[2], p[3]);
         }
     }
-#ifdef MANAGEMENT_PF
-    else if (streq(p[0], "client-pf"))
-    {
-        if (man_need(man, p, 1, 0))
-        {
-            man_client_pf(man, p[1]);
-        }
-    }
-#endif
     else if (streq(p[0], "rsa-sig"))
     {
         man_pk_sig(man, "rsa-sig");

@@ -95,27 +95,11 @@ set_common_name(struct tls_session *session, const char *common_name)
     {
         free(session->common_name);
         session->common_name = NULL;
-#ifdef ENABLE_PF
-        session->common_name_hashval = 0;
-#endif
     }
     if (common_name)
     {
         /* FIXME: Last alloc will never be freed */
         session->common_name = string_alloc(common_name, NULL);
-#ifdef ENABLE_PF
-        {
-            const uint32_t len = (uint32_t) strlen(common_name);
-            if (len)
-            {
-                session->common_name_hashval = hash_func((const uint8_t *)common_name, len+1, 0);
-            }
-            else
-            {
-                session->common_name_hashval = 0;
-            }
-        }
-#endif
     }
 }
 

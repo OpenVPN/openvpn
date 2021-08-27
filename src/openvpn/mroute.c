@@ -148,38 +148,6 @@ mroute_is_mcast_ipv6(const struct in6_addr addr)
     return (addr.s6_addr[0] == 0xff);
 }
 
-#ifdef ENABLE_PF
-
-static unsigned int
-mroute_extract_addr_arp(struct mroute_addr *src,
-                        struct mroute_addr *dest,
-                        const struct buffer *buf)
-{
-    unsigned int ret = 0;
-    if (BLEN(buf) >= (int) sizeof(struct openvpn_arp))
-    {
-        const struct openvpn_arp *arp = (const struct openvpn_arp *) BPTR(buf);
-        if (arp->mac_addr_type == htons(0x0001)
-            && arp->proto_addr_type == htons(0x0800)
-            && arp->mac_addr_size == 0x06
-            && arp->proto_addr_size == 0x04)
-        {
-            mroute_get_in_addr_t(src, arp->ip_src, MR_ARP);
-            mroute_get_in_addr_t(dest, arp->ip_dest, MR_ARP);
-
-            /* multicast packet? */
-            if (mroute_is_mcast(arp->ip_dest))
-            {
-                ret |= MROUTE_EXTRACT_MCAST;
-            }
-
-            ret |= MROUTE_EXTRACT_SUCCEEDED;
-        }
-    }
-    return ret;
-}
-
-#endif /* ifdef ENABLE_PF */
 
 unsigned int
 mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
@@ -262,8 +230,6 @@ mroute_copy_ether_to_addr(struct mroute_addr *maddr,
 unsigned int
 mroute_extract_addr_ether(struct mroute_addr *src,
                           struct mroute_addr *dest,
-                          struct mroute_addr *esrc,
-                          struct mroute_addr *edest,
                           uint16_t vid,
                           const struct buffer *buf)
 {
@@ -288,42 +254,6 @@ mroute_extract_addr_ether(struct mroute_addr *src,
 
         ret |= MROUTE_EXTRACT_SUCCEEDED;
 
-#ifdef ENABLE_PF
-        if (esrc || edest)
-        {
-            struct buffer b = *buf;
-            if (!buf_advance(&b, sizeof(struct openvpn_ethhdr)))
-            {
-                return 0;
-            }
-
-            uint16_t proto = eth->proto;
-            if (proto == htons(OPENVPN_ETH_P_8021Q))
-            {
-                if (!buf_advance(&b, SIZE_ETH_TO_8021Q_HDR))
-                {
-                    /* It's an 802.1Q packet, but doesn't have a full header,
-                     * so something went wrong */
-                    return 0;
-                }
-
-                const struct openvpn_8021qhdr *tag;
-                tag = (const struct openvpn_8021qhdr *)BPTR(buf);
-                proto = tag->proto;
-            }
-
-            switch (ntohs(proto))
-            {
-                case OPENVPN_ETH_P_IPV4:
-                    ret |= (mroute_extract_addr_ip(esrc, edest, &b) << MROUTE_SEC_SHIFT);
-                    break;
-
-                case OPENVPN_ETH_P_ARP:
-                    ret |= (mroute_extract_addr_arp(esrc, edest, &b) << MROUTE_SEC_SHIFT);
-                    break;
-            }
-        }
-#endif /* ifdef ENABLE_PF */
     }
     return ret;
 }

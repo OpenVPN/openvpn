@@ -476,19 +476,6 @@ socket_defined(const socket_descriptor_t sd)
 #endif /* ENABLE_CRYPTO_MBEDTLS */
 
 /*
- * Enable packet filter?
- */
-#if defined(ENABLE_PF) && defined(ENABLE_PLUGIN) && defined(HAVE_STAT)
-#define PLUGIN_PF
-#endif
-#if defined(ENABLE_PF) && defined(ENABLE_MANAGEMENT)
-#define MANAGEMENT_PF
-#endif
-#if !defined(PLUGIN_PF) && !defined(MANAGEMENT_PF)
-#undef ENABLE_PF
-#endif
-
-/*
  * Do we support Unix domain sockets?
  */
 #if defined(PF_UNIX) && !defined(_WIN32)

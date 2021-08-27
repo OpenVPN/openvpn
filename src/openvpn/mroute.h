@@ -177,8 +177,6 @@ unsigned int mroute_extract_addr_ip(struct mroute_addr *src,
 
 unsigned int mroute_extract_addr_ether(struct mroute_addr *src,
                                        struct mroute_addr *dest,
-                                       struct mroute_addr *esrc,
-                                       struct mroute_addr *edest,
                                        uint16_t vid,
                                        const struct buffer *buf);
 
@@ -189,8 +187,6 @@ unsigned int mroute_extract_addr_ether(struct mroute_addr *src,
 static inline unsigned int
 mroute_extract_addr_from_packet(struct mroute_addr *src,
                                 struct mroute_addr *dest,
-                                struct mroute_addr *esrc,
-                                struct mroute_addr *edest,
                                 uint16_t vid,
                                 const struct buffer *buf,
                                 int tunnel_type)
@@ -203,7 +199,7 @@ mroute_extract_addr_from_packet(struct mroute_addr *src,
     }
     else if (tunnel_type == DEV_TYPE_TAP)
     {
-        ret = mroute_extract_addr_ether(src, dest, esrc, edest, vid, buf);
+        ret = mroute_extract_addr_ether(src, dest, vid, buf);
     }
     return ret;
 }

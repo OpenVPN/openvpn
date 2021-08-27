@@ -276,7 +276,6 @@
     <ClCompile Include="otime.c" />
     <ClCompile Include="packet_id.c" />
     <ClCompile Include="perf.c" />
-    <ClCompile Include="pf.c" />
     <ClCompile Include="ping.c" />
     <ClCompile Include="pkcs11.c" />
     <ClCompile Include="pkcs11_openssl.c" />
@@ -362,7 +361,6 @@
     <ClInclude Include="otime.h" />
     <ClInclude Include="packet_id.h" />
     <ClInclude Include="perf.h" />
-    <ClInclude Include="pf.h" />
     <ClInclude Include="ping.h" />
     <ClInclude Include="pkcs11.h" />
     <ClInclude Include="pkcs11_backend.h" />

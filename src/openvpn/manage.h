@@ -176,11 +176,6 @@ struct management_callback
                                  const char *extra,
                                  unsigned int timeout);
     char *(*get_peer_info) (void *arg, const unsigned long cid);
-#ifdef MANAGEMENT_PF
-    bool (*client_pf)(void *arg,
-                      const unsigned long cid,
-                      struct buffer_list *pf_config);  /* ownership transferred */
-#endif
     bool (*proxy_cmd)(void *arg, const char **p);
     bool (*remote_cmd) (void *arg, const char **p);
 #ifdef TARGET_ANDROID
@@ -278,7 +273,7 @@ struct man_connection {
 
 #define IEC_UNDEF       0
 #define IEC_CLIENT_AUTH 1
-#define IEC_CLIENT_PF   2
+/* #define IEC_CLIENT_PF   2 *REMOVED FEATURE* */
 #define IEC_RSA_SIGN    3
 #define IEC_CERTIFICATE 4
 #define IEC_PK_SIGN     5
@@ -335,9 +330,7 @@ struct management *management_init(void);
 #define MF_FORGET_DISCONNECT (1<<4)
 #define MF_CONNECT_AS_CLIENT (1<<5)
 #define MF_CLIENT_AUTH       (1<<6)
-#ifdef MANAGEMENT_PF
-#define MF_CLIENT_PF         (1<<7)
-#endif
+/* #define MF_CLIENT_PF         (1<<7) *REMOVED FEATURE* */
 #define MF_UNIX_SOCK                (1<<8)
 #define MF_EXTERNAL_KEY             (1<<9)
 #define MF_EXTERNAL_KEY_NOPADDING   (1<<10)
@@ -460,13 +453,6 @@ management_query_proxy_enabled(const struct management *man)
     return BOOL_CAST(man->settings.flags & MF_QUERY_PROXY);
 }
 
-#ifdef MANAGEMENT_PF
-static inline bool
-management_enable_pf(const struct management *man)
-{
-    return man && BOOL_CAST(man->settings.flags & MF_CLIENT_PF);
-}
-#endif
 
 static inline bool
 management_enable_def_auth(const struct management *man)

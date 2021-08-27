@@ -464,10 +464,6 @@ struct tls_session
 
     struct cert_hash_set *cert_hash_set;
 
-#ifdef ENABLE_PF
-    uint32_t common_name_hashval;
-#endif
-
     bool verified;              /* true if peer certificate was verified against CA */
 
     /* not-yet-authenticated incoming client */
