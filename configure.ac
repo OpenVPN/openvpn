@@ -376,8 +376,8 @@ AC_DEFINE_UNQUOTED([SYSTEMD_ASK_PASSWORD_PATH], ["$SYSTEMD_ASK_PASSWORD"], [Path
 #
 AC_ARG_VAR([RST2MAN], [path to rst2man utility])
 AC_ARG_VAR([RST2HTML], [path to rst2html utility])
-AC_CHECK_PROGS([RST2MAN], [rst2man])
-AC_CHECK_PROGS([RST2HTML], [rst2html])
+AC_CHECK_PROGS([RST2MAN], [rst2man rst2man.py])
+AC_CHECK_PROGS([RST2HTML], [rst2html rst2html.py])
 AM_CONDITIONAL([HAVE_PYDOCUTILS], [test "${RST2MAN}" -a "${RST2HTML}"])
 
 # Set -std=c99 unless user already specified a -std=
