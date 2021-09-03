@@ -104,6 +104,18 @@ int net_iface_mtu_set(openvpn_net_ctx_t *ctx,
                       const openvpn_net_iface_t *iface, uint32_t mtu);
 
 /**
+ * Set the Link Layer (Ethernet) address of the TAP interface
+ *
+ * @param ctx       the implementation specific context
+ * @param iface     the interface to modify
+ * @param addr      the new address to set (expected ETH_ALEN bytes (6))
+ *
+ * @return          0 on success, a negative error code otherwise
+ */
+int net_addr_ll_set(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                    uint8_t *addr);
+
+/**
  * Add an IPv4 address to an interface
  *
  * @param ctx       the implementation specific context
