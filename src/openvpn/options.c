@@ -3120,26 +3120,20 @@ options_postprocess_cipher(struct options *o)
         /* We still need to set the ciphername to BF-CBC since various other
          * parts of OpenVPN assert that the ciphername is set */
         o->ciphername = "BF-CBC";
+
+        msg(M_INFO, "Note: --cipher is not set. OpenVPN versions before 2.6 "
+                    "defaulted to BF-CBC as fallback when cipher negotiation "
+                    "failed in this case. If you need this fallback please add "
+                    "'--data-ciphers-fallback 'BF-CBC' to your configuration "
+                    "and/or add BF-CBC to --data-ciphers.");
     }
     else if (!o->enable_ncp_fallback
              && !tls_item_in_cipher_list(o->ciphername, o->ncp_ciphers))
     {
-        msg(M_WARN, "DEPRECATED OPTION: --cipher set to '%s' but missing in"
-            " --data-ciphers (%s). Future OpenVPN version will "
-            "ignore --cipher for cipher negotiations. "
-            "Add '%s' to --data-ciphers or change --cipher '%s' to "
-            "--data-ciphers-fallback '%s' to silence this warning.",
-            o->ciphername, o->ncp_ciphers, o->ciphername,
-            o->ciphername, o->ciphername);
-        o->enable_ncp_fallback = true;
-
-        /* Append the --cipher to ncp_ciphers to allow it in NCP */
-        size_t newlen = strlen(o->ncp_ciphers) + 1 + strlen(o->ciphername) + 1;
-        char *ncp_ciphers = gc_malloc(newlen, false, &o->gc);
-
-        ASSERT(openvpn_snprintf(ncp_ciphers, newlen, "%s:%s", o->ncp_ciphers,
-                                o->ciphername));
-        o->ncp_ciphers = ncp_ciphers;
+        msg(M_WARN, "DEPRECATED OPTION: --cipher set to '%s' but missing in "
+            "--data-ciphers (%s). OpenVPN ignores --cipher for cipher "
+            "negotiations. ",
+            o->ciphername, o->ncp_ciphers);
     }
 }
 
@@ -3170,6 +3164,18 @@ need_compatibility_before(const struct options *o, unsigned int version)
 static void
 options_set_backwards_compatible_options(struct options *o)
 {
+    /* Versions < 2.5.0 do need --cipher in the list of accepted ciphers.
+     * Version 2.4 might probably does not need it but NCP was not so
+     * good with 2.4 and ncp-disable might be more common on 2.4 peers.
+     * Only do this iif --cipher is not explicitly (BF-CBC). This is not
+     * 100% correct backwards compatible behaviour but 2.5 already behaved like
+     * this */
+    if (o->ciphername && need_compatibility_before(o, 20500)
+        && !tls_item_in_cipher_list(o->ciphername, o->ncp_ciphers))
+    {
+        append_cipher_to_ncp_list(o, o->ciphername);
+    }
+
     /* Compression is deprecated and we do not want to announce support for it
      * by default anymore, additionally DCO breaks with compression.
      *

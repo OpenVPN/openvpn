@@ -71,6 +71,18 @@ Deprecated features
     This option mainly served a role as debug option when NCP was first
     introduced. It should now no longer be necessary.
 
+``--cipher`` argument is no longer appended to ``--data-ciphers``
+    by default. Data cipher negotiation has been introduced in 2.4.0
+    and been significantly improved in 2.5.0. The implicit fallback
+    to the cipher specified in ``--cipher`` has been removed.
+    Effectively, ``--cipher`` is a no-op in TLS mode now, and will
+    only have an effect in pre-shared-key mode (``--secret``).
+    From now on ``--cipher`` should not be used in new configurations
+    for TLS mode.
+    Should backwards compatibility with older OpenVPN peers be
+    required, please see the ``--compat-mode`` instead.
+
+
 Compression no longer enabled by default
     Unless an explicit compression option is specified in the configuration,
     ``--allow-compression`` defaults to ``no`` in OpeNVPN 2.6.0.

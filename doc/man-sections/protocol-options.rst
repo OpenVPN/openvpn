@@ -57,26 +57,28 @@ configured in a compatible way between both the local and remote side.
   http://www.cs.ucsd.edu/users/mihir/papers/hmac.html
 
 --cipher alg
-  This option is deprecated for server-client mode. ``--data-ciphers``
-  or possibly `--data-ciphers-fallback`` should be used instead.
+  This option should not be used any longer in TLS mode and still
+  exists for two reasons:
+      * compatibility with old configurations still carrying it
+	around;
+      * allow users connecting to OpenVPN peers older than 2.6.0
+	to have ``--cipher`` configured the same way as the remote
+	counterpart. This can avoid MTU/frame size warnings.
+  Before 2.4.0, this option was used to select the cipher to be
+  configured on the data channel, however, later versions usually
+  ignored this directive in favour of a negotiated cipher.
+  Starting with 2.6.0, this option is always ignored in TLS mode
+  when it comes to configuring the cipher and will only control the
+  cipher for ``--secret`` pre-shared-key mode (note: this mode is
+  deprecated strictly not recommended).
 
-  Encrypt data channel packets with cipher algorithm ``alg``.
+  If you wish to specify the cipher to use on the data channel,
+  please see ``--data-ciphers`` (for regular negotiation) and
+  ``--data-ciphers-fallback`` (for a fallback option when the
+  negotiation cannot take place because the other peer is old or
+  has negotiation disabled).
 
-  The default is :code:`BF-CBC`, an abbreviation for Blowfish in Cipher
-  Block Chaining mode. When cipher negotiation (NCP) is allowed,
-  OpenVPN 2.4 and newer on both client and server side will automatically
-  upgrade to :code:`AES-256-GCM`.  See ``--data-ciphers`` for more details
-  on NCP.
-
-  Using :code:`BF-CBC` is no longer recommended, because of its 64-bit
-  block size. This small block size allows attacks based on collisions, as
-  demonstrated by SWEET32. See
-  https://community.openvpn.net/openvpn/wiki/SWEET32
-  for details. Due to this, support for :code:`BF-CBC`, :code:`DES`,
-  :code:`CAST5`, :code:`IDEA` and :code:`RC2` ciphers will be removed in
-  OpenVPN 2.6.
-
-  To see other ciphers that are available with OpenVPN, use the
+  To see ciphers that are available with OpenVPN, use the
   ``--show-ciphers`` option.
 
   Set ``alg`` to :code:`none` to disable encryption.

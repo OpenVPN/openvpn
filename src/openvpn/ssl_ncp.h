@@ -103,6 +103,14 @@ char *
 mutate_ncp_cipher_list(const char *list, struct gc_arena *gc);
 
 /**
+ * Appends the cipher specified by the ciphernamer parameter to to
+ * the o->ncp_ciphers list.
+ * @param o             options struct to modify. Its gc is also used
+ * @param ciphername    the ciphername to add
+ */
+void append_cipher_to_ncp_list(struct options *o, const char *ciphername);
+
+/**
  * Return true iff item is present in the colon-separated zero-terminated
  * cipher list.
  */

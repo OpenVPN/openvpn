@@ -66,6 +66,8 @@ which mode OpenVPN is configured as.
 
   - 2.5.x or lower: ``--allow-compression asym`` is automatically added
     to the configuration if no other compression options are present.
+  - 2.4.x or lower: The cipher in ``--cipher`` is appended to
+    ``--data-ciphers``
 
 --config file
   Load additional config options from ``file`` where each line corresponds

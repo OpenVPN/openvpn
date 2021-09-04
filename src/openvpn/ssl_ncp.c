@@ -172,6 +172,19 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
     return ret;
 }
 
+
+void
+append_cipher_to_ncp_list(struct options *o, const char *ciphername)
+{
+    /* Append the --cipher to ncp_ciphers to allow it in NCP */
+    size_t newlen = strlen(o->ncp_ciphers) + 1 + strlen(ciphername) + 1;
+    char *ncp_ciphers = gc_malloc(newlen, false, &o->gc);
+
+    ASSERT(openvpn_snprintf(ncp_ciphers, newlen, "%s:%s", o->ncp_ciphers,
+                            ciphername));
+    o->ncp_ciphers = ncp_ciphers;
+}
+
 bool
 tls_item_in_cipher_list(const char *item, const char *list)
 {
