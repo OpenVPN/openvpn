@@ -61,6 +61,12 @@ which mode OpenVPN is configured as.
   Note: Using this option reverts defaults to no longer recommended
   values and should be avoided if possible.
 
+  The following table details what defaults are changed depending on the
+  version specified.
+
+  - 2.5.x or lower: ``--allow-compression asym`` is automatically added
+    to the configuration if no other compression options are present.
+
 --config file
   Load additional config options from ``file`` where each line corresponds
   to one command line option, but with the leading '--' removed.

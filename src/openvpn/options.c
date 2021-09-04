@@ -3174,6 +3174,16 @@ need_compatibility_before(const struct options *o, unsigned int version)
 static void
 options_set_backwards_compatible_options(struct options *o)
 {
+    /* Compression is deprecated and we do not want to announce support for it
+     * by default anymore, additionally DCO breaks with compression.
+     *
+     * Disable compression by default starting with 2.6.0 if no other
+     * compression related option has been explicitly set */
+    if (!comp_non_stub_enabled(&o->comp) && !need_compatibility_before(o, 20600)
+        && (o->comp.flags == 0))
+    {
+        o->comp.flags = COMP_F_ALLOW_STUB_ONLY|COMP_F_ADVERTISE_STUBS_ONLY;
+    }
 }
 
 static void
@@ -7768,6 +7778,7 @@ add_option(struct options *options,
         else if (streq(p[1], "asym"))
         {
             options->comp.flags &= ~COMP_F_ALLOW_COMPRESS;
+            options->comp.flags |= COMP_F_ALLOW_ASYM;
         }
         else if (streq(p[1], "yes"))
         {
