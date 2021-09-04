@@ -3176,6 +3176,13 @@ options_set_backwards_compatible_options(struct options *o)
         append_cipher_to_ncp_list(o, o->ciphername);
     }
 
+    /* Versions < 2.4.0 additionally might be compiled with --enable-small and
+     * not have OCC strings required for "poor man's NCP" */
+    if (o->ciphername && need_compatibility_before(o, 20400))
+    {
+        o->enable_ncp_fallback = true;
+    }
+
     /* Compression is deprecated and we do not want to announce support for it
      * by default anymore, additionally DCO breaks with compression.
      *
