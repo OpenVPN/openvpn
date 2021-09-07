@@ -285,6 +285,8 @@ struct options
     bool advance_next_remote;
     /* Counts the number of unsuccessful connection attempts */
     unsigned int unsuccessful_attempts;
+    /* count of connection entries to advance by when no_advance is not set */
+    int ce_advance_count;
     /* the server can suggest a backoff time to the client, it
      * will still be capped by the max timeout between connections
      * (300s by default) */
