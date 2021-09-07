@@ -454,6 +454,12 @@ man_signal(struct management *man, const char *name)
 }
 
 static void
+man_command_unsupported(const char *command_name)
+{
+    msg(M_CLIENT, "ERROR: The '%s' command is not supported by the current daemon mode", command_name);
+}
+
+static void
 man_status(struct management *man, const int version, struct status_output *so)
 {
     if (man->persist.callback.status)
@@ -462,7 +468,7 @@ man_status(struct management *man, const int version, struct status_output *so)
     }
     else
     {
-        msg(M_CLIENT, "ERROR: The 'status' command is not supported by the current daemon mode");
+        man_command_unsupported("status");
     }
 }
 
@@ -583,7 +589,7 @@ man_kill(struct management *man, const char *victim)
     }
     else
     {
-        msg(M_CLIENT, "ERROR: The 'kill' command is not supported by the current daemon mode");
+        man_command_unsupported("kill");
     }
 
     gc_free(&gc);
@@ -789,7 +795,7 @@ man_net(struct management *man)
     }
     else
     {
-        msg(M_CLIENT, "ERROR: The 'net' command is not supported by the current daemon mode");
+        man_command_unsupported("net");
     }
 }
 
@@ -811,7 +817,7 @@ man_send_cc_message(struct management *man, const char *message, const char *par
     }
     else
     {
-        msg(M_CLIENT, "ERROR: This command is not supported by the current daemon mode");
+        man_command_unsupported("cr-repsonse");
     }
 }
 #ifdef ENABLE_PKCS11
@@ -855,7 +861,7 @@ man_remote_entry_count(struct management *man)
     }
     else
     {
-        msg(M_CLIENT, "ERROR: The remote-entry-count command is not supported by the current daemon mode");
+        man_command_unsupported("remote-entry-count");
     }
 }
 
@@ -896,7 +902,7 @@ man_remote_entry_get(struct management *man, const char *p1, const char *p2)
     }
     else
     {
-        msg(M_CLIENT, "ERROR: The remote-entry command is not supported by the current daemon mode");
+        man_command_unsupported("remote-entry-get");
     }
 }
 
@@ -985,7 +991,7 @@ in_extra_dispatch(struct management *man)
             }
             else
             {
-                msg(M_CLIENT, "ERROR: The client-auth command is not supported by the current daemon mode");
+                man_command_unsupported("client-auth");
             }
             break;
 
@@ -1069,7 +1075,7 @@ man_client_pending_auth(struct management *man, const char *cid_str,
         }
         else
         {
-            msg(M_CLIENT, "ERROR: The client-pending-auth command is not supported by the current daemon mode");
+            man_command_unsupported("client-pending-auth");
         }
     }
 }
@@ -1120,7 +1126,7 @@ man_client_deny(struct management *man, const char *cid_str, const char *kid_str
         }
         else
         {
-            msg(M_CLIENT, "ERROR: The client-deny command is not supported by the current daemon mode");
+            man_command_unsupported("client-deny");
         }
     }
 }
@@ -1145,7 +1151,7 @@ man_client_kill(struct management *man, const char *cid_str, const char *kill_ms
         }
         else
         {
-            msg(M_CLIENT, "ERROR: The client-kill command is not supported by the current daemon mode");
+            man_command_unsupported("client-kill");
         }
     }
 }
@@ -1160,7 +1166,7 @@ man_client_n_clients(struct management *man)
     }
     else
     {
-        msg(M_CLIENT, "ERROR: The nclients command is not supported by the current daemon mode");
+        man_command_unsupported("nclients");
     }
 }
 
@@ -1268,7 +1274,7 @@ man_proxy(struct management *man, const char **p)
     }
     else
     {
-        msg(M_CLIENT, "ERROR: The proxy command is not supported by the current daemon mode");
+        man_command_unsupported("proxy");
     }
 }
 
@@ -1289,7 +1295,7 @@ man_remote(struct management *man, const char **p)
     }
     else
     {
-        msg(M_CLIENT, "ERROR: The remote command is not supported by the current daemon mode");
+        man_command_unsupported("remote");
     }
 }
 
