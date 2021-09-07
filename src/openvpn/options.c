@@ -916,6 +916,16 @@ init_options(struct options *o, const bool init_gc)
 void
 uninit_options(struct options *o)
 {
+    if (o->connection_list)
+    {
+        free(o->connection_list->array);
+        CLEAR(*o->connection_list);
+    }
+    if (o->remote_list)
+    {
+        free(o->remote_list->array);
+        CLEAR(*o->remote_list);
+    }
     if (o->gc_owned)
     {
         gc_free(&o->gc);
@@ -2160,10 +2170,17 @@ alloc_connection_entry(struct options *options, const int msglevel)
     struct connection_list *l = alloc_connection_list_if_undef(options);
     struct connection_entry *e;
 
-    if (l->len >= CONNECTION_LIST_SIZE)
+    if (l->len == l->capacity)
     {
-        msg(msglevel, "Maximum number of 'connection' options (%d) exceeded", CONNECTION_LIST_SIZE);
-        return NULL;
+        int capacity = l->capacity + CONNECTION_LIST_SIZE;
+        struct connection_entry **ce = realloc(l->array, capacity*sizeof(struct connection_entry *));
+        if (ce == NULL)
+        {
+            msg(msglevel, "Unable to process more connection options: out of memory. Number of entries = %d", l->len);
+            return NULL;
+        }
+        l->array = ce;
+        l->capacity = capacity;
     }
     ALLOC_OBJ_GC(e, struct connection_entry, &options->gc);
     l->array[l->len++] = e;
@@ -2186,10 +2203,17 @@ alloc_remote_entry(struct options *options, const int msglevel)
     struct remote_list *l = alloc_remote_list_if_undef(options);
     struct remote_entry *e;
 
-    if (l->len >= CONNECTION_LIST_SIZE)
+    if (l->len == l->capacity)
     {
-        msg(msglevel, "Maximum number of 'remote' options (%d) exceeded", CONNECTION_LIST_SIZE);
-        return NULL;
+        int capacity = l->capacity + CONNECTION_LIST_SIZE;
+        struct remote_entry **re = realloc(l->array, capacity*sizeof(struct remote_entry *));
+        if (re == NULL)
+        {
+            msg(msglevel, "Unable to process more remote options: out of memory. Number of entries = %d", l->len);
+            return NULL;
+        }
+        l->array = re;
+        l->capacity = capacity;
     }
     ALLOC_OBJ_GC(e, struct remote_entry, &options->gc);
     l->array[l->len++] = e;

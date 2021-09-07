@@ -46,6 +46,8 @@ instead: https://github.com/OpenVPN/openvpn/issues
 
 New features
 ------------
+Support unlimited number of connection entries and remote entries
+
 New management commands to enumerate and list remote entries
     Use ``remote-entry-count`` and ``remote-entry-get``
     commands from the management interface to get the number of
