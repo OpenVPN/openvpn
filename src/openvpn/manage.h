@@ -31,7 +31,7 @@
 #include "socket.h"
 #include "mroute.h"
 
-#define MANAGEMENT_VERSION                      3
+#define MANAGEMENT_VERSION                      4
 #define MANAGEMENT_N_PASSWORD_RETRIES           3
 #define MANAGEMENT_LOG_HISTORY_INITIAL_SIZE   100
 #define MANAGEMENT_ECHO_BUFFER_SIZE           100
@@ -181,6 +181,8 @@ struct management_callback
 #ifdef TARGET_ANDROID
     int (*network_change)(void *arg, bool samenetwork);
 #endif
+    unsigned int (*remote_entry_count)(void *arg);
+    bool (*remote_entry_get)(void *arg, unsigned int index, char **remote);
 };
 
 /*

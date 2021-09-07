@@ -96,6 +96,8 @@ man_help(void)
     msg(M_CLIENT, "net                    : (Windows only) Show network info and routing table.");
     msg(M_CLIENT, "password type p        : Enter password p for a queried OpenVPN password.");
     msg(M_CLIENT, "remote type [host port] : Override remote directive, type=ACCEPT|MOD|SKIP.");
+    msg(M_CLIENT, "remote-entry-count     : Get number of available remote entries.");
+    msg(M_CLIENT, "remote-entry-get  i|all [j]: Get remote entry at index = i to to j-1 or all.");
     msg(M_CLIENT, "proxy type [host port flags] : Enter dynamic proxy server info.");
     msg(M_CLIENT, "pid                    : Show process ID of the current OpenVPN process.");
 #ifdef ENABLE_PKCS11
@@ -842,6 +844,63 @@ man_pkcs11_id_get(struct management *man, const int index)
 #endif /* ifdef ENABLE_PKCS11 */
 
 static void
+man_remote_entry_count(struct management *man)
+{
+    unsigned count = 0;
+    if (man->persist.callback.remote_entry_count)
+    {
+        count = (*man->persist.callback.remote_entry_count)(man->persist.callback.arg);
+        msg(M_CLIENT, "%u", count);
+        msg(M_CLIENT, "END");
+    }
+    else
+    {
+        msg(M_CLIENT, "ERROR: The remote-entry-count command is not supported by the current daemon mode");
+    }
+}
+
+#define min(a, b) ((a) < (b) ? (a) : (b))
+
+static void
+man_remote_entry_get(struct management *man, const char *p1, const char *p2)
+{
+    ASSERT(p1);
+
+    if (man->persist.callback.remote_entry_get
+        && man->persist.callback.remote_entry_count)
+    {
+        bool res;
+        unsigned int from, to;
+        unsigned int count = (*man->persist.callback.remote_entry_count)(man->persist.callback.arg);
+
+        from = (unsigned int) atoi(p1);
+        to = p2 ? (unsigned int) atoi(p2) : from + 1;
+
+        if (!strcmp(p1, "all"))
+        {
+            from = 0;
+            to = count;
+        }
+
+        for (unsigned int i = from; i < min(to, count); i++)
+        {
+            char *remote = NULL;
+            res = (*man->persist.callback.remote_entry_get)(man->persist.callback.arg, i, &remote);
+            if (res && remote)
+            {
+                msg(M_CLIENT, "%u,%s", i, remote);
+            }
+            free(remote);
+        }
+        msg(M_CLIENT, "END");
+    }
+    else
+    {
+        msg(M_CLIENT, "ERROR: The remote-entry command is not supported by the current daemon mode");
+    }
+}
+
+static void
 man_hold(struct management *man, const char *cmd)
 {
     if (cmd)
@@ -1563,6 +1622,17 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
         }
     }
 #endif
+    else if (streq(p[0], "remote-entry-count"))
+    {
+        man_remote_entry_count(man);
+    }
+    else if (streq(p[0], "remote-entry-get"))
+    {
+        if (man_need(man, p, 1, MN_AT_LEAST))
+        {
+            man_remote_entry_get(man, p[1], p[2]);
+        }
+    }
     else if (streq(p[0], "proxy"))
     {
         if (man_need(man, p, 1, MN_AT_LEAST))

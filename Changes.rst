@@ -10,6 +10,11 @@ instead: https://github.com/OpenVPN/openvpn/issues
 
 New features
 ------------
+New management commands to enumerate and list remote entries
+    Use ``remote-entry-count`` and ``remote-entry-get``
+    commands from the management interface to get the number of
+    remote entries and the entries themselves.
+
 Keying Material Exporters (RFC 5705) based key generation
     As part of the cipher negotiation OpenVPN will automatically prefer
     the RFC5705 based key material generation to the current custom

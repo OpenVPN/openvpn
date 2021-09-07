@@ -785,6 +785,66 @@ Immediately kill a client instance by CID.
 CID -- client ID.  See documentation for ">CLIENT:" notification for more
 info.
 
+COMMAND -- remote-entry-count (OpenVPN 2.6+ management version > 3)
+-------------------------------------------------------------------
+
+Retrieve available number of remote host/port entries
+
+Example:
+
+  Management interface client sends:
+
+    remote-entry-count
+
+  OpenVPN daemon responds with
+
+  5
+  END
+
+COMMAND -- remote-entry-get (OpenVPN 2.6+ management version > 3)
+------------------------------------------------------------------
+
+  remote-entry-get <start> [<end>]
+
+Retrieve remote entry (host, port and protocol) for index
+<start> or indices from <start> to <end>+1. Alternatively
+<start> = "all" retrieves all remote entries.
+
+Example 1:
+
+  Management interface client sends:
+
+    remote-entry-get 1
+
+  OpenVPN daemon responds with
+
+  1,vpn.example.com,1194,udp
+  END
+
+Example 2:
+
+  Management interface client sends:
+
+    remote-entry-get 1 3
+
+  OpenVPN daemon responds with
+
+    1,vpn.example.com,1194,udp
+    2,vpn.example.net,443,tcp-client
+    END
+
+Example 3:
+  Management interface client sends:
+
+    remote-entry-get all
+
+  OpenVPN daemon with 3 connection entries responds with
+
+    1,vpn.example.com,1194,udp
+    2,vpn.example.com,443,tcp-client
+    3,vpn.example.net,443,udp
+    END
+
 COMMAND -- remote  (OpenVPN AS 2.1.5/OpenVPN 2.3 or higher)
 --------------------------------------------
 
