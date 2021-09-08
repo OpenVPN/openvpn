@@ -45,6 +45,12 @@ Pending auth support for plugins and scripts
 
     See ``sample/sample-scripts/totpauth.py`` for an example.
 
+Compatibility mode (``--compat-mode``)
+    The modernisation of defaults can impact the compatibility of OpenVPN 2.6.0
+    with older peers. The options ``--compat-mode`` allows UIs to provide users
+    with an easy way to still connect to older servers.
+
+
 Deprecated features
 -------------------
 ``inetd`` has been removed

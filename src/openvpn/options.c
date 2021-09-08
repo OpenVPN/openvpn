@@ -3147,6 +3147,35 @@ options_postprocess_cipher(struct options *o)
     }
 }
 
+/**
+ * The option --compat-mode is used to set up default settings to values 
+ * used on the specified openvpn version and earlier.
+ *
+ * This function is used in various "default option" paths to test if the
+ * user requested compatibility with a version before the one specified
+ * as argument. This way some default settings can be automatically 
+ * altered to guarantee compatibility with the version specified by the 
+ * user via --compat-mode.
+ *
+ * @param version   need compatibility with openvpn versions before the
+ *                  one specified (20401 = before 2.4.1)
+ * @return          whether compatibility should be enabled
+ */
+static bool
+need_compatibility_before(const struct options *o, unsigned int version)
+{
+    return o->backwards_compatible != 0 && o->backwards_compatible < version;
+}
+
+/**
+ * Changes default values so that OpenVPN can be compatible with the user
+ * specified version
+ */
+static void
+options_set_backwards_compatible_options(struct options *o)
+{
+}
+
 static void
 options_postprocess_mutate(struct options *o)
 {
@@ -3160,6 +3189,8 @@ options_postprocess_mutate(struct options *o)
     helper_tcp_nodelay(o);
 
     options_postprocess_setdefault_ncpciphers(o);
+    options_set_backwards_compatible_options(o);
+
     options_postprocess_cipher(o);
     options_postprocess_mutate_invariant(o);
 
@@ -6727,6 +6758,18 @@ add_option(struct options *options,
             }
             setenv_str(es, p[1], p[2] ? p[2] : "");
         }
+    }
+    else if (streq(p[0], "compat-mode") && p[1] && !p[3])
+    {
+        unsigned int major, minor, patch;
+        if (!(sscanf(p[1], "%u.%u.%u", &major, &minor, &patch) == 3))
+        {
+            msg(msglevel, "cannot parse version number for --compat-mode: %s",
+                p[1]);
+            goto err;
+        }
+
+        options->backwards_compatible = major * 10000 + minor * 100 + patch;
     }
     else if (streq(p[0], "setenv-safe") && p[1] && !p[3])
     {
