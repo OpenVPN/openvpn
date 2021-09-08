@@ -144,13 +144,13 @@ jobs:
       - name: make check
         run: make check
 
-  ubutun20-clang-asan:
+  ubuntu-clang-asan:
     strategy:
       matrix:
-        os: [ubuntu-16.04, ubuntu-18.04]
+        os: [ubuntu-20.04]
         ssllib: [mbedtls, openssl]
 
-    runs-on: ubuntu-20.04
+    runs-on: ${{matrix.os}}
     steps:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html clang libcmocka-dev python3-docutils libtool automake autoconf libmbedtls-dev
