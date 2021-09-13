@@ -70,6 +70,8 @@ which mode OpenVPN is configured as.
     ``--data-ciphers``
   - 2.3.x or lower: ``--data-cipher-fallback`` is automatically added with
     the same cipher as ``--cipher``
+  - 2.3.6 or lower: ``--tls-version-min 1.0`` is added to the configuration
+    when ``--tls-version-min`` is not explicitly set.
 
 --config file
   Load additional config options from ``file`` where each line corresponds

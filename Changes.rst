@@ -71,6 +71,11 @@ Deprecated features
     This option mainly served a role as debug option when NCP was first
     introduced. It should now no longer be necessary.
 
+TLS 1.0 and 1.1 are deprecated
+    ``tls-version-min`` is set to 1.2 by default.  OpenVPN 2.6.0 defaults
+    to a minimum TLS version of 1.2 as TLS 1.0 and 1.1 should be generally
+    avoided. Note that OpenVPN versions older than 2.3.7 use TLS 1.0 only.
+
 ``--cipher`` argument is no longer appended to ``--data-ciphers``
     by default. Data cipher negotiation has been introduced in 2.4.0
     and been significantly improved in 2.5.0. The implicit fallback

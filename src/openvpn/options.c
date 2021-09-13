@@ -3164,6 +3164,21 @@ need_compatibility_before(const struct options *o, unsigned int version)
 static void
 options_set_backwards_compatible_options(struct options *o)
 {
+    /* TLS min version is not set */
+    if ((o->ssl_flags & SSLF_TLS_VERSION_MIN_MASK) == 0)
+    {
+        if (need_compatibility_before(o, 20307))
+        {
+            /* 2.3.6 and earlier have TLS 1.0 only, set minimum to TLS 1.0 */
+            o->ssl_flags = (TLS_VER_1_0 << SSLF_TLS_VERSION_MIN_SHIFT);
+        }
+        else
+        {
+            /* Use TLS 1.2 as proper default */
+            o->ssl_flags = (TLS_VER_1_2 << SSLF_TLS_VERSION_MIN_SHIFT);
+        }
+    }
+
     /* Versions < 2.5.0 do need --cipher in the list of accepted ciphers.
      * Version 2.4 might probably does not need it but NCP was not so
      * good with 2.4 and ncp-disable might be more common on 2.4 peers.

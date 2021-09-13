@@ -545,8 +545,8 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   them.
 
 --tls-version-min args
-  Sets the minimum TLS version we will accept from the peer (default is
-  "1.0").
+  Sets the minimum TLS version we will accept from the peer (default in
+  2.6.0 and later is "1.2").
 
   Valid syntax:
   ::
