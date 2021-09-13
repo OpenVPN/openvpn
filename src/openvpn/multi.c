@@ -3250,10 +3250,8 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                                 /* if dest addr is a known client, route to it */
                                 if (mi)
                                 {
-                                    {
-                                        multi_unicast(m, &c->c2.to_tun, mi);
-                                        register_activity(c, BLEN(&c->c2.to_tun));
-                                    }
+                                    multi_unicast(m, &c->c2.to_tun, mi);
+                                    register_activity(c, BLEN(&c->c2.to_tun));
                                     c->c2.to_tun.len = 0;
                                 }
                             }
