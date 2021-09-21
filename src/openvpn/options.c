@@ -2210,14 +2210,14 @@ options_postprocess_verify_ce(const struct options *options,
 
 #endif /* ifdef ENABLE_MANAGEMENT */
 
-#if  defined(ENABLE_MANAGEMENT)
+#if defined(ENABLE_MANAGEMENT) && !defined(HAVE_XKEY_PROVIDER)
     if ((tls_version_max() >= TLS_VER_1_3)
         && (options->management_flags & MF_EXTERNAL_KEY)
         && !(options->management_flags & (MF_EXTERNAL_KEY_NOPADDING))
         )
     {
-        msg(M_ERR, "management-external-key with OpenSSL 1.1.1 requires "
-            "the nopadding argument/support");
+        msg(M_ERR, "management-external-key with TLS 1.3 or later requires "
+            "nopadding argument/support");
     }
 #endif
     /*
@@ -5563,6 +5563,10 @@ add_option(struct options *options,
             else if (streq(p[j], "pkcs1"))
             {
                 options->management_flags |= MF_EXTERNAL_KEY_PKCS1PAD;
+            }
+            else if (streq(p[j], "pss"))
+            {
+                options->management_flags |= MF_EXTERNAL_KEY_PSSPAD;
             }
             else
             {

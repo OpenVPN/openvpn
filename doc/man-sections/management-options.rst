@@ -90,9 +90,15 @@ server and client mode operations.
      management-external-key
      management-external-key nopadding
      management-external-key pkcs1
-     management-external-key nopadding pkcs1
+     management-external-key pss
 
-  The optional parameters :code:`nopadding` and :code:`pkcs1` signal
+  or any combination like:
+  ::
+
+     management-external-key nopadding pkcs1
+     management-external-key pkcs1 pss
+
+  The optional parameters :code:`nopadding` :code:`pkcs1` and :code:`pss` signal
   support for different padding algorithms. See
   :code:`doc/mangement-notes.txt` for a complete description of this
   feature.

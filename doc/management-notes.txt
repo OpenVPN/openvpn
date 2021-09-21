@@ -1019,10 +1019,24 @@ can be indicated in the signing request only if the client version is > 2"
 
 The currently defined padding algorithms are:
 
- - RSA_PKCS1_PADDING  -  PKCS1 padding and RSA signature
- - RSA_NO_PADDING     -  No padding may be added for the signature
- - ECDSA              -  EC signature.
+ - RSA_PKCS1_PADDING            -  PKCS1 padding and RSA signature
+ - RSA_NO_PADDING               -  No padding may be added for the signature
+ - ECDSA                        -  EC signature.
+ - RSA_PKCS1_PSS_PADDING,params -  RSA signature with PSS padding
 
+   The params for PSS are specified as 'hashalg=name,saltlen=[max|digest]'.
+
+   The hashalg names are short common names such as SHA256, SHA224, etc.
+   PSS saltlen="digest" means use the same size as the hash to sign, while
+   "max" indicates maximum possible saltlen which is
+   '(nbits-1)/8 - hlen - 2'. Here 'nbits' is the number of bits in the
+   key modulus and 'hlen' the size in octets of the hash.
+   (See: RFC 8017 sec 8.1.1 and 9.1.1)
+
+   In the case of PKCS1_PADDING, when the hash algorithm is not legacy
+   MD5-SHA1, the hash is encoded with DigestInfo header before presenting
+   to the management interface. This is identical to CKM_RSA_PKCS in Cryptoki
+   as well as what RSA_private_encrypt() in OpenSSL expects.
 
 COMMAND -- certificate (OpenVPN 2.4 or higher)
 ----------------------------------------------
