@@ -59,11 +59,14 @@ configured in a compatible way between both the local and remote side.
 --cipher alg
   This option should not be used any longer in TLS mode and still
   exists for two reasons:
-      * compatibility with old configurations still carrying it
-	around;
-      * allow users connecting to OpenVPN peers older than 2.6.0
-	to have ``--cipher`` configured the same way as the remote
-	counterpart. This can avoid MTU/frame size warnings.
+
+  * compatibility with old configurations still carrying it
+    around;
+
+  * allow users connecting to OpenVPN peers older than 2.6.0
+    to have ``--cipher`` configured the same way as the remote
+    counterpart. This can avoid MTU/frame size warnings.
+
   Before 2.4.0, this option was used to select the cipher to be
   configured on the data channel, however, later versions usually
   ignored this directive in favour of a negotiated cipher.
