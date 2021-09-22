@@ -26,7 +26,6 @@
 #define XKEY_COMMON_H_
 
 #ifdef HAVE_XKEY_PROVIDER
-
 #include <openssl/provider.h>
 #include <openssl/core_dispatch.h>
 

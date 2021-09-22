@@ -773,6 +773,15 @@ EVP_MD_fetch(void *ctx, const char *algorithm, const char *properties)
     ASSERT(!properties);
     return EVP_get_digestbyname(algorithm);
 }
+
+/** Reduce SSL_CTX_new_ex() to SSL_CTX_new() for OpenSSL < 3 */
+#define SSL_CTX_new_ex(libctx, propq, method)                \
+        SSL_CTX_new((method))
+
+/* Some safe typedefs to avoid too many ifdefs */
+typedef void OSSL_LIB_CTX;
+typedef void OSSL_PROVIDER;
+
 #endif /* OPENSSL_VERSION_NUMBER < 0x30000000L */
 
 #endif /* OPENSSL_COMPAT_H_ */

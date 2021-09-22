@@ -5330,6 +5330,22 @@ show_compression_warning(struct compress_options *info)
 }
 #endif
 
+bool key_is_external(const struct options *options)
+{
+    bool ret = false;
+#ifdef ENABLE_MANAGEMENT
+    ret = ret || (options->management_flags & MF_EXTERNAL_KEY);
+#endif
+#ifdef ENABLE_PKCS11
+    ret = ret || (options->pkcs11_providers[0] != NULL);
+#endif
+#ifdef ENABLE_CRYPTOAPI
+    ret = ret || options->cryptoapi_cert;
+#endif
+
+    return ret;
+}
+
 static void
 add_option(struct options *options,
            char *p[],
