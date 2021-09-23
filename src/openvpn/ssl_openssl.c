@@ -70,7 +70,7 @@
 #include <openssl/applink.c>
 #endif
 
-static OSSL_LIB_CTX *tls_libctx;
+OSSL_LIB_CTX *tls_libctx; /* Global */
 
 static void unload_xkey_provider(void);
 
