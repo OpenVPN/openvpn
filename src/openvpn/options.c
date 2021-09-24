@@ -5568,6 +5568,10 @@ add_option(struct options *options,
             {
                 options->management_flags |= MF_EXTERNAL_KEY_PSSPAD;
             }
+            else if (streq(p[j], "digest"))
+            {
+                options->management_flags |= MF_EXTERNAL_KEY_DIGEST;
+            }
             else
             {
                 msg(msglevel, "Unknown management-external-key flag: %s", p[j]);
