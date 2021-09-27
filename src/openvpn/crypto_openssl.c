@@ -410,7 +410,7 @@ crypto_pem_encode(const char *name, struct buffer *dst,
 
     ret = true;
 cleanup:
-    if (!BIO_free(bio))
+    if (BIO_free(bio) <= 0)
     {
         ret = false;
     }
@@ -463,7 +463,7 @@ cleanup:
     OPENSSL_free(name_read);
     OPENSSL_free(header_read);
     OPENSSL_free(data_read);
-    if (!BIO_free(bio))
+    if (BIO_free(bio) <= 0)
     {
         ret = false;
     }
