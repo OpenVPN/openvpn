@@ -107,7 +107,9 @@ net_addr_ll_set(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
     argv_msg(M_INFO, &argv);
     if (!openvpn_execve_check(&argv, ctx->es, M_WARN,
                               "Linux ip link set addr failed"))
+    {
         ret = -1;
+    }
 
     argv_free(&argv);
 
