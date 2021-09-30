@@ -664,6 +664,11 @@ static const char usage_message[] =
     "                              8       : Use Unwrap.\n"
     "--pkcs11-cert-private [0|1] ... : Set if login should be performed before\n"
     "                                  certificate can be accessed. Set for each provider.\n"
+    "--pkcs11-init-flags hex ...     : PKCS#11 init flags.\n"
+    "                              It's bitwise OR of some PKCS#11 initialize flags.\n"
+    "                              Most popular of them is:\n"
+    "                              1       : CKF_LIBRARY_CANT_CREATE_OS_THREADS\n"
+    "                              2       : CKF_OS_LOCKING_OK\n"
     "--pkcs11-pin-cache seconds      : Number of seconds to cache PIN. The default is -1\n"
     "                                  cache until token is removed.\n"
     "--pkcs11-id-management          : Acquire identity from management interface.\n"
@@ -1836,6 +1841,13 @@ show_settings(const struct options *o)
         for (i = 0; i<MAX_PARMS; i++)
         {
             SHOW_PARM(pkcs11_cert_private, o->pkcs11_cert_private[i] ? "ENABLED" : "DISABLED", "%s");
+        }
+    }
+    {
+        int i;
+        for (i = 0; i<MAX_PARMS; i++)
+        {
+            SHOW_PARM(pkcs11_init_flags, o->pkcs11_init_flags[i], "%08x");
         }
     }
     SHOW_INT(pkcs11_pin_cache_period);
@@ -8776,6 +8788,17 @@ add_option(struct options *options,
         for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
         {
             options->pkcs11_cert_private[j-1] = atoi(p[j]) != 0 ? 1 : 0;
+        }
+    }
+    else if (streq(p[0], "pkcs11-init-flags"))
+    {
+        int j;
+
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+
+        for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+        {
+            sscanf(p[j], "%x", &(options->pkcs11_init_flags[j-1]));
         }
     }
     else if (streq(p[0], "pkcs11-pin-cache") && p[1] && !p[2])

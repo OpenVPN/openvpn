@@ -374,12 +374,17 @@ pkcs11_terminate(void)
 bool
 pkcs11_addProvider(
     const char *const provider,
-    const bool protected_auth,
+    const bool _protected_auth,
     const unsigned private_mode,
-    const bool cert_private
+    const bool _cert_private,
+    const unsigned init_flags
     )
 {
     CK_RV rv = CKR_OK;
+    int success = true;
+    PKCS11H_BOOL protected_auth = _protected_auth;
+    PKCS11H_BOOL cert_private = _cert_private;
+    CK_C_INITIALIZE_ARGS_PTR p_init_args;
 
     ASSERT(provider!=NULL);
 
@@ -396,29 +401,66 @@ pkcs11_addProvider(
         provider
         );
 
-    if (
-        (rv = pkcs11h_addProvider(
-             provider,
-             provider,
-             protected_auth,
-             private_mode,
-             PKCS11H_SLOTEVENT_METHOD_AUTO,
-             0,
-             cert_private
-             )) != CKR_OK
-        )
-    {
-        msg(M_WARN, "PKCS#11: Cannot initialize provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage(rv));
+    if ((rv = pkcs11h_registerProvider(provider)) != CKR_OK) {
+        msg(M_WARN, "PKCS#11: Cannot register provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage(rv));
+	success = false;
+	goto exit;
+    }
+    if ((rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_LOCATION, provider, strlen(provider) + 1)) != CKR_OK) {
+        msg(M_WARN, "PKCS#11: Cannot setup provider '%s' location '%s' %ld-'%s'", provider, provider, rv, pkcs11h_getMessage(rv));
+	success = false;
+        goto cleanup;
+    }
+    if ((rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_ALLOW_PROTECTED_AUTH, &protected_auth, sizeof(protected_auth))) != CKR_OK) {
+        msg(M_WARN, "PKCS#11: Cannot setup provider '%s' ptorected auth mode '%s' %ld-'%s'", provider,  protected_auth ? "true" : "false", rv, pkcs11h_getMessage(rv));
+	success = false;
+        goto cleanup;
+    }
+    if ((rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_MASK_PRIVATE_MODE, &private_mode, sizeof(private_mode))) != CKR_OK) {
+        msg(M_WARN, "PKCS#11: Cannot setup provider '%s' private mask mode '%08x' %ld-'%s'", provider, private_mode, rv, pkcs11h_getMessage(rv));
+	success = false;
+        goto cleanup;
+    }
+    if ((rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_CERT_IS_PRIVATE, &cert_private, sizeof(cert_private))) != CKR_OK) {
+        msg(M_WARN, "PKCS#11: Cannot setup provider '%s' private cert mode '%s' %ld-'%s'", provider, cert_private ? "true" : "false", rv, pkcs11h_getMessage(rv));
+	success = false;
+        goto cleanup;
     }
 
+    // pkcs11-helper take ownership over this pointer
+    if ((p_init_args = malloc(sizeof(*p_init_args))) == NULL) {
+        msg(M_FATAL, "PKCS#11: Cannot allocate memory");
+	success = false;
+	goto cleanup;
+    }
+
+    memset(p_init_args, 0, sizeof(*p_init_args));
+    p_init_args->flags = init_flags;
+
+    if ((rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_INIT_ARGS, &p_init_args, sizeof(p_init_args))) != CKR_OK) {
+        msg(M_WARN, "PKCS#11: Cannot setup provider '%s' init flags '%08x' %ld-'%s'", provider, init_flags, rv, pkcs11h_getMessage(rv));
+        free(p_init_args);
+	success = false;
+	goto cleanup;
+    }
+    if ((rv = pkcs11h_initializeProvider(provider)) != CKR_OK) {
+	success = false;
+        goto cleanup;
+    }
+
+cleanup:
+    if (!success) {
+        pkcs11h_removeProvider(provider);
+    }
+
+exit:
     dmsg(
         D_PKCS11_DEBUG,
-        "PKCS#11: pkcs11_addProvider - return rv=%ld-'%s'",
-        rv,
-        pkcs11h_getMessage(rv)
-        );
+        "PKCS#11: pkcs11 registration is %s",
+        success ? "success" : "failed"
+	);
 
-    return rv == CKR_OK;
+    return success;
 }
 
 int
