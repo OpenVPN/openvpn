@@ -1,6 +1,38 @@
 OpenVPN Change Log
 Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
 
+2021.10.04 -- Version 2.5.4
+
+Antonio Quartulli (3):
+      route.c: pass the right parameter to IN6_IS_ADDR_UNSPECIFIED
+      configure: search also for rst2{man, html}.py
+      networking: add networking API net_addr_ll_set() and use it on Linux
+
+Arne Schwabe (1):
+      Move examples into openvpn-examples(5) man page
+
+David Korczynski (1):
+      Fix argv leaks in add_route() and add_route_ipv6()
+
+David Sommerseth (2):
+      doc: Use generic rules for man/html generation
+      man: Clarify IV_HWADDR
+
+Gert Doering (1):
+      Add error reporting to get_console_input_win32().
+
+Lev Stipakov (3):
+      Fix console prompts with redirected log
+      Add building man page on Windows
+      GitHub Actions: remove Ubuntu 16.04 environment
+
+Max Fillinger (1):
+      Update Fox e-mail address in copyright notices
+
+Selva Nair (1):
+      Minor doc correction: tls-crypt-v2 key generation
+
+
 2021.06.17 -- Version 2.5.3
 
 Arne Schwabe (3):

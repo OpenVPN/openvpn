@@ -1,3 +1,35 @@
+Overview of changes in 2.5.4
+============================
+Bugfixes
+--------
+- fix prompting for password on windows console if stderr redirection
+  is in use - this breaks 2.5.x on Win11/ARM, and might also break
+  on Win11/adm64 when released.
+
+- fix setting MAC address on TAP adapters (--lladdr) to use sitnl
+  (was overlooked, and still used "ifconfig" calls)
+
+- various improvements for man page building (rst2man/rst2html etc)
+
+- minor bugfix with IN6_IS_ADDR_UNSPECIFIED() use (breaks build on
+  at least one platform strictly checking this)
+
+- fix minor memory leak under certain conditions in add_route() and
+  add_route_ipv6()
+
+User-visible Changes
+--------------------
+- documentation improvements
+
+- copyright updates where needed
+
+- better error reporting when win32 console access fails
+
+New features
+------------
+- also build man page on Windows builds
+
+
 Overview of changes in 2.5.3
 ============================
 Bugfixes
