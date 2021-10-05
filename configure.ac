@@ -1302,8 +1302,6 @@ AC_DEFUN([ACL_CHECK_ADD_COMPILE_FLAGS], [
 )
 
 ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-stringop-truncation])
-ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-unused-function])
-ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-unused-parameter])
 ACL_CHECK_ADD_COMPILE_FLAGS([-Wall])
 
 if test "${enable_pedantic}" = "yes"; then
