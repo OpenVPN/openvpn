@@ -2180,6 +2180,7 @@ delete_route(struct route_ipv4 *r,
 
     if ((r->flags & (RT_DEFINED|RT_ADDED)) != (RT_DEFINED|RT_ADDED))
     {
+        argv_free(&argv);
         return;
     }
 
@@ -2367,6 +2368,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
 
     if ((r6->flags & (RT_DEFINED|RT_ADDED)) != (RT_DEFINED|RT_ADDED))
     {
+        argv_free(&argv);
         return;
     }
 
