@@ -1571,7 +1571,7 @@ add_route(struct route_ipv4 *r,
           openvpn_net_ctx_t *ctx)
 {
     struct gc_arena gc;
-    struct argv argv = argv_new();
+    struct argv argv;
 #if !defined(TARGET_LINUX)
     const char *network;
 #if !defined(TARGET_AIX)
@@ -1584,10 +1584,10 @@ add_route(struct route_ipv4 *r,
 
     if (!(r->flags & RT_DEFINED))
     {
-        argv_free(&argv);
         return;
     }
-
+    
+    argv = argv_new();
     gc_init(&gc);
 
 #if !defined(TARGET_LINUX)
@@ -1879,7 +1879,7 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
                openvpn_net_ctx_t *ctx)
 {
     struct gc_arena gc;
-    struct argv argv = argv_new();
+    struct argv argv;
 
     const char *network;
     const char *gateway;
@@ -1892,7 +1892,6 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
 
     if (!(r6->flags & RT_DEFINED) )
     {
-        argv_free(&argv);
         return;
     }
 
@@ -1906,7 +1905,8 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
         }
     }
 #endif
-
+ 
+    argv = argv_new();
     gc_init(&gc);
 
     route_ipv6_clear_host_bits(r6);
@@ -2164,7 +2164,7 @@ delete_route(struct route_ipv4 *r,
              openvpn_net_ctx_t *ctx)
 {
     struct gc_arena gc;
-    struct argv argv = argv_new();
+    struct argv argv;
 #if !defined(TARGET_LINUX)
     const char *network;
 #if !defined(TARGET_AIX)
@@ -2180,10 +2180,10 @@ delete_route(struct route_ipv4 *r,
 
     if ((r->flags & (RT_DEFINED|RT_ADDED)) != (RT_DEFINED|RT_ADDED))
     {
-        argv_free(&argv);
         return;
     }
 
+    argv = argv_new();
     gc_init(&gc);
 
 #if !defined(TARGET_LINUX)
@@ -2356,7 +2356,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
                   openvpn_net_ctx_t *ctx)
 {
     struct gc_arena gc;
-    struct argv argv = argv_new();
+    struct argv argv;
     const char *network;
 #if !defined(TARGET_LINUX)
     const char *gateway;
@@ -2368,7 +2368,6 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
 
     if ((r6->flags & (RT_DEFINED|RT_ADDED)) != (RT_DEFINED|RT_ADDED))
     {
-        argv_free(&argv);
         return;
     }
 
@@ -2380,6 +2379,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     }
 #endif
 
+    argv = argv_new();
     gc_init(&gc);
 
     network = print_in6_addr( r6->network, 0, &gc);
