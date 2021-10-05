@@ -1572,8 +1572,6 @@ add_route(struct route_ipv4 *r,
 {
     struct gc_arena gc;
     struct argv argv;
-
-
 #if !defined(TARGET_LINUX)
     const char *network;
 #if !defined(TARGET_AIX)
