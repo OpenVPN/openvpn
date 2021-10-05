@@ -1572,6 +1572,8 @@ add_route(struct route_ipv4 *r,
 {
     struct gc_arena gc;
     struct argv argv;
+
+
 #if !defined(TARGET_LINUX)
     const char *network;
 #if !defined(TARGET_AIX)
@@ -1906,7 +1908,7 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
     }
 #endif
  
-    argv = argv_new()
+    argv = argv_new();
     gc_init(&gc);
 
     route_ipv6_clear_host_bits(r6);
