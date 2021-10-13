@@ -509,6 +509,9 @@
     <ClInclude Include="ssl_ncp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="openssl_compat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="openvpn_win32_resources.rc">
