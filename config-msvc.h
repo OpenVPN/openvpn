@@ -4,7 +4,6 @@
 
 #define ENABLE_PF 1
 #define ENABLE_CRYPTO_OPENSSL 1
-#define ENABLE_DEBUG 1
 #define ENABLE_FRAGMENT 1
 #define ENABLE_HTTP_PROXY 1
 #define ENABLE_LZO 1
@@ -67,8 +66,9 @@
 #define in_addr_t uint32_t
 #define ssize_t SSIZE_T
 
-#define S_IRUSR 0
-#define S_IWUSR 0
+#define S_IRUSR _S_IREAD
+#define S_IWUSR _S_IWRITE
+#define S_IRGRP (S_IRUSR >> 3)
 #define R_OK 4
 #define W_OK 2
 #define X_OK 1
