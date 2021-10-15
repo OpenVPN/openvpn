@@ -3167,15 +3167,22 @@ options_set_backwards_compatible_options(struct options *o)
     /* TLS min version is not set */
     if ((o->ssl_flags & SSLF_TLS_VERSION_MIN_MASK) == 0)
     {
+        int tls_ver_max = (o->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT)
+                          & SSLF_TLS_VERSION_MAX_MASK;
         if (need_compatibility_before(o, 20307))
         {
             /* 2.3.6 and earlier have TLS 1.0 only, set minimum to TLS 1.0 */
-            o->ssl_flags = (TLS_VER_1_0 << SSLF_TLS_VERSION_MIN_SHIFT);
+            o->ssl_flags |= (TLS_VER_1_0 << SSLF_TLS_VERSION_MIN_SHIFT);
+        }
+        else if (tls_ver_max == 0 || tls_ver_max >= TLS_VER_1_2)
+        {
+            /* Use TLS 1.2 as proper default */
+            o->ssl_flags |= (TLS_VER_1_2 << SSLF_TLS_VERSION_MIN_SHIFT);
         }
         else
         {
-            /* Use TLS 1.2 as proper default */
-            o->ssl_flags = (TLS_VER_1_2 << SSLF_TLS_VERSION_MIN_SHIFT);
+            /* Maximize the minimum version */
+            o->ssl_flags |= (tls_ver_max << SSLF_TLS_VERSION_MIN_SHIFT);
         }
     }
 
