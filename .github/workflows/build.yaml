@@ -215,11 +215,11 @@ jobs:
         run: python -m pip install --upgrade pip rst2html
 
       - name: Restore artifacts, or run vcpkg, build and cache artifacts
-        uses: lukka/run-vcpkg@main
+        uses: lukka/run-vcpkg@v7.4
         with:
+          vcpkgGitCommitId: '71422c627264daedcbcd46f01f1ed0dcd8460f1b'
           vcpkgArguments: 'openssl lz4 lzo pkcs11-helper tap-windows6'
           vcpkgTriplet: '${{ matrix.triplet }}-windows-ovpn'
-          vcpkgGitCommitId: '261c458af6e3eed5d099144aff95d2b5035f656b'
           cleanAfterBuild: false
 
       - name: Build
