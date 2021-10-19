@@ -576,7 +576,7 @@ cipher_kt_get(const char *ciphername)
     ASSERT(ciphername);
 
     ciphername = translate_cipher_name_from_openvpn(ciphername);
-    cipher = EVP_get_cipherbyname(ciphername);
+    cipher = EVP_CIPHER_fetch(NULL, ciphername, NULL);
 
     if (NULL == cipher)
     {
@@ -662,7 +662,7 @@ cipher_kt_block_size(const EVP_CIPHER *cipher)
 
     strcpy(mode_str, "-CBC");
 
-    cbc_cipher = EVP_get_cipherbyname(translate_cipher_name_from_openvpn(name));
+    cbc_cipher = EVP_CIPHER_fetch(NULL,translate_cipher_name_from_openvpn(name), NULL);
     if (cbc_cipher)
     {
         block_size = EVP_CIPHER_block_size(cbc_cipher);
@@ -885,7 +885,7 @@ md_kt_get(const char *digest)
 {
     const EVP_MD *md = NULL;
     ASSERT(digest);
-    md = EVP_get_digestbyname(digest);
+    md = EVP_MD_fetch(NULL, digest, NULL);
     if (!md)
     {
         crypto_msg(M_FATAL, "Message hash algorithm '%s' not found", digest);

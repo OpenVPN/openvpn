@@ -754,4 +754,25 @@ int EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz,
     return 1;
 }
 #endif
+
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+/* Mimics the functions but only when the default context without
+ * options is chosen */
+static inline const EVP_CIPHER *
+EVP_CIPHER_fetch(void *ctx, const char *algorithm, const char *properties)
+{
+    ASSERT(!ctx);
+    ASSERT(!properties);
+    return EVP_get_cipherbyname(algorithm);
+}
+
+static inline const EVP_MD*
+EVP_MD_fetch(void *ctx, const char *algorithm, const char *properties)
+{
+    ASSERT(!ctx);
+    ASSERT(!properties);
+    return EVP_get_digestbyname(algorithm);
+}
+#endif /* OPENSSL_VERSION_NUMBER < 0x30000000L */
+
 #endif /* OPENSSL_COMPAT_H_ */
