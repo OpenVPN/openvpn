@@ -440,8 +440,9 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
 {
     if (NULL != curve_name)
     {
-        msg(M_WARN, "WARNING: mbed TLS builds do not support specifying an ECDH "
-            "curve, using default curves.");
+        msg(M_WARN, "WARNING: mbed TLS builds do not support specifying an "
+            "ECDH curve with --ecdh-curve, using default curves. Use "
+            "--tls-groups to specify curves.");
     }
 }
 

@@ -690,10 +690,16 @@ tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
 }
 
 void
-tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
-                         )
+tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name)
 {
-#ifndef OPENSSL_NO_EC
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    if (curve_name != NULL)
+    {
+        msg(M_WARN, "WARNING: OpenSSL 3.0+ builds do not support specifying an "
+                    "ECDH curve with --ecdh-curve, using default curves. Use "
+                    "--tls-groups to specify groups.");
+    }
+#elif !defined(OPENSSL_NO_EC)
     int nid = NID_undef;
     EC_KEY *ecdh = NULL;
     const char *sname = NULL;
