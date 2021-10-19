@@ -708,6 +708,9 @@ cipher_kt_mode_cbc(const cipher_kt_t *cipher)
 {
     return cipher && cipher_kt_mode(cipher) == OPENVPN_MODE_CBC
            /* Exclude AEAD cipher modes, they require a different API */
+#ifdef EVP_CIPH_FLAG_CTS
+           && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_CTS)
+#endif
            && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER);
 }
 
