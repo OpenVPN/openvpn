@@ -3799,6 +3799,9 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
 
             /* overhead of BF-CBC: 64 bit block size, 64 bit IV size */
             frame_add_to_extra_frame(&fake_frame, 64/8 + 64/8);
+            /* set ciphername to none, so its size does get added in the
+             * fake_kt and the cipher is not tried to be resolved */
+            ciphername = "none";
         }
 
         init_key_type(&fake_kt, ciphername, o->authname, true, false);
