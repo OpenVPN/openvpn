@@ -907,7 +907,7 @@ md_kt_name(const EVP_MD *kt)
     {
         return "[null-digest]";
     }
-    return EVP_MD_name(kt);
+    return EVP_MD_get0_name(kt);
 }
 
 unsigned char
