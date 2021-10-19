@@ -649,7 +649,6 @@ void
 tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
                        bool dh_file_inline)
 {
-    DH *dh;
     BIO *bio;
 
     ASSERT(NULL != ctx);
@@ -670,7 +669,26 @@ tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
         }
     }
 
-    dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_PKEY *dh = PEM_read_bio_Parameters(bio, NULL);
+    BIO_free(bio);
+
+    if (!dh)
+    {
+        crypto_msg(M_FATAL, "Cannot load DH parameters from %s",
+                   print_key_filename(dh_file, dh_file_inline));
+    }
+    if (!SSL_CTX_set0_tmp_dh_pkey(ctx->ctx, dh))
+    {
+        crypto_msg(M_FATAL, "SSL_CTX_set_tmp_dh");
+    }
+
+    msg(D_TLS_DEBUG_LOW, "Diffie-Hellman initialized with %d bit key",
+        8 * EVP_PKEY_get_size(dh));
+
+    EVP_PKEY_free(dh);
+#else
+    DH *dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
     BIO_free(bio);
 
     if (!dh)
@@ -687,6 +705,7 @@ tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
         8 * DH_size(dh));
 
     DH_free(dh);
+#endif
 }
 
 void
