@@ -236,8 +236,6 @@ rsa_finish(RSA *rsa)
     return 1;
 }
 
-#if !defined(OPENSSL_NO_EC)
-
 static EC_KEY_METHOD *ec_method = NULL;
 
 /** EC_KEY_METHOD callback: called when the key is freed */
@@ -422,8 +420,6 @@ err:
     }
     return 0;
 }
-
-#endif /* !defined(OPENSSL_NO_EC) */
 
 static const CERT_CONTEXT *
 find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
@@ -853,7 +849,6 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
             goto err;
         }
     }
-#if !defined(OPENSSL_NO_EC)
     else if (EVP_PKEY_id(pkey) == EVP_PKEY_EC)
     {
         if (!ssl_ctx_set_eckey(ssl_ctx, cd, pkey))
@@ -861,7 +856,6 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
             goto err;
         }
     }
-#endif /* !defined(OPENSSL_NO_EC) */
     else
     {
         msg(M_WARN|M_INFO, "WARNING: cryptoapicert: key type <%d> not supported",
