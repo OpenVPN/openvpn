@@ -825,6 +825,8 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
         ca = NULL;
         if (!PKCS12_parse(p12, password, &pkey, &cert, &ca))
         {
+            crypto_msg(M_WARN, "Decoding PKCS12 failed. Probably wrong password "
+                               "or unsupported/legacy encryption");
 #ifdef ENABLE_MANAGEMENT
             if (management && (ERR_GET_REASON(ERR_peek_error()) == PKCS12_R_MAC_VERIFY_FAILURE))
             {
