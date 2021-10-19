@@ -288,8 +288,6 @@ void check_replay_consistency(const struct key_type *kt, bool packet_id);
 
 bool check_key(struct key *key, const struct key_type *kt);
 
-void fixup_key(struct key *key, const struct key_type *kt);
-
 bool write_key(const struct key *key, const struct key_type *kt,
                struct buffer *buf);
 

@@ -170,15 +170,6 @@ int key_des_num_cblocks(const cipher_kt_t *kt);
  */
 bool key_des_check(uint8_t *key, int key_len, int ndc);
 
-/*
- * Fix the given DES key, setting its parity to odd.
- *
- * @param key           Key to check
- * @param key_len       Length of the key, in bytes
- * @param ndc           Number of DES cblocks that the key is made up of.
- */
-void key_des_fixup(uint8_t *key, int key_len, int ndc);
-
 /**
  * Encrypt the given block, using DES ECB mode
  *

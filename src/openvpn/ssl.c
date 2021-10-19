@@ -1739,24 +1739,6 @@ generate_key_expansion_openvpn_prf(const struct tls_session *session, struct key
     }
     secure_memzero(&master, sizeof(master));
 
-
-
-    /*
-     * fixup_key only correctly sets DES parity bits if the cipher is a
-     * DES variant.
-     *
-     * The newer OpenSSL and mbed TLS libraries (those that support EKM)
-     * ignore these bits.
-     *
-     * We keep the DES fixup here as compatibility.
-     * OpenVPN3 never did this fixup anyway. So this code is *probably* not
-     * required but we keep it for compatibility until we remove DES support
-     * since it does not hurt either.
-     */
-    for (int i = 0; i < 2; ++i)
-    {
-        fixup_key(&key2->keys[i], &session->opt->key_type);
-    }
     key2->n = 2;
 
     return true;

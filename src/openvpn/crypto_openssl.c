@@ -546,12 +546,6 @@ key_des_check(uint8_t *key, int key_len, int ndc)
                        "CRYPTO INFO: check_key_DES: weak key detected");
             goto err;
         }
-        if (!DES_check_key_parity(dc))
-        {
-            crypto_msg(D_CRYPT_ERRORS,
-                       "CRYPTO INFO: check_key_DES: bad parity detected");
-            goto err;
-        }
     }
     return true;
 
@@ -566,27 +560,6 @@ err:
     return true;
 #endif
 }
-
-void
-key_des_fixup(uint8_t *key, int key_len, int ndc)
-{
-    int i;
-    struct buffer b;
-
-    buf_set_read(&b, key, key_len);
-    for (i = 0; i < ndc; ++i)
-    {
-        DES_cblock *dc = (DES_cblock *) buf_read_alloc(&b, sizeof(DES_cblock));
-        if (!dc)
-        {
-            msg(D_CRYPT_ERRORS, "CRYPTO INFO: fixup_key_DES: insufficient key material");
-            ERR_clear_error();
-            return;
-        }
-        DES_set_odd_parity(dc);
-    }
-}
-
 
 /*
  *
