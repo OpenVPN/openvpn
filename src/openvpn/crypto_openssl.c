@@ -51,6 +51,10 @@
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 
+#if defined(_WIN32) && defined(OPENSSL_NO_EC)
+#error Windows build with OPENSSL_NO_EC: disabling EC key is not supported.
+#endif
+
 /*
  * Check for key size creepage.
  */

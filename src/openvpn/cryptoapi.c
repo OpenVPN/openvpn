@@ -537,7 +537,7 @@ finish(RSA *rsa)
     return 1;
 }
 
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L) && !defined(OPENSSL_NO_EC)
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
 
 static EC_KEY_METHOD *ec_method = NULL;
 
@@ -1232,7 +1232,7 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
             goto err;
         }
     }
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L) && !defined(OPENSSL_NO_EC)
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
     else if (EVP_PKEY_id(pkey) == EVP_PKEY_EC)
     {
         if (!ssl_ctx_set_eckey(ssl_ctx, cd, pkey))
