@@ -915,7 +915,7 @@ hmac_ctx_cleanup(mbedtls_md_context_t *ctx)
 }
 
 int
-hmac_ctx_size(const mbedtls_md_context_t *ctx)
+hmac_ctx_size(mbedtls_md_context_t *ctx)
 {
     if (NULL == ctx)
     {

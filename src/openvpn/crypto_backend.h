@@ -634,7 +634,7 @@ void hmac_ctx_cleanup(hmac_ctx_t *ctx);
  *
  * @return              Size of the HMAC, or \0 if ctx is NULL.
  */
-int hmac_ctx_size(const hmac_ctx_t *ctx);
+int hmac_ctx_size(hmac_ctx_t *ctx);
 
 /*
  * Resets the given HMAC context, preserving the associated key information

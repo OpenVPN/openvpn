@@ -47,7 +47,15 @@ typedef EVP_CIPHER_CTX cipher_ctx_t;
 typedef EVP_MD_CTX md_ctx_t;
 
 /** Generic HMAC %context. */
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 typedef HMAC_CTX hmac_ctx_t;
+#else
+typedef struct {
+    OSSL_PARAM params[3];
+    uint8_t key[EVP_MAX_KEY_LENGTH];
+    EVP_MAC_CTX *ctx;
+} hmac_ctx_t;
+#endif
 
 /** Maximum length of an IV */
 #define OPENVPN_MAX_IV_LENGTH   EVP_MAX_IV_LENGTH
