@@ -168,15 +168,37 @@ jobs:
 
   macos:
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ossl: [ 1.1, 3 ]
+        build: [ normal, asan ]
+        include:
+          - build: asan
+            cflags: "-fsanitize=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
+            ldflags: -fsanitize=address
+            # Our build system ignores LDFLAGS for plugins
+            configureflags: --disable-plugin-auth-pam  --disable-plugin-down-root
+          - build: normal
+            cflags: "-O2 -g"
+            ldflags: ""
+            configureflags: ""
+
+    name: "macOS - OpenSSL ${{matrix.ossl}} - ${{matrix.build}}"
+    env:
+      CFLAGS: ${{ matrix.cflags }}
+      LDFLAGS: ${{ matrix.ldflags }}
+      OPENSSL_CFLAGS: -I/usr/local/opt/openssl@${{matrix.ossl}}/include
+      OPENSSL_LIBS: "-L/usr/local/opt/openssl@${{matrix.ossl}}/lib -lcrypto -lssl"
     steps:
+      - name: Install dependencies
+        run: brew install openssl@1.1 openssl@3 lzo lz4 man2html cmocka libtool automake autoconf
       - name: Checkout OpenVPN
         uses: actions/checkout@v2
-      - name: Install dependencies
-        run: brew install openssl lzo lz4 man2html cmocka libtool automake autoconf
       - name: autoconf
         run: autoreconf -fvi
       - name: configure
-        run: OPENSSL_CFLAGS=-I/usr/local/opt/openssl@1.1/include  OPENSSL_LIBS="-L/usr/local/opt/openssl@1.1/lib -lcrypto -lssl" ./configure
+        run: ./configure ${{matrix.configureflags}}
       - name: make all
         run: make -j4
       - name: make check
