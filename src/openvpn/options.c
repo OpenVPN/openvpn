@@ -3205,6 +3205,7 @@ options_set_backwards_compatible_options(struct options *o)
         o->enable_ncp_fallback = true;
     }
 
+#ifdef USE_COMP
     /* Compression is deprecated and we do not want to announce support for it
      * by default anymore, additionally DCO breaks with compression.
      *
@@ -3215,6 +3216,7 @@ options_set_backwards_compatible_options(struct options *o)
     {
         o->comp.flags = COMP_F_ALLOW_STUB_ONLY|COMP_F_ADVERTISE_STUBS_ONLY;
     }
+#endif
 }
 
 static void
