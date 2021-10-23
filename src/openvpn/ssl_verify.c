@@ -101,6 +101,8 @@ set_common_name(struct tls_session *session, const char *common_name)
         /* FIXME: Last alloc will never be freed */
         session->common_name = string_alloc(common_name, NULL);
     }
+    /* update common name in env */
+    setenv_str(session->opt->es, "common_name", common_name);
 }
 
 /*
