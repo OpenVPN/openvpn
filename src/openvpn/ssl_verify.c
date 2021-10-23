@@ -116,6 +116,8 @@ set_common_name(struct tls_session *session, const char *common_name)
         }
 #endif
     }
+    /* update common name in env */
+    setenv_str(session->opt->es, "common_name", common_name);
 }
 
 /*
