@@ -50,8 +50,18 @@ static const char *const props = XKEY_PROV_PROPS;
 
 XKEY_EXTERNAL_SIGN_fn xkey_management_sign;
 
+static void
+print_openssl_errors()
+{
+    unsigned long e;
+    while ((e = ERR_get_error()))
+    {
+        msg(M_WARN, "OpenSSL error %lu: %s\n", e, ERR_error_string(e, NULL));
+    }
+}
+
 /** helper to compute digest */
-static int
+int
 xkey_digest(const unsigned char *src, size_t srclen, unsigned char *buf,
             size_t *buflen, const char *mdname)
 {
@@ -85,24 +95,38 @@ xkey_digest(const unsigned char *src, size_t srclen, unsigned char *buf,
 EVP_PKEY *
 xkey_load_management_key(OSSL_LIB_CTX *libctx, EVP_PKEY *pubkey)
 {
-    EVP_PKEY *pkey = NULL;
     ASSERT(pubkey);
 
-    /* Management interface doesnt require any handle to be
+    /* Management interface doesn't require any handle to be
      * stored in the key. We use a dummy pointer as we do need a
      * non-NULL value to indicate private key is avaialble.
      */
     void *dummy = & "dummy";
 
-    const char *origin = "management";
     XKEY_EXTERNAL_SIGN_fn *sign_op = xkey_management_sign;
+
+    return xkey_load_generic_key(libctx, dummy, pubkey, sign_op, NULL);
+}
+
+/**
+ * Load a generic key into the xkey provider.
+ * Returns an EVP_PKEY object attached to xkey provider.
+ * Caller must free it when no longer needed.
+ */
+EVP_PKEY *
+xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
+                      XKEY_EXTERNAL_SIGN_fn sign_op, XKEY_PRIVKEY_FREE_fn free_op)
+{
+    EVP_PKEY *pkey = NULL;
+    const char *origin = "external";
 
     /* UTF8 string pointers in here are only read from, so cast is safe */
     OSSL_PARAM params[] = {
         {"xkey-origin", OSSL_PARAM_UTF8_STRING, (char *) origin, 0, 0},
         {"pubkey", OSSL_PARAM_OCTET_STRING, &pubkey, sizeof(pubkey), 0},
-        {"handle", OSSL_PARAM_OCTET_PTR, &dummy, sizeof(dummy), 0},
+        {"handle", OSSL_PARAM_OCTET_PTR, &handle, sizeof(handle), 0},
         {"sign_op", OSSL_PARAM_OCTET_PTR, (void **) &sign_op, sizeof(sign_op), 0},
+        {"free_op", OSSL_PARAM_OCTET_PTR, (void **) &free_op, sizeof(free_op), 0},
         {NULL, 0, NULL, 0, 0}};
 
     /* Do not use EVP_PKEY_new_from_pkey as that will take keymgmt from pubkey */
@@ -111,7 +135,8 @@ xkey_load_management_key(OSSL_LIB_CTX *libctx, EVP_PKEY *pubkey)
         || EVP_PKEY_fromdata_init(ctx) != 1
         || EVP_PKEY_fromdata(ctx, &pkey, EVP_PKEY_KEYPAIR, params) != 1)
     {
-        msg(M_NONFATAL, "Error loading key into ovpn.xkey provider");
+        print_openssl_errors();
+        msg(M_FATAL, "OpenSSL error: failed to load key into ovpn.xkey provider");
     }
     if (ctx)
     {
