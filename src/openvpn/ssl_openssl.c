@@ -685,8 +685,6 @@ tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
 
     msg(D_TLS_DEBUG_LOW, "Diffie-Hellman initialized with %d bit key",
         8 * EVP_PKEY_get_size(dh));
-
-    EVP_PKEY_free(dh);
 #else
     DH *dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
     BIO_free(bio);
