@@ -867,10 +867,44 @@ cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
                        unsigned char src[DES_KEY_LENGTH],
                        unsigned char dst[DES_KEY_LENGTH])
 {
-    DES_key_schedule sched;
+    /* We are using 3DES here with three times the same key to cheat
+     * and emulate DES as 3DES is better supported than DES */
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (!ctx)
+    {
+        crypto_msg(M_FATAL, "%s: EVP_CIPHER_CTX_new() failed", __func__);
+    }
 
-    DES_set_key_unchecked((DES_cblock *)key, &sched);
-    DES_ecb_encrypt((DES_cblock *)src, (DES_cblock *)dst, &sched, DES_ENCRYPT);
+    unsigned char key3[DES_KEY_LENGTH*3];
+    for (int i = 0;i < 3;i++)
+    {
+        memcpy(key3 + (i * DES_KEY_LENGTH), key, DES_KEY_LENGTH);
+    }
+
+    if (!EVP_EncryptInit_ex(ctx, EVP_des_ede3_ecb(), NULL, key3, NULL))
+    {
+        crypto_msg(M_FATAL, "%s: EVP_EncryptInit_ex() failed", __func__);
+    }
+
+    int len;
+
+    /* The EVP_EncryptFinal method will write to the dst+len pointer even
+     * though there is nothing to encrypt anymore, provide space for that to
+     * not overflow the stack */
+    unsigned char dst2[DES_KEY_LENGTH * 2];
+    if(!EVP_EncryptUpdate(ctx, dst2, &len, src, DES_KEY_LENGTH))
+    {
+        crypto_msg(M_FATAL, "%s: EVP_EncryptUpdate() failed", __func__);
+    }
+
+    if (!EVP_EncryptFinal(ctx, dst2 + len, &len))
+    {
+        crypto_msg(M_FATAL, "%s: EVP_EncryptFinal() failed", __func__);
+    }
+
+    memcpy(dst, dst2, DES_KEY_LENGTH);
+
+    EVP_CIPHER_CTX_free(ctx);
 }
 
 /*

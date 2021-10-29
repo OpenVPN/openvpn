@@ -212,6 +212,30 @@ crypto_test_hmac(void **state)
     hmac_ctx_free(hmac);
 }
 
+void
+test_des_encrypt(void **state)
+{
+    /* We have a small des encrypt method that is only for NTLMv1. This unit
+     * test ensures that it is not accidentally broken */
+
+    const unsigned char des_key[DES_KEY_LENGTH] = {0x42, 0x23};
+
+    const char *src = "MoinWelt";
+
+    /* cipher_des_encrypt_ecb wants a non const */
+    unsigned char *src2 = (unsigned char *) strdup(src);
+
+    unsigned char dst[DES_KEY_LENGTH];
+    cipher_des_encrypt_ecb(des_key, src2, dst);
+
+    const unsigned char dst_good[DES_KEY_LENGTH] = {0xd3, 0x8f, 0x61, 0xf7, 0xbe, 0x27, 0xb6, 0xa2};
+
+    assert_memory_equal(dst, dst_good, DES_KEY_LENGTH);
+
+    free(src2);
+}
+
+
 int
 main(void)
 {
@@ -219,7 +243,8 @@ main(void)
         cmocka_unit_test(crypto_pem_encode_decode_loopback),
         cmocka_unit_test(crypto_translate_cipher_names),
         cmocka_unit_test(crypto_test_tls_prf),
-        cmocka_unit_test(crypto_test_hmac)
+        cmocka_unit_test(crypto_test_hmac),
+        cmocka_unit_test(test_des_encrypt)
     };
 
 #if defined(ENABLE_CRYPTO_OPENSSL)
