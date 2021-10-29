@@ -373,6 +373,9 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
 
   The following profiles are supported:
 
+  :code:`insecure`
+      Identical for mbed TLS to `legacy`
+
   :code:`legacy` (default)
       SHA1 and newer, RSA 2048-bit+, any elliptic curve.
 
@@ -384,6 +387,9 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
 
   This option is only fully supported for mbed TLS builds. OpenSSL builds
   use the following approximation:
+
+  :code:`insecure`
+      sets "security level 0"
 
   :code:`legacy` (default)
       sets "security level 1"
