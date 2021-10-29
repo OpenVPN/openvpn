@@ -330,7 +330,8 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 void
 tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
 {
-    if (!profile || 0 == strcmp(profile, "legacy"))
+    if (!profile || 0 == strcmp(profile, "legacy")
+        || 0 == strcmp(profile, "insecure"))
     {
         ctx->cert_profile = openvpn_x509_crt_profile_legacy;
     }

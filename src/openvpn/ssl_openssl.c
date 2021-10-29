@@ -551,6 +551,10 @@ tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
     {
         SSL_CTX_set_security_level(ctx->ctx, 1);
     }
+    else if (0 == strcmp(profile, "insecure"))
+    {
+        SSL_CTX_set_security_level(ctx->ctx, 0);
+    }
     else if (0 == strcmp(profile, "preferred"))
     {
         SSL_CTX_set_security_level(ctx->ctx, 2);
