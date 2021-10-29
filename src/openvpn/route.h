@@ -320,6 +320,7 @@ void setenv_routes(struct env_set *es, const struct route_list *rl);
 void setenv_routes_ipv6(struct env_set *es, const struct route_ipv6_list *rl6);
 
 bool is_special_addr(const char *addr_str);
+bool ipv6_is_special_addr(const char *addr_str);
 
 void get_default_gateway(struct route_gateway_info *rgi,
                          openvpn_net_ctx_t *ctx);

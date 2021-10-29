@@ -6556,7 +6556,7 @@ add_option(struct options *options,
                 msg(msglevel, "route-ipv6 parameter network/IP '%s' must be a valid address", p[1]);
                 goto err;
             }
-            if (p[2] && !ipv6_addr_safe(p[2]))
+            if (p[2] && !ipv6_addr_safe(p[2]) && !ipv6_is_special_addr(p[2]))
             {
                 msg(msglevel, "route-ipv6 parameter gateway '%s' must be a valid address", p[2]);
                 goto err;

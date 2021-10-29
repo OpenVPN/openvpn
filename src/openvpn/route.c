@@ -287,12 +287,57 @@ get_special_addr(const struct route_list *rl,
     return false;
 }
 
+static bool
+ipv6_get_special_addr(const struct route_ipv6_list *rl,
+                 const char *string,
+                 struct in6_addr *out,
+                 bool *status)
+{
+    if (status)
+    {
+        *status = true;
+    }
+    if (!strcmp(string, "net_gateway_ipv6"))
+    {
+        if (rl)
+        {
+            if (rl->rgi6.flags & RGI_ADDR_DEFINED)
+            {
+                *out = rl->rgi6.gateway.addr_ipv6;
+            }
+            else
+            {
+                msg(M_INFO, PACKAGE_NAME " ROUTE: net_gateway_ipv6 undefined -- unable to get default gateway from system");
+                if (status)
+                {
+                    *status = false;
+                }
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
 bool
 is_special_addr(const char *addr_str)
 {
     if (addr_str)
     {
         return get_special_addr(NULL, addr_str, NULL, NULL);
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool
+ipv6_is_special_addr(const char *addr_str)
+{
+    if (addr_str)
+    {
+        return ipv6_get_special_addr(NULL, addr_str, NULL, NULL);
     }
     else
     {
@@ -438,6 +483,7 @@ init_route_ipv6(struct route_ipv6 *r6,
                 const struct route_ipv6_option *r6o,
                 const struct route_ipv6_list *rl6 )
 {
+    bool status;
     CLEAR(*r6);
 
     if (!get_ipv6_addr( r6o->prefix, &r6->network, &r6->netbits, M_WARN ))
@@ -448,9 +494,16 @@ init_route_ipv6(struct route_ipv6 *r6,
     /* gateway */
     if (is_route_parm_defined(r6o->gateway))
     {
-        if (inet_pton( AF_INET6, r6o->gateway, &r6->gateway ) != 1)
+        if (!ipv6_get_special_addr(rl6, r6o->gateway, &r6->gateway, &status))
         {
-            msg( M_WARN, PACKAGE_NAME "ROUTE6: cannot parse gateway spec '%s'", r6o->gateway );
+            if (inet_pton( AF_INET6, r6o->gateway, &r6->gateway ) != 1)
+            {
+                msg( M_WARN, PACKAGE_NAME "ROUTE6: cannot parse gateway spec '%s'", r6o->gateway );
+            }
+        }
+        if (!status)
+        {
+            goto fail;
         }
     }
     else if (rl6->spec_flags & RTSA_REMOTE_ENDPOINT)
