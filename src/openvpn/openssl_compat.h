@@ -718,4 +718,40 @@ SSL_CTX_set_max_proto_version(SSL_CTX *ctx, long tls_ver_max)
     return 1;
 }
 #endif /* if OPENSSL_VERSION_NUMBER < 0x10100000L && !defined(ENABLE_CRYPTO_WOLFSSL) */
+
+/* Functionality missing in 1.1.1 */
+#if OPENSSL_VERSION_NUMBER < 0x30000000L && !defined(OPENSSL_NO_EC)
+
+/* Note that this is not a perfect emulation of the new function but
+ * is good enough for our case of printing certificate details during
+ * handshake */
+static inline
+int EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz,
+                            size_t *gname_len)
+{
+    const EC_KEY* ec = EVP_PKEY_get0_EC_KEY(pkey);
+    if (ec == NULL)
+    {
+        return 0;
+    }
+    const EC_GROUP* group = EC_KEY_get0_group(ec);
+    int nid = EC_GROUP_get_curve_name(group);
+
+    if (nid == 0)
+    {
+        return 0;
+    }
+    const char *curve = OBJ_nid2sn(nid);
+    if (!curve)
+    {
+        curve = "(error fetching curve name)";
+    }
+
+    strncpynt(gname, curve, gname_sz);
+
+    /* strncpynt ensures null termination so just strlen is fine here */
+    *gname_len = strlen(curve);
+    return 1;
+}
+#endif
 #endif /* OPENSSL_COMPAT_H_ */

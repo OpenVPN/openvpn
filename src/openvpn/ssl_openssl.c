@@ -2053,13 +2053,15 @@ print_cert_details(X509 *cert, char *buf, size_t buflen)
     int typeid = EVP_PKEY_id(pkey);
 
 #ifndef OPENSSL_NO_EC
-    if (typeid == EVP_PKEY_EC && EVP_PKEY_get0_EC_KEY(pkey) != NULL)
+    char groupname[256];
+    if (typeid == EVP_PKEY_EC)
     {
-        const EC_KEY *ec = EVP_PKEY_get0_EC_KEY(pkey);
-        const EC_GROUP *group = EC_KEY_get0_group(ec);
-
-        int nid = EC_GROUP_get_curve_name(group);
-        if (nid == 0 || (curve = OBJ_nid2sn(nid)) == NULL)
+        size_t len;
+        if(EVP_PKEY_get_group_name(pkey, groupname, sizeof(groupname), &len))
+        {
+           curve = groupname;
+        }
+        else
         {
             curve = "(error getting curve name)";
         }
