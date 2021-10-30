@@ -1097,6 +1097,9 @@ hmac_ctx_new(void)
     EVP_MAC *hmac = EVP_MAC_fetch(NULL, "HMAC", NULL);
     ctx->ctx = EVP_MAC_CTX_new(hmac);
     check_malloc_return(ctx->ctx);
+
+    EVP_MAC_free(hmac);
+
     return ctx;
 }
 
