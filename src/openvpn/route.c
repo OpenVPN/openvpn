@@ -494,7 +494,17 @@ init_route_ipv6(struct route_ipv6 *r6,
     /* gateway */
     if (is_route_parm_defined(r6o->gateway))
     {
-        if (!ipv6_get_special_addr(rl6, r6o->gateway, &r6->gateway, &status))
+        if (ipv6_get_special_addr(rl6, r6o->gateway, &r6->gateway, &status))
+        {
+            r6->metric = 1;
+#ifdef _WIN32
+            r6->adapter_index = rl6->rgi6.adapter_index;
+#else
+            r6->iface = rl6->rgi6.iface;
+#endif
+            r6->flags = RT_DEFINED | RT_METRIC_DEFINED;
+        }
+        else
         {
             if (inet_pton( AF_INET6, r6o->gateway, &r6->gateway ) != 1)
             {
