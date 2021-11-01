@@ -1,0 +1,321 @@
+/*
+ *  OpenVPN -- An application to securely tunnel IP networks
+ *             over a single UDP port, with support for SSL/TLS-based
+ *             session authentication and key exchange,
+ *             packet encryption, packet authentication, and
+ *             packet compression.
+ *
+ *  Copyright (C) 2021 Selva Nair <selva.nair@gmail.com>
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by the
+ *  Free Software Foundation, either version 2 of the License,
+ *  or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#elif defined(_MSC_VER)
+#include "config-msvc.h"
+#endif
+
+#include "syshead.h"
+
+#include <setjmp.h>
+#include <cmocka.h>
+#include <openssl/bio.h>
+#include <openssl/pem.h>
+#include <openssl/core_names.h>
+#include <openssl/evp.h>
+
+#include "manage.h"
+#include "base64.h"
+#include "xkey_common.h"
+
+struct management *management; /* global */
+static int mgmt_callback_called;
+
+#ifndef _countof
+#define _countof(x) sizeof((x))/sizeof(*(x))
+#endif
+
+static OSSL_PROVIDER *prov[2];
+
+/* public keys for testing -- RSA and EC */
+static const char * const pubkey1 = "-----BEGIN PUBLIC KEY-----\n"
+    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7GWP6RLCGlvmVioIqYI6\n"
+    "LUR4owA7sJ/nJxBAk+/xzD6gqgSigBsTqeb+gdZwkKjY1N4w2DUA0r5i8Eja/BWN\n"
+    "xMZtC5nxK4MACtMqIwvlzfk130NhFXKtlZj2cyFBXqDdRyeg1ZrUQagcHVcgcReP\n"
+    "9yiePgfO7NUOQk8edEeOR53SFCgnLBQQ9dGWtZN0hO/5BN6NSm/fd6vq0VjTRP5a\n"
+    "BAH/BnqX9/3jV0jh8N9AE59mI1rjVVQ9VDnuAPkS8dLfdC661/CNxt0YWByTIgt1\n"
+    "+qjW4LUvLbnU/rlPhuJ1SBZg+z/JtDBCKfs7syu5WYFqRvNFg7/91Rr/NwxvW/1h\n"
+    "8QIDAQAB\n"
+    "-----END PUBLIC KEY-----\n";
+
+static const char * const pubkey2 = "-----BEGIN PUBLIC KEY-----\n"
+    "MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEO85iXW+HgnUkwlj1DohNVw0GsnGIh1gZ\n"
+    "u95ff1JiUaJIkYNIkZA+hwIPFVH5aJcSCv3SPIeDS2VUAESNKHZJBQ==\n"
+    "-----END PUBLIC KEY-----\n";
+
+static const char *pubkeys[] = {pubkey1, pubkey2};
+
+static const char *prov_name = "ovpn.xkey";
+
+static const char* test_msg = "Lorem ipsum dolor sit amet, consectetur "
+                              "adipisici elit, sed eiusmod tempor incidunt "
+                              "ut labore et dolore magna aliqua.";
+
+/* Sha256 digest of test_msg excluding NUL terminator */
+static const uint8_t test_digest[] =
+    {0x77, 0x38, 0x65, 0x00, 0x1e, 0x96, 0x48, 0xc6, 0x57, 0x0b, 0xae,
+     0xc0, 0xb7, 0x96, 0xf9, 0x66, 0x4d, 0x5f, 0xd0, 0xb7, 0xdb, 0xf3,
+     0x3a, 0xbf, 0x02, 0xcc, 0x78, 0x61, 0x83, 0x20, 0x20, 0xee};
+
+/* Dummy signature used only to check that the expected callback
+ * was successfully exercised. Keep this shorter than 64 bytes
+ * --- the smallest size of the actual signature with the above
+ * keys.
+ */
+const uint8_t good_sig[] =
+   {0xd8, 0xa7, 0xd9, 0x81, 0xd8, 0xaa, 0xd8, 0xad, 0x20, 0xd9, 0x8a, 0xd8,
+    0xa7, 0x20, 0xd8, 0xb3, 0xd9, 0x85, 0xd8, 0xb3, 0xd9, 0x85, 0x0};
+
+static EVP_PKEY *
+load_pubkey(const char *pem)
+{
+    BIO *in = BIO_new_mem_buf(pem, -1);
+    assert_non_null(in);
+
+    EVP_PKEY *pkey = PEM_read_bio_PUBKEY(in, NULL, NULL, NULL);
+    assert_non_null(pkey);
+
+    BIO_free(in);
+    return pkey;
+}
+
+static void
+init_test()
+{
+    prov[0] = OSSL_PROVIDER_load(NULL,"default");
+    OSSL_PROVIDER_add_builtin(NULL, prov_name, xkey_provider_init);
+    prov[1] = OSSL_PROVIDER_load(NULL, prov_name);
+
+    /* set default propq matching what we use in ssl_openssl.c */
+    EVP_set_default_properties(NULL, "?provider!=ovpn.xkey");
+
+    management = calloc(sizeof(*management), 1);
+}
+
+static void
+uninit_test()
+{
+    for (size_t i = 0; i < _countof(prov); i++)
+    {
+        if (prov[i])
+        {
+            OSSL_PROVIDER_unload(prov[i]);
+        }
+    }
+    free(management);
+}
+
+/* Mock management callback for signature.
+ * We check that the received data to sign matches test_msg or
+ * test_digest and return a predefined string as signature so that
+ * the caller can validate all steps up to sending the data to
+ * the management client.
+ */
+char *
+management_query_pk_sig(struct management *man, const char *b64_data,
+                        const char *algorithm)
+{
+    char *alg = strdup(algorithm);
+    check_malloc_return(alg);
+
+    int tbslen = strlen(b64_data);
+    uint8_t *tbs = malloc(tbslen);
+    assert_non_null(tbs);
+
+    char *out = NULL;
+
+    /* indicate entry to the callback */
+    mgmt_callback_called = 1;
+
+    if ((tbslen = openvpn_base64_decode(b64_data, tbs, tbslen)) < 0)
+    {
+        fail_msg("base64 decode error");
+    }
+
+    const uint8_t *expected_tbs = test_digest;
+    size_t expected_tbslen = sizeof(test_digest);
+    for (char *p = strtok(alg, ","); p; p = strtok(NULL, ","))
+    {
+        if (!strcmp(p, "data=message"))
+        {
+            assert_true(management->settings.flags & MF_EXTERNAL_KEY_DIGEST);
+            expected_tbs = (uint8_t *)test_msg;
+            expected_tbslen = strlen(test_msg);
+        }
+    }
+    free(alg);
+
+    assert_int_equal(tbslen, expected_tbslen);
+    assert_memory_equal(tbs, expected_tbs, tbslen);
+
+    /* Return a predefined string as sig so that the caller
+     * can confirm that this callback was exercised.
+     */
+    int outlen = openvpn_base64_encode(good_sig, sizeof(good_sig), &out);
+
+    if (outlen < 0 || !out)
+    {
+        fail_msg("base64 encode error");
+    }
+
+    free(tbs);
+    return out;
+}
+
+/* Check signature and keymgmt methods can be fetched from the provider */
+static void
+xkey_provider_fetch(void **state)
+{
+    assert_true(OSSL_PROVIDER_available(NULL, prov_name));
+
+    const char *algs[] = {"RSA", "ECDSA"};
+
+    for (size_t i = 0; i < _countof(algs); i++)
+    {
+        EVP_SIGNATURE *sig = EVP_SIGNATURE_fetch(NULL, algs[i], "provider=ovpn.xkey");
+        assert_non_null(sig);
+        assert_string_equal(OSSL_PROVIDER_get0_name(EVP_SIGNATURE_get0_provider(sig)), prov_name);
+
+        EVP_SIGNATURE_free(sig);
+    }
+
+    const char *names[] = {"RSA", "EC"};
+
+    for (size_t i = 0; i < _countof(names); i++)
+    {
+        EVP_KEYMGMT *km = EVP_KEYMGMT_fetch(NULL, names[i], "provider=ovpn.xkey");
+        assert_non_null(km);
+        assert_string_equal(OSSL_PROVIDER_get0_name(EVP_KEYMGMT_get0_provider(km)), prov_name);
+
+        EVP_KEYMGMT_free(km);
+    }
+}
+
+/* sign a test message using pkey -- caller must free the returned sig */
+static uint8_t *
+digest_sign(EVP_PKEY *pkey)
+{
+    uint8_t *sig = NULL;
+    size_t siglen = 0;
+
+    OSSL_PARAM params[6] = {OSSL_PARAM_END};
+
+    const char *mdname = "SHA256";
+    const char *padmode = "pss";
+    const char *saltlen = "digest";
+
+    if (EVP_PKEY_get_id(pkey) == EVP_PKEY_RSA)
+    {
+        params[0] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_DIGEST, (char *)mdname, 0);
+        params[1] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PAD_MODE, (char *)padmode, 0);
+        params[2] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PSS_SALTLEN, (char *)saltlen, 0);
+        /* same digest for mgf1 */
+        params[3] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_MGF1_DIGEST, (char *)saltlen, 0);
+        params[4] = OSSL_PARAM_construct_end();
+    }
+
+    EVP_PKEY_CTX *pctx = NULL;
+    EVP_MD_CTX *mctx = EVP_MD_CTX_new();
+    if (!mctx
+        || EVP_DigestSignInit_ex(mctx, &pctx, mdname, NULL, NULL, pkey,  params) <= 0)
+    {
+        fail_msg("Failed to initialize EVP_DigestSignInit_ex()");
+        goto done;
+    }
+
+
+    /* sign with sig = NULL to get required siglen */
+    assert_int_equal(EVP_DigestSign(mctx, sig, &siglen, (uint8_t*)test_msg, strlen(test_msg)), 1);
+    assert_true(siglen > 0);
+
+    if ((sig = calloc(1, siglen)) == NULL)
+    {
+        fail_msg("Out of memory");
+    }
+    assert_int_equal(EVP_DigestSign(mctx, sig, &siglen, (uint8_t*)test_msg, strlen(test_msg)), 1);
+
+done:
+    if (mctx)
+    {
+        EVP_MD_CTX_free(mctx); /* pctx is internally allocated and freed by mctx */
+    }
+    return sig;
+}
+
+/* Check loading of management external key and have sign callback exercised
+ * for RSA and EC keys with and without digest support in management client.
+ * Sha256 digest used for both cases with pss padding for RSA.
+ */
+static void
+xkey_provider_mgmt_sign_cb(void **state)
+{
+    EVP_PKEY *pubkey;
+    for (size_t i = 0; i < _countof(pubkeys); i++)
+    {
+        pubkey = load_pubkey(pubkeys[i]);
+        assert_true(pubkey != NULL);
+        EVP_PKEY *privkey = xkey_load_management_key(NULL, pubkey);
+        assert_true(privkey != NULL);
+
+        management->settings.flags = MF_EXTERNAL_KEY|MF_EXTERNAL_KEY_PSSPAD;
+
+        /* first without digest support in management client */
+again:
+        mgmt_callback_called = 0;
+        uint8_t *sig = digest_sign(privkey);
+        assert_non_null(sig);
+
+        /* check callback for signature got exercised */
+        assert_int_equal(mgmt_callback_called, 1);
+        assert_memory_equal(sig, good_sig, sizeof(good_sig));
+        free(sig);
+
+        if (!(management->settings.flags & MF_EXTERNAL_KEY_DIGEST))
+        {
+            management->settings.flags |= MF_EXTERNAL_KEY_DIGEST;
+            goto again; /* this time with digest support announced */
+        }
+
+        EVP_PKEY_free(pubkey);
+        EVP_PKEY_free(privkey);
+    }
+}
+
+int
+main(void)
+{
+    init_test();
+
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(xkey_provider_fetch),
+        cmocka_unit_test(xkey_provider_mgmt_sign_cb),
+    };
+
+    int ret = cmocka_run_group_tests_name("xkey provider tests", tests, NULL, NULL);
+
+    uninit_test();
+    return ret;
+}

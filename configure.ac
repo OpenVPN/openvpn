@@ -766,6 +766,8 @@ PKG_CHECK_MODULES(
 	[]
 )
 
+AM_CONDITIONAL([HAVE_XKEY_PROVIDER], [false])
+
 if test "${with_crypto_library}" = "openssl"; then
 	AC_ARG_VAR([OPENSSL_CFLAGS], [C compiler flags for OpenSSL])
 	AC_ARG_VAR([OPENSSL_LIBS], [linker flags for OpenSSL])
@@ -879,6 +881,7 @@ if test "${with_crypto_library}" = "openssl"; then
 
 	if test "${have_usable_openssl_provider}" = "yes"; then
 		AC_DEFINE([HAVE_XKEY_PROVIDER], [1], [Enable external key loading provider])
+		AM_CONDITIONAL([HAVE_XKEY_PROVIDER], [true])
 	fi
 
 	AC_CHECK_FUNC(
