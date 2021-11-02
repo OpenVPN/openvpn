@@ -3165,7 +3165,9 @@ static void
 options_set_backwards_compatible_options(struct options *o)
 {
     /* TLS min version is not set */
-    if ((o->ssl_flags & SSLF_TLS_VERSION_MIN_MASK) == 0)
+    int tls_ver_min = (o->ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT)
+                          & SSLF_TLS_VERSION_MIN_MASK;
+    if (tls_ver_min == 0)
     {
         int tls_ver_max = (o->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT)
                           & SSLF_TLS_VERSION_MAX_MASK;
