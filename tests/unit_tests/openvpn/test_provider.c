@@ -38,7 +38,6 @@
 #include <openssl/evp.h>
 
 #include "manage.h"
-#include "base64.h"
 #include "xkey_common.h"
 
 struct management *management; /* global */
@@ -74,11 +73,18 @@ static const char* test_msg = "Lorem ipsum dolor sit amet, consectetur "
                               "adipisici elit, sed eiusmod tempor incidunt "
                               "ut labore et dolore magna aliqua.";
 
+static const char* test_msg_b64 =
+    "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2ljaS"
+    "BlbGl0LCBzZWQgZWl1c21vZCB0ZW1wb3IgaW5jaWR1bnQgdXQgbGFib3JlIGV0IGRv"
+    "bG9yZSBtYWduYSBhbGlxdWEu";
+
 /* Sha256 digest of test_msg excluding NUL terminator */
 static const uint8_t test_digest[] =
     {0x77, 0x38, 0x65, 0x00, 0x1e, 0x96, 0x48, 0xc6, 0x57, 0x0b, 0xae,
      0xc0, 0xb7, 0x96, 0xf9, 0x66, 0x4d, 0x5f, 0xd0, 0xb7, 0xdb, 0xf3,
      0x3a, 0xbf, 0x02, 0xcc, 0x78, 0x61, 0x83, 0x20, 0x20, 0xee};
+
+static const char *test_digest_b64 = "dzhlAB6WSMZXC67At5b5Zk1f0Lfb8zq/Asx4YYMgIO4=";
 
 /* Dummy signature used only to check that the expected callback
  * was successfully exercised. Keep this shorter than 64 bytes
@@ -88,6 +94,8 @@ static const uint8_t test_digest[] =
 const uint8_t good_sig[] =
    {0xd8, 0xa7, 0xd9, 0x81, 0xd8, 0xaa, 0xd8, 0xad, 0x20, 0xd9, 0x8a, 0xd8,
     0xa7, 0x20, 0xd8, 0xb3, 0xd9, 0x85, 0xd8, 0xb3, 0xd9, 0x85, 0x0};
+
+const char *good_sig_b64 = "2KfZgdiq2K0g2YrYpyDYs9mF2LPZhQA=";
 
 static EVP_PKEY *
 load_pubkey(const char *pem)
@@ -112,7 +120,7 @@ init_test()
     /* set default propq matching what we use in ssl_openssl.c */
     EVP_set_default_properties(NULL, "?provider!=ovpn.xkey");
 
-    management = calloc(sizeof(*management), 1);
+    management = test_calloc(sizeof(*management), 1);
 }
 
 static void
@@ -125,7 +133,7 @@ uninit_test()
             OSSL_PROVIDER_unload(prov[i]);
         }
     }
-    free(management);
+    test_free(management);
 }
 
 /* Mock management callback for signature.
@@ -138,56 +146,31 @@ char *
 management_query_pk_sig(struct management *man, const char *b64_data,
                         const char *algorithm)
 {
-    char *alg = strdup(algorithm);
-    check_malloc_return(alg);
-
-    int tbslen = strlen(b64_data);
-    uint8_t *tbs = malloc(tbslen);
-    assert_non_null(tbs);
-
     char *out = NULL;
 
     /* indicate entry to the callback */
     mgmt_callback_called = 1;
 
-    if ((tbslen = openvpn_base64_decode(b64_data, tbs, tbslen)) < 0)
+    const char *expected_tbs = test_digest_b64;
+    if (strstr(algorithm, "data=message"))
     {
-        fail_msg("base64 decode error");
+         expected_tbs = test_msg_b64;
     }
 
-    const uint8_t *expected_tbs = test_digest;
-    size_t expected_tbslen = sizeof(test_digest);
-    for (char *p = strtok(alg, ","); p; p = strtok(NULL, ","))
-    {
-        if (!strcmp(p, "data=message"))
-        {
-            assert_true(management->settings.flags & MF_EXTERNAL_KEY_DIGEST);
-            expected_tbs = (uint8_t *)test_msg;
-            expected_tbslen = strlen(test_msg);
-        }
-    }
-    free(alg);
-
-    assert_int_equal(tbslen, expected_tbslen);
-    assert_memory_equal(tbs, expected_tbs, tbslen);
+    assert_string_equal(b64_data, expected_tbs);
 
     /* Return a predefined string as sig so that the caller
      * can confirm that this callback was exercised.
      */
-    int outlen = openvpn_base64_encode(good_sig, sizeof(good_sig), &out);
+    out = strdup(good_sig_b64);
+    assert_non_null(out);
 
-    if (outlen < 0 || !out)
-    {
-        fail_msg("base64 encode error");
-    }
-
-    free(tbs);
     return out;
 }
 
 /* Check signature and keymgmt methods can be fetched from the provider */
 static void
-xkey_provider_fetch(void **state)
+xkey_provider_test_fetch(void **state)
 {
     assert_true(OSSL_PROVIDER_available(NULL, prov_name));
 
@@ -239,6 +222,7 @@ digest_sign(EVP_PKEY *pkey)
 
     EVP_PKEY_CTX *pctx = NULL;
     EVP_MD_CTX *mctx = EVP_MD_CTX_new();
+
     if (!mctx
         || EVP_DigestSignInit_ex(mctx, &pctx, mdname, NULL, NULL, pkey,  params) <= 0)
     {
@@ -251,7 +235,7 @@ digest_sign(EVP_PKEY *pkey)
     assert_int_equal(EVP_DigestSign(mctx, sig, &siglen, (uint8_t*)test_msg, strlen(test_msg)), 1);
     assert_true(siglen > 0);
 
-    if ((sig = calloc(1, siglen)) == NULL)
+    if ((sig = test_calloc(1, siglen)) == NULL)
     {
         fail_msg("Out of memory");
     }
@@ -270,7 +254,7 @@ done:
  * Sha256 digest used for both cases with pss padding for RSA.
  */
 static void
-xkey_provider_mgmt_sign_cb(void **state)
+xkey_provider_test_mgmt_sign_cb(void **state)
 {
     EVP_PKEY *pubkey;
     for (size_t i = 0; i < _countof(pubkeys); i++)
@@ -291,7 +275,7 @@ again:
         /* check callback for signature got exercised */
         assert_int_equal(mgmt_callback_called, 1);
         assert_memory_equal(sig, good_sig, sizeof(good_sig));
-        free(sig);
+        test_free(sig);
 
         if (!(management->settings.flags & MF_EXTERNAL_KEY_DIGEST))
         {
@@ -310,8 +294,8 @@ main(void)
     init_test();
 
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(xkey_provider_fetch),
-        cmocka_unit_test(xkey_provider_mgmt_sign_cb),
+        cmocka_unit_test(xkey_provider_test_fetch),
+        cmocka_unit_test(xkey_provider_test_mgmt_sign_cb),
     };
 
     int ret = cmocka_run_group_tests_name("xkey provider tests", tests, NULL, NULL);
