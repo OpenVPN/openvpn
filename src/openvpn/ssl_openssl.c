@@ -680,7 +680,7 @@ tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
     }
     if (!SSL_CTX_set0_tmp_dh_pkey(ctx->ctx, dh))
     {
-        crypto_msg(M_FATAL, "SSL_CTX_set_tmp_dh");
+        crypto_msg(M_FATAL, "SSL_CTX_set0_tmp_dh_pkey");
     }
 
     msg(D_TLS_DEBUG_LOW, "Diffie-Hellman initialized with %d bit key",
