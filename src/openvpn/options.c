@@ -3205,6 +3205,19 @@ options_set_backwards_compatible_options(struct options *o)
         }
     }
 
+    if (need_compatibility_before(o, 20400))
+    {
+        if (!o->ciphername)
+        {
+            /* If ciphername is not set default to BF-CBC when targeting these
+             * old versions that do not have NCP */
+            o->ciphername = "BF-CBC";
+        }
+        /* Versions < 2.4.0 additionally might be compiled with --enable-small and
+         * not have OCC strings required for "poor man's NCP" */
+        o->enable_ncp_fallback = true;
+    }
+
     /* Versions < 2.5.0 do need --cipher in the list of accepted ciphers.
      * Version 2.4 might probably does not need it but NCP was not so
      * good with 2.4 and ncp-disable might be more common on 2.4 peers.
@@ -3215,13 +3228,6 @@ options_set_backwards_compatible_options(struct options *o)
         && !tls_item_in_cipher_list(o->ciphername, o->ncp_ciphers))
     {
         append_cipher_to_ncp_list(o, o->ciphername);
-    }
-
-    /* Versions < 2.4.0 additionally might be compiled with --enable-small and
-     * not have OCC strings required for "poor man's NCP" */
-    if (o->ciphername && need_compatibility_before(o, 20400))
-    {
-        o->enable_ncp_fallback = true;
     }
 
 #ifdef USE_COMP
