@@ -913,9 +913,6 @@ port_share_open(const char *host,
         /* no blocking on control channel back to parent */
         set_nonblock(fd[1]);
 
-        /* initialize prng */
-        prng_init(NULL, 0);
-
         /* execute the event loop */
         port_share_proxy(hostaddr, fd[1], max_initial_buf, journal_dir);
 

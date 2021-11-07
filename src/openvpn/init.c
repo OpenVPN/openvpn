@@ -795,11 +795,6 @@ init_static(void)
 
     init_ssl_lib();
 
-    /* init PRNG used for IV generation */
-    /* When forking, copy this to more places in the code to avoid fork
-     * random-state predictability */
-    prng_init(NULL, 0);
-
 #ifdef PID_TEST
     packet_id_interactive_test();       /* test the sequence number code */
     return false;
@@ -873,29 +868,6 @@ init_static(void)
     }
     return false;
 #endif
-
-#ifdef PRNG_TEST
-    {
-        struct gc_arena gc = gc_new();
-        uint8_t rndbuf[8];
-        int i;
-        prng_init("sha1", 16);
-        /*prng_init (NULL, 0);*/
-        const int factor = 1;
-        for (i = 0; i < factor * 8; ++i)
-        {
-#if 1
-            prng_bytes(rndbuf, sizeof(rndbuf));
-#else
-            ASSERT(rand_bytes(rndbuf, sizeof(rndbuf)));
-#endif
-            printf("[%d] %s\n", i, format_hex(rndbuf, sizeof(rndbuf), 0, &gc));
-        }
-        gc_free(&gc);
-        prng_uninit();
-        return false;
-    }
-#endif /* ifdef PRNG_TEST */
 
 #ifdef BUFFER_LIST_AGGREGATE_TEST
     /* test buffer_list_aggregate function */
@@ -2801,8 +2773,6 @@ do_init_crypto_tls_c1(struct context *c)
             init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname,
                           true, warn);
         }
-        /* Initialize PRNG with config-specified digest */
-        prng_init(options->prng_hash, options->prng_nonce_secret_len);
 
         /* initialize tls-auth/crypt/crypt-v2 key */
         do_init_tls_wrap_key(c);

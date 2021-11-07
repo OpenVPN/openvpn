@@ -518,8 +518,6 @@ struct options
                                     * ciphername if NCP fails */
     const char *ncp_ciphers;
     const char *authname;
-    const char *prng_hash;
-    int prng_nonce_secret_len;
     const char *engine;
     bool replay;
     bool mute_replay_warnings;

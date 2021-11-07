@@ -1632,96 +1632,10 @@ key_len_err:
     return 0;
 }
 
-/*
- * Random number functions, used in cases where we want
- * reasonably strong cryptographic random number generation
- * without depleting our entropy pool.  Used for random
- * IV values and a number of other miscellaneous tasks.
- */
-
-static uint8_t *nonce_data = NULL; /* GLOBAL */
-static const md_kt_t *nonce_md = NULL; /* GLOBAL */
-static int nonce_secret_len = 0; /* GLOBAL */
-
-/* Reset the nonce value, also done periodically to refresh entropy */
-static void
-prng_reset_nonce(void)
-{
-    const int size = md_kt_size(nonce_md) + nonce_secret_len;
-#if 1 /* Must be 1 for real usage */
-    if (!rand_bytes(nonce_data, size))
-    {
-        msg(M_FATAL, "ERROR: Random number generator cannot obtain entropy for PRNG");
-    }
-#else
-    /* Only for testing -- will cause a predictable PRNG sequence */
-    {
-        int i;
-        for (i = 0; i < size; ++i)
-        {
-            nonce_data[i] = (uint8_t) i;
-        }
-    }
-#endif
-}
-
-void
-prng_init(const char *md_name, const int nonce_secret_len_parm)
-{
-    prng_uninit();
-    nonce_md = md_name ? md_kt_get(md_name) : NULL;
-    if (nonce_md)
-    {
-        ASSERT(nonce_secret_len_parm >= NONCE_SECRET_LEN_MIN && nonce_secret_len_parm <= NONCE_SECRET_LEN_MAX);
-        nonce_secret_len = nonce_secret_len_parm;
-        {
-            const int size = md_kt_size(nonce_md) + nonce_secret_len;
-            dmsg(D_CRYPTO_DEBUG, "PRNG init md=%s size=%d", md_kt_name(nonce_md), size);
-            nonce_data = (uint8_t *) malloc(size);
-            check_malloc_return(nonce_data);
-            prng_reset_nonce();
-        }
-    }
-}
-
-void
-prng_uninit(void)
-{
-    free(nonce_data);
-    nonce_data = NULL;
-    nonce_md = NULL;
-    nonce_secret_len = 0;
-}
-
 void
 prng_bytes(uint8_t *output, int len)
 {
-    static size_t processed = 0;
-
-    if (nonce_md)
-    {
-        const int md_size = md_kt_size(nonce_md);
-        while (len > 0)
-        {
-            const int blen = min_int(len, md_size);
-            md_full(nonce_md, nonce_data, md_size + nonce_secret_len, nonce_data);
-            memcpy(output, nonce_data, blen);
-            output += blen;
-            len -= blen;
-
-            /* Ensure that random data is reset regularly */
-            processed += blen;
-            if (processed > PRNG_NONCE_RESET_BYTES)
-            {
-                prng_reset_nonce();
-                processed = 0;
-            }
-        }
-    }
-    else
-    {
-        ASSERT(rand_bytes(output, len));
-    }
+    ASSERT(rand_bytes(output, len));
 }
 
 /* an analogue to the random() function, but use prng_bytes */

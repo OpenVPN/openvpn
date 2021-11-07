@@ -45,23 +45,6 @@ used when debugging or testing out special usage scenarios.
   Preserve most recently authenticated remote IP address and port number
   across :code:`SIGUSR1` or ``--ping-restart`` restarts.
 
---prng args
-  *(Advanced)* Change the PRNG (Pseudo-random number generator) parameters
-
-  Valid syntaxes:
-  ::
-
-     prng alg
-     prng alg nsl
-
-  Changes the PRNG to use digest algorithm **alg** (default :code:`sha1`),
-  and set ``nsl`` (default :code:`16`) to the size in bytes of the nonce
-  secret length (between 16 and 64).
-
-  Set ``alg`` to :code:`none` to disable the PRNG and use the OpenSSL
-  RAND\_bytes function instead for all of OpenVPN's pseudo-random number
-  needs.
-
 --rcvbuf size
   Set the TCP/UDP socket receive buffer size. Defaults to operating system
   default.

@@ -454,24 +454,6 @@ bool
 read_pem_key_file(struct buffer *key, const char *pem_name,
                   const char *key_file, bool key_inline);
 
-/* Minimum length of the nonce used by the PRNG */
-#define NONCE_SECRET_LEN_MIN 16
-
-/* Maximum length of the nonce used by the PRNG */
-#define NONCE_SECRET_LEN_MAX 64
-
-/** Number of bytes of random to allow before resetting the nonce */
-#define PRNG_NONCE_RESET_BYTES 1024
-
-/**
- * Pseudo-random number generator initialisation.
- * (see \c prng_rand_bytes())
- *
- * @param md_name                       Name of the message digest to use
- * @param nonce_secret_len_param        Length of the nonce to use
- */
-void prng_init(const char *md_name, const int nonce_secret_len_parm);
-
 /*
  * Message digest-based pseudo random number generator.
  *
@@ -488,8 +470,6 @@ void prng_init(const char *md_name, const int nonce_secret_len_parm);
  * @param len           Length of the output buffer
  */
 void prng_bytes(uint8_t *output, int len);
-
-void prng_uninit(void);
 
 /* an analogue to the random() function, but use prng_bytes */
 long int get_random(void);

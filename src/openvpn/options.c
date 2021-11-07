@@ -522,8 +522,6 @@ static const char usage_message[] =
     "                  (default=%s).\n"
     "                  Set alg=none to disable encryption.\n"
     "--data-ciphers list : List of ciphers that are allowed to be negotiated.\n"
-    "--prng alg [nsl] : For PRNG, use digest algorithm alg, and\n"
-    "                   nonce_secret_len=nsl.  Set alg=none to disable PRNG.\n"
 #ifndef ENABLE_CRYPTO_MBEDTLS
     "--engine [name] : Enable OpenSSL hardware crypto engine functionality.\n"
 #endif
@@ -839,8 +837,6 @@ init_options(struct options *o, const bool init_gc)
     o->ifconfig_pool_persist_refresh_freq = 600;
     o->scheduled_exit_interval = 5;
     o->authname = "SHA1";
-    o->prng_hash = "SHA1";
-    o->prng_nonce_secret_len = 16;
     o->replay = true;
     o->replay_window = DEFAULT_SEQ_BACKTRACK;
     o->replay_time = DEFAULT_TIME_BACKTRACK;
@@ -1714,8 +1710,6 @@ show_settings(const struct options *o)
     SHOW_STR(ciphername);
     SHOW_STR(ncp_ciphers);
     SHOW_STR(authname);
-    SHOW_STR(prng_hash);
-    SHOW_INT(prng_nonce_secret_len);
 #ifndef ENABLE_CRYPTO_MBEDTLS
     SHOW_BOOL(engine);
 #endif /* ENABLE_CRYPTO_MBEDTLS */
@@ -8088,29 +8082,7 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "prng") && p[1] && !p[3])
     {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        if (streq(p[1], "none"))
-        {
-            options->prng_hash = NULL;
-        }
-        else
-        {
-            options->prng_hash = p[1];
-        }
-        if (p[2])
-        {
-            const int sl = atoi(p[2]);
-            if (sl >= NONCE_SECRET_LEN_MIN && sl <= NONCE_SECRET_LEN_MAX)
-            {
-                options->prng_nonce_secret_len = sl;
-            }
-            else
-            {
-                msg(msglevel, "prng parameter nonce_secret_len must be between %d and %d",
-                    NONCE_SECRET_LEN_MIN, NONCE_SECRET_LEN_MAX);
-                goto err;
-            }
-        }
+        msg(M_WARN, "NOTICE: --prng option ignored (SSL library PRNG is used)");
     }
     else if (streq(p[0], "no-replay") && !p[1])
     {

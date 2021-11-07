@@ -87,6 +87,11 @@ TLS 1.0 and 1.1 are deprecated
     Should backwards compatibility with older OpenVPN peers be
     required, please see the ``--compat-mode`` instead.
 
+``--prng`` has beeen removed
+    OpenVPN used to implement its own PRNG based on a hash. However implementing
+    a PRNG is better left to a crypto library. So we use the PRNG
+    mbed TLS or OpenSSL now.
+
 
 Compression no longer enabled by default
     Unless an explicit compression option is specified in the configuration,
@@ -104,6 +109,7 @@ PF (Packet Filtering) support has been removed
 User-visible Changes
 --------------------
 - CHACHA20-POLY1305 is included in the default of ``--data-ciphers`` when available.
+- Option ``--prng`` is ignored as we rely on the SSL library radnom generator.
 
 Overview of changes in 2.5
 ==========================
