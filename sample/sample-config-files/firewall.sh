@@ -50,7 +50,7 @@ iptables -A OUTPUT -p tcp --sport 137:139 -o eth0 -j DROP
 iptables -A OUTPUT -p udp --sport 137:139 -o eth0 -j DROP
 
 # Check source address validity on packets going out to internet
-iptables -A FORWARD -s ! $PRIVATE -i eth1 -j DROP
+iptables -A FORWARD ! -s $PRIVATE -i eth1 -j DROP
 
 # Allow local loopback
 iptables -A INPUT -s $LOOP -j ACCEPT
