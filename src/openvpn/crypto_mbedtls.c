@@ -50,7 +50,6 @@
 #include <mbedtls/error.h>
 #include <mbedtls/md5.h>
 #include <mbedtls/cipher.h>
-#include <mbedtls/havege.h>
 #include <mbedtls/pem.h>
 
 #include <mbedtls/entropy.h>
