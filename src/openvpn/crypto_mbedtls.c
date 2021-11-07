@@ -375,62 +375,6 @@ rand_bytes(uint8_t *output, int len)
 
 /*
  *
- * Key functions, allow manipulation of keys.
- *
- */
-
-
-int
-key_des_num_cblocks(const mbedtls_cipher_info_t *kt)
-{
-    int ret = 0;
-    if (kt->type == MBEDTLS_CIPHER_DES_CBC)
-    {
-        ret = 1;
-    }
-    if (kt->type == MBEDTLS_CIPHER_DES_EDE_CBC)
-    {
-        ret = 2;
-    }
-    if (kt->type == MBEDTLS_CIPHER_DES_EDE3_CBC)
-    {
-        ret = 3;
-    }
-
-    dmsg(D_CRYPTO_DEBUG, "CRYPTO INFO: n_DES_cblocks=%d", ret);
-    return ret;
-}
-
-bool
-key_des_check(uint8_t *key, int key_len, int ndc)
-{
-    int i;
-    struct buffer b;
-
-    buf_set_read(&b, key, key_len);
-
-    for (i = 0; i < ndc; ++i)
-    {
-        unsigned char *key = buf_read_alloc(&b, MBEDTLS_DES_KEY_SIZE);
-        if (!key)
-        {
-            msg(D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: insufficient key material");
-            goto err;
-        }
-        if (0 != mbedtls_des_key_check_weak(key))
-        {
-            msg(D_CRYPT_ERRORS, "CRYPTO INFO: check_key_DES: weak key detected");
-            goto err;
-        }
-    }
-    return true;
-
-err:
-    return false;
-}
-
-/*
- *
  * Generic cipher key type functions
  *
  */
