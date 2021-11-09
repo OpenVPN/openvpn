@@ -239,7 +239,7 @@ helper_client_server(struct options *o)
      * if tap OR (tun AND topology == subnet):
      *   ifconfig 10.8.0.1 255.255.255.0
      *   if !nopool:
-     *     ifconfig-pool 10.8.0.2 10.8.0.253 255.255.255.0
+     *     ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
      *   push "route-gateway 10.8.0.1"
      *   if route-gateway unset:
      *     route-gateway 10.8.0.2
@@ -342,7 +342,7 @@ helper_client_server(struct options *o)
                 {
                     o->ifconfig_pool_defined = true;
                     o->ifconfig_pool_start = o->server_network + 2;
-                    o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 2;
+                    o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 1;
                     ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
                 }
                 o->ifconfig_pool_netmask = o->server_netmask;
