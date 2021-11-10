@@ -45,11 +45,11 @@ OSSL_provider_init_fn xkey_provider_init;
  * to sign operation.
  */
 typedef struct {
-   const char *padmode; /* "pkcs1", "pss" or "none" */
-   const char *mdname;  /* "SHA256" or "SHA2-256" etc. */
-   const char *saltlen; /* "digest", "auto" or "max" */
-   const char *keytype; /* "EC" or "RSA" */
-   const char *op;      /* "Sign" or "DigestSign" */
+   const char *padmode; /**< "pkcs1", "pss" or "none" */
+   const char *mdname;  /**< "SHA256" or "SHA2-256" etc. */
+   const char *saltlen; /**< "digest", "auto" or "max" */
+   const char *keytype; /**< "EC" or "RSA" */
+   const char *op;      /**< "Sign" or "DigestSign" */
 } XKEY_SIGALG;
 
 /**

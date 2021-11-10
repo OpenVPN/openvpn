@@ -88,22 +88,31 @@ typedef enum
  */
 typedef struct
 {
-    /* opaque handle dependent on KEY_ORIGIN -- could be NULL */
+    /** opaque handle dependent on KEY_ORIGIN -- could be NULL */
     void *handle;
-    /* associated public key as an openvpn native key */
+    /** associated public key as an openvpn native key */
     EVP_PKEY *pubkey;
-    /* origin of key -- native or external */
+    /** origin of key -- native or external */
     XKEY_ORIGIN origin;
-    /* sign function in backend to call */
+    /** sign function in backend to call */
     XKEY_EXTERNAL_SIGN_fn *sign;
-    /* keydata handle free function of backend */
+    /** keydata handle free function of backend */
     XKEY_PRIVKEY_FREE_fn *free;
     XKEY_PROVIDER_CTX *prov;
-    int refcount;                /* reference count */
+    int refcount;                /**< reference count */
 } XKEY_KEYDATA;
 
-#define KEYTYPE(key) ((key)->pubkey ? EVP_PKEY_get_id((key)->pubkey) : 0)
-#define KEYSIZE(key) ((key)->pubkey ? EVP_PKEY_get_size((key)->pubkey) : 0)
+static int
+KEYTYPE(const XKEY_KEYDATA *key)
+{
+    return key->pubkey ? EVP_PKEY_get_id(key->pubkey) : 0;
+}
+
+static int
+KEYSIZE(const XKEY_KEYDATA *key)
+{
+    return key->pubkey ? EVP_PKEY_get_size(key->pubkey) : 0;
+}
 
 /**
  * Helper sign function for native keys
@@ -616,6 +625,20 @@ const struct {
 } digest_names[] = {{NID_md5_sha1, "MD5-SHA1"}, {NID_sha1, "SHA1"},
                     {NID_sha224, "SHA224",}, {NID_sha256, "SHA256"}, {NID_sha384, "SHA384"},
                     {NID_sha512, "SHA512"}, {0, NULL}};
+/* Use of NIDs as opposed to EVP_MD_fetch is okay here
+ * as these are only used for converting names passed in
+ * by OpenSSL to const strings.
+ */
+
+static struct {
+    int id;
+    const char *name;
+} padmode_names[] = {{RSA_PKCS1_PADDING, "pkcs1"},
+                     {RSA_PKCS1_PSS_PADDING, "pss"},
+                     {RSA_NO_PADDING, "none"},
+                     {0, NULL}};
+
+static const char *saltlen_names[] = {"digest", "max", "auto", NULL};
 
 /* Return a string literal for digest name - normalizes
  * alternate names like SHA2-256 to SHA256 etc.
@@ -641,7 +664,7 @@ signature_newctx(void *provctx, const char *propq)
 
     (void) propq; /* unused */
 
-    XKEY_SIGNATURE_CTX *sctx = calloc(sizeof(*sctx), 1);
+    XKEY_SIGNATURE_CTX *sctx = OPENSSL_zalloc(sizeof(*sctx));
     if (!sctx)
     {
         msg(M_NONFATAL, "xkey_signature_newctx: out of memory");
@@ -663,7 +686,7 @@ signature_freectx(void *ctx)
 
     keydata_free(sctx->keydata);
 
-    free(sctx);
+    OPENSSL_free(sctx);
 }
 
 static const OSSL_PARAM *
@@ -696,21 +719,18 @@ signature_set_ctx_params(void *ctx, const OSSL_PARAM params[])
     p = OSSL_PARAM_locate_const(params, OSSL_SIGNATURE_PARAM_PAD_MODE);
     if (p && p->data_type == OSSL_PARAM_UTF8_STRING)
     {
-        if (!strcmp(p->data, "pss"))
+        sctx->sigalg.padmode = NULL;
+        for (int i = 0; padmode_names[i].id != 0; i++)
         {
-            sctx->sigalg.padmode = "pss";
+            if (!strcmp(p->data, padmode_names[i].name))
+            {
+                sctx->sigalg.padmode = padmode_names[i].name;
+                break;
+            }
         }
-        else if (!strcmp(p->data, "pkcs1"))
+        if (sctx->sigalg.padmode == NULL)
         {
-            sctx->sigalg.padmode = "pkcs1";
-        }
-        else if (!strcmp(p->data, "none"))
-        {
-            sctx->sigalg.padmode = "none";
-        }
-        else
-        {
-            msg(M_WARN, "xkey signature_ctx: padmode <%s>, treating as <pkcs1>",
+            msg(M_WARN, "xkey signature_ctx: padmode <%s>, treating as <none>",
                 (char *)p->data);
             sctx->sigalg.padmode = "none";
         }
@@ -718,23 +738,25 @@ signature_set_ctx_params(void *ctx, const OSSL_PARAM params[])
     }
     else if (p && p->data_type == OSSL_PARAM_INTEGER)
     {
-        int padmode;
+        sctx->sigalg.padmode = NULL;
+        int padmode = 0;
         if (OSSL_PARAM_get_int(p, &padmode))
         {
-            if (padmode == RSA_PKCS1_PSS_PADDING)
+            for (int i = 0; padmode_names[i].id != 0; i++)
             {
-                sctx->sigalg.padmode = "pss";
-            }
-            else if (padmode == RSA_PKCS1_PADDING)
-            {
-                sctx->sigalg.padmode = "pkcs1";
-            }
-            else
-            {
-                sctx->sigalg.padmode = "none";
+                if (padmode == padmode_names[i].id)
+                {
+                    sctx->sigalg.padmode = padmode_names[i].name;
+                    break;
+                }
             }
         }
-        xkey_dmsg(D_LOW, "setting padmode as <%s>", sctx->sigalg.padmode);
+        if (padmode == 0 || sctx->sigalg.padmode == NULL)
+        {
+            msg(M_WARN, "xkey signature_ctx: padmode <%d>, treating as <none>", padmode);
+            sctx->sigalg.padmode = "none";
+        }
+        xkey_dmsg(D_LOW, "setting padmode <%s>", sctx->sigalg.padmode);
     }
     else if (p)
     {
@@ -755,19 +777,16 @@ signature_set_ctx_params(void *ctx, const OSSL_PARAM params[])
     p = OSSL_PARAM_locate_const(params, OSSL_SIGNATURE_PARAM_PSS_SALTLEN);
     if (p && p->data_type == OSSL_PARAM_UTF8_STRING)
     {
-        if (!strcmp((char *)p->data, "digest"))
+        sctx->sigalg.saltlen = NULL;
+        for (int i = 0; saltlen_names[i] != NULL; i++)
         {
-            sctx->sigalg.saltlen = "digest";
+            if (!strcmp(p->data, saltlen_names[i]))
+            {
+                sctx->sigalg.saltlen = saltlen_names[i];
+                break;
+            }
         }
-        else if (!strcmp(p->data, "max"))
-        {
-            sctx->sigalg.saltlen = "max";
-        }
-        else if (!strcmp(p->data, "auto"))
-        {
-            sctx->sigalg.saltlen = "auto";
-        }
-        else
+        if (sctx->sigalg.saltlen == NULL)
         {
             msg(M_WARN, "xkey_signature_params: unknown saltlen <%s>",
                 (char *)p->data);
@@ -875,6 +894,10 @@ signature_digest_verify_init(void *ctx, const char *mdname, void *provkey,
     return 0;
 }
 
+/* We do not expect to be called for DigestVerify() but still
+ * return an empty function for it in the sign dispatch array
+ * for debugging purposes.
+ */
 static int
 signature_digest_verify(void *ctx, const unsigned char *sig, size_t siglen,
                         const unsigned char *tbs, size_t tbslen)
