@@ -28,14 +28,14 @@
 #include "config-msvc.h"
 #endif
 
-#ifdef HAVE_XKEY_PROVIDER
-
 #include "syshead.h"
 #include "error.h"
 #include "buffer.h"
 #include "xkey_common.h"
 #include "manage.h"
 #include "base64.h"
+
+#ifdef HAVE_XKEY_PROVIDER
 
 #include <openssl/provider.h>
 #include <openssl/params.h>
