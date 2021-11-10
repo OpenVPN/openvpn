@@ -11,9 +11,7 @@ if HAVE_LD_WRAP_SUPPORT
 test_binaries += tls_crypt_testdriver
 endif
 
-if HAVE_XKEY_PROVIDER
 test_binaries += provider_testdriver
-endif
 
 TESTS = $(test_binaries)
 check_PROGRAMS = $(test_binaries)
@@ -99,7 +97,6 @@ networking_testdriver_SOURCES = test_networking.c mock_msg.c \
 	$(openvpn_srcdir)/platform.c
 endif
 
-if HAVE_XKEY_PROVIDER
 provider_testdriver_CFLAGS  = @TEST_CFLAGS@ \
 	-I$(openvpn_includedir) -I$(compat_srcdir) -I$(openvpn_srcdir) \
 	$(OPTIONAL_CRYPTO_CFLAGS)
@@ -113,7 +110,6 @@ provider_testdriver_SOURCES = test_provider.c mock_msg.c \
 	$(openvpn_srcdir)/base64.c \
 	mock_get_random.c \
 	$(openvpn_srcdir)/platform.c
-endif
 
 auth_token_testdriver_CFLAGS  = @TEST_CFLAGS@ \
 	-I$(openvpn_includedir) -I$(compat_srcdir) -I$(openvpn_srcdir) \

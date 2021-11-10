@@ -29,6 +29,10 @@
 #endif
 
 #include "syshead.h"
+#include "manage.h"
+#include "xkey_common.h"
+
+#ifdef HAVE_XKEY_PROVIDER
 
 #include <setjmp.h>
 #include <cmocka.h>
@@ -36,9 +40,6 @@
 #include <openssl/pem.h>
 #include <openssl/core_names.h>
 #include <openssl/evp.h>
-
-#include "manage.h"
-#include "xkey_common.h"
 
 struct management *management; /* global */
 static int mgmt_callback_called;
@@ -91,11 +92,11 @@ static const char *test_digest_b64 = "dzhlAB6WSMZXC67At5b5Zk1f0Lfb8zq/Asx4YYMgIO
  * --- the smallest size of the actual signature with the above
  * keys.
  */
-const uint8_t good_sig[] =
+static const uint8_t good_sig[] =
    {0xd8, 0xa7, 0xd9, 0x81, 0xd8, 0xaa, 0xd8, 0xad, 0x20, 0xd9, 0x8a, 0xd8,
     0xa7, 0x20, 0xd8, 0xb3, 0xd9, 0x85, 0xd8, 0xb3, 0xd9, 0x85, 0x0};
 
-const char *good_sig_b64 = "2KfZgdiq2K0g2YrYpyDYs9mF2LPZhQA=";
+static const char *good_sig_b64 = "2KfZgdiq2K0g2YrYpyDYs9mF2LPZhQA=";
 
 static EVP_PKEY *
 load_pubkey(const char *pem)
@@ -155,9 +156,15 @@ management_query_pk_sig(struct management *man, const char *b64_data,
     if (strstr(algorithm, "data=message"))
     {
          expected_tbs = test_msg_b64;
+         assert_non_null(strstr(algorithm, "hashalg=SHA256"));
     }
-
     assert_string_equal(b64_data, expected_tbs);
+
+    /* We test using ECDSA or PSS with saltlen = digest */
+    if (!strstr(algorithm, "ECDSA"))
+    {
+        assert_non_null(strstr(algorithm, "RSA_PKCS1_PSS_PADDING,hashalg=SHA256,saltlen=digest"));
+    }
 
     /* Return a predefined string as sig so that the caller
      * can confirm that this callback was exercised.
@@ -229,7 +236,6 @@ digest_sign(EVP_PKEY *pkey)
         fail_msg("Failed to initialize EVP_DigestSignInit_ex()");
         goto done;
     }
-
 
     /* sign with sig = NULL to get required siglen */
     assert_int_equal(EVP_DigestSign(mctx, sig, &siglen, (uint8_t*)test_msg, strlen(test_msg)), 1);
@@ -388,3 +394,10 @@ main(void)
     uninit_test();
     return ret;
 }
+#else
+int
+main(void)
+{
+    return 0;
+}
+#endif /* HAVE_XKEY_PROVIDER */
