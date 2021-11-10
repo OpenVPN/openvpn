@@ -64,14 +64,14 @@ typedef struct
 
 typedef enum
 {
-    ORIGIN_NONAME = 0,
+    ORIGIN_UNDEFINED = 0,
     OPENSSL_NATIVE, /* native key imported in */
     EXTERNAL_KEY
 } XKEY_ORIGIN;
 
-/*
+/**
  * XKEY_KEYDATA: Our keydata encapsulation:
- * ---------------------------------------
+ *
  * We keep an opaque handle provided by the backend for the loaded
  * key. It's passed back to the backend for any operation on private
  * keys --- in practice, sign() op only.
@@ -139,7 +139,7 @@ keydata_new()
 {
     xkey_dmsg(D_LOW, "entry");
 
-    XKEY_KEYDATA *key = calloc(sizeof(*key), 1);
+    XKEY_KEYDATA *key = OPENSSL_zalloc(sizeof(*key));
     if (!key)
     {
         msg(M_NONFATAL, "xkey_keydata_new: out of memory");
@@ -166,7 +166,7 @@ keydata_free(XKEY_KEYDATA *key)
     {
         EVP_PKEY_free(key->pubkey);
     }
-    free(key);
+    OPENSSL_free(key);
 }
 
 static void *
@@ -232,7 +232,6 @@ keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[], const ch
     ASSERT(key);
 
     /* Our private key is immutable -- we import only if keydata is empty */
-
     if (key->handle || key->pubkey)
     {
         msg(M_WARN, "Error: keymgmt_import: keydata not empty -- our keys are immutable");
@@ -317,8 +316,6 @@ keymgmt_import_types(int selection)
     }
     return NULL;
 }
-
-/* We do not support any key export */
 
 static void
 keymgmt_free(void *keydata)
