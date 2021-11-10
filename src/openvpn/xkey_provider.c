@@ -28,12 +28,12 @@
 #include "config-msvc.h"
 #endif
 
-#ifdef HAVE_XKEY_PROVIDER
-
 #include "syshead.h"
 #include "error.h"
 #include "buffer.h"
 #include "xkey_common.h"
+
+#ifdef HAVE_XKEY_PROVIDER
 
 #include <openssl/provider.h>
 #include <openssl/params.h>
@@ -52,8 +52,7 @@ static const char *provname = "OpenVPN External Key Provider";
 
 typedef struct
 {
-    OSSL_LIB_CTX *libctx;  /*  a child libctx for our own use */
-    OSSL_PROVIDER *deflt;  /* default provider that we load for delegating some ops */
+    OSSL_LIB_CTX *libctx;  /**< a child libctx for our own use */
 } XKEY_PROVIDER_CTX;
 
 /* helper to print debug messages */
@@ -1118,15 +1117,11 @@ teardown(void *provctx)
     xkey_dmsg(D_LOW, "entry");
 
     XKEY_PROVIDER_CTX *prov = provctx;
-    if (prov && prov->deflt)
-    {
-        OSSL_PROVIDER_unload(prov->deflt);
-    }
     if (prov && prov->libctx)
     {
         OSSL_LIB_CTX_free(prov->libctx);
     }
-    free(prov);
+    OPENSSL_free(prov);
 }
 
 static const OSSL_DISPATCH dispatch_table[] = {
@@ -1145,7 +1140,7 @@ xkey_provider_init(const OSSL_CORE_HANDLE *handle, const OSSL_DISPATCH *in,
 
     xkey_dmsg(D_LOW, "entry");
 
-    prov = calloc(sizeof(*prov), 1);
+    prov = OPENSSL_zalloc(sizeof(*prov));
     if (!prov)
     {
         msg(M_NONFATAL, "xkey_provider_init: out of memory");

@@ -857,33 +857,6 @@ if test "${with_crypto_library}" = "openssl"; then
 		AC_DEFINE([HAVE_OPENSSL_ENGINE], [1], [OpenSSL engine support available])
 	fi
 
-	# Check whether OpenSSL provider support is usable -- need version >= 3.0.1
-	have_usable_openssl_provider="yes"
-	AC_MSG_CHECKING([Check if OpenSSL version >= 3.0.1])
-	AC_COMPILE_IFELSE(
-		[AC_LANG_PROGRAM(
-			[[
-#include <openssl/opensslv.h>
-			]],
-			[[
-/*     Version encoding: MNN00PPS - see opensslv.h for details */
-#if OPENSSL_VERSION_NUMBER < 0x30000010L
-#error OpenSSL with no or buggy provider support
-#endif
-			]]
-		)],
-		[AC_MSG_RESULT([ok])],
-		[
-			have_usable_openssl_provider="no"
-			AC_MSG_RESULT([no])
-		]
-	)
-
-	if test "${have_usable_openssl_provider}" = "yes"; then
-		AC_DEFINE([HAVE_XKEY_PROVIDER], [1], [Enable external key loading provider])
-		AM_CONDITIONAL([HAVE_XKEY_PROVIDER], [true])
-	fi
-
 	AC_CHECK_FUNC(
 		[EVP_aes_256_gcm],
 		,
