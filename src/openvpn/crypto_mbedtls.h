@@ -48,6 +48,9 @@ typedef mbedtls_md_context_t md_ctx_t;
 /** Generic HMAC %context. */
 typedef mbedtls_md_context_t hmac_ctx_t;
 
+/* Use a dummy type for the provider */
+typedef void provider_t;
+
 /** Maximum length of an IV */
 #define OPENVPN_MAX_IV_LENGTH   MBEDTLS_MAX_IV_LENGTH
 

@@ -69,6 +69,19 @@ crypto_init_lib_engine(const char *engine_name)
         "available");
 }
 
+provider_t *crypto_load_provider(const char *provider)
+{
+    if (provider)
+    {
+        msg(M_WARN, "Note: mbed TLS provider functionality is not available");
+    }
+    return NULL;
+}
+
+void crypto_unload_provider(const char *provname, provider_t *provider)
+{
+}
+
 /*
  *
  * Functions related to the core crypto library

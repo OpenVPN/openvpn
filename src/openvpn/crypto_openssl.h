@@ -33,6 +33,10 @@
 #include <openssl/hmac.h>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#include <openssl/provider.h>
+#endif
+
 
 /** Generic cipher key type %context. */
 typedef EVP_CIPHER cipher_kt_t;
@@ -49,12 +53,17 @@ typedef EVP_MD_CTX md_ctx_t;
 /** Generic HMAC %context. */
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
 typedef HMAC_CTX hmac_ctx_t;
+
+/* Use a dummy type for the provider */
+typedef void provider_t;
 #else
 typedef struct {
     OSSL_PARAM params[3];
     uint8_t key[EVP_MAX_KEY_LENGTH];
     EVP_MAC_CTX *ctx;
 } hmac_ctx_t;
+
+typedef OSSL_PROVIDER provider_t;
 #endif
 
 /** Maximum length of an IV */

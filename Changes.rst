@@ -50,6 +50,13 @@ Compatibility mode (``--compat-mode``)
     with older peers. The options ``--compat-mode`` allows UIs to provide users
     with an easy way to still connect to older servers.
 
+OpenSSL 3.0 support
+    OpenSSL 3.0 has been added. Most of OpenSSL 3.0 changes are not user visible but
+    improve general compatibility with OpenSSL 3.0. ``--tls-cert-profile insecure``
+    has been added to allow selecting the lowest OpenSSL security level (not
+    recommended, use only if you must). OpenSSL 3.0 no longer supports the Blowfish
+    (and other deprecated) algorithm by default and the new option ``--providers``
+    allows loading the legacy provider to renable these algorithms.
 
 Deprecated features
 -------------------
