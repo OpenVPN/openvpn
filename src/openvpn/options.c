@@ -60,6 +60,7 @@
 #include "forward.h"
 #include "ssl_verify.h"
 #include "platform.h"
+#include "xkey_common.h"
 #include <ctype.h>
 
 #include "memdbg.h"
@@ -2216,7 +2217,7 @@ options_postprocess_verify_ce(const struct options *options,
         && !(options->management_flags & (MF_EXTERNAL_KEY_NOPADDING))
         )
     {
-        msg(M_ERR, "management-external-key with TLS 1.3 or later requires "
+        msg(M_FATAL, "management-external-key with TLS 1.3 or later requires "
             "nopadding argument/support");
     }
 #endif
