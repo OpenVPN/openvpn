@@ -316,6 +316,8 @@
     <ClCompile Include="vlan.c" />
     <ClCompile Include="win32.c" />
     <ClCompile Include="win32-util.c" />
+    <ClCompile Include="xkey_helper.c"/>
+    <ClCompile Include="xkey_provider.c"/>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="argv.h" />
@@ -407,6 +409,7 @@
     <ClInclude Include="vlan.h" />
     <ClInclude Include="win32.h" />
     <ClInclude Include="win32-util.h" />
+    <ClInclude Include="xkey_common.h"/>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="openvpn_win32_resources.rc" />
