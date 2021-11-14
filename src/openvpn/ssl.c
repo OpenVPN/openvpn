@@ -2176,6 +2176,9 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 #elif defined(_WIN32)
         buf_printf(&out, "IV_PLAT=win\n");
 #endif
+        /* Announce that we do not require strict sequence numbers with
+         * TCP. (TCP non-linear) */
+        buf_printf(&out, "IV_TCPNL=1\n");
     }
 
     /* These are the IV variable that are sent to peers in p2p mode */
