@@ -418,6 +418,8 @@ static const char usage_message[] =
     "                  execution.  Peer must specify --pull in its config file.\n"
     "--push-reset    : Don't inherit global push list for specific\n"
     "                  client instance.\n"
+    "--push-remove opt : Remove options matching 'opt' from the push list for\n"
+    "                  a specific client instance.\n"
     "--ifconfig-pool start-IP end-IP [netmask] : Set aside a pool of subnets\n"
     "                  to be dynamically allocated to connecting clients.\n"
     "--ifconfig-pool-persist file [seconds] : Persist/unpersist ifconfig-pool\n"
