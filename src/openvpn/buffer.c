@@ -311,29 +311,6 @@ openvpn_snprintf(char *str, size_t size, const char *format, ...)
 }
 
 /*
- * openvpn_swprintf() is currently only used by Windows code paths
- * and when enabled for all platforms it will currently break older
- * OpenBSD versions lacking vswprintf(3) support in their libc.
- */
-
-#ifdef _WIN32
-bool
-openvpn_swprintf(wchar_t *const str, const size_t size, const wchar_t *const format, ...)
-{
-    va_list arglist;
-    int len = -1;
-    if (size > 0)
-    {
-        va_start(arglist, format);
-        len = vswprintf(str, size, format, arglist);
-        va_end(arglist);
-        str[size - 1] = L'\0';
-    }
-    return (len >= 0 && len < size);
-}
-#endif
-
-/*
  * write a string to the end of a buffer that was
  * truncated by buf_printf
  */
