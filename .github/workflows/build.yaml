@@ -217,7 +217,7 @@ jobs:
       - name: Restore artifacts, or run vcpkg, build and cache artifacts
         uses: lukka/run-vcpkg@v7.4
         with:
-          vcpkgGitCommitId: '71422c627264daedcbcd46f01f1ed0dcd8460f1b'
+          vcpkgGitCommitId: 'a2fcb03749ff5897b5985092934dc6057680c789'
           vcpkgArguments: 'openssl lz4 lzo pkcs11-helper tap-windows6'
           vcpkgTriplet: '${{ matrix.triplet }}-windows-ovpn'
           cleanAfterBuild: false
