@@ -18,13 +18,13 @@ configured in a compatible way between both the local and remote side.
 
   The ``mode`` argument can be one of the following values:
 
-  :code:`asym`  (default)
+  :code:`asym`
       OpenVPN will only *decompress downlink packets* but *not compress
       uplink packets*.  This also allows migrating to disable compression
       when changing both server and client configurations to remove
       compression at the same time is not a feasible option.
 
-  :code:`no`
+  :code:`no`  (default)
       OpenVPN will refuse any non-stub compression.
 
   :code:`yes`
