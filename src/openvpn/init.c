@@ -3068,9 +3068,15 @@ do_init_finalize_tls_frame(struct context *c)
  * No encryption or authentication.
  */
 static void
-do_init_crypto_none(const struct context *c)
+do_init_crypto_none(struct context *c)
 {
     ASSERT(!c->options.test_crypto);
+
+    /* Initialise key_type with auth/cipher "none", so the key_type struct is
+     * valid */
+    init_key_type(&c->c1.ks.key_type, "none", "none",
+                  c->options.test_crypto, true);
+
     msg(M_WARN,
         "******* WARNING *******: All encryption and authentication features "
         "disabled -- All data will be tunnelled as clear text and will not be "
