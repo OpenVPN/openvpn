@@ -58,6 +58,10 @@ OpenSSL 3.0 support
     (and other deprecated) algorithm by default and the new option ``--providers``
     allows loading the legacy provider to renable these algorithms.
 
+Optional ciphers in ``--data-ciphers``
+    Ciphers in ``--data-ciphers`` can now be prefixed with a ``?`` to mark
+    those as optional and only use them if the SSL library supports them.
+
 Deprecated features
 -------------------
 ``inetd`` has been removed
