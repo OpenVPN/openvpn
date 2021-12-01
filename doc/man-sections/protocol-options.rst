@@ -184,6 +184,13 @@ configured in a compatible way between both the local and remote side.
   supported by the client will be pushed to clients that support cipher
   negotiation.
 
+  Starting with OpenVPN 2.5.9 a cipher can be prefixed with a :code:`?` to mark
+  it as optional. This allows including ciphers in the list that may not be
+  available on all platforms.
+  E.g. :code:`AES-256-GCM:AES-128-GCM:?CHACHA20-POLY1305` would only enable
+  Chacha20-Poly1305 if the underlying SSL library (and its configuration)
+  supports it.
+
   Cipher negotiation is enabled in client-server mode only. I.e. if
   ``--mode`` is set to 'server' (server-side, implied by setting
   ``--server`` ), or if ``--pull`` is specified (client-side, implied by

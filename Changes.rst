@@ -1,3 +1,12 @@
+Overview of changes in 2.5.9
+============================
+
+New features
+------------
+- Optional ciphers in ``--data-ciphers``
+  Ciphers in ``--data-ciphers`` can now be prefixed with a ``?`` to mark
+  those as optional and only use them if the SSL library supports them.
+
 Overview of changes in 2.5.8
 ============================
 
