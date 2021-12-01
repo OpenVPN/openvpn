@@ -757,6 +757,7 @@ int EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz,
 
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
 #define EVP_MD_get0_name EVP_MD_name
+#define EVP_CIPHER_CTX_get_mode EVP_CIPHER_CTX_mode
 
 /* Mimics the functions but only when the default context without
  * options is chosen */

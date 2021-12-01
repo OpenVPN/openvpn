@@ -68,12 +68,10 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work,
     int outlen = 0;
     const struct key_ctx *ctx = &opt->key_ctx_bi.encrypt;
     uint8_t *mac_out = NULL;
-    const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt(ctx->cipher);
     const int mac_len = OPENVPN_AEAD_TAG_LENGTH;
 
     /* IV, packet-ID and implicit IV required for this mode. */
     ASSERT(ctx->cipher);
-    ASSERT(cipher_kt_mode_aead(cipher_kt));
     ASSERT(packet_id_initialized(&opt->packet_id));
 
     gc_init(&gc);
@@ -171,7 +169,6 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work,
         {
             uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH] = {0};
             const int iv_size = cipher_ctx_iv_length(ctx->cipher);
-            const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt(ctx->cipher);
             int outlen;
 
             /* Reserve space for HMAC */
@@ -182,7 +179,7 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work,
                 hmac_start = BEND(&work);
             }
 
-            if (cipher_kt_mode_cbc(cipher_kt))
+            if (cipher_ctx_mode_cbc(ctx->cipher))
             {
                 /* generate pseudo-random IV */
                 prng_bytes(iv_buf, iv_size);
@@ -197,7 +194,7 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work,
                     goto err;
                 }
             }
-            else if (cipher_kt_mode_ofb_cfb(cipher_kt))
+            else if (cipher_ctx_mode_ofb_cfb(ctx->cipher))
             {
                 struct buffer b;
 
@@ -245,7 +242,7 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work,
             ASSERT(buf_inc_len(&work, outlen));
 
             /* For all CBC mode ciphers, check the last block is complete */
-            ASSERT(cipher_kt_mode(cipher_kt) != OPENVPN_MODE_CBC
+            ASSERT(cipher_ctx_mode(ctx->cipher) != OPENVPN_MODE_CBC
                    || outlen == iv_size);
         }
         else                            /* No Encryption */
@@ -301,10 +298,7 @@ openvpn_encrypt(struct buffer *buf, struct buffer work,
 {
     if (buf->len > 0 && opt)
     {
-        const cipher_kt_t *cipher_kt =
-            cipher_ctx_get_cipher_kt(opt->key_ctx_bi.encrypt.cipher);
-
-        if (cipher_kt_mode_aead(cipher_kt))
+        if (cipher_ctx_mode_aead(opt->key_ctx_bi.encrypt.cipher))
         {
             openvpn_encrypt_aead(buf, work, opt);
         }
@@ -360,7 +354,6 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
     static const char error_prefix[] = "AEAD Decrypt error";
     struct packet_id_net pin = { 0 };
     const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
-    const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt(ctx->cipher);
     uint8_t *tag_ptr = NULL;
     int outlen;
     struct gc_arena gc;
@@ -371,7 +364,6 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
     ASSERT(frame);
     ASSERT(buf->len > 0);
     ASSERT(ctx->cipher);
-    ASSERT(cipher_kt_mode_aead(cipher_kt));
 
     dmsg(D_PACKET_CONTENT, "DECRYPT FROM: %s",
          format_hex(BPTR(buf), BLEN(buf), 80, &gc));
@@ -537,7 +529,6 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work,
         if (ctx->cipher)
         {
             const int iv_size = cipher_ctx_iv_length(ctx->cipher);
-            const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt(ctx->cipher);
             uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH] = { 0 };
             int outlen;
 
@@ -589,7 +580,7 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work,
 
             /* Get packet ID from plaintext buffer or IV, depending on cipher mode */
             {
-                if (cipher_kt_mode_cbc(cipher_kt))
+                if (cipher_ctx_mode_cbc(ctx->cipher))
                 {
                     if (packet_id_initialized(&opt->packet_id))
                     {
@@ -600,7 +591,7 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work,
                         have_pin = true;
                     }
                 }
-                else if (cipher_kt_mode_ofb_cfb(cipher_kt))
+                else if (cipher_ctx_mode_ofb_cfb(ctx->cipher))
                 {
                     struct buffer b;
 
@@ -660,8 +651,7 @@ openvpn_decrypt(struct buffer *buf, struct buffer work,
 
     if (buf->len > 0 && opt)
     {
-        const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
-        if (cipher_kt_mode_aead(cipher_ctx_get_cipher_kt(ctx->cipher)))
+        if (cipher_ctx_mode_aead(opt->key_ctx_bi.decrypt.cipher))
         {
             ret = openvpn_decrypt_aead(buf, work, opt, frame, ad_start);
         }
@@ -1036,14 +1026,12 @@ test_crypto(struct crypto_options *co, struct frame *frame)
 
     /* init implicit IV */
     {
-        const cipher_kt_t *cipher =
-            cipher_ctx_get_cipher_kt(co->key_ctx_bi.encrypt.cipher);
-
-        if (cipher_kt_mode_aead(cipher))
+        cipher_ctx_t *cipher = co->key_ctx_bi.encrypt.cipher;
+        if (cipher_ctx_mode_aead(cipher))
         {
-            size_t impl_iv_len = cipher_kt_iv_size(cipher) - sizeof(packet_id_type);
-            ASSERT(cipher_kt_iv_size(cipher) <= OPENVPN_MAX_IV_LENGTH);
-            ASSERT(cipher_kt_iv_size(cipher) >= OPENVPN_AEAD_MIN_IV_LEN);
+            size_t impl_iv_len = cipher_ctx_iv_length(cipher) - sizeof(packet_id_type);
+            ASSERT(cipher_ctx_iv_length(cipher) <= OPENVPN_MAX_IV_LENGTH);
+            ASSERT(cipher_ctx_iv_length(cipher) >= OPENVPN_AEAD_MIN_IV_LEN);
 
             /* Generate dummy implicit IV */
             ASSERT(rand_bytes(co->key_ctx_bi.encrypt.implicit_iv,

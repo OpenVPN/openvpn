@@ -466,19 +466,17 @@ p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session)
     if (!common_cipher)
     {
         struct buffer out = alloc_buf_gc(128, &gc);
-        struct key_state *ks = get_key_scan(multi, KS_PRIMARY);
+        const cipher_kt_t *cipher = session->opt->key_type.cipher;
 
-        const cipher_ctx_t *ctx = ks->crypto_options.key_ctx_bi.encrypt.cipher;
-        const cipher_kt_t *cipher = cipher_ctx_get_cipher_kt(ctx);
-        const char *fallback_name = cipher_kt_name(cipher);
+        /* at this point we do not really know if our fallback is
+         * not enabled or if we use 'none' cipher as fallback, so
+         * keep this ambiguity here and print fallback-cipher: none
+         */
 
-        if (!cipher)
+        const char *fallback_name = "none";
+        if (cipher)
         {
-            /* at this point we do not really know if our fallback is
-             * not enabled or if we use 'none' cipher as fallback, so
-             * keep this ambiguity here and print fallback-cipher: none
-             */
-            fallback_name = "none";
+            fallback_name = cipher_kt_name(cipher);
         }
 
         buf_printf(&out, "(not negotiated, fallback-cipher: %s)", fallback_name);

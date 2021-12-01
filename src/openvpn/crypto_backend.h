@@ -338,7 +338,7 @@ void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key, int key_len,
  * @param ctx           The cipher's context
  *
  * @return              Size of the IV, in bytes, or \c 0 if the cipher does not
- *                      use an IV or ctx was NULL.
+ *                      use an IV.
  */
 int cipher_ctx_iv_length(const cipher_ctx_t *ctx);
 
@@ -371,14 +371,31 @@ int cipher_ctx_block_size(const cipher_ctx_t *ctx);
 int cipher_ctx_mode(const cipher_ctx_t *ctx);
 
 /**
- * Returns the static cipher parameters for this context.
+ * Check if the supplied cipher is a supported CBC mode cipher.
  *
- * @param ctx           Cipher's context.
+ * @param ctx           Cipher's context. May not be NULL.
  *
- * @return              Static cipher parameters for the supplied context, or
- *                      NULL if unable to determine cipher parameters.
+ * @return              true iff the cipher is a CBC mode cipher.
  */
-const cipher_kt_t *cipher_ctx_get_cipher_kt(const cipher_ctx_t *ctx);
+bool cipher_ctx_mode_cbc(const cipher_ctx_t *ctx);
+
+/**
+ * Check if the supplied cipher is a supported OFB or CFB mode cipher.
+ *
+ * @param ctx           Cipher's context. May not be NULL.
+ *
+ * @return              true iff the cipher is a OFB or CFB mode cipher.
+ */
+bool cipher_ctx_mode_ofb_cfb(const cipher_ctx_t *ctx);
+
+/**
+ * Check if the supplied cipher is a supported AEAD mode cipher.
+ *
+ * @param ctx           Cipher's context. May not be NULL.
+ *
+ * @return              true iff the cipher is a AEAD mode cipher.
+ */
+bool cipher_ctx_mode_aead(const cipher_ctx_t *ctx);
 
 /**
  * Resets the given cipher context, setting the IV to the specified value.

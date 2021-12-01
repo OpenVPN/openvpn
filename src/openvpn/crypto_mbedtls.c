@@ -591,10 +591,25 @@ cipher_ctx_mode(const mbedtls_cipher_context_t *ctx)
     return cipher_kt_mode(ctx->cipher_info);
 }
 
-const cipher_kt_t *
-cipher_ctx_get_cipher_kt(const cipher_ctx_t *ctx)
+bool cipher_ctx_mode_cbc(const cipher_ctx_t *ctx)
 {
-    return ctx ? ctx->cipher_info : NULL;
+    return ctx && cipher_ctx_mode(ctx) == OPENVPN_MODE_CBC;
+}
+
+
+bool cipher_ctx_mode_ofb_cfb(const cipher_ctx_t *ctx)
+{
+    return ctx && (cipher_ctx_mode(ctx) == OPENVPN_MODE_OFB
+        || cipher_ctx_mode(ctx) == OPENVPN_MODE_CFB);
+}
+
+bool cipher_ctx_mode_aead(const cipher_ctx_t *ctx)
+{
+    return ctx && (cipher_ctx_mode(ctx) == OPENVPN_MODE_GCM
+#ifdef MBEDTLS_CHACHAPOLY_C
+        || cipher_ctx_mode(ctx) == MBEDTLS_MODE_CHACHAPOLY
+#endif
+    );
 }
 
 int

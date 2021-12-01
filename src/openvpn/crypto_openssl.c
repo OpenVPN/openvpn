@@ -797,10 +797,61 @@ cipher_ctx_mode(const EVP_CIPHER_CTX *ctx)
     return EVP_CIPHER_CTX_mode(ctx);
 }
 
-const cipher_kt_t *
-cipher_ctx_get_cipher_kt(const cipher_ctx_t *ctx)
+
+bool
+cipher_ctx_mode_cbc(const cipher_ctx_t *ctx)
 {
-    return ctx ? EVP_CIPHER_CTX_cipher(ctx) : NULL;
+    if (!ctx)
+    {
+        return false;
+    }
+
+    int flags = EVP_CIPHER_CTX_flags(ctx);
+    int mode = EVP_CIPHER_CTX_mode(ctx);
+
+    return mode == EVP_CIPH_CBC_MODE
+        /* Exclude AEAD cipher modes, they require a different API */
+#ifdef EVP_CIPH_FLAG_CTS
+        && !(flags & EVP_CIPH_FLAG_CTS)
+#endif
+        && !(flags & EVP_CIPH_FLAG_AEAD_CIPHER);
+}
+
+bool
+cipher_ctx_mode_ofb_cfb(const cipher_ctx_t *ctx)
+{
+    if (!ctx)
+    {
+        return false;
+    }
+
+    int mode = EVP_CIPHER_CTX_get_mode(ctx);
+
+    return (mode == EVP_CIPH_OFB_MODE || mode == EVP_CIPH_CFB_MODE)
+        /* Exclude AEAD cipher modes, they require a different API */
+        && !(EVP_CIPHER_CTX_flags(ctx) & EVP_CIPH_FLAG_AEAD_CIPHER);
+}
+
+bool
+cipher_ctx_mode_aead(const cipher_ctx_t *ctx)
+{
+    if (ctx)
+    {
+        int flags = EVP_CIPHER_CTX_flags(ctx);
+        if (flags & EVP_CIPH_FLAG_AEAD_CIPHER)
+        {
+            return true;
+        }
+
+#if defined(NID_chacha20_poly1305) && OPENSSL_VERSION_NUMBER < 0x30000000L
+        if (EVP_CIPHER_CTX_nid(ctx) == NID_chacha20_poly1305)
+        {
+            return true;
+        }
+#endif
+    }
+
+    return false;
 }
 
 
