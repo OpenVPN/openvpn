@@ -54,6 +54,4 @@ struct key_state_ssl {
  */
 extern int mydata_index; /* GLOBAL */
 
-void openssl_set_mydata_index(void);
-
 #endif /* SSL_OPENSSL_H_ */
