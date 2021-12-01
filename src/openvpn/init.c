@@ -2661,8 +2661,6 @@ do_init_tls_wrap_key(struct context *c)
         if (!streq(options->authname, "none"))
         {
             c->c1.ks.tls_auth_key_type.digest = md_kt_get(options->authname);
-            c->c1.ks.tls_auth_key_type.hmac_length =
-                md_kt_size(c->c1.ks.tls_auth_key_type.digest);
         }
         else
         {

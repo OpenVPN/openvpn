@@ -138,7 +138,6 @@ struct sha256_digest {
  */
 struct key_type
 {
-    uint8_t hmac_length;        /**< HMAC length, in bytes */
     const cipher_kt_t *cipher;  /**< Cipher static parameters */
     const md_kt_t *digest;      /**< Message digest static parameters */
 };

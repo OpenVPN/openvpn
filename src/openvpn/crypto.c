@@ -693,7 +693,7 @@ crypto_adjust_frame_parameters(struct frame *frame,
         crypto_overhead += cipher_kt_block_size(kt->cipher);
     }
 
-    crypto_overhead += kt->hmac_length;
+    crypto_overhead += md_kt_size(kt->digest);
 
     frame_add_to_extra_frame(frame, crypto_overhead);
 
@@ -780,9 +780,9 @@ init_key_type(struct key_type *kt, const char *ciphername,
         if (!aead_cipher) /* Ignore auth for AEAD ciphers */
         {
             kt->digest = md_kt_get(authname);
-            kt->hmac_length = md_kt_size(kt->digest);
+            int hmac_length = md_kt_size(kt->digest);
 
-            if (OPENVPN_MAX_HMAC_SIZE < kt->hmac_length)
+            if (OPENVPN_MAX_HMAC_SIZE < hmac_length)
             {
                 msg(M_FATAL, "HMAC '%s' not allowed: digest size too big.", authname);
             }
@@ -826,17 +826,17 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
              cipher_kt_iv_size(kt->cipher));
         warn_insecure_key_type(ciphername, kt->cipher);
     }
-    if (kt->digest && kt->hmac_length > 0)
+    if (kt->digest)
     {
         ctx->hmac = hmac_ctx_new();
-        hmac_ctx_init(ctx->hmac, key->hmac, kt->hmac_length, kt->digest);
+        hmac_ctx_init(ctx->hmac, key->hmac, kt->digest);
 
         msg(D_HANDSHAKE,
             "%s: Using %d bit message hash '%s' for HMAC authentication",
             prefix, md_kt_size(kt->digest) * 8, md_kt_name(kt->digest));
 
         dmsg(D_SHOW_KEYS, "%s: HMAC KEY: %s", prefix,
-             format_hex(key->hmac, kt->hmac_length, 0, &gc));
+             format_hex(key->hmac, md_kt_size(kt->digest), 0, &gc));
 
         dmsg(D_CRYPTO_DEBUG, "%s: HMAC size=%d block_size=%d",
              prefix,
@@ -956,9 +956,11 @@ generate_key_random(struct key *key, const struct key_type *kt)
         {
             cipher_len = cipher_kt_key_size(kt->cipher);
 
-            if (kt->digest && kt->hmac_length > 0 && kt->hmac_length <= hmac_len)
+            int kt_hmac_length = md_kt_size(kt->digest);
+
+            if (kt->digest && kt_hmac_length > 0 && kt_hmac_length <= hmac_len)
             {
-                hmac_len = kt->hmac_length;
+                hmac_len = kt_hmac_length;
             }
         }
         if (!rand_bytes(key->cipher, cipher_len)
@@ -991,13 +993,13 @@ key2_print(const struct key2 *k,
          format_hex(k->keys[0].cipher, cipher_kt_key_size(kt->cipher), 0, &gc));
     dmsg(D_SHOW_KEY_SOURCE, "%s (hmac): %s",
          prefix0,
-         format_hex(k->keys[0].hmac, kt->hmac_length, 0, &gc));
+         format_hex(k->keys[0].hmac, md_kt_size(kt->digest), 0, &gc));
     dmsg(D_SHOW_KEY_SOURCE, "%s (cipher): %s",
          prefix1,
          format_hex(k->keys[1].cipher, cipher_kt_key_size(kt->cipher), 0, &gc));
     dmsg(D_SHOW_KEY_SOURCE, "%s (hmac): %s",
          prefix1,
-         format_hex(k->keys[1].hmac, kt->hmac_length, 0, &gc));
+         format_hex(k->keys[1].hmac, md_kt_size(kt->digest), 0, &gc));
     gc_free(&gc);
 }
 
@@ -1525,14 +1527,17 @@ write_key(const struct key *key, const struct key_type *kt,
           struct buffer *buf)
 {
     ASSERT(cipher_kt_key_size(kt->cipher) <= MAX_CIPHER_KEY_LENGTH
-           && kt->hmac_length <= MAX_HMAC_KEY_LENGTH);
+           && md_kt_size(kt->digest) <= MAX_HMAC_KEY_LENGTH);
 
     const uint8_t cipher_length = cipher_kt_key_size(kt->cipher);
     if (!buf_write(buf, &cipher_length, 1))
     {
         return false;
     }
-    if (!buf_write(buf, &kt->hmac_length, 1))
+
+    uint8_t hmac_length = md_kt_size(kt->digest);
+
+    if (!buf_write(buf, &hmac_length, 1))
     {
         return false;
     }
@@ -1540,7 +1545,7 @@ write_key(const struct key *key, const struct key_type *kt,
     {
         return false;
     }
-    if (!buf_write(buf, key->hmac, kt->hmac_length))
+    if (!buf_write(buf, key->hmac, hmac_length))
     {
         return false;
     }
@@ -1570,7 +1575,7 @@ read_key(struct key *key, const struct key_type *kt, struct buffer *buf)
         goto read_err;
     }
 
-    if (cipher_length != cipher_kt_key_size(kt->cipher) || hmac_length != kt->hmac_length)
+    if (cipher_length != cipher_kt_key_size(kt->cipher) || hmac_length != md_kt_size(kt->digest))
     {
         goto key_len_err;
     }
@@ -1593,7 +1598,7 @@ read_err:
 key_len_err:
     msg(D_TLS_ERRORS,
         "TLS Error: key length mismatch, local cipher/hmac %d/%d, remote cipher/hmac %d/%d",
-        cipher_kt_key_size(kt->cipher), kt->hmac_length, cipher_length, hmac_length);
+        cipher_kt_key_size(kt->cipher), md_kt_size(kt->digest), cipher_length, hmac_length);
     return 0;
 }
 

@@ -44,8 +44,6 @@ auth_token_kt(void)
         return (struct key_type) { 0 };
     }
 
-    kt.hmac_length = md_kt_size(kt.digest);
-
     return kt;
 }
 

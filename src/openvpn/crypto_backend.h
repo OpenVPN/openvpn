@@ -616,12 +616,10 @@ void hmac_ctx_free(hmac_ctx_t *ctx);
  *
  * @param ctx           HMAC context to initialise
  * @param key           The key to use for the HMAC
- * @param key_len       The key length to use
  * @param kt            Static message digest parameters
  *
  */
-void hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, int key_length,
-                   const md_kt_t *kt);
+void hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const md_kt_t *kt);
 
 /*
  * Free the given HMAC context.

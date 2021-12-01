@@ -1079,11 +1079,11 @@ hmac_ctx_free(HMAC_CTX *ctx)
 }
 
 void
-hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, int key_len,
-              const EVP_MD *kt)
+hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, const EVP_MD *kt)
 {
     ASSERT(NULL != kt && NULL != ctx);
 
+    int key_len = EVP_MD_size(kt);
     HMAC_CTX_reset(ctx);
     if (!HMAC_Init_ex(ctx, key, key_len, kt, NULL))
     {
@@ -1152,10 +1152,10 @@ hmac_ctx_free(hmac_ctx_t *ctx)
 }
 
 void
-hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, int key_len,
-              const EVP_MD *kt)
+hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const EVP_MD *kt)
 {
     ASSERT(NULL != kt && NULL != ctx && ctx->ctx != NULL);
+    int key_len = EVP_MD_size(kt);
     ASSERT(key_len <= EVP_MAX_KEY_LENGTH);
 
     /* We need to make a copy of the key since the OSSL parameters

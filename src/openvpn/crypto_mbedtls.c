@@ -867,12 +867,13 @@ hmac_ctx_free(mbedtls_md_context_t *ctx)
 }
 
 void
-hmac_ctx_init(mbedtls_md_context_t *ctx, const uint8_t *key, int key_len,
+hmac_ctx_init(mbedtls_md_context_t *ctx, const uint8_t *key,
               const mbedtls_md_info_t *kt)
 {
     ASSERT(NULL != kt && NULL != ctx);
 
     mbedtls_md_init(ctx);
+    int key_len = mbedtls_md_get_size(kt);
     ASSERT(0 == mbedtls_md_setup(ctx, kt, 1));
     ASSERT(0 == mbedtls_md_hmac_starts(ctx, key, key_len));
 
@@ -978,8 +979,15 @@ tls1_P_hash(const md_kt_t *md_kt, const uint8_t *sec, int sec_len,
     int chunk = md_kt_size(md_kt);
     unsigned int A1_len = md_kt_size(md_kt);
 
-    hmac_ctx_init(ctx, sec, sec_len, md_kt);
-    hmac_ctx_init(ctx_tmp, sec, sec_len, md_kt);
+    /* This is the only place where we init an HMAC with a key that is not
+     * equal to its size, therefore we init the hmac ctx manually here */
+    mbedtls_md_init(ctx);
+    ASSERT(0 == mbedtls_md_setup(ctx, md_kt, 1));
+    ASSERT(0 == mbedtls_md_hmac_starts(ctx, sec, sec_len));
+
+    mbedtls_md_init(ctx_tmp);
+    ASSERT(0 == mbedtls_md_setup(ctx_tmp, md_kt, 1));
+    ASSERT(0 == mbedtls_md_hmac_starts(ctx_tmp, sec, sec_len));
 
     hmac_ctx_update(ctx,seed,seed_len);
     hmac_ctx_final(ctx, A1);

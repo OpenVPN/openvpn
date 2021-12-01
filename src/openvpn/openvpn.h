@@ -526,7 +526,7 @@ struct context
 #define PROTO_DUMP(buf, gc) protocol_dump((buf), \
                                           PROTO_DUMP_FLAGS   \
                                           |(c->c2.tls_multi ? PD_TLS : 0)   \
-                                          |(c->options.tls_auth_file ? c->c1.ks.key_type.hmac_length : 0), \
+                                          |(c->options.tls_auth_file ? md_kt_size(c->c1.ks.key_type.digest) : 0), \
                                           gc)
 
 #define CIPHER_ENABLED(c) (c->c1.ks.key_type.cipher != NULL)

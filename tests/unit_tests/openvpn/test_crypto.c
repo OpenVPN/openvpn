@@ -181,7 +181,7 @@ crypto_test_hmac(void **state)
     uint8_t key[20];
     memcpy(key, testkey, sizeof(key));
 
-    hmac_ctx_init(hmac, key, 20, sha1);
+    hmac_ctx_init(hmac, key, sha1);
     hmac_ctx_update(hmac, (const uint8_t *)ipsumlorem, (int) strlen(ipsumlorem));
     hmac_ctx_update(hmac, (const uint8_t *)ipsumlorem, (int) strlen(ipsumlorem));
 
