@@ -183,17 +183,6 @@ configured in a compatible way between both the local and remote side.
   ``--tls-auth`` and ``--secret`` options. Useful when using inline files
   (See section on inline files).
 
---keysize n
-  **DEPRECATED** This option will be removed in OpenVPN 2.6.
-
-  Size of cipher key in bits (optional). If unspecified, defaults to
-  cipher-specific default. The ``--show-ciphers`` option (see below) shows
-  all available OpenSSL ciphers, their default key sizes, and whether the
-  key size can be changed. Use care in changing a cipher's default key
-  size. Many ciphers have not been extensively cryptanalyzed with
-  non-standard key lengths, and a larger key may offer no real guarantee
-  of greater security, or may even reduce security.
-
 --data-ciphers cipher-list
   Restrict the allowed ciphers to be negotiated to the ciphers in
   ``cipher-list``. ``cipher-list`` is a colon-separated list of ciphers,

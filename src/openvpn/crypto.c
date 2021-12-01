@@ -1638,12 +1638,9 @@ get_random(void)
 void
 print_cipher(const cipher_kt_t *cipher)
 {
-    const char *var_key_size = cipher_kt_var_key_size(cipher) ?
-                               " by default" : "";
-
-    printf("%s  (%d bit key%s, ",
+    printf("%s  (%d bit key, ",
            cipher_kt_name(cipher),
-           cipher_kt_key_size(cipher) * 8, var_key_size);
+           cipher_kt_key_size(cipher) * 8);
 
     if (cipher_kt_block_size(cipher) == 1)
     {
