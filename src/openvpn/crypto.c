@@ -69,7 +69,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work,
     const struct key_ctx *ctx = &opt->key_ctx_bi.encrypt;
     uint8_t *mac_out = NULL;
     const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt(ctx->cipher);
-    const int mac_len = cipher_kt_tag_size(cipher_kt);
+    const int mac_len = OPENVPN_AEAD_TAG_LENGTH;
 
     /* IV, packet-ID and implicit IV required for this mode. */
     ASSERT(ctx->cipher);
@@ -362,7 +362,6 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
     const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
     const cipher_kt_t *cipher_kt = cipher_ctx_get_cipher_kt(ctx->cipher);
     uint8_t *tag_ptr = NULL;
-    int tag_size = 0;
     int outlen;
     struct gc_arena gc;
 
@@ -415,7 +414,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
     }
 
     /* keep the tag value to feed in later */
-    tag_size = cipher_kt_tag_size(cipher_kt);
+    const int tag_size = OPENVPN_AEAD_TAG_LENGTH;
     if (buf->len < tag_size)
     {
         CRYPT_ERROR("missing tag");
