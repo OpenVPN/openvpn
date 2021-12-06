@@ -744,8 +744,6 @@ init_key_type(struct key_type *kt, const char *ciphername,
             msg(M_FATAL, "Cipher %s not supported", ciphername);
         }
 
-        kt->cipher_length = cipher_kt_key_size(kt->cipher);
-
         /* check legal cipher mode */
         aead_cipher = cipher_kt_mode_aead(kt->cipher);
         if (!(cipher_kt_mode_cbc(kt->cipher)
@@ -811,21 +809,18 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
 {
     struct gc_arena gc = gc_new();
     CLEAR(*ctx);
-    if (kt->cipher && kt->cipher_length > 0)
+    if (kt->cipher)
     {
 
         ctx->cipher = cipher_ctx_new();
-        cipher_ctx_init(ctx->cipher, key->cipher, kt->cipher_length,
-                        kt->cipher, enc);
+        cipher_ctx_init(ctx->cipher, key->cipher, kt->cipher, enc);
 
         const char *ciphername = cipher_kt_name(kt->cipher);
         msg(D_HANDSHAKE, "%s: Cipher '%s' initialized with %d bit key",
-            prefix,
-            ciphername,
-            kt->cipher_length *8);
+            prefix, ciphername, cipher_kt_key_size(kt->cipher) * 8);
 
         dmsg(D_SHOW_KEYS, "%s: CIPHER KEY: %s", prefix,
-             format_hex(key->cipher, kt->cipher_length, 0, &gc));
+             format_hex(key->cipher, cipher_kt_key_size(kt->cipher), 0, &gc));
         dmsg(D_CRYPTO_DEBUG, "%s: CIPHER block_size=%d iv_size=%d",
              prefix, cipher_kt_block_size(kt->cipher),
              cipher_kt_iv_size(kt->cipher));
@@ -899,8 +894,8 @@ free_key_ctx_bi(struct key_ctx_bi *ctx)
 static bool
 key_is_zero(struct key *key, const struct key_type *kt)
 {
-    int i;
-    for (i = 0; i < kt->cipher_length; ++i)
+    int cipher_length = cipher_kt_key_size(kt->cipher);
+    for (int i = 0; i < cipher_length; ++i)
     {
         if (key->cipher[i])
         {
@@ -959,10 +954,7 @@ generate_key_random(struct key *key, const struct key_type *kt)
         CLEAR(*key);
         if (kt)
         {
-            if (kt->cipher && kt->cipher_length > 0 && kt->cipher_length <= cipher_len)
-            {
-                cipher_len = kt->cipher_length;
-            }
+            cipher_len = cipher_kt_key_size(kt->cipher);
 
             if (kt->digest && kt->hmac_length > 0 && kt->hmac_length <= hmac_len)
             {
@@ -996,13 +988,13 @@ key2_print(const struct key2 *k,
     ASSERT(k->n == 2);
     dmsg(D_SHOW_KEY_SOURCE, "%s (cipher): %s",
          prefix0,
-         format_hex(k->keys[0].cipher, kt->cipher_length, 0, &gc));
+         format_hex(k->keys[0].cipher, cipher_kt_key_size(kt->cipher), 0, &gc));
     dmsg(D_SHOW_KEY_SOURCE, "%s (hmac): %s",
          prefix0,
          format_hex(k->keys[0].hmac, kt->hmac_length, 0, &gc));
     dmsg(D_SHOW_KEY_SOURCE, "%s (cipher): %s",
          prefix1,
-         format_hex(k->keys[1].cipher, kt->cipher_length, 0, &gc));
+         format_hex(k->keys[1].cipher, cipher_kt_key_size(kt->cipher), 0, &gc));
     dmsg(D_SHOW_KEY_SOURCE, "%s (hmac): %s",
          prefix1,
          format_hex(k->keys[1].hmac, kt->hmac_length, 0, &gc));
@@ -1532,10 +1524,11 @@ bool
 write_key(const struct key *key, const struct key_type *kt,
           struct buffer *buf)
 {
-    ASSERT(kt->cipher_length <= MAX_CIPHER_KEY_LENGTH
+    ASSERT(cipher_kt_key_size(kt->cipher) <= MAX_CIPHER_KEY_LENGTH
            && kt->hmac_length <= MAX_HMAC_KEY_LENGTH);
 
-    if (!buf_write(buf, &kt->cipher_length, 1))
+    const uint8_t cipher_length = cipher_kt_key_size(kt->cipher);
+    if (!buf_write(buf, &cipher_length, 1))
     {
         return false;
     }
@@ -1543,7 +1536,7 @@ write_key(const struct key *key, const struct key_type *kt,
     {
         return false;
     }
-    if (!buf_write(buf, key->cipher, kt->cipher_length))
+    if (!buf_write(buf, key->cipher, cipher_kt_key_size(kt->cipher)))
     {
         return false;
     }
@@ -1577,7 +1570,7 @@ read_key(struct key *key, const struct key_type *kt, struct buffer *buf)
         goto read_err;
     }
 
-    if (cipher_length != kt->cipher_length || hmac_length != kt->hmac_length)
+    if (cipher_length != cipher_kt_key_size(kt->cipher) || hmac_length != kt->hmac_length)
     {
         goto key_len_err;
     }
@@ -1600,7 +1593,7 @@ read_err:
 key_len_err:
     msg(D_TLS_ERRORS,
         "TLS Error: key length mismatch, local cipher/hmac %d/%d, remote cipher/hmac %d/%d",
-        kt->cipher_length, kt->hmac_length, cipher_length, hmac_length);
+        cipher_kt_key_size(kt->cipher), kt->hmac_length, cipher_length, hmac_length);
     return 0;
 }
 

@@ -65,7 +65,6 @@ tls_crypt_kt(void)
         return (struct key_type) { 0 };
     }
 
-    kt.cipher_length = cipher_kt_key_size(kt.cipher);
     kt.hmac_length = md_kt_size(kt.digest);
 
     return kt;

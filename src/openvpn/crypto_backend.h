@@ -323,12 +323,11 @@ void cipher_ctx_free(cipher_ctx_t *ctx);
  *
  * @param ctx           Cipher context. May not be NULL
  * @param key           Buffer containing the key to use
- * @param key_len       Length of the key, in bytes
  * @param kt            Static cipher parameters to use
  * @param enc           Whether to encrypt or decrypt (either
  *                      \c MBEDTLS_OP_ENCRYPT or \c MBEDTLS_OP_DECRYPT).
  */
-void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key, int key_len,
+void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key,
                      const cipher_kt_t *kt, int enc);
 
 /**

@@ -3988,7 +3988,7 @@ options_string(const struct options *o,
         {
             init_key_type(&kt, o->ciphername, o->authname, true, false);
             ciphername = cipher_kt_name(kt.cipher);
-            keysize = kt.cipher_length * 8;
+            keysize = cipher_kt_key_size(kt.cipher) * 8;
         }
         /* Only announce the cipher to our peer if we are willing to
          * support it */
