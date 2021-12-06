@@ -2859,14 +2859,16 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         }
     }
 
-    if (ce->proto == PROTO_TCP_CLIENT && !ce->local
-        && !ce->local_port_defined && !ce->bind_defined)
-    {
-        ce->bind_local = false;
-    }
+    /* an option is present that requires local bind to enabled */
+    bool need_bind = ce->local || ce->local_port_defined || ce->bind_defined;
 
-    if (ce->proto == PROTO_UDP && ce->socks_proxy_server && !ce->local
-        && !ce->local_port_defined && !ce->bind_defined)
+    /* socks proxy is enabled */
+    bool uses_socks = ce->proto == PROTO_UDP && ce->socks_proxy_server;
+
+    /* If binding is not forced by an explicit option and we have (at least)
+     * one of --tcp-client, --pull (or --client), or socks we do not bind
+     * locally to have "normal" IP client behaviour of a random source port */
+    if (!need_bind && (ce->proto == PROTO_TCP_CLIENT || uses_socks || o->pull))
     {
         ce->bind_local = false;
     }

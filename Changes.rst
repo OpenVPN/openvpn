@@ -120,7 +120,8 @@ PF (Packet Filtering) support has been removed
 User-visible Changes
 --------------------
 - CHACHA20-POLY1305 is included in the default of ``--data-ciphers`` when available.
-- Option ``--prng`` is ignored as we rely on the SSL library radnom generator.
+- Option ``--prng`` is ignored as we rely on the SSL library random number generator.
+- Option ``--nobind`` is default when ``--client`` or ``--pull`` is used in the configuration
 
 Overview of changes in 2.5
 ==========================
