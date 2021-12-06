@@ -134,7 +134,7 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
         {
             const char* optstr = optional ? "optional ": "";
             msg(M_WARN, "Unsupported %scipher in --data-ciphers: %s", optstr, token);
-            error_found = !optional;
+            error_found = error_found || !optional;
         }
         else
         {

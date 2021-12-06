@@ -95,6 +95,9 @@ test_check_ncp_ciphers_list(void **state)
     /* All unsupported should still yield an empty list */
     assert_ptr_equal(mutate_ncp_cipher_list("?kugelfisch:?grasshopper", &gc), NULL);
 
+    /* If the last is optional, previous invalid ciphers should be ignored */
+    assert_ptr_equal(mutate_ncp_cipher_list("Vollbit:Littlebit:AES-256-CBC:BF-CBC:?nixbit", &gc), NULL);
+
     /* For testing that with OpenSSL 1.1.0+ that also accepts ciphers in
      * a different spelling the normalised cipher output is the same */
     bool have_chacha_mixed_case = cipher_kt_get("ChaCha20-Poly1305");
