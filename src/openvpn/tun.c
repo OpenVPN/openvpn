@@ -6071,7 +6071,6 @@ tuntap_get_mtu(struct tuntap *tt)
                         &mtu, sizeof(mtu),
                         &mtu, sizeof(mtu), &len, NULL))
     {
-        tt->post_open_mtu = (int)mtu;
         msg(D_MTU_INFO, "TAP-Windows MTU=%d", (int)mtu);
     }
 }

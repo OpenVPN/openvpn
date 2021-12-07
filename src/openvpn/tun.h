@@ -214,10 +214,6 @@ struct tuntap
 #endif
     /* used for printing status info only */
     unsigned int rwflags_debug;
-
-    /* Some TUN/TAP drivers like to be ioctled for mtu
-     * after open */
-    int post_open_mtu;
 };
 
 static inline bool

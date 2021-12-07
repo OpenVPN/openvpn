@@ -1873,16 +1873,6 @@ do_open_tun(struct context *c)
                  c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
     }
 
-    /*
-     * Did tun/tap driver give us an MTU?
-     */
-    if (c->c1.tuntap->post_open_mtu)
-    {
-        frame_set_mtu_dynamic(&c->c2.frame,
-                              c->c1.tuntap->post_open_mtu,
-                              SET_MTU_TUN | SET_MTU_UPPER_BOUND);
-    }
-
     ret = true;
     static_context = c;
 #ifndef TARGET_ANDROID
