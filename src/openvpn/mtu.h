@@ -121,17 +121,10 @@ struct frame {
 
     int extra_link;             /**< Maximum number of bytes in excess of
                                  *   external network interface's MTU that
-                                 *   might be read from or written to it. */
-
-    /*
-     * Alignment control
-     */
-#define FRAME_HEADROOM_MARKER_DECRYPT     (1<<0)
-#define FRAME_HEADROOM_MARKER_FRAGMENT    (1<<1)
-#define FRAME_HEADROOM_MARKER_READ_LINK   (1<<2)
-#define FRAME_HEADROOM_MARKER_READ_STREAM (1<<3)
-    unsigned int align_flags;
-    int align_adjust;
+                                 *   might be read from or written to it.
+                                 *
+                                 *   Used by peer-id (3) and
+                                 *   socks UDP (10) */
 };
 
 /* Forward declarations, to prevent includes */
@@ -184,8 +177,7 @@ struct options;
  * Control buffer headroom allocations to allow for efficient prepending.
  */
 #define FRAME_HEADROOM_BASE(f)     (TUN_LINK_DELTA(f) + (f)->extra_buffer + (f)->extra_link)
-#define FRAME_HEADROOM(f)          frame_headroom(f, 0)
-#define FRAME_HEADROOM_ADJ(f, fm)  frame_headroom(f, fm)
+#define FRAME_HEADROOM(f)          frame_headroom(f)
 
 /*
  * Max size of a buffer used to build a packet for output to
@@ -227,8 +219,7 @@ void frame_set_mtu_dynamic(struct frame *frame, int mtu, unsigned int flags);
  */
 void alloc_buf_sock_tun(struct buffer *buf,
                         const struct frame *frame,
-                        const bool tuntap_buffer,
-                        const unsigned int align_mask);
+                        const bool tuntap_buffer);
 
 /** Set the --mssfix option. */
 void frame_init_mssfix(struct frame *frame, const struct options *options);
@@ -252,11 +243,10 @@ const char *format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc);
  * headroom and alignment issues.
  */
 static inline int
-frame_headroom(const struct frame *f, const unsigned int flag_mask)
+frame_headroom(const struct frame *f)
 {
     const int offset = FRAME_HEADROOM_BASE(f);
-    const int adjust = (flag_mask & f->align_flags) ? f->align_adjust : 0;
-    const int delta = ((PAYLOAD_ALIGN << 24) - (offset + adjust)) & (PAYLOAD_ALIGN - 1);
+    const int delta = ((PAYLOAD_ALIGN << 24) - offset) & (PAYLOAD_ALIGN - 1);
     return offset + delta;
 }
 
@@ -298,18 +288,6 @@ static inline void
 frame_add_to_extra_buffer(struct frame *frame, const int increment)
 {
     frame->extra_buffer += increment;
-}
-
-static inline void
-frame_align_to_extra_frame(struct frame *frame)
-{
-    frame->align_adjust = frame->extra_frame + frame->extra_link;
-}
-
-static inline void
-frame_or_align_flags(struct frame *frame, const unsigned int flag_mask)
-{
-    frame->align_flags |= flag_mask;
 }
 
 static inline bool

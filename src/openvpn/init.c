@@ -2525,19 +2525,6 @@ frame_finalize_options(struct context *c, const struct options *o)
         o = &c->options;
     }
 
-    /*
-     * Set adjustment factor for buffer alignment when no
-     * cipher is used.
-     */
-    if (!cipher_defined(c->c1.ks.key_type.cipher))
-    {
-        frame_align_to_extra_frame(&c->c2.frame);
-        frame_or_align_flags(&c->c2.frame,
-                             FRAME_HEADROOM_MARKER_FRAGMENT
-                             |FRAME_HEADROOM_MARKER_READ_LINK
-                             |FRAME_HEADROOM_MARKER_READ_STREAM);
-    }
-
     frame_add_to_extra_buffer(&c->c2.frame, PAYLOAD_ALIGN);
     frame_finalize(&c->c2.frame,
                    o->ce.link_mtu_defined,

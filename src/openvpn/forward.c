@@ -803,7 +803,7 @@ read_incoming_link(struct context *c)
     perf_push(PERF_READ_IN_LINK);
 
     c->c2.buf = c->c2.buffers->read_link_buf;
-    ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM_ADJ(&c->c2.frame, FRAME_HEADROOM_MARKER_READ_LINK)));
+    ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
 
     status = link_socket_read(c->c2.link_socket,
                               &c->c2.buf,

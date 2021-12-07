@@ -370,7 +370,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
 
     ASSERT(ad_start >= buf->data && ad_start <= BPTR(buf));
 
-    ASSERT(buf_init(&work, FRAME_HEADROOM_ADJ(frame, FRAME_HEADROOM_MARKER_DECRYPT)));
+    ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
 
     /* IV and Packet ID required for this mode */
     ASSERT(packet_id_initialized(&opt->packet_id));
@@ -533,7 +533,7 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work,
             int outlen;
 
             /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
-            ASSERT(buf_init(&work, FRAME_HEADROOM_ADJ(frame, FRAME_HEADROOM_MARKER_DECRYPT)));
+            ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
 
             /* read the IV from the packet */
             if (buf->len < iv_size)

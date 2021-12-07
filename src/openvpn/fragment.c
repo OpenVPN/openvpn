@@ -214,7 +214,7 @@ fragment_incoming(struct fragment_master *f, struct buffer *buf,
                 frag->defined = true;
                 frag->max_frag_size = size;
                 frag->map = 0;
-                ASSERT(buf_init(&frag->buf, FRAME_HEADROOM_ADJ(frame, FRAME_HEADROOM_MARKER_FRAGMENT)));
+                ASSERT(buf_init(&frag->buf, FRAME_HEADROOM(frame)));
             }
 
             /* copy the data to fragment buffer */
