@@ -3276,9 +3276,9 @@ handle_data_channel_packet(struct tls_multi *multi,
          * active side is the client which initiates connections).
          */
         if (ks->state >= S_GENERATED_KEYS && key_id == ks->key_id
+            && ks->authenticated == KS_AUTH_TRUE
             && (floated || link_socket_actual_match(from, &ks->remote_addr)))
         {
-            ASSERT(ks->authenticated == KS_AUTH_TRUE);
             if (!ks->crypto_options.key_ctx_bi.initialized)
             {
                 msg(D_MULTI_DROPPED,
@@ -3861,9 +3861,8 @@ struct key_state *tls_select_encryption_key(struct tls_multi *multi)
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
         struct key_state *ks = get_key_scan(multi, i);
-        if (ks->state >= S_GENERATED_KEYS)
+        if (ks->state >= S_GENERATED_KEYS && ks->authenticated == KS_AUTH_TRUE)
         {
-            ASSERT(ks->authenticated == KS_AUTH_TRUE);
             ASSERT(ks->crypto_options.key_ctx_bi.initialized);
 
             if (!ks_select)
