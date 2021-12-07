@@ -3024,7 +3024,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
 }
 
 static void
-do_init_finalize_tls_frame(struct context *c)
+do_init_frame_tls(struct context *c)
 {
     if (c->c2.tls_multi)
     {
@@ -3279,12 +3279,6 @@ do_option_warnings(struct context *c)
             msg(M_WARN, "NOTE: starting with " PACKAGE_NAME " 2.1, '--script-security 2' or higher is required to call user-defined scripts or executables");
         }
     }
-}
-
-static void
-do_init_frame_tls(struct context *c)
-{
-    do_init_finalize_tls_frame(c);
 }
 
 struct context_buffers *
