@@ -878,7 +878,7 @@ in_extra_reset(struct man_connection *mc, const int mode)
         }
         if (mode == IER_NEW)
         {
-            mc->in_extra = buffer_list_new(0);
+            mc->in_extra = buffer_list_new();
         }
     }
 }
@@ -2507,7 +2507,7 @@ man_connection_init(struct management *man)
          * command output from/to the socket.
          */
         man->connection.in = command_line_new(1024);
-        man->connection.out = buffer_list_new(0);
+        man->connection.out = buffer_list_new();
 
         /*
          * Initialize event set for standalone usage, when we are

@@ -1171,11 +1171,10 @@ valign4(const struct buffer *buf, const char *file, const int line)
  * struct buffer_list
  */
 struct buffer_list *
-buffer_list_new(const int max_size)
+buffer_list_new(void)
 {
     struct buffer_list *ret;
     ALLOC_OBJ_CLEAR(ret, struct buffer_list);
-    ret->max_size = max_size;
     ret->size = 0;
     return ret;
 }
@@ -1229,7 +1228,7 @@ struct buffer_entry *
 buffer_list_push_data(struct buffer_list *ol, const void *data, size_t size)
 {
     struct buffer_entry *e = NULL;
-    if (data && (!ol->max_size || ol->size < ol->max_size))
+    if (data)
     {
         ALLOC_OBJ_CLEAR(e, struct buffer_entry);
 
@@ -1359,7 +1358,7 @@ buffer_list_file(const char *fn, int max_line_len)
         char *line = (char *) malloc(max_line_len);
         if (line)
         {
-            bl = buffer_list_new(0);
+            bl = buffer_list_new();
             while (fgets(line, max_line_len, fp) != NULL)
             {
                 buffer_list_push(bl, line);

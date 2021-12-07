@@ -67,18 +67,18 @@ static int
 test_buffer_list_setup(void **state)
 {
     struct test_buffer_list_aggregate_ctx *ctx  = calloc(1, sizeof(*ctx));
-    ctx->empty = buffer_list_new(0);
+    ctx->empty = buffer_list_new();
 
-    ctx->one_two_three = buffer_list_new(3);
+    ctx->one_two_three = buffer_list_new();
     buffer_list_push(ctx->one_two_three, teststr1);
     buffer_list_push(ctx->one_two_three, teststr2);
     buffer_list_push(ctx->one_two_three, teststr3);
 
-    ctx->zero_length_strings = buffer_list_new(2);
+    ctx->zero_length_strings = buffer_list_new();
     buffer_list_push(ctx->zero_length_strings, "");
     buffer_list_push(ctx->zero_length_strings, "");
 
-    ctx->empty_buffers = buffer_list_new(2);
+    ctx->empty_buffers = buffer_list_new();
     uint8_t data = 0;
     buffer_list_push_data(ctx->empty_buffers, &data, 0);
     buffer_list_push_data(ctx->empty_buffers, &data, 0);
@@ -98,17 +98,6 @@ test_buffer_list_teardown(void **state)
     buffer_list_free(ctx->empty_buffers);
     free(ctx);
     return 0;
-}
-
-static void
-test_buffer_list_full(void **state)
-{
-    struct test_buffer_list_aggregate_ctx *ctx = *state;
-
-    /* list full */
-    assert_int_equal(ctx->one_two_three->size, 3);
-    buffer_list_push(ctx->one_two_three, teststr4);
-    assert_int_equal(ctx->one_two_three->size, 3);
 }
 
 static void
@@ -247,9 +236,6 @@ main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_buffer_strprefix),
-        cmocka_unit_test_setup_teardown(test_buffer_list_full,
-                                        test_buffer_list_setup,
-                                        test_buffer_list_teardown),
         cmocka_unit_test_setup_teardown(test_buffer_list_aggregate_separator_empty,
                                         test_buffer_list_setup,
                                         test_buffer_list_teardown),

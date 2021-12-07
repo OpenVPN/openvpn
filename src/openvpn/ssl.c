@@ -3989,7 +3989,7 @@ tls_send_payload(struct tls_multi *multi,
     {
         if (!ks->paybuf)
         {
-            ks->paybuf = buffer_list_new(0);
+            ks->paybuf = buffer_list_new();
         }
         buffer_list_push_data(ks->paybuf, data, (size_t)size);
         ret = true;

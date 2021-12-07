@@ -1102,11 +1102,9 @@ struct buffer_list
 /**
  * Allocate an empty buffer list of capacity \c max_size.
  *
- * @param max_size  the capacity of the list to allocate
- *
  * @return the new list
  */
-struct buffer_list *buffer_list_new(const int max_size);
+struct buffer_list *buffer_list_new(void);
 
 /**
  * Frees a buffer list and all the buffers in it.
