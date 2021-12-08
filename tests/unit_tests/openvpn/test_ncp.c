@@ -120,8 +120,11 @@ test_check_ncp_ciphers_list(void **state)
     assert_string_equal(mutate_ncp_cipher_list("id-aes128-GCM:id-aes256-GCM",
                                                &gc), "AES-128-GCM:AES-256-GCM");
 #else
-    assert_string_equal(mutate_ncp_cipher_list("BLOWFISH-CBC",
-                                               &gc), "BF-CBC");
+    if (have_blowfish)
+    {
+        assert_string_equal(mutate_ncp_cipher_list("BLOWFISH-CBC",
+                                                   &gc), "BF-CBC");
+    }
 #endif
     gc_free(&gc);
 }
