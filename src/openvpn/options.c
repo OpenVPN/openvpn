@@ -6896,7 +6896,7 @@ add_option(struct options *options,
 
         if (p[2])       /* no "nopool" options or similar for IPv6 */
         {
-            msg(msglevel, "error parsing --server-ipv6: %s is not a recognized flag", p[3]);
+            msg(msglevel, "error parsing --server-ipv6: %s is not a recognized flag", p[2]);
             goto err;
         }
     }
