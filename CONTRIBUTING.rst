@@ -19,10 +19,10 @@ git-format-patch or sent using git-send-email. Try to split large patches into
 small, atomic pieces to make reviews easier.
 
 If you want quick feedback on a patch before sending it to openvpn-devel mailing
-list, you can visit the #openvpn-devel channel on irc.freenode.net. Note that
-you need to be logged in to Freenode to join the channel:
+list, you can visit the #openvpn-devel channel on irc.libera.chat. Note that
+you need to be logged in to Libera to join the channel:
 
-- http://freenode.net/faq.shtml#nicksetup
+- https://libera.chat/guides/registration
 
 More detailed contribution instructions are available here:
 

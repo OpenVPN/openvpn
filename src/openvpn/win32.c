@@ -101,6 +101,12 @@ struct semaphore netcmd_semaphore; /* GLOBAL */
  */
 static char *win_sys_path = NULL; /* GLOBAL */
 
+/**
+ * Set OpenSSL environment variables to a safe directory
+ */
+static void
+set_openssl_env_vars();
+
 void
 init_win32(void)
 {
@@ -110,6 +116,8 @@ init_win32(void)
     }
     window_title_clear(&window_title);
     win32_signal_clear(&win32_signal);
+
+    set_openssl_env_vars();
 }
 
 void
@@ -1507,6 +1515,86 @@ send_msg_iservice(HANDLE pipe, const void *data, size_t size,
 
     gc_free(&gc);
     return ret;
+}
+
+bool
+openvpn_swprintf(wchar_t *const str, const size_t size, const wchar_t *const format, ...)
+{
+    va_list arglist;
+    int len = -1;
+    if (size > 0)
+    {
+        va_start(arglist, format);
+        len = vswprintf(str, size, format, arglist);
+        va_end(arglist);
+        str[size - 1] = L'\0';
+    }
+    return (len >= 0 && len < size);
+}
+
+static BOOL
+get_install_path(WCHAR *path, DWORD size)
+{
+    WCHAR reg_path[256];
+    HKEY key;
+    BOOL res = FALSE;
+    openvpn_swprintf(reg_path, _countof(reg_path), L"SOFTWARE\\" PACKAGE_NAME);
+
+    LONG status = RegOpenKeyExW(HKEY_LOCAL_MACHINE, reg_path, 0, KEY_READ, &key);
+    if (status != ERROR_SUCCESS)
+    {
+        return res;
+    }
+
+    /* The default value of REG_KEY is the install path */
+    status = RegGetValueW(key, NULL, NULL, RRF_RT_REG_SZ, NULL, (LPBYTE)path, &size);
+    res = status == ERROR_SUCCESS;
+
+    RegCloseKey(key);
+
+    return res;
+}
+
+static void
+set_openssl_env_vars()
+{
+    const WCHAR *ssl_fallback_dir = L"C:\\Windows\\System32";
+
+    WCHAR install_path[MAX_PATH] = { 0 };
+    if (!get_install_path(install_path, _countof(install_path)))
+    {
+        /* if we cannot find installation path from the registry,
+         * use Windows directory as a fallback
+         */
+        openvpn_swprintf(install_path, _countof(install_path), L"%ls", ssl_fallback_dir);
+    }
+
+    if ((install_path[wcslen(install_path) - 1]) == L'\\')
+    {
+        install_path[wcslen(install_path) - 1] = L'\0';
+    }
+
+    static struct {
+        WCHAR *name;
+        WCHAR *value;
+    } ossl_env[] = {
+        {L"OPENSSL_CONF", L"openssl.cnf"},
+        {L"OPENSSL_ENGINES", L"engines"},
+        {L"OPENSSL_MODULES", L"modules"}
+    };
+
+    for (size_t i = 0; i < SIZE(ossl_env); ++i)
+    {
+        size_t size = 0;
+
+        _wgetenv_s(&size, NULL, 0, ossl_env[i].name);
+        if (size == 0)
+        {
+            WCHAR val[MAX_PATH] = {0};
+            openvpn_swprintf(val, _countof(val), L"%ls\\ssl\\%ls", install_path, ossl_env[i].value);
+            _wputenv_s(ossl_env[i].name, val);
+        }
+    }
 }
 
 #endif /* ifdef _WIN32 */

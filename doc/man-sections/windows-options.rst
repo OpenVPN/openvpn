@@ -93,7 +93,7 @@ Windows-Specific Options
         server to masquerade as if it were coming from the remote endpoint.
 
         The optional offset parameter is an integer which is > :code:`-256`
-        and < :code:`256` and which defaults to -1. If offset is positive,
+        and < :code:`256` and which defaults to 0. If offset is positive,
         the DHCP server will masquerade as the IP address at network
         address + offset. If offset is negative, the DHCP server will
         masquerade as the IP address at broadcast address + offset.

@@ -213,7 +213,7 @@ the local and the remote host.
 
   This option is useful in cases where the remote peer has a dynamic IP
   address and a low-TTL DNS name is used to track the IP address using a
-  service such as http://dyndns.org/ + a dynamic DNS client such as
+  service such as https://www.nsupdate.info/ + a dynamic DNS client such as
   ``ddclient``.
 
   If the peer cannot be reached, a restart will be triggered, causing the

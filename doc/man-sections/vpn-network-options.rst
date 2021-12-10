@@ -107,7 +107,7 @@ routing.
   ``OpenVPN for Android`` client also handles them internally.
 
   On all other platforms these options are only saved in the client's
-  environment under the name :code:`foreign_options_{n}` before the
+  environment under the name :code:`foreign_option_{n}` before the
   ``--up`` script is called. A plugin or an ``--up`` script must be used to
   pick up and interpret these as required. Many Linux distributions include
   such scripts and some third-party user interfaces such as tunnelblick also

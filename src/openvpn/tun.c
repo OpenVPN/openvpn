@@ -6388,14 +6388,7 @@ tuntap_dhcp_mask(const struct tuntap *tt, const char *device_guid)
     {
         if (tt->topology == TOP_SUBNET)
         {
-            if (tt->options.dhcp_masq_custom_offset)
-            {
-                ep[2] = dhcp_masq_addr(tt->local, tt->remote_netmask, tt->options.dhcp_masq_offset);
-            }
-            else
-            {
-                ep[2] = dhcp_masq_addr(tt->local, tt->remote_netmask, -1);
-            }
+            ep[2] = dhcp_masq_addr(tt->local, tt->remote_netmask, tt->options.dhcp_masq_custom_offset ? tt->options.dhcp_masq_offset : 0);
         }
         else
         {
