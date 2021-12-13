@@ -5,7 +5,7 @@ OpenVPN 2.4 and higher have the capability to negotiate the data cipher that
 is used to encrypt data packets. This section describes the mechanism in more detail and the
 different backwards compatibility mechanism with older server and clients.
 
-OpenVPN 2.5 and higher behaviour
+OpenVPN 2.5 and later behaviour
 --------------------------------
 When both client and server are at least running OpenVPN 2.5, that the order of
 the ciphers of the server's ``--data-ciphers`` is used to pick the the data cipher.
@@ -15,11 +15,14 @@ with a AUTH_FAILED message (as seen in client log):
 
     AUTH: Received control message: AUTH_FAILED,Data channel cipher negotiation failed (no shared cipher)
 
-OpenVPN 2.5 will only allow the ciphers specified in ``--data-ciphers``. To ensure
-backwards compatibility also if a cipher is specified using the ``--cipher`` option
-it is automatically added to this list. If both options are unset the default is
-:code:`AES-256-GCM:AES-128-GCM`. In 2.6 and later the default is changed to
+OpenVPN 2.5 and later will only allow the ciphers specified in ``--data-ciphers``.
+ If ``--data-ciphers`` is not set the default is :code:`AES-256-GCM:AES-128-GCM`.
+In 2.6 and later the default is changed to
 :code:`AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305` when Chacha20-Poly1305 is available.
+
+For backwards compatibility OpenVPN 2.6 and later with ``--compat-mode 2.4.x``
+(or lower) and OpenVPN 2.5 will automatically add a cipher specified using the
+``--cipher`` option to this list.
 
 OpenVPN 2.4 clients
 -------------------
