@@ -718,7 +718,7 @@ warn_insecure_key_type(const char *ciphername)
             " bit (%d bit).  This allows attacks like SWEET32.  Mitigate by "
             "using a --cipher with a larger block size (e.g. AES-256-CBC). "
             "Support for these insecure ciphers will be removed in "
-            "OpenVPN 2.6.",
+            "OpenVPN 2.7.",
             ciphername, cipher_kt_block_size(ciphername)*8);
     }
 }
