@@ -680,7 +680,7 @@ crypto_adjust_frame_parameters(struct frame *frame,
         crypto_overhead += packet_id_size(packet_id_long_form);
     }
 
-    if (kt->cipher)
+    if (cipher_defined(kt->cipher))
     {
         crypto_overhead += cipher_kt_iv_size(kt->cipher);
 
@@ -710,16 +710,16 @@ crypto_max_overhead(void)
 }
 
 static void
-warn_insecure_key_type(const char *ciphername, const cipher_kt_t *cipher)
+warn_insecure_key_type(const char *ciphername)
 {
-    if (cipher_kt_insecure(cipher))
+    if (cipher_kt_insecure(ciphername))
     {
         msg(M_WARN, "WARNING: INSECURE cipher (%s) with block size less than 128"
             " bit (%d bit).  This allows attacks like SWEET32.  Mitigate by "
             "using a --cipher with a larger block size (e.g. AES-256-CBC). "
             "Support for these insecure ciphers will be removed in "
             "OpenVPN 2.6.",
-            ciphername, cipher_kt_block_size(cipher)*8);
+            ciphername, cipher_kt_block_size(ciphername)*8);
     }
 }
 
@@ -736,10 +736,10 @@ init_key_type(struct key_type *kt, const char *ciphername,
     ASSERT(authname);
 
     CLEAR(*kt);
+    kt->cipher = ciphername;
     if (strcmp(ciphername, "none") != 0)
     {
-        kt->cipher = cipher_kt_get(ciphername);
-        if (!kt->cipher)
+        if (!cipher_valid(ciphername))
         {
             msg(M_FATAL, "Cipher %s not supported", ciphername);
         }
@@ -762,7 +762,7 @@ init_key_type(struct key_type *kt, const char *ciphername,
         }
         if (warn)
         {
-            warn_insecure_key_type(ciphername, kt->cipher);
+            warn_insecure_key_type(ciphername);
         }
     }
     else
@@ -809,7 +809,7 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
 {
     struct gc_arena gc = gc_new();
     CLEAR(*ctx);
-    if (kt->cipher)
+    if (cipher_defined(kt->cipher))
     {
 
         ctx->cipher = cipher_ctx_new();
@@ -824,7 +824,7 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
         dmsg(D_CRYPTO_DEBUG, "%s: CIPHER block_size=%d iv_size=%d",
              prefix, cipher_kt_block_size(kt->cipher),
              cipher_kt_iv_size(kt->cipher));
-        warn_insecure_key_type(ciphername, kt->cipher);
+        warn_insecure_key_type(ciphername);
     }
     if (kt->digest)
     {
@@ -912,7 +912,7 @@ key_is_zero(struct key *key, const struct key_type *kt)
 bool
 check_key(struct key *key, const struct key_type *kt)
 {
-    if (kt->cipher)
+    if (cipher_defined(kt->cipher))
     {
         /*
          * Check for zero key
@@ -1622,22 +1622,22 @@ get_random(void)
 }
 
 void
-print_cipher(const cipher_kt_t *cipher)
+print_cipher(const char *ciphername)
 {
     printf("%s  (%d bit key, ",
-           cipher_kt_name(cipher),
-           cipher_kt_key_size(cipher) * 8);
+           cipher_kt_name(ciphername),
+           cipher_kt_key_size(ciphername) * 8);
 
-    if (cipher_kt_block_size(cipher) == 1)
+    if (cipher_kt_block_size(ciphername) == 1)
     {
         printf("stream cipher");
     }
     else
     {
-        printf("%d bit block", cipher_kt_block_size(cipher) * 8);
+        printf("%d bit block", cipher_kt_block_size(ciphername) * 8);
     }
 
-    if (!cipher_kt_mode_cbc(cipher))
+    if (!cipher_kt_mode_cbc(ciphername))
     {
         printf(", TLS client/server mode only");
     }

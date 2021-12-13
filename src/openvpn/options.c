@@ -3084,7 +3084,7 @@ options_postprocess_setdefault_ncpciphers(struct options *o)
         /* custom --data-ciphers set, keep list */
         return;
     }
-    else if (cipher_kt_get("CHACHA20-POLY1305"))
+    else if (cipher_valid("CHACHA20-POLY1305"))
     {
         o->ncp_ciphers = "AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305";
     }
@@ -3979,7 +3979,7 @@ options_string(const struct options *o,
         /* Skip resolving BF-CBC to allow SSL libraries without BF-CBC
          * to work here in the default configuration */
         const char *ciphername = o->ciphername;
-        int keysize;
+        int keysize = 0;
 
         if (strcmp(o->ciphername, "BF-CBC") == 0)
         {
@@ -3990,7 +3990,10 @@ options_string(const struct options *o,
         {
             init_key_type(&kt, o->ciphername, o->authname, true, false);
             ciphername = cipher_kt_name(kt.cipher);
-            keysize = cipher_kt_key_size(kt.cipher) * 8;
+            if (cipher_defined(o->ciphername))
+            {
+                keysize = cipher_kt_key_size(kt.cipher) * 8;
+            }
         }
         /* Only announce the cipher to our peer if we are willing to
          * support it */

@@ -33,9 +33,6 @@
 #include <mbedtls/md.h>
 #include <mbedtls/ctr_drbg.h>
 
-/** Generic cipher key type %context. */
-typedef mbedtls_cipher_info_t cipher_kt_t;
-
 /** Generic message digest key type %context. */
 typedef mbedtls_md_info_t md_kt_t;
 

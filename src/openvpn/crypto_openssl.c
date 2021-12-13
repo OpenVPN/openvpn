@@ -311,7 +311,7 @@ cipher_name_cmp(const void *a, const void *b)
     const EVP_CIPHER *const *cipher_a = a;
     const EVP_CIPHER *const *cipher_b = b;
 
-    return strcmp(cipher_kt_name(*cipher_a), cipher_kt_name(*cipher_b));
+    return strcmp(EVP_CIPHER_get0_name(*cipher_a), EVP_CIPHER_get0_name(*cipher_b));
 }
 
 struct collect_ciphers {
@@ -322,6 +322,10 @@ struct collect_ciphers {
 
 static void collect_ciphers(EVP_CIPHER *cipher, void *list)
 {
+    if (!cipher)
+    {
+        return;
+    }
     struct collect_ciphers* cipher_list = list;
     if (cipher_list->num == SIZE(cipher_list->list))
     {
@@ -329,11 +333,13 @@ static void collect_ciphers(EVP_CIPHER *cipher, void *list)
         return;
     }
 
-    if (cipher && (cipher_kt_mode_cbc(cipher)
+    const char *ciphername = EVP_CIPHER_get0_name(cipher);
+
+    if (ciphername && (cipher_kt_mode_cbc(ciphername)
 #ifdef ENABLE_OFB_CFB_MODE
-        || cipher_kt_mode_ofb_cfb(cipher)
+        || cipher_kt_mode_ofb_cfb(ciphername)
 #endif
-        || cipher_kt_mode_aead(cipher)
+        || cipher_kt_mode_aead(ciphername)
     ))
     {
         cipher_list->list[cipher_list->num++] = cipher;
@@ -361,7 +367,7 @@ show_available_ciphers(void)
         const EVP_CIPHER *cipher = EVP_get_cipherbynid(nid);
         /* We cast the const away so we can keep the function prototype
          * compatible with EVP_CIPHER_do_all_provided */
-        collect_ciphers((EVP_CIPHER *)cipher, &cipher_list);
+        collect_ciphers((EVP_CIPHER *) cipher, &cipher_list);
     }
 #endif
 
@@ -370,9 +376,9 @@ show_available_ciphers(void)
 
     for (size_t i = 0; i < cipher_list.num; i++)
     {
-        if (!cipher_kt_insecure(cipher_list.list[i]))
+        if (!cipher_kt_insecure(EVP_CIPHER_get0_name(cipher_list.list[i])))
         {
-            print_cipher(cipher_list.list[i]);
+            print_cipher(EVP_CIPHER_get0_name(cipher_list.list[i]));
         }
     }
 
@@ -380,9 +386,9 @@ show_available_ciphers(void)
            "and are therefore deprecated.  Do not use unless you have to.\n\n");
     for (int i = 0; i < cipher_list.num; i++)
     {
-        if (cipher_kt_insecure(cipher_list.list[i]))
+        if (cipher_kt_insecure(EVP_CIPHER_get0_name(cipher_list.list[i])))
         {
-            print_cipher(cipher_list.list[i]);
+            print_cipher(EVP_CIPHER_get0_name(cipher_list.list[i]));
         }
     }
     printf("\n");
@@ -556,11 +562,10 @@ rand_bytes(uint8_t *output, int len)
  *
  */
 
-
-const EVP_CIPHER *
-cipher_kt_get(const char *ciphername)
+static evp_cipher_type *
+cipher_get(const char *ciphername)
 {
-    const EVP_CIPHER *cipher = NULL;
+    evp_cipher_type *cipher = NULL;
 
     ASSERT(ciphername);
 
@@ -569,7 +574,6 @@ cipher_kt_get(const char *ciphername)
 
     if (NULL == cipher)
     {
-        crypto_msg(D_LOW, "Cipher algorithm '%s' not found", ciphername);
         return NULL;
     }
 
@@ -596,32 +600,67 @@ cipher_kt_get(const char *ciphername)
     return cipher;
 }
 
-const char *
-cipher_kt_name(const EVP_CIPHER *cipher_kt)
+bool cipher_valid(const char *ciphername)
 {
-    if (NULL == cipher_kt)
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    bool valid = (cipher != NULL);
+    if (!valid)
+    {
+        crypto_msg(D_LOW, "Cipher algorithm '%s' not found", ciphername);
+    }
+    EVP_CIPHER_free(cipher);
+    return valid;
+}
+
+bool cipher_var_key_size(const char *ciphername)
+{
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    bool ret = EVP_CIPHER_flags(cipher) & EVP_CIPH_VARIABLE_LENGTH;
+    EVP_CIPHER_free(cipher);
+    return ret;
+}
+
+
+const char *
+cipher_kt_name(const char *ciphername)
+{
+    ASSERT(ciphername);
+    if (strcmp("none", ciphername) == 0)
     {
         return "[null-cipher]";
     }
 
+    evp_cipher_type *cipher_kt = cipher_get(ciphername);
+    if (!cipher_kt)
+    {
+        return NULL;
+    }
+
     const char *name = EVP_CIPHER_name(cipher_kt);
+    EVP_CIPHER_free(cipher_kt);
     return translate_cipher_name_to_openvpn(name);
 }
 
 int
-cipher_kt_key_size(const EVP_CIPHER *cipher_kt)
+cipher_kt_key_size(const char *ciphername)
 {
-    return EVP_CIPHER_key_length(cipher_kt);
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    int size = EVP_CIPHER_key_length(cipher);
+    EVP_CIPHER_free(cipher);
+    return size;
 }
 
 int
-cipher_kt_iv_size(const EVP_CIPHER *cipher_kt)
+cipher_kt_iv_size(const char *ciphername)
 {
-    return EVP_CIPHER_iv_length(cipher_kt);
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    int ivsize = EVP_CIPHER_iv_length(cipher);
+    EVP_CIPHER_free(cipher);
+    return ivsize;
 }
 
 int
-cipher_kt_block_size(const EVP_CIPHER *cipher)
+cipher_kt_block_size(const char *ciphername)
 {
     /*
      * OpenSSL reports OFB/CFB/GCM cipher block sizes as '1 byte'.  To work
@@ -632,7 +671,12 @@ cipher_kt_block_size(const EVP_CIPHER *cipher)
     char *name = NULL;
     char *mode_str = NULL;
     const char *orig_name = NULL;
-    const EVP_CIPHER *cbc_cipher = NULL;
+    evp_cipher_type *cbc_cipher = NULL;
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    if (!cipher)
+    {
+        return 0;
+    }
 
     int block_size = EVP_CIPHER_block_size(cipher);
 
@@ -651,21 +695,23 @@ cipher_kt_block_size(const EVP_CIPHER *cipher)
 
     strcpy(mode_str, "-CBC");
 
-    cbc_cipher = EVP_CIPHER_fetch(NULL,translate_cipher_name_from_openvpn(name), NULL);
+    cbc_cipher = EVP_CIPHER_fetch(NULL, translate_cipher_name_from_openvpn(name), NULL);
     if (cbc_cipher)
     {
         block_size = EVP_CIPHER_block_size(cbc_cipher);
     }
 
 cleanup:
+    EVP_CIPHER_free(cbc_cipher);
+    EVP_CIPHER_free(cipher);
     free(name);
     return block_size;
 }
 
 int
-cipher_kt_tag_size(const EVP_CIPHER *cipher_kt)
+cipher_kt_tag_size(const char *ciphername)
 {
-    if (cipher_kt_mode_aead(cipher_kt))
+    if (cipher_kt_mode_aead(ciphername))
     {
         return OPENVPN_AEAD_TAG_LENGTH;
     }
@@ -676,13 +722,26 @@ cipher_kt_tag_size(const EVP_CIPHER *cipher_kt)
 }
 
 bool
-cipher_kt_insecure(const EVP_CIPHER *cipher)
+cipher_kt_insecure(const char *ciphername)
 {
-    return !(cipher_kt_block_size(cipher) >= 128 / 8
+
+    if (cipher_kt_block_size(ciphername) >= 128 / 8)
+    {
+        return false;
+    }
 #ifdef NID_chacha20_poly1305
-             || EVP_CIPHER_nid(cipher) == NID_chacha20_poly1305
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    if (cipher)
+    {
+        bool ischachapoly = (EVP_CIPHER_nid(cipher) == NID_chacha20_poly1305);
+        EVP_CIPHER_free(cipher);
+        if (ischachapoly)
+        {
+            return false;
+        }
+    }
 #endif
-             );
+    return true;
 }
 
 int
@@ -693,44 +752,56 @@ cipher_kt_mode(const EVP_CIPHER *cipher_kt)
 }
 
 bool
-cipher_kt_mode_cbc(const cipher_kt_t *cipher)
+cipher_kt_mode_cbc(const char *ciphername)
 {
-    return cipher && cipher_kt_mode(cipher) == OPENVPN_MODE_CBC
+    evp_cipher_type *cipher = cipher_get(ciphername);
+
+    bool ret = cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_CBC
            /* Exclude AEAD cipher modes, they require a different API */
 #ifdef EVP_CIPH_FLAG_CTS
            && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_CTS)
 #endif
-           && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER);
+           && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER));
+    EVP_CIPHER_free(cipher);
+    return ret;
 }
 
 bool
-cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher)
+cipher_kt_mode_ofb_cfb(const char *ciphername)
 {
-    return cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_OFB
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    bool ofb_cfb = cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_OFB
                       || cipher_kt_mode(cipher) == OPENVPN_MODE_CFB)
-           /* Exclude AEAD cipher modes, they require a different API */
-           && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER);
+                      /* Exclude AEAD cipher modes, they require a different API */
+                      && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER);
+    EVP_CIPHER_free(cipher);
+    return ofb_cfb;
 }
 
 bool
-cipher_kt_mode_aead(const cipher_kt_t *cipher)
+cipher_kt_mode_aead(const char *ciphername)
 {
+    bool isaead = false;
+
+    evp_cipher_type *cipher = cipher_get(ciphername);
     if (cipher)
     {
         if (EVP_CIPHER_mode(cipher) == OPENVPN_MODE_GCM)
         {
-            return true;
+            isaead = true;
         }
 
 #ifdef NID_chacha20_poly1305
         if (EVP_CIPHER_nid(cipher) == NID_chacha20_poly1305)
         {
-            return true;
+            isaead =  true;
         }
 #endif
     }
 
-    return false;
+    EVP_CIPHER_free(cipher);
+
+    return isaead;
 }
 
 /*
@@ -755,9 +826,10 @@ cipher_ctx_free(EVP_CIPHER_CTX *ctx)
 
 void
 cipher_ctx_init(EVP_CIPHER_CTX *ctx, const uint8_t *key,
-                const EVP_CIPHER *kt, int enc)
+                const char *ciphername, int enc)
 {
-    ASSERT(NULL != kt && NULL != ctx);
+    ASSERT(NULL != ciphername && NULL != ctx);
+    evp_cipher_type *kt = cipher_get(ciphername);
 
     EVP_CIPHER_CTX_reset(ctx);
     if (!EVP_CipherInit(ctx, kt, NULL, NULL, enc))
@@ -769,6 +841,7 @@ cipher_ctx_init(EVP_CIPHER_CTX *ctx, const uint8_t *key,
         crypto_msg(M_FATAL, "EVP cipher init #2");
     }
 
+    EVP_CIPHER_free(kt);
     /* make sure we used a big enough key */
     ASSERT(EVP_CIPHER_CTX_key_length(ctx) <= EVP_CIPHER_key_length(kt));
 }

@@ -138,7 +138,7 @@ struct sha256_digest {
  */
 struct key_type
 {
-    const cipher_kt_t *cipher;  /**< Cipher static parameters */
+    const char *cipher;         /**< const name of the cipher */
     const md_kt_t *digest;      /**< Message digest static parameters */
 };
 
@@ -473,7 +473,7 @@ void prng_bytes(uint8_t *output, int len);
 long int get_random(void);
 
 /** Print a cipher list entry */
-void print_cipher(const cipher_kt_t *cipher);
+void print_cipher(const char *cipher);
 
 void test_crypto(struct crypto_options *co, struct frame *f);
 

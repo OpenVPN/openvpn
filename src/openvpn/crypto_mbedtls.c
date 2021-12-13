@@ -169,11 +169,11 @@ show_available_ciphers(void)
 
     while (*ciphers != 0)
     {
-        const cipher_kt_t *info = mbedtls_cipher_info_from_type(*ciphers);
-        if (info && !cipher_kt_insecure(info)
-            && (cipher_kt_mode_aead(info) || cipher_kt_mode_cbc(info)))
+        const mbedtls_cipher_info_t *info = mbedtls_cipher_info_from_type(*ciphers);
+        if (info && !cipher_kt_insecure(info->name)
+            && (cipher_kt_mode_aead(info->name) || cipher_kt_mode_cbc(info->name)))
         {
-            print_cipher(info);
+            print_cipher(info->name);
         }
         ciphers++;
     }
@@ -183,11 +183,11 @@ show_available_ciphers(void)
     ciphers = mbedtls_cipher_list();
     while (*ciphers != 0)
     {
-        const cipher_kt_t *info = mbedtls_cipher_info_from_type(*ciphers);
-        if (info && cipher_kt_insecure(info)
-            && (cipher_kt_mode_aead(info) || cipher_kt_mode_cbc(info)))
+        const mbedtls_cipher_info_t *info = mbedtls_cipher_info_from_type(*ciphers);
+        if (info && cipher_kt_insecure(info->name)
+            && (cipher_kt_mode_aead(info->name) || cipher_kt_mode_cbc(info->name)))
         {
-            print_cipher(info);
+            print_cipher(info->name);
         }
         ciphers++;
     }
@@ -390,17 +390,22 @@ rand_bytes(uint8_t *output, int len)
  * Generic cipher key type functions
  *
  */
-
-
-const mbedtls_cipher_info_t *
-cipher_kt_get(const char *ciphername)
+static const mbedtls_cipher_info_t *
+cipher_get(const char* ciphername)
 {
-    const mbedtls_cipher_info_t *cipher = NULL;
-
     ASSERT(ciphername);
+
+    const mbedtls_cipher_info_t *cipher = NULL;
 
     ciphername = translate_cipher_name_from_openvpn(ciphername);
     cipher = mbedtls_cipher_info_from_string(ciphername);
+    return cipher;
+}
+
+bool
+cipher_valid(const char *ciphername)
+{
+    const mbedtls_cipher_info_t *cipher = cipher_get(ciphername);
 
     if (NULL == cipher)
     {
@@ -416,12 +421,13 @@ cipher_kt_get(const char *ciphername)
         return NULL;
     }
 
-    return cipher;
+    return cipher != NULL;
 }
 
 const char *
-cipher_kt_name(const mbedtls_cipher_info_t *cipher_kt)
+cipher_kt_name(const char *ciphername)
 {
+    const mbedtls_cipher_info_t *cipher_kt = cipher_get(ciphername);
     if (NULL == cipher_kt)
     {
         return "[null-cipher]";
@@ -431,8 +437,10 @@ cipher_kt_name(const mbedtls_cipher_info_t *cipher_kt)
 }
 
 int
-cipher_kt_key_size(const mbedtls_cipher_info_t *cipher_kt)
+cipher_kt_key_size(const char *ciphername)
 {
+    const mbedtls_cipher_info_t *cipher_kt = cipher_get(ciphername);
+
     if (NULL == cipher_kt)
     {
         return 0;
@@ -442,8 +450,10 @@ cipher_kt_key_size(const mbedtls_cipher_info_t *cipher_kt)
 }
 
 int
-cipher_kt_iv_size(const mbedtls_cipher_info_t *cipher_kt)
+cipher_kt_iv_size(const char *ciphername)
 {
+    const mbedtls_cipher_info_t *cipher_kt = cipher_get(ciphername);
+
     if (NULL == cipher_kt)
     {
         return 0;
@@ -452,8 +462,9 @@ cipher_kt_iv_size(const mbedtls_cipher_info_t *cipher_kt)
 }
 
 int
-cipher_kt_block_size(const mbedtls_cipher_info_t *cipher_kt)
+cipher_kt_block_size(const char *ciphername)
 {
+    const mbedtls_cipher_info_t *cipher_kt = cipher_get(ciphername);
     if (NULL == cipher_kt)
     {
         return 0;
@@ -462,9 +473,9 @@ cipher_kt_block_size(const mbedtls_cipher_info_t *cipher_kt)
 }
 
 int
-cipher_kt_tag_size(const mbedtls_cipher_info_t *cipher_kt)
+cipher_kt_tag_size(const char *ciphername)
 {
-    if (cipher_kt && cipher_kt_mode_aead(cipher_kt))
+    if (cipher_kt_mode_aead(ciphername))
     {
         return OPENVPN_AEAD_TAG_LENGTH;
     }
@@ -472,16 +483,22 @@ cipher_kt_tag_size(const mbedtls_cipher_info_t *cipher_kt)
 }
 
 bool
-cipher_kt_insecure(const mbedtls_cipher_info_t *cipher_kt)
+cipher_kt_insecure(const char *ciphername)
 {
-    return !(cipher_kt_block_size(cipher_kt) >= 128 / 8
+    const mbedtls_cipher_info_t *cipher_kt = cipher_get(ciphername);
+    if (!cipher_kt)
+    {
+        return true;
+    }
+
+    return !(cipher_kt_block_size(ciphername) >= 128 / 8
 #ifdef MBEDTLS_CHACHAPOLY_C
              || cipher_kt->type == MBEDTLS_CIPHER_CHACHA20_POLY1305
 #endif
              );
 }
 
-int
+static int
 cipher_kt_mode(const mbedtls_cipher_info_t *cipher_kt)
 {
     ASSERT(NULL != cipher_kt);
@@ -489,21 +506,24 @@ cipher_kt_mode(const mbedtls_cipher_info_t *cipher_kt)
 }
 
 bool
-cipher_kt_mode_cbc(const cipher_kt_t *cipher)
+cipher_kt_mode_cbc(const char *ciphername)
 {
+    const mbedtls_cipher_info_t *cipher = cipher_get(ciphername);
     return cipher && cipher_kt_mode(cipher) == OPENVPN_MODE_CBC;
 }
 
 bool
-cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher)
+cipher_kt_mode_ofb_cfb(const char *ciphername)
 {
+    const mbedtls_cipher_info_t *cipher = cipher_get(ciphername);
     return cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_OFB
                       || cipher_kt_mode(cipher) == OPENVPN_MODE_CFB);
 }
 
 bool
-cipher_kt_mode_aead(const cipher_kt_t *cipher)
+cipher_kt_mode_aead(const char *ciphername)
 {
+    const mbedtls_cipher_info_t *cipher = cipher_get(ciphername);
     return cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_GCM
 #ifdef MBEDTLS_CHACHAPOLY_C
                       || cipher_kt_mode(cipher) == MBEDTLS_MODE_CHACHAPOLY
@@ -535,12 +555,15 @@ cipher_ctx_free(mbedtls_cipher_context_t *ctx)
 
 void
 cipher_ctx_init(mbedtls_cipher_context_t *ctx, const uint8_t *key,
-                const mbedtls_cipher_info_t *kt, const mbedtls_operation_t operation)
+                const char *ciphername, const mbedtls_operation_t operation)
 {
-    ASSERT(NULL != kt && NULL != ctx);
-    int key_len = cipher_kt_key_size(kt);
-
+    ASSERT(NULL != ciphername && NULL != ctx);
     CLEAR(*ctx);
+
+    const mbedtls_cipher_info_t *kt = cipher_get(ciphername);
+    int key_len = kt->key_bitlen/8;
+
+    ASSERT(kt);
 
     if (!mbed_ok(mbedtls_cipher_setup(ctx, kt)))
     {

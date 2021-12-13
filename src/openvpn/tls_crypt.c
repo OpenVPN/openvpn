@@ -51,10 +51,10 @@ static struct key_type
 tls_crypt_kt(void)
 {
     struct key_type kt;
-    kt.cipher = cipher_kt_get("AES-256-CTR");
+    kt.cipher = "AES-256-CTR";
     kt.digest = md_kt_get("SHA256");
 
-    if (!kt.cipher)
+    if (!cipher_valid(kt.cipher))
     {
         msg(M_WARN, "ERROR: --tls-crypt requires AES-256-CTR support.");
         return (struct key_type) { 0 };

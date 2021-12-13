@@ -281,9 +281,9 @@ tls_get_cipher_name_pair(const char *cipher_name, size_t len)
  *                      May *not* be NULL.
  */
 static void
-tls_limit_reneg_bytes(const cipher_kt_t *cipher, int *reneg_bytes)
+tls_limit_reneg_bytes(const char *ciphername, int *reneg_bytes)
 {
-    if (cipher && cipher_kt_insecure(cipher))
+    if (cipher_kt_insecure(ciphername))
     {
         if (*reneg_bytes == -1) /* Not user-specified */
         {

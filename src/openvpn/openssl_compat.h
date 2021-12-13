@@ -757,6 +757,7 @@ int EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz,
 
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
 #define EVP_MD_get0_name EVP_MD_name
+#define EVP_CIPHER_get0_name EVP_CIPHER_name
 #define EVP_CIPHER_CTX_get_mode EVP_CIPHER_CTX_mode
 
 /* Mimics the functions but only when the default context without
@@ -775,6 +776,12 @@ EVP_MD_fetch(void *ctx, const char *algorithm, const char *properties)
     ASSERT(!ctx);
     ASSERT(!properties);
     return EVP_get_digestbyname(algorithm);
+}
+
+static inline void
+EVP_CIPHER_free(const EVP_CIPHER *cipher)
+{
+    /* OpenSSL 1.1.1 and lower use only const EVP_CIPHER, nothing to free */
 }
 #endif /* OPENSSL_VERSION_NUMBER < 0x30000000L */
 

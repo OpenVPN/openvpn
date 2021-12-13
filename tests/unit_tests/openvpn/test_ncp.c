@@ -59,8 +59,8 @@ static void
 test_check_ncp_ciphers_list(void **state)
 {
     struct gc_arena gc = gc_new();
-    bool have_chacha = cipher_kt_get("CHACHA20-POLY1305");
-    bool have_blowfish = cipher_kt_get("BF-CBC");
+    bool have_chacha = cipher_valid("CHACHA20-POLY1305");
+    bool have_blowfish = cipher_valid("BF-CBC");
 
     assert_string_equal(mutate_ncp_cipher_list("none", &gc), "none");
     assert_string_equal(mutate_ncp_cipher_list("AES-256-GCM:none", &gc),
@@ -100,7 +100,7 @@ test_check_ncp_ciphers_list(void **state)
 
     /* For testing that with OpenSSL 1.1.0+ that also accepts ciphers in
      * a different spelling the normalised cipher output is the same */
-    bool have_chacha_mixed_case = cipher_kt_get("ChaCha20-Poly1305");
+    bool have_chacha_mixed_case = cipher_valid("ChaCha20-Poly1305");
     if (have_chacha_mixed_case)
     {
         assert_string_equal(mutate_ncp_cipher_list("AES-128-CBC:ChaCha20-Poly1305", &gc),

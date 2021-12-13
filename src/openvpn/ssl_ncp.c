@@ -105,8 +105,7 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
     while (token)
     {
         /*
-         * Going through a roundtrip by using cipher_kt_get/cipher_kt_name
-         * (and translate_cipher_name_from_openvpn/
+         * Going cipher_kt_name (and translate_cipher_name_from_openvpn/
          * translate_cipher_name_to_openvpn) also normalises the cipher name,
          * e.g. replacing AeS-128-gCm with AES-128-GCM
          *
@@ -114,15 +113,16 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
          * OpenVPN will only warn if they are not found (and remove them from
          * the list)
          */
-
         bool optional = false;
         if (token[0] == '?')
         {
             token++;
             optional = true;
         }
-        const cipher_kt_t *ktc = cipher_kt_get(token);
-        if (strcmp(token, "none") == 0)
+
+        const bool nonecipher = (strcmp(token, "none") == 0);
+
+        if (nonecipher)
         {
             msg(M_WARN, "WARNING: cipher 'none' specified for --data-ciphers. "
                         "This allows negotiation of NO encryption and "
@@ -130,7 +130,7 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
                         "over the network! "
                         "PLEASE DO RECONSIDER THIS SETTING!");
         }
-        if (!ktc && strcmp(token, "none") != 0)
+        if (!nonecipher && !cipher_valid(token))
         {
             const char* optstr = optional ? "optional ": "";
             msg(M_WARN, "Unsupported %scipher in --data-ciphers: %s", optstr, token);
@@ -138,8 +138,8 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
         }
         else
         {
-            const char *ovpn_cipher_name = cipher_kt_name(ktc);
-            if (ktc == NULL)
+            const char *ovpn_cipher_name = cipher_kt_name(token);
+            if (nonecipher)
             {
                 /* NULL resolves to [null-cipher] but we need none for
                  * data-ciphers */
@@ -466,17 +466,17 @@ p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session)
     if (!common_cipher)
     {
         struct buffer out = alloc_buf_gc(128, &gc);
-        const cipher_kt_t *cipher = session->opt->key_type.cipher;
-
         /* at this point we do not really know if our fallback is
          * not enabled or if we use 'none' cipher as fallback, so
          * keep this ambiguity here and print fallback-cipher: none
          */
 
         const char *fallback_name = "none";
-        if (cipher)
+        const char *ciphername = session->opt->key_type.cipher;
+
+        if (cipher_defined(ciphername))
         {
-            fallback_name = cipher_kt_name(cipher);
+            fallback_name = cipher_kt_name(ciphername);
         }
 
         buf_printf(&out, "(not negotiated, fallback-cipher: %s)", fallback_name);

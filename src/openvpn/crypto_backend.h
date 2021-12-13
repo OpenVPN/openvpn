@@ -188,114 +188,115 @@ void cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
 #define MAX_CIPHER_KEY_LENGTH 64
 
 /**
- * Return cipher parameters, based on the given cipher name. The
- * contents of these parameters are library-specific, and can be used to
- * initialise encryption/decryption.
+ * Returns if the cipher is valid, based on the given cipher name.
  *
- * @param ciphername    Name of the cipher to retrieve parameters for (e.g.
+ * @param ciphername    Name of the cipher to check for validity (e.g.
  *                      \c AES-128-CBC). Will be translated to the library name
  *                      from the openvpn config name if needed.
  *
- * @return              A statically allocated structure containing parameters
- *                      for the given cipher, or NULL if no matching parameters
- *                      were found.
+ * @return              if the cipher is valid
  */
-const cipher_kt_t *cipher_kt_get(const char *ciphername);
+bool cipher_valid(const char *ciphername);
 
 /**
- * Retrieve a string describing the cipher (e.g. \c AES-128-CBC).
+ * Checks if the cipher is defined and is not the null (none) cipher
+ *
+ * @param ciphername    Name of the cipher to check if it is defined, may not
+ *                      be NULL
+ * @return              The cipher is defined and not the null (none) cipher
+ */
+static inline bool cipher_defined(const char *ciphername)
+{
+    ASSERT(ciphername);
+    return strcmp(ciphername, "none") != 0;
+}
+
+/**
+ * Retrieve a normalised string describing the cipher (e.g. \c AES-128-CBC).
  * The returned name is normalised to the OpenVPN config name in case the
  * name differs from the name used by the crypto library.
  *
- * Returns [null-cipher] in case the cipher_kt is NULL.
+ * Returns [null-cipher] in case the ciphername is none. NULL if the cipher
+ * is not valid.
  *
- * @param cipher_kt     Static cipher parameters
+ * @param ciphername     Name of the cipher
  *
  * @return a statically allocated string describing the cipher.
  */
-const char *cipher_kt_name(const cipher_kt_t *cipher_kt);
+const char *cipher_kt_name(const char *ciphername);
 
 /**
  * Returns the size of keys used by the cipher, in bytes. If the cipher has a
  * variable key size, return the default key size.
  *
- * @param cipher_kt     Static cipher parameters
+ * @param ciphername    Cipher name to lookup
  *
  * @return              (Default) size of keys used by the cipher, in bytes.
  */
-int cipher_kt_key_size(const cipher_kt_t *cipher_kt);
+int cipher_kt_key_size(const char *ciphername);
 
 /**
  * Returns the size of the IV used by the cipher, in bytes, or 0 if no IV is
  * used.
  *
- * @param cipher_kt     Static cipher parameters
+ * @param ciphername    cipher name to lookup
  *
  * @return              Size of the IV, in bytes, or 0 if the cipher does not
  *                      use an IV.
  */
-int cipher_kt_iv_size(const cipher_kt_t *cipher_kt);
+int cipher_kt_iv_size(const char *ciphername);
 
 /**
  * Returns the block size of the cipher, in bytes.
  *
- * @param cipher_kt     Static cipher parameters
+ * @param ciphername    cipher name
  *
  * @return              Block size, in bytes.
  */
-int cipher_kt_block_size(const cipher_kt_t *cipher_kt);
+int cipher_kt_block_size(const char *ciphername);
 
 /**
  * Returns the MAC tag size of the cipher, in bytes.
  *
- * @param ctx           Static cipher parameters.
+ * @param ciphername    Name of the cipher
  *
  * @return              Tag size in bytes, or 0 if the tag size could not be
  *                      determined.
  */
-int cipher_kt_tag_size(const cipher_kt_t *cipher_kt);
+int cipher_kt_tag_size(const char *ciphername);
 
 /**
  * Returns true if we consider this cipher to be insecure.
  */
-bool cipher_kt_insecure(const cipher_kt_t *cipher);
+bool cipher_kt_insecure(const char *ciphername);
 
-/**
- * Returns the mode that the cipher runs in.
- *
- * @param cipher_kt     Static cipher parameters. May not be NULL.
- *
- * @return              Cipher mode, either \c OPENVPN_MODE_CBC, \c
- *                      OPENVPN_MODE_OFB or \c OPENVPN_MODE_CFB
- */
-int cipher_kt_mode(const cipher_kt_t *cipher_kt);
 
 /**
  * Check if the supplied cipher is a supported CBC mode cipher.
  *
- * @param cipher        Static cipher parameters.
+ * @param ciphername    cipher name
  *
  * @return              true iff the cipher is a CBC mode cipher.
  */
-bool cipher_kt_mode_cbc(const cipher_kt_t *cipher);
+bool cipher_kt_mode_cbc(const char *ciphername);
 
 /**
  * Check if the supplied cipher is a supported OFB or CFB mode cipher.
  *
- * @param cipher        Static cipher parameters.
+ * @param ciphername    cipher name
  *
  * @return              true iff the cipher is a OFB or CFB mode cipher.
  */
-bool cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher);
+bool cipher_kt_mode_ofb_cfb(const char *ciphername);
 
 /**
  * Check if the supplied cipher is a supported AEAD mode cipher.
  *
- * @param cipher        Static cipher parameters.
+ * @param ciphername    name of the cipher
  *
  * @return              true iff the cipher is a AEAD mode cipher.
  */
-bool cipher_kt_mode_aead(const cipher_kt_t *cipher);
+bool cipher_kt_mode_aead(const char *ciphername);
 
 
 /**
@@ -323,12 +324,12 @@ void cipher_ctx_free(cipher_ctx_t *ctx);
  *
  * @param ctx           Cipher context. May not be NULL
  * @param key           Buffer containing the key to use
- * @param kt            Static cipher parameters to use
+ * @param ciphername    Ciphername of the cipher to use
  * @param enc           Whether to encrypt or decrypt (either
  *                      \c MBEDTLS_OP_ENCRYPT or \c MBEDTLS_OP_DECRYPT).
  */
 void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key,
-                     const cipher_kt_t *kt, int enc);
+                     const char *cipername, int enc);
 
 /**
  * Returns the size of the IV used by the cipher, in bytes, or 0 if no IV is

@@ -2529,7 +2529,7 @@ frame_finalize_options(struct context *c, const struct options *o)
      * Set adjustment factor for buffer alignment when no
      * cipher is used.
      */
-    if (!CIPHER_ENABLED(c))
+    if (!cipher_defined(c->c1.ks.key_type.cipher))
     {
         frame_align_to_extra_frame(&c->c2.frame);
         frame_or_align_flags(&c->c2.frame,
@@ -2660,6 +2660,7 @@ do_init_tls_wrap_key(struct context *c)
         CLEAR(c->c1.ks.tls_auth_key_type);
         if (!streq(options->authname, "none"))
         {
+            c->c1.ks.tls_auth_key_type.cipher = "none";
             c->c1.ks.tls_auth_key_type.digest = md_kt_get(options->authname);
         }
         else
@@ -2762,15 +2763,18 @@ do_init_crypto_tls_c1(struct context *c)
         * Note that BF-CBC will still be part of the OCC string to retain
         * backwards compatibility with older clients.
         */
-        if (!streq(options->ciphername, "BF-CBC")
-            || tls_item_in_cipher_list("BF-CBC", options->ncp_ciphers)
-            || options->enable_ncp_fallback)
+        const char* ciphername = options->ciphername;
+        if (streq(options->ciphername, "BF-CBC")
+            && !tls_item_in_cipher_list("BF-CBC", options->ncp_ciphers)
+            && !options->enable_ncp_fallback)
         {
-            /* Do not warn if the if the cipher is used only in OCC */
-            bool warn = options->enable_ncp_fallback;
-            init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname,
-                          true, warn);
+            ciphername = "none";
         }
+
+        /* Do not warn if the cipher is used only in OCC */
+        bool warn = options->enable_ncp_fallback;
+        init_key_type(&c->c1.ks.key_type, ciphername, options->authname,
+                      true, warn);
 
         /* initialize tls-auth/crypt/crypt-v2 key */
         do_init_tls_wrap_key(c);

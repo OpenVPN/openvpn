@@ -37,10 +37,6 @@
 #include <openssl/provider.h>
 #endif
 
-
-/** Generic cipher key type %context. */
-typedef EVP_CIPHER cipher_kt_t;
-
 /** Generic message digest key type %context. */
 typedef EVP_MD md_kt_t;
 
@@ -64,6 +60,15 @@ typedef struct {
 } hmac_ctx_t;
 
 typedef OSSL_PROVIDER provider_t;
+#endif
+
+/* In OpenSSL 3.0 the method that returns EVP_CIPHER, the cipher needs to be
+ * freed afterwards, thus needing a non-const type. In constrast OpenSSL 1.1.1
+ * and lower returns a const type, needing a const type */
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+typedef const EVP_CIPHER evp_cipher_type;
+#else
+typedef EVP_CIPHER evp_cipher_type;
 #endif
 
 /** Maximum length of an IV */

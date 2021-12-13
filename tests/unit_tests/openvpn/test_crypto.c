@@ -72,7 +72,7 @@ crypto_pem_encode_decode_loopback(void **state)
 static void
 test_translate_cipher(const char *ciphername, const char *openvpn_name)
 {
-    const cipher_kt_t *cipher = cipher_kt_get(ciphername);
+    bool cipher = cipher_valid(ciphername);
 
     /* Empty cipher is fine */
     if (!cipher)
@@ -80,7 +80,7 @@ test_translate_cipher(const char *ciphername, const char *openvpn_name)
         return;
     }
 
-    const char *kt_name = cipher_kt_name(cipher);
+    const char *kt_name = cipher_kt_name(ciphername);
 
     assert_string_equal(kt_name, openvpn_name);
 }

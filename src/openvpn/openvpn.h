@@ -529,8 +529,6 @@ struct context
                                           |(c->options.tls_auth_file ? md_kt_size(c->c1.ks.key_type.digest) : 0), \
                                           gc)
 
-#define CIPHER_ENABLED(c) (c->c1.ks.key_type.cipher != NULL)
-
 /* this represents "disabled peer-id" */
 #define MAX_PEER_ID 0xFFFFFF
 
