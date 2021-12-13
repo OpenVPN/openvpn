@@ -693,7 +693,10 @@ crypto_adjust_frame_parameters(struct frame *frame,
         crypto_overhead += cipher_kt_block_size(kt->cipher);
     }
 
-    crypto_overhead += md_kt_size(kt->digest);
+    if (md_defined(kt->digest))
+    {
+        crypto_overhead += md_kt_size(kt->digest);
+    }
 
     frame_add_to_extra_frame(frame, crypto_overhead);
 
@@ -775,11 +778,15 @@ init_key_type(struct key_type *kt, const char *ciphername,
                 "PLEASE DO RECONSIDER THIS SETTING!");
         }
     }
+    kt->digest = authname;
     if (strcmp(authname, "none") != 0)
     {
-        if (!aead_cipher) /* Ignore auth for AEAD ciphers */
+        if (aead_cipher) /* Ignore auth for AEAD ciphers */
         {
-            kt->digest = md_kt_get(authname);
+            kt->digest = "none";
+        }
+        else
+        {
             int hmac_length = md_kt_size(kt->digest);
 
             if (OPENVPN_MAX_HMAC_SIZE < hmac_length)
@@ -826,7 +833,7 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
              cipher_kt_iv_size(kt->cipher));
         warn_insecure_key_type(ciphername);
     }
-    if (kt->digest)
+    if (md_defined(kt->digest))
     {
         ctx->hmac = hmac_ctx_new();
         hmac_ctx_init(ctx->hmac, key->hmac, kt->digest);

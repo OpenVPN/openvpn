@@ -2658,12 +2658,9 @@ do_init_tls_wrap_key(struct context *c)
     {
         /* Initialize key_type for tls-auth with auth only */
         CLEAR(c->c1.ks.tls_auth_key_type);
-        if (!streq(options->authname, "none"))
-        {
-            c->c1.ks.tls_auth_key_type.cipher = "none";
-            c->c1.ks.tls_auth_key_type.digest = md_kt_get(options->authname);
-        }
-        else
+        c->c1.ks.tls_auth_key_type.cipher = "none";
+        c->c1.ks.tls_auth_key_type.digest = options->authname;
+        if (!md_valid(options->authname))
         {
             msg(M_FATAL, "ERROR: tls-auth enabled, but no valid --auth "
                 "algorithm specified ('%s')", options->authname);

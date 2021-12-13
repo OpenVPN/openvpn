@@ -52,14 +52,14 @@ tls_crypt_kt(void)
 {
     struct key_type kt;
     kt.cipher = "AES-256-CTR";
-    kt.digest = md_kt_get("SHA256");
+    kt.digest = "SHA256";
 
     if (!cipher_valid(kt.cipher))
     {
         msg(M_WARN, "ERROR: --tls-crypt requires AES-256-CTR support.");
         return (struct key_type) { 0 };
     }
-    if (!kt.digest)
+    if (cipher_valid(kt.digest))
     {
         msg(M_WARN, "ERROR: --tls-crypt requires HMAC-SHA-256 support.");
         return (struct key_type) { 0 };

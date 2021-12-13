@@ -174,14 +174,13 @@ static void
 crypto_test_hmac(void **state)
 {
     hmac_ctx_t *hmac = hmac_ctx_new();
-    const md_kt_t *sha1 = md_kt_get("SHA1");
 
-    assert_int_equal(md_kt_size(sha1), 20);
+    assert_int_equal(md_kt_size("SHA1"), 20);
 
     uint8_t key[20];
     memcpy(key, testkey, sizeof(key));
 
-    hmac_ctx_init(hmac, key, sha1);
+    hmac_ctx_init(hmac, key, "SHA1");
     hmac_ctx_update(hmac, (const uint8_t *)ipsumlorem, (int) strlen(ipsumlorem));
     hmac_ctx_update(hmac, (const uint8_t *)ipsumlorem, (int) strlen(ipsumlorem));
 

@@ -36,7 +36,7 @@ auth_token_kt(void)
     struct key_type kt = { 0 };
     /* We do not encrypt our session tokens */
     kt.cipher = "none";
-    kt.digest = md_kt_get("SHA256");
+    kt.digest = "SHA256";
 
     if (!kt.digest)
     {

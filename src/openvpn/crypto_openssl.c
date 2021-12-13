@@ -1027,10 +1027,10 @@ cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
  */
 
 
-const EVP_MD *
-md_kt_get(const char *digest)
+static evp_md_type *
+md_get(const char *digest)
 {
-    const EVP_MD *md = NULL;
+    evp_md_type *md = NULL;
     ASSERT(digest);
     md = EVP_MD_fetch(NULL, digest, NULL);
     if (!md)
@@ -1047,20 +1047,36 @@ md_kt_get(const char *digest)
     return md;
 }
 
-const char *
-md_kt_name(const EVP_MD *kt)
+
+bool
+md_valid(const char *digest)
 {
-    if (NULL == kt)
+    evp_md_type *md = EVP_MD_fetch(NULL, digest, NULL);
+    bool valid = (md != NULL);
+    EVP_MD_free(md);
+    return valid;
+}
+
+const char *
+md_kt_name(const char *mdname)
+{
+    if (!strcmp("none", mdname))
     {
         return "[null-digest]";
     }
-    return EVP_MD_get0_name(kt);
+    evp_md_type *kt = md_get(mdname);
+    const char *name = EVP_MD_get0_name(kt);
+    EVP_MD_free(kt);
+    return name;
 }
 
 unsigned char
-md_kt_size(const EVP_MD *kt)
+md_kt_size(const char *mdname)
 {
-    return (unsigned char)EVP_MD_size(kt);
+    evp_md_type *kt = md_get(mdname);
+    unsigned char size =  (unsigned char)EVP_MD_size(kt);
+    EVP_MD_free(kt);
+    return size;
 }
 
 
@@ -1071,11 +1087,14 @@ md_kt_size(const EVP_MD *kt)
  */
 
 int
-md_full(const EVP_MD *kt, const uint8_t *src, int src_len, uint8_t *dst)
+md_full(const char *mdname, const uint8_t *src, int src_len, uint8_t *dst)
 {
     unsigned int in_md_len = 0;
+    evp_md_type *kt = md_get(mdname);
 
-    return EVP_Digest(src, src_len, dst, &in_md_len, kt, NULL);
+    int ret = EVP_Digest(src, src_len, dst, &in_md_len, kt, NULL);
+    EVP_MD_free(kt);
+    return ret;
 }
 
 EVP_MD_CTX *
@@ -1093,8 +1112,9 @@ md_ctx_free(EVP_MD_CTX *ctx)
 }
 
 void
-md_ctx_init(EVP_MD_CTX *ctx, const EVP_MD *kt)
+md_ctx_init(EVP_MD_CTX *ctx, const char *mdname)
 {
+    evp_md_type *kt = md_get(mdname);
     ASSERT(NULL != ctx && NULL != kt);
 
     EVP_MD_CTX_init(ctx);
@@ -1102,6 +1122,7 @@ md_ctx_init(EVP_MD_CTX *ctx, const EVP_MD *kt)
     {
         crypto_msg(M_FATAL, "EVP_DigestInit failed");
     }
+    EVP_MD_free(kt);
 }
 
 void
@@ -1152,8 +1173,9 @@ hmac_ctx_free(HMAC_CTX *ctx)
 }
 
 void
-hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, const EVP_MD *kt)
+hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, const char *mdname)
 {
+    evp_md_type *kt = md_get(mdname);
     ASSERT(NULL != kt && NULL != ctx);
 
     int key_len = EVP_MD_size(kt);
@@ -1225,15 +1247,14 @@ hmac_ctx_free(hmac_ctx_t *ctx)
 }
 
 void
-hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const EVP_MD *kt)
+hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const char *mdname)
 {
+    evp_md_type *kt = md_get(mdname);
     ASSERT(NULL != kt && NULL != ctx && ctx->ctx != NULL);
-    int key_len = EVP_MD_size(kt);
-    ASSERT(key_len <= EVP_MAX_KEY_LENGTH);
 
     /* We need to make a copy of the key since the OSSL parameters
      * only reference it */
-    memcpy(ctx->key, key, key_len);
+    memcpy(ctx->key, key, EVP_MD_size(kt));
 
     /* Lookup/setting of parameters in OpenSSL 3.0 are string based
      *
@@ -1244,7 +1265,7 @@ hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const EVP_MD *kt)
     ctx->params[0] = OSSL_PARAM_construct_utf8_string("digest",
                                                       (char *) EVP_MD_get0_name(kt), 0);
     ctx->params[1] = OSSL_PARAM_construct_octet_string("key",
-                                                       ctx->key, key_len);
+                                                       ctx->key, EVP_MD_size(kt));
     ctx->params[2] = OSSL_PARAM_construct_end();
 
     if (!EVP_MAC_init(ctx->ctx, NULL, 0, ctx->params))
@@ -1252,8 +1273,7 @@ hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const EVP_MD *kt)
         crypto_msg(M_FATAL, "EVP_MAC_init failed");
     }
 
-    /* make sure we used a big enough key */
-    ASSERT(EVP_MAC_CTX_get_mac_size(ctx->ctx) <= key_len);
+    EVP_MD_free(kt);
 }
 
 void
@@ -1528,7 +1548,6 @@ err:
     return ret;
 }
 
-
 /*
  * Use the TLS PRF function for generating data channel keys.
  * This code is based on the OpenSSL library.
@@ -1554,9 +1573,9 @@ ssl_tls1_PRF(const uint8_t *label, int label_len, const uint8_t *sec,
 {
     bool ret = true;
     struct gc_arena gc = gc_new();
-    /* For some reason our md_kt_get("MD5") fails otherwise in the unit test */
-    const md_kt_t *md5 = EVP_md5();
-    const md_kt_t *sha1 = EVP_sha1();
+    /* For some reason our md_get("MD5") fails otherwise in the unit test */
+    const EVP_MD *md5 = EVP_md5();
+    const EVP_MD *sha1 = EVP_sha1();
 
     uint8_t *out2 = (uint8_t *)gc_malloc(olen, false, &gc);
 

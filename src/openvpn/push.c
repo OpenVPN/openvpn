@@ -926,7 +926,7 @@ process_incoming_push_reply(struct context *c,
         if (!c->c2.pulled_options_digest_init_done)
         {
             c->c2.pulled_options_state = md_ctx_new();
-            md_ctx_init(c->c2.pulled_options_state, md_kt_get("SHA256"));
+            md_ctx_init(c->c2.pulled_options_state, "SHA256");
             c->c2.pulled_options_digest_init_done = true;
         }
         if (apply_push_options(&c->options,

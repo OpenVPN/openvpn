@@ -139,7 +139,7 @@ struct sha256_digest {
 struct key_type
 {
     const char *cipher;         /**< const name of the cipher */
-    const md_kt_t *digest;      /**< Message digest static parameters */
+    const char *digest;         /**< Message digest static parameters */
 };
 
 /**

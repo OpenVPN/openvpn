@@ -485,36 +485,45 @@ int cipher_ctx_final_check_tag(cipher_ctx_t *ctx, uint8_t *dst, int *dst_len,
 #define MAX_HMAC_KEY_LENGTH 64
 
 /**
- * Return message digest parameters, based on the given digest name. The
- * contents of these parameters are library-specific, and can be used to
- * initialise HMAC or message digest operations.
+ * Checks if the cipher is defined and is not the null (none) cipher
  *
- * @param digest        Name of the digest to retrieve parameters for (e.g.
- *                      \c MD5).
+ * @param mdname    Name of the digest
+ * @return
+ */
+static inline bool md_defined(const char* mdname)
+{
+    return strcmp(mdname, "none") != 0;
+}
+
+
+/**
+ * Return if a message digest parameters is valid given the name of the digest.
+ *
+ * @param digest        Name of the digest to verify, e.g. \c MD5).
  *
  * @return              A statically allocated structure containing parameters
  *                      for the given message digest.
  */
-const md_kt_t *md_kt_get(const char *digest);
+bool md_valid(const char *digest);
 
 /**
  * Retrieve a string describing the digest digest (e.g. \c SHA1).
  *
- * @param kt            Static message digest parameters
+ * @param mdname        Message digest name
  *
  * @return              Statically allocated string describing the message
  *                      digest.
  */
-const char *md_kt_name(const md_kt_t *kt);
+const char *md_kt_name(const char *mdname);
 
 /**
  * Returns the size of the message digest, in bytes.
  *
- * @param kt            Static message digest parameters
+ * @param mdname        Message digest name
  *
  * @return              Message digest size, in bytes, or 0 if ctx was NULL.
  */
-unsigned char md_kt_size(const md_kt_t *kt);
+unsigned char md_kt_size(const char *mdname);
 
 
 /*
@@ -523,17 +532,17 @@ unsigned char md_kt_size(const md_kt_t *kt);
  *
  */
 
-/*
+/**
  * Calculates the message digest for the given buffer.
  *
- * @param kt            Static message digest parameters
+ * @param mdname        message digest name
  * @param src           Buffer to digest. May not be NULL.
  * @param src_len       The length of the incoming buffer.
  * @param dst           Buffer to write the message digest to. May not be NULL.
  *
  * @return              \c 1 on success, \c 0 on failure
  */
-int md_full(const md_kt_t *kt, const uint8_t *src, int src_len, uint8_t *dst);
+int md_full(const char *mdname, const uint8_t *src, int src_len, uint8_t *dst);
 
 /*
  * Allocate a new message digest context
@@ -549,13 +558,13 @@ md_ctx_t *md_ctx_new(void);
  */
 void md_ctx_free(md_ctx_t *ctx);
 
-/*
+/**
  * Initialises the given message digest context.
  *
  * @param ctx           Message digest context
- * @param kt            Static message digest parameters
+ * @param mdname        Message digest name
  */
-void md_ctx_init(md_ctx_t *ctx, const md_kt_t *kt);
+void md_ctx_init(md_ctx_t *ctx, const char *mdname);
 
 /*
  * Free the given message digest context.
@@ -617,10 +626,11 @@ void hmac_ctx_free(hmac_ctx_t *ctx);
  *
  * @param ctx           HMAC context to initialise
  * @param key           The key to use for the HMAC
- * @param kt            Static message digest parameters
+ * @param mdname        message digest name
  *
  */
-void hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const md_kt_t *kt);
+void hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const char *mdname);
+
 
 /*
  * Free the given HMAC context.

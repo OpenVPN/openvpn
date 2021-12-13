@@ -37,9 +37,6 @@
 #include <openssl/provider.h>
 #endif
 
-/** Generic message digest key type %context. */
-typedef EVP_MD md_kt_t;
-
 /** Generic cipher %context. */
 typedef EVP_CIPHER_CTX cipher_ctx_t;
 
@@ -67,8 +64,10 @@ typedef OSSL_PROVIDER provider_t;
  * and lower returns a const type, needing a const type */
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
 typedef const EVP_CIPHER evp_cipher_type;
+typedef const EVP_MD evp_md_type;
 #else
 typedef EVP_CIPHER evp_cipher_type;
+typedef EVP_MD evp_md_type;
 #endif
 
 /** Maximum length of an IV */

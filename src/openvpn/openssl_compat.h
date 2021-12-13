@@ -783,6 +783,13 @@ EVP_CIPHER_free(const EVP_CIPHER *cipher)
 {
     /* OpenSSL 1.1.1 and lower use only const EVP_CIPHER, nothing to free */
 }
+
+static inline void
+EVP_MD_free(const EVP_MD *md)
+{
+    /* OpenSSL 1.1.1 and lower use only const EVP_MD, nothing to free */
+}
+
 #endif /* OPENSSL_VERSION_NUMBER < 0x30000000L */
 
 #endif /* OPENSSL_COMPAT_H_ */

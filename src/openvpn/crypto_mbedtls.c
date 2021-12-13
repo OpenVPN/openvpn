@@ -757,8 +757,8 @@ cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
  */
 
 
-const mbedtls_md_info_t *
-md_kt_get(const char *digest)
+static const mbedtls_md_info_t *
+md_get(const char *digest)
 {
     const mbedtls_md_info_t *md = NULL;
     ASSERT(digest);
@@ -778,19 +778,28 @@ md_kt_get(const char *digest)
     return md;
 }
 
-const char *
-md_kt_name(const mbedtls_md_info_t *kt)
+bool
+md_valid(const char *digest)
 {
-    if (NULL == kt)
+    const mbedtls_md_info_t *md  = mbedtls_md_info_from_string(digest);
+    return md != NULL;
+}
+
+const char *
+md_kt_name(const char *mdname)
+{
+    if (!strcmp("none", mdname))
     {
         return "[null-digest]";
     }
+    const mbedtls_md_info_t *kt = md_get(mdname);
     return mbedtls_md_get_name(kt);
 }
 
 unsigned char
-md_kt_size(const mbedtls_md_info_t *kt)
+md_kt_size(const char *mdname)
 {
+    const mbedtls_md_info_t *kt = md_get(mdname);
     if (NULL == kt)
     {
         return 0;
@@ -805,8 +814,9 @@ md_kt_size(const mbedtls_md_info_t *kt)
  */
 
 int
-md_full(const md_kt_t *kt, const uint8_t *src, int src_len, uint8_t *dst)
+md_full(const char *mdname, const uint8_t *src, int src_len, uint8_t *dst)
 {
+    const mbedtls_md_info_t *kt = md_get(mdname);
     return 0 == mbedtls_md(kt, src, src_len, dst);
 }
 
@@ -825,8 +835,9 @@ md_ctx_free(mbedtls_md_context_t *ctx)
 }
 
 void
-md_ctx_init(mbedtls_md_context_t *ctx, const mbedtls_md_info_t *kt)
+md_ctx_init(mbedtls_md_context_t *ctx, const char *mdname)
 {
+    const mbedtls_md_info_t *kt = md_get(mdname);
     ASSERT(NULL != ctx && NULL != kt);
 
     mbedtls_md_init(ctx);
@@ -890,9 +901,9 @@ hmac_ctx_free(mbedtls_md_context_t *ctx)
 }
 
 void
-hmac_ctx_init(mbedtls_md_context_t *ctx, const uint8_t *key,
-              const mbedtls_md_info_t *kt)
+hmac_ctx_init(mbedtls_md_context_t *ctx, const uint8_t *key, const char *mdname)
 {
+    const mbedtls_md_info_t *kt = md_get(mdname);
     ASSERT(NULL != kt && NULL != ctx);
 
     mbedtls_md_init(ctx);
@@ -980,7 +991,7 @@ ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret,
  * @param olen          Length of the output buffer
  */
 static void
-tls1_P_hash(const md_kt_t *md_kt, const uint8_t *sec, int sec_len,
+tls1_P_hash(const mbedtls_md_info_t *md_kt, const uint8_t *sec, int sec_len,
             const uint8_t *seed, int seed_len, uint8_t *out, int olen)
 {
     struct gc_arena gc = gc_new();
@@ -999,8 +1010,8 @@ tls1_P_hash(const md_kt_t *md_kt, const uint8_t *sec, int sec_len,
     dmsg(D_SHOW_KEY_SOURCE, "tls1_P_hash sec: %s", format_hex(sec, sec_len, 0, &gc));
     dmsg(D_SHOW_KEY_SOURCE, "tls1_P_hash seed: %s", format_hex(seed, seed_len, 0, &gc));
 
-    int chunk = md_kt_size(md_kt);
-    unsigned int A1_len = md_kt_size(md_kt);
+    int chunk = mbedtls_md_get_size(md_kt);
+    unsigned int A1_len = mbedtls_md_get_size(md_kt);
 
     /* This is the only place where we init an HMAC with a key that is not
      * equal to its size, therefore we init the hmac ctx manually here */
@@ -1071,8 +1082,8 @@ ssl_tls1_PRF(const uint8_t *label, int label_len, const uint8_t *sec,
              int slen, uint8_t *out1, int olen)
 {
     struct gc_arena gc = gc_new();
-    const md_kt_t *md5 = md_kt_get("MD5");
-    const md_kt_t *sha1 = md_kt_get("SHA1");
+    const md_kt_t *md5 = md_get("MD5");
+    const md_kt_t *sha1 = md_get("SHA1");
 
     uint8_t *out2 = (uint8_t *)gc_malloc(olen, false, &gc);
 
