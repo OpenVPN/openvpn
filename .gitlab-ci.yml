@@ -28,6 +28,15 @@ default:
       - download-cache/
       - ${PREFIX}/
 
+dco:
+  variables:
+    EXTRA_CONFIG: "--enable-dco"
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html build-essential python libnl-genl-3-dev
+    - .gitlab/build-deps.sh
+  script:
+    - .gitlab/build-check.sh
+
 mtls-latest:
   variables:
     SSLLIB: "mbedtls"
