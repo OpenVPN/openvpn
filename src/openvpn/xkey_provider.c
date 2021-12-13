@@ -260,11 +260,12 @@ keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[], const ch
 
     /* create a native public key and assign it to key->pubkey */
     EVP_PKEY *pkey = NULL;
+    int selection_pub = selection & ~OSSL_KEYMGMT_SELECT_PRIVATE_KEY;
 
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name(key->prov->libctx, name, NULL);
     if (!ctx
         || (EVP_PKEY_fromdata_init(ctx) != 1)
-        || (EVP_PKEY_fromdata(ctx, &pkey, selection, (OSSL_PARAM*) params) !=1))
+        || (EVP_PKEY_fromdata(ctx, &pkey, selection_pub, (OSSL_PARAM*) params) !=1))
     {
         msg(M_WARN, "Error: keymgmt_import failed for key type <%s>", name);
         if (pkey)
@@ -277,15 +278,20 @@ keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[], const ch
         }
         return 0;
     }
-    EVP_PKEY_CTX_free(ctx);
 
     key->pubkey = pkey;
     key->origin = OPENSSL_NATIVE;
     if (selection & OSSL_KEYMGMT_SELECT_PRIVATE_KEY)
     {
-        /* just use the same key as handle -- do not up-ref */
-        key->handle = pkey;
+        /* create private key */
+        pkey = NULL;
+        if (EVP_PKEY_fromdata(ctx, &pkey, selection, (OSSL_PARAM*) params) == 1)
+        {
+            key->handle = pkey;
+            key->free = (XKEY_PRIVKEY_FREE_fn *) EVP_PKEY_free;
+        }
     }
+    EVP_PKEY_CTX_free(ctx);
 
     xkey_dmsg(D_LOW, "imported native %s key", EVP_PKEY_get0_type_name(pkey));
     return 1;
