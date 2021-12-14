@@ -82,6 +82,17 @@ typedef int (XKEY_EXTERNAL_SIGN_fn)(void *handle, unsigned char *sig, size_t *si
  */
 typedef void (XKEY_PRIVKEY_FREE_fn)(void *handle);
 
+/**
+ * Generate an encapsulated EVP_PKEY for management-external-key
+ *
+ * @param libctx library context in which xkey provider has been loaded
+ * @param pubkey corresponding pubkey in the default provider's context
+ *
+ * @returns a new EVP_PKEY in the provider's keymgmt context.
+ * The pubkey is up-refd if retained -- the caller can free it after return
+ */
+EVP_PKEY *xkey_load_management_key(OSSL_LIB_CTX *libctx, EVP_PKEY *pubkey);
+
 #endif /* HAVE_XKEY_PROVIDER */
 
 #endif /* XKEY_COMMON_H_ */

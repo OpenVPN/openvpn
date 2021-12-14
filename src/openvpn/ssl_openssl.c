@@ -1486,6 +1486,15 @@ tls_ctx_use_management_external_key(struct tls_root_ctx *ctx)
     EVP_PKEY *pkey = X509_get0_pubkey(cert);
     ASSERT(pkey); /* NULL before SSL_CTX_use_certificate() is called */
 
+#ifdef HAVE_XKEY_PROVIDER
+    EVP_PKEY *privkey = xkey_load_management_key(tls_libctx, pkey);
+    if (!privkey
+        || !SSL_CTX_use_PrivateKey(ctx->ctx, privkey))
+    {
+        goto cleanup;
+    }
+    EVP_PKEY_free(privkey);
+#else
     if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA)
     {
         if (!tls_ctx_use_external_rsa_key(ctx, pkey))
@@ -1513,6 +1522,8 @@ tls_ctx_use_management_external_key(struct tls_root_ctx *ctx)
         goto cleanup;
     }
 #endif /* OPENSSL_VERSION_NUMBER > 1.1.0 dev && !defined(OPENSSL_NO_EC) */
+
+#endif /* HAVE_XKEY_PROVIDER */
 
     ret = 0;
 cleanup:
