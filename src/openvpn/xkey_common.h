@@ -28,7 +28,6 @@
 #include <openssl/opensslv.h>
 #if OPENSSL_VERSION_NUMBER >= 0x30000010L && !defined(DISABLE_XKEY_PROVIDER)
 #define HAVE_XKEY_PROVIDER 1
-
 #include <openssl/provider.h>
 #include <openssl/core_dispatch.h>
 

@@ -760,6 +760,14 @@ int EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz,
 #define EVP_CIPHER_get0_name EVP_CIPHER_name
 #define EVP_CIPHER_CTX_get_mode EVP_CIPHER_CTX_mode
 
+/** Reduce SSL_CTX_new_ex() to SSL_CTX_new() for OpenSSL < 3 */
+#define SSL_CTX_new_ex(libctx, propq, method)                \
+        SSL_CTX_new((method))
+
+/* Some safe typedefs to avoid too many ifdefs */
+typedef void OSSL_LIB_CTX;
+typedef void OSSL_PROVIDER;
+
 /* Mimics the functions but only when the default context without
  * options is chosen */
 static inline const EVP_CIPHER *

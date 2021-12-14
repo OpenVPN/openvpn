@@ -604,6 +604,11 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx, bool in_ch
 
     tls_clear_error();
 
+    if (key_is_external(options))
+    {
+        load_xkey_provider();
+    }
+
     if (options->tls_server)
     {
         tls_ctx_server_new(new_ctx);

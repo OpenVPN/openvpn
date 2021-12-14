@@ -1549,4 +1549,10 @@ get_ssl_library_version(void)
     return mbedtls_version;
 }
 
+void
+load_xkey_provider(void)
+{
+    return; /* no external key provider in mbedTLS build */
+}
+
 #endif /* defined(ENABLE_CRYPTO_MBEDTLS) */

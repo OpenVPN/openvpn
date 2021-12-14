@@ -627,4 +627,10 @@ show_available_tls_ciphers(const char *cipher_list,
 bool
 tls_session_generate_data_channel_keys(struct tls_session *session);
 
+/**
+ * Load ovpn.xkey provider used for external key signing
+ */
+void
+load_xkey_provider(void);
+
 #endif /* ifndef OPENVPN_SSL_H */

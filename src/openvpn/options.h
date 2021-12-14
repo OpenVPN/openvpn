@@ -862,4 +862,6 @@ void options_string_import(struct options *options,
                            unsigned int *option_types_found,
                            struct env_set *es);
 
+bool key_is_external(const struct options *options);
+
 #endif /* ifndef OPTIONS_H */
