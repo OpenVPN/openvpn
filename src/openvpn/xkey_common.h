@@ -96,6 +96,26 @@ typedef void (XKEY_PRIVKEY_FREE_fn)(void *handle);
  */
 EVP_PKEY *xkey_load_management_key(OSSL_LIB_CTX *libctx, EVP_PKEY *pubkey);
 
+/**
+ * Add PKCS1 DigestInfo to tbs and return the result in *enc.
+ *
+ * @param enc           pointer to output buffer
+ * @param enc_len       capacity in bytes of output buffer
+ * @param mdname        name of the hash algorithm (SHA256, SHA1 etc.)
+ * @param tbs           pointer to digest to be encoded
+ * @param tbslen        length of data in bytes
+ *
+ * @return              false on error, true  on success
+ *
+ * On return enc_len is  set to actual size of the result.
+ * enc is NULL or enc_len is not enough to store the result, it is set
+ * to the required size and false is returned.
+ *
+ */
+bool
+encode_pkcs1(unsigned char *enc, size_t *enc_len, const char *mdname,
+             const unsigned char *tbs, size_t tbslen);
+
 #endif /* HAVE_XKEY_PROVIDER */
 
 #endif /* XKEY_COMMON_H_ */
