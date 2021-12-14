@@ -40,6 +40,49 @@ OSSL_provider_init_fn xkey_provider_init;
 
 #define XKEY_PROV_PROPS "provider=ovpn.xkey"
 
+/**
+ * Stuct to encapsulate signature algorithm parameters to pass
+ * to sign operation.
+ */
+typedef struct {
+   const char *padmode; /**< "pkcs1", "pss" or "none" */
+   const char *mdname;  /**< "SHA256" or "SHA2-256" etc. */
+   const char *saltlen; /**< "digest", "auto" or "max" */
+   const char *keytype; /**< "EC" or "RSA" */
+   const char *op;      /**< "Sign" or "DigestSign" */
+} XKEY_SIGALG;
+
+/**
+ * Callback for sign operation -- must be implemented for each backend and
+ * is used in xkey_signature_sign(), or set when loading the key.
+ * (custom key loading not yet implemented).
+ *
+ * @param handle opaque key handle provided by the backend -- could be null
+ *               or unused for management interface.
+ * @param sig    On return caller should fill this with the signature
+ * @param siglen On entry *siglen has max size of sig and on return must be
+ *               set to the actual size of the signature
+ * @param tbs    buffer to sign
+ * @param tbslen size of data in tbs buffer
+ * @sigalg       contains the signature algorithm parameters
+ *
+ * @returns 1 on success, 0 on error.
+ *
+ * The data in tbs is just the digest with no DigestInfo header added. This is
+ * unlike the deprecated RSA_sign callback which provides encoded digest.
+ * For RSA_PKCS1 signatures, the external signing function must encode the digest
+ * before signing. The digest algorithm used is passed in the sigalg structure.
+ */
+typedef int (XKEY_EXTERNAL_SIGN_fn)(void *handle, unsigned char *sig, size_t *siglen,
+                                 const unsigned char *tbs, size_t tbslen,
+                                 XKEY_SIGALG sigalg);
+/**
+ * Signature of private key free function callback used
+ * to free the opaque private key handle obtained from the
+ * backend. Not required for management-external-key.
+ */
+typedef void (XKEY_PRIVKEY_FREE_fn)(void *handle);
+
 #endif /* HAVE_XKEY_PROVIDER */
 
 #endif /* XKEY_COMMON_H_ */
