@@ -128,6 +128,7 @@ openvpn_SOURCES = \
 	tls_crypt.c tls_crypt.h \
 	tun.c tun.h \
 	vlan.c vlan.h \
+	xkey_provider.c xkey_common.h \
 	win32.h win32.c \
 	win32-util.h win32-util.c \
 	cryptoapi.h cryptoapi.c
