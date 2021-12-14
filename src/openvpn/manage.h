@@ -340,6 +340,7 @@ struct management *management_init(void);
 #define MF_QUERY_PROXY              (1<<14)
 #define MF_EXTERNAL_CERT            (1<<15)
 #define MF_EXTERNAL_KEY_PSSPAD      (1<<16)
+#define MF_EXTERNAL_KEY_DIGEST      (1<<17)
 
 bool management_open(struct management *man,
                      const char *addr,
