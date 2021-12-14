@@ -37,8 +37,8 @@
 
 /* #define ABORT_ON_ERROR */
 
-#ifdef ENABLE_PKCS11
-#define ERR_BUF_SIZE 8192
+#if defined(ENABLE_PKCS11) || defined(ENABLE_MANAGEMENT)
+#define ERR_BUF_SIZE 10240
 #else
 #define ERR_BUF_SIZE 1280
 #endif
