@@ -146,6 +146,8 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
     unsigned char enc[EVP_MAX_MD_SIZE + 32]; /* 32 bytes enough for digest inf structure */
     size_t enc_len = sizeof(enc);
 
+    unsigned int flags = management->settings.flags;
+
     if (!strcmp(alg.op, "DigestSign"))
     {
         dmsg(D_LOW, "xkey_management_sign: computing digest");
@@ -166,7 +168,7 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
         strncpynt(alg_str, "ECDSA", sizeof(alg_str));
     }
     /* else assume RSA key */
-    else if (!strcmp(alg.padmode, "pkcs1"))
+    else if (!strcmp(alg.padmode, "pkcs1") && (flags & MF_EXTERNAL_KEY_PKCS1PAD))
     {
         /* management interface expects a pkcs1 encoded digest -- add it */
         if (!encode_pkcs1(enc, &enc_len, alg.mdname, tbs, tbslen))
@@ -178,17 +180,17 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
 
         strncpynt(alg_str, "RSA_PKCS1_PADDING", sizeof(alg_str));
     }
-    else if (!strcmp(alg.padmode, "none"))
+    else if (!strcmp(alg.padmode, "none") && (flags & MF_EXTERNAL_KEY_NOPADDING))
     {
         strncpynt(alg_str, "RSA_NO_PADDING", sizeof(alg_str));
     }
-    else if (!strcmp(alg.padmode, "pss"))
+    else if (!strcmp(alg.padmode, "pss") && (flags & MF_EXTERNAL_KEY_PSSPAD))
     {
         openvpn_snprintf(alg_str, sizeof(alg_str), "%s,hashalg=%s,saltlen=%s",
                        "RSA_PKCS1_PSS_PADDING", alg.mdname,alg.saltlen);
     }
     else {
-        msg(M_NONFATAL, "Unsupported RSA padding mode in signature request<%s>",
+        msg(M_NONFATAL, "RSA padding mode unknown or not supported by management-client <%s>",
             alg.padmode);
         return 0;
     }
