@@ -145,11 +145,13 @@ xkey_digest(const unsigned char *src, size_t srclen, unsigned char *buf,
  *
  * @returns a new EVP_PKEY in the provider's keymgmt context.
  * IMPORTANT: a reference to the handle is retained by the provider and
- * relased by callng free_op. The caller should not free it.
+ * relased by calling free_op. The caller should not free it.
  */
 EVP_PKEY *
 xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
                       XKEY_EXTERNAL_SIGN_fn sign_op, XKEY_PRIVKEY_FREE_fn free_op);
+
+extern OSSL_LIB_CTX *tls_libctx; /* Global */
 
 #endif /* HAVE_XKEY_PROVIDER */
 
