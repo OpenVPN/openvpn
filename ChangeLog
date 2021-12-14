@@ -1,6 +1,63 @@
 OpenVPN Change Log
 Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
 
+2021.12.14 -- Version 2.5.5
+
+Adrian (1):
+      Fix error in example firewall.sh script
+
+Antonio Quartulli (1):
+      configure: remove useless -Wno-* from default CFLAGS
+
+Arne Schwabe (2):
+      Add argv_insert_head__empty_argv__head_only to argv tests
+      Move deprecation of SWEET32/64bit block size ciphers to 2.7
+
+Gert Doering (3):
+      Include --push-remove in the output of --help.
+      Move '--push-peer-info' documentation from 'server' to 'client options'
+      add test case(s) to notice 'openvpn --show-cipher' crashing
+
+Ilya Shipitsin (1):
+      BUILD: enable CFG and Spectre mitigation for MSVC
+
+Lev Stipakov (12):
+      Fix loading PKCS12 files on Windows
+      msvc: fix product version display
+      msvc: add missing header to project file
+      config-msvc.h: fix OpenSSL-related defines
+      contrib/vcpkg-ports: remove openssl port
+      GitHub Actions: use latest working lukka/run-vcpkg
+      Use network address for emulated DHCP server as a default
+      Load OpenSSL config on Windows from trusted location
+      ring_buffer.h: fix GCC warning about unused function
+      ssh_openssl.h: remove unused declaration
+      vcpkg/pkcs11-helper: compatibility with latest vcpkg
+      config-msvc.h: indicate key material export support
+
+Max Fillinger (2):
+      Don't use BF-CBC in unit tests if we don't have it
+      Define have_blowfish variable in ncp unit tests
+
+Richard T Bonhomme (1):
+      doc link-options.rst: Use free open-source dynamic-DNS provider URL
+
+Selva Nair (3):
+      Fix some more wrong defines in config-msvc.h
+      Ensure the current common_name is in the environment for scripts
+      Require EC key support in Windows builds
+
+Sergio E. Nemirowski (1):
+      resolvconf fails with -p
+
+Todd Zullinger (2):
+      Update IRC information in CONTRIBUTING.rst
+      doc/man (vpn-network-options): fix foreign_option_{n} typo
+
+Ville Skyttä (1):
+      README.down-root: Fix plugin module name
+
+
 2021.10.04 -- Version 2.5.4
 
 Antonio Quartulli (3):

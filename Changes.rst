@@ -1,3 +1,71 @@
+Overview of changes in 2.5.5
+============================
+
+User-visible Changes
+--------------------
+- SWEET32/64bit cipher deprecation change was postponed to 2.7
+
+- Windows: use network address for emulated DHCP server as default
+  this enables use of a /30 subnet, which is needed when connecting
+  to OpenVPN Cloud.
+
+- require EC support in windows builds
+  (this means it's no longer possible to build a Windows OpenVPN binary
+  with an OpenSSL lib without EC support)
+
+New features
+------------
+- Windows build: use CFG and Spectre mitigations on MSVC builds
+
+- bring back OpenSSL config loading to Windows builds.
+  OpenSSL config is loaded from %installdir%\SSL\openssl.cfg
+  (typically: c:\program files\openvpn\SSL\openssl.cfg) if it exists.
+
+  This is important for some hardware tokens which need special
+  OpenSSL config for correct operation.  Trac #1296
+
+Bugfixes
+--------
+- Windows build: enable EKM
+
+- Windows build: improve various vcpkg related build issues
+
+- Windows build: fix regression related to non-writeable status files
+  (Trac #1430)
+
+- Windows build: fix regression that broke OpenSSL EC support
+
+- Windows build: fix "product version" display (2.5..4 -> 2.5.4)
+
+- Windows build: fix regression preventing use of PKCS12 files
+
+- improve "make check" to notice if "openvpn --show-cipher" crashes
+
+- improve argv unit tests
+
+- ensure unit tests work with mbedTLS builds without BF-CBC ciphers
+
+- include "--push-remove" in the output of "openvpn --help"
+
+- fix error in iptables syntax in example firewall.sh script
+
+- fix "resolvconf -p" invocation in example "up" script
+
+- fix "common_name" environment for script calls when
+  "--username-as-common-name" is in effect (Trac #1434)
+
+Documentation
+-------------
+- move "push-peer-info" documentation from "server options" to "client"
+  (where it belongs)
+
+- correct "foreign_option_{n}" typo in manpage
+
+- update IRC information in CONTRIBUTING.rst (libera.chat)
+
+- README.down-root: fix plugin module name
+
+
 Overview of changes in 2.5.4
 ============================
 Bugfixes
