@@ -1169,7 +1169,7 @@ end:
 }
 
 
-#ifdef ENABLE_MANAGEMENT
+#if defined(ENABLE_MANAGEMENT) && !defined(HAVE_XKEY_PROVIDER)
 
 /* encrypt */
 static int
@@ -1470,7 +1470,9 @@ err:
     return 0;
 }
 #endif /* OPENSSL_VERSION_NUMBER > 1.1.0 dev && !defined(OPENSSL_NO_EC) */
+#endif /* ENABLE_MANAGEMENT && !HAVE_XKEY_PROVIDER */
 
+#ifdef ENABLE_MANAGEMENT
 int
 tls_ctx_use_management_external_key(struct tls_root_ctx *ctx)
 {

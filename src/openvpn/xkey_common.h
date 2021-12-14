@@ -67,10 +67,13 @@ typedef struct {
  *
  * @returns 1 on success, 0 on error.
  *
- * The data in tbs is just the digest with no DigestInfo header added. This is
+ * If sigalg.op = "Sign", the data in tbs is the digest. If sigalg.op = "DigestSign"
+ * it is the message that the backend should hash wih appropriate hash algorithm before
+ * signing. In the former case no DigestInfo header is added to tbs. This is
  * unlike the deprecated RSA_sign callback which provides encoded digest.
  * For RSA_PKCS1 signatures, the external signing function must encode the digest
- * before signing. The digest algorithm used is passed in the sigalg structure.
+ * before signing. The digest algorithm used (or to be used) is passed in the sigalg
+ * structure.
  */
 typedef int (XKEY_EXTERNAL_SIGN_fn)(void *handle, unsigned char *sig, size_t *siglen,
                                  const unsigned char *tbs, size_t tbslen,
