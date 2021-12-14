@@ -53,6 +53,7 @@
 #include "tls_crypt.h"
 #include "forward.h"
 #include "auth_token.h"
+#include "mss.h"
 
 #include "memdbg.h"
 
@@ -4220,7 +4221,7 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
 #endif
 
     /* initialize dynamic MTU variable */
-    frame_init_mssfix(&c->c2.frame, &c->options);
+    frame_calculate_mssfix(&c->c2.frame, &c->c1.ks.key_type, &c->options);
 
     /* bind the TCP/UDP socket */
     if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)

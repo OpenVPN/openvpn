@@ -1493,7 +1493,7 @@ process_ip_header(struct context *c, unsigned int flags, struct buffer *buf)
                 /* possibly alter the TCP MSS */
                 if (flags & PIP_MSSFIX)
                 {
-                    mss_fixup_ipv4(&ipbuf, MTU_TO_MSS(TUN_MTU_SIZE_DYNAMIC(&c->c2.frame)));
+                    mss_fixup_ipv4(&ipbuf, c->c2.frame.mss_fix);
                 }
 
                 /* possibly do NAT on packet */
@@ -1517,8 +1517,7 @@ process_ip_header(struct context *c, unsigned int flags, struct buffer *buf)
                 /* possibly alter the TCP MSS */
                 if (flags & PIP_MSSFIX)
                 {
-                    mss_fixup_ipv6(&ipbuf,
-                                   MTU_TO_MSS(TUN_MTU_SIZE_DYNAMIC(&c->c2.frame)));
+                    mss_fixup_ipv6(&ipbuf, c->c2.frame.mss_fix);
                 }
                 if (!(flags & PIP_OUTGOING) && (flags
                                                 &(PIPV6_IMCP_NOHOST_CLIENT | PIPV6_IMCP_NOHOST_SERVER)))

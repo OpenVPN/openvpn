@@ -26,11 +26,17 @@
 
 #include "proto.h"
 #include "error.h"
+#include "mtu.h"
+#include "ssl_common.h"
 
 void mss_fixup_ipv4(struct buffer *buf, int maxmss);
 
 void mss_fixup_ipv6(struct buffer *buf, int maxmss);
 
 void mss_fixup_dowork(struct buffer *buf, uint16_t maxmss);
+
+/** Set the --mssfix option. */
+void frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
+                            const struct options *options);
 
 #endif

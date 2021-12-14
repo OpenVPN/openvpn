@@ -94,6 +94,12 @@ struct frame {
     int link_mtu;               /**< Maximum packet size to be sent over
                                  *   the external network interface. */
 
+    unsigned int mss_fix;      /**< The actual MSS value that should be
+                                 *   written to the payload packets. This
+                                 *   is the value for IPv4 TCP packets. For
+                                 *   IPv6 packets another 20 bytes must
+                                 *   be subtracted */
+
     int link_mtu_dynamic;       /**< Dynamic MTU value for the external
                                  *   network interface. */
 
@@ -152,7 +158,6 @@ struct options;
  * This is the size to "ifconfig" the tun or tap device.
  */
 #define TUN_MTU_SIZE(f)          ((f)->link_mtu - TUN_LINK_DELTA(f))
-#define TUN_MTU_SIZE_DYNAMIC(f)  ((f)->link_mtu_dynamic - TUN_LINK_DELTA(f))
 
 /*
  * This is the maximum packet size that we need to be able to
@@ -290,9 +295,6 @@ void frame_set_mtu_dynamic(struct frame *frame, int mtu, unsigned int flags);
 void alloc_buf_sock_tun(struct buffer *buf,
                         const struct frame *frame,
                         const bool tuntap_buffer);
-
-/** Set the --mssfix option. */
-void frame_init_mssfix(struct frame *frame, const struct options *options);
 
 /*
  * EXTENDED_SOCKET_ERROR_CAPABILITY functions -- print extra error info

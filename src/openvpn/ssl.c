@@ -62,6 +62,7 @@
 #include "ssl_ncp.h"
 #include "ssl_util.h"
 #include "auth_token.h"
+#include "mss.h"
 
 #include "memdbg.h"
 
@@ -1893,7 +1894,7 @@ tls_session_update_crypto_params_do_work(struct tls_session *session,
                                    options->replay, packet_id_long_form);
     frame_finalize(frame, options->ce.link_mtu_defined, options->ce.link_mtu,
                    options->ce.tun_mtu_defined, options->ce.tun_mtu);
-    frame_init_mssfix(frame, options);
+    frame_calculate_mssfix(frame, &session->opt->key_type, options);
     frame_print(frame, D_MTU_INFO, "Data Channel MTU parms");
 
     /*

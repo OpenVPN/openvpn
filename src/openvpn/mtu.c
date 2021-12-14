@@ -213,15 +213,6 @@ frame_subtract_extra(struct frame *frame, const struct frame *src)
 }
 
 void
-frame_init_mssfix(struct frame *frame, const struct options *options)
-{
-    if (options->ce.mssfix)
-    {
-        frame_set_mtu_dynamic(frame, options->ce.mssfix, SET_MTU_UPPER_BOUND);
-    }
-}
-
-void
 frame_print(const struct frame *frame,
             int level,
             const char *prefix)

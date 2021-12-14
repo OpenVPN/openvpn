@@ -30,6 +30,8 @@
 #include "syshead.h"
 #include "error.h"
 #include "mss.h"
+#include "crypto.h"
+#include "ssl_common.h"
 #include "memdbg.h"
 
 /*
@@ -203,4 +205,42 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
             }
         }
     }
+}
+
+void
+frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
+                       const struct options *options)
+{
+    if (options->ce.mssfix == 0)
+    {
+        return;
+    }
+
+    unsigned int payload_size;
+    unsigned int overhead;
+
+
+    payload_size = frame_calculate_payload_size(frame, options);
+
+    overhead = frame_calculate_protocol_header_size(kt, options,
+                                                    payload_size, false);
+
+    /* Calculate the number of bytes that the payload differs from the payload
+     * MTU. This are fragment/compression/ethernet headers */
+    unsigned payload_overhead = frame_calculate_payload_overhead(frame, options, true);
+
+    /* We are in a "liberal" position with respect to MSS,
+     * i.e. we assume that MSS can be calculated from MTU
+     * by subtracting out only the IP and TCP header sizes
+     * without options.
+     *
+     * (RFC 879, section 7). */
+
+    /* Add 20 bytes for the IPv4 header and 20 byte for the TCP header of the
+     * payload, the mssfix method will add 20 extra if payload is IPv6 */
+    overhead += 20 + 20;
+
+    /* Calculate the maximum MSS value from the max link layer size specified
+     * by ce.mssfix */
+    frame->mss_fix = options->ce.mssfix - overhead - payload_overhead;
 }
