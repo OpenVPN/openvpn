@@ -116,6 +116,41 @@ bool
 encode_pkcs1(unsigned char *enc, size_t *enc_len, const char *mdname,
              const unsigned char *tbs, size_t tbslen);
 
+/**
+ * Compute message digest
+ *
+ * @param src           pointer to message to be hashed
+ * @param srclen        length of data in bytes
+ * @param buf           pointer to output buffer
+ * @param buflen        *buflen = capacity in bytes of output buffer
+ * @param mdname        name of the hash algorithm (SHA256, SHA1 etc.)
+ *
+ * @return              false on error, true  on success
+ *
+ * On successful return *buflen is set to the actual size of the result.
+ * TIP: EVP_MD_MAX_SIZE should be enough capacity of buf for al algorithms.
+ */
+int
+xkey_digest(const unsigned char *src, size_t srclen, unsigned char *buf,
+            size_t *buflen, const char *mdname);
+
+/**
+ * Load a generic external key with custom sign and free ops
+ *
+ * @param libctx    library context in which xkey provider has been loaded
+ * @param handle    an opaque handle to the backend -- passed to alll callbacks
+ * @param pubkey    corresponding pubkey in the default provider's context
+ * @param sign_op   private key signature operation to callback
+ * @param sign_op   private key signature operation to callback
+ *
+ * @returns a new EVP_PKEY in the provider's keymgmt context.
+ * IMPORTANT: a reference to the handle is retained by the provider and
+ * relased by callng free_op. The caller should not free it.
+ */
+EVP_PKEY *
+xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
+                      XKEY_EXTERNAL_SIGN_fn sign_op, XKEY_PRIVKEY_FREE_fn free_op);
+
 #endif /* HAVE_XKEY_PROVIDER */
 
 #endif /* XKEY_COMMON_H_ */
