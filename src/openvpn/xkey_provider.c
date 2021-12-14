@@ -78,6 +78,13 @@ typedef enum
  *
  * We also keep the public key in the form of a native OpenSSL EVP_PKEY.
  * This allows us to do all public ops by calling ops in the default provider.
+ * Both these are references retained by us and freed when the key is
+ * destroyed. As the pubkey is native, we free it using EVP_PKEY_free().
+ * To free the handle we call the backend if a free function
+ * has been set for that key. It could be set when the key is
+ * created/imported.
+ * For native keys, there is no need to free the handle as its either
+ * NULL of the same as the pubkey which we always free.
  */
 typedef struct
 {
@@ -133,6 +140,9 @@ static OSSL_FUNC_keymgmt_set_params_fn keymgmt_set_params;
 static OSSL_FUNC_keymgmt_query_operation_name_fn rsa_keymgmt_name;
 static OSSL_FUNC_keymgmt_query_operation_name_fn ec_keymgmt_name;
 
+static int
+keymgmt_import_helper(XKEY_KEYDATA *key, const OSSL_PARAM params[]);
+
 static XKEY_KEYDATA *
 keydata_new()
 {
@@ -155,6 +165,11 @@ keydata_free(XKEY_KEYDATA *key)
     if (!key || key->refcount-- > 0) /* free when refcount goes to zero */
     {
         return;
+    }
+    if (key->free && key->handle)
+    {
+        key->free(key->handle);
+        key->handle = NULL;
     }
     if (key->pubkey)
     {
@@ -195,7 +210,27 @@ keymgmt_load(const void *reference, size_t reference_sz)
  * appropriate for the key. We just use it to create a native
  * EVP_PKEY from params and assign to keydata->handle.
  *
- * Import of external keys -- to be implemented
+ * For non-native keys the params[] array should include a custom
+ * value with name "xkey-origin".
+ *
+ * Other required parameters in the params array are:
+ *
+ *  pubkey - pointer to native public key as a OCTET_STRING
+ *           the public key is duplicated on receipt
+ *  handle - reference to opaque handle to private key -- if not required
+ *           pass a dummy value that is not zero. type = OCTET_PTR
+ *           The reference is retained -- caller must _not_ free it.
+ *  sign_op - function pointer for sign operation. type = OCTET_PTR
+ *            Must be a reference to XKEY_EXTERNAL_SIGN_fn
+ *  xkey-origin - A custom string to indicate the external key origin. UTF8_STRING
+ *                The value doesn't really matter, but must be present.
+ *
+ * Optional params
+ *  free_op - Called as free(handle) when the key is deleted. If the
+ *           handle should not be freed, do not include. type = OCTET_PTR
+ *           Must be a reference to XKEY_PRIVKEY_FREE_fn
+ *
+ *  See xkey_load_management_key for an example use.
  */
 static int
 keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[], const char *name)
@@ -211,6 +246,17 @@ keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[], const ch
         msg(M_WARN, "Error: keymgmt_import: keydata not empty -- our keys are immutable");
         return 0;
     }
+
+    /* if params contain a custom origin, call our helper to import custom keys */
+    const OSSL_PARAM *p = OSSL_PARAM_locate_const(params, "xkey-origin");
+    if (p && p->data_type == OSSL_PARAM_UTF8_STRING)
+    {
+        key->origin = EXTERNAL_KEY;
+        xkey_dmsg(D_LOW, "importing external key");
+        return keymgmt_import_helper(key, params);
+    }
+
+    xkey_dmsg(D_LOW, "importing native key");
 
     /* create a native public key and assign it to key->pubkey */
     EVP_PKEY *pkey = NULL;
@@ -370,10 +416,95 @@ keymgmt_get_params(void *keydata, OSSL_PARAM *params)
     return EVP_PKEY_get_params(key->pubkey, params);
 }
 
+/* Helper used by keymgmt_import and keymgmt_set_params
+ * for our keys. Not to be used for OpenSSL native keys.
+ */
+static int
+keymgmt_import_helper(XKEY_KEYDATA *key, const OSSL_PARAM *params)
+{
+    xkey_dmsg(D_LOW, "entry");
+
+    const OSSL_PARAM *p;
+    EVP_PKEY *pkey = NULL;
+
+    ASSERT(key);
+    /* calling this with native keys is a coding error */
+    ASSERT(key->origin != OPENSSL_NATIVE);
+
+    if (params == NULL)
+    {
+        return 1; /* not an error */
+    }
+
+    /* our keys are immutable, we do not allow resetting parameters */
+    if (key->pubkey)
+    {
+        return 0;
+    }
+
+    /* only check params we understand and ignore the rest */
+
+    p = OSSL_PARAM_locate_const(params, "pubkey"); /*setting pubkey on our keydata */
+    if (p && p->data_type == OSSL_PARAM_OCTET_STRING
+        && p->data_size == sizeof(pkey))
+    {
+        pkey = *(EVP_PKEY **)p->data;
+        ASSERT(pkey);
+
+        int id = EVP_PKEY_get_id(pkey);
+        if (id != EVP_PKEY_RSA && id != EVP_PKEY_EC)
+        {
+            msg(M_WARN, "Error: xkey keymgmt_import: unknown key type (%d)", id);
+            return 0;
+        }
+
+        key->pubkey = EVP_PKEY_dup(pkey);
+        if (key->pubkey == NULL)
+        {
+            msg(M_NONFATAL, "Error: xkey keymgmt_import: duplicating pubkey failed.");
+            return 0;
+        }
+    }
+
+    p = OSSL_PARAM_locate_const(params, "handle"); /*setting privkey */
+    if (p && p->data_type == OSSL_PARAM_OCTET_PTR
+        && p->data_size == sizeof(key->handle))
+    {
+        key->handle = *(void **)p->data;
+        /* caller should keep the reference alive until we call free */
+        ASSERT(key->handle); /* fix your params array */
+    }
+
+    p = OSSL_PARAM_locate_const(params, "sign_op"); /*setting sign_op */
+    if (p && p->data_type == OSSL_PARAM_OCTET_PTR
+        && p->data_size == sizeof(key->sign))
+    {
+        key->sign = *(void **)p->data;
+        ASSERT(key->sign); /* fix your params array */
+    }
+
+    /* optional parameters */
+    p = OSSL_PARAM_locate_const(params, "free_op"); /*setting free_op */
+    if (p && p->data_type == OSSL_PARAM_OCTET_PTR
+        && p->data_size == sizeof(key->free))
+    {
+        key->free = *(void **)p->data;
+    }
+    xkey_dmsg(D_LOW, "imported external %s key", EVP_PKEY_get0_type_name(key->pubkey));
+
+    return 1;
+}
+
 /**
+ * Set params on a key.
+ *
  * If the key is an encapsulated native key, we just call
  * EVP_PKEY_set_params in the default context. Only those params
  * supported by the default provider would work in this case.
+ *
+ * We treat our key object as immutable, so this works only with an
+ * empty key. Supported params for external keys are the
+ * same as those listed in the description of keymgmt_import.
  */
 static int
 keymgmt_set_params(void *keydata, const OSSL_PARAM *params)
@@ -385,7 +516,7 @@ keymgmt_set_params(void *keydata, const OSSL_PARAM *params)
 
     if (key->origin != OPENSSL_NATIVE)
     {
-        return 0; /* to be implemented */
+        return keymgmt_import_helper(key, params);
     }
     else if (key->handle == NULL) /* once handle is set our key is immutable */
     {
