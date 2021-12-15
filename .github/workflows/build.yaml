@@ -5,12 +5,15 @@ on: [push, pull_request]
 jobs:
   mingw:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: mingw64
             chost: x86_64-w64-mingw32
           - target: mingw
             chost: i686-w64-mingw32
+
+    name: "gcc-mingw - ${{matrix.target}}"
 
     runs-on: ubuntu-20.04
     env:
@@ -125,14 +128,35 @@ jobs:
 
   ubuntu:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-18.04, ubuntu-20.04]
-        ssllib: [mbedtls, openssl]
+        sslpkg: [libssl-dev]
+        ssllib: [mbedtls]
+        libname: [mbed TLS]
+
+        include:
+          - os: ubuntu-18.04
+            sslpkg: "libssl1.0-dev"
+            ssllib: openssl
+            libname: OpenSSL 1.0.2
+          - os: ubuntu-18.04
+            sslpkg: "libssl-dev"
+            libname: OpenSSL 1.1.1
+            ssllib: openssl
+          - os: ubuntu-20.04
+            sslpkg: "libssl-dev"
+            libname: OpenSSL 1.1.1
+            ssllib: openssl
+
+    name: "gcc - ${{matrix.os}} - ${{matrix.libname}}"
+    env:
+      SSLPKG: "${{matrix.sslpkg}}"
 
     runs-on: ${{matrix.os}}
     steps:
       - name: Install dependencies
-        run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html libcmocka-dev python3-docutils libtool automake autoconf libmbedtls-dev
+        run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html libcmocka-dev python3-docutils libtool automake autoconf ${SSLPKG}
       - name: Checkout OpenVPN
         uses: actions/checkout@v2
       - name: autoconf
@@ -146,9 +170,12 @@ jobs:
 
   ubuntu-clang-asan:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-20.04]
         ssllib: [mbedtls, openssl]
+
+    name: "clang-asan - ${{matrix.os}} - ${{matrix.ssllib}}"
 
     runs-on: ${{matrix.os}}
     steps:
@@ -206,6 +233,7 @@ jobs:
 
   msvc:
       strategy:
+        fail-fast: false
         matrix:
           plat: [ARM64, Win32, x64]
           include:
@@ -216,6 +244,7 @@ jobs:
             - plat: x64
               triplet: x64
 
+      name: "msbuild - ${{matrix.triplet}} - openssl"
       env:
         BUILD_CONFIGURATION: Release
         VCPKG_OVERLAY_PORTS: ${{ github.workspace }}/contrib/vcpkg-ports
