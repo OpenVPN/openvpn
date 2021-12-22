@@ -102,7 +102,7 @@ Overview of changes in 2.5.3
 ============================
 Bugfixes
 --------
-- CVE-2121-3606
+- CVE-2021-3606
   see https://community.openvpn.net/openvpn/wiki/SecurityAnnouncements
 
   OpenVPN windows builds could possibly load OpenSSL Config files from
