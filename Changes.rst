@@ -18,8 +18,8 @@ New features
 - Windows build: use CFG and Spectre mitigations on MSVC builds
 
 - bring back OpenSSL config loading to Windows builds.
-  OpenSSL config is loaded from %installdir%\SSL\openssl.cfg
-  (typically: c:\program files\openvpn\SSL\openssl.cfg) if it exists.
+  OpenSSL config is loaded from %installdir%\\ssl\\openssl.cnf
+  (typically: c:\\program files\\openvpn\\ssl\\openssl.cnf) if it exists.
 
   This is important for some hardware tokens which need special
   OpenSSL config for correct operation.  Trac #1296
@@ -102,7 +102,7 @@ Overview of changes in 2.5.3
 ============================
 Bugfixes
 --------
-- CVE-2121-3606
+- CVE-2021-3606
   see https://community.openvpn.net/openvpn/wiki/SecurityAnnouncements
 
   OpenVPN windows builds could possibly load OpenSSL Config files from
