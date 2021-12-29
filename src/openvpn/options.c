@@ -3120,7 +3120,7 @@ options_postprocess_cipher(struct options *o)
          * parts of OpenVPN assert that the ciphername is set */
         o->ciphername = "BF-CBC";
 
-        msg(M_INFO, "Note: --cipher is not set. OpenVPN versions before 2.6 "
+        msg(M_INFO, "Note: --cipher is not set. OpenVPN versions before 2.5 "
                     "defaulted to BF-CBC as fallback when cipher negotiation "
                     "failed in this case. If you need this fallback please add "
                     "'--data-ciphers-fallback 'BF-CBC' to your configuration "
