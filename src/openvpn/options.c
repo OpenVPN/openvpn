@@ -6822,7 +6822,7 @@ add_option(struct options *options,
             }
         }
     }
-    else if (streq(p[0], "server-ipv6") && p[1] && !p[3])
+    else if (streq(p[0], "server-ipv6") && p[1] && !p[2])
     {
         const int lev = M_WARN;
         struct in6_addr network;
@@ -6845,12 +6845,6 @@ add_option(struct options *options,
         options->server_ipv6_defined = true;
         options->server_network_ipv6 = network;
         options->server_netbits_ipv6 = netbits;
-
-        if (p[2])       /* no "nopool" options or similar for IPv6 */
-        {
-            msg(msglevel, "error parsing --server-ipv6: %s is not a recognized flag", p[3]);
-            goto err;
-        }
     }
     else if (streq(p[0], "server-bridge") && p[1] && p[2] && p[3] && p[4] && !p[5])
     {
