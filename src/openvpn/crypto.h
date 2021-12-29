@@ -415,6 +415,24 @@ void crypto_adjust_frame_parameters(struct frame *frame,
                                     bool packet_id,
                                     bool packet_id_long_form);
 
+/** Calculate the maximum overhead that our encryption has
+ * on a packet. This does not include needed additional buffer size
+ *
+ * @param kt            Struct with the crypto algorithm to use
+ * @param packet_id     Whether packet_id is used
+ * @param packet_id_long_form Whether the packet id has the long form
+ * @param payload_size   payload size, only used if occ is false
+ * @param occ           if true calculates the overhead for crypto in the same
+ *                      incorrect way as all previous OpenVPN versions did, to
+ *                      end up with identical numbers for OCC compatibility
+ */
+unsigned int
+calculate_crypto_overhead(const struct key_type *kt,
+                           bool packet_id,
+                           bool packet_id_long_form,
+                           unsigned int payload_size,
+                           bool occ);
+
 /** Return the worst-case OpenVPN crypto overhead (in bytes) */
 unsigned int crypto_max_overhead(void);
 

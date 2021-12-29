@@ -667,6 +667,61 @@ openvpn_decrypt(struct buffer *buf, struct buffer work,
     return ret;
 }
 
+unsigned int
+calculate_crypto_overhead(const struct key_type *kt,
+                          bool packet_id,
+                          bool packet_id_long_form,
+                          unsigned int payload_size,
+                          bool occ)
+{
+    unsigned int crypto_overhead = 0;
+
+    /* We always have a packet id, no matter if encrypted or unencrypted */
+    if (packet_id)
+    {
+        crypto_overhead += packet_id_size(packet_id_long_form);
+    }
+
+    if (cipher_kt_mode_aead(kt->cipher))
+    {
+        /* For AEAD ciphers, we basically use a stream cipher/CTR for
+         * the encryption, so no overhead apart from the extra bytes
+         * we add */
+        crypto_overhead += cipher_kt_tag_size(kt->cipher);
+
+        if (occ)
+        {
+            /* the frame calculation of old clients adds these to the link-mtu
+             * even though they are not part of the actual packet */
+            crypto_overhead += cipher_kt_iv_size(kt->cipher);
+            crypto_overhead += cipher_kt_block_size(kt->cipher);
+        }
+    }
+    else
+    {
+        if (cipher_defined(kt->cipher))
+        {
+            /* CBC, OFB or CFB mode */
+            /* This is a worst case upper bound of needing to add
+             * a full extra block for padding when the payload
+             * is exactly a multiple of the block size */
+            if (occ || (cipher_kt_mode_cbc(kt->cipher) &&
+                (payload_size % cipher_kt_block_size(kt->cipher) == 0)))
+            {
+                crypto_overhead += cipher_kt_block_size(kt->cipher);
+            }
+            /* IV is always added (no-iv has been removed a while ago) */
+            crypto_overhead += cipher_kt_iv_size(kt->cipher);
+        }
+        if (md_defined(kt->digest))
+        {
+            crypto_overhead += md_kt_size(kt->digest);
+        }
+    }
+
+    return crypto_overhead;
+}
+
 void
 crypto_adjust_frame_parameters(struct frame *frame,
                                const struct key_type *kt,

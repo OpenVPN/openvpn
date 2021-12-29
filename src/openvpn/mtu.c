@@ -35,6 +35,7 @@
 #include "integer.h"
 #include "mtu.h"
 #include "options.h"
+#include "crypto.h"
 
 #include "memdbg.h"
 
@@ -49,6 +50,92 @@ alloc_buf_sock_tun(struct buffer *buf,
     ASSERT(buf_init(buf, FRAME_HEADROOM(frame)));
     buf->len = tuntap_buffer ? MAX_RW_SIZE_TUN(frame) : MAX_RW_SIZE_LINK(frame);
     ASSERT(buf_safe(buf, 0));
+}
+
+size_t
+frame_calculate_protocol_header_size(const struct key_type *kt,
+                                     const struct options *options,
+                                     unsigned int payload_size,
+                                     bool occ)
+{
+    /* Sum of all the overhead that reduces the usable packet size */
+    size_t header_size = 0;
+
+    bool tlsmode = options->tls_server || options->tls_client;
+
+    /* A socks proxy adds 10 byte of extra header to each packet
+     * (we only support Socks with IPv4, this value is different for IPv6) */
+    if (options->ce.socks_proxy_server && proto_is_udp(options->ce.proto))
+    {
+        header_size += 10;
+    }
+
+    /* TCP stream based packets have a 16 bit length field */
+    if (proto_is_tcp(options->ce.proto))
+    {
+        header_size += 2;
+    }
+
+    /* Add the opcode and peerid */
+    if (tlsmode)
+    {
+        header_size += options->use_peer_id ? 4 : 1;
+    }
+
+    /* Add the crypto overhead */
+    bool packet_id = options->replay;
+    bool packet_id_long_form = !tlsmode || cipher_kt_mode_ofb_cfb(kt->cipher);
+
+    /* For figuring out the crypto overhead, we need the size of the payload
+     * including all headers that also get encrypted as part of the payload */
+    header_size += calculate_crypto_overhead(kt, packet_id,
+                                             packet_id_long_form,
+                                             payload_size, occ);
+    return header_size;
+}
+
+
+size_t
+frame_calculate_payload_overhead(const struct frame *frame,
+                                 const struct options *options,
+                                 bool extra_tun)
+{
+    size_t overhead = 0;
+
+    /* This is the overhead of tap device that is not included in the MTU itself
+     * i.e. Ethernet header that we still need to transmit as part of the
+     * payload*/
+    if (extra_tun)
+    {
+        overhead += frame->extra_tun;
+    }
+
+#if defined(USE_COMP)
+    /* v1 Compression schemes add 1 byte header. V2 only adds a header when it
+     * does not increase the packet length. We ignore the unlikely escaping
+     * for tap here */
+    if (options->comp.alg == COMP_ALG_LZ4 || options->comp.alg == COMP_ALG_STUB
+        || options->comp.alg == COMP_ALG_LZO)
+    {
+        overhead += 1;
+    }
+#endif
+#if defined(ENABLE_FRAGMENT)
+    /* Add the size of the fragment header (uint32_t) */
+    if (options->ce.fragment)
+    {
+        overhead += 4;
+    }
+#endif
+    return overhead;
+}
+
+size_t
+frame_calculate_payload_size(const struct frame *frame, const struct options *options)
+{
+    size_t payload_size = options->ce.tun_mtu;
+    payload_size += frame_calculate_payload_overhead(frame, options, true);
+    return payload_size;
 }
 
 void

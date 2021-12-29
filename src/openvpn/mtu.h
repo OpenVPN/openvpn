@@ -221,6 +221,60 @@ void set_mtu_discover_type(socket_descriptor_t sd, int mtu_type, sa_family_t pro
 
 int translate_mtu_discover_type_name(const char *name);
 
+/**
+ * Calculates the size of the payload according to tun-mtu and tap overhead.
+ * This also includes compression and fragmentation overhead if they are
+ * enabled.
+ *
+ * *  [IP][UDP][OPENVPN PROTOCOL HEADER][ **PAYLOAD incl compression header** ]
+ * @param frame
+ * @param options
+ * @return
+ */
+size_t
+frame_calculate_payload_size(const struct frame *frame,
+                             const struct options *options);
+
+/**
+ * Calculates the size of the payload overhead according to tun-mtu and
+ * tap overhead. This all the overhead that is considered part of the payload
+ * itself. The compression and fragmentation header and extra header from tap
+ * are considered part of this overhead that increases the payload larger than
+ * tun-mtu.
+ *
+ * *  [IP][UDP][OPENVPN PROTOCOL HEADER][ **PAYLOAD incl compression header** ]
+ * @param frame
+ * @param options
+ * @param extra_tun
+ * @return
+ */
+size_t
+frame_calculate_payload_overhead(const struct frame *frame,
+                                 const struct options *options,
+                                 bool extra_tun);
+
+/* forward declaration of key_type */
+struct key_type;
+
+/**
+ * Calculates the size of the OpenVPN protocol header. This includes
+ * the crypto IV/tag/HMAC but does not include the IP encapsulation
+ *
+ *
+ *  [IP][UDP][ **OPENVPN PROTOCOL HEADER**][PAYLOAD incl compression header]
+ *
+ * @param kt            the key_type to use to calculate the crypto overhead
+ * @param options       the options struct to be used to calculate
+ * @param payload_size  the payload size, ignored if occ is true
+ * @param occ           if the calculation should be done for occ compatibility
+ * @return              size of the overhead in bytes
+ */
+size_t
+frame_calculate_protocol_header_size(const struct key_type *kt,
+                                     const struct options *options,
+                                     unsigned int payload_size,
+                                     bool occ);
+
 /*
  * frame_set_mtu_dynamic and flags
  */
