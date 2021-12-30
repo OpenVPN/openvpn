@@ -138,6 +138,49 @@ frame_calculate_payload_size(const struct frame *frame, const struct options *op
     return payload_size;
 }
 
+size_t
+calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
+{
+    unsigned int payload = frame_calculate_payload_size(frame, o);
+
+    /* neither --secret nor TLS mode */
+    if (!o->tls_client && !o->tls_server && !o->shared_secret_file)
+    {
+        return payload;
+    }
+
+    struct key_type occ_kt;
+
+    /* o->ciphername might be BF-CBC even though the underlying SSL library
+     * does not support it. For this reason we workaround this corner case
+     * by pretending to have no encryption enabled and by manually adding
+     * the required packet overhead to the MTU computation.
+     */
+    const char* ciphername = o->ciphername;
+
+    unsigned int overhead = 0;
+
+    if (strcmp(o->ciphername, "BF-CBC") == 0)
+    {
+        /* none has no overhead, so use this to later add only --auth
+         * overhead */
+
+        /* overhead of BF-CBC: 64 bit block size, 64 bit IV size */
+        overhead += 64/8 + 64/8;
+        /* set ciphername to none, so its size does get added in the
+         * fake_kt and the cipher is not tried to be resolved */
+        ciphername = "none";
+    }
+
+    /* We pass tlsmode always true here since as we do not need to check if
+     * the ciphers are actually valid for non tls in occ calucation */
+    init_key_type(&occ_kt, ciphername, o->authname, true, false);
+
+    overhead += frame_calculate_protocol_header_size(&occ_kt, o, 0, true);
+
+    return payload + overhead;
+}
+
 void
 frame_finalize(struct frame *frame,
                bool link_mtu_defined,

@@ -280,6 +280,17 @@ frame_calculate_protocol_header_size(const struct key_type *kt,
                                      unsigned int payload_size,
                                      bool occ);
 
+/**
+ * Calculate the link-mtu to advertise to our peer.  The actual value is not
+ * relevant, because we will possibly perform data channel cipher negotiation
+ * after this, but older clients will log warnings if we do not supply them the
+ * value they expect.  This assumes that the traditional cipher/auth directives
+ * in the config match the config of the peer.
+ */
+size_t
+calc_options_string_link_mtu(const struct options *options,
+                             const struct frame *frame);
+
 /*
  * frame_set_mtu_dynamic and flags
  */

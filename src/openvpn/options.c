@@ -3766,57 +3766,6 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
     o->data_channel_crypto_flags = 0;
 }
 
-/**
- * Calculate the link-mtu to advertise to our peer.  The actual value is not
- * relevant, because we will possibly perform data channel cipher negotiation
- * after this, but older clients will log warnings if we do not supply them the
- * value they expect.  This assumes that the traditional cipher/auth directives
- * in the config match the config of the peer.
- */
-static size_t
-calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
-{
-    size_t link_mtu = EXPANDED_SIZE(frame);
-
-    if (o->pull || o->mode == MODE_SERVER)
-    {
-        struct frame fake_frame = *frame;
-        struct key_type fake_kt;
-
-        frame_remove_from_extra_frame(&fake_frame, crypto_max_overhead());
-
-
-        /* o->ciphername might be BF-CBC even though the underlying SSL library
-         * does not support it. For this reason we workaround this corner case
-         * by pretending to have no encryption enabled and by manually adding
-         * the required packet overhead to the MTU computation.
-         */
-        const char* ciphername = o->ciphername;
-
-        if (strcmp(o->ciphername, "BF-CBC") == 0)
-        {
-            /* none has no overhead, so use this to later add only --auth
-             * overhead */
-
-            /* overhead of BF-CBC: 64 bit block size, 64 bit IV size */
-            frame_add_to_extra_frame(&fake_frame, 64/8 + 64/8);
-            /* set ciphername to none, so its size does get added in the
-             * fake_kt and the cipher is not tried to be resolved */
-            ciphername = "none";
-        }
-
-        init_key_type(&fake_kt, ciphername, o->authname, true, false);
-
-        crypto_adjust_frame_parameters(&fake_frame, &fake_kt, o->replay,
-                                       cipher_kt_mode_ofb_cfb(fake_kt.cipher));
-        frame_finalize(&fake_frame, o->ce.link_mtu_defined, o->ce.link_mtu,
-                       o->ce.tun_mtu_defined, o->ce.tun_mtu);
-        msg(D_MTU_DEBUG, "%s: link-mtu %u -> %d", __func__, (unsigned int) link_mtu,
-            EXPANDED_SIZE(&fake_frame));
-        link_mtu = EXPANDED_SIZE(&fake_frame);
-    }
-    return link_mtu;
-}
 /*
  * Build an options string to represent data channel encryption options.
  * This string must match exactly between peers.  The keysize is checked

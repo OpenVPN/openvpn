@@ -37,6 +37,7 @@
 #include <cmocka.h>
 
 #include "crypto.h"
+#include "options.h"
 #include "ssl_backend.h"
 
 #include "mock_msg.h"
@@ -234,6 +235,130 @@ test_des_encrypt(void **state)
     free(src2);
 }
 
+/* This test is in test_crypto as it calls into the functions that calculate
+ * the crypto overhead */
+static void
+test_occ_mtu_calculation(void **state)
+{
+    struct gc_arena gc = gc_new();
+
+    struct frame f = { 0 };
+    struct options o = { 0 };
+    size_t linkmtu;
+
+    /* common defaults */
+    o.ce.tun_mtu = 1400;
+    o.replay = true;
+    o.ce.proto = PROTO_UDP;
+
+    /* No crypto at all */
+    o.ciphername = "none";
+    o.authname = "none";
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1400);
+
+    /* Static key OCC examples */
+    o.shared_secret_file = "not null";
+
+    /* secret, auth none, cipher none */
+    o.ciphername = "none";
+    o.authname = "none";
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1408);
+
+    /* secret, cipher AES-128-CBC, auth none */
+    o.ciphername = "AES-128-CBC";
+    o.authname = "none";
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1440);
+
+    /* secret, cipher none, auth SHA256 */
+    o.ciphername = "none";
+    o.authname = "SHA256";
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1440);
+
+    /* --secret, cipher BF-CBC, auth SHA1 */
+    o.ciphername = "BF-CBC";
+    o.authname = "SHA1";
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1444);
+
+    /* --secret, cipher BF-CBC, auth SHA1, tcp-client */
+    o.ce.proto = PROTO_TCP_CLIENT;
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1446);
+
+    o.ce.proto = PROTO_UDP;
+
+    /* --secret, comp-lzo yes, cipher BF-CBC, auth SHA1 */
+    o.comp.alg = COMP_ALG_LZO;
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1445);
+
+    /* --secret, comp-lzo yes, cipher BF-CBC, auth SHA1, fragment 1200 */
+    o.ce.fragment = 1200;
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1449);
+
+    o.comp.alg = COMP_ALG_UNDEF;
+    o.ce.fragment = 0;
+
+    /* TLS mode */
+    o.shared_secret_file = NULL;
+    o.tls_client = true;
+    o.pull = true;
+
+    /* tls client, cipher AES-128-CBC, auth SHA1, tls-auth*/
+    o.authname = "SHA1";
+    o.ciphername = "AES-128-CBC";
+    o.tls_auth_file = "dummy";
+
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1457);
+
+    /* tls client, cipher AES-128-CBC, auth SHA1 */
+    o.tls_auth_file = NULL;
+
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1457);
+
+    /* tls client, cipher none, auth none */
+    o.authname = "none";
+    o.ciphername = "none";
+
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1405);
+
+    /* tls client, auth none, cipher none, no-replay */
+    o.replay = false;
+
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1401);
+
+
+    o.replay = true;
+
+    /* tls client, auth SHA1, cipher AES-256-GCM */
+    o.authname = "SHA1";
+    o.ciphername = "AES-256-GCM";
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1449);
+
+
+    /* tls client, auth SHA1, cipher AES-256-GCM, fragment, comp-lzo yes */
+    o.comp.alg = COMP_ALG_LZO;
+    o.ce.fragment = 1200;
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1454);
+
+    /* tls client, auth SHA1, cipher AES-256-GCM, fragment, comp-lzo yes, socks */
+    o.ce.socks_proxy_server = "socks.example.com";
+    linkmtu = calc_options_string_link_mtu(&o, &f);
+    assert_int_equal(linkmtu, 1464);
+
+    gc_free(&gc);
+}
 
 int
 main(void)
@@ -243,7 +368,8 @@ main(void)
         cmocka_unit_test(crypto_translate_cipher_names),
         cmocka_unit_test(crypto_test_tls_prf),
         cmocka_unit_test(crypto_test_hmac),
-        cmocka_unit_test(test_des_encrypt)
+        cmocka_unit_test(test_des_encrypt),
+        cmocka_unit_test(test_occ_mtu_calculation)
     };
 
 #if defined(ENABLE_CRYPTO_OPENSSL)
