@@ -41,6 +41,7 @@
 #include "ssl_backend.h"
 
 #include "mock_msg.h"
+#include "mss.h"
 
 static const char testtext[] = "Dummy text to test PEM encoding";
 
@@ -366,6 +367,88 @@ test_occ_mtu_calculation(void **state)
     gc_free(&gc);
 }
 
+static void
+test_mssfix_mtu_calculation(void **state)
+{
+    struct gc_arena gc = gc_new();
+
+    struct frame f = { 0 };
+    struct options o = { 0 };
+
+    /* common defaults */
+    o.ce.tun_mtu = 1400;
+    o.ce.mssfix = 1000;
+    o.replay = true;
+    o.ce.proto = PROTO_UDP;
+
+    /* No crypto at all */
+    o.ciphername = "none";
+    o.authname = "none";
+    struct key_type kt;
+    init_key_type(&kt, o.ciphername, o.authname, false, false);
+
+    /* No encryption, just packet id (8) + TCP payload(20) + IP payload(20) */
+    frame_calculate_mssfix(&f, &kt, &o);
+    assert_int_equal(f.mss_fix, 952);
+
+    /* Static key OCC examples */
+    o.shared_secret_file = "not null";
+
+    /* secret, auth none, cipher none */
+    o.ciphername = "none";
+    o.authname = "none";
+    init_key_type(&kt, o.ciphername, o.authname, false, false);
+    frame_calculate_mssfix(&f, &kt, &o);
+    assert_int_equal(f.mss_fix, 952);
+
+    /* secret, cipher AES-128-CBC, auth none */
+    o.ciphername = "AES-128-CBC";
+    o.authname = "none";
+    init_key_type(&kt, o.ciphername, o.authname, false, false);
+
+    for (int i = 990;i <= 1010;i++)
+    {
+        /* 992 - 1008 should end up with the same mssfix value all they
+         * all result in the same CBC block size/padding and <= 991 and >=1008
+         * should be one block less and more respectively */
+        o.ce.mssfix = i;
+        frame_calculate_mssfix(&f, &kt, &o);
+        if (i <= 991)
+        {
+            assert_int_equal(f.mss_fix, 911);
+        }
+        else if (i >= 1008)
+        {
+            assert_int_equal(f.mss_fix, 943);
+        }
+        else
+        {
+            assert_int_equal(f.mss_fix, 927);
+        }
+    }
+
+    /* tls client, auth SHA1, cipher AES-256-GCM */
+    o.authname = "SHA1";
+    o.ciphername = "AES-256-GCM";
+    o.tls_client = true;
+    o.peer_id = 77;
+    o.use_peer_id = true;
+    init_key_type(&kt, o.ciphername, o.authname, true, false);
+
+    for (int i=900;i <= 1200;i++)
+    {
+        /* For stream ciphers, the value should not be influenced by block
+         * sizes or similar but always have the same difference */
+        o.ce.mssfix = i;
+        frame_calculate_mssfix(&f, &kt, &o);
+
+        /* 4 byte opcode/peerid, 4 byte pkt ID, 16 byte tag, 40 TCP+IP */
+        assert_int_equal(f.mss_fix, i - 4 - 4 - 16 - 40);
+    }
+
+    gc_free(&gc);
+}
+
 int
 main(void)
 {
@@ -375,7 +458,8 @@ main(void)
         cmocka_unit_test(crypto_test_tls_prf),
         cmocka_unit_test(crypto_test_hmac),
         cmocka_unit_test(test_des_encrypt),
-        cmocka_unit_test(test_occ_mtu_calculation)
+        cmocka_unit_test(test_occ_mtu_calculation),
+        cmocka_unit_test(test_mssfix_mtu_calculation)
     };
 
 #if defined(ENABLE_CRYPTO_OPENSSL)

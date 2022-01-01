@@ -226,19 +226,22 @@ void set_mtu_discover_type(socket_descriptor_t sd, int mtu_type, sa_family_t pro
 
 int translate_mtu_discover_type_name(const char *name);
 
+/* forward declaration of key_type */
+struct key_type;
+
 /**
- * Calculates the size of the payload according to tun-mtu and tap overhead.
- * This also includes compression and fragmentation overhead if they are
- * enabled.
+ * Calculates the size of the payload according to tun-mtu and tap overhead. In
+ * this context payload is identical to the size of the plaintext.
+ * This also includes compression, fragmentation overhead, and packet id in CBC
+ * mode if these options are used.
+ *
  *
  * *  [IP][UDP][OPENVPN PROTOCOL HEADER][ **PAYLOAD incl compression header** ]
- * @param frame
- * @param options
- * @return
  */
 size_t
 frame_calculate_payload_size(const struct frame *frame,
-                             const struct options *options);
+                             const struct options *options,
+                             const struct key_type *kt);
 
 /**
  * Calculates the size of the payload overhead according to tun-mtu and
@@ -247,37 +250,39 @@ frame_calculate_payload_size(const struct frame *frame,
  * are considered part of this overhead that increases the payload larger than
  * tun-mtu.
  *
+ * In CBC mode, the IV is part of the payload instead of part of the OpenVPN
+ * protocol header and is included in the returned value.
+ *
+ * In this context payload is identical to the size of the plaintext and this
+ * method can be also understand as number of bytes that are added to the
+ * plaintext before encryption.
+ *
  * *  [IP][UDP][OPENVPN PROTOCOL HEADER][ **PAYLOAD incl compression header** ]
- * @param frame
- * @param options
- * @param extra_tun
- * @return
  */
 size_t
 frame_calculate_payload_overhead(const struct frame *frame,
                                  const struct options *options,
+                                 const struct key_type *kt,
                                  bool extra_tun);
-
-/* forward declaration of key_type */
-struct key_type;
 
 /**
  * Calculates the size of the OpenVPN protocol header. This includes
  * the crypto IV/tag/HMAC but does not include the IP encapsulation
  *
+ *  This does NOT include the padding and rounding of CBC size
+ *  as the users (mssfix/fragment) of this function need to adjust for
+ *  this and add it themselves.
  *
  *  [IP][UDP][ **OPENVPN PROTOCOL HEADER**][PAYLOAD incl compression header]
  *
  * @param kt            the key_type to use to calculate the crypto overhead
  * @param options       the options struct to be used to calculate
- * @param payload_size  the payload size, ignored if occ is true
- * @param occ           if the calculation should be done for occ compatibility
+ * @param occ           Use the calculation for the OCC link-mtu
  * @return              size of the overhead in bytes
  */
 size_t
 frame_calculate_protocol_header_size(const struct key_type *kt,
                                      const struct options *options,
-                                     unsigned int payload_size,
                                      bool occ);
 
 /**

@@ -210,7 +210,7 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work,
                 ASSERT(0);
             }
 
-            /* set the IV pseudo-randomly */
+            /* write the pseudo-randomly IV (CBC)/packet ID (OFB/CFB) */
             ASSERT(buf_write(&work, iv_buf, iv_size));
             dmsg(D_PACKET_CONTENT, "ENCRYPT IV: %s", format_hex(iv_buf, iv_size, 0, &gc));
 
@@ -670,17 +670,15 @@ openvpn_decrypt(struct buffer *buf, struct buffer work,
 
 unsigned int
 calculate_crypto_overhead(const struct key_type *kt,
-                          bool packet_id,
-                          bool packet_id_long_form,
-                          unsigned int payload_size,
+                          unsigned int pkt_id_size,
                           bool occ)
 {
     unsigned int crypto_overhead = 0;
 
-    /* We always have a packet id, no matter if encrypted or unencrypted */
-    if (packet_id)
+    if (!cipher_kt_mode_cbc(kt->cipher))
     {
-        crypto_overhead += packet_id_size(packet_id_long_form);
+        /* In CBC mode, the packet id is part of the payload size/overhead */
+        crypto_overhead += pkt_id_size;
     }
 
     if (cipher_kt_mode_aead(kt->cipher))
@@ -703,11 +701,7 @@ calculate_crypto_overhead(const struct key_type *kt,
         if (cipher_defined(kt->cipher))
         {
             /* CBC, OFB or CFB mode */
-            /* This is a worst case upper bound of needing to add
-             * a full extra block for padding when the payload
-             * is exactly a multiple of the block size */
-            if (occ || (cipher_kt_mode_cbc(kt->cipher) &&
-                (payload_size % cipher_kt_block_size(kt->cipher) == 0)))
+            if (occ)
             {
                 crypto_overhead += cipher_kt_block_size(kt->cipher);
             }

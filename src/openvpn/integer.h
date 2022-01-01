@@ -185,4 +185,13 @@ index_verify(int index, int size, const char *file, int line)
     return index;
 }
 
+/**
+ * Rounds down num to the nearest multiple of multiple
+ */
+static inline unsigned int
+round_down_uint(unsigned int num, unsigned int multiple)
+{
+    return (num / multiple) * multiple;
+}
+
 #endif /* ifndef INTEGER_H */

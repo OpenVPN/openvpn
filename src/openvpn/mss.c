@@ -207,6 +207,26 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
     }
 }
 
+static inline unsigned int
+adjust_payload_max_cbc(const struct key_type *kt, unsigned int target)
+{
+    if (!cipher_kt_mode_cbc(kt->cipher))
+    {
+        /* With stream ciphers (or block cipher in stream modes like CFB, AEAD)
+         * we can just use the target as is */
+        return target;
+    }
+    else
+    {
+        /* With CBC we need at least one extra byte for padding and then need
+         * to ensure that the resulting CBC ciphertext length, which is always
+         * a multiple of the block size, is not larger than the target value */
+        unsigned int block_size = cipher_kt_block_size(kt->cipher);
+        target = round_down_uint(target, block_size);
+        return target - 1;
+    }
+}
+
 void
 frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
                        const struct options *options)
@@ -216,18 +236,13 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
         return;
     }
 
-    unsigned int payload_size;
-    unsigned int overhead;
+    unsigned int overhead, payload_overhead;
 
-
-    payload_size = frame_calculate_payload_size(frame, options);
-
-    overhead = frame_calculate_protocol_header_size(kt, options,
-                                                    payload_size, false);
+    overhead = frame_calculate_protocol_header_size(kt, options, false);
 
     /* Calculate the number of bytes that the payload differs from the payload
      * MTU. This are fragment/compression/ethernet headers */
-    unsigned payload_overhead = frame_calculate_payload_overhead(frame, options, true);
+    payload_overhead = frame_calculate_payload_overhead(frame, options, kt, true);
 
     /* We are in a "liberal" position with respect to MSS,
      * i.e. we assume that MSS can be calculated from MTU
@@ -238,9 +253,14 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
 
     /* Add 20 bytes for the IPv4 header and 20 byte for the TCP header of the
      * payload, the mssfix method will add 20 extra if payload is IPv6 */
-    overhead += 20 + 20;
+    payload_overhead += 20 + 20;
 
     /* Calculate the maximum MSS value from the max link layer size specified
      * by ce.mssfix */
-    frame->mss_fix = options->ce.mssfix - overhead - payload_overhead;
+
+    /* This is the target value our payload needs to be smaller */
+    unsigned int target = options->ce.mssfix - overhead;
+    frame->mss_fix = adjust_payload_max_cbc(kt, target) - payload_overhead;
+
+
 }

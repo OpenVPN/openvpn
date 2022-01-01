@@ -52,10 +52,31 @@ alloc_buf_sock_tun(struct buffer *buf,
     ASSERT(buf_safe(buf, 0));
 }
 
+
+/**
+ * Return the size of the packet ID size that is currently in use by cipher and
+ * options for the data channel.
+ */
+static unsigned int
+calc_packet_id_size_dc(const struct options *options, const struct key_type *kt)
+{
+    /* Unless no-replay is enabled, we have a packet id, no matter if
+     * encryption is used or not */
+    if (!options->replay)
+    {
+        return 0;
+    }
+
+    bool tlsmode = options->tls_server || options->tls_client;
+
+    bool packet_id_long_form = !tlsmode || cipher_kt_mode_ofb_cfb(kt->cipher);
+
+    return packet_id_size(packet_id_long_form);
+}
+
 size_t
 frame_calculate_protocol_header_size(const struct key_type *kt,
                                      const struct options *options,
-                                     unsigned int payload_size,
                                      bool occ)
 {
     /* Sum of all the overhead that reduces the usable packet size */
@@ -82,15 +103,11 @@ frame_calculate_protocol_header_size(const struct key_type *kt,
         header_size += options->use_peer_id ? 4 : 1;
     }
 
-    /* Add the crypto overhead */
-    bool packet_id = options->replay;
-    bool packet_id_long_form = !tlsmode || cipher_kt_mode_ofb_cfb(kt->cipher);
+    unsigned int pkt_id_size = calc_packet_id_size_dc(options, kt);
 
     /* For figuring out the crypto overhead, we need the size of the payload
      * including all headers that also get encrypted as part of the payload */
-    header_size += calculate_crypto_overhead(kt, packet_id,
-                                             packet_id_long_form,
-                                             payload_size, occ);
+    header_size += calculate_crypto_overhead(kt, pkt_id_size, occ);
     return header_size;
 }
 
@@ -98,13 +115,14 @@ frame_calculate_protocol_header_size(const struct key_type *kt,
 size_t
 frame_calculate_payload_overhead(const struct frame *frame,
                                  const struct options *options,
+                                 const struct key_type *kt,
                                  bool extra_tun)
 {
     size_t overhead = 0;
 
     /* This is the overhead of tap device that is not included in the MTU itself
      * i.e. Ethernet header that we still need to transmit as part of the
-     * payload*/
+     * payload */
     if (extra_tun)
     {
         overhead += frame->extra_tun;
@@ -127,29 +145,39 @@ frame_calculate_payload_overhead(const struct frame *frame,
         overhead += 4;
     }
 #endif
+
+    if (cipher_kt_mode_cbc(kt->cipher))
+    {
+        /* The packet id is part of the plain text payload instead of the
+         * cleartext protocol header and needs to be included in the payload
+         * overhead instead of the protocol header */
+        overhead += calc_packet_id_size_dc(options, kt);
+    }
+
     return overhead;
 }
 
 size_t
-frame_calculate_payload_size(const struct frame *frame, const struct options *options)
+frame_calculate_payload_size(const struct frame *frame,
+                             const struct options *options,
+                             const struct key_type *kt)
 {
     size_t payload_size = options->ce.tun_mtu;
-    payload_size += frame_calculate_payload_overhead(frame, options, true);
+    payload_size += frame_calculate_payload_overhead(frame, options, kt, true);
     return payload_size;
 }
 
 size_t
 calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
 {
-    unsigned int payload = frame_calculate_payload_size(frame, o);
+    struct key_type occ_kt;
 
     /* neither --secret nor TLS mode */
     if (!o->tls_client && !o->tls_server && !o->shared_secret_file)
     {
-        return payload;
+        init_key_type(&occ_kt, "none", "none", false, false);
+        return frame_calculate_payload_size(frame, o, &occ_kt);
     }
-
-    struct key_type occ_kt;
 
     /* o->ciphername might be BF-CBC even though the underlying SSL library
      * does not support it. For this reason we workaround this corner case
@@ -176,7 +204,8 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
      * the ciphers are actually valid for non tls in occ calucation */
     init_key_type(&occ_kt, ciphername, o->authname, true, false);
 
-    overhead += frame_calculate_protocol_header_size(&occ_kt, o, 0, true);
+    unsigned int payload = frame_calculate_payload_size(frame, o, &occ_kt);
+    overhead += frame_calculate_protocol_header_size(&occ_kt, o, true);
 
     return payload + overhead;
 }
