@@ -376,15 +376,17 @@ SCRIPT HOOKS
   For ``--dev tun`` execute as:
   ::
 
-      cmd tun_dev tun_mtu link_mtu ifconfig_local_ip ifconfig_remote_ip [init | restart]
+      cmd tun_dev tun_mtu 0 ifconfig_local_ip ifconfig_remote_ip [init | restart]
 
   For ``--dev tap`` execute as:
   ::
 
-       cmd tap_dev tap_mtu link_mtu ifconfig_local_ip ifconfig_netmask [init | restart]
+       cmd tap_dev tap_mtu 0 ifconfig_local_ip ifconfig_netmask [init | restart]
 
   See the `Environmental Variables`_ section below for additional
-  parameters passed as environmental variables.
+  parameters passed as environmental variables.  The ``0`` argument
+  used to be ``link_mtu`` which is no longer passed to scripts - to
+  keep the argument order, it was replaced with ``0``.
 
   Note that if ``cmd`` includes arguments, all OpenVPN-generated arguments
   will be appended to them to build an argument list with which the
@@ -664,9 +666,9 @@ instances.
     ``--client-connect`` and ``--client-disconnect`` scripts.
 
 :code:`link_mtu`
-    The maximum packet size (not including the IP header) of tunnel data in
-    UDP tunnel transport mode. Set prior to ``--up`` or ``--down`` script
-    execution.
+    No longer passed to scripts since OpenVPN 2.6.0.  Used to be the
+    maximum packet size (not including the IP header) of tunnel data in
+    UDP tunnel transport mode.
 
 :code:`local`
     The ``--local`` parameter. Set on program initiation and reset on

@@ -113,7 +113,6 @@ run_up_down(const char *command,
 #endif
             const char *dev_type,
             int tun_mtu,
-            int link_mtu,
             const char *ifconfig_local,
             const char *ifconfig_remote,
             const char *context,
@@ -129,7 +128,6 @@ run_up_down(const char *command,
     }
     setenv_str(es, "script_context", context);
     setenv_int(es, "tun_mtu", tun_mtu);
-    setenv_int(es, "link_mtu", link_mtu);
     setenv_str(es, "dev", arg);
     if (dev_type)
     {
@@ -157,11 +155,8 @@ run_up_down(const char *command,
         struct argv argv = argv_new();
         ASSERT(arg);
         argv_printf(&argv,
-                    "%s %d %d %s %s %s",
-                    arg,
-                    tun_mtu, link_mtu,
-                    ifconfig_local, ifconfig_remote,
-                    context);
+                    "%s %d 0 %s %s %s",
+                    arg, tun_mtu, ifconfig_local, ifconfig_remote, context);
 
         if (plugin_call(plugins, plugin_type, &argv, NULL, es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
         {
@@ -177,7 +172,7 @@ run_up_down(const char *command,
         ASSERT(arg);
         setenv_str(es, "script_type", script_type);
         argv_parse_cmd(&argv, command);
-        argv_printf_cat(&argv, "%s %d %d %s %s %s", arg, tun_mtu, link_mtu,
+        argv_printf_cat(&argv, "%s %d 0 %s %s %s", arg, tun_mtu,
                         ifconfig_local, ifconfig_remote, context);
         argv_msg(M_INFO, &argv);
         openvpn_run_script(&argv, es, S_FATAL, "--up/--down");
@@ -1784,7 +1779,6 @@ do_open_tun(struct context *c)
 #endif
                 dev_type_string(c->options.dev, c->options.dev_type),
                 TUN_MTU_SIZE(&c->c2.frame),
-                EXPANDED_SIZE(&c->c2.frame),
                 print_in_addr_t(c->c1.tuntap->local, IA_EMPTY_IF_UNDEF, &gc),
                 print_in_addr_t(c->c1.tuntap->remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
                 "init",
@@ -1834,7 +1828,6 @@ else
 #endif
                     dev_type_string(c->options.dev, c->options.dev_type),
                     TUN_MTU_SIZE(&c->c2.frame),
-                    EXPANDED_SIZE(&c->c2.frame),
                     print_in_addr_t(c->c1.tuntap->local, IA_EMPTY_IF_UNDEF, &gc),
                     print_in_addr_t(c->c1.tuntap->remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
                     "restart",
@@ -1914,7 +1907,6 @@ do_close_tun(struct context *c, bool force)
 #endif
                             NULL,
                             TUN_MTU_SIZE(&c->c2.frame),
-                            EXPANDED_SIZE(&c->c2.frame),
                             print_in_addr_t(local, IA_EMPTY_IF_UNDEF, &gc),
                             print_in_addr_t(remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
                             "init",
@@ -1945,7 +1937,6 @@ do_close_tun(struct context *c, bool force)
 #endif
                         NULL,
                         TUN_MTU_SIZE(&c->c2.frame),
-                        EXPANDED_SIZE(&c->c2.frame),
                         print_in_addr_t(local, IA_EMPTY_IF_UNDEF, &gc),
                         print_in_addr_t(remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
                         "init",
@@ -1984,7 +1975,6 @@ do_close_tun(struct context *c, bool force)
 #endif
                             NULL,
                             TUN_MTU_SIZE(&c->c2.frame),
-                            EXPANDED_SIZE(&c->c2.frame),
                             print_in_addr_t(local, IA_EMPTY_IF_UNDEF, &gc),
                             print_in_addr_t(remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
                             "restart",

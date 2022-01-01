@@ -128,6 +128,8 @@ User-visible Changes
 - CHACHA20-POLY1305 is included in the default of ``--data-ciphers`` when available.
 - Option ``--prng`` is ignored as we rely on the SSL library random number generator.
 - Option ``--nobind`` is default when ``--client`` or ``--pull`` is used in the configuration
+- :code:`link_mtu` parameter is removed from environment or replaced with 0 when scripts are
+  called with parameters. This parameter is unreliable and no longer internally calculated.
 
 Overview of changes in 2.5
 ==========================
