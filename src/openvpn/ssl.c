@@ -1891,7 +1891,8 @@ cleanup:
 bool
 tls_session_update_crypto_params_do_work(struct tls_session *session,
                                  struct options* options, struct frame *frame,
-                                 struct frame *frame_fragment)
+                                 struct frame *frame_fragment,
+                                 struct link_socket_info *lsi)
 {
     if (session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized)
     {
@@ -1921,7 +1922,7 @@ tls_session_update_crypto_params_do_work(struct tls_session *session,
                                    options->replay, packet_id_long_form);
     frame_finalize(frame, options->ce.link_mtu_defined, options->ce.link_mtu,
                    options->ce.tun_mtu_defined, options->ce.tun_mtu);
-    frame_calculate_mssfix(frame, &session->opt->key_type, options);
+    frame_calculate_mssfix(frame, &session->opt->key_type, options, lsi);
     frame_print(frame, D_MTU_INFO, "Data Channel MTU parms");
 
     /*
@@ -1946,7 +1947,8 @@ tls_session_update_crypto_params_do_work(struct tls_session *session,
 bool
 tls_session_update_crypto_params(struct tls_session *session,
                                  struct options *options, struct frame *frame,
-                                 struct frame *frame_fragment)
+                                 struct frame *frame_fragment,
+                                 struct link_socket_info *lsi)
 {
 
     bool cipher_allowed_as_fallback = options->enable_ncp_fallback
@@ -1965,7 +1967,8 @@ tls_session_update_crypto_params(struct tls_session *session,
     /* Import crypto settings that might be set by pull/push */
     session->opt->crypto_flags |= options->data_channel_crypto_flags;
 
-    return tls_session_update_crypto_params_do_work(session, options, frame, frame_fragment);
+    return tls_session_update_crypto_params_do_work(session, options, frame,
+                                                    frame_fragment, lsi);
 }
 
 

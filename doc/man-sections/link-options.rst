@@ -110,19 +110,37 @@ the local and the remote host.
   (:code:`p2p`). OpenVPN 2.0 introduces a new mode (:code:`server`) which
   implements a multi-client server capability.
 
---mssfix max
+--mssfix args
+
+  Valid syntax:
+  ::
+
+     mssfix max [mtu]
+
+     mssfix
+
   Announce to TCP sessions running over the tunnel that they should limit
   their send packet sizes such that after OpenVPN has encapsulated them,
   the resulting UDP packet size that OpenVPN sends to its peer will not
-  exceed ``max`` bytes. The default value is :code:`1450`.
+  exceed ``max`` bytes. The default value is :code:`1450`. Use :code:`0`
+  as max to disable mssfix.
 
-  The ``max`` parameter is interpreted in the same way as the
-  ``--link-mtu`` parameter, i.e. the UDP packet size after encapsulation
-  overhead has been added in, but not including the UDP header itself.
-  Resulting packet would be at most 28 bytes larger for IPv4 and 48 bytes
-  for IPv6 (20/40 bytes for IP header and 8 bytes for UDP header). Default
-  value of 1450 allows IPv4 packets to be transmitted over a link with MTU
-  1473 or higher without IP level fragmentation.
+  If the :code:`mtu` parameter is specified the ``max`` value is interpreted
+  as the resulting packet size of VPN packets including the IP and UDP header.
+  Support for the :code:`mtu` parameter was added with OpenVPN version 2.6.0.
+
+  If the :code:`mtu` parameter is not specified, the ``max`` parameter
+  is interpreted in the same way as the ``--link-mtu`` parameter, i.e.
+  the UDP packet size after encapsulation overhead has been added in, but
+  not including the UDP header itself. Resulting packet would be at most 28
+  bytes larger for IPv4 and 48 bytes for IPv6 (20/40 bytes for IP header and
+  8 bytes for UDP header). Default value of 1450 allows OpenVPN packets to be
+  transmitted over IPv4 on a link with MTU 1478 or higher without IP level
+  fragmentation (and 1498 for IPv6).
+
+  if ``--mssfix`` is specified is specified without any parameter it
+  inherits the parameters of ``--fragment`` if specified or uses the
+  default for ``--mssfix`` otherwise.
 
   The ``--mssfix`` option only makes sense when you are using the UDP
   protocol for OpenVPN peer-to-peer communication, i.e. ``--proto udp``.

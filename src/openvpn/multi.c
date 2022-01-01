@@ -2286,7 +2286,8 @@ multi_client_generate_tls_keys(struct context *c)
 #endif
     struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
     if (!tls_session_update_crypto_params(session, &c->options,
-                                          &c->c2.frame, frame_fragment))
+                                          &c->c2.frame, frame_fragment,
+                                          get_link_socket_info(c)))
     {
         msg(D_TLS_ERRORS, "TLS Error: initializing data channel failed");
         register_signal(c, SIGUSR1, "process-push-msg-failed");

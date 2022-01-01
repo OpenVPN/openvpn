@@ -62,6 +62,12 @@ Optional ciphers in ``--data-ciphers``
     Ciphers in ``--data-ciphers`` can now be prefixed with a ``?`` to mark
     those as optional and only use them if the SSL library supports them.
 
+
+Improved ``--mssfix`` calculation
+    The ``--mssfix`` option now allows an optional :code:`mtu` parameter to specify
+    that different overhead for IPv4/IPv6 should taken into account and the resulting
+    size is specified as the total size of the VPN packets including IP and UDP headers.
+
 Deprecated features
 -------------------
 ``inetd`` has been removed

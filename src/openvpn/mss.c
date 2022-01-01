@@ -227,9 +227,30 @@ adjust_payload_max_cbc(const struct key_type *kt, unsigned int target)
     }
 }
 
+static unsigned int
+get_ip_encap_overhead(const struct options *options,
+                      const struct link_socket_info *lsi)
+{
+    /* Add the overhead of the encapsulating IP packets */
+    sa_family_t af;
+    if (lsi->lsa)
+    {
+        af = lsi->lsa->actual.dest.addr.sa.sa_family;
+    }
+    else
+    {
+        /* In the early init before the connection is established or we
+         * are in listen mode we can only make an educated guess
+         * from the af of the connection entry */
+        af = options->ce.af;
+    }
+    return datagram_overhead(af, lsi->proto);
+}
+
 void
 frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
-                       const struct options *options)
+                       const struct options *options,
+                       struct link_socket_info *lsi)
 {
     if (options->ce.mssfix == 0)
     {
@@ -250,6 +271,12 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
      * without options.
      *
      * (RFC 879, section 7). */
+
+    if (options->ce.mssfix_encap)
+    {
+        /* Add the overhead of the encapsulating IP packets */
+        overhead += get_ip_encap_overhead(options, lsi);
+    }
 
     /* Add 20 bytes for the IPv4 header and 20 byte for the TCP header of the
      * payload, the mssfix method will add 20 extra if payload is IPv6 */

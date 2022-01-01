@@ -6796,18 +6796,27 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         script_security_set(atoi(p[1]));
     }
-    else if (streq(p[0], "mssfix") && !p[2])
+    else if (streq(p[0], "mssfix") && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION);
         if (p[1])
         {
             options->ce.mssfix = positive_atoi(p[1]);
         }
-        else
+
+        if (!p[1])
         {
             options->ce.mssfix_default = true;
         }
 
+        if (p[2] && streq(p[2], "mtu"))
+        {
+            options->ce.mssfix_encap = true;
+        }
+        else if (p[2])
+        {
+            msg(msglevel, "Unknown parameter to --mssfix: %s", p[2]);
+        }
     }
     else if (streq(p[0], "disable-occ") && !p[1])
     {
