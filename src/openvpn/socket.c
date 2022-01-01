@@ -44,17 +44,6 @@
 
 #include "memdbg.h"
 
-const int proto_overhead[] = { /* indexed by PROTO_x */
-    0,
-    IPv4_UDP_HEADER_SIZE, /* IPv4 */
-    IPv4_TCP_HEADER_SIZE,
-    IPv4_TCP_HEADER_SIZE,
-    IPv6_UDP_HEADER_SIZE, /* IPv6 */
-    IPv6_TCP_HEADER_SIZE,
-    IPv6_TCP_HEADER_SIZE,
-    IPv6_TCP_HEADER_SIZE,
-};
-
 /*
  * Convert sockflags/getaddr_flags into getaddr_flags
  */
@@ -1660,9 +1649,10 @@ socket_frame_init(const struct frame *frame, struct link_socket *sock)
  * to us by the OS.
  */
 void
-frame_adjust_path_mtu(struct frame *frame, int pmtu, int proto)
+frame_adjust_path_mtu(struct frame *frame, int pmtu, sa_family_t af, int proto)
 {
-    frame_set_mtu_dynamic(frame, pmtu - datagram_overhead(proto), SET_MTU_UPPER_BOUND);
+    frame_set_mtu_dynamic(frame, pmtu - datagram_overhead(af, proto),
+                          SET_MTU_UPPER_BOUND);
 }
 
 static void

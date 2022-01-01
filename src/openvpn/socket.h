@@ -333,7 +333,7 @@ void do_preresolve(struct context *c);
 
 void socket_adjust_frame_parameters(struct frame *frame, int proto);
 
-void frame_adjust_path_mtu(struct frame *frame, int pmtu, int proto);
+void frame_adjust_path_mtu(struct frame *frame, int pmtu, sa_family_t af, int proto);
 
 void link_socket_close(struct link_socket *sock);
 
@@ -612,18 +612,13 @@ const char *addr_family_name(int af);
 /*
  * Overhead added to packets by various protocols.
  */
-#define IPv4_UDP_HEADER_SIZE              28
-#define IPv4_TCP_HEADER_SIZE              40
-#define IPv6_UDP_HEADER_SIZE              48
-#define IPv6_TCP_HEADER_SIZE              60
-
-extern const int proto_overhead[];
-
 static inline int
-datagram_overhead(int proto)
+datagram_overhead(sa_family_t af, int proto)
 {
-    ASSERT(proto >= 0 && proto < PROTO_N);
-    return proto_overhead [proto];
+    int overhead = 0;
+    overhead += (proto == PROTO_UDP) ? 8 : 20;
+    overhead += (af == AF_INET) ? 20 : 40;
+    return overhead;
 }
 
 /*

@@ -480,10 +480,10 @@ check_fragment(struct context *c)
     struct link_socket_info *lsi = get_link_socket_info(c);
 
     /* OS MTU Hint? */
-    if (lsi->mtu_changed)
+    if (lsi->mtu_changed && lsi->lsa)
     {
         frame_adjust_path_mtu(&c->c2.frame_fragment, c->c2.link_socket->mtu,
-                              c->options.ce.proto);
+                              lsi->lsa->actual.dest.addr.sa.sa_family, lsi->proto);
         lsi->mtu_changed = false;
     }
 
@@ -1566,8 +1566,10 @@ process_outgoing_link(struct context *c)
              */
             if (c->options.shaper)
             {
-                shaper_wrote_bytes(&c->c2.shaper, BLEN(&c->c2.to_link)
-                                   + datagram_overhead(c->options.ce.proto));
+                int overhead = datagram_overhead(c->c2.to_link_addr->dest.addr.sa.sa_family,
+                                                 c->options.ce.proto);
+                shaper_wrote_bytes(&c->c2.shaper,
+                                   BLEN(&c->c2.to_link) + overhead);
             }
 
             /*
