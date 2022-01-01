@@ -82,9 +82,14 @@ the local and the remote host.
          ping-restart 60            # Argument: timeout
 
 --link-mtu n
-  Sets an upper bound on the size of UDP packets which are sent between
+  **DEPRECATED** Sets an upper bound on the size of UDP packets which are sent between
   OpenVPN peers. *It's best not to set this parameter unless you know what
   you're doing.*
+
+  Due to variable header size of IP header (20 bytes for IPv4 and 40 bytes
+  for IPv6) and dynamically negotiated data channel cipher, this option
+  is not reliable. It is recommended to set tun-mtu with enough headroom
+  instead.
 
 --local host
   Local host name or IP address for bind. If specified, OpenVPN will bind

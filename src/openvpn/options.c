@@ -2112,9 +2112,7 @@ options_postprocess_verify_ce(const struct options *options,
      */
     if (options->ce.tun_mtu_defined && options->ce.link_mtu_defined)
     {
-        msg(M_USAGE,
-            "only one of --tun-mtu or --link-mtu may be defined (note that "
-            "--ifconfig implies --link-mtu %d)", LINK_MTU_DEFAULT);
+        msg(M_USAGE, "only one of --tun-mtu or --link-mtu may be defined");
     }
 
     if (!proto_is_udp(ce->proto) && options->mtu_test)
