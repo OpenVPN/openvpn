@@ -260,7 +260,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
     ASSERT(buf_write(&token, &timestamp, sizeof(timestamp)));
     ASSERT(buf_write(&token, hmac_output, sizeof(hmac_output)));
 
-    char *b64output;
+    char *b64output = NULL;
     openvpn_base64_encode(BPTR(&token), BLEN(&token), &b64output);
 
     struct buffer session_token = alloc_buf_gc(
