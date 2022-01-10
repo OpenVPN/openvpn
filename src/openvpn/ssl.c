@@ -1669,9 +1669,9 @@ init_key_contexts(struct key_ctx_bi *key,
     init_key_ctx_bi(key, key2, key_direction, key_type, "Data Channel");
 
     /* Initialize implicit IVs */
-    key_ctx_update_implicit_iv(&key->encrypt, (*key2).keys[(int)server].hmac,
+    key_ctx_update_implicit_iv(&key->encrypt, key2->keys[(int)server].hmac,
                                MAX_HMAC_KEY_LENGTH);
-    key_ctx_update_implicit_iv(&key->decrypt, (*key2).keys[1-(int)server].hmac,
+    key_ctx_update_implicit_iv(&key->decrypt, key2->keys[1 - (int)server].hmac,
                                MAX_HMAC_KEY_LENGTH);
 
 }
