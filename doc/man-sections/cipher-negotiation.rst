@@ -16,7 +16,7 @@ with a AUTH_FAILED message (as seen in client log):
     AUTH: Received control message: AUTH_FAILED,Data channel cipher negotiation failed (no shared cipher)
 
 OpenVPN 2.5 and later will only allow the ciphers specified in ``--data-ciphers``.
- If ``--data-ciphers`` is not set the default is :code:`AES-256-GCM:AES-128-GCM`.
+If ``--data-ciphers`` is not set the default is :code:`AES-256-GCM:AES-128-GCM`.
 In 2.6 and later the default is changed to
 :code:`AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305` when Chacha20-Poly1305 is available.
 
