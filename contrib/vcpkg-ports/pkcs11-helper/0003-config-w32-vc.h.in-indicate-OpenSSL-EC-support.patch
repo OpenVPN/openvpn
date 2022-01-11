@@ -1,0 +1,33 @@
+From c2293864de70fec322fe7e559055530ef56b9641 Mon Sep 17 00:00:00 2001
+From: Lev Stipakov <lev@openvpn.net>
+Date: Tue, 11 Jan 2022 13:35:42 +0200
+Subject: [PATCH] config-w32-vc.h.in: indicate OpenSSL EC support
+
+Signed-off-by: Lev Stipakov <lev@openvpn.net>
+---
+ config-w32-vc.h.in | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/config-w32-vc.h b/config-w32-vc.h
+index 6d94841..db83825 100644
+--- a/config-w32-vc.h
++++ b/config-w32-vc.h
+@@ -218,3 +218,15 @@
+ 
+ /* Define to 1 if you have the `DSA_SIG_set0' function. */
+ #define HAVE_DSA_SIG_SET0 1
++
++/* Define to 1 if you have the `ECDSA_SIG_set0' function. */
++#define HAVE_ECDSA_SIG_SET0 1
++
++/* Define to 1 if you have the `EC_KEY_METHOD_get_sign' function. */
++#define HAVE_EC_KEY_METHOD_GET_SIGN 1
++
++/* Define to 1 if you have the `EC_KEY_METHOD_set_sign' function. */
++#define HAVE_EC_KEY_METHOD_SET_SIGN 1
++
++/* Define to 1 if OpenSSL has EC support. */
++#define ENABLE_PKCS11H_OPENSSL_EC 1
+-- 
+2.23.0.windows.1
+
