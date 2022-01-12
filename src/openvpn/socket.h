@@ -389,6 +389,8 @@ const char *print_in_addr_t(in_addr_t addr, unsigned int flags, struct gc_arena 
 
 const char *print_in6_addr(struct in6_addr addr6, unsigned int flags, struct gc_arena *gc);
 
+const char *print_in_port_t(in_port_t port, struct gc_arena *gc);
+
 struct in6_addr add_in6_addr( struct in6_addr base, uint32_t add );
 
 #define SA_IP_PORT        (1<<0)

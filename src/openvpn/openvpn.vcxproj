@@ -269,6 +269,7 @@
     <ClCompile Include="cryptoapi.c" />
     <ClCompile Include="env_set.c" />
     <ClCompile Include="dhcp.c" />
+    <ClCompile Include="dns.c" />
     <ClCompile Include="error.c" />
     <ClCompile Include="event.c" />
     <ClCompile Include="fdmisc.c" />
@@ -352,6 +353,7 @@
     <ClInclude Include="crypto_openssl.h" />
     <ClInclude Include="cryptoapi.h" />
     <ClInclude Include="dhcp.h" />
+    <ClInclude Include="dns.h" />
     <ClInclude Include="env_set.h" />
     <ClInclude Include="errlevel.h" />
     <ClInclude Include="error.h" />

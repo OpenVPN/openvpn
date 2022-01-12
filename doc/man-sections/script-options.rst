@@ -588,6 +588,25 @@ instances.
     netsh.exe calls which sometimes just do not work right with interface
     names). Set prior to ``--up`` or ``--down`` script execution.
 
+:code:`dns_*`
+    The ``--dns`` configuration options will be made available to script
+    execution through this set of environment variables. Variables appear
+    only if the corresponding option has a value assigned. For the semantics
+    of each individual variable, please refer to the documentation for ``--dns``.
+
+    ::
+
+       dns_search_domain_{n}
+       dns_server_{n}_address4
+       dns_server_{n}_port4
+       dns_server_{n}_address6
+       dns_server_{n}_port6
+       dns_server_{n}_resolve_domain_{m}
+       dns_server_{n}_exclude_domain_{m}
+       dns_server_{n}_dnssec
+       dns_server_{n}_transport
+       dns_server_{n}_sni
+
 :code:`foreign_option_{n}`
     An option pushed via ``--push`` to a client which does not natively
     support it, such as ``--dhcp-option`` on a non-Windows system, will be

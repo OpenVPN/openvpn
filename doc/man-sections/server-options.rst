@@ -412,7 +412,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
 
   This is a partial list of options which can currently be pushed:
   ``--route``, ``--route-gateway``, ``--route-delay``,
-  ``--redirect-gateway``, ``--ip-win32``, ``--dhcp-option``,
+  ``--redirect-gateway``, ``--ip-win32``, ``--dhcp-option``, ``--dns``,
   ``--inactive``, ``--ping``, ``--ping-exit``, ``--ping-restart``,
   ``--setenv``, ``--auth-token``, ``--persist-key``, ``--persist-tun``,
   ``--echo``, ``--comp-lzo``, ``--socket-flags``, ``--sndbuf``,

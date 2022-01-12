@@ -39,6 +39,9 @@
     <ClCompile Include="dhcp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dns.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -294,6 +297,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dhcp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dns.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="errlevel.h">
