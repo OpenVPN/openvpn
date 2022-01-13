@@ -38,6 +38,12 @@
 #include <stdbool.h>
 #include <netinet/in.h>
 
+static const char *iface_type_str[] = {
+    [IFACE_DUMMY] = "dummy",
+    [IFACE_TUN] = "tun",
+    [IFACE_OVPN_DCO] = "ovpn-dco",
+};
+
 int
 net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
 {
@@ -61,6 +67,35 @@ void
 net_ctx_free(openvpn_net_ctx_t *ctx)
 {
     gc_free(&ctx->gc);
+}
+
+int
+net_iface_new(openvpn_net_ctx_t *ctx, const char *iface, enum iface_type type,
+              void *arg)
+{
+    struct argv argv = argv_new();
+
+    argv_printf(&argv, "%s link add %s type %s", iproute_path, iface,
+                iface_type_str[type]);
+    argv_msg(M_INFO, &argv);
+    openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip link add failed");
+
+    argv_free(&argv);
+
+    return 0;
+}
+
+int
+net_iface_del(openvpn_net_ctx_t *ctx, const char *iface)
+{
+    struct argv argv = argv_new();
+
+    argv_printf(&argv, "%s link del %s", iproute_path, iface);
+    openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip link del failed");
+
+    argv_free(&argv);
+
+    return 0;
 }
 
 int

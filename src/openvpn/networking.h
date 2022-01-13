@@ -35,6 +35,12 @@ typedef void *openvpn_net_ctx_t;
 typedef void *openvpn_net_iface_t;
 #endif /* ifdef ENABLE_SITNL */
 
+enum iface_type {
+    IFACE_DUMMY,
+    IFACE_TUN,
+    IFACE_OVPN_DCO,
+};
+
 /* Only the iproute2 backend implements these functions,
  * the rest can rely on these stubs
  */
@@ -86,6 +92,27 @@ void net_ctx_reset(openvpn_net_ctx_t *ctx);
  * @param ctx       the implementation specific context to release
  */
 void net_ctx_free(openvpn_net_ctx_t *ctx);
+
+/**
+ * Add a new interface
+ *
+ * @param ctx       the implementation specific context
+ * @param iface     interface to create
+ * @param type      interface type (see enum iface_type declaration)
+ * @param arg       extra data required by the specific type
+ * @return int 0 on success, negative error code on error
+ */
+int net_iface_new(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                  enum iface_type type, void *arg);
+
+/**
+ * Remove an interface
+ *
+ * @param ctx       the implementation specific context
+ * @param iface     interface to delete
+ * @return int 0 on success, negative error code on error
+ */
+int net_iface_del(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface);
 
 /**
  * Bring interface up or down.

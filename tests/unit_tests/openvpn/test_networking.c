@@ -14,6 +14,20 @@ net__iface_up(bool up)
 }
 
 static int
+net__iface_new(const char *name, enum iface_type type, char *type_str)
+{
+    printf("CMD: ip link add %s type %s\n", name, type_str);
+    return net_iface_new(NULL, name, type, NULL);
+}
+
+static int
+net__iface_del(const char *name)
+{
+    printf("CMD: ip link del %s\n", name);
+    return net_iface_del(NULL, name);
+}
+
+static int
 net__iface_mtu_set(int mtu)
 {
     printf("CMD: ip link set %s mtu %d\n", iface, mtu);
@@ -191,7 +205,7 @@ net__route_v6_add_gw(const char *dst_str, int prefixlen, const char *gw_str,
 static void
 usage(char *name)
 {
-    printf("Usage: %s <0-7>\n", name);
+    printf("Usage: %s <0-9>\n", name);
 }
 
 int
@@ -242,6 +256,12 @@ main(int argc, char *argv[])
 
         case 7:
             return net__route_v6_add_gw("2001:cafe:babe::", 48, "2001::2", 600);
+
+        case 8:
+            return net__iface_new("dummy0815", IFACE_DUMMY, "dummy");
+
+        case 9:
+            return net__iface_del("dummy0815");
 
         default:
             printf("invalid test: %d\n", test);
