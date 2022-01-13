@@ -65,11 +65,6 @@ server and client mode operations.
   When the management interface is listening on a unix domain socket, only
   allow connections from group ``g``.
 
---management-client-pf
-  Management interface clients must specify a packet filter file for each
-  connecting client. See :code:`management-notes.txt` in OpenVPN
-  distribution for detailed notes.
-
 --management-client-user u
   When the management interface is listening on a unix domain socket, only
   allow connections from user ``u``.
