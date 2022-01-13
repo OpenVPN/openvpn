@@ -32,9 +32,10 @@
 #include "buffer.h"
 #include "platform.h"
 
+#include <stddef.h>
+
 /* forward declarations */
 struct plugin_list;
-
 
 /* Set standard file descriptors to /dev/null */
 void set_std_files_to_null(bool stdin_only);

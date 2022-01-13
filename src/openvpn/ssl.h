@@ -498,6 +498,7 @@ void tls_update_remote_addr(struct tls_multi *multi,
  * channel keys based on the supplied options. Does nothing if keys are already
  * generated.
  *
+ * @param multi           The TLS object for this instance.
  * @param session         The TLS session to update.
  * @param options         The options to use when updating session.
  * @param frame           The frame options for this session (frame overhead is
@@ -508,7 +509,8 @@ void tls_update_remote_addr(struct tls_multi *multi,
  *
  * @return true if updating succeeded or keys are already generated, false otherwise.
  */
-bool tls_session_update_crypto_params(struct tls_session *session,
+bool tls_session_update_crypto_params(struct tls_multi *multi,
+                                      struct tls_session *session,
                                       struct options *options,
                                       struct frame *frame,
                                       struct frame *frame_fragment,
@@ -623,7 +625,8 @@ show_available_tls_ciphers(const char *cipher_list,
  * can thus be called only once per session.
  */
 bool
-tls_session_generate_data_channel_keys(struct tls_session *session);
+tls_session_generate_data_channel_keys(struct tls_multi *multi,
+                                       struct tls_session *session);
 
 /**
  * Load ovpn.xkey provider used for external key signing

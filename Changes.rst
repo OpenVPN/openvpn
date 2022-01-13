@@ -69,6 +69,13 @@ Improved ``--mssfix`` and ``--fragment`` calculation
     account and the resulting size is specified as the total size of the VPN packets
     including IP and UDP headers.
 
+Data channel offloading with ovpn-dco
+    2.6.0+ implements support for data-channel offloading where the data packets
+    are directly processed and forwarded in kernel space thanks to the ovpn-dco
+    kernel module. The userspace openvpn program acts purely as a control plane
+    application.
+
+
 Deprecated features
 -------------------
 ``inetd`` has been removed

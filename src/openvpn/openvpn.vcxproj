@@ -267,9 +267,10 @@
     <ClCompile Include="crypto.c" />
     <ClCompile Include="crypto_openssl.c" />
     <ClCompile Include="cryptoapi.c" />
-    <ClCompile Include="env_set.c" />
+    <ClCompile Include="dco.c" />
     <ClCompile Include="dhcp.c" />
     <ClCompile Include="dns.c" />
+    <ClCompile Include="env_set.c" />
     <ClCompile Include="error.c" />
     <ClCompile Include="event.c" />
     <ClCompile Include="fdmisc.c" />
@@ -352,6 +353,7 @@
     <ClInclude Include="crypto_backend.h" />
     <ClInclude Include="crypto_openssl.h" />
     <ClInclude Include="cryptoapi.h" />
+    <ClInclude Include="dco.h" />
     <ClInclude Include="dhcp.h" />
     <ClInclude Include="dns.h" />
     <ClInclude Include="env_set.h" />

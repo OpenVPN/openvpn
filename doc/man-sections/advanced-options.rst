@@ -91,3 +91,16 @@ used when debugging or testing out special usage scenarios.
   *(Linux only)* Set the TX queue length on the TUN/TAP interface.
   Currently defaults to operating system default.
 
+--disable-dco
+  Disables the opportunistic use the data channel offloading if available.
+  Without this option, OpenVPN will opportunistically use DCO mode if
+  the config options and the running kernel supports using DCO.
+
+  Data channel offload currently requires data-ciphers to only contain
+  AEAD ciphers (AES-GCM and Chacha20-Poly1305) and Linux with the
+  ovpn-dco module.
+
+  Note that some options have no effect or not available when
+  DCO mode is enabled.
+
+  A platforms that do not support DCO ``disable-dco`` has no effect.

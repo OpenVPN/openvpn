@@ -42,6 +42,9 @@
     <ClCompile Include="dns.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dco.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -294,6 +297,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="cryptoapi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dco.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dhcp.h">

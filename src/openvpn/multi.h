@@ -98,7 +98,9 @@ struct client_connect_defer_state
  * server-mode.
  */
 struct multi_instance {
-    struct schedule_entry se;  /* this must be the first element of the structure */
+    struct schedule_entry se;  /* this must be the first element of the structure,
+                                * We cast between this and schedule_entry so the
+                                * beginning of the struct must be identical */
     struct gc_arena gc;
     bool halt;
     int refcount;
@@ -307,6 +309,8 @@ void multi_process_float(struct multi_context *m, struct multi_instance *mi);
  */
 bool multi_process_post(struct multi_context *m, struct multi_instance *mi, const unsigned int flags);
 
+
+bool multi_process_incoming_dco(struct multi_context *m);
 
 /**************************************************************************/
 /**

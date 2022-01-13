@@ -28,6 +28,7 @@
 
 #include "syshead.h"
 
+#include "dco.h"
 #include "errlevel.h"
 #include "buffer.h"
 #include "misc.h"
@@ -1351,6 +1352,16 @@ net_iface_new(openvpn_net_ctx_t *ctx, const char *iface, enum iface_type type,
     struct rtattr *linkinfo = SITNL_NEST(&req.n, sizeof(req), IFLA_LINKINFO);
     SITNL_ADDATTR(&req.n, sizeof(req), IFLA_INFO_KIND, iface_type_str[type],
                   strlen(iface_type_str[type]) + 1);
+#if defined(ENABLE_DCO)
+    if (arg && type == IFACE_OVPN_DCO)
+    {
+        dco_context_t *dco = arg;
+        struct rtattr *data = SITNL_NEST(&req.n, sizeof(req), IFLA_INFO_DATA);
+        SITNL_ADDATTR(&req.n, sizeof(req), IFLA_OVPN_MODE, &dco->ifmode,
+                      sizeof(uint8_t));
+        SITNL_NEST_END(&req.n, data);
+    }
+#endif
     SITNL_NEST_END(&req.n, linkinfo);
 
     req.i.ifi_family = AF_PACKET;

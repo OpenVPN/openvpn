@@ -61,6 +61,7 @@
 #define MTCP_SIG         ((void *)3) /* Only on Windows */
 #define MTCP_MANAGEMENT ((void *)4)
 #define MTCP_FILE_CLOSE_WRITE ((void *)5)
+#define MTCP_DCO        ((void *)6)
 
 #define MTCP_N           ((void *)16) /* upper bound on MTCP_x */
 
@@ -123,6 +124,8 @@ multi_create_instance_tcp(struct multi_context *m)
     struct hash *hash = m->hash;
 
     mi = multi_create_instance(m, NULL);
+    multi_assign_peer_id(m, mi);
+
     if (mi)
     {
         struct hash_element *he;
@@ -236,6 +239,7 @@ multi_tcp_dereference_instance(struct multi_tcp *mtcp, struct multi_instance *mi
     if (ls && mi->socket_set_called)
     {
         event_del(mtcp->es, socket_event_handle(ls));
+        mi->socket_set_called = false;
     }
     mtcp->n_esr = 0;
 }
@@ -277,6 +281,9 @@ multi_tcp_wait(const struct context *c,
     }
 #endif
     tun_set(c->c1.tuntap, mtcp->es, EVENT_READ, MTCP_TUN, persistent);
+#if defined(TARGET_LINUX)
+    dco_event_set(&c->c1.tuntap->dco, mtcp->es, MTCP_DCO);
+#endif
 
 #ifdef ENABLE_MANAGEMENT
     if (management)
@@ -392,6 +399,20 @@ multi_tcp_wait_lite(struct multi_context *m, struct multi_instance *mi, const in
          (ptr_type)mi);
 
     tv_clear(&c->c2.timeval); /* ZERO-TIMEOUT */
+
+#if defined(TARGET_LINUX)
+    if (mi && mi->context.c2.link_socket->info.dco_installed)
+    {
+        /* If we got a socket that has been handed over to the kernel
+         * we must not call the normal socket function to figure out
+         * if it is readable or writable */
+        /* Assert that we only have the DCO exptected flags */
+        ASSERT(action & (TA_SOCKET_READ | TA_SOCKET_WRITE));
+
+        /* We are always ready! */
+        return action;
+    }
+#endif
 
     switch (action)
     {
@@ -516,7 +537,10 @@ multi_tcp_dispatch(struct multi_context *m, struct multi_instance *mi, const int
 
         case TA_INITIAL:
             ASSERT(mi);
-            multi_tcp_set_global_rw_flags(m, mi);
+            if (!mi->context.c2.link_socket->info.dco_installed)
+            {
+                multi_tcp_set_global_rw_flags(m, mi);
+            }
             multi_process_post(m, mi, mpp_flags);
             break;
 
@@ -566,7 +590,10 @@ multi_tcp_post(struct multi_context *m, struct multi_instance *mi, const int act
             }
             else
             {
-                multi_tcp_set_global_rw_flags(m, mi);
+                if (!c->c2.link_socket->info.dco_installed)
+                {
+                    multi_tcp_set_global_rw_flags(m, mi);
+                }
             }
             break;
 
@@ -623,22 +650,21 @@ multi_tcp_action(struct multi_context *m, struct multi_instance *mi, int action,
         /*
          * Dispatch the action
          */
-        {
-            struct multi_instance *touched = multi_tcp_dispatch(m, mi, action);
+        struct multi_instance *touched = multi_tcp_dispatch(m, mi, action);
 
-            /*
-             * Signal received or TCP connection
-             * reset by peer?
-             */
-            if (touched && IS_SIG(&touched->context))
+        /*
+         * Signal received or TCP connection
+         * reset by peer?
+         */
+        if (touched && IS_SIG(&touched->context))
+        {
+            if (mi == touched)
             {
-                if (mi == touched)
-                {
-                    mi = NULL;
-                }
-                multi_close_instance_on_signal(m, touched);
+                mi = NULL;
             }
+            multi_close_instance_on_signal(m, touched);
         }
+
 
         /*
          * If dispatch produced any pending output
@@ -737,6 +763,13 @@ multi_tcp_process_io(struct multi_context *m)
                     multi_tcp_action(m, mi, TA_INITIAL, false);
                 }
             }
+#if defined(ENABLE_DCO) && defined(TARGET_LINUX)
+            /* incoming data on DCO? */
+            else if (e->arg == MTCP_DCO)
+            {
+                multi_process_incoming_dco(m);
+            }
+#endif
             /* signal received? */
             else if (e->arg == MTCP_SIG)
             {

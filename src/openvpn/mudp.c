@@ -227,6 +227,19 @@ multi_process_io_udp(struct multi_context *m)
         multi_process_file_closed(m, mpp_flags);
     }
 #endif
+#if defined(ENABLE_DCO) && defined(TARGET_LINUX)
+    else if (status & DCO_READ)
+    {
+        if(!IS_SIG(&m->top))
+        {
+            bool ret = true;
+            while (ret)
+            {
+                ret = multi_process_incoming_dco(m);
+            }
+        }
+    }
+#endif
 }
 
 /*

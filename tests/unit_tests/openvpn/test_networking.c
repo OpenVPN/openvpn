@@ -1,6 +1,9 @@
 #include "config.h"
 #include "syshead.h"
+#include "error.h"
 #include "networking.h"
+
+#include "mock_msg.h"
 
 
 static char *iface = "ovpn-dummy0";

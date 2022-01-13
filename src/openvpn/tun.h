@@ -40,6 +40,7 @@
 #include "misc.h"
 #include "networking.h"
 #include "ring_buffer.h"
+#include "dco.h"
 
 #ifdef _WIN32
 #define WINTUN_COMPONENT_ID "wintun"
@@ -138,6 +139,7 @@ struct tuntap_options {
 
 struct tuntap_options {
     int txqueuelen;
+    bool disable_dco;
 };
 
 #else  /* if defined(_WIN32) || defined(TARGET_ANDROID) */
@@ -214,6 +216,8 @@ struct tuntap
 #endif
     /* used for printing status info only */
     unsigned int rwflags_debug;
+
+    dco_context_t dco;
 };
 
 static inline bool
@@ -245,7 +249,7 @@ tuntap_ring_empty(struct tuntap *tt)
  */
 
 void open_tun(const char *dev, const char *dev_type, const char *dev_node,
-              struct tuntap *tt);
+              struct tuntap *tt, openvpn_net_ctx_t *ctx);
 
 void close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx);
 

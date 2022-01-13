@@ -41,6 +41,7 @@
 #include "dhcp.h"
 #include "common.h"
 #include "ssl_verify.h"
+#include "dco.h"
 
 #include "memdbg.h"
 
@@ -50,7 +51,6 @@ counter_type link_read_bytes_global;  /* GLOBAL */
 counter_type link_write_bytes_global; /* GLOBAL */
 
 /* show event wait debugging info */
-
 #ifdef ENABLE_DEBUG
 
 static const char *
@@ -140,6 +140,18 @@ context_reschedule_sec(struct context *c, int sec)
     }
 }
 
+void
+check_dco_key_status(struct context *c)
+{
+    /* DCO context is not yet initialised or enabled */
+    if (!dco_enabled(&c->options))
+    {
+        return;
+    }
+
+    dco_update_keys(&c->c1.tuntap->dco, c->c2.tls_multi);
+}
+
 /*
  * In TLS mode, let TLS level respond to any control-channel
  * packets which were received, or prepare any packets for
@@ -181,6 +193,12 @@ check_tls(struct context *c)
     }
 
     interval_schedule_wakeup(&c->c2.tmp_int, &wakeup);
+
+    /* Our current code has no good hooks in the TLS machinery to install
+     * the keys to DCO. So we check/install keys after the whole TLS
+     * machinery has been completed
+     */
+    check_dco_key_status(c);
 
     if (wakeup)
     {
@@ -1083,6 +1101,33 @@ process_incoming_link(struct context *c)
     perf_pop();
 }
 
+static void
+process_incoming_dco(struct context *c)
+{
+#if defined(ENABLE_DCO) && defined(TARGET_LINUX)
+    struct link_socket_info *lsi = get_link_socket_info(c);
+    dco_context_t *dco = &c->c1.tuntap->dco;
+
+    dco_do_read(dco);
+
+    if (dco->dco_message_type != OVPN_CMD_PACKET)
+    {
+        msg(D_DCO_DEBUG, "%s: received message of type %u - ignoring", __func__,
+            dco->dco_message_type);
+        return;
+    }
+
+    struct buffer orig_buff = c->c2.buf;
+    c->c2.buf = dco->dco_packet_in;
+    c->c2.from = lsi->lsa->actual;
+
+    process_incoming_link(c);
+
+    c->c2.buf = orig_buff;
+    buf_init(&dco->dco_packet_in, 0);
+#endif
+}
+
 /*
  * Output: c->c2.buf
  */
@@ -1606,9 +1651,19 @@ process_outgoing_link(struct context *c)
                 socks_preprocess_outgoing_link(c, &to_addr, &size_delta);
 
                 /* Send packet */
-                size = link_socket_write(c->c2.link_socket,
-                                         &c->c2.to_link,
-                                         to_addr);
+#ifdef TARGET_LINUX
+                if (c->c2.link_socket->info.dco_installed)
+                {
+                    size = dco_do_write(&c->c1.tuntap->dco,
+                                        c->c2.tls_multi->peer_id,
+                                        &c->c2.to_link);
+                }
+                else
+#endif
+                {
+                    size = link_socket_write(c->c2.link_socket, &c->c2.to_link,
+                                             to_addr);
+                }
 
                 /* Undo effect of prepend */
                 link_socket_write_post_size_adjust(&size, size_delta, &c->c2.to_link);
@@ -1871,6 +1926,9 @@ io_wait_dowork(struct context *c, const unsigned int flags)
 #ifdef ENABLE_ASYNC_PUSH
     static int file_shift = FILE_SHIFT;
 #endif
+#ifdef TARGET_LINUX
+    static int dco_shift = DCO_SHIFT;    /* Event from DCO linux kernel module */
+#endif
 
     /*
      * Decide what kind of events we want to wait for.
@@ -1978,6 +2036,12 @@ io_wait_dowork(struct context *c, const unsigned int flags)
      */
     socket_set(c->c2.link_socket, c->c2.event_set, socket, (void *)&socket_shift, NULL);
     tun_set(c->c1.tuntap, c->c2.event_set, tuntap, (void *)&tun_shift, NULL);
+#if defined(TARGET_LINUX)
+    if (socket & EVENT_READ && c->c2.did_open_tun)
+    {
+        dco_event_set(&c->c1.tuntap->dco, c->c2.event_set, (void *)&dco_shift);
+    }
+#endif
 
 #ifdef ENABLE_MANAGEMENT
     if (management)
@@ -2098,6 +2162,13 @@ process_io(struct context *c)
         if (!IS_SIG(c))
         {
             process_incoming_tun(c);
+        }
+    }
+    else if (status & DCO_READ)
+    {
+        if(!IS_SIG(c))
+        {
+            process_incoming_dco(c);
         }
     }
 }

@@ -143,6 +143,13 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
+	[dco],
+	[AS_HELP_STRING([--enable-dco], [enable data channel offload support using ovpn-dco kernel module @<:@default=no@:>@])],
+	,
+	[enable_dco="no"]
+)
+
+AC_ARG_ENABLE(
 	[iproute2],
 	[AS_HELP_STRING([--enable-iproute2], [enable support for iproute2 @<:@default=no@:>@])],
 	,
@@ -760,6 +767,26 @@ PKG_CHECK_MODULES(
 	[]
 )
 
+
+
+if test "$enable_dco" = "yes"; then
+dnl
+dnl Include generic netlink library used to talk to ovpn-dco
+dnl
+
+	PKG_CHECK_MODULES([LIBNL_GENL],
+			  [libnl-genl-3.0 >= 3.2.29],
+			  [have_libnl="yes"],
+			  [AC_MSG_ERROR([libnl-genl-3.0 package not found or too old. Is the development package and pkg-config installed? Must be version 3.4.0 or newer])]
+	)
+
+	CFLAGS="${CFLAGS} ${LIBNL_GENL_CFLAGS}"
+	LIBS="${LIBS} ${LIBNL_GENL_LIBS}"
+
+	AC_DEFINE(ENABLE_DCO, 1, [Enable shared data channel offload])
+	AC_MSG_NOTICE([Enabled ovpn-dco support for Linux])
+fi
+
 if test "${with_crypto_library}" = "openssl"; then
 	AC_ARG_VAR([OPENSSL_CFLAGS], [C compiler flags for OpenSSL])
 	AC_ARG_VAR([OPENSSL_LIBS], [linker flags for OpenSSL])
@@ -1196,6 +1223,7 @@ fi
 AM_CONDITIONAL([HAVE_SITNL], [false])
 
 if test "${enable_iproute2}" = "yes"; then
+	test "${enable_dco}" = "yes" && AC_MSG_ERROR([iproute2 support cannot be enabled when using DCO])
 	test -z "${IPROUTE}" && AC_MSG_ERROR([ip utility is required but missing])
 	AC_DEFINE([ENABLE_IPROUTE], [1], [enable iproute2 support])
 else if test "${have_sitnl}" = "yes"; then
