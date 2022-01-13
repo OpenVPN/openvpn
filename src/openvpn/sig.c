@@ -214,7 +214,7 @@ signal_restart_status(const struct signal_info *si)
 #endif /* ifdef ENABLE_MANAGEMENT */
 }
 
-
+#ifndef _WIN32
 /* normal signal handler, when we are in event loop */
 static void
 signal_handler(const int signum)
@@ -222,6 +222,7 @@ signal_handler(const int signum)
     throw_signal(signum);
     signal(signum, signal_handler);
 }
+#endif
 
 
 /* set handlers for unix signals */
