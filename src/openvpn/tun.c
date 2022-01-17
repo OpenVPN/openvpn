@@ -3561,87 +3561,29 @@ tun_write_queue(struct tuntap *tt, struct buffer *buf)
 }
 
 int
-tun_finalize(
-    HANDLE h,
-    struct overlapped_io *io,
-    struct buffer *buf)
+tun_write_win32(struct tuntap *tt, struct buffer *buf)
 {
-    int ret = -1;
-    BOOL status;
-
-    switch (io->iostate)
+    int err = 0;
+    int status = 0;
+    if (overlapped_io_active(&tt->writes))
     {
-        case IOSTATE_QUEUED:
-            status = GetOverlappedResult(
-                h,
-                &io->overlapped,
-                &io->size,
-                FALSE
-                );
-            if (status)
-            {
-                /* successful return for a queued operation */
-                if (buf)
-                {
-                    *buf = io->buf;
-                }
-                ret = io->size;
-                io->iostate = IOSTATE_INITIAL;
-                ASSERT(ResetEvent(io->overlapped.hEvent));
-                dmsg(D_WIN32_IO, "WIN32 I/O: TAP Completion success [%d]", ret);
-            }
-            else
-            {
-                /* error during a queued operation */
-                ret = -1;
-                if (GetLastError() != ERROR_IO_INCOMPLETE)
-                {
-                    /* if no error (i.e. just not finished yet),
-                     * then DON'T execute this code */
-                    io->iostate = IOSTATE_INITIAL;
-                    ASSERT(ResetEvent(io->overlapped.hEvent));
-                    msg(D_WIN32_IO | M_ERRNO, "WIN32 I/O: TAP Completion error");
-                }
-            }
-            break;
-
-        case IOSTATE_IMMEDIATE_RETURN:
-            io->iostate = IOSTATE_INITIAL;
-            ASSERT(ResetEvent(io->overlapped.hEvent));
-            if (io->status)
-            {
-                /* error return for a non-queued operation */
-                SetLastError(io->status);
-                ret = -1;
-                msg(D_WIN32_IO | M_ERRNO, "WIN32 I/O: TAP Completion non-queued error");
-            }
-            else
-            {
-                /* successful return for a non-queued operation */
-                if (buf)
-                {
-                    *buf = io->buf;
-                }
-                ret = io->size;
-                dmsg(D_WIN32_IO, "WIN32 I/O: TAP Completion non-queued success [%d]", ret);
-            }
-            break;
-
-        case IOSTATE_INITIAL: /* were we called without proper queueing? */
-            SetLastError(ERROR_INVALID_FUNCTION);
-            ret = -1;
-            dmsg(D_WIN32_IO, "WIN32 I/O: TAP Completion BAD STATE");
-            break;
-
-        default:
-            ASSERT(0);
+        sockethandle_t sh = { .is_handle = true, .h = tt->hand };
+        status = sockethandle_finalize(sh, &tt->writes, NULL, NULL);
+        if (status < 0)
+        {
+            err = GetLastError();
+        }
     }
-
-    if (buf)
+    tun_write_queue(tt, buf);
+    if (status < 0)
     {
-        buf->len = ret;
+        SetLastError(err);
+        return status;
     }
-    return ret;
+    else
+    {
+        return BLEN(buf);
+    }
 }
 
 static const struct device_instance_id_interface *

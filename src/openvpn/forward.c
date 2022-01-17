@@ -1115,7 +1115,8 @@ read_incoming_tun(struct context *c)
     }
     else
     {
-        read_tun_buffered(c->c1.tuntap, &c->c2.buf);
+        sockethandle_t sh = { .is_handle = true, .h = c->c1.tuntap->hand };
+        sockethandle_finalize(sh, &c->c1.tuntap->reads, &c->c2.buf, NULL);
     }
 #else  /* ifdef _WIN32 */
     ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));

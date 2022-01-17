@@ -262,11 +262,44 @@ int socket_send_queue(struct link_socket *sock,
                       struct buffer *buf,
                       const struct link_socket_actual *to);
 
-int socket_finalize(
-    SOCKET s,
-    struct overlapped_io *io,
-    struct buffer *buf,
-    struct link_socket_actual *from);
+typedef struct {
+    union {
+        SOCKET s;
+        HANDLE h;
+    };
+    bool is_handle;
+} sockethandle_t;
+
+int sockethandle_finalize(sockethandle_t sh,
+                          struct overlapped_io *io,
+                          struct buffer *buf,
+                          struct link_socket_actual *from);
+
+static inline BOOL
+SocketHandleGetOverlappedResult(sockethandle_t sh, struct overlapped_io *io)
+{
+    return sh.is_handle ?
+        GetOverlappedResult(sh.h, &io->overlapped, &io->size, FALSE) :
+        WSAGetOverlappedResult(sh.s, &io->overlapped, &io->size, FALSE, &io->flags);
+}
+
+static inline int
+SocketHandleGetLastError(sockethandle_t sh)
+{
+    return sh.is_handle ? (int)GetLastError() : WSAGetLastError();
+}
+
+inline static void
+SocketHandleSetLastError(sockethandle_t sh, DWORD err)
+{
+    sh.is_handle ? SetLastError(err) : WSASetLastError(err);
+}
+
+static inline void
+SocketHandleSetInvalError(sockethandle_t sh)
+{
+    sh.is_handle ? SetLastError(ERROR_INVALID_FUNCTION) : WSASetLastError(WSAEINVAL);
+}
 
 #else  /* ifdef _WIN32 */
 
@@ -1020,7 +1053,8 @@ link_socket_read_udp_win32(struct link_socket *sock,
                            struct buffer *buf,
                            struct link_socket_actual *from)
 {
-    return socket_finalize(sock->sd, &sock->reads, buf, from);
+    sockethandle_t sh = { .s = sock->sd };
+    return sockethandle_finalize(sh, &sock->reads, buf, from);
 }
 
 #else  /* ifdef _WIN32 */
@@ -1078,9 +1112,10 @@ link_socket_write_win32(struct link_socket *sock,
 {
     int err = 0;
     int status = 0;
+    sockethandle_t sh = { .s = sock->sd };
     if (overlapped_io_active(&sock->writes))
     {
-        status = socket_finalize(sock->sd, &sock->writes, NULL, NULL);
+        status = sockethandle_finalize(sh, &sock->writes, NULL, NULL);
         if (status < 0)
         {
             err = WSAGetLastError();

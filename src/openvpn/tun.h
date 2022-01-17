@@ -437,8 +437,6 @@ int tun_read_queue(struct tuntap *tt, int maxsize);
 
 int tun_write_queue(struct tuntap *tt, struct buffer *buf);
 
-int tun_finalize(HANDLE h, struct overlapped_io *io, struct buffer *buf);
-
 static inline bool
 tuntap_stop(int status)
 {
@@ -466,36 +464,7 @@ tuntap_abort(int status)
     return false;
 }
 
-static inline int
-tun_write_win32(struct tuntap *tt, struct buffer *buf)
-{
-    int err = 0;
-    int status = 0;
-    if (overlapped_io_active(&tt->writes))
-    {
-        status = tun_finalize(tt->hand, &tt->writes, NULL);
-        if (status < 0)
-        {
-            err = GetLastError();
-        }
-    }
-    tun_write_queue(tt, buf);
-    if (status < 0)
-    {
-        SetLastError(err);
-        return status;
-    }
-    else
-    {
-        return BLEN(buf);
-    }
-}
-
-static inline int
-read_tun_buffered(struct tuntap *tt, struct buffer *buf)
-{
-    return tun_finalize(tt->hand, &tt->reads, buf);
-}
+int tun_write_win32(struct tuntap *tt, struct buffer *buf);
 
 static inline ULONG
 wintun_ring_packet_align(ULONG size)
