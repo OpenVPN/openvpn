@@ -198,7 +198,7 @@ bool buf_init_debug(struct buffer *buf, int offset, const char *file, int line);
 
 
 /* inline functions */
-inline static void
+static inline void
 gc_freeaddrinfo_callback(void *addr)
 {
     freeaddrinfo((struct addrinfo *) addr);

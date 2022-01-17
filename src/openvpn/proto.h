@@ -251,7 +251,7 @@ struct ip_tcp_udp_hdr {
  * This returns an ip protocol version of packet inside tun
  * and offset of IP header (via parameter).
  */
-inline static int
+static inline int
 get_tun_ip_ver(int tunnel_type, struct buffer *buf, int *ip_hdr_offset)
 {
     int ip_ver = -1;
