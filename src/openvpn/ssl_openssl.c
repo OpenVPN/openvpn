@@ -1493,6 +1493,7 @@ tls_ctx_use_management_external_key(struct tls_root_ctx *ctx)
     if (!privkey
         || !SSL_CTX_use_PrivateKey(ctx->ctx, privkey))
     {
+        EVP_PKEY_free(privkey);
         goto cleanup;
     }
     EVP_PKEY_free(privkey);
