@@ -278,38 +278,41 @@ test_occ_mtu_calculation(void **state)
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1440);
 
-    /* --secret, cipher BF-CBC, auth SHA1 */
+    /* secret, cipher BF-CBC, auth SHA1 */
     o.ciphername = "BF-CBC";
     o.authname = "SHA1";
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1444);
 
-    /* --secret, cipher BF-CBC, auth SHA1, tcp-client */
+    /* secret, cipher BF-CBC, auth SHA1, tcp-client */
     o.ce.proto = PROTO_TCP_CLIENT;
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1446);
 
     o.ce.proto = PROTO_UDP;
 
-    /* --secret, comp-lzo yes, cipher BF-CBC, auth SHA1 */
+#if defined(USE_COMP)
     o.comp.alg = COMP_ALG_LZO;
+
+    /* secret, comp-lzo yes, cipher BF-CBC, auth SHA1 */
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1445);
 
-    /* --secret, comp-lzo yes, cipher BF-CBC, auth SHA1, fragment 1200 */
+    /* secret, comp-lzo yes, cipher BF-CBC, auth SHA1, fragment 1200 */
     o.ce.fragment = 1200;
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1449);
 
     o.comp.alg = COMP_ALG_UNDEF;
     o.ce.fragment = 0;
+#endif
 
     /* TLS mode */
     o.shared_secret_file = NULL;
     o.tls_client = true;
     o.pull = true;
 
-    /* tls client, cipher AES-128-CBC, auth SHA1, tls-auth*/
+    /* tls client, cipher AES-128-CBC, auth SHA1, tls-auth */
     o.authname = "SHA1";
     o.ciphername = "AES-128-CBC";
     o.tls_auth_file = "dummy";
@@ -346,8 +349,10 @@ test_occ_mtu_calculation(void **state)
     assert_int_equal(linkmtu, 1449);
 
 
-    /* tls client, auth SHA1, cipher AES-256-GCM, fragment, comp-lzo yes */
+#if defined(USE_COMP)
     o.comp.alg = COMP_ALG_LZO;
+
+    /* tls client, auth SHA1, cipher AES-256-GCM, fragment, comp-lzo yes */
     o.ce.fragment = 1200;
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1454);
@@ -356,6 +361,7 @@ test_occ_mtu_calculation(void **state)
     o.ce.socks_proxy_server = "socks.example.com";
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1464);
+#endif
 
     gc_free(&gc);
 }
