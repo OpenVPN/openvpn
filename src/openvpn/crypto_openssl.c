@@ -1073,6 +1073,10 @@ md_kt_name(const char *mdname)
 unsigned char
 md_kt_size(const char *mdname)
 {
+    if (!strcmp("none", mdname))
+    {
+        return 0;
+    }
     evp_md_type *kt = md_get(mdname);
     unsigned char size =  (unsigned char)EVP_MD_size(kt);
     EVP_MD_free(kt);
