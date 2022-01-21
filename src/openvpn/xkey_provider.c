@@ -44,9 +44,6 @@
 #include <openssl/evp.h>
 #include <openssl/err.h>
 
-/* propq set all on all ops we implement */
-static const char *const props = XKEY_PROV_PROPS;
-
 /* A descriptive name */
 static const char *provname = "OpenVPN External Key Provider";
 
@@ -592,9 +589,9 @@ static const OSSL_DISPATCH ec_keymgmt_functions[] = {
 };
 
 const OSSL_ALGORITHM keymgmts[] = {
-    {"RSA:rsaEncryption", props, rsa_keymgmt_functions, "OpenVPN xkey RSA Key Manager"},
-    {"RSA-PSS:RSASSA-PSS", props, rsa_keymgmt_functions, "OpenVPN xkey RSA-PSS Key Manager"},
-    {"EC:id-ecPublicKey", props, ec_keymgmt_functions, "OpenVPN xkey EC Key Manager"},
+    {"RSA:rsaEncryption", XKEY_PROV_PROPS, rsa_keymgmt_functions, "OpenVPN xkey RSA Key Manager"},
+    {"RSA-PSS:RSASSA-PSS", XKEY_PROV_PROPS, rsa_keymgmt_functions, "OpenVPN xkey RSA-PSS Key Manager"},
+    {"EC:id-ecPublicKey", XKEY_PROV_PROPS, ec_keymgmt_functions, "OpenVPN xkey EC Key Manager"},
     {NULL, NULL, NULL, NULL}
 };
 
@@ -1074,8 +1071,8 @@ static const OSSL_DISPATCH signature_functions[] = {
 };
 
 const OSSL_ALGORITHM signatures[] = {
-    {"RSA:rsaEncryption", props, signature_functions, "OpenVPN xkey RSA Signature"},
-    {"ECDSA", props, signature_functions, "OpenVPN xkey ECDSA Signature"},
+    {"RSA:rsaEncryption", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey RSA Signature"},
+    {"ECDSA", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey ECDSA Signature"},
     {NULL, NULL, NULL, NULL}
 };
 
