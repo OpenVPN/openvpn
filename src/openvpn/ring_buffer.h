@@ -106,7 +106,9 @@ register_ring_buffers(HANDLE device,
     DWORD bytes_returned;
 
     ZeroMemory(&rr, sizeof(rr));
-
+/*
+Fills a block of memory with zeros.
+*/
     rr.send.ring = send_ring;
     rr.send.ring_size = sizeof(struct tun_ring);
     rr.send.tail_moved = send_tail_moved;
@@ -117,7 +119,19 @@ register_ring_buffers(HANDLE device,
 
     res = DeviceIoControl(device, TUN_IOCTL_REGISTER_RINGS, &rr, sizeof(rr),
       NULL, 0, &bytes_returned, NULL);
-
+    /*
+    Sends a control code directly to a specified device driver, causing the corresponding device to perform the corresponding operation.
+    BOOL DeviceIoControl(
+  [in]                HANDLE       hDevice,
+  [in]                DWORD        dwIoControlCode,
+  [in, optional]      LPVOID       lpInBuffer,
+  [in]                DWORD        nInBufferSize,
+  [out, optional]     LPVOID       lpOutBuffer,
+  [in]                DWORD        nOutBufferSize,
+  [out, optional]     LPDWORD      lpBytesReturned,
+  [in, out, optional] LPOVERLAPPED lpOverlapped
+);
+    */
     return res != FALSE;
 }
 
