@@ -3833,7 +3833,7 @@ options_string(const struct options *o,
     buf_printf(&out, ",link-mtu %u",
                (unsigned int) calc_options_string_link_mtu(o, frame));
 
-    buf_printf(&out, ",tun-mtu %d", PAYLOAD_SIZE(frame));
+    buf_printf(&out, ",tun-mtu %d", frame->tun_mtu);
     buf_printf(&out, ",proto %s",  proto_remote(o->ce.proto, remote));
 
     bool p2p_nopull = o->mode == MODE_POINT_TO_POINT && !PULL_DEFINED(o);

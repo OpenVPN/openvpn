@@ -740,7 +740,7 @@ init_port_share(struct context *c)
     {
         port_share = port_share_open(c->options.port_share_host,
                                      c->options.port_share_port,
-                                     MAX_RW_SIZE_LINK(&c->c2.frame),
+                                     c->c2.frame.buf.payload_size,
                                      c->options.port_share_journal_dir);
         if (port_share == NULL)
         {
@@ -2441,6 +2441,35 @@ do_startup_pause(struct context *c)
     }
 }
 
+static size_t
+get_frame_mtu(struct context *c, const struct options *o)
+{
+    size_t mtu;
+
+    if (o->ce.link_mtu_defined)
+    {
+        ASSERT(o->ce.link_mtu_defined);
+        /* if we have a link mtu defined we calculate what the old code
+         * would have come up with as tun-mtu */
+        size_t overhead = frame_calculate_protocol_header_size(&c->c1.ks.key_type,
+                                                               o, true);
+        mtu = o->ce.link_mtu - overhead;
+
+    }
+    else
+    {
+        ASSERT(o->ce.tun_mtu_defined);
+        mtu = o->ce.tun_mtu;
+    }
+
+    if (mtu < TUN_MTU_MIN)
+    {
+        msg(M_WARN, "TUN MTU value (%lu) must be at least %d", mtu, TUN_MTU_MIN);
+        frame_print(&c->c2.frame, M_FATAL, "MTU is too small");
+    }
+    return mtu;
+}
+
 /*
  * Finalize MTU parameters based on command line or config file options.
  */
@@ -2452,12 +2481,71 @@ frame_finalize_options(struct context *c, const struct options *o)
         o = &c->options;
     }
 
-    frame_add_to_extra_buffer(&c->c2.frame, PAYLOAD_ALIGN);
-    frame_finalize(&c->c2.frame,
+    struct frame *frame = &c->c2.frame;
+
+    frame->tun_mtu = get_frame_mtu(c, o);
+
+    /* We always allow at least 1500 MTU packets to be received in our buffer
+     * space */
+    size_t payload_size = max_int(1500, frame->tun_mtu);
+
+    /* The extra tun needs to be added to the payload size */
+    if (o->ce.tun_mtu_defined)
+    {
+        payload_size += o->ce.tun_mtu_extra;
+    }
+
+    /* Add 100 byte of extra space in the buffer to account for slightly
+     * mismatched MUTs between peers */
+    payload_size += 100;
+
+
+    /* the space that is reserved before the payload to add extra headers to it
+    * we always reserve the space for the worst case */
+    size_t headroom = 0;
+
+    /* includes IV and packet ID */
+    headroom += crypto_max_overhead();
+
+    /* peer id + opcode */
+    headroom += 4;
+
+    /* socks proxy header */
+    headroom += 10;
+
+    /* compression header and fragment header (part of the encrypted payload) */
+    headroom += 1 + 1;
+
+    /* Round up headroom to the next multiple of 4 to ensure alignment */
+    headroom = (headroom + 3) & ~3;
+
+    /* Add the headroom to the payloadsize as a received (IP) packet can have
+     * all the extra headers in it */
+    payload_size += headroom;
+
+    /* the space after the payload, this needs some extra buffer space for
+     * encryption so headroom is probably too much but we do not really care
+     * the few extra bytes */
+    size_t tailroom = headroom;
+
+#ifdef USE_COMP
+    msg(D_MTU_DEBUG, "MTU: adding %lu buffer tailroom for compression for %lu "
+                     "bytes of payload",
+                     COMP_EXTRA_BUFFER(payload_size), payload_size);
+    tailroom += COMP_EXTRA_BUFFER(payload_size);
+#endif
+
+    frame->buf.payload_size = payload_size;
+    frame->buf.headroom = headroom;
+    frame->buf.tailroom = tailroom;
+
+    /* Kept to still update/calculate the other fields for now */
+    frame_finalize(frame,
                    o->ce.link_mtu_defined,
                    o->ce.link_mtu,
                    o->ce.tun_mtu_defined,
                    o->ce.tun_mtu);
+
 }
 
 /*
@@ -3224,17 +3312,19 @@ init_context_buffers(const struct frame *frame)
 
     ALLOC_OBJ_CLEAR(b, struct context_buffers);
 
-    b->read_link_buf = alloc_buf(BUF_SIZE(frame));
-    b->read_tun_buf = alloc_buf(BUF_SIZE(frame));
+    size_t buf_size = BUF_SIZE(frame);
 
-    b->aux_buf = alloc_buf(BUF_SIZE(frame));
+    b->read_link_buf = alloc_buf(buf_size);
+    b->read_tun_buf = alloc_buf(buf_size);
 
-    b->encrypt_buf = alloc_buf(BUF_SIZE(frame));
-    b->decrypt_buf = alloc_buf(BUF_SIZE(frame));
+    b->aux_buf = alloc_buf(buf_size);
+
+    b->encrypt_buf = alloc_buf(buf_size);
+    b->decrypt_buf = alloc_buf(buf_size);
 
 #ifdef USE_COMP
-    b->compress_buf = alloc_buf(BUF_SIZE(frame));
-    b->decompress_buf = alloc_buf(BUF_SIZE(frame));
+    b->compress_buf = alloc_buf(buf_size);
+    b->decompress_buf = alloc_buf(buf_size);
 #endif
 
     return b;

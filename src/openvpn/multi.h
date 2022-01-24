@@ -257,7 +257,7 @@ void multi_init(struct multi_context *m, struct context *t, bool tcp_mode);
 
 void multi_uninit(struct multi_context *m);
 
-void multi_top_init(struct multi_context *m, const struct context *top);
+void multi_top_init(struct multi_context *m, struct context *top);
 
 void multi_top_free(struct multi_context *m);
 

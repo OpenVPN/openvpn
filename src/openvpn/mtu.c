@@ -48,7 +48,7 @@ alloc_buf_sock_tun(struct buffer *buf,
     /* allocate buffer for overlapped I/O */
     *buf = alloc_buf(BUF_SIZE(frame));
     ASSERT(buf_init(buf, FRAME_HEADROOM(frame)));
-    buf->len = tuntap_buffer ? MAX_RW_SIZE_TUN(frame) : MAX_RW_SIZE_LINK(frame);
+    buf->len = frame->buf.payload_size;
     ASSERT(buf_safe(buf, 0));
 }
 
@@ -296,6 +296,11 @@ frame_print(const struct frame *frame,
         buf_printf(&out, "%s ", prefix);
     }
     buf_printf(&out, "[");
+    buf_printf(&out, " mss_fix:%d", frame->mss_fix);
+    buf_printf(&out, " tun_mtu:%d", frame->tun_mtu);
+    buf_printf(&out, " headroom:%d", frame->buf.headroom);
+    buf_printf(&out, " payload:%d", frame->buf.payload_size);
+    buf_printf(&out, " tailroom:%d", frame->buf.tailroom);
     buf_printf(&out, " L:%d", frame->link_mtu);
     buf_printf(&out, " D:%d", frame->link_mtu_dynamic);
     buf_printf(&out, " EF:%d", frame->extra_frame);

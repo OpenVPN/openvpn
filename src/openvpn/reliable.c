@@ -205,8 +205,6 @@ error:
     return false;
 }
 
-#define ACK_SIZE(n) (sizeof(uint8_t) + ((n) ? SID_SIZE : 0) + sizeof(packet_id_type) * (n))
-
 /* write a packet ID acknowledgement record to buf, */
 /* removing all acknowledged entries from ack */
 bool

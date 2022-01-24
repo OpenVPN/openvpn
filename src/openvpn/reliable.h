@@ -66,6 +66,9 @@ struct reliable_ack
     packet_id_type packet_id[RELIABLE_ACK_SIZE];
 };
 
+/* The size of the ACK header */
+#define ACK_SIZE(n) (sizeof(uint8_t) + ((n) ? SID_SIZE : 0) + sizeof(packet_id_type) * (n))
+
 /**
  * The structure in which the reliability layer stores a single incoming
  * or outgoing packet.

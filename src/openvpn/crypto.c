@@ -1065,7 +1065,7 @@ test_crypto(struct crypto_options *co, struct frame *frame)
 {
     int i, j;
     struct gc_arena gc = gc_new();
-    struct buffer src = alloc_buf_gc(TUN_MTU_SIZE(frame), &gc);
+    struct buffer src = alloc_buf_gc(frame->buf.payload_size, &gc);
     struct buffer work = alloc_buf_gc(BUF_SIZE(frame), &gc);
     struct buffer encrypt_workspace = alloc_buf_gc(BUF_SIZE(frame), &gc);
     struct buffer decrypt_workspace = alloc_buf_gc(BUF_SIZE(frame), &gc);
@@ -1096,7 +1096,7 @@ test_crypto(struct crypto_options *co, struct frame *frame)
     }
 
     msg(M_INFO, "Entering " PACKAGE_NAME " crypto self-test mode.");
-    for (i = 1; i <= TUN_MTU_SIZE(frame); ++i)
+    for (i = 1; i <= frame->buf.payload_size; ++i)
     {
         update_time();
 

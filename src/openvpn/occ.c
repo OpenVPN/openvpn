@@ -219,7 +219,7 @@ check_send_occ_msg_dowork(struct context *c)
 
     c->c2.buf = c->c2.buffers->aux_buf;
     ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
-    ASSERT(buf_safe(&c->c2.buf, MAX_RW_SIZE_TUN(&c->c2.frame)));
+    ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
     ASSERT(buf_write(&c->c2.buf, occ_magic, OCC_STRING_SIZE));
 
     switch (c->c2.occ_op)
@@ -319,7 +319,7 @@ check_send_occ_msg_dowork(struct context *c)
                  OCC_STRING_SIZE,
                  (int) sizeof(uint8_t),
                  EXTRA_FRAME(&c->c2.frame),
-                 MAX_RW_SIZE_TUN(&c->c2.frame),
+                 c->c2.frame.buf.payload_size,
                  BLEN(&c->c2.buf));
             doit = true;
         }

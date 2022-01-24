@@ -91,6 +91,25 @@
  * Packet geometry parameters.
  */
 struct frame {
+    struct {
+        /* This struct holds all the information about the buffers that are
+         * allocated to match this frame */
+        int payload_size;       /**< the maximum size that a payload that our
+                                 *   buffers can hold from either tun device
+                                 *   or network link.
+                                 */
+
+
+        int headroom;           /**< the headroom in the buffer, this is choosen
+                                 *   to allow all potential header to be added
+                                 *   before the packet */
+
+        int tailroom;            /**< the tailroom in the buffer. Chosen large
+                                  *  enough to also accompany any extrea header
+                                  *  or work space required by
+                                  *  decryption/encryption or compression. */
+    } buf;
+
     int link_mtu;               /**< Maximum packet size to be sent over
                                  *   the external network interface. */
 
@@ -108,6 +127,17 @@ struct frame {
                                  *   @code
                                  *   frame.link_mtu = "socket MTU" - extra_frame;
                                  *   @endcode
+                                 */
+
+    int tun_mtu;                /**< the (user) configured tun-mtu. This is used
+                                 *   in configuring the tun interface or
+                                 *   in calculations that use the desired size
+                                 *   of the payload in the buffer.
+                                 *
+                                 *   This variable is also used in control
+                                 *   frame context to set the desired maximum
+                                 *   control frame payload (although most of
+                                 *   code ignores it)
                                  */
 
     int extra_buffer;           /**< Maximum number of bytes that
@@ -165,8 +195,8 @@ struct options;
  * a tap device ifconfiged to an MTU of 1200 might actually want
  * to return a packet size of 1214 on a read().
  */
-#define PAYLOAD_SIZE(f)          ((f)->link_mtu - (f)->extra_frame)
 #define PAYLOAD_SIZE_DYNAMIC(f)  ((f)->link_mtu_dynamic - (f)->extra_frame)
+#define PAYLOAD_SIZE(f)          ((f)->buf.payload_size)
 
 /*
  * Max size of a payload packet after encryption, compression, etc.
@@ -177,34 +207,22 @@ struct options;
 #define EXPANDED_SIZE_MIN(f)     (TUN_MTU_MIN + TUN_LINK_DELTA(f))
 
 /*
- * These values are used as maximum size constraints
- * on read() or write() from TUN/TAP device or TCP/UDP port.
- */
-#define MAX_RW_SIZE_TUN(f)       (PAYLOAD_SIZE(f))
-#define MAX_RW_SIZE_LINK(f)      (EXPANDED_SIZE(f) + (f)->extra_link)
-
-/*
  * Control buffer headroom allocations to allow for efficient prepending.
  */
-#define FRAME_HEADROOM_BASE(f)     (TUN_LINK_DELTA(f) + (f)->extra_buffer + (f)->extra_link)
-/* Same as FRAME_HEADROOM_BASE but rounded up to next multiple of PAYLOAD_ALIGN */
-#define FRAME_HEADROOM(f)          frame_headroom(f)
 
 /*
  * Max size of a buffer used to build a packet for output to
- * the TCP/UDP port.
- *
- * the FRAME_HEADROOM_BASE(f) * 2 should not be necessary but it looks that at
- * some point in the past we seem to have lost the information what parts of
- * the extra space we need to have before the data and which we need after
- * the data. So we ensure we have the FRAME_HEADROOM before and after the
- * actual data.
+ * the TCP/UDP port or to read a packet from a tap/tun device.
  *
  * Most of our code only prepends headers but compression needs the extra bytes
  * *after* the data as compressed data might end up larger than the original
- * data (and max compression overhead is part of extra_buffer)
+ * data (and max compression overhead is part of extra_buffer). Also crypto
+ * needs an extra block for encryption. Therefore tailroom is larger than the
+ * headroom.
  */
-#define BUF_SIZE(f)              (TUN_MTU_SIZE(f) + FRAME_HEADROOM_BASE(f) * 2)
+#define BUF_SIZE(f) ((f)->buf.headroom + (f)->buf.payload_size + (f)->buf.tailroom)
+
+#define FRAME_HEADROOM(f)          ((f)->buf.headroom)
 
 /*
  * Function prototypes.
@@ -327,20 +345,6 @@ const char *format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc);
 #endif
 
 /*
- * Calculate a starting offset into a buffer object, dealing with
- * headroom and alignment issues.
- */
-static inline int
-frame_headroom(const struct frame *f)
-{
-    const int offset = FRAME_HEADROOM_BASE(f);
-    /* These two lines just pad offset to next multiple of PAYLOAD_ALIGN in
-     * a complicated and confusing way */
-    const int delta = ((PAYLOAD_ALIGN << 24) - offset) & (PAYLOAD_ALIGN - 1);
-    return offset + delta;
-}
-
-/*
  * frame member adjustment functions
  */
 
@@ -383,7 +387,7 @@ frame_add_to_extra_buffer(struct frame *frame, const int increment)
 static inline bool
 frame_defined(const struct frame *frame)
 {
-    return frame->link_mtu > 0;
+    return frame->buf.payload_size > 0;
 }
 
 #endif /* ifndef MTU_H */

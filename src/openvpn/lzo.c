@@ -213,7 +213,7 @@ lzo_decompress(struct buffer *buf, struct buffer work,
                struct compress_context *compctx,
                const struct frame *frame)
 {
-    lzo_uint zlen = EXPANDED_SIZE(frame);
+    lzo_uint zlen = frame->buf.payload_size;
     int err;
     uint8_t c;          /* flag indicating whether or not our peer compressed */
 

@@ -213,7 +213,7 @@ lz4_decompress(struct buffer *buf, struct buffer work,
                struct compress_context *compctx,
                const struct frame *frame)
 {
-    size_t zlen_max = EXPANDED_SIZE(frame);
+    size_t zlen_max = frame->buf.payload_size;
     uint8_t c;          /* flag indicating whether or not our peer compressed */
 
     if (buf->len <= 0)
@@ -250,7 +250,7 @@ lz4v2_decompress(struct buffer *buf, struct buffer work,
                  struct compress_context *compctx,
                  const struct frame *frame)
 {
-    size_t zlen_max = EXPANDED_SIZE(frame);
+    size_t zlen_max = frame->buf.payload_size;
     uint8_t c;          /* flag indicating whether or not our peer compressed */
 
     if (buf->len <= 0)

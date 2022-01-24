@@ -332,6 +332,35 @@ tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame
     /* set dynamic link MTU to cap control channel packets at 1250 bytes */
     ASSERT(TUN_LINK_DELTA(frame) < min_int(frame->link_mtu, 1250));
     frame->link_mtu_dynamic = min_int(frame->link_mtu, 1250) - TUN_LINK_DELTA(frame);
+
+    /* calculate the maximum overhead that control channel frames may have */
+    int overhead = 0;
+
+    /* Socks */
+    overhead += 10;
+
+    /* tls-auth and tls-crypt */
+    overhead += max_int(tls_crypt_buf_overhead(),
+                        packet_id_size(true) + OPENVPN_MAX_HMAC_SIZE);
+
+    /* TCP length field and opcode */
+    overhead+= 3;
+
+    /* ACK array and remote SESSION ID (part of the ACK array) */
+    overhead += ACK_SIZE(RELIABLE_ACK_SIZE);
+
+    /* Previous OpenVPN version calculated the maximum size and buffer of a
+     * control frame depending on the overhead of the data channel frame
+     * overhead and limited its maximum size to 1250. We always allocate the
+     * 1250 buffer size since a lot of code blindly assumes a large buffer
+     * (e.g. PUSH_BUNDLE_SIZE) and set frame->mtu_mtu as suggestion for the
+     * size */
+    frame->buf.payload_size = 1250 + overhead;
+
+    frame->buf.headroom = overhead;
+    frame->buf.tailroom = overhead;
+
+    frame->tun_mtu = min_int(data_channel_frame->tun_mtu, 1250);
 }
 
 void
@@ -1875,13 +1904,6 @@ tls_session_update_crypto_params_do_work(struct tls_session *session,
         msg(D_HANDSHAKE, "Data Channel: using negotiated cipher '%s'",
             options->ciphername);
     }
-    else
-    {
-        /* Very hacky workaround and quick fix for frame calculation
-         * different when adjusting frame size when the original and new cipher
-         * are identical to avoid a regression with client without NCP */
-        return tls_session_generate_data_channel_keys(session);
-    }
 
     init_key_type(&session->opt->key_type, options->ciphername,
                   options->authname, true, true);
@@ -2964,7 +2986,7 @@ tls_process(struct tls_multi *multi,
             buf = reliable_get_buf_output_sequenced(ks->send_reliable);
             if (buf)
             {
-                int status = key_state_read_ciphertext(&ks->ks_ssl, buf, PAYLOAD_SIZE_DYNAMIC(&multi->opt.frame));
+                int status = key_state_read_ciphertext(&ks->ks_ssl, buf, multi->opt.frame.tun_mtu);
                 if (status == -1)
                 {
                     msg(D_TLS_ERRORS,

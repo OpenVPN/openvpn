@@ -3495,7 +3495,7 @@ gremlin_flood_clients(struct multi_context *m)
         int i;
 
         ASSERT(buf_init(&buf, FRAME_HEADROOM(&m->top.c2.frame)));
-        parm.packet_size = min_int(parm.packet_size, MAX_RW_SIZE_TUN(&m->top.c2.frame));
+        parm.packet_size = min_int(parm.packet_size, m->top.c2.frame.buf.payload_size);
 
         msg(D_GREMLIN, "GREMLIN_FLOOD_CLIENTS: flooding clients with %d packets of size %d",
             parm.n_packets,
@@ -3557,7 +3557,7 @@ multi_process_per_second_timers_dowork(struct multi_context *m)
 }
 
 void
-multi_top_init(struct multi_context *m, const struct context *top)
+multi_top_init(struct multi_context *m, struct context *top)
 {
     inherit_context_top(&m->top, top);
     m->top.c2.buffers = init_context_buffers(&top->c2.frame);

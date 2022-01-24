@@ -1120,8 +1120,8 @@ read_incoming_tun(struct context *c)
     }
 #else  /* ifdef _WIN32 */
     ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
-    ASSERT(buf_safe(&c->c2.buf, MAX_RW_SIZE_TUN(&c->c2.frame)));
-    c->c2.buf.len = read_tun(c->c1.tuntap, BPTR(&c->c2.buf), MAX_RW_SIZE_TUN(&c->c2.frame));
+    ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
+    c->c2.buf.len = read_tun(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
 #endif /* ifdef _WIN32 */
 
 #ifdef PACKET_TRUNCATION_CHECK
@@ -1710,7 +1710,7 @@ process_outgoing_tun(struct context *c)
                       PIP_MSSFIX | PIPV4_EXTRACT_DHCP_ROUTER | PIPV4_CLIENT_NAT | PIP_OUTGOING,
                       &c->c2.to_tun);
 
-    if (c->c2.to_tun.len <= MAX_RW_SIZE_TUN(&c->c2.frame))
+    if (c->c2.to_tun.len <= c->c2.frame.buf.payload_size)
     {
         /*
          * Write to TUN/TAP device.
@@ -1770,7 +1770,7 @@ process_outgoing_tun(struct context *c)
          */
         msg(D_LINK_ERRORS, "tun packet too large on write (tried=%d,max=%d)",
             c->c2.to_tun.len,
-            MAX_RW_SIZE_TUN(&c->c2.frame));
+            c->c2.frame.buf.payload_size);
     }
 
     buf_reset(&c->c2.to_tun);
