@@ -65,7 +65,7 @@ int
 xkey_digest(const unsigned char *src, size_t srclen, unsigned char *buf,
             size_t *buflen, const char *mdname)
 {
-    dmsg(D_LOW, "In xkey_digest");
+    dmsg(D_XKEY, "In xkey_digest");
     EVP_MD *md = EVP_MD_fetch(NULL, mdname, NULL); /* from default context */
     if (!md)
     {
@@ -163,7 +163,7 @@ int
 xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
                      const unsigned char *tbs, size_t tbslen, XKEY_SIGALG alg)
 {
-    dmsg(D_LOW, "In xkey_management_sign with keytype = %s, op = %s",
+    dmsg(D_XKEY, "In xkey_management_sign with keytype = %s, op = %s",
          alg.keytype, alg.op);
 
     (void) unused;
@@ -180,7 +180,7 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
     /* if management client cannot do digest -- we do it here */
     if (!strcmp(alg.op, "DigestSign") && !(flags & MF_EXTERNAL_KEY_DIGEST))
     {
-        dmsg(D_LOW, "xkey_management_sign: computing digest");
+        dmsg(D_XKEY, "xkey_management_sign: computing digest");
         if (xkey_digest(tbs, tbslen, buf, &buflen, alg.mdname))
         {
             tbs = buf;
@@ -379,7 +379,7 @@ encode_pkcs1(unsigned char *enc, size_t *enc_len, const char *mdname,
         /* combine header and digest */
         memcpy(enc, di->header, di->sz);
         memcpy(enc + di->sz, tbs, tbslen);
-        dmsg(D_LOW, "encode_pkcs1: digest length = %d encoded length = %d",
+        dmsg(D_XKEY, "encode_pkcs1: digest length = %d encoded length = %d",
              (int) tbslen, (int) out_len);
         ret = true;
     }
