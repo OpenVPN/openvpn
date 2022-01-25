@@ -860,7 +860,7 @@ xkey_cng_rsa_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsig
         int saltlen = tbslen; /* digest size by default */
         if (!strcmp(sigalg.saltlen, "max"))
         {
-            saltlen = (EVP_PKEY_bits(cd->pubkey) - 1)/8 - tbslen - 2;
+            saltlen = xkey_max_saltlen(EVP_PKEY_bits(cd->pubkey), tbslen);
             if (saltlen < 0)
             {
                 msg(M_NONFATAL, "Error in cryptoapicert: invalid salt length (%d)", saltlen);

@@ -153,6 +153,20 @@ xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
 
 extern OSSL_LIB_CTX *tls_libctx; /* Global */
 
+/**
+ * Maximum salt length for PSS signature.
+ *
+ * @param modBits    Number of bits in RSA modulus
+ * @param hLen       Length of digest to be signed
+ * @returns the maximum allowed salt length. Caller must check it's not < 0.
+ */
+static inline int
+xkey_max_saltlen(int modBits, int hLen)
+{
+    int emLen = (modBits - 1 + 7)/8; /* ceil((modBits - 1)/8) */
+
+    return emLen - hLen - 2;
+}
 #endif /* HAVE_XKEY_PROVIDER */
 
 #endif /* XKEY_COMMON_H_ */
