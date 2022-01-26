@@ -1,7 +1,7 @@
 #!/bin/sh
 # lz4-rebaser.sh   - Does the LZ4 rebase process in an automated fashion
 #
-# Copyright (C) 2017-2018 David Sommerseth <davids@openvpn.net>
+# Copyright (C) 2017-2022 David Sommerseth <davids@openvpn.net>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
