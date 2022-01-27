@@ -89,7 +89,14 @@ set_pss_params(CK_RSA_PKCS_PSS_PARAMS *pss_params, XKEY_SIGALG sigalg,
     pss_params->mgf = mdtypes[i].mgf_id;
 
     /* determine salt length */
-    int mdsize = EVP_MD_size(EVP_get_digestbyname(sigalg.mdname));
+    const EVP_MD *md = EVP_get_digestbyname(sigalg.mdname);
+    if (!md)
+    {
+        msg(M_WARN, "WARN: set_pss_params: EVP_get_digestbyname returned NULL "
+                    "for mdname = <%s>", sigalg.mdname);
+        goto cleanup;
+    }
+    int mdsize = EVP_MD_get_size(md);
 
     int saltlen = -1;
     if (!strcmp(sigalg.saltlen, "digest")) /* same as digest size */
