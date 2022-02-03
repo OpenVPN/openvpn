@@ -188,6 +188,21 @@ void cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
 #define MAX_CIPHER_KEY_LENGTH 64
 
 /**
+ * Returns if the cipher is valid, based on the given cipher name and provides a
+ * reason if invalid.
+ *
+ * @param ciphername    Name of the cipher to check for validity (e.g.
+ *                      \c AES-128-CBC). Will be translated to the library name
+ *                      from the openvpn config name if needed.
+ * @param reason        Pointer where a static string indicating the reason
+ *                      for rejecting the cipher should be stored. It is set to
+ *                      NULL if the cipher is valid.
+ *
+ * @return              if the cipher is valid
+ */
+bool cipher_valid_reason(const char *ciphername, const char **reason);
+
+/**
  * Returns if the cipher is valid, based on the given cipher name.
  *
  * @param ciphername    Name of the cipher to check for validity (e.g.
@@ -196,7 +211,11 @@ void cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
  *
  * @return              if the cipher is valid
  */
-bool cipher_valid(const char *ciphername);
+static inline bool cipher_valid(const char *ciphername)
+{
+    const char *reason;
+    return cipher_valid_reason(ciphername, &reason);
+}
 
 /**
  * Checks if the cipher is defined and is not the null (none) cipher

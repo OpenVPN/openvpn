@@ -403,14 +403,17 @@ cipher_get(const char* ciphername)
 }
 
 bool
-cipher_valid(const char *ciphername)
+cipher_valid_reason(const char *ciphername, const char **reason)
 {
+    ASSERT(reason);
+
     const mbedtls_cipher_info_t *cipher = cipher_get(ciphername);
 
     if (NULL == cipher)
     {
         msg(D_LOW, "Cipher algorithm '%s' not found", ciphername);
-        return NULL;
+        *reason = "disabled because unknown";
+        return false;
     }
 
     if (cipher->key_bitlen/8 > MAX_CIPHER_KEY_LENGTH)
@@ -418,10 +421,12 @@ cipher_valid(const char *ciphername)
         msg(D_LOW, "Cipher algorithm '%s' uses a default key size (%d bytes) "
             "which is larger than " PACKAGE_NAME "'s current maximum key size "
             "(%d bytes)", ciphername, cipher->key_bitlen/8, MAX_CIPHER_KEY_LENGTH);
-        return NULL;
+        *reason = "disabled due to key size too large";
+        return false;
     }
 
-    return cipher != NULL;
+    *reason = NULL;
+    return true;
 }
 
 const char *

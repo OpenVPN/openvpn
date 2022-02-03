@@ -34,7 +34,6 @@
 #include "error.h"
 #include "integer.h"
 #include "platform.h"
-#include "openssl_compat.h"
 
 #include "memdbg.h"
 
@@ -1698,16 +1697,12 @@ print_cipher(const char *ciphername)
     {
         printf(", TLS client/server mode only");
     }
-#ifdef OPENSSL_FIPS
-    evp_cipher_type *cipher = EVP_CIPHER_fetch(NULL, ciphername, NULL);
 
-    if (FIPS_mode() && cipher
-        && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_FIPS))
+    const char *reason;
+    if (!cipher_valid_reason(ciphername, &reason))
     {
-        printf(", disabled by FIPS mode");
+        printf(", %s", reason);
     }
-    EVP_CIPHER_free(cipher);
-#endif
 
     printf(")\n");
 }

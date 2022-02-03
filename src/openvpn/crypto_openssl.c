@@ -572,13 +572,14 @@ cipher_get(const char *ciphername)
 }
 
 bool
-cipher_valid(const char *ciphername)
+cipher_valid_reason(const char *ciphername, const char **reason)
 {
     bool ret = false;
     evp_cipher_type *cipher = cipher_get(ciphername);
     if (!cipher)
     {
         crypto_msg(D_LOW, "Cipher algorithm '%s' not found", ciphername);
+        *reason = "disabled because unknown";
         goto out;
     }
 
@@ -590,6 +591,7 @@ cipher_valid(const char *ciphername)
     {
         msg(D_LOW, "Cipher algorithm '%s' is known by OpenSSL library but "
                     "currently disabled by running in FIPS mode.", ciphername);
+        *reason = "disabled by FIPS mode";
         goto out;
     }
 #endif
@@ -599,10 +601,12 @@ cipher_valid(const char *ciphername)
             "which is larger than " PACKAGE_NAME "'s current maximum key size "
             "(%d bytes)", ciphername, EVP_CIPHER_key_length(cipher),
             MAX_CIPHER_KEY_LENGTH);
+        *reason = "disabled due to key size too large";
         goto out;
     }
 
     ret = true;
+    *reason = NULL;
 out:
     EVP_CIPHER_free(cipher);
     return ret;
