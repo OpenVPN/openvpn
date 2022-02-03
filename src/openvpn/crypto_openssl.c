@@ -565,16 +565,21 @@ rand_bytes(uint8_t *output, int len)
 static evp_cipher_type *
 cipher_get(const char *ciphername)
 {
-    evp_cipher_type *cipher = NULL;
-
     ASSERT(ciphername);
 
     ciphername = translate_cipher_name_from_openvpn(ciphername);
-    cipher = EVP_CIPHER_fetch(NULL, ciphername, NULL);
+    return EVP_CIPHER_fetch(NULL, ciphername, NULL);
+}
 
-    if (NULL == cipher)
+bool
+cipher_valid(const char *ciphername)
+{
+    bool ret = false;
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    if (!cipher)
     {
-        return NULL;
+        crypto_msg(D_LOW, "Cipher algorithm '%s' not found", ciphername);
+        goto out;
     }
 
 #ifdef OPENSSL_FIPS
@@ -585,7 +590,7 @@ cipher_get(const char *ciphername)
     {
         msg(D_LOW, "Cipher algorithm '%s' is known by OpenSSL library but "
                     "currently disabled by running in FIPS mode.", ciphername);
-        return NULL;
+        goto out;
     }
 #endif
     if (EVP_CIPHER_key_length(cipher) > MAX_CIPHER_KEY_LENGTH)
@@ -594,22 +599,13 @@ cipher_get(const char *ciphername)
             "which is larger than " PACKAGE_NAME "'s current maximum key size "
             "(%d bytes)", ciphername, EVP_CIPHER_key_length(cipher),
             MAX_CIPHER_KEY_LENGTH);
-        return NULL;
+        goto out;
     }
 
-    return cipher;
-}
-
-bool cipher_valid(const char *ciphername)
-{
-    evp_cipher_type *cipher = cipher_get(ciphername);
-    bool valid = (cipher != NULL);
-    if (!valid)
-    {
-        crypto_msg(D_LOW, "Cipher algorithm '%s' not found", ciphername);
-    }
+    ret = true;
+out:
     EVP_CIPHER_free(cipher);
-    return valid;
+    return ret;
 }
 
 bool cipher_var_key_size(const char *ciphername)
