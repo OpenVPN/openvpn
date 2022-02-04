@@ -286,7 +286,7 @@ struct context_2
 
     /* --inactive */
     struct event_timeout inactivity_interval;
-    int inactivity_bytes;
+    int64_t inactivity_bytes;
 
     /* the option strings must match across peers */
     char *options_string_local;
