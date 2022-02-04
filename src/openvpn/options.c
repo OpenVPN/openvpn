@@ -960,6 +960,7 @@ pull_filter_type_name(int type)
                                           "'%s'")
 #define SHOW_INT(var)       SHOW_PARM(var, o->var, "%d")
 #define SHOW_UINT(var)      SHOW_PARM(var, o->var, "%u")
+#define SHOW_INT64(var)     SHOW_PARM(var, o->var, "%" PRIi64)
 #define SHOW_UNSIGNED(var)  SHOW_PARM(var, o->var, "0x%08x")
 #define SHOW_BOOL(var)      SHOW_PARM(var, (o->var ? "ENABLED" : "DISABLED"), "%s");
 
@@ -1576,6 +1577,7 @@ show_settings(const struct options *o)
     SHOW_INT(keepalive_ping);
     SHOW_INT(keepalive_timeout);
     SHOW_INT(inactivity_timeout);
+    SHOW_INT64(inactivity_minimum_bytes);
     SHOW_INT(ping_send_timeout);
     SHOW_INT(ping_rec_timeout);
     SHOW_INT(ping_rec_timeout_action);
@@ -6242,7 +6244,16 @@ add_option(struct options *options,
         options->inactivity_timeout = positive_atoi(p[1]);
         if (p[2])
         {
-            options->inactivity_minimum_bytes = positive_atoi(p[2]);
+            int64_t val = atoll(p[2]);
+            options->inactivity_minimum_bytes = (val < 0) ? 0 : val;
+            if ( options->inactivity_minimum_bytes > INT_MAX )
+            {
+                msg(M_WARN, "WARNING: '--inactive' with a 'bytes' value"
+                    " >2 Gbyte was silently ignored in older versions.  If "
+                    " your VPN exits unexpectedly with 'Inactivity timeout'"
+                    " in %d seconds, revisit this value.",
+                    options->inactivity_timeout );
+            }
         }
     }
     else if (streq(p[0], "proto") && p[1] && !p[2])

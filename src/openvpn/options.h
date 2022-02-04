@@ -281,7 +281,7 @@ struct options
     int keepalive_timeout;
 
     int inactivity_timeout;     /* --inactive */
-    int inactivity_minimum_bytes;
+    int64_t inactivity_minimum_bytes;
 
     int ping_send_timeout;      /* Send a TCP/UDP ping to remote every n seconds */
     int ping_rec_timeout;       /* Expect a TCP/UDP ping from remote at least once every n seconds */
