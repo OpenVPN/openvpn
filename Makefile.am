@@ -54,7 +54,6 @@ SUBDIRS = build distro include src sample doc tests
 
 dist_doc_DATA = \
 	README \
-	README.IPv6 \
 	README.mbedtls \
 	Changes.rst \
 	COPYRIGHT.GPL \
@@ -64,7 +63,6 @@ dist_noinst_DATA = \
 	.gitignore \
 	.gitattributes \
 	PORTS \
-	README.IPv6 TODO.IPv6 \
 	README.mbedtls \
 	openvpn.sln
 
