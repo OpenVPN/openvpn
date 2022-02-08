@@ -1,18 +1,18 @@
 # Copyright (C) 2008-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 
-CONFIG=$(SOURCEBASE)/version.m4
+CONFIG=$(SOLUTIONDIR)/version.m4
 
-INPUT_MSVC_VER=$(SOURCEBASE)/config-msvc-version.h.in
-OUTPUT_MSVC_VER=$(SOURCEBASE)/config-msvc-version.h
+INPUT_MSVC_VER=$(SOLUTIONDIR)/config-msvc-version.h.in
+OUTPUT_MSVC_VER=$(SOLUTIONDIR)/config-msvc-version.h
 
-INPUT_PLUGIN=$(SOURCEBASE)/include/openvpn-plugin.h.in
-OUTPUT_PLUGIN=$(SOURCEBASE)/include/openvpn-plugin.h
+INPUT_PLUGIN=$(SOLUTIONDIR)/include/openvpn-plugin.h.in
+OUTPUT_PLUGIN=$(SOLUTIONDIR)/include/openvpn-plugin.h
 
 INPUT_PLUGIN_CONFIG=version.m4.in
 OUTPUT_PLUGIN_CONFIG=version.m4
 
-INPUT_MAN=$(SOURCEBASE)/doc/openvpn.8.rst
-OUTPUT_MAN=$(SOURCEBASE)/doc/openvpn.8.html
+INPUT_MAN=$(SOLUTIONDIR)/doc/openvpn.8.rst
+OUTPUT_MAN=$(SOLUTIONDIR)/doc/openvpn.8.html
 
 all:	$(OUTPUT_MSVC_VER) $(OUTPUT_PLUGIN) $(OUTPUT_MAN)
 
