@@ -66,10 +66,7 @@ dist_noinst_DATA = \
 	PORTS \
 	README.IPv6 TODO.IPv6 \
 	README.mbedtls \
-	openvpn.sln \
-	msvc-env.bat \
-	msvc-dev.bat \
-	msvc-build.bat
+	openvpn.sln
 
 dist_noinst_HEADERS = \
 	config-msvc.h \
