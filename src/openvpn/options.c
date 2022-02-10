@@ -803,7 +803,9 @@ init_options(struct options *o, const bool init_gc)
     o->ce.tun_mtu = TUN_MTU_DEFAULT;
     o->ce.link_mtu = LINK_MTU_DEFAULT;
     o->ce.mtu_discover_type = -1;
-    o->ce.mssfix = MSSFIX_DEFAULT;
+    o->ce.mssfix = 0;
+    o->ce.mssfix_default = true;
+    o->ce.mssfix_encap = true;
     o->route_delay_window = 30;
     o->resolve_retry_seconds = RESOLV_RETRY_INFINITE;
     o->resolve_in_advance = false;
@@ -1511,6 +1513,7 @@ show_connection_entry(const struct connection_entry *o)
     SHOW_INT(fragment);
 #endif
     SHOW_INT(mssfix);
+    SHOW_BOOL(mssfix_encap);
 
     SHOW_INT(explicit_exit_notification);
 
@@ -2887,22 +2890,6 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         ce->flags |= CE_DISABLED;
     }
 
-    /*
-     * If --mssfix is supplied without a parameter, default
-     * it to --fragment value, if --fragment is specified.
-     */
-    if (o->ce.mssfix_default)
-    {
-#ifdef ENABLE_FRAGMENT
-        if (ce->fragment)
-        {
-            ce->mssfix = ce->fragment;
-        }
-#else
-        msg(M_USAGE, "--mssfix must specify a parameter");
-#endif
-    }
-
     /* our socks code is not fully IPv6 enabled yet (TCP works, UDP not)
      * so fall back to IPv4-only (trac #1221)
      */
@@ -2933,6 +2920,36 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         {
             ce->tun_mtu_extra_defined = true;
             ce->tun_mtu_extra = TAP_MTU_EXTRA_DEFAULT;
+        }
+    }
+
+    /*
+     * If --mssfix is supplied without a parameter or not specified at all,
+     * default it to --fragment value, if --fragment is specified and otherwise
+     * to the default if tun-mtu is 1500
+     */
+    if (o->ce.mssfix_default)
+    {
+#ifdef ENABLE_FRAGMENT
+        if (ce->fragment)
+        {
+            ce->mssfix = ce->fragment;
+        }
+        else
+#endif
+        if (ce->tun_mtu_defined && o->ce.tun_mtu == TUN_MTU_DEFAULT)
+        {
+            /* We want to only set mssfix default value if we use a default
+             * MTU Size, otherwise the different size of tun should either
+             * already solve the problem or mssfix might artifically make the
+             * payload packets smaller without mssfix 0 */
+            ce->mssfix = MSSFIX_DEFAULT;
+            ce->mssfix_encap = true;
+        }
+        else
+        {
+            msg(D_MTU_INFO, "Note: not enabling mssfix for non-default value "
+                            "of --tun-mtu");
         }
     }
 
@@ -6812,12 +6829,17 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION);
         if (p[1])
         {
+            /* value specified, assume encapsulation is not
+             * included unles "mtu" follows later */
             options->ce.mssfix = positive_atoi(p[1]);
+            options->ce.mssfix_encap = false;
+            options->ce.mssfix_default = false;
         }
-
-        if (!p[1])
+        else
         {
+            /* Set MTU to default values */
             options->ce.mssfix_default = true;
+            options->ce.mssfix_encap = true;
         }
 
         if (p[2] && streq(p[2], "mtu"))

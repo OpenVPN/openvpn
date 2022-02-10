@@ -77,7 +77,7 @@
 /*
  * Default MSSFIX value, used for reducing TCP MTU size
  */
-#define MSSFIX_DEFAULT     1450
+#define MSSFIX_DEFAULT     1492
 
 /*
  * Alignment of payload data such as IP packet or
