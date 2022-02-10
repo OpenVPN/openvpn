@@ -205,18 +205,6 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
     return payload + overhead;
 }
 
-/*
- * Move extra_frame octets into extra_tun.  Used by fragmenting code
- * to adjust frame relative to its position in the buffer processing
- * queue.
- */
-void
-frame_subtract_extra(struct frame *frame, const struct frame *src)
-{
-    frame->extra_frame -= src->extra_frame;
-    frame->extra_tun   += src->extra_frame;
-}
-
 void
 frame_print(const struct frame *frame,
             int level,
@@ -237,8 +225,6 @@ frame_print(const struct frame *frame,
     buf_printf(&out, " headroom:%d", frame->buf.headroom);
     buf_printf(&out, " payload:%d", frame->buf.payload_size);
     buf_printf(&out, " tailroom:%d", frame->buf.tailroom);
-    buf_printf(&out, " EF:%d", frame->extra_frame);
-    buf_printf(&out, " EB:%d", frame->extra_buffer);
     buf_printf(&out, " ET:%d", frame->extra_tun);
     buf_printf(&out, " ]");
 

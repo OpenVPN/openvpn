@@ -96,9 +96,6 @@ fragment_init(struct frame *frame)
      * fragment_master assume an initial CLEAR */
     ALLOC_OBJ_CLEAR(ret, struct fragment_master);
 
-    /* add in the size of our contribution to the expanded frame size */
-    frame_add_to_extra_frame(frame, sizeof(fragment_header_type));
-
     /*
      * Outgoing sequence ID is randomized to reduce
      * the probability of sequence number collisions

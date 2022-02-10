@@ -89,16 +89,6 @@ tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
                             "Control Channel Encryption", "tls-crypt");
 }
 
-void
-tls_crypt_adjust_frame_parameters(struct frame *frame)
-{
-    frame_add_to_extra_frame(frame, tls_crypt_buf_overhead());
-
-    msg(D_MTU_DEBUG, "%s: Adjusting frame parameters for tls-crypt by %i bytes",
-        __func__, tls_crypt_buf_overhead());
-}
-
-
 bool
 tls_crypt_wrap(const struct buffer *src, struct buffer *dst,
                struct crypto_options *opt)

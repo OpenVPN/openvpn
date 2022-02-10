@@ -297,18 +297,6 @@ tls_limit_reneg_bytes(const char *ciphername, int *reneg_bytes)
 
 /*
  * Max number of bytes we will add
- * for data structures common to both
- * data and control channel packets.
- * (opcode only).
- */
-void
-tls_adjust_frame_parameters(struct frame *frame)
-{
-    frame_add_to_extra_frame(frame, 1); /* space for opcode */
-}
-
-/*
- * Max number of bytes we will add
  * to control channel packet.
  */
 static void
@@ -319,11 +307,6 @@ tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame
      * frame->extra_frame is already initialized with tls_auth buffer requirements,
      * if --tls-auth is enabled.
      */
-
-    /* set extra_frame */
-    tls_adjust_frame_parameters(frame);
-    reliable_ack_adjust_frame_parameters(frame, CONTROL_SEND_ACK_MAX);
-    frame_add_to_extra_frame(frame, SID_SIZE + sizeof(packet_id_type));
 
     /* calculate the maximum overhead that control channel frames may have */
     int overhead = 0;
@@ -1908,10 +1891,6 @@ tls_session_update_crypto_params_do_work(struct tls_session *session,
         session->opt->crypto_flags |= CO_PACKET_ID_LONG_FORM;
     }
 
-    /* Update frame parameters: undo worst-case overhead, add actual overhead */
-    frame_remove_from_extra_frame(frame, crypto_max_overhead());
-    crypto_adjust_frame_parameters(frame, &session->opt->key_type,
-                                   options->replay, packet_id_long_form);
     frame_calculate_dynamic(frame, &session->opt->key_type, options, lsi);
 
     frame_print(frame, D_MTU_INFO, "Data Channel MTU parms");

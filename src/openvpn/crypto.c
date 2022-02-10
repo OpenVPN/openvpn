@@ -716,43 +716,6 @@ calculate_crypto_overhead(const struct key_type *kt,
     return crypto_overhead;
 }
 
-void
-crypto_adjust_frame_parameters(struct frame *frame,
-                               const struct key_type *kt,
-                               bool packet_id,
-                               bool packet_id_long_form)
-{
-    unsigned int crypto_overhead = 0;
-
-    if (packet_id)
-    {
-        crypto_overhead += packet_id_size(packet_id_long_form);
-    }
-
-    if (cipher_defined(kt->cipher))
-    {
-        crypto_overhead += cipher_kt_iv_size(kt->cipher);
-
-        if (cipher_kt_mode_aead(kt->cipher))
-        {
-            crypto_overhead += cipher_kt_tag_size(kt->cipher);
-        }
-
-        /* extra block required by cipher_ctx_update() */
-        crypto_overhead += cipher_kt_block_size(kt->cipher);
-    }
-
-    if (md_defined(kt->digest))
-    {
-        crypto_overhead += md_kt_size(kt->digest);
-    }
-
-    frame_add_to_extra_frame(frame, crypto_overhead);
-
-    msg(D_MTU_DEBUG, "%s: Adjusting frame parameters for crypto by %u bytes",
-        __func__, crypto_overhead);
-}
-
 unsigned int
 crypto_max_overhead(void)
 {

@@ -117,13 +117,6 @@ comp_uninit(struct compress_context *compctx)
 }
 
 void
-comp_add_to_extra_frame(struct frame *frame)
-{
-    /* Leave room for our one-byte compressed/didn't-compress prefix byte. */
-    frame_add_to_extra_frame(frame, COMP_PREFIX_LEN);
-}
-
-void
 comp_print_stats(const struct compress_context *compctx, struct status_output *so)
 {
     if (compctx)

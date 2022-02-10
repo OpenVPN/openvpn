@@ -472,11 +472,6 @@ void ssl_put_auth_challenge(const char *cr_str);
 #endif
 
 /*
- * Reserve any extra space required on frames.
- */
-void tls_adjust_frame_parameters(struct frame *frame);
-
-/*
  * Send a payload over the TLS control channel
  */
 bool tls_send_payload(struct tls_multi *multi,

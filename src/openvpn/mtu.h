@@ -123,13 +123,6 @@ struct frame {
                                  * size that can be send in a single fragment
                                  */
 
-    int extra_frame;            /**< Maximum number of bytes that all
-                                 *   processing steps together could add.
-                                 *   @code
-                                 *   frame.link_mtu = "socket MTU" - extra_frame;
-                                 *   @endcode
-                                 */
-
     int tun_mtu;                /**< the (user) configured tun-mtu. This is used
                                  *   in configuring the tun interface or
                                  *   in calculations that use the desired size
@@ -140,16 +133,6 @@ struct frame {
                                  *   control frame payload (although most of
                                  *   code ignores it)
                                  */
-
-    int extra_buffer;           /**< Maximum number of bytes that
-                                 *   processing steps could expand the
-                                 *   internal work buffer.
-                                 *
-                                 *   This is used by the \link compression
-                                 *   Data Channel Compression
-                                 *   module\endlink to give enough working
-                                 *   space for worst-case expansion of
-                                 *   incompressible content. */
 
     int extra_tun;              /**< Maximum number of bytes in excess of
                                  *   the tun/tap MTU that might be read
@@ -196,9 +179,8 @@ struct options;
  *
  * Most of our code only prepends headers but compression needs the extra bytes
  * *after* the data as compressed data might end up larger than the original
- * data (and max compression overhead is part of extra_buffer). Also crypto
- * needs an extra block for encryption. Therefore tailroom is larger than the
- * headroom.
+ * data. Also crypto needs an extra block for encryption. Therefore tailroom is
+ * larger than the headroom.
  */
 #define BUF_SIZE(f) ((f)->buf.headroom + (f)->buf.payload_size + (f)->buf.tailroom)
 
@@ -207,8 +189,6 @@ struct options;
 /*
  * Function prototypes.
  */
-
-void frame_subtract_extra(struct frame *frame, const struct frame *src);
 
 void frame_print(const struct frame *frame,
                  int level,
@@ -332,27 +312,9 @@ const char *format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc);
  */
 
 static inline void
-frame_add_to_extra_frame(struct frame *frame, const unsigned int increment)
-{
-    frame->extra_frame += increment;
-}
-
-static inline void
-frame_remove_from_extra_frame(struct frame *frame, const unsigned int decrement)
-{
-    frame->extra_frame -= decrement;
-}
-
-static inline void
 frame_add_to_extra_tun(struct frame *frame, const int increment)
 {
     frame->extra_tun += increment;
-}
-
-static inline void
-frame_add_to_extra_buffer(struct frame *frame, const int increment)
-{
-    frame->extra_buffer += increment;
 }
 
 static inline bool

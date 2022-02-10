@@ -2597,10 +2597,6 @@ do_init_crypto_static(struct context *c, const unsigned int flags)
     /* Get key schedule */
     c->c2.crypto_options.key_ctx_bi = c->c1.ks.static_key;
 
-    /* Compute MTU parameters */
-    crypto_adjust_frame_parameters(&c->c2.frame, &c->c1.ks.key_type,
-                                   options->replay, true);
-
     /* Sanity check on sequence number, and cipher mode options */
     check_replay_consistency(&c->c1.ks.key_type, options->replay);
 }
@@ -2792,19 +2788,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     /* In short form, unique datagram identifier is 32 bits, in long form 64 bits */
     packet_id_long_form = cipher_kt_mode_ofb_cfb(c->c1.ks.key_type.cipher);
 
-    /* Compute MTU parameters (postpone if we push/pull options) */
-    if (c->options.pull || c->options.mode == MODE_SERVER)
-    {
-        /* Account for worst-case crypto overhead before allocating buffers */
-        frame_add_to_extra_frame(&c->c2.frame, crypto_max_overhead());
-    }
-    else
-    {
-        crypto_adjust_frame_parameters(&c->c2.frame, &c->c1.ks.key_type,
-                                       options->replay, packet_id_long_form);
-    }
-    tls_adjust_frame_parameters(&c->c2.frame);
-
     /* Set all command-line TLS-related options */
     CLEAR(to);
 
@@ -2957,8 +2940,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         to.tls_wrap.opt.key_ctx_bi = c->c1.ks.tls_wrap_key;
         to.tls_wrap.opt.pid_persist = &c->c1.pid_persist;
         to.tls_wrap.opt.flags |= CO_PACKET_ID_LONG_FORM;
-        crypto_adjust_frame_parameters(&to.frame, &c->c1.ks.tls_auth_key_type,
-                                       true, true);
     }
 
     /* TLS handshake encryption (--tls-crypt) */
@@ -2969,7 +2950,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         to.tls_wrap.opt.key_ctx_bi = c->c1.ks.tls_wrap_key;
         to.tls_wrap.opt.pid_persist = &c->c1.pid_persist;
         to.tls_wrap.opt.flags |= CO_PACKET_ID_LONG_FORM;
-        tls_crypt_adjust_frame_parameters(&to.frame);
 
         if (options->ce.tls_crypt_v2_file)
         {
@@ -2986,10 +2966,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
             to.tls_crypt_v2_verify_script = c->options.tls_crypt_v2_verify_script;
         }
     }
-
-    /* If we are running over TCP, allow for
-     * length prefix */
-    socket_adjust_frame_parameters(&to.frame, options->ce.proto);
 
     /*
      * Initialize OpenVPN's master TLS-mode object.
@@ -3064,20 +3040,6 @@ do_init_crypto(struct context *c, const unsigned int flags)
 static void
 do_init_frame(struct context *c)
 {
-#ifdef USE_COMP
-    /*
-     * modify frame parameters if compression is enabled
-     */
-    if (comp_enabled(&c->options.comp))
-    {
-        comp_add_to_extra_frame(&c->c2.frame);
-
-#ifdef ENABLE_FRAGMENT
-        comp_add_to_extra_frame(&c->c2.frame_fragment_omit); /* omit compression frame delta from final frame_fragment */
-#endif
-    }
-#endif /* USE_COMP */
-
     /*
      * Adjust frame size based on the --tun-mtu-extra parameter.
      */
@@ -3087,27 +3049,10 @@ do_init_frame(struct context *c)
     }
 
     /*
-     * Adjust frame size based on link socket parameters.
-     * (Since TCP is a stream protocol, we need to insert
-     * a packet length uint16_t in the buffer.)
-     */
-    socket_adjust_frame_parameters(&c->c2.frame, c->options.ce.proto);
-
-    /*
      * Fill in the blanks in the frame parameters structure,
      * make sure values are rational, etc.
      */
     frame_finalize_options(c, NULL);
-
-#ifdef USE_COMP
-    /*
-     * Modify frame parameters if compression is compiled in.
-     * Should be called after frame_finalize_options.
-     */
-#ifdef ENABLE_FRAGMENT
-    /*TODO:frame comp_add_to_extra_buffer(&c->c2.frame_fragment_omit);  omit compression frame delta from final frame_fragment */
-#endif
-#endif /* USE_COMP */
 
 #ifdef ENABLE_FRAGMENT
     /*
@@ -3116,7 +3061,6 @@ do_init_frame(struct context *c)
      * passed through the compression code.
      */
     c->c2.frame_fragment = c->c2.frame;
-    frame_subtract_extra(&c->c2.frame_fragment, &c->c2.frame_fragment_omit);
     c->c2.frame_fragment_initial = c->c2.frame_fragment;
 #endif
 

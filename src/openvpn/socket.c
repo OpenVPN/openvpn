@@ -2285,16 +2285,6 @@ link_socket_close(struct link_socket *sock)
     }
 }
 
-/* for stream protocols, allow for packet length prefix */
-void
-socket_adjust_frame_parameters(struct frame *frame, int proto)
-{
-    if (link_socket_proto_connection_oriented(proto))
-    {
-        frame_add_to_extra_frame(frame, sizeof(packet_size_type));
-    }
-}
-
 void
 setenv_trusted(struct env_set *es, const struct link_socket_info *info)
 {

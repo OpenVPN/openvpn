@@ -124,11 +124,6 @@ void tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
 int tls_crypt_buf_overhead(void);
 
 /**
- * Adjust frame parameters for --tls-crypt overhead.
- */
-void tls_crypt_adjust_frame_parameters(struct frame *frame);
-
-/**
  * Wrap a control channel packet (both authenticates and encrypts the data).
  *
  * @param src   Data to authenticate and encrypt.

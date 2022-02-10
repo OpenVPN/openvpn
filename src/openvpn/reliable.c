@@ -251,13 +251,6 @@ error:
     return false;
 }
 
-/* add to extra_frame the maximum number of bytes we will need for reliable_ack_write */
-void
-reliable_ack_adjust_frame_parameters(struct frame *frame, int max)
-{
-    frame_add_to_extra_frame(frame, ACK_SIZE(max));
-}
-
 /* print a reliable ACK record coming off the wire */
 const char *
 reliable_ack_print(struct buffer *buf, bool verbose, struct gc_arena *gc)
