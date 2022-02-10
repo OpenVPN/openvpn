@@ -185,11 +185,6 @@ struct options;
 #define TUN_LINK_DELTA(f)        ((f)->extra_frame + (f)->extra_tun)
 
 /*
- * This is the size to "ifconfig" the tun or tap device.
- */
-#define TUN_MTU_SIZE(f)          ((f)->link_mtu - TUN_LINK_DELTA(f))
-
-/*
  * This is the maximum packet size that we need to be able to
  * read from or write to a tun or tap device.  For example,
  * a tap device ifconfiged to an MTU of 1200 might actually want

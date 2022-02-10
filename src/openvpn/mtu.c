@@ -229,9 +229,9 @@ frame_finalize(struct frame *frame,
         frame->link_mtu = link_mtu;
     }
 
-    if (TUN_MTU_SIZE(frame) < TUN_MTU_MIN)
+    if (frame->tun_mtu < TUN_MTU_MIN)
     {
-        msg(M_WARN, "TUN MTU value (%d) must be at least %d", TUN_MTU_SIZE(frame), TUN_MTU_MIN);
+        msg(M_WARN, "TUN MTU value (%d) must be at least %d", frame->tun_mtu, TUN_MTU_MIN);
         frame_print(frame, M_FATAL, "MTU is too small");
     }
 

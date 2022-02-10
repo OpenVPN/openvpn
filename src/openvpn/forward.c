@@ -1381,7 +1381,7 @@ ipv6_send_icmp_unreachable(struct context *c, struct buffer *buf, bool client)
      * packet
      */
     int max_payload_size = min_int(MAX_ICMPV6LEN,
-                                   TUN_MTU_SIZE(&c->c2.frame) - icmpheader_len);
+                                   c->c2.frame.tun_mtu - icmpheader_len);
     int payload_len = min_int(max_payload_size, BLEN(&inputipbuf));
 
     pip6out.payload_len = htons(sizeof(struct openvpn_icmp6hdr) + payload_len);
