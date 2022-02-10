@@ -266,7 +266,6 @@ frame_print(const struct frame *frame,
     buf_printf(&out, " EF:%d", frame->extra_frame);
     buf_printf(&out, " EB:%d", frame->extra_buffer);
     buf_printf(&out, " ET:%d", frame->extra_tun);
-    buf_printf(&out, " EL:%d", frame->extra_link);
     buf_printf(&out, " ]");
 
     msg(level, "%s", out.data);

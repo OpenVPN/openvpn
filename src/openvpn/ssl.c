@@ -322,7 +322,6 @@ tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame
 
     /* inherit link MTU and extra_link from data channel */
     frame->link_mtu = data_channel_frame->link_mtu;
-    frame->extra_link = data_channel_frame->extra_link;
 
     /* set extra_frame */
     tls_adjust_frame_parameters(frame);

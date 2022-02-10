@@ -3111,14 +3111,6 @@ do_init_frame(struct context *c)
 #endif /* USE_COMP */
 
     /*
-     * Adjust frame size for UDP Socks support.
-     */
-    if (c->options.ce.socks_proxy_server)
-    {
-        socks_adjust_frame_parameters(&c->c2.frame, c->options.ce.proto);
-    }
-
-    /*
      * Adjust frame size based on the --tun-mtu-extra parameter.
      */
     if (c->options.ce.tun_mtu_extra_defined)
@@ -3149,17 +3141,6 @@ do_init_frame(struct context *c)
     comp_add_to_extra_buffer(&c->c2.frame_fragment_omit); /* omit compression frame delta from final frame_fragment */
 #endif
 #endif /* USE_COMP */
-
-    /* packets with peer-id (P_DATA_V2) need 3 extra bytes in frame (on client)
-     * and need link_mtu+3 bytes on socket reception (on server).
-     *
-     * accommodate receive path in f->extra_link, which has the side effect of
-     * also increasing send buffers (BUF_SIZE() macro), which need to be
-     * allocated big enough before receiving peer-id option from server.
-     *
-     * f->extra_frame is adjusted when peer-id option is push-received
-     */
-    frame_add_to_extra_link(&c->c2.frame, 3);
 
 #ifdef ENABLE_FRAGMENT
     /*

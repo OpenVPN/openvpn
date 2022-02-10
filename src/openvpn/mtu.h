@@ -163,13 +163,6 @@ struct frame {
                                  *   which defaults to 0 for tun and 32
                                  *   (\c TAP_MTU_EXTRA_DEFAULT) for tap.
                                  *   */
-
-    int extra_link;             /**< Maximum number of bytes in excess of
-                                 *   external network interface's MTU that
-                                 *   might be read from or written to it.
-                                 *
-                                 *   Used by peer-id (3) and
-                                 *   socks UDP (10) */
 };
 
 /* Forward declarations, to prevent includes */
@@ -376,12 +369,6 @@ static inline void
 frame_add_to_extra_tun(struct frame *frame, const int increment)
 {
     frame->extra_tun += increment;
-}
-
-static inline void
-frame_add_to_extra_link(struct frame *frame, const int increment)
-{
-    frame->extra_link += increment;
 }
 
 static inline void

@@ -42,8 +42,6 @@ struct socks_proxy_info {
     char authfile[256];
 };
 
-void socks_adjust_frame_parameters(struct frame *frame, int proto);
-
 struct socks_proxy_info *socks_proxy_new(const char *server,
                                          const char *port,
                                          const char *authfile);

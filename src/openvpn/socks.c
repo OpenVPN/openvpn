@@ -49,15 +49,6 @@
 
 #define UP_TYPE_SOCKS           "SOCKS Proxy"
 
-void
-socks_adjust_frame_parameters(struct frame *frame, int proto)
-{
-    if (proto == PROTO_UDP)
-    {
-        frame_add_to_extra_link(frame, 10);
-    }
-}
-
 struct socks_proxy_info *
 socks_proxy_new(const char *server,
                 const char *port,
@@ -610,7 +601,7 @@ socks_process_outgoing_udp(struct buffer *buf,
     /*
      * Get a 10 byte subset buffer prepended to buf --
      * we expect these bytes will be here because
-     * we allocated frame space in socks_adjust_frame_parameters.
+     * we always allocate space for these bytes
      */
     struct buffer head = buf_sub(buf, 10, true);
 
