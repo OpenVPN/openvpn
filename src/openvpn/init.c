@@ -3184,12 +3184,17 @@ do_init_frame(struct context *c)
 #endif
 
 #ifdef ENABLE_FRAGMENT
-    if ((c->options.ce.mssfix || c->options.ce.fragment)
-        && c->c2.frame.tun_mtu != ETHERNET_MTU)
+    if (c->options.ce.fragment > 0 && c->options.ce.mssfix > c->options.ce.fragment)
     {
-        msg(M_WARN,
-            "WARNING: normally if you use --mssfix and/or --fragment, you should also set --tun-mtu %d (currently it is %d)",
-            ETHERNET_MTU, c->c2.frame.tun_mtu);
+        msg(M_WARN, "WARNING: if you use --mssfix and --fragment, you should "
+                    "set --fragment (%d) larger or equal than --mssfix (%d)",
+                    c->options.ce.fragment, c->options.ce.mssfix);
+    }
+    if (c->options.ce.fragment > 0 && c->options.ce.mssfix > 0
+        && c->options.ce.fragment_encap != c->options.ce.mssfix_encap)
+    {
+        msg(M_WARN, "WARNING: if you use --mssfix and --fragment, you should "
+                    "use the \"mtu\" flag for both or none of of them.");
     }
 #endif
 }
