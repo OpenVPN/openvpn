@@ -178,8 +178,6 @@ void comp_uninit(struct compress_context *compctx);
 
 void comp_add_to_extra_frame(struct frame *frame);
 
-void comp_add_to_extra_buffer(struct frame *frame);
-
 void comp_print_stats(const struct compress_context *compctx, struct status_output *so);
 
 void comp_generate_peer_info_string(const struct compress_options *opt, struct buffer *out);

@@ -2140,35 +2140,12 @@ pull_permission_mask(const struct context *c)
     return flags;
 }
 
-static
-void adjust_mtu_peerid(struct context *c)
-{
-    frame_add_to_extra_frame(&c->c2.frame, 3);     /* peer-id overhead */
-    if (!c->options.ce.link_mtu_defined)
-    {
-        frame_add_to_link_mtu(&c->c2.frame, 3);
-        msg(D_PUSH, "OPTIONS IMPORT: adjusting link_mtu to %d",
-            EXPANDED_SIZE(&c->c2.frame));
-    }
-    else
-    {
-        msg(M_WARN, "OPTIONS IMPORT: WARNING: peer-id set, but link-mtu"
-                    " fixed by config - reducing tun-mtu to %d, expect"
-                    " MTU problems", c->c2.frame.tun_mtu);
-    }
-}
-
 static bool
 do_deferred_p2p_ncp(struct context *c)
 {
     if (!c->c2.tls_multi)
     {
         return true;
-    }
-
-    if (c->c2.tls_multi->use_peer_id)
-    {
-        adjust_mtu_peerid(c);
     }
 
     struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
@@ -2292,7 +2269,6 @@ do_deferred_options(struct context *c, const unsigned int found)
         msg(D_PUSH, "OPTIONS IMPORT: peer-id set");
         c->c2.tls_multi->use_peer_id = true;
         c->c2.tls_multi->peer_id = c->options.peer_id;
-        adjust_mtu_peerid(c);
     }
 
     /* process (potentially pushed) crypto options */
@@ -2528,14 +2504,6 @@ frame_finalize_options(struct context *c, const struct options *o)
     frame->buf.payload_size = payload_size;
     frame->buf.headroom = headroom;
     frame->buf.tailroom = tailroom;
-
-    /* Kept to still update/calculate the other fields for now */
-    frame_finalize(frame,
-                   o->ce.link_mtu_defined,
-                   o->ce.link_mtu,
-                   o->ce.tun_mtu_defined,
-                   o->ce.tun_mtu);
-
 }
 
 /*
@@ -3043,8 +3011,8 @@ do_init_frame_tls(struct context *c)
     if (c->c2.tls_multi)
     {
         tls_multi_init_finalize(c->c2.tls_multi, &c->c2.frame);
-        ASSERT(EXPANDED_SIZE(&c->c2.tls_multi->opt.frame) <=
-               EXPANDED_SIZE(&c->c2.frame));
+        ASSERT(c->c2.tls_multi->opt.frame.buf.payload_size <=
+               c->c2.frame.buf.payload_size);
         frame_print(&c->c2.tls_multi->opt.frame, D_MTU_INFO,
                     "Control Channel MTU parms");
     }
@@ -3136,9 +3104,8 @@ do_init_frame(struct context *c)
      * Modify frame parameters if compression is compiled in.
      * Should be called after frame_finalize_options.
      */
-    comp_add_to_extra_buffer(&c->c2.frame);
 #ifdef ENABLE_FRAGMENT
-    comp_add_to_extra_buffer(&c->c2.frame_fragment_omit); /* omit compression frame delta from final frame_fragment */
+    /*TODO:frame comp_add_to_extra_buffer(&c->c2.frame_fragment_omit);  omit compression frame delta from final frame_fragment */
 #endif
 #endif /* USE_COMP */
 

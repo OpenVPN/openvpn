@@ -1545,7 +1545,7 @@ process_outgoing_link(struct context *c)
 
     perf_push(PERF_PROC_OUT_LINK);
 
-    if (c->c2.to_link.len > 0 && c->c2.to_link.len <= EXPANDED_SIZE(&c->c2.frame))
+    if (c->c2.to_link.len > 0 && c->c2.to_link.len <= c->c2.frame.buf.payload_size)
     {
         /*
          * Setup for call to send/sendto which will send
@@ -1673,7 +1673,7 @@ process_outgoing_link(struct context *c)
             msg(D_LINK_ERRORS, "TCP/UDP packet too large on write to %s (tried=%d,max=%d)",
                 print_link_socket_actual(c->c2.to_link_addr, &gc),
                 c->c2.to_link.len,
-                EXPANDED_SIZE(&c->c2.frame));
+                c->c2.frame.buf.payload_size);
         }
     }
 

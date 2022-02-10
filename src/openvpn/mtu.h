@@ -110,9 +110,6 @@ struct frame {
                                   *  decryption/encryption or compression. */
     } buf;
 
-    int link_mtu;               /**< Maximum packet size to be sent over
-                                 *   the external network interface. */
-
     unsigned int mss_fix;       /**< The actual MSS value that should be
                                  *   written to the payload packets. This
                                  *   is the value for IPv4 TCP packets. For
@@ -190,13 +187,6 @@ struct options;
 #define PAYLOAD_SIZE(f)          ((f)->buf.payload_size)
 
 /*
- * Max size of a payload packet after encryption, compression, etc.
- * overhead is added.
- */
-#define EXPANDED_SIZE(f)         ((f)->link_mtu)
-#define EXPANDED_SIZE_MIN(f)     (TUN_MTU_MIN + TUN_LINK_DELTA(f))
-
-/*
  * Control buffer headroom allocations to allow for efficient prepending.
  */
 
@@ -217,12 +207,6 @@ struct options;
 /*
  * Function prototypes.
  */
-
-void frame_finalize(struct frame *frame,
-                    bool link_mtu_defined,
-                    int link_mtu,
-                    bool tun_mtu_defined,
-                    int tun_mtu);
 
 void frame_subtract_extra(struct frame *frame, const struct frame *src);
 
@@ -346,12 +330,6 @@ const char *format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc);
 /*
  * frame member adjustment functions
  */
-
-static inline void
-frame_add_to_link_mtu(struct frame *frame, const int increment)
-{
-    frame->link_mtu += increment;
-}
 
 static inline void
 frame_add_to_extra_frame(struct frame *frame, const unsigned int increment)

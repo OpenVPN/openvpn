@@ -205,31 +205,6 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
     return payload + overhead;
 }
 
-void
-frame_finalize(struct frame *frame,
-               bool link_mtu_defined,
-               int link_mtu,
-               bool tun_mtu_defined,
-               int tun_mtu)
-{
-    /* Set link_mtu based on command line options */
-    if (tun_mtu_defined)
-    {
-        ASSERT(!link_mtu_defined);
-        frame->link_mtu = tun_mtu + TUN_LINK_DELTA(frame);
-    }
-    else
-    {
-        ASSERT(link_mtu_defined);
-        frame->link_mtu = link_mtu;
-    }
-
-    if (frame->tun_mtu < TUN_MTU_MIN)
-    {
-        msg(M_WARN, "TUN MTU value (%d) must be at least %d", frame->tun_mtu, TUN_MTU_MIN);
-        frame_print(frame, M_FATAL, "MTU is too small");
-    }
-}
 /*
  * Move extra_frame octets into extra_tun.  Used by fragmenting code
  * to adjust frame relative to its position in the buffer processing
@@ -262,7 +237,6 @@ frame_print(const struct frame *frame,
     buf_printf(&out, " headroom:%d", frame->buf.headroom);
     buf_printf(&out, " payload:%d", frame->buf.payload_size);
     buf_printf(&out, " tailroom:%d", frame->buf.tailroom);
-    buf_printf(&out, " L:%d", frame->link_mtu);
     buf_printf(&out, " EF:%d", frame->extra_frame);
     buf_printf(&out, " EB:%d", frame->extra_buffer);
     buf_printf(&out, " ET:%d", frame->extra_tun);

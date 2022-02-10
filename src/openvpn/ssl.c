@@ -320,16 +320,10 @@ tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame
      * if --tls-auth is enabled.
      */
 
-    /* inherit link MTU and extra_link from data channel */
-    frame->link_mtu = data_channel_frame->link_mtu;
-
     /* set extra_frame */
     tls_adjust_frame_parameters(frame);
     reliable_ack_adjust_frame_parameters(frame, CONTROL_SEND_ACK_MAX);
     frame_add_to_extra_frame(frame, SID_SIZE + sizeof(packet_id_type));
-
-    /* set dynamic link MTU to cap control channel packets at 1250 bytes */
-    ASSERT(TUN_LINK_DELTA(frame) < min_int(frame->link_mtu, 1250));
 
     /* calculate the maximum overhead that control channel frames may have */
     int overhead = 0;
@@ -1931,9 +1925,6 @@ tls_session_update_crypto_params_do_work(struct tls_session *session,
 
     if (frame_fragment)
     {
-        frame_remove_from_extra_frame(frame_fragment, crypto_max_overhead());
-        crypto_adjust_frame_parameters(frame_fragment, &session->opt->key_type,
-                                       options->replay, packet_id_long_form);
         frame_calculate_dynamic(frame_fragment, &session->opt->key_type, options, lsi);
         frame_print(frame_fragment, D_MTU_INFO, "Fragmentation MTU parms");
     }
