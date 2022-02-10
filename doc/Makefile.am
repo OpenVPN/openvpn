@@ -23,15 +23,11 @@ build_html_pages = openvpn.8.html openvpn-examples.5.html
 dist_doc_DATA = \
 	management-notes.txt gui-notes.txt
 
-dist_noinst_DATA = \
-	README.plugins interactive-service-notes.rst \
-	openvpn.8.rst \
-	openvpn-examples.5.rst \
+openvpn_sections = \
 	man-sections/advanced-options.rst \
 	man-sections/client-options.rst \
 	man-sections/connection-profiles.rst \
 	man-sections/encryption-options.rst \
-	man-sections/examples.rst \
 	man-sections/generic-options.rst \
 	man-sections/inline-files.rst \
 	man-sections/link-options.rst \
@@ -52,6 +48,19 @@ dist_noinst_DATA = \
 	man-sections/vpn-network-options.rst \
 	man-sections/windows-options.rst
 
+openvpn_examples_sections = \
+	man-sections/examples.rst
+
+dist_noinst_DATA = \
+	README.plugins interactive-service-notes.rst \
+	openvpn.8.rst \
+	openvpn-examples.5.rst \
+	$(openvpn_sections) \
+	$(openvpn_examples_sections)
+
+# dependencies
+openvpn.8 openvpn.8.html: $(openvpn_sections)
+openvpn-examples.5 openvpn-examples.5.html: $(openvpn_examples_sections)
 
 ######  GENERIC  RULES  ##########
 
