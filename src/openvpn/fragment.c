@@ -335,12 +335,12 @@ fragment_outgoing(struct fragment_master *f, struct buffer *buf,
             msg(D_FRAG_ERRORS, "FRAG: outgoing buffer is not empty, len=[%d,%d]",
                 buf->len, f->outgoing.len);
         }
-        if (buf->len > PAYLOAD_SIZE_DYNAMIC(frame)) /* should we fragment? */
+        if (buf->len > frame->max_fragment_size) /* should we fragment? */
         {
             /*
              * Send the datagram as a series of 2 or more fragments.
              */
-            f->outgoing_frag_size = optimal_fragment_size(buf->len, PAYLOAD_SIZE_DYNAMIC(frame));
+            f->outgoing_frag_size = optimal_fragment_size(buf->len, frame->max_fragment_size);
             if (buf->len > f->outgoing_frag_size * MAX_FRAGS)
             {
                 FRAG_ERR("too many fragments would be required to send datagram");

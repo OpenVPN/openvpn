@@ -482,8 +482,7 @@ check_fragment(struct context *c)
     /* OS MTU Hint? */
     if (lsi->mtu_changed && lsi->lsa)
     {
-        frame_adjust_path_mtu(&c->c2.frame_fragment, c->c2.link_socket->mtu,
-                              lsi->lsa->actual.dest.addr.sa.sa_family, lsi->proto);
+        frame_adjust_path_mtu(c);
         lsi->mtu_changed = false;
     }
 

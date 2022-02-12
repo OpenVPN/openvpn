@@ -113,14 +113,18 @@ struct frame {
     int link_mtu;               /**< Maximum packet size to be sent over
                                  *   the external network interface. */
 
-    unsigned int mss_fix;      /**< The actual MSS value that should be
+    unsigned int mss_fix;       /**< The actual MSS value that should be
                                  *   written to the payload packets. This
                                  *   is the value for IPv4 TCP packets. For
                                  *   IPv6 packets another 20 bytes must
                                  *   be subtracted */
 
-    int link_mtu_dynamic;       /**< Dynamic MTU value for the external
-                                 *   network interface. */
+    int max_fragment_size;      /**< The maximum size of a fragment.
+                                 * Fragmentation is done on the unencrypted
+                                 * payload after (potential) compression. So
+                                 * this value specifies the maximum payload
+                                 * size that can be send in a single fragment
+                                 */
 
     int extra_frame;            /**< Maximum number of bytes that all
                                  *   processing steps together could add.
@@ -190,7 +194,6 @@ struct options;
  * a tap device ifconfiged to an MTU of 1200 might actually want
  * to return a packet size of 1214 on a read().
  */
-#define PAYLOAD_SIZE_DYNAMIC(f)  ((f)->link_mtu_dynamic - (f)->extra_frame)
 #define PAYLOAD_SIZE(f)          ((f)->buf.payload_size)
 
 /*
@@ -198,7 +201,6 @@ struct options;
  * overhead is added.
  */
 #define EXPANDED_SIZE(f)         ((f)->link_mtu)
-#define EXPANDED_SIZE_DYNAMIC(f) ((f)->link_mtu_dynamic)
 #define EXPANDED_SIZE_MIN(f)     (TUN_MTU_MIN + TUN_LINK_DELTA(f))
 
 /*
@@ -308,6 +310,15 @@ frame_calculate_protocol_header_size(const struct key_type *kt,
 size_t
 calc_options_string_link_mtu(const struct options *options,
                              const struct frame *frame);
+
+/**
+ * Return the size of the packet ID size that is currently in use by cipher and
+ * options for the data channel.
+ */
+unsigned int
+calc_packet_id_size_dc(const struct options *options,
+                       const struct key_type *kt);
+
 
 /*
  * frame_set_mtu_dynamic and flags

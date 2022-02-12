@@ -1644,17 +1644,6 @@ socket_frame_init(const struct frame *frame, struct link_socket *sock)
     }
 }
 
-/*
- * Adjust frame structure based on a Path MTU value given
- * to us by the OS.
- */
-void
-frame_adjust_path_mtu(struct frame *frame, int pmtu, sa_family_t af, int proto)
-{
-    frame_set_mtu_dynamic(frame, pmtu - datagram_overhead(af, proto),
-                          SET_MTU_UPPER_BOUND);
-}
-
 static void
 resolve_bind_local(struct link_socket *sock, const sa_family_t af)
 {

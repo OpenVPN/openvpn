@@ -52,12 +52,7 @@ alloc_buf_sock_tun(struct buffer *buf,
     ASSERT(buf_safe(buf, 0));
 }
 
-
-/**
- * Return the size of the packet ID size that is currently in use by cipher and
- * options for the data channel.
- */
-static unsigned int
+unsigned int
 calc_packet_id_size_dc(const struct options *options, const struct key_type *kt)
 {
     /* Unless no-replay is enabled, we have a packet id, no matter if
@@ -234,44 +229,7 @@ frame_finalize(struct frame *frame,
         msg(M_WARN, "TUN MTU value (%d) must be at least %d", frame->tun_mtu, TUN_MTU_MIN);
         frame_print(frame, M_FATAL, "MTU is too small");
     }
-
-    frame->link_mtu_dynamic = frame->link_mtu;
 }
-
-/*
- * Set the tun MTU dynamically.
- */
-void
-frame_set_mtu_dynamic(struct frame *frame, int mtu, unsigned int flags)
-{
-
-#ifdef ENABLE_DEBUG
-    const int orig_mtu = mtu;
-    const int orig_link_mtu_dynamic = frame->link_mtu_dynamic;
-#endif
-
-    ASSERT(mtu >= 0);
-
-    if (flags & SET_MTU_TUN)
-    {
-        mtu += TUN_LINK_DELTA(frame);
-    }
-
-    if (!(flags & SET_MTU_UPPER_BOUND) || mtu < frame->link_mtu_dynamic)
-    {
-        frame->link_mtu_dynamic = constrain_int(
-            mtu,
-            EXPANDED_SIZE_MIN(frame),
-            EXPANDED_SIZE(frame));
-    }
-
-    dmsg(D_MTU_DEBUG, "MTU DYNAMIC mtu=%d, flags=%u, %d -> %d",
-         orig_mtu,
-         flags,
-         orig_link_mtu_dynamic,
-         frame->link_mtu_dynamic);
-}
-
 /*
  * Move extra_frame octets into extra_tun.  Used by fragmenting code
  * to adjust frame relative to its position in the buffer processing
@@ -297,12 +255,14 @@ frame_print(const struct frame *frame,
     }
     buf_printf(&out, "[");
     buf_printf(&out, " mss_fix:%d", frame->mss_fix);
+#ifdef ENABLE_FRAGMENT
+    buf_printf(&out, " max_frag:%d", frame->max_fragment_size);
+#endif
     buf_printf(&out, " tun_mtu:%d", frame->tun_mtu);
     buf_printf(&out, " headroom:%d", frame->buf.headroom);
     buf_printf(&out, " payload:%d", frame->buf.payload_size);
     buf_printf(&out, " tailroom:%d", frame->buf.tailroom);
     buf_printf(&out, " L:%d", frame->link_mtu);
-    buf_printf(&out, " D:%d", frame->link_mtu_dynamic);
     buf_printf(&out, " EF:%d", frame->extra_frame);
     buf_printf(&out, " EB:%d", frame->extra_buffer);
     buf_printf(&out, " ET:%d", frame->extra_tun);

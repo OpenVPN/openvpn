@@ -333,8 +333,6 @@ void do_preresolve(struct context *c);
 
 void socket_adjust_frame_parameters(struct frame *frame, int proto);
 
-void frame_adjust_path_mtu(struct frame *frame, int pmtu, sa_family_t af, int proto);
-
 void link_socket_close(struct link_socket *sock);
 
 void sd_close(socket_descriptor_t *sd);

@@ -6159,11 +6159,19 @@ add_option(struct options *options,
         msg(msglevel, "--mtu-dynamic has been replaced by --fragment");
         goto err;
     }
-    else if (streq(p[0], "fragment") && p[1] && !p[2])
+    else if (streq(p[0], "fragment") && p[1] && !p[3])
     {
-/*      VERIFY_PERMISSION (OPT_P_MTU); */
         VERIFY_PERMISSION(OPT_P_MTU|OPT_P_CONNECTION);
         options->ce.fragment = positive_atoi(p[1]);
+
+        if (p[2] && streq(p[2], "mtu"))
+        {
+            options->ce.fragment_encap = true;
+        }
+        else if (p[2])
+        {
+            msg(msglevel, "Unknown parameter to --fragment: %s", p[2]);
+        }
     }
 #endif
     else if (streq(p[0], "mtu-disc") && p[1] && !p[2])

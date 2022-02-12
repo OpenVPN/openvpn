@@ -125,6 +125,8 @@ struct connection_entry
     int mtu_discover_type; /* used if OS supports setting Path MTU discovery options on socket */
 
     int fragment;        /* internal fragmentation size */
+    bool fragment_encap; /* true if --fragment had the "mtu" parameter to
+                          * include overhead from IP and TCP/UDP encapsulation */
     int mssfix;          /* Upper bound on TCP MSS */
     bool mssfix_default; /* true if --mssfix should use the default parameters */
     bool mssfix_encap;   /* true if --mssfix had the "mtu" parameter to include

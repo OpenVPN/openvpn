@@ -33,6 +33,7 @@
 #include "crypto.h"
 #include "ssl_common.h"
 #include "memdbg.h"
+#include "forward.h"
 
 /*
  * Lower MSS on TCP SYN packets to fix MTU
@@ -233,30 +234,61 @@ get_ip_encap_overhead(const struct options *options,
 {
     /* Add the overhead of the encapsulating IP packets */
     sa_family_t af;
-    if (lsi->lsa)
+    int proto;
+
+    if (lsi && lsi->lsa)
     {
         af = lsi->lsa->actual.dest.addr.sa.sa_family;
+        proto = lsi->proto;
     }
     else
     {
         /* In the early init before the connection is established or we
          * are in listen mode we can only make an educated guess
-         * from the af of the connection entry */
+         * from the af of the connection entry, in p2mp this will be
+         * later updated */
         af = options->ce.af;
+        proto = options->ce.proto;
     }
-    return datagram_overhead(af, lsi->proto);
+    return datagram_overhead(af, proto);
 }
 
-void
+static void
+frame_calculate_fragment(struct frame *frame, struct key_type *kt,
+                         const struct options *options,
+                         struct link_socket_info *lsi)
+{
+#if defined(ENABLE_FRAGMENT)
+    unsigned int overhead;
+
+    overhead = frame_calculate_protocol_header_size(kt, options, false);
+
+    if (options->ce.fragment_encap)
+    {
+        overhead += get_ip_encap_overhead(options, lsi);
+    }
+
+    unsigned int target = options->ce.fragment - overhead;
+    /* The 4 bytes of header that fragment adds itself. The other extra payload
+     * bytes (Ethernet header/compression) are handled by the fragment code
+     * just as part of the payload and therefore automatically taken into
+     * account if the packet needs to fragmented */
+    frame->max_fragment_size = adjust_payload_max_cbc(kt, target) - 4;
+
+    if (cipher_kt_mode_cbc(kt->cipher))
+    {
+        /* The packet id gets added to *each* fragment in CBC mode, so we need
+         * to account for it */
+        frame->max_fragment_size -= calc_packet_id_size_dc(options, kt);
+    }
+#endif
+}
+
+static void
 frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
                        const struct options *options,
                        struct link_socket_info *lsi)
 {
-    if (options->ce.mssfix == 0)
-    {
-        return;
-    }
-
     unsigned int overhead, payload_overhead;
 
     overhead = frame_calculate_protocol_header_size(kt, options, false);
@@ -290,4 +322,65 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
     frame->mss_fix = adjust_payload_max_cbc(kt, target) - payload_overhead;
 
 
+}
+
+void
+frame_calculate_dynamic(struct frame *frame, struct key_type *kt,
+                        const struct options *options,
+                        struct link_socket_info *lsi)
+{
+    if (options->ce.fragment > 0)
+    {
+        frame_calculate_fragment(frame, kt, options, lsi);
+    }
+
+    if (options->ce.mssfix > 0)
+    {
+        frame_calculate_mssfix(frame, kt, options, lsi);
+    }
+}
+
+/*
+ * Adjust frame structure based on a Path MTU value given
+ * to us by the OS.
+ */
+void
+frame_adjust_path_mtu(struct context *c)
+{
+    struct link_socket_info *lsi = get_link_socket_info(c);
+    struct options *o = &c->options;
+
+    int pmtu = c->c2.link_socket->mtu;
+    sa_family_t af = lsi->lsa->actual.dest.addr.sa.sa_family;
+    int proto = lsi->proto;
+
+    int encap_overhead = datagram_overhead(af, proto);
+
+    /* check if mssfix and fragment need to be adjusted */
+    if (pmtu < o->ce.mssfix
+        || (o->ce.mssfix_encap && pmtu < o->ce.mssfix + encap_overhead))
+    {
+        const char* mtustr = o->ce.mssfix_encap ? " mtu" : "";
+        msg(D_MTU_INFO, "Note adjusting 'mssfix %d %s' to 'mssfix %d mtu' "
+                        "according to path MTU discovery", o->ce.mssfix,
+            mtustr, pmtu);
+        o->ce.mssfix = pmtu;
+        o->ce.mssfix_encap = true;
+        frame_calculate_dynamic(&c->c2.frame, &c->c1.ks.key_type, o, lsi);
+    }
+
+#if defined(ENABLE_FRAGMENT)
+    if (pmtu < o->ce.fragment ||
+        (o->ce.fragment_encap && pmtu < o->ce.fragment + encap_overhead))
+    {
+        const char* mtustr = o->ce.fragment_encap ? " mtu" : "";
+        msg(D_MTU_INFO, "Note adjusting 'fragment %d %s' to 'fragment %d mtu' "
+                        "according to path MTU discovery", o->ce.mssfix,
+            mtustr, pmtu);
+        o->ce.fragment = pmtu;
+        o->ce.fragment_encap = true;
+        frame_calculate_dynamic(&c->c2.frame_fragment, &c->c1.ks.key_type,
+                                o, lsi);
+    }
+#endif
 }

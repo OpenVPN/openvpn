@@ -24,13 +24,25 @@ the local and the remote host.
   from any address, not only the address which was specified in the
   ``--remote`` option.
 
---fragment max
+--fragment args
+
+  Valid syntax:
+  ::
+
+     fragment max
+     fragment max mtu
+
   Enable internal datagram fragmentation so that no UDP datagrams are sent
   which are larger than ``max`` bytes.
 
-  The ``max`` parameter is interpreted in the same way as the
-  ``--link-mtu`` parameter, i.e. the UDP packet size after encapsulation
-  overhead has been added in, but not including the UDP header itself.
+  If the :code:`mtu` parameter is present the ``max`` parameter is
+  interpreted to include IP and UDP encapsulation overhead. The
+  :code:`mtu` parameter is introduced in OpenVPN version 2.6.0.
+
+  If the :code:`mtu` parameter is absent, the ``max`` parameter is
+  interpreted in the same way as the ``--link-mtu`` parameter, i.e.
+  the UDP packet size after encapsulation overhead has been added in,
+  but not including the UDP header itself.
 
   The ``--fragment`` option only makes sense when you are using the UDP
   protocol (``--proto udp``).

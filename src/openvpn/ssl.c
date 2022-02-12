@@ -331,7 +331,6 @@ tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame
 
     /* set dynamic link MTU to cap control channel packets at 1250 bytes */
     ASSERT(TUN_LINK_DELTA(frame) < min_int(frame->link_mtu, 1250));
-    frame->link_mtu_dynamic = min_int(frame->link_mtu, 1250) - TUN_LINK_DELTA(frame);
 
     /* calculate the maximum overhead that control channel frames may have */
     int overhead = 0;
@@ -1920,9 +1919,8 @@ tls_session_update_crypto_params_do_work(struct tls_session *session,
     frame_remove_from_extra_frame(frame, crypto_max_overhead());
     crypto_adjust_frame_parameters(frame, &session->opt->key_type,
                                    options->replay, packet_id_long_form);
-    frame_finalize(frame, options->ce.link_mtu_defined, options->ce.link_mtu,
-                   options->ce.tun_mtu_defined, options->ce.tun_mtu);
-    frame_calculate_mssfix(frame, &session->opt->key_type, options, lsi);
+    frame_calculate_dynamic(frame, &session->opt->key_type, options, lsi);
+
     frame_print(frame, D_MTU_INFO, "Data Channel MTU parms");
 
     /*
@@ -1937,7 +1935,7 @@ tls_session_update_crypto_params_do_work(struct tls_session *session,
         frame_remove_from_extra_frame(frame_fragment, crypto_max_overhead());
         crypto_adjust_frame_parameters(frame_fragment, &session->opt->key_type,
                                        options->replay, packet_id_long_form);
-        frame_set_mtu_dynamic(frame_fragment, options->ce.fragment, SET_MTU_UPPER_BOUND);
+        frame_calculate_dynamic(frame_fragment, &session->opt->key_type, options, lsi);
         frame_print(frame_fragment, D_MTU_INFO, "Fragmentation MTU parms");
     }
 
@@ -2990,6 +2988,7 @@ tls_process(struct tls_multi *multi,
             if (buf)
             {
                 int status = key_state_read_ciphertext(&ks->ks_ssl, buf, multi->opt.frame.tun_mtu);
+
                 if (status == -1)
                 {
                     msg(D_TLS_ERRORS,
@@ -3834,17 +3833,6 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
              print_link_socket_actual(from, &gc));
         goto error;
     }
-
-    if (buf->len > EXPANDED_SIZE_DYNAMIC(&tas->frame))
-    {
-        dmsg(D_TLS_STATE_ERRORS,
-             "TLS State Error: Large packet (size %d) received from %s -- a packet no larger than %d bytes was expected",
-             buf->len,
-             print_link_socket_actual(from, &gc),
-             EXPANDED_SIZE_DYNAMIC(&tas->frame));
-        goto error;
-    }
-
 
     struct buffer newbuf = clone_buf(buf);
     struct tls_wrap_ctx tls_wrap_tmp = tas->tls_wrap;
