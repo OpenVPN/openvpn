@@ -513,9 +513,10 @@ struct tls_session
 #define KEY_SCAN_SIZE 3
 
 
-/* client authentication state, CAS_SUCCEEDED must be 0 since
- * non multi code path still checks this variable but does not initialise it
- * so the code depends on zero initialisation */
+/* multi state (originally client authentication state (=CAS))
+ * CAS_NOT_CONNECTED must be 0 since non multi code paths still check
+ * this variable but do not explicitly initialise it and depend
+ * on zero initialisation */
 
 /* CAS_NOT_CONNECTED is the initial state for every context. When the *first*
  * tls_session reaches S_ACTIVE, this state machine moves to CAS_PENDING (server)
@@ -523,11 +524,11 @@ struct tls_session
  * connect scripts/plugins */
 enum multi_status {
     CAS_NOT_CONNECTED,
-    CAS_WAITING_AUTH,               /**< TLS connection established but deferred auth not finished */
-    CAS_PENDING,
-    CAS_PENDING_DEFERRED,
-    CAS_PENDING_DEFERRED_PARTIAL,   /**< at least handler succeeded, no result yet*/
-    CAS_FAILED,
+    CAS_WAITING_AUTH,               /**< Initial TLS connection established but deferred auth is not yet finished */
+    CAS_PENDING,                    /**< Options import (Connect script/plugin, ccd,...) */
+    CAS_PENDING_DEFERRED,           /**< Waiting on an async option import handler */
+    CAS_PENDING_DEFERRED_PARTIAL,   /**< at least handler succeeded but another is still pending */
+    CAS_FAILED,                     /**< Option import failed or explicitly denied the client */
     CAS_WAITING_OPTIONS_IMPORT,     /**< client with pull or p2p waiting for first time options import */
     CAS_CONNECT_DONE,
 };
