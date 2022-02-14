@@ -88,6 +88,10 @@ extern "C" {
  *   with semicolon delimited list of all installed adapter GUIDs and active adapter GUIDs
  *   respectively.
  *
+ * - Finds existing ovpn-dco adapters and set OVPNDCOADAPTERS and ACTIVEOVPNDCOADAPTERS properties
+ *   with semicolon delimited list of all installed adapter GUIDs and active adapter GUIDs
+ *   respectively.
+ *
  * @param hInstall      Handle to the installation provided to the DLL custom action
  *
  * @return ERROR_SUCCESS on success; An error code otherwise
@@ -145,6 +149,32 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall);
  */
 DLLEXP_DECL UINT __stdcall
 ProcessDeferredAction(_In_ MSIHANDLE hInstall);
+
+
+/**
+ * Check what operation shall be performed on ovpn-dco driver
+ * and set data value (path to inf and user temp dir) for ProcessDriver action.
+ *
+ * @param hInstall      Handle to the installation provided to the DLL custom action
+ *
+ * @return ERROR_SUCCESS on success; An error code otherwise
+ *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
+ */
+DLLEXP_DECL UINT __stdcall
+EvaluateDriver(_In_ MSIHANDLE hInstall);
+
+
+/**
+ * Install or uninstall ovpn-dco driver, removing all adapters using that driver.
+ * If reboot is required, creates reboot indication file in user's temp directory
+ *
+ * @param hInstall      Handle to the installation provided to the DLL custom action
+ *
+ * @return ERROR_SUCCESS on success; An error code otherwise
+ *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
+ */
+DLLEXP_DECL UINT __stdcall
+ProcessDriver(_In_ MSIHANDLE hInstall);
 
 
 /**
