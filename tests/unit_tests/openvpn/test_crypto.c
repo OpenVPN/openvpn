@@ -426,6 +426,34 @@ test_mssfix_mtu_calculation(void **state)
             assert_int_equal(f.mss_fix, 927);
         }
     }
+#ifdef USE_COMP
+    o.comp.alg = COMP_ALG_LZO;
+
+    /* Same but with compression added. Compression adds one byte extra to the
+     * payload so the payload should be reduced by compared to the no
+     * compression calculation before */
+    for (int i = 990;i <= 1010;i++)
+    {
+        /* 992 - 1008 should end up with the same mssfix value all they
+         * all result in the same CBC block size/padding and <= 991 and >=1008
+         * should be one block less and more respectively */
+        o.ce.mssfix = i;
+        frame_calculate_dynamic(&f, &kt, &o, NULL);
+        if (i <= 991)
+        {
+            assert_int_equal(f.mss_fix, 910);
+        }
+        else if (i >= 1008)
+        {
+            assert_int_equal(f.mss_fix, 942);
+        }
+        else
+        {
+            assert_int_equal(f.mss_fix, 926);
+        }
+    }
+    o.comp.alg = COMP_ALG_UNDEF;
+#endif
 
     /* tls client, auth SHA1, cipher AES-256-GCM */
     o.authname = "SHA1";
