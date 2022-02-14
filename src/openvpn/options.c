@@ -910,6 +910,8 @@ struct pull_filter_list
     struct pull_filter *tail;
 };
 
+#ifndef ENABLE_SMALL
+
 static const char *
 pull_filter_type_name(int type)
 {
@@ -930,8 +932,6 @@ pull_filter_type_name(int type)
         return "???";
     }
 }
-
-#ifndef ENABLE_SMALL
 
 #define SHOW_PARM(name, value, format) msg(D_SHOW_PARMS, "  " #name " = " format, (value))
 #define SHOW_STR(var)       SHOW_PARM(var, (o->var ? o->var : "[UNDEF]"), "'%s'")
@@ -1268,6 +1268,7 @@ dhcp_option_address_parse(const char *name, const char *parm, in_addr_t *array, 
 
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
 
+#ifndef ENABLE_SMALL
 static const char *
 print_vlan_accept(enum vlan_acceptable_frames mode)
 {
@@ -1284,8 +1285,6 @@ print_vlan_accept(enum vlan_acceptable_frames mode)
     }
     return NULL;
 }
-
-#ifndef ENABLE_SMALL
 
 static void
 show_p2mp_parms(const struct options *o)

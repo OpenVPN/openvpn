@@ -3653,18 +3653,17 @@ multi_close_instance_on_signal(struct multi_context *m, struct multi_instance *m
     multi_close_instance(m, mi, false);
 }
 
+/*
+ * Management subsystem callbacks
+ */
+#ifdef ENABLE_MANAGEMENT
+
 static void
 multi_signal_instance(struct multi_context *m, struct multi_instance *mi, const int sig)
 {
     mi->context.sig->signal_received = sig;
     multi_close_instance_on_signal(m, mi);
 }
-
-/*
- * Management subsystem callbacks
- */
-
-#ifdef ENABLE_MANAGEMENT
 
 static void
 management_callback_status(void *arg, const int version, struct status_output *so)
