@@ -211,7 +211,7 @@ fragment_incoming(struct fragment_master *f, struct buffer *buf,
                 frag->defined = true;
                 frag->max_frag_size = size;
                 frag->map = 0;
-                ASSERT(buf_init(&frag->buf, FRAME_HEADROOM(frame)));
+                ASSERT(buf_init(&frag->buf, frame->buf.headroom));
             }
 
             /* copy the data to fragment buffer */
@@ -342,7 +342,7 @@ fragment_outgoing(struct fragment_master *f, struct buffer *buf,
             {
                 FRAG_ERR("too many fragments would be required to send datagram");
             }
-            ASSERT(buf_init(&f->outgoing, FRAME_HEADROOM(frame)));
+            ASSERT(buf_init(&f->outgoing, frame->buf.headroom));
             ASSERT(buf_copy(&f->outgoing, buf));
             f->outgoing_seq_id = modulo_add(f->outgoing_seq_id, 1, N_SEQ_ID);
             f->outgoing_frag_id = 0;
@@ -391,7 +391,7 @@ fragment_ready_to_send(struct fragment_master *f, struct buffer *buf,
 
         /* initialize return buffer */
         *buf = f->outgoing_return;
-        ASSERT(buf_init(buf, FRAME_HEADROOM(frame)));
+        ASSERT(buf_init(buf, frame->buf.headroom));
         ASSERT(buf_copy_n(buf, &f->outgoing, size));
 
         /* fragment flags differ based on whether or not we are sending the last fragment */

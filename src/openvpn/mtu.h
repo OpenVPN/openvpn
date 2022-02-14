@@ -148,27 +148,6 @@ struct frame {
 /* Forward declarations, to prevent includes */
 struct options;
 
-/* Routines which read struct frame should use the macros below */
-
-/*
- * Overhead added to packet payload due to encapsulation
- */
-#define EXTRA_FRAME(f)           ((f)->extra_frame)
-
-/*
- * Delta between tun payload size and final TCP/UDP datagram size
- * (not including extra_link additions)
- */
-#define TUN_LINK_DELTA(f)        ((f)->extra_frame + (f)->extra_tun)
-
-/*
- * This is the maximum packet size that we need to be able to
- * read from or write to a tun or tap device.  For example,
- * a tap device ifconfiged to an MTU of 1200 might actually want
- * to return a packet size of 1214 on a read().
- */
-#define PAYLOAD_SIZE(f)          ((f)->buf.payload_size)
-
 /*
  * Control buffer headroom allocations to allow for efficient prepending.
  */
@@ -183,8 +162,6 @@ struct options;
  * larger than the headroom.
  */
 #define BUF_SIZE(f) ((f)->buf.headroom + (f)->buf.payload_size + (f)->buf.tailroom)
-
-#define FRAME_HEADROOM(f)          ((f)->buf.headroom)
 
 /*
  * Function prototypes.

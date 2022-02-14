@@ -221,7 +221,7 @@ check_send_occ_msg_dowork(struct context *c)
     bool doit = false;
 
     c->c2.buf = c->c2.buffers->aux_buf;
-    ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
+    ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
     ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
     ASSERT(buf_write(&c->c2.buf, occ_magic, OCC_STRING_SIZE));
 

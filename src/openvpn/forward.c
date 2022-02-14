@@ -556,8 +556,8 @@ encrypt_sign(struct context *c, bool comp_frag)
 #endif
     }
 
-    /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
-    ASSERT(buf_init(&b->encrypt_buf, FRAME_HEADROOM(&c->c2.frame)));
+    /* initialize work buffer with buf.headroom bytes of prepend capacity */
+    ASSERT(buf_init(&b->encrypt_buf, c->c2.frame.buf.headroom));
 
     if (c->c2.tls_multi)
     {
@@ -802,7 +802,7 @@ read_incoming_link(struct context *c)
     perf_push(PERF_READ_IN_LINK);
 
     c->c2.buf = c->c2.buffers->read_link_buf;
-    ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
+    ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
 
     status = link_socket_read(c->c2.link_socket,
                               &c->c2.buf,
@@ -1118,7 +1118,7 @@ read_incoming_tun(struct context *c)
         sockethandle_finalize(sh, &c->c1.tuntap->reads, &c->c2.buf, NULL);
     }
 #else  /* ifdef _WIN32 */
-    ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
+    ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
     ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
     c->c2.buf.len = read_tun(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
 #endif /* ifdef _WIN32 */

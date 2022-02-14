@@ -49,14 +49,14 @@
  * work is a workspace buffer we are given of size BUF_SIZE.
  * work may be used to return output data, or the input buffer
  * may be modified and returned as output.  If output data is
- * returned in work, the data should start after FRAME_HEADROOM bytes
+ * returned in work, the data should start after buf.headroom bytes
  * of padding to leave room for downstream routines to prepend.
  *
- * Up to a total of FRAME_HEADROOM bytes may be prepended to the input buf
+ * Up to a total of buf.headroom bytes may be prepended to the input buf
  * by all routines (encryption, decryption, compression, and decompression).
  *
  * Note that the buf_prepend return will assert if we try to
- * make a header bigger than FRAME_HEADROOM.  This should not
+ * make a header bigger than buf.headroom.  This should not
  * happen unless the frame parameters are wrong.
  */
 
@@ -370,7 +370,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
 
     ASSERT(ad_start >= buf->data && ad_start <= BPTR(buf));
 
-    ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
+    ASSERT(buf_init(&work, frame->buf.headroom));
 
     /* IV and Packet ID required for this mode */
     ASSERT(packet_id_initialized(&opt->packet_id));
@@ -532,8 +532,8 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work,
             uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH] = { 0 };
             int outlen;
 
-            /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
-            ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
+            /* initialize work buffer with buf.headroom bytes of prepend capacity */
+            ASSERT(buf_init(&work, frame->buf.headroom));
 
             /* read the IV from the packet */
             if (buf->len < iv_size)
@@ -1035,7 +1035,7 @@ test_crypto(struct crypto_options *co, struct frame *frame)
     void *buf_p;
 
     /* init work */
-    ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
+    ASSERT(buf_init(&work, frame->buf.headroom));
 
     /* init implicit IV */
     {
@@ -1078,8 +1078,8 @@ test_crypto(struct crypto_options *co, struct frame *frame)
         ASSERT(buf_p);
         memcpy(buf_p, BPTR(&src), BLEN(&src));
 
-        /* initialize work buffer with FRAME_HEADROOM bytes of prepend capacity */
-        ASSERT(buf_init(&encrypt_workspace, FRAME_HEADROOM(frame)));
+        /* initialize work buffer with buf.headroom bytes of prepend capacity */
+        ASSERT(buf_init(&encrypt_workspace, frame->buf.headroom));
 
         /* encrypt */
         openvpn_encrypt(&buf, encrypt_workspace, co);

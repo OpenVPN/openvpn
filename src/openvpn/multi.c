@@ -3495,7 +3495,7 @@ gremlin_flood_clients(struct multi_context *m)
         struct packet_flood_parms parm = get_packet_flood_parms(level);
         int i;
 
-        ASSERT(buf_init(&buf, FRAME_HEADROOM(&m->top.c2.frame)));
+        ASSERT(buf_init(&buf, m->top.c2.frame.buf.headroom));
         parm.packet_size = min_int(parm.packet_size, m->top.c2.frame.buf.payload_size);
 
         msg(D_GREMLIN, "GREMLIN_FLOOD_CLIENTS: flooding clients with %d packets of size %d",

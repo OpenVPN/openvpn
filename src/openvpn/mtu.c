@@ -47,7 +47,7 @@ alloc_buf_sock_tun(struct buffer *buf,
 {
     /* allocate buffer for overlapped I/O */
     *buf = alloc_buf(BUF_SIZE(frame));
-    ASSERT(buf_init(buf, FRAME_HEADROOM(frame)));
+    ASSERT(buf_init(buf, frame->buf.headroom));
     buf->len = frame->buf.payload_size;
     ASSERT(buf_safe(buf, 0));
 }

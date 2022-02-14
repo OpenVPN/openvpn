@@ -69,11 +69,11 @@ do_lz4_compress(struct buffer *buf,
      */
     if (buf->len >= COMPRESS_THRESHOLD && (compctx->flags & COMP_F_ALLOW_COMPRESS))
     {
-        const size_t ps = PAYLOAD_SIZE(frame);
+        const size_t ps = frame->buf.payload_size;
         int zlen_max = ps + COMP_EXTRA_BUFFER(ps);
         int zlen;
 
-        ASSERT(buf_init(work, FRAME_HEADROOM(frame)));
+        ASSERT(buf_init(work, frame->buf.headroom));
         ASSERT(buf_safe(work, zlen_max));
 
         if (buf->len > ps)
@@ -221,7 +221,7 @@ lz4_decompress(struct buffer *buf, struct buffer work,
         return;
     }
 
-    ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
+    ASSERT(buf_init(&work, frame->buf.headroom));
 
     /* do unframing/swap (assumes buf->len > 0) */
     {
@@ -258,7 +258,7 @@ lz4v2_decompress(struct buffer *buf, struct buffer work,
         return;
     }
 
-    ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
+    ASSERT(buf_init(&work, frame->buf.headroom));
 
     /* do unframing/swap (assumes buf->len > 0) */
     uint8_t *head = BPTR(buf);
