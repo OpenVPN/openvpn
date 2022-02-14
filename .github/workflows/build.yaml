@@ -187,7 +187,7 @@ jobs:
       - name: autoconf
         run: autoreconf -fvi
       - name: configure
-        run: ./configure --with-crypto-library=${{matrix.ssllib}} ${{matrix.extraconf}}
+        run: ./configure --with-crypto-library=${{matrix.ssllib}} ${{matrix.extraconf}} --enable-werror
       - name: make all
         run: make -j3
       - name: make check
