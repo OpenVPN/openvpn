@@ -344,7 +344,7 @@ static const char usage_message[] =
     "                       and received from TCP/UDP (caps) or tun/tap (lc)\n"
     "                : 6 to 11 -- debug messages of increasing verbosity\n"
     "--mute n        : Log at most n consecutive messages in the same category.\n"
-    "--status file n : Write operational status to file every n seconds.\n"
+    "--status file [n] : Write operational status to file every n seconds.\n"
     "--status-version [n] : Choose the status file format version number.\n"
     "                  Currently, n can be 1, 2, or 3 (default=1).\n"
     "--disable-occ   : Disable options consistency check between peers.\n"

@@ -71,6 +71,9 @@ the local and the remote host.
 
      keepalive interval timeout
 
+  Send ping once every ``interval`` seconds, restart if ping is not received
+  for ``timeout`` seconds.
+
   This option can be used on both client and server side, but it is enough
   to add this on the server side as it will push appropriate ``--ping``
   and ``--ping-restart`` options to the client. If used on both server and
@@ -113,7 +116,7 @@ the local and the remote host.
   ``--nobind`` option.
 
 --mark value
-  Mark encrypted packets being sent with value. The mark value can be
+  Mark encrypted packets being sent with ``value``. The mark value can be
   matched in policy routing and packetfilter rules. This option is only
   supported in Linux and does nothing on other operating systems.
 
@@ -202,7 +205,7 @@ the local and the remote host.
   Do not bind to local address and port. The IP stack will allocate a
   dynamic port for returning packets. Since the value of the dynamic port
   could not be known in advance by a peer, this option is only suitable
-  for peers which will be initiating connections by using the --remote
+  for peers which will be initiating connections by using the ``--remote``
   option.
 
 --passtos
@@ -225,6 +228,8 @@ the local and the remote host.
 
   (2)  To provide a basis for the remote to test the existence of its peer
        using the ``--ping-exit`` option.
+
+  When using OpenVPN in server mode see also ``--keepalive``.
 
 --ping-exit n
   Causes OpenVPN to exit after ``n`` seconds pass without reception of a
@@ -326,18 +331,19 @@ the local and the remote host.
 --replay-window args
   Modify the replay protection sliding-window size and time window.
 
-  Valid syntax:
-  ::
+  Valid syntaxes::
 
-     replay-window n [t]
+     replay-window n
+     replay-window n t
 
-  Use a replay protection sliding-window of size **n** and a time window
-  of **t** seconds.
+  Use a replay protection sliding-window of size ``n`` and a time window
+  of ``t`` seconds.
 
-  By default **n** is 64 (the IPSec default) and **t** is 15 seconds.
+  By default ``n`` is :code:`64` (the IPSec default) and ``t`` is
+  :code:`15` seconds.
 
-  This option is only relevant in UDP mode, i.e. when either **--proto
-  udp** is specified, or no **--proto** option is specified.
+  This option is only relevant in UDP mode, i.e. when either ``--proto
+  udp`` is specified, or no ``--proto`` option is specified.
 
   When OpenVPN tunnels IP packets over UDP, there is the possibility that
   packets might be dropped or delivered out of order. Because OpenVPN,

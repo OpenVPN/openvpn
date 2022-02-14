@@ -48,7 +48,7 @@ which mode OpenVPN is configured as.
 
   Note: The SSL library will probably need /dev/urandom to be available
   inside the chroot directory ``dir``. This is because SSL libraries
-  occasionally need to collect fresh random. Newer linux kernels and some
+  occasionally need to collect fresh randomness. Newer linux kernels and some
   BSDs implement a getrandom() or getentropy() syscall that removes the
   need for /dev/urandom to be available.
 
@@ -75,7 +75,7 @@ which mode OpenVPN is configured as.
 
 --config file
   Load additional config options from ``file`` where each line corresponds
-  to one command line option, but with the leading '--' removed.
+  to one command line option, but with the leading :code:`--` removed.
 
   If ``--config file`` is the only option to the openvpn command, the
   ``--config`` can be removed, and the command can be given as ``openvpn
@@ -130,8 +130,14 @@ which mode OpenVPN is configured as.
       secret static.key
 
 --daemon progname
-  Become a daemon after all initialization functions are completed. This
-  option will cause all message and error output to be sent to the syslog
+  Become a daemon after all initialization functions are completed.
+
+  Valid syntaxes::
+
+    daemon
+    daemon progname
+
+  This option will cause all message and error output to be sent to the syslog
   file (such as :code:`/var/log/messages`), except for the output of
   scripts and ifconfig commands, which will go to :code:`/dev/null` unless
   otherwise redirected. The syslog redirection occurs immediately at the
@@ -142,7 +148,7 @@ which mode OpenVPN is configured as.
   The optional ``progname`` parameter will cause OpenVPN to report its
   program name to the system logger as ``progname``. This can be useful in
   linking OpenVPN messages in the syslog file with specific tunnels. When
-  unspecified, ``progname`` defaults to "openvpn".
+  unspecified, ``progname`` defaults to :code:`openvpn`.
 
   When OpenVPN is run with the ``--daemon`` option, it will try to delay
   daemonization until the majority of initialization functions which are
@@ -166,6 +172,8 @@ which mode OpenVPN is configured as.
   renegotiation (and reauthentication) occurs.
 
 --disable-occ
+  Disable "options consistency check" (OCC).
+
   Don't output a warning message if option inconsistencies are detected
   between peers. An example of an option inconsistency would be where one
   peer uses ``--dev tun`` while the other peer uses ``--dev tap``.
@@ -176,6 +184,11 @@ which mode OpenVPN is configured as.
 
 --engine engine-name
   Enable OpenSSL hardware-based crypto engine functionality.
+
+  Valid syntaxes::
+
+    engine
+    engine engine-name
 
   If ``engine-name`` is specified, use a specific crypto engine. Use the
   ``--show-engines`` standalone option to list the crypto engines which
@@ -191,7 +204,7 @@ which mode OpenVPN is configured as.
   call, improving CPU efficiency by 5% to 10%.
 
   This option can only be used on non-Windows systems, when ``--proto
-  udp`` is specified, and when ``--shaper`` is NOT specified.
+  udp`` is specified, and when ``--shaper`` is *NOT* specified.
 
 --group group
   Similar to the ``--user`` option, this option changes the group ID of
@@ -221,7 +234,7 @@ which mode OpenVPN is configured as.
   May be used in order to execute OpenVPN in unprivileged environment.
 
 --keying-material-exporter args
-  Save Exported Keying Material [RFC5705] of len bytes (must be between 16
+  Save Exported Keying Material [RFC5705] of ``len`` bytes (must be between 16
   and 4095 bytes) using ``label`` in environment
   (:code:`exported_keying_material`) for use by plugins in
   :code:`OPENVPN_PLUGIN_TLS_FINAL` callback.
@@ -289,13 +302,13 @@ which mode OpenVPN is configured as.
 
       --providers legacy default
 
-  Behaviour of changing this option between SIGHUP might not be well behaving.
+  Behaviour of changing this option between :code:`SIGHUP` might not be well behaving.
   If you need to change/add/remove this option, fully restart OpenVPN.
 
 --remap-usr1 signal
   Control whether internally or externally generated :code:`SIGUSR1` signals
   are remapped to :code:`SIGHUP` (restart without persisting state) or
-  SIGTERM (exit).
+  :code:`SIGTERM` (exit).
 
   ``signal`` can be set to :code:`SIGHUP` or :code:`SIGTERM`. By default,
   no remapping occurs.
@@ -372,7 +385,8 @@ which mode OpenVPN is configured as.
   consider using the ``--persist-key`` and ``--persist-tun`` options.
 
 --status args
-  Write operational status to ``file`` every ``n`` seconds.
+  Write operational status to ``file`` every ``n`` seconds. ``n`` defaults
+  to :code:`60` if not specified.
 
   Valid syntaxes:
   ::
