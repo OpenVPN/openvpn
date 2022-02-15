@@ -520,8 +520,7 @@ static inline bool md_defined(const char* mdname)
  *
  * @param digest        Name of the digest to verify, e.g. \c MD5).
  *
- * @return              A statically allocated structure containing parameters
- *                      for the given message digest.
+ * @return              Whether a digest of the given name is available
  */
 bool md_valid(const char *digest);
 

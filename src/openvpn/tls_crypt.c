@@ -59,7 +59,7 @@ tls_crypt_kt(void)
         msg(M_WARN, "ERROR: --tls-crypt requires AES-256-CTR support.");
         return (struct key_type) { 0 };
     }
-    if (cipher_valid(kt.digest))
+    if (!md_valid(kt.digest))
     {
         msg(M_WARN, "ERROR: --tls-crypt requires HMAC-SHA-256 support.");
         return (struct key_type) { 0 };

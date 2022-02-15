@@ -38,7 +38,7 @@ auth_token_kt(void)
     kt.cipher = "none";
     kt.digest = "SHA256";
 
-    if (!kt.digest)
+    if (!md_valid(kt.digest))
     {
         msg(M_WARN, "ERROR: --tls-crypt requires HMAC-SHA-256 support.");
         return (struct key_type) { 0 };
