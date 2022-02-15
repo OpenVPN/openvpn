@@ -199,6 +199,16 @@ configuration.
   When iterating through connection profiles, only consider profiles using
   protocol ``p`` (:code:`tcp` \| :code:`udp`).
 
+  Note that this specifically only filters by the transport layer
+  protocol, i.e. UDP or TCP. This does not affect whether IPv4 or
+  IPv6 is used as IP protocol.
+
+  For implementation reasons the option accepts the :code:`4` and :code:`6`
+  suffixes when specifying the protocol
+  (i.e. :code:`udp4` / :code:`udp6` / :code:`tcp4` / :code:`tcp6`).
+  However, these behave the same as without the suffix and should be avoided
+  to prevent confusion.
+
 --pull
   This option must be used on a client which is connecting to a
   multi-client server. It indicates to OpenVPN that it should accept

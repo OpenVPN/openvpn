@@ -125,9 +125,11 @@ static const char usage_message[] =
     "--remote-random-hostname : Add a random string to remote DNS name.\n"
     "--mode m        : Major mode, m = 'p2p' (default, point-to-point) or 'server'.\n"
     "--proto p       : Use protocol p for communicating with peer.\n"
-    "                  p = udp (default), tcp-server, or tcp-client\n"
+    "                  p = udp (default), tcp-server, tcp-client\n"
+    "                      udp4, tcp4-server, tcp4-client\n"
+    "                      udp6, tcp6-server, tcp6-client\n"
     "--proto-force p : only consider protocol p in list of connection profiles.\n"
-    "                  p = udp6, tcp6-server, or tcp6-client (ipv6)\n"
+    "                  p = udp or tcp\n"
     "--connect-retry n [m] : For client, number of seconds to wait between\n"
     "                  connection retries (default=%d). On repeated retries\n"
     "                  the wait time is exponentially increased to a maximum of m\n"
@@ -2284,6 +2286,8 @@ options_postprocess_verify_ce(const struct options *options,
      */
     if (options->mode == MODE_SERVER)
     {
+#define USAGE_VALID_SERVER_PROTOS "--mode server currently only supports " \
+      "--proto values of udp, tcp-server, tcp4-server, or tcp6-server"
 #ifdef TARGET_ANDROID
         msg(M_FATAL, "--mode server not supported on Android");
 #endif
@@ -2301,15 +2305,14 @@ options_postprocess_verify_ce(const struct options *options,
         }
         if (!(proto_is_udp(ce->proto) || ce->proto == PROTO_TCP_SERVER))
         {
-            msg(M_USAGE, "--mode server currently only supports "
-                "--proto udp or --proto tcp-server or proto tcp6-server");
+            msg(M_USAGE, USAGE_VALID_SERVER_PROTOS);
         }
 #if PORT_SHARE
         if ((options->port_share_host || options->port_share_port)
             && (ce->proto != PROTO_TCP_SERVER))
         {
             msg(M_USAGE, "--port-share only works in TCP server mode "
-                "(--proto tcp-server or tcp6-server)");
+                "(--proto values of tcp-server, tcp4-server, or tcp6-server)");
         }
 #endif
         if (!options->tls_server)
@@ -2357,9 +2360,7 @@ options_postprocess_verify_ce(const struct options *options,
         }
         if (!(proto_is_dgram(ce->proto) || ce->proto == PROTO_TCP_SERVER))
         {
-            msg(M_USAGE,
-                "--mode server currently only supports --proto udp or --proto "
-                "tcp-server or --proto tcp6-server");
+            msg(M_USAGE, USAGE_VALID_SERVER_PROTOS);
         }
         if (!proto_is_udp(ce->proto) && (options->cf_max || options->cf_per))
         {
