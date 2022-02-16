@@ -25,6 +25,9 @@
 #ifndef XKEY_COMMON_H_
 #define XKEY_COMMON_H_
 
+/* Guard to only enable if OpenSSL is used and not trigger an error if mbed
+ * TLS is compiled without OpenSSL being installed */
+#if defined(ENABLE_CRYPTO_OPENSSL)
 #include <openssl/opensslv.h>
 #if OPENSSL_VERSION_NUMBER >= 0x30000010L && !defined(DISABLE_XKEY_PROVIDER)
 #define HAVE_XKEY_PROVIDER 1
@@ -168,5 +171,7 @@ xkey_max_saltlen(int modBits, int hLen)
     return emLen - hLen - 2;
 }
 #endif /* HAVE_XKEY_PROVIDER */
+
+#endif /* ENABLE_CRYPTO_OPENSSL */
 
 #endif /* XKEY_COMMON_H_ */
