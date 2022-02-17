@@ -393,9 +393,14 @@ static char *auth_challenge; /* GLOBAL */
 #endif
 
 void
-auth_user_pass_setup(const char *auth_file, const struct static_challenge_info *sci)
+enable_auth_user_pass()
 {
     auth_user_pass_enabled = true;
+}
+
+void
+auth_user_pass_setup(const char *auth_file, const struct static_challenge_info *sci)
+{
     if (!auth_user_pass.defined && !auth_token.defined)
     {
 #ifdef ENABLE_MANAGEMENT
