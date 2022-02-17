@@ -612,15 +612,6 @@ out:
     return ret;
 }
 
-bool cipher_var_key_size(const char *ciphername)
-{
-    evp_cipher_type *cipher = cipher_get(ciphername);
-    bool ret = EVP_CIPHER_flags(cipher) & EVP_CIPH_VARIABLE_LENGTH;
-    EVP_CIPHER_free(cipher);
-    return ret;
-}
-
-
 const char *
 cipher_kt_name(const char *ciphername)
 {
