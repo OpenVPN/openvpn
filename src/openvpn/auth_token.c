@@ -33,20 +33,8 @@ const char *auth_token_pem_name = "OpenVPN auth-token server key";
 static struct key_type
 auth_token_kt(void)
 {
-    struct key_type kt = { 0 };
-    /* We do not encrypt our session tokens */
-    kt.cipher = "none";
-    kt.digest = "SHA256";
-
-    if (!md_valid(kt.digest))
-    {
-        msg(M_WARN, "ERROR: --tls-crypt requires HMAC-SHA-256 support.");
-        return (struct key_type) { 0 };
-    }
-
-    return kt;
+    return create_kt("none", "SHA256", "auth-gen-token");
 }
-
 
 void
 add_session_token_env(struct tls_session *session, struct tls_multi *multi,

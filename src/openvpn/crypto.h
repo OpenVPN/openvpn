@@ -547,4 +547,35 @@ key_ctx_bi_defined(const struct key_ctx_bi *key)
  */
 const char *print_key_filename(const char *str, bool is_inline);
 
+/**
+ * Creates and validates an instance of struct key_type with the provided
+ * algs.
+ *
+ * @param cipher    the cipher algorithm to use (must be a string literal)
+ * @param md        the digest algorithm to use (must be a string literal)
+ * @param optname   the name of the option requiring the key_type object
+ *
+ * @return          the initialized key_type instance
+ */
+static inline struct key_type
+create_kt(const char *cipher, const char *md, const char *optname)
+{
+    struct key_type kt;
+    kt.cipher = cipher;
+    kt.digest = md;
+
+    if (cipher_defined(kt.cipher) && !cipher_valid(kt.cipher))
+    {
+        msg(M_WARN, "ERROR: --%s requires %s support.", optname, kt.cipher);
+        return (struct key_type) { 0 };
+    }
+    if (md_defined(kt.digest) && !md_valid(kt.digest))
+    {
+        msg(M_WARN, "ERROR: --%s requires %s support.", optname, kt.digest);
+        return (struct key_type) { 0 };
+    }
+
+    return kt;
+}
+
 #endif /* CRYPTO_H */

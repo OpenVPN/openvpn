@@ -50,22 +50,7 @@ static const uint8_t TLS_CRYPT_METADATA_TYPE_TIMESTAMP      = 0x01;
 static struct key_type
 tls_crypt_kt(void)
 {
-    struct key_type kt;
-    kt.cipher = "AES-256-CTR";
-    kt.digest = "SHA256";
-
-    if (!cipher_valid(kt.cipher))
-    {
-        msg(M_WARN, "ERROR: --tls-crypt requires AES-256-CTR support.");
-        return (struct key_type) { 0 };
-    }
-    if (!md_valid(kt.digest))
-    {
-        msg(M_WARN, "ERROR: --tls-crypt requires HMAC-SHA-256 support.");
-        return (struct key_type) { 0 };
-    }
-
-    return kt;
+    return create_kt("AES-256-CTR", "SHA256", "tls-crypt");
 }
 
 int
