@@ -246,6 +246,12 @@
     <ClCompile Include="ssl_util.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="xkey_helper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xkey_provider.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="base64.h">
@@ -513,6 +519,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="win32-util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xkey_common.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

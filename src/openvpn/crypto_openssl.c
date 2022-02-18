@@ -62,6 +62,11 @@
 #error Windows build with OPENSSL_NO_EC: disabling EC key is not supported.
 #endif
 
+#ifdef _MSC_VER
+/* mute ossl3 deprecation warnings treated as errors in msvc */
+#pragma warning(disable: 4996)
+#endif
+
 /*
  * Check for key size creepage.
  */
