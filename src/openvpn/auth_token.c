@@ -87,6 +87,7 @@ add_session_token_env(struct tls_session *session, struct tls_multi *multi,
 
             default:
                 /* Silence compiler warning, all four possible combinations are covered */
+                state = NULL;
                 ASSERT(0);
         }
     }
