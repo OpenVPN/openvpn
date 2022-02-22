@@ -361,7 +361,7 @@ frame_adjust_path_mtu(struct context *c)
         || (o->ce.mssfix_encap && pmtu < o->ce.mssfix + encap_overhead))
     {
         const char* mtustr = o->ce.mssfix_encap ? " mtu" : "";
-        msg(D_MTU_INFO, "Note adjusting 'mssfix %d %s' to 'mssfix %d mtu' "
+        msg(D_MTU_INFO, "Note adjusting 'mssfix %d%s' to 'mssfix %d mtu' "
                         "according to path MTU discovery", o->ce.mssfix,
             mtustr, pmtu);
         o->ce.mssfix = pmtu;
@@ -374,8 +374,8 @@ frame_adjust_path_mtu(struct context *c)
         (o->ce.fragment_encap && pmtu < o->ce.fragment + encap_overhead))
     {
         const char* mtustr = o->ce.fragment_encap ? " mtu" : "";
-        msg(D_MTU_INFO, "Note adjusting 'fragment %d %s' to 'fragment %d mtu' "
-                        "according to path MTU discovery", o->ce.mssfix,
+        msg(D_MTU_INFO, "Note adjusting 'fragment %d%s' to 'fragment %d mtu' "
+                        "according to path MTU discovery", o->ce.fragment,
             mtustr, pmtu);
         o->ce.fragment = pmtu;
         o->ce.fragment_encap = true;
