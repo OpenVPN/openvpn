@@ -352,6 +352,17 @@ format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc)
                     buf_printf(&out,"CMSG=%d|", cmsg->cmsg_type);
                 }
             }
+            else if (cmsg->cmsg_level == IPPROTO_IPV6)
+            {
+                if (cmsg->cmsg_type == IPV6_RECVERR)
+                {
+                    e = (struct sock_extended_err *) CMSG_DATA(cmsg);
+                }
+                else
+                {
+                    buf_printf(&out,"CMSG=%d|", cmsg->cmsg_type);
+                }
+            }
         }
         if (e == NULL)
         {
@@ -405,10 +416,17 @@ void
 set_sock_extended_error_passing(int sd)
 {
     int on = 1;
-    if (setsockopt(sd, SOL_IP, IP_RECVERR, (void *) &on, sizeof(on)))
+    /* see "man 7 ip" (on Linux) */
+    if (setsockopt(sd, SOL_IP, IP_RECVERR, (void *) &on, sizeof(on)) != 0)
     {
         msg(M_WARN | M_ERRNO,
             "Note: enable extended error passing on TCP/UDP socket failed (IP_RECVERR)");
+    }
+    /* see "man 7 ipv6" (on Linux) */
+    if (setsockopt(sd, IPPROTO_IPV6, IPV6_RECVERR, (void *) &on, sizeof(on)) != 0)
+    {
+        msg(M_WARN | M_ERRNO,
+            "Note: enable extended error passing on TCP/UDP socket failed (IPV6_RECVERR)");
     }
 }
 
