@@ -32,6 +32,7 @@
 #include "buffer.h"
 #include "misc.h"
 #include "networking.h"
+#include "proto.h"
 
 #include <errno.h>
 #include <string.h>
@@ -748,7 +749,7 @@ net_addr_ll_set(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
     req.i.ifi_family = AF_PACKET;
     req.i.ifi_index = ifindex;
 
-    SITNL_ADDATTR(&req.n, sizeof(req), IFLA_ADDRESS, addr, ETH_ALEN);
+    SITNL_ADDATTR(&req.n, sizeof(req), IFLA_ADDRESS, addr, OPENVPN_ETH_ALEN);
 
     msg(M_INFO, "%s: lladdr " MAC_FMT " for %s", __func__, MAC_PRINT_ARG(addr),
         iface);
