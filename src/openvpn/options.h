@@ -131,6 +131,7 @@ struct connection_entry
     bool mssfix_default; /* true if --mssfix should use the default parameters */
     bool mssfix_encap;   /* true if --mssfix had the "mtu" parameter to include
                           * overhead from IP and TCP/UDP encapsulation */
+    bool mssfix_fixed;   /* use the mssfix value without any encapsulation adjustments */
 
     int explicit_exit_notification; /* Explicitly tell peer when we are exiting via OCC_EXIT or [RESTART] message */
 

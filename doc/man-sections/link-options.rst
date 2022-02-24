@@ -132,12 +132,14 @@ the local and the remote host.
 
      mssfix max [mtu]
 
+     mssfix max [fixed]
+
      mssfix
 
   Announce to TCP sessions running over the tunnel that they should limit
   their send packet sizes such that after OpenVPN has encapsulated them,
   the resulting UDP packet size that OpenVPN sends to its peer will not
-  exceed ``max`` bytes. The default value is :code:`1450`. Use :code:`0`
+  exceed ``max`` bytes. The default value is :code:`1492 mtu`. Use :code:`0`
   as max to disable mssfix.
 
   If the :code:`mtu` parameter is specified the ``max`` value is interpreted
@@ -152,6 +154,11 @@ the local and the remote host.
   8 bytes for UDP header). Default value of 1450 allows OpenVPN packets to be
   transmitted over IPv4 on a link with MTU 1478 or higher without IP level
   fragmentation (and 1498 for IPv6).
+
+  If the :code:`fixed` parameter is specified, OpenVPN will make no attempt
+  to calculate the VPN encapsulation overhead but instead will set the MSS to
+  limit the size of the payload IP packets to the specified number. IPv4 packets
+  will have the MSS value lowered to mssfix - 40 and IPv6 packets to mssfix - 60.
 
   if ``--mssfix`` is specified is specified without any parameter it
   inherits the parameters of ``--fragment`` if specified or uses the

@@ -1515,6 +1515,7 @@ show_connection_entry(const struct connection_entry *o)
 #endif
     SHOW_INT(mssfix);
     SHOW_BOOL(mssfix_encap);
+    SHOW_BOOL(mssfix_fixed);
 
     SHOW_INT(explicit_exit_notification);
 
@@ -2937,19 +2938,24 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         }
         else
 #endif
-        if (ce->tun_mtu_defined && o->ce.tun_mtu == TUN_MTU_DEFAULT)
+        if (ce->tun_mtu_defined)
         {
-            /* We want to only set mssfix default value if we use a default
-             * MTU Size, otherwise the different size of tun should either
-             * already solve the problem or mssfix might artifically make the
-             * payload packets smaller without mssfix 0 */
-            ce->mssfix = MSSFIX_DEFAULT;
-            ce->mssfix_encap = true;
-        }
-        else
-        {
-            msg(D_MTU_INFO, "Note: not enabling mssfix for non-default value "
-                            "of --tun-mtu");
+            if (o->ce.tun_mtu == TUN_MTU_DEFAULT)
+            {
+                /* We want to only set mssfix default value if we use a default
+                 * MTU Size, otherwise the different size of tun should either
+                 * already solve the problem or mssfix might artifically make the
+                 * payload packets smaller without mssfix 0 */
+                ce->mssfix = MSSFIX_DEFAULT;
+                ce->mssfix_encap = true;
+            }
+            else
+            {
+                /* We still apply the mssfix value but only adjust it to the
+                 * size of the tun interface. */
+                ce->mssfix = ce->tun_mtu;
+                ce->mssfix_fixed = true;
+            }
         }
     }
 
@@ -6844,7 +6850,7 @@ add_option(struct options *options,
         if (p[1])
         {
             /* value specified, assume encapsulation is not
-             * included unles "mtu" follows later */
+             * included unless "mtu" follows later */
             options->ce.mssfix = positive_atoi(p[1]);
             options->ce.mssfix_encap = false;
             options->ce.mssfix_default = false;
@@ -6854,11 +6860,16 @@ add_option(struct options *options,
             /* Set MTU to default values */
             options->ce.mssfix_default = true;
             options->ce.mssfix_encap = true;
+            options->ce.mssfix_fixed = false;
         }
 
         if (p[2] && streq(p[2], "mtu"))
         {
             options->ce.mssfix_encap = true;
+        }
+        else if (p[2] && streq(p[2], "fixed"))
+        {
+            options->ce.mssfix_fixed = true;
         }
         else if (p[2])
         {

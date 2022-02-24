@@ -289,6 +289,14 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
                        const struct options *options,
                        struct link_socket_info *lsi)
 {
+    if (options->ce.mssfix_fixed)
+    {
+        /* we subtract IPv4 and TCP overhead here, mssfix method will add the
+         * extra 20 for IPv6 */
+        frame->mss_fix = options->ce.mssfix - (20 + 20);
+        return;
+    }
+
     unsigned int overhead, payload_overhead;
 
     overhead = frame_calculate_protocol_header_size(kt, options, false);
