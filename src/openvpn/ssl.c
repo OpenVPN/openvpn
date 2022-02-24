@@ -604,6 +604,7 @@ tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
 void
 init_ssl(const struct options *options, struct tls_root_ctx *new_ctx, bool in_chroot)
 {
+    size_t j;
     ASSERT(NULL != new_ctx);
 
     tls_clear_error();
@@ -682,29 +683,32 @@ init_ssl(const struct options *options, struct tls_root_ctx *new_ctx, bool in_ch
         free(cert);
     }
 #endif
-    else if (options->cert_file)
+    for( j = 0; j < OPENVPN_MAX_CERT_KEY_PAIR; j++ )
     {
-        tls_ctx_load_cert_file(new_ctx, options->cert_file, options->cert_file_inline);
-    }
+        if(options->cert_file[j])
+        {
+            tls_ctx_load_cert_file(new_ctx, options->cert_file[j], options->cert_file_inline[j]);
+        }
 
-    if (options->priv_key_file)
-    {
-        if (0 != tls_ctx_load_priv_file(new_ctx, options->priv_key_file,
-                                        options->priv_key_file_inline))
+        if(options->priv_key_file[j])
         {
-            goto err;
+            if (0 != tls_ctx_load_priv_file(new_ctx, options->priv_key_file[j],
+                                            options->priv_key_file_inline[j]))
+            {
+                goto err;
+            }
         }
-    }
 #ifdef ENABLE_MANAGEMENT
-    else if (options->management_flags & MF_EXTERNAL_KEY)
-    {
-        if (tls_ctx_use_management_external_key(new_ctx))
+        else if (options->management_flags & MF_EXTERNAL_KEY)
         {
-            msg(M_WARN, "Cannot initialize mamagement-external-key");
-            goto err;
+            if (tls_ctx_use_management_external_key(new_ctx))
+            {
+                msg(M_WARN, "Cannot initialize mamagement-external-key");
+                goto err;
+            }
         }
-    }
 #endif
+    }
 
     if (options->ca_file || options->ca_path)
     {

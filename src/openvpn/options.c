@@ -1568,6 +1568,7 @@ show_pull_filter_list(const struct pull_filter_list *l)
 void
 show_settings(const struct options *o)
 {
+    int i;
 #ifndef ENABLE_SMALL
     msg(D_SHOW_PARMS, "Current Parameter Settings:");
 
@@ -1745,7 +1746,11 @@ show_settings(const struct options *o)
     }
     else
 #endif
-    SHOW_STR_INLINE(cert_file);
+    for( i = 0; i < OPENVPN_MAX_CERT_KEY_PAIR; i++ )
+      SHOW_PARM(cert_file[i], \
+                  o->cert_file_inline[i] ? "[INLINE]" : \
+                  (o->cert_file[i] ? o->cert_file[i] : "[UNDEF]"), \
+                  "'%s'");
     SHOW_STR_INLINE(extra_certs_file);
 
 #ifdef ENABLE_MANAGEMENT
@@ -1755,7 +1760,11 @@ show_settings(const struct options *o)
     }
     else
 #endif
-    SHOW_STR_INLINE(priv_key_file);
+    for( i = 0; i < OPENVPN_MAX_CERT_KEY_PAIR; i++ )
+      SHOW_PARM(priv_key_file[i], \
+                  o->priv_key_file_inline[i] ? "[INLINE]" : \
+                  (o->priv_key_file[i] ? o->priv_key_file[i] : "[UNDEF]"), \
+                  "'%s'");
 #ifndef ENABLE_CRYPTO_MBEDTLS
     SHOW_STR_INLINE(pkcs12_file);
 #endif
@@ -2613,11 +2622,11 @@ options_postprocess_verify_ce(const struct options *options,
             {
                 msg(M_USAGE, "Parameter --pkcs11-id or --pkcs11-id-management should be specified.");
             }
-            if (options->cert_file)
+            if (options->cert_file[0])
             {
                 msg(M_USAGE, "Parameter --cert cannot be used when --pkcs11-provider is also specified.");
             }
-            if (options->priv_key_file)
+            if (options->priv_key_file[0])
             {
                 msg(M_USAGE, "Parameter --key cannot be used when --pkcs11-provider is also specified.");
             }
@@ -2645,13 +2654,13 @@ options_postprocess_verify_ce(const struct options *options,
         else
 #endif /* ifdef ENABLE_PKCS11 */
 #ifdef ENABLE_MANAGEMENT
-        if ((options->management_flags & MF_EXTERNAL_KEY) && options->priv_key_file)
+        if ((options->management_flags & MF_EXTERNAL_KEY) && options->priv_key_file[0])
         {
             msg(M_USAGE, "--key and --management-external-key are mutually exclusive");
         }
         else if ((options->management_flags & MF_EXTERNAL_CERT))
         {
-            if (options->cert_file)
+            if (options->cert_file[0])
             {
                 msg(M_USAGE, "--cert and --management-external-cert are mutually exclusive");
             }
@@ -2665,11 +2674,11 @@ options_postprocess_verify_ce(const struct options *options,
 #ifdef ENABLE_CRYPTOAPI
         if (options->cryptoapi_cert)
         {
-            if (options->cert_file)
+            if (options->cert_file[0])
             {
                 msg(M_USAGE, "Parameter --cert cannot be used when --cryptoapicert is also specified.");
             }
-            if (options->priv_key_file)
+            if (options->priv_key_file[0])
             {
                 msg(M_USAGE, "Parameter --key cannot be used when --cryptoapicert is also specified.");
             }
@@ -2699,11 +2708,11 @@ options_postprocess_verify_ce(const struct options *options,
             {
                 msg(M_USAGE, "Parameter --capath cannot be used when --pkcs12 is also specified.");
             }
-            if (options->cert_file)
+            if (options->cert_file[0])
             {
                 msg(M_USAGE, "Parameter --cert cannot be used when --pkcs12 is also specified.");
             }
-            if (options->priv_key_file)
+            if (options->priv_key_file[0])
             {
                 msg(M_USAGE, "Parameter --key cannot be used when --pkcs12 is also specified.");
             }
@@ -2732,10 +2741,10 @@ options_postprocess_verify_ce(const struct options *options,
 
                 const int sum =
 #ifdef ENABLE_MANAGEMENT
-                    ((options->cert_file != NULL) || (options->management_flags & MF_EXTERNAL_CERT))
-                    +((options->priv_key_file != NULL) || (options->management_flags & MF_EXTERNAL_KEY));
+                    ((options->cert_file[0] != NULL) || (options->management_flags & MF_EXTERNAL_CERT))
+                    +((options->priv_key_file[0] != NULL) || (options->management_flags & MF_EXTERNAL_KEY));
 #else
-                    (options->cert_file != NULL) + (options->priv_key_file != NULL);
+                    (options->cert_file[0] != NULL) + (options->priv_key_file[0] != NULL);
 #endif
 
                 if (sum == 0)
@@ -2761,11 +2770,11 @@ options_postprocess_verify_ce(const struct options *options,
 #ifdef ENABLE_MANAGEMENT
                 if (!(options->management_flags & MF_EXTERNAL_CERT))
 #endif
-                notnull(options->cert_file, "certificate file (--cert) or PKCS#12 file (--pkcs12)");
+                notnull(options->cert_file[0], "certificate file (--cert) or PKCS#12 file (--pkcs12)");
 #ifdef ENABLE_MANAGEMENT
                 if (!(options->management_flags & MF_EXTERNAL_KEY))
 #endif
-                notnull(options->priv_key_file, "private key file (--key) or PKCS#12 file (--pkcs12)");
+                notnull(options->priv_key_file[0], "private key file (--key) or PKCS#12 file (--pkcs12)");
             }
         }
         if (ce->tls_auth_file && ce->tls_crypt_file)
@@ -2793,8 +2802,8 @@ options_postprocess_verify_ce(const struct options *options,
         MUST_BE_UNDEF(ca_file);
         MUST_BE_UNDEF(ca_path);
         MUST_BE_UNDEF(dh_file);
-        MUST_BE_UNDEF(cert_file);
-        MUST_BE_UNDEF(priv_key_file);
+        MUST_BE_UNDEF(cert_file[0]);
+        MUST_BE_UNDEF(priv_key_file[0]);
 #ifndef ENABLE_CRYPTO_MBEDTLS
         MUST_BE_UNDEF(pkcs12_file);
 #endif
@@ -3553,6 +3562,7 @@ static void
 options_postprocess_filechecks(struct options *options)
 {
     bool errs = false;
+    size_t j;
 
     /* ** SSL/TLS/crypto related files ** */
     errs |= check_file_access_inline(options->dh_file_inline, CHKACC_FILE,
@@ -3567,8 +3577,11 @@ options_postprocess_filechecks(struct options *options)
     errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE,
                                      options->ca_path, R_OK, "--capath");
 
-    errs |= check_file_access_inline(options->cert_file_inline, CHKACC_FILE,
-                                     options->cert_file, R_OK, "--cert");
+    for( j = 0; j < OPENVPN_MAX_CERT_KEY_PAIR; j++ )
+    {
+        errs |= check_file_access_inline(options->cert_file_inline[j], CHKACC_FILE,
+                                         options->cert_file[j], R_OK, "--cert");
+    }
 
     errs |= check_file_access_inline(options->extra_certs_file, CHKACC_FILE,
                                      options->extra_certs_file, R_OK,
@@ -3578,9 +3591,12 @@ options_postprocess_filechecks(struct options *options)
     if (!(options->management_flags & MF_EXTERNAL_KEY))
 #endif
     {
-        errs |= check_file_access_inline(options->priv_key_file_inline,
-                                         CHKACC_FILE|CHKACC_PRIVATE,
-                                         options->priv_key_file, R_OK, "--key");
+        for( j = 0; j < OPENVPN_MAX_CERT_KEY_PAIR; j++ )
+        {
+            errs |= check_file_access_inline(options->priv_key_file_inline[j],
+                                             CHKACC_FILE|CHKACC_PRIVATE,
+                                             options->priv_key_file[j], R_OK, "--key");
+        }
     }
 
     errs |= check_file_access_inline(options->pkcs12_file_inline,
@@ -8251,9 +8267,17 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "cert") && p[1] && !p[2])
     {
+        size_t j;
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INLINE);
-        options->cert_file = p[1];
-        options->cert_file_inline = is_inline;
+        for( j = 0; j < OPENVPN_MAX_CERT_KEY_PAIR; j++ )
+        {
+            if(!options->cert_file[j])
+            {
+                options->cert_file[j] = p[1];
+                options->cert_file_inline[j] = is_inline;
+                break;
+            }
+        }
     }
     else if (streq(p[0], "extra-certs") && p[1] && !p[2])
     {
@@ -8333,9 +8357,17 @@ add_option(struct options *options,
 #endif
     else if (streq(p[0], "key") && p[1] && !p[2])
     {
+        size_t j;
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INLINE);
-        options->priv_key_file = p[1];
-        options->priv_key_file_inline = is_inline;
+        for( j = 0; j < OPENVPN_MAX_CERT_KEY_PAIR; j++ )
+        {
+            if(!options->priv_key_file[j])
+            {
+                options->priv_key_file[j] = p[1];
+                options->priv_key_file_inline[j] = is_inline;
+                break;
+            }
+        }
     }
     else if (streq(p[0], "tls-version-min") && p[1] && !p[3])
     {

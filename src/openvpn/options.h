@@ -221,6 +221,8 @@ struct verify_hash_list
     struct verify_hash_list *next;
 };
 
+#define OPENVPN_MAX_CERT_KEY_PAIR 10
+
 /* Command line options */
 struct options
 {
@@ -550,12 +552,12 @@ struct options
     const char *ca_path;
     const char *dh_file;
     bool dh_file_inline;
-    const char *cert_file;
-    bool cert_file_inline;
+    const char *cert_file[OPENVPN_MAX_CERT_KEY_PAIR];
+    bool cert_file_inline[OPENVPN_MAX_CERT_KEY_PAIR];
     const char *extra_certs_file;
     bool extra_certs_file_inline;
-    const char *priv_key_file;
-    bool priv_key_file_inline;
+    const char *priv_key_file[OPENVPN_MAX_CERT_KEY_PAIR];
+    bool priv_key_file_inline[OPENVPN_MAX_CERT_KEY_PAIR];
     const char *pkcs12_file;
     bool pkcs12_file_inline;
     const char *cipher_list;
