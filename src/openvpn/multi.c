@@ -1763,6 +1763,7 @@ multi_client_set_protocol_options(struct context *c)
     if (proto & IV_PROTO_DATA_V2)
     {
         tls_multi->use_peer_id = true;
+        o->use_peer_id = true;
     }
     if (proto & IV_PROTO_REQUEST_PUSH)
     {
