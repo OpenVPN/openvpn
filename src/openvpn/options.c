@@ -1568,7 +1568,6 @@ show_pull_filter_list(const struct pull_filter_list *l)
 void
 show_settings(const struct options *o)
 {
-    int i;
 #ifndef ENABLE_SMALL
     msg(D_SHOW_PARMS, "Current Parameter Settings:");
 
@@ -1746,7 +1745,7 @@ show_settings(const struct options *o)
     }
     else
 #endif
-    for( i = 0; i < OPENVPN_MAX_CERT_KEY_PAIR; i++ )
+    for( int i = 0; i < OPENVPN_MAX_CERT_KEY_PAIR; i++ )
       SHOW_PARM(cert_file[i], \
                   o->cert_file_inline[i] ? "[INLINE]" : \
                   (o->cert_file[i] ? o->cert_file[i] : "[UNDEF]"), \
@@ -1760,7 +1759,7 @@ show_settings(const struct options *o)
     }
     else
 #endif
-    for( i = 0; i < OPENVPN_MAX_CERT_KEY_PAIR; i++ )
+    for( int i = 0; i < OPENVPN_MAX_CERT_KEY_PAIR; i++ )
       SHOW_PARM(priv_key_file[i], \
                   o->priv_key_file_inline[i] ? "[INLINE]" : \
                   (o->priv_key_file[i] ? o->priv_key_file[i] : "[UNDEF]"), \
