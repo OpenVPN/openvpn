@@ -8,6 +8,7 @@
 #
 PLUGINS = \
 	defer/simple \
+	defer/multi-auth \
 	keying-material-exporter-demo/keyingmaterialexporter \
 	log/log log/log_v3 \
 	simple/base64 \
