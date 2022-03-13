@@ -55,3 +55,12 @@ plug-ins must be prebuilt and adhere to the OpenVPN Plug-In API.
   (such as tls-verify, auth-user-pass-verify, or client-connect), then
   every module and script must return success (:code:`0`) in order for the
   connection to be authenticated.
+
+  **WARNING**:
+        Plug-ins may do deferred execution, meaning the plug-in will
+        return the control back to the main OpenVPN process and provide
+        the plug-in result later on via a different thread or process.
+        OpenVPN does **NOT** support multiple authentication plug-ins
+        **where more than one plugin** tries to do deferred authentication.
+        If this behaviour is detected, OpenVPN will shut down upon first
+        authentication.
