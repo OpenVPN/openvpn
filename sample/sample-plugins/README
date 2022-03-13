@@ -5,8 +5,10 @@ Examples provided:
 * authentication and logging
 simple/simple.c -- using the --auth-user-pass-verify callback, verify
                    that the username/password is "foo"/"bar".
-defer/simple.c  -- using the --auth-user-pass-verify callback,
-                   test deferred authentication.
+defer/multi-auth.c
+                -- using the --auth-user-pass-verify callback,
+                   test deferred authentication. Can be used to test multiple
+                   authentication plugins in the same server config.
 log/log.c       -- Extended variant of simple/simple.c which adds more
                    logging of what is happening inside the plug-in
 log/log_v3.c    -- A variant of log/log.c, which makes use of the

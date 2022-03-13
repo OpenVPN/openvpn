@@ -7,7 +7,6 @@
 # Plug-ins to build - listed entries should not carry any extensions
 #
 PLUGINS = \
-	defer/simple \
 	defer/multi-auth \
 	keying-material-exporter-demo/keyingmaterialexporter \
 	log/log log/log_v3 \

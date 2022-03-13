@@ -584,8 +584,8 @@ OPENVPN_PLUGIN_DEF openvpn_plugin_handle_t OPENVPN_PLUGIN_FUNC(openvpn_plugin_op
  *
  * OpenVPN will delete the auth_control_file after it goes out of scope.
  *
- * See plugin/defer/simple.c for an example on using asynchronous
- * authentication.
+ * See sample/sample-plugins/defer/multi-auth.c for an example on using
+ * asynchronous authentication.
  */
 OPENVPN_PLUGIN_DEF int OPENVPN_PLUGIN_FUNC(openvpn_plugin_func_v2)
     (openvpn_plugin_handle_t handle,
