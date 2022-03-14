@@ -7282,14 +7282,8 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "iroute") && p[1] && !p[3])
     {
-        const char *netmask = NULL;
-
         VERIFY_PERMISSION(OPT_P_INSTANCE);
-        if (p[2])
-        {
-            netmask = p[2];
-        }
-        option_iroute(options, p[1], netmask, msglevel);
+        option_iroute(options, p[1], p[2], msglevel);
     }
     else if (streq(p[0], "iroute-ipv6") && p[1] && !p[2])
     {
