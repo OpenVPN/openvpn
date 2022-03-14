@@ -1,9 +1,9 @@
-set(VERSION 1.28)
+set(VERSION 1.28.0)
 
 vcpkg_download_distfile(ARCHIVE
-    URLS "https://github.com/OpenSC/pkcs11-helper/releases/download/pkcs11-helper-${VERSION}/pkcs11-helper-${VERSION}.0.tar.bz2"
-    FILENAME "pkcs11-helper-${VERSION}.tar.bz2"
-    SHA512 11b8e554d9223ab9305a3ad7e2b6a9bbece1c09ca8d49276618dec31eefdccf6a32b0db85a28a90334ea42fe809beec83514a31930b79bdbefa368ed4658945b
+    URLS "https://github.com/OpenSC/pkcs11-helper/releases/download/pkcs11-helper-${VERSION}/pkcs11-helper-${VERSION}.tar.gz"
+    FILENAME "pkcs11-helper-${VERSION}.tar.gz"
+    SHA512 1c1cc7f83ed360fabdcfa68d0eafa7d25be03e68c6a202e7ad2907feb472663bb34e12b9e162344ec221a4298abc02acdc75f0f45d9a89657aa7ac55e59badd5
 )
 
 vcpkg_extract_source_archive_ex(
