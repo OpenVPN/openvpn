@@ -1,6 +1,29 @@
 OpenVPN Change Log
 Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
 
+2022.03.16 -- Version 2.4.12
+
+Arne Schwabe (1):
+      Remove always enabled USE_64_BIT_COUNTERS define
+
+David Korczynski (1):
+      Fix argv leaks in add_route() and add_route_ipv6()
+
+David Sommerseth (1):
+      plug-ins: Disallow multiple deferred authentication plug-ins
+
+Gert Doering (2):
+      Revert "Remove always enabled USE_64_BIT_COUNTERS define"
+      Fix --mtu-disc maybe|yes on Linux.
+
+Richard T Bonhomme (1):
+      doc openvpn.8: Use free open-source dynamic-DNS provider URL
+
+Selva Nair (2):
+      Apply the connect-retry backoff to only one side of a connection
+      Ensure the current common_name is in the environment for scripts
+
+
 2021.04.20 -- Version 2.4.11
 
 Arne Schwabe (1):

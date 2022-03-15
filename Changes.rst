@@ -321,8 +321,53 @@ Maintainer-visible changes
   i386/i686 builds on RHEL5.
 
 
+Version 2.4.12
+==============
+This is primarily a maintenance release with minor bugfixes and improvements.
+
+As of this release, OpenVPN 2.4 will from now only receive security and 
+critical bug fixes for the next 12 months. This is also the last 
+OpenVPN 2.4 Windows release provided by the project.  Please consider 
+to upgrade to the latest OpenVPN 2.5 release. For more details, see
+https://community.openvpn.net/openvpn/wiki/SupportedVersions
+
+Bug fixes
+---------
+- CVE-2022-0547
+  see https://community.openvpn.net/openvpn/wiki/SecurityAnnouncements
+
+  If openvpn is configured with multiple authentication plugins and
+  more than one plugin tries to do deferred authentication, the result
+  is not well-defined - creating a possible authentication bypass.
+
+  In this situation the server process will now abort itself with a clear
+  log message.  Only one plugin is allowed to do deferred authentication.
+
+- Fix "--mtu-disc maybe|yes" on Linux
+
+  Due to configure/syshead.h/#ifdef confusion, the code in question was
+  not compiled-in since a long time.  Fixed.  Trac: #1452
+
+- Fix $common_name variable passed to scripts when username-as-common-name
+  is in effect.
+
+  This was not consistently set - sometimes, OpenVPN exported the username,
+  sometimes the common name from the client cert.  Fixed.  Trac: #1434
+
+- Fix potential memory leaks in add_route() and add_route_ipv6().
+
+- Apply connect-retry backoff only to one side of the connection in
+  p2p mode.  Without that fix/enhancement, two sides could end up
+  only sending packets when the other end is not ready.  Trac: #1010, #1384
+
+
+Enhancements
+------------
+- documentation improvements related to DynDNS.  Trac: #1417
+
+
 Version 2.4.11
-=============
+==============
 This is primarily a maintenance release with minor bugfixes and improvements.
 
 Bug fixes
