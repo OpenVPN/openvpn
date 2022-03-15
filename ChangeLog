@@ -1,6 +1,41 @@
 OpenVPN Change Log
 Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
 
+2022.03.16 -- Version 2.5.6
+
+Antonio Quartulli (4):
+      GitHub Actions: update script to same version as master
+      update copyright year to 2022
+      keyingmaterialexporter.c: include strings.h
+      remove unused sitnl.h file
+
+David Sommerseth (2):
+      sample-plugin: New plugin for testing multiple auth plugins
+      plug-ins: Disallow multiple deferred authentication plug-ins
+
+Frank Lichtenheld (2):
+      doc/Makefile: rebuild rst docs if input files change
+      doc/options: clean up documentation for --proto and related options
+
+Gert Doering (4):
+      fix Changes.rst errors in 2.5.3 and 2.5.5 announcement
+      Repair --inactive with 'bytes' argument larger 2Gbytes.
+      Fix --mtu-disc maybe|yes on Linux.
+      Preparing release 2.5.6
+
+Ilya Shipitsin (1):
+      CI: github actions: keep "pdb" in artifacts
+
+Lev Stipakov (7):
+      auth_token.c: add NULL initialization
+      vcpkg-ports/pkcs11-helper: bump to release 1.28
+      vcpkg-ports/pkcs11-helper: indicate OpenSSL EC support
+      msvc: cleanup
+      vcpkg: link lzo statically
+      vcpkg-ports/pkcs11-helper: adapt to new upstream URL
+      vcpkg-ports: add openssl 1.1.1n
+
+
 2021.12.14 -- Version 2.5.5
 
 Adrian (1):

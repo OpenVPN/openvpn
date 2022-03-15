@@ -1,3 +1,72 @@
+Overview of changes in 2.5.6
+============================
+
+User-visible Changes
+--------------------
+- update copyright year to 2022
+
+New features
+------------
+- new plugin (sample-plugin/defer/multi-auth.c) to help testing with
+  multiple parallel plugins that succeed/fail in direct/deferred mode
+
+- various build improvements (github actions etc)
+
+- upgrade pkcs11-helper to release 1.28.4
+
+Bugfixes
+--------
+- CVE-2022-0547
+  see https://community.openvpn.net/openvpn/wiki/SecurityAnnouncements
+
+  If openvpn is configured with multiple authentication plugins and
+  more than one plugin tries to do deferred authentication, the result
+  is not well-defined - creating a possible authentication bypass.
+
+  In this situation the server process will now abort itself with a clear
+  log message.  Only one plugin is allowed to do deferred authentication.
+
+- Fix "--mtu-disc maybe|yes" on Linux
+
+  Due to configure/syshead.h/#ifdef confusion, the code in question was
+  not compiled-in since a long time.  Fixed.  Trac: #1452
+
+- Fix $common_name variable passed to scripts when username-as-common-name
+  is in effect.
+
+  This was not consistently set - sometimes, OpenVPN exported the username,
+  sometimes the common name from the client cert.  Fixed.  Trac: #1434
+
+- Fix potential memory leaks in add_route() and add_route_ipv6().
+
+- Apply connect-retry backoff only to one side of the connection in
+  p2p mode.  Without that fix/enhancement, two sides could end up
+  only sending packets when the other end is not ready.  Trac: #1010, #1384
+
+- remove unused sitnl.h file
+
+- clean up msvc build files, remove unused MSVC build .bat files
+
+- repair "--inactive" handling with a 'bytes' parameter larger than 2 Gbytes
+
+  due to integer overflow, this ended up being "0" on Linux, but on
+  Windows with MSVC it ends up being "always 2 Gbyte", both not doing
+  what is requested. Trac: #1448
+
+- repair handling of EC certificates on Windows with pkcs11-helper
+
+  (wrong compile-time defines for OpenSSL 1.1.1)
+
+Documentation
+-------------
+- documentation improvements related to DynDNS.  Trac: #1417
+
+- clean up documentation for --proto and related options
+
+- rebuild rst docs if input files change (proper dependency handling)
+
+
+
 Overview of changes in 2.5.5
 ============================
 
