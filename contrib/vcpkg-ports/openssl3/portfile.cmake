@@ -4,13 +4,11 @@ if(EXISTS ${CURRENT_INSTALLED_DIR}/include/openssl/ssl.h)
     message(FATAL_ERROR "Can't build '${PORT}' if another SSL library is installed. Please remove existing one and try install '${PORT}' again if you need it.")
 endif()
 
-vcpkg_fail_port_install(MESSAGE "${PORT} is only for Windows Desktop" ON_TARGET "UWP" "Linux" "OSX")
-
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO openssl/openssl
-    REF openssl-3.0.1
-    SHA512 7f303769a3a796b88478399d42aa2a9a70dc74f62c975bbb93e8903e3bb8e25f16ecfc436186c2d4aa7383302c73ad1dd8ac4fccaa589062bbce6059d6073f18
+    REF openssl-3.0.2
+    SHA512 d69c87b8250da813f282ead0bd005ebde663e77595ee8d99560d25f345570da2fa552b57c372956d461e3b631a19d6d60bebafe6ff89aeebbb5d34ad516b62ac
 )
 
 vcpkg_find_acquire_program(PERL)
