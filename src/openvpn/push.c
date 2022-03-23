@@ -459,6 +459,10 @@ incoming_push_message(struct context *c, const struct buffer *buffer)
         /* delay bringing tun/tap up until --push parms received from remote */
         if (status == PUSH_MSG_REPLY)
         {
+            if (!options_postprocess_pull(&c->options, c->c2.es))
+            {
+                goto error;
+            }
             if (!do_up(c, true, c->options.push_option_types_found))
             {
                 msg(D_PUSH_ERRORS, "Failed to open tun/tap interface");

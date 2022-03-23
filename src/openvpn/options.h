@@ -42,6 +42,7 @@
 #include "pushlist.h"
 #include "clinat.h"
 #include "crypto_backend.h"
+#include "dns.h"
 
 
 /*
@@ -75,6 +76,8 @@ struct options_pre_connect
 
     bool client_nat_defined;
     struct client_nat_option_list *client_nat;
+
+    struct dns_options dns_options;
 
     const char* ciphername;
     const char* authname;
@@ -276,6 +279,8 @@ struct options
 #endif
 
     struct remote_host_store *rh_store;
+
+    struct dns_options dns_options;
 
     bool remote_random;
     const char *ipchange;
@@ -806,6 +811,8 @@ char *options_string_extract_option(const char *options_string,
 
 
 void options_postprocess(struct options *options);
+
+bool options_postprocess_pull(struct options *o, struct env_set *es);
 
 void pre_connect_save(struct options *o);
 

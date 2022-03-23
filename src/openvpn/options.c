@@ -499,6 +499,16 @@ static const char usage_message[] =
     "                  ignore or reject causes the option to be allowed, removed or\n"
     "                  rejected with error. May be specified multiple times, and\n"
     "                  each filter is applied in the order of appearance.\n"
+    "--dns server <n> <option> <value> [value ...] : Configure option for DNS server #n\n"
+    "                  Valid options are :\n"
+    "                  address <addr[:port]> [addr[:port]] : server address 4/6\n"
+    "                  resolve-domains <domain> [domain ...] : split domains\n"
+    "                  exclude-domains <domain> [domain ...] : domains not to resolve\n"
+    "                  dnssec <yes|no|optional> : option to use DNSSEC\n"
+    "                  type <DoH|DoT> : query server over HTTPS / TLS\n"
+    "                  sni <domain> : DNS server name indication\n"
+    "--dns search-domains <domain> [domain ...]:\n"
+    "                  Add domains to DNS domain search list\n"
     "--auth-retry t  : How to handle auth failures.  Set t to\n"
     "                  none (default), interact, or nointeract.\n"
     "--static-challenge t e : Enable static challenge/response protocol using\n"
@@ -786,6 +796,7 @@ init_options(struct options *o, const bool init_gc)
     if (init_gc)
     {
         gc_init(&o->gc);
+        gc_init(&o->dns_options.gc);
         o->gc_owned = true;
     }
     o->mode = MODE_POINT_TO_POINT;
@@ -891,6 +902,7 @@ uninit_options(struct options *o)
     if (o->gc_owned)
     {
         gc_free(&o->gc);
+        gc_free(&o->dns_options.gc);
     }
 }
 
@@ -993,6 +1005,11 @@ setenv_settings(struct env_set *es, const struct options *o)
     else
     {
         setenv_connection_entry(es, &o->ce, 1);
+    }
+
+    if (!o->pull)
+    {
+        setenv_dns_options(&o->dns_options, es);
     }
 }
 
@@ -1268,6 +1285,64 @@ dhcp_option_address_parse(const char *name, const char *parm, in_addr_t *array, 
     }
 }
 
+/*
+ * If DNS options are set use these for TUN/TAP options as well.
+ * Applies to DNS, DNS6 and DOMAIN-SEARCH.
+ * Existing options will be discarded.
+ */
+static void
+tuntap_options_copy_dns(struct options *o)
+{
+    struct tuntap_options *tt = &o->tuntap_options;
+    struct dns_options *dns = &o->dns_options;
+
+    if (dns->search_domains)
+    {
+        tt->domain_search_list_len = 0;
+        const struct dns_domain *domain = dns->search_domains;
+        while (domain && tt->domain_search_list_len < N_SEARCH_LIST_LEN)
+        {
+            tt->domain_search_list[tt->domain_search_list_len++] = domain->name;
+            domain = domain->next;
+        }
+        if (domain)
+        {
+            msg(M_WARN, "WARNING: couldn't copy all --dns search-domains to --dhcp-option");
+        }
+    }
+
+    if (dns->servers)
+    {
+        tt->dns_len = 0;
+        tt->dns6_len = 0;
+        bool overflow = false;
+        const struct dns_server *server = dns->servers;
+        while (server)
+        {
+            if (server->addr4_defined && tt->dns_len < N_DHCP_ADDR)
+            {
+                tt->dns[tt->dns_len++] = server->addr4.s_addr;
+            }
+            else
+            {
+                overflow = true;
+            }
+            if (server->addr6_defined && tt->dns6_len < N_DHCP_ADDR)
+            {
+                tt->dns6[tt->dns6_len++] = server->addr6;
+            }
+            else
+            {
+                overflow = true;
+            }
+            server = server->next;
+        }
+        if (overflow)
+        {
+            msg(M_WARN, "WARNING: couldn't copy all --dns server addresses to --dhcp-option");
+        }
+    }
+}
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
 
 #ifndef ENABLE_SMALL
@@ -1697,6 +1772,8 @@ show_settings(const struct options *o)
     {
         print_client_nat_list(o->client_nat, D_SHOW_PARMS);
     }
+
+    show_dns_options(&o->dns_options);
 
 #ifdef ENABLE_MANAGEMENT
     SHOW_STR(management_addr);
@@ -3093,6 +3170,8 @@ options_postprocess_verify(const struct options *o)
     {
         options_postprocess_verify_ce(o, &o->ce);
     }
+
+    dns_options_verify(M_FATAL, &o->dns_options);
 }
 
 /**
@@ -3341,6 +3420,16 @@ options_postprocess_mutate(struct options *o)
      * Save certain parms before modifying options during connect, especially
      * when using --pull
      */
+    if (o->pull)
+    {
+        dns_options_preprocess_pull(&o->dns_options);
+    }
+#if defined(_WIN32) || defined(TARGET_ANDROID)
+    else
+    {
+        tuntap_options_copy_dns(o);
+    }
+#endif
     pre_connect_save(o);
 }
 
@@ -3686,6 +3775,25 @@ options_postprocess(struct options *options)
 }
 
 /*
+ * Sanity check on options after more options were pulled from server.
+ * Also time to modify some options based on other options.
+ */
+bool
+options_postprocess_pull(struct options *o, struct env_set *es)
+{
+    bool success = dns_options_verify(D_PUSH_ERRORS, &o->dns_options);
+    if (success)
+    {
+        dns_options_postprocess_pull(&o->dns_options);
+        setenv_dns_options(&o->dns_options, es);
+#if defined(_WIN32) || defined(TARGET_ANDROID)
+        tuntap_options_copy_dns(o);
+#endif
+    }
+    return success;
+}
+
+/*
  * Save/Restore certain option defaults before --pull is applied.
  */
 
@@ -3715,6 +3823,8 @@ pre_connect_save(struct options *o)
 
     o->pre_connect->route_default_gateway = o->route_default_gateway;
     o->pre_connect->route_ipv6_default_gateway = o->route_ipv6_default_gateway;
+
+    o->pre_connect->dns_options = clone_dns_options(o->dns_options, &o->gc);
 
     /* NCP related options that can be overwritten by a push */
     o->pre_connect->ciphername = o->ciphername;
@@ -3765,6 +3875,12 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
 
         o->route_default_gateway = pp->route_default_gateway;
         o->route_ipv6_default_gateway = pp->route_ipv6_default_gateway;
+
+        /* Free DNS options and reset them to pre-pull state */
+        gc_free(&o->dns_options.gc);
+        struct gc_arena dns_gc = gc_new();
+        o->dns_options = clone_dns_options(pp->dns_options, &dns_gc);
+        o->dns_options.gc = dns_gc;
 
         if (pp->client_nat_defined)
         {
@@ -7569,6 +7685,111 @@ add_option(struct options *options,
         to->ip_win32_defined = true;
     }
 #endif /* ifdef _WIN32 */
+    else if (streq(p[0], "dns") && p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_DEFAULT);
+
+        if (streq(p[1], "search-domains") && p[2])
+        {
+            dns_domain_list_append(&options->dns_options.search_domains, &p[2], &options->dns_options.gc);
+        }
+        else if (streq(p[1], "server") && p[2] && p[3] && p[4])
+        {
+            long priority;
+            if (!dns_server_priority_parse(&priority, p[2], pull_mode)) {
+                msg(msglevel, "--dns server: invalid priority value '%s'", p[2]);
+                goto err;
+            }
+
+            struct dns_server *server = dns_server_get(&options->dns_options.servers, priority, &options->dns_options.gc);
+
+            if (streq(p[3], "address") && !p[6])
+            {
+                for (int i = 4; p[i]; i++)
+                {
+                    if(!dns_server_addr_parse(server, p[i]))
+                    {
+                        msg(msglevel, "--dns server %ld: malformed or duplicate address '%s'", priority, p[i]);
+                        goto err;
+                    }
+                }
+            }
+            else if (streq(p[3], "resolve-domains"))
+            {
+                if (server->domain_type == DNS_EXCLUDE_DOMAINS)
+                {
+                    msg(msglevel, "--dns server %ld: cannot use resolve-domains and exclude-domains", priority);
+                    goto err;
+                }
+                server->domain_type = DNS_RESOLVE_DOMAINS;
+                dns_domain_list_append(&server->domains, &p[4], &options->dns_options.gc);
+            }
+            else if (streq(p[3], "exclude-domains"))
+            {
+                if (server->domain_type == DNS_RESOLVE_DOMAINS)
+                {
+                    msg(msglevel, "--dns server %ld: cannot use exclude-domains and resolve-domains", priority);
+                    goto err;
+                }
+                server->domain_type = DNS_EXCLUDE_DOMAINS;
+                dns_domain_list_append(&server->domains, &p[4], &options->dns_options.gc);
+            }
+            else if (streq(p[3], "dnssec") && !p[5])
+            {
+                if (streq(p[4], "yes"))
+                {
+                    server->dnssec = DNS_SECURITY_YES;
+                }
+                else if (streq(p[4], "no"))
+                {
+                    server->dnssec = DNS_SECURITY_NO;
+                }
+                else if (streq(p[4], "optional"))
+                {
+                    server->dnssec = DNS_SECURITY_OPTIONAL;
+                }
+                else
+                {
+                    msg(msglevel, "--dns server %ld: malformed dnssec value '%s'", priority, p[4]);
+                    goto err;
+                }
+            }
+            else if (streq(p[3], "transport") && !p[5])
+            {
+                if (streq(p[4], "plain"))
+                {
+                    server->transport = DNS_TRANSPORT_PLAIN;
+                }
+                else if (streq(p[4], "DoH"))
+                {
+                    server->transport = DNS_TRANSPORT_HTTPS;
+                }
+                else if (streq(p[4], "DoT"))
+                {
+                    server->transport = DNS_TRANSPORT_TLS;
+                }
+                else
+                {
+                    msg(msglevel, "--dns server %ld: malformed transport value '%s'", priority, p[4]);
+                    goto err;
+                }
+            }
+            else if (streq(p[3], "sni") && !p[5])
+            {
+                server->sni = p[4];
+            }
+            else
+            {
+                msg(msglevel, "--dns server %ld: unknown option type '%s' or missing or unknown parameter", priority, p[3]);
+                goto err;
+            }
+        }
+        else
+        {
+            msg(msglevel, "--dns: unknown option type '%s' or missing or unknown parameter", p[1]);
+            goto err;
+        }
+    }
 #if defined(_WIN32) || defined(TARGET_ANDROID)
     else if (streq(p[0], "dhcp-option") && p[1])
     {

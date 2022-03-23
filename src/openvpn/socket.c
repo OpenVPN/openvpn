@@ -2875,6 +2875,17 @@ print_in6_addr(struct in6_addr a6, unsigned int flags, struct gc_arena *gc)
     return BSTR(&out);
 }
 
+/*
+ * Convert an in_port_t in host byte order to a string
+ */
+const char *
+print_in_port_t(in_port_t port, struct gc_arena *gc)
+{
+    struct buffer buffer = alloc_buf_gc(8, gc);
+    buf_printf(&buffer, "%hu", port);
+    return BSTR(&buffer);
+}
+
 #ifndef UINT8_MAX
 #define UINT8_MAX 0xff
 #endif

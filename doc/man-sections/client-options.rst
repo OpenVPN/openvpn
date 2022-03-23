@@ -154,6 +154,65 @@ configuration.
 --connect-timeout n
   See ``--server-poll-timeout``.
 
+--dns args
+  Client DNS configuration to be used with the connection.
+
+  Valid syntaxes:
+  ::
+
+     dns search-domains domain [domain ...]
+     dns server n address addr[:port] [addr[:port]]
+     dns server n resolve-domains|exclude-domains domain [domain ...]
+     dns server n dnssec yes|optional|no
+     dns server n transport DoH|DoT|plain
+     dns server n sni server-name
+
+  The ``--dns search-domains`` directive takes one or more domain names
+  to be added as DNS domain suffixes. If it is repeated multiple times within
+  a configuration the domains are appended, thus e.g. domain names pushed by
+  a server will amend locally defined ones.
+
+  The ``--dns server`` directive is used to configure DNS server ``n``.
+  The server id ``n`` must be a value between -128 and 127. For pushed
+  DNS server options it must be between 0 and 127. The server id is used
+  to group options and also for ordering the list of configured DNS servers;
+  lower numbers come first. DNS servers being pushed to a client replace
+  already configured DNS servers with the same server id.
+
+  The ``address`` option configures the IPv4 and / or IPv6 address of
+  the DNS server. Optionally a port can be appended after a colon. IPv6
+  addresses need to be enclosed in brackets if a port is appended.
+
+  The ``resolve-domains`` and ``exclude-domains`` options take one or
+  more DNS domains which are explicitly resolved or explicitly not resolved
+  by a server. Only one of the options can be configured for a server.
+  ``resolve-domains`` is used to define a split-dns setup, where only
+  given domains are resolved by a server. ``exclude-domains`` is used to
+  define domains which will never be resolved by a server (e.g. domains
+  which can only be resolved locally). Systems which do not support fine
+  grained DNS domain configuration, will ignore these settings.
+
+  The ``dnssec`` option is used to configure validation of DNSSEC records.
+  While the exact semantics may differ for resolvers on different systems,
+  ``yes`` likely makes validation mandatory, ``no`` disables it, and ``optional``
+  uses it opportunistically.
+
+  The ``transport`` option enables DNS-over-HTTPS (``DoH``) or DNS-over-TLS (``DoT``)
+  for a DNS server. The ``sni`` option can be used with them to specify the
+  ``server-name`` for TLS server name indication.
+
+  Each server has to have at least one address configured for a configuration
+  to be valid. All the other options can be omitted.
+
+  Note that not all options may be supported on all platforms. As soon support
+  for different systems is implemented, information will be added here how
+  unsupported options are treated.
+
+  The ``--dns`` option will eventually obsolete the ``--dhcp-option`` directive.
+  Until then it will replace configuration at the places ``--dhcp-option`` puts it,
+  so that ``--dns`` overrides ``--dhcp-option``. Thus, ``--dns`` can be used today
+  to migrate from ``--dhcp-option``.
+
 --explicit-exit-notify n
   In UDP client mode or point-to-point mode, send server/peer an exit
   notification if tunnel is restarted or OpenVPN process is exited. In
