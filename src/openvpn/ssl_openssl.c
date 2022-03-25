@@ -572,13 +572,15 @@ void
 tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
 {
     ASSERT(ctx);
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
     struct gc_arena gc = gc_new();
     /* This method could be as easy as
      *  SSL_CTX_set1_groups_list(ctx->ctx, groups)
-     * but OpenSSL does not like the name secp256r1 for prime256v1
+     * but OpenSSL (< 3.0) does not like the name secp256r1 for prime256v1
      * This is one of the important curves.
      * To support the same name for OpenSSL and mbedTLS, we do
      * this dance.
+     * Also note that the code is wrong in the presence of OpenSSL3 providers.
      */
 
     int groups_count = get_num_elements(groups, ':');
@@ -617,6 +619,13 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
                    groups);
     }
     gc_free(&gc);
+#else
+    if (!SSL_CTX_set1_groups_list(ctx->ctx, groups))
+    {
+        crypto_msg(M_FATAL, "Failed to set allowed TLS group list: %s",
+                   groups);
+    }
+#endif
 }
 
 void
