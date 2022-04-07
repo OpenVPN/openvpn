@@ -166,6 +166,6 @@ for i in $(seq 0 $MAX_TEST); do
 done
 
 # remove interface for good
-$RUN_SUDO $openvpn --dev $IFACE --dev-type tun --rmtun >/dev/null
+$RUN_SUDO ip link del $IFACE
 
 exit 0
