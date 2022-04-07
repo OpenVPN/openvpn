@@ -88,6 +88,27 @@ void net_ctx_reset(openvpn_net_ctx_t *ctx);
 void net_ctx_free(openvpn_net_ctx_t *ctx);
 
 /**
+ * Add a new interface
+ *
+ * @param ctx       the implementation specific context
+ * @param iface     interface to create
+ * @param type      string describing interface type
+ * @param arg       extra data required by the specific type
+ * @return int 0 on success, negative error code on error
+ */
+int net_iface_new(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                  const char *type, void *arg);
+
+/**
+ * Remove an interface
+ *
+ * @param ctx       the implementation specific context
+ * @param iface     interface to delete
+ * @return int 0 on success, negative error code on error
+ */
+int net_iface_del(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface);
+
+/**
  * Bring interface up or down.
  *
  * @param ctx       the implementation specific context

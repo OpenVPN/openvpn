@@ -64,6 +64,34 @@ net_ctx_free(openvpn_net_ctx_t *ctx)
 }
 
 int
+net_iface_new(openvpn_net_ctx_t *ctx, const char *iface, const char *type,
+              void *arg)
+{
+    struct argv argv = argv_new();
+
+    argv_printf(&argv, "%s link add %s type %s", iproute_path, iface, type);
+    argv_msg(M_INFO, &argv);
+    openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip link add failed");
+
+    argv_free(&argv);
+
+    return 0;
+}
+
+int
+net_iface_del(openvpn_net_ctx_t *ctx, const char *iface)
+{
+    struct argv argv = argv_new();
+
+    argv_printf(&argv, "%s link del %s", iproute_path, iface);
+    openvpn_execve_check(&argv, ctx->es, 0, "Linux ip link del failed");
+
+    argv_free(&argv);
+
+    return 0;
+}
+
+int
 net_iface_up(openvpn_net_ctx_t *ctx, const char *iface, bool up)
 {
     struct argv argv = argv_new();
