@@ -80,8 +80,8 @@ cd "$srcroot"
 
     # Kick off uncrustify
     echo
-    echo "** INFO ** Running: uncrustify -c $cfg --no-backup -l C -p debug.uncr -F $files"
-    uncrustify -c "$cfg" --no-backup -l C -p debug.uncr -F "$files" 2>&1
+    echo "** INFO ** Running: uncrustify -c $cfg --no-backup -l C -F $files"
+    uncrustify -c "$cfg" --no-backup -l C -F "$files" 2>&1
     res=$?
     echo "** INFO ** Uncrustify completed (exit code $res)"
 } | tee "${log}-1"  # Log needs to be closed here, to be processed in next block
