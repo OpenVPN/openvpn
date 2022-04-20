@@ -174,7 +174,8 @@ crypto_load_provider(const char *provider)
 #endif
 }
 
-void crypto_unload_provider(const char *provname, provider_t *provider)
+void
+crypto_unload_provider(const char *provname, provider_t *provider)
 {
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
     if (!OSSL_PROVIDER_unload(provider))
@@ -325,13 +326,14 @@ struct collect_ciphers {
     size_t num;
 };
 
-static void collect_ciphers(EVP_CIPHER *cipher, void *list)
+static void
+collect_ciphers(EVP_CIPHER *cipher, void *list)
 {
     if (!cipher)
     {
         return;
     }
-    struct collect_ciphers* cipher_list = list;
+    struct collect_ciphers *cipher_list = list;
     if (cipher_list->num == SIZE(cipher_list->list))
     {
         msg(M_WARN, "WARNING: Too many ciphers, not showing all");
@@ -342,10 +344,10 @@ static void collect_ciphers(EVP_CIPHER *cipher, void *list)
 
     if (ciphername && (cipher_kt_mode_cbc(ciphername)
 #ifdef ENABLE_OFB_CFB_MODE
-        || cipher_kt_mode_ofb_cfb(ciphername)
+                       || cipher_kt_mode_ofb_cfb(ciphername)
 #endif
-        || cipher_kt_mode_aead(ciphername)
-    ))
+                       || cipher_kt_mode_aead(ciphername)
+                       ))
     {
         cipher_list->list[cipher_list->num++] = cipher;
     }
@@ -400,7 +402,7 @@ show_available_ciphers(void)
 }
 
 void
-print_digest(EVP_MD* digest, void* unused)
+print_digest(EVP_MD *digest, void *unused)
 {
     printf("%s %d bit digest size\n", EVP_MD_get0_name(digest),
            EVP_MD_size(digest) * 8);
@@ -595,7 +597,7 @@ cipher_valid_reason(const char *ciphername, const char **reason)
     if (FIPS_mode() && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_FIPS))
     {
         msg(D_LOW, "Cipher algorithm '%s' is known by OpenSSL library but "
-                    "currently disabled by running in FIPS mode.", ciphername);
+            "currently disabled by running in FIPS mode.", ciphername);
         *reason = "disabled by FIPS mode";
         goto out;
     }
@@ -753,11 +755,11 @@ cipher_kt_mode_cbc(const char *ciphername)
     evp_cipher_type *cipher = cipher_get(ciphername);
 
     bool ret = cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_CBC
-           /* Exclude AEAD cipher modes, they require a different API */
+                          /* Exclude AEAD cipher modes, they require a different API */
 #ifdef EVP_CIPH_FLAG_CTS
-           && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_CTS)
+                          && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_CTS)
 #endif
-           && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER));
+                          && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER));
     EVP_CIPHER_free(cipher);
     return ret;
 }
@@ -767,9 +769,9 @@ cipher_kt_mode_ofb_cfb(const char *ciphername)
 {
     evp_cipher_type *cipher = cipher_get(ciphername);
     bool ofb_cfb = cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_OFB
-                      || cipher_kt_mode(cipher) == OPENVPN_MODE_CFB)
-                      /* Exclude AEAD cipher modes, they require a different API */
-                      && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER);
+                              || cipher_kt_mode(cipher) == OPENVPN_MODE_CFB)
+                   /* Exclude AEAD cipher modes, they require a different API */
+                   && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER);
     EVP_CIPHER_free(cipher);
     return ofb_cfb;
 }
@@ -879,11 +881,11 @@ cipher_ctx_mode_cbc(const cipher_ctx_t *ctx)
     int mode = EVP_CIPHER_CTX_mode(ctx);
 
     return mode == EVP_CIPH_CBC_MODE
-        /* Exclude AEAD cipher modes, they require a different API */
+           /* Exclude AEAD cipher modes, they require a different API */
 #ifdef EVP_CIPH_FLAG_CTS
-        && !(flags & EVP_CIPH_FLAG_CTS)
+           && !(flags & EVP_CIPH_FLAG_CTS)
 #endif
-        && !(flags & EVP_CIPH_FLAG_AEAD_CIPHER);
+           && !(flags & EVP_CIPH_FLAG_AEAD_CIPHER);
 }
 
 bool
@@ -897,8 +899,8 @@ cipher_ctx_mode_ofb_cfb(const cipher_ctx_t *ctx)
     int mode = EVP_CIPHER_CTX_get_mode(ctx);
 
     return (mode == EVP_CIPH_OFB_MODE || mode == EVP_CIPH_CFB_MODE)
-        /* Exclude AEAD cipher modes, they require a different API */
-        && !(EVP_CIPHER_CTX_flags(ctx) & EVP_CIPH_FLAG_AEAD_CIPHER);
+           /* Exclude AEAD cipher modes, they require a different API */
+           && !(EVP_CIPHER_CTX_flags(ctx) & EVP_CIPH_FLAG_AEAD_CIPHER);
 }
 
 bool
@@ -985,7 +987,7 @@ cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
     }
 
     unsigned char key3[DES_KEY_LENGTH*3];
-    for (int i = 0;i < 3;i++)
+    for (int i = 0; i < 3; i++)
     {
         memcpy(key3 + (i * DES_KEY_LENGTH), key, DES_KEY_LENGTH);
     }
@@ -1001,7 +1003,7 @@ cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
      * though there is nothing to encrypt anymore, provide space for that to
      * not overflow the stack */
     unsigned char dst2[DES_KEY_LENGTH * 2];
-    if(!EVP_EncryptUpdate(ctx, dst2, &len, src, DES_KEY_LENGTH))
+    if (!EVP_EncryptUpdate(ctx, dst2, &len, src, DES_KEY_LENGTH))
     {
         crypto_msg(M_FATAL, "%s: EVP_EncryptUpdate() failed", __func__);
     }
@@ -1223,7 +1225,7 @@ hmac_ctx_final(HMAC_CTX *ctx, uint8_t *dst)
 
     HMAC_Final(ctx, dst, &in_hmac_len);
 }
-#else
+#else  /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
 hmac_ctx_t *
 hmac_ctx_new(void)
 {
@@ -1315,7 +1317,7 @@ hmac_ctx_final(hmac_ctx_t *ctx, uint8_t *dst)
 
     EVP_MAC_final(ctx->ctx, dst, &in_hmac_len, in_hmac_len);
 }
-#endif
+#endif /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
 
 int
 memcmp_constant_time(const void *a, const void *b, size_t size)

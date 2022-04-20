@@ -947,7 +947,7 @@ parse_cid(const char *str, unsigned long *cid)
 }
 
 static bool
-parse_uint(const char *str, const char* what, unsigned int *uint)
+parse_uint(const char *str, const char *what, unsigned int *uint)
 {
     if (sscanf(str, "%u", uint) == 1)
     {

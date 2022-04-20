@@ -220,7 +220,7 @@ platform_mlockall(bool print_msg)
             }
         }
     }
-#endif
+#endif /* if defined(HAVE_GETRLIMIT) && defined(RLIMIT_MEMLOCK) */
 
     if (mlockall(MCL_CURRENT | MCL_FUTURE))
     {
@@ -232,7 +232,7 @@ platform_mlockall(bool print_msg)
     }
 #else  /* ifdef HAVE_MLOCKALL */
     msg(M_WARN, "WARNING: mlockall call failed (function not implemented)");
-#endif
+#endif /* ifdef HAVE_MLOCKALL */
 }
 
 /*
@@ -282,7 +282,7 @@ platform_ret_code(int stat)
         return -1;
     }
 }
-#else
+#else  /* ifdef _WIN32 */
 int
 platform_ret_code(int stat)
 {
@@ -301,7 +301,7 @@ platform_ret_code(int stat)
         return -1;
     }
 }
-#endif
+#endif /* ifdef _WIN32 */
 
 int
 platform_access(const char *path, int mode)

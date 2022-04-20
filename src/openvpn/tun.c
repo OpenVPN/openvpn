@@ -179,7 +179,7 @@ do_dns_domain_service(bool add, const struct tuntap *tt)
      */
 
     msg(D_LOW, "%s dns domain on '%s' (if_index = %d) using service",
-            (add ? "Setting" : "Deleting"), dns.iface.name, dns.iface.index);
+        (add ? "Setting" : "Deleting"), dns.iface.name, dns.iface.index);
     if (!send_msg_iservice(pipe, &dns, sizeof(dns), &ack, "TUN"))
     {
         goto out;
@@ -480,7 +480,7 @@ check_addr_clash(const char *name,
         if (type == DEV_TYPE_TUN)
         {
             const in_addr_t test_netmask = 0xFFFFFF00;
-            const in_addr_t public_net = public & test_netmask;
+            const in_addr_t public_net = public &test_netmask;
             const in_addr_t local_net = local & test_netmask;
             const in_addr_t remote_net = remote_netmask & test_netmask;
 
@@ -508,7 +508,7 @@ check_addr_clash(const char *name,
         }
         else if (type == DEV_TYPE_TAP)
         {
-            const in_addr_t public_network = public & remote_netmask;
+            const in_addr_t public_network = public &remote_netmask;
             const in_addr_t virtual_network = local & remote_netmask;
             if (public_network == virtual_network)
             {
@@ -1156,7 +1156,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
         /* If IPv4 is not enabled, set DNS domain here */
         if (!tt->did_ifconfig_setup)
         {
-           do_dns_domain_service(true, tt);
+            do_dns_domain_service(true, tt);
         }
     }
     else
@@ -2074,7 +2074,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
 /* TUNSETGROUP appeared in 2.6.23 */
 #ifndef TUNSETGROUP
-# define TUNSETGROUP   _IOW('T', 206, int)
+#define TUNSETGROUP   _IOW('T', 206, int)
 #endif
 
 void
@@ -5710,15 +5710,15 @@ write_dhcp_str(struct buffer *buf, const int type, const char *str, bool *error)
  *  0x1D  0x7 openvpn 0x3 net 0x00 0x0A duckduckgo 0x3 com 0x00
  */
 static void
-write_dhcp_search_str(struct buffer *buf, const int type, const char * const *str_array,
+write_dhcp_search_str(struct buffer *buf, const int type, const char *const *str_array,
                       int array_len, bool *error)
 {
-    char         tmp_buf[256];
-    int          i;
-    int          len = 0;
-    int          label_length_pos;
+    char tmp_buf[256];
+    int i;
+    int len = 0;
+    int label_length_pos;
 
-    for (i=0; i < array_len; i++)
+    for (i = 0; i < array_len; i++)
     {
         const char  *ptr = str_array[i];
 
@@ -5729,7 +5729,7 @@ write_dhcp_search_str(struct buffer *buf, const int type, const char * const *st
             return;
         }
         /* Loop over all subdomains separated by a dot and replace the dot
-           with the length of the subdomain */
+         * with the length of the subdomain */
 
         /* label_length_pos points to the byte to be replaced by the length
          * of the following domain label */
@@ -5737,7 +5737,7 @@ write_dhcp_search_str(struct buffer *buf, const int type, const char * const *st
 
         while (true)
         {
-            if (*ptr == '.' || *ptr == '\0' )
+            if (*ptr == '.' || *ptr == '\0')
             {
                 tmp_buf[label_length_pos] = (len-label_length_pos)-1;
                 label_length_pos = len;
@@ -5797,8 +5797,8 @@ build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)
     if (o->domain_search_list_len > 0)
     {
         write_dhcp_search_str(buf, 119, o->domain_search_list,
-                                        o->domain_search_list_len,
-                                       &error);
+                              o->domain_search_list_len,
+                              &error);
     }
 
     /* the MS DHCP server option 'Disable Netbios-over-TCP/IP
@@ -6185,9 +6185,9 @@ wintun_register_ring_buffer(struct tuntap *tt, const char *device_guid)
             {
                 case ERROR_ACCESS_DENIED:
                     msg(M_FATAL, "ERROR:  Wintun requires SYSTEM privileges and therefore "
-                                 "should be used with interactive service. If you want to "
-                                 "use openvpn from command line, you need to do SYSTEM "
-                                 "elevation yourself (for example with psexec).");
+                        "should be used with interactive service. If you want to "
+                        "use openvpn from command line, you need to do SYSTEM "
+                        "elevation yourself (for example with psexec).");
                     break;
 
                 case ERROR_ALREADY_INITIALIZED:
@@ -6493,7 +6493,7 @@ next:
 
     /* translate high-level device name into a device instance
      * GUID using the registry */
-    tt->actual_name = string_alloc((const char*)actual_buffer, NULL);
+    tt->actual_name = string_alloc((const char *)actual_buffer, NULL);
 
     msg(M_INFO, "%s device [%s] opened", print_windows_driver(tt->windows_driver), tt->actual_name);
     tt->adapter_index = get_adapter_index(*device_guid);

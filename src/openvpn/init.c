@@ -2160,8 +2160,8 @@ do_deferred_p2p_ncp(struct context *c)
     else if (!c->options.enable_ncp_fallback)
     {
         msg(D_TLS_ERRORS, "ERROR: failed to negotiate cipher with peer and "
-                          "--data-ciphers-fallback not enabled. No usable "
-                          "data channel cipher");
+            "--data-ciphers-fallback not enabled. No usable "
+            "data channel cipher");
         return false;
     }
 
@@ -2174,7 +2174,7 @@ do_deferred_p2p_ncp(struct context *c)
 #endif
 
     if (!tls_session_update_crypto_params(session, &c->options, &c->c2.frame,
-                                         frame_fragment, get_link_socket_info(c)))
+                                          frame_fragment, get_link_socket_info(c)))
     {
         msg(D_TLS_ERRORS, "ERROR: failed to set crypto cipher");
         return false;
@@ -2467,7 +2467,7 @@ frame_finalize_options(struct context *c, const struct options *o)
 
 
     /* the space that is reserved before the payload to add extra headers to it
-    * we always reserve the space for the worst case */
+     * we always reserve the space for the worst case */
     size_t headroom = 0;
 
     /* includes IV and packet ID */
@@ -2496,8 +2496,8 @@ frame_finalize_options(struct context *c, const struct options *o)
 
 #ifdef USE_COMP
     msg(D_MTU_DEBUG, "MTU: adding %lu buffer tailroom for compression for %lu "
-                     "bytes of payload",
-                     COMP_EXTRA_BUFFER(payload_size), payload_size);
+        "bytes of payload",
+        COMP_EXTRA_BUFFER(payload_size), payload_size);
     tailroom += COMP_EXTRA_BUFFER(payload_size);
 #endif
 
@@ -2698,25 +2698,25 @@ do_init_crypto_tls_c1(struct context *c)
             return;
         }
 
-       /*
-        * BF-CBC is allowed to be used only when explicitly configured
-        * as NCP-fallback or when NCP has been disabled or explicitly
-        * allowed in the in ncp_ciphers list.
-        * In all other cases do not attempt to initialize BF-CBC as it
-        * may not even be supported by the underlying SSL library.
-        *
-        * Therefore, the key structure has to be initialized when:
-        * - any non-BF-CBC cipher was selected; or
-        * - BF-CBC is selected, NCP is enabled and fallback is enabled
-        *   (BF-CBC will be the fallback).
-        * - BF-CBC is in data-ciphers and we negotiate to use BF-CBC:
-        *   If the negotiated cipher and options->ciphername are the
-        *   same we do not reinit the cipher
-        *
-        * Note that BF-CBC will still be part of the OCC string to retain
-        * backwards compatibility with older clients.
-        */
-        const char* ciphername = options->ciphername;
+        /*
+         * BF-CBC is allowed to be used only when explicitly configured
+         * as NCP-fallback or when NCP has been disabled or explicitly
+         * allowed in the in ncp_ciphers list.
+         * In all other cases do not attempt to initialize BF-CBC as it
+         * may not even be supported by the underlying SSL library.
+         *
+         * Therefore, the key structure has to be initialized when:
+         * - any non-BF-CBC cipher was selected; or
+         * - BF-CBC is selected, NCP is enabled and fallback is enabled
+         *   (BF-CBC will be the fallback).
+         * - BF-CBC is in data-ciphers and we negotiate to use BF-CBC:
+         *   If the negotiated cipher and options->ciphername are the
+         *   same we do not reinit the cipher
+         *
+         * Note that BF-CBC will still be part of the OCC string to retain
+         * backwards compatibility with older clients.
+         */
+        const char *ciphername = options->ciphername;
         if (streq(options->ciphername, "BF-CBC")
             && !tls_item_in_cipher_list("BF-CBC", options->ncp_ciphers)
             && !options->enable_ncp_fallback)
@@ -3079,14 +3079,14 @@ do_init_frame(struct context *c)
     if (c->options.ce.fragment > 0 && c->options.ce.mssfix > c->options.ce.fragment)
     {
         msg(M_WARN, "WARNING: if you use --mssfix and --fragment, you should "
-                    "set --fragment (%d) larger or equal than --mssfix (%d)",
-                    c->options.ce.fragment, c->options.ce.mssfix);
+            "set --fragment (%d) larger or equal than --mssfix (%d)",
+            c->options.ce.fragment, c->options.ce.mssfix);
     }
     if (c->options.ce.fragment > 0 && c->options.ce.mssfix > 0
         && c->options.ce.fragment_encap != c->options.ce.mssfix_encap)
     {
         msg(M_WARN, "WARNING: if you use --mssfix and --fragment, you should "
-                    "use the \"mtu\" flag for both or none of of them.");
+            "use the \"mtu\" flag for both or none of of them.");
     }
 #endif
 }

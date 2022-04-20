@@ -51,39 +51,40 @@ static int mgmt_callback_called;
 static OSSL_PROVIDER *prov[2];
 
 /* public keys for testing -- RSA and EC */
-static const char * const pubkey1 = "-----BEGIN PUBLIC KEY-----\n"
-    "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7GWP6RLCGlvmVioIqYI6\n"
-    "LUR4owA7sJ/nJxBAk+/xzD6gqgSigBsTqeb+gdZwkKjY1N4w2DUA0r5i8Eja/BWN\n"
-    "xMZtC5nxK4MACtMqIwvlzfk130NhFXKtlZj2cyFBXqDdRyeg1ZrUQagcHVcgcReP\n"
-    "9yiePgfO7NUOQk8edEeOR53SFCgnLBQQ9dGWtZN0hO/5BN6NSm/fd6vq0VjTRP5a\n"
-    "BAH/BnqX9/3jV0jh8N9AE59mI1rjVVQ9VDnuAPkS8dLfdC661/CNxt0YWByTIgt1\n"
-    "+qjW4LUvLbnU/rlPhuJ1SBZg+z/JtDBCKfs7syu5WYFqRvNFg7/91Rr/NwxvW/1h\n"
-    "8QIDAQAB\n"
-    "-----END PUBLIC KEY-----\n";
+static const char *const pubkey1 = "-----BEGIN PUBLIC KEY-----\n"
+                                   "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7GWP6RLCGlvmVioIqYI6\n"
+                                   "LUR4owA7sJ/nJxBAk+/xzD6gqgSigBsTqeb+gdZwkKjY1N4w2DUA0r5i8Eja/BWN\n"
+                                   "xMZtC5nxK4MACtMqIwvlzfk130NhFXKtlZj2cyFBXqDdRyeg1ZrUQagcHVcgcReP\n"
+                                   "9yiePgfO7NUOQk8edEeOR53SFCgnLBQQ9dGWtZN0hO/5BN6NSm/fd6vq0VjTRP5a\n"
+                                   "BAH/BnqX9/3jV0jh8N9AE59mI1rjVVQ9VDnuAPkS8dLfdC661/CNxt0YWByTIgt1\n"
+                                   "+qjW4LUvLbnU/rlPhuJ1SBZg+z/JtDBCKfs7syu5WYFqRvNFg7/91Rr/NwxvW/1h\n"
+                                   "8QIDAQAB\n"
+                                   "-----END PUBLIC KEY-----\n";
 
-static const char * const pubkey2 = "-----BEGIN PUBLIC KEY-----\n"
-    "MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEO85iXW+HgnUkwlj1DohNVw0GsnGIh1gZ\n"
-    "u95ff1JiUaJIkYNIkZA+hwIPFVH5aJcSCv3SPIeDS2VUAESNKHZJBQ==\n"
-    "-----END PUBLIC KEY-----\n";
+static const char *const pubkey2 = "-----BEGIN PUBLIC KEY-----\n"
+                                   "MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEO85iXW+HgnUkwlj1DohNVw0GsnGIh1gZ\n"
+                                   "u95ff1JiUaJIkYNIkZA+hwIPFVH5aJcSCv3SPIeDS2VUAESNKHZJBQ==\n"
+                                   "-----END PUBLIC KEY-----\n";
 
 static const char *pubkeys[] = {pubkey1, pubkey2};
 
 static const char *prov_name = "ovpn.xkey";
 
-static const char* test_msg = "Lorem ipsum dolor sit amet, consectetur "
+static const char *test_msg = "Lorem ipsum dolor sit amet, consectetur "
                               "adipisici elit, sed eiusmod tempor incidunt "
                               "ut labore et dolore magna aliqua.";
 
-static const char* test_msg_b64 =
+static const char *test_msg_b64 =
     "TG9yZW0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2ljaS"
     "BlbGl0LCBzZWQgZWl1c21vZCB0ZW1wb3IgaW5jaWR1bnQgdXQgbGFib3JlIGV0IGRv"
     "bG9yZSBtYWduYSBhbGlxdWEu";
 
 /* Sha256 digest of test_msg excluding NUL terminator */
-static const uint8_t test_digest[] =
-    {0x77, 0x38, 0x65, 0x00, 0x1e, 0x96, 0x48, 0xc6, 0x57, 0x0b, 0xae,
-     0xc0, 0xb7, 0x96, 0xf9, 0x66, 0x4d, 0x5f, 0xd0, 0xb7, 0xdb, 0xf3,
-     0x3a, 0xbf, 0x02, 0xcc, 0x78, 0x61, 0x83, 0x20, 0x20, 0xee};
+static const uint8_t test_digest[] = {
+    0x77, 0x38, 0x65, 0x00, 0x1e, 0x96, 0x48, 0xc6, 0x57, 0x0b, 0xae,
+    0xc0, 0xb7, 0x96, 0xf9, 0x66, 0x4d, 0x5f, 0xd0, 0xb7, 0xdb, 0xf3,
+    0x3a, 0xbf, 0x02, 0xcc, 0x78, 0x61, 0x83, 0x20, 0x20, 0xee
+};
 
 static const char *test_digest_b64 = "dzhlAB6WSMZXC67At5b5Zk1f0Lfb8zq/Asx4YYMgIO4=";
 
@@ -92,9 +93,10 @@ static const char *test_digest_b64 = "dzhlAB6WSMZXC67At5b5Zk1f0Lfb8zq/Asx4YYMgIO
  * --- the smallest size of the actual signature with the above
  * keys.
  */
-static const uint8_t good_sig[] =
-   {0xd8, 0xa7, 0xd9, 0x81, 0xd8, 0xaa, 0xd8, 0xad, 0x20, 0xd9, 0x8a, 0xd8,
-    0xa7, 0x20, 0xd8, 0xb3, 0xd9, 0x85, 0xd8, 0xb3, 0xd9, 0x85, 0x0};
+static const uint8_t good_sig[] = {
+    0xd8, 0xa7, 0xd9, 0x81, 0xd8, 0xaa, 0xd8, 0xad, 0x20, 0xd9, 0x8a, 0xd8,
+    0xa7, 0x20, 0xd8, 0xb3, 0xd9, 0x85, 0xd8, 0xb3, 0xd9, 0x85, 0x0
+};
 
 static const char *good_sig_b64 = "2KfZgdiq2K0g2YrYpyDYs9mF2LPZhQA=";
 
@@ -155,8 +157,8 @@ management_query_pk_sig(struct management *man, const char *b64_data,
     const char *expected_tbs = test_digest_b64;
     if (strstr(algorithm, "data=message"))
     {
-         expected_tbs = test_msg_b64;
-         assert_non_null(strstr(algorithm, "hashalg=SHA256"));
+        expected_tbs = test_msg_b64;
+        assert_non_null(strstr(algorithm, "hashalg=SHA256"));
     }
     assert_string_equal(b64_data, expected_tbs);
 
@@ -238,14 +240,14 @@ digest_sign(EVP_PKEY *pkey)
     }
 
     /* sign with sig = NULL to get required siglen */
-    assert_int_equal(EVP_DigestSign(mctx, sig, &siglen, (uint8_t*)test_msg, strlen(test_msg)), 1);
+    assert_int_equal(EVP_DigestSign(mctx, sig, &siglen, (uint8_t *)test_msg, strlen(test_msg)), 1);
     assert_true(siglen > 0);
 
     if ((sig = test_calloc(1, siglen)) == NULL)
     {
         fail_msg("Out of memory");
     }
-    assert_int_equal(EVP_DigestSign(mctx, sig, &siglen, (uint8_t*)test_msg, strlen(test_msg)), 1);
+    assert_int_equal(EVP_DigestSign(mctx, sig, &siglen, (uint8_t *)test_msg, strlen(test_msg)), 1);
 
 done:
     if (mctx)
@@ -357,7 +359,7 @@ xkey_provider_test_generic_sign_cb(void **state)
         pubkey = load_pubkey(pubkeys[i]);
         assert_true(pubkey != NULL);
 
-        EVP_PKEY *privkey = xkey_load_generic_key(NULL, (void*)dummy, pubkey, xkey_sign, xkey_free);
+        EVP_PKEY *privkey = xkey_load_generic_key(NULL, (void *)dummy, pubkey, xkey_sign, xkey_free);
         assert_true(privkey != NULL);
 
         xkey_sign_called = 0;
@@ -394,7 +396,7 @@ main(void)
     uninit_test();
     return ret;
 }
-#else
+#else  /* ifdef HAVE_XKEY_PROVIDER */
 int
 main(void)
 {

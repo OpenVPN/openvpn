@@ -930,7 +930,7 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads,
             if (!lines->head || !lines->head->next || !lines->head->next->next)
             {
                 msg(M_WARN, "auth pending control file is not at least "
-                            "three lines long.");
+                    "three lines long.");
                 buffer_list_free(lines);
                 return false;
             }
@@ -951,7 +951,7 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads,
                 return false;
             }
 
-            const char* pending_method = BSTR(iv_buf);
+            const char *pending_method = BSTR(iv_buf);
             if (!check_auth_pending_method(multi->peer_info, pending_method))
             {
                 char buf[128];
@@ -960,7 +960,7 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads,
                                  "method '%s' not supported", pending_method);
                 auth_set_client_reason(multi, buf);
                 msg(M_INFO, "Client does not supported auth pending method "
-                            "'%s'", pending_method);
+                    "'%s'", pending_method);
                 ret = false;
             }
             else
@@ -1021,9 +1021,9 @@ key_state_gen_auth_control_files(struct auth_deferred_status *ads,
 }
 
 /**
- * Checks the auth control status from a file. The function will try 
- * to read and update the cached status if the status is still pending 
- * and the parameter cached is false. 
+ * Checks the auth control status from a file. The function will try
+ * to read and update the cached status if the status is still pending
+ * and the parameter cached is false.
  * The function returns the most recent known status.
  *
  * @param ads       deferred status control structure
@@ -1086,7 +1086,7 @@ update_key_auth_status(bool cached, struct key_state *ks)
         ASSERT(auth_plugin < 4 && auth_script < 4 && auth_man < 4);
 
         if (auth_plugin == ACF_FAILED || auth_script == ACF_FAILED
-           || auth_man == ACF_FAILED)
+            || auth_man == ACF_FAILED)
         {
             ks->authenticated = KS_AUTH_FALSE;
             return;
@@ -1298,7 +1298,7 @@ verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
     if (!key_state_gen_auth_control_files(&ks->script_auth, session->opt))
     {
         msg(D_TLS_ERRORS, "TLS Auth Error (%s): "
-                          "could not create deferred auth control file", __func__);
+            "could not create deferred auth control file", __func__);
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
@@ -1307,22 +1307,24 @@ verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
                                         "--auth-user-pass-verify");
     switch (script_ret)
     {
-       case 0:
-           retval = OPENVPN_PLUGIN_FUNC_SUCCESS;
-           break;
-       case 2:
-           retval = OPENVPN_PLUGIN_FUNC_DEFERRED;
-           break;
-       default:
-           retval = OPENVPN_PLUGIN_FUNC_ERROR;
-           break;
+        case 0:
+            retval = OPENVPN_PLUGIN_FUNC_SUCCESS;
+            break;
+
+        case 2:
+            retval = OPENVPN_PLUGIN_FUNC_DEFERRED;
+            break;
+
+        default:
+            retval = OPENVPN_PLUGIN_FUNC_ERROR;
+            break;
     }
     if (retval == OPENVPN_PLUGIN_FUNC_DEFERRED)
     {
         /* Check if we the plugin has written the pending auth control
          * file and send the pending auth to the client */
-        if(!key_state_check_auth_pending_file(&ks->script_auth,
-                                              multi))
+        if (!key_state_check_auth_pending_file(&ks->script_auth,
+                                               multi))
         {
             retval = OPENVPN_PLUGIN_FUNC_ERROR;
             key_state_rm_auth_control_files(&ks->script_auth);
@@ -1378,7 +1380,7 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
     {
         /* Check if the plugin has written the pending auth control
          * file and send the pending auth to the client */
-        if(!key_state_check_auth_pending_file(&ks->plugin_auth, multi))
+        if (!key_state_check_auth_pending_file(&ks->plugin_auth, multi))
         {
             retval = OPENVPN_PLUGIN_FUNC_ERROR;
             key_state_rm_auth_control_files(&ks->plugin_auth);
@@ -1577,10 +1579,10 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
     }
     /* auth succeeded? */
     bool plugin_ok = plugin_status == OPENVPN_PLUGIN_FUNC_SUCCESS
-        || plugin_status == OPENVPN_PLUGIN_FUNC_DEFERRED;
+                     || plugin_status == OPENVPN_PLUGIN_FUNC_DEFERRED;
 
     bool script_ok =  script_status == OPENVPN_PLUGIN_FUNC_SUCCESS
-        || script_status ==  OPENVPN_PLUGIN_FUNC_DEFERRED;
+                     || script_status ==  OPENVPN_PLUGIN_FUNC_DEFERRED;
 
     if (script_ok && plugin_ok && tls_lock_username(multi, up->username)
 #ifdef ENABLE_MANAGEMENT

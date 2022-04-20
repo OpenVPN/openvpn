@@ -52,10 +52,10 @@ extern DWORD openvpnmsica_thread_data_idx;
  * Set MSI session handle in thread local storage.
  */
 #define OPENVPNMSICA_SAVE_MSI_SESSION(hInstall) \
-{ \
-    struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)TlsGetValue(openvpnmsica_thread_data_idx); \
-    s->hInstall = (hInstall); \
-}
+    { \
+        struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)TlsGetValue(openvpnmsica_thread_data_idx); \
+        s->hInstall = (hInstall); \
+    }
 
 
 /*

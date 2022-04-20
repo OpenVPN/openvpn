@@ -319,7 +319,7 @@ tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame
                         packet_id_size(true) + OPENVPN_MAX_HMAC_SIZE);
 
     /* TCP length field and opcode */
-    overhead+= 3;
+    overhead += 3;
 
     /* ACK array and remote SESSION ID (part of the ACK array) */
     overhead += ACK_SIZE(RELIABLE_ACK_SIZE);
@@ -812,10 +812,13 @@ ks_auth_name(enum ks_auth_state auth)
     {
         case KS_AUTH_TRUE:
             return "KS_AUTH_TRUE";
+
         case KS_AUTH_DEFERRED:
             return "KS_AUTH_DEFERRED";
+
         case KS_AUTH_FALSE:
             return "KS_AUTH_FALSE";
+
         default:
             return "KS_????";
     }
@@ -1865,9 +1868,9 @@ cleanup:
 
 bool
 tls_session_update_crypto_params_do_work(struct tls_session *session,
-                                 struct options* options, struct frame *frame,
-                                 struct frame *frame_fragment,
-                                 struct link_socket_info *lsi)
+                                         struct options *options, struct frame *frame,
+                                         struct frame *frame_fragment,
+                                         struct link_socket_info *lsi)
 {
     if (session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized)
     {
@@ -1919,7 +1922,7 @@ tls_session_update_crypto_params(struct tls_session *session,
 {
 
     bool cipher_allowed_as_fallback = options->enable_ncp_fallback
-        && streq(options->ciphername, session->opt->config_ciphername);
+                                      && streq(options->ciphername, session->opt->config_ciphername);
 
     if (!session->opt->server && !cipher_allowed_as_fallback
         && !tls_item_in_cipher_list(options->ciphername, options->ncp_ciphers))
@@ -2249,11 +2252,11 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
                 if (e->string)
                 {
                     if ((((strncmp(e->string, "UV_", 3) == 0
-                        || strncmp(e->string, "IV_PLAT_VER=", sizeof("IV_PLAT_VER=") - 1) == 0)
-                        && session->opt->push_peer_info_detail >= 2)
-                        || (strncmp(e->string, "IV_GUI_VER=", sizeof("IV_GUI_VER=") - 1) == 0)
-                        || (strncmp(e->string, "IV_SSO=", sizeof("IV_SSO=") - 1) == 0)
-                    )
+                           || strncmp(e->string, "IV_PLAT_VER=", sizeof("IV_PLAT_VER=") - 1) == 0)
+                          && session->opt->push_peer_info_detail >= 2)
+                         || (strncmp(e->string, "IV_GUI_VER=", sizeof("IV_GUI_VER=") - 1) == 0)
+                         || (strncmp(e->string, "IV_SSO=", sizeof("IV_SSO=") - 1) == 0)
+                         )
                         && buf_safe(&out, strlen(e->string) + 1))
                     {
                         buf_printf(&out, "%s\n", e->string);
@@ -2326,7 +2329,7 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
     {
 #ifdef USE_COMP
         if (multi->remote_usescomp && session->opt->mode == MODE_SERVER
-           && multi->opt.comp_options.flags & COMP_F_MIGRATE)
+            && multi->opt.comp_options.flags & COMP_F_MIGRATE)
         {
             if (!write_compat_local_options(buf, session->opt->local_options))
             {
@@ -2575,7 +2578,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
         if (multi->opt.comp_options.flags & COMP_F_MIGRATE && multi->remote_usescomp)
         {
             msg(D_SHOW_OCC, "Note: 'compress migrate' detected remote peer "
-                            "with compression enabled.");
+                "with compression enabled.");
             remote_options = options_string_compat_lzo(remote_options, &gc);
         }
 #endif
@@ -3151,8 +3154,8 @@ tls_multi_process(struct tls_multi *multi,
             if (ks->state == S_ACTIVE && ks->authenticated == KS_AUTH_TRUE)
             {
                 /* Session is now fully authenticated.
-                 * tls_session_generate_data_channel_keys will move ks->state
-                 * from S_ACTIVE to S_GENERATED_KEYS */
+                * tls_session_generate_data_channel_keys will move ks->state
+                * from S_ACTIVE to S_GENERATED_KEYS */
                 if (!tls_session_generate_data_channel_keys(session))
                 {
                     msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
@@ -3843,7 +3846,8 @@ error:
     return false;
 }
 
-struct key_state *tls_select_encryption_key(struct tls_multi *multi)
+struct key_state *
+tls_select_encryption_key(struct tls_multi *multi)
 {
     struct key_state *ks_select = NULL;
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)

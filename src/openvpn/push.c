@@ -284,12 +284,14 @@ void
 receive_auth_pending(struct context *c, const struct buffer *buffer)
 {
     if (!c->options.pull)
+    {
         return;
+    }
 
     /* Cap the increase at the maximum time we are willing stay in the
      * pending authentication state */
     unsigned int max_timeout = max_uint(c->options.renegotiate_seconds/2,
-                               c->options.handshake_window);
+                                        c->options.handshake_window);
 
     /* try to parse parameter keywords, default to hand-winow timeout if the
      * server does not supply a timeout */
@@ -297,8 +299,8 @@ receive_auth_pending(struct context *c, const struct buffer *buffer)
     parse_auth_pending_keywords(buffer, &server_timeout);
 
     msg(D_PUSH, "AUTH_PENDING received, extending handshake timeout from %us "
-                "to %us", c->options.handshake_window,
-                min_uint(max_timeout, server_timeout));
+        "to %us", c->options.handshake_window,
+        min_uint(max_timeout, server_timeout));
 
     const struct key_state *ks = get_primary_key(c->c2.tls_multi);
     c->c2.push_request_timeout = ks->established + min_uint(max_timeout, server_timeout);
@@ -395,8 +397,8 @@ send_auth_pending_messages(struct tls_multi *tls_multi, const char *extra,
     else
     {
         static const char auth_pre[] = "AUTH_PENDING,timeout ";
-        // Assume a worst case of 8 byte uint64 in decimal which
-        // needs 20 bytes
+        /* Assume a worst case of 8 byte uint64 in decimal which */
+        /* needs 20 bytes */
         size_t len = 20 + 1 + sizeof(auth_pre);
         struct buffer buf = alloc_buf_gc(len, &gc);
         buf_printf(&buf, auth_pre);

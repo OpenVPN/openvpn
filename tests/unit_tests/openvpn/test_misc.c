@@ -43,9 +43,9 @@ test_compat_lzo_string(void **state)
 {
     struct gc_arena gc = gc_new();
 
-    const char* input = "V4,dev-type tun,link-mtu 1457,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server";
+    const char *input = "V4,dev-type tun,link-mtu 1457,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server";
 
-    const char* output = options_string_compat_lzo(input, &gc);
+    const char *output = options_string_compat_lzo(input, &gc);
 
     assert_string_equal(output, "V4,dev-type tun,link-mtu 1458,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server,comp-lzo");
 
@@ -70,7 +70,7 @@ test_compat_lzo_string(void **state)
     assert_string_equal(output, "V4,dev-type tun,link-mtu 1000,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server,comp-lzo");
 
     gc_free(&gc);
-};
+}
 
 const struct CMUnitTest misc_tests[] = {
     cmocka_unit_test(test_compat_lzo_string),

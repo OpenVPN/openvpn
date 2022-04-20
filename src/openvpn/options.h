@@ -79,8 +79,8 @@ struct options_pre_connect
 
     struct dns_options dns_options;
 
-    const char* ciphername;
-    const char* authname;
+    const char *ciphername;
+    const char *authname;
 
     int ping_send_timeout;
     int ping_rec_timeout;
@@ -242,7 +242,7 @@ struct options
     /* enable forward compatibility for post-2.1 features */
     bool forward_compatible;
     /** What version we should try to be compatible with as major * 10000 +
-      * minor * 100 + patch, e.g. 2.4.7 => 20407 */
+     * minor * 100 + patch, e.g. 2.4.7 => 20407 */
     unsigned int backwards_compatible;
 
     /* list of options that should be ignored even if unknown */
@@ -533,7 +533,7 @@ struct options
     int key_direction;
     const char *ciphername;
     bool enable_ncp_fallback;      /**< If defined fall back to
-                                    * ciphername if NCP fails */
+                                   * ciphername if NCP fails */
     const char *ncp_ciphers;
     const char *authname;
     const char *engine;

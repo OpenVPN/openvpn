@@ -111,7 +111,7 @@ GetOpenvpnSettings(settings_t *s)
     }
 
     openvpn_swprintf(default_value, _countof(default_value), TEXT("%ls\\bin\\openvpn.exe"),
-                      install_path);
+                     install_path);
     error = GetRegString(key, TEXT("exe_path"), s->exe_path, sizeof(s->exe_path), default_value);
     if (error != ERROR_SUCCESS)
     {
@@ -260,8 +260,8 @@ MsgToEventLog(DWORD flags, LPCTSTR format, ...)
     if (hEventSource != NULL)
     {
         openvpn_swprintf(msg[0], _countof(msg[0]),
-                          TEXT("%ls%ls%ls: %ls"), APPNAME, service_instance,
-                          (flags & MSG_FLAGS_ERROR) ? TEXT(" error") : TEXT(""), err_msg);
+                         TEXT("%ls%ls%ls: %ls"), APPNAME, service_instance,
+                         (flags & MSG_FLAGS_ERROR) ? TEXT(" error") : TEXT(""), err_msg);
 
         va_start(arglist, format);
         openvpn_vswprintf(msg[1], _countof(msg[1]), format, arglist);

@@ -54,10 +54,10 @@ typedef struct
 
 /* helper to print debug messages */
 #define xkey_dmsg(f, ...) \
-        do {                                                        \
-              dmsg(f|M_NOLF, "xkey_provider: In %s: ", __func__);    \
-              dmsg(f|M_NOPREFIX, __VA_ARGS__);                      \
-           } while(0)
+    do {                                                        \
+        dmsg(f|M_NOLF, "xkey_provider: In %s: ", __func__);    \
+        dmsg(f|M_NOPREFIX, __VA_ARGS__);                      \
+    } while(0)
 
 typedef enum
 {
@@ -262,7 +262,7 @@ keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[], const ch
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name(key->prov->libctx, name, NULL);
     if (!ctx
         || (EVP_PKEY_fromdata_init(ctx) != 1)
-        || (EVP_PKEY_fromdata(ctx, &pkey, selection_pub, (OSSL_PARAM*) params) !=1))
+        || (EVP_PKEY_fromdata(ctx, &pkey, selection_pub, (OSSL_PARAM *) params) !=1))
     {
         msg(M_WARN, "Error: keymgmt_import failed for key type <%s>", name);
         if (pkey)
@@ -282,7 +282,7 @@ keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[], const ch
     {
         /* create private key */
         pkey = NULL;
-        if (EVP_PKEY_fromdata(ctx, &pkey, selection, (OSSL_PARAM*) params) == 1)
+        if (EVP_PKEY_fromdata(ctx, &pkey, selection, (OSSL_PARAM *) params) == 1)
         {
             key->handle = pkey;
             key->free = (XKEY_PRIVKEY_FREE_fn *) EVP_PKEY_free;
@@ -324,7 +324,7 @@ keymgmt_import_types(int selection)
 
     if (selection & OSSL_KEYMGMT_SELECT_PUBLIC_KEY)
     {
-       return key_types;
+        return key_types;
     }
     return NULL;
 }
@@ -557,34 +557,34 @@ ec_keymgmt_name(int id)
 }
 
 static const OSSL_DISPATCH rsa_keymgmt_functions[] = {
-    {OSSL_FUNC_KEYMGMT_NEW, (void (*)(void)) keymgmt_new},
-    {OSSL_FUNC_KEYMGMT_FREE, (void (*)(void)) keymgmt_free},
-    {OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void)) keymgmt_load},
-    {OSSL_FUNC_KEYMGMT_HAS, (void (*)(void)) keymgmt_has},
-    {OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void)) keymgmt_match},
-    {OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void)) rsa_keymgmt_import},
-    {OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void)) keymgmt_import_types},
-    {OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*) (void)) keymgmt_gettable_params},
-    {OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*) (void)) keymgmt_get_params},
-    {OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*) (void)) keymgmt_set_params},
-    {OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS, (void (*) (void)) keymgmt_gettable_params}, /* same as gettable */
-    {OSSL_FUNC_KEYMGMT_QUERY_OPERATION_NAME, (void (*)(void)) rsa_keymgmt_name},
+    {OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new},
+    {OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free},
+    {OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load},
+    {OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has},
+    {OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match},
+    {OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))rsa_keymgmt_import},
+    {OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types},
+    {OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},
+    {OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params},
+    {OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params},
+    {OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},   /* same as gettable */
+    {OSSL_FUNC_KEYMGMT_QUERY_OPERATION_NAME, (void (*)(void))rsa_keymgmt_name},
     {0, NULL }
 };
 
 static const OSSL_DISPATCH ec_keymgmt_functions[] = {
-    {OSSL_FUNC_KEYMGMT_NEW, (void (*)(void)) keymgmt_new},
-    {OSSL_FUNC_KEYMGMT_FREE, (void (*)(void)) keymgmt_free},
-    {OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void)) keymgmt_load},
-    {OSSL_FUNC_KEYMGMT_HAS, (void (*)(void)) keymgmt_has},
-    {OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void)) keymgmt_match},
-    {OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void)) ec_keymgmt_import},
-    {OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void)) keymgmt_import_types},
-    {OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*) (void)) keymgmt_gettable_params},
-    {OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*) (void)) keymgmt_get_params},
-    {OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*) (void)) keymgmt_set_params},
-    {OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS, (void (*) (void)) keymgmt_gettable_params}, /* same as gettable */
-    {OSSL_FUNC_KEYMGMT_QUERY_OPERATION_NAME, (void (*)(void)) ec_keymgmt_name},
+    {OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new},
+    {OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free},
+    {OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load},
+    {OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has},
+    {OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match},
+    {OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))ec_keymgmt_import},
+    {OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types},
+    {OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},
+    {OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params},
+    {OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params},
+    {OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},   /* same as gettable */
+    {OSSL_FUNC_KEYMGMT_QUERY_OPERATION_NAME, (void (*)(void))ec_keymgmt_name},
     {0, NULL }
 };
 
@@ -619,8 +619,8 @@ typedef struct
     XKEY_SIGALG sigalg;
 } XKEY_SIGNATURE_CTX;
 
-static const XKEY_SIGALG default_sigalg = { .mdname="MD5-SHA1", .saltlen="digest",
-                                            .padmode="pkcs1", .keytype = "RSA"};
+static const XKEY_SIGALG default_sigalg = { .mdname = "MD5-SHA1", .saltlen = "digest",
+                                            .padmode = "pkcs1", .keytype = "RSA"};
 
 const struct {
     int nid;
@@ -1055,18 +1055,18 @@ xkey_native_sign(XKEY_KEYDATA *key, unsigned char *sig, size_t *siglen,
 }
 
 static const OSSL_DISPATCH signature_functions[] = {
-    {OSSL_FUNC_SIGNATURE_NEWCTX, (void (*)(void)) signature_newctx},
-    {OSSL_FUNC_SIGNATURE_FREECTX, (void (*)(void)) signature_freectx},
-    {OSSL_FUNC_SIGNATURE_SIGN_INIT, (void (*)(void)) signature_sign_init},
-    {OSSL_FUNC_SIGNATURE_SIGN, (void (*)(void)) signature_sign},
-    {OSSL_FUNC_SIGNATURE_DIGEST_VERIFY_INIT, (void (*)(void)) signature_digest_verify_init},
-    {OSSL_FUNC_SIGNATURE_DIGEST_VERIFY, (void (*)(void)) signature_digest_verify},
-    {OSSL_FUNC_SIGNATURE_DIGEST_SIGN_INIT, (void (*)(void)) signature_digest_sign_init},
-    {OSSL_FUNC_SIGNATURE_DIGEST_SIGN, (void (*)(void)) signature_digest_sign},
-    {OSSL_FUNC_SIGNATURE_SET_CTX_PARAMS, (void (*)(void)) signature_set_ctx_params},
-    {OSSL_FUNC_SIGNATURE_SETTABLE_CTX_PARAMS, (void (*)(void)) signature_settable_ctx_params},
-    {OSSL_FUNC_SIGNATURE_GET_CTX_PARAMS, (void (*)(void)) signature_get_ctx_params},
-    {OSSL_FUNC_SIGNATURE_GETTABLE_CTX_PARAMS, (void (*)(void)) signature_gettable_ctx_params},
+    {OSSL_FUNC_SIGNATURE_NEWCTX, (void (*)(void))signature_newctx},
+    {OSSL_FUNC_SIGNATURE_FREECTX, (void (*)(void))signature_freectx},
+    {OSSL_FUNC_SIGNATURE_SIGN_INIT, (void (*)(void))signature_sign_init},
+    {OSSL_FUNC_SIGNATURE_SIGN, (void (*)(void))signature_sign},
+    {OSSL_FUNC_SIGNATURE_DIGEST_VERIFY_INIT, (void (*)(void))signature_digest_verify_init},
+    {OSSL_FUNC_SIGNATURE_DIGEST_VERIFY, (void (*)(void))signature_digest_verify},
+    {OSSL_FUNC_SIGNATURE_DIGEST_SIGN_INIT, (void (*)(void))signature_digest_sign_init},
+    {OSSL_FUNC_SIGNATURE_DIGEST_SIGN, (void (*)(void))signature_digest_sign},
+    {OSSL_FUNC_SIGNATURE_SET_CTX_PARAMS, (void (*)(void))signature_set_ctx_params},
+    {OSSL_FUNC_SIGNATURE_SETTABLE_CTX_PARAMS, (void (*)(void))signature_settable_ctx_params},
+    {OSSL_FUNC_SIGNATURE_GET_CTX_PARAMS, (void (*)(void))signature_get_ctx_params},
+    {OSSL_FUNC_SIGNATURE_GETTABLE_CTX_PARAMS, (void (*)(void))signature_gettable_ctx_params},
     {0, NULL }
 };
 
@@ -1148,10 +1148,10 @@ teardown(void *provctx)
 }
 
 static const OSSL_DISPATCH dispatch_table[] = {
-    {OSSL_FUNC_PROVIDER_GETTABLE_PARAMS, (void (*)(void)) gettable_params},
-    {OSSL_FUNC_PROVIDER_GET_PARAMS, (void (*)(void)) get_params},
-    {OSSL_FUNC_PROVIDER_QUERY_OPERATION, (void (*)(void)) query_operation},
-    {OSSL_FUNC_PROVIDER_TEARDOWN, (void (*)(void)) teardown},
+    {OSSL_FUNC_PROVIDER_GETTABLE_PARAMS, (void (*)(void))gettable_params},
+    {OSSL_FUNC_PROVIDER_GET_PARAMS, (void (*)(void))get_params},
+    {OSSL_FUNC_PROVIDER_QUERY_OPERATION, (void (*)(void))query_operation},
+    {OSSL_FUNC_PROVIDER_TEARDOWN, (void (*)(void))teardown},
     {0, NULL}
 };
 

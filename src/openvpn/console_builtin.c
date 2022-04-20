@@ -69,7 +69,7 @@ get_console_input_win32(const char *prompt, const bool echo, char *input, const 
     input[0] = '\0';
 
     HANDLE in = GetStdHandle(STD_INPUT_HANDLE);
-    int orig_stderr = get_orig_stderr(); // guaranteed to be always valid
+    int orig_stderr = get_orig_stderr(); /* guaranteed to be always valid */
     if ((in == INVALID_HANDLE_VALUE)
         || win32_service_interrupt(&win32_signal)
         || (_write(orig_stderr, prompt, strlen(prompt)) == -1))

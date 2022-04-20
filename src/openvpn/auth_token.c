@@ -387,7 +387,7 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
                                 strlen(SESSION_ID_PREFIX) + AUTH_TOKEN_SESSION_ID_BASE64_LEN))
     {
         msg(M_WARN, "--auth-gen-token: session id in token changed (Rejecting "
-                    "token.");
+            "token.");
         ret = 0;
     }
     return ret;

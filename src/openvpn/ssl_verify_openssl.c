@@ -285,7 +285,7 @@ backend_x509_get_username(char *common_name, int cn_len,
         gc_free(&gc);
     }
     else
-#endif
+#endif /* ifdef ENABLE_X509ALTUSERNAME */
     if (FAILURE == extract_x509_field_ssl(X509_get_subject_name(peer_cert),
                                           x509_username_field, common_name, cn_len))
     {

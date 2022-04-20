@@ -726,15 +726,16 @@ SSL_CTX_set_max_proto_version(SSL_CTX *ctx, long tls_ver_max)
  * is good enough for our case of printing certificate details during
  * handshake */
 static inline
-int EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz,
-                            size_t *gname_len)
+int
+EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz,
+                        size_t *gname_len)
 {
-    const EC_KEY* ec = EVP_PKEY_get0_EC_KEY(pkey);
+    const EC_KEY *ec = EVP_PKEY_get0_EC_KEY(pkey);
     if (ec == NULL)
     {
         return 0;
     }
-    const EC_GROUP* group = EC_KEY_get0_group(ec);
+    const EC_GROUP *group = EC_KEY_get0_group(ec);
     int nid = EC_GROUP_get_curve_name(group);
 
     if (nid == 0)
@@ -753,7 +754,7 @@ int EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz,
     *gname_len = strlen(curve);
     return 1;
 }
-#endif
+#endif /* if OPENSSL_VERSION_NUMBER < 0x30000000L && !defined(OPENSSL_NO_EC) */
 
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
 #define EVP_MD_get0_name EVP_MD_name
@@ -762,7 +763,7 @@ int EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz,
 
 /** Reduce SSL_CTX_new_ex() to SSL_CTX_new() for OpenSSL < 3 */
 #define SSL_CTX_new_ex(libctx, propq, method)                \
-        SSL_CTX_new((method))
+    SSL_CTX_new((method))
 
 /* Some safe typedefs to avoid too many ifdefs */
 typedef void OSSL_LIB_CTX;
@@ -778,7 +779,7 @@ EVP_CIPHER_fetch(void *ctx, const char *algorithm, const char *properties)
     return EVP_get_cipherbyname(algorithm);
 }
 
-static inline const EVP_MD*
+static inline const EVP_MD *
 EVP_MD_fetch(void *ctx, const char *algorithm, const char *properties)
 {
     ASSERT(!ctx);

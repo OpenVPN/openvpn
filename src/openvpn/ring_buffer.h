@@ -116,7 +116,7 @@ register_ring_buffers(HANDLE device,
     rr.receive.tail_moved = receive_tail_moved;
 
     res = DeviceIoControl(device, TUN_IOCTL_REGISTER_RINGS, &rr, sizeof(rr),
-      NULL, 0, &bytes_returned, NULL);
+                          NULL, 0, &bytes_returned, NULL);
 
     return res != FALSE;
 }

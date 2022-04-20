@@ -93,7 +93,7 @@ bool dns_server_priority_parse(long *priority, const char *str, bool pulled);
  * @param   priority    Priority of the DNS server to find / create
  * @param   gc          The gc new list items should be allocated in
  */
-struct dns_server * dns_server_get(struct dns_server **entry, long priority, struct gc_arena *gc);
+struct dns_server *dns_server_get(struct dns_server **entry, long priority, struct gc_arena *gc);
 
 /**
  * Appends DNS domain parameters to a linked list.

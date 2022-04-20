@@ -69,7 +69,8 @@ crypto_init_lib_engine(const char *engine_name)
         "available");
 }
 
-provider_t *crypto_load_provider(const char *provider)
+provider_t *
+crypto_load_provider(const char *provider)
 {
     if (provider)
     {
@@ -78,7 +79,8 @@ provider_t *crypto_load_provider(const char *provider)
     return NULL;
 }
 
-void crypto_unload_provider(const char *provname, provider_t *provider)
+void
+crypto_unload_provider(const char *provname, provider_t *provider)
 {
 }
 
@@ -391,7 +393,7 @@ rand_bytes(uint8_t *output, int len)
  *
  */
 static const mbedtls_cipher_info_t *
-cipher_get(const char* ciphername)
+cipher_get(const char *ciphername)
 {
     ASSERT(ciphername);
 
@@ -620,25 +622,28 @@ cipher_ctx_mode(const mbedtls_cipher_context_t *ctx)
     return cipher_kt_mode(ctx->cipher_info);
 }
 
-bool cipher_ctx_mode_cbc(const cipher_ctx_t *ctx)
+bool
+cipher_ctx_mode_cbc(const cipher_ctx_t *ctx)
 {
     return ctx && cipher_ctx_mode(ctx) == OPENVPN_MODE_CBC;
 }
 
 
-bool cipher_ctx_mode_ofb_cfb(const cipher_ctx_t *ctx)
+bool
+cipher_ctx_mode_ofb_cfb(const cipher_ctx_t *ctx)
 {
     return ctx && (cipher_ctx_mode(ctx) == OPENVPN_MODE_OFB
-        || cipher_ctx_mode(ctx) == OPENVPN_MODE_CFB);
+                   || cipher_ctx_mode(ctx) == OPENVPN_MODE_CFB);
 }
 
-bool cipher_ctx_mode_aead(const cipher_ctx_t *ctx)
+bool
+cipher_ctx_mode_aead(const cipher_ctx_t *ctx)
 {
     return ctx && (cipher_ctx_mode(ctx) == OPENVPN_MODE_GCM
 #ifdef MBEDTLS_CHACHAPOLY_C
-        || cipher_ctx_mode(ctx) == MBEDTLS_MODE_CHACHAPOLY
+                   || cipher_ctx_mode(ctx) == MBEDTLS_MODE_CHACHAPOLY
 #endif
-    );
+                   );
 }
 
 int

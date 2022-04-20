@@ -96,8 +96,8 @@
                                  *   handshake window.  Deferred auth and
                                  *   client connect can still be pending. */
 #define S_GENERATED_KEYS  7     /**< The data channel keys have been generated
-                                  *  The TLS session is fully authenticated
-                                  *  when reaching this state. */
+                                 *  The TLS session is fully authenticated
+                                 *  when reaching this state. */
 
 /* Note that earlier versions also had a S_OP_NORMAL state that was
  * virtually identical with S_ACTIVE and the code still assumes everything
@@ -141,14 +141,14 @@ struct key_source2 {
  * Only KS_AUTH_TRUE is fully authenticated
  */
 enum ks_auth_state {
-  KS_AUTH_FALSE,              /**< Key state is not authenticated  */
-  KS_AUTH_DEFERRED,           /**< Key state authentication is being deferred,
-                                * by async auth */
-  KS_AUTH_TRUE                /**< Key state is authenticated. TLS and user/pass
-                                * succeeded. This includes AUTH_PENDING/OOB
-                                * authentication as those hold the
-                                * connection artificially in KS_AUTH_DEFERRED
-                                */
+    KS_AUTH_FALSE,            /**< Key state is not authenticated  */
+    KS_AUTH_DEFERRED,         /**< Key state authentication is being deferred,
+                               * by async auth */
+    KS_AUTH_TRUE              /**< Key state is authenticated. TLS and user/pass
+                               * succeeded. This includes AUTH_PENDING/OOB
+                               * authentication as those hold the
+                               * connection artificially in KS_AUTH_DEFERRED
+                               */
 };
 
 struct auth_deferred_status
@@ -648,10 +648,13 @@ get_key_scan(struct tls_multi *multi, int index)
     {
         case 0:
             return &multi->session[TM_ACTIVE].key[KS_PRIMARY];
+
         case 1:
             return &multi->session[TM_ACTIVE].key[KS_LAME_DUCK];
+
         case 2:
             return &multi->session[TM_LAME_DUCK].key[KS_LAME_DUCK];
+
         default:
             ASSERT(false);
             return NULL; /* NOTREACHED */
@@ -664,7 +667,7 @@ get_key_scan(struct tls_multi *multi, int index)
 static inline const struct key_state *
 get_primary_key(const struct tls_multi *multi)
 {
-        return &multi->session[TM_ACTIVE].key[KS_PRIMARY];
+    return &multi->session[TM_ACTIVE].key[KS_PRIMARY];
 }
 
 #endif /* SSL_COMMON_H_ */

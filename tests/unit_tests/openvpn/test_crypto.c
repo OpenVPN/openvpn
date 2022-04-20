@@ -144,7 +144,7 @@ static uint8_t good_prf[32] = {0xd9, 0x8c, 0x85, 0x18, 0xc8, 0x5e, 0x94, 0x69,
                                0xb1, 0x56, 0x7e, 0x4b, 0x4b, 0x14, 0x59, 0xe6,
                                0xa9, 0x04, 0xac, 0x2d, 0xda, 0xb7, 0x2d, 0x67};
 
-static const char* ipsumlorem = "Lorem ipsum dolor sit amet, consectetur "
+static const char *ipsumlorem = "Lorem ipsum dolor sit amet, consectetur "
                                 "adipisici elit, sed eiusmod tempor incidunt "
                                 "ut labore et dolore magna aliqua.";
 
@@ -406,7 +406,7 @@ test_mssfix_mtu_calculation(void **state)
     o.authname = "none";
     init_key_type(&kt, o.ciphername, o.authname, false, false);
 
-    for (int i = 990;i <= 1010;i++)
+    for (int i = 990; i <= 1010; i++)
     {
         /* 992 - 1008 should end up with the same mssfix value all they
          * all result in the same CBC block size/padding and <= 991 and >=1008
@@ -432,7 +432,7 @@ test_mssfix_mtu_calculation(void **state)
     /* Same but with compression added. Compression adds one byte extra to the
      * payload so the payload should be reduced by compared to the no
      * compression calculation before */
-    for (int i = 990;i <= 1010;i++)
+    for (int i = 990; i <= 1010; i++)
     {
         /* 992 - 1008 should end up with the same mssfix value all they
          * all result in the same CBC block size/padding and <= 991 and >=1008
@@ -453,7 +453,7 @@ test_mssfix_mtu_calculation(void **state)
         }
     }
     o.comp.alg = COMP_ALG_UNDEF;
-#endif
+#endif /* ifdef USE_COMP */
 
     /* tls client, auth SHA1, cipher AES-256-GCM */
     o.authname = "SHA1";
@@ -463,7 +463,7 @@ test_mssfix_mtu_calculation(void **state)
     o.use_peer_id = true;
     init_key_type(&kt, o.ciphername, o.authname, true, false);
 
-    for (int i=900;i <= 1200;i++)
+    for (int i = 900; i <= 1200; i++)
     {
         /* For stream ciphers, the value should not be influenced by block
          * sizes or similar but always have the same difference */

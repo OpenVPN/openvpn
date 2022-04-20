@@ -660,9 +660,9 @@ my_conv(int n, const struct pam_message **msg_array,
         if (DEBUG(up->verb))
         {
             plugin_log(PLOG_NOTE, MODULE, "BACKGROUND: my_conv[%d] query='%s' style=%d",
-                    i,
-                    msg->msg ? msg->msg : "NULL",
-                    msg->msg_style);
+                       i,
+                       msg->msg ? msg->msg : "NULL",
+                       msg->msg_style);
         }
 
         if (up->name_value_list && up->name_value_list->len > 0)
@@ -685,9 +685,9 @@ my_conv(int n, const struct pam_message **msg_array,
                     if (DEBUG(up->verb))
                     {
                         plugin_log(PLOG_NOTE, MODULE, "BACKGROUND: name match found, query/match-string ['%s', '%s'] = '%s'",
-                                msg->msg,
-                                match_name,
-                                match_value);
+                                   msg->msg,
+                                   match_name,
+                                   match_value);
                     }
 
                     if (strstr(match_value, "USERNAME"))
@@ -803,8 +803,8 @@ pam_auth(const char *service, const struct user_pass *up)
         if (!ret)
         {
             plugin_log(PLOG_ERR, MODULE, "BACKGROUND: user '%s' failed to authenticate: %s",
-                    up->username,
-                    pam_strerror(pamh, status));
+                       up->username,
+                       pam_strerror(pamh, status));
         }
 
         /* Close PAM */
@@ -958,7 +958,7 @@ pam_server(int fd, const char *service, int verb, const struct name_value_list *
                     || recv_string(fd, ac_file_name, sizeof(ac_file_name)) == -1)
                 {
                     plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "BACKGROUND: read error on command channel: code=%d, exiting",
-                            command);
+                               command);
                     goto done;
                 }
 
@@ -966,7 +966,7 @@ pam_server(int fd, const char *service, int verb, const struct name_value_list *
                 {
 #if 0
                     plugin_log(PLOG_NOTE, MODULE, "BACKGROUND: USER/PASS: %s/%s",
-                            up.username, up.password);
+                               up.username, up.password);
 #else
                     plugin_log(PLOG_NOTE, MODULE, "BACKGROUND: USER: %s", up.username);
 #endif
@@ -1015,7 +1015,7 @@ pam_server(int fd, const char *service, int verb, const struct name_value_list *
 
             default:
                 plugin_log(PLOG_ERR, MODULE, "BACKGROUND: unknown command code: code=%d, exiting",
-                        command);
+                           command);
                 goto done;
         }
         plugin_secure_memzero(up.response, sizeof(up.response));

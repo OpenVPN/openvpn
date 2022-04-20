@@ -55,7 +55,7 @@ struct plugin {
 
 struct session {
     char user[48];
-    char key [48];
+    char key[48];
 };
 
 /*

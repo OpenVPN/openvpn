@@ -54,7 +54,7 @@ int openvpn_popen(const struct argv *a,  const struct env_set *es);
 bool openvpn_execve_allowed(const unsigned int flags);
 
 int openvpn_execve_check(const struct argv *a, const struct env_set *es,
-                          const unsigned int flags, const char *error_message);
+                         const unsigned int flags, const char *error_message);
 
 /**
  * Will run a script and return the exit code of the script if between

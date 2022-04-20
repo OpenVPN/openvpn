@@ -47,4 +47,4 @@ void frame_calculate_dynamic(struct frame *frame, struct key_type *kt,
  */
 void frame_adjust_path_mtu(struct context *c);
 
-#endif
+#endif /* ifndef MSS_H */

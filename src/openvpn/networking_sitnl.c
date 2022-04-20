@@ -1362,7 +1362,9 @@ net_iface_del(openvpn_net_ctx_t *ctx, const char *iface)
     int ifindex = if_nametoindex(iface);
 
     if (!ifindex)
+    {
         return errno;
+    }
 
     req.n.nlmsg_len = NLMSG_LENGTH(sizeof(req.i));
     req.n.nlmsg_flags = NLM_F_REQUEST;

@@ -216,8 +216,8 @@ prepend_dir(const char *dir, const char *path, struct gc_arena *gc);
 #define MAC_FMT _STRINGIFY(%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx)
 /* *INDENT-ON* */
 #define MAC_PRINT_ARG(_mac) _mac[0], _mac[1], _mac[2],  \
-        _mac[3], _mac[4], _mac[5]
+    _mac[3], _mac[4], _mac[5]
 #define MAC_SCAN_ARG(_mac) &_mac[0], &_mac[1], &_mac[2], \
-        &_mac[3], &_mac[4], &_mac[5]
+    &_mac[3], &_mac[4], &_mac[5]
 
 #endif /* ifndef MISC_H */

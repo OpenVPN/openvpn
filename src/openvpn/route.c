@@ -50,7 +50,7 @@
 #endif
 
 #if defined(TARGET_NETBSD)
-#include <net/route.h>			/* RT_ROUNDUP(), RT_ADVANCE() */
+#include <net/route.h>                  /* RT_ROUNDUP(), RT_ADVANCE() */
 #endif
 
 #ifdef _WIN32
@@ -1480,7 +1480,7 @@ setenv_route_ipv6(struct env_set *es, const struct route_ipv6 *r6, int i)
         if (r6->flags & RT_METRIC_DEFINED)
         {
             struct buffer name3 = alloc_buf_gc( 256, &gc );
-            buf_printf( &name3, "route_ipv6_metric_%d", i) ;
+            buf_printf( &name3, "route_ipv6_metric_%d", i);
             setenv_int( es, BSTR(&name3), r6->metric);
         }
     }

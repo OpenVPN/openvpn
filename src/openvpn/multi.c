@@ -1847,7 +1847,7 @@ multi_client_set_protocol_options(struct context *c)
     if (!ret)
     {
         auth_set_client_reason(tls_multi, "Data channel cipher negotiation "
-                                          "failed (no shared cipher)");
+                               "failed (no shared cipher)");
     }
 
     gc_free(&gc);
@@ -2463,7 +2463,7 @@ multi_client_connect_compress_migrate(struct multi_context *m,
 
     if (o->comp.flags & COMP_F_MIGRATE && mi->context.c2.tls_multi->remote_usescomp)
     {
-        if(peer_info && strstr(peer_info, "IV_COMP_STUBv2=1"))
+        if (peer_info && strstr(peer_info, "IV_COMP_STUBv2=1"))
         {
             push_option(o, "compress stub-v2", M_USAGE);
         }
@@ -3894,7 +3894,8 @@ init_management_callback_multi(struct multi_context *m)
 #endif /* ifdef ENABLE_MANAGEMENT */
 }
 
-void multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
+void
+multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
 {
     /* max_clients must be less then max peer-id value */
     ASSERT(m->max_clients < MAX_PEER_ID);

@@ -63,7 +63,7 @@ static EVP_PKEY_METHOD *pmethod;
 static int (*default_pkey_sign_init) (EVP_PKEY_CTX *ctx);
 static int (*default_pkey_sign) (EVP_PKEY_CTX *ctx, unsigned char *sig,
                                  size_t *siglen, const unsigned char *tbs, size_t tbslen);
-#else
+#else  /* ifndef HAVE_XKEY_PROVIDER */
 static XKEY_EXTERNAL_SIGN_fn xkey_cng_sign;
 #endif /* HAVE_XKEY_PROVIDER */
 
@@ -828,7 +828,7 @@ xkey_cng_ec_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsign
 /** Sign hash in tbs using RSA key in cd and NCryptSignHash */
 static int
 xkey_cng_rsa_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsigned char *tbs,
-               size_t tbslen, XKEY_SIGALG sigalg)
+                  size_t tbslen, XKEY_SIGALG sigalg)
 {
     dmsg(D_LOW, "In xkey_cng_rsa_sign");
 
@@ -869,7 +869,7 @@ xkey_cng_rsa_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsig
         }
 
         msg(D_LOW, "Signing using NCryptSignHash with PSS padding: hashalg <%s>, saltlen <%d>",
-                    sigalg.mdname, saltlen);
+            sigalg.mdname, saltlen);
 
         BCRYPT_PSS_PADDING_INFO padinfo = {hashalg, (DWORD) saltlen}; /* cast is safe as saltlen >= 0 */
         status = NCryptSignHash(cd->crypt_prov, &padinfo, (BYTE *)tbs, (DWORD) tbslen,
@@ -895,7 +895,7 @@ xkey_cng_rsa_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsig
 /** Dispatch sign op to xkey_cng_<rsa/ec>_sign */
 static int
 xkey_cng_sign(void *handle, unsigned char *sig, size_t *siglen, const unsigned char *tbs,
-               size_t tbslen, XKEY_SIGALG sigalg)
+              size_t tbslen, XKEY_SIGALG sigalg)
 {
     dmsg(D_LOW, "In xkey_cng_sign");
 
@@ -910,7 +910,7 @@ xkey_cng_sign(void *handle, unsigned char *sig, size_t *siglen, const unsigned c
     /* compute digest if required */
     if (!strcmp(sigalg.op, "DigestSign"))
     {
-        if(!xkey_digest(tbs, tbslen, mdbuf, &buflen, sigalg.mdname))
+        if (!xkey_digest(tbs, tbslen, mdbuf, &buflen, sigalg.mdname))
         {
             return 0;
         }
@@ -992,7 +992,7 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     {
         /* private key may be in a token not available, or incompatible with CNG */
         msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: failed to acquire key. Key not present or "
-                                "is in a legacy token not supported by Windows CNG API");
+            "is in a legacy token not supported by Windows CNG API");
         goto err;
     }
 
@@ -1015,11 +1015,11 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
 #ifdef HAVE_XKEY_PROVIDER
 
     EVP_PKEY *privkey = xkey_load_generic_key(tls_libctx, cd, pkey,
-                        xkey_cng_sign, (XKEY_PRIVKEY_FREE_fn *) CAPI_DATA_free);
+                                              xkey_cng_sign, (XKEY_PRIVKEY_FREE_fn *) CAPI_DATA_free);
     SSL_CTX_use_PrivateKey(ssl_ctx, privkey);
     return 1; /* do not free cd -- its kept by xkey provider */
 
-#else
+#else  /* ifdef HAVE_XKEY_PROVIDER */
 
     if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA)
     {

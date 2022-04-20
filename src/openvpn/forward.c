@@ -335,7 +335,8 @@ send_control_channel_string_dowork(struct tls_multi *multi,
     return stat;
 }
 
-void reschedule_multi_process(struct context *c)
+void
+reschedule_multi_process(struct context *c)
 {
     interval_action(&c->c2.tmp_int);
     context_immediate_reschedule(c); /* ZERO-TIMEOUT */

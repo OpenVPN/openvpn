@@ -101,7 +101,7 @@ xkey_load_management_key(OSSL_LIB_CTX *libctx, EVP_PKEY *pubkey)
      * stored in the key. We use a dummy pointer as we do need a
      * non-NULL value to indicate private key is available.
      */
-    void *dummy = & "dummy";
+    void *dummy = &"dummy";
 
     XKEY_EXTERNAL_SIGN_fn *sign_op = xkey_management_sign;
 
@@ -127,7 +127,8 @@ xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
         {"handle", OSSL_PARAM_OCTET_PTR, &handle, sizeof(handle), 0},
         {"sign_op", OSSL_PARAM_OCTET_PTR, (void **) &sign_op, sizeof(void *), 0},
         {"free_op", OSSL_PARAM_OCTET_PTR, (void **) &free_op, sizeof(void *), 0},
-        {NULL, 0, NULL, 0, 0}};
+        {NULL, 0, NULL, 0, 0}
+    };
 
     /* Do not use EVP_PKEY_new_from_pkey as that will take keymgmt from pubkey */
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name(libctx, EVP_PKEY_get0_type_name(pubkey), props);
@@ -223,20 +224,21 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
         else
         {
             openvpn_snprintf(alg_str, sizeof(alg_str), "%s,hashalg=%s",
-                            "RSA_PKCS1_PADDING", alg.mdname);
+                             "RSA_PKCS1_PADDING", alg.mdname);
         }
     }
     else if (!strcmp(alg.padmode, "none") && (flags & MF_EXTERNAL_KEY_NOPADDING)
-             &&!strcmp(alg.op, "Sign")) /* NO_PADDING requires digested data */
+             && !strcmp(alg.op, "Sign")) /* NO_PADDING requires digested data */
     {
         strncpynt(alg_str, "RSA_NO_PADDING", sizeof(alg_str));
     }
     else if (!strcmp(alg.padmode, "pss") && (flags & MF_EXTERNAL_KEY_PSSPAD))
     {
         openvpn_snprintf(alg_str, sizeof(alg_str), "%s,hashalg=%s,saltlen=%s",
-                       "RSA_PKCS1_PSS_PADDING", alg.mdname,alg.saltlen);
+                         "RSA_PKCS1_PSS_PADDING", alg.mdname,alg.saltlen);
     }
-    else {
+    else
+    {
         msg(M_NONFATAL, "RSA padding mode not supported by management-client <%s>",
             alg.padmode);
         return 0;
@@ -312,17 +314,17 @@ encode_pkcs1(unsigned char *enc, size_t *enc_len, const char *mdname,
     const unsigned char sha224[] = {0x30, 0x2d, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
                                     0x01, 0x65, 0x03, 0x04, 0x02, 0x04, 0x05, 0x00, 0x04, 0x1c};
     const unsigned char sha512_224[] = {0x30, 0x2d, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
-                                    0x01, 0x65, 0x03, 0x04, 0x02, 0x05, 0x05, 0x00, 0x04, 0x1c};
+                                        0x01, 0x65, 0x03, 0x04, 0x02, 0x05, 0x05, 0x00, 0x04, 0x1c};
     const unsigned char sha512_256[] = {0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48,
-                                    0x01, 0x65, 0x03, 0x04, 0x02, 0x06, 0x05, 0x00, 0x04, 0x20};
+                                        0x01, 0x65, 0x03, 0x04, 0x02, 0x06, 0x05, 0x00, 0x04, 0x20};
 
     typedef struct {
-       const int nid;
-       const unsigned char *header;
-       size_t sz;
+        const int nid;
+        const unsigned char *header;
+        size_t sz;
     } DIG_INFO;
 
-#define MAKE_DI(x) {NID_##x, x, sizeof(x)}
+#define MAKE_DI(x) {NID_ ## x, x, sizeof(x)}
 
     DIG_INFO dinfo[] = {MAKE_DI(sha1), MAKE_DI(sha256), MAKE_DI(sha384),
                         MAKE_DI(sha512), MAKE_DI(sha224), MAKE_DI(sha512_224),

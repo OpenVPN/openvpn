@@ -187,8 +187,7 @@ _tmain(int argc, LPCTSTR argv[])
             {
                 szName = argv[++i];
             }
-            else
-            if (_tcsicmp(argv[i], TEXT("--hwid")) == 0)
+            else if (_tcsicmp(argv[i], TEXT("--hwid")) == 0)
             {
                 szHwId = argv[++i];
             }

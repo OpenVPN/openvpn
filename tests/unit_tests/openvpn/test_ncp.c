@@ -49,7 +49,7 @@ const char *aes_ciphers = "AES-256-GCM:AES-128-GCM";
  * leads to having to include even more unrelated code */
 bool
 key_state_export_keying_material(struct tls_session *session,
-                                 const char* label, size_t label_size,
+                                 const char *label, size_t label_size,
                                  void *ekm, size_t ekm_size)
 {
     ASSERT(0);

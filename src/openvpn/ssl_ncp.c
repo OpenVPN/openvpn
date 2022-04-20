@@ -125,14 +125,14 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
         if (nonecipher)
         {
             msg(M_WARN, "WARNING: cipher 'none' specified for --data-ciphers. "
-                        "This allows negotiation of NO encryption and "
-                        "tunnelled data WILL then be transmitted in clear text "
-                        "over the network! "
-                        "PLEASE DO RECONSIDER THIS SETTING!");
+                "This allows negotiation of NO encryption and "
+                "tunnelled data WILL then be transmitted in clear text "
+                "over the network! "
+                "PLEASE DO RECONSIDER THIS SETTING!");
         }
         if (!nonecipher && !cipher_valid(token))
         {
-            const char* optstr = optional ? "optional ": "";
+            const char *optstr = optional ? "optional " : "";
             msg(M_WARN, "Unsupported %scipher in --data-ciphers: %s", optstr, token);
             error_found = error_found || !optional;
         }
@@ -255,8 +255,8 @@ ncp_get_best_cipher(const char *server_list, const char *peer_info,
     /* non-NCP client without OCC?  "assume nothing" */
     /* For client doing the newer version of NCP (that send IV_CIPHER)
      * we cannot assume that they will accept remote_cipher */
-    if (remote_cipher == NULL ||
-        (peer_info && strstr(peer_info, "IV_CIPHERS=")))
+    if (remote_cipher == NULL
+        || (peer_info && strstr(peer_info, "IV_CIPHERS=")))
     {
         remote_cipher = "";
     }
@@ -316,7 +316,7 @@ check_pull_client_ncp(struct context *c, const int found)
 
     /* If the server did not push a --cipher, we will switch to the
      * remote cipher if it is in our ncp-ciphers list */
-    if(tls_poor_mans_ncp(&c->options, c->c2.tls_multi->remote_ciphername))
+    if (tls_poor_mans_ncp(&c->options, c->c2.tls_multi->remote_ciphername))
     {
         return true;
     }
@@ -350,7 +350,7 @@ check_pull_client_ncp(struct context *c, const int found)
     }
 }
 
-const char*
+const char *
 get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info,
                    struct gc_arena *gc)
 {
@@ -364,8 +364,8 @@ get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info,
         return NULL;
     }
 
-    const char* server_ciphers;
-    const char* client_ciphers;
+    const char *server_ciphers;
+    const char *client_ciphers;
 
     if (session->opt->server)
     {
@@ -416,7 +416,7 @@ p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session)
     if (iv_proto_peer & IV_PROTO_DATA_V2)
     {
         multi->use_peer_id = true;
-        multi->peer_id = 0x76706e; // 'v' 'p' 'n'
+        multi->peer_id = 0x76706e; /* 'v' 'p' 'n' */
     }
 
 #if defined(HAVE_EXPORT_KEYING_MATERIAL)
@@ -439,7 +439,7 @@ p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session)
                  * happen or very likely the TLS encryption key exporter will
                  * also fail */
                 msg(M_NONFATAL, "TLS key export for P2P peer id failed. "
-                                "Continuing anyway, expect problems");
+                    "Continuing anyway, expect problems");
             }
             else
             {
@@ -448,7 +448,7 @@ p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session)
 
         }
     }
-#endif
+#endif /* if defined(HAVE_EXPORT_KEYING_MATERIAL) */
 }
 
 void
@@ -461,7 +461,7 @@ p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session)
 
     /* Query the common cipher here to log it as part of our message.
      * We postpone switching the cipher to do_up */
-    const char* common_cipher = get_p2p_ncp_cipher(session, multi->peer_info, &gc);
+    const char *common_cipher = get_p2p_ncp_cipher(session, multi->peer_info, &gc);
 
     if (!common_cipher)
     {
@@ -484,7 +484,7 @@ p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session)
     }
 
     msg(D_TLS_DEBUG_LOW, "P2P mode NCP negotiation result: "
-                         "TLS_export=%d, DATA_v2=%d, peer-id %d, cipher=%s",
+        "TLS_export=%d, DATA_v2=%d, peer-id %d, cipher=%s",
         (bool)(session->opt->crypto_flags & CO_USE_TLS_KEY_MATERIAL_EXPORT),
         multi->use_peer_id, multi->peer_id, common_cipher);
 

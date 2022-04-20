@@ -69,9 +69,10 @@
  * rely on function detection at configure time.
  */
 #ifndef HAVE_CTR_DRBG_UPDATE_RET
-static int mbedtls_ctr_drbg_update_ret(mbedtls_ctr_drbg_context *ctx,
-                                       const unsigned char *additional,
-                                       size_t add_len)
+static int
+mbedtls_ctr_drbg_update_ret(mbedtls_ctr_drbg_context *ctx,
+                            const unsigned char *additional,
+                            size_t add_len)
 {
     mbedtls_ctr_drbg_update(ctx, additional, add_len);
     return 0;
@@ -203,7 +204,7 @@ mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
     struct tls_key_cache *cache = &ks_ssl->tls_key_cache;
 
     static_assert(sizeof(ks_ssl->ctx->session->master)
-                    == sizeof(cache->master_secret), "master size mismatch");
+                  == sizeof(cache->master_secret), "master size mismatch");
 
     memcpy(cache->client_server_random, client_random, 32);
     memcpy(cache->client_server_random + 32, server_random, 32);
@@ -215,7 +216,7 @@ mbedtls_ssl_export_keys_cb(void *p_expkey, const unsigned char *ms,
 
 bool
 key_state_export_keying_material(struct tls_session *session,
-                                 const char* label, size_t label_size,
+                                 const char *label, size_t label_size,
                                  void *ekm, size_t ekm_size)
 {
     ASSERT(strlen(label) == label_size);
@@ -242,13 +243,13 @@ key_state_export_keying_material(struct tls_session *session,
     else
     {
         secure_memzero(ekm, session->opt->ekm_size);
-        return  false;
+        return false;
     }
 }
-#else
+#else  /* ifdef HAVE_EXPORT_KEYING_MATERIAL */
 bool
 key_state_export_keying_material(struct tls_session *session,
-                                 const char* label, size_t label_size,
+                                 const char *label, size_t label_size,
                                  void *ekm, size_t ekm_size)
 {
     /* Dummy function to avoid ifdefs in the common code */
@@ -1108,8 +1109,8 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
     }
 
     /* Disable TLS renegotiations if the mbedtls library supports that feature.
-     * OpenVPN's renegotiation creates new SSL sessions and does not depend on
-     * this feature and TLS renegotiations have been problematic in the past. */
+    * OpenVPN's renegotiation creates new SSL sessions and does not depend on
+    * this feature and TLS renegotiations have been problematic in the past. */
 #if defined(MBEDTLS_SSL_RENEGOTIATION)
     mbedtls_ssl_conf_renegotiation(ks_ssl->ssl_config, MBEDTLS_SSL_RENEGOTIATION_DISABLED);
 #endif /* MBEDTLS_SSL_RENEGOTIATION */

@@ -959,7 +959,7 @@ pull_filter_type_name(int type)
 #define SHOW_UNSIGNED(var)  SHOW_PARM(var, o->var, "0x%08x")
 #define SHOW_BOOL(var)      SHOW_PARM(var, (o->var ? "ENABLED" : "DISABLED"), "%s");
 
-#endif
+#endif /* ifndef ENABLE_SMALL */
 
 static void
 setenv_connection_entry(struct env_set *es,
@@ -1161,7 +1161,7 @@ parse_hash_fingerprint_multiline(const char *str, int nbytes, int msglevel,
     while ((line = strsep(&lines, "\n")))
     {
         /* ignore leading whitespace */
-        while(isspace(*line))
+        while (isspace(*line))
         {
             line++;
         }
@@ -1192,7 +1192,7 @@ parse_hash_fingerprint_multiline(const char *str, int nbytes, int msglevel,
 #ifndef ENABLE_SMALL
 
 static void
-show_dhcp_option_list(const char *name, const char * const*array, int len)
+show_dhcp_option_list(const char *name, const char *const *array, int len)
 {
     int i;
     for (i = 0; i < len; ++i)
@@ -2138,16 +2138,16 @@ check_ca_required(const struct options *options)
 #ifndef ENABLE_CRYPTO_MBEDTLS
         || options->ca_path
 #endif
-       )
+        )
     {
         return;
     }
 
-    const char* const str = "You must define CA file (--ca)"
+    const char *const str = "You must define CA file (--ca)"
 #ifndef ENABLE_CRYPTO_MBEDTLS
-        " or CA path (--capath)"
+                            " or CA path (--capath)"
 #endif
-        " and/or peer fingerprint verification (--peer-fingerprint)";
+                            " and/or peer fingerprint verification (--peer-fingerprint)";
     msg(M_USAGE, str);
 }
 
@@ -2381,7 +2381,7 @@ options_postprocess_verify_ce(const struct options *options,
     if (options->mode == MODE_SERVER)
     {
 #define USAGE_VALID_SERVER_PROTOS "--mode server currently only supports " \
-      "--proto values of udp, tcp-server, tcp4-server, or tcp6-server"
+    "--proto values of udp, tcp-server, tcp4-server, or tcp6-server"
 #ifdef TARGET_ANDROID
         msg(M_FATAL, "--mode server not supported on Android");
 #endif
@@ -2652,10 +2652,10 @@ options_postprocess_verify_ce(const struct options *options,
     if (!options->tls_server && !options->tls_client)
     {
         msg(M_INFO, "DEPRECATION: No tls-client or tls-server option in "
-                    "configuration detected. OpenVPN 2.7 will remove the "
-                    "functionality to run a VPN without TLS. "
-                    "See the examples section in the manual page for "
-                    "examples of a similar quick setup with peer-fingerprint.");
+            "configuration detected. OpenVPN 2.7 will remove the "
+            "functionality to run a VPN without TLS. "
+            "See the examples section in the manual page for "
+            "examples of a similar quick setup with peer-fingerprint.");
     }
 
     if (options->ssl_flags & (SSLF_CLIENT_CERT_NOT_REQUIRED|SSLF_CLIENT_CERT_OPTIONAL))
@@ -2821,9 +2821,9 @@ options_postprocess_verify_ce(const struct options *options,
                     if (!options->auth_user_pass_file)
                     {
                         msg(M_USAGE, "No client-side authentication method is "
-                                     "specified.  You must use either "
-                                     "--cert/--key, --pkcs12, or "
-                                     "--auth-user-pass");
+                            "specified.  You must use either "
+                            "--cert/--key, --pkcs12, or "
+                            "--auth-user-pass");
                     }
                 }
                 else if (sum == 2)
@@ -3224,10 +3224,10 @@ options_postprocess_cipher(struct options *o)
         o->ciphername = "BF-CBC";
 
         msg(M_INFO, "Note: --cipher is not set. OpenVPN versions before 2.5 "
-                    "defaulted to BF-CBC as fallback when cipher negotiation "
-                    "failed in this case. If you need this fallback please add "
-                    "'--data-ciphers-fallback 'BF-CBC' to your configuration "
-                    "and/or add BF-CBC to --data-ciphers.");
+            "defaulted to BF-CBC as fallback when cipher negotiation "
+            "failed in this case. If you need this fallback please add "
+            "'--data-ciphers-fallback 'BF-CBC' to your configuration "
+            "and/or add BF-CBC to --data-ciphers.");
     }
     else if (!o->enable_ncp_fallback
              && !tls_item_in_cipher_list(o->ciphername, o->ncp_ciphers))
@@ -3240,13 +3240,13 @@ options_postprocess_cipher(struct options *o)
 }
 
 /**
- * The option --compat-mode is used to set up default settings to values 
+ * The option --compat-mode is used to set up default settings to values
  * used on the specified openvpn version and earlier.
  *
  * This function is used in various "default option" paths to test if the
  * user requested compatibility with a version before the one specified
- * as argument. This way some default settings can be automatically 
- * altered to guarantee compatibility with the version specified by the 
+ * as argument. This way some default settings can be automatically
+ * altered to guarantee compatibility with the version specified by the
  * user via --compat-mode.
  *
  * @param version   need compatibility with openvpn versions before the
@@ -3268,7 +3268,7 @@ options_set_backwards_compatible_options(struct options *o)
 {
     /* TLS min version is not set */
     int tls_ver_min = (o->ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT)
-                          & SSLF_TLS_VERSION_MIN_MASK;
+                      & SSLF_TLS_VERSION_MIN_MASK;
     if (tls_ver_min == 0)
     {
         int tls_ver_max = (o->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT)
@@ -5432,7 +5432,8 @@ show_compression_warning(struct compress_options *info)
 }
 #endif
 
-bool key_is_external(const struct options *options)
+bool
+key_is_external(const struct options *options)
 {
     bool ret = false;
 #ifdef ENABLE_MANAGEMENT
@@ -6301,7 +6302,7 @@ add_option(struct options *options,
             msg(msglevel, "Unknown parameter to --fragment: %s", p[2]);
         }
     }
-#endif
+#endif /* ifdef ENABLE_FRAGMENT */
     else if (streq(p[0], "mtu-disc") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_MTU|OPT_P_CONNECTION);
@@ -6351,9 +6352,9 @@ add_option(struct options *options,
         }
     }
 #ifdef TARGET_LINUX
-    else if (streq (p[0], "bind-dev") && p[1])
+    else if (streq(p[0], "bind-dev") && p[1])
     {
-        VERIFY_PERMISSION (OPT_P_SOCKFLAGS);
+        VERIFY_PERMISSION(OPT_P_SOCKFLAGS);
         options->bind_dev = p[1];
     }
 #endif
@@ -6425,7 +6426,7 @@ add_option(struct options *options,
         {
             int64_t val = atoll(p[2]);
             options->inactivity_minimum_bytes = (val < 0) ? 0 : val;
-            if ( options->inactivity_minimum_bytes > INT_MAX )
+            if (options->inactivity_minimum_bytes > INT_MAX)
             {
                 msg(M_WARN, "WARNING: '--inactive' with a 'bytes' value"
                     " >2 Gbyte was silently ignored in older versions.  If "
@@ -7696,7 +7697,8 @@ add_option(struct options *options,
         else if (streq(p[1], "server") && p[2] && p[3] && p[4])
         {
             long priority;
-            if (!dns_server_priority_parse(&priority, p[2], pull_mode)) {
+            if (!dns_server_priority_parse(&priority, p[2], pull_mode))
+            {
                 msg(msglevel, "--dns server: invalid priority value '%s'", p[2]);
                 goto err;
             }
@@ -7707,7 +7709,7 @@ add_option(struct options *options,
             {
                 for (int i = 4; p[i]; i++)
                 {
-                    if(!dns_server_addr_parse(server, p[i]))
+                    if (!dns_server_addr_parse(server, p[i]))
                     {
                         msg(msglevel, "--dns server %ld: malformed or duplicate address '%s'", priority, p[i]);
                         goto err;
@@ -7818,7 +7820,7 @@ add_option(struct options *options,
             o->netbios_node_type = t;
         }
         else if ((streq(p[1], "DNS") || streq(p[1], "DNS6")) && p[2] && !p[3]
-                && (!strstr(p[2], ":") || ipv6_addr_safe(p[2])))
+                 && (!strstr(p[2], ":") || ipv6_addr_safe(p[2])))
         {
             if (strstr(p[2], ":"))
             {
@@ -8416,7 +8418,7 @@ add_option(struct options *options,
 #endif /* ENABLE_CRYPTO_MBEDTLS */
     else if (streq(p[0], "providers") && p[1])
     {
-        for (size_t j = 1; j < MAX_PARMS && p[j] != NULL;j++)
+        for (size_t j = 1; j < MAX_PARMS && p[j] != NULL; j++)
         {
             options->providers.names[j] = p[j];
         }
@@ -8496,8 +8498,8 @@ add_option(struct options *options,
         if (streq(p[0], "verify-hash"))
         {
             msg(M_WARN, "DEPRECATED OPTION: The option --verify-hash is deprecated. "
-            "You should switch to the either use the level 1 certificate as "
-            "--ca option, use --tls-verify or use --peer-fingerprint");
+                "You should switch to the either use the level 1 certificate as "
+                "--ca option, use --tls-verify or use --peer-fingerprint");
             /* verify level 1 cert, i.e. the CA that signed the leaf cert */
             verify_hash_depth = 1;
         }
@@ -8509,7 +8511,7 @@ add_option(struct options *options,
         if (options->verify_hash && options->verify_hash_depth != verify_hash_depth)
         {
             msg(msglevel, "ERROR: Setting %s not allowed. --verify-hash and"
-                          " --peer-fingerprint are mutually exclusive", p[0]);
+                " --peer-fingerprint are mutually exclusive", p[0]);
             goto err;
         }
 
@@ -8523,7 +8525,7 @@ add_option(struct options *options,
             else if (p[2] && !streq(p[2], "SHA256"))
             {
                 msg(msglevel, "invalid or unsupported hashing algorithm: %s "
-                              "(only SHA1 and SHA256 are supported)", p[2]);
+                    "(only SHA1 and SHA256 are supported)", p[2]);
                 goto err;
             }
         }

@@ -280,10 +280,10 @@ _tmain(int argc, TCHAR *argv[])
 
                 wprintf(TEXT("\nService run-time parameters:\n"));
                 wprintf(TEXT("-instance interactive <id>\n")
-                         TEXT("   Runs the service as an alternate instance.\n")
-                         TEXT("   The service settings will be loaded from\n")
-                         TEXT("   HKLM\\Software\\" PACKAGE_NAME "<id> registry key, and the service will accept\n")
-                         TEXT("   requests on \\\\.\\pipe\\" PACKAGE "<id>\\service named pipe.\n"));
+                        TEXT("   Runs the service as an alternate instance.\n")
+                        TEXT("   The service settings will be loaded from\n")
+                        TEXT("   HKLM\\Software\\" PACKAGE_NAME "<id> registry key, and the service will accept\n")
+                        TEXT("   requests on \\\\.\\pipe\\" PACKAGE "<id>\\service named pipe.\n"));
 
                 return 0;
             }

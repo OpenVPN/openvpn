@@ -70,15 +70,15 @@ find_function(const WCHAR *libname, const char *funcname, HMODULE *m)
     /* Make sure the dll is loaded from the system32 folder */
     if (!GetSystemDirectoryW(libpath, _countof(libpath)))
     {
-       return NULL;
+        return NULL;
     }
 
     /* +1 for the path seperator '\' */
     const size_t path_length = wcslen(libpath) + 1 + wcslen(libname);
     if (path_length >= _countof(libpath))
     {
-       SetLastError(ERROR_INSUFFICIENT_BUFFER);
-       return NULL;
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return NULL;
     }
     wcscat_s(libpath, _countof(libpath), L"\\");
     wcscat_s(libpath, _countof(libpath), libname);
@@ -86,14 +86,14 @@ find_function(const WCHAR *libname, const char *funcname, HMODULE *m)
     *m = LoadLibraryW(libpath);
     if (*m == NULL)
     {
-       return NULL;
+        return NULL;
     }
     fptr = GetProcAddress(*m, funcname);
     if (!fptr)
     {
-       FreeLibrary(*m);
-       *m = NULL;
-       return NULL;
+        FreeLibrary(*m);
+        *m = NULL;
+        return NULL;
     }
     return fptr;
 }
@@ -819,10 +819,10 @@ tap_create_adapter(
     if (!DiInstallDevice(hwndParent, hDevInfoList, &devinfo_data, NULL, 0, pbRebootRequired))
 #else
     /* mingw does not resolve DiInstallDevice, so load it at run time. */
-    typedef BOOL (WINAPI *DiInstallDeviceFn) (HWND, HDEVINFO, SP_DEVINFO_DATA *,
-                                                  SP_DRVINFO_DATA *, DWORD, BOOL *);
+    typedef BOOL (WINAPI *DiInstallDeviceFn)(HWND, HDEVINFO, SP_DEVINFO_DATA *,
+                                             SP_DRVINFO_DATA *, DWORD, BOOL *);
     DiInstallDeviceFn installfn
-           = find_function (L"newdev.dll", "DiInstallDevice", &libnewdev);
+        = find_function(L"newdev.dll", "DiInstallDevice", &libnewdev);
 
     if (!installfn)
     {
@@ -1025,13 +1025,13 @@ tap_enable_adapter(
 
 /* stripped version of ExecCommand in interactive.c */
 static DWORD
-ExecCommand(const WCHAR* cmdline)
+ExecCommand(const WCHAR *cmdline)
 {
     DWORD exit_code;
     STARTUPINFOW si;
     PROCESS_INFORMATION pi;
     DWORD proc_flags = CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT;
-    WCHAR* cmdline_dup = NULL;
+    WCHAR *cmdline_dup = NULL;
 
     ZeroMemory(&si, sizeof(si));
     ZeroMemory(&pi, sizeof(pi));
@@ -1041,7 +1041,7 @@ ExecCommand(const WCHAR* cmdline)
     /* CreateProcess needs a modifiable cmdline: make a copy */
     cmdline_dup = _wcsdup(cmdline);
     if (cmdline_dup && CreateProcessW(NULL, cmdline_dup, NULL, NULL, FALSE,
-        proc_flags, NULL, NULL, &si, &pi))
+                                      proc_flags, NULL, NULL, &si, &pi))
     {
         WaitForSingleObject(pi.hProcess, INFINITE);
         if (!GetExitCodeProcess(pi.hProcess, &exit_code))
@@ -1117,10 +1117,10 @@ tap_set_adapter_name(
     }
 
     /* rename adapter via netsh call */
-    const TCHAR* szFmt = TEXT("netsh interface set interface name=\"%")
+    const TCHAR *szFmt = TEXT("netsh interface set interface name=\"%")
                          TEXT(PRIsLPTSTR) TEXT("\" newname=\"%") TEXT(PRIsLPTSTR) TEXT("\"");
     size_t ncmdline = _tcslen(szFmt) + _tcslen(szOldName) + _tcslen(szName) + 1;
-    WCHAR* szCmdLine = malloc(ncmdline * sizeof(TCHAR));
+    WCHAR *szCmdLine = malloc(ncmdline * sizeof(TCHAR));
     _stprintf_s(szCmdLine, ncmdline, szFmt, szOldName, szName);
 
     free(szOldName);

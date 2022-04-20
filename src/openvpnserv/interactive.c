@@ -382,8 +382,8 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options, WCHAR *
     if (!argv)
     {
         openvpn_swprintf(errmsg, capacity,
-	                 L"Cannot validate options: CommandLineToArgvW failed with error = 0x%08x",
-	                 GetLastError());
+                         L"Cannot validate options: CommandLineToArgvW failed with error = 0x%08x",
+                         GetLastError());
         goto out;
     }
 
@@ -564,19 +564,19 @@ InterfaceLuid(const char *iface_name, PNET_LUID luid)
 static DWORD
 ConvertInterfaceNameToIndex(const wchar_t *ifname, NET_IFINDEX *index)
 {
-   NET_LUID luid;
-   DWORD err;
+    NET_LUID luid;
+    DWORD err;
 
-   err = ConvertInterfaceAliasToLuid(ifname, &luid);
-   if (err == ERROR_SUCCESS)
-   {
-       err = ConvertInterfaceLuidToIndex(&luid, index);
-   }
-   if (err != ERROR_SUCCESS)
-   {
-       MsgToEventLog(M_ERR, L"Failed to find interface index for <%ls>", ifname);
-   }
-   return err;
+    err = ConvertInterfaceAliasToLuid(ifname, &luid);
+    if (err == ERROR_SUCCESS)
+    {
+        err = ConvertInterfaceLuidToIndex(&luid, index);
+    }
+    if (err != ERROR_SUCCESS)
+    {
+        MsgToEventLog(M_ERR, L"Failed to find interface index for <%ls>", ifname);
+    }
+    return err;
 }
 
 static BOOL
@@ -1083,15 +1083,15 @@ wmic_nicconfig_cmd(const wchar_t *action, const NET_IFINDEX if_index,
     /* comma separated list must be enclosed in parenthesis */
     if (data && wcschr(data, L','))
     {
-       fmt = L"wmic nicconfig where (InterfaceIndex=%ld) call %ls (%ls)";
+        fmt = L"wmic nicconfig where (InterfaceIndex=%ld) call %ls (%ls)";
     }
     else
     {
-       fmt = L"wmic nicconfig where (InterfaceIndex=%ld) call %ls \"%ls\"";
+        fmt = L"wmic nicconfig where (InterfaceIndex=%ld) call %ls \"%ls\"";
     }
 
     size_t ncmdline = wcslen(fmt) + 20 + wcslen(action) /* max 20 for ifindex */
-                    + (data ? wcslen(data) + 1 : 1);
+                      + (data ? wcslen(data) + 1 : 1);
     cmdline = malloc(ncmdline*sizeof(wchar_t));
     if (!cmdline)
     {
@@ -1099,7 +1099,7 @@ wmic_nicconfig_cmd(const wchar_t *action, const NET_IFINDEX if_index,
     }
 
     openvpn_swprintf(cmdline, ncmdline, fmt, if_index, action,
-                      data? data : L"");
+                     data ? data : L"");
     err = ExecCommand(argv0, cmdline, timeout);
 
     free(cmdline);
@@ -1139,41 +1139,41 @@ CmpWString(LPVOID item, LPVOID str)
 static DWORD
 SetDNSDomain(const wchar_t *if_name, const char *domain, undo_lists_t *lists)
 {
-   NET_IFINDEX if_index;
+    NET_IFINDEX if_index;
 
-   DWORD err  = ConvertInterfaceNameToIndex(if_name, &if_index);
-   if (err != ERROR_SUCCESS)
-   {
-       return err;
-   }
+    DWORD err  = ConvertInterfaceNameToIndex(if_name, &if_index);
+    if (err != ERROR_SUCCESS)
+    {
+        return err;
+    }
 
-   wchar_t *wdomain = utf8to16(domain); /* utf8 to wide-char */
-   if (!wdomain)
-   {
-       return ERROR_OUTOFMEMORY;
-   }
+    wchar_t *wdomain = utf8to16(domain); /* utf8 to wide-char */
+    if (!wdomain)
+    {
+        return ERROR_OUTOFMEMORY;
+    }
 
-   /* free undo list if previously set */
-   if (lists)
-   {
-       free(RemoveListItem(&(*lists)[undo_domain], CmpWString, (void *)if_name));
-   }
+    /* free undo list if previously set */
+    if (lists)
+    {
+        free(RemoveListItem(&(*lists)[undo_domain], CmpWString, (void *)if_name));
+    }
 
-   err = wmic_nicconfig_cmd(L"SetDNSDomain", if_index, wdomain);
+    err = wmic_nicconfig_cmd(L"SetDNSDomain", if_index, wdomain);
 
-   /* Add to undo list if domain is non-empty */
-   if (err == 0 && wdomain[0] && lists)
-   {
+    /* Add to undo list if domain is non-empty */
+    if (err == 0 && wdomain[0] && lists)
+    {
         wchar_t *tmp_name = _wcsdup(if_name);
         if (!tmp_name || AddListItem(&(*lists)[undo_domain], tmp_name))
         {
             free(tmp_name);
             err = ERROR_OUTOFMEMORY;
         }
-   }
+    }
 
-   free(wdomain);
-   return err;
+    free(wdomain);
+    return err;
 }
 
 static DWORD
@@ -1314,7 +1314,7 @@ HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)
 }
 
 static DWORD
-OvpnDuplicateHandle(HANDLE ovpn_proc, HANDLE orig_handle, HANDLE* new_handle)
+OvpnDuplicateHandle(HANDLE ovpn_proc, HANDLE orig_handle, HANDLE *new_handle)
 {
     DWORD err = ERROR_SUCCESS;
 
@@ -1576,6 +1576,7 @@ Undo(undo_lists_t *lists)
                                              interface_data->metric_v6);
                     }
                     break;
+
                 case _undo_type_max:
                     /* unreachable */
                     break;
@@ -1773,7 +1774,7 @@ RunOpenvpn(LPVOID p)
     }
 
     openvpn_swprintf(ovpn_pipe_name, _countof(ovpn_pipe_name),
-                      TEXT("\\\\.\\pipe\\" PACKAGE "%ls\\service_%lu"), service_instance, GetCurrentThreadId());
+                     TEXT("\\\\.\\pipe\\" PACKAGE "%ls\\service_%lu"), service_instance, GetCurrentThreadId());
     ovpn_pipe = CreateNamedPipe(ovpn_pipe_name,
                                 PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE | FILE_FLAG_OVERLAPPED,
                                 PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 128, 128, 0, NULL);
@@ -1806,7 +1807,7 @@ RunOpenvpn(LPVOID p)
         goto out;
     }
     openvpn_swprintf(cmdline, cmdline_size, L"openvpn %ls --msg-channel %lu",
-                      sud.options, svc_pipe);
+                     sud.options, svc_pipe);
 
     if (!CreateEnvironmentBlock(&user_env, imp_token, FALSE))
     {

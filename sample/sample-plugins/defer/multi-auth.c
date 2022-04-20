@@ -72,7 +72,8 @@ struct plugin_context {
 
 /* local wrapping of the log function, to add more details */
 static plugin_vlog_t _plugin_vlog_func = NULL;
-static void plog(const struct plugin_context *ctx, int flags, char *fmt, ...)
+static void
+plog(const struct plugin_context *ctx, int flags, char *fmt, ...)
 {
     char logid[129];
 
@@ -243,11 +244,11 @@ do_auth_user_pass(struct plugin_context *context,
                   const char *username, const char *password)
 {
     plog(context, PLOG_NOTE,
-        "expect_user=%s, received_user=%s, expect_passw=%s, received_passw=%s",
-        np(context->test_valid_user),
-        np(username),
-        np(context->test_valid_pass),
-        np(password));
+         "expect_user=%s, received_user=%s, expect_passw=%s, received_passw=%s",
+         np(context->test_valid_user),
+         np(username),
+         np(context->test_valid_pass),
+         np(password));
 
     if (context->test_valid_user && context->test_valid_pass)
     {
@@ -255,13 +256,13 @@ do_auth_user_pass(struct plugin_context *context,
             || (strcmp(context->test_valid_pass, password) != 0))
         {
             plog(context, PLOG_ERR,
-                "User/Password auth result: FAIL");
+                 "User/Password auth result: FAIL");
             return false;
         }
         else
         {
             plog(context, PLOG_NOTE,
-                "User/Password auth result: PASS");
+                 "User/Password auth result: PASS");
             return true;
         }
     }
@@ -282,7 +283,7 @@ auth_user_pass_verify(struct plugin_context *context,
     {
         plog(context, PLOG_NOTE, "Direct authentication");
         return do_auth_user_pass(context, username, password) ?
-                OPENVPN_PLUGIN_FUNC_SUCCESS : OPENVPN_PLUGIN_FUNC_ERROR;
+               OPENVPN_PLUGIN_FUNC_SUCCESS : OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
     /* get auth_control_file filename from envp string array*/
@@ -334,7 +335,7 @@ auth_user_pass_verify(struct plugin_context *context,
 
     /* do mighty complicated work that will really take time here... */
     plog(context, PLOG_NOTE, "in async/deferred handler, usleep(%d)",
-        context->test_deferred_auth*1000);
+         context->test_deferred_auth*1000);
     usleep(context->test_deferred_auth*1000);
 
     /* now signal success state to openvpn */
@@ -342,7 +343,7 @@ auth_user_pass_verify(struct plugin_context *context,
     if (fd < 0)
     {
         plog(context, PLOG_ERR|PLOG_ERRNO,
-            "open('%s') failed", auth_control_file);
+             "open('%s') failed", auth_control_file);
         exit(1);
     }
 

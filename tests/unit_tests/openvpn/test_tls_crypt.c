@@ -581,7 +581,7 @@ test_tls_crypt_v2_write_client_key_file_metadata(void **state)
     /* Test writing the client key */
     expect_string(__wrap_buffer_write_file, filename, filename);
     expect_memory(__wrap_buffer_write_file, pem, test_client_key_metadata,
-                strlen(test_client_key_metadata));
+                  strlen(test_client_key_metadata));
     will_return(__wrap_buffer_write_file, true);
 
     /* Key generation re-reads the created file as a sanity check */

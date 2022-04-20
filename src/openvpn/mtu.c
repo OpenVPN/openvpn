@@ -179,7 +179,7 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
      * by pretending to have no encryption enabled and by manually adding
      * the required packet overhead to the MTU computation.
      */
-    const char* ciphername = o->ciphername;
+    const char *ciphername = o->ciphername;
 
     unsigned int overhead = 0;
 

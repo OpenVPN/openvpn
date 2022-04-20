@@ -48,15 +48,15 @@ static XKEY_EXTERNAL_SIGN_fn xkey_pkcs11h_sign;
 #if PKCS11H_VERSION > ((1<<16) | (27<<8)) /* version > 1.27 */
 
 /* Table linking OpenSSL digest NID with CKM and CKG constants in PKCS#11 */
-#define MD_TYPE(n) {NID_sha##n, CKM_SHA##n, CKG_MGF1_SHA##n}
+#define MD_TYPE(n) {NID_sha ## n, CKM_SHA ## n, CKG_MGF1_SHA ## n}
 static const struct
 {
-   int nid;
-   unsigned long ckm_id;
-   unsigned long mgf_id;
+    int nid;
+    unsigned long ckm_id;
+    unsigned long mgf_id;
 } mdtypes[] = {MD_TYPE(224), MD_TYPE(256), MD_TYPE(384), MD_TYPE(512),
-              {NID_sha1, CKM_SHA_1, CKG_MGF1_SHA1}, /* SHA_1 naming is an oddity */
-              {NID_undef, 0, 0}};
+               {NID_sha1, CKM_SHA_1, CKG_MGF1_SHA1}, /* SHA_1 naming is an oddity */
+               {NID_undef, 0, 0}};
 
 /* From sigalg, derive parameters for pss signature and fill in  pss_params.
  * Its of type CK_RSA_PKCS_PSS_PARAMS struct with three fields to be filled in:
@@ -93,7 +93,7 @@ set_pss_params(CK_RSA_PKCS_PSS_PARAMS *pss_params, XKEY_SIGALG sigalg,
     if (!md)
     {
         msg(M_WARN, "WARN: set_pss_params: EVP_get_digestbyname returned NULL "
-                    "for mdname = <%s>", sigalg.mdname);
+            "for mdname = <%s>", sigalg.mdname);
         goto cleanup;
     }
     int mdsize = EVP_MD_get_size(md);
@@ -111,7 +111,7 @@ set_pss_params(CK_RSA_PKCS_PSS_PARAMS *pss_params, XKEY_SIGALG sigalg,
     if (saltlen < 0 || pss_params->hashAlg == 0)
     {
         msg(M_WARN, "WARN: invalid RSA_PKCS1_PSS parameters: saltlen = <%s> "
-                    "mdname = <%s>.", sigalg.saltlen, sigalg.mdname);
+            "mdname = <%s>.", sigalg.saltlen, sigalg.mdname);
         goto cleanup;
     }
     pss_params->sLen = (unsigned long) saltlen; /* saltlen >= 0 at this point */
@@ -129,7 +129,7 @@ cleanup:
     return ret;
 }
 
-#else
+#else  /* if PKCS11H_VERSION > ((1<<16) | (27<<8)) */
 
 /* Make set_pss_params a no-op that always succeeds */
 #define set_pss_params(...) (1)
@@ -141,13 +141,13 @@ cleanup:
  */
 static CK_RV
 pkcs11h_certificate_signAny_ex(const pkcs11h_certificate_t cert,
-        const CK_MECHANISM *mech, const unsigned char *tbs,
-        size_t tbslen, unsigned char *sig, size_t *siglen)
+                               const CK_MECHANISM *mech, const unsigned char *tbs,
+                               size_t tbslen, unsigned char *sig, size_t *siglen)
 {
     if (mech->mechanism == CKM_RSA_PKCS_PSS)
     {
         msg(M_NONFATAL, "PKCS#11: Error: PSS padding is not supported by "
-                        "this version of pkcs11-helper library.");
+            "this version of pkcs11-helper library.");
         return CKR_MECHANISM_INVALID;
     }
     return pkcs11h_certificate_signAny(cert, mech->mechanism, tbs, tbslen, sig, siglen);
@@ -161,7 +161,7 @@ pkcs11h_certificate_signAny_ex(const pkcs11h_certificate_t cert,
  */
 static int
 xkey_pkcs11h_sign(void *handle, unsigned char *sig,
-            size_t *siglen, const unsigned char *tbs, size_t tbslen, XKEY_SIGALG sigalg)
+                  size_t *siglen, const unsigned char *tbs, size_t tbslen, XKEY_SIGALG sigalg)
 {
     pkcs11h_certificate_t cert = handle;
     CK_MECHANISM mech = {CKM_RSA_PKCS, NULL, 0}; /* default value */
@@ -231,11 +231,11 @@ xkey_pkcs11h_sign(void *handle, unsigned char *sig,
     }
     else
     {
-         ASSERT(0); /* coding error -- we couldnt have created any such key */
+        ASSERT(0);  /* coding error -- we couldnt have created any such key */
     }
 
     return CKR_OK == pkcs11h_certificate_signAny_ex(cert, &mech,
-                                                 tbs, tbslen, sig, siglen);
+                                                    tbs, tbslen, sig, siglen);
 }
 
 /* wrapper for handle free */
@@ -258,7 +258,7 @@ xkey_handle_free(void *handle)
  */
 static int
 xkey_load_from_pkcs11h(pkcs11h_certificate_t certificate,
-                        struct tls_root_ctx *const ctx)
+                       struct tls_root_ctx *const ctx)
 {
     int ret = 0;
 

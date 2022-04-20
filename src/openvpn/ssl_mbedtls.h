@@ -91,7 +91,7 @@ struct tls_key_cache {
     mbedtls_tls_prf_types tls_prf_type;
     unsigned char master_secret[48];
 };
-#else
+#else  /* ifdef HAVE_EXPORT_KEYING_MATERIAL */
 struct tls_key_cache { };
 #endif
 

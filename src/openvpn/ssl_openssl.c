@@ -167,11 +167,11 @@ tls_ctx_initialised(struct tls_root_ctx *ctx)
 
 bool
 key_state_export_keying_material(struct tls_session *session,
-                                 const char* label, size_t label_size,
+                                 const char *label, size_t label_size,
                                  void *ekm, size_t ekm_size)
 
 {
-    SSL* ssl = session->key[KS_PRIMARY].ks_ssl.ssl;
+    SSL *ssl = session->key[KS_PRIMARY].ks_ssl.ssl;
 
     if (SSL_export_keying_material(ssl, ekm, ekm_size, label,
                                    label_size, NULL, 0, 0) == 1)
@@ -619,13 +619,13 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
                    groups);
     }
     gc_free(&gc);
-#else
+#else  /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
     if (!SSL_CTX_set1_groups_list(ctx->ctx, groups))
     {
         crypto_msg(M_FATAL, "Failed to set allowed TLS group list: %s",
                    groups);
     }
-#endif
+#endif /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
 }
 
 void
@@ -704,7 +704,7 @@ tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
 
     msg(D_TLS_DEBUG_LOW, "Diffie-Hellman initialized with %d bit key",
         8 * EVP_PKEY_get_size(dh));
-#else
+#else  /* if OPENSSL_VERSION_NUMBER >= 0x30000000L */
     DH *dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
     BIO_free(bio);
 
@@ -722,7 +722,7 @@ tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
         8 * DH_size(dh));
 
     DH_free(dh);
-#endif
+#endif /* if OPENSSL_VERSION_NUMBER >= 0x30000000L */
 }
 
 void
@@ -732,8 +732,8 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name)
     if (curve_name != NULL)
     {
         msg(M_WARN, "WARNING: OpenSSL 3.0+ builds do not support specifying an "
-                    "ECDH curve with --ecdh-curve, using default curves. Use "
-                    "--tls-groups to specify groups.");
+            "ECDH curve with --ecdh-curve, using default curves. Use "
+            "--tls-groups to specify groups.");
     }
 #elif !defined(OPENSSL_NO_EC)
     int nid = NID_undef;
@@ -849,7 +849,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
         if (!PKCS12_parse(p12, password, &pkey, &cert, &ca))
         {
             crypto_msg(M_WARN, "Decoding PKCS12 failed. Probably wrong password "
-                               "or unsupported/legacy encryption");
+                       "or unsupported/legacy encryption");
 #ifdef ENABLE_MANAGEMENT
             if (management && (ERR_GET_REASON(ERR_peek_error()) == PKCS12_R_MAC_VERIFY_FAILURE))
             {
@@ -1506,7 +1506,7 @@ tls_ctx_use_management_external_key(struct tls_root_ctx *ctx)
         goto cleanup;
     }
     EVP_PKEY_free(privkey);
-#else
+#else  /* ifdef HAVE_XKEY_PROVIDER */
     if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA)
     {
         if (!tls_ctx_use_external_rsa_key(ctx, pkey))
@@ -2088,9 +2088,9 @@ print_cert_details(X509 *cert, char *buf, size_t buflen)
     if (typeid == EVP_PKEY_EC)
     {
         size_t len;
-        if(EVP_PKEY_get_group_name(pkey, groupname, sizeof(groupname), &len))
+        if (EVP_PKEY_get_group_name(pkey, groupname, sizeof(groupname), &len))
         {
-           curve = groupname;
+            curve = groupname;
         }
         else
         {
@@ -2365,7 +2365,7 @@ load_xkey_provider(void)
         if (!OSSL_PROVIDER_load(tls_libctx, "ovpn.xkey"))
         {
             msg(M_NONFATAL, "ERROR: failed loading external key provider: "
-                            "Signing with external keys will not work.");
+                "Signing with external keys will not work.");
         }
     }
 

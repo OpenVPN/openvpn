@@ -144,6 +144,7 @@ void open_plugins(struct context *c, const bool import_options, int init_point);
 void tun_abort(void);
 
 void write_pid_file(const char *filename, const char *chroot_dir);
+
 void remove_pid_file(void);
 
 #endif /* ifndef INIT_H */

@@ -279,8 +279,8 @@ static inline BOOL
 SocketHandleGetOverlappedResult(sockethandle_t sh, struct overlapped_io *io)
 {
     return sh.is_handle ?
-        GetOverlappedResult(sh.h, &io->overlapped, &io->size, FALSE) :
-        WSAGetOverlappedResult(sh.s, &io->overlapped, &io->size, FALSE, &io->flags);
+           GetOverlappedResult(sh.h, &io->overlapped, &io->size, FALSE) :
+           WSAGetOverlappedResult(sh.s, &io->overlapped, &io->size, FALSE, &io->flags);
 }
 
 static inline int
@@ -305,7 +305,7 @@ SocketHandleSetInvalError(sockethandle_t sh)
 
 #define openvpn_close_socket(s) close(s)
 
-#endif
+#endif /* ifdef _WIN32 */
 
 struct link_socket *link_socket_new(void);
 
@@ -585,7 +585,7 @@ proto_is_dgram(int proto)
 }
 
 /**
-  * @brief returns if the proto is a TCP variant (tcp-server, tcp-client or tcp)
+ * @brief returns if the proto is a TCP variant (tcp-server, tcp-client or tcp)
  */
 static inline bool
 proto_is_tcp(int proto)

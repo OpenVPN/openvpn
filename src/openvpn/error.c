@@ -493,7 +493,8 @@ close_syslog(void)
 #ifdef _WIN32
 static int orig_stderr;
 
-int get_orig_stderr()
+int
+get_orig_stderr()
 {
     return orig_stderr ? orig_stderr : _fileno(stderr);
 }
