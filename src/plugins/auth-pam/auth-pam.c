@@ -47,6 +47,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <syslog.h>
+#include <limits.h>
 #include "utils.h"
 
 #include <openvpn-plugin.h>
