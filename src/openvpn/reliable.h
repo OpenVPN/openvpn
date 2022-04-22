@@ -41,8 +41,6 @@
  *  @{ */
 
 
-#define EXPONENTIAL_BACKOFF
-
 #define RELIABLE_ACK_SIZE 8     /**< The maximum number of packet IDs
                                  *   waiting to be acknowledged which can
                                  *   be stored in one \c reliable_ack

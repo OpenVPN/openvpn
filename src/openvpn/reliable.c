@@ -594,14 +594,9 @@ reliable_send(struct reliable *rel, int *opcode)
     }
     if (best)
     {
-#ifdef EXPONENTIAL_BACKOFF
         /* exponential backoff */
         best->next_try = local_now + best->timeout;
         best->timeout *= 2;
-#else
-        /* constant timeout, no backoff */
-        best->next_try = local_now + best->timeout;
-#endif
         best->n_acks = 0;
         *opcode = best->opcode;
         dmsg(D_REL_DEBUG, "ACK reliable_send ID " packet_id_format " (size=%d to=%d)",
