@@ -730,7 +730,7 @@ reliable_mark_active_outgoing(struct reliable *rel, struct buffer *buf, int opco
 
 /* delete a buffer previously activated by reliable_mark_active() */
 void
-reliable_mark_deleted(struct reliable *rel, struct buffer *buf, bool inc_pid)
+reliable_mark_deleted(struct reliable *rel, struct buffer *buf)
 {
     int i;
     for (i = 0; i < rel->size; ++i)
@@ -739,10 +739,7 @@ reliable_mark_deleted(struct reliable *rel, struct buffer *buf, bool inc_pid)
         if (buf == &e->buf)
         {
             e->active = false;
-            if (inc_pid)
-            {
-                rel->packet_id = e->packet_id + 1;
-            }
+            rel->packet_id = e->packet_id + 1;
             return;
         }
     }

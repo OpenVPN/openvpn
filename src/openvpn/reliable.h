@@ -345,7 +345,7 @@ struct buffer *reliable_get_buf_sequenced(struct reliable *rel);
  * @param inc_pid If true, the reliable structure's packet ID counter
  *     will be incremented.
  */
-void reliable_mark_deleted(struct reliable *rel, struct buffer *buf, bool inc_pid);
+void reliable_mark_deleted(struct reliable *rel, struct buffer *buf);
 
 /** @} name Functions for extracting incoming packets */
 

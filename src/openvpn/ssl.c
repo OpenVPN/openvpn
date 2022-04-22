@@ -2874,7 +2874,7 @@ tls_process(struct tls_multi *multi,
             }
             if (status == 1)
             {
-                reliable_mark_deleted(ks->rec_reliable, buf, true);
+                reliable_mark_deleted(ks->rec_reliable, buf);
                 state_change = true;
                 dmsg(D_TLS_DEBUG, "Incoming Ciphertext -> TLS");
             }
