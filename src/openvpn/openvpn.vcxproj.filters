@@ -246,6 +246,9 @@
     <ClCompile Include="ssl_ncp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ssl_pkt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="ssl_util.c">
       <Filter>Source Files</Filter>
     </ClCompile>

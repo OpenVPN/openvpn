@@ -34,6 +34,7 @@
 #include "forward.h"
 
 #include "memdbg.h"
+#include "ssl_pkt.h"
 
 #ifdef HAVE_SYS_INOTIFY_H
 #include <sys/inotify.h>

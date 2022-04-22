@@ -30,6 +30,7 @@
 #define SSL_OPENSSL_H_
 
 #include <openssl/ssl.h>
+#include <openssl/err.h>
 
 /**
  * Structure that wraps the TLS context. Contents differ depending on the
@@ -53,5 +54,11 @@ struct key_state_ssl {
  * pointer back to parent.
  */
 extern int mydata_index; /* GLOBAL */
+
+static inline void
+tls_clear_error(void)
+{
+    ERR_clear_error();
+}
 
 #endif /* SSL_OPENSSL_H_ */

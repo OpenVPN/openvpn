@@ -144,4 +144,8 @@ int tls_ctx_use_external_signing_func(struct tls_root_ctx *ctx,
                                       external_sign_func sign_func,
                                       void *sign_ctx);
 
+static inline void
+tls_clear_error(void)
+{
+}
 #endif /* SSL_MBEDTLS_H_ */
