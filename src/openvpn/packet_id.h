@@ -35,11 +35,6 @@
 #include "error.h"
 #include "otime.h"
 
-/*
- * Enables OpenVPN to be compiled in special packet_id test mode.
- */
-/*#define PID_TEST*/
-
 #if 1
 /*
  * These are the types that members of
@@ -295,11 +290,6 @@ packet_id_persist_save_obj(struct packet_id_persist *p, const struct packet_id *
 }
 
 const char *packet_id_net_print(const struct packet_id_net *pin, bool print_timestamp, struct gc_arena *gc);
-
-#ifdef PID_TEST
-void packet_id_interactive_test(void);
-
-#endif
 
 static inline int
 packet_id_size(bool long_form)

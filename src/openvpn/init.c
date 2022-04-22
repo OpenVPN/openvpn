@@ -791,11 +791,6 @@ init_static(void)
 
     init_ssl_lib();
 
-#ifdef PID_TEST
-    packet_id_interactive_test();       /* test the sequence number code */
-    return false;
-#endif
-
 #ifdef SCHEDULE_TEST
     schedule_test();
     return false;
