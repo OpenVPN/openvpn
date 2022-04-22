@@ -3435,7 +3435,6 @@ tls_pre_decrypt(struct tls_multi *multi,
         /* buffers all packet IDs to delete from send_reliable */
         struct reliable_ack send_ack;
 
-        send_ack.len = 0;
         if (!reliable_ack_read(&send_ack, buf, &session->session_id))
         {
             msg(D_TLS_ERRORS,

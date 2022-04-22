@@ -124,6 +124,28 @@ struct reliable
 bool reliable_ack_read(struct reliable_ack *ack,
                        struct buffer *buf, const struct session_id *sid);
 
+
+/**
+ * Parse an acknowledgment record from a received packet.
+ *
+ * This function parses the packet ID acknowledgment record from the packet
+ * contained in \a buf.  If the record contains acknowledgments, these are
+ * stored in \a ack.  This function also extracts packet's session ID
+ * and returns it in \a session_id_remote
+ *
+ * @param ack The acknowledgment structure in which received
+ *     acknowledgments are to be stored.
+ * @param buf The buffer containing the packet.
+ * @param session_id_remote The parsed remote session id. This field is
+ *                          is only filled if ack->len >= 1
+ * @return
+ * @li True, if processing was successful.
+ * @li False, if an error occurs during processing.
+ */
+bool
+reliable_ack_parse(struct buffer *buf, struct reliable_ack *ack,
+                   struct session_id *session_id_remote);
+
 /**
  * Remove acknowledged packets from a reliable structure.
  *
