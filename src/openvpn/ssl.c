@@ -3754,6 +3754,17 @@ error:
     goto done;
 }
 
+void
+free_tls_pre_decrypt_state(struct tls_pre_decrypt_state *state)
+{
+    free_buf(&state->newbuf);
+    free_buf(&state->tls_wrap_tmp.tls_crypt_v2_metadata);
+    if (state->tls_wrap_tmp.cleanup_key_ctx)
+    {
+        free_key_ctx_bi(&state->tls_wrap_tmp.opt.key_ctx_bi);
+    }
+}
+
 /*
  * This function is similar to tls_pre_decrypt, except it is called
  * when we are in server mode and receive an initial incoming
@@ -3765,17 +3776,21 @@ error:
  * This function is essentially the first-line HMAC firewall
  * on the UDP port listener in --mode server mode.
  */
-bool
+enum first_packet_verdict
 tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
+                     struct tls_pre_decrypt_state *state,
                      const struct link_socket_actual *from,
                      const struct buffer *buf)
-
 {
-    if (buf->len <= 0)
-    {
-        return false;
-    }
     struct gc_arena gc = gc_new();
+    /* A packet needs to have at least an opcode and session id */
+    if (buf->len < (1 + SID_SIZE))
+    {
+        dmsg(D_TLS_STATE_ERRORS,
+             "TLS State Error: Too short packet (length  %d) received from %s",
+             buf->len, print_link_socket_actual(from, &gc));
+        goto error;
+    }
 
     /* get opcode and key ID */
     uint8_t pkt_firstbyte = *BPTR(buf);
@@ -3785,8 +3800,10 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
     /* this packet is from an as-yet untrusted source, so
      * scrutinize carefully */
 
+    /* Allow only the reset packet or the first packet of the actual handshake. */
     if (op != P_CONTROL_HARD_RESET_CLIENT_V2
-        && op != P_CONTROL_HARD_RESET_CLIENT_V3)
+        && op != P_CONTROL_HARD_RESET_CLIENT_V3
+        && op != P_CONTROL_V1)
     {
         /*
          * This can occur due to bogus data or DoS packets.
@@ -3807,17 +3824,28 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
         goto error;
     }
 
-    struct buffer newbuf = clone_buf(buf);
-    struct tls_wrap_ctx tls_wrap_tmp = tas->tls_wrap;
-
-    /* HMAC test, if --tls-auth was specified */
-    bool status = read_control_auth(&newbuf, &tls_wrap_tmp, from, NULL);
-    free_buf(&newbuf);
-    free_buf(&tls_wrap_tmp.tls_crypt_v2_metadata);
-    if (tls_wrap_tmp.cleanup_key_ctx)
+    /* read peer session id, we do this at this point since
+     * read_control_auth will skip over it */
+    struct buffer tmp = *buf;
+    buf_advance(&tmp, 1);
+    if (!session_id_read(&state->peer_session_id, &tmp)
+        || !session_id_defined(&state->peer_session_id))
     {
-        free_key_ctx_bi(&tls_wrap_tmp.opt.key_ctx_bi);
+        msg(D_TLS_ERRORS,
+            "TLS Error: session-id not found in packet from %s",
+            print_link_socket_actual(from, &gc));
+        goto error;
     }
+
+    state->newbuf = clone_buf(buf);
+    state->tls_wrap_tmp = tas->tls_wrap;
+
+    /* HMAC test and unwrapping the encrypted part of the control message
+     * into newbuf or just setting newbuf to point to the start of control
+     * message */
+    bool status = read_control_auth(&state->newbuf, &state->tls_wrap_tmp,
+                                    from, NULL);
+
     if (!status)
     {
         goto error;
@@ -3839,12 +3867,19 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
      * of authentication solely up to TLS.
      */
     gc_free(&gc);
-    return true;
+    if (op == P_CONTROL_V1)
+    {
+        return VERDICT_VALID_CONTROL_V1;
+    }
+    else
+    {
+        return VERDICT_VALID_RESET;
+    }
 
 error:
     tls_clear_error();
     gc_free(&gc);
-    return false;
+    return VERDICT_INVALID;
 }
 
 struct key_state *

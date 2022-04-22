@@ -43,7 +43,16 @@ static bool
 do_pre_decrypt_check(struct multi_context *m)
 {
     ASSERT(m->top.c2.tls_auth_standalone);
-    if (!tls_pre_decrypt_lite(m->top.c2.tls_auth_standalone, &m->top.c2.from, &m->top.c2.buf))
+
+    enum first_packet_verdict verdict;
+    struct tls_pre_decrypt_state state = {0};
+
+    verdict = tls_pre_decrypt_lite(m->top.c2.tls_auth_standalone, &state,
+                                   &m->top.c2.from, &m->top.c2.buf);
+
+    free_tls_pre_decrypt_state(&state);
+
+    if (verdict == VERDICT_INVALID || verdict == VERDICT_VALID_CONTROL_V1)
     {
         return false;
     }

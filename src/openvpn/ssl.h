@@ -323,6 +323,33 @@ bool tls_pre_decrypt(struct tls_multi *multi,
 /** @name Functions for managing security parameter state for data channel packets
  *  @{ */
 
+
+enum first_packet_verdict {
+    /** This packet is a valid reset packet from the peer */
+    VERDICT_VALID_RESET,
+    /** This packet is a valid control packet from the peer,
+     * i.e. it has a valid session id hmac in it */
+    VERDICT_VALID_CONTROL_V1,
+    /** the packet failed on of the various checks */
+    VERDICT_INVALID
+};
+
+/**
+ * struct that stores the temporary data for the tls lite decrypt
+ * functions
+ */
+struct tls_pre_decrypt_state {
+    struct tls_wrap_ctx tls_wrap_tmp;
+    struct buffer newbuf;
+    struct session_id peer_session_id;
+};
+
+/**
+ *
+ * @param state
+ */
+void free_tls_pre_decrypt_state(struct tls_pre_decrypt_state *state);
+
 /**
  * Inspect an incoming packet for which no VPN tunnel is active, and
  * determine whether a new VPN tunnel should be created.
@@ -343,6 +370,8 @@ bool tls_pre_decrypt(struct tls_multi *multi,
  * whether a new VPN tunnel should be created.  If so, that new VPN tunnel
  * instance will handle processing of the packet.
  *
+ * This function is only used in the UDP p2mp server code path
+ *
  * @param tas - The standalone TLS authentication setting structure for
  *     this process.
  * @param from - The source address of the packet.
@@ -354,9 +383,11 @@ bool tls_pre_decrypt(struct tls_multi *multi,
  * @li False if the packet is not valid, did not pass the HMAC firewall
  *     test, or some other error occurred.
  */
-bool tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
-                          const struct link_socket_actual *from,
-                          const struct buffer *buf);
+enum first_packet_verdict
+tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
+                     struct tls_pre_decrypt_state *state,
+                     const struct link_socket_actual *from,
+                     const struct buffer *buf);
 
 
 /**
