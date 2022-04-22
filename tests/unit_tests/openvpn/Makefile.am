@@ -6,7 +6,8 @@ if HAVE_LD_WRAP_SUPPORT
 test_binaries += argv_testdriver buffer_testdriver
 endif
 
-test_binaries += crypto_testdriver packet_id_testdriver auth_token_testdriver ncp_testdriver misc_testdriver
+test_binaries += crypto_testdriver packet_id_testdriver auth_token_testdriver ncp_testdriver misc_testdriver \
+    pkt_testdriver
 if HAVE_LD_WRAP_SUPPORT
 test_binaries += tls_crypt_testdriver
 endif
@@ -61,6 +62,27 @@ packet_id_testdriver_SOURCES = test_packet_id.c mock_msg.c mock_msg.h \
 	$(openvpn_srcdir)/otime.c \
 	$(openvpn_srcdir)/packet_id.c \
 	$(openvpn_srcdir)/platform.c
+
+pkt_testdriver_CFLAGS  = @TEST_CFLAGS@ \
+	-I$(openvpn_includedir) -I$(compat_srcdir) -I$(openvpn_srcdir)
+pkt_testdriver_LDFLAGS = @TEST_LDFLAGS@
+pkt_testdriver_SOURCES = test_pkt.c mock_msg.c mock_msg.h \
+$(openvpn_srcdir)/argv.c \
+	$(openvpn_srcdir)/base64.c \
+	$(openvpn_srcdir)/buffer.c \
+	$(openvpn_srcdir)/crypto.c \
+	$(openvpn_srcdir)/crypto_mbedtls.c \
+	$(openvpn_srcdir)/crypto_openssl.c \
+	$(openvpn_srcdir)/env_set.c \
+	$(openvpn_srcdir)/otime.c \
+	$(openvpn_srcdir)/packet_id.c \
+	$(openvpn_srcdir)/platform.c \
+	$(openvpn_srcdir)/reliable.c \
+	$(openvpn_srcdir)/run_command.c \
+	$(openvpn_srcdir)/session_id.c \
+	$(openvpn_srcdir)/ssl_pkt.c \
+	$(openvpn_srcdir)/tls_crypt.c
+
 
 tls_crypt_testdriver_CFLAGS  = @TEST_CFLAGS@ \
 	-I$(openvpn_includedir) -I$(compat_srcdir) -I$(openvpn_srcdir)
