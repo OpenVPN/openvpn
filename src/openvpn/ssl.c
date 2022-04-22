@@ -1366,10 +1366,6 @@ tls_multi_free(struct tls_multi *multi, bool clear)
 }
 
 
-/*
- * Move a packet authentication HMAC + related fields to or from the front
- * of the buffer so it can be processed by encrypt/decrypt.
- */
 
 /*
  * Dependent on hmac size, opcode size, and session_id size.
@@ -1377,6 +1373,23 @@ tls_multi_free(struct tls_multi *multi, bool clear)
  */
 #define SWAP_BUF_SIZE 256
 
+/**
+ * Move a packet authentication HMAC + related fields to or from the front
+ * of the buffer so it can be processed by encrypt/decrypt.
+ *
+ * Turning the on wire format that starts with the opcode to a format
+ * that starts with the hmac
+ *
+ *    "onwire" [opcode, peer session id] [hmac, packet id] [remainder of packed]
+ *
+ *  "internal" [hmac, packet id] [opcode, peer session id] [remainder of packet]
+ *
+ *  @param buf      the buffer the swap operation is executed on
+ *  @param incoming determines the direction of the swap
+ *  @param co       crypto options, determines the hmac to use in the swap
+ *
+ *  @return         if the swap was successful (buf was large enough)
+ */
 static bool
 swap_hmac(struct buffer *buf, const struct crypto_options *co, bool incoming)
 {
@@ -1390,7 +1403,7 @@ swap_hmac(struct buffer *buf, const struct crypto_options *co, bool incoming)
         /* hmac + packet_id (8 bytes) */
         const int hmac_size = hmac_ctx_size(ctx->hmac) + packet_id_size(true);
 
-        /* opcode + session_id */
+        /* opcode (1 byte) + session_id (8 bytes) */
         const int osid_size = 1 + SID_SIZE;
 
         int e1, e2;
