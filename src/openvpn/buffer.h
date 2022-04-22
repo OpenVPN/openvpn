@@ -694,23 +694,22 @@ buf_write_prepend(struct buffer *dest, const void *src, int size)
 }
 
 static inline bool
-buf_write_u8(struct buffer *dest, int data)
+buf_write_u8(struct buffer *dest, uint8_t data)
 {
-    uint8_t u8 = (uint8_t) data;
-    return buf_write(dest, &u8, sizeof(uint8_t));
+    return buf_write(dest, &data, sizeof(uint8_t));
 }
 
 static inline bool
-buf_write_u16(struct buffer *dest, int data)
+buf_write_u16(struct buffer *dest, uint16_t data)
 {
-    uint16_t u16 = htons((uint16_t) data);
+    uint16_t u16 = htons(data);
     return buf_write(dest, &u16, sizeof(uint16_t));
 }
 
 static inline bool
-buf_write_u32(struct buffer *dest, int data)
+buf_write_u32(struct buffer *dest, uint32_t data)
 {
-    uint32_t u32 = htonl((uint32_t) data);
+    uint32_t u32 = htonl(data);
     return buf_write(dest, &u32, sizeof(uint32_t));
 }
 
