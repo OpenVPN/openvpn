@@ -958,6 +958,17 @@ key_state_init(struct tls_session *session, struct key_state *ks)
 #ifdef ENABLE_MANAGEMENT
     ks->mda_key_id = session->opt->mda_context->mda_key_id_counter++;
 #endif
+
+    /*
+     * Attempt CRL reload before TLS negotiation. Won't be performed if
+     * the file was not modified since the last reload
+     */
+    if (session->opt->crl_file
+        && !(session->opt->ssl_flags & SSLF_CRL_VERIFY_DIR))
+    {
+        tls_ctx_reload_crl(&session->opt->ssl_ctx,
+                           session->opt->crl_file, session->opt->crl_file_inline);
+    }
 }
 
 
@@ -2513,20 +2524,8 @@ tls_process_state(struct tls_multi *multi,
         ks->state = S_START;
         state_change = true;
 
-        /*
-         * Attempt CRL reload before TLS negotiation. Won't be performed if
-         * the file was not modified since the last reload
-         */
-        if (session->opt->crl_file
-            && !(session->opt->ssl_flags & SSLF_CRL_VERIFY_DIR))
-        {
-            tls_ctx_reload_crl(&session->opt->ssl_ctx,
-                               session->opt->crl_file, session->opt->crl_file_inline);
-        }
-
         /* New connection, remove any old X509 env variables */
         tls_x509_clear_env(session->opt->es);
-
         dmsg(D_TLS_DEBUG_MED, "STATE S_START");
     }
 
