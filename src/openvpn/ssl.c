@@ -2524,6 +2524,37 @@ session_skip_to_pre_start(struct tls_session *session,
     return session_move_pre_start(session, ks, true);
 }
 
+/**
+ * Read incoming ciphertext and passes it to the buffer of the SSL library.
+ * Returns false if an error is encountered that should abort the session.
+ */
+static bool
+read_incoming_tls_ciphertext(struct buffer *buf, struct key_state *ks,
+                             bool *state_change)
+{
+    int status = 0;
+    if (buf->len)
+    {
+        status = key_state_write_ciphertext(&ks->ks_ssl, buf);
+        if (status == -1)
+        {
+            msg(D_TLS_ERRORS,
+                "TLS Error: Incoming Ciphertext -> TLS object write error");
+            return false;
+        }
+    }
+    else
+    {
+        status = 1;
+    }
+    if (status == 1)
+    {
+        reliable_mark_deleted(ks->rec_reliable, buf);
+        *state_change = true;
+        dmsg(D_TLS_DEBUG, "Incoming Ciphertext -> TLS");
+    }
+    return true;
+}
 
 
 static bool
@@ -2594,27 +2625,9 @@ tls_process_state(struct tls_multi *multi,
     struct reliable_entry *entry = reliable_get_entry_sequenced(ks->rec_reliable);
     if (entry)
     {
-        struct buffer *buf = &entry->buf;
-        int status = 0;
-        if (buf->len)
+        if (!read_incoming_tls_ciphertext(&entry->buf, ks, &state_change))
         {
-            status = key_state_write_ciphertext(&ks->ks_ssl, buf);
-            if (status == -1)
-            {
-                msg(D_TLS_ERRORS,
-                    "TLS Error: Incoming Ciphertext -> TLS object write error");
-                goto error;
-            }
-        }
-        else
-        {
-            status = 1;
-        }
-        if (status == 1)
-        {
-            reliable_mark_deleted(ks->rec_reliable, buf);
-            state_change = true;
-            dmsg(D_TLS_DEBUG, "Incoming Ciphertext -> TLS");
+            goto error;
         }
     }
 
