@@ -295,11 +295,7 @@ tls_limit_reneg_bytes(const char *ciphername, int *reneg_bytes)
     }
 }
 
-/*
- * Max number of bytes we will add
- * to control channel packet.
- */
-static void
+void
 tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame,
                                           struct frame *frame)
 {
@@ -1284,7 +1280,6 @@ void
 tls_multi_init_finalize(struct tls_multi *multi, const struct frame *frame)
 {
     tls_init_control_channel_frame_parameters(frame, &multi->opt.frame);
-
     /* initialize the active and untrusted sessions */
 
     tls_session_init(multi, &multi->session[TM_ACTIVE]);
@@ -1320,13 +1315,6 @@ tls_auth_standalone_init(struct tls_options *tls_options,
     tas->frame = tls_options->frame;
 
     return tas;
-}
-
-void
-tls_auth_standalone_finalize(struct tls_auth_standalone *tas,
-                             const struct frame *frame)
-{
-    tls_init_control_channel_frame_parameters(frame, &tas->frame);
 }
 
 /*

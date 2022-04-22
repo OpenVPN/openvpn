@@ -209,10 +209,11 @@ struct tls_auth_standalone *tls_auth_standalone_init(struct tls_options *tls_opt
                                                      struct gc_arena *gc);
 
 /*
- * Finalize a standalone tls-auth verification object.
+ * Setups the control channel frame size parameters from the data channel
+ * parameters
  */
-void tls_auth_standalone_finalize(struct tls_auth_standalone *tas,
-                                  const struct frame *frame);
+void tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame,
+                                               struct frame *frame);
 
 /*
  * Set local and remote option compatibility strings.
