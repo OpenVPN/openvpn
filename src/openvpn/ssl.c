@@ -2775,45 +2775,43 @@ tls_process(struct tls_multi *multi,
     }
 
     /* When should we wake up again? */
+    if (ks->state >= S_INITIAL)
     {
-        if (ks->state >= S_INITIAL)
+        compute_earliest_wakeup(wakeup,
+                                reliable_send_timeout(ks->send_reliable));
+
+        if (ks->must_negotiate)
         {
-            compute_earliest_wakeup(wakeup,
-                                    reliable_send_timeout(ks->send_reliable));
-
-            if (ks->must_negotiate)
-            {
-                compute_earliest_wakeup(wakeup, ks->must_negotiate - now);
-            }
+            compute_earliest_wakeup(wakeup, ks->must_negotiate - now);
         }
-
-        if (ks->established && session->opt->renegotiate_seconds)
-        {
-            compute_earliest_wakeup(wakeup,
-                                    ks->established + session->opt->renegotiate_seconds - now);
-        }
-
-        dmsg(D_TLS_DEBUG, "TLS: tls_process: timeout set to %d", *wakeup);
-
-        /* prevent event-loop spinning by setting minimum wakeup of 1 second */
-        if (*wakeup <= 0)
-        {
-            *wakeup = 1;
-
-            /* if we had something to send to remote, but to_link was busy,
-             * let caller know we need to be called again soon */
-            return true;
-        }
-
-        /* If any of the state changes resulted in the to_link buffer being
-         * set, we are also active */
-        if (to_link->len)
-        {
-            return true;
-        }
-
-        return false;
     }
+
+    if (ks->established && session->opt->renegotiate_seconds)
+    {
+        compute_earliest_wakeup(wakeup,
+                                ks->established + session->opt->renegotiate_seconds - now);
+    }
+
+    dmsg(D_TLS_DEBUG, "TLS: tls_process: timeout set to %d", *wakeup);
+
+    /* prevent event-loop spinning by setting minimum wakeup of 1 second */
+    if (*wakeup <= 0)
+    {
+        *wakeup = 1;
+
+        /* if we had something to send to remote, but to_link was busy,
+         * let caller know we need to be called again soon */
+        return true;
+    }
+
+    /* If any of the state changes resulted in the to_link buffer being
+     * set, we are also active */
+    if (to_link->len)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 /*
