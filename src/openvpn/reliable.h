@@ -351,11 +351,10 @@ bool reliable_ack_acknowledge_packet_id(struct reliable_ack *ack, packet_id_type
  * @param rel The reliable structure from which to retrieve the
  *     buffer.
  *
- * @return A pointer to the buffer of the entry with the next
- *     sequential key ID.  If no such entry is present, this function
- *     returns NULL.
+ * @return A pointer to the entry with the next sequential key ID.
+ *     If no such entry is present, this function  returns NULL.
  */
-struct buffer *reliable_get_buf_sequenced(struct reliable *rel);
+struct reliable_entry *reliable_get_entry_sequenced(struct reliable *rel);
 
 /**
  * Remove an entry from a reliable structure.

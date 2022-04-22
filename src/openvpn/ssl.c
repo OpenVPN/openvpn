@@ -2557,9 +2557,10 @@ tls_process_state(struct tls_multi *multi,
     }
 
     /* Write incoming ciphertext to TLS object */
-    struct buffer *buf = reliable_get_buf_sequenced(ks->rec_reliable);
-    if (buf)
+    struct reliable_entry *entry = reliable_get_entry_sequenced(ks->rec_reliable);
+    if (entry)
     {
+        struct buffer *buf = &entry->buf;
         int status = 0;
         if (buf->len)
         {
@@ -2584,7 +2585,7 @@ tls_process_state(struct tls_multi *multi,
     }
 
     /* Read incoming plaintext from TLS object */
-    buf = &ks->plaintext_read_buf;
+    struct buffer *buf = &ks->plaintext_read_buf;
     if (!buf->len)
     {
         int status;

@@ -533,8 +533,8 @@ reliable_get_buf_output_sequenced(struct reliable *rel)
 }
 
 /* get active buffer for next sequentially increasing key ID */
-struct buffer *
-reliable_get_buf_sequenced(struct reliable *rel)
+struct reliable_entry *
+reliable_get_entry_sequenced(struct reliable *rel)
 {
     int i;
     for (i = 0; i < rel->size; ++i)
@@ -542,7 +542,7 @@ reliable_get_buf_sequenced(struct reliable *rel)
         struct reliable_entry *e = &rel->array[i];
         if (e->active && e->packet_id == rel->packet_id)
         {
-            return &e->buf;
+            return e;
         }
     }
     return NULL;
