@@ -1795,13 +1795,6 @@ flush_payload_buffer(struct key_state *ks)
     }
 }
 
-/* true if no in/out acknowledgements pending */
-static bool
-no_pending_reliable_packets(struct key_state *ks)
-{
-    return (reliable_empty(ks->send_reliable) && reliable_ack_empty(ks->rec_ack));
-}
-
 /*
  * Move the active key to the lame duck key and reinitialize the
  * active key.
@@ -2646,8 +2639,10 @@ tls_process_state(struct tls_multi *multi,
         goto error;
     }
 
-    /* Wait for Initial Handshake ACK */
-    if (ks->state == S_PRE_START && no_pending_reliable_packets(ks))
+    /* Check if the initial three-way Handshake is complete.
+     * We consider the handshake to be complete when our own initial
+     * packet has been successfully ACKed. */
+    if (ks->state == S_PRE_START && reliable_empty(ks->send_reliable))
     {
         ks->state = S_START;
         state_change = true;
@@ -2660,7 +2655,7 @@ tls_process_state(struct tls_multi *multi,
     /* Wait for ACK */
     if (((ks->state == S_GOT_KEY && !session->opt->server)
          || (ks->state == S_SENT_KEY && session->opt->server))
-        && no_pending_reliable_packets(ks))
+        && reliable_empty(ks->send_reliable))
     {
         session_move_active(multi, session, to_link_socket_info, ks);
         state_change = true;
