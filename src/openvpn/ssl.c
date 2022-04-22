@@ -2382,6 +2382,52 @@ auth_deferred_expire_window(const struct tls_options *o)
     return ret;
 }
 
+/**
+ * Move the session from S_INITIAL to S_PRE_START. This will also generate
+ * the intial message based on ks->initial_opcode
+ *
+ * @return if the state change was succesful
+ */
+static bool
+session_move_pre_start(const struct tls_session *session,
+                       struct key_state *ks)
+{
+    struct buffer *buf = reliable_get_buf_output_sequenced(ks->send_reliable);
+    if (!buf)
+    {
+        return false;
+    }
+
+    ks->initial = now;
+    ks->must_negotiate = now + session->opt->handshake_window;
+    ks->auth_deferred_expire = now + auth_deferred_expire_window(session->opt);
+
+    /* null buffer */
+    reliable_mark_active_outgoing(ks->send_reliable, buf, ks->initial_opcode);
+    INCR_GENERATED;
+
+    ks->state = S_PRE_START;
+
+    struct gc_arena gc = gc_new();
+    dmsg(D_TLS_DEBUG, "TLS: Initial Handshake, sid=%s",
+         session_id_print(&session->session_id, &gc));
+    gc_free(&gc);
+
+#ifdef ENABLE_MANAGEMENT
+    if (management && ks->initial_opcode != P_CONTROL_SOFT_RESET_V1)
+    {
+        management_set_state(management,
+                             OPENVPN_STATE_WAIT,
+                             NULL,
+                             NULL,
+                             NULL,
+                             NULL,
+                             NULL);
+    }
+#endif
+    return true;
+
+}
 /*
  * This is the primary routine for processing TLS stuff inside the
  * the main event loop.  When this routine exits
@@ -2400,7 +2446,6 @@ tls_process(struct tls_multi *multi,
             interval_t *wakeup)
 {
     struct gc_arena gc = gc_new();
-    struct buffer *buf;
     bool state_change = false;
     bool active = false;
     struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
@@ -2460,35 +2505,7 @@ tls_process(struct tls_multi *multi,
         /* Initial handshake */
         if (ks->state == S_INITIAL)
         {
-            buf = reliable_get_buf_output_sequenced(ks->send_reliable);
-            if (buf)
-            {
-                ks->initial = now;
-                ks->must_negotiate = now + session->opt->handshake_window;
-                ks->auth_deferred_expire = now + auth_deferred_expire_window(session->opt);
-
-                /* null buffer */
-                reliable_mark_active_outgoing(ks->send_reliable, buf, ks->initial_opcode);
-                INCR_GENERATED;
-
-                ks->state = S_PRE_START;
-                state_change = true;
-                dmsg(D_TLS_DEBUG, "TLS: Initial Handshake, sid=%s",
-                     session_id_print(&session->session_id, &gc));
-
-#ifdef ENABLE_MANAGEMENT
-                if (management && ks->initial_opcode != P_CONTROL_SOFT_RESET_V1)
-                {
-                    management_set_state(management,
-                                         OPENVPN_STATE_WAIT,
-                                         NULL,
-                                         NULL,
-                                         NULL,
-                                         NULL,
-                                         NULL);
-                }
-#endif
-            }
+            state_change = session_move_pre_start(session, ks);
         }
 
         /* Are we timed out on receive? */
@@ -2573,11 +2590,10 @@ tls_process(struct tls_multi *multi,
         if (!to_link->len && reliable_can_send(ks->send_reliable))
         {
             int opcode;
-            struct buffer b;
 
-            buf = reliable_send(ks->send_reliable, &opcode);
+            struct buffer *buf = reliable_send(ks->send_reliable, &opcode);
             ASSERT(buf);
-            b = *buf;
+            struct buffer b = *buf;
             INCR_SENT;
 
             write_control_auth(session, ks, &b, to_link_addr, opcode,
@@ -2590,7 +2606,7 @@ tls_process(struct tls_multi *multi,
         }
 
         /* Write incoming ciphertext to TLS object */
-        buf = reliable_get_buf_sequenced(ks->rec_reliable);
+        struct buffer *buf = reliable_get_buf_sequenced(ks->rec_reliable);
         if (buf)
         {
             int status = 0;
