@@ -1,9 +1,9 @@
-set(VERSION 1.28.0)
+set(VERSION 1.29.0)
 
 vcpkg_download_distfile(ARCHIVE
-    URLS "https://github.com/OpenSC/pkcs11-helper/releases/download/pkcs11-helper-${VERSION}/pkcs11-helper-${VERSION}.tar.gz"
-    FILENAME "pkcs11-helper-${VERSION}.tar.gz"
-    SHA512 1c1cc7f83ed360fabdcfa68d0eafa7d25be03e68c6a202e7ad2907feb472663bb34e12b9e162344ec221a4298abc02acdc75f0f45d9a89657aa7ac55e59badd5
+    URLS "https://github.com/OpenSC/pkcs11-helper/releases/download/pkcs11-helper-${VERSION}/pkcs11-helper-${VERSION}.tar.bz2"
+    FILENAME "pkcs11-helper-${VERSION}.tar.bz2"
+    SHA512 c530f5a4b5826a02bfe787a1293a7595d5a0d6348daa16675bd10c6d6734b1f24a3cc73b5b89433cf1edf8815f8b7298fdfd1ed686f096bb5edfb425e9430eb2
 )
 
 vcpkg_extract_source_archive_ex(
@@ -12,8 +12,7 @@ vcpkg_extract_source_archive_ex(
     REF ${VERSION}
     PATCHES
         0001-nmake-compatibility-with-vcpkg-nmake.patch
-        0002-pkcs11.h-rename-interface-parameter.patch
-        0003-config-w32-vc.h.in-indicate-OpenSSL.patch
+        0002-config-w32-vc.h.in-indicate-OpenSSL.patch
         pkcs11-helper-001-RFC7512.patch
 )
 
