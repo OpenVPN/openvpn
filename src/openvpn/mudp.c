@@ -39,6 +39,17 @@
 #include <sys/inotify.h>
 #endif
 
+static bool
+do_pre_decrypt_check(struct multi_context *m)
+{
+    ASSERT(m->top.c2.tls_auth_standalone);
+    if (!tls_pre_decrypt_lite(m->top.c2.tls_auth_standalone, &m->top.c2.from, &m->top.c2.buf))
+    {
+        return false;
+    }
+    return true;
+}
+
 /*
  * Get a client instance based on real address.  If
  * the instance doesn't exist, create it while
@@ -95,8 +106,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
         }
         if (!mi)
         {
-            if (!m->top.c2.tls_auth_standalone
-                || tls_pre_decrypt_lite(m->top.c2.tls_auth_standalone, &m->top.c2.from, &m->top.c2.buf))
+            if (do_pre_decrypt_check(m))
             {
                 if (frequency_limit_event_allowed(m->new_connection_limiter))
                 {
