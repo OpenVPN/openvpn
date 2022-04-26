@@ -1774,8 +1774,11 @@ flush_payload_buffer(struct key_state *ks)
 }
 
 /* true if no in/out acknowledgements pending */
-#define FULL_SYNC \
-    (reliable_empty(ks->send_reliable) && reliable_ack_empty(ks->rec_ack))
+static bool
+no_pending_reliable_packets(struct key_state *ks)
+{
+    return (reliable_empty(ks->send_reliable) && reliable_ack_empty(ks->rec_ack));
+}
 
 /*
  * Move the active key to the lame duck key and reinitialize the
@@ -2518,7 +2521,7 @@ tls_process(struct tls_multi *multi,
         }
 
         /* Wait for Initial Handshake ACK */
-        if (ks->state == S_PRE_START && FULL_SYNC)
+        if (ks->state == S_PRE_START && no_pending_reliable_packets(ks))
         {
             ks->state = S_START;
             state_change = true;
@@ -2544,7 +2547,7 @@ tls_process(struct tls_multi *multi,
         if (((ks->state == S_GOT_KEY && !session->opt->server)
              || (ks->state == S_SENT_KEY && session->opt->server)))
         {
-            if (FULL_SYNC)
+            if (no_pending_reliable_packets(ks))
             {
                 ks->established = now;
                 dmsg(D_TLS_DEBUG_MED, "STATE S_ACTIVE");
