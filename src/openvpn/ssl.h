@@ -54,12 +54,6 @@
 #define CONTROL_SEND_ACK_MAX 4
 
 /*
- * Define number of buffers for send and receive in the reliability layer.
- */
-#define TLS_RELIABLE_N_SEND_BUFFERS  4 /* also window size for reliability layer */
-#define TLS_RELIABLE_N_REC_BUFFERS   8
-
-/*
  * Various timeouts
  */
 #define TLS_MULTI_REFRESH 15    /* call tls_multi_process once every n seconds */

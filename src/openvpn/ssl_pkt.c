@@ -398,3 +398,34 @@ error:
     gc_free(&gc);
     return VERDICT_INVALID;
 }
+
+struct buffer
+tls_reset_standalone(struct tls_auth_standalone *tas,
+                     struct session_id *own_sid,
+                     struct session_id *remote_sid,
+                     uint8_t header)
+{
+    struct buffer buf = alloc_buf(tas->frame.buf.payload_size);
+    ASSERT(buf_init(&buf, tas->frame.buf.headroom));
+
+    /* Reliable ACK structure */
+    /* Length of the ACK structure - 1 ACK */
+    buf_write_u8(&buf, 1);
+
+    /* ACKed packet - first packet's id is always 0 */
+    buf_write_u32(&buf, 0);
+
+    /* Remote session id */
+    buf_write(&buf, remote_sid->id, SID_SIZE);
+
+    /* Packet ID of our own packet: Our reset packet is always using
+     * packet id 0 since it is the first packet */
+    packet_id_type net_pid = htonpid(0);
+
+    ASSERT(buf_write(&buf, &net_pid, sizeof(net_pid)));
+
+    /* Add tls-auth/tls-crypt wrapping, this might replace buf */
+    tls_wrap_control(&tas->tls_wrap, header, &buf, own_sid);
+
+    return buf;
+}

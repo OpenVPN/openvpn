@@ -61,6 +61,12 @@
 #define P_LAST_OPCODE                  10
 
 /*
+ * Define number of buffers for send and receive in the reliability layer.
+ */
+#define TLS_RELIABLE_N_SEND_BUFFERS  4 /* also window size for reliability layer */
+#define TLS_RELIABLE_N_REC_BUFFERS   8
+
+/*
  * Used in --mode server mode to check tls-auth signature on initial
  * packets received from new clients.
  */
@@ -156,6 +162,19 @@ read_control_auth(struct buffer *buf,
                   struct tls_wrap_ctx *ctx,
                   const struct link_socket_actual *from,
                   const struct tls_options *opt);
+
+
+/**
+ * This function creates a reset packet using the information
+ * from the tls pre decrypt state.
+ *
+ * The returned buf needs to be free with \c free_buf
+ */
+struct buffer
+tls_reset_standalone(struct tls_auth_standalone *tas,
+                     struct session_id *own_sid,
+                     struct session_id *remote_sid,
+                     uint8_t header);
 
 static inline const char *
 packet_opcode_name(int op)
