@@ -320,7 +320,8 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
     /* Allow only the reset packet or the first packet of the actual handshake. */
     if (op != P_CONTROL_HARD_RESET_CLIENT_V2
         && op != P_CONTROL_HARD_RESET_CLIENT_V3
-        && op != P_CONTROL_V1)
+        && op != P_CONTROL_V1
+        && op != P_ACK_V1)
     {
         /*
          * This can occur due to bogus data or DoS packets.
@@ -388,9 +389,17 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
     {
         return VERDICT_VALID_CONTROL_V1;
     }
+    else if (op == P_ACK_V1)
+    {
+        return VERDICT_VALID_ACK_V1;
+    }
+    else if (op == P_CONTROL_HARD_RESET_CLIENT_V3)
+    {
+        return VERDICT_VALID_RESET_V3;
+    }
     else
     {
-        return VERDICT_VALID_RESET;
+        return VERDICT_VALID_RESET_V2;
     }
 
 error:
@@ -398,6 +407,7 @@ error:
     gc_free(&gc);
     return VERDICT_INVALID;
 }
+
 
 struct buffer
 tls_reset_standalone(struct tls_auth_standalone *tas,
@@ -428,4 +438,93 @@ tls_reset_standalone(struct tls_auth_standalone *tas,
     tls_wrap_control(&tas->tls_wrap, header, &buf, own_sid);
 
     return buf;
+}
+
+hmac_ctx_t *
+session_id_hmac_init(void)
+{
+    /* We assume that SHA256 is always available */
+    ASSERT(md_valid("SHA256"));
+    hmac_ctx_t *hmac_ctx = hmac_ctx_new();
+
+    uint8_t key[SHA256_DIGEST_LENGTH];
+    ASSERT(rand_bytes(key, sizeof(key)));
+
+    hmac_ctx_init(hmac_ctx, key, "SHA256");
+    return hmac_ctx;
+}
+
+struct session_id
+calculate_session_id_hmac(struct session_id client_sid,
+                          const struct openvpn_sockaddr *from,
+                          hmac_ctx_t *hmac,
+                          int handwindow, int offset)
+{
+    union {
+        uint8_t hmac_result[SHA256_DIGEST_LENGTH];
+        struct session_id sid;
+    } result;
+
+    /* Get the valid time quantisation for our hmac,
+     * we divide time by handwindow/2 and allow the previous
+     * and future session time if specified by offset */
+    uint32_t session_id_time = now/((handwindow+1)/2) + offset;
+
+    hmac_ctx_reset(hmac);
+    /* We do not care about endian here since it does not need to be
+     * portable */
+    hmac_ctx_update(hmac, (const uint8_t *) &session_id_time,
+                    sizeof(session_id_time));
+
+    /* add client IP and port */
+    switch (af_addr_size(from->addr.sa.sa_family))
+    {
+        case AF_INET:
+            hmac_ctx_update(hmac, (const uint8_t *) &from->addr.in4, sizeof(struct sockaddr_in));
+            break;
+
+        case AF_INET6:
+            hmac_ctx_update(hmac, (const uint8_t *) &from->addr.in6, sizeof(struct sockaddr_in6));
+            break;
+    }
+
+    /* add session id of client */
+    hmac_ctx_update(hmac, client_sid.id, SID_SIZE);
+
+    hmac_ctx_final(hmac, result.hmac_result);
+
+    return result.sid;
+}
+
+bool
+check_session_id_hmac(struct tls_pre_decrypt_state *state,
+                      const struct openvpn_sockaddr *from,
+                      hmac_ctx_t *hmac,
+                      int handwindow)
+{
+    if (!from)
+    {
+        return false;
+    }
+
+    struct buffer buf = state->newbuf;
+    struct reliable_ack ack;
+
+    if (!reliable_ack_parse(&buf, &ack, &state->server_session_id))
+    {
+        return false;
+    }
+
+    /* check adjacent timestamps too */
+    for (int offset = -2; offset <= 1; offset++)
+    {
+        struct session_id expected_id =
+            calculate_session_id_hmac(state->peer_session_id, from, hmac, handwindow, offset);
+
+        if (memcmp_constant_time(&expected_id, &state->server_session_id, SID_SIZE))
+        {
+            return true;
+        }
+    }
+    return false;
 }

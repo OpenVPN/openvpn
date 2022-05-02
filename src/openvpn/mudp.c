@@ -40,24 +40,79 @@
 #include <sys/inotify.h>
 #endif
 
+/* Return true if this packet should create a new session */
 static bool
-do_pre_decrypt_check(struct multi_context *m)
+do_pre_decrypt_check(struct multi_context *m,
+                     struct tls_pre_decrypt_state *state,
+                     struct mroute_addr addr)
 {
     ASSERT(m->top.c2.tls_auth_standalone);
 
     enum first_packet_verdict verdict;
-    struct tls_pre_decrypt_state state = {0};
 
-    verdict = tls_pre_decrypt_lite(m->top.c2.tls_auth_standalone, &state,
-                                   &m->top.c2.from, &m->top.c2.buf);
+    struct tls_auth_standalone *tas = m->top.c2.tls_auth_standalone;
 
-    free_tls_pre_decrypt_state(&state);
+    verdict = tls_pre_decrypt_lite(tas, state, &m->top.c2.from, &m->top.c2.buf);
 
-    if (verdict == VERDICT_INVALID || verdict == VERDICT_VALID_CONTROL_V1)
+    hmac_ctx_t *hmac = m->top.c2.session_id_hmac;
+    struct openvpn_sockaddr *from = &m->top.c2.from.dest;
+    int handwindow = m->top.options.handshake_window;
+
+
+    if (verdict == VERDICT_VALID_RESET_V3)
     {
-        return false;
+        /* For tls-crypt-v2 we need to keep the state of the first packet to
+         * store the unwrapped key */
+        return true;
     }
-    return true;
+    else if (verdict == VERDICT_VALID_RESET_V2)
+    {
+        /* Calculate the session ID HMAC for our reply and create reset packet */
+        struct session_id sid = calculate_session_id_hmac(state->peer_session_id,
+                                                          from, hmac, handwindow, 0);
+        reset_packet_id_send(&tas->tls_wrap.opt.packet_id.send);
+        tas->tls_wrap.opt.packet_id.rec.initialized = true;
+        uint8_t header = 0 | (P_CONTROL_HARD_RESET_SERVER_V2 << P_OPCODE_SHIFT);
+        struct buffer buf = tls_reset_standalone(tas, &sid,
+                                                 &state->peer_session_id, header);
+
+
+        struct context *c = &m->top;
+
+        buf_reset_len(&c->c2.buffers->aux_buf);
+        buf_copy(&c->c2.buffers->aux_buf, &buf);
+        m->hmac_reply = c->c2.buffers->aux_buf;
+        m->hmac_reply_dest = &m->top.c2.from;
+        msg(D_MULTI_DEBUG, "Reset packet from client, sending HMAC based reset challenge");
+        /* We have a reply do not create a new session */
+        return false;
+
+    }
+    else if (verdict == VERDICT_VALID_CONTROL_V1 || verdict == VERDICT_VALID_ACK_V1)
+    {
+        /* ACK_V1 contains the peer id (our id) while CONTROL_V1 can but does not
+         * need to contain the peer id */
+        struct gc_arena gc = gc_new();
+
+        bool ret = check_session_id_hmac(state, from, hmac, handwindow);
+
+        const char *peer = print_link_socket_actual(&m->top.c2.from, &gc);
+        if (!ret)
+        {
+            msg(D_MULTI_MEDIUM, "Packet with invalid or missing SID from %s", peer);
+        }
+        else
+        {
+            msg(D_MULTI_DEBUG, "Valid packet with HMAC challenge from peer (%s), "
+                "accepting new connection.", peer);
+        }
+        gc_free(&gc);
+
+        return ret;
+    }
+
+    /* VERDICT_INVALID */
+    return false;
 }
 
 /*
@@ -114,10 +169,19 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
                 mi = (struct multi_instance *) he->value;
             }
         }
+
+        /* we have no existing multi instance for this connection */
         if (!mi)
         {
-            if (do_pre_decrypt_check(m))
+            struct tls_pre_decrypt_state state = {0};
+
+            if (do_pre_decrypt_check(m, &state, real))
             {
+                /* This is an unknown session but with valid tls-auth/tls-crypt
+                 * (or no auth at all).  If this is the initial packet of a 
+                 * session, we just send a reply with a HMAC session id and 
+                 * do not generate a session slot */
+
                 if (frequency_limit_event_allowed(m->new_connection_limiter))
                 {
                     mi = multi_create_instance(m, &real);
@@ -127,6 +191,15 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
                         mi->did_real_hash = true;
                         multi_assign_peer_id(m, mi);
                     }
+                    /* If we have a session id already, ensure that the 
+                     * state is using the same */
+                    if (session_id_defined(&state.server_session_id)
+                        && session_id_defined((&state.peer_session_id)))
+                    {
+                        mi->context.c2.tls_multi->n_sessions++;
+                        struct tls_session *session = &mi->context.c2.tls_multi->session[TM_ACTIVE];
+                        session_skip_to_pre_start(session, &state, &m->top.c2.from);
+                    }
                 }
                 else
                 {
@@ -135,6 +208,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
                         mroute_addr_print(&real, &gc));
                 }
             }
+            free_tls_pre_decrypt_state(&state);
         }
 
 #ifdef ENABLE_DEBUG
@@ -155,7 +229,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
 }
 
 /*
- * Send a packet to TCP/UDP socket.
+ * Send a packet to UDP socket.
  */
 static inline void
 multi_process_outgoing_link(struct multi_context *m, const unsigned int mpp_flags)
@@ -164,6 +238,14 @@ multi_process_outgoing_link(struct multi_context *m, const unsigned int mpp_flag
     if (mi)
     {
         multi_process_outgoing_link_dowork(m, mi, mpp_flags);
+    }
+    if (m->hmac_reply_dest && m->hmac_reply.len > 0)
+    {
+        msg_set_prefix("Connection Attempt");
+        m->top.c2.to_link = m->hmac_reply;
+        m->top.c2.to_link_addr = m->hmac_reply_dest;
+        process_outgoing_link(&m->top);
+        m->hmac_reply_dest = NULL;
     }
 }
 
@@ -272,6 +354,10 @@ p2mp_iow_flags(const struct multi_context *m)
     {
         flags |= IOW_MBUF;
     }
+    else if (m->hmac_reply_dest)
+    {
+        flags |= IOW_TO_LINK;
+    }
     else
     {
         flags |= IOW_READ;
@@ -364,4 +450,3 @@ tunnel_server_udp(struct context *top)
     multi_top_free(&multi);
     close_instance(top);
 }
-

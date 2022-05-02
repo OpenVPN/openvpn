@@ -330,6 +330,12 @@ struct context_2
      *   received from a new client.  See the
      *   \c --tls-auth commandline option. */
 
+
+    hmac_ctx_t *session_id_hmac;
+    /**< the HMAC we use to generate and verify our syn cookie like
+     * session ids from the server.
+     */
+
     /* used to optimize calls to tls_multi_process */
     struct interval tmp_int;
 

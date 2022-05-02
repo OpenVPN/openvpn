@@ -1285,6 +1285,9 @@ tls_auth_standalone_init(struct tls_options *tls_options,
     /* get initial frame parms, still need to finalize */
     tas->frame = tls_options->frame;
 
+    packet_id_init(&tas->tls_wrap.opt.packet_id, tls_options->replay_window, 
+                   tls_options->replay_time, "TAS", 0);
+
     return tas;
 }
 
@@ -2398,13 +2401,13 @@ auth_deferred_expire_window(const struct tls_options *o)
 
 /**
  * Move the session from S_INITIAL to S_PRE_START. This will also generate
- * the intial message based on ks->initial_opcode
+ * the initial message based on ks->initial_opcode
  *
  * @return if the state change was succesful
  */
 static bool
 session_move_pre_start(const struct tls_session *session,
-                       struct key_state *ks)
+                       struct key_state *ks, bool skip_initial_send)
 {
     struct buffer *buf = reliable_get_buf_output_sequenced(ks->send_reliable);
     if (!buf)
@@ -2418,6 +2421,13 @@ session_move_pre_start(const struct tls_session *session,
 
     /* null buffer */
     reliable_mark_active_outgoing(ks->send_reliable, buf, ks->initial_opcode);
+
+    /* If we want to skip sending the initial handshake packet we still generate
+     * it to increase internal counters etc. but immediately mark it as done */
+    if (skip_initial_send)
+    {
+        reliable_mark_deleted(ks->send_reliable, buf);
+    }
     INCR_GENERATED;
 
     ks->state = S_PRE_START;
@@ -2491,6 +2501,30 @@ session_move_active(struct tls_multi *multi, struct tls_session *session,
 #endif
 }
 
+bool
+session_skip_to_pre_start(struct tls_session *session,
+                          struct tls_pre_decrypt_state *state,
+                          struct link_socket_actual *from)
+{
+    struct key_state *ks = &session->key[KS_PRIMARY];
+    ks->session_id_remote = state->peer_session_id;
+    ks->remote_addr = *from;
+    session->session_id = state->server_session_id;
+    session->untrusted_addr = *from;
+    session->burst = true;
+
+    /* The OpenVPN protocol implicitly mandates that packet id always start
+     * from 0 in the RESET packets as OpenVPN 2.x will not allow gaps in the
+     * ids and starts always from 0. Since we skip/ignore one (RESET) packet
+     * in each direction, we need to set the ids to 1 */
+    ks->rec_reliable->packet_id = 1;
+    /* for ks->send_reliable->packet_id, session_move_pre_start moves the
+     * counter to 1 */
+    session->tls_wrap.opt.packet_id.send.id = 1;
+    return session_move_pre_start(session, ks, true);
+}
+
+
 
 static bool
 tls_process_state(struct tls_multi *multi,
@@ -2506,7 +2540,7 @@ tls_process_state(struct tls_multi *multi,
     /* Initial handshake */
     if (ks->state == S_INITIAL)
     {
-        state_change = session_move_pre_start(session, ks);
+        state_change = session_move_pre_start(session, ks, false);
     }
 
     /* Are we timed out on receive? */

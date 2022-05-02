@@ -556,4 +556,12 @@ tls_session_generate_data_channel_keys(struct tls_session *session);
 void
 load_xkey_provider(void);
 
+/* Special method to skip the three way handshake RESET stages. This is
+ * used by the HMAC code when seeing a packet that matches the previous
+ * HMAC based stateless server state */
+bool
+session_skip_to_pre_start(struct tls_session *session,
+                          struct tls_pre_decrypt_state *state,
+                          struct link_socket_actual *from);
+
 #endif /* ifndef OPENVPN_SSL_H */

@@ -44,6 +44,7 @@
 
 #include "mock_msg.h"
 #include "mss.h"
+#include "reliable.h"
 
 int
 parse_line(const char *line, char **p, const int n, const char *file,
@@ -151,6 +152,21 @@ const uint8_t client_ack_tls_auth_randomid[] = {
     0x56, 0x33, 0x6b
 };
 
+/* This is a truncated packet as we do not care for the TLS payload in the
+ * unit test */
+const uint8_t client_control_with_ack[] = {
+    0x20, 0x78, 0x19, 0xbf, 0x2e, 0xbc, 0xd1, 0x9a,
+    0x45, 0x01, 0x00, 0x00, 0x00, 0x00, 0xea,
+    0xfe,0xbf, 0xa4, 0x41, 0x8a, 0xe3, 0x1b,
+    0x00, 0x00, 0x00, 0x01, 0x16, 0x03, 0x01
+};
+
+const uint8_t client_ack_none_random_id[] = {
+    0x28, 0xae, 0xb9, 0xaf, 0xe1, 0xf0, 0x1d, 0x79,
+    0xc8, 0x01, 0x00, 0x00, 0x00, 0x00, 0xdd,
+    0x85, 0xdb, 0x53, 0x56, 0x23, 0xb0, 0x2e
+};
+
 struct tls_auth_standalone
 init_tas_auth(int key_direction)
 {
@@ -168,6 +184,7 @@ init_tas_auth(int key_direction)
     crypto_read_openvpn_key(&tls_crypt_kt, &tas.tls_wrap.opt.key_ctx_bi,
                             static_key, true, key_direction,
                             "Control Channel Authentication", "tls-auth");
+
     return tas;
 }
 
@@ -210,7 +227,7 @@ test_tls_decrypt_lite_crypt(void **ut_state)
     buf_reset_len(&buf);
     buf_write(&buf, client_reset_v2_tls_crypt, sizeof(client_reset_v2_tls_crypt));
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
-    assert_int_equal(verdict, VERDICT_VALID_RESET);
+    assert_int_equal(verdict, VERDICT_VALID_RESET_V2);
     free_tls_pre_decrypt_state(&state);
 
     /* flip a byte in various places */
@@ -251,17 +268,19 @@ test_tls_decrypt_lite_auth(void **ut_state)
     buf_reset_len(&buf);
     buf_write(&buf, client_reset_v2_tls_auth, sizeof(client_reset_v2_tls_auth));
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
-    assert_int_equal(verdict, VERDICT_VALID_RESET);
+    assert_int_equal(verdict, VERDICT_VALID_RESET_V2);
+    free_tls_pre_decrypt_state(&state);
 
     free_tls_pre_decrypt_state(&state);
     /* The pre decrypt function should not modify the buffer, so calling it
      * again should have the same result */
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
-    assert_int_equal(verdict, VERDICT_VALID_RESET);
+    assert_int_equal(verdict, VERDICT_VALID_RESET_V2);
     free_tls_pre_decrypt_state(&state);
 
     /* and buf memory should be equal */
     assert_memory_equal(BPTR(&buf), client_reset_v2_tls_auth, sizeof(client_reset_v2_tls_auth));
+    free_tls_pre_decrypt_state(&state);
 
     buf_reset_len(&buf);
     buf_write(&buf, client_ack_tls_auth_randomid, sizeof(client_ack_tls_auth_randomid));
@@ -273,6 +292,7 @@ test_tls_decrypt_lite_auth(void **ut_state)
     BPTR(&buf)[20] = 0x23;
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
     assert_int_equal(verdict, VERDICT_INVALID);
+    free_tls_pre_decrypt_state(&state);
 
     free_tls_pre_decrypt_state(&state);
     /* Wrong key direction gives a wrong hmac key and should not validate */
@@ -304,19 +324,21 @@ test_tls_decrypt_lite_none(void **ut_state)
     /* the method will not do additional test, so the tls-auth and tls-crypt
      * reset will be accepted */
     enum first_packet_verdict verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
-    assert_int_equal(verdict, VERDICT_VALID_RESET);
+    assert_int_equal(verdict, VERDICT_VALID_RESET_V2);
     free_tls_pre_decrypt_state(&state);
 
     buf_reset_len(&buf);
     buf_write(&buf, client_reset_v2_none, sizeof(client_reset_v2_none));
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
-    assert_int_equal(verdict, VERDICT_VALID_RESET);
+    assert_int_equal(verdict, VERDICT_VALID_RESET_V2);
+    free_tls_pre_decrypt_state(&state);
 
     free_tls_pre_decrypt_state(&state);
     buf_reset_len(&buf);
     buf_write(&buf, client_reset_v2_tls_crypt, sizeof(client_reset_v2_none));
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
-    assert_int_equal(verdict, VERDICT_VALID_RESET);
+    assert_int_equal(verdict, VERDICT_VALID_RESET_V2);
+    free_tls_pre_decrypt_state(&state);
 
     free_tls_pre_decrypt_state(&state);
 
@@ -325,8 +347,175 @@ test_tls_decrypt_lite_none(void **ut_state)
     buf_write(&buf, client_ack_tls_auth_randomid, sizeof(client_ack_tls_auth_randomid));
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
     assert_int_equal(verdict, VERDICT_VALID_CONTROL_V1);
+
     free_tls_pre_decrypt_state(&state);
     free_buf(&buf);
+}
+
+static void
+test_parse_ack(void **ut_state)
+{
+    struct buffer buf = alloc_buf(1024);
+    buf_write(&buf, client_control_with_ack, sizeof(client_control_with_ack));
+
+    /* skip over op code and peer session id */
+    buf_advance(&buf, 9);
+
+    struct reliable_ack ack;
+    struct session_id sid;
+    bool ret;
+
+    ret = reliable_ack_parse(&buf, &ack, &sid);
+    assert_true(ret);
+
+    assert_int_equal(ack.len, 1);
+    assert_int_equal(ack.packet_id[0], 0);
+
+    struct session_id expected_id = { .id = {0xea, 0xfe, 0xbf, 0xa4, 0x41, 0x8a, 0xe3, 0x1b }};
+    assert_memory_equal(&sid, &expected_id, SID_SIZE);
+
+    buf_reset_len(&buf);
+    buf_write(&buf, client_ack_none_random_id, sizeof(client_ack_none_random_id));
+
+    /* skip over op code and peer session id */
+    buf_advance(&buf, 9);
+    ret = reliable_ack_parse(&buf, &ack, &sid);
+    assert_true(ret);
+
+    assert_int_equal(ack.len, 1);
+    assert_int_equal(ack.packet_id[0], 0);
+
+    struct session_id expected_id2 = { .id = {0xdd, 0x85, 0xdb, 0x53, 0x56, 0x23, 0xb0, 0x2e }};
+    assert_memory_equal(&sid, &expected_id2, SID_SIZE);
+
+    buf_reset_len(&buf);
+    buf_write(&buf, client_reset_v2_none, sizeof(client_reset_v2_none));
+
+    /* skip over op code and peer session id */
+    buf_advance(&buf, 9);
+    ret = reliable_ack_parse(&buf, &ack, &sid);
+
+    free_buf(&buf);
+}
+
+static void
+test_verify_hmac_tls_auth(void **ut_state)
+{
+    hmac_ctx_t *hmac = session_id_hmac_init();
+
+    struct link_socket_actual from = { 0 };
+    struct tls_auth_standalone tas = { 0 };
+    struct tls_pre_decrypt_state state = { 0 };
+
+    struct buffer buf = alloc_buf(1024);
+    enum first_packet_verdict verdict;
+
+    tas = init_tas_auth(KEY_DIRECTION_NORMAL);
+
+    buf_reset_len(&buf);
+    buf_write(&buf, client_ack_tls_auth_randomid, sizeof(client_ack_tls_auth_randomid));
+    verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
+    assert_int_equal(verdict, VERDICT_VALID_CONTROL_V1);
+
+    /* This is a valid packet but containing a random id instead of an HMAC id*/
+    bool valid = check_session_id_hmac(&state, &from.dest, hmac, 30);
+    assert_false(valid);
+
+    free_key_ctx_bi(&tas.tls_wrap.opt.key_ctx_bi);
+    free_key_ctx(&tas.tls_wrap.tls_crypt_v2_server_key);
+    free_tls_pre_decrypt_state(&state);
+    free_buf(&buf);
+    hmac_ctx_cleanup(hmac);
+    hmac_ctx_free(hmac);
+}
+
+static void
+test_verify_hmac_none(void **ut_state)
+{
+    hmac_ctx_t *hmac = session_id_hmac_init();
+
+    struct link_socket_actual from = { 0 };
+    struct tls_auth_standalone tas = { 0 };
+    struct tls_pre_decrypt_state state = { 0 };
+
+    struct buffer buf = alloc_buf(1024);
+    enum first_packet_verdict verdict;
+
+    tas.tls_wrap.mode = TLS_WRAP_NONE;
+
+    buf_reset_len(&buf);
+    buf_write(&buf, client_ack_none_random_id, sizeof(client_ack_none_random_id));
+    verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
+    assert_int_equal(verdict, VERDICT_VALID_ACK_V1);
+
+    bool valid = check_session_id_hmac(&state, &from.dest, hmac, 30);
+    assert_true(valid);
+
+    free_tls_pre_decrypt_state(&state);
+    free_buf(&buf);
+    hmac_ctx_cleanup(hmac);
+    hmac_ctx_free(hmac);
+}
+
+static hmac_ctx_t *
+init_static_hmac(void)
+{
+    ASSERT(md_valid("SHA256"));
+    hmac_ctx_t *hmac_ctx = hmac_ctx_new();
+
+    uint8_t key[SHA256_DIGEST_LENGTH] = {1, 2, 3};
+
+    hmac_ctx_init(hmac_ctx, key, "SHA256");
+    return hmac_ctx;
+}
+
+static void
+test_calc_session_id_hmac_static(void **ut_state)
+{
+    hmac_ctx_t *hmac = init_static_hmac();
+    static const int handwindow = 100;
+
+    struct openvpn_sockaddr addr = {0 };
+
+    /* we do not use htons functions here since the hmac calculate function
+     * also does not care about the endianness of the data but just assumes
+     * the endianness doesn't change between calls */
+    addr.addr.in4.sin_family = AF_INET;
+    addr.addr.in4.sin_addr.s_addr = 0xff000ff;
+    addr.addr.in4.sin_port = 1194;
+
+
+    struct session_id client_id = { {0, 1, 2, 3, 4, 5, 6, 7}};
+
+    now = 1005;
+    struct session_id server_id = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 0);
+
+    struct session_id expected_server_id = { {0xba,  0x83, 0xa9, 0x00, 0x72, 0xbd,0x93, 0xba }};
+    assert_memory_equal(expected_server_id.id, server_id.id, SID_SIZE);
+
+    struct session_id server_id_m1 = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, -1);
+    struct session_id server_id_p1 = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 1);
+    struct session_id server_id_p2 = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 2);
+
+    assert_memory_not_equal(expected_server_id.id, server_id_m1.id, SID_SIZE);
+    assert_memory_not_equal(expected_server_id.id, server_id_p1.id, SID_SIZE);
+
+    /* changing the time puts us into the next hmac time window (handwindow/2=50)
+     * and shifts the ids by one */
+    now = 1062;
+
+    struct session_id server_id2_m2 = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, -2);
+    struct session_id server_id2_m1 = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, -1);
+    struct session_id server_id2 = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 0);
+    struct session_id server_id2_p1 = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 1);
+
+    assert_memory_equal(server_id2_m2.id, server_id_m1.id, SID_SIZE);
+    assert_memory_equal(server_id2_m1.id, expected_server_id.id, SID_SIZE);
+    assert_memory_equal(server_id2.id, server_id_p1.id, SID_SIZE);
+    assert_memory_equal(server_id2_p1.id, server_id_p2.id, SID_SIZE);
+
+    hmac_ctx_cleanup(hmac);
+    hmac_ctx_free(hmac);
 }
 
 static void
@@ -351,7 +540,7 @@ test_generate_reset_packet_plain(void **ut_state)
 
 
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
-    assert_int_equal(verdict, VERDICT_VALID_RESET);
+    assert_int_equal(verdict, VERDICT_VALID_RESET_V2);
 
     /* Assure repeated generation of reset is deterministic/stateless*/
     assert_memory_equal(state.peer_session_id.id, client_id.id, SID_SIZE);
@@ -385,7 +574,7 @@ test_generate_reset_packet_tls_auth(void **ut_state)
     struct buffer buf = tls_reset_standalone(&tas_client, &client_id, &server_id, header);
 
     enum first_packet_verdict verdict = tls_pre_decrypt_lite(&tas_server, &state, &from, &buf);
-    assert_int_equal(verdict, VERDICT_VALID_RESET);
+    assert_int_equal(verdict, VERDICT_VALID_RESET_V2);
 
     assert_memory_equal(state.peer_session_id.id, client_id.id, SID_SIZE);
 
@@ -395,7 +584,6 @@ test_generate_reset_packet_tls_auth(void **ut_state)
     assert_int_equal(BLEN(&buf), BLEN(&buf2));
     assert_memory_equal(BPTR(&buf), BPTR(&buf2), BLEN(&buf));
     free_buf(&buf2);
-
 
     free_tls_pre_decrypt_state(&state);
 
@@ -414,6 +602,10 @@ main(void)
         cmocka_unit_test(test_tls_decrypt_lite_none),
         cmocka_unit_test(test_tls_decrypt_lite_auth),
         cmocka_unit_test(test_tls_decrypt_lite_crypt),
+        cmocka_unit_test(test_parse_ack),
+        cmocka_unit_test(test_calc_session_id_hmac_static),
+        cmocka_unit_test(test_verify_hmac_none),
+        cmocka_unit_test(test_verify_hmac_tls_auth),
         cmocka_unit_test(test_generate_reset_packet_plain),
         cmocka_unit_test(test_generate_reset_packet_tls_auth),
     };
