@@ -532,7 +532,7 @@ platform_test_file(const char *filename)
         }
         else
         {
-            if (openvpn_errno() == EACCES)
+            if (errno == EACCES)
             {
                 msg( M_WARN | M_ERRNO, "Could not access file '%s'", filename);
             }

@@ -2008,9 +2008,10 @@ man_process_command(struct management *man, const char *line)
 static bool
 man_io_error(struct management *man, const char *prefix)
 {
-    const int err = openvpn_errno();
+    bool crt_error = false;
+    int err = openvpn_errno_maybe_crt(&crt_error);
 
-    if (!ignore_sys_error(err))
+    if (!ignore_sys_error(err, crt_error))
     {
         struct gc_arena gc = gc_new();
         msg(D_MANAGEMENT, "MANAGEMENT: TCP %s error: %s", prefix,
