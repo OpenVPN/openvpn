@@ -2614,6 +2614,32 @@ control_packet_needs_wkc(const struct key_state *ks)
 
 
 static bool
+read_incoming_tls_plaintext(struct key_state *ks, struct buffer *buf,
+                            interval_t *wakeup, bool *state_change)
+{
+    ASSERT(buf_init(buf, 0));
+
+    int status = key_state_read_plaintext(&ks->ks_ssl, buf, TLS_CHANNEL_BUF_SIZE);
+
+    update_time();
+    if (status == -1)
+    {
+        msg(D_TLS_ERRORS, "TLS Error: TLS object -> incoming plaintext read error");
+        return false;
+    }
+    if (status == 1)
+    {
+        *state_change = true;
+        dmsg(D_TLS_DEBUG, "TLS -> Incoming Plaintext");
+
+        /* More data may be available, wake up again asap to check. */
+        *wakeup = 0;
+    }
+    return true;
+}
+
+
+static bool
 tls_process_state(struct tls_multi *multi,
                   struct tls_session *session,
                   struct buffer *to_link,
@@ -2705,23 +2731,9 @@ tls_process_state(struct tls_multi *multi,
     struct buffer *buf = &ks->plaintext_read_buf;
     if (!buf->len)
     {
-        int status;
-
-        ASSERT(buf_init(buf, 0));
-        status = key_state_read_plaintext(&ks->ks_ssl, buf, TLS_CHANNEL_BUF_SIZE);
-        update_time();
-        if (status == -1)
+        if (!read_incoming_tls_plaintext(ks, buf, wakeup, &state_change))
         {
-            msg(D_TLS_ERRORS, "TLS Error: TLS object -> incoming plaintext read error");
             goto error;
-        }
-        if (status == 1)
-        {
-            state_change = true;
-            dmsg(D_TLS_DEBUG, "TLS -> Incoming Plaintext");
-
-            /* More data may be available, wake up again asap to check. */
-            *wakeup = 0;
         }
     }
 
