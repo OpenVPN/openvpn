@@ -220,6 +220,18 @@ x_msg(const unsigned int flags, const char *format, ...)
     va_end(arglist);
 }
 
+static const char*
+openvpn_strerror(int err, bool crt_error, struct gc_arena *gc)
+{
+#ifdef _WIN32
+    if (!crt_error)
+    {
+        return strerror_win32(err, gc);
+    }
+#endif
+    return strerror(err);
+}
+
 void
 x_msg_va(const unsigned int flags, const char *format, va_list arglist)
 {
@@ -244,7 +256,8 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
     }
 #endif
 
-    e = openvpn_errno();
+    bool crt_error = false;
+    e = openvpn_errno_maybe_crt(&crt_error);
 
     /*
      * Apply muting filter.
@@ -268,7 +281,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
     if ((flags & M_ERRNO) && e)
     {
         openvpn_snprintf(m2, ERR_BUF_SIZE, "%s: %s (errno=%d)",
-                         m1, strerror(e), e);
+                         m1, openvpn_strerror(e, crt_error, &gc), e);
         SWAP;
     }
 
@@ -649,7 +662,6 @@ x_check_status(int status,
                struct link_socket *sock,
                struct tuntap *tt)
 {
-    const int my_errno = openvpn_errno();
     const char *extended_msg = NULL;
 
     msg(x_cs_verbose_level, "%s %s returned %d",
@@ -672,26 +684,32 @@ x_check_status(int status,
                 sock->info.mtu_changed = true;
             }
         }
-#elif defined(_WIN32)
+#endif /* EXTENDED_SOCKET_ERROR_CAPABILITY */
+
+#ifdef _WIN32
         /* get possible driver error from TAP-Windows driver */
         if (tuntap_defined(tt))
         {
             extended_msg = tap_win_getinfo(tt, &gc);
         }
 #endif
-        if (!ignore_sys_error(my_errno))
+
+        bool crt_error = false;
+        int my_errno = openvpn_errno_maybe_crt(&crt_error);
+
+        if (!ignore_sys_error(my_errno, crt_error))
         {
             if (extended_msg)
             {
                 msg(x_cs_info_level, "%s %s [%s]: %s (code=%d)", description,
                     sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
-                    extended_msg, strerror(my_errno), my_errno);
+                    extended_msg, openvpn_strerror(my_errno, crt_error, &gc), my_errno);
             }
             else
             {
                 msg(x_cs_info_level, "%s %s: %s (code=%d)", description,
                     sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
-                    strerror(my_errno), my_errno);
+                    openvpn_strerror(my_errno, crt_error, &gc), my_errno);
             }
 
             if (x_cs_err_delay_ms)

@@ -461,7 +461,7 @@ tuntap_stop(int status)
      */
     if (status < 0)
     {
-        return openvpn_errno() == ERROR_FILE_NOT_FOUND;
+        return GetLastError() == ERROR_FILE_NOT_FOUND;
     }
     return false;
 }
@@ -474,7 +474,7 @@ tuntap_abort(int status)
      */
     if (status < 0)
     {
-        return openvpn_errno() == ERROR_OPERATION_ABORTED;
+        return GetLastError() == ERROR_OPERATION_ABORTED;
     }
     return false;
 }
