@@ -2426,7 +2426,7 @@ get_frame_mtu(struct context *c, const struct options *o)
 
     if (mtu < TUN_MTU_MIN)
     {
-        msg(M_WARN, "TUN MTU value (%lu) must be at least %d", mtu, TUN_MTU_MIN);
+        msg(M_WARN, "TUN MTU value (%zu) must be at least %d", mtu, TUN_MTU_MIN);
         frame_print(&c->c2.frame, M_FATAL, "MTU is too small");
     }
     return mtu;
