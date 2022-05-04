@@ -2140,10 +2140,6 @@ managment_android_persisttun_action(struct management *man)
     {
         return ANDROID_KEEP_OLD_TUN;
     }
-    else if (!strcmp("OPEN_AFTER_CLOSE", up.password))
-    {
-        return ANDROID_OPEN_AFTER_CLOSE;
-    }
     else if (!strcmp("OPEN_BEFORE_CLOSE", up.password))
     {
         return ANDROID_OPEN_BEFORE_CLOSE;
@@ -2154,7 +2150,7 @@ managment_android_persisttun_action(struct management *man)
     }
 
     ASSERT(0);
-    return ANDROID_OPEN_AFTER_CLOSE;
+    return ANDROID_OPEN_BEFORE_CLOSE;
 }
 
 

@@ -383,8 +383,7 @@ bool management_query_user_pass(struct management *man,
 bool management_android_control(struct management *man, const char *command, const char *msg);
 
 #define ANDROID_KEEP_OLD_TUN 1
-#define ANDROID_OPEN_AFTER_CLOSE 2
-#define ANDROID_OPEN_BEFORE_CLOSE 3
+#define ANDROID_OPEN_BEFORE_CLOSE 2
 int managment_android_persisttun_action(struct management *man);
 
 #endif

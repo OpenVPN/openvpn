@@ -1879,13 +1879,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
     int android_method = managment_android_persisttun_action(management);
 
-    /* Android 4.4 workaround */
-    if (oldtunfd >=0 && android_method == ANDROID_OPEN_AFTER_CLOSE)
-    {
-        close(oldtunfd);
-        management_sleep(2);
-    }
-
     if (oldtunfd >=0  && android_method == ANDROID_KEEP_OLD_TUN)
     {
         /* keep the old fd */
@@ -1900,7 +1893,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         management->connection.lastfdreceived = -1;
     }
 
-    if (oldtunfd>=0 && android_method == ANDROID_OPEN_BEFORE_CLOSE)
+    if (oldtunfd >= 0 && android_method == ANDROID_OPEN_BEFORE_CLOSE)
     {
         close(oldtunfd);
     }
