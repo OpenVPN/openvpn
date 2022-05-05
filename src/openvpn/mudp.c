@@ -178,8 +178,8 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
             if (do_pre_decrypt_check(m, &state, real))
             {
                 /* This is an unknown session but with valid tls-auth/tls-crypt
-                 * (or no auth at all).  If this is the initial packet of a 
-                 * session, we just send a reply with a HMAC session id and 
+                 * (or no auth at all).  If this is the initial packet of a
+                 * session, we just send a reply with a HMAC session id and
                  * do not generate a session slot */
 
                 if (frequency_limit_event_allowed(m->new_connection_limiter))
@@ -191,7 +191,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
                         mi->did_real_hash = true;
                         multi_assign_peer_id(m, mi);
                     }
-                    /* If we have a session id already, ensure that the 
+                    /* If we have a session id already, ensure that the
                      * state is using the same */
                     if (session_id_defined(&state.server_session_id)
                         && session_id_defined((&state.peer_session_id)))

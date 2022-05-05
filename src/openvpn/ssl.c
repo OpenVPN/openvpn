@@ -1285,7 +1285,7 @@ tls_auth_standalone_init(struct tls_options *tls_options,
     /* get initial frame parms, still need to finalize */
     tas->frame = tls_options->frame;
 
-    packet_id_init(&tas->tls_wrap.opt.packet_id, tls_options->replay_window, 
+    packet_id_init(&tas->tls_wrap.opt.packet_id, tls_options->replay_window,
                    tls_options->replay_time, "TAS", 0);
 
     return tas;
