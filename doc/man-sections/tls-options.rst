@@ -486,6 +486,13 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   8000 years'.
 
 --tls-crypt-v2 keyfile
+
+  Valid syntax:
+  ::
+     tls-crypt-v2 keyfile
+     tls-crypt-v2 keyfile force-cookie
+     tls-crypt-v2 keyfile allow-noncookie
+
   Use client-specific tls-crypt keys.
 
   For clients, ``keyfile`` is a client-specific tls-crypt key. Such a key
@@ -500,6 +507,13 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   ``--tls-crypt`` option. In that case, the server will detect whether the
   client is using client-specific keys, and automatically select the right
   mode.
+
+  The optional parameters :code:`force-cookie` allows only tls-crypt-v2
+  clients that support a cookie based stateless three way handshake that
+  avoids replay attacks and state exhaustion on the server side (OpenVPN
+  2.6 and later). The option :code:`allow-noncookie` explicitly allows
+  older tls-crypt-v2 clients. The default is (currently)
+  :code:`allow-noncookie`.
 
 --tls-crypt-v2-verify cmd
   Run command ``cmd`` to verify the metadata of the client-specific

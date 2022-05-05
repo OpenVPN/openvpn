@@ -162,6 +162,9 @@ struct connection_entry
      * authenticated encryption v2 */
     const char *tls_crypt_v2_file;
     bool tls_crypt_v2_file_inline;
+
+    /* Allow only client that support resending the wrapped client key */
+    bool tls_crypt_v2_force_cookie;
 };
 
 struct remote_entry

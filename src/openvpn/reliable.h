@@ -361,8 +361,6 @@ struct reliable_entry *reliable_get_entry_sequenced(struct reliable *rel);
  *
  * @param rel The reliable structure associated with the given buffer.
  * @param buf The buffer of the reliable entry which is to be removed.
- * @param inc_pid If true, the reliable structure's packet ID counter
- *     will be incremented.
  */
 void reliable_mark_deleted(struct reliable *rel, struct buffer *buf);
 

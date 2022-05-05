@@ -54,11 +54,15 @@
 /* indicates key_method >= 2 and client-specific tls-crypt key */
 #define P_CONTROL_HARD_RESET_CLIENT_V3 10    /* initial key from client, forget previous state */
 
+/* Variant of P_CONTROL_V1 but with appended wrapped key
+ * like P_CONTROL_HARD_RESET_CLIENT_V3 */
+#define P_CONTROL_WKC_V1               11
+
 /* define the range of legal opcodes
  * Since we do no longer support key-method 1 we consider
  * the v1 op codes invalid */
 #define P_FIRST_OPCODE                 3
-#define P_LAST_OPCODE                  10
+#define P_LAST_OPCODE                  11
 
 /*
  * Define number of buffers for send and receive in the reliability layer.
@@ -86,6 +90,8 @@ enum first_packet_verdict {
     /** This packet is a valid ACK control packet from the peer,
      * i.e. it has a valid session id hmac in it */
     VERDICT_VALID_ACK_V1,
+    /** The packet is a valid control packet with appended wrapped client key */
+    VERDICT_VALID_WKC_V1,
     /** the packet failed on of the various checks */
     VERDICT_INVALID
 };
@@ -217,10 +223,12 @@ read_control_auth(struct buffer *buf,
  * The returned buf needs to be free with \c free_buf
  */
 struct buffer
-tls_reset_standalone(struct tls_auth_standalone *tas,
+tls_reset_standalone(struct tls_wrap_ctx *ctx,
+                     struct tls_auth_standalone *tas,
                      struct session_id *own_sid,
                      struct session_id *remote_sid,
-                     uint8_t header);
+                     uint8_t header,
+                     bool request_resend_wkc);
 
 static inline const char *
 packet_opcode_name(int op)
@@ -248,6 +256,9 @@ packet_opcode_name(int op)
         case P_CONTROL_V1:
             return "P_CONTROL_V1";
 
+        case P_CONTROL_WKC_V1:
+            return "P_CONTROL_WKC_V1";
+
         case P_ACK_V1:
             return "P_ACK_V1";
 
@@ -261,4 +272,20 @@ packet_opcode_name(int op)
             return "P_???";
     }
 }
+
+/* initial packet id (instead of 0) that indicates that the peer supports
+ * early protocol negotiation. This will make the packet id turn a bit faster
+ * but the network time part of the packet id takes care of that. And
+ * this is also a rather theoretical scenario as it still needs more than
+ * 2^31 control channel packets to happen */
+#define EARLY_NEG_MASK          0xff000000
+#define EARLY_NEG_START         0x0f000000
+
+
+/* Early negotiation that part of the server response in the RESET_V2 packet.
+ * Since clients that announce early negotiation support will treat the payload
+ * of reset packets special and parse it as TLV messages.
+ * as TLV (type, length, value) */
+#define TLV_TYPE_EARLY_NEG_FLAGS        0x0001
+#define EARLY_NEG_FLAG_RESEND_WKC       0x0001
 #endif /* ifndef SSL_PKT_H */

@@ -2960,6 +2960,10 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         {
             to.tls_wrap.tls_crypt_v2_server_key = c->c1.ks.tls_crypt_v2_server_key;
             to.tls_crypt_v2_verify_script = c->options.tls_crypt_v2_verify_script;
+            if (options->ce.tls_crypt_v2_force_cookie)
+            {
+                to.tls_wrap.opt.flags |= CO_FORCE_TLSCRYPTV2_COOKIE;
+            }
         }
     }
 

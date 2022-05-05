@@ -256,6 +256,14 @@ struct crypto_options
     /**< Bit-flag indicating that data channel key derivation
      * is done using TLS keying material export [RFC5705]
      */
+#define CO_RESEND_WKC (1<<4)
+    /**< Bit-flag indicating that the client is expected to
+     * resend the wrapped client key with the 2nd packet (packet-id 1)
+     * like with the HARD_RESET_CLIENT_V3 packet */
+#define CO_FORCE_TLSCRYPTV2_COOKIE  (1<<5)
+    /**< Bit-flag indicating that we do not allow clients that do
+     * not support resending the wrapped client key (WKc) with the
+     * third packet of the three-way handshake */
     unsigned int flags;         /**< Bit-flags determining behavior of
                                  *   security operation functions. */
 };

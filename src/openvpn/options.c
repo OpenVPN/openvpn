@@ -8896,6 +8896,19 @@ add_option(struct options *options,
             options->ce.tls_crypt_v2_file = p[1];
             options->ce.tls_crypt_v2_file_inline = is_inline;
         }
+
+        if (p[2] && streq(p[2], "force-cookie"))
+        {
+            options->ce.tls_crypt_v2_force_cookie = true;
+        }
+        else if (p[2] && streq(p[2], "allow-noncookie"))
+        {
+            options->ce.tls_crypt_v2_force_cookie = false;
+        }
+        else if (p[2])
+        {
+            msg(msglevel, "Unsupported tls-crypt-v2 argument: %s", p[2]);
+        }
     }
     else if (streq(p[0], "tls-crypt-v2-verify") && p[1] && !p[2])
     {

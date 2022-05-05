@@ -40,7 +40,31 @@
 #include <sys/inotify.h>
 #endif
 
-/* Return true if this packet should create a new session */
+static void
+send_hmac_reset_packet(struct multi_context *m,
+                       struct tls_pre_decrypt_state *state,
+                       struct tls_auth_standalone *tas,
+                       struct session_id *sid,
+                       bool request_resend_wkc)
+{
+    reset_packet_id_send(&state->tls_wrap_tmp.opt.packet_id.send);
+    state->tls_wrap_tmp.opt.packet_id.rec.initialized = true;
+    uint8_t header = 0 | (P_CONTROL_HARD_RESET_SERVER_V2 << P_OPCODE_SHIFT);
+    struct buffer buf = tls_reset_standalone(&state->tls_wrap_tmp, tas, sid,
+                                             &state->peer_session_id, header,
+                                             request_resend_wkc);
+
+    struct context *c = &m->top;
+
+    buf_reset_len(&c->c2.buffers->aux_buf);
+    buf_copy(&c->c2.buffers->aux_buf, &buf);
+    m->hmac_reply = c->c2.buffers->aux_buf;
+    m->hmac_reply_dest = &m->top.c2.from;
+    msg(D_MULTI_DEBUG, "Reset packet from client, sending HMAC based reset challenge");
+}
+
+
+/* Returns true if this packet should create a new session */
 static bool
 do_pre_decrypt_check(struct multi_context *m,
                      struct tls_pre_decrypt_state *state,
@@ -58,37 +82,64 @@ do_pre_decrypt_check(struct multi_context *m,
     struct openvpn_sockaddr *from = &m->top.c2.from.dest;
     int handwindow = m->top.options.handshake_window;
 
-
     if (verdict == VERDICT_VALID_RESET_V3)
     {
-        /* For tls-crypt-v2 we need to keep the state of the first packet to
-         * store the unwrapped key */
-        return true;
+        /* Extract the packet id to check if it has the special format that
+         * indicates early negotiation support */
+        struct packet_id_net pin;
+        struct buffer tmp = m->top.c2.buf;
+        ASSERT(buf_advance(&tmp, 1 + SID_SIZE));
+        ASSERT(packet_id_read(&pin, &tmp, true));
+
+        /* The most significant byte is 0x0f if early negotiation is supported */
+        bool early_neg_support = (pin.id & EARLY_NEG_MASK) == EARLY_NEG_START;
+
+        /* All clients that support early negotiation and tls-crypt are assumed
+         * to also support resending the WKc in the 2nd packet */
+        if (early_neg_support)
+        {
+            /* Calculate the session ID HMAC for our reply and create reset packet */
+            struct session_id sid = calculate_session_id_hmac(state->peer_session_id,
+                                                              from, hmac, handwindow, 0);
+            send_hmac_reset_packet(m, state, tas, &sid, true);
+
+            return false;
+        }
+        else
+        {
+            /* For tls-crypt-v2 we need to keep the state of the first packet
+             * to store the unwrapped key if the client doesn't support resending
+             * the wrapped key. Unless the user specifically disallowed
+             * compatibility with such clients to avoid state exhaustion */
+            if (tas->tls_wrap.opt.flags & CO_FORCE_TLSCRYPTV2_COOKIE)
+            {
+                struct gc_arena gc = gc_new();
+                const char *peer = print_link_socket_actual(&m->top.c2.from, &gc);
+                msg(D_MULTI_DEBUG, "tls-crypt-v2 force-cookie is enabled, "
+                    "ignoring connection attempt from old client (%s)", peer);
+                gc_free(&gc);
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
     }
     else if (verdict == VERDICT_VALID_RESET_V2)
     {
         /* Calculate the session ID HMAC for our reply and create reset packet */
         struct session_id sid = calculate_session_id_hmac(state->peer_session_id,
                                                           from, hmac, handwindow, 0);
-        reset_packet_id_send(&tas->tls_wrap.opt.packet_id.send);
-        tas->tls_wrap.opt.packet_id.rec.initialized = true;
-        uint8_t header = 0 | (P_CONTROL_HARD_RESET_SERVER_V2 << P_OPCODE_SHIFT);
-        struct buffer buf = tls_reset_standalone(tas, &sid,
-                                                 &state->peer_session_id, header);
 
+        send_hmac_reset_packet(m, state, tas, &sid, false);
 
-        struct context *c = &m->top;
-
-        buf_reset_len(&c->c2.buffers->aux_buf);
-        buf_copy(&c->c2.buffers->aux_buf, &buf);
-        m->hmac_reply = c->c2.buffers->aux_buf;
-        m->hmac_reply_dest = &m->top.c2.from;
-        msg(D_MULTI_DEBUG, "Reset packet from client, sending HMAC based reset challenge");
         /* We have a reply do not create a new session */
         return false;
 
     }
-    else if (verdict == VERDICT_VALID_CONTROL_V1 || verdict == VERDICT_VALID_ACK_V1)
+    else if (verdict == VERDICT_VALID_CONTROL_V1 || verdict == VERDICT_VALID_ACK_V1
+             || verdict == VERDICT_VALID_WKC_V1)
     {
         /* ACK_V1 contains the peer id (our id) while CONTROL_V1 can but does not
          * need to contain the peer id */

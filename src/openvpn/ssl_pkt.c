@@ -148,7 +148,8 @@ tls_wrap_control(struct tls_wrap_ctx *ctx, uint8_t header, struct buffer *buf,
             return;
         }
 
-        if ((header >> P_OPCODE_SHIFT) == P_CONTROL_HARD_RESET_CLIENT_V3)
+        if ((header >> P_OPCODE_SHIFT) == P_CONTROL_HARD_RESET_CLIENT_V3
+            || (header >> P_OPCODE_SHIFT) == P_CONTROL_WKC_V1)
         {
             if (!buf_copy(&ctx->work,
                           ctx->tls_crypt_v2_wkc))
@@ -197,7 +198,8 @@ read_control_auth(struct buffer *buf,
     bool ret = false;
 
     const uint8_t opcode = *(BPTR(buf)) >> P_OPCODE_SHIFT;
-    if (opcode == P_CONTROL_HARD_RESET_CLIENT_V3
+    if ((opcode == P_CONTROL_HARD_RESET_CLIENT_V3
+         || opcode == P_CONTROL_WKC_V1)
         && !tls_crypt_v2_extract_client_key(buf, ctx, opt))
     {
         msg(D_TLS_ERRORS,
@@ -321,6 +323,7 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
     if (op != P_CONTROL_HARD_RESET_CLIENT_V2
         && op != P_CONTROL_HARD_RESET_CLIENT_V3
         && op != P_CONTROL_V1
+        && op != P_CONTROL_WKC_V1
         && op != P_ACK_V1)
     {
         /*
@@ -397,6 +400,10 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
     {
         return VERDICT_VALID_RESET_V3;
     }
+    else if (op == P_CONTROL_WKC_V1)
+    {
+        return VERDICT_VALID_WKC_V1;
+    }
     else
     {
         return VERDICT_VALID_RESET_V2;
@@ -410,10 +417,12 @@ error:
 
 
 struct buffer
-tls_reset_standalone(struct tls_auth_standalone *tas,
+tls_reset_standalone(struct tls_wrap_ctx *ctx,
+                     struct tls_auth_standalone *tas,
                      struct session_id *own_sid,
                      struct session_id *remote_sid,
-                     uint8_t header)
+                     uint8_t header,
+                     bool request_resend_wkc)
 {
     struct buffer buf = alloc_buf(tas->frame.buf.payload_size);
     ASSERT(buf_init(&buf, tas->frame.buf.headroom));
@@ -434,8 +443,16 @@ tls_reset_standalone(struct tls_auth_standalone *tas,
 
     ASSERT(buf_write(&buf, &net_pid, sizeof(net_pid)));
 
+    /* Add indication for tls-crypt-v2 to resend the WKc with the reply */
+    if (request_resend_wkc)
+    {
+        buf_write_u16(&buf, TLV_TYPE_EARLY_NEG_FLAGS); /* TYPE: flags */
+        buf_write_u16(&buf, sizeof(uint16_t));
+        buf_write_u16(&buf, EARLY_NEG_FLAG_RESEND_WKC);
+    }
+
     /* Add tls-auth/tls-crypt wrapping, this might replace buf */
-    tls_wrap_control(&tas->tls_wrap, header, &buf, own_sid);
+    tls_wrap_control(ctx, header, &buf, own_sid);
 
     return buf;
 }

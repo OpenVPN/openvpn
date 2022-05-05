@@ -536,7 +536,7 @@ test_generate_reset_packet_plain(void **ut_state)
 
     uint8_t header = 0 | (P_CONTROL_HARD_RESET_CLIENT_V2 << P_OPCODE_SHIFT);
 
-    struct buffer buf = tls_reset_standalone(&tas, &client_id, &server_id, header);
+    struct buffer buf = tls_reset_standalone(&tas.tls_wrap, &tas, &client_id, &server_id, header, false);
 
 
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
@@ -544,7 +544,7 @@ test_generate_reset_packet_plain(void **ut_state)
 
     /* Assure repeated generation of reset is deterministic/stateless*/
     assert_memory_equal(state.peer_session_id.id, client_id.id, SID_SIZE);
-    struct buffer buf2 = tls_reset_standalone(&tas, &client_id, &server_id, header);
+    struct buffer buf2 = tls_reset_standalone(&tas.tls_wrap, &tas, &client_id, &server_id, header, false);
     assert_int_equal(BLEN(&buf), BLEN(&buf2));
     assert_memory_equal(BPTR(&buf), BPTR(&buf2), BLEN(&buf));
     free_buf(&buf2);
@@ -571,7 +571,7 @@ test_generate_reset_packet_tls_auth(void **ut_state)
 
     now = 0x22446688;
     reset_packet_id_send(&tas_client.tls_wrap.opt.packet_id.send);
-    struct buffer buf = tls_reset_standalone(&tas_client, &client_id, &server_id, header);
+    struct buffer buf = tls_reset_standalone(&tas_client.tls_wrap, &tas_client, &client_id, &server_id, header, false);
 
     enum first_packet_verdict verdict = tls_pre_decrypt_lite(&tas_server, &state, &from, &buf);
     assert_int_equal(verdict, VERDICT_VALID_RESET_V2);
@@ -580,11 +580,11 @@ test_generate_reset_packet_tls_auth(void **ut_state)
 
     /* Assure repeated generation of reset is deterministic/stateless*/
     reset_packet_id_send(&tas_client.tls_wrap.opt.packet_id.send);
-    struct buffer buf2 = tls_reset_standalone(&tas_client, &client_id, &server_id, header);
+    struct buffer buf2 = tls_reset_standalone(&tas_client.tls_wrap, &tas_client, &client_id, &server_id, header,false);
     assert_int_equal(BLEN(&buf), BLEN(&buf2));
     assert_memory_equal(BPTR(&buf), BPTR(&buf2), BLEN(&buf));
-    free_buf(&buf2);
 
+    free_buf(&buf2);
     free_tls_pre_decrypt_state(&state);
 
     packet_id_free(&tas_client.tls_wrap.opt.packet_id);

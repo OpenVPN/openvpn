@@ -1099,6 +1099,14 @@ tls_session_init(struct tls_multi *multi, struct tls_session *session)
                    session->opt->replay_time,
                    "TLS_WRAP", session->key_id);
 
+    /* If we are using tls-crypt-v2 we manipulate the packet id to be (ab)used
+     * to indicate early protocol negotiation */
+    if (session->opt->tls_crypt_v2)
+    {
+        session->tls_wrap.opt.packet_id.send.time = now;
+        session->tls_wrap.opt.packet_id.send.id = EARLY_NEG_START;
+    }
+
     /* load most recent packet-id to replay protect on --tls-auth */
     packet_id_persist_load_obj(session->tls_wrap.opt.pid_persist,
                                &session->tls_wrap.opt.packet_id);
@@ -2525,6 +2533,54 @@ session_skip_to_pre_start(struct tls_session *session,
 }
 
 /**
+ * Parses the TLVs (type, length, value) in the early negotiation
+ */
+static bool
+parse_early_negotiation_tlvs(struct buffer *buf, struct key_state *ks)
+{
+    while (buf->len > 0)
+    {
+        if (buf_len(buf) < 4)
+        {
+            goto error;
+        }
+        /* read type */
+        uint16_t type = buf_read_u16(buf);
+        uint16_t len = buf_read_u16(buf);
+        if (buf_len(buf) < len)
+        {
+            goto error;
+        }
+
+        switch (type)
+        {
+            case TLV_TYPE_EARLY_NEG_FLAGS:
+                if (len != sizeof(uint16_t))
+                {
+                    goto error;
+                }
+                uint16_t flags = buf_read_u16(buf);
+
+                if (flags & EARLY_NEG_FLAG_RESEND_WKC)
+                {
+                    ks->crypto_options.flags |= CO_RESEND_WKC;
+                }
+                break;
+
+            default:
+                /* Skip types we do not parse */
+                buf_advance(buf, len);
+        }
+    }
+    reliable_mark_deleted(ks->rec_reliable, buf);
+
+    return true;
+error:
+    msg(D_TLS_ERRORS, "TLS Error: Early negotiation malformed packet");
+    return false;
+}
+
+/**
  * Read incoming ciphertext and passes it to the buffer of the SSL library.
  * Returns false if an error is encountered that should abort the session.
  */
@@ -2554,6 +2610,13 @@ read_incoming_tls_ciphertext(struct buffer *buf, struct key_state *ks,
         dmsg(D_TLS_DEBUG, "Incoming Ciphertext -> TLS");
     }
     return true;
+}
+
+static bool
+control_packet_needs_wkc(const struct key_state *ks)
+{
+    return (ks->crypto_options.flags & CO_RESEND_WKC)
+           && (ks->send_reliable->packet_id == 1);
 }
 
 
@@ -2625,9 +2688,21 @@ tls_process_state(struct tls_multi *multi,
     struct reliable_entry *entry = reliable_get_entry_sequenced(ks->rec_reliable);
     if (entry)
     {
-        if (!read_incoming_tls_ciphertext(&entry->buf, ks, &state_change))
+        /* The first packet from the peer (the reset packet) is special and
+         * contains early protocol negotiation */
+        if (entry->packet_id == 0 && is_hard_reset_method2(entry->opcode))
         {
-            goto error;
+            if (!parse_early_negotiation_tlvs(&entry->buf, ks))
+            {
+                goto error;
+            }
+        }
+        else
+        {
+            if (!read_incoming_tls_ciphertext(&entry->buf, ks, &state_change))
+            {
+                goto error;
+            }
         }
     }
 
@@ -2720,7 +2795,12 @@ tls_process_state(struct tls_multi *multi,
             }
             if (status == 1)
             {
-                reliable_mark_active_outgoing(ks->send_reliable, buf, P_CONTROL_V1);
+                int opcode = P_CONTROL_V1;
+                if (control_packet_needs_wkc(ks))
+                {
+                    opcode = P_CONTROL_WKC_V1;
+                }
+                reliable_mark_active_outgoing(ks->send_reliable, buf, opcode);
                 INCR_GENERATED;
                 state_change = true;
                 dmsg(D_TLS_DEBUG, "Outgoing Ciphertext -> Reliable");
@@ -2810,15 +2890,37 @@ tls_process(struct tls_multi *multi,
 
     update_time();
 
+    /* We often send acks back to back to a following control packet. This
+     * normally does not create a problem (apart from an extra packet).
+     * However, with the P_CONTROL_WKC_V1 we need to ensure that the packet
+     * gets resent if not received by remote, so instead we use an empty
+     * control packet in this special case */
+
     /* Send 1 or more ACKs (each received control packet gets one ACK) */
     if (!to_link->len && !reliable_ack_empty(ks->rec_ack))
     {
-        struct buffer buf = ks->ack_write_buf;
-        ASSERT(buf_init(&buf, multi->opt.frame.buf.headroom));
-        write_control_auth(session, ks, &buf, to_link_addr, P_ACK_V1,
-                           RELIABLE_ACK_SIZE, false);
-        *to_link = buf;
-        dmsg(D_TLS_DEBUG, "Dedicated ACK -> TCP/UDP");
+        if (control_packet_needs_wkc(ks))
+        {
+            struct buffer *buf = reliable_get_buf_output_sequenced(ks->send_reliable);
+            if (!buf)
+            {
+                return false;
+            }
+
+            /* We do not write anything to the buffer, this way this will be
+             * an empty control packet that gets the ack piggybacked and
+             * also appended the wrapped client key since it has a WCK opcode */
+            reliable_mark_active_outgoing(ks->send_reliable, buf, P_CONTROL_WKC_V1);
+        }
+        else
+        {
+            struct buffer buf = ks->ack_write_buf;
+            ASSERT(buf_init(&buf, multi->opt.frame.buf.headroom));
+            write_control_auth(session, ks, &buf, to_link_addr, P_ACK_V1,
+                               RELIABLE_ACK_SIZE, false);
+            *to_link = buf;
+            dmsg(D_TLS_DEBUG, "Dedicated ACK -> TCP/UDP");
+        }
     }
 
     /* When should we wake up again? */
@@ -3463,7 +3565,8 @@ tls_pre_decrypt(struct tls_multi *multi,
     }
 
     /*
-     * We have an authenticated control channel packet (if --tls-auth was set).
+     * We have an authenticated control channel packet (if --tls-auth/tls-crypt
+     * or tls-crypt-v2 was set).
      * Now pass to our reliability layer which deals with
      * packet acknowledgements, retransmits, sequencing, etc.
      */
@@ -3892,7 +3995,7 @@ protocol_dump(struct buffer *buffer, unsigned int flags, struct gc_arena *gc)
 
     if (op == P_ACK_V1)
     {
-        goto done;
+        goto print_data;
     }
 
     /*
