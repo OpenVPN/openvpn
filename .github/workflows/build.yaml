@@ -268,19 +268,17 @@ jobs:
       - name: Install rst2html
         run: python -m pip install --upgrade pip rst2html
 
-      - name: Restore artifacts, or run vcpkg, build and cache artifacts
-        uses: lukka/run-vcpkg@v7.4
+      - name: Restore artifacts, or setup vcpkg (do not install any package)
+        uses: lukka/run-vcpkg@v10
         with:
-          vcpkgGitCommitId: 'a69b65229b3956b7f45abd81671b7330114bcaad'
-          vcpkgArguments: 'openssl lz4 lzo pkcs11-helper tap-windows6'
-          vcpkgTriplet: '${{ matrix.triplet }}-windows-ovpn'
-          cleanAfterBuild: false
+          vcpkgGitCommitId: '4b766c1cd17205e1b768c4fadfd5f867c1d0510e'
+          appendedCacheKey: '${{matrix.triplet}}'
 
-      - name: Build
+      - name: Run MSBuild consuming vcpkg.json
         working-directory: ${{env.GITHUB_WORKSPACE}}
         run: |
-          vcpkg integrate install
-          msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="${{ matrix.plat }}" .
+            vcpkg integrate install
+            msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="${{ matrix.plat }}" .
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v2

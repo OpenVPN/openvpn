@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "name": "openvpn",
+  "version": "2.5",
+  "dependencies": [
+    "openssl",
+    "tap-windows6",
+    "lzo",
+    "lz4",
+    "pkcs11-helper"
+  ],
+  "builtin-baseline": "4b766c1cd17205e1b768c4fadfd5f867c1d0510e",
+  "overrides": [
+    {
+      "name": "openssl",
+      "version-string": "1.1.1n"
+    }
+  ]
+}

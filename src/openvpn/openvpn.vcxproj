@@ -124,26 +124,35 @@
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <VcpkgEnabled>true</VcpkgEnabled>
     <VcpkgTriplet>arm64-windows-ovpn</VcpkgTriplet>
+    <VcpkgAdditionalInstallOptions>--overlay-triplets=$(SolutionDir)contrib\vcpkg-triplets --overlay-ports=$(SolutionDir)contrib\vcpkg-ports</VcpkgAdditionalInstallOptions>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <VcpkgEnabled>true</VcpkgEnabled>
     <VcpkgTriplet>arm64-windows-ovpn</VcpkgTriplet>
+    <VcpkgAdditionalInstallOptions>--overlay-triplets=$(SolutionDir)contrib\vcpkg-triplets --overlay-ports=$(SolutionDir)contrib\vcpkg-ports</VcpkgAdditionalInstallOptions>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <VcpkgEnabled>true</VcpkgEnabled>
     <VcpkgTriplet>x86-windows-ovpn</VcpkgTriplet>
+    <VcpkgAdditionalInstallOptions>--overlay-triplets=$(SolutionDir)contrib\vcpkg-triplets --overlay-ports=$(SolutionDir)contrib\vcpkg-ports</VcpkgAdditionalInstallOptions>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <VcpkgEnabled>true</VcpkgEnabled>
     <VcpkgTriplet>x86-windows-ovpn</VcpkgTriplet>
+    <VcpkgAdditionalInstallOptions>--overlay-triplets=$(SolutionDir)contrib\vcpkg-triplets --overlay-ports=$(SolutionDir)contrib\vcpkg-ports</VcpkgAdditionalInstallOptions>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <VcpkgEnabled>true</VcpkgEnabled>
     <VcpkgTriplet>x64-windows-ovpn</VcpkgTriplet>
+    <VcpkgAdditionalInstallOptions>--overlay-triplets=$(SolutionDir)contrib\vcpkg-triplets --overlay-ports=$(SolutionDir)contrib\vcpkg-ports</VcpkgAdditionalInstallOptions>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <VcpkgEnabled>true</VcpkgEnabled>
     <VcpkgTriplet>x64-windows-ovpn</VcpkgTriplet>
+    <VcpkgAdditionalInstallOptions>--overlay-triplets=$(SolutionDir)contrib\vcpkg-triplets --overlay-ports=$(SolutionDir)contrib\vcpkg-ports</VcpkgAdditionalInstallOptions>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
