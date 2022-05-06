@@ -3,6 +3,35 @@ name: Build
 on: [push, pull_request]
 
 jobs:
+  checkuncrustify:
+    name: "Check code style with Uncrustify"
+    # Ubuntu 22.04 has uncrustify 0.72_f
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y uncrustify
+      - name: Checkout OpenVPN
+        uses: actions/checkout@v2
+        with:
+          path: openvpn
+      - name: Show uncrustify version
+        run: uncrustify --version
+      - name: Run uncrustify
+        run: ./dev-tools/reformat-all.sh
+        working-directory: openvpn
+      - name: Check for changes
+        run: git diff --output=uncrustify-changes.patch
+        working-directory: openvpn
+      - name: Show changes on standard output
+        run: git diff
+        working-directory: openvpn
+      - uses: actions/upload-artifact@v2
+        with:
+          name: uncrustify-changes.patch
+          path: 'openvpn/uncrustify-changes.patch'
+      - name: Set job status
+        run: test ! -s uncrustify-changes.patch
+        working-directory: openvpn
   mingw:
     strategy:
       fail-fast: false
