@@ -487,8 +487,8 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
 
 --tls-crypt-v2 keyfile
 
-  Valid syntax:
-  ::
+  Valid syntax::
+
      tls-crypt-v2 keyfile
      tls-crypt-v2 keyfile force-cookie
      tls-crypt-v2 keyfile allow-noncookie
