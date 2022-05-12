@@ -166,7 +166,8 @@ crypto_load_provider(const char *provider)
 #endif
 }
 
-void crypto_unload_provider(const char *provname, provider_t *provider)
+void
+crypto_unload_provider(const char *provname, provider_t *provider)
 {
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
     if (!OSSL_PROVIDER_unload(provider))
@@ -339,7 +340,11 @@ show_available_ciphers(void)
                        || cipher_kt_mode_aead(cipher)
                        ))
         {
-            cipher_list[num_ciphers++] = cipher;
+            /* Check explicit availibility (for OpenSSL 3.0) */
+            if (cipher_kt_get(cipher_kt_name(cipher)))
+            {
+                cipher_list[num_ciphers++] = cipher;
+            }
         }
         if (num_ciphers == (sizeof(cipher_list)/sizeof(*cipher_list)))
         {
@@ -372,6 +377,13 @@ show_available_ciphers(void)
 }
 
 void
+print_digest(EVP_MD *digest, void *unused)
+{
+    printf("%s %d bit digest size\n", EVP_MD_name(digest),
+           EVP_MD_size(digest) * 8);
+}
+
+void
 show_available_digests(void)
 {
     int nid;
@@ -384,16 +396,21 @@ show_available_digests(void)
            "the --auth option.\n\n");
 #endif
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_MD_do_all_provided(NULL, print_digest, NULL);
+#else
     for (nid = 0; nid < 10000; ++nid)
     {
         const EVP_MD *digest = EVP_get_digestbynid(nid);
         if (digest)
         {
-            printf("%s %d bit digest size\n",
-                   OBJ_nid2sn(nid), EVP_MD_size(digest) * 8);
+            /* We cast the const away so we can keep the function prototype
+             * compatible with EVP_MD_do_all_provided */
+            print_digest((EVP_MD *)digest, NULL);
         }
     }
     printf("\n");
+#endif
 }
 
 void
@@ -623,6 +640,19 @@ cipher_kt_get(const char *ciphername)
 
     ciphername = translate_cipher_name_from_openvpn(ciphername);
     cipher = EVP_get_cipherbyname(ciphername);
+
+    /* This is a workaround for OpenSSL 3.0 to infer if the cipher is valid
+     * without doing all the refactoring that OpenVPN 2.6 has. This will
+     * not support custom algorithm from providers but at least ignore
+     * algorithms that are not available without providers (legacy) */
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_CIPHER *tmpcipher = EVP_CIPHER_fetch(NULL, ciphername, NULL);
+    if (!tmpcipher)
+    {
+        cipher = NULL;
+    }
+    EVP_CIPHER_free(tmpcipher);
+#endif
 
     if (NULL == cipher)
     {
@@ -924,6 +954,20 @@ md_kt_get(const char *digest)
     const EVP_MD *md = NULL;
     ASSERT(digest);
     md = EVP_get_digestbyname(digest);
+
+    /* This is a workaround for OpenSSL 3.0 to infer if the digest is valid
+     * without doing all the refactoring that OpenVPN 2.6 has. This will
+     * not support custom algorithm from providers but at least ignore
+     * algorithms that are not available without providers (legacy) */
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_MD *tmpmd = EVP_MD_fetch(NULL, digest, NULL);
+    if (!tmpmd)
+    {
+        md = NULL;
+    }
+    EVP_MD_free(tmpmd);
+#endif
+
     if (!md)
     {
         crypto_msg(M_FATAL, "Message hash algorithm '%s' not found", digest);
