@@ -16,6 +16,8 @@ New features
     algorithm by default and the new option ``--providers`` allows loading
     the legacy provider to renable these algorithms.
 
+    The OpenSSL engine feature ``--engine`` is not enabled by default
+    anymore if OpenSSL 3.0 is detected.
 
 
 Overview of changes in 2.5.6

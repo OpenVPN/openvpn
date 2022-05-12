@@ -281,6 +281,18 @@ AC_ARG_WITH(
 	[with_crypto_library="openssl"]
 )
 
+AC_ARG_WITH(
+	[openssl-engine],
+	[AS_HELP_STRING([--with-openssl-engine], [enable engine support with OpenSSL. Default enabled for OpenSSL < 3.0, auto,yes,no @<:@default=auto@:>@])],
+	[
+		case "${withval}" in
+			auto|yes|no) ;;
+			*) AC_MSG_ERROR([bad value ${withval} for --with-engine]) ;;
+		esac
+	],
+	[with_openssl_engine="auto"]
+)
+
 AC_ARG_VAR([PLUGINDIR], [Path of plug-in directory @<:@default=LIBDIR/openvpn/plugins@:>@])
 if test -n "${PLUGINDIR}"; then
 	plugindir="${PLUGINDIR}"
@@ -880,22 +892,44 @@ if test "${with_crypto_library}" = "openssl"; then
 				   [AC_MSG_ERROR([openssl check failed])]
 	)
 
-	have_openssl_engine="yes"
-	AC_CHECK_FUNCS(
-		[ \
+	if test "${with_openssl_engine}" = "auto"; then
+	    AC_COMPILE_IFELSE(
+				    [AC_LANG_PROGRAM(
+					    [[
+	    #include <openssl/opensslv.h>
+					    ]],
+					    [[
+	    /*	     Version encoding: MNNFFPPS - see opensslv.h for details */
+	    #if OPENSSL_VERSION_NUMBER >= 0x30000000L
+	    #error Engine supported disabled by default in OpenSSL 3.0+
+	    #endif
+					    ]]
+				    )],
+				    [have_openssl_engine="yes"],
+				    [have_openssl_engine="no"]
+	    )
+	    if test "${have_openssl_engine}" = "yes"; then
+		AC_CHECK_FUNCS(
+		    [ \
 			ENGINE_load_builtin_engines \
 			ENGINE_register_all_complete \
-			ENGINE_cleanup \
-		],
-		,
-		[have_openssl_engine="no"; break]
-	)
-	if test "${have_openssl_engine}" = "no"; then
-		AC_CHECK_DECL( [ENGINE_cleanup], [have_openssl_engine="yes"],,
-			[[
-				#include <openssl/engine.h>
-			]]
+		    ],
+		    ,
+		    [have_openssl_engine="no"; break]
 		)
+	    fi
+	else
+	    have_openssl_engine="${with_openssl_engine}"
+	    if test "${have_openssl_engine}" = "yes"; then
+		AC_CHECK_FUNCS(
+		    [ \
+			ENGINE_load_builtin_engines \
+			ENGINE_register_all_complete \
+		    ],
+		    ,
+		    [AC_MSG_ERROR([OpenSSL engine support not found])]
+		)
+	    fi
 	fi
 	if test "${have_openssl_engine}" = "yes"; then
 		AC_DEFINE([HAVE_OPENSSL_ENGINE], [1], [OpenSSL engine support available])
