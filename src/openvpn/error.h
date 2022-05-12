@@ -399,7 +399,7 @@ openvpn_errno_maybe_crt(bool *crt_error)
         *crt_error = true;
         err = errno;
     }
-#else
+#else  /* ifdef _WIN32 */
     *crt_error = true;
     err = errno;
 #endif

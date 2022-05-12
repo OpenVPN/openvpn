@@ -220,7 +220,7 @@ x_msg(const unsigned int flags, const char *format, ...)
     va_end(arglist);
 }
 
-static const char*
+static const char *
 openvpn_strerror(int err, bool crt_error, struct gc_arena *gc)
 {
 #ifdef _WIN32

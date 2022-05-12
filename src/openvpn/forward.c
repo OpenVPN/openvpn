@@ -1663,9 +1663,9 @@ process_outgoing_link(struct context *c)
 
         bool unreachable = error_code ==
 #ifdef _WIN32
-            WSAENETUNREACH;
+                           WSAENETUNREACH;
 #else
-            ENETUNREACH;
+                           ENETUNREACH;
 #endif
         if (size < 0 && unreachable && c->c2.tls_multi
             && !tls_initial_packet_received(c->c2.tls_multi) && c->options.mode == MODE_POINT_TO_POINT)
