@@ -1142,7 +1142,7 @@ parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_aren
     ALLOC_OBJ_CLEAR_GC(ret, struct verify_hash_list, gc);
 
     char term = 0;
-    int byte;
+    unsigned int byte;
 
     while (*cp && i < nbytes)
     {
