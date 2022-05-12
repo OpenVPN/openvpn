@@ -78,6 +78,21 @@ void crypto_clear_error(void);
  */
 void crypto_init_lib_engine(const char *engine_name);
 
+
+/**
+ * Load the given (OpenSSL) providers
+ * @param provider name of providers to load
+ * @return reference to the loaded provider
+ */
+provider_t *crypto_load_provider(const char *provider);
+
+/**
+ * Unloads the given (OpenSSL) provider
+ * @param provname  name of the provider to unload
+ * @param provider  pointer to the provider to unload
+ */
+void crypto_unload_provider(const char *provname, provider_t *provider);
+
 #ifdef DMALLOC
 /*
  * OpenSSL memory debugging.  If dmalloc debugging is enabled, tell

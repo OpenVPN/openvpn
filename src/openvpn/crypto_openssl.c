@@ -51,6 +51,10 @@
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#include <openssl/provider.h>
+#endif
+
 #if defined(_WIN32) && defined(OPENSSL_NO_EC)
 #error Windows build with OPENSSL_NO_EC: disabling EC key is not supported.
 #endif
@@ -142,6 +146,33 @@ crypto_init_lib_engine(const char *engine_name)
     }
 #else  /* if HAVE_OPENSSL_ENGINE */
     msg(M_WARN, "Note: OpenSSL hardware crypto engine functionality is not available");
+#endif
+}
+
+provider_t *
+crypto_load_provider(const char *provider)
+{
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    /* Load providers into the default (NULL) library context */
+    OSSL_PROVIDER *prov = OSSL_PROVIDER_load(NULL, provider);
+    if (!prov)
+    {
+        crypto_msg(M_FATAL, "failed to load provider '%s'", provider);
+    }
+    return prov;
+#else  /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
+    msg(M_WARN, "Note: OpenSSL provider functionality is not available");
+    return NULL;
+#endif
+}
+
+void crypto_unload_provider(const char *provname, provider_t *provider)
+{
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    if (!OSSL_PROVIDER_unload(provider))
+    {
+        crypto_msg(M_FATAL, "failed to unload provider '%s'", provname);
+    }
 #endif
 }
 

@@ -33,6 +33,10 @@
 #include <openssl/hmac.h>
 #include <openssl/md5.h>
 #include <openssl/sha.h>
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#include <openssl/provider.h>
+#endif
+
 
 /** Generic cipher key type %context. */
 typedef EVP_CIPHER cipher_kt_t;
@@ -48,6 +52,13 @@ typedef EVP_MD_CTX md_ctx_t;
 
 /** Generic HMAC %context. */
 typedef HMAC_CTX hmac_ctx_t;
+
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
+/* Use a dummy type for the provider */
+typedef void provider_t;
+#else
+typedef OSSL_PROVIDER provider_t;
+#endif
 
 /** Maximum length of an IV */
 #define OPENVPN_MAX_IV_LENGTH   EVP_MAX_IV_LENGTH

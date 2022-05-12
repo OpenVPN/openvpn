@@ -176,6 +176,14 @@ struct remote_list
     struct remote_entry *array[CONNECTION_LIST_SIZE];
 };
 
+struct provider_list
+{
+    /* Names of the providers */
+    const char *names[MAX_PARMS];
+    /* Pointers to the loaded providers to unload them */
+    provider_t *providers[MAX_PARMS];
+};
+
 enum vlan_acceptable_frames
 {
     VLAN_ONLY_TAGGED,
@@ -519,6 +527,7 @@ struct options
     const char *prng_hash;
     int prng_nonce_secret_len;
     const char *engine;
+    struct provider_list providers;
     bool replay;
     bool mute_replay_warnings;
     int replay_window;

@@ -112,13 +112,26 @@ void init_early(struct context *c)
     /* init verbosity and mute levels */
     init_verb_mute(c, IVM_LEVEL_1);
 
+    /* Initialise OpenSSL provider, this needs to be initialised this
+    * early since option post-processing and also openssl info
+    * printing depends on it */
+    for (int j=1; j < MAX_PARMS && c->options.providers.names[j]; j++)
+    {
+        c->options.providers.providers[j] =
+            crypto_load_provider(c->options.providers.names[j]);
+    }
 }
 
 static void uninit_early(struct context *c)
 {
     net_ctx_free(&c->net_ctx);
+    for (int j=1; j < MAX_PARMS && c->options.providers.providers[j]; j++)
+    {
+        crypto_unload_provider(c->options.providers.names[j],
+                               c->options.providers.providers[j]);
+    }
+    net_ctx_free(&c->net_ctx);
 }
-
 
 /**************************************************************************/
 /**

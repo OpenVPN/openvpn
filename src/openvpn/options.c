@@ -602,6 +602,7 @@ static const char usage_message[] =
     "                : Use --show-tls to see a list of supported TLS ciphers (suites).\n"
     "--tls-cert-profile p : Set the allowed certificate crypto algorithm profile\n"
     "                  (default=legacy).\n"
+    "--providers l   : A list l of OpenSSL providers to load.\n"
     "--tls-timeout n : Packet retransmit timeout on TLS control channel\n"
     "                  if no ACK from remote within n seconds (default=%d).\n"
     "--reneg-bytes n : Renegotiate data chan. key after n bytes sent and recvd.\n"
@@ -8129,6 +8130,13 @@ add_option(struct options *options,
         options->keysize = keysize;
     }
 #endif
+    else if (streq(p[0], "providers") && p[1])
+    {
+        for (size_t j = 1; j < MAX_PARMS && p[j] != NULL;j++)
+        {
+            options->providers.names[j] = p[j];
+        }
+    }
 #ifdef ENABLE_PREDICTION_RESISTANCE
     else if (streq(p[0], "use-prediction-resistance") && !p[1])
     {
