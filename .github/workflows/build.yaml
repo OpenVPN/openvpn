@@ -130,7 +130,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, ubuntu-20.04]
+        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
         sslpkg: [libmbedtls-dev]
         ssllib: [mbedtls]
         libname: [mbed TLS]
@@ -147,6 +147,10 @@ jobs:
           - os: ubuntu-20.04
             sslpkg: "libssl-dev"
             libname: OpenSSL 1.1.1
+            ssllib: openssl
+          - os: ubuntu-22.04
+            sslpkg: "libssl-dev"
+            libname: OpenSSL 3.0.2
             ssllib: openssl
           - os: ubuntu-20.04
             sslpkg: "libssl-dev"
