@@ -42,6 +42,7 @@
 /* Defines for use in the tests and the mock parse_line() */
 
 const char *bf_chacha = "BF-CBC:CHACHA20-POLY1305";
+const char *aes_chacha = "AES-128-CBC:CHACHA20-POLY1305";
 const char *aes_ciphers = "AES-256-GCM:AES-128-GCM";
 
 static void
@@ -56,6 +57,11 @@ test_check_ncp_ciphers_list(void **state)
                         "AES-256-GCM:none");
 
     assert_string_equal(mutate_ncp_cipher_list(aes_ciphers, &gc), aes_ciphers);
+
+    if (have_chacha)
+    {
+        assert_string_equal(mutate_ncp_cipher_list(aes_chacha, &gc), aes_chacha);
+    }
 
     if (have_chacha && have_blowfish)
     {
@@ -73,8 +79,8 @@ test_check_ncp_ciphers_list(void **state)
     bool have_chacha_mixed_case = cipher_kt_get("ChaCha20-Poly1305");
     if (have_chacha_mixed_case)
     {
-        assert_string_equal(mutate_ncp_cipher_list("BF-CBC:ChaCha20-Poly1305", &gc),
-                            bf_chacha);
+        assert_string_equal(mutate_ncp_cipher_list("AES-128-CBC:ChaCha20-Poly1305", &gc),
+                            aes_chacha);
     }
 
     assert_ptr_equal(mutate_ncp_cipher_list("vollbit", &gc), NULL);
