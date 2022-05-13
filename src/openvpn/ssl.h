@@ -93,6 +93,9 @@
  * result. */
 #define IV_PROTO_NCP_P2P         (1<<5)
 
+/** Supports the --dns option introduced in version 2.6 */
+#define IV_PROTO_DNS_OPTION      (1<<6)
+
 /* Default field in X509 to be username */
 #define X509_USERNAME_FIELD_DEFAULT "CN"
 

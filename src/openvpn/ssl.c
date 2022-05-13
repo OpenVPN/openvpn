@@ -1940,6 +1940,9 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
         /* support for P_DATA_V2 */
         int iv_proto = IV_PROTO_DATA_V2;
 
+        /* support for the --dns option */
+        iv_proto |= IV_PROTO_DNS_OPTION;
+
         /* support for receiving push_reply before sending
          * push request, also signal that the client wants
          * to get push-reply messages without without requiring a round
