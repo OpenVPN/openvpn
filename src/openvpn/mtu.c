@@ -312,7 +312,7 @@ format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc)
     struct msghdr msg;
     struct cmsghdr *cmsg;
     struct sock_extended_err *e;
-    struct sockaddr_in addr;
+    struct sockaddr_storage addr;
     struct buffer out = alloc_buf_gc(256, gc);
     char *cbuf = (char *) gc_malloc(256, false, gc);
 
