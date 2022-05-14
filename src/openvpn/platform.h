@@ -55,6 +55,9 @@
 #include "basic.h"
 #include "buffer.h"
 
+/* forward declared to avoid large amounts of extra includes */
+struct context;
+
 /* Get/Set UID of process */
 
 struct platform_state_user {
@@ -79,11 +82,12 @@ struct platform_state_group {
 
 bool platform_user_get(const char *username, struct platform_state_user *state);
 
-void platform_user_set(const struct platform_state_user *state);
-
 bool platform_group_get(const char *groupname, struct platform_state_group *state);
 
-void platform_group_set(const struct platform_state_group *state);
+void platform_user_group_set(const struct platform_state_user *user_state,
+                             const struct platform_state_group *group_state,
+                             struct context *c);
+
 
 /*
  * Extract UID or GID
