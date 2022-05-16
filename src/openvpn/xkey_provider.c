@@ -99,11 +99,27 @@ typedef struct
     int refcount;                /**< reference count */
 } XKEY_KEYDATA;
 
-static int
-KEYTYPE(const XKEY_KEYDATA *key)
+static inline const char *
+get_keytype(const XKEY_KEYDATA *key)
 {
-    return key->pubkey ? EVP_PKEY_get_id(key->pubkey) : 0;
+    int keytype = key->pubkey ? EVP_PKEY_get_id(key->pubkey) : 0;
+
+    switch (keytype)
+    {
+        case EVP_PKEY_RSA:
+            return "RSA";
+
+        case EVP_PKEY_ED448:
+            return "ED448";
+
+        case EVP_PKEY_ED25519:
+            return "ED25519";
+
+        default:
+            return "EC";
+    }
 }
+
 
 static int
 KEYSIZE(const XKEY_KEYDATA *key)
@@ -310,6 +326,22 @@ ec_keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[])
     return keymgmt_import(keydata, selection, params, "EC");
 }
 
+static int
+ed448_keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[])
+{
+    xkey_dmsg(D_XKEY, "entry");
+
+    return keymgmt_import(keydata, selection, params, "ED448");
+}
+
+static int
+ed25519_keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[])
+{
+    xkey_dmsg(D_XKEY, "entry");
+
+    return keymgmt_import(keydata, selection, params, "ED25519");
+}
+
 /* This function has to exist for key import to work
  * though we do not support import of individual params
  * like n or e. We simply return an empty list here for
@@ -449,7 +481,7 @@ keymgmt_import_helper(XKEY_KEYDATA *key, const OSSL_PARAM *params)
         ASSERT(pkey);
 
         int id = EVP_PKEY_get_id(pkey);
-        if (id != EVP_PKEY_RSA && id != EVP_PKEY_EC)
+        if (id != EVP_PKEY_RSA && id != EVP_PKEY_EC && id != EVP_PKEY_ED25519 && id != EVP_PKEY_ED448)
         {
             msg(M_WARN, "Error: xkey keymgmt_import: unknown key type (%d)", id);
             return 0;
@@ -588,10 +620,43 @@ static const OSSL_DISPATCH ec_keymgmt_functions[] = {
     {0, NULL }
 };
 
+static const OSSL_DISPATCH ed448_keymgmt_functions[] = {
+    {OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new},
+    {OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free},
+    {OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load},
+    {OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has},
+    {OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match},
+    {OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))ed448_keymgmt_import},
+    {OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types},
+    {OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},
+    {OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params},
+    {OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params},
+    {OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},       /* same as gettable */
+    {0, NULL }
+};
+
+static const OSSL_DISPATCH ed25519_keymgmt_functions[] = {
+    {OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new},
+    {OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free},
+    {OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load},
+    {OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has},
+    {OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match},
+    {OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))ed25519_keymgmt_import},
+    {OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types},
+    {OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},
+    {OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params},
+    {OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params},
+    {OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},       /* same as gettable */
+    {0, NULL }
+};
+
+
 const OSSL_ALGORITHM keymgmts[] = {
     {"RSA:rsaEncryption", XKEY_PROV_PROPS, rsa_keymgmt_functions, "OpenVPN xkey RSA Key Manager"},
     {"RSA-PSS:RSASSA-PSS", XKEY_PROV_PROPS, rsa_keymgmt_functions, "OpenVPN xkey RSA-PSS Key Manager"},
     {"EC:id-ecPublicKey", XKEY_PROV_PROPS, ec_keymgmt_functions, "OpenVPN xkey EC Key Manager"},
+    {"ED448", XKEY_PROV_PROPS, ed448_keymgmt_functions, "OpenVPN xkey ED448 Key Manager"},
+    {"ED25519", XKEY_PROV_PROPS, ed25519_keymgmt_functions, "OpenVPN xkey ED25519 Key Manager"},
     {NULL, NULL, NULL, NULL}
 };
 
@@ -649,6 +714,11 @@ static const char *saltlen_names[] = {"digest", "max", "auto", NULL};
 static const char *
 xkey_mdname(const char *name)
 {
+    if (name == NULL)
+    {
+        return "none";
+    }
+
     int i = 0;
 
     int nid = EVP_MD_get_type(EVP_get_digestbyname(name));
@@ -835,7 +905,7 @@ signature_sign_init(void *ctx, void *provkey, const OSSL_PARAM params[])
     }
     sctx->keydata = provkey;
     sctx->keydata->refcount++; /* we are keeping a copy */
-    sctx->sigalg.keytype = KEYTYPE(sctx->keydata) == EVP_PKEY_RSA ? "RSA" : "EC";
+    sctx->sigalg.keytype = get_keytype(sctx->keydata);
 
     signature_set_ctx_params(sctx, params);
 
@@ -929,10 +999,21 @@ signature_digest_sign_init(void *ctx, const char *mdname,
     }
     sctx->keydata = provkey; /* used by digest_sign */
     sctx->keydata->refcount++;
-    sctx->sigalg.keytype = KEYTYPE(sctx->keydata) == EVP_PKEY_RSA ? "RSA" : "EC";
+    sctx->sigalg.keytype = get_keytype(sctx->keydata);
 
     signature_set_ctx_params(ctx, params);
-    if (mdname)
+    if (!strcmp(sctx->sigalg.keytype, "ED448") || !strcmp(sctx->sigalg.keytype, "ED25519"))
+    {
+        /* EdDSA requires NULL as digest for the DigestSign API instead
+         * of using the normal Sign API. Ensure it is actually NULL too */
+        if (mdname != NULL)
+        {
+            msg(M_WARN, "xkey digest_sign_init: mdname must be NULL for ED448/ED25519.");
+            return 0;
+        }
+        sctx->sigalg.mdname = "none";
+    }
+    else if (mdname)
     {
         sctx->sigalg.mdname = xkey_mdname(mdname); /* get a string literal pointer */
     }
@@ -1073,6 +1154,8 @@ static const OSSL_DISPATCH signature_functions[] = {
 const OSSL_ALGORITHM signatures[] = {
     {"RSA:rsaEncryption", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey RSA Signature"},
     {"ECDSA", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey ECDSA Signature"},
+    {"ED448", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey Ed448 Signature"},
+    {"ED25519", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey Ed25519 Signature"},
     {NULL, NULL, NULL, NULL}
 };
 

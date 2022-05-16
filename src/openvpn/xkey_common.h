@@ -43,7 +43,7 @@ OSSL_provider_init_fn xkey_provider_init;
 #define XKEY_PROV_PROPS "provider=ovpn.xkey"
 
 /**
- * Stuct to encapsulate signature algorithm parameters to pass
+ * Struct to encapsulate signature algorithm parameters to pass
  * to sign operation.
  */
 typedef struct {

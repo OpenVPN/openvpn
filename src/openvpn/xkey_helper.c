@@ -179,7 +179,8 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
     bool is_message = !strcmp(alg.op, "DigestSign"); /* tbs is message, not digest */
 
     /* if management client cannot do digest -- we do it here */
-    if (!strcmp(alg.op, "DigestSign") && !(flags & MF_EXTERNAL_KEY_DIGEST))
+    if (!strcmp(alg.op, "DigestSign") && !(flags & MF_EXTERNAL_KEY_DIGEST)
+        && strcmp(alg.mdname, "none"))
     {
         dmsg(D_XKEY, "xkey_management_sign: computing digest");
         if (xkey_digest(tbs, tbslen, buf, &buflen, alg.mdname))
@@ -205,6 +206,10 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
         {
             openvpn_snprintf(alg_str, sizeof(alg_str), "ECDSA,hashalg=%s", alg.mdname);
         }
+    }
+    else if (!strcmp(alg.keytype, "ED448") || !strcmp(alg.keytype, "ED25519"))
+    {
+        strncpynt(alg_str, alg.keytype, sizeof(alg_str));
     }
     /* else assume RSA key */
     else if (!strcmp(alg.padmode, "pkcs1") && (flags & MF_EXTERNAL_KEY_PKCS1PAD))
