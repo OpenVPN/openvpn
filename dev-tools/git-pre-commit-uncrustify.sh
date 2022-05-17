@@ -97,6 +97,7 @@ fi
 
 # create a filename to store our generated patch
 patch=$(mktemp /tmp/ovpn-fmt-XXXXXX)
+tmpout=$(mktemp /tmp/uncrustify-XXXXXX)
 
 # create one patch containing all changes to the files
 # sed to remove quotes around the filename, if inserted by the system
@@ -106,20 +107,10 @@ sed -e 's/^"\(.*\)"$/\1/' | \
 while read file
 do
     # ignore file if we do check for file extensions and the file
-    # does not match any of the extensions specified in $FILE_EXTS
+    # does not match the extensions .c or .h
     if ! matches_extension "$file"; then
         continue;
     fi
-
-    # escape special characters in the source filename:
-    # - '\': backslash needs to be escaped
-    # - '*': used as matching string => '*' would mean expansion
-    #        (curiously, '?' must not be escaped)
-    # - '[': used as matching string => '[' would mean start of set
-    # - '|': used as sed split char instead of '/', so it needs to be escaped
-    #        in the filename
-    # printf %s particularly important if the filename contains the % character
-    file_escaped_source=$(printf "%s" "$file" | sed -e 's/[\*[|]/\\&/g')
 
     # escape special characters in the target filename:
     # phase 1 (characters escaped in the output diff):
@@ -136,14 +127,16 @@ do
 
     # uncrustify our sourcefile, create a patch with diff and append it to our $patch
     # The sed call is necessary to transform the patch from
-    #    --- $file timestamp
-    #    +++ - timestamp
+    #    --- - timestamp
+    #    +++ $tmpout timestamp
     # to both lines working on the same file and having a a/ and b/ prefix.
     # Else it can not be applied with 'git apply'.
-    "$UNCRUSTIFY" -q -c "$UNCRUST_CONFIG" -f "$file" | \
-        diff -u -- "$file" - | \
-        sed -e "1s|--- $file_escaped_source|--- \"a/$file_escaped_target\"|" -e "2s|+++ -|+++ \"b/$file_escaped_target\"|" >> "$patch"
+    git show ":$file" | "$UNCRUSTIFY" -q -l C -c "$UNCRUST_CONFIG" -o "$tmpout"
+    git show ":$file" | diff -u -- - "$tmpout" | \
+        sed -e "1s|--- -|--- \"b/$file_escaped_target\"|" -e "2s|+++ $tmpout|+++ \"a/$file_escaped_target\"|" >> "$patch"
 done
+
+rm -f "$tmpout"
 
 # if no patch has been generated all is ok, clean up the file stub and exit
 if [ ! -s "$patch" ] ; then
