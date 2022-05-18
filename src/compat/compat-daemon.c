@@ -102,4 +102,3 @@ daemon(int nochdir, int noclose)
 }
 
 #endif /* ifndef HAVE_DAEMON */
-
