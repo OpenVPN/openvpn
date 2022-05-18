@@ -25,6 +25,7 @@ dist_doc_DATA = \
 
 openvpn_sections = \
 	man-sections/advanced-options.rst \
+	man-sections/cipher-negotiation.rst \
 	man-sections/client-options.rst \
 	man-sections/connection-profiles.rst \
 	man-sections/encryption-options.rst \
