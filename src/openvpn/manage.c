@@ -2119,7 +2119,7 @@ management_android_control(struct management *man, const char *command, const ch
     CLEAR(up);
     strncpy(up.username, msg, sizeof(up.username)-1);
 
-    management_query_user_pass(management, &up, command, GET_USER_PASS_NEED_OK,(void *) 0);
+    management_query_user_pass(management, &up, command, GET_USER_PASS_NEED_OK, (void *) 0);
     return strcmp("ok", up.password)==0;
 }
 
@@ -2134,9 +2134,9 @@ managment_android_persisttun_action(struct management *man)
 {
     struct user_pass up;
     CLEAR(up);
-    strcpy(up.username,"tunmethod");
+    strcpy(up.username, "tunmethod");
     management_query_user_pass(management, &up, "PERSIST_TUN_ACTION",
-                               GET_USER_PASS_NEED_OK,(void *) 0);
+                               GET_USER_PASS_NEED_OK, (void *) 0);
     if (!strcmp("NOACTION", up.password))
     {
         return ANDROID_KEEP_OLD_TUN;
@@ -2266,7 +2266,7 @@ man_write(struct management *man)
 #ifdef TARGET_ANDROID
         if (man->connection.fdtosend > 0)
         {
-            sent = man_send_with_fd(man->connection.sd_cli, BPTR(buf), len, MSG_NOSIGNAL,man->connection.fdtosend);
+            sent = man_send_with_fd(man->connection.sd_cli, BPTR(buf), len, MSG_NOSIGNAL, man->connection.fdtosend);
             man->connection.fdtosend = -1;
         }
         else

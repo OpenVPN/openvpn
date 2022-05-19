@@ -105,7 +105,7 @@ openvpn_plugin_open_v3(const int version,
     plugin->mask  = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_FINAL);
     plugin->mask |= OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_VERIFY);
 
-    ovpn_note("vpn endpoint type=%s",plugin->type == CLIENT ? "client" : "server");
+    ovpn_note("vpn endpoint type=%s", plugin->type == CLIENT ? "client" : "server");
 
     rv->type_mask = plugin->mask;
     rv->handle = (void *)plugin;

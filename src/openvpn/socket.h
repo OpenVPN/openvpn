@@ -873,7 +873,7 @@ addr_inet4or6(struct sockaddr *addr)
     return addr->sa_family == AF_INET || addr->sa_family == AF_INET6;
 }
 
-int addr_guess_family(sa_family_t af,const char *name);
+int addr_guess_family(sa_family_t af, const char *name);
 
 static inline int
 af_addr_size(sa_family_t af)

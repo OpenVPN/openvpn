@@ -252,7 +252,7 @@ openvpn_popen(const struct argv *a,  const struct env_set *es)
                 if (pid == (pid_t)0)       /* child side */
                 {
                     close(pipe_stdout[0]);         /* Close read end */
-                    dup2(pipe_stdout[1],1);
+                    dup2(pipe_stdout[1], 1);
                     execve(cmd, argv, envp);
                     exit(OPENVPN_EXECVE_FAILURE);
                 }

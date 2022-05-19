@@ -235,7 +235,7 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
     else if (!strcmp(alg.padmode, "pss") && (flags & MF_EXTERNAL_KEY_PSSPAD))
     {
         openvpn_snprintf(alg_str, sizeof(alg_str), "%s,hashalg=%s,saltlen=%s",
-                         "RSA_PKCS1_PSS_PADDING", alg.mdname,alg.saltlen);
+                         "RSA_PKCS1_PSS_PADDING", alg.mdname, alg.saltlen);
     }
     else
     {
@@ -328,7 +328,7 @@ encode_pkcs1(unsigned char *enc, size_t *enc_len, const char *mdname,
 
     DIG_INFO dinfo[] = {MAKE_DI(sha1), MAKE_DI(sha256), MAKE_DI(sha384),
                         MAKE_DI(sha512), MAKE_DI(sha224), MAKE_DI(sha512_224),
-                        MAKE_DI(sha512_256), {0,NULL,0}};
+                        MAKE_DI(sha512_256), {0, NULL, 0}};
 
     int out_len = 0;
     int ret = 0;

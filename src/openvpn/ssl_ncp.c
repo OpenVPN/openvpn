@@ -221,7 +221,7 @@ const char *
 tls_peer_ncp_list(const char *peer_info, struct gc_arena *gc)
 {
     /* Check if the peer sends the IV_CIPHERS list */
-    const char *iv_ciphers = extract_var_peer_info(peer_info,"IV_CIPHERS=", gc);
+    const char *iv_ciphers = extract_var_peer_info(peer_info, "IV_CIPHERS=", gc);
     if (iv_ciphers)
     {
         return iv_ciphers;

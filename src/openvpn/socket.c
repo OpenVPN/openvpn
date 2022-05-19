@@ -525,7 +525,7 @@ openvpn_getaddrinfo(unsigned int flags,
         if (!(flags & GETADDR_RESOLVE) || status == EAI_FAIL)
         {
             msg(msglevel, "RESOLVE: Cannot parse IP address: %s:%s (%s)",
-                print_hostname,print_servname, gai_strerror(status));
+                print_hostname, print_servname, gai_strerror(status));
             goto done;
         }
 
@@ -1978,7 +1978,7 @@ linksock_print_addr(struct link_socket *sock)
         ASSERT(cur);
         msg(msglevel, "%s link local (bound): %s",
             proto2ascii(sock->info.proto, sock->info.af, true),
-            print_sockaddr(cur->ai_addr,&gc));
+            print_sockaddr(cur->ai_addr, &gc));
     }
     else
     {
@@ -2374,12 +2374,12 @@ link_socket_bad_incoming_addr(struct buffer *buf,
                 "TCP/UDP: Incoming packet rejected from %s[%d], expected peer address: %s (allow this incoming source address/port by removing --remote or adding --float)",
                 print_link_socket_actual(from_addr, &gc),
                 (int)from_addr->dest.addr.sa.sa_family,
-                print_sockaddr_ex(info->lsa->remote_list->ai_addr,":",PS_SHOW_PORT, &gc));
+                print_sockaddr_ex(info->lsa->remote_list->ai_addr, ":", PS_SHOW_PORT, &gc));
             /* print additional remote addresses */
             for (ai = info->lsa->remote_list->ai_next; ai; ai = ai->ai_next)
             {
-                msg(D_LINK_ERRORS,"or from peer address: %s",
-                    print_sockaddr_ex(ai->ai_addr,":",PS_SHOW_PORT, &gc));
+                msg(D_LINK_ERRORS, "or from peer address: %s",
+                    print_sockaddr_ex(ai->ai_addr, ":", PS_SHOW_PORT, &gc));
             }
             break;
     }
@@ -2730,7 +2730,7 @@ print_sockaddr_ex(const struct sockaddr *sa,
 
     if (status!=0)
     {
-        buf_printf(&out,"[nameinfo() err: %s]",gai_strerror(status));
+        buf_printf(&out, "[nameinfo() err: %s]", gai_strerror(status));
         return BSTR(&out);
     }
 

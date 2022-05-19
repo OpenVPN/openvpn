@@ -138,7 +138,7 @@ test_extract_client_ciphers(void **state)
 
     client_peer_info = "foo=bar\nIV_foo=y\nIV_NCP=2";
     peer_list = tls_peer_ncp_list(client_peer_info, &gc);
-    assert_string_equal(aes_ciphers,peer_list);
+    assert_string_equal(aes_ciphers, peer_list);
     assert_true(tls_peer_supports_ncp(client_peer_info));
 
     client_peer_info = "foo=bar\nIV_foo=y\nIV_NCP=2\nIV_CIPHERS=BF-CBC";
@@ -210,7 +210,7 @@ test_poor_man(void **state)
                                       "none", &gc);
     assert_string_equal(best_cipher, "none");
 
-    best_cipher = ncp_get_best_cipher(serverlist, NULL,NULL, &gc);
+    best_cipher = ncp_get_best_cipher(serverlist, NULL, NULL, &gc);
     assert_ptr_equal(best_cipher, NULL);
 
     gc_free(&gc);

@@ -1033,7 +1033,7 @@ tls1_P_hash(const mbedtls_md_info_t *md_kt, const uint8_t *sec, int sec_len,
     ASSERT(0 == mbedtls_md_setup(ctx_tmp, md_kt, 1));
     ASSERT(0 == mbedtls_md_hmac_starts(ctx_tmp, sec, sec_len));
 
-    hmac_ctx_update(ctx,seed,seed_len);
+    hmac_ctx_update(ctx, seed, seed_len);
     hmac_ctx_final(ctx, A1);
 
     for (;; )

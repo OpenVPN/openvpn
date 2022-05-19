@@ -1819,7 +1819,7 @@ show_settings(const struct options *o)
 #ifdef ENABLE_MANAGEMENT
     if ((o->management_flags & MF_EXTERNAL_CERT))
     {
-        SHOW_PARM("cert_file","EXTERNAL_CERT","%s");
+        SHOW_PARM("cert_file", "EXTERNAL_CERT", "%s");
     }
     else
 #endif
@@ -1829,7 +1829,7 @@ show_settings(const struct options *o)
 #ifdef ENABLE_MANAGEMENT
     if ((o->management_flags & MF_EXTERNAL_KEY))
     {
-        SHOW_PARM("priv_key_file","EXTERNAL_PRIVATE_KEY","%s");
+        SHOW_PARM("priv_key_file", "EXTERNAL_PRIVATE_KEY", "%s");
     }
     else
 #endif
@@ -4349,7 +4349,7 @@ options_string_version(const char *s, struct gc_arena *gc)
 }
 
 char *
-options_string_extract_option(const char *options_string,const char *opt_name,
+options_string_extract_option(const char *options_string, const char *opt_name,
                               struct gc_arena *gc)
 {
     char *ret = NULL;
@@ -7100,7 +7100,7 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_INSTANCE);
         msg(D_PUSH, "PUSH_REMOVE '%s'", p[1]);
-        push_remove_option(options,p[1]);
+        push_remove_option(options, p[1]);
     }
     else if (streq(p[0], "ifconfig-pool") && p[1] && p[2] && !p[4])
     {

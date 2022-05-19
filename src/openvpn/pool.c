@@ -722,7 +722,7 @@ ifconfig_pool_read(struct ifconfig_pool_persist *persist, struct ifconfig_pool *
              */
             if (h >= 0)
             {
-                msg(M_INFO, "succeeded -> ifconfig_pool_set(hand=%d)",h);
+                msg(M_INFO, "succeeded -> ifconfig_pool_set(hand=%d)", h);
                 ifconfig_pool_set(pool, cn_buf, h, persist->fixed);
             }
         }

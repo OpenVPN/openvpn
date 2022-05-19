@@ -71,7 +71,7 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
     char temp[templen+1];
     temp[0] = 0;
 
-    scratch = strstr(searching,searchfor);
+    scratch = strstr(searching, searchfor);
     if (!scratch)
     {
         return strdup(tosearch);
@@ -79,11 +79,11 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
 
     while (scratch)
     {
-        strncat(temp,searching,scratch-searching);
-        strcat(temp,replacewith);
+        strncat(temp, searching, scratch-searching);
+        strcat(temp, replacewith);
 
         searching = scratch+strlen(searchfor);
-        scratch = strstr(searching,searchfor);
+        scratch = strstr(searching, searchfor);
     }
     return strdup(temp);
 }

@@ -280,12 +280,12 @@ lz4v2_decompress(struct buffer *buf, struct buffer work,
     c = head[1];
     if (c == COMP_ALGV2_LZ4_BYTE) /* packet was compressed */
     {
-        buf_advance(buf,2);
+        buf_advance(buf, 2);
         do_lz4_decompress(zlen_max, &work, buf, compctx);
     }
     else if (c == COMP_ALGV2_UNCOMPRESSED_BYTE)
     {
-        buf_advance(buf,2);
+        buf_advance(buf, 2);
     }
     else
     {

@@ -362,7 +362,7 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 }
 
 void
-convert_tls_list_to_openssl(char *openssl_ciphers, size_t len,const char *ciphers)
+convert_tls_list_to_openssl(char *openssl_ciphers, size_t len, const char *ciphers)
 {
     /* Parse supplied cipher list and pass on to OpenSSL */
     size_t begin_of_cipher, end_of_cipher;
@@ -886,13 +886,13 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
             for (i = 0; i < sk_X509_num(ca); i++)
             {
                 X509_STORE *cert_store = SSL_CTX_get_cert_store(ctx->ctx);
-                if (!X509_STORE_add_cert(cert_store,sk_X509_value(ca, i)))
+                if (!X509_STORE_add_cert(cert_store, sk_X509_value(ca, i)))
                 {
-                    crypto_msg(M_FATAL,"Cannot add certificate to certificate chain (X509_STORE_add_cert)");
+                    crypto_msg(M_FATAL, "Cannot add certificate to certificate chain (X509_STORE_add_cert)");
                 }
                 if (!SSL_CTX_add_client_CA(ctx->ctx, sk_X509_value(ca, i)))
                 {
-                    crypto_msg(M_FATAL,"Cannot add certificate to client CA list (SSL_CTX_add_client_CA)");
+                    crypto_msg(M_FATAL, "Cannot add certificate to client CA list (SSL_CTX_add_client_CA)");
                 }
             }
         }
@@ -908,7 +908,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
         {
             for (i = 0; i < sk_X509_num(ca); i++)
             {
-                if (!SSL_CTX_add_extra_chain_cert(ctx->ctx,sk_X509_value(ca, i)))
+                if (!SSL_CTX_add_extra_chain_cert(ctx->ctx, sk_X509_value(ca, i)))
                 {
                     crypto_msg(M_FATAL, "Cannot add extra certificate to chain (SSL_CTX_add_extra_chain_cert)");
                 }

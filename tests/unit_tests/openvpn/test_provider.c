@@ -116,7 +116,7 @@ load_pubkey(const char *pem)
 static void
 init_test()
 {
-    prov[0] = OSSL_PROVIDER_load(NULL,"default");
+    prov[0] = OSSL_PROVIDER_load(NULL, "default");
     OSSL_PROVIDER_add_builtin(NULL, prov_name, xkey_provider_init);
     prov[1] = OSSL_PROVIDER_load(NULL, prov_name);
 

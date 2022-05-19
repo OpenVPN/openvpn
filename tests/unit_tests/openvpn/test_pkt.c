@@ -157,7 +157,7 @@ const uint8_t client_ack_tls_auth_randomid[] = {
 const uint8_t client_control_with_ack[] = {
     0x20, 0x78, 0x19, 0xbf, 0x2e, 0xbc, 0xd1, 0x9a,
     0x45, 0x01, 0x00, 0x00, 0x00, 0x00, 0xea,
-    0xfe,0xbf, 0xa4, 0x41, 0x8a, 0xe3, 0x1b,
+    0xfe, 0xbf, 0xa4, 0x41, 0x8a, 0xe3, 0x1b,
     0x00, 0x00, 0x00, 0x01, 0x16, 0x03, 0x01
 };
 
@@ -490,7 +490,7 @@ test_calc_session_id_hmac_static(void **ut_state)
     now = 1005;
     struct session_id server_id = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 0);
 
-    struct session_id expected_server_id = { {0xba,  0x83, 0xa9, 0x00, 0x72, 0xbd,0x93, 0xba }};
+    struct session_id expected_server_id = { {0xba,  0x83, 0xa9, 0x00, 0x72, 0xbd, 0x93, 0xba }};
     assert_memory_equal(expected_server_id.id, server_id.id, SID_SIZE);
 
     struct session_id server_id_m1 = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, -1);
@@ -580,7 +580,7 @@ test_generate_reset_packet_tls_auth(void **ut_state)
 
     /* Assure repeated generation of reset is deterministic/stateless*/
     reset_packet_id_send(&tas_client.tls_wrap.opt.packet_id.send);
-    struct buffer buf2 = tls_reset_standalone(&tas_client.tls_wrap, &tas_client, &client_id, &server_id, header,false);
+    struct buffer buf2 = tls_reset_standalone(&tas_client.tls_wrap, &tas_client, &client_id, &server_id, header, false);
     assert_int_equal(BLEN(&buf), BLEN(&buf2));
     assert_memory_equal(BPTR(&buf), BPTR(&buf2), BLEN(&buf));
 

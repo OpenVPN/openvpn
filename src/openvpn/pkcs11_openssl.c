@@ -193,7 +193,7 @@ xkey_pkcs11h_sign(void *handle, unsigned char *sig,
     {
         msg(D_XKEY, "xkey_pkcs11h_sign: signing with RSA key: padmode = %s",
             sigalg.padmode);
-        if (!strcmp(sigalg.padmode,"none"))
+        if (!strcmp(sigalg.padmode, "none"))
         {
             mech.mechanism = CKM_RSA_X_509;
         }

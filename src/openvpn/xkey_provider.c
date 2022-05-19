@@ -626,7 +626,7 @@ const struct {
     int nid;
     const char *name;
 } digest_names[] = {{NID_md5_sha1, "MD5-SHA1"}, {NID_sha1, "SHA1"},
-                    {NID_sha224, "SHA224",}, {NID_sha256, "SHA256"}, {NID_sha384, "SHA384"},
+                    {NID_sha224, "SHA224", }, {NID_sha256, "SHA256"}, {NID_sha384, "SHA384"},
                     {NID_sha512, "SHA512"}, {0, NULL}};
 /* Use of NIDs as opposed to EVP_MD_fetch is okay here
  * as these are only used for converting names passed in
@@ -808,7 +808,7 @@ signature_set_ctx_params(void *ctx, const OSSL_PARAM params[])
 static const OSSL_PARAM *
 signature_gettable_ctx_params(void *ctx, void *provctx)
 {
-    xkey_dmsg(D_XKEY,"entry");
+    xkey_dmsg(D_XKEY, "entry");
 
     static OSSL_PARAM gettable[] = { OSSL_PARAM_END }; /* Empty list */
 

@@ -210,7 +210,7 @@ write_cc_options_file(const char *name, const char **envp)
         return OPENVPN_PLUGIN_FUNC_SUCCESS;
     }
 
-    FILE *fp = fopen(name,"w");
+    FILE *fp = fopen(name, "w");
     if (!fp)
     {
         plugin_log(PLOG_ERR, MODULE, "fopen('%s') failed", name);

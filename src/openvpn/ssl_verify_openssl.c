@@ -262,7 +262,7 @@ backend_x509_get_username(char *common_name, int cn_len,
                           char *x509_username_field, X509 *peer_cert)
 {
 #ifdef ENABLE_X509ALTUSERNAME
-    if (strncmp("ext:",x509_username_field,4) == 0)
+    if (strncmp("ext:", x509_username_field, 4) == 0)
     {
         if (!extract_x509_extension(peer_cert, x509_username_field+4, common_name, cn_len))
         {

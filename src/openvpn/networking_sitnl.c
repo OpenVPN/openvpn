@@ -1034,7 +1034,7 @@ net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
     addr_v4.ipv4 = htonl(*addr);
 
     msg(M_INFO, "%s: %s/%d dev %s", __func__,
-        inet_ntop(AF_INET, &addr_v4.ipv4, buf, sizeof(buf)), prefixlen,iface);
+        inet_ntop(AF_INET, &addr_v4.ipv4, buf, sizeof(buf)), prefixlen, iface);
 
     return sitnl_addr_add(AF_INET, iface, &addr_v4, prefixlen);
 }

@@ -3440,7 +3440,7 @@ struct rtmsg {
 #define ADVANCE(x, n) (x += ROUNDUP((n)->sa_len))
 #endif
 
-#define max(a,b) ((a) > (b) ? (a) : (b))
+#define max(a, b) ((a) > (b) ? (a) : (b))
 
 void
 get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)

@@ -46,7 +46,7 @@
 
 /* MSVC headers do not define this macro, so do it here */
 #ifndef IN6_ARE_ADDR_EQUAL
-#define IN6_ARE_ADDR_EQUAL(a,b) \
+#define IN6_ARE_ADDR_EQUAL(a, b) \
     (memcmp((const void *)(a), (const void *)(b), sizeof(struct in6_addr)) == 0)
 #endif
 

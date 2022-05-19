@@ -352,7 +352,7 @@ ecdsa_sign(int type, const unsigned char *dgst, int dgstlen, unsigned char *sig,
     if (len > ECDSA_size(ec))
     {
         ECDSA_SIG_free(s);
-        msg(M_NONFATAL,"Error in cryptoapicert: DER encoded ECDSA signature is too long (%d bytes)", len);
+        msg(M_NONFATAL, "Error in cryptoapicert: DER encoded ECDSA signature is too long (%d bytes)", len);
         return 0;
     }
     *siglen = i2d_ECDSA_SIG(s, &sig);
