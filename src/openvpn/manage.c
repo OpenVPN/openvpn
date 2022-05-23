@@ -1029,8 +1029,8 @@ man_client_pending_auth(struct management *man, const char *cid_str, const char 
             }
             else
             {
-                msg(M_CLIENT, "SUCCESS: client-pending-auth command failed."
-                    " Extra paramter might be too long");
+                msg(M_CLIENT, "ERROR: client-pending-auth command failed."
+                    " Extra parameter might be too long");
             }
         }
         else
