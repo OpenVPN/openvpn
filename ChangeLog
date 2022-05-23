@@ -1,6 +1,47 @@
 OpenVPN Change Log
 Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
 
+2022.05.24 -- Version 2.5.7
+
+Antonio Quartulli (4):
+      networking: use OPENVPN_ETH_ALEN instead of ETH_ALEN
+      networking_iproute2: don't pass M_WARN to openvpn_execve_check()
+      t_net.sh: delete dummy iface using iproute command
+      auth-pam.c: add missing include limits.h
+
+Arne Schwabe (11):
+      Add insecure tls-cert-profile options
+      Refactor early initialisation and uninitialisation into methods
+      Allow loading of non default providers
+      Add ubuntu 22.04 to Github Actions
+      Add macos OpenSSL 3.0 and ASAN builds
+      Add --with-openssl-engine autoconf option (auto|yes|no)
+      Fix allowing/showing unsupported ciphers and digests
+      Remove dependency on BF-CBC existance from test_ncp
+      Add message when decoding PKCS12 file fails.
+      Translate OpenSSL 3.0 digest names to OpenSSL 1.1 digest names
+      Fix client-pending-auth error message to say ERROR instead of SUCCESS
+
+Gert Doering (1):
+      Preparing release 2.5.7
+
+Jan Mikkelsen (1):
+      cipher-negotiation.rst missing from doc/Makefile.am
+
+Lev Stipakov (5):
+      vcpkg-ports\pkcs11-helper: shorten patch filename
+      msvc: adjust build options to harden binaries
+      vcpkg-ports: remove openssl port
+      vcpkg: switch to manifest
+      Fix M_ERRNO behavior on Windows
+
+Marc Becker (1):
+      vcpkg-ports/pkcs11-helper: bump to release 1.29
+
+Simon Rozman (1):
+      tapctl: Resolve MSVC C4996 warnings
+
+
 2022.03.16 -- Version 2.5.6
 
 Antonio Quartulli (4):
