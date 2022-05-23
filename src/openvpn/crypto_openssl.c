@@ -379,7 +379,7 @@ show_available_ciphers(void)
 void
 print_digest(EVP_MD *digest, void *unused)
 {
-    printf("%s %d bit digest size\n", EVP_MD_name(digest),
+    printf("%s %d bit digest size\n", md_kt_name(digest),
            EVP_MD_size(digest) * 8);
 }
 
@@ -982,6 +982,28 @@ md_kt_get(const char *digest)
     return md;
 }
 
+/* Since we used the OpenSSL <=1.1 names as part of our OCC message, they
+ * are now unfortunately part of our wire protocol.
+ *
+ * OpenSSL 3.0 will still accept the "old" names so we do not need to use
+ * this translation table for forward lookup, only for returning the name
+ * with md_kt_name() */
+const cipher_name_pair digest_name_translation_table[] = {
+    { "BLAKE2s256", "BLAKE2S-256"},
+    { "BLAKE2b512", "BLAKE2B-512"},
+    { "RIPEMD160", "RIPEMD-160" },
+    { "SHA224", "SHA2-224"},
+    { "SHA256", "SHA2-256"},
+    { "SHA384", "SHA2-384"},
+    { "SHA512", "SHA2-512"},
+    { "SHA512-224", "SHA2-512/224"},
+    { "SHA512-256", "SHA2-512/256"},
+    { "SHAKE128", "SHAKE-128"},
+    { "SHAKE256", "SHAKE-256"},
+};
+const size_t digest_name_translation_table_count =
+    sizeof(digest_name_translation_table) / sizeof(*digest_name_translation_table);
+
 const char *
 md_kt_name(const EVP_MD *kt)
 {
@@ -989,7 +1011,20 @@ md_kt_name(const EVP_MD *kt)
     {
         return "[null-digest]";
     }
-    return EVP_MD_name(kt);
+
+    const char *name = EVP_MD_name(kt);
+
+    /* Search for a digest name translation */
+    for (size_t i = 0; i < digest_name_translation_table_count; i++)
+    {
+        const cipher_name_pair *pair = &digest_name_translation_table[i];
+        if (!strcmp(name, pair->lib_name))
+        {
+            name = pair->openvpn_name;
+        }
+    }
+
+    return name;
 }
 
 unsigned char
