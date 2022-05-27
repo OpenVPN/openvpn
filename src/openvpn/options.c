@@ -5532,13 +5532,6 @@ add_option(struct options *options,
         openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
 #endif
-#if 0
-    else if (streq(p[0], "foreign-option") && p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_IPWIN32);
-        foreign_option(options, p, 3, es);
-    }
-#endif
     else if (streq(p[0], "echo") || streq(p[0], "parameter"))
     {
         struct buffer string = alloc_buf_gc(OPTION_PARM_SIZE, &gc);
