@@ -1013,6 +1013,44 @@ setenv_settings(struct env_set *es, const struct options *o)
     }
 }
 
+static void
+setenv_foreign_option(struct options *o, const char *argv[], int len, struct env_set *es)
+{
+    if (len > 0)
+    {
+        struct gc_arena gc = gc_new();
+        struct buffer name = alloc_buf_gc(OPTION_PARM_SIZE, &gc);
+        struct buffer value = alloc_buf_gc(OPTION_PARM_SIZE, &gc);
+        int i;
+        bool first = true;
+        bool good = true;
+
+        good &= buf_printf(&name, "foreign_option_%d", o->foreign_option_index + 1);
+        ++o->foreign_option_index;
+        for (i = 0; i < len; ++i)
+        {
+            if (argv[i])
+            {
+                if (!first)
+                {
+                    good &= buf_printf(&value, " ");
+                }
+                good &= buf_printf(&value, "%s", argv[i]);
+                first = false;
+            }
+        }
+        if (good)
+        {
+            setenv_str(es, BSTR(&name), BSTR(&value));
+        }
+        else
+        {
+            msg(M_WARN, "foreign_option: name/value overflow");
+        }
+        gc_free(&gc);
+    }
+}
+
 static in_addr_t
 get_ip_addr(const char *ip_string, int msglevel, bool *error)
 {
@@ -4376,44 +4414,6 @@ options_string_extract_option(const char *options_string, const char *opt_name,
         }
     }
     return ret;
-}
-
-static void
-foreign_option(struct options *o, char *argv[], int len, struct env_set *es)
-{
-    if (len > 0)
-    {
-        struct gc_arena gc = gc_new();
-        struct buffer name = alloc_buf_gc(OPTION_PARM_SIZE, &gc);
-        struct buffer value = alloc_buf_gc(OPTION_PARM_SIZE, &gc);
-        int i;
-        bool first = true;
-        bool good = true;
-
-        good &= buf_printf(&name, "foreign_option_%d", o->foreign_option_index + 1);
-        ++o->foreign_option_index;
-        for (i = 0; i < len; ++i)
-        {
-            if (argv[i])
-            {
-                if (!first)
-                {
-                    good &= buf_printf(&value, " ");
-                }
-                good &= buf_printf(&value, "%s", argv[i]);
-                first = false;
-            }
-        }
-        if (good)
-        {
-            setenv_str(es, BSTR(&name), BSTR(&value));
-        }
-        else
-        {
-            msg(M_WARN, "foreign_option: name/value overflow");
-        }
-        gc_free(&gc);
-    }
 }
 
 #ifdef _WIN32
@@ -8014,7 +8014,7 @@ add_option(struct options *options,
     else if (streq(p[0], "dhcp-option") && p[1] && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_IPWIN32);
-        foreign_option(options, p, 3, es);
+        setenv_foreign_option(options, (const char **)p, 3, es);
     }
     else if (streq(p[0], "route-method") && p[1] && !p[2]) /* ignore when pushed to non-Windows OS */
     {
