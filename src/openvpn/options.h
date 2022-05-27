@@ -813,7 +813,7 @@ char *options_string_extract_option(const char *options_string,
                                     const char *opt_name, struct gc_arena *gc);
 
 
-void options_postprocess(struct options *options);
+void options_postprocess(struct options *options, struct env_set *es);
 
 bool options_postprocess_pull(struct options *o, struct env_set *es);
 

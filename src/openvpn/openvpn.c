@@ -248,7 +248,7 @@ openvpn_main(int argc, char *argv[])
             }
 
             /* sanity check on options */
-            options_postprocess(&c.options);
+            options_postprocess(&c.options, c.es);
 
             /* show all option settings */
             show_settings(&c.options);
