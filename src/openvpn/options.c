@@ -7825,7 +7825,6 @@ add_option(struct options *options,
             if (strstr(p[2], ":"))
             {
                 ipv6dns = true;
-                foreign_option(options, p, 3, es);
                 dhcp_option_dns6_parse(p[2], o->dns6, &o->dns6_len, msglevel);
             }
             else
