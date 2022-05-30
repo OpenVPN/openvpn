@@ -224,7 +224,6 @@ receive_cr_response(struct context *c, const struct buffer *buffer)
     struct env_set *es = session->opt->es;
     int key_id = get_primary_key(c->c2.tls_multi)->key_id;
 
-
     management_notify_client_cr_response(key_id, mda, es, m);
 #endif
     msg(D_PUSH, "CR response was sent by client ('%s')", m);
