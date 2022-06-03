@@ -256,6 +256,8 @@ const cipher_kt_t *cipher_kt_get(const char *ciphername);
  * The returned name is normalised to the OpenVPN config name in case the
  * name differs from the name used by the crypto library.
  *
+ * Returns [null-cipher] in case the cipher_kt is NULL.
+ *
  * @param cipher_kt     Static cipher parameters
  *
  * @return a statically allocated string describing the cipher.

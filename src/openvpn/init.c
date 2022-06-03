@@ -2764,14 +2764,35 @@ do_init_crypto_tls_c1(struct context *c)
 #endif /* if P2MP */
         }
 
-        /* Do not warn if we only have BF-CBC in options->ciphername
-         * because it is still the default cipher */
-        bool warn = !streq(options->ciphername, "BF-CBC")
-             || options->enable_ncp_fallback;
-        /* Get cipher & hash algorithms */
-        init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname,
-                      options->keysize, true, warn);
-
+        /*
+         * BF-CBC is allowed to be used only when explicitly configured
+         * as NCP-fallback or when NCP has been disabled or explicitly
+         * allowed in the in ncp_ciphers list.
+         * In all other cases do not attempt to initialize BF-CBC as it
+         * may not even be supported by the underlying SSL library.
+         *
+         * Therefore, the key structure has to be initialized when:
+         * - any non-BF-CBC cipher was selected; or
+         * - BF-CBC is selected and NCP is disabled (explicit request to
+         *   use the BF-CBC cipher); or
+         * - BF-CBC is selected, NCP is enabled and fallback is enabled
+         *   (BF-CBC will be the fallback).
+         * - BF-CBC is in data-ciphers and we negotiate to use BF-CBC:
+         *   If the negotiated cipher and options->ciphername are the
+         *   same we do not reinit the cipher
+         *
+         * Note that BF-CBC will still be part of the OCC string to retain
+         * backwards compatibility with older clients.
+         */
+        if (!streq(options->ciphername, "BF-CBC") || !options->ncp_enabled
+            || (options->ncp_enabled && tls_item_in_cipher_list("BF-CBC", options->ncp_ciphers))
+            || options->enable_ncp_fallback)
+        {
+            /* Do not warn if the if the cipher is used only in OCC */
+            bool warn = !options->ncp_enabled || options->enable_ncp_fallback;
+            init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname,
+                          options->keysize, true, warn);
+        }
         /* Initialize PRNG with config-specified digest */
         prng_init(options->prng_hash, options->prng_nonce_secret_len);
 
