@@ -1,6 +1,8 @@
 # The name of our workflow
 name: Build
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
 
 jobs:
   checkuncrustify:
@@ -32,6 +34,7 @@ jobs:
       - name: Set job status
         run: test ! -s uncrustify-changes.patch
         working-directory: openvpn
+
   mingw:
     strategy:
       fail-fast: false
@@ -250,7 +253,6 @@ jobs:
       - name: make check
         run: make check
 
-
   macos:
     runs-on: macos-latest
     strategy:
@@ -344,3 +346,16 @@ jobs:
             ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.dll
             ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.pdb
             doc/openvpn.8.html
+
+  trigger_openvpn_build:
+    runs-on: windows-latest
+    needs: [checkuncrustify, mingw, ubuntu, ubuntu-clang-asan, macos, msvc]
+    if: ${{ github.event_name != 'pull_request' && github.repository == 'openvpn/openvpn' && github.ref == 'refs/heads/master' }}
+
+    steps:
+    - name: Repository Dispatch
+      uses: peter-evans/repository-dispatch@v2
+      with:
+        token: ${{ secrets.OPENVPN_BUILD_REPO_DISPATCH }}
+        repository: openvpn/openvpn-build
+        event-type: openvpn-commit
