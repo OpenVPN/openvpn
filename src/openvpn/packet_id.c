@@ -53,11 +53,14 @@
 #define SEQ_UNSEEN  ((time_t)0)
 #define SEQ_EXPIRED ((time_t)1)
 
+#ifdef ENABLE_DEBUG
 static void packet_id_debug_print(int msglevel,
                                   const struct packet_id_rec *p,
                                   const struct packet_id_net *pin,
                                   const char *message,
                                   int value);
+
+#endif /* ENABLE_DEBUG */
 
 static inline void
 packet_id_debug(int msglevel,

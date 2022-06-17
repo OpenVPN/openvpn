@@ -72,6 +72,7 @@ struct ta_iow_flags
     unsigned int sock;
 };
 
+#ifdef ENABLE_DEBUG
 static const char *
 pract(int action)
 {
@@ -114,6 +115,7 @@ pract(int action)
             return "?";
     }
 }
+#endif /* ENABLE_DEBUG */
 
 static struct multi_instance *
 multi_create_instance_tcp(struct multi_context *m)

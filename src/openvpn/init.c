@@ -2491,7 +2491,7 @@ frame_finalize_options(struct context *c, const struct options *o)
     size_t tailroom = headroom;
 
 #ifdef USE_COMP
-    msg(D_MTU_DEBUG, "MTU: adding %lu buffer tailroom for compression for %lu "
+    msg(D_MTU_DEBUG, "MTU: adding %zu buffer tailroom for compression for %zu "
         "bytes of payload",
         COMP_EXTRA_BUFFER(payload_size), payload_size);
     tailroom += COMP_EXTRA_BUFFER(payload_size);
