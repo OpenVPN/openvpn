@@ -274,20 +274,4 @@ const char *format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc);
 
 #endif
 
-/*
- * frame member adjustment functions
- */
-
-static inline void
-frame_add_to_extra_tun(struct frame *frame, const int increment)
-{
-    frame->extra_tun += increment;
-}
-
-static inline bool
-frame_defined(const struct frame *frame)
-{
-    return frame->buf.payload_size > 0;
-}
-
 #endif /* ifndef MTU_H */
