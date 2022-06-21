@@ -253,16 +253,6 @@ unsigned int
 calc_packet_id_size_dc(const struct options *options,
                        const struct key_type *kt);
 
-
-/*
- * frame_set_mtu_dynamic and flags
- */
-
-#define SET_MTU_TUN         (1<<0) /* use tun/tap rather than link sizing */
-#define SET_MTU_UPPER_BOUND (1<<1) /* only decrease dynamic MTU */
-
-void frame_set_mtu_dynamic(struct frame *frame, int mtu, unsigned int flags);
-
 /*
  * allocate a buffer for socket or tun layer
  */
