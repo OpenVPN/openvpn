@@ -299,13 +299,15 @@ test_occ_mtu_calculation(void **state)
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1445);
 
+#if defined(ENABLE_FRAGMENT)
     /* secret, comp-lzo yes, cipher BF-CBC, auth SHA1, fragment 1200 */
     o.ce.fragment = 1200;
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1449);
+    o.ce.fragment = 0;
+#endif
 
     o.comp.alg = COMP_ALG_UNDEF;
-    o.ce.fragment = 0;
 #endif
 
     /* TLS mode */
@@ -350,7 +352,7 @@ test_occ_mtu_calculation(void **state)
     assert_int_equal(linkmtu, 1449);
 
 
-#if defined(USE_COMP)
+#if defined(USE_COMP) && defined(ENABLE_FRAGMENT)
     o.comp.alg = COMP_ALG_LZO;
 
     /* tls client, auth SHA1, cipher AES-256-GCM, fragment, comp-lzo yes */
