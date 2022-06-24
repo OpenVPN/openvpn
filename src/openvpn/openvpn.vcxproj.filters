@@ -39,6 +39,9 @@
     <ClCompile Include="dhcp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dns.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -129,9 +132,6 @@
     <ClCompile Include="perf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="pf.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ping.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -207,6 +207,9 @@
     <ClCompile Include="win32.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="win32-util.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="comp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -232,6 +235,27 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="run_command.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="auth_token.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vlan.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ssl_ncp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ssl_pkt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ssl_util.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xkey_helper.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="xkey_provider.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -276,6 +300,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dhcp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dns.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="errlevel.h">
@@ -375,9 +402,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="perf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="pf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ping.h">
@@ -488,10 +512,36 @@
     <ClInclude Include="run_command.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="auth_token.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vlan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ring_buffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ssl_ncp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ssl_util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="win32-util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="xkey_common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="openvpn_win32_resources.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="openvpn.manifest">
+      <Filter>Resource Files</Filter>
+    </Manifest>
   </ItemGroup>
 </Project>

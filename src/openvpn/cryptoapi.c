@@ -51,58 +51,10 @@
 
 #include "buffer.h"
 #include "openssl_compat.h"
+#include "win32.h"
+#include "xkey_common.h"
 
-/* MinGW w32api 3.17 is still incomplete when it comes to CryptoAPI while
- * MinGW32-w64 defines all macros used. This is a hack around that problem.
- */
-#ifndef CERT_SYSTEM_STORE_LOCATION_SHIFT
-#define CERT_SYSTEM_STORE_LOCATION_SHIFT 16
-#endif
-#ifndef CERT_SYSTEM_STORE_CURRENT_USER_ID
-#define CERT_SYSTEM_STORE_CURRENT_USER_ID 1
-#endif
-#ifndef CERT_SYSTEM_STORE_CURRENT_USER
-#define CERT_SYSTEM_STORE_CURRENT_USER (CERT_SYSTEM_STORE_CURRENT_USER_ID << CERT_SYSTEM_STORE_LOCATION_SHIFT)
-#endif
-#ifndef CERT_STORE_READONLY_FLAG
-#define CERT_STORE_READONLY_FLAG 0x00008000
-#endif
-#ifndef CERT_STORE_OPEN_EXISTING_FLAG
-#define CERT_STORE_OPEN_EXISTING_FLAG 0x00004000
-#endif
-
-/* Size of an SSL signature: MD5+SHA1 */
-#define SSL_SIG_LENGTH  36
-
-/* try to funnel any Windows/CryptoAPI error messages to OpenSSL ERR_... */
-#define ERR_LIB_CRYPTOAPI (ERR_LIB_USER + 69)   /* 69 is just a number... */
-#define CRYPTOAPIerr(f)   err_put_ms_error(GetLastError(), (f), __FILE__, __LINE__)
-#define CRYPTOAPI_F_CERT_OPEN_SYSTEM_STORE                  100
-#define CRYPTOAPI_F_CERT_FIND_CERTIFICATE_IN_STORE          101
-#define CRYPTOAPI_F_CRYPT_ACQUIRE_CERTIFICATE_PRIVATE_KEY   102
-#define CRYPTOAPI_F_CRYPT_CREATE_HASH                       103
-#define CRYPTOAPI_F_CRYPT_GET_HASH_PARAM                    104
-#define CRYPTOAPI_F_CRYPT_SET_HASH_PARAM                    105
-#define CRYPTOAPI_F_CRYPT_SIGN_HASH                         106
-#define CRYPTOAPI_F_LOAD_LIBRARY                            107
-#define CRYPTOAPI_F_GET_PROC_ADDRESS                        108
-#define CRYPTOAPI_F_NCRYPT_SIGN_HASH                        109
-
-static ERR_STRING_DATA CRYPTOAPI_str_functs[] = {
-    { ERR_PACK(ERR_LIB_CRYPTOAPI, 0, 0),                                    "microsoft cryptoapi"},
-    { ERR_PACK(0, CRYPTOAPI_F_CERT_OPEN_SYSTEM_STORE, 0),                   "CertOpenSystemStore" },
-    { ERR_PACK(0, CRYPTOAPI_F_CERT_FIND_CERTIFICATE_IN_STORE, 0),           "CertFindCertificateInStore" },
-    { ERR_PACK(0, CRYPTOAPI_F_CRYPT_ACQUIRE_CERTIFICATE_PRIVATE_KEY, 0),    "CryptAcquireCertificatePrivateKey" },
-    { ERR_PACK(0, CRYPTOAPI_F_CRYPT_CREATE_HASH, 0),                        "CryptCreateHash" },
-    { ERR_PACK(0, CRYPTOAPI_F_CRYPT_GET_HASH_PARAM, 0),                     "CryptGetHashParam" },
-    { ERR_PACK(0, CRYPTOAPI_F_CRYPT_SET_HASH_PARAM, 0),                     "CryptSetHashParam" },
-    { ERR_PACK(0, CRYPTOAPI_F_CRYPT_SIGN_HASH, 0),                          "CryptSignHash" },
-    { ERR_PACK(0, CRYPTOAPI_F_LOAD_LIBRARY, 0),                             "LoadLibrary" },
-    { ERR_PACK(0, CRYPTOAPI_F_GET_PROC_ADDRESS, 0),                         "GetProcAddress" },
-    { ERR_PACK(0, CRYPTOAPI_F_NCRYPT_SIGN_HASH, 0),                         "NCryptSignHash" },
-    { 0, NULL }
-};
-
+#ifndef HAVE_XKEY_PROVIDER
 /* index for storing external data in EC_KEY: < 0 means uninitialized */
 static int ec_data_idx = -1;
 
@@ -111,43 +63,18 @@ static EVP_PKEY_METHOD *pmethod;
 static int (*default_pkey_sign_init) (EVP_PKEY_CTX *ctx);
 static int (*default_pkey_sign) (EVP_PKEY_CTX *ctx, unsigned char *sig,
                                  size_t *siglen, const unsigned char *tbs, size_t tbslen);
+#else  /* ifndef HAVE_XKEY_PROVIDER */
+static XKEY_EXTERNAL_SIGN_fn xkey_cng_sign;
+#endif /* HAVE_XKEY_PROVIDER */
 
 typedef struct _CAPI_DATA {
     const CERT_CONTEXT *cert_context;
     HCRYPTPROV_OR_NCRYPT_KEY_HANDLE crypt_prov;
+    EVP_PKEY *pubkey;
     DWORD key_spec;
     BOOL free_crypt_prov;
     int ref_count;
 } CAPI_DATA;
-
-/* Translate OpenSSL padding type to CNG padding type
- * Returns 0 for unknown/unsupported padding.
- */
-static DWORD
-cng_padding_type(int padding)
-{
-    DWORD pad = 0;
-
-    switch (padding)
-    {
-        case RSA_NO_PADDING:
-            break;
-
-        case RSA_PKCS1_PADDING:
-            pad = BCRYPT_PAD_PKCS1;
-            break;
-
-        case RSA_PKCS1_PSS_PADDING:
-            pad = BCRYPT_PAD_PSS;
-            break;
-
-        default:
-            msg(M_WARN|M_INFO, "cryptoapicert: unknown OpenSSL padding type %d.",
-                padding);
-    }
-
-    return pad;
-}
 
 /*
  * Translate OpenSSL hash OID to CNG algorithm name. Returns
@@ -214,114 +141,40 @@ CAPI_DATA_free(CAPI_DATA *cd)
     {
         CertFreeCertificateContext(cd->cert_context);
     }
+    EVP_PKEY_free(cd->pubkey); /* passing NULL is okay */
+
     free(cd);
 }
 
-static char *
-ms_error_text(DWORD ms_err)
+#ifndef HAVE_XKEY_PROVIDER
+
+/* Translate OpenSSL padding type to CNG padding type
+ * Returns 0 for unknown/unsupported padding.
+ */
+static DWORD
+cng_padding_type(int padding)
 {
-    LPVOID lpMsgBuf = NULL;
-    char *rv = NULL;
+    DWORD pad = 0;
 
-    FormatMessage(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER
-        |FORMAT_MESSAGE_FROM_SYSTEM
-        |FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL, ms_err,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), /* Default language */
-        (LPTSTR) &lpMsgBuf, 0, NULL);
-    if (lpMsgBuf)
+    switch (padding)
     {
-        char *p;
-        rv = string_alloc(lpMsgBuf, NULL);
-        LocalFree(lpMsgBuf);
-        /* trim to the left */
-        if (rv)
-        {
-            for (p = rv + strlen(rv) - 1; p >= rv; p--)
-            {
-                if (isspace(*p))
-                {
-                    *p = '\0';
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-    }
-    return rv;
-}
-
-static void
-err_put_ms_error(DWORD ms_err, int func, const char *file, int line)
-{
-    static int init = 0;
-#define ERR_MAP_SZ 16
-    static struct {
-        int err;
-        DWORD ms_err;       /* I don't think we get more than 16 *different* errors */
-    } err_map[ERR_MAP_SZ];  /* in here, before we give up the whole thing...        */
-    int i;
-
-    if (ms_err == 0)
-    {
-        /* 0 is not an error */
-        return;
-    }
-    if (!init)
-    {
-        ERR_load_strings(ERR_LIB_CRYPTOAPI, CRYPTOAPI_str_functs);
-        memset(&err_map, 0, sizeof(err_map));
-        init++;
-    }
-    /* since MS error codes are 32 bit, and the ones in the ERR_... system is
-     * only 12, we must have a mapping table between them.  */
-    for (i = 0; i < ERR_MAP_SZ; i++)
-    {
-        if (err_map[i].ms_err == ms_err)
-        {
-            ERR_PUT_error(ERR_LIB_CRYPTOAPI, func, err_map[i].err, file, line);
+        case RSA_NO_PADDING:
             break;
-        }
-        else if (err_map[i].ms_err == 0)
-        {
-            /* end of table, add new entry */
-            ERR_STRING_DATA *esd = calloc(2, sizeof(*esd));
-            if (esd == NULL)
-            {
-                break;
-            }
-            err_map[i].ms_err = ms_err;
-            err_map[i].err = esd->error = i + 100;
-            esd->string = ms_error_text(ms_err);
-            check_malloc_return(esd->string);
-            ERR_load_strings(ERR_LIB_CRYPTOAPI, esd);
-            ERR_PUT_error(ERR_LIB_CRYPTOAPI, func, err_map[i].err, file, line);
+
+        case RSA_PKCS1_PADDING:
+            pad = BCRYPT_PAD_PKCS1;
             break;
-        }
+
+        case RSA_PKCS1_PSS_PADDING:
+            pad = BCRYPT_PAD_PSS;
+            break;
+
+        default:
+            msg(M_WARN|M_INFO, "cryptoapicert: unknown OpenSSL padding type %d.",
+                padding);
     }
-}
 
-/* encrypt */
-static int
-rsa_pub_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
-{
-    /* I haven't been able to trigger this one, but I want to know if it happens... */
-    assert(0);
-
-    return 0;
-}
-
-/* verify arbitrary data */
-static int
-rsa_pub_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
-{
-    /* I haven't been able to trigger this one, but I want to know if it happens... */
-    assert(0);
-
-    return 0;
+    return pad;
 }
 
 /**
@@ -362,14 +215,14 @@ priv_enc_CNG(const CAPI_DATA *cd, const wchar_t *hash_algo, const unsigned char 
     }
     else
     {
-        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
+        msg(M_NONFATAL, "Error in cryptoapicert: Unknown padding type");
         return 0;
     }
 
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        CRYPTOAPIerr(CRYPTOAPI_F_NCRYPT_SIGN_HASH);
+        msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: NCryptSignHash failed");
         len = 0;
     }
 
@@ -377,152 +230,9 @@ priv_enc_CNG(const CAPI_DATA *cd, const wchar_t *hash_algo, const unsigned char 
     return len;
 }
 
-/* sign arbitrary data */
-static int
-rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
-{
-    CAPI_DATA *cd = (CAPI_DATA *) RSA_meth_get0_app_data(RSA_get_method(rsa));
-    HCRYPTHASH hash;
-    DWORD hash_size, len, i;
-    unsigned char *buf;
-
-    if (cd == NULL)
-    {
-        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, ERR_R_PASSED_NULL_PARAMETER);
-        return 0;
-    }
-
-    if (padding != RSA_PKCS1_PADDING)
-    {
-        /* AFAICS, CryptSignHash() *always* uses PKCS1 padding. */
-        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_UNKNOWN_PADDING_TYPE);
-        return 0;
-    }
-
-    if (cd->key_spec == CERT_NCRYPT_KEY_SPEC)
-    {
-        return priv_enc_CNG(cd, NULL, from, flen, to, RSA_size(rsa),
-                            cng_padding_type(padding), 0);
-    }
-
-    /* Unfortunately, there is no "CryptSign()" function in CryptoAPI, that would
-     * be way to straightforward for M$, I guess... So we have to do it this
-     * tricky way instead, by creating a "Hash", and load the already-made hash
-     * from 'from' into it.  */
-    /* For now, we only support NID_md5_sha1 */
-    if (flen != SSL_SIG_LENGTH)
-    {
-        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_INVALID_MESSAGE_LENGTH);
-        return 0;
-    }
-    if (!CryptCreateHash(cd->crypt_prov, CALG_SSL3_SHAMD5, 0, 0, &hash))
-    {
-        CRYPTOAPIerr(CRYPTOAPI_F_CRYPT_CREATE_HASH);
-        return 0;
-    }
-    len = sizeof(hash_size);
-    if (!CryptGetHashParam(hash, HP_HASHSIZE, (BYTE *) &hash_size, &len, 0))
-    {
-        CRYPTOAPIerr(CRYPTOAPI_F_CRYPT_GET_HASH_PARAM);
-        CryptDestroyHash(hash);
-        return 0;
-    }
-    if ((int) hash_size != flen)
-    {
-        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, RSA_R_INVALID_MESSAGE_LENGTH);
-        CryptDestroyHash(hash);
-        return 0;
-    }
-    if (!CryptSetHashParam(hash, HP_HASHVAL, (BYTE * ) from, 0))
-    {
-        CRYPTOAPIerr(CRYPTOAPI_F_CRYPT_SET_HASH_PARAM);
-        CryptDestroyHash(hash);
-        return 0;
-    }
-
-    len = RSA_size(rsa);
-    buf = malloc(len);
-    if (buf == NULL)
-    {
-        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, ERR_R_MALLOC_FAILURE);
-        CryptDestroyHash(hash);
-        return 0;
-    }
-    if (!CryptSignHash(hash, cd->key_spec, NULL, 0, buf, &len))
-    {
-        CRYPTOAPIerr(CRYPTOAPI_F_CRYPT_SIGN_HASH);
-        CryptDestroyHash(hash);
-        free(buf);
-        return 0;
-    }
-    /* and now, we have to reverse the byte-order in the result from CryptSignHash()... */
-    for (i = 0; i < len; i++)
-    {
-        to[i] = buf[len - i - 1];
-    }
-    free(buf);
-
-    CryptDestroyHash(hash);
-    return len;
-}
-
-/**
- * Sign the hash in |m| and return the signature in |sig|.
- * Returns 1 on success, 0 on error.
- * NCryptSignHash() is used to sign and it is instructed to add the
- * the PKCS #1 DigestInfo header to |m| unless the hash algorithm is
- * the MD5/SHA1 combination used in TLS 1.1 and earlier versions.
- * OpenSSL exercises this callback only when padding is PKCS1 v1.5.
- */
-static int
-rsa_sign_CNG(int type, const unsigned char *m, unsigned int m_len,
-             unsigned char *sig, unsigned int *siglen, const RSA *rsa)
-{
-    CAPI_DATA *cd = (CAPI_DATA *) RSA_meth_get0_app_data(RSA_get_method(rsa));
-    const wchar_t *alg = NULL;
-    int padding = RSA_PKCS1_PADDING;
-
-    *siglen = 0;
-    if (cd == NULL)
-    {
-        RSAerr(RSA_F_RSA_OSSL_PRIVATE_ENCRYPT, ERR_R_PASSED_NULL_PARAMETER);
-        return 0;
-    }
-
-    alg = cng_hash_algo(type);
-    if (alg && wcscmp(alg, L"UNKNOWN") == 0)
-    {
-        RSAerr(RSA_F_RSA_SIGN, RSA_R_UNKNOWN_ALGORITHM_TYPE);
-        return 0;
-    }
-
-    *siglen = priv_enc_CNG(cd, alg, m, (int)m_len, sig, RSA_size(rsa),
-                           cng_padding_type(padding), 0);
-
-    return (siglen == 0) ? 0 : 1;
-}
-
-/* decrypt */
-static int
-rsa_priv_dec(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
-{
-    /* I haven't been able to trigger this one, but I want to know if it happens... */
-    assert(0);
-
-    return 0;
-}
-
-/* called at RSA_new */
-static int
-init(RSA *rsa)
-{
-
-    return 0;
-}
-
 /* called at RSA_free */
 static int
-finish(RSA *rsa)
+rsa_finish(RSA *rsa)
 {
     const RSA_METHOD *rsa_meth = RSA_get_method(rsa);
     CAPI_DATA *cd = (CAPI_DATA *) RSA_meth_get0_app_data(rsa_meth);
@@ -535,8 +245,6 @@ finish(RSA *rsa)
     RSA_meth_free((RSA_METHOD *) rsa_meth);
     return 1;
 }
-
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L) && !defined(OPENSSL_NO_EC)
 
 static EC_KEY_METHOD *ec_method = NULL;
 
@@ -557,6 +265,7 @@ ecdsa_sign_setup(EC_KEY *eckey, BN_CTX *ctx_in, BIGNUM **kinvp, BIGNUM **rp)
 {
     return 1;
 }
+#endif /* HAVE_XKEY_PROVIDER */
 
 /**
  * Helper to convert ECDSA signature returned by NCryptSignHash
@@ -592,6 +301,8 @@ err:
     return NULL;
 }
 
+#ifndef HAVE_XKEY_PROVIDER
+
 /** EC_KEY_METHOD callback sign_sig(): sign and return an ECDSA_SIG pointer. */
 static ECDSA_SIG *
 ecdsa_sign_sig(const unsigned char *dgst, int dgstlen,
@@ -612,7 +323,7 @@ ecdsa_sign_sig(const unsigned char *dgst, int dgstlen,
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        CRYPTOAPIerr(CRYPTOAPI_F_NCRYPT_SIGN_HASH);
+        msg(M_NONFATAL|M_ERRNO, "Error in cryptoapticert: NCryptSignHash failed");
     }
     else
     {
@@ -641,7 +352,7 @@ ecdsa_sign(int type, const unsigned char *dgst, int dgstlen, unsigned char *sig,
     if (len > ECDSA_size(ec))
     {
         ECDSA_SIG_free(s);
-        msg(M_NONFATAL,"Error: DER encoded ECDSA signature is too long (%d bytes)", len);
+        msg(M_NONFATAL, "Error in cryptoapicert: DER encoded ECDSA signature is too long (%d bytes)", len);
         return 0;
     }
     *siglen = i2d_ECDSA_SIG(s, &sig);
@@ -656,12 +367,6 @@ ssl_ctx_set_eckey(SSL_CTX *ssl_ctx, CAPI_DATA *cd, EVP_PKEY *pkey)
     EC_KEY *ec = NULL;
     EVP_PKEY *privkey = NULL;
 
-    if (cd->key_spec != CERT_NCRYPT_KEY_SPEC)
-    {
-        msg(M_NONFATAL, "ERROR: cryptoapicert with only legacy private key handle available."
-            " EC certificate not supported.");
-        goto err;
-    }
     /* create a method struct with default callbacks filled in */
     ec_method = EC_KEY_METHOD_new(EC_KEY_OpenSSL());
     if (!ec_method)
@@ -729,7 +434,7 @@ err:
     return 0;
 }
 
-#endif /* OPENSSL_VERSION_NUMBER >= 1.1.0 */
+#endif /* !HAVE_XKEY_PROVIDER */
 
 static const CERT_CONTEXT *
 find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
@@ -739,27 +444,31 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
      * SUBJ:<certificate substring to match>
      * THUMB:<certificate thumbprint hex value>, e.g.
      *     THUMB:f6 49 24 41 01 b4 fb 44 0c ce f4 36 ae d0 c4 c9 df 7a b6 28
+     * The first matching certificate that has not expired is returned.
      */
     const CERT_CONTEXT *rv = NULL;
+    DWORD find_type;
+    const void *find_param;
+    unsigned char hash[255];
+    CRYPT_HASH_BLOB blob = {.cbData = 0, .pbData = hash};
+    struct gc_arena gc = gc_new();
 
     if (!strncmp(cert_prop, "SUBJ:", 5))
     {
         /* skip the tag */
-        cert_prop += 5;
-        rv = CertFindCertificateInStore(cert_store, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-                                        0, CERT_FIND_SUBJECT_STR_A, cert_prop, NULL);
-
+        find_param = wide_string(cert_prop + 5, &gc);
+        find_type = CERT_FIND_SUBJECT_STR_W;
     }
     else if (!strncmp(cert_prop, "THUMB:", 6))
     {
-        unsigned char hash[255];
-        char *p;
+        const char *p;
         int i, x = 0;
-        CRYPT_HASH_BLOB blob;
+        find_type = CERT_FIND_HASH;
+        find_param = &blob;
 
         /* skip the tag */
         cert_prop += 6;
-        for (p = (char *) cert_prop, i = 0; *p && i < sizeof(hash); i++)
+        for (p = cert_prop, i = 0; *p && i < sizeof(hash); i++)
         {
             if (*p >= '0' && *p <= '9')
             {
@@ -775,7 +484,8 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
             }
             if (!*++p)  /* unexpected end of string */
             {
-                break;
+                msg(M_WARN|M_INFO, "WARNING: cryptoapicert: error parsing <THUMB:%s>.", cert_prop);
+                goto out;
             }
             if (*p >= '0' && *p <= '9')
             {
@@ -796,16 +506,37 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
             }
         }
         blob.cbData = i;
-        blob.pbData = (unsigned char *) &hash;
-        rv = CertFindCertificateInStore(cert_store, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-                                        0, CERT_FIND_HASH, &blob, NULL);
-
+    }
+    else
+    {
+        msg(M_NONFATAL, "Error in cryptoapicert: unsupported certificate specification <%s>", cert_prop);
+        goto out;
     }
 
+    while (true)
+    {
+        int validity = 1;
+        /* this frees previous rv, if not NULL */
+        rv = CertFindCertificateInStore(cert_store, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+                                        0, find_type, find_param, rv);
+        if (rv)
+        {
+            validity = CertVerifyTimeValidity(NULL, rv->pCertInfo);
+        }
+        if (!rv || validity == 0)
+        {
+            break;
+        }
+        msg(M_WARN|M_INFO, "WARNING: cryptoapicert: ignoring certificate in store %s.",
+            validity < 0 ? "not yet valid" : "that has expired");
+    }
+
+out:
+    gc_free(&gc);
     return rv;
 }
 
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+#ifndef HAVE_XKEY_PROVIDER
 
 static const CAPI_DATA *
 retrieve_capi_data(EVP_PKEY *pkey)
@@ -856,9 +587,9 @@ pkey_rsa_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
     EVP_MD *md = NULL;
     const wchar_t *alg = NULL;
 
-    int padding;
-    int hashlen;
-    int saltlen;
+    int padding = 0;
+    int hashlen = 0;
+    int saltlen = 0;
 
     pkey = EVP_PKEY_CTX_get0_pkey(ctx);
     if (pkey)
@@ -878,7 +609,7 @@ pkey_rsa_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
         }
         else  /* This should not happen */
         {
-            msg(M_FATAL, "cryptopaicert: Unknown key and no default sign operation to fallback on");
+            msg(M_FATAL, "Error in cryptoapicert: Unknown key and no default sign operation to fallback on");
             return -1;
         }
     }
@@ -899,20 +630,19 @@ pkey_rsa_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
          */
         if (alg && wcscmp(alg, L"UNKNOWN") == 0)
         {
-            RSAerr(RSA_F_PKEY_RSA_SIGN, RSA_R_UNKNOWN_ALGORITHM_TYPE);
+            msg(M_NONFATAL, "Error in cryptoapicert: Unknown hash algorithm <%d>", EVP_MD_type(md));
             return -1;
         }
     }
     else
     {
-        msg(M_NONFATAL, "cryptoapicert: could not determine the signature digest algorithm");
-        RSAerr(RSA_F_PKEY_RSA_SIGN, RSA_R_UNKNOWN_ALGORITHM_TYPE);
+        msg(M_NONFATAL, "Error in cryptoapicert: could not determine the signature digest algorithm");
         return -1;
     }
 
     if (tbslen != (size_t)hashlen)
     {
-        RSAerr(RSA_F_PKEY_RSA_SIGN, RSA_R_INVALID_DIGEST_LENGTH);
+        msg(M_NONFATAL, "Error in cryptoapicert: data size does not match hash");
         return -1;
     }
 
@@ -930,14 +660,14 @@ pkey_rsa_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
         if (!EVP_PKEY_CTX_get_rsa_mgf1_md(ctx, &mgf1md)
             || EVP_MD_type(mgf1md) != EVP_MD_type(md))
         {
-            msg(M_NONFATAL, "cryptoapicert: Unknown MGF1 digest type or does"
+            msg(M_NONFATAL, "Error in cryptoapicert: Unknown MGF1 digest type or does"
                 " not match the signature digest type.");
-            RSAerr(RSA_F_PKEY_RSA_SIGN, RSA_R_UNSUPPORTED_MASK_PARAMETER);
+            return -1;
         }
 
         if (!EVP_PKEY_CTX_get_rsa_pss_saltlen(ctx, &saltlen))
         {
-            msg(M_WARN, "cryptoapicert: unable to get the salt length from context."
+            msg(M_WARN|M_INFO, "cryptoapicert: unable to get the salt length from context."
                 " Using the default value.");
             saltlen = -1;
         }
@@ -963,139 +693,246 @@ pkey_rsa_sign(EVP_PKEY_CTX *ctx, unsigned char *sig, size_t *siglen,
 
         if (saltlen < 0)
         {
-            RSAerr(RSA_F_PKEY_RSA_SIGN, RSA_R_DATA_TOO_LARGE_FOR_KEY_SIZE);
+            msg(M_NONFATAL, "Error in cryptoapicert: invalid salt length (%d). Digest too large for keysize?", saltlen);
             return -1;
         }
         msg(D_LOW, "cryptoapicert: PSS padding using saltlen = %d", saltlen);
     }
 
     msg(D_LOW, "cryptoapicert: calling priv_enc_CNG with alg = %ls", alg);
-    *siglen = priv_enc_CNG(cd, alg, tbs, (int)tbslen, sig, *siglen,
+    *siglen = priv_enc_CNG(cd, alg, tbs, (int)tbslen, sig, (int)*siglen,
                            cng_padding_type(padding), (DWORD)saltlen);
 
-    return (siglen == 0) ? 0 : 1;
+    return (*siglen == 0) ? 0 : 1;
 }
-
-#endif /* OPENSSL_VERSION >= 1.1.0 */
 
 static int
 ssl_ctx_set_rsakey(SSL_CTX *ssl_ctx, CAPI_DATA *cd, EVP_PKEY *pkey)
 {
-    RSA *rsa = NULL, *pub_rsa;
+    RSA *rsa = NULL;
     RSA_METHOD *my_rsa_method = NULL;
-    bool rsa_method_set = false;
+    EVP_PKEY *privkey = NULL;
+    int ret = 0;
 
     my_rsa_method = RSA_meth_new("Microsoft Cryptography API RSA Method",
                                  RSA_METHOD_FLAG_NO_CHECK);
     check_malloc_return(my_rsa_method);
-    RSA_meth_set_pub_enc(my_rsa_method, rsa_pub_enc);
-    RSA_meth_set_pub_dec(my_rsa_method, rsa_pub_dec);
-    RSA_meth_set_priv_enc(my_rsa_method, rsa_priv_enc);
-    RSA_meth_set_priv_dec(my_rsa_method, rsa_priv_dec);
-    RSA_meth_set_init(my_rsa_method, NULL);
-    RSA_meth_set_finish(my_rsa_method, finish);
+    RSA_meth_set_finish(my_rsa_method, rsa_finish); /* we use this callback to cleanup CAPI_DATA */
     RSA_meth_set0_app_data(my_rsa_method, cd);
 
-    /*
-     * For CNG, set the RSA_sign method which gets priority over priv_enc().
-     * This method is called with the raw hash without the digestinfo
-     * header and works better when using NCryptSignHash() with some tokens.
-     * However, if PSS padding is in use, openssl does not call this
-     * function but adds the padding and then calls rsa_priv_enc()
-     * with padding set to NONE which is not supported by CNG.
-     * So, when posisble (OpenSSL 1.1.0 and up), we hook on to the sign
-     * operation in EVP_PKEY_METHOD struct.
-     */
-    if (cd->key_spec == CERT_NCRYPT_KEY_SPEC)
+    /* pmethod is global -- initialize only if NULL */
+    if (!pmethod)
     {
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L)
-        RSA_meth_set_sign(my_rsa_method, rsa_sign_CNG);
-#else
-        /* pmethod is global -- initialize only if NULL */
+        pmethod = EVP_PKEY_meth_new(EVP_PKEY_RSA, 0);
         if (!pmethod)
         {
-            pmethod = EVP_PKEY_meth_new(EVP_PKEY_RSA, 0);
-            if (!pmethod)
-            {
-                SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_MALLOC_FAILURE);
-                goto err;
-            }
-            const EVP_PKEY_METHOD *default_pmethod = EVP_PKEY_meth_find(EVP_PKEY_RSA);
-            EVP_PKEY_meth_copy(pmethod, default_pmethod);
-
-            /* We want to override only sign_init() and sign() */
-            EVP_PKEY_meth_set_sign(pmethod, pkey_rsa_sign_init, pkey_rsa_sign);
-            EVP_PKEY_meth_add0(pmethod);
-
-            /* Keep a copy of the default sign and sign_init methods */
-
-#if (OPENSSL_VERSION_NUMBER < 0x1010009fL)   /* > version 1.1.0i */
-            /* The function signature is not const-correct in these versions */
-            EVP_PKEY_meth_get_sign((EVP_PKEY_METHOD *)default_pmethod, &default_pkey_sign_init,
-                                   &default_pkey_sign);
-#else
-            EVP_PKEY_meth_get_sign(default_pmethod, &default_pkey_sign_init,
-                                   &default_pkey_sign);
-
-#endif
+            msg(M_NONFATAL, "Error in cryptoapicert: failed to create EVP_PKEY_METHOD");
+            return 0;
         }
-#endif /* (OPENSSL_VERSION_NUMBER < 0x10100000L) */
+        const EVP_PKEY_METHOD *default_pmethod = EVP_PKEY_meth_find(EVP_PKEY_RSA);
+        EVP_PKEY_meth_copy(pmethod, default_pmethod);
+
+        /* We want to override only sign_init() and sign() */
+        EVP_PKEY_meth_set_sign(pmethod, pkey_rsa_sign_init, pkey_rsa_sign);
+        EVP_PKEY_meth_add0(pmethod);
+
+        /* Keep a copy of the default sign and sign_init methods */
+
+        EVP_PKEY_meth_get_sign(default_pmethod, &default_pkey_sign_init,
+                               &default_pkey_sign);
     }
 
-    rsa = RSA_new();
-    if (rsa == NULL)
-    {
-        SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_MALLOC_FAILURE);
-        goto err;
-    }
+    rsa = EVP_PKEY_get1_RSA(pkey);
 
-    pub_rsa = EVP_PKEY_get0_RSA(pkey);
-    if (!pub_rsa)
-    {
-        goto err;
-    }
-
-    /* Our private key is external, so we fill in only n and e from the public key */
-    const BIGNUM *n = NULL;
-    const BIGNUM *e = NULL;
-    RSA_get0_key(pub_rsa, &n, &e, NULL);
-    BIGNUM *rsa_n = BN_dup(n);
-    BIGNUM *rsa_e = BN_dup(e);
-    if (!rsa_n || !rsa_e || !RSA_set0_key(rsa, rsa_n, rsa_e, NULL))
-    {
-        BN_free(rsa_n); /* ok to free even if NULL */
-        BN_free(rsa_e);
-        msg(M_NONFATAL, "ERROR: %s: out of memory", __func__);
-        goto err;
-    }
     RSA_set_flags(rsa, RSA_flags(rsa) | RSA_FLAG_EXT_PKEY);
     if (!RSA_set_method(rsa, my_rsa_method))
     {
-        goto err;
+        goto cleanup;
     }
-    rsa_method_set = true; /* flag that method pointer will get freed with the key */
+    my_rsa_method = NULL;  /* we do not want to free it in cleanup */
     cd->ref_count++;       /* with method, cd gets assigned to the key as well */
 
-    if (!SSL_CTX_use_RSAPrivateKey(ssl_ctx, rsa))
+    privkey = EVP_PKEY_new();
+    if (!EVP_PKEY_assign_RSA(privkey, rsa))
     {
-        goto err;
+        goto cleanup;
     }
-    /* SSL_CTX_use_RSAPrivateKey() increased the reference count in 'rsa', so
-    * we decrease it here with RSA_free(), or it will never be cleaned up. */
-    RSA_free(rsa);
-    return 1;
+    rsa = NULL; /* privkey has taken ownership */
 
-err:
+    if (!SSL_CTX_use_PrivateKey(ssl_ctx, privkey))
+    {
+        goto cleanup;
+    }
+    ret = 1;
+
+cleanup:
     if (rsa)
     {
         RSA_free(rsa);
     }
-    if (my_rsa_method && !rsa_method_set)
+    if (my_rsa_method)
     {
         RSA_meth_free(my_rsa_method);
     }
-    return 0;
+    if (privkey)
+    {
+        EVP_PKEY_free(privkey);
+    }
+
+    return ret;
 }
+
+#else /* HAVE_XKEY_PROVIDER */
+
+/** Sign hash in tbs using EC key in cd and NCryptSignHash */
+static int
+xkey_cng_ec_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsigned char *tbs,
+                 size_t tbslen)
+{
+    BYTE buf[1024]; /* large enough for EC keys upto 1024 bits */
+    DWORD len = _countof(buf);
+
+    msg(D_LOW, "Signing using NCryptSignHash with EC key");
+
+    DWORD status = NCryptSignHash(cd->crypt_prov, NULL, (BYTE *)tbs, tbslen, buf, len, &len, 0);
+
+    if (status != ERROR_SUCCESS)
+    {
+        SetLastError(status);
+        msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: ECDSA signature using CNG failed.");
+        return 0;
+    }
+
+    /* NCryptSignHash returns r|s -- convert to OpenSSL's ECDSA_SIG */
+    ECDSA_SIG *ecsig = ecdsa_bin2sig(buf, len);
+    if (!ecsig)
+    {
+        msg(M_NONFATAL, "Error in cryptopicert: Failed to convert ECDSA signature");
+        return 0;
+    }
+
+    /* convert internal signature structure 's' to DER encoded byte array in sig */
+    if (i2d_ECDSA_SIG(ecsig, NULL) > EVP_PKEY_size(cd->pubkey))
+    {
+        ECDSA_SIG_free(ecsig);
+        msg(M_NONFATAL, "Error in cryptoapicert: DER encoded ECDSA signature is too long");
+        return 0;
+    }
+
+    *siglen = i2d_ECDSA_SIG(ecsig, &sig);
+    ECDSA_SIG_free(ecsig);
+
+    return (*siglen > 0);
+}
+
+/** Sign hash in tbs using RSA key in cd and NCryptSignHash */
+static int
+xkey_cng_rsa_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsigned char *tbs,
+                  size_t tbslen, XKEY_SIGALG sigalg)
+{
+    dmsg(D_LOW, "In xkey_cng_rsa_sign");
+
+    ASSERT(cd);
+    ASSERT(sig);
+    ASSERT(tbs);
+
+    DWORD status = ERROR_SUCCESS;
+    DWORD len = 0;
+
+    const wchar_t *hashalg = cng_hash_algo(OBJ_sn2nid(sigalg.mdname));
+
+    if (hashalg && wcscmp(hashalg, L"UNKNOWN") == 0)
+    {
+        msg(M_NONFATAL, "Error in cryptoapicert: Unknown hash name <%s>", sigalg.mdname);
+        return 0;
+    }
+
+    if (!strcmp(sigalg.padmode, "pkcs1"))
+    {
+        msg(D_LOW, "Signing using NCryptSignHash with PKCS1 padding: hashalg <%s>", sigalg.mdname);
+
+        BCRYPT_PKCS1_PADDING_INFO padinfo = {hashalg};
+        status = NCryptSignHash(cd->crypt_prov, &padinfo, (BYTE *)tbs, (DWORD)tbslen,
+                                sig, (DWORD)*siglen, &len, BCRYPT_PAD_PKCS1);
+    }
+    else if (!strcmp(sigalg.padmode, "pss"))
+    {
+        int saltlen = tbslen; /* digest size by default */
+        if (!strcmp(sigalg.saltlen, "max"))
+        {
+            saltlen = xkey_max_saltlen(EVP_PKEY_bits(cd->pubkey), tbslen);
+            if (saltlen < 0)
+            {
+                msg(M_NONFATAL, "Error in cryptoapicert: invalid salt length (%d)", saltlen);
+                return 0;
+            }
+        }
+
+        msg(D_LOW, "Signing using NCryptSignHash with PSS padding: hashalg <%s>, saltlen <%d>",
+            sigalg.mdname, saltlen);
+
+        BCRYPT_PSS_PADDING_INFO padinfo = {hashalg, (DWORD) saltlen}; /* cast is safe as saltlen >= 0 */
+        status = NCryptSignHash(cd->crypt_prov, &padinfo, (BYTE *)tbs, (DWORD) tbslen,
+                                sig, (DWORD)*siglen, &len, BCRYPT_PAD_PSS);
+    }
+    else
+    {
+        msg(M_NONFATAL, "Error in cryptoapicert: Unsupported padding mode <%s>", sigalg.padmode);
+        return 0;
+    }
+
+    if (status != ERROR_SUCCESS)
+    {
+        SetLastError(status);
+        msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: RSA signature using CNG failed.");
+        return 0;
+    }
+
+    *siglen = len;
+    return (*siglen > 0);
+}
+
+/** Dispatch sign op to xkey_cng_<rsa/ec>_sign */
+static int
+xkey_cng_sign(void *handle, unsigned char *sig, size_t *siglen, const unsigned char *tbs,
+              size_t tbslen, XKEY_SIGALG sigalg)
+{
+    dmsg(D_LOW, "In xkey_cng_sign");
+
+    CAPI_DATA *cd = handle;
+    ASSERT(cd);
+    ASSERT(sig);
+    ASSERT(tbs);
+
+    unsigned char mdbuf[EVP_MAX_MD_SIZE];
+    size_t buflen = _countof(mdbuf);
+
+    /* compute digest if required */
+    if (!strcmp(sigalg.op, "DigestSign"))
+    {
+        if (!xkey_digest(tbs, tbslen, mdbuf, &buflen, sigalg.mdname))
+        {
+            return 0;
+        }
+        tbs = mdbuf;
+        tbslen = buflen;
+    }
+
+    if (!strcmp(sigalg.keytype, "EC"))
+    {
+        return xkey_cng_ec_sign(cd, sig, siglen, tbs, tbslen);
+    }
+    else if (!strcmp(sigalg.keytype, "RSA"))
+    {
+        return xkey_cng_rsa_sign(cd, sig, siglen, tbs, tbslen, sigalg);
+    }
+    else
+    {
+        return 0; /* Unknown keytype -- should not happen */
+    }
+}
+
+#endif /* HAVE_XKEY_PROVIDER */
 
 int
 SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
@@ -1106,7 +943,7 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
 
     if (cd == NULL)
     {
-        SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_MALLOC_FAILURE);
+        msg(M_NONFATAL, "Error in cryptoapicert: out of memory");
         goto err;
     }
     /* search CURRENT_USER first, then LOCAL_MACHINE */
@@ -1114,7 +951,7 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
                        |CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG, L"MY");
     if (cs == NULL)
     {
-        CRYPTOAPIerr(CRYPTOAPI_F_CERT_OPEN_SYSTEM_STORE);
+        msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: failed to open user certficate store");
         goto err;
     }
     cd->cert_context = find_certificate_in_store(cert_prop, cs);
@@ -1125,14 +962,14 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
                            |CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG, L"MY");
         if (cs == NULL)
         {
-            CRYPTOAPIerr(CRYPTOAPI_F_CERT_OPEN_SYSTEM_STORE);
+            msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: failed to open machine certficate store");
             goto err;
         }
         cd->cert_context = find_certificate_in_store(cert_prop, cs);
         CertCloseStore(cs, 0);
         if (cd->cert_context == NULL)
         {
-            CRYPTOAPIerr(CRYPTOAPI_F_CERT_FIND_CERTIFICATE_IN_STORE);
+            msg(M_NONFATAL, "Error in cryptoapicert: certificate matching <%s> not found", cert_prop);
             goto err;
         }
     }
@@ -1142,45 +979,21 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
                     cd->cert_context->cbCertEncoded);
     if (cert == NULL)
     {
-        SSLerr(SSL_F_SSL_CTX_USE_CERTIFICATE_FILE, ERR_R_ASN1_LIB);
+        msg(M_NONFATAL, "Error in cryptoapicert: X509 certificate decode failed");
         goto err;
     }
 
     /* set up stuff to use the private key */
-    /* We prefer to get an NCRYPT key handle so that TLS1.2 can be supported */
+    /* We support NCRYPT key handles only */
     DWORD flags = CRYPT_ACQUIRE_COMPARE_KEY_FLAG
-                  | CRYPT_ACQUIRE_PREFER_NCRYPT_KEY_FLAG;
+                  | CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG;
     if (!CryptAcquireCertificatePrivateKey(cd->cert_context, flags, NULL,
                                            &cd->crypt_prov, &cd->key_spec, &cd->free_crypt_prov))
     {
-        /* if we don't have a smart card reader here, and we try to access a
-         * smart card certificate, we get:
-         * "Error 1223: The operation was canceled by the user." */
-        CRYPTOAPIerr(CRYPTOAPI_F_CRYPT_ACQUIRE_CERTIFICATE_PRIVATE_KEY);
+        /* private key may be in a token not available, or incompatible with CNG */
+        msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: failed to acquire key. Key not present or "
+            "is in a legacy token not supported by Windows CNG API");
         goto err;
-    }
-    /* here we don't need to do CryptGetUserKey() or anything; all necessary key
-     * info is in cd->cert_context, and then, in cd->crypt_prov.  */
-
-    /* if we do not have an NCRYPT key handle restrict TLS to v1.1 or lower */
-    int max_version = SSL_CTX_get_max_proto_version(ssl_ctx);
-    if ((!max_version || max_version > TLS1_1_VERSION)
-        && cd->key_spec != CERT_NCRYPT_KEY_SPEC)
-    {
-        msg(M_WARN, "WARNING: cryptoapicert: private key is in a legacy store."
-            " Restricting TLS version to 1.1");
-        if (SSL_CTX_get_min_proto_version(ssl_ctx) > TLS1_1_VERSION)
-        {
-            msg(M_NONFATAL,
-                "ERROR: cryptoapicert: min TLS version larger than 1.1."
-                " Try config option --tls-version-min 1.1");
-            goto err;
-        }
-        if (!SSL_CTX_set_max_proto_version(ssl_ctx, TLS1_1_VERSION))
-        {
-            msg(M_NONFATAL, "ERROR: cryptoapicert: set max TLS version failed");
-            goto err;
-        }
     }
 
     /* Public key in cert is NULL until we call SSL_CTX_use_certificate(),
@@ -1191,12 +1004,22 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     }
 
     /* the public key */
-    EVP_PKEY *pkey = X509_get0_pubkey(cert);
+    EVP_PKEY *pkey = X509_get_pubkey(cert);
+    cd->pubkey = pkey; /* will be freed with cd */
 
     /* SSL_CTX_use_certificate() increased the reference count in 'cert', so
      * we decrease it here with X509_free(), or it will never be cleaned up. */
     X509_free(cert);
     cert = NULL;
+
+#ifdef HAVE_XKEY_PROVIDER
+
+    EVP_PKEY *privkey = xkey_load_generic_key(tls_libctx, cd, pkey,
+                                              xkey_cng_sign, (XKEY_PRIVKEY_FREE_fn *) CAPI_DATA_free);
+    SSL_CTX_use_PrivateKey(ssl_ctx, privkey);
+    return 1; /* do not free cd -- its kept by xkey provider */
+
+#else  /* ifdef HAVE_XKEY_PROVIDER */
 
     if (EVP_PKEY_id(pkey) == EVP_PKEY_RSA)
     {
@@ -1205,7 +1028,6 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
             goto err;
         }
     }
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L) && !defined(OPENSSL_NO_EC)
     else if (EVP_PKEY_id(pkey) == EVP_PKEY_EC)
     {
         if (!ssl_ctx_set_eckey(ssl_ctx, cd, pkey))
@@ -1213,25 +1035,19 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
             goto err;
         }
     }
-#endif /* OPENSSL_VERSION_NUMBER >= 1.1.0 */
     else
     {
-        msg(M_WARN, "WARNING: cryptoapicert: certificate type not supported");
+        msg(M_WARN|M_INFO, "WARNING: cryptoapicert: key type <%d> not supported",
+            EVP_PKEY_id(pkey));
         goto err;
     }
     CAPI_DATA_free(cd); /* this will do a ref_count-- */
     return 1;
 
+#endif /* HAVE_XKEY_PROVIDER */
+
 err:
     CAPI_DATA_free(cd);
     return 0;
 }
-
-#else  /* ifdef ENABLE_CRYPTOAPI */
-#ifdef _MSC_VER  /* Dummy function needed to avoid empty file compiler warning in Microsoft VC */
-static void
-dummy(void)
-{
-}
-#endif
 #endif                          /* _WIN32 */

@@ -1,0 +1,38 @@
+OpenVPN plugin examples.
+
+Examples provided:
+
+sample-client-connect.c
+
+  - hook to all plugin hooks that openvpn offers
+  - log which hook got called
+  - on CLIENT_CONNECT or CLIENT_CONNECT_V2 set some config variables
+    (controlled by "setenv plugin_cc_config ..." and "plugin_cc2_config"
+    in openvpn's config)
+
+  - if the environment variable UV_WANT_CC_FAIL is set, fail
+  - if the environment variable UV_WANT_CC_DISABLE is set, reject ("disable")
+  - if the environment variable UV_WANT_CC_ASYNC is set, go to
+    asynchronous/deferred mode on CLIENT_CONNECT, and sleep for
+    ${UV_WANT_CC_ASYNC} seconds
+
+  - if the environment variable UV_WANT_CC2_FAIL is set, fail CC2
+  - if the environment variable UV_WANT_CC2_DISABLE is set, reject ("disable")
+  - if the environment variable UV_WANT_CC2_ASYNC is set, go to
+    asynchronous/deferred mode on CLIENT_CONNECT_V2, and sleep for
+    ${UV_WANT_CC2_ASYNC} seconds
+
+    (this can be client-controlled with --setenv UV_WANT_CC_ASYNC nnn
+     etc. --> for easy testing server code paths)
+
+To build for unixy platforms (not very sophisticated right now, needs gmake):
+
+  .../sample-plugins$ gmake client-connect/sample-client-connect.so
+
+(This plugin has not been tested on Windows, and might not even work due
+to its use of fork() and wait().  Let us know if it does or needs patches)
+
+
+To use in OpenVPN, add to config file:
+
+  plugin sample-client-connect.so (Linux/BSD/etc.)

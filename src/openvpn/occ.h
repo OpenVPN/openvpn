@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -23,8 +23,6 @@
 
 #ifndef OCC_H
 #define OCC_H
-
-#ifdef ENABLE_OCC
 
 #include "forward.h"
 
@@ -155,5 +153,4 @@ check_send_occ_msg(struct context *c)
     }
 }
 
-#endif /* ifdef ENABLE_OCC */
 #endif /* ifndef OCC_H */

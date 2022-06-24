@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2016-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2016-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -50,25 +50,7 @@ static const uint8_t TLS_CRYPT_METADATA_TYPE_TIMESTAMP      = 0x01;
 static struct key_type
 tls_crypt_kt(void)
 {
-    struct key_type kt;
-    kt.cipher = cipher_kt_get("AES-256-CTR");
-    kt.digest = md_kt_get("SHA256");
-
-    if (!kt.cipher)
-    {
-        msg(M_WARN, "ERROR: --tls-crypt requires AES-256-CTR support.");
-        return (struct key_type) { 0 };
-    }
-    if (!kt.digest)
-    {
-        msg(M_WARN, "ERROR: --tls-crypt requires HMAC-SHA-256 support.");
-        return (struct key_type) { 0 };
-    }
-
-    kt.cipher_length = cipher_kt_key_size(kt.cipher);
-    kt.hmac_length = md_kt_size(kt.digest);
-
-    return kt;
+    return create_kt("AES-256-CTR", "SHA256", "tls-crypt");
 }
 
 int
@@ -79,7 +61,7 @@ tls_crypt_buf_overhead(void)
 
 void
 tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
-                   const char *key_inline, bool tls_server)
+                   bool key_inline, bool tls_server)
 {
     const int key_direction = tls_server ?
                               KEY_DIRECTION_NORMAL : KEY_DIRECTION_INVERSE;
@@ -91,16 +73,6 @@ tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
     crypto_read_openvpn_key(&kt, key, key_file, key_inline, key_direction,
                             "Control Channel Encryption", "tls-crypt");
 }
-
-void
-tls_crypt_adjust_frame_parameters(struct frame *frame)
-{
-    frame_add_to_extra_frame(frame, tls_crypt_buf_overhead());
-
-    msg(D_MTU_DEBUG, "%s: Adjusting frame parameters for tls-crypt by %i bytes",
-        __func__, tls_crypt_buf_overhead());
-}
-
 
 bool
 tls_crypt_wrap(const struct buffer *src, struct buffer *dst,
@@ -295,7 +267,7 @@ tls_crypt_v2_load_client_key(struct key_ctx_bi *key, const struct key2 *key2,
 
 void
 tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct buffer *wkc_buf,
-                             const char *key_file, const char *key_inline)
+                             const char *key_file, bool key_inline)
 {
     struct buffer client_key = alloc_buf(TLS_CRYPT_V2_CLIENT_KEY_LEN
                                          + TLS_CRYPT_V2_MAX_WKC_LEN);
@@ -320,7 +292,7 @@ tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct buffer *wkc_buf,
 
 void
 tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
-                             const char *key_file, const char *key_inline)
+                             const char *key_file, bool key_inline)
 {
     struct key srv_key;
     struct buffer srv_key_buf;
@@ -544,7 +516,7 @@ tls_crypt_v2_verify_metadata(const struct tls_wrap_ctx *ctx,
 
     ret = openvpn_run_script(&argv, es, 0, "--tls-crypt-v2-verify");
 
-    argv_reset(&argv);
+    argv_free(&argv);
     env_set_destroy(es);
 
     if (!platform_unlink(tmp_file))
@@ -638,7 +610,7 @@ void
 tls_crypt_v2_write_client_key_file(const char *filename,
                                    const char *b64_metadata,
                                    const char *server_key_file,
-                                   const char *server_key_inline)
+                                   bool server_key_inline)
 {
     struct gc_arena gc = gc_new();
     struct key_ctx server_key = { 0 };
@@ -664,7 +636,7 @@ tls_crypt_v2_write_client_key_file(const char *filename,
                 (int)strlen(b64_metadata), TLS_CRYPT_V2_MAX_B64_METADATA_LEN);
         }
         ASSERT(buf_write(&metadata, &TLS_CRYPT_METADATA_TYPE_USER, 1));
-        int decoded_len = openvpn_base64_decode(b64_metadata, BPTR(&metadata),
+        int decoded_len = openvpn_base64_decode(b64_metadata, BEND(&metadata),
                                                 BCAP(&metadata));
         if (decoded_len < 0)
         {
@@ -697,14 +669,14 @@ tls_crypt_v2_write_client_key_file(const char *filename,
         goto cleanup;
     }
 
-    const char *client_filename = filename;
-    const char *client_inline = NULL;
+    const char *client_file = filename;
+    bool client_inline = false;
 
     if (!filename || streq(filename, ""))
     {
-        printf("%s\n", BPTR(&client_key_pem));
-        client_filename = INLINE_FILE_TAG;
-        client_inline = (const char *)BPTR(&client_key_pem);
+        printf("%.*s\n", BLEN(&client_key_pem), BPTR(&client_key_pem));
+        client_file = (const char *)BPTR(&client_key_pem);
+        client_inline = true;
     }
     else if (!buffer_write_file(filename, &client_key_pem))
     {
@@ -717,7 +689,7 @@ tls_crypt_v2_write_client_key_file(const char *filename,
     struct buffer test_wrapped_client_key;
     msg(D_GENKEY, "Testing client-side key loading...");
     tls_crypt_v2_init_client_key(&test_client_key, &test_wrapped_client_key,
-                                 client_filename, client_inline);
+                                 client_file, client_inline);
     free_key_ctx_bi(&test_client_key);
 
     /* Sanity check: unwrap and load client key (as "server") */

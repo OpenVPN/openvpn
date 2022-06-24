@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -31,7 +31,7 @@
 #include "socket.h"
 #include "mroute.h"
 
-#define MANAGEMENT_VERSION                      2
+#define MANAGEMENT_VERSION                      3
 #define MANAGEMENT_N_PASSWORD_RETRIES           3
 #define MANAGEMENT_LOG_HISTORY_INITIAL_SIZE   100
 #define MANAGEMENT_ECHO_BUFFER_SIZE           100
@@ -40,7 +40,6 @@
 /*
  * Management-interface-based deferred authentication
  */
-#ifdef MANAGEMENT_DEF_AUTH
 struct man_def_auth_context {
     unsigned long cid;
 
@@ -53,7 +52,6 @@ struct man_def_auth_context {
 
     time_t bytecount_last_update;
 };
-#endif
 
 /*
  * Manage build-up of command line
@@ -164,7 +162,7 @@ struct management_callback
     int (*kill_by_addr) (void *arg, const in_addr_t addr, const int port);
     void (*delete_event) (void *arg, event_t event);
     int (*n_clients) (void *arg);
-#ifdef MANAGEMENT_DEF_AUTH
+    bool (*send_cc_message) (void *arg, const char *message, const char *parameter);
     bool (*kill_by_cid)(void *arg, const unsigned long cid, const char *kill_msg);
     bool (*client_auth) (void *arg,
                          const unsigned long cid,
@@ -173,13 +171,11 @@ struct management_callback
                          const char *reason,
                          const char *client_reason,
                          struct buffer_list *cc_config); /* ownership transferred */
+    bool (*client_pending_auth) (void *arg,
+                                 const unsigned long cid,
+                                 const char *extra,
+                                 unsigned int timeout);
     char *(*get_peer_info) (void *arg, const unsigned long cid);
-#endif
-#ifdef MANAGEMENT_PF
-    bool (*client_pf)(void *arg,
-                      const unsigned long cid,
-                      struct buffer_list *pf_config);  /* ownership transferred */
-#endif
     bool (*proxy_cmd)(void *arg, const char **p);
     bool (*remote_cmd) (void *arg, const char **p);
 #ifdef TARGET_ANDROID
@@ -277,16 +273,14 @@ struct man_connection {
 
 #define IEC_UNDEF       0
 #define IEC_CLIENT_AUTH 1
-#define IEC_CLIENT_PF   2
+/* #define IEC_CLIENT_PF   2 *REMOVED FEATURE* */
 #define IEC_RSA_SIGN    3
 #define IEC_CERTIFICATE 4
 #define IEC_PK_SIGN     5
     int in_extra_cmd;
     struct buffer_list *in_extra;
-#ifdef MANAGEMENT_DEF_AUTH
     unsigned long in_extra_cid;
     unsigned int in_extra_kid;
-#endif
 #define EKS_UNDEF   0
 #define EKS_SOLICIT 1
 #define EKS_INPUT   2
@@ -335,18 +329,18 @@ struct management *management_init(void);
 #define MF_SIGNAL            (1<<3)
 #define MF_FORGET_DISCONNECT (1<<4)
 #define MF_CONNECT_AS_CLIENT (1<<5)
-#ifdef MANAGEMENT_DEF_AUTH
 #define MF_CLIENT_AUTH       (1<<6)
-#endif
-#ifdef MANAGEMENT_PF
-#define MF_CLIENT_PF         (1<<7)
-#endif
-#define MF_UNIX_SOCK       (1<<8)
-#define MF_EXTERNAL_KEY    (1<<9)
-#define MF_UP_DOWN          (1<<10)
-#define MF_QUERY_REMOTE     (1<<11)
-#define MF_QUERY_PROXY      (1<<12)
-#define MF_EXTERNAL_CERT    (1<<13)
+/* #define MF_CLIENT_PF         (1<<7) *REMOVED FEATURE* */
+#define MF_UNIX_SOCK                (1<<8)
+#define MF_EXTERNAL_KEY             (1<<9)
+#define MF_EXTERNAL_KEY_NOPADDING   (1<<10)
+#define MF_EXTERNAL_KEY_PKCS1PAD    (1<<11)
+#define MF_UP_DOWN                  (1<<12)
+#define MF_QUERY_REMOTE             (1<<13)
+#define MF_QUERY_PROXY              (1<<14)
+#define MF_EXTERNAL_CERT            (1<<15)
+#define MF_EXTERNAL_KEY_PSSPAD      (1<<16)
+#define MF_EXTERNAL_KEY_DIGEST      (1<<17)
 
 bool management_open(struct management *man,
                      const char *addr,
@@ -389,8 +383,7 @@ bool management_query_user_pass(struct management *man,
 bool management_android_control(struct management *man, const char *command, const char *msg);
 
 #define ANDROID_KEEP_OLD_TUN 1
-#define ANDROID_OPEN_AFTER_CLOSE 2
-#define ANDROID_OPEN_BEFORE_CLOSE 3
+#define ANDROID_OPEN_BEFORE_CLOSE 2
 int managment_android_persisttun_action(struct management *man);
 
 #endif
@@ -409,7 +402,6 @@ void management_notify(struct management *man, const char *severity, const char 
 
 void management_notify_generic(struct management *man, const char *str);
 
-#ifdef MANAGEMENT_DEF_AUTH
 void management_notify_client_needing_auth(struct management *management,
                                            const unsigned int auth_id,
                                            struct man_def_auth_context *mdac,
@@ -428,9 +420,13 @@ void management_learn_addr(struct management *management,
                            const struct mroute_addr *addr,
                            const bool primary);
 
-#endif
+void management_notify_client_cr_response(unsigned mda_key_id,
+                                          const struct man_def_auth_context *mdac,
+                                          const struct env_set *es,
+                                          const char *response);
 
-char *management_query_pk_sig(struct management *man, const char *b64_data);
+char *management_query_pk_sig(struct management *man, const char *b64_data,
+                              const char *algorithm);
 
 char *management_query_cert(struct management *man, const char *cert_name);
 
@@ -458,21 +454,12 @@ management_query_proxy_enabled(const struct management *man)
     return BOOL_CAST(man->settings.flags & MF_QUERY_PROXY);
 }
 
-#ifdef MANAGEMENT_PF
-static inline bool
-management_enable_pf(const struct management *man)
-{
-    return man && BOOL_CAST(man->settings.flags & MF_CLIENT_PF);
-}
-#endif
 
-#ifdef MANAGEMENT_DEF_AUTH
 static inline bool
 management_enable_def_auth(const struct management *man)
 {
     return man && BOOL_CAST(man->settings.flags & MF_CLIENT_AUTH);
 }
-#endif
 
 /*
  * OpenVPN tells the management layer what state it's in
@@ -493,6 +480,8 @@ management_enable_def_auth(const struct management *man)
 #define OPENVPN_STATE_GET_CONFIG    9  /* Downloading configuration from server */
 #define OPENVPN_STATE_RESOLVE       10 /* DNS lookup */
 #define OPENVPN_STATE_TCP_CONNECT   11 /* Connecting to TCP server */
+#define OPENVPN_STATE_AUTH_PENDING  12 /* Waiting in auth-pending mode
+                                        * technically variant of GET_CONFIG */
 
 #define OPENVPN_STATE_CLIENT_BASE   7  /* Base index of client-only states */
 
@@ -570,8 +559,6 @@ management_bytes_in(struct management *man, const int size)
     }
 }
 
-#ifdef MANAGEMENT_DEF_AUTH
-
 void man_bytecount_output_server(struct management *man,
                                  const counter_type *bytes_in_total,
                                  const counter_type *bytes_out_total,
@@ -590,8 +577,6 @@ management_bytes_server(struct management *man,
         man_bytecount_output_server(man, bytes_in_total, bytes_out_total, mdac);
     }
 }
-
-#endif /* MANAGEMENT_DEF_AUTH */
 
 #endif /* ifdef ENABLE_MANAGEMENT */
 

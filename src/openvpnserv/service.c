@@ -61,19 +61,19 @@ CmdInstallServices()
     TCHAR path[512];
     int i, ret = _service_max;
 
-    if (GetModuleFileName(NULL, path + 1, 510) == 0)
+    if (GetModuleFileName(NULL, path + 1, _countof(path) - 2) == 0)
     {
-        _tprintf(TEXT("Unable to install service - %s\n"), GetLastErrorText());
+        wprintf(TEXT("Unable to install service - %ls\n"), GetLastErrorText());
         return 1;
     }
 
     path[0] = TEXT('\"');
-    _tcscat(path, TEXT("\""));
+    wcscat_s(path, _countof(path), TEXT("\""));
 
     svc_ctl_mgr = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT | SC_MANAGER_CREATE_SERVICE);
     if (svc_ctl_mgr == NULL)
     {
-        _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText());
+        wprintf(TEXT("OpenSCManager failed - %ls\n"), GetLastErrorText());
         return 1;
     }
 
@@ -91,13 +91,13 @@ CmdInstallServices()
                                 NULL, NULL);
         if (service)
         {
-            _tprintf(TEXT("%s installed.\n"), openvpn_service[i].display_name);
+            wprintf(TEXT("%ls installed.\n"), openvpn_service[i].display_name);
             CloseServiceHandle(service);
             --ret;
         }
         else
         {
-            _tprintf(TEXT("CreateService failed - %s\n"), GetLastErrorText());
+            wprintf(TEXT("CreateService failed - %ls\n"), GetLastErrorText());
         }
     }
 
@@ -116,7 +116,7 @@ CmdStartService(openvpn_service_type type)
     svc_ctl_mgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
     if (svc_ctl_mgr == NULL)
     {
-        _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText());
+        wprintf(TEXT("OpenSCManager failed - %ls\n"), GetLastErrorText());
         return 1;
     }
 
@@ -125,19 +125,19 @@ CmdStartService(openvpn_service_type type)
     {
         if (StartService(service, 0, NULL))
         {
-            _tprintf(TEXT("Service Started\n"));
+            wprintf(TEXT("Service Started\n"));
             ret = 0;
         }
         else
         {
-            _tprintf(TEXT("StartService failed - %s\n"), GetLastErrorText());
+            wprintf(TEXT("StartService failed - %ls\n"), GetLastErrorText());
         }
 
         CloseServiceHandle(service);
     }
     else
     {
-        _tprintf(TEXT("OpenService failed - %s\n"), GetLastErrorText());
+        wprintf(TEXT("OpenService failed - %ls\n"), GetLastErrorText());
     }
 
     CloseServiceHandle(svc_ctl_mgr);
@@ -156,7 +156,7 @@ CmdRemoveServices()
     svc_ctl_mgr = OpenSCManager(NULL, NULL, SC_MANAGER_CONNECT);
     if (svc_ctl_mgr == NULL)
     {
-        _tprintf(TEXT("OpenSCManager failed - %s\n"), GetLastErrorText());
+        wprintf(TEXT("OpenSCManager failed - %ls\n"), GetLastErrorText());
         return 1;
     }
 
@@ -167,21 +167,21 @@ CmdRemoveServices()
                               DELETE | SERVICE_STOP | SERVICE_QUERY_STATUS);
         if (service == NULL)
         {
-            _tprintf(TEXT("OpenService failed - %s\n"), GetLastErrorText());
+            wprintf(TEXT("OpenService failed - %ls\n"), GetLastErrorText());
             goto out;
         }
 
         /* try to stop the service */
         if (ControlService(service, SERVICE_CONTROL_STOP, &status))
         {
-            _tprintf(TEXT("Stopping %s."), ovpn_svc->display_name);
+            wprintf(TEXT("Stopping %ls."), ovpn_svc->display_name);
             Sleep(1000);
 
             while (QueryServiceStatus(service, &status))
             {
                 if (status.dwCurrentState == SERVICE_STOP_PENDING)
                 {
-                    _tprintf(TEXT("."));
+                    wprintf(TEXT("."));
                     Sleep(1000);
                 }
                 else
@@ -192,23 +192,23 @@ CmdRemoveServices()
 
             if (status.dwCurrentState == SERVICE_STOPPED)
             {
-                _tprintf(TEXT("\n%s stopped.\n"), ovpn_svc->display_name);
+                wprintf(TEXT("\n%ls stopped.\n"), ovpn_svc->display_name);
             }
             else
             {
-                _tprintf(TEXT("\n%s failed to stop.\n"), ovpn_svc->display_name);
+                wprintf(TEXT("\n%ls failed to stop.\n"), ovpn_svc->display_name);
             }
         }
 
         /* now remove the service */
         if (DeleteService(service))
         {
-            _tprintf(TEXT("%s removed.\n"), ovpn_svc->display_name);
+            wprintf(TEXT("%ls removed.\n"), ovpn_svc->display_name);
             --ret;
         }
         else
         {
-            _tprintf(TEXT("DeleteService failed - %s\n"), GetLastErrorText());
+            wprintf(TEXT("DeleteService failed - %ls\n"), GetLastErrorText());
         }
 
         CloseServiceHandle(service);
@@ -224,18 +224,11 @@ int
 _tmain(int argc, TCHAR *argv[])
 {
     /*
-     * Automatic + Interactive service (as a SERVICE_WIN32_SHARE_PROCESS)
+     * Interactive service (as a SERVICE_WIN32_SHARE_PROCESS)
      * This is the default.
      */
     const SERVICE_TABLE_ENTRY dispatchTable_shared[] = {
-        { automatic_service.name, ServiceStartAutomatic },
         { interactive_service.name, ServiceStartInteractive },
-        { NULL, NULL }
-    };
-
-    /* Automatic service only (as a SERVICE_WIN32_OWN_PROCESS) */
-    const SERVICE_TABLE_ENTRY dispatchTable_automatic[] = {
-        { TEXT(""), ServiceStartAutomaticOwn },
         { NULL, NULL }
     };
 
@@ -247,47 +240,50 @@ _tmain(int argc, TCHAR *argv[])
 
     const SERVICE_TABLE_ENTRY *dispatchTable = dispatchTable_shared;
 
-    openvpn_service[0] = automatic_service;
-    openvpn_service[1] = interactive_service;
+    openvpn_service[interactive] = interactive_service;
 
     for (int i = 1; i < argc; i++)
     {
         if (*argv[i] == TEXT('-') || *argv[i] == TEXT('/'))
         {
-            if (_tcsicmp(TEXT("install"), argv[i] + 1) == 0)
+            if (_wcsicmp(TEXT("install"), argv[i] + 1) == 0)
             {
                 return CmdInstallServices();
             }
-            else if (_tcsicmp(TEXT("remove"), argv[i] + 1) == 0)
+            else if (_wcsicmp(TEXT("remove"), argv[i] + 1) == 0)
             {
                 return CmdRemoveServices();
             }
-            else if (_tcsicmp(TEXT("start"), argv[i] + 1) == 0)
+            else if (_wcsicmp(TEXT("start"), argv[i] + 1) == 0)
             {
-                BOOL is_auto = argc < i + 2 || _tcsicmp(TEXT("interactive"), argv[i + 1]) != 0;
-                return CmdStartService(is_auto ? automatic : interactive);
+                return CmdStartService(interactive);
             }
-            else if (argc > i + 2 && _tcsicmp(TEXT("instance"), argv[i] + 1) == 0)
+            else if (argc > i + 2 && _wcsicmp(TEXT("instance"), argv[i] + 1) == 0)
             {
-                dispatchTable = _tcsicmp(TEXT("interactive"), argv[i + 1]) != 0 ?
-                                dispatchTable_automatic :
-                                dispatchTable_interactive;
-
-                service_instance = argv[i + 2];
-                i += 2;
+                if (_wcsicmp(TEXT("interactive"), argv[i+1]) == 0)
+                {
+                    dispatchTable = dispatchTable_interactive;
+                    service_instance = argv[i + 2];
+                    i += 2;
+                }
+                else
+                {
+                    MsgToEventLog(M_ERR, L"Invalid argument to -instance <%s>. Service not started.", argv[i+1]);
+                    return 1;
+                }
             }
             else
             {
-                _tprintf(TEXT("%s -install        to install the services\n"), APPNAME);
-                _tprintf(TEXT("%s -start <name>   to start a service (\"automatic\" or \"interactive\")\n"), APPNAME);
-                _tprintf(TEXT("%s -remove         to remove the services\n"), APPNAME);
+                wprintf(TEXT("%ls -install        to install the interactive service\n"), APPNAME);
+                wprintf(TEXT("%ls -start [name]   to start the service (name = \"interactive\" is optional)\n"), APPNAME);
+                wprintf(TEXT("%ls -remove         to remove the service\n"), APPNAME);
 
-                _tprintf(TEXT("\nService run-time parameters:\n"));
-                _tprintf(TEXT("-instance <name> <id>\n")
-                         TEXT("   Runs the service as an alternate instance. <name> can be \"automatic\" or\n")
-                         TEXT("   \"interactive\". The service settings will be loaded from\n")
-                         TEXT("   HKLM\\Software\\" PACKAGE_NAME "<id> registry key, and the interactive service will accept\n")
-                         TEXT("   requests on \\\\.\\pipe\\" PACKAGE "<id>\\service named pipe.\n"));
+                wprintf(TEXT("\nService run-time parameters:\n"));
+                wprintf(TEXT("-instance interactive <id>\n")
+                        TEXT("   Runs the service as an alternate instance.\n")
+                        TEXT("   The service settings will be loaded from\n")
+                        TEXT("   HKLM\\Software\\" PACKAGE_NAME "<id> registry key, and the service will accept\n")
+                        TEXT("   requests on \\\\.\\pipe\\" PACKAGE "<id>\\service named pipe.\n"));
 
                 return 0;
             }
@@ -298,8 +294,8 @@ _tmain(int argc, TCHAR *argv[])
      * the service control manager may be starting the service
      * so we must call StartServiceCtrlDispatcher
      */
-    _tprintf(TEXT("\nStartServiceCtrlDispatcher being called.\n"));
-    _tprintf(TEXT("This may take several seconds. Please wait.\n"));
+    wprintf(TEXT("\nStartServiceCtrlDispatcher being called.\n"));
+    wprintf(TEXT("This may take several seconds. Please wait.\n"));
 
     if (!StartServiceCtrlDispatcher(dispatchTable))
     {

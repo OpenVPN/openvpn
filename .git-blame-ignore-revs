@@ -1,0 +1,50 @@
+# This FILE allows git blame to ignore reformatting changes and instead
+# shows the previous commit that changed the line.
+#
+# To avoid manually building the list of commits this commit
+# adds a file with a list of reformatting commits. TO use:
+#
+#   git blame --ignore-revs-file=.git-blame-ignore-revs file
+#
+# or to automatically always use the file
+#
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Uncrustify 2020/06... (engine, pool, SSO)
+c1ff8f247f91c88a2df5502eeedf42857f9a6831
+
+# Uncrustify the tests/unit_tests/ part of our tree.
+da1574ef7826d73f01e120cbd1ba40ce39a305b7
+
+# Another round of uncrustify code cleanup.
+9cf7b4925a54d93fbea1cadcf3dc0e11f3ce358f
+
+# networking_sitnl.c: uncrustify file
+2c45d268ca65c522fbabb7c4dab5e721296b4623
+
+# Uncrustify tapctl and openvpnmsica
+6280d3d5536174934ee22d3840457d61896e0e3a
+
+# tun.c: uncrustify
+baef44fc8769bbd99f4d699ce9f63180c29a5455
+
+# networking_sitnl.c: uncrustify file
+2c45d268ca65c522fbabb7c4dab5e721296b4623
+
+# uncrustify openvpn sources
+f57431cdc88f22fa4d7962946f0d3187fe058539
+
+# More broadly enforce Allman style and braces-around-conditionals
+4cd4899e8e80efae03c584a760fd107251735723
+
+# The Great Reformatting - first phase
+81d882d5302b8b647202a6893b57dfdc61fd6df2
+
+# Fix trailing-whitespace errors in last patch.
+3282632d9325267c850072db7545a884a1637f51
+
+# The Great Reformatting of 2022
+abe49856d81f51136d543539202a0bf8fb946474
+
+# Reformat for sp_after_comma=add
+e51d9a73693ee742b36e19fb1718e5e27167831d

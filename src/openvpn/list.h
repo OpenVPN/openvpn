@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -32,8 +32,6 @@
  * Hash tables are used in OpenVPN to keep track of
  * client instances over various key spaces.
  */
-
-#if P2MP_SERVER
 
 /* define this to enable special list test mode */
 /*#define LIST_TEST*/
@@ -194,5 +192,4 @@ hash_remove(struct hash *hash, const void *key)
     return ret;
 }
 
-#endif /* P2MP_SERVER */
 #endif /* LIST */

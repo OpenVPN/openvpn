@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -52,10 +52,14 @@
  */
 
 /* Compression flags */
-#define COMP_F_ADAPTIVE   (1<<0) /* COMP_ALG_LZO only */
-#define COMP_F_ASYM       (1<<1) /* only downlink is compressed, not uplink */
-#define COMP_F_SWAP       (1<<2) /* initial command byte is swapped with last byte in buffer to preserve payload alignment */
+#define COMP_F_ADAPTIVE             (1<<0) /* COMP_ALG_LZO only */
+#define COMP_F_ALLOW_COMPRESS       (1<<1) /* not only downlink is compressed but also uplink */
+#define COMP_F_SWAP                 (1<<2) /* initial command byte is swapped with last byte in buffer to preserve payload alignment */
 #define COMP_F_ADVERTISE_STUBS_ONLY (1<<3) /* tell server that we only support compression stubs */
+#define COMP_F_ALLOW_STUB_ONLY      (1<<4) /* Only accept stub compression, even with COMP_F_ADVERTISE_STUBS_ONLY
+                                            * we still accept other compressions to be pushed */
+#define COMP_F_MIGRATE              (1<<5) /* push stub-v2 or comp-lzo no when we see a client with comp-lzo in occ */
+#define COMP_F_ALLOW_ASYM           (1<<6) /* Compression was explicitly set to allow asymetric compression */
 
 
 /*
@@ -172,10 +176,6 @@ struct compress_context *comp_init(const struct compress_options *opt);
 
 void comp_uninit(struct compress_context *compctx);
 
-void comp_add_to_extra_frame(struct frame *frame);
-
-void comp_add_to_extra_buffer(struct frame *frame);
-
 void comp_print_stats(const struct compress_context *compctx, struct status_output *so);
 
 void comp_generate_peer_info_string(const struct compress_options *opt, struct buffer *out);
@@ -189,9 +189,11 @@ comp_enabled(const struct compress_options *info)
 }
 
 static inline bool
-comp_unswapped_prefix(const struct compress_options *info)
+comp_non_stub_enabled(const struct compress_options *info)
 {
-    return !(info->flags & COMP_F_SWAP);
+    return info->alg != COMP_ALGV2_UNCOMPRESSED
+           && info->alg != COMP_ALG_STUB
+           && info->alg != COMP_ALG_UNDEF;
 }
 
 #endif /* USE_COMP */

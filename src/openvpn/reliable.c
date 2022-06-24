@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -153,59 +153,65 @@ reliable_ack_acknowledge_packet_id(struct reliable_ack *ack, packet_id_type pid)
     return false;
 }
 
-/* read a packet ID acknowledgement record from buf into ack */
+
 bool
 reliable_ack_read(struct reliable_ack *ack,
                   struct buffer *buf, const struct session_id *sid)
 {
-    struct gc_arena gc = gc_new();
-    int i;
-    uint8_t count;
-    packet_id_type net_pid;
-    packet_id_type pid;
     struct session_id session_id_remote;
+
+    if (!reliable_ack_parse(buf, ack, &session_id_remote))
+    {
+        return false;
+    }
+
+    if (ack->len >= 1 && (!session_id_defined(&session_id_remote)
+                          || !session_id_equal(&session_id_remote, sid)))
+    {
+        struct gc_arena gc = gc_new();
+        dmsg(D_REL_LOW,
+             "ACK read BAD SESSION-ID FROM REMOTE, local=%s, remote=%s",
+             session_id_print(sid, &gc), session_id_print(&session_id_remote, &gc));
+        gc_free(&gc);
+        return false;
+    }
+    return true;
+}
+
+bool
+reliable_ack_parse(struct buffer *buf, struct reliable_ack *ack,
+                   struct session_id *session_id_remote)
+{
+    uint8_t count;
+    ack->len = 0;
 
     if (!buf_read(buf, &count, sizeof(count)))
     {
-        goto error;
+        return false;
     }
-    for (i = 0; i < count; ++i)
+    for (int i = 0; i < count; ++i)
     {
+        packet_id_type net_pid;
         if (!buf_read(buf, &net_pid, sizeof(net_pid)))
         {
-            goto error;
+            return false;
         }
         if (ack->len >= RELIABLE_ACK_SIZE)
         {
-            goto error;
+            return false;
         }
-        pid = ntohpid(net_pid);
+        packet_id_type pid = ntohpid(net_pid);
         ack->packet_id[ack->len++] = pid;
     }
     if (count)
     {
-        if (!session_id_read(&session_id_remote, buf))
+        if (!session_id_read(session_id_remote, buf))
         {
-            goto error;
-        }
-        if (!session_id_defined(&session_id_remote)
-            || !session_id_equal(&session_id_remote, sid))
-        {
-            dmsg(D_REL_LOW,
-                 "ACK read BAD SESSION-ID FROM REMOTE, local=%s, remote=%s",
-                 session_id_print(sid, &gc), session_id_print(&session_id_remote, &gc));
-            goto error;
+            return false;
         }
     }
-    gc_free(&gc);
     return true;
-
-error:
-    gc_free(&gc);
-    return false;
 }
-
-#define ACK_SIZE(n) (sizeof(uint8_t) + ((n) ? SID_SIZE : 0) + sizeof(packet_id_type) * (n))
 
 /* write a packet ID acknowledgement record to buf, */
 /* removing all acknowledged entries from ack */
@@ -251,13 +257,6 @@ reliable_ack_write(struct reliable_ack *ack,
 
 error:
     return false;
-}
-
-/* add to extra_frame the maximum number of bytes we will need for reliable_ack_write */
-void
-reliable_ack_adjust_frame_parameters(struct frame *frame, int max)
-{
-    frame_add_to_extra_frame(frame, ACK_SIZE(max));
 }
 
 /* print a reliable ACK record coming off the wire */
@@ -326,12 +325,17 @@ reliable_init(struct reliable *rel, int buf_size, int offset, int array_size, bo
 void
 reliable_free(struct reliable *rel)
 {
+    if (!rel)
+    {
+        return;
+    }
     int i;
     for (i = 0; i < rel->size; ++i)
     {
         struct reliable_entry *e = &rel->array[i];
         free_buf(&e->buf);
     }
+    free(rel);
 }
 
 /* no active buffers? */
@@ -377,7 +381,14 @@ reliable_send_purge(struct reliable *rel, const struct reliable_ack *ack)
                 }
 #endif
                 e->active = false;
-                break;
+            }
+            else if (e->active && e->packet_id < pid)
+            {
+                /* We have received an ACK for a packet with a higher PID. Either
+                 * we have received ACKs out of or order or the packet has been
+                 * lost. We count the number of ACKs to determine if we should
+                 * resend it early. */
+                e->n_acks++;
             }
         }
     }
@@ -522,8 +533,8 @@ reliable_get_buf_output_sequenced(struct reliable *rel)
 }
 
 /* get active buffer for next sequentially increasing key ID */
-struct buffer *
-reliable_get_buf_sequenced(struct reliable *rel)
+struct reliable_entry *
+reliable_get_entry_sequenced(struct reliable *rel)
 {
     int i;
     for (i = 0; i < rel->size; ++i)
@@ -531,7 +542,7 @@ reliable_get_buf_sequenced(struct reliable *rel)
         struct reliable_entry *e = &rel->array[i];
         if (e->active && e->packet_id == rel->packet_id)
         {
-            return &e->buf;
+            return e;
         }
     }
     return NULL;
@@ -550,7 +561,7 @@ reliable_can_send(const struct reliable *rel)
         if (e->active)
         {
             ++n_active;
-            if (now >= e->next_try)
+            if (now >= e->next_try || e->n_acks >= N_ACK_RETRANSMIT)
             {
                 ++n_current;
             }
@@ -576,7 +587,12 @@ reliable_send(struct reliable *rel, int *opcode)
     for (i = 0; i < rel->size; ++i)
     {
         struct reliable_entry *e = &rel->array[i];
-        if (e->active && local_now >= e->next_try)
+
+        /* If N_ACK_RETRANSMIT later packets have received ACKs, we assume
+         * that the packet was lost and resend it even if the timeout has
+         * not expired yet. */
+        if (e->active
+            && (e->n_acks >= N_ACK_RETRANSMIT || local_now >= e->next_try))
         {
             if (!best || reliable_pid_min(e->packet_id, best->packet_id))
             {
@@ -586,14 +602,10 @@ reliable_send(struct reliable *rel, int *opcode)
     }
     if (best)
     {
-#ifdef EXPONENTIAL_BACKOFF
         /* exponential backoff */
         best->next_try = local_now + best->timeout;
         best->timeout *= 2;
-#else
-        /* constant timeout, no backoff */
-        best->next_try = local_now + best->timeout;
-#endif
+        best->n_acks = 0;
         *opcode = best->opcode;
         dmsg(D_REL_DEBUG, "ACK reliable_send ID " packet_id_format " (size=%d to=%d)",
              (packet_id_print_type)best->packet_id, best->buf.len,
@@ -681,6 +693,7 @@ reliable_mark_active_incoming(struct reliable *rel, struct buffer *buf,
             e->opcode = opcode;
             e->next_try = 0;
             e->timeout = 0;
+            e->n_acks = 0;
             dmsg(D_REL_DEBUG, "ACK mark active incoming ID " packet_id_format, (packet_id_print_type)e->packet_id);
             return;
         }
@@ -720,7 +733,7 @@ reliable_mark_active_outgoing(struct reliable *rel, struct buffer *buf, int opco
 
 /* delete a buffer previously activated by reliable_mark_active() */
 void
-reliable_mark_deleted(struct reliable *rel, struct buffer *buf, bool inc_pid)
+reliable_mark_deleted(struct reliable *rel, struct buffer *buf)
 {
     int i;
     for (i = 0; i < rel->size; ++i)
@@ -729,10 +742,7 @@ reliable_mark_deleted(struct reliable *rel, struct buffer *buf, bool inc_pid)
         if (buf == &e->buf)
         {
             e->active = false;
-            if (inc_pid)
-            {
-                rel->packet_id = e->packet_id + 1;
-            }
+            rel->packet_id = e->packet_id + 1;
             return;
         }
     }

@@ -60,7 +60,7 @@ is to be answered with the constant value "mydomain.com":
 The following OpenVPN directives can also influence
 the operation of this plugin:
 
-  client-cert-not-required
+  verify-client-cert none
   username-as-common-name
   static-challenge
 
@@ -72,6 +72,41 @@ this plugin, including the list of queries presented by the
 underlying PAM module.  This is a useful debugging tool to figure
 out which queries a given PAM module is making, so that you can
 craft the appropriate plugin directive to answer it.
+
+Since running OpenVPN with verb 7 is quite verbose, alternatively
+you can put
+
+   verb 3
+   setenv verb 9
+
+in the openvpn config which will only increase logging for this plugin.
+
+
+ASYNCHRONOUS OPERATION
+
+Sometimes PAM modules take very long to complete (for example, a LDAP
+or Radius query might timeout trying to connect an unreachable external
+server).  Normal plugin auth operation will block the whole OpenVPN
+process in this time, that is, all forwarding for all other clients stops.
+
+The auth-pam plugin can operate asynchronously ("deferred authentication")
+to remedy this situation.  To enable this, put
+
+  setenv deferred_auth_pam 1
+
+in your openvpn server config.  If set, this will make the "PAM background
+process" fork() and do its job detached from OpenVPN.  When finished, a
+status file is written, which OpenVPN will then pick up and read the
+success/failure result from it.
+
+While the plugin is working in the background, OpenVPN will continue to
+service other clients normally.
+
+Asynchronous operation is recommended for all PAM queries that could
+"take time" (LDAP, Radius, NIS, ...).  If only local files are queried
+(passwd, pam_userdb, ...), synchronous operation has slightly lower
+overhead, so this is still the default mode of operation.
+
 
 CAVEATS
 

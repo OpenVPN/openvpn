@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -65,35 +65,56 @@ struct cert_hash_set {
 #define VERIFY_X509_SUBJECT_RDN         2
 #define VERIFY_X509_SUBJECT_RDN_PREFIX  3
 
-#define TLS_AUTHENTICATION_SUCCEEDED  0
-#define TLS_AUTHENTICATION_FAILED     1
-#define TLS_AUTHENTICATION_DEFERRED   2
-#define TLS_AUTHENTICATION_UNDEFINED  3
+enum tls_auth_status
+{
+    TLS_AUTHENTICATION_SUCCEEDED=0,
+    TLS_AUTHENTICATION_FAILED=1,
+    TLS_AUTHENTICATION_DEFERRED=2
+};
 
-/*
- * Return current session authentication state.  Return
- * value is TLS_AUTHENTICATION_x.
+/**
+ * Return current session authentication state of the tls_multi structure
+ * This will return TLS_AUTHENTICATION_SUCCEEDED only if the session is
+ * fully authenticated, i.e. VPN traffic is allowed over it.
  *
- * TODO: document this function
+ * Checks the status of all active keys and checks if the deferred
+ * authentication has succeeded.
+ *
+ * As a side effect this function will also transition ks->authenticated
+ * from KS_AUTH_DEFERRED to KS_AUTH_FALSE/KS_AUTH_TRUE if the deferred
+ * authentication has succeeded after last call.
+ *
+ * @param   multi       the tls_multi struct to operate on
+ *
+ * @return              Current authentication status of the tls_multi
  */
-int tls_authentication_status(struct tls_multi *multi, const int latency);
+enum tls_auth_status
+tls_authentication_status(struct tls_multi *multi);
 
-/** Check whether the \a ks \c key_state is ready to receive data channel
- *   packets.
+/** Check whether the \a ks \c key_state has finished the key exchange part
+ *  of the OpenVPN hand shake. This is that the key_method_2read/write
+ *  handshakes have been completed and certificate verification have
+ *  been completed.
+ *
+ * connect/deferred auth might still pending. Also data-channel keys might
+ * not have been created since they are delayed until PUSH_REPLY for NCP
+ * clients.
+ *
  *   @ingroup data_crypto
  *
  *   If true, it is safe to assume that this session has been authenticated
  *   by TLS.
  *
  *   @note This macro only works if S_SENT_KEY + 1 == S_GOT_KEY. */
-#define DECRYPT_KEY_ENABLED(multi, ks) ((ks)->state >= (S_GOT_KEY - (multi)->opt.server))
+#define TLS_AUTHENTICATED(multi, ks) ((ks)->state >= (S_GOT_KEY - (multi)->opt.server))
 
 /**
- * Remove the given key state's auth control file, if it exists.
+ * Remove the given key state's auth deferred status auth control file,
+ * if it exists.
  *
- * @param ks    The key state the remove the file for
+ * @param ads    The key state the remove the file for
  */
-void key_state_rm_auth_control_file(struct key_state *ks);
+void key_state_rm_auth_control_files(struct auth_deferred_status *ads);
 
 /**
  * Frees the given set of certificate hashes.
@@ -139,35 +160,6 @@ const char *tls_username(const struct tls_multi *multi, const bool null);
  * @param chs2 cert 2 hash set
  */
 bool cert_hash_compare(const struct cert_hash_set *chs1, const struct cert_hash_set *chs2);
-
-#ifdef ENABLE_PF
-
-/**
- * Retrieve the given tunnel's common name and its hash value.
- *
- * @param multi         The tunnel to use
- * @param cn            Common name's string
- * @param cn_hash       Common name's hash value
- *
- * @return true if the common name was set, false otherwise.
- */
-static inline bool
-tls_common_name_hash(const struct tls_multi *multi, const char **cn, uint32_t *cn_hash)
-{
-    if (multi)
-    {
-        const struct tls_session *s = &multi->session[TM_ACTIVE];
-        if (s->common_name && s->common_name[0] != '\0')
-        {
-            *cn = s->common_name;
-            *cn_hash = s->common_name_hashval;
-            return true;
-        }
-    }
-    return false;
-}
-
-#endif
 
 /**
  * Verify the given username and password, using either an external script, a
@@ -221,21 +213,24 @@ struct x509_track
 /*
  * TODO: document
  */
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
 bool tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, const bool auth, const char *client_reason);
 
-void man_def_auth_set_client_reason(struct tls_multi *multi, const char *client_reason);
-
 #endif
+
+/**
+ * Sets the reason why authentication of a client failed. This be will send to the client
+ * when the AUTH_FAILED message is sent
+ * An example would be "SESSION: Token expired"
+ * @param multi             The multi tls struct
+ * @param client_reason     The string to send to the client as part of AUTH_FAILED
+ */
+void auth_set_client_reason(struct tls_multi *multi, const char *client_reason);
 
 static inline const char *
 tls_client_reason(struct tls_multi *multi)
 {
-#ifdef ENABLE_DEF_AUTH
     return multi->client_reason;
-#else
-    return NULL;
-#endif
 }
 
 /** Remove any X509_ env variables from env_set es */

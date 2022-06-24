@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -118,7 +118,7 @@
  * tunnel_point_to_point() or \c tunnel_server().
  *
  * In server-mode, \c main() calls the \c tunnel_server() function, which
- * transfers control to \c tunnel_server_udp_single_threaded() or \c
+ * transfers control to \c tunnel_server_udp() or \c
  * tunnel_server_tcp() depending on the external transport protocol.
  *
  * These functions receive the \c context created in \c main().  This

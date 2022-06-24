@@ -2,7 +2,7 @@
 # reformat-all.sh - Reformat all git files in the checked out
 #                   git branch using uncrustify.
 #
-# Copyright (C) 2016-2018 - David Sommerseth <davids@openvpn.net>
+# Copyright (C) 2016-2022 - David Sommerseth <davids@openvpn.net>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -80,8 +80,8 @@ cd "$srcroot"
 
     # Kick off uncrustify
     echo
-    echo "** INFO ** Running: uncrustify -c $cfg --no-backup -l C -p debug.uncr -F $files"
-    uncrustify -c "$cfg" --no-backup -l C -p debug.uncr -F "$files" 2>&1
+    echo "** INFO ** Running: uncrustify -c $cfg --no-backup -l C -F $files"
+    uncrustify -c "$cfg" --no-backup -l C -F "$files" 2>&1
     res=$?
     echo "** INFO ** Uncrustify completed (exit code $res)"
 } | tee "${log}-1"  # Log needs to be closed here, to be processed in next block

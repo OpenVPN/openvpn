@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -61,6 +61,6 @@
  * event loop function is called to drive the event processing.  The
  * following implementations are available:
  * - Client mode using UDP or TCP: \c tunnel_point_to_point()
- * - Server mode using UDP: \c tunnel_server_udp_single_threaded()
+ * - Server mode using UDP: \c tunnel_server_udp()
  * - Server mode using TCP: \c tunnel_server_tcp()
  */

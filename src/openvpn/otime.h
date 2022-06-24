@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -55,8 +55,6 @@ extern time_t now; /* updated frequently to time(NULL) */
 
 void time_test(void);
 
-#if TIME_BACKTRACK_PROTECTION
-
 void update_now(const time_t system_time);
 
 extern time_t now_usec;
@@ -84,40 +82,9 @@ update_time(void)
     openvpn_gettimeofday(&tv, NULL);
 #else
     update_now(time(NULL));
+    now_usec = 0;
 #endif
 }
-
-#else /* !TIME_BACKTRACK_PROTECTION */
-
-static inline void
-update_time(void)
-{
-#if defined(_WIN32)
-    /* on _WIN32, gettimeofday is faster than time(NULL) */
-    struct timeval tv;
-    if (!gettimeofday(&tv, NULL))
-    {
-        if (tv.tv_sec != now)
-        {
-            now = tv.tv_sec;
-        }
-    }
-#else  /* if defined(_WIN32) */
-    const time_t real_time = time(NULL);
-    if (real_time != now)
-    {
-        now = real_time;
-    }
-#endif
-}
-
-static inline int
-openvpn_gettimeofday(struct timeval *tv, void *tz)
-{
-    return gettimeofday(tv, tz);
-}
-
-#endif /* TIME_BACKTRACK_PROTECTION */
 
 static inline time_t
 openvpn_time(time_t *t)

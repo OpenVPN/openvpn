@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -28,16 +28,16 @@
 #include "error.h"
 #include "syshead.h"
 
-bool set_nonblock_action(int fd);
+bool set_nonblock_action(socket_descriptor_t fd);
 
-bool set_cloexec_action(int fd);
+bool set_cloexec_action(socket_descriptor_t fd);
 
-void set_nonblock(int fd);
+void set_nonblock(socket_descriptor_t fd);
 
-void set_cloexec(int fd);
+void set_cloexec(socket_descriptor_t fd);
 
 static inline void
-openvpn_fd_set(int fd, fd_set *setp)
+openvpn_fd_set(socket_descriptor_t fd, fd_set *setp)
 {
 #ifndef _WIN32 /* The Windows FD_SET() implementation does not overflow */
     ASSERT(fd >= 0 && fd < FD_SETSIZE);

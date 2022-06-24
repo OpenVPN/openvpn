@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -138,10 +138,8 @@ struct sha256_digest {
  */
 struct key_type
 {
-    uint8_t cipher_length;      /**< Cipher length, in bytes */
-    uint8_t hmac_length;        /**< HMAC length, in bytes */
-    const cipher_kt_t *cipher;  /**< Cipher static parameters */
-    const md_kt_t *digest;      /**< Message digest static parameters */
+    const char *cipher;         /**< const name of the cipher */
+    const char *digest;         /**< Message digest static parameters */
 };
 
 /**
@@ -254,6 +252,18 @@ struct crypto_options
 #define CO_MUTE_REPLAY_WARNINGS (1<<2)
     /**< Bit-flag indicating not to display
      *   replay warnings. */
+#define CO_USE_TLS_KEY_MATERIAL_EXPORT  (1<<3)
+    /**< Bit-flag indicating that data channel key derivation
+     * is done using TLS keying material export [RFC5705]
+     */
+#define CO_RESEND_WKC (1<<4)
+    /**< Bit-flag indicating that the client is expected to
+     * resend the wrapped client key with the 2nd packet (packet-id 1)
+     * like with the HARD_RESET_CLIENT_V3 packet */
+#define CO_FORCE_TLSCRYPTV2_COOKIE  (1<<5)
+    /**< Bit-flag indicating that we do not allow clients that do
+     * not support resending the wrapped client key (WKc) with the
+     * third packet of the three-way handshake */
     unsigned int flags;         /**< Bit-flags determining behavior of
                                  *   security operation functions. */
 };
@@ -284,8 +294,6 @@ void check_replay_consistency(const struct key_type *kt, bool packet_id);
 
 bool check_key(struct key *key, const struct key_type *kt);
 
-void fixup_key(struct key *key, const struct key_type *kt);
-
 bool write_key(const struct key *key, const struct key_type *kt,
                struct buffer *buf);
 
@@ -297,14 +305,12 @@ int read_key(struct key *key, const struct key_type *kt, struct buffer *buf);
  * @param kt          The struct key_type to initialize
  * @param ciphername  The name of the cipher to use
  * @param authname    The name of the HMAC digest to use
- * @param keysize     The length of the cipher key to use, in bytes.  Only valid
- *                    for ciphers that support variable length keys.
  * @param tls_mode    Specifies whether we are running in TLS mode, which allows
  *                    more ciphers than static key mode.
  * @param warn        Print warnings when null cipher / auth is used.
  */
 void init_key_type(struct key_type *kt, const char *ciphername,
-                   const char *authname, int keysize, bool tls_mode, bool warn);
+                   const char *authname, bool tls_mode, bool warn);
 
 /*
  * Key context functions
@@ -417,6 +423,24 @@ void crypto_adjust_frame_parameters(struct frame *frame,
                                     bool packet_id,
                                     bool packet_id_long_form);
 
+/** Calculate the maximum overhead that our encryption has
+ * on a packet. This does not include needed additional buffer size
+ *
+ * This does NOT include the padding and rounding of CBC size
+ * as the users (mssfix/fragment) of this function need to adjust for
+ * this and add it themselves.
+ *
+ * @param kt            Struct with the crypto algorithm to use
+ * @param packet_id_size Size of the packet id, can be 0 if no-replay is used
+ * @param occ           if true calculates the overhead for crypto in the same
+ *                      incorrect way as all previous OpenVPN versions did, to
+ *                      end up with identical numbers for OCC compatibility
+ */
+unsigned int
+calculate_crypto_overhead(const struct key_type *kt,
+                          unsigned int pkt_id_size,
+                          bool occ);
+
 /** Return the worst-case OpenVPN crypto overhead (in bytes) */
 unsigned int crypto_max_overhead(void);
 
@@ -428,37 +452,31 @@ unsigned int crypto_max_overhead(void);
  * @param pem_name          The name to use in the PEM header/footer.
  */
 void
-write_pem_key_file(const char *filename, const char *pem_name);
+write_pem_key_file(const char *filename, const char *key_name);
+
+/**
+ * Generate ephermal key material into the key structure
+ *
+ * @param key           the key structure that will hold the key material
+ * @param pem_name      the name used for logging
+ * @return              true if key generation was successful
+ */
+bool
+generate_ephemeral_key(struct buffer *key, const char *pem_name);
 
 /**
  * Read key material from a PEM encoded files into the key structure
  * @param key           the key structure that will hold the key material
  * @param pem_name      the name used in the pem encoding start/end lines
- * @param key_file      name of the file to read
- * @param key_inline    a string holding the data in case of an inline key
+ * @param key_file      name of the file to read or the key itself if
+ *                      key_inline is true
+ * @param key_inline    True if key_file contains an inline key, False
+ *                      otherwise.
  * @return              true if reading into key was successful
  */
 bool
 read_pem_key_file(struct buffer *key, const char *pem_name,
-                  const char *key_file, const char *key_inline);
-
-/* Minimum length of the nonce used by the PRNG */
-#define NONCE_SECRET_LEN_MIN 16
-
-/* Maximum length of the nonce used by the PRNG */
-#define NONCE_SECRET_LEN_MAX 64
-
-/** Number of bytes of random to allow before resetting the nonce */
-#define PRNG_NONCE_RESET_BYTES 1024
-
-/**
- * Pseudo-random number generator initialisation.
- * (see \c prng_rand_bytes())
- *
- * @param md_name                       Name of the message digest to use
- * @param nonce_secret_len_param        Length of the nonce to use
- */
-void prng_init(const char *md_name, const int nonce_secret_len_parm);
+                  const char *key_file, bool key_inline);
 
 /*
  * Message digest-based pseudo random number generator.
@@ -477,13 +495,11 @@ void prng_init(const char *md_name, const int nonce_secret_len_parm);
  */
 void prng_bytes(uint8_t *output, int len);
 
-void prng_uninit(void);
-
 /* an analogue to the random() function, but use prng_bytes */
 long int get_random(void);
 
 /** Print a cipher list entry */
-void print_cipher(const cipher_kt_t *cipher);
+void print_cipher(const char *cipher);
 
 void test_crypto(struct crypto_options *co, struct frame *f);
 
@@ -507,8 +523,9 @@ void key2_print(const struct key2 *k,
                 const char *prefix1);
 
 void crypto_read_openvpn_key(const struct key_type *key_type,
-                             struct key_ctx_bi *ctx, const char *key_file, const char *key_inline,
-                             const int key_direction, const char *key_name, const char *opt_name);
+                             struct key_ctx_bi *ctx, const char *key_file,
+                             bool key_inline, const int key_direction,
+                             const char *key_name, const char *opt_name);
 
 /*
  * Inline functions
@@ -518,26 +535,55 @@ void crypto_read_openvpn_key(const struct key_type *key_type,
  * As memcmp(), but constant-time.
  * Returns 0 when data is equal, non-zero otherwise.
  */
-static inline int
-memcmp_constant_time(const void *a, const void *b, size_t size)
-{
-    const uint8_t *a1 = a;
-    const uint8_t *b1 = b;
-    int ret = 0;
-    size_t i;
-
-    for (i = 0; i < size; i++)
-    {
-        ret |= *a1++ ^ *b1++;
-    }
-
-    return ret;
-}
+int memcmp_constant_time(const void *a, const void *b, size_t size);
 
 static inline bool
 key_ctx_bi_defined(const struct key_ctx_bi *key)
 {
     return key->encrypt.cipher || key->encrypt.hmac || key->decrypt.cipher || key->decrypt.hmac;
+}
+
+/**
+ * To be used when printing a string that may contain inline data.
+ *
+ * If "is_inline" is true, return the inline tag.
+ * If "is_inline" is false and "str" is not NULL, return "str".
+ * Return the constant string "[NULL]" otherwise.
+ *
+ * @param str       the original string to return when is_inline is false
+ * @param is_inline true when str contains an inline data of some sort
+ */
+const char *print_key_filename(const char *str, bool is_inline);
+
+/**
+ * Creates and validates an instance of struct key_type with the provided
+ * algs.
+ *
+ * @param cipher    the cipher algorithm to use (must be a string literal)
+ * @param md        the digest algorithm to use (must be a string literal)
+ * @param optname   the name of the option requiring the key_type object
+ *
+ * @return          the initialized key_type instance
+ */
+static inline struct key_type
+create_kt(const char *cipher, const char *md, const char *optname)
+{
+    struct key_type kt;
+    kt.cipher = cipher;
+    kt.digest = md;
+
+    if (cipher_defined(kt.cipher) && !cipher_valid(kt.cipher))
+    {
+        msg(M_WARN, "ERROR: --%s requires %s support.", optname, kt.cipher);
+        return (struct key_type) { 0 };
+    }
+    if (md_defined(kt.digest) && !md_valid(kt.digest))
+    {
+        msg(M_WARN, "ERROR: --%s requires %s support.", optname, kt.digest);
+        return (struct key_type) { 0 };
+    }
+
+    return kt;
 }
 
 #endif /* CRYPTO_H */

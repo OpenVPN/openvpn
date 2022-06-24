@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -34,8 +34,6 @@
 #include "memdbg.h"
 
 time_t now = 0;            /* GLOBAL */
-
-#if TIME_BACKTRACK_PROTECTION
 
 static time_t now_adj = 0; /* GLOBAL */
 time_t now_usec = 0;       /* GLOBAL */
@@ -78,8 +76,6 @@ update_now_usec(struct timeval *tv)
         now_usec = tv->tv_usec;
     }
 }
-
-#endif /* TIME_BACKTRACK_PROTECTION */
 
 /*
  * Return a numerical string describing a struct timeval.
@@ -127,8 +123,11 @@ time_string(time_t t, int usec, bool show_usec, struct gc_arena *gc)
     }
 
     t = tv.tv_sec;
-    buf_printf(&out, "%s", ctime(&t));
-    buf_rmtail(&out, '\n');
+    struct tm *tm = localtime(&t);
+
+    buf_printf(&out, "%04d-%02d-%02d %02d:%02d:%02d",
+               tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday,
+               tm->tm_hour, tm->tm_min, tm->tm_sec);
 
     if (show_usec && tv.tv_usec)
     {

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -46,6 +46,10 @@
 
 #ifdef HAVE_STDIO_H
 #include <stdio.h>
+#endif
+
+#ifdef HAVE_GETRLIMIT
+#include <sys/resource.h>
 #endif
 
 #include "basic.h"
@@ -119,8 +123,11 @@ void platform_mlockall(bool print_msg);  /* Disable paging */
 
 int platform_chdir(const char *dir);
 
-/* interpret the status code returned by execve() */
+/** interpret the status code returned by execve() */
 bool platform_system_ok(int stat);
+
+/** Return an exit code if valid and between 0 and 255, -1 otherwise */
+int platform_ret_code(int stat);
 
 int platform_access(const char *path, int mode);
 

@@ -5,7 +5,7 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+#  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
 #  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 
@@ -31,9 +31,9 @@ endif
 
 openvpnserv_SOURCES = \
         common.c \
-	automatic.c \
 	interactive.c \
 	service.c service.h \
 	validate.c validate.h \
 	$(top_srcdir)/src/openvpn/block_dns.c $(top_srcdir)/src/openvpn/block_dns.h \
-	openvpnserv_resources.rc
+	openvpnserv_resources.rc \
+	$(top_srcdir)/src/openvpn/ring_buffer.h

@@ -1,8 +1,8 @@
 #
 #  openvpnmsica -- Custom Action DLL to provide OpenVPN-specific support to MSI packages
 #
-#  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
-#  Copyright (C) 2018-2019 Simon Rozman <simon@rozman.si>
+#  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+#  Copyright (C) 2018-2022 Simon Rozman <simon@rozman.si>
 #
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License version 2
@@ -42,13 +42,13 @@ libopenvpnmsica_la_CFLAGS = \
 	-UNTDDI_VERSION -U_WIN32_WINNT \
 	-D_WIN32_WINNT=_WIN32_WINNT_VISTA \
 	-Wl,--kill-at
-libopenvpnmsica_la_LDFLAGS = -ladvapi32 -lole32 -lmsi -lsetupapi -liphlpapi -lshell32 -lshlwapi -lversion -no-undefined -avoid-version
+libopenvpnmsica_la_LDFLAGS = -ladvapi32 -lole32 -lmsi -lsetupapi -liphlpapi -lshell32 -lshlwapi -lversion -lnewdev -no-undefined -avoid-version
 endif
 
 libopenvpnmsica_la_SOURCES = \
 	dllmain.c \
 	msiex.c msiex.h \
-	msica_op.c msica_op.h \
+	msica_arg.c msica_arg.h \
 	openvpnmsica.c openvpnmsica.h \
 	$(top_srcdir)/src/tapctl/basic.h \
 	$(top_srcdir)/src/tapctl/error.c $(top_srcdir)/src/tapctl/error.h \

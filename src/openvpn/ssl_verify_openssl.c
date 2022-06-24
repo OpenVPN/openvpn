@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -67,10 +67,11 @@ verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     cert_hash_remember(session, X509_STORE_CTX_get_error_depth(ctx), &cert_hash);
 
     /* did peer present cert which was signed by our root cert? */
-    if (!preverify_ok)
+    if (!preverify_ok && !session->opt->verify_hash_no_ca)
     {
         /* get the X509 name */
         char *subject = x509_get_subject(current_cert, &gc);
+        char *serial = backend_x509_get_serial(current_cert, &gc);
 
         if (!subject)
         {
@@ -89,10 +90,10 @@ verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
         }
 
         /* Remote site specified a certificate, but it's not correct */
-        msg(D_TLS_ERRORS, "VERIFY ERROR: depth=%d, error=%s: %s",
+        msg(D_TLS_ERRORS, "VERIFY ERROR: depth=%d, error=%s: %s, serial=%s",
             X509_STORE_CTX_get_error_depth(ctx),
             X509_verify_cert_error_string(X509_STORE_CTX_get_error(ctx)),
-            subject);
+            subject, serial ? serial : "<not available>");
 
         ERR_clear_error();
 
@@ -261,15 +262,30 @@ backend_x509_get_username(char *common_name, int cn_len,
                           char *x509_username_field, X509 *peer_cert)
 {
 #ifdef ENABLE_X509ALTUSERNAME
-    if (strncmp("ext:",x509_username_field,4) == 0)
+    if (strncmp("ext:", x509_username_field, 4) == 0)
     {
         if (!extract_x509_extension(peer_cert, x509_username_field+4, common_name, cn_len))
         {
             return FAILURE;
         }
     }
+    else if (strcmp(LN_serialNumber, x509_username_field) == 0)
+    {
+        ASN1_INTEGER *asn1_i = X509_get_serialNumber(peer_cert);
+        struct gc_arena gc = gc_new();
+        char *serial = format_hex_ex(asn1_i->data, asn1_i->length,
+                                     0, 1 | FHE_CAPS, NULL, &gc);
+
+        if (!serial || cn_len <= strlen(serial)+2)
+        {
+            gc_free(&gc);
+            return FAILURE;
+        }
+        openvpn_snprintf(common_name, cn_len, "0x%s", serial);
+        gc_free(&gc);
+    }
     else
-#endif
+#endif /* ifdef ENABLE_X509ALTUSERNAME */
     if (FAILURE == extract_x509_field_ssl(X509_get_subject_name(peer_cert),
                                           x509_username_field, common_name, cn_len))
     {
@@ -356,11 +372,7 @@ x509_get_subject(X509 *cert, struct gc_arena *gc)
     subject[subject_mem->length] = '\0';
 
 err:
-    if (subject_bio)
-    {
-        BIO_free(subject_bio);
-    }
-
+    BIO_free(subject_bio);
     return subject;
 }
 

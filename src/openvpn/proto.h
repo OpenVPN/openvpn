@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -60,8 +60,30 @@ struct openvpn_ethhdr
 #define OPENVPN_ETH_P_IPV4   0x0800   /* IPv4 protocol */
 #define OPENVPN_ETH_P_IPV6   0x86DD   /* IPv6 protocol */
 #define OPENVPN_ETH_P_ARP    0x0806   /* ARP protocol */
+#define OPENVPN_ETH_P_8021Q  0x8100   /* 802.1Q protocol */
     uint16_t proto;                   /* packet type ID field */
 };
+
+struct openvpn_8021qhdr
+{
+    uint8_t dest[OPENVPN_ETH_ALEN];     /* destination ethernet addr */
+    uint8_t source[OPENVPN_ETH_ALEN];   /* source ethernet addr */
+
+    uint16_t tpid;                      /* 802.1Q Tag Protocol Identifier */
+#define OPENVPN_8021Q_MASK_PCP htons(0xE000) /* mask PCP out of pcp_cfi_vid */
+#define OPENVPN_8021Q_MASK_CFI htons(0x1000) /* mask CFI out of pcp_cfi_vid */
+#define OPENVPN_8021Q_MASK_VID htons(0x0FFF) /* mask VID out of pcp_cfi_vid */
+    uint16_t pcp_cfi_vid;               /* bit fields, see IEEE 802.1Q */
+    uint16_t proto;                     /* contained packet type ID field */
+};
+
+/*
+ * Size difference between a regular Ethernet II header and an Ethernet II
+ * header with additional IEEE 802.1Q tagging.
+ */
+#define SIZE_ETH_TO_8021Q_HDR (sizeof(struct openvpn_8021qhdr) \
+                               - sizeof(struct openvpn_ethhdr))
+
 
 struct openvpn_arp {
 #define ARP_MAC_ADDR_TYPE 0x0001
@@ -226,21 +248,10 @@ struct ip_tcp_udp_hdr {
 }
 
 /*
- * We are in a "liberal" position with respect to MSS,
- * i.e. we assume that MSS can be calculated from MTU
- * by subtracting out only the IP and TCP header sizes
- * without options.
- *
- * (RFC 879, section 7).
- */
-#define MTU_TO_MSS(mtu) (mtu - sizeof(struct openvpn_iphdr) \
-                         - sizeof(struct openvpn_tcphdr))
-
-/*
  * This returns an ip protocol version of packet inside tun
  * and offset of IP header (via parameter).
  */
-inline static int
+static inline int
 get_tun_ip_ver(int tunnel_type, struct buffer *buf, int *ip_hdr_offset)
 {
     int ip_ver = -1;
@@ -310,5 +321,8 @@ void ipv4_packet_size_verify(const uint8_t *data,
                              counter_type *errors);
 
 #endif
+
+#define OPENVPN_8021Q_MIN_VID 1
+#define OPENVPN_8021Q_MAX_VID 4094
 
 #endif /* ifndef PROTO_H */

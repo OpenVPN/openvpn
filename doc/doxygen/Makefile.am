@@ -5,7 +5,7 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2017-2018 Fox-IT B.V. <openvpn@fox-it.com>
+#  Copyright (C) 2017-2021 Fox-IT B.V. <openvpn@foxcrypto.com>
 #
 
 MAINTAINERCLEANFILES = \

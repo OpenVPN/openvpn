@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *  Copyright (C) 2013      David Sommerseth <davids@redhat.com>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -173,10 +173,17 @@ daemonize(const char *envp[])
         {
             fd = dup(2);
         }
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
         if (daemon(0, 0) < 0)
         {
             warn("DOWN-ROOT: daemonization failed");
         }
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         else if (fd >= 3)
         {
             dup2(fd, 2);
@@ -231,10 +238,7 @@ free_context(struct down_root_context *context)
 {
     if (context)
     {
-        if (context->command)
-        {
-            free(context->command);
-        }
+        free(context->command);
         free(context);
     }
 }

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2017 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -191,27 +191,35 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
 /*
  * Wrapper around openvpn_execve
  */
-bool
+int
 openvpn_execve_check(const struct argv *a, const struct env_set *es, const unsigned int flags, const char *error_message)
 {
     struct gc_arena gc = gc_new();
     const int stat = openvpn_execve(a, es, flags);
     int ret = false;
 
-    if (platform_system_ok(stat))
+    if (flags & S_EXITCODE)
     {
-        ret = true;
-    }
-    else
-    {
-        if (error_message)
+        ret = platform_ret_code(stat);
+        if (ret != -1)
         {
-            msg(((flags & S_FATAL) ? M_FATAL : M_WARN), "%s: %s",
-                error_message,
-                system_error_message(stat, &gc));
+            goto done;
         }
     }
+    else if (platform_system_ok(stat))
+    {
+        ret = true;
+        goto done;
+    }
+    if (error_message)
+    {
+        msg(((flags & S_FATAL) ? M_FATAL : M_WARN), "%s: %s",
+            error_message,
+            system_error_message(stat, &gc));
+    }
+done:
     gc_free(&gc);
+
     return ret;
 }
 
@@ -225,11 +233,11 @@ openvpn_popen(const struct argv *a,  const struct env_set *es)
 {
     struct gc_arena gc = gc_new();
     int ret = -1;
-    static bool warn_shown = false;
 
     if (a && a->argv[0])
     {
 #if defined(ENABLE_FEATURE_EXECVE)
+        static bool warn_shown = false;
         if (script_security() >= SSEC_BUILT_IN)
         {
             const char *cmd = a->argv[0];
@@ -244,7 +252,7 @@ openvpn_popen(const struct argv *a,  const struct env_set *es)
                 if (pid == (pid_t)0)       /* child side */
                 {
                     close(pipe_stdout[0]);         /* Close read end */
-                    dup2(pipe_stdout[1],1);
+                    dup2(pipe_stdout[1], 1);
                     execve(cmd, argv, envp);
                     exit(OPENVPN_EXECVE_FAILURE);
                 }

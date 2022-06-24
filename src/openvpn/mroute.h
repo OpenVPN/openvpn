@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -23,8 +23,6 @@
 
 #ifndef MROUTE_H
 #define MROUTE_H
-
-#if P2MP_SERVER
 
 #include "buffer.h"
 #include "list.h"
@@ -82,7 +80,10 @@ struct mroute_addr {
                       * valid if MR_WITH_NETBITS is set */
     union {
         uint8_t raw_addr[MR_MAX_ADDR_LEN]; /* actual address */
-        uint8_t eth_addr[OPENVPN_ETH_ALEN];
+        struct {
+            uint8_t addr[OPENVPN_ETH_ALEN];
+            uint16_t vid;
+        } ether;
         struct {
             in_addr_t addr;     /* _network order_ IPv4 address */
             in_port_t port;     /* _network order_ TCP/UDP port */
@@ -100,7 +101,7 @@ struct mroute_addr {
 /* Wrappers to support compilers that do not grok anonymous unions */
         mroute_union
 #define raw_addr mroute_union.raw_addr
-#define eth_addr mroute_union.eth_addr
+#define ether mroute_union.ether
 #define v4 mroute_union.v4
 #define v6 mroute_union.v6
 #define v4mappedv6 mroute_union.v4mappedv6
@@ -176,8 +177,7 @@ unsigned int mroute_extract_addr_ip(struct mroute_addr *src,
 
 unsigned int mroute_extract_addr_ether(struct mroute_addr *src,
                                        struct mroute_addr *dest,
-                                       struct mroute_addr *esrc,
-                                       struct mroute_addr *edest,
+                                       uint16_t vid,
                                        const struct buffer *buf);
 
 /*
@@ -187,8 +187,7 @@ unsigned int mroute_extract_addr_ether(struct mroute_addr *src,
 static inline unsigned int
 mroute_extract_addr_from_packet(struct mroute_addr *src,
                                 struct mroute_addr *dest,
-                                struct mroute_addr *esrc,
-                                struct mroute_addr *edest,
+                                uint16_t vid,
                                 const struct buffer *buf,
                                 int tunnel_type)
 {
@@ -200,7 +199,7 @@ mroute_extract_addr_from_packet(struct mroute_addr *src,
     }
     else if (tunnel_type == DEV_TYPE_TAP)
     {
-        ret = mroute_extract_addr_ether(src, dest, esrc, edest, buf);
+        ret = mroute_extract_addr_ether(src, dest, vid, buf);
     }
     return ret;
 }
@@ -265,5 +264,4 @@ mroute_addr_reset(struct mroute_addr *ma)
     ma->type = MR_ADDR_NONE;
 }
 
-#endif /* P2MP_SERVER */
 #endif /* MROUTE_H */

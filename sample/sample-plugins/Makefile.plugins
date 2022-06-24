@@ -1,0 +1,37 @@
+#  SPDX-License-Identifier: GPL-2.0-only
+#
+#  Copyright (C) 2020-2022 OpenVPN Inc <sales@openvpn.net>
+#
+
+#
+# Plug-ins to build - listed entries should not carry any extensions
+#
+PLUGINS = \
+	defer/multi-auth \
+	keying-material-exporter-demo/keyingmaterialexporter \
+	log/log log/log_v3 \
+	simple/base64 \
+	simple/simple \
+	client-connect/sample-client-connect
+
+# All the plugins to build - rewritten with .so extension
+all : $(foreach var, $(PLUGINS), $(var).so)
+
+# Do not automatically remove object files
+# This is a special Make setting, to avoid adding an implicit
+# 'rm' command on object files - due to the .c.o/%.so rules below
+.PRECIOUS: %.o
+
+# Compile step
+.c.o :
+	test -d `dirname $@` || $(MKDIR_P) `dirname $@`; \
+	$(CC) -c -o $@ $(CFLAGS) $(AM_CPPFLAGS) -fPIC $<
+
+# Link step
+%.so : %.o
+	$(CC) $(LDFLAGS) -shared -fPIC -o $@ $<
+
+# Clean up all build object and shared object files
+clean :
+	rm -f $(foreach var, $(PLUGINS), $(var).o) \
+	$(foreach var, $(PLUGINS), $(var).so)

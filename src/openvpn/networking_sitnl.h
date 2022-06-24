@@ -1,7 +1,7 @@
 /*
  *  Generic interface to platform specific networking code
  *
- *  Copyright (C) 2016-2018 Antonio Quartulli <a@unstable.cc>
+ *  Copyright (C) 2016-2022 Antonio Quartulli <a@unstable.cc>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -23,6 +23,6 @@
 #define NETWORKING_SITNL_H_
 
 typedef char openvpn_net_iface_t;
-typedef void * openvpn_net_ctx_t;
+typedef void *openvpn_net_ctx_t;
 
 #endif /* NETWORKING_SITNL_H_ */

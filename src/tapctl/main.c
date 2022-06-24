@@ -1,10 +1,9 @@
 /*
- *  tapctl -- Utility to manipulate TUN/TAP interfaces on Windows
+ *  tapctl -- Utility to manipulate TUN/TAP adapters on Windows
  *            https://community.openvpn.net/openvpn/wiki/Tapctl
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2008-2013 David Sommerseth <dazo@users.sourceforge.net>
- *  Copyright (C) 2018 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2018-2022 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -49,7 +48,7 @@ const TCHAR title_string[] =
 ;
 
 static const TCHAR usage_message[] =
-    TEXT("%s\n")
+    TEXT("%") TEXT(PRIsLPTSTR) TEXT("\n")
     TEXT("\n")
     TEXT("Usage:\n")
     TEXT("\n")
@@ -57,18 +56,18 @@ static const TCHAR usage_message[] =
     TEXT("\n")
     TEXT("Commands:\n")
     TEXT("\n")
-    TEXT("create     Create a new TUN/TAP interface\n")
-    TEXT("list       List TUN/TAP interfaces\n")
-    TEXT("delete     Delete specified network interface\n")
+    TEXT("create     Create a new TUN/TAP adapter\n")
+    TEXT("list       List TUN/TAP adapters\n")
+    TEXT("delete     Delete specified network adapter\n")
     TEXT("help       Display this text\n")
     TEXT("\n")
     TEXT("Hint: Use \"tapctl help <command>\" to display help for particular command.\n")
 ;
 
 static const TCHAR usage_message_create[] =
-    TEXT("%s\n")
+    TEXT("%") TEXT(PRIsLPTSTR) TEXT("\n")
     TEXT("\n")
-    TEXT("Creates a new TUN/TAP interface\n")
+    TEXT("Creates a new TUN/TAP adapter\n")
     TEXT("\n")
     TEXT("Usage:\n")
     TEXT("\n")
@@ -76,39 +75,47 @@ static const TCHAR usage_message_create[] =
     TEXT("\n")
     TEXT("Options:\n")
     TEXT("\n")
-    TEXT("--name <name>  Set TUN/TAP interface name. Should the interface with given name\n")
+    TEXT("--name <name>  Set TUN/TAP adapter name. Should the adapter with given name    \n")
     TEXT("               already exist, an error is returned. If this option is not      \n")
-    TEXT("               specified, a default interface name is chosen by Windows.       \n")
+    TEXT("               specified, a default adapter name is chosen by Windows.         \n")
     TEXT("               Note: This name can also be specified as OpenVPN's --dev-node   \n")
     TEXT("               option.                                                         \n")
+    TEXT("--hwid <hwid>  Adapter hardware ID. Default value is root\\tap0901, which      \n")
+    TEXT("               describes tap-windows6 driver. To work with wintun or ovpn-dco  \n")
+    TEXT("               driver, specify 'wintun' or 'ovpn-dco'.                         \n")
     TEXT("\n")
     TEXT("Output:\n")
     TEXT("\n")
-    TEXT("This command prints newly created TUN/TAP interface's GUID to stdout.          \n")
+    TEXT("This command prints newly created TUN/TAP adapter's GUID to stdout.            \n")
 ;
 
 static const TCHAR usage_message_list[] =
-    TEXT("%s\n")
+    TEXT("%") TEXT(PRIsLPTSTR) TEXT("\n")
     TEXT("\n")
-    TEXT("Lists TUN/TAP interfaces\n")
+    TEXT("Lists TUN/TAP adapters\n")
     TEXT("\n")
     TEXT("Usage:\n")
     TEXT("\n")
     TEXT("tapctl list\n")
     TEXT("\n")
+    TEXT("Options:\n")
+    TEXT("\n")
+    TEXT("--hwid <hwid>  Adapter hardware ID. By default, root\\tap0901, tap0901, wintun and \n")
+    TEXT("               ovpn-dco adapters are listed. Use this switch to limit the list.\n")
+    TEXT("\n")
     TEXT("Output:\n")
     TEXT("\n")
-    TEXT("This command prints all TUN/TAP interfaces to stdout.                          \n")
+    TEXT("This command prints all TUN/TAP adapters to stdout.                            \n")
 ;
 
 static const TCHAR usage_message_delete[] =
-    TEXT("%s\n")
+    TEXT("%") TEXT(PRIsLPTSTR) TEXT("\n")
     TEXT("\n")
-    TEXT("Deletes the specified network interface\n")
+    TEXT("Deletes the specified network adapter\n")
     TEXT("\n")
     TEXT("Usage:\n")
     TEXT("\n")
-    TEXT("tapctl delete <interface GUID | interface name>\n")
+    TEXT("tapctl delete <adapter GUID | adapter name>\n")
 ;
 
 
@@ -162,7 +169,8 @@ _tmain(int argc, LPCTSTR argv[])
         }
         else
         {
-            _ftprintf(stderr, TEXT("Unknown command \"%s\". Please, use \"tapctl help\" to list supported commands.\n"), argv[2]);
+            _ftprintf(stderr, TEXT("Unknown command \"%") TEXT(PRIsLPTSTR)
+                      TEXT("\". Please, use \"tapctl help\" to list supported commands.\n"), argv[2]);
         }
 
         return 1;
@@ -170,6 +178,7 @@ _tmain(int argc, LPCTSTR argv[])
     else if (_tcsicmp(argv[1], TEXT("create")) == 0)
     {
         LPCTSTR szName = NULL;
+        LPCTSTR szHwId = TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID);
 
         /* Parse options. */
         for (int i = 2; i < argc; i++)
@@ -178,157 +187,192 @@ _tmain(int argc, LPCTSTR argv[])
             {
                 szName = argv[++i];
             }
+            else if (_tcsicmp(argv[i], TEXT("--hwid")) == 0)
+            {
+                szHwId = argv[++i];
+            }
             else
             {
-                _ftprintf(stderr, TEXT("Unknown option \"%s\". Please, use \"tapctl help create\" to list supported options. Ignored.\n"), argv[i]);
+                _ftprintf(stderr, TEXT("Unknown option \"%") TEXT(PRIsLPTSTR)
+                          TEXT("\". Please, use \"tapctl help create\" to list supported options. Ignored.\n"),
+                          argv[i]);
             }
         }
 
-        /* Create TUN/TAP interface. */
-        GUID guidInterface;
-        LPOLESTR szInterfaceId = NULL;
-        DWORD dwResult = tap_create_interface(
+        /* Create TUN/TAP adapter. */
+        GUID guidAdapter;
+        LPOLESTR szAdapterId = NULL;
+        DWORD dwResult = tap_create_adapter(
             NULL,
             TEXT("Virtual Ethernet"),
+            szHwId,
             &bRebootRequired,
-            &guidInterface);
+            &guidAdapter);
         if (dwResult != ERROR_SUCCESS)
         {
-            _ftprintf(stderr, TEXT("Creating TUN/TAP interface failed (error 0x%x).\n"), dwResult);
+            _ftprintf(stderr, TEXT("Creating TUN/TAP adapter failed (error 0x%x).\n"), dwResult);
             iResult = 1; goto quit;
         }
 
         if (szName)
         {
-            /* Get the list of all available interfaces. */
-            struct tap_interface_node *pInterfaceList = NULL;
-            dwResult = tap_list_interfaces(NULL, &pInterfaceList, TRUE);
+            /* Get existing network adapters. */
+            struct tap_adapter_node *pAdapterList = NULL;
+            dwResult = tap_list_adapters(NULL, NULL, &pAdapterList);
             if (dwResult != ERROR_SUCCESS)
             {
-                _ftprintf(stderr, TEXT("Enumerating interfaces failed (error 0x%x).\n"), dwResult);
-                iResult = 1; goto create_delete_interface;
+                _ftprintf(stderr, TEXT("Enumerating adapters failed (error 0x%x).\n"), dwResult);
+                iResult = 1; goto create_delete_adapter;
             }
 
             /* Check for duplicates. */
-            for (struct tap_interface_node *pInterface = pInterfaceList; pInterface; pInterface = pInterface->pNext)
+            for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
             {
-                if (_tcsicmp(szName, pInterface->szName) == 0)
+                if (_tcsicmp(szName, pAdapter->szName) == 0)
                 {
-                    StringFromIID((REFIID)&pInterface->guid, &szInterfaceId);
-                    _ftprintf(stderr, TEXT("Interface \"%s\" already exists (GUID %") TEXT(PRIsLPOLESTR) TEXT(").\n"), pInterface->szName, szInterfaceId);
-                    CoTaskMemFree(szInterfaceId);
-                    iResult = 1; goto create_cleanup_pInterfaceList;
+                    StringFromIID((REFIID)&pAdapter->guid, &szAdapterId);
+                    _ftprintf(stderr, TEXT("Adapter \"%") TEXT(PRIsLPTSTR) TEXT("\" already exists (GUID %")
+                              TEXT(PRIsLPOLESTR) TEXT(").\n"), pAdapter->szName, szAdapterId);
+                    CoTaskMemFree(szAdapterId);
+                    iResult = 1; goto create_cleanup_pAdapterList;
                 }
             }
 
-            /* Rename the interface. */
-            dwResult = tap_set_interface_name(&guidInterface, szName);
+            /* Rename the adapter. */
+            dwResult = tap_set_adapter_name(&guidAdapter, szName, FALSE);
             if (dwResult != ERROR_SUCCESS)
             {
-                StringFromIID((REFIID)&guidInterface, &szInterfaceId);
-                _ftprintf(stderr, TEXT("Renaming TUN/TAP interface %") TEXT(PRIsLPOLESTR) TEXT(" to \"%s\" failed (error 0x%x).\n"), szInterfaceId, szName, dwResult);
-                CoTaskMemFree(szInterfaceId);
+                StringFromIID((REFIID)&guidAdapter, &szAdapterId);
+                _ftprintf(stderr, TEXT("Renaming TUN/TAP adapter %") TEXT(PRIsLPOLESTR)
+                          TEXT(" to \"%") TEXT(PRIsLPTSTR) TEXT("\" failed (error 0x%x).\n"),
+                          szAdapterId, szName, dwResult);
+                CoTaskMemFree(szAdapterId);
                 iResult = 1; goto quit;
             }
 
             iResult = 0;
 
-create_cleanup_pInterfaceList:
-            tap_free_interface_list(pInterfaceList);
+create_cleanup_pAdapterList:
+            tap_free_adapter_list(pAdapterList);
             if (iResult)
             {
-                goto create_delete_interface;
+                goto create_delete_adapter;
             }
         }
 
-        /* Output interface GUID. */
-        StringFromIID((REFIID)&guidInterface, &szInterfaceId);
-        _ftprintf(stdout, TEXT("%") TEXT(PRIsLPOLESTR) TEXT("\n"), szInterfaceId);
-        CoTaskMemFree(szInterfaceId);
+        /* Output adapter GUID. */
+        StringFromIID((REFIID)&guidAdapter, &szAdapterId);
+        _ftprintf(stdout, TEXT("%") TEXT(PRIsLPOLESTR) TEXT("\n"), szAdapterId);
+        CoTaskMemFree(szAdapterId);
 
         iResult = 0; goto quit;
 
-create_delete_interface:
-        tap_delete_interface(
+create_delete_adapter:
+        tap_delete_adapter(
             NULL,
-            &guidInterface,
+            &guidAdapter,
             &bRebootRequired);
         iResult = 1; goto quit;
     }
     else if (_tcsicmp(argv[1], TEXT("list")) == 0)
     {
-        /* Output list of TUN/TAP interfaces. */
-        struct tap_interface_node *pInterfaceList = NULL;
-        DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, FALSE);
+        TCHAR szzHwId[0x100] =
+            TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID) TEXT("\0")
+            TEXT(TAP_WIN_COMPONENT_ID) TEXT("\0")
+            TEXT("Wintun\0")
+            TEXT("ovpn-dco\0");
+
+        /* Parse options. */
+        for (int i = 2; i < argc; i++)
+        {
+            if (_tcsicmp(argv[i], TEXT("--hwid")) == 0)
+            {
+                memset(szzHwId, 0, sizeof(szzHwId));
+                ++i;
+                memcpy_s(szzHwId, sizeof(szzHwId) - 2*sizeof(TCHAR) /*requires double zero termination*/, argv[i], _tcslen(argv[i])*sizeof(TCHAR));
+            }
+            else
+            {
+                _ftprintf(stderr, TEXT("Unknown option \"%") TEXT(PRIsLPTSTR)
+                          TEXT("\". Please, use \"tapctl help list\" to list supported options. Ignored.\n"),
+                          argv[i]);
+            }
+        }
+
+        /* Output list of adapters with given hardware ID. */
+        struct tap_adapter_node *pAdapterList = NULL;
+        DWORD dwResult = tap_list_adapters(NULL, szzHwId, &pAdapterList);
         if (dwResult != ERROR_SUCCESS)
         {
-            _ftprintf(stderr, TEXT("Enumerating TUN/TAP interfaces failed (error 0x%x).\n"), dwResult);
+            _ftprintf(stderr, TEXT("Enumerating TUN/TAP adapters failed (error 0x%x).\n"), dwResult);
             iResult = 1; goto quit;
         }
 
-        for (struct tap_interface_node *pInterface = pInterfaceList; pInterface; pInterface = pInterface->pNext)
+        for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
         {
-            LPOLESTR szInterfaceId = NULL;
-            StringFromIID((REFIID)&pInterface->guid, &szInterfaceId);
-            _ftprintf(stdout, TEXT("%") TEXT(PRIsLPOLESTR) TEXT("\t%") TEXT(PRIsLPTSTR) TEXT("\n"), szInterfaceId, pInterface->szName);
-            CoTaskMemFree(szInterfaceId);
+            LPOLESTR szAdapterId = NULL;
+            StringFromIID((REFIID)&pAdapter->guid, &szAdapterId);
+            _ftprintf(stdout, TEXT("%") TEXT(PRIsLPOLESTR) TEXT("\t%")
+                      TEXT(PRIsLPTSTR) TEXT("\n"), szAdapterId, pAdapter->szName);
+            CoTaskMemFree(szAdapterId);
         }
 
         iResult = 0;
-        tap_free_interface_list(pInterfaceList);
+        tap_free_adapter_list(pAdapterList);
     }
     else if (_tcsicmp(argv[1], TEXT("delete")) == 0)
     {
         if (argc < 3)
         {
-            _ftprintf(stderr, TEXT("Missing interface GUID or name. Please, use \"tapctl help delete\" for usage info.\n"));
+            _ftprintf(stderr, TEXT("Missing adapter GUID or name. Please, use \"tapctl help delete\" for usage info.\n"));
             return 1;
         }
 
-        GUID guidInterface;
-        if (FAILED(IIDFromString(argv[2], (LPIID)&guidInterface)))
+        GUID guidAdapter;
+        if (FAILED(IIDFromString(argv[2], (LPIID)&guidAdapter)))
         {
-            /* The argument failed to covert to GUID. Treat it as the interface name. */
-            struct tap_interface_node *pInterfaceList = NULL;
-            DWORD dwResult = tap_list_interfaces(NULL, &pInterfaceList, FALSE);
+            /* The argument failed to covert to GUID. Treat it as the adapter name. */
+            struct tap_adapter_node *pAdapterList = NULL;
+            DWORD dwResult = tap_list_adapters(NULL, NULL, &pAdapterList);
             if (dwResult != ERROR_SUCCESS)
             {
-                _ftprintf(stderr, TEXT("Enumerating TUN/TAP interfaces failed (error 0x%x).\n"), dwResult);
+                _ftprintf(stderr, TEXT("Enumerating TUN/TAP adapters failed (error 0x%x).\n"), dwResult);
                 iResult = 1; goto quit;
             }
 
-            for (struct tap_interface_node *pInterface = pInterfaceList;; pInterface = pInterface->pNext)
+            for (struct tap_adapter_node *pAdapter = pAdapterList;; pAdapter = pAdapter->pNext)
             {
-                if (pInterface == NULL)
+                if (pAdapter == NULL)
                 {
-                    _ftprintf(stderr, TEXT("\"%s\" interface not found.\n"), argv[2]);
-                    iResult = 1; goto delete_cleanup_pInterfaceList;
+                    _ftprintf(stderr, TEXT("\"%") TEXT(PRIsLPTSTR) TEXT("\" adapter not found.\n"), argv[2]);
+                    iResult = 1; goto delete_cleanup_pAdapterList;
                 }
-                else if (_tcsicmp(argv[2], pInterface->szName) == 0)
+                else if (_tcsicmp(argv[2], pAdapter->szName) == 0)
                 {
-                    memcpy(&guidInterface, &pInterface->guid, sizeof(GUID));
+                    memcpy(&guidAdapter, &pAdapter->guid, sizeof(GUID));
                     break;
                 }
             }
 
             iResult = 0;
 
-delete_cleanup_pInterfaceList:
-            tap_free_interface_list(pInterfaceList);
+delete_cleanup_pAdapterList:
+            tap_free_adapter_list(pAdapterList);
             if (iResult)
             {
                 goto quit;
             }
         }
 
-        /* Delete the network interface. */
-        DWORD dwResult = tap_delete_interface(
+        /* Delete the network adapter. */
+        DWORD dwResult = tap_delete_adapter(
             NULL,
-            &guidInterface,
+            &guidAdapter,
             &bRebootRequired);
         if (dwResult != ERROR_SUCCESS)
         {
-            _ftprintf(stderr, TEXT("Deleting interface \"%s\" failed (error 0x%x).\n"), argv[2], dwResult);
+            _ftprintf(stderr, TEXT("Deleting adapter \"%") TEXT(PRIsLPTSTR)
+                      TEXT("\" failed (error 0x%x).\n"), argv[2], dwResult);
             iResult = 1; goto quit;
         }
 
@@ -336,7 +380,8 @@ delete_cleanup_pInterfaceList:
     }
     else
     {
-        _ftprintf(stderr, TEXT("Unknown command \"%s\". Please, use \"tapctl help\" to list supported commands.\n"), argv[1]);
+        _ftprintf(stderr, TEXT("Unknown command \"%") TEXT(PRIsLPTSTR)
+                  TEXT("\". Please, use \"tapctl help\" to list supported commands.\n"), argv[1]);
         return 1;
     }
 
@@ -398,7 +443,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
             }
 
             /* Output error message. */
-            _ftprintf(stderr, TEXT("Error 0x%x: %s\n"), dwResult, szErrMessage);
+            _ftprintf(stderr, TEXT("Error 0x%x: %") TEXT(PRIsLPTSTR) TEXT("\n"), dwResult, szErrMessage);
 
             LocalFree(szErrMessage);
         }

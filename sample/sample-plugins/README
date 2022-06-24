@@ -1,0 +1,45 @@
+OpenVPN plug-in examples.
+
+Examples provided:
+
+* authentication and logging
+simple/simple.c -- using the --auth-user-pass-verify callback, verify
+                   that the username/password is "foo"/"bar".
+defer/multi-auth.c
+                -- using the --auth-user-pass-verify callback,
+                   test deferred authentication. Can be used to test multiple
+                   authentication plugins in the same server config.
+log/log.c       -- Extended variant of simple/simple.c which adds more
+                   logging of what is happening inside the plug-in
+log/log_v3.c    -- A variant of log/log.c, which makes use of the
+                   OpenVPN plug-in v3 API.  This will also log even more
+                   information related to certificates in use.
+
+* client-connect (and logging)
+client-connect/sample-client-connect -- demonstrate how to use the
+                   CLIENT_CONNECT and CLIENT_CONNECT_V2 hooks to achieve
+                   "per client configuration / logging / ..." actions,
+                   both in synchronous and async/deferred mode
+
+* cryptography related
+simple/base64.c -- Example using the OpenVPN exported base64 encode/decode
+                   functions
+keying-material-exporter-demo/keyingmaterialexporter.c
+                -- Example based on TLS Keying Material Exporters over HTTP [RFC-5705]
+                   (openvpn/doc/keying-material-exporter.txt).  For more details, see
+                   keying-material-exporter-demo/README
+
+
+To build on *BSD/Linux platforms (requires GNU Make):
+
+   gmake                   (builds a default set of plug-ins)
+   gmake simple/simple.so
+
+To build on Windows platform (MinGW):
+
+   cd simple; ./winbuild simple.so
+
+To use in OpenVPN, add to config file:
+
+  plugin simple.so (Linux/BSD/etc.)
+  plugin simple.dll

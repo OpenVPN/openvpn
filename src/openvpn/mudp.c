@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -29,17 +29,142 @@
 
 #include "syshead.h"
 
-#if P2MP_SERVER
-
 #include "multi.h"
 #include <inttypes.h>
 #include "forward.h"
 
 #include "memdbg.h"
+#include "ssl_pkt.h"
 
 #ifdef HAVE_SYS_INOTIFY_H
 #include <sys/inotify.h>
 #endif
+
+static void
+send_hmac_reset_packet(struct multi_context *m,
+                       struct tls_pre_decrypt_state *state,
+                       struct tls_auth_standalone *tas,
+                       struct session_id *sid,
+                       bool request_resend_wkc)
+{
+    reset_packet_id_send(&state->tls_wrap_tmp.opt.packet_id.send);
+    state->tls_wrap_tmp.opt.packet_id.rec.initialized = true;
+    uint8_t header = 0 | (P_CONTROL_HARD_RESET_SERVER_V2 << P_OPCODE_SHIFT);
+    struct buffer buf = tls_reset_standalone(&state->tls_wrap_tmp, tas, sid,
+                                             &state->peer_session_id, header,
+                                             request_resend_wkc);
+
+    struct context *c = &m->top;
+
+    buf_reset_len(&c->c2.buffers->aux_buf);
+    buf_copy(&c->c2.buffers->aux_buf, &buf);
+    m->hmac_reply = c->c2.buffers->aux_buf;
+    m->hmac_reply_dest = &m->top.c2.from;
+    msg(D_MULTI_DEBUG, "Reset packet from client, sending HMAC based reset challenge");
+}
+
+
+/* Returns true if this packet should create a new session */
+static bool
+do_pre_decrypt_check(struct multi_context *m,
+                     struct tls_pre_decrypt_state *state,
+                     struct mroute_addr addr)
+{
+    ASSERT(m->top.c2.tls_auth_standalone);
+
+    enum first_packet_verdict verdict;
+
+    struct tls_auth_standalone *tas = m->top.c2.tls_auth_standalone;
+
+    verdict = tls_pre_decrypt_lite(tas, state, &m->top.c2.from, &m->top.c2.buf);
+
+    hmac_ctx_t *hmac = m->top.c2.session_id_hmac;
+    struct openvpn_sockaddr *from = &m->top.c2.from.dest;
+    int handwindow = m->top.options.handshake_window;
+
+    if (verdict == VERDICT_VALID_RESET_V3)
+    {
+        /* Extract the packet id to check if it has the special format that
+         * indicates early negotiation support */
+        struct packet_id_net pin;
+        struct buffer tmp = m->top.c2.buf;
+        ASSERT(buf_advance(&tmp, 1 + SID_SIZE));
+        ASSERT(packet_id_read(&pin, &tmp, true));
+
+        /* The most significant byte is 0x0f if early negotiation is supported */
+        bool early_neg_support = (pin.id & EARLY_NEG_MASK) == EARLY_NEG_START;
+
+        /* All clients that support early negotiation and tls-crypt are assumed
+         * to also support resending the WKc in the 2nd packet */
+        if (early_neg_support)
+        {
+            /* Calculate the session ID HMAC for our reply and create reset packet */
+            struct session_id sid = calculate_session_id_hmac(state->peer_session_id,
+                                                              from, hmac, handwindow, 0);
+            send_hmac_reset_packet(m, state, tas, &sid, true);
+
+            return false;
+        }
+        else
+        {
+            /* For tls-crypt-v2 we need to keep the state of the first packet
+             * to store the unwrapped key if the client doesn't support resending
+             * the wrapped key. Unless the user specifically disallowed
+             * compatibility with such clients to avoid state exhaustion */
+            if (tas->tls_wrap.opt.flags & CO_FORCE_TLSCRYPTV2_COOKIE)
+            {
+                struct gc_arena gc = gc_new();
+                const char *peer = print_link_socket_actual(&m->top.c2.from, &gc);
+                msg(D_MULTI_DEBUG, "tls-crypt-v2 force-cookie is enabled, "
+                    "ignoring connection attempt from old client (%s)", peer);
+                gc_free(&gc);
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+    }
+    else if (verdict == VERDICT_VALID_RESET_V2)
+    {
+        /* Calculate the session ID HMAC for our reply and create reset packet */
+        struct session_id sid = calculate_session_id_hmac(state->peer_session_id,
+                                                          from, hmac, handwindow, 0);
+
+        send_hmac_reset_packet(m, state, tas, &sid, false);
+
+        /* We have a reply do not create a new session */
+        return false;
+
+    }
+    else if (verdict == VERDICT_VALID_CONTROL_V1 || verdict == VERDICT_VALID_ACK_V1
+             || verdict == VERDICT_VALID_WKC_V1)
+    {
+        /* ACK_V1 contains the peer id (our id) while CONTROL_V1 can but does not
+         * need to contain the peer id */
+        struct gc_arena gc = gc_new();
+
+        bool ret = check_session_id_hmac(state, from, hmac, handwindow);
+
+        const char *peer = print_link_socket_actual(&m->top.c2.from, &gc);
+        if (!ret)
+        {
+            msg(D_MULTI_MEDIUM, "Packet with invalid or missing SID from %s", peer);
+        }
+        else
+        {
+            msg(D_MULTI_DEBUG, "Valid packet with HMAC challenge from peer (%s), "
+                "accepting new connection.", peer);
+        }
+        gc_free(&gc);
+
+        return ret;
+    }
+
+    /* VERDICT_INVALID */
+    return false;
+}
 
 /*
  * Get a client instance based on real address.  If
@@ -95,37 +220,36 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
                 mi = (struct multi_instance *) he->value;
             }
         }
+
+        /* we have no existing multi instance for this connection */
         if (!mi)
         {
-            if (!m->top.c2.tls_auth_standalone
-                || tls_pre_decrypt_lite(m->top.c2.tls_auth_standalone, &m->top.c2.from, &m->top.c2.buf))
+            struct tls_pre_decrypt_state state = {0};
+
+            if (do_pre_decrypt_check(m, &state, real))
             {
+                /* This is an unknown session but with valid tls-auth/tls-crypt
+                 * (or no auth at all).  If this is the initial packet of a
+                 * session, we just send a reply with a HMAC session id and
+                 * do not generate a session slot */
+
                 if (frequency_limit_event_allowed(m->new_connection_limiter))
                 {
                     mi = multi_create_instance(m, &real);
                     if (mi)
                     {
-                        int i;
-
                         hash_add_fast(hash, bucket, &mi->real, hv, mi);
                         mi->did_real_hash = true;
-
-                        /* max_clients must be less then max peer-id value */
-                        ASSERT(m->max_clients < MAX_PEER_ID);
-
-                        for (i = 0; i < m->max_clients; ++i)
-                        {
-                            if (!m->instances[i])
-                            {
-                                mi->context.c2.tls_multi->peer_id = i;
-                                m->instances[i] = mi;
-                                break;
-                            }
-                        }
-
-                        /* should not really end up here, since multi_create_instance returns null
-                         * if amount of clients exceeds max_clients */
-                        ASSERT(i < m->max_clients);
+                        multi_assign_peer_id(m, mi);
+                    }
+                    /* If we have a session id already, ensure that the
+                     * state is using the same */
+                    if (session_id_defined(&state.server_session_id)
+                        && session_id_defined((&state.peer_session_id)))
+                    {
+                        mi->context.c2.tls_multi->n_sessions++;
+                        struct tls_session *session = &mi->context.c2.tls_multi->session[TM_ACTIVE];
+                        session_skip_to_pre_start(session, &state, &m->top.c2.from);
                     }
                 }
                 else
@@ -135,6 +259,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
                         mroute_addr_print(&real, &gc));
                 }
             }
+            free_tls_pre_decrypt_state(&state);
         }
 
 #ifdef ENABLE_DEBUG
@@ -155,7 +280,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
 }
 
 /*
- * Send a packet to TCP/UDP socket.
+ * Send a packet to UDP socket.
  */
 static inline void
 multi_process_outgoing_link(struct multi_context *m, const unsigned int mpp_flags)
@@ -164,6 +289,14 @@ multi_process_outgoing_link(struct multi_context *m, const unsigned int mpp_flag
     if (mi)
     {
         multi_process_outgoing_link_dowork(m, mi, mpp_flags);
+    }
+    if (m->hmac_reply_dest && m->hmac_reply.len > 0)
+    {
+        msg_set_prefix("Connection Attempt");
+        m->top.c2.to_link = m->hmac_reply;
+        m->top.c2.to_link_addr = m->hmac_reply_dest;
+        process_outgoing_link(&m->top);
+        m->hmac_reply_dest = NULL;
     }
 }
 
@@ -197,12 +330,10 @@ multi_process_io_udp(struct multi_context *m)
     {
         strcat(buf, "TW/");
     }
-#ifdef ENABLE_ASYNC_PUSH
     else if (status & FILE_CLOSED)
     {
         strcat(buf, "FC/");
     }
-#endif
     printf("IO %s\n", buf);
 #endif /* ifdef MULTI_DEBUG_EVENT_LOOP */
 
@@ -274,28 +405,26 @@ p2mp_iow_flags(const struct multi_context *m)
     {
         flags |= IOW_MBUF;
     }
+    else if (m->hmac_reply_dest)
+    {
+        flags |= IOW_TO_LINK;
+    }
     else
     {
         flags |= IOW_READ;
     }
-
+#ifdef _WIN32
+    if (tuntap_ring_empty(m->top.c1.tuntap))
+    {
+        flags &= ~IOW_READ_TUN;
+    }
+#endif
     return flags;
 }
 
 
-/**************************************************************************/
-/**
- * Main event loop for OpenVPN in UDP server mode.
- * @ingroup eventloop
- *
- * This function implements OpenVPN's main event loop for UDP server mode.
- *  At this time, OpenVPN does not yet support multithreading.  This
- * function's name is therefore slightly misleading.
- *
- * @param top - Top-level context structure.
- */
-static void
-tunnel_server_udp_single_threaded(struct context *top)
+void
+tunnel_server_udp(struct context *top)
 {
     struct multi_context multi;
 
@@ -310,7 +439,7 @@ tunnel_server_udp_single_threaded(struct context *top)
     }
 
     /* initialize global multi_context object */
-    multi_init(&multi, top, false, MC_SINGLE_THREADED);
+    multi_init(&multi, top, false);
 
     /* initialize our cloned top object */
     multi_top_init(&multi, top);
@@ -372,11 +501,3 @@ tunnel_server_udp_single_threaded(struct context *top)
     multi_top_free(&multi);
     close_instance(top);
 }
-
-void
-tunnel_server_udp(struct context *top)
-{
-    tunnel_server_udp_single_threaded(top);
-}
-
-#endif /* if P2MP_SERVER */

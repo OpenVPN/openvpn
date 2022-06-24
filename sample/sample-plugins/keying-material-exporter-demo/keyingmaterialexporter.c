@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 
 #include "openvpn-plugin.h"
@@ -54,7 +55,7 @@ struct plugin {
 
 struct session {
     char user[48];
-    char key [48];
+    char key[48];
 };
 
 /*
@@ -92,13 +93,19 @@ openvpn_plugin_open_v3(const int version,
 {
     struct plugin *plugin = calloc(1, sizeof(*plugin));
 
+    if (plugin == NULL)
+    {
+        printf("PLUGIN: allocating memory for context failed\n");
+        return OPENVPN_PLUGIN_FUNC_ERROR;
+    }
+
     plugin->type = get_env("remote_1", args->envp) ? CLIENT : SERVER;
     plugin->log  = args->callbacks->plugin_log;
 
     plugin->mask  = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_FINAL);
     plugin->mask |= OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_VERIFY);
 
-    ovpn_note("vpn endpoint type=%s",plugin->type == CLIENT ? "client" : "server");
+    ovpn_note("vpn endpoint type=%s", plugin->type == CLIENT ? "client" : "server");
 
     rv->type_mask = plugin->mask;
     rv->handle = (void *)plugin;

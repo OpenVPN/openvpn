@@ -1,20 +1,31 @@
 #!/bin/sh
 set -eux
 
+if [ "${TRAVIS_OS_NAME}" = "windows" ]; then
+    choco install strawberryperl nasm
+    choco install visualstudio2019buildtools --package-parameters "--includeRecommended --includeOptional"
+    choco install visualstudio2019-workload-vctools
+    cd ..
+    git clone https://github.com/openvpn/openvpn-build.git
+    cd openvpn-build
+    PATH="/c/Strawberry/perl/bin:":$PATH MODE=DEPS msvc/build.bat
+    exit 0
+fi
+
 # Set defaults
 PREFIX="${PREFIX:-${HOME}/opt}"
 
 download_tap_windows () {
     if [ ! -f "download-cache/tap-windows-${TAP_WINDOWS_VERSION}.zip" ]; then
        wget -P download-cache/ \
-           "http://build.openvpn.net/downloads/releases/tap-windows-${TAP_WINDOWS_VERSION}.zip"
+           "https://build.openvpn.net/downloads/releases/tap-windows-${TAP_WINDOWS_VERSION}.zip"
     fi
 }
 
 download_lzo () {
     if [ ! -f "download-cache/lzo-${LZO_VERSION}.tar.gz" ]; then
         wget -P download-cache/ \
-            "http://www.oberhumer.com/opensource/lzo/download/lzo-${LZO_VERSION}.tar.gz"
+            "https://www.oberhumer.com/opensource/lzo/download/lzo-${LZO_VERSION}.tar.gz"
     fi
 }
 
@@ -33,17 +44,19 @@ build_lzo () {
 }
 
 download_pkcs11_helper () {
-    if [ ! -f "pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.bz2" ]; then
+    if [ ! -f "pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.gz" ]; then
         wget -P download-cache/ \
-            "https://github.com/OpenSC/pkcs11-helper/releases/download/pkcs11-helper-${PKCS11_HELPER_VERSION}/pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.bz2"
+            "https://github.com/OpenSC/pkcs11-helper/archive/pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.gz"
     fi
 }
 
 build_pkcs11_helper () {
     if [ "$(cat ${PREFIX}/.pkcs11_helper-version)" != "${PKCS11_HELPER_VERSION}" ]; then
-        tar jxf download-cache/pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.bz2
+        tar xf download-cache/pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.gz
         (
-            cd "pkcs11-helper-${PKCS11_HELPER_VERSION}"
+            cd "pkcs11-helper-pkcs11-helper-${PKCS11_HELPER_VERSION}"
+
+            autoreconf -iv
 
             ./configure --host=${CHOST} --program-prefix='' --libdir=${PREFIX}/lib \
                  --prefix=${PREFIX} --build=x86_64-pc-linux-gnu \
@@ -78,8 +91,9 @@ build_mbedtls () {
 
 download_openssl () {
     if [ ! -f "download-cache/openssl-${OPENSSL_VERSION}.tar.gz" ]; then
+        MAJOR=`echo $OPENSSL_VERSION | sed -e 's/\([0-9.]*\).*/\1/'`
         wget -P download-cache/ \
-            "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+             "https://www.openssl.org/source/old/${MAJOR}/openssl-${OPENSSL_VERSION}.tar.gz"
     fi
 }
 

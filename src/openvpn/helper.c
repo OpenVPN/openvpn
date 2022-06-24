@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -36,7 +36,6 @@
 
 #include "memdbg.h"
 
-#if P2MP_SERVER
 
 static const char *
 print_netmask(int netbits, struct gc_arena *gc)
@@ -139,7 +138,6 @@ verify_common_subnet(const char *opt, const in_addr_t a, const in_addr_t b, cons
     gc_free(&gc);
 }
 
-#endif /* if P2MP_SERVER */
 
 /*
  * Process server, server-bridge, and client helper
@@ -151,12 +149,9 @@ helper_client_server(struct options *o)
 {
     struct gc_arena gc = gc_new();
 
-#if P2MP
-#if P2MP_SERVER
-
-/*
- * Get tun/tap/null device type
- */
+    /*
+     * Get tun/tap/null device type
+     */
     const int dev = dev_type_enum(o->dev, o->dev_type);
     const int topology = o->topology;
 
@@ -177,10 +172,11 @@ helper_client_server(struct options *o)
      */
     if (o->server_ipv6_defined)
     {
-        if (!o->server_defined)
+        if (o->client)
         {
-            msg(M_USAGE, "--server-ipv6 must be used together with --server");
+            msg(M_USAGE, "--server-ipv6 and --client cannot be used together");
         }
+
         if (o->server_flags & SF_NOPOOL)
         {
             msg( M_USAGE, "--server-ipv6 is incompatible with 'nopool' option" );
@@ -190,6 +186,9 @@ helper_client_server(struct options *o)
             msg( M_USAGE, "--server-ipv6 already defines an ifconfig-ipv6-pool, so you can't also specify --ifconfig-pool explicitly");
         }
 
+        o->mode = MODE_SERVER;
+        o->tls_server = true;
+
         /* local ifconfig is "base address + 1" and "+2" */
         o->ifconfig_ipv6_local =
             print_in6_addr( add_in6_addr( o->server_network_ipv6, 1), 0, &o->gc );
@@ -197,12 +196,17 @@ helper_client_server(struct options *o)
             print_in6_addr( add_in6_addr( o->server_network_ipv6, 2), 0, &o->gc );
         o->ifconfig_ipv6_netbits = o->server_netbits_ipv6;
 
-        /* pool starts at "base address + 0x1000" - leave enough room */
-        ASSERT( o->server_netbits_ipv6 <= 112 );        /* want 16 bits */
+        /* basic sanity check */
+        ASSERT(o->server_netbits_ipv6 >= 64 && o->server_netbits_ipv6 <= 124);
 
         o->ifconfig_ipv6_pool_defined = true;
-        o->ifconfig_ipv6_pool_base =
-            add_in6_addr( o->server_network_ipv6, 0x1000 );
+        /* For large enough pools we keep the original behaviour of adding
+         * 0x1000 when computing the base.
+         *
+         * Smaller pools can't get that far, therefore we just increase by 2
+         */
+        o->ifconfig_ipv6_pool_base = add_in6_addr(o->server_network_ipv6,
+                                                  o->server_netbits_ipv6 < 112 ? 0x1000 : 2);
         o->ifconfig_ipv6_pool_netbits = o->server_netbits_ipv6;
 
         push_option( o, "tun-ipv6", M_USAGE );
@@ -233,7 +237,7 @@ helper_client_server(struct options *o)
      * if tap OR (tun AND topology == subnet):
      *   ifconfig 10.8.0.1 255.255.255.0
      *   if !nopool:
-     *     ifconfig-pool 10.8.0.2 10.8.0.253 255.255.255.0
+     *     ifconfig-pool 10.8.0.2 10.8.0.254 255.255.255.0
      *   push "route-gateway 10.8.0.1"
      *   if route-gateway unset:
      *     route-gateway 10.8.0.2
@@ -336,7 +340,7 @@ helper_client_server(struct options *o)
                 {
                     o->ifconfig_pool_defined = true;
                     o->ifconfig_pool_start = o->server_network + 2;
-                    o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 2;
+                    o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 1;
                     ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
                 }
                 o->ifconfig_pool_netmask = o->server_netmask;
@@ -353,6 +357,14 @@ helper_client_server(struct options *o)
             }
 
             push_option(o, print_opt_topology(topology, &o->gc), M_USAGE);
+
+            if (topology == TOP_NET30 && !(o->server_flags & SF_NOPOOL))
+            {
+                msg(M_WARN, "WARNING: --topology net30 support for server "
+                    "configs with IPv4 pools will be removed in a future "
+                    "release. Please migrate to --topology subnet as soon "
+                    "as possible.");
+            }
         }
         else if (dev == DEV_TYPE_TAP)
         {
@@ -464,8 +476,6 @@ helper_client_server(struct options *o)
         }
     }
     else
-#endif /* P2MP_SERVER */
-
     /*
      * HELPER DIRECTIVE:
      *
@@ -478,16 +488,9 @@ helper_client_server(struct options *o)
      */
     if (o->client)
     {
-        if (o->key_method != 2)
-        {
-            msg(M_USAGE, "--client requires --key-method 2");
-        }
-
         o->pull = true;
         o->tls_client = true;
     }
-
-#endif /* P2MP */
 
     gc_free(&gc);
 }
@@ -541,7 +544,6 @@ helper_keepalive(struct options *o)
             o->ping_send_timeout = o->keepalive_ping;
             o->ping_rec_timeout = o->keepalive_timeout;
         }
-#if P2MP_SERVER
         else if (o->mode == MODE_SERVER)
         {
             o->ping_rec_timeout_action = PING_RESTART;
@@ -550,7 +552,6 @@ helper_keepalive(struct options *o)
             push_option(o, print_str_int("ping", o->keepalive_ping, &o->gc), M_USAGE);
             push_option(o, print_str_int("ping-restart", o->keepalive_timeout, &o->gc), M_USAGE);
         }
-#endif
         else
         {
             ASSERT(0);
@@ -573,7 +574,6 @@ helper_keepalive(struct options *o)
 void
 helper_tcp_nodelay(struct options *o)
 {
-#if P2MP_SERVER
     if (o->server_flags & SF_TCP_NODELAY_HELPER)
     {
         if (o->mode == MODE_SERVER)
@@ -586,5 +586,4 @@ helper_tcp_nodelay(struct options *o)
             o->sockflags |= SF_TCP_NODELAY;
         }
     }
-#endif
 }

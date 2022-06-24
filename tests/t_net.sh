@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-IFACE="dummy0"
+IFACE="ovpn-dummy0"
 UNIT_TEST="./unit_tests/openvpn/networking_testdriver"
 MAX_TEST=${1:-7}
 
@@ -32,14 +32,14 @@ LAST_STATE=$((${#GET_STATE[@]} - 1))
 
 reload_dummy()
 {
-    $RUN_SUDO $openvpn --dev $IFACE --dev-type tun --rmtun >/dev/null
-    $RUN_SUDO $openvpn --dev $IFACE --dev-type tun --mktun >/dev/null
+    $RUN_SUDO ip link del $IFACE
+    $RUN_SUDO ip link add $IFACE address 00:11:22:33:44:55 type dummy
+    $RUN_SUDO ip link set dev $IFACE state up
+
     if [ $? -ne 0 ]; then
         echo "can't create interface $IFACE"
         exit 1
     fi
-
-    #ip link set dev $IFACE address 00:11:22:33:44:55
 }
 
 run_test()
@@ -76,10 +76,6 @@ if [ -r "${top_builddir}"/t_client.rc ]; then
     . "${top_builddir}"/t_client.rc
 elif [ -r "${srcdir}"/t_client.rc ]; then
     . "${srcdir}"/t_client.rc
-else
-    echo "$0: cannot find 't_client.rc' in build dir ('${top_builddir}')" >&2
-    echo "$0: or source directory ('${srcdir}'). SKIPPING TEST." >&2
-    exit 77
 fi
 
 if [ ! -x "$openvpn" ]; then
@@ -117,18 +113,18 @@ else
 
     if [ -z "$RUN_SUDO" ]
     then
-        echo "$0: this test must run be as root, or RUN_SUDO=... " >&2
-        echo "      must be set correctly in 't_client.rc'. SKIP." >&2
-        exit 77
+        echo "$0: no RUN_SUDO=... in t_client.rc or environment, defaulting to 'sudo'." >&2
+        echo "      if that does not work, set RUN_SUDO= correctly for your system." >&2
+        RUN_SUDO="sudo"
+    fi
+
+    # check that we can run the unit-test binary with sudo
+    if $RUN_SUDO $UNIT_TEST test
+    then
+        echo "$0: $RUN_SUDO $UNIT_TEST succeeded, good."
     else
-        # check that we can run the unit-test binary with sudo
-	    if $RUN_SUDO $UNIT_TEST test
-        then
-	        echo "$0: $RUN_SUDO $UNIT_TEST succeeded, good."
-        else
-	        echo "$0: $RUN_SUDO $UNIT_TEST failed, cannot go on. SKIP." >&2
-	        exit 77
-        fi
+        echo "$0: $RUN_SUDO $UNIT_TEST failed, cannot go on. SKIP." >&2
+        exit 77
     fi
 fi
 
@@ -170,6 +166,6 @@ for i in $(seq 0 $MAX_TEST); do
 done
 
 # remove interface for good
-$RUN_SUDO $openvpn --dev $IFACE --dev-type tun --rmtun >/dev/null
+$RUN_SUDO ip link del $IFACE
 
 exit 0

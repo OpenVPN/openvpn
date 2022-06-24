@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -93,7 +93,7 @@ gettimeofday(struct timeval *tv, void *tz)
     {
         /* We try to dampen out backtracks of less than backtrack_hold_seconds.
          * Larger backtracks will be passed through and dealt with by the
-         * TIME_BACKTRACK_PROTECTION code (if enabled) */
+         * TIME_BACKTRACK_PROTECTION code */
         if (sec > last_sec - backtrack_hold_seconds)
         {
             sec = last_sec;
@@ -102,7 +102,8 @@ gettimeofday(struct timeval *tv, void *tz)
         bt = 1;
     }
 
-    tv->tv_sec = (long)last_sec = (long)sec;
+    last_sec = sec;
+    tv->tv_sec = (long)sec;
     tv->tv_usec = (last_msec = msec) * 1000;
 
     if (bt && !bt_last)
@@ -116,9 +117,7 @@ gettimeofday(struct timeval *tv, void *tz)
 
 #else  /* ifdef _WIN32 */
 
-#ifdef HAVE_TIME_H
 #include <time.h>
-#endif
 
 int
 gettimeofday(struct timeval *tv, void *tz)

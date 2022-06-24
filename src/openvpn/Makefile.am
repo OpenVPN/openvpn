@@ -5,7 +5,7 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+#  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
 #  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 
@@ -16,7 +16,8 @@ MAINTAINERCLEANFILES = \
 
 EXTRA_DIST = \
 	openvpn.vcxproj \
-	openvpn.vcxproj.filters
+	openvpn.vcxproj.filters \
+	openvpn.manifest
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/include \
@@ -28,6 +29,7 @@ AM_CFLAGS = \
 	$(OPTIONAL_LZO_CFLAGS) \
 	$(OPTIONAL_LZ4_CFLAGS) \
 	$(OPTIONAL_PKCS11_HELPER_CFLAGS) \
+	$(OPTIONAL_INOTIFY_CFLAGS) \
 	-DPLUGIN_LIBDIR=\"${plugindir}\"
 
 if WIN32
@@ -39,6 +41,7 @@ sbin_PROGRAMS = openvpn
 
 openvpn_SOURCES = \
 	argv.c argv.h \
+	auth_token.c auth_token.h \
 	base64.c base64.h \
 	basic.h \
 	buffer.c buffer.h \
@@ -51,6 +54,7 @@ openvpn_SOURCES = \
 	crypto_openssl.c crypto_openssl.h \
 	crypto_mbedtls.c crypto_mbedtls.h \
 	dhcp.c dhcp.h \
+	dns.c dns.h \
 	env_set.c env_set.h \
 	errlevel.h \
 	error.c error.h \
@@ -94,7 +98,6 @@ openvpn_SOURCES = \
 	otime.c otime.h \
 	packet_id.c packet_id.h \
 	perf.c perf.h \
-	pf.c pf.h \
 	ping.c ping.h \
 	plugin.c plugin.h \
 	pool.c pool.h \
@@ -115,6 +118,9 @@ openvpn_SOURCES = \
 	ssl.c ssl.h  ssl_backend.h \
 	ssl_openssl.c ssl_openssl.h \
 	ssl_mbedtls.c ssl_mbedtls.h \
+	ssl_ncp.c ssl_ncp.h \
+	ssl_pkt.c ssl_pkt.h \
+	ssl_util.c ssl_util.h \
 	ssl_common.h \
 	ssl_verify.c ssl_verify.h ssl_verify_backend.h \
 	ssl_verify_openssl.c ssl_verify_openssl.h \
@@ -123,7 +129,11 @@ openvpn_SOURCES = \
 	syshead.h \
 	tls_crypt.c tls_crypt.h \
 	tun.c tun.h \
+	vlan.c vlan.h \
+	xkey_provider.c xkey_common.h \
+	xkey_helper.c \
 	win32.h win32.c \
+	win32-util.h win32-util.c \
 	cryptoapi.h cryptoapi.c
 openvpn_LDADD = \
 	$(top_builddir)/src/compat/libcompat.la \
@@ -134,8 +144,9 @@ openvpn_LDADD = \
 	$(OPTIONAL_CRYPTO_LIBS) \
 	$(OPTIONAL_SELINUX_LIBS) \
 	$(OPTIONAL_SYSTEMD_LIBS) \
-	$(OPTIONAL_DL_LIBS)
+	$(OPTIONAL_DL_LIBS) \
+	$(OPTIONAL_INOTIFY_LIBS)
 if WIN32
-openvpn_SOURCES += openvpn_win32_resources.rc block_dns.c block_dns.h
-openvpn_LDADD += -lgdi32 -lws2_32 -lwininet -lcrypt32 -liphlpapi -lwinmm -lfwpuclnt -lrpcrt4 -lncrypt
+openvpn_SOURCES += openvpn_win32_resources.rc block_dns.c block_dns.h ring_buffer.h
+openvpn_LDADD += -lgdi32 -lws2_32 -lwininet -lcrypt32 -liphlpapi -lwinmm -lfwpuclnt -lrpcrt4 -lncrypt -lsetupapi
 endif

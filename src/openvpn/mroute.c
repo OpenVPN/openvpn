@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -29,7 +29,6 @@
 
 #include "syshead.h"
 
-#if P2MP_SERVER
 
 #include "mroute.h"
 #include "proto.h"
@@ -58,7 +57,7 @@ static inline bool
 is_mac_mcast_maddr(const struct mroute_addr *addr)
 {
     return (addr->type & MR_ADDR_MASK) == MR_ADDR_ETHER
-           && is_mac_mcast_addr(addr->eth_addr);
+           && is_mac_mcast_addr(addr->ether.addr);
 }
 
 /*
@@ -149,38 +148,6 @@ mroute_is_mcast_ipv6(const struct in6_addr addr)
     return (addr.s6_addr[0] == 0xff);
 }
 
-#ifdef ENABLE_PF
-
-static unsigned int
-mroute_extract_addr_arp(struct mroute_addr *src,
-                        struct mroute_addr *dest,
-                        const struct buffer *buf)
-{
-    unsigned int ret = 0;
-    if (BLEN(buf) >= (int) sizeof(struct openvpn_arp))
-    {
-        const struct openvpn_arp *arp = (const struct openvpn_arp *) BPTR(buf);
-        if (arp->mac_addr_type == htons(0x0001)
-            && arp->proto_addr_type == htons(0x0800)
-            && arp->mac_addr_size == 0x06
-            && arp->proto_addr_size == 0x04)
-        {
-            mroute_get_in_addr_t(src, arp->ip_src, MR_ARP);
-            mroute_get_in_addr_t(dest, arp->ip_dest, MR_ARP);
-
-            /* multicast packet? */
-            if (mroute_is_mcast(arp->ip_dest))
-            {
-                ret |= MROUTE_EXTRACT_MCAST;
-            }
-
-            ret |= MROUTE_EXTRACT_SUCCEEDED;
-        }
-    }
-    return ret;
-}
-
-#endif /* ifdef ENABLE_PF */
 
 unsigned int
 mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
@@ -247,11 +214,23 @@ mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
     return ret;
 }
 
+static void
+mroute_copy_ether_to_addr(struct mroute_addr *maddr,
+                          const uint8_t *ether_addr,
+                          uint16_t vid)
+{
+    maddr->type = MR_ADDR_ETHER;
+    maddr->netbits = 0;
+    maddr->len = OPENVPN_ETH_ALEN;
+    memcpy(maddr->ether.addr, ether_addr, OPENVPN_ETH_ALEN);
+    maddr->len += sizeof(vid);
+    maddr->ether.vid = vid;
+}
+
 unsigned int
 mroute_extract_addr_ether(struct mroute_addr *src,
                           struct mroute_addr *dest,
-                          struct mroute_addr *esrc,
-                          struct mroute_addr *edest,
+                          uint16_t vid,
                           const struct buffer *buf)
 {
     unsigned int ret = 0;
@@ -260,17 +239,11 @@ mroute_extract_addr_ether(struct mroute_addr *src,
         const struct openvpn_ethhdr *eth = (const struct openvpn_ethhdr *) BPTR(buf);
         if (src)
         {
-            src->type = MR_ADDR_ETHER;
-            src->netbits = 0;
-            src->len = 6;
-            memcpy(src->eth_addr, eth->source, sizeof(dest->eth_addr));
+            mroute_copy_ether_to_addr(src, eth->source, vid);
         }
         if (dest)
         {
-            dest->type = MR_ADDR_ETHER;
-            dest->netbits = 0;
-            dest->len = 6;
-            memcpy(dest->eth_addr, eth->dest, sizeof(dest->eth_addr));
+            mroute_copy_ether_to_addr(dest, eth->dest, vid);
 
             /* ethernet broadcast/multicast packet? */
             if (is_mac_mcast_addr(eth->dest))
@@ -281,25 +254,6 @@ mroute_extract_addr_ether(struct mroute_addr *src,
 
         ret |= MROUTE_EXTRACT_SUCCEEDED;
 
-#ifdef ENABLE_PF
-        if (esrc || edest)
-        {
-            struct buffer b = *buf;
-            if (buf_advance(&b, sizeof(struct openvpn_ethhdr)))
-            {
-                switch (ntohs(eth->proto))
-                {
-                    case OPENVPN_ETH_P_IPV4:
-                        ret |= (mroute_extract_addr_ip(esrc, edest, &b) << MROUTE_SEC_SHIFT);
-                        break;
-
-                    case OPENVPN_ETH_P_ARP:
-                        ret |= (mroute_extract_addr_arp(esrc, edest, &b) << MROUTE_SEC_SHIFT);
-                        break;
-                }
-            }
-        }
-#endif
     }
     return ret;
 }
@@ -440,8 +394,9 @@ mroute_addr_print_ex(const struct mroute_addr *ma,
         switch (maddr.type & MR_ADDR_MASK)
         {
             case MR_ADDR_ETHER:
-                buf_printf(&out, "%s", format_hex_ex(ma->eth_addr,
-                                                     sizeof(ma->eth_addr), 0, 1, ":", gc));
+                buf_printf(&out, "%s", format_hex_ex(ma->ether.addr,
+                                                     sizeof(ma->ether.addr), 0, 1, ":", gc));
+                buf_printf(&out, "@%hu", ma->ether.vid);
                 break;
 
             case MR_ADDR_IPV4:
@@ -588,10 +543,3 @@ mroute_helper_free(struct mroute_helper *mh)
 {
     free(mh);
 }
-
-#else  /* if P2MP_SERVER */
-static void
-dummy(void)
-{
-}
-#endif /* P2MP_SERVER */

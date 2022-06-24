@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -28,8 +28,6 @@
 #endif
 
 #include "syshead.h"
-
-#if P2MP_SERVER
 
 #include "multi.h"
 #include "forward.h"
@@ -61,13 +59,8 @@
 #define MTCP_SOCKET      ((void *)1)
 #define MTCP_TUN         ((void *)2)
 #define MTCP_SIG         ((void *)3) /* Only on Windows */
-#ifdef ENABLE_MANAGEMENT
 #define MTCP_MANAGEMENT ((void *)4)
-#endif
-
-#ifdef ENABLE_ASYNC_PUSH
 #define MTCP_FILE_CLOSE_WRITE ((void *)5)
-#endif
 
 #define MTCP_N           ((void *)16) /* upper bound on MTCP_x */
 
@@ -231,10 +224,7 @@ multi_tcp_free(struct multi_tcp *mtcp)
     if (mtcp)
     {
         event_free(mtcp->es);
-        if (mtcp->esr)
-        {
-            free(mtcp->esr);
-        }
+        free(mtcp->esr);
         free(mtcp);
     }
 }
@@ -269,8 +259,25 @@ multi_tcp_wait(const struct context *c,
                struct multi_tcp *mtcp)
 {
     int status;
+    unsigned int *persistent = &mtcp->tun_rwflags;
     socket_set_listen_persistent(c->c2.link_socket, mtcp->es, MTCP_SOCKET);
-    tun_set(c->c1.tuntap, mtcp->es, EVENT_READ, MTCP_TUN, &mtcp->tun_rwflags);
+
+#ifdef _WIN32
+    if (tuntap_is_wintun(c->c1.tuntap))
+    {
+        if (!tuntap_ring_empty(c->c1.tuntap))
+        {
+            /* there is data in wintun ring buffer, read it immediately */
+            mtcp->esr[0].arg = MTCP_TUN;
+            mtcp->esr[0].rwflags = EVENT_READ;
+            mtcp->n_esr = 1;
+            return 1;
+        }
+        persistent = NULL;
+    }
+#endif
+    tun_set(c->c1.tuntap, mtcp->es, EVENT_READ, MTCP_TUN, persistent);
+
 #ifdef ENABLE_MANAGEMENT
     if (management)
     {
@@ -782,7 +789,7 @@ tunnel_server_tcp(struct context *top)
     }
 
     /* initialize global multi_context object */
-    multi_init(&multi, top, true, MC_SINGLE_THREADED);
+    multi_init(&multi, top, true);
 
     /* initialize our cloned top object */
     multi_top_init(&multi, top);
@@ -844,5 +851,3 @@ tunnel_server_tcp(struct context *top)
     multi_top_free(&multi);
     close_instance(top);
 }
-
-#endif /* if P2MP_SERVER */

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -44,28 +44,6 @@ process_signal_p2p(struct context *c)
 {
     remap_signal(c);
     return process_signal(c);
-}
-
-/* Write our PID to a file */
-static void
-write_pid(const char *filename)
-{
-    if (filename)
-    {
-        unsigned int pid = 0;
-        FILE *fp = platform_fopen(filename, "w");
-        if (!fp)
-        {
-            msg(M_ERR, "Open error on pid file %s", filename);
-        }
-
-        pid = platform_getpid();
-        fprintf(fp, "%u\n", pid);
-        if (fclose(fp))
-        {
-            msg(M_ERR, "Close error on pid file %s", filename);
-        }
-    }
 }
 
 
@@ -126,6 +104,35 @@ tunnel_point_to_point(struct context *c)
 }
 
 #undef PROCESS_SIGNAL_P2P
+
+void
+init_early(struct context *c)
+{
+    net_ctx_init(c, &c->net_ctx);
+
+    /* init verbosity and mute levels */
+    init_verb_mute(c, IVM_LEVEL_1);
+
+    /* Initialise OpenSSL provider, this needs to be initialised this
+     * early since option post-processing and also openssl info
+     * printing depends on it */
+    for (int j = 1; j < MAX_PARMS && c->options.providers.names[j]; j++)
+    {
+        c->options.providers.providers[j] =
+            crypto_load_provider(c->options.providers.names[j]);
+    }
+}
+
+static void
+uninit_early(struct context *c)
+{
+    for (int j = 1; j < MAX_PARMS && c->options.providers.providers[j]; j++)
+    {
+        crypto_unload_provider(c->options.providers.names[j],
+                               c->options.providers.providers[j]);
+    }
+    net_ctx_free(&c->net_ctx);
+}
 
 
 /**************************************************************************/
@@ -215,10 +222,9 @@ openvpn_main(int argc, char *argv[])
             open_plugins(&c, true, OPENVPN_PLUGIN_INIT_PRE_CONFIG_PARSE);
 #endif
 
-            net_ctx_init(&c, &c.net_ctx);
-
-            /* init verbosity and mute levels */
-            init_verb_mute(&c, IVM_LEVEL_1);
+            /* Early initialisation that need to happen before option
+             * post processing and other early startup but after parsing */
+            init_early(&c);
 
             /* set dev options */
             init_options_dev(&c.options);
@@ -274,7 +280,7 @@ openvpn_main(int argc, char *argv[])
             if (c.first_time)
             {
                 c.did_we_daemonize = possibly_become_daemon(&c.options);
-                write_pid(c.options.writepid);
+                write_pid_file(c.options.writepid, c.options.chroot_dir);
             }
 
 #ifdef ENABLE_MANAGEMENT
@@ -305,12 +311,10 @@ openvpn_main(int argc, char *argv[])
                         tunnel_point_to_point(&c);
                         break;
 
-#if P2MP_SERVER
                     case MODE_SERVER:
                         tunnel_server(&c);
                         break;
 
-#endif
                     default:
                         ASSERT(0);
                 }
@@ -332,6 +336,7 @@ openvpn_main(int argc, char *argv[])
             env_set_destroy(c.es);
             uninit_options(&c.options);
             gc_reset(&c.gc);
+            uninit_early(&c);
         }
         while (c.sig->signal_received == SIGHUP);
     }

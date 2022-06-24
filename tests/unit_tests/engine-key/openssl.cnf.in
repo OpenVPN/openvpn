@@ -1,0 +1,12 @@
+HOME		= .
+openssl_conf	= openssl_init
+
+[req]
+[openssl_init]
+engines		= engines_section
+
+[engines_section]
+testengine	= testengine_section
+
+[testengine_section]
+dynamic_path	= ABSBUILDDIR/.libs/libtestengine.so

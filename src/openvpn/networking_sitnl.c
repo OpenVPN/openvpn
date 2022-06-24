@@ -1,7 +1,7 @@
 /*
  *  Simplified Interface To NetLink
  *
- *  Copyright (C) 2016-2018 Antonio Quartulli <a@unstable.cc>
+ *  Copyright (C) 2016-2022 Antonio Quartulli <a@unstable.cc>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -30,7 +30,9 @@
 
 #include "errlevel.h"
 #include "buffer.h"
+#include "misc.h"
 #include "networking.h"
+#include "proto.h"
 
 #include <errno.h>
 #include <string.h>
@@ -45,7 +47,7 @@
 
 #define SITNL_ADDATTR(_msg, _max_size, _attr, _data, _size)         \
     {                                                               \
-        if (sitnl_addattr(_msg, _max_size, _attr, _data, _size) < 0)\
+        if (sitnl_addattr(_msg, _max_size, _attr, _data, _size) < 0) \
         {                                                           \
             goto err;                                               \
         }                                                           \
@@ -53,6 +55,18 @@
 
 #define NLMSG_TAIL(nmsg) \
     ((struct rtattr *)(((uint8_t *)(nmsg)) + NLMSG_ALIGN((nmsg)->nlmsg_len)))
+
+#define SITNL_NEST(_msg, _max_size, _attr)              \
+    ({                                                  \
+        struct rtattr *_nest = NLMSG_TAIL(_msg);        \
+        SITNL_ADDATTR(_msg, _max_size, _attr, NULL, 0); \
+        _nest;                                          \
+    })
+
+#define SITNL_NEST_END(_msg, _nest)                                 \
+    {                                                               \
+        _nest->rta_len = (void *)NLMSG_TAIL(_msg) - (void *)_nest;  \
+    }
 
 /**
  * Generic address data structure used to pass addresses and prefixes as
@@ -335,16 +349,23 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups,
             }
 
 /*            if (((int)nladdr.nl_pid != peer) || (h->nlmsg_pid != nladdr.nl_pid)
-                || (h->nlmsg_seq != seq))
+ *               || (h->nlmsg_seq != seq))
+ *           {
+ *               rcv_len -= NLMSG_ALIGN(len);
+ *               h = (struct nlmsghdr *)((char *)h + NLMSG_ALIGN(len));
+ *               msg(M_DEBUG, "%s: skipping unrelated message. nl_pid:%d (peer:%d) nl_msg_pid:%d nl_seq:%d seq:%d",
+ *                   __func__, (int)nladdr.nl_pid, peer, h->nlmsg_pid,
+ *                   h->nlmsg_seq, seq);
+ *               continue;
+ *           }
+ */
+
+            if (h->nlmsg_type == NLMSG_DONE)
             {
-                rcv_len -= NLMSG_ALIGN(len);
-                h = (struct nlmsghdr *)((char *)h + NLMSG_ALIGN(len));
-                msg(M_DEBUG, "%s: skipping unrelated message. nl_pid:%d (peer:%d) nl_msg_pid:%d nl_seq:%d seq:%d",
-                    __func__, (int)nladdr.nl_pid, peer, h->nlmsg_pid,
-                    h->nlmsg_seq, seq);
-                continue;
+                ret = 0;
+                goto out;
             }
-*/
+
             if (h->nlmsg_type == NLMSG_ERROR)
             {
                 err = (struct nlmsgerr *)NLMSG_DATA(h);
@@ -359,13 +380,19 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups,
                     {
                         ret = 0;
                         if (cb)
-                            ret = cb(h, arg_cb);
+                        {
+                            int r = cb(h, arg_cb);
+                            if (r <= 0)
+                            {
+                                ret = r;
+                            }
+                        }
                     }
                     else
                     {
-                        msg(M_WARN, "%s: rtnl: generic error: %s",
-                            __func__, strerror(-err->error));
-                        ret = -err->error;
+                        msg(M_WARN, "%s: rtnl: generic error (%d): %s",
+                            __func__, err->error, strerror(-err->error));
+                        ret = err->error;
                     }
                 }
                 goto out;
@@ -373,8 +400,12 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups,
 
             if (cb)
             {
-                ret = cb(h, arg_cb);
-                goto out;
+                int r = cb(h, arg_cb);
+                if (r <= 0)
+                {
+                    ret = r;
+                    goto out;
+                }
             }
             else
             {
@@ -408,6 +439,8 @@ typedef struct {
     int addr_size;
     inet_address_t gw;
     char iface[IFNAMSIZ];
+    bool default_only;
+    unsigned int table;
 } route_res_t;
 
 static int
@@ -417,7 +450,17 @@ sitnl_route_save(struct nlmsghdr *n, void *arg)
     struct rtmsg *r = NLMSG_DATA(n);
     struct rtattr *rta = RTM_RTA(r);
     int len = n->nlmsg_len - NLMSG_LENGTH(sizeof(*r));
-    unsigned int ifindex = 0;
+    unsigned int table, ifindex = 0;
+    void *gw = NULL;
+
+    /* filter-out non-zero dst prefixes */
+    if (res->default_only && r->rtm_dst_len != 0)
+    {
+        return 1;
+    }
+
+    /* route table, ignored with RTA_TABLE */
+    table = r->rtm_table;
 
     while (RTA_OK(rta, len))
     {
@@ -427,16 +470,29 @@ sitnl_route_save(struct nlmsghdr *n, void *arg)
             case RTA_OIF:
                 ifindex = *(unsigned int *)RTA_DATA(rta);
                 break;
+
             /* route prefix */
             case RTA_DST:
                 break;
+
             /* GW for the route */
             case RTA_GATEWAY:
-                memcpy(&res->gw, RTA_DATA(rta), res->addr_size);
+                gw = RTA_DATA(rta);
+                break;
+
+            /* route table */
+            case RTA_TABLE:
+                table = *(unsigned int *)RTA_DATA(rta);
                 break;
         }
 
         rta = RTA_NEXT(rta, len);
+    }
+
+    /* filter out any route not coming from the selected table */
+    if (res->table && res->table != table)
+    {
+        return 1;
     }
 
     if (!if_indextoname(ifindex, res->iface))
@@ -446,12 +502,17 @@ sitnl_route_save(struct nlmsghdr *n, void *arg)
         return -1;
     }
 
+    if (gw)
+    {
+        memcpy(&res->gw, gw, res->addr_size);
+    }
+
     return 0;
 }
 
 static int
 sitnl_route_best_gw(sa_family_t af_family, const inet_address_t *dst,
-                    int prefixlen, void *best_gw, char *best_iface)
+                    void *best_gw, char *best_iface)
 {
     struct sitnl_route_req req;
     route_res_t res;
@@ -468,17 +529,33 @@ sitnl_route_best_gw(sa_family_t af_family, const inet_address_t *dst,
     req.n.nlmsg_flags = NLM_F_REQUEST;
 
     req.r.rtm_family = af_family;
-    req.r.rtm_dst_len = prefixlen;
 
     switch (af_family)
     {
         case AF_INET:
             res.addr_size = sizeof(in_addr_t);
-            req.n.nlmsg_flags |= NLM_F_DUMP;
+            /*
+             * kernel can't return 0.0.0.0/8 host route, dump all
+             * the routes and filter for 0.0.0.0/0 in cb()
+             */
+            if (!dst || !dst->ipv4)
+            {
+                req.n.nlmsg_flags |= NLM_F_DUMP;
+                res.default_only = true;
+                res.table = RT_TABLE_MAIN;
+            }
+            else
+            {
+                req.r.rtm_dst_len = 32;
+            }
             break;
+
         case AF_INET6:
             res.addr_size = sizeof(struct in6_addr);
+            /* kernel can return ::/128 host route */
+            req.r.rtm_dst_len = 128;
             break;
+
         default:
             /* unsupported */
             return -EINVAL;
@@ -494,7 +571,7 @@ sitnl_route_best_gw(sa_family_t af_family, const inet_address_t *dst,
 
     /* save result in output variables */
     memcpy(best_gw, &res.gw, res.addr_size);
-    strcpy(best_iface, res.iface);
+    strncpy(best_iface, res.iface, IFNAMSIZ);
 err:
     return ret;
 
@@ -503,7 +580,7 @@ err:
 /* used by iproute2 implementation too */
 int
 net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
-                     int prefixlen, struct in6_addr *best_gw, char *best_iface)
+                     struct in6_addr *best_gw, char *best_iface)
 {
     inet_address_t dst_v6 = {0};
     char buf[INET6_ADDRSTRLEN];
@@ -514,11 +591,10 @@ net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
         dst_v6.ipv6 = *dst;
     }
 
-    msg(D_ROUTE, "%s query: dst %s/%d", __func__,
-        inet_ntop(AF_INET6, &dst_v6.ipv6, buf, sizeof(buf)), prefixlen);
+    msg(D_ROUTE, "%s query: dst %s", __func__,
+        inet_ntop(AF_INET6, &dst_v6.ipv6, buf, sizeof(buf)));
 
-    ret = sitnl_route_best_gw(AF_INET6, &dst_v6, prefixlen, best_gw,
-                              best_iface);
+    ret = sitnl_route_best_gw(AF_INET6, &dst_v6, best_gw, best_iface);
     if (ret < 0)
     {
         return ret;
@@ -534,17 +610,8 @@ net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
 #ifdef ENABLE_SITNL
 
 int
-net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
-{
-    (void)c;
-    (void)ctx;
-
-    return 0;
-}
-
-int
 net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
-                     int prefixlen, in_addr_t *best_gw, char *best_iface)
+                     in_addr_t *best_gw, char *best_iface)
 {
     inet_address_t dst_v4 = {0};
     char buf[INET_ADDRSTRLEN];
@@ -555,10 +622,10 @@ net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
         dst_v4.ipv4 = htonl(*dst);
     }
 
-    msg(D_ROUTE, "%s query: dst %s/%d", __func__,
-        inet_ntop(AF_INET, &dst_v4.ipv4, buf, sizeof(buf)), prefixlen);
+    msg(D_ROUTE, "%s query: dst %s", __func__,
+        inet_ntop(AF_INET, &dst_v4.ipv4, buf, sizeof(buf)));
 
-    ret = sitnl_route_best_gw(AF_INET, &dst_v4, prefixlen, best_gw, best_iface);
+    ret = sitnl_route_best_gw(AF_INET, &dst_v4, best_gw, best_iface);
     if (ret < 0)
     {
         return ret;
@@ -588,7 +655,8 @@ net_iface_up(openvpn_net_ctx_t *ctx, const char *iface, bool up)
     }
 
     ifindex = if_nametoindex(iface);
-    if (ifindex == 0) {
+    if (ifindex == 0)
+    {
         msg(M_WARN, "%s: rtnl: cannot get ifindex for %s: %s", __func__, iface,
             strerror(errno));
         return -ENOENT;
@@ -602,9 +670,13 @@ net_iface_up(openvpn_net_ctx_t *ctx, const char *iface, bool up)
     req.i.ifi_index = ifindex;
     req.i.ifi_change |= IFF_UP;
     if (up)
+    {
         req.i.ifi_flags |= IFF_UP;
+    }
     else
+    {
         req.i.ifi_flags &= ~IFF_UP;
+    }
 
     msg(M_INFO, "%s: set %s %s", __func__, iface, up ? "up" : "down");
 
@@ -621,7 +693,8 @@ net_iface_mtu_set(openvpn_net_ctx_t *ctx, const char *iface,
     CLEAR(req);
 
     ifindex = if_nametoindex(iface);
-    if (ifindex == 0) {
+    if (ifindex == 0)
+    {
         msg(M_WARN | M_ERRNO, "%s: rtnl: cannot get ifindex for %s", __func__,
             iface);
         return -1;
@@ -643,10 +716,44 @@ err:
     return ret;
 }
 
+int
+net_addr_ll_set(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                uint8_t *addr)
+{
+    struct sitnl_link_req req;
+    int ifindex, ret = -1;
+
+    CLEAR(req);
+
+    ifindex = if_nametoindex(iface);
+    if (ifindex == 0)
+    {
+        msg(M_WARN | M_ERRNO, "%s: rtnl: cannot get ifindex for %s", __func__,
+            iface);
+        return -1;
+    }
+
+    req.n.nlmsg_len = NLMSG_LENGTH(sizeof(req.i));
+    req.n.nlmsg_flags = NLM_F_REQUEST;
+    req.n.nlmsg_type = RTM_NEWLINK;
+
+    req.i.ifi_family = AF_PACKET;
+    req.i.ifi_index = ifindex;
+
+    SITNL_ADDATTR(&req.n, sizeof(req), IFLA_ADDRESS, addr, OPENVPN_ETH_ALEN);
+
+    msg(M_INFO, "%s: lladdr " MAC_FMT " for %s", __func__, MAC_PRINT_ARG(addr),
+        iface);
+
+    ret = sitnl_send(&req.n, 0, 0, NULL, NULL);
+err:
+    return ret;
+}
+
 static int
 sitnl_addr_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
                const inet_address_t *local, const inet_address_t *remote,
-               int prefixlen, const inet_address_t *broadcast)
+               int prefixlen)
 {
     struct sitnl_addr_req req;
     uint32_t size;
@@ -666,9 +773,11 @@ sitnl_addr_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
         case AF_INET:
             size = sizeof(struct in_addr);
             break;
+
         case AF_INET6:
             size = sizeof(struct in6_addr);
             break;
+
         default:
             msg(M_WARN, "%s: rtnl: unknown address family %d", __func__,
                 af_family);
@@ -692,13 +801,8 @@ sitnl_addr_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
         SITNL_ADDATTR(&req.n, sizeof(req), IFA_LOCAL, local, size);
     }
 
-    if (broadcast)
-    {
-        SITNL_ADDATTR(&req.n, sizeof(req), IFA_BROADCAST, broadcast, size);
-    }
-
     ret = sitnl_send(&req.n, 0, 0, NULL, NULL);
-    if ((ret < 0) && (errno == EEXIST))
+    if (ret == -EEXIST)
     {
         ret = 0;
     }
@@ -713,10 +817,12 @@ sitnl_addr_ptp_add(sa_family_t af_family, const char *iface,
 {
     int ifindex;
 
-    switch (af_family) {
+    switch (af_family)
+    {
         case AF_INET:
         case AF_INET6:
             break;
+
         default:
             return -EINVAL;
     }
@@ -736,7 +842,7 @@ sitnl_addr_ptp_add(sa_family_t af_family, const char *iface,
     }
 
     return sitnl_addr_set(RTM_NEWADDR, NLM_F_CREATE | NLM_F_REPLACE, ifindex,
-                          af_family, local, remote, 0, NULL);
+                          af_family, local, remote, 0);
 }
 
 static int
@@ -745,10 +851,12 @@ sitnl_addr_ptp_del(sa_family_t af_family, const char *iface,
 {
     int ifindex;
 
-    switch (af_family) {
+    switch (af_family)
+    {
         case AF_INET:
         case AF_INET6:
             break;
+
         default:
             return -EINVAL;
     }
@@ -766,8 +874,7 @@ sitnl_addr_ptp_del(sa_family_t af_family, const char *iface,
         return -ENOENT;
     }
 
-    return sitnl_addr_set(RTM_DELADDR, 0, ifindex, af_family, local, NULL, 0,
-                          NULL);
+    return sitnl_addr_set(RTM_DELADDR, 0, ifindex, af_family, local, NULL, 0);
 }
 
 static int
@@ -786,9 +893,11 @@ sitnl_route_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
         case AF_INET:
             size = sizeof(in_addr_t);
             break;
+
         case AF_INET6:
             size = sizeof(struct in6_addr);
             break;
+
         default:
             return -EINVAL;
     }
@@ -834,7 +943,7 @@ sitnl_route_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
     }
 
     ret = sitnl_send(&req.n, 0, 0, NULL, NULL);
-    if ((ret < 0) && (errno == EEXIST))
+    if (ret == -EEXIST)
     {
         ret = 0;
     }
@@ -844,17 +953,18 @@ err:
 
 static int
 sitnl_addr_add(sa_family_t af_family, const char *iface,
-               const inet_address_t *addr, int prefixlen,
-               const inet_address_t *broadcast)
+               const inet_address_t *addr, int prefixlen)
 {
     int ifindex;
 
-    switch (af_family) {
+    switch (af_family)
+    {
         case AF_INET:
         case AF_INET6:
             break;
+
         default:
-            return -EINVAL;;
+            return -EINVAL;
     }
 
     if (!iface)
@@ -872,7 +982,7 @@ sitnl_addr_add(sa_family_t af_family, const char *iface,
     }
 
     return sitnl_addr_set(RTM_NEWADDR, NLM_F_CREATE | NLM_F_REPLACE, ifindex,
-                          af_family, addr, NULL, prefixlen, broadcast);
+                          af_family, addr, NULL, prefixlen);
 }
 
 static int
@@ -881,12 +991,14 @@ sitnl_addr_del(sa_family_t af_family, const char *iface, inet_address_t *addr,
 {
     int ifindex;
 
-    switch (af_family) {
+    switch (af_family)
+    {
         case AF_INET:
         case AF_INET6:
             break;
+
         default:
-            return -EINVAL;;
+            return -EINVAL;
     }
 
     if (!iface)
@@ -904,18 +1016,15 @@ sitnl_addr_del(sa_family_t af_family, const char *iface, inet_address_t *addr,
     }
 
     return sitnl_addr_set(RTM_DELADDR, 0, ifindex, af_family, addr, NULL,
-                          prefixlen, NULL);
+                          prefixlen);
 }
 
 int
 net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
-                const in_addr_t *addr, int prefixlen,
-                const in_addr_t *broadcast)
+                const in_addr_t *addr, int prefixlen)
 {
     inet_address_t addr_v4 = { 0 };
-    inet_address_t brd_v4 = { 0 };
-    char buf1[INET_ADDRSTRLEN];
-    char buf2[INET_ADDRSTRLEN];
+    char buf[INET_ADDRSTRLEN];
 
     if (!addr)
     {
@@ -924,16 +1033,10 @@ net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface,
 
     addr_v4.ipv4 = htonl(*addr);
 
-    if (broadcast)
-    {
-        brd_v4.ipv4 = htonl(*broadcast);
-    }
+    msg(M_INFO, "%s: %s/%d dev %s", __func__,
+        inet_ntop(AF_INET, &addr_v4.ipv4, buf, sizeof(buf)), prefixlen, iface);
 
-    msg(M_INFO, "%s: %s/%d brd %s dev %s", __func__,
-        inet_ntop(AF_INET, &addr_v4.ipv4, buf1, sizeof(buf1)), prefixlen,
-        inet_ntop(AF_INET, &brd_v4.ipv4, buf2, sizeof(buf2)), iface);
-
-    return sitnl_addr_add(AF_INET, iface, &addr_v4, prefixlen, &brd_v4);
+    return sitnl_addr_add(AF_INET, iface, &addr_v4, prefixlen);
 }
 
 int
@@ -953,7 +1056,7 @@ net_addr_v6_add(openvpn_net_ctx_t *ctx, const char *iface,
     msg(M_INFO, "%s: %s/%d dev %s", __func__,
         inet_ntop(AF_INET6, &addr_v6.ipv6, buf, sizeof(buf)), prefixlen, iface);
 
-    return sitnl_addr_add(AF_INET6, iface, &addr_v6, prefixlen, NULL);
+    return sitnl_addr_add(AF_INET6, iface, &addr_v6, prefixlen);
 }
 
 int
@@ -1221,6 +1324,58 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
 
     return sitnl_route_del(iface, AF_INET6, &dst_v6, prefixlen, &gw_v6,
                            table, metric);
+}
+
+
+int
+net_iface_new(openvpn_net_ctx_t *ctx, const char *iface, const char *type,
+              void *arg)
+{
+    struct sitnl_link_req req = { };
+    int ret = -1;
+
+    ASSERT(iface);
+
+    req.n.nlmsg_len = NLMSG_LENGTH(sizeof(req.i));
+    req.n.nlmsg_flags = NLM_F_REQUEST | NLM_F_CREATE | NLM_F_EXCL;
+    req.n.nlmsg_type = RTM_NEWLINK;
+
+    SITNL_ADDATTR(&req.n, sizeof(req), IFLA_IFNAME, iface, strlen(iface) + 1);
+
+    struct rtattr *linkinfo = SITNL_NEST(&req.n, sizeof(req), IFLA_LINKINFO);
+    SITNL_ADDATTR(&req.n, sizeof(req), IFLA_INFO_KIND, type, strlen(type) + 1);
+    SITNL_NEST_END(&req.n, linkinfo);
+
+    req.i.ifi_family = AF_PACKET;
+
+    msg(D_ROUTE, "%s: add %s type %s", __func__,  iface, type);
+
+    ret = sitnl_send(&req.n, 0, 0, NULL, NULL);
+err:
+    return ret;
+}
+
+int
+net_iface_del(openvpn_net_ctx_t *ctx, const char *iface)
+{
+    struct sitnl_link_req req = { };
+    int ifindex = if_nametoindex(iface);
+
+    if (!ifindex)
+    {
+        return errno;
+    }
+
+    req.n.nlmsg_len = NLMSG_LENGTH(sizeof(req.i));
+    req.n.nlmsg_flags = NLM_F_REQUEST;
+    req.n.nlmsg_type = RTM_DELLINK;
+
+    req.i.ifi_family = AF_PACKET;
+    req.i.ifi_index = ifindex;
+
+    msg(D_ROUTE, "%s: delete %s", __func__, iface);
+
+    return sitnl_send(&req.n, 0, 0, NULL, NULL);
 }
 
 #endif /* !ENABLE_SITNL */

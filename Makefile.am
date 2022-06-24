@@ -5,8 +5,8 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
-#  Copyright (C) 2010      David Sommerseth <dazo@users.sourceforge.net>
+#  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+#  Copyright (C) 2010-2022 David Sommerseth <dazo@eurephia.org>
 #  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 #  This program is free software; you can redistribute it and/or modify
@@ -23,9 +23,6 @@
 #  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-# This option prevents autoreconf from overriding our COPYING and
-# INSTALL targets:
-AUTOMAKE_OPTIONS = foreign 1.9
 ACLOCAL_AMFLAGS = -I m4
 
 MAINTAINERCLEANFILES = \
@@ -57,7 +54,6 @@ SUBDIRS = build distro include src sample doc tests
 
 dist_doc_DATA = \
 	README \
-	README.IPv6 \
 	README.mbedtls \
 	Changes.rst \
 	COPYRIGHT.GPL \
@@ -67,12 +63,8 @@ dist_noinst_DATA = \
 	.gitignore \
 	.gitattributes \
 	PORTS \
-	README.IPv6 TODO.IPv6 \
 	README.mbedtls \
-	openvpn.sln \
-	msvc-env.bat \
-	msvc-dev.bat \
-	msvc-build.bat
+	openvpn.sln
 
 dist_noinst_HEADERS = \
 	config-msvc.h \

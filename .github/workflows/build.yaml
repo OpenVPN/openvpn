@@ -1,0 +1,361 @@
+# The name of our workflow
+name: Build
+on:
+  push:
+  pull_request:
+
+jobs:
+  checkuncrustify:
+    name: "Check code style with Uncrustify"
+    # Ubuntu 22.04 has uncrustify 0.72_f
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y uncrustify
+      - name: Checkout OpenVPN
+        uses: actions/checkout@v2
+        with:
+          path: openvpn
+      - name: Show uncrustify version
+        run: uncrustify --version
+      - name: Run uncrustify
+        run: ./dev-tools/reformat-all.sh
+        working-directory: openvpn
+      - name: Check for changes
+        run: git diff --output=uncrustify-changes.patch
+        working-directory: openvpn
+      - name: Show changes on standard output
+        run: git diff
+        working-directory: openvpn
+      - uses: actions/upload-artifact@v2
+        with:
+          name: uncrustify-changes.patch
+          path: 'openvpn/uncrustify-changes.patch'
+      - name: Set job status
+        run: test ! -s uncrustify-changes.patch
+        working-directory: openvpn
+
+  mingw:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: mingw64
+            chost: x86_64-w64-mingw32
+          - target: mingw
+            chost: i686-w64-mingw32
+
+    name: "gcc-mingw - ${{matrix.target}}"
+
+    runs-on: ubuntu-20.04
+    env:
+      MAKEFLAGS: -j3
+      LZO_VERSION: "2.10"
+      PKCS11_HELPER_VERSION: "1.29.0"
+      OPENSSL_VERSION: "1.1.1n"
+      TAP_WINDOWS_VERSION: "9.23.3"
+      CHOST: ${{ matrix.chost }}
+      TARGET: ${{ matrix.target }}
+    steps:
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y mingw-w64 libtool automake autoconf man2html unzip
+      - name: Checkout ovpn-dco-win
+        uses: actions/checkout@v2
+        with:
+          repository: OpenVPN/ovpn-dco-win
+          path: ovpn-dco-win
+      - name: Checkout OpenVPN
+        uses: actions/checkout@v2
+        with:
+          path: openvpn
+
+      - name: autoconf
+        run: autoreconf -fvi
+        working-directory: openvpn
+
+      - name: Cache dependencies
+        id: cache
+        uses: actions/cache@v2
+        with:
+          path: '~/mingw/'
+          key: ${{ matrix.target }}-mingw-${{ env.OPENSSL_VERSION }}-${{ env.LZO_VERSION }}-${{ env.PKCS11_HELPER_VERSION }}-${{ env.TAP_WINDOWS_VERSION }}
+
+      # Repeating  if: steps.cache.outputs.cache-hit != 'true'
+      # on every step for building dependencies is ugly but
+      # I haven't found a better solution so far.
+
+      - name: Download mingw dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          wget -c -P download-cache/ "https://build.openvpn.net/downloads/releases/tap-windows-${TAP_WINDOWS_VERSION}.zip"
+          wget -c -P download-cache/ "https://www.oberhumer.com/opensource/lzo/download/lzo-${LZO_VERSION}.tar.gz"
+          wget -c -P download-cache/ "https://github.com/OpenSC/pkcs11-helper/releases/download/pkcs11-helper-${PKCS11_HELPER_VERSION}/pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.bz2"
+          wget -c -P download-cache/ "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+          tar jxf "download-cache/pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.bz2"
+          tar zxf "download-cache/openssl-${OPENSSL_VERSION}.tar.gz"
+          tar zxf "download-cache/lzo-${LZO_VERSION}.tar.gz"
+          unzip download-cache/tap-windows-${TAP_WINDOWS_VERSION}.zip
+
+      - name: Configure OpenSSL
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: ./Configure --cross-compile-prefix=${CHOST}- shared ${{ matrix.target }} no-capieng --prefix="${HOME}/mingw/opt" --openssldir="${HOME}/mingw/opt" -static-libgcc
+        working-directory: "./openssl-${{ env.OPENSSL_VERSION }}"
+
+      - name: Build OpenSSL
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: make
+        working-directory: "./openssl-${{ env.OPENSSL_VERSION }}"
+
+      - name: Install OpenSSL
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: make install
+        working-directory: "./openssl-${{ env.OPENSSL_VERSION }}"
+
+      - name: autoreconf pkcs11-helper
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: autoreconf -iv
+        working-directory: "./pkcs11-helper-${{ env.PKCS11_HELPER_VERSION }}"
+
+      - name: configure pkcs11-helper
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: OPENSSL_LIBS="-L${HOME}/mingw/opt/lib -lssl -lcrypto" OPENSSL_CFLAGS=-I$HOME/mingw/opt/include PKG_CONFIG_PATH=${HOME}/mingw/opt/lib/pkgconfig ./configure --host=${CHOST} --program-prefix='' --libdir=${HOME}/mingw/opt/lib --prefix=${HOME}/mingw/opt --build=x86_64-pc-linux-gnu --disable-crypto-engine-gnutls --disable-crypto-engine-nss --disable-crypto-engine-polarssl --disable-crypto-engine-mbedtls
+        working-directory: "./pkcs11-helper-${{ env.PKCS11_HELPER_VERSION }}"
+
+      - name: build pkcs11-helper
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: make all
+        working-directory: "./pkcs11-helper-${{ env.PKCS11_HELPER_VERSION }}"
+
+      - name: install pkcs11-helper
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: make install
+        working-directory: "./pkcs11-helper-${{ env.PKCS11_HELPER_VERSION }}"
+
+      - name: Configure lzo
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: ./configure --host=${CHOST} --program-prefix='' --libdir=${HOME}/mingw/opt/lib --prefix=${HOME}/mingw/opt --build=x86_64-pc-linux-gnu
+        working-directory: "./lzo-${{ env.LZO_VERSION }}"
+
+      - name: build lzo
+        if: steps.cache.outputs.cache-hit != 'true'
+        working-directory: "./lzo-${{ env.LZO_VERSION }}"
+        run: make
+
+      - name: install lzo
+        if: steps.cache.outputs.cache-hit != 'true'
+        working-directory: "./lzo-${{ env.LZO_VERSION }}"
+        run: make install
+
+      - name: copy tap-windows.h header
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: cp ./tap-windows-${TAP_WINDOWS_VERSION}/include/tap-windows.h ${HOME}/mingw/opt/include/
+
+      - name: configure OpenVPN
+        run: PKG_CONFIG_PATH=${HOME}/mingw/opt/lib/pkgconfig DCO_SOURCEDIR=$(realpath ../ovpn-dco-win) LDFLAGS=-L$HOME/mingw/opt/lib CFLAGS=-I$HOME/mingw/opt/include OPENSSL_LIBS="-L${HOME}/opt/lib -lssl -lcrypto" OPENSSL_CFLAGS=-I$HOME/mingw/opt/include PREFIX=$HOME/mingw/opt LZO_CFLAGS=-I$HOME/mingw/opt/include LZO_LIBS="-L${HOME}/mingw/opt/lib -llzo2" ./configure  --host=${CHOST} --disable-lz4 --enable-dco
+        working-directory: openvpn
+
+      - name: build OpenVPN
+        run: make -j3
+        working-directory: openvpn
+
+  ubuntu:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04, ubuntu-22.04]
+        sslpkg: [libmbedtls-dev]
+        ssllib: [mbedtls]
+        libname: [mbed TLS]
+
+        include:
+          - os: ubuntu-18.04
+            sslpkg: "libssl1.0-dev"
+            ssllib: openssl
+            libname: OpenSSL 1.0.2
+          - os: ubuntu-18.04
+            sslpkg: "libssl-dev"
+            libname: OpenSSL 1.1.1
+            ssllib: openssl
+          - os: ubuntu-20.04
+            sslpkg: "libssl-dev"
+            libname: OpenSSL 1.1.1
+            ssllib: openssl
+          - os: ubuntu-22.04
+            sslpkg: "libssl-dev"
+            libname: OpenSSL 3.0.2
+            ssllib: openssl
+          - os: ubuntu-20.04
+            sslpkg: "libssl-dev"
+            libname: OpenSSL 1.1.1
+            ssllib: openssl
+            extraconf: "--enable-iproute2"
+          - os: ubuntu-20.04
+            sslpkg: "libssl-dev"
+            libname: OpenSSL 1.1.1
+            ssllib: openssl
+            extraconf: "--enable-async-push"
+          - os: ubuntu-20.04
+            sslpkg: "libssl-dev"
+            libname: OpenSSL 1.1.1
+            ssllib: openssl
+            extraconf: "--disable-management"
+          - os: ubuntu-20.04
+            sslpkg: "libssl-dev"
+            libname: OpenSSL 1.1.1
+            ssllib: openssl
+            extraconf: "--enable-small"
+          - os: ubuntu-20.04
+            sslpkg: "libssl-dev"
+            libname: OpenSSL 1.1.1
+            ssllib: openssl
+            extraconf: "--disable-lzo --disable-lz4"
+
+    name: "gcc - ${{matrix.os}} - ${{matrix.libname}} ${{matrix.extraconf}}"
+    env:
+      SSLPKG: "${{matrix.sslpkg}}"
+
+    runs-on: ${{matrix.os}}
+    steps:
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html libcmocka-dev python3-docutils libtool automake autoconf ${SSLPKG}
+      - name: Checkout OpenVPN
+        uses: actions/checkout@v2
+      - name: autoconf
+        run: autoreconf -fvi
+      - name: configure
+        run: ./configure --with-crypto-library=${{matrix.ssllib}} ${{matrix.extraconf}} --enable-werror
+      - name: make all
+        run: make -j3
+      - name: make check
+        run: make check
+
+  ubuntu-clang-asan:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04]
+        ssllib: [mbedtls, openssl]
+
+    name: "clang-asan - ${{matrix.os}} - ${{matrix.ssllib}}"
+
+    runs-on: ${{matrix.os}}
+    steps:
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html clang libcmocka-dev python3-docutils libtool automake autoconf libmbedtls-dev
+      - name: Checkout OpenVPN
+        uses: actions/checkout@v2
+      - name: autoconf
+        run: autoreconf -fvi
+      - name: configure
+        run: CFLAGS="-fsanitize=address -fno-omit-frame-pointer -O2" CC=clang ./configure --with-crypto-library=${{matrix.ssllib}}
+      - name: make all
+        run: make -j3
+      - name: make check
+        run: make check
+
+  macos:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ossl: [ 1.1, 3 ]
+        build: [ normal, asan ]
+        include:
+          - build: asan
+            cflags: "-fsanitize=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
+            ldflags: -fsanitize=address
+            # Our build system ignores LDFLAGS for plugins
+            configureflags: --disable-plugin-auth-pam  --disable-plugin-down-root
+          - build: normal
+            cflags: "-O2 -g"
+            ldflags: ""
+            configureflags: ""
+
+    name: "macOS - OpenSSL ${{matrix.ossl}} - ${{matrix.build}}"
+    env:
+      CFLAGS: ${{ matrix.cflags }}
+      LDFLAGS: ${{ matrix.ldflags }}
+      OPENSSL_CFLAGS: -I/usr/local/opt/openssl@${{matrix.ossl}}/include
+      OPENSSL_LIBS: "-L/usr/local/opt/openssl@${{matrix.ossl}}/lib -lcrypto -lssl"
+    steps:
+      - name: Install dependencies
+        run: brew install openssl@1.1 openssl@3 lzo lz4 man2html cmocka libtool automake autoconf
+      - name: Checkout OpenVPN
+        uses: actions/checkout@v2
+      - name: autoconf
+        run: autoreconf -fvi
+      - name: configure
+        run: ./configure ${{matrix.configureflags}}
+      - name: make all
+        run: make -j4
+      - name: make check
+        run: make check
+
+  msvc:
+      strategy:
+        fail-fast: false
+        matrix:
+          plat: [ARM64, Win32, x64]
+          include:
+            - plat: ARM64
+              triplet: arm64
+            - plat: Win32
+              triplet: x86
+            - plat: x64
+              triplet: x64
+
+      name: "msbuild - ${{matrix.triplet}} - openssl"
+      env:
+        BUILD_CONFIGURATION: Release
+        VCPKG_OVERLAY_PORTS: ${{ github.workspace }}/contrib/vcpkg-ports
+        VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}/contrib/vcpkg-triplets
+
+      runs-on: windows-latest
+      steps:
+      - uses: actions/checkout@v2
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v1
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install rst2html
+        run: python -m pip install --upgrade pip rst2html
+
+      - name: Restore artifacts, or setup vcpkg (do not install any package)
+        uses: lukka/run-vcpkg@v10
+        with:
+          vcpkgGitCommitId: '4b766c1cd17205e1b768c4fadfd5f867c1d0510e'
+          appendedCacheKey: '${{matrix.triplet}}'
+
+      - name: Run MSBuild consuming vcpkg.json
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: |
+            vcpkg integrate install
+            msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="${{ matrix.plat }}" .
+
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: artifacts-${{ matrix.plat }}
+          path: |
+            ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.exe
+            ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.dll
+            ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.pdb
+            doc/openvpn.8.html
+
+  trigger_openvpn_build:
+    runs-on: windows-latest
+    needs: [checkuncrustify, mingw, ubuntu, ubuntu-clang-asan, macos, msvc]
+    if: ${{ github.event_name != 'pull_request' && github.repository == 'openvpn/openvpn' && github.ref == 'refs/heads/master' }}
+
+    steps:
+    - name: Repository Dispatch
+      uses: peter-evans/repository-dispatch@v2
+      with:
+        token: ${{ secrets.OPENVPN_BUILD_REPO_DISPATCH }}
+        repository: openvpn/openvpn-build
+        event-type: openvpn-commit
