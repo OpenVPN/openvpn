@@ -139,6 +139,7 @@ struct tuntap_options {
 
 struct tuntap_options {
     int txqueuelen;
+    bool disable_dco;
 };
 
 #else  /* if defined(_WIN32) || defined(TARGET_ANDROID) */
