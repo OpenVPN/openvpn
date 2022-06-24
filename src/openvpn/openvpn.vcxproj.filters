@@ -36,6 +36,9 @@
     <ClCompile Include="cryptoapi.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dco_linux.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="dhcp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -299,6 +302,15 @@
     <ClInclude Include="cryptoapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClCompile Include="dco.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dco_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dco_linux.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="dhcp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -396,6 +408,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="otime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ovpn_dco_linux.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="packet_id.h">

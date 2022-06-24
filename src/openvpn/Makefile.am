@@ -53,6 +53,8 @@ openvpn_SOURCES = \
 	crypto.c crypto.h crypto_backend.h \
 	crypto_openssl.c crypto_openssl.h \
 	crypto_mbedtls.c crypto_mbedtls.h \
+	dco.h dco_internal.h \
+	dco_linux.c dco_linux.h \
 	dhcp.c dhcp.h \
 	dns.c dns.h \
 	env_set.c env_set.h \
@@ -75,6 +77,7 @@ openvpn_SOURCES = \
 	mbuf.c mbuf.h \
 	memdbg.h \
 	misc.c misc.h \
+	ovpn_dco_linux.h \
 	platform.c platform.h \
 	console.c console.h console_builtin.c console_systemd.c \
 	mroute.c mroute.h \

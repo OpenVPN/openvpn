@@ -40,6 +40,7 @@
 #include "misc.h"
 #include "networking.h"
 #include "ring_buffer.h"
+#include "dco.h"
 
 #ifdef _WIN32
 #define WINTUN_COMPONENT_ID "wintun"
@@ -214,6 +215,8 @@ struct tuntap
 #endif
     /* used for printing status info only */
     unsigned int rwflags_debug;
+
+    dco_context_t dco;
 };
 
 static inline bool
