@@ -2,7 +2,6 @@
 #include "syshead.h"
 
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
@@ -204,7 +203,7 @@ argv_str__multiple_argv__correct_output(void **state)
     argv_printf_cat(&a, "%lu", 1L );
     output = argv_str(&a, &gc, PA_BRACKET);
     assert_string_equal(output, "[" PATH1 PATH2 "] [" PARAM1 "] [" PARAM2 "]"
-				" [-1] [4294967295] [1]");
+                        " [-1] [4294967295] [1]");
 
     argv_free(&a);
     gc_free(&gc);
@@ -234,7 +233,8 @@ argv_insert_head__non_empty_argv__head_added(void **state)
     argv_printf(&a, "%s", PATH2);
     b = argv_insert_head(&a, PATH1);
     assert_int_equal(b.argc, a.argc + 1);
-    for (i = 0; i < b.argc; i++) {
+    for (i = 0; i < b.argc; i++)
+    {
         if (i == 0)
         {
             assert_string_equal(b.argv[i], PATH1);
@@ -266,6 +266,7 @@ main(void)
         cmocka_unit_test(argv_str__empty_argv__empty_output),
         cmocka_unit_test(argv_str__multiple_argv__correct_output),
         cmocka_unit_test(argv_insert_head__non_empty_argv__head_added),
+        cmocka_unit_test(argv_insert_head__empty_argv__head_only),
     };
 
     return cmocka_run_group_tests_name("argv", tests, NULL, NULL);

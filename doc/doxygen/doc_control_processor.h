@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -175,11 +175,7 @@
  *    appropriate messages to be sent.
  *
  * @par Functions which control data channel key generation
- *  - Key method 1 key exchange functions:
- *     - \c key_method_1_write(), generates and processes key material to
- *       be sent to the remote OpenVPN peer.
- *     - \c key_method_1_read(), processes key material received from the
- *       remote OpenVPN peer.
+ *  - Key method 1 key exchange functions were removed from OpenVPN 2.5
  *  - Key method 2 key exchange functions:
  *     - \c key_method_2_write(), generates and processes key material to
  *       be sent to the remote OpenVPN peer.

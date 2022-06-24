@@ -71,12 +71,13 @@ REQUIRES:
   (1) TUN and/or TAP driver to allow user-space programs to control
       a virtual point-to-point IP or Ethernet device.  See
       TUN/TAP Driver Configuration section below for more info.
-
-OPTIONAL (but recommended):
-  (1) OpenSSL library, necessary for encryption, version 1.0.1 or higher
+  (2) OpenSSL library, necessary for encryption, version 1.0.2 or higher
       required, available from http://www.openssl.org/
-  (2) mbed TLS library, an alternative for encryption, version 2.0 or higher
+      or
+  (3) mbed TLS library, an alternative for encryption, version 2.0 or higher
       required, available from https://tls.mbed.org/
+
+OPTIONAL:
   (3) LZO real-time compression library, required for link compression,
       available from http://www.oberhumer.com/opensource/lzo/
       OpenBSD users can use ports or packages to install lzo, but remember
@@ -227,7 +228,6 @@ ENVIRONMENT for ./configure:
   ROUTE       full path to route utility
   IPROUTE     full path to ip utility
   NETSTAT     path to netstat utility
-  MAN2HTML    path to man2html utility
   GIT         path to git utility
   SYSTEMD_ASK_PASSWORD
               path to systemd-ask-password utility
@@ -235,6 +235,8 @@ ENVIRONMENT for ./configure:
               Path of systemd unit directory [default=LIBDIR/systemd/system]
   TMPFILES_DIR
               Path of tmpfiles directory [default=LIBDIR/tmpfiles.d]
+  RST2MAN     Path to rst2man utility
+  RST2HTML    Path to rst2html utility
 
 ENVIRONMENT variables adjusting parameters related to dependencies
 

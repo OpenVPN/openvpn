@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -41,8 +41,6 @@ struct socks_proxy_info {
     const char *port;
     char authfile[256];
 };
-
-void socks_adjust_frame_parameters(struct frame *frame, int proto);
 
 struct socks_proxy_info *socks_proxy_new(const char *server,
                                          const char *port,

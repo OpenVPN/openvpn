@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -68,20 +68,22 @@ const static GUID GUID_DEVINTERFACE_NET = { 0xcac88484, 0x7515, 0x4c03, { 0x82, 
 #define NI_OPTIONS     (1<<2)
 
 static void netsh_ifconfig(const struct tuntap_options *to,
-                           const char *flex_name,
+                           DWORD adapter_index,
                            const in_addr_t ip,
                            const in_addr_t netmask,
                            const unsigned int flags);
 
+static void windows_set_mtu(const int iface_index,
+                            const short family,
+                            const int mtu);
+
 static void netsh_set_dns6_servers(const struct in6_addr *addr_list,
                                    const int addr_len,
-                                   const char *flex_name);
+                                   DWORD adapter_index);
 
 static void netsh_command(const struct argv *a, int n, int msglevel);
 
 static const char *netsh_get_id(const char *dev_node, struct gc_arena *gc);
-
-static DWORD get_adapter_index_flexible(const char *name);
 
 static bool
 do_address_service(const bool add, const short family, const struct tuntap *tt)
@@ -111,11 +113,17 @@ do_address_service(const bool add, const short family, const struct tuntap *tt)
     {
         addr.address.ipv4.s_addr = htonl(tt->local);
         addr.prefix_len = netmask_to_netbits2(tt->adapter_netmask);
+        msg(D_IFCONFIG, "INET address service: %s %s/%d",
+            add ? "add" : "remove",
+            print_in_addr_t(tt->local, 0, &gc), addr.prefix_len);
     }
     else
     {
         addr.address.ipv6 = tt->local_ipv6;
-        addr.prefix_len = tt->netbits_ipv6;
+        addr.prefix_len = (tt->type == DEV_TYPE_TUN) ? 128 : tt->netbits_ipv6;
+        msg(D_IFCONFIG, "INET6 address service: %s %s/%d",
+            add ? "add" : "remove",
+            print_in6_addr(tt->local_ipv6, 0, &gc), addr.prefix_len);
     }
 
     if (!send_msg_iservice(pipe, &addr, sizeof(addr), &ack, "TUN"))
@@ -139,6 +147,61 @@ out:
 }
 
 static bool
+do_dns_domain_service(bool add, const struct tuntap *tt)
+{
+    bool ret = false;
+    ack_message_t ack;
+    struct gc_arena gc = gc_new();
+    HANDLE pipe = tt->options.msg_channel;
+
+    if (!tt->options.domain) /* no  domain to add or delete */
+    {
+        return true;
+    }
+
+    /* Use dns_cfg_msg with addr_len = 0 for setting only the DOMAIN */
+    dns_cfg_message_t dns = {
+        .header = {
+            (add ? msg_add_dns_cfg : msg_del_dns_cfg),
+            sizeof(dns_cfg_message_t),
+            0
+        },
+        .iface = { .index = tt->adapter_index, .name = "" },
+        .domains = "",      /* set below */
+        .family = AF_INET,  /* unused */
+        .addr_len = 0       /* add/delete only the domain, not DNS servers */
+    };
+
+    strncpynt(dns.iface.name, tt->actual_name, sizeof(dns.iface.name));
+    strncpynt(dns.domains, tt->options.domain, sizeof(dns.domains));
+    /* truncation of domain name is not checked as it can't happen
+     * with 512 bytes room in dns.domains.
+     */
+
+    msg(D_LOW, "%s dns domain on '%s' (if_index = %d) using service",
+        (add ? "Setting" : "Deleting"), dns.iface.name, dns.iface.index);
+    if (!send_msg_iservice(pipe, &dns, sizeof(dns), &ack, "TUN"))
+    {
+        goto out;
+    }
+
+    if (ack.error_number != NO_ERROR)
+    {
+        msg(M_WARN, "TUN: %s dns domain failed using service: %s [status=%u if_name=%s]",
+            (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc),
+            ack.error_number, dns.iface.name);
+        goto out;
+    }
+
+    msg(M_INFO, "DNS domain %s using service", (add ? "set" : "deleted"));
+    ret = true;
+
+out:
+    gc_free(&gc);
+    return ret;
+}
+
+static bool
 do_dns_service(bool add, const short family, const struct tuntap *tt)
 {
     bool ret = false;
@@ -154,6 +217,7 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
         return true;
     }
 
+    /* Use dns_cfg_msg with domain = "" for setting only the DNS servers */
     dns_cfg_message_t dns = {
         .header = {
             (add ? msg_add_dns_cfg : msg_del_dns_cfg),
@@ -208,6 +272,51 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
 
     msg(M_INFO, "%s dns servers %s using service", ip_proto_name, (add ? "set" : "deleted"));
     ret = true;
+
+out:
+    gc_free(&gc);
+    return ret;
+}
+
+static bool
+do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
+{
+    bool ret = false;
+    ack_message_t ack;
+    struct gc_arena gc = gc_new();
+    HANDLE pipe = tt->options.msg_channel;
+    const char *family_name = (family == AF_INET6) ? "IPv6" : "IPv4";
+    set_mtu_message_t mtu_msg = {
+        .header = {
+            msg_set_mtu,
+            sizeof(set_mtu_message_t),
+            0
+        },
+        .iface = {.index = tt->adapter_index},
+        .mtu = mtu,
+        .family = family
+    };
+    strncpynt(mtu_msg.iface.name, tt->actual_name, sizeof(mtu_msg.iface.name));
+    if (family == AF_INET6 && mtu < 1280)
+    {
+        msg(M_INFO, "NOTE: IPv6 interface MTU < 1280 conflicts with IETF standards and might not work");
+    }
+
+    if (!send_msg_iservice(pipe, &mtu_msg, sizeof(mtu_msg), &ack, "Set_mtu"))
+    {
+        goto out;
+    }
+
+    if (ack.error_number != NO_ERROR)
+    {
+        msg(M_NONFATAL, "TUN: setting %s mtu using service failed: %s [status=%u if_index=%d]",
+            family_name, strerror_win32(ack.error_number, &gc), ack.error_number, mtu_msg.iface.index);
+    }
+    else
+    {
+        msg(M_INFO, "%s MTU set to %d on interface %d using service", family_name, mtu, mtu_msg.iface.index);
+        ret = true;
+    }
 
 out:
     gc_free(&gc);
@@ -371,7 +480,7 @@ check_addr_clash(const char *name,
         if (type == DEV_TYPE_TUN)
         {
             const in_addr_t test_netmask = 0xFFFFFF00;
-            const in_addr_t public_net = public & test_netmask;
+            const in_addr_t public_net = public &test_netmask;
             const in_addr_t local_net = local & test_netmask;
             const in_addr_t remote_net = remote_netmask & test_netmask;
 
@@ -399,7 +508,7 @@ check_addr_clash(const char *name,
         }
         else if (type == DEV_TYPE_TAP)
         {
-            const in_addr_t public_network = public & remote_netmask;
+            const in_addr_t public_network = public &remote_netmask;
             const in_addr_t virtual_network = local & remote_netmask;
             if (public_network == virtual_network)
             {
@@ -844,8 +953,7 @@ add_route_connected_v6_net(struct tuntap *tt,
 }
 
 void
-delete_route_connected_v6_net(struct tuntap *tt,
-                              const struct env_set *es)
+delete_route_connected_v6_net(const struct tuntap *tt)
 {
     struct route_ipv6 r6;
 
@@ -856,7 +964,7 @@ delete_route_connected_v6_net(struct tuntap *tt,
     r6.metric  = 0;                     /* connected route */
     r6.flags   = RT_DEFINED | RT_ADDED | RT_METRIC_DEFINED;
     route_ipv6_clear_host_bits(&r6);
-    delete_route_ipv6(&r6, tt, 0, es, NULL);
+    delete_route_ipv6(&r6, tt, 0, NULL, NULL);
 }
 #endif /* if defined(_WIN32) || defined(TARGET_DARWIN) || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD) */
 
@@ -989,6 +1097,29 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     openvpn_execve_check(&argv, es, S_FATAL,
                          "generic BSD ifconfig inet6 failed");
 
+#if defined(TARGET_FREEBSD) && __FreeBSD_version >= 1200000
+    /* On FreeBSD 12 and up, there is ipv6_activate_all_interfaces="YES"
+     * in rc.conf, which is not set by default.  If it is *not* set,
+     * "all new interfaces that are not already up" are configured by
+     * devd + /etc/pccard_ether as "inet6 ifdisabled".
+     *
+     * The "is this interface already up?" test is a non-zero time window
+     * which we manage to hit with our ifconfig often enough to cause
+     * frequent fails in the openvpn test environment.
+     *
+     * Thus: assume that the system might interfere, wait for things to
+     * settle (it's a very short time window), and remove -ifdisable again.
+     *
+     * See: https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=248172
+     */
+    sleep(1);
+    argv_printf(&argv, "%s %s inet6 -ifdisabled", IFCONFIG_PATH, ifname);
+    argv_msg(M_INFO, &argv);
+
+    openvpn_execve_check(&argv, es, S_FATAL,
+                         "FreeBSD BSD 'ifconfig inet6 -ifdisabled' failed");
+#endif
+
 #if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
     || defined(TARGET_DARWIN)
     /* and, hooray, we explicitly need to add a route... */
@@ -1016,25 +1147,41 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     else if (tt->options.msg_channel)
     {
         do_address_service(true, AF_INET6, tt);
-        add_route_connected_v6_net(tt, es);
+        if (tt->type == DEV_TYPE_TUN)
+        {
+            add_route_connected_v6_net(tt, es);
+        }
         do_dns_service(true, AF_INET6, tt);
+        do_set_mtu_service(tt, AF_INET6, tun_mtu);
+        /* If IPv4 is not enabled, set DNS domain here */
+        if (!tt->did_ifconfig_setup)
+        {
+            do_dns_domain_service(true, tt);
+        }
     }
     else
     {
-        /* example: netsh interface ipv6 set address interface=42
-         *                  2001:608:8003::d store=active
+        /* example: netsh interface ipv6 set address 42
+         *                  2001:608:8003::d/bits store=active
          */
-        char iface[64];
 
-        openvpn_snprintf(iface, sizeof(iface), "interface=%lu",
-                         tt->adapter_index);
-        argv_printf(&argv, "%s%s interface ipv6 set address %s %s store=active",
-                    get_win_sys_path(), NETSH_PATH_SUFFIX, iface,
-                    ifconfig_ipv6_local);
+        /* in TUN mode, we only simulate a subnet, so the interface
+         * is configured with /128 + a route to fe80::8.  In TAP mode,
+         * the correct netbits must be set, and no on-link route
+         */
+        int netbits = (tt->type == DEV_TYPE_TUN) ? 128 : tt->netbits_ipv6;
+
+        argv_printf(&argv, "%s%s interface ipv6 set address %lu %s/%d store=active",
+                    get_win_sys_path(), NETSH_PATH_SUFFIX, tt->adapter_index,
+                    ifconfig_ipv6_local, netbits);
         netsh_command(&argv, 4, M_FATAL);
-        add_route_connected_v6_net(tt, es);
+        if (tt->type == DEV_TYPE_TUN)
+        {
+            add_route_connected_v6_net(tt, es);
+        }
         /* set ipv6 dns servers if any are specified */
-        netsh_set_dns6_servers(tt->options.dns6, tt->options.dns6_len, ifname);
+        netsh_set_dns6_servers(tt->options.dns6, tt->options.dns6_len, tt->adapter_index);
+        windows_set_mtu(tt->adapter_index, AF_INET6, tun_mtu);
     }
 #else /* platforms we have no IPv6 code for */
     msg(M_FATAL, "Sorry, but I don't know how to do IPv6 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
@@ -1059,10 +1206,12 @@ static void
 do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
                  const struct env_set *es, openvpn_net_ctx_t *ctx)
 {
+#if !defined(_WIN32) && !defined(TARGET_ANDROID)
     /*
      * We only handle TUN/TAP devices here, not --dev null devices.
      */
     bool tun = is_tun_p2p(tt);
+#endif
 
 #if !defined(TARGET_LINUX)
     const char *ifconfig_local = NULL;
@@ -1093,7 +1242,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         if (net_addr_ptp_v4_add(ctx, ifname, &tt->local,
                                 &tt->remote_netmask) < 0)
         {
-            msg(M_FATAL, "Linux can't add IP to TUN interface %s", ifname);
+            msg(M_FATAL, "Linux can't add IP to interface %s", ifname);
         }
     }
     else
@@ -1101,7 +1250,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         if (net_addr_v4_add(ctx, ifname, &tt->local,
                             netmask_to_netbits2(tt->remote_netmask)) < 0)
         {
-            msg(M_FATAL, "Linux can't add IP to TAP interface %s", ifname);
+            msg(M_FATAL, "Linux can't add IP to interface %s", ifname);
         }
     }
 #elif defined(TARGET_ANDROID)
@@ -1150,7 +1299,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         argv_printf(&argv, "%s %s netmask 255.255.255.255", IFCONFIG_PATH,
                     ifname);
     }
-    else if (tt->topology == TOP_SUBNET)
+    else if (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
     {
         argv_printf(&argv, "%s %s %s %s netmask %s mtu %d up", IFCONFIG_PATH,
                     ifname, ifconfig_local, ifconfig_local,
@@ -1169,7 +1318,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         solaris_error_close(tt, es, ifname, false);
     }
 
-    if (!tun && tt->topology == TOP_SUBNET)
+    if (!tun && tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
     {
         /* Add a network route for the local tun interface */
         struct route_ipv4 r;
@@ -1200,7 +1349,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
                     IFCONFIG_PATH, ifname, ifconfig_local,
                     ifconfig_remote_netmask, tun_mtu);
     }
-    else if (tt->topology == TOP_SUBNET)
+    else if (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
     {
         remote_end = create_arbitrary_remote( tt );
         argv_printf(&argv, "%s %s %s %s mtu %d netmask %s up -link0",
@@ -1218,7 +1367,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     openvpn_execve_check(&argv, es, S_FATAL, "OpenBSD ifconfig failed");
 
     /* Add a network route for the local tun interface */
-    if (!tun && tt->topology == TOP_SUBNET)
+    if (!tun && tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
     {
         struct route_ipv4 r;
         CLEAR(r);
@@ -1238,7 +1387,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
                     IFCONFIG_PATH, ifname, ifconfig_local,
                     ifconfig_remote_netmask, tun_mtu);
     }
-    else if (tt->topology == TOP_SUBNET)
+    else if (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
     {
         remote_end = create_arbitrary_remote(tt);
         argv_printf(&argv, "%s %s %s %s mtu %d netmask %s up", IFCONFIG_PATH,
@@ -1260,7 +1409,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     openvpn_execve_check(&argv, es, S_FATAL, "NetBSD ifconfig failed");
 
     /* Add a network route for the local tun interface */
-    if (!tun && tt->topology == TOP_SUBNET)
+    if (!tun && tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
     {
         struct route_ipv4 r;
         CLEAR(r);
@@ -1292,7 +1441,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     }
     else
     {
-        if (tt->topology == TOP_SUBNET)
+        if (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
         {
             argv_printf(&argv, "%s %s %s %s netmask %s mtu %d up",
                         IFCONFIG_PATH, ifname, ifconfig_local, ifconfig_local,
@@ -1310,7 +1459,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     openvpn_execve_check(&argv, es, S_FATAL, "Mac OS X ifconfig failed");
 
     /* Add a network route for the local tun interface */
-    if (!tun && tt->topology == TOP_SUBNET)
+    if (!tun && tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
     {
         struct route_ipv4 r;
         CLEAR(r);
@@ -1332,7 +1481,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
                     IFCONFIG_PATH, ifname, ifconfig_local,
                     ifconfig_remote_netmask, tun_mtu);
     }
-    else if (tt->topology == TOP_SUBNET)
+    else if (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
     {
         remote_end = create_arbitrary_remote( tt );
         argv_printf(&argv, "%s %s %s %s mtu %d netmask %s up", IFCONFIG_PATH,
@@ -1349,7 +1498,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     openvpn_execve_check(&argv, es, S_FATAL, "FreeBSD ifconfig failed");
 
     /* Add a network route for the local tun interface */
-    if (!tun && tt->topology == TOP_SUBNET)
+    if (!tun && tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
     {
         struct route_ipv4 r;
         CLEAR(r);
@@ -1381,34 +1530,36 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         env_set_destroy(aix_es);
     }
 #elif defined (_WIN32)
+    if (tt->options.ip_win32_type == IPW32_SET_MANUAL)
     {
-        ASSERT(ifname != NULL);
-
-        if (tt->options.msg_channel && tt->windows_driver == WINDOWS_DRIVER_WINTUN)
-        {
-            do_address_service(true, AF_INET, tt);
-            do_dns_service(true, AF_INET, tt);
-        }
-        else
-        {
-            switch (tt->options.ip_win32_type)
-            {
-                case IPW32_SET_MANUAL:
-                    msg(M_INFO,
-                        "******** NOTE:  Please manually set the IP/netmask of '%s' to %s/%s (if it is not already set)",
-                        ifname, ifconfig_local,
-                        print_in_addr_t(tt->adapter_netmask, 0, &gc));
-                    break;
-
-                case IPW32_SET_NETSH:
-                    netsh_ifconfig(&tt->options, ifname, tt->local,
-                                   tt->adapter_netmask, NI_IP_NETMASK|NI_OPTIONS);
-
-                    break;
-            }
-        }
+        msg(M_INFO,
+            "******** NOTE:  Please manually set the IP/netmask of '%s' to %s/%s (if it is not already set)",
+            ifname, ifconfig_local,
+            ifconfig_remote_netmask);
     }
-
+    else if (tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ || tt->options.ip_win32_type == IPW32_SET_ADAPTIVE)
+    {
+        /* Let the DHCP configure the interface. */
+    }
+    else if (tt->options.msg_channel)
+    {
+        do_address_service(true, AF_INET, tt);
+        do_dns_service(true, AF_INET, tt);
+        do_dns_domain_service(true, tt);
+    }
+    else if (tt->options.ip_win32_type == IPW32_SET_NETSH)
+    {
+        netsh_ifconfig(&tt->options, tt->adapter_index, tt->local,
+                       tt->adapter_netmask, NI_IP_NETMASK|NI_OPTIONS);
+    }
+    if (tt->options.msg_channel)
+    {
+        do_set_mtu_service(tt, AF_INET, tun_mtu);
+    }
+    else
+    {
+        windows_set_mtu(tt->adapter_index, AF_INET, tun_mtu);
+    }
 #else  /* if defined(TARGET_LINUX) */
     msg(M_FATAL, "Sorry, but I don't know how to do 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
 #endif /* if defined(TARGET_LINUX) */
@@ -1683,10 +1834,8 @@ close_tun_generic(struct tuntap *tt)
     {
         close(tt->fd);
     }
-    if (tt->actual_name)
-    {
-        free(tt->actual_name);
-    }
+
+    free(tt->actual_name);
     clear_tuntap(tt);
 }
 #endif /* !_WIN32 */
@@ -1721,14 +1870,14 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         management_android_control(management, "DNSDOMAIN", tt->options.domain);
     }
 
-    int android_method = managment_android_persisttun_action(management);
-
-    /* Android 4.4 workaround */
-    if (oldtunfd >=0 && android_method == ANDROID_OPEN_AFTER_CLOSE)
+    if (tt->options.http_proxy)
     {
-        close(oldtunfd);
-        management_sleep(2);
+        struct buffer buf = alloc_buf_gc(strlen(tt->options.http_proxy) + 20, &gc);
+        buf_printf(&buf, "%s %d", tt->options.http_proxy, tt->options.http_proxy_port);
+        management_android_control(management, "HTTPPROXY", BSTR(&buf));
     }
+
+    int android_method = managment_android_persisttun_action(management);
 
     if (oldtunfd >=0  && android_method == ANDROID_KEEP_OLD_TUN)
     {
@@ -1744,7 +1893,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         management->connection.lastfdreceived = -1;
     }
 
-    if (oldtunfd>=0 && android_method == ANDROID_OPEN_BEFORE_CLOSE)
+    if (oldtunfd >= 0 && android_method == ANDROID_OPEN_BEFORE_CLOSE)
     {
         close(oldtunfd);
     }
@@ -1916,6 +2065,11 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
 #ifdef ENABLE_FEATURE_TUN_PERSIST
 
+/* TUNSETGROUP appeared in 2.6.23 */
+#ifndef TUNSETGROUP
+#define TUNSETGROUP   _IOW('T', 206, int)
+#endif
+
 void
 tuncfg(const char *dev, const char *dev_type, const char *dev_node,
        int persist_mode, const char *username, const char *groupname,
@@ -1955,7 +2109,7 @@ tuncfg(const char *dev, const char *dev_type, const char *dev_node,
         }
         else if (ioctl(tt->fd, TUNSETGROUP, platform_state_group.gr->gr_gid) < 0)
         {
-            msg(M_ERR, "Cannot ioctl TUNSETOWNER(%s) %s", groupname, dev);
+            msg(M_ERR, "Cannot ioctl TUNSETGROUP(%s) %s", groupname, dev);
         }
     }
     close_tun(tt, ctx);
@@ -1975,7 +2129,7 @@ undo_ifconfig_ipv4(struct tuntap *tt, openvpn_net_ctx_t *ctx)
         if (net_addr_ptp_v4_del(ctx, tt->actual_name, &tt->local,
                                 &tt->remote_netmask) < 0)
         {
-            msg(M_WARN, "Linux can't del IP from TUN iface %s",
+            msg(M_WARN, "Linux can't del IP from iface %s",
                 tt->actual_name);
         }
     }
@@ -1983,7 +2137,7 @@ undo_ifconfig_ipv4(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     {
         if (net_addr_v4_del(ctx, tt->actual_name, &tt->local, netbits) < 0)
         {
-            msg(M_WARN, "Linux can't del IP from TAP iface %s",
+            msg(M_WARN, "Linux can't del IP from iface %s",
                 tt->actual_name);
         }
     }
@@ -2365,10 +2519,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
     solaris_close_tun(tt);
 
-    if (tt->actual_name)
-    {
-        free(tt->actual_name);
-    }
+    free(tt->actual_name);
 
     clear_tuntap(tt);
     free(tt);
@@ -2896,14 +3047,16 @@ utun_open_helper(struct ctl_info ctlInfo, int utunnum)
 
     if (fd < 0)
     {
-        msg(M_INFO | M_ERRNO, "Opening utun (socket(SYSPROTO_CONTROL))");
+        msg(M_INFO | M_ERRNO, "Opening utun%d failed (socket(SYSPROTO_CONTROL))",
+            utunnum);
         return -2;
     }
 
     if (ioctl(fd, CTLIOCGINFO, &ctlInfo) == -1)
     {
         close(fd);
-        msg(M_INFO | M_ERRNO, "Opening utun (ioctl(CTLIOCGINFO))");
+        msg(M_INFO | M_ERRNO, "Opening utun%d failed (ioctl(CTLIOCGINFO))",
+            utunnum);
         return -2;
     }
 
@@ -2921,7 +3074,8 @@ utun_open_helper(struct ctl_info ctlInfo, int utunnum)
 
     if (connect(fd, (struct sockaddr *)&sc, sizeof(sc)) < 0)
     {
-        msg(M_INFO | M_ERRNO, "Opening utun (connect(AF_SYS_CONTROL))");
+        msg(M_INFO | M_ERRNO, "Opening utun%d failed (connect(AF_SYS_CONTROL))",
+            utunnum);
         close(fd);
         return -1;
     }
@@ -2964,8 +3118,15 @@ open_darwin_utun(const char *dev, const char *dev_type, const char *dev_node, st
     /* try to open first available utun device if no specific utun is requested */
     if (utunnum == -1)
     {
-        for (utunnum = 0; utunnum<255; utunnum++)
+        for (utunnum = 0; utunnum < 255; utunnum++)
         {
+            char ifname[20];
+            /* if the interface exists silently skip it */
+            ASSERT(snprintf(ifname, sizeof(ifname), "utun%d", utunnum) > 0);
+            if (if_nametoindex(ifname))
+            {
+                continue;
+            }
             fd = utun_open_helper(ctlInfo, utunnum);
             /* Break if the fd is valid,
              * or if early initialization failed (-2) */
@@ -3393,87 +3554,29 @@ tun_write_queue(struct tuntap *tt, struct buffer *buf)
 }
 
 int
-tun_finalize(
-    HANDLE h,
-    struct overlapped_io *io,
-    struct buffer *buf)
+tun_write_win32(struct tuntap *tt, struct buffer *buf)
 {
-    int ret = -1;
-    BOOL status;
-
-    switch (io->iostate)
+    int err = 0;
+    int status = 0;
+    if (overlapped_io_active(&tt->writes))
     {
-        case IOSTATE_QUEUED:
-            status = GetOverlappedResult(
-                h,
-                &io->overlapped,
-                &io->size,
-                FALSE
-                );
-            if (status)
-            {
-                /* successful return for a queued operation */
-                if (buf)
-                {
-                    *buf = io->buf;
-                }
-                ret = io->size;
-                io->iostate = IOSTATE_INITIAL;
-                ASSERT(ResetEvent(io->overlapped.hEvent));
-                dmsg(D_WIN32_IO, "WIN32 I/O: TAP Completion success [%d]", ret);
-            }
-            else
-            {
-                /* error during a queued operation */
-                ret = -1;
-                if (GetLastError() != ERROR_IO_INCOMPLETE)
-                {
-                    /* if no error (i.e. just not finished yet),
-                     * then DON'T execute this code */
-                    io->iostate = IOSTATE_INITIAL;
-                    ASSERT(ResetEvent(io->overlapped.hEvent));
-                    msg(D_WIN32_IO | M_ERRNO, "WIN32 I/O: TAP Completion error");
-                }
-            }
-            break;
-
-        case IOSTATE_IMMEDIATE_RETURN:
-            io->iostate = IOSTATE_INITIAL;
-            ASSERT(ResetEvent(io->overlapped.hEvent));
-            if (io->status)
-            {
-                /* error return for a non-queued operation */
-                SetLastError(io->status);
-                ret = -1;
-                msg(D_WIN32_IO | M_ERRNO, "WIN32 I/O: TAP Completion non-queued error");
-            }
-            else
-            {
-                /* successful return for a non-queued operation */
-                if (buf)
-                {
-                    *buf = io->buf;
-                }
-                ret = io->size;
-                dmsg(D_WIN32_IO, "WIN32 I/O: TAP Completion non-queued success [%d]", ret);
-            }
-            break;
-
-        case IOSTATE_INITIAL: /* were we called without proper queueing? */
-            SetLastError(ERROR_INVALID_FUNCTION);
-            ret = -1;
-            dmsg(D_WIN32_IO, "WIN32 I/O: TAP Completion BAD STATE");
-            break;
-
-        default:
-            ASSERT(0);
+        sockethandle_t sh = { .is_handle = true, .h = tt->hand };
+        status = sockethandle_finalize(sh, &tt->writes, NULL, NULL);
+        if (status < 0)
+        {
+            err = GetLastError();
+        }
     }
-
-    if (buf)
+    tun_write_queue(tt, buf);
+    if (status < 0)
     {
-        buf->len = ret;
+        SetLastError(err);
+        return status;
     }
-    return ret;
+    else
+    {
+        return BLEN(buf);
+    }
 }
 
 static const struct device_instance_id_interface *
@@ -3497,7 +3600,7 @@ get_device_instance_id_interface(struct gc_arena *gc)
         BOOL res;
         HKEY dev_key;
         char net_cfg_instance_id_string[] = "NetCfgInstanceId";
-        char net_cfg_instance_id[256];
+        BYTE net_cfg_instance_id[256];
         char device_instance_id[256];
         DWORD len;
         DWORD data_type;
@@ -3559,7 +3662,7 @@ get_device_instance_id_interface(struct gc_arena *gc)
 
         dev_interface_list = alloc_buf_gc(dev_interface_list_size, gc);
         cr = CM_Get_Device_Interface_List((LPGUID)&GUID_DEVINTERFACE_NET, device_instance_id,
-                                          BPTR(&dev_interface_list),
+                                          BSTR(&dev_interface_list),
                                           dev_interface_list_size,
                                           CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
         if (cr != CR_SUCCESS)
@@ -3569,7 +3672,7 @@ get_device_instance_id_interface(struct gc_arena *gc)
 
         struct device_instance_id_interface *dev_if;
         ALLOC_OBJ_CLEAR_GC(dev_if, struct device_instance_id_interface, gc);
-        dev_if->net_cfg_instance_id = string_alloc(net_cfg_instance_id, gc);
+        dev_if->net_cfg_instance_id = (unsigned char *)string_alloc((char *)net_cfg_instance_id, gc);
         dev_if->device_interface_list = string_alloc(BSTR(&dev_interface_list), gc);
 
         /* link into return list */
@@ -3622,7 +3725,7 @@ get_tap_reg(struct gc_arena *gc)
         char component_id_string[] = "ComponentId";
         char component_id[256];
         char net_cfg_instance_id_string[] = "NetCfgInstanceId";
-        char net_cfg_instance_id[256];
+        BYTE net_cfg_instance_id[256];
         DWORD data_type;
 
         len = sizeof(enum_name);
@@ -3667,7 +3770,7 @@ get_tap_reg(struct gc_arena *gc)
                 component_id_string,
                 NULL,
                 &data_type,
-                component_id,
+                (LPBYTE)component_id,
                 &len);
 
             if (status != ERROR_SUCCESS || data_type != REG_SZ)
@@ -3704,7 +3807,7 @@ get_tap_reg(struct gc_arena *gc)
                     {
                         struct tap_reg *reg;
                         ALLOC_OBJ_CLEAR_GC(reg, struct tap_reg, gc);
-                        reg->guid = string_alloc(net_cfg_instance_id, gc);
+                        reg->guid = string_alloc((char *)net_cfg_instance_id, gc);
                         reg->windows_driver = windows_driver;
 
                         /* link into return list */
@@ -4063,7 +4166,7 @@ at_least_one_tap_win(const struct tap_reg *tap_reg)
  */
 static const char *
 get_unspecified_device_guid(const int device_number,
-                            char *actual_name,
+                            uint8_t *actual_name,
                             int actual_name_size,
                             const struct tap_reg *tap_reg_src,
                             const struct panel_reg *panel_reg_src,
@@ -4130,7 +4233,7 @@ get_unspecified_device_guid(const int device_number,
  */
 static const char *
 get_device_guid(const char *name,
-                char *actual_name,
+                uint8_t *actual_name,
                 int actual_name_size,
                 enum windows_driver_type *windows_driver,
                 const struct tap_reg *tap_reg,
@@ -4665,7 +4768,7 @@ get_adapter_index_method_1(const char *guid)
     DWORD index;
     ULONG aindex;
     wchar_t wbuf[256];
-    openvpn_swprintf(wbuf, SIZE(wbuf), L"\\DEVICE\\TCPIP_%S", guid);
+    openvpn_swprintf(wbuf, SIZE(wbuf), L"\\DEVICE\\TCPIP_%hs", guid);
     if (GetAdapterIndex(wbuf, &aindex) != NO_ERROR)
     {
         index = TUN_ADAPTER_INDEX_INVALID;
@@ -4712,38 +4815,6 @@ get_adapter_index(const char *guid)
     {
         msg(M_INFO, "NOTE: could not get adapter index for %s", guid);
     }
-    return index;
-}
-
-static DWORD
-get_adapter_index_flexible(const char *name)  /* actual name or GUID */
-{
-    struct gc_arena gc = gc_new();
-    DWORD index;
-    index = get_adapter_index_method_1(name);
-    if (index == TUN_ADAPTER_INDEX_INVALID)
-    {
-        index = get_adapter_index_method_2(name);
-    }
-    if (index == TUN_ADAPTER_INDEX_INVALID)
-    {
-        const struct tap_reg *tap_reg = get_tap_reg(&gc);
-        const struct panel_reg *panel_reg = get_panel_reg(&gc);
-        const struct tap_reg *tr = get_adapter_by_name(name, tap_reg, panel_reg);
-        if (tr)
-        {
-            index = get_adapter_index_method_1(tr->guid);
-            if (index == TUN_ADAPTER_INDEX_INVALID)
-            {
-                index = get_adapter_index_method_2(tr->guid);
-            }
-        }
-    }
-    if (index == TUN_ADAPTER_INDEX_INVALID)
-    {
-        msg(M_INFO, "NOTE: could not get adapter index for name/GUID '%s'", name);
-    }
-    gc_free(&gc);
     return index;
 }
 
@@ -4861,7 +4932,7 @@ tap_allow_nonadmin_access(const char *dev_node)
     const struct panel_reg *panel_reg = get_panel_reg(&gc);
     const char *device_guid = NULL;
     HANDLE hand;
-    char actual_buffer[256];
+    uint8_t actual_buffer[256];
     char device_path[256];
 
     at_least_one_tap_win(tap_reg);
@@ -5045,7 +5116,7 @@ netsh_command(const struct argv *a, int n, int msglevel)
     for (i = 0; i < n; ++i)
     {
         bool status;
-        management_sleep(1);
+        management_sleep(0);
         netcmd_semaphore_lock();
         argv_msg_prefix(M_INFO, a, "NETSH");
         status = openvpn_execve_check(a, NULL, 0, "ERROR: netsh command failed");
@@ -5073,7 +5144,6 @@ ipconfig_register_dns(const struct env_set *es)
                 WIN_IPCONFIG_PATH_SUFFIX);
     argv_msg(D_TUNTAP_INFO, &argv);
     openvpn_execve_check(&argv, es, 0, err);
-    argv_free(&argv);
 
     argv_printf(&argv, "%s%s /registerdns",
                 get_win_sys_path(),
@@ -5176,23 +5246,29 @@ ip_addr_member_of(const in_addr_t addr, const IP_ADDR_STRING *ias)
  * Set the ipv6 dns servers on the specified interface.
  * The list of dns servers currently set on the interface
  * are cleared first.
- * No action is taken if number of addresses (addr_len) < 1.
  */
 static void
 netsh_set_dns6_servers(const struct in6_addr *addr_list,
                        const int addr_len,
-                       const char *flex_name)
+                       DWORD adapter_index)
 {
     struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
 
+    /* delete existing DNS settings from TAP interface */
+    argv_printf(&argv, "%s%s interface ipv6 delete dns %lu all",
+                get_win_sys_path(),
+                NETSH_PATH_SUFFIX,
+                adapter_index);
+    netsh_command(&argv, 2, M_FATAL);
+
     for (int i = 0; i < addr_len; ++i)
     {
         const char *fmt = (i == 0) ?
-                          "%s%s interface ipv6 set dns %s static %s"
-                          : "%s%s interface ipv6 add dns %s %s";
+                          "%s%s interface ipv6 set dns %lu static %s"
+                          : "%s%s interface ipv6 add dns %lu %s";
         argv_printf(&argv, fmt, get_win_sys_path(),
-                    NETSH_PATH_SUFFIX, flex_name,
+                    NETSH_PATH_SUFFIX, adapter_index,
                     print_in6_addr(addr_list[i], 0, &gc));
 
         /* disable slow address validation on Windows 7 and higher */
@@ -5214,7 +5290,7 @@ netsh_ifconfig_options(const char *type,
                        const in_addr_t *addr_list,
                        const int addr_len,
                        const IP_ADDR_STRING *current,
-                       const char *flex_name,
+                       DWORD adapter_index,
                        const bool test_first)
 {
     struct gc_arena gc = gc_new();
@@ -5238,11 +5314,11 @@ netsh_ifconfig_options(const char *type,
     /* delete existing DNS/WINS settings from TAP interface */
     if (delete_first)
     {
-        argv_printf(&argv, "%s%s interface ip delete %s %s all",
+        argv_printf(&argv, "%s%s interface ip delete %s %lu all",
                     get_win_sys_path(),
                     NETSH_PATH_SUFFIX,
                     type,
-                    flex_name);
+                    adapter_index);
         netsh_command(&argv, 2, M_FATAL);
     }
 
@@ -5255,14 +5331,14 @@ netsh_ifconfig_options(const char *type,
             if (delete_first || !test_first || !ip_addr_member_of(addr_list[i], current))
             {
                 const char *fmt = count ?
-                                  "%s%s interface ip add %s %s %s"
-                                  : "%s%s interface ip set %s %s static %s";
+                                  "%s%s interface ip add %s %lu %s"
+                                  : "%s%s interface ip set %s %lu static %s";
 
                 argv_printf(&argv, fmt,
                             get_win_sys_path(),
                             NETSH_PATH_SUFFIX,
                             type,
-                            flex_name,
+                            adapter_index,
                             print_in_addr_t(addr_list[i], 0, &gc));
 
                 /* disable slow address validation on Windows 7 and higher */
@@ -5278,8 +5354,8 @@ netsh_ifconfig_options(const char *type,
             }
             else
             {
-                msg(M_INFO, "NETSH: \"%s\" %s %s [already set]",
-                    flex_name,
+                msg(M_INFO, "NETSH: %lu %s %s [already set]",
+                    adapter_index,
                     type,
                     print_in_addr_t(addr_list[i], 0, &gc));
             }
@@ -5310,7 +5386,7 @@ init_ip_addr_string2(IP_ADDR_STRING *dest, const IP_ADDR_STRING *src1, const IP_
 
 static void
 netsh_ifconfig(const struct tuntap_options *to,
-               const char *flex_name,
+               DWORD adapter_index,
                const in_addr_t ip,
                const in_addr_t netmask,
                const unsigned int flags)
@@ -5323,27 +5399,26 @@ netsh_ifconfig(const struct tuntap_options *to,
     if (flags & NI_TEST_FIRST)
     {
         const IP_ADAPTER_INFO *list = get_adapter_info_list(&gc);
-        const int index = get_adapter_index_flexible(flex_name);
-        ai = get_adapter(list, index);
-        pai = get_per_adapter_info(index, &gc);
+        ai = get_adapter(list, adapter_index);
+        pai = get_per_adapter_info(adapter_index, &gc);
     }
 
     if (flags & NI_IP_NETMASK)
     {
         if (test_adapter_ip_netmask(ai, ip, netmask))
         {
-            msg(M_INFO, "NETSH: \"%s\" %s/%s [already set]",
-                flex_name,
+            msg(M_INFO, "NETSH: %lu %s/%s [already set]",
+                adapter_index,
                 print_in_addr_t(ip, 0, &gc),
                 print_in_addr_t(netmask, 0, &gc));
         }
         else
         {
-            /* example: netsh interface ip set address my-tap static 10.3.0.1 255.255.255.0 */
-            argv_printf(&argv, "%s%s interface ip set address %s static %s %s",
+            /* example: netsh interface ip set address 42 static 10.3.0.1 255.255.255.0 */
+            argv_printf(&argv, "%s%s interface ip set address %lu static %s %s",
                         get_win_sys_path(),
                         NETSH_PATH_SUFFIX,
-                        flex_name,
+                        adapter_index,
                         print_in_addr_t(ip, 0, &gc),
                         print_in_addr_t(netmask, 0, &gc));
 
@@ -5362,7 +5437,7 @@ netsh_ifconfig(const struct tuntap_options *to,
                                to->dns,
                                to->dns_len,
                                pai ? &pai->DnsServerList : NULL,
-                               flex_name,
+                               adapter_index,
                                BOOL_CAST(flags & NI_TEST_FIRST));
         if (ai && ai->HaveWins)
         {
@@ -5373,7 +5448,7 @@ netsh_ifconfig(const struct tuntap_options *to,
                                to->wins,
                                to->wins_len,
                                ai ? wins : NULL,
-                               flex_name,
+                               adapter_index,
                                BOOL_CAST(flags & NI_TEST_FIRST));
     }
 
@@ -5382,16 +5457,16 @@ netsh_ifconfig(const struct tuntap_options *to,
 }
 
 static void
-netsh_enable_dhcp(const char *actual_name)
+netsh_enable_dhcp(DWORD adapter_index)
 {
     struct argv argv = argv_new();
 
-    /* example: netsh interface ip set address my-tap dhcp */
+    /* example: netsh interface ip set address 42 dhcp */
     argv_printf(&argv,
-                "%s%s interface ip set address %s dhcp",
+                "%s%s interface ip set address %lu dhcp",
                 get_win_sys_path(),
                 NETSH_PATH_SUFFIX,
-                actual_name);
+                adapter_index);
 
     netsh_command(&argv, 4, M_FATAL);
 
@@ -5437,6 +5512,45 @@ out:
     return ret;
 }
 
+static void
+windows_set_mtu(const int iface_index, const short family,
+                const int mtu)
+{
+    DWORD err = 0;
+    struct gc_arena gc = gc_new();
+    MIB_IPINTERFACE_ROW ipiface;
+    InitializeIpInterfaceEntry(&ipiface);
+    const char *family_name = (family == AF_INET6) ? "IPv6" : "IPv4";
+    ipiface.Family = family;
+    ipiface.InterfaceIndex = iface_index;
+    if (family == AF_INET6 && mtu < 1280)
+    {
+        msg(M_INFO, "NOTE: IPv6 interface MTU < 1280 conflicts with IETF standards and might not work");
+    }
+
+    err = GetIpInterfaceEntry(&ipiface);
+    if (err == NO_ERROR)
+    {
+        if (family == AF_INET)
+        {
+            ipiface.SitePrefixLength = 0;
+        }
+        ipiface.NlMtu = mtu;
+        err = SetIpInterfaceEntry(&ipiface);
+    }
+
+    if (err != NO_ERROR)
+    {
+        msg(M_WARN, "TUN: Setting %s mtu failed: %s [status=%lu if_index=%d]",
+            family_name, strerror_win32(err, &gc), err, iface_index);
+    }
+    else
+    {
+        msg(M_INFO, "%s MTU set to %d on interface %d using SetIpInterfaceEntry()", family_name, mtu, iface_index);
+    }
+}
+
+
 /*
  * Return a TAP name for netsh commands.
  */
@@ -5468,9 +5582,9 @@ netsh_get_id(const char *dev_node, struct gc_arena *gc)
     {
         return "NULL";     /* not found */
     }
-    else if (strcmp(BPTR(&actual), "NULL"))
+    else if (strcmp(BSTR(&actual), "NULL"))
     {
-        return BPTR(&actual); /* control panel name */
+        return BSTR(&actual); /* control panel name */
     }
     else
     {
@@ -5498,7 +5612,7 @@ tun_standby(struct tuntap *tt)
         {
             msg(M_INFO, "NOTE: now trying netsh (this may take some time)");
             netsh_ifconfig(&tt->options,
-                           tt->actual_name,
+                           tt->adapter_index,
                            tt->local,
                            tt->adapter_netmask,
                            NI_TEST_FIRST|NI_IP_NETMASK|NI_OPTIONS);
@@ -5580,6 +5694,75 @@ write_dhcp_str(struct buffer *buf, const int type, const char *str, bool *error)
     buf_write(buf, str, len);
 }
 
+/*
+ * RFC3397 states that multiple searchdomains are encoded as follows:
+ *  - at start the length of the entire option is given
+ *  - each subdomain is preceded by its length
+ *  - each searchdomain is separated by a NUL character
+ * e.g. if you want "openvpn.net" and "duckduckgo.com" then you end up with
+ *  0x1D  0x7 openvpn 0x3 net 0x00 0x0A duckduckgo 0x3 com 0x00
+ */
+static void
+write_dhcp_search_str(struct buffer *buf, const int type, const char *const *str_array,
+                      int array_len, bool *error)
+{
+    char tmp_buf[256];
+    int i;
+    int len = 0;
+    int label_length_pos;
+
+    for (i = 0; i < array_len; i++)
+    {
+        const char  *ptr = str_array[i];
+
+        if (strlen(ptr) + len + 1 > sizeof(tmp_buf))
+        {
+            *error = true;
+            msg(M_WARN, "write_dhcp_search_str: temp buffer overflow building DHCP options");
+            return;
+        }
+        /* Loop over all subdomains separated by a dot and replace the dot
+         * with the length of the subdomain */
+
+        /* label_length_pos points to the byte to be replaced by the length
+         * of the following domain label */
+        label_length_pos = len++;
+
+        while (true)
+        {
+            if (*ptr == '.' || *ptr == '\0')
+            {
+                tmp_buf[label_length_pos] = (len-label_length_pos)-1;
+                label_length_pos = len;
+                if (*ptr == '\0')
+                {
+                    break;
+                }
+            }
+            tmp_buf[len++] = *ptr++;
+        }
+        /* And close off with an extra NUL char */
+        tmp_buf[len++] = 0;
+    }
+
+    if (!buf_safe(buf, 2 + len))
+    {
+        *error = true;
+        msg(M_WARN, "write_search_dhcp_str: buffer overflow building DHCP options");
+        return;
+    }
+    if (len > 255)
+    {
+        *error = true;
+        msg(M_WARN, "write_dhcp_search_str: search domain string must be <= 255 bytes");
+        return;
+    }
+
+    buf_write_u8(buf, type);
+    buf_write_u8(buf, len);
+    buf_write(buf, tmp_buf, len);
+}
+
 static bool
 build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)
 {
@@ -5603,6 +5786,13 @@ build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)
     write_dhcp_u32_array(buf, 44, (uint32_t *)o->wins, o->wins_len, &error);
     write_dhcp_u32_array(buf, 42, (uint32_t *)o->ntp, o->ntp_len, &error);
     write_dhcp_u32_array(buf, 45, (uint32_t *)o->nbdd, o->nbdd_len, &error);
+
+    if (o->domain_search_list_len > 0)
+    {
+        write_dhcp_search_str(buf, 119, o->domain_search_list,
+                              o->domain_search_list_len,
+                              &error);
+    }
 
     /* the MS DHCP server option 'Disable Netbios-over-TCP/IP
      * is implemented as vendor option 001, value 002.
@@ -5816,7 +6006,6 @@ tuntap_get_mtu(struct tuntap *tt)
                         &mtu, sizeof(mtu),
                         &mtu, sizeof(mtu), &len, NULL))
     {
-        tt->post_open_mtu = (int)mtu;
         msg(D_MTU_INFO, "TAP-Windows MTU=%d", (int)mtu);
     }
 }
@@ -5830,7 +6019,8 @@ tuntap_set_ip_addr(struct tuntap *tt,
     const DWORD index = tt->adapter_index;
 
     /* flush arp cache */
-    if (index != TUN_ADAPTER_INDEX_INVALID)
+    if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6
+        && index != TUN_ADAPTER_INDEX_INVALID)
     {
         DWORD status = -1;
 
@@ -5872,34 +6062,34 @@ tuntap_set_ip_addr(struct tuntap *tt,
                 status,
                 strerror_win32(status, &gc));
         }
-    }
 
-    /*
-     * If the TAP-Windows driver is masquerading as a DHCP server
-     * make sure the TCP/IP properties for the adapter are
-     * set correctly.
-     */
-    if (dhcp_masq_post)
-    {
-        /* check dhcp enable status */
-        if (dhcp_status(index) == DHCP_STATUS_DISABLED)
+        /*
+         * If the TAP-Windows driver is masquerading as a DHCP server
+         * make sure the TCP/IP properties for the adapter are
+         * set correctly.
+         */
+        if (dhcp_masq_post)
         {
-            msg(M_WARN, "WARNING: You have selected '--ip-win32 dynamic', which will not work unless the TAP-Windows TCP/IP properties are set to 'Obtain an IP address automatically'");
-        }
+            /* check dhcp enable status */
+            if (dhcp_status(index) == DHCP_STATUS_DISABLED)
+            {
+                msg(M_WARN, "WARNING: You have selected '--ip-win32 dynamic', which will not work unless the TAP-Windows TCP/IP properties are set to 'Obtain an IP address automatically'");
+            }
 
-        /* force an explicit DHCP lease renewal on TAP adapter? */
-        if (tt->options.dhcp_pre_release)
-        {
-            dhcp_release(tt);
+            /* force an explicit DHCP lease renewal on TAP adapter? */
+            if (tt->options.dhcp_pre_release)
+            {
+                dhcp_release(tt);
+            }
+            if (tt->options.dhcp_renew)
+            {
+                dhcp_renew(tt);
+            }
         }
-        if (tt->options.dhcp_renew)
+        else
         {
-            dhcp_renew(tt);
+            fork_dhcp_action(tt);
         }
-    }
-    else
-    {
-        fork_dhcp_action(tt);
     }
 
     if (tt->did_ifconfig_setup && tt->options.ip_win32_type == IPW32_SET_IPAPI)
@@ -5978,10 +6168,6 @@ wintun_register_ring_buffer(struct tuntap *tt, const char *device_guid)
     }
     else
     {
-        if (!impersonate_as_system())
-        {
-            msg(M_FATAL, "ERROR:  Failed to impersonate as SYSTEM, make sure process is running under privileged account");
-        }
         if (!register_ring_buffers(tt->hand,
                                    tt->wintun_send_ring,
                                    tt->wintun_receive_ring,
@@ -5991,7 +6177,10 @@ wintun_register_ring_buffer(struct tuntap *tt, const char *device_guid)
             switch (GetLastError())
             {
                 case ERROR_ACCESS_DENIED:
-                    msg(M_FATAL, "Access denied registering ring buffers. Is this process run as SYSTEM?");
+                    msg(M_FATAL, "ERROR:  Wintun requires SYSTEM privileges and therefore "
+                        "should be used with interactive service. If you want to "
+                        "use openvpn from command line, you need to do SYSTEM "
+                        "elevation yourself (for example with psexec).");
                     break;
 
                 case ERROR_ALREADY_INITIALIZED:
@@ -6003,12 +6192,8 @@ wintun_register_ring_buffer(struct tuntap *tt, const char *device_guid)
             }
             ret = false;
         }
-        if (!RevertToSelf())
-        {
-            msg(M_FATAL, "ERROR:  RevertToSelf error: %lu", GetLastError());
-        }
-    }
 
+    }
     return ret;
 }
 
@@ -6106,14 +6291,7 @@ tuntap_dhcp_mask(const struct tuntap *tt, const char *device_guid)
     {
         if (tt->topology == TOP_SUBNET)
         {
-            if (tt->options.dhcp_masq_custom_offset)
-            {
-                ep[2] = dhcp_masq_addr(tt->local, tt->remote_netmask, tt->options.dhcp_masq_offset);
-            }
-            else
-            {
-                ep[2] = dhcp_masq_addr(tt->local, tt->remote_netmask, -1);
-            }
+            ep[2] = dhcp_masq_addr(tt->local, tt->remote_netmask, tt->options.dhcp_masq_custom_offset ? tt->options.dhcp_masq_offset : 0);
         }
         else
         {
@@ -6185,7 +6363,7 @@ tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct dev
         /* Open Wintun adapter */
         for (dev_if = device_instance_id_interface; dev_if != NULL; dev_if = dev_if->next)
         {
-            if (strcmp(dev_if->net_cfg_instance_id, device_guid) == 0)
+            if (strcmp((const char *)dev_if->net_cfg_instance_id, device_guid) == 0)
             {
                 path = dev_if->device_interface_list;
                 break;
@@ -6240,7 +6418,7 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
     const struct tap_reg *tap_reg = get_tap_reg(gc);
     const struct panel_reg *panel_reg = get_panel_reg(gc);
     const struct device_instance_id_interface *device_instance_id_interface = get_device_instance_id_interface(gc);
-    char actual_buffer[256];
+    uint8_t actual_buffer[256];
 
     at_least_one_tap_win(tap_reg);
 
@@ -6288,7 +6466,7 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
 
             if (!*device_guid)
             {
-                msg(M_FATAL, "All %s adapters on this system are currently in use.", print_windows_driver(tt->windows_driver));
+                msg(M_FATAL, "All %s adapters on this system are currently in use or disabled.", print_windows_driver(tt->windows_driver));
             }
 
             if (tt->windows_driver != windows_driver)
@@ -6308,7 +6486,7 @@ next:
 
     /* translate high-level device name into a device instance
      * GUID using the registry */
-    tt->actual_name = string_alloc(actual_buffer, NULL);
+    tt->actual_name = string_alloc((const char *)actual_buffer, NULL);
 
     msg(M_INFO, "%s device [%s] opened", print_windows_driver(tt->windows_driver), tt->actual_name);
     tt->adapter_index = get_adapter_index(*device_guid);
@@ -6331,7 +6509,7 @@ tuntap_set_ip_props(const struct tuntap *tt, bool *dhcp_masq, bool *dhcp_masq_po
             }
             else
             {
-                netsh_enable_dhcp(tt->actual_name);
+                netsh_enable_dhcp(tt->adapter_index);
             }
         }
         *dhcp_masq = true;
@@ -6345,7 +6523,7 @@ tuntap_set_ip_props(const struct tuntap *tt, bool *dhcp_masq, bool *dhcp_masq_po
         if (dhcp_status(tt->adapter_index) != DHCP_STATUS_ENABLED)
         {
             netsh_ifconfig(&tt->options,
-                           tt->actual_name,
+                           tt->adapter_index,
                            tt->local,
                            tt->adapter_netmask,
                            NI_TEST_FIRST | NI_IP_NETMASK | NI_OPTIONS);
@@ -6363,36 +6541,39 @@ tuntap_post_open(struct tuntap *tt, const char *device_guid)
     bool dhcp_masq = false;
     bool dhcp_masq_post = false;
 
-    /* get driver version info */
-    tuntap_get_version_info(tt);
-
-    /* get driver MTU */
-    tuntap_get_mtu(tt);
-
-    /*
-     * Preliminaries for setting TAP-Windows adapter TCP/IP
-     * properties via --ip-win32 dynamic or --ip-win32 adaptive.
-     */
-    if (tt->did_ifconfig_setup)
+    if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
     {
-        tuntap_set_ip_props(tt, &dhcp_masq, &dhcp_masq_post);
-    }
+        /* get driver version info */
+        tuntap_get_version_info(tt);
 
-    /* set point-to-point mode if TUN device */
-    if (tt->type == DEV_TYPE_TUN)
-    {
-        tuntap_set_ptp(tt);
-    }
+        /* get driver MTU */
+        tuntap_get_mtu(tt);
 
-    /* should we tell the TAP-Windows driver to masquerade as a DHCP server as a means
-     * of setting the adapter address? */
-    if (dhcp_masq)
-    {
-        tuntap_dhcp_mask(tt, device_guid);
-    }
+        /*
+         * Preliminaries for setting TAP-Windows adapter TCP/IP
+         * properties via --ip-win32 dynamic or --ip-win32 adaptive.
+         */
+        if (tt->did_ifconfig_setup)
+        {
+            tuntap_set_ip_props(tt, &dhcp_masq, &dhcp_masq_post);
+        }
 
-    /* set driver media status to 'connected' */
-    tuntap_set_connected(tt);
+        /* set point-to-point mode if TUN device */
+        if (tt->type == DEV_TYPE_TUN)
+        {
+            tuntap_set_ptp(tt);
+        }
+
+        /* should we tell the TAP-Windows driver to masquerade as a DHCP server as a means
+         * of setting the adapter address? */
+        if (dhcp_masq)
+        {
+            tuntap_dhcp_mask(tt, device_guid);
+        }
+
+        /* set driver media status to 'connected' */
+        tuntap_set_connected(tt);
+    }
 
     /* possibly use IP Helper API to set IP address on adapter */
     tuntap_set_ip_addr(tt, device_guid, dhcp_masq_post);
@@ -6420,10 +6601,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     struct gc_arena gc = gc_new(); /* used also for device_guid allocation */
     tun_open_device(tt, dev_node, &device_guid, &gc);
 
-    if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
-    {
-        tuntap_post_open(tt, device_guid);
-    }
+    tuntap_post_open(tt, device_guid);
 
     gc_free(&gc);
 
@@ -6477,24 +6655,34 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
     if (len > 0)
     {
         argv_printf(&argv,
-                    "%s%s interface %s delete dns %s all",
+                    "%s%s interface %s delete dns %lu all",
                     get_win_sys_path(),
                     NETSH_PATH_SUFFIX,
                     ipv6 ? "ipv6" : "ipv4",
-                    tt->actual_name);
+                    tt->adapter_index);
         netsh_command(&argv, 1, M_WARN);
     }
 
-    if (ipv6)
+    if (!ipv6 && tt->options.wins_len > 0)
     {
-        delete_route_connected_v6_net(tt, NULL);
+        argv_printf(&argv,
+                    "%s%s interface ipv4 delete winsservers %lu all",
+                    get_win_sys_path(),
+                    NETSH_PATH_SUFFIX,
+                    tt->adapter_index);
+        netsh_command(&argv, 1, M_WARN);
+    }
+
+    if (ipv6 && tt->type == DEV_TYPE_TUN)
+    {
+        delete_route_connected_v6_net(tt);
     }
 
     /* "store=active" is needed in Windows 8(.1) to delete the
      * address we added (pointed out by Cedric Tabary).
      */
 
-    /* netsh interface ipvX delete address \"%s\" %s */
+    /* netsh interface ipvX delete address %lu %s */
     if (ipv6)
     {
         ifconfig_ip_local = print_in6_addr(tt->local_ipv6, 0, gc);
@@ -6504,11 +6692,11 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
         ifconfig_ip_local = print_in_addr_t(tt->local, 0, gc);
     }
     argv_printf(&argv,
-                "%s%s interface %s delete address %s %s store=active",
+                "%s%s interface %s delete address %lu %s store=active",
                 get_win_sys_path(),
                 NETSH_PATH_SUFFIX,
                 ipv6 ? "ipv6" : "ipv4",
-                tt->actual_name,
+                tt->adapter_index,
                 ifconfig_ip_local);
     netsh_command(&argv, 1, M_WARN);
 
@@ -6530,11 +6718,16 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
         }
         else if (tt->options.msg_channel)
         {
+            /* If IPv4 is not enabled, delete DNS domain here */
+            if (!tt->did_ifconfig_setup)
+            {
+                do_dns_domain_service(false, tt);
+            }
             if (tt->options.dns6_len > 0)
             {
                 do_dns_service(false, AF_INET6, tt);
             }
-            delete_route_connected_v6_net(tt, NULL);
+            delete_route_connected_v6_net(tt);
             do_address_service(false, AF_INET6, tt);
         }
         else
@@ -6542,20 +6735,30 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
             netsh_delete_address_dns(tt, true, &gc);
         }
     }
-#if 1
-    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
+
+    if (tt->did_ifconfig_setup)
     {
-        if (tt->options.msg_channel)
+        if (tt->options.ip_win32_type == IPW32_SET_MANUAL)
         {
-            do_address_service(false, AF_INET, tt);
-            do_dns_service(false, AF_INET, tt);
+            /* We didn't do ifconfig. */
         }
-        else
+        else if (tt->options.ip_win32_type == IPW32_SET_DHCP_MASQ || tt->options.ip_win32_type == IPW32_SET_ADAPTIVE)
+        {
+            /* We don't have to clean the configuration with DHCP. */
+        }
+        else if (tt->options.msg_channel)
+        {
+            do_dns_domain_service(false, tt);
+            do_dns_service(false, AF_INET, tt);
+            do_address_service(false, AF_INET, tt);
+        }
+        else if (tt->options.ip_win32_type == IPW32_SET_NETSH)
         {
             netsh_delete_address_dns(tt, false, &gc);
         }
     }
-    else if (tt->ipapi_context_defined)
+
+    if (tt->ipapi_context_defined)
     {
         DWORD status;
         if ((status = DeleteIPAddress(tt->ipapi_context)) != NO_ERROR)
@@ -6566,7 +6769,6 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
                 strerror_win32(status, &gc));
         }
     }
-#endif /* if 1 */
 
     dhcp_release(tt);
 
@@ -6594,10 +6796,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
         }
     }
 
-    if (tt->actual_name)
-    {
-        free(tt->actual_name);
-    }
+    free(tt->actual_name);
 
     if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
     {

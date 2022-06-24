@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -81,10 +81,7 @@ bool process_signal(struct context *c);
 
 void register_signal(struct context *c, int sig, const char *text);
 
-#ifdef ENABLE_OCC
 void process_explicit_exit_notification_timer_wakeup(struct context *c);
-
-#endif
 
 #ifdef _WIN32
 

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -34,8 +34,6 @@
  * schedule events for things such as sending
  * a ping or scheduling a TLS renegotiation.
  */
-
-#if P2MP_SERVER
 
 /* define to enable a special test mode */
 /*#define SCHEDULE_TEST*/
@@ -136,5 +134,4 @@ schedule_get_earliest_wakeup(struct schedule *s,
     return ret;
 }
 
-#endif /* if P2MP_SERVER */
 #endif /* ifndef SCHEDULE_H */

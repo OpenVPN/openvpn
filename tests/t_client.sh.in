@@ -298,6 +298,7 @@ do
         echo -e "OK.\n"
     else
 	echo -e "FAIL: make sure that ping hosts are ONLY reachable via VPN, SKIP test $SUF".
+	SUMMARY_FAIL="$SUMMARY_FAIL $SUF"
 	exit_code=31
 	continue
     fi

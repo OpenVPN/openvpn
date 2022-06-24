@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -30,6 +30,7 @@
 #define SSL_OPENSSL_H_
 
 #include <openssl/ssl.h>
+#include <openssl/err.h>
 
 /**
  * Structure that wraps the TLS context. Contents differ depending on the
@@ -54,6 +55,10 @@ struct key_state_ssl {
  */
 extern int mydata_index; /* GLOBAL */
 
-void openssl_set_mydata_index(void);
+static inline void
+tls_clear_error(void)
+{
+    ERR_clear_error();
+}
 
 #endif /* SSL_OPENSSL_H_ */

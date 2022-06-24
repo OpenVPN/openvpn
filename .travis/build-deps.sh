@@ -18,14 +18,14 @@ PREFIX="${PREFIX:-${HOME}/opt}"
 download_tap_windows () {
     if [ ! -f "download-cache/tap-windows-${TAP_WINDOWS_VERSION}.zip" ]; then
        wget -P download-cache/ \
-           "http://build.openvpn.net/downloads/releases/tap-windows-${TAP_WINDOWS_VERSION}.zip"
+           "https://build.openvpn.net/downloads/releases/tap-windows-${TAP_WINDOWS_VERSION}.zip"
     fi
 }
 
 download_lzo () {
     if [ ! -f "download-cache/lzo-${LZO_VERSION}.tar.gz" ]; then
         wget -P download-cache/ \
-            "http://www.oberhumer.com/opensource/lzo/download/lzo-${LZO_VERSION}.tar.gz"
+            "https://www.oberhumer.com/opensource/lzo/download/lzo-${LZO_VERSION}.tar.gz"
     fi
 }
 
@@ -91,8 +91,9 @@ build_mbedtls () {
 
 download_openssl () {
     if [ ! -f "download-cache/openssl-${OPENSSL_VERSION}.tar.gz" ]; then
+        MAJOR=`echo $OPENSSL_VERSION | sed -e 's/\([0-9.]*\).*/\1/'`
         wget -P download-cache/ \
-            "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
+             "https://www.openssl.org/source/old/${MAJOR}/openssl-${OPENSSL_VERSION}.tar.gz"
     fi
 }
 

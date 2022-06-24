@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2013-2018 Gert Doering <gert@greenie.muc.de>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2013-2022 Gert Doering <gert@greenie.muc.de>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -31,12 +31,7 @@
 #include "syshead.h"
 
 #if defined(ENABLE_LZ4)
-
-#if defined(NEED_COMPAT_LZ4)
-#include "compat-lz4.h"
-#else
 #include <lz4.h>
-#endif
 
 #include "comp.h"
 #include "error.h"
@@ -70,14 +65,15 @@ do_lz4_compress(struct buffer *buf,
 {
     /*
      * In order to attempt compression, length must be at least COMPRESS_THRESHOLD.
+     * and asymmetric compression must be disabled
      */
-    if (buf->len >= COMPRESS_THRESHOLD)
+    if (buf->len >= COMPRESS_THRESHOLD && (compctx->flags & COMP_F_ALLOW_COMPRESS))
     {
-        const size_t ps = PAYLOAD_SIZE(frame);
+        const size_t ps = frame->buf.payload_size;
         int zlen_max = ps + COMP_EXTRA_BUFFER(ps);
         int zlen;
 
-        ASSERT(buf_init(work, FRAME_HEADROOM(frame)));
+        ASSERT(buf_init(work, frame->buf.headroom));
         ASSERT(buf_safe(work, zlen_max));
 
         if (buf->len > ps)
@@ -217,7 +213,7 @@ lz4_decompress(struct buffer *buf, struct buffer work,
                struct compress_context *compctx,
                const struct frame *frame)
 {
-    size_t zlen_max = EXPANDED_SIZE(frame);
+    size_t zlen_max = frame->buf.payload_size;
     uint8_t c;          /* flag indicating whether or not our peer compressed */
 
     if (buf->len <= 0)
@@ -225,7 +221,7 @@ lz4_decompress(struct buffer *buf, struct buffer work,
         return;
     }
 
-    ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
+    ASSERT(buf_init(&work, frame->buf.headroom));
 
     /* do unframing/swap (assumes buf->len > 0) */
     {
@@ -254,7 +250,7 @@ lz4v2_decompress(struct buffer *buf, struct buffer work,
                  struct compress_context *compctx,
                  const struct frame *frame)
 {
-    size_t zlen_max = EXPANDED_SIZE(frame);
+    size_t zlen_max = frame->buf.payload_size;
     uint8_t c;          /* flag indicating whether or not our peer compressed */
 
     if (buf->len <= 0)
@@ -262,7 +258,7 @@ lz4v2_decompress(struct buffer *buf, struct buffer work,
         return;
     }
 
-    ASSERT(buf_init(&work, FRAME_HEADROOM(frame)));
+    ASSERT(buf_init(&work, frame->buf.headroom));
 
     /* do unframing/swap (assumes buf->len > 0) */
     uint8_t *head = BPTR(buf);
@@ -284,12 +280,12 @@ lz4v2_decompress(struct buffer *buf, struct buffer work,
     c = head[1];
     if (c == COMP_ALGV2_LZ4_BYTE) /* packet was compressed */
     {
-        buf_advance(buf,2);
+        buf_advance(buf, 2);
         do_lz4_decompress(zlen_max, &work, buf, compctx);
     }
     else if (c == COMP_ALGV2_UNCOMPRESSED_BYTE)
     {
-        buf_advance(buf,2);
+        buf_advance(buf, 2);
     }
     else
     {
@@ -313,10 +309,4 @@ const struct compress_alg lz4v2_alg = {
     lz4v2_compress,
     lz4v2_decompress
 };
-
-#else  /* if defined(ENABLE_LZ4) */
-static void
-dummy(void)
-{
-}
 #endif /* ENABLE_LZ4 */

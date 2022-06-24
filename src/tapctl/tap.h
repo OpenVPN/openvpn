@@ -2,7 +2,7 @@
  *  tapctl -- Utility to manipulate TUN/TAP adapters on Windows
  *            https://community.openvpn.net/openvpn/wiki/Tapctl
  *
- *  Copyright (C) 2018-2020 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2022 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -118,12 +118,16 @@ tap_enable_adapter(
  *
  * @param szName        New adapter name - must be unique
  *
+ * @param bSilent       If true, MSI installer won't display message box and
+ *                      only print error to log.
+ *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  **/
 DWORD
 tap_set_adapter_name(
     _In_ LPCGUID pguidAdapter,
-    _In_ LPCTSTR szName);
+    _In_ LPCTSTR szName,
+    _In_ BOOL bSilent);
 
 
 /**
@@ -148,9 +152,9 @@ struct tap_adapter_node
  *                      and can be NULL. If a specific top-level window is not required, set
  *                      hwndParent to NULL.
  *
- * @param szHwId        A pointer to a NULL-terminated string that supplies the hardware id
- *                      of the device. This pointer is optional and can be NULL. When NULL,
- *                      all network adapters found are added to the list.
+ * @param szzHwIDs      A string of strings that supplies the list of hardware IDs of the device.
+ *                      This pointer is optional and can be NULL. When NULL, all network adapters
+ *                      found are added to the list.
  *
  * @param ppAdapterList  A pointer to the list to receive pointer to the first adapter in
  *                      the list. After the list is no longer required, free it using
@@ -161,7 +165,7 @@ struct tap_adapter_node
 DWORD
 tap_list_adapters(
     _In_opt_ HWND hwndParent,
-    _In_opt_ LPCTSTR szHwId,
+    _In_opt_ LPCTSTR szzHwIDs,
     _Out_ struct tap_adapter_node **ppAdapterList);
 
 

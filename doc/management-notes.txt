@@ -137,6 +137,16 @@ history while simultaneously activating real-time updates:
 The size of the echo buffer is currently hardcoded to 100
 messages.
 
+
+Generally speaking, the OpenVPN Core does not understand echo
+messages at all (so a cooperating GUI and Server can use this
+mechanism for arbitrary information transport).
+
+This said, a few echo commands have been agreed upon between the
+community maintained OpenVPN Windows GUI and Tunnelblick for MacOS,
+and documentation of these can be found in doc/gui-notes.txt.
+
+
 COMMAND -- exit, quit
 ---------------------
 
@@ -189,7 +199,7 @@ Command examples:
 COMMAND -- kill
 ---------------
 
-In server mode, kill a particlar client instance.
+In server mode, kill a particular client instance.
 
 Command examples:
 
@@ -397,6 +407,7 @@ RECONNECTING  -- A restart has occurred.
 EXITING       -- A graceful exit is in progress.
 RESOLVE       -- (Client only) DNS lookup
 TCP_CONNECT   -- (Client only) Connecting to TCP server
+AUTH_PENDING  -- (Client only) Authentication pending
 
 Command examples:
 
@@ -426,6 +437,11 @@ Fields (e)-(h) are shown for CONNECTED state,
 
 (e) is available starting from OpenVPN 2.1
 (f)-(i) are available starting from OpenVPN 2.4
+
+For AUTH_PENDING, if (c) is present, it would read
+as "timeout number" where number is the number of seconds
+before authentication will timeout. It is printed as an
+unsigned integer (%u).
 
 Real-time state notifications will have a ">STATE:" prefix
 prepended to them.
@@ -592,6 +608,144 @@ interface to approve client connections.
 CID,KID -- client ID and Key ID.  See documentation for ">CLIENT:"
 notification for more info.
 
+COMMAND -- client-pending-auth  (OpenVPN 2.5 or higher)
+----------------------------------------------------
+
+Instruct OpenVPN server to send AUTH_PENDING and INFO_PRE message
+to signal a pending authenticating to the client. A pending auth means
+that the connecting requires extra authentication like a one time
+password or doing a single sign on via web.
+
+    client-pending-auth {CID} {EXTRA} {TIMEOUT}
+
+The server will send AUTH_PENDING and INFO_PRE,{EXTRA} to the client. If the
+client supports accepting keywords to AUTH_PENDING (announced via IV_PROTO),
+TIMEOUT parameter will be also be announced to the client to allow it to modify
+its own timeout. The client is expected to inform the user that authentication
+is pending and display the extra information and also show the user the
+remaining time to complete the auth if applicable.
+
+Receiving an AUTH_PENDING message will make the client change its timeout to
+the timeout proposed by the server, even if the timeout is shorter.
+If the client does not receive a packet from the server for hand-window the
+connection times out regardless of the timeout. This ensures that the connection
+still times out relatively quickly in case of network problems. The client will
+continuously send PULL_REQUEST messages to the server until the timeout is reached.
+This message also triggers an ACK message from the server that resets the
+hand-window based timeout.
+
+Both client and server limit the maximum timeout to the smaller value of half the
+--tls-reneg minimum time and --hand-window time (defaults to 60s).
+
+For the format of {EXTRA} see below. For OpenVPN server this is a stateless
+operation and needs to be followed by a client-deny/client-auth[-nt] command
+(that is the result of the out of band authentication).
+
+Before issuing a client-pending-auth to a client instead of a
+client-auth/client-deny, the server should check the IV_SSO
+environment variable for whether the method is supported. Currently
+defined methods are crtext for challenge/response using text
+(e.g., TOTP), openurl (deprecated) and webauth for opening a URL in
+the client to continue authentication. A client supporting webauth and
+crtext would set
+
+    setenv IV_SSO webauth,crtext
+
+The variable name IV_SSO is historic as AUTH_PENDING was first used
+to signal single sign on support. To keep compatibility with existing
+implementations the name IV_SSO is kept in lieu of a better name.
+
+The management interface of the client receives notification of
+pending auth via
+
+>STATE:datetime,AUTH_PENDING,[timeout number],,,,,
+
+If {EXTRA} is present the client is informed using INFOMSG
+notification as
+
+>INFOMSG:{EXTRA}
+
+where {EXTRA} is formatted as received from the server.
+Currently defined formats for {EXTRA} are detailed below.
+
+webauth and openurl
+===================
+For a web based extra authentication (like for
+SSO/SAML) {EXTRA} should be
+
+    OPEN_URL:url
+
+or
+
+    WEB_AUTH:flags:url
+
+The OPEN_URL method is deprecated as it does not allow to send flags which
+proved to be needed to signal certain behaviour to the client.
+
+The client should ask the user to open the URL to continue.
+
+The space in a control message is limited, so this url should be kept
+short to avoid issues. If a longer url is required a URL that redirects
+to the longer URL should be sent instead. The total length is limited to 1024
+bytes which includes the INFO_PRE:WEB_AUTH:flags.
+
+flags is a list of flags which are separated by commas. Currently defined
+flags are:
+
+- proxy     (see next pargraph)
+- hidden    start the webview in hidden mode (see openvpn3 webauth documentation)
+- external  Do not use an internal webview but use an external browser. Some
+            authentication providers refuse to work in an internal webview.
+
+
+A complete documentation how URLs should be handled on the client is available
+in the openvpn3 repository:
+
+https://github.com/OpenVPN/openvpn3/blob/master/doc/webauth.md
+
+webauth with proxy
+==================
+This is a variant of webauth that allows opening a url via an
+HTTP proxy. It could be used to avoid issues with OpenVPN connection's
+persist-tun that may cause the web server to be unreachable.
+The client should announce proxy in its IV_SSO and parse the
+proxy flag in the WEB_AUTH message. The format of {EXTRA} in this case is
+
+    WEB_AUTH:proxy=<proxy>;<proxy_port>;<proxy_user_base64>;<proxy_password_base64>,flags:url
+
+The proxy should be a literal IPv4 address or IPv6 address enclosed in [] to avoid
+ambiguity in parsing. A literal IP address is preferred as DNS might not be
+available when the client needs to open the url. The IP address will usually
+be the address that client uses to connect to the VPN server. For dual-homed
+VPN servers, the server should respond with the same address that the client
+connects to.
+
+This address is also usually excluded from being redirected over the VPN
+by a host route. If the platform (like Android) uses another way of protecting
+the VPN connection from routing loops, the client needs to also exclude the
+connection to the proxy in the same manner.
+
+Should another IP be used, then the VPN configuration should include a route
+statement to exclude that address from being routed over the VPN.
+
+crtext
+=======
+The format of {EXTRA} is similar to the already used two step authentication
+described in Challenge/Response Protocol section of this document. Since
+most of the fields are not necessary or can be inferred, only the <flags>
+and <challenge_text> fields are used:
+
+    CR_TEXT:<flags>:<challenge_text>
+
+<flags>: a series of optional, comma-separated flags:
+ E : echo the response when the user types it.
+ R : a response is required.
+
+<challenge_text>: the challenge text to be shown to the user.
+
+The client should return the response to the crtext challenge
+using the cr-response command.
+
 COMMAND -- client-deny  (OpenVPN 2.1 or higher)
 -----------------------------------------------
 
@@ -630,118 +784,6 @@ Immediately kill a client instance by CID.
 
 CID -- client ID.  See documentation for ">CLIENT:" notification for more
 info.
-
-COMMAND -- client-pf  (OpenVPN 2.1 or higher)
----------------------------------------------
-
-Push a packet filter file to a specific client.
-
-The OpenVPN server should have been started with the
---management-client-pf directive so that it will require that
-VPN tunnel packets sent or received by client instances must
-conform to that client's packet filter configuration.
-
-  client-pf {CID}
-  line_1
-  line_2
-  ...
-  line_n
-  END
-
-CID -- client ID.  See documentation for ">CLIENT:" notification for
-more info.
-
-line_1 to line_n -- the packet filter configuration file for this
-client.
-
-Packet filter file grammar:
-
- [CLIENTS DROP|ACCEPT]
- {+|-}common_name1
- {+|-}common_name2
- . . .
- [SUBNETS DROP|ACCEPT]
- {+|-}subnet1
- {+|-}subnet2
- . . .
- [END]
-
- Subnet: IP-ADDRESS | IP-ADDRESS/NUM_NETWORK_BITS | "unknown"
-
- CLIENTS refers to the set of clients (by their common-name) which
- this instance is allowed ('+') to connect to, or is excluded ('-')
- from connecting to.  Note that in the case of client-to-client
- connections, such communication must be allowed by the packet filter
- configuration files of both clients AND the --client-to-client
- directive must have been specified in the OpenVPN server config.
-
- SUBNETS refers to IP addresses or IP address subnets which this
- client instance may connect to ('+') or is excluded ('-') from
- connecting to, and applies to IPv4 and ARP packets.  The special
- "unknown" tag refers to packets of unknown type, i.e. a packet that
- is not IPv4 or ARP.
-
- DROP or ACCEPT defines default policy when there is no explicit match
- for a common-name or subnet.  The [END] tag must exist.
-
- Notes:
-
- * The SUBNETS section currently only supports IPv4 addresses and
-   subnets.
-
- * A given client or subnet rule applies to both incoming and
-   outgoing packets.
-
- * The CLIENTS list is order-invariant.  Because the list is stored
-   as a hash-table, the order of the list does not affect its function.
-
- * The SUBNETS table is scanned sequentially, and the first item to
-   match is chosen.  Therefore the SUBNETS table is NOT order-invariant.
-
- * No client-to-client communication is allowed unless the
-   --client-to-client configuration directive is enabled AND
-   the CLIENTS list of BOTH clients allows the communication.
-
-Example packet filter spec, as transmitted to the management interface:
-
- client-pf 42
- [CLIENTS ACCEPT]
- -accounting
- -enigma
- [SUBNETS DROP]
- -10.46.79.9
- +10.0.0.0/8
- [END]
- END
-
-The above example sets the packet filter policy for the client
-identified by CID=42.  This client may connect to all other clients
-except those having a common name of "accounting" or "enigma".
-The client may only interact with external IP addresses in the
-10.0.0.0/8 subnet, however access to 10.46.79.9 is specifically
-excluded.
-
-Another example packet filter spec, as transmitted to the
-management interface:
-
- client-pf 99
- [CLIENTS DENY]
- +public
- [SUBNETS ACCEPT]
- +10.10.0.1
- -10.0.0.0/8
- -unknown
- [END]
- END
-
-The above example sets the packet filter policy for the client
-identified by CID=99.  This client may not connect to any other
-clients except those having a common name of "public".  It may
-interact with any external IP address except those in the
-10.0.0.0/8 netblock.  However interaction with one address in
-the 10.0.0.0/8 netblock is allowed: 10.10.0.1.  Also, the client
-may not interact with external IP addresses using an "unknown"
-protocol (i.e. one that is not IPv4 or ARP).
 
 COMMAND -- remote  (OpenVPN AS 2.1.5/OpenVPN 2.3 or higher)
 --------------------------------------------
@@ -806,6 +848,21 @@ To accept connecting to the host and port directly, use this command:
 
   proxy NONE
 
+COMMAND -- cr-response (OpenVPN 2.5 or higher)
+-------------------------------------------------
+Provides support for sending responses to a challenge/response
+query via INFOMSG,CR_TEXT (client-only). The response should
+be base64 encoded:
+
+  cr-response SGFsbG8gV2VsdCE=
+
+This command is intended to be used after the client receives a
+CR_TEXT challenge (see client-pending-auth section). The argument
+to cr-response is the base64 encoded answer to the challenge and
+depends on the challenge itself. For a TOTP challenge this would be
+a number encoded as base64; for a challenge like "what day is it today?"
+it would be a string encoded as base64.
+
 COMMAND -- pk-sig (OpenVPN 2.5 or higher, management version > 1)
 COMMAND -- rsa-sig (OpenVPN 2.3 or higher, management version <= 1)
 -----------------------------------------------------------------
@@ -850,10 +907,24 @@ can be indicated in the signing request only if the client version is > 2"
 
 The currently defined padding algorithms are:
 
- - RSA_PKCS1_PADDING  -  PKCS1 padding and RSA signature
- - RSA_NO_PADDING     -  No padding may be added for the signature
- - ECDSA              -  EC signature.
+ - RSA_PKCS1_PADDING            -  PKCS1 padding and RSA signature
+ - RSA_NO_PADDING               -  No padding may be added for the signature
+ - ECDSA                        -  EC signature.
+ - RSA_PKCS1_PSS_PADDING,params -  RSA signature with PSS padding
 
+   The params for PSS are specified as 'hashalg=name,saltlen=[max|digest]'.
+
+   The hashalg names are short common names such as SHA256, SHA224, etc.
+   PSS saltlen="digest" means use the same size as the hash to sign, while
+   "max" indicates maximum possible saltlen which is
+   '(nbits-1)/8 - hlen - 2'. Here 'nbits' is the number of bits in the
+   key modulus and 'hlen' the size in octets of the hash.
+   (See: RFC 8017 sec 8.1.1 and 9.1.1)
+
+   In the case of PKCS1_PADDING, when the hash algorithm is not legacy
+   MD5-SHA1, the hash is encoded with DigestInfo header before presenting
+   to the management interface. This is identical to CKM_RSA_PKCS in Cryptoki
+   as well as what RSA_private_encrypt() in OpenSSL expects.
 
 COMMAND -- certificate (OpenVPN 2.4 or higher)
 ----------------------------------------------
@@ -945,6 +1016,9 @@ PASSWORD -- Used to tell the management interface client that OpenVPN
 STATE    -- Shows the current OpenVPN state, as controlled
             by the "state" command.
 
+INFOMSG  -- Authentication related info from server such as
+            CR_TEXT or OPEN_URL. See description under client-pending-auth
+
 The CLIENT notification
 -----------------------
 
@@ -993,6 +1067,35 @@ CLIENT notification types:
     is now associated with a specific client.
 
     >CLIENT:ADDRESS,{CID},{ADDR},{PRI}
+
+(5) Text based challenge/Response
+
+   >CLIENT:CR_RESPONSE,{CID},{KID},{response_base64}
+   >CLIENT:ENV,name1=val1
+   >CLIENT:ENV,name2=val2
+   >CLIENT:ENV,...
+   >CLIENT:ENV,END
+
+   Use of the cr-response command on the client side will trigger this
+   message on the server side.
+
+   CR_RESPONSE notification fulfills the same purpose as the
+   CRV1 response in the traditional challenge/response. See that section
+   below for more details. Since this uses the same cid as in the original
+   client-pending-auth challenge,  we do not include the username and opaque
+   session data in this notification. The string {response_base64} only contains
+   the actual response received from the client.
+
+   It is important to note that OpenVPN2 merely passes the authentication
+   information and does not do any further checks. (E.g. if a CR was issued
+   before or if multiple CR responses were sent from the client or if
+   data has a valid base64 encoding)
+
+   This interface should be be sufficient for almost all challenge/response
+   system that can be implemented with a single round and base64 encoding of the
+   response. Mechanisms that need multiple rounds or more complex answers
+   should implement a different response type than CR_RESPONSE.
+
 
 Variables:
 

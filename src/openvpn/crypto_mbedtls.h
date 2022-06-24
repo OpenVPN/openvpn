@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -33,9 +33,6 @@
 #include <mbedtls/md.h>
 #include <mbedtls/ctr_drbg.h>
 
-/** Generic cipher key type %context. */
-typedef mbedtls_cipher_info_t cipher_kt_t;
-
 /** Generic message digest key type %context. */
 typedef mbedtls_md_info_t md_kt_t;
 
@@ -47,6 +44,9 @@ typedef mbedtls_md_context_t md_ctx_t;
 
 /** Generic HMAC %context. */
 typedef mbedtls_md_context_t hmac_ctx_t;
+
+/* Use a dummy type for the provider */
+typedef void provider_t;
 
 /** Maximum length of an IV */
 #define OPENVPN_MAX_IV_LENGTH   MBEDTLS_MAX_IV_LENGTH
@@ -145,11 +145,5 @@ mbed_log_func_line_lite(unsigned int flags, int errval,
  */
 #define mbed_ok(errval) \
     mbed_log_func_line_lite(D_CRYPT_ERRORS, errval, __func__, __LINE__)
-
-static inline bool
-cipher_kt_var_key_size(const cipher_kt_t *cipher)
-{
-    return cipher->flags & MBEDTLS_CIPHER_VARIABLE_KEY_LEN;
-}
 
 #endif /* CRYPTO_MBEDTLS_H_ */

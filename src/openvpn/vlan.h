@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2019 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *  Copyright (C) 2010      Fabian Knittel <fabian.knittel@lettink.de>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -25,8 +25,6 @@
 #ifndef VLAN_H
 #define VLAN_H
 
-#if P2MP_SERVER
-
 #include "buffer.h"
 #include "mroute.h"
 #include "openvpn.h"
@@ -42,7 +40,5 @@ vlan_is_tagged(const struct buffer *buf);
 
 void
 vlan_process_outgoing_tun(struct multi_context *m, struct multi_instance *mi);
-
-#endif /* P2MP_SERVER */
 
 #endif /* VLAN_H */

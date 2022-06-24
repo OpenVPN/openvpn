@@ -1,7 +1,7 @@
 /*
  *  Generic interface to platform specific networking code
  *
- *  Copyright (C) 2016-2018 Antonio Quartulli <a@unstable.cc>
+ *  Copyright (C) 2016-2022 Antonio Quartulli <a@unstable.cc>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -31,12 +31,20 @@ struct context;
 #include "networking_iproute2.h"
 #else
 /* define mock types to ensure code builds on any platform */
-typedef void * openvpn_net_ctx_t;
-typedef void * openvpn_net_iface_t;
+typedef void *openvpn_net_ctx_t;
+typedef void *openvpn_net_iface_t;
+#endif /* ifdef ENABLE_SITNL */
 
+/* Only the iproute2 backend implements these functions,
+ * the rest can rely on these stubs
+ */
+#if !defined(ENABLE_IPROUTE)
 static inline int
 net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
 {
+    (void)c;
+    (void)ctx;
+
     return 0;
 }
 
@@ -51,7 +59,7 @@ net_ctx_free(openvpn_net_ctx_t *ctx)
 {
     (void)ctx;
 }
-#endif
+#endif /* !defined(ENABLE_IPROUTE) */
 
 #if defined(ENABLE_SITNL) || defined(ENABLE_IPROUTE)
 
@@ -80,6 +88,27 @@ void net_ctx_reset(openvpn_net_ctx_t *ctx);
 void net_ctx_free(openvpn_net_ctx_t *ctx);
 
 /**
+ * Add a new interface
+ *
+ * @param ctx       the implementation specific context
+ * @param iface     interface to create
+ * @param type      string describing interface type
+ * @param arg       extra data required by the specific type
+ * @return int 0 on success, negative error code on error
+ */
+int net_iface_new(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                  const char *type, void *arg);
+
+/**
+ * Remove an interface
+ *
+ * @param ctx       the implementation specific context
+ * @param iface     interface to delete
+ * @return int 0 on success, negative error code on error
+ */
+int net_iface_del(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface);
+
+/**
  * Bring interface up or down.
  *
  * @param ctx       the implementation specific context
@@ -102,6 +131,18 @@ int net_iface_up(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
  */
 int net_iface_mtu_set(openvpn_net_ctx_t *ctx,
                       const openvpn_net_iface_t *iface, uint32_t mtu);
+
+/**
+ * Set the Link Layer (Ethernet) address of the TAP interface
+ *
+ * @param ctx       the implementation specific context
+ * @param iface     the interface to modify
+ * @param addr      the new address to set (expected ETH_ALEN bytes (6))
+ *
+ * @return          0 on success, a negative error code otherwise
+ */
+int net_addr_ll_set(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                    uint8_t *addr);
 
 /**
  * Add an IPv4 address to an interface

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -117,21 +117,6 @@ comp_uninit(struct compress_context *compctx)
 }
 
 void
-comp_add_to_extra_frame(struct frame *frame)
-{
-    /* Leave room for our one-byte compressed/didn't-compress prefix byte. */
-    frame_add_to_extra_frame(frame, COMP_PREFIX_LEN);
-}
-
-void
-comp_add_to_extra_buffer(struct frame *frame)
-{
-    /* Leave room for compression buffer to expand in worst case scenario
-     * where data is totally uncompressible */
-    frame_add_to_extra_buffer(frame, COMP_EXTRA_BUFFER(EXPANDED_SIZE(frame)));
-}
-
-void
 comp_print_stats(const struct compress_context *compctx, struct status_output *so)
 {
     if (compctx)
@@ -169,7 +154,6 @@ comp_generate_peer_info_string(const struct compress_options *opt, struct buffer
         }
         buf_printf(out, "IV_COMP_STUB=1\n");
         buf_printf(out, "IV_COMP_STUBv2=1\n");
-        buf_printf(out, "IV_TCPNL=1\n");
     }
 }
 

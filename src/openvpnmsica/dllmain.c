@@ -2,7 +2,7 @@
  *  openvpnmsica -- Custom Action DLL to provide OpenVPN-specific support to MSI packages
  *                  https://community.openvpn.net/openvpn/wiki/OpenVPNMSICA
  *
- *  Copyright (C) 2018 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2022 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -193,6 +193,6 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         }
     }
 
-    MsiProcessMessage(s->hInstall, INSTALLMESSAGE_ERROR, hRecordProg);
+    MsiProcessMessage(s->hInstall, (flags & M_WARN) ? INSTALLMESSAGE_INFO : INSTALLMESSAGE_ERROR, hRecordProg);
     MsiCloseHandle(hRecordProg);
 }

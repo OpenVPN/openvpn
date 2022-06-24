@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -28,20 +28,17 @@
 #ifndef MUDP_H
 #define MUDP_H
 
-#if P2MP_SERVER
-
 struct context;
 struct multi_context;
 
 
-/**************************************************************************/
 /**
- * Main event loop wrapper function for OpenVPN in UDP server mode.
+ * Main event loop for OpenVPN in UDP server mode.
  * @ingroup eventloop
  *
- * This function simply calls \c tunnel_server_udp_single_threaded().
+ * This function implements OpenVPN's main event loop for UDP server mode.
  *
- * @param top          - Top-level context structure.
+ * @param top - Top-level context structure.
  */
 void tunnel_server_udp(struct context *top);
 
@@ -66,5 +63,4 @@ void tunnel_server_udp(struct context *top);
  */
 struct multi_instance *multi_get_create_instance_udp(struct multi_context *m, bool *floated);
 
-#endif
-#endif
+#endif /* ifndef MUDP_H */

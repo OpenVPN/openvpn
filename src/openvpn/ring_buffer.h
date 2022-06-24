@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2019 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *                2019 Lev Stipakov <lev@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -94,11 +94,32 @@ struct TUN_PACKET
  *                            that data has been written to receive ring
  * @return                    true if registration is successful, false otherwise - use GetLastError()
  */
-bool register_ring_buffers(HANDLE device,
-                           struct tun_ring *send_ring,
-                           struct tun_ring *receive_ring,
-                           HANDLE send_tail_moved,
-                           HANDLE receive_tail_moved);
+static inline bool
+register_ring_buffers(HANDLE device,
+                      struct tun_ring *send_ring,
+                      struct tun_ring *receive_ring,
+                      HANDLE send_tail_moved,
+                      HANDLE receive_tail_moved)
+{
+    struct tun_register_rings rr;
+    BOOL res;
+    DWORD bytes_returned;
+
+    ZeroMemory(&rr, sizeof(rr));
+
+    rr.send.ring = send_ring;
+    rr.send.ring_size = sizeof(struct tun_ring);
+    rr.send.tail_moved = send_tail_moved;
+
+    rr.receive.ring = receive_ring;
+    rr.receive.ring_size = sizeof(struct tun_ring);
+    rr.receive.tail_moved = receive_tail_moved;
+
+    res = DeviceIoControl(device, TUN_IOCTL_REGISTER_RINGS, &rr, sizeof(rr),
+                          NULL, 0, &bytes_returned, NULL);
+
+    return res != FALSE;
+}
 
 #endif /* ifndef OPENVPN_RING_BUFFER_H */
 #endif /* ifdef _WIN32 */

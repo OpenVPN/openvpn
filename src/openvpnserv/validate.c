@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2016 Selva Nair <selva.nair@gmail.com>
+ *  Copyright (C) 2016-2022 Selva Nair <selva.nair@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -64,14 +64,11 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
     WCHAR tmp[MAX_PATH];
     const WCHAR *config_file = NULL;
     const WCHAR *config_dir = NULL;
-#ifndef UNICODE
-    WCHAR widepath[MAX_PATH];
-#endif
 
     /* convert fname to full path */
     if (PathIsRelativeW(fname) )
     {
-        openvpn_swprintf(tmp, _countof(tmp), L"%s\\%s", workdir, fname);
+        openvpn_swprintf(tmp, _countof(tmp), L"%ls\\%ls", workdir, fname);
         config_file = tmp;
     }
     else
@@ -79,16 +76,7 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
         config_file = fname;
     }
 
-#ifdef UNICODE
     config_dir = s->config_dir;
-#else
-    if (MultiByteToWideChar(CP_UTF8, 0, s->config_dir, -1, widepath, MAX_PATH) == 0)
-    {
-        MsgToEventLog(M_SYSERR, TEXT("Failed to convert config_dir name to WideChar"));
-        return FALSE;
-    }
-    config_dir = widepath;
-#endif
 
     if (wcsncmp(config_dir, config_file, wcslen(config_dir)) == 0
         && wcsstr(config_file + wcslen(config_dir), L"..") == NULL)
@@ -194,7 +182,7 @@ IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group)
         ret = IsUserInGroup(sid, token_groups, admin_group[i]);
         if (ret)
         {
-            MsgToEventLog(M_INFO, TEXT("Authorizing user '%s@%s' by virtue of membership in group '%s'"),
+            MsgToEventLog(M_INFO, TEXT("Authorizing user '%ls@%ls' by virtue of membership in group '%ls'"),
                           username, domain, admin_group[i]);
             goto out;
         }
@@ -314,7 +302,7 @@ IsUserInGroup(PSID sid, const PTOKEN_GROUPS token_groups, const WCHAR *group_nam
     if (err != NERR_Success && err != NERR_GroupNotFound)
     {
         SetLastError(err);
-        MsgToEventLog(M_SYSERR, TEXT("In NetLocalGroupGetMembers for group '%s'"), group_name);
+        MsgToEventLog(M_SYSERR, TEXT("In NetLocalGroupGetMembers for group '%ls'"), group_name);
     }
 
     return ret;

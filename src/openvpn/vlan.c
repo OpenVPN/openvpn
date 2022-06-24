@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2019 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *  Copyright (C) 2010      Fabian Knittel <fabian.knittel@lettink.de>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -29,8 +29,6 @@
 #endif
 
 #include "syshead.h"
-
-#if P2MP_SERVER
 
 #include "multi.h"
 #include "options.h"
@@ -58,7 +56,7 @@ static void
 vlanhdr_set_vid(struct openvpn_8021qhdr *hdr, const uint16_t vid)
 {
     hdr->pcp_cfi_vid = (hdr->pcp_cfi_vid & ~OPENVPN_8021Q_MASK_VID)
-                        | (htons(vid) & OPENVPN_8021Q_MASK_VID);
+                       | (htons(vid) & OPENVPN_8021Q_MASK_VID);
 }
 
 /*
@@ -135,7 +133,7 @@ vlan_decapsulate(const struct context *c, struct buffer *buf)
                 goto drop;
             }
 
-            /* vid == 0 means prio-tagged packet: don't drop and fall-through */
+        /* vid == 0 means prio-tagged packet: don't drop and fall-through */
         case VLAN_ONLY_TAGGED:
         case VLAN_ALL:
             /* tagged frame can be accepted: extract vid and strip encapsulation */
@@ -333,5 +331,3 @@ vlan_process_outgoing_tun(struct multi_context *m, struct multi_instance *mi)
         vlan_encapsulate(&mi->context, &mi->context.c2.to_tun);
     }
 }
-
-#endif /* P2MP_SERVER */

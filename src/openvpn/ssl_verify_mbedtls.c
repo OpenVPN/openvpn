@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -62,12 +62,29 @@ verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
     struct buffer cert_fingerprint = x509_get_sha256_fingerprint(cert, &gc);
     cert_hash_remember(session, cert_depth, &cert_fingerprint);
 
+    if (session->opt->verify_hash_no_ca)
+    {
+        /*
+         * If we decide to verify the peer certificate based on the fingerprint
+         * we ignore wrong dates and the certificate not being trusted.
+         * Any other problem with the certificate (wrong key, bad cert,...)
+         * will still trigger an error.
+         * Clearing these flags relies on verify_cert will later rejecting a
+         * certificate that has no matching fingerprint.
+         */
+        uint32_t flags_ignore = MBEDTLS_X509_BADCERT_NOT_TRUSTED
+                                | MBEDTLS_X509_BADCERT_EXPIRED
+                                | MBEDTLS_X509_BADCERT_FUTURE;
+        *flags = *flags & ~flags_ignore;
+    }
+
     /* did peer present cert which was signed by our root cert? */
     if (*flags != 0)
     {
         int ret = 0;
         char errstr[512] = { 0 };
         char *subject = x509_get_subject(cert, &gc);
+        char *serial = backend_x509_get_serial(cert, &gc);
 
         ret = mbedtls_x509_crt_verify_info(errstr, sizeof(errstr)-1, "", *flags);
         if (ret <= 0 && !openvpn_snprintf(errstr, sizeof(errstr),
@@ -82,8 +99,8 @@ verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
 
         if (subject)
         {
-            msg(D_TLS_ERRORS, "VERIFY ERROR: depth=%d, subject=%s: %s",
-                cert_depth, subject, errstr);
+            msg(D_TLS_ERRORS, "VERIFY ERROR: depth=%d, subject=%s, serial=%s: %s",
+                cert_depth, subject, serial ? serial : "<not available>", errstr);
         }
         else
         {

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -112,6 +112,12 @@ struct tuntap_options {
     in_addr_t nbdd[N_DHCP_ADDR];
     int nbdd_len;
 
+#define N_SEARCH_LIST_LEN 10 /* Max # of entries in domin-search list */
+
+    /* SEARCH (119), MacOS, Linux, Win10 1809+ */
+    const char *domain_search_list[N_SEARCH_LIST_LEN];
+    int domain_search_list_len;
+
     /* DISABLE_NBT (43, Vendor option 001) */
     bool disable_nbt;
 
@@ -122,9 +128,13 @@ struct tuntap_options {
 
     struct in6_addr dns6[N_DHCP_ADDR];
     int dns6_len;
+#if defined(TARGET_ANDROID)
+    const char *http_proxy;
+    int http_proxy_port;
+#endif
 };
 
-#elif TARGET_LINUX
+#elif defined(TARGET_LINUX)
 
 struct tuntap_options {
     int txqueuelen;
@@ -158,9 +168,6 @@ struct tuntap
     struct tuntap_options options; /* options set on command line */
 
     char *actual_name; /* actual name of TUN/TAP dev, usually including unit number */
-
-    /* number of TX buffers */
-    int txqueuelen;
 
     /* ifconfig parameters */
     in_addr_t local;
@@ -207,10 +214,6 @@ struct tuntap
 #endif
     /* used for printing status info only */
     unsigned int rwflags_debug;
-
-    /* Some TUN/TAP drivers like to be ioctled for mtu
-     * after open */
-    int post_open_mtu;
 };
 
 static inline bool
@@ -310,16 +313,6 @@ void check_subnet_conflict(const in_addr_t ip,
 void warn_on_use_of_common_subnets(openvpn_net_ctx_t *ctx);
 
 /*
- * Inline functions
- */
-
-static inline void
-tun_adjust_frame_parameters(struct frame *frame, int size)
-{
-    frame_add_to_extra_tun(frame, size);
-}
-
-/*
  * Should ifconfig be called before or after
  * tun dev open?
  */
@@ -384,7 +377,7 @@ struct panel_reg
 
 struct device_instance_id_interface
 {
-    const char *net_cfg_instance_id;
+    LPBYTE net_cfg_instance_id;
     const char *device_interface_list;
     struct device_instance_id_interface *next;
 };
@@ -444,8 +437,6 @@ int tun_read_queue(struct tuntap *tt, int maxsize);
 
 int tun_write_queue(struct tuntap *tt, struct buffer *buf);
 
-int tun_finalize(HANDLE h, struct overlapped_io *io, struct buffer *buf);
-
 static inline bool
 tuntap_stop(int status)
 {
@@ -455,7 +446,7 @@ tuntap_stop(int status)
      */
     if (status < 0)
     {
-        return openvpn_errno() == ERROR_FILE_NOT_FOUND;
+        return GetLastError() == ERROR_FILE_NOT_FOUND;
     }
     return false;
 }
@@ -468,41 +459,12 @@ tuntap_abort(int status)
      */
     if (status < 0)
     {
-        return openvpn_errno() == ERROR_OPERATION_ABORTED;
+        return GetLastError() == ERROR_OPERATION_ABORTED;
     }
     return false;
 }
 
-static inline int
-tun_write_win32(struct tuntap *tt, struct buffer *buf)
-{
-    int err = 0;
-    int status = 0;
-    if (overlapped_io_active(&tt->writes))
-    {
-        status = tun_finalize(tt->hand, &tt->writes, NULL);
-        if (status < 0)
-        {
-            err = GetLastError();
-        }
-    }
-    tun_write_queue(tt, buf);
-    if (status < 0)
-    {
-        SetLastError(err);
-        return status;
-    }
-    else
-    {
-        return BLEN(buf);
-    }
-}
-
-static inline int
-read_tun_buffered(struct tuntap *tt, struct buffer *buf)
-{
-    return tun_finalize(tt->hand, &tt->reads, buf);
-}
+int tun_write_win32(struct tuntap *tt, struct buffer *buf);
 
 static inline ULONG
 wintun_ring_packet_align(ULONG size)

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -38,6 +38,10 @@
 #include "memdbg.h"
 
 #include "platform.h"
+
+#if _WIN32
+#include <direct.h>
+#endif
 
 /* Redefine the top level directory of the filesystem
  * to restrict access to files for security */
@@ -180,11 +184,7 @@ platform_getpid(void)
 #ifdef _WIN32
     return (unsigned int) GetCurrentProcessId();
 #else
-#ifdef HAVE_GETPID
     return (unsigned int) getpid();
-#else
-    return 0;
-#endif
 #endif
 }
 
@@ -193,6 +193,35 @@ void
 platform_mlockall(bool print_msg)
 {
 #ifdef HAVE_MLOCKALL
+
+#if defined(HAVE_GETRLIMIT) && defined(RLIMIT_MEMLOCK)
+#define MIN_LOCKED_MEM_MB 100
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_MEMLOCK, &rl) < 0)
+    {
+        msg(M_WARN | M_ERRNO, "WARNING: getrlimit(RLIMIT_MEMLOCK) failed");
+    }
+    else
+    {
+        msg(M_INFO, "mlock: MEMLOCK limit: soft=%ld KB, hard=%ld KB",
+            ((long int) rl.rlim_cur) / 1024, ((long int) rl.rlim_max) / 1024);
+        if (rl.rlim_cur < MIN_LOCKED_MEM_MB*1024*1024)
+        {
+            msg(M_INFO, "mlock: RLIMIT_MEMLOCK < %d MB, increase limit",
+                MIN_LOCKED_MEM_MB);
+            rl.rlim_cur = MIN_LOCKED_MEM_MB*1024*1024;
+            if (rl.rlim_max < rl.rlim_cur)
+            {
+                rl.rlim_max = rl.rlim_cur;
+            }
+            if (setrlimit(RLIMIT_MEMLOCK, &rl) < 0)
+            {
+                msg(M_FATAL | M_ERRNO, "ERROR: setrlimit() failed");
+            }
+        }
+    }
+#endif /* if defined(HAVE_GETRLIMIT) && defined(RLIMIT_MEMLOCK) */
+
     if (mlockall(MCL_CURRENT | MCL_FUTURE))
     {
         msg(M_WARN | M_ERRNO, "WARNING: mlockall call failed");
@@ -203,7 +232,7 @@ platform_mlockall(bool print_msg)
     }
 #else  /* ifdef HAVE_MLOCKALL */
     msg(M_WARN, "WARNING: mlockall call failed (function not implemented)");
-#endif
+#endif /* ifdef HAVE_MLOCKALL */
 }
 
 /*
@@ -239,6 +268,40 @@ platform_system_ok(int stat)
     return stat != -1 && WIFEXITED(stat) && WEXITSTATUS(stat) == 0;
 #endif
 }
+
+#ifdef _WIN32
+int
+platform_ret_code(int stat)
+{
+    if (stat >= 0 && stat < 255)
+    {
+        return stat;
+    }
+    else
+    {
+        return -1;
+    }
+}
+#else  /* ifdef _WIN32 */
+int
+platform_ret_code(int stat)
+{
+    if (!WIFEXITED(stat) || stat == -1)
+    {
+        return -1;
+    }
+
+    int status = WEXITSTATUS(stat);
+    if (status >= 0 && status < 255)
+    {
+        return status;
+    }
+    else
+    {
+        return -1;
+    }
+}
+#endif /* ifdef _WIN32 */
 
 int
 platform_access(const char *path, int mode)
@@ -291,10 +354,8 @@ platform_unlink(const char *filename)
     BOOL ret = DeleteFileW(wide_string(filename, &gc));
     gc_free(&gc);
     return (ret != 0);
-#elif defined(HAVE_UNLINK)
+#else
     return (unlink(filename) == 0);
-#else  /* if defined(_WIN32) */
-    return false;
 #endif
 }
 
@@ -421,7 +482,7 @@ platform_gen_path(const char *directory, const char *filename,
         struct buffer out = alloc_buf_gc(outsize, gc);
         char dirsep[2];
 
-        dirsep[0] = OS_SPECIFIC_DIRSEP;
+        dirsep[0] = PATH_SEPARATOR;
         dirsep[1] = '\0';
 
         if (directory)
@@ -471,7 +532,7 @@ platform_test_file(const char *filename)
         }
         else
         {
-            if (openvpn_errno() == EACCES)
+            if (errno == EACCES)
             {
                 msg( M_WARN | M_ERRNO, "Could not access file '%s'", filename);
             }

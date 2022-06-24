@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2016-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2016-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -49,9 +49,10 @@ struct test_packet_id_write_data {
 };
 
 static int
-test_packet_id_write_setup(void **state) {
+test_packet_id_write_setup(void **state)
+{
     struct test_packet_id_write_data *data =
-            calloc(1, sizeof(struct test_packet_id_write_data));
+        calloc(1, sizeof(struct test_packet_id_write_data));
 
     if (!data)
     {
@@ -66,7 +67,8 @@ test_packet_id_write_setup(void **state) {
 }
 
 static int
-test_packet_id_write_teardown(void **state) {
+test_packet_id_write_teardown(void **state)
+{
     free(*state);
     return 0;
 }
@@ -155,20 +157,27 @@ test_packet_id_write_long_wrap(void **state)
 }
 
 int
-main(void) {
+main(void)
+{
     const struct CMUnitTest tests[] = {
-            cmocka_unit_test_setup_teardown(test_packet_id_write_short,
-                    test_packet_id_write_setup, test_packet_id_write_teardown),
-            cmocka_unit_test_setup_teardown(test_packet_id_write_long,
-                    test_packet_id_write_setup, test_packet_id_write_teardown),
-            cmocka_unit_test_setup_teardown(test_packet_id_write_short_prepend,
-                    test_packet_id_write_setup, test_packet_id_write_teardown),
-            cmocka_unit_test_setup_teardown(test_packet_id_write_long_prepend,
-                    test_packet_id_write_setup, test_packet_id_write_teardown),
-            cmocka_unit_test_setup_teardown(test_packet_id_write_short_wrap,
-                    test_packet_id_write_setup, test_packet_id_write_teardown),
-            cmocka_unit_test_setup_teardown(test_packet_id_write_long_wrap,
-                    test_packet_id_write_setup, test_packet_id_write_teardown),
+        cmocka_unit_test_setup_teardown(test_packet_id_write_short,
+                                        test_packet_id_write_setup,
+                                        test_packet_id_write_teardown),
+        cmocka_unit_test_setup_teardown(test_packet_id_write_long,
+                                        test_packet_id_write_setup,
+                                        test_packet_id_write_teardown),
+        cmocka_unit_test_setup_teardown(test_packet_id_write_short_prepend,
+                                        test_packet_id_write_setup,
+                                        test_packet_id_write_teardown),
+        cmocka_unit_test_setup_teardown(test_packet_id_write_long_prepend,
+                                        test_packet_id_write_setup,
+                                        test_packet_id_write_teardown),
+        cmocka_unit_test_setup_teardown(test_packet_id_write_short_wrap,
+                                        test_packet_id_write_setup,
+                                        test_packet_id_write_teardown),
+        cmocka_unit_test_setup_teardown(test_packet_id_write_long_wrap,
+                                        test_packet_id_write_setup,
+                                        test_packet_id_write_teardown),
     };
 
     return cmocka_run_group_tests_name("packet_id tests", tests, NULL, NULL);

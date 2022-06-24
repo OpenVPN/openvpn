@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -461,11 +461,8 @@ pkcs11_management_id_count(void)
 
 cleanup:
 
-    if (id_list != NULL)
-    {
-        pkcs11h_certificate_freeCertificateIdList(id_list);
-        id_list = NULL;
-    }
+    pkcs11h_certificate_freeCertificateIdList(id_list);
+    id_list = NULL;
 
     dmsg(
         D_PKCS11_DEBUG,
@@ -630,29 +627,17 @@ pkcs11_management_id_get(
 
 cleanup:
 
-    if (id_list != NULL)
-    {
-        pkcs11h_certificate_freeCertificateIdList(id_list);
-        id_list = NULL;
-    }
+    pkcs11h_certificate_freeCertificateIdList(id_list);
+    id_list = NULL;
 
-    if (internal_id != NULL)
-    {
-        free(internal_id);
-        internal_id = NULL;
-    }
+    free(internal_id);
+    internal_id = NULL;
 
-    if (internal_base64 != NULL)
-    {
-        free(internal_base64);
-        internal_base64 = NULL;
-    }
+    free(internal_base64);
+    internal_base64 = NULL;
 
-    if (certificate_blob != NULL)
-    {
-        free(certificate_blob);
-        certificate_blob = NULL;
-    }
+    free(certificate_blob);
+    certificate_blob = NULL;
 
     dmsg(
         D_PKCS11_DEBUG,
@@ -1005,29 +990,15 @@ cleanup1:
             certificate = NULL;
         }
 
-        if (ser != NULL)
-        {
-            free(ser);
-            ser = NULL;
-        }
+        free(ser);
+        ser = NULL;
     }
 
 cleanup:
-    if (user_certificates != NULL)
-    {
-        pkcs11h_certificate_freeCertificateIdList(user_certificates);
-        user_certificates = NULL;
-    }
+    pkcs11h_certificate_freeCertificateIdList(user_certificates);
+    user_certificates = NULL;
 
     pkcs11h_terminate();
     gc_free(&gc);
 }
-
-#else  /* if defined(ENABLE_PKCS11) */
-#ifdef _MSC_VER  /* Dummy function needed to avoid empty file compiler warning in Microsoft VC */
-static void
-dummy(void)
-{
-}
-#endif
 #endif /* ENABLE_PKCS11 */

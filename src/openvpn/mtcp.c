@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -28,8 +28,6 @@
 #endif
 
 #include "syshead.h"
-
-#if P2MP_SERVER
 
 #include "multi.h"
 #include "forward.h"
@@ -61,13 +59,8 @@
 #define MTCP_SOCKET      ((void *)1)
 #define MTCP_TUN         ((void *)2)
 #define MTCP_SIG         ((void *)3) /* Only on Windows */
-#ifdef ENABLE_MANAGEMENT
 #define MTCP_MANAGEMENT ((void *)4)
-#endif
-
-#ifdef ENABLE_ASYNC_PUSH
 #define MTCP_FILE_CLOSE_WRITE ((void *)5)
-#endif
 
 #define MTCP_N           ((void *)16) /* upper bound on MTCP_x */
 
@@ -231,10 +224,7 @@ multi_tcp_free(struct multi_tcp *mtcp)
     if (mtcp)
     {
         event_free(mtcp->es);
-        if (mtcp->esr)
-        {
-            free(mtcp->esr);
-        }
+        free(mtcp->esr);
         free(mtcp);
     }
 }
@@ -799,7 +789,7 @@ tunnel_server_tcp(struct context *top)
     }
 
     /* initialize global multi_context object */
-    multi_init(&multi, top, true, MC_SINGLE_THREADED);
+    multi_init(&multi, top, true);
 
     /* initialize our cloned top object */
     multi_top_init(&multi, top);
@@ -861,5 +851,3 @@ tunnel_server_tcp(struct context *top)
     multi_top_free(&multi);
     close_instance(top);
 }
-
-#endif /* if P2MP_SERVER */

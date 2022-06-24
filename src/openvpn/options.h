@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -42,6 +42,7 @@
 #include "pushlist.h"
 #include "clinat.h"
 #include "crypto_backend.h"
+#include "dns.h"
 
 
 /*
@@ -58,10 +59,8 @@
 
 extern const char title_string[];
 
-#if P2MP
-
 /* certain options are saved before --pull modifications are applied */
-struct options_pre_pull
+struct options_pre_connect
 {
     bool tuntap_options_defined;
     struct tuntap_options tuntap_options;
@@ -72,13 +71,27 @@ struct options_pre_pull
     bool routes_ipv6_defined;
     struct route_ipv6_option_list *routes_ipv6;
 
+    const char *route_default_gateway;
+    const char *route_ipv6_default_gateway;
+
     bool client_nat_defined;
     struct client_nat_option_list *client_nat;
 
+    struct dns_options dns_options;
+
+    const char *ciphername;
+    const char *authname;
+
+    int ping_send_timeout;
+    int ping_rec_timeout;
+    int ping_rec_timeout_action;
+
     int foreign_option_index;
+#ifdef USE_COMP
+    struct compress_options comp;
+#endif
 };
 
-#endif
 #if !defined(ENABLE_CRYPTO_OPENSSL) && !defined(ENABLE_CRYPTO_MBEDTLS)
 #error "At least one of OpenSSL or mbed TLS needs to be defined."
 #endif
@@ -115,8 +128,13 @@ struct connection_entry
     int mtu_discover_type; /* used if OS supports setting Path MTU discovery options on socket */
 
     int fragment;        /* internal fragmentation size */
+    bool fragment_encap; /* true if --fragment had the "mtu" parameter to
+                          * include overhead from IP and TCP/UDP encapsulation */
     int mssfix;          /* Upper bound on TCP MSS */
-    bool mssfix_default; /* true if --mssfix was supplied without a parameter */
+    bool mssfix_default; /* true if --mssfix should use the default parameters */
+    bool mssfix_encap;   /* true if --mssfix had the "mtu" parameter to include
+                          * overhead from IP and TCP/UDP encapsulation */
+    bool mssfix_fixed;   /* use the mssfix value without any encapsulation adjustments */
 
     int explicit_exit_notification; /* Explicitly tell peer when we are exiting via OCC_EXIT or [RESTART] message */
 
@@ -133,17 +151,20 @@ struct connection_entry
 
     /* Shared secret used for TLS control channel authentication */
     const char *tls_auth_file;
-    const char *tls_auth_file_inline;
+    bool tls_auth_file_inline;
     int key_direction;
 
     /* Shared secret used for TLS control channel authenticated encryption */
     const char *tls_crypt_file;
-    const char *tls_crypt_inline;
+    bool tls_crypt_file_inline;
 
     /* Client-specific secret or server key used for TLS control channel
      * authenticated encryption v2 */
     const char *tls_crypt_v2_file;
-    const char *tls_crypt_v2_inline;
+    bool tls_crypt_v2_file_inline;
+
+    /* Allow only client that support resending the wrapped client key */
+    bool tls_crypt_v2_force_cookie;
 };
 
 struct remote_entry
@@ -169,6 +190,14 @@ struct remote_list
     struct remote_entry *array[CONNECTION_LIST_SIZE];
 };
 
+struct provider_list
+{
+    /* Names of the providers */
+    const char *names[MAX_PARMS];
+    /* Pointers to the loaded providers to unload them */
+    provider_t *providers[MAX_PARMS];
+};
+
 enum vlan_acceptable_frames
 {
     VLAN_ONLY_TAGGED,
@@ -191,6 +220,14 @@ enum genkey_type {
     GENKEY_AUTH_TOKEN
 };
 
+struct verify_hash_list
+{
+    /* We support SHA256 and SHA1 fingerpint. In the case of using the
+     * deprecated SHA1, only the first 20 bytes of each list item are used */
+    uint8_t hash[SHA256_DIGEST_LENGTH];
+    struct verify_hash_list *next;
+};
+
 /* Command line options */
 struct options
 {
@@ -207,6 +244,10 @@ struct options
 
     /* enable forward compatibility for post-2.1 features */
     bool forward_compatible;
+    /** What version we should try to be compatible with as major * 10000 +
+     * minor * 100 + patch, e.g. 2.4.7 => 20407 */
+    unsigned int backwards_compatible;
+
     /* list of options that should be ignored even if unknown */
     const char **ignore_unknown_option;
 
@@ -222,8 +263,8 @@ struct options
     bool show_curves;
     bool genkey;
     enum genkey_type genkey_type;
-    const char* genkey_filename;
-    const char* genkey_extra_data;
+    const char *genkey_filename;
+    const char *genkey_extra_data;
 
     /* Networking parms */
     int connect_retry_max;
@@ -242,6 +283,8 @@ struct options
 
     struct remote_host_store *rh_store;
 
+    struct dns_options dns_options;
+
     bool remote_random;
     const char *ipchange;
     const char *dev;
@@ -256,15 +299,11 @@ struct options
     const char *ifconfig_ipv6_remote;
     bool ifconfig_noexec;
     bool ifconfig_nowarn;
-#ifdef ENABLE_FEATURE_SHAPER
     int shaper;
-#endif
 
     int proto_force;
 
-#ifdef ENABLE_OCC
     bool mtu_test;
-#endif
 
 #ifdef ENABLE_MEMSTATS
     char *memstats_fn;
@@ -276,7 +315,7 @@ struct options
     int keepalive_timeout;
 
     int inactivity_timeout;     /* --inactive */
-    int inactivity_minimum_bytes;
+    int64_t inactivity_minimum_bytes;
 
     int ping_send_timeout;      /* Send a TCP/UDP ping to remote every n seconds */
     int ping_rec_timeout;       /* Expect a TCP/UDP ping from remote at least once every n seconds */
@@ -321,9 +360,6 @@ struct options
 
     int remap_sigusr1;
 
-    /* inetd modes defined in socket.h */
-    int inetd;
-
     bool log;
     bool suppress_timestamps;
     bool machine_readable_output;
@@ -352,6 +388,7 @@ struct options
 
     /* mark value */
     int mark;
+    char *bind_dev;
 
     /* socket flags */
     unsigned int sockflags;
@@ -374,10 +411,8 @@ struct options
     bool allow_pull_fqdn; /* as a client, allow server to push a FQDN for certain parameters */
     struct client_nat_option_list *client_nat;
 
-#ifdef ENABLE_OCC
     /* Enable options consistency check between peers */
     bool occ;
-#endif
 
 #ifdef ENABLE_MANAGEMENT
     const char *management_addr;
@@ -400,11 +435,6 @@ struct options
     struct plugin_option_list *plugin_list;
 #endif
 
-
-
-#if P2MP
-
-#if P2MP_SERVER
     /* the tmp dir is for now only used in the P2P server context */
     const char *tmp_dir;
     bool server_defined;
@@ -480,41 +510,37 @@ struct options
     bool auth_token_call_auth;
     int auth_token_lifetime;
     const char *auth_token_secret_file;
-    const char *auth_token_secret_file_inline;
+    bool auth_token_secret_file_inline;
 
 #if PORT_SHARE
     char *port_share_host;
     char *port_share_port;
     const char *port_share_journal_dir;
 #endif
-#endif /* if P2MP_SERVER */
 
     bool client;
     bool pull; /* client pull of config options from server */
     int push_continuation;
     unsigned int push_option_types_found;
     const char *auth_user_pass_file;
-    struct options_pre_pull *pre_pull;
+    struct options_pre_connect *pre_connect;
 
     int scheduled_exit_interval;
 
 #ifdef ENABLE_MANAGEMENT
     struct static_challenge_info sc_info;
 #endif
-#endif /* if P2MP */
-
     /* Cipher parms */
     const char *shared_secret_file;
-    const char *shared_secret_file_inline;
+    bool shared_secret_file_inline;
     int key_direction;
     const char *ciphername;
-    bool ncp_enabled;
+    bool enable_ncp_fallback;      /**< If defined fall back to
+                                   * ciphername if NCP fails */
     const char *ncp_ciphers;
     const char *authname;
-    int keysize;
-    const char *prng_hash;
-    int prng_nonce_secret_len;
     const char *engine;
+    struct provider_list providers;
     bool replay;
     bool mute_replay_warnings;
     int replay_window;
@@ -529,14 +555,21 @@ struct options
     bool tls_server;
     bool tls_client;
     const char *ca_file;
+    bool ca_file_inline;
     const char *ca_path;
     const char *dh_file;
+    bool dh_file_inline;
     const char *cert_file;
+    bool cert_file_inline;
     const char *extra_certs_file;
+    bool extra_certs_file_inline;
     const char *priv_key_file;
+    bool priv_key_file_inline;
     const char *pkcs12_file;
+    bool pkcs12_file_inline;
     const char *cipher_list;
     const char *cipher_list_tls13;
+    const char *tls_groups;
     const char *tls_cert_profile;
     const char *ecdh_curve;
     const char *tls_verify;
@@ -544,20 +577,15 @@ struct options
     const char *verify_x509_name;
     const char *tls_export_cert;
     const char *crl_file;
-
-    const char *ca_file_inline;
-    const char *cert_file_inline;
-    const char *extra_certs_file_inline;
-    const char *crl_file_inline;
-    char *priv_key_file_inline;
-    const char *dh_file_inline;
-    const char *pkcs12_file_inline; /* contains the base64 encoding of pkcs12 file */
+    bool crl_file_inline;
 
     int ns_cert_type; /* set to 0, NS_CERT_CHECK_SERVER, or NS_CERT_CHECK_CLIENT */
     unsigned remote_cert_ku[MAX_PARMS];
     const char *remote_cert_eku;
-    uint8_t *verify_hash;
+    struct verify_hash_list *verify_hash;
     hash_algo_type verify_hash_algo;
+    int verify_hash_depth;
+    bool verify_hash_no_ca;
     unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
 
 #ifdef ENABLE_PKCS11
@@ -573,10 +601,6 @@ struct options
 #ifdef ENABLE_CRYPTOAPI
     const char *cryptoapi_cert;
 #endif
-
-    /* data channel key exchange method */
-    int key_method;
-
     /* Per-packet timeout on control channel */
     int tls_timeout;
 
@@ -591,8 +615,8 @@ struct options
     int handshake_window;
 
 #ifdef ENABLE_X509ALTUSERNAME
-    /* Field used to be the username in X509 cert. */
-    char *x509_username_field;
+    /* Field list used to be the username in X509 cert. */
+    char *x509_username_field[MAX_PARMS];
 #endif
 
     /* Old key allowed to live n seconds after new key goes active */
@@ -600,16 +624,16 @@ struct options
 
     /* Shared secret used for TLS control channel authentication */
     const char *tls_auth_file;
-    const char *tls_auth_file_inline;
+    bool tls_auth_file_inline;
 
     /* Shared secret used for TLS control channel authenticated encryption */
     const char *tls_crypt_file;
-    const char *tls_crypt_inline;
+    bool tls_crypt_file_inline;
 
     /* Client-specific secret or server key used for TLS control channel
      * authenticated encryption v2 */
     const char *tls_crypt_v2_file;
-    const char *tls_crypt_v2_inline;
+    bool tls_crypt_v2_file_inline;
 
     const char *tls_crypt_v2_metadata;
 
@@ -655,6 +679,9 @@ struct options
     /* Useful when packets sent by openvpn itself are not subject
      * to the routing tables that would move packets into the tunnel. */
     bool allow_recursive_routing;
+
+    /* data channel crypto flags set by push/pull. Reuses the CO_* crypto_flags */
+    unsigned int data_channel_crypto_flags;
 };
 
 #define streq(x, y) (!strcmp((x), (y)))
@@ -679,7 +706,7 @@ struct options
 #define OPT_P_MTU             (1<<14) /* TODO */
 #define OPT_P_NICE            (1<<15)
 #define OPT_P_PUSH            (1<<16)
-#define OPT_P_INSTANCE        (1<<17)
+#define OPT_P_INSTANCE        (1<<17) /**< allowed in ccd, client-connect etc*/
 #define OPT_P_CONFIG          (1<<18)
 #define OPT_P_EXPLICIT_NOTIFY (1<<19)
 #define OPT_P_ECHO            (1<<20)
@@ -691,15 +718,12 @@ struct options
 #define OPT_P_SOCKFLAGS       (1<<26)
 #define OPT_P_CONNECTION      (1<<27)
 #define OPT_P_PEER_ID         (1<<28)
+#define OPT_P_INLINE          (1<<29)
 
 #define OPT_P_DEFAULT   (~(OPT_P_INSTANCE|OPT_P_PULL_MODE))
 
-#if P2MP
 #define PULL_DEFINED(opt) ((opt)->pull)
-#if P2MP_SERVER
 #define PUSH_DEFINED(opt) ((opt)->push_list)
-#endif
-#endif
 
 #ifndef PULL_DEFINED
 #define PULL_DEFINED(opt) (false)
@@ -715,11 +739,7 @@ struct options
 #define ROUTE_OPTION_FLAGS(o) (0)
 #endif
 
-#ifdef ENABLE_FEATURE_SHAPER
 #define SHAPER_DEFINED(opt) ((opt)->shaper)
-#else
-#define SHAPER_DEFINED(opt) (false)
-#endif
 
 #ifdef ENABLE_PLUGIN
 #define PLUGIN_OPTION_LIST(opt) ((opt)->plugin_list)
@@ -727,7 +747,7 @@ struct options
 #define PLUGIN_OPTION_LIST(opt) (NULL)
 #endif
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
 #define MAN_CLIENT_AUTH_ENABLED(opt) ((opt)->management_flags & MF_CLIENT_AUTH)
 #else
 #define MAN_CLIENT_AUTH_ENABLED(opt) (false)
@@ -762,8 +782,6 @@ void show_settings(const struct options *o);
 
 bool string_defined_equal(const char *s1, const char *s2);
 
-#ifdef ENABLE_OCC
-
 const char *options_string_version(const char *s, struct gc_arena *gc);
 
 char *options_string(const struct options *o,
@@ -781,8 +799,6 @@ bool options_cmp_equal(char *actual, const char *expected);
 
 void options_warning(char *actual, const char *expected);
 
-#endif
-
 /**
  * Given an OpenVPN options string, extract the value of an option.
  *
@@ -799,9 +815,11 @@ char *options_string_extract_option(const char *options_string,
 
 void options_postprocess(struct options *options);
 
-void pre_pull_save(struct options *o);
+bool options_postprocess_pull(struct options *o, struct env_set *es);
 
-void pre_pull_restore(struct options *o, struct gc_arena *gc);
+void pre_connect_save(struct options *o);
+
+void pre_connect_restore(struct options *o, struct gc_arena *gc);
 
 bool apply_push_options(struct options *options,
                         struct buffer *buf,
@@ -842,8 +860,6 @@ const char *print_topology(const int topology);
  * Manage auth-retry variable
  */
 
-#if P2MP
-
 #define AR_NONE       0
 #define AR_INTERACT   1
 #define AR_NOINTERACT 2
@@ -854,13 +870,13 @@ bool auth_retry_set(const int msglevel, const char *option);
 
 const char *auth_retry_print(void);
 
-#endif
-
 void options_string_import(struct options *options,
                            const char *config,
                            const int msglevel,
                            const unsigned int permission_mask,
                            unsigned int *option_types_found,
                            struct env_set *es);
+
+bool key_is_external(const struct options *options);
 
 #endif /* ifndef OPTIONS_H */

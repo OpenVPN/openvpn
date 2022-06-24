@@ -45,11 +45,15 @@ m4/ltoptions.m4
 m4/ltsugar.m4
 m4/ltversion.m4
 m4/lt~obsolete.m4
+vcpkg_installed
 
 version.sh
 msvc-env-local.bat
 config-msvc-local.h
 config-msvc-version.h
+doc/openvpn-examples.5
+doc/openvpn-examples.5.html
+doc/openvpn.8
 doc/openvpn.8.html
 /doc/doxygen/html/
 /doc/doxygen/latex/

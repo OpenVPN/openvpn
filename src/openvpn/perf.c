@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -318,12 +318,4 @@ perf_print_state(int lev)
     }
     gc_free(&gc);
 }
-
-#else  /* ifdef ENABLE_PERFORMANCE_METRICS */
-#ifdef _MSC_VER  /* Dummy function needed to avoid empty file compiler warning in Microsoft VC */
-static void
-dummy(void)
-{
-}
-#endif
 #endif /* ifdef ENABLE_PERFORMANCE_METRICS */

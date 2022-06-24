@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -41,6 +41,7 @@
 #include "mtu.h"
 #include "run_command.h"
 #include "sig.h"
+#include "win32-util.h"
 #include "win32.h"
 #include "openvpn-msg.h"
 
@@ -101,6 +102,12 @@ struct semaphore netcmd_semaphore; /* GLOBAL */
  */
 static char *win_sys_path = NULL; /* GLOBAL */
 
+/**
+ * Set OpenSSL environment variables to a safe directory
+ */
+static void
+set_openssl_env_vars();
+
 void
 init_win32(void)
 {
@@ -110,6 +117,8 @@ init_win32(void)
     }
     window_title_clear(&window_title);
     win32_signal_clear(&win32_signal);
+
+    set_openssl_env_vars();
 }
 
 void
@@ -177,7 +186,7 @@ overlapped_io_init(struct overlapped_io *o,
     }
 
     /* allocate buffer for overlapped I/O */
-    alloc_buf_sock_tun(&o->buf_init, frame, tuntap_buffer, 0);
+    alloc_buf_sock_tun(&o->buf_init, frame, tuntap_buffer);
 }
 
 void
@@ -880,92 +889,6 @@ netcmd_semaphore_release(void)
 }
 
 /*
- * Return true if filename is safe to be used on Windows,
- * by avoiding the following reserved names:
- *
- * CON, PRN, AUX, NUL, COM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9,
- * LPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, LPT9, and CLOCK$
- *
- * See: http://msdn.microsoft.com/en-us/library/aa365247.aspx
- *  and http://msdn.microsoft.com/en-us/library/86k9f82k(VS.80).aspx
- */
-
-static bool
-cmp_prefix(const char *str, const bool n, const char *pre)
-{
-    size_t i = 0;
-
-    if (!str)
-    {
-        return false;
-    }
-
-    while (true)
-    {
-        const int c1 = pre[i];
-        int c2 = str[i];
-        ++i;
-        if (c1 == '\0')
-        {
-            if (n)
-            {
-                if (isdigit(c2))
-                {
-                    c2 = str[i];
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            return c2 == '\0' || c2 == '.';
-        }
-        else if (c2 == '\0')
-        {
-            return false;
-        }
-        if (c1 != tolower(c2))
-        {
-            return false;
-        }
-    }
-}
-
-bool
-win_safe_filename(const char *fn)
-{
-    if (cmp_prefix(fn, false, "con"))
-    {
-        return false;
-    }
-    if (cmp_prefix(fn, false, "prn"))
-    {
-        return false;
-    }
-    if (cmp_prefix(fn, false, "aux"))
-    {
-        return false;
-    }
-    if (cmp_prefix(fn, false, "nul"))
-    {
-        return false;
-    }
-    if (cmp_prefix(fn, true, "com"))
-    {
-        return false;
-    }
-    if (cmp_prefix(fn, true, "lpt"))
-    {
-        return false;
-    }
-    if (cmp_prefix(fn, false, "clock$"))
-    {
-        return false;
-    }
-    return true;
-}
-
-/*
  * Service functions for openvpn_execve
  */
 
@@ -1125,13 +1048,13 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
                 }
                 else
                 {
-                    msg(M_WARN|M_ERRNO, "openvpn_execve: GetExitCodeProcess %S failed", cmd);
+                    msg(M_WARN|M_ERRNO, "openvpn_execve: GetExitCodeProcess %ls failed", cmd);
                 }
                 CloseHandle(proc_info.hProcess);
             }
             else
             {
-                msg(M_WARN|M_ERRNO, "openvpn_execve: CreateProcess %S failed", cmd);
+                msg(M_WARN|M_ERRNO, "openvpn_execve: CreateProcess %ls failed", cmd);
             }
             free(env);
             gc_free(&gc);
@@ -1151,15 +1074,6 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
         msg(M_WARN, "openvpn_execve: called with empty argv");
     }
     return ret;
-}
-
-WCHAR *
-wide_string(const char *utf8, struct gc_arena *gc)
-{
-    int n = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
-    WCHAR *ucs16 = gc_malloc(n * sizeof(WCHAR), false, gc);
-    MultiByteToWideChar(CP_UTF8, 0, utf8, -1, ucs16, n);
-    return ucs16;
 }
 
 /*
@@ -1417,10 +1331,18 @@ win32_version_info(void)
     {
         return WIN_7;
     }
-    else
+
+    if (!IsWindows8Point1OrGreater())
     {
         return WIN_8;
     }
+
+    if (!IsWindows10OrGreater())
+    {
+        return WIN_8_1;
+    }
+
+    return WIN_10;
 }
 
 bool
@@ -1458,7 +1380,15 @@ win32_version_string(struct gc_arena *gc, bool add_name)
             break;
 
         case WIN_8:
-            buf_printf(&out, "6.2%s", add_name ? " (Windows 8 or greater)" : "");
+            buf_printf(&out, "6.2%s", add_name ? " (Windows 8)" : "");
+            break;
+
+        case WIN_8_1:
+            buf_printf(&out, "6.3%s", add_name ? " (Windows 8.1)" : "");
+            break;
+
+        case WIN_10:
+            buf_printf(&out, "10.0%s", add_name ? " (Windows 10 or greater)" : "");
             break;
 
         default:
@@ -1494,98 +1424,83 @@ send_msg_iservice(HANDLE pipe, const void *data, size_t size,
 }
 
 bool
-impersonate_as_system()
+openvpn_swprintf(wchar_t *const str, const size_t size, const wchar_t *const format, ...)
 {
-    HANDLE thread_token, process_snapshot, winlogon_process, winlogon_token, duplicated_token;
-    PROCESSENTRY32 entry;
-    BOOL ret;
-    DWORD pid = 0;
-    TOKEN_PRIVILEGES privileges;
-
-    CLEAR(entry);
-    CLEAR(privileges);
-
-    entry.dwSize = sizeof(PROCESSENTRY32);
-
-    privileges.PrivilegeCount = 1;
-    privileges.Privileges->Attributes = SE_PRIVILEGE_ENABLED;
-
-    if (!LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &privileges.Privileges[0].Luid))
+    va_list arglist;
+    int len = -1;
+    if (size > 0)
     {
-        return false;
+        va_start(arglist, format);
+        len = vswprintf(str, size, format, arglist);
+        va_end(arglist);
+        str[size - 1] = L'\0';
+    }
+    return (len >= 0 && len < size);
+}
+
+static BOOL
+get_install_path(WCHAR *path, DWORD size)
+{
+    WCHAR reg_path[256];
+    HKEY key;
+    BOOL res = FALSE;
+    openvpn_swprintf(reg_path, _countof(reg_path), L"SOFTWARE\\" PACKAGE_NAME);
+
+    LONG status = RegOpenKeyExW(HKEY_LOCAL_MACHINE, reg_path, 0, KEY_READ, &key);
+    if (status != ERROR_SUCCESS)
+    {
+        return res;
     }
 
-    if (!ImpersonateSelf(SecurityImpersonation))
+    /* The default value of REG_KEY is the install path */
+    status = RegGetValueW(key, NULL, NULL, RRF_RT_REG_SZ, NULL, (LPBYTE)path, &size);
+    res = status == ERROR_SUCCESS;
+
+    RegCloseKey(key);
+
+    return res;
+}
+
+static void
+set_openssl_env_vars()
+{
+    const WCHAR *ssl_fallback_dir = L"C:\\Windows\\System32";
+
+    WCHAR install_path[MAX_PATH] = { 0 };
+    if (!get_install_path(install_path, _countof(install_path)))
     {
-        return false;
+        /* if we cannot find installation path from the registry,
+         * use Windows directory as a fallback
+         */
+        openvpn_swprintf(install_path, _countof(install_path), L"%ls", ssl_fallback_dir);
     }
 
-    if (!OpenThreadToken(GetCurrentThread(), TOKEN_ADJUST_PRIVILEGES, FALSE, &thread_token))
+    if ((install_path[wcslen(install_path) - 1]) == L'\\')
     {
-        RevertToSelf();
-        return false;
+        install_path[wcslen(install_path) - 1] = L'\0';
     }
-    if (!AdjustTokenPrivileges(thread_token, FALSE, &privileges, sizeof(privileges), NULL, NULL))
-    {
-        CloseHandle(thread_token);
-        RevertToSelf();
-        return false;
-    }
-    CloseHandle(thread_token);
 
-    process_snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (process_snapshot == INVALID_HANDLE_VALUE)
+    static struct {
+        WCHAR *name;
+        WCHAR *value;
+    } ossl_env[] = {
+        {L"OPENSSL_CONF", L"openssl.cnf"},
+        {L"OPENSSL_ENGINES", L"engines"},
+        {L"OPENSSL_MODULES", L"modules"}
+    };
+
+    for (size_t i = 0; i < SIZE(ossl_env); ++i)
     {
-        RevertToSelf();
-        return false;
-    }
-    for (ret = Process32First(process_snapshot, &entry); ret; ret = Process32Next(process_snapshot, &entry))
-    {
-        if (!_stricmp(entry.szExeFile, "winlogon.exe"))
+        size_t size = 0;
+
+        _wgetenv_s(&size, NULL, 0, ossl_env[i].name);
+        if (size == 0)
         {
-            pid = entry.th32ProcessID;
-            break;
+            WCHAR val[MAX_PATH] = {0};
+            openvpn_swprintf(val, _countof(val), L"%ls\\ssl\\%ls", install_path, ossl_env[i].value);
+            _wputenv_s(ossl_env[i].name, val);
         }
     }
-    CloseHandle(process_snapshot);
-    if (!pid)
-    {
-        RevertToSelf();
-        return false;
-    }
-
-    winlogon_process = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
-    if (!winlogon_process)
-    {
-        RevertToSelf();
-        return false;
-    }
-
-    if (!OpenProcessToken(winlogon_process, TOKEN_IMPERSONATE | TOKEN_DUPLICATE, &winlogon_token))
-    {
-        CloseHandle(winlogon_process);
-        RevertToSelf();
-        return false;
-    }
-    CloseHandle(winlogon_process);
-
-    if (!DuplicateToken(winlogon_token, SecurityImpersonation, &duplicated_token))
-    {
-        CloseHandle(winlogon_token);
-        RevertToSelf();
-        return false;
-    }
-    CloseHandle(winlogon_token);
-
-    if (!SetThreadToken(NULL, duplicated_token))
-    {
-        CloseHandle(duplicated_token);
-        RevertToSelf();
-        return false;
-    }
-    CloseHandle(duplicated_token);
-
-    return true;
 }
 
 #endif /* ifdef _WIN32 */

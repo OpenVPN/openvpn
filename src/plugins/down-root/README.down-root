@@ -16,13 +16,13 @@ run in the same execution environment as the up script.
 BUILD
 
 Build this module with the "make" command.  The plugin
-module will be named openvpn-down-root.so
+module will be named openvpn-plugin-down-root.so
 
 USAGE
 
 To use this module, add to your OpenVPN config file:
 
-  plugin openvpn-down-root.so "command ..."
+  plugin openvpn-plugin-down-root.so "command ..."
 
 CAVEATS
 

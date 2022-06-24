@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *                2015-2016  <iam@valdikss.org.ru>
  *                2016 Selva Nair <selva.nair@gmail.com>
  *
@@ -108,9 +108,6 @@ DEFINE_GUID(
     );
 
 static WCHAR *FIREWALL_NAME = L"OpenVPN";
-
-VOID NETIOAPI_API_
-InitializeIpInterfaceEntry(PMIB_IPINTERFACE_ROW Row);
 
 /*
  * Default msg handler does nothing

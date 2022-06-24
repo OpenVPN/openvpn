@@ -1,0 +1,22 @@
+
+man page documentation
+======================
+
+The man page content maintained in the openvpn.8.rst file and proper man and
+the html version of the man page are generated using python-docutils.  Both
+the man page and html file are generated during 'make dist' or 'make distcheck'
+and should be distributed inside the tarball by default.
+
+Users compiling OpenVPN from the tarball should not need to regenerate the
+man/html files unless the source file needs to be modified.
+
+Further information:
+
+* Python docutils project:
+  https://docutils.sourceforge.io/
+
+* Quickstart on .rst
+  https://docutils.sourceforge.io/docs/user/rst/quickstart.html
+
+* reStructuredText Markup Specifictaion (.rst)
+  https://docutils.sourceforge.io/docs/ref/rst/restructuredtext.html

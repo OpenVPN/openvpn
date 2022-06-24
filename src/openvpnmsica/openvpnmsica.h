@@ -2,7 +2,7 @@
  *  openvpnmsica -- Custom Action DLL to provide OpenVPN-specific support to MSI packages
  *                  https://community.openvpn.net/openvpn/wiki/OpenVPNMSICA
  *
- *  Copyright (C) 2018 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2022 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -52,10 +52,10 @@ extern DWORD openvpnmsica_thread_data_idx;
  * Set MSI session handle in thread local storage.
  */
 #define OPENVPNMSICA_SAVE_MSI_SESSION(hInstall) \
-{ \
-    struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)TlsGetValue(openvpnmsica_thread_data_idx); \
-    s->hInstall = (hInstall); \
-}
+    { \
+        struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)TlsGetValue(openvpnmsica_thread_data_idx); \
+        s->hInstall = (hInstall); \
+    }
 
 
 /*
@@ -76,9 +76,21 @@ extern "C" {
 
 /**
  * Determines Windows information:
- * - Sets `DriverCertification` MSI property to "", "attsgn" or "whql"
- *   according to the driver certification required by the running version of
- *   Windows.
+ *
+ * - Sets `OPENVPNSERVICE` MSI property to PID of OpenVPN Service if running, or its EXE path if
+ *   configured for auto-start.
+ *
+ * - Finds existing TAP-Windows6 adapters and set TAPWINDOWS6ADAPTERS and
+ *   ACTIVETAPWINDOWS6ADAPTERS properties with semicolon delimited list of all installed adapter
+ *   GUIDs and active adapter GUIDs respectively.
+ *
+ * - Finds existing Wintun adapters and set WINTUNADAPTERS and ACTIVEWINTUNADAPTERS properties
+ *   with semicolon delimited list of all installed adapter GUIDs and active adapter GUIDs
+ *   respectively.
+ *
+ * - Finds existing ovpn-dco adapters and set OVPNDCOADAPTERS and ACTIVEOVPNDCOADAPTERS properties
+ *   with semicolon delimited list of all installed adapter GUIDs and active adapter GUIDs
+ *   respectively.
  *
  * @param hInstall      Handle to the installation provided to the DLL custom action
  *
@@ -87,20 +99,6 @@ extern "C" {
  */
 DLLEXP_DECL UINT __stdcall
 FindSystemInfo(_In_ MSIHANDLE hInstall);
-
-
-/**
- * Find existing TAP adapters and set TUNTAPADAPTERS and ACTIVETUNTAPADAPTERS properties with
- * semicolon delimited list of all installed TAP adapter GUIDs and active adapter GUIDs
- * respectively.
- *
- * @param hInstall      Handle to the installation provided to the DLL custom action
- *
- * @return ERROR_SUCCESS on success; An error code otherwise
- *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
- */
-DLLEXP_DECL UINT __stdcall
-FindTUNTAPAdapters(_In_ MSIHANDLE hInstall);
 
 
 /**
@@ -151,6 +149,45 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall);
  */
 DLLEXP_DECL UINT __stdcall
 ProcessDeferredAction(_In_ MSIHANDLE hInstall);
+
+
+/**
+ * Check what operation shall be performed on ovpn-dco driver
+ * and set data value (path to inf and user temp dir) for ProcessDriver action.
+ *
+ * @param hInstall      Handle to the installation provided to the DLL custom action
+ *
+ * @return ERROR_SUCCESS on success; An error code otherwise
+ *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
+ */
+DLLEXP_DECL UINT __stdcall
+EvaluateDriver(_In_ MSIHANDLE hInstall);
+
+
+/**
+ * Install or uninstall ovpn-dco driver, removing all adapters using that driver.
+ * If reboot is required, creates reboot indication file in user's temp directory
+ *
+ * @param hInstall      Handle to the installation provided to the DLL custom action
+ *
+ * @return ERROR_SUCCESS on success; An error code otherwise
+ *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
+ */
+DLLEXP_DECL UINT __stdcall
+ProcessDriver(_In_ MSIHANDLE hInstall);
+
+
+/**
+ * Schedule reboot after installation if reboot
+ * indication file is found in user's temp directory
+ *
+ * @param hInstall      Handle to the installation provided to the DLL custom action
+ *
+ * @return ERROR_SUCCESS on success; An error code otherwise
+ *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
+ */
+DLLEXP_DECL UINT __stdcall
+CheckAndScheduleReboot(_In_ MSIHANDLE hInstall);
 
 #ifdef __cplusplus
 }

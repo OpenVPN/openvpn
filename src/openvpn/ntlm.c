@@ -67,28 +67,25 @@ create_des_keys(const unsigned char *hash, unsigned char *key)
     key[5] = ((hash[4] & 31) << 3) | (hash[5] >> 5);
     key[6] = ((hash[5] & 63) << 2) | (hash[6] >> 6);
     key[7] = ((hash[6] & 127) << 1);
-    key_des_fixup(key, 8, 1);
 }
 
 static void
 gen_md4_hash(const uint8_t *data, int data_len, uint8_t *result)
 {
     /* result is 16 byte md4 hash */
-    const md_kt_t *md4_kt = md_kt_get("MD4");
     uint8_t md[MD4_DIGEST_LENGTH];
 
-    md_full(md4_kt, data, data_len, md);
+    md_full("MD4", data, data_len, md);
     memcpy(result, md, MD4_DIGEST_LENGTH);
 }
 
 static void
-gen_hmac_md5(const uint8_t *data, int data_len, const uint8_t *key, int key_len,
+gen_hmac_md5(const uint8_t *data, int data_len, const uint8_t *key,
              uint8_t *result)
 {
-    const md_kt_t *md5_kt = md_kt_get("MD5");
     hmac_ctx_t *hmac_ctx = hmac_ctx_new();
 
-    hmac_ctx_init(hmac_ctx, key, key_len, md5_kt);
+    hmac_ctx_init(hmac_ctx, key, "MD5");
     hmac_ctx_update(hmac_ctx, data, data_len);
     hmac_ctx_final(hmac_ctx, result);
     hmac_ctx_cleanup(hmac_ctx);
@@ -288,7 +285,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
         }
         unicodize(userdomain_u, userdomain);
         gen_hmac_md5((uint8_t *)userdomain_u, 2 * strlen(userdomain), md4_hash,
-                     MD5_DIGEST_LENGTH, ntlmv2_hash);
+                     ntlmv2_hash);
 
         /* NTLMv2 Blob */
         memset(ntlmv2_blob, 0, 128);                        /* Clear blob buffer */
@@ -353,7 +350,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
 
         /* hmac-md5 */
         gen_hmac_md5(&ntlmv2_response[8], ntlmv2_blob_size + 8, ntlmv2_hash,
-                     MD5_DIGEST_LENGTH, ntlmv2_hmacmd5);
+                     ntlmv2_hmacmd5);
 
         /* Add hmac-md5 result to the blob.
          * Note: This overwrites challenge previously written at
@@ -411,11 +408,5 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
 
     return ((const char *)make_base64_string2((unsigned char *)phase3,
                                               phase3_bufpos, gc));
-}
-
-#else  /* if NTLM */
-static void
-dummy(void)
-{
 }
 #endif /* if NTLM */

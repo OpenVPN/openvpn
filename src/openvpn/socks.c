@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -48,15 +48,6 @@
 #include "memdbg.h"
 
 #define UP_TYPE_SOCKS           "SOCKS Proxy"
-
-void
-socks_adjust_frame_parameters(struct frame *frame, int proto)
-{
-    if (proto == PROTO_UDP)
-    {
-        frame_add_to_extra_link(frame, 10);
-    }
-}
 
 struct socks_proxy_info *
 socks_proxy_new(const char *server,
@@ -104,12 +95,13 @@ socks_username_password_auth(struct socks_proxy_info *p,
     const int timeout_sec = 5;
     struct user_pass creds;
     ssize_t size;
+    bool ret = false;
 
     creds.defined = 0;
     if (!get_user_pass(&creds, p->authfile, UP_TYPE_SOCKS, GET_USER_PASS_MANAGEMENT))
     {
         msg(M_NONFATAL, "SOCKS failed to get username/password.");
-        return false;
+        goto cleanup;
     }
 
     if ( (strlen(creds.username) > 255) || (strlen(creds.password) > 255) )
@@ -117,7 +109,7 @@ socks_username_password_auth(struct socks_proxy_info *p,
         msg(M_NONFATAL,
             "SOCKS username and/or password exceeds 255 characters.  "
             "Authentication not possible.");
-        return false;
+        goto cleanup;
     }
     openvpn_snprintf(to_send, sizeof(to_send), "\x01%c%s%c%s", (int) strlen(creds.username),
                      creds.username, (int) strlen(creds.password), creds.password);
@@ -126,7 +118,7 @@ socks_username_password_auth(struct socks_proxy_info *p,
     if (size != strlen(to_send))
     {
         msg(D_LINK_ERRORS | M_ERRNO, "socks_username_password_auth: TCP port write failed on send()");
-        return false;
+        goto cleanup;
     }
 
     while (len < 2)
@@ -147,21 +139,21 @@ socks_username_password_auth(struct socks_proxy_info *p,
         get_signal(signal_received);
         if (*signal_received)
         {
-            return false;
+            goto cleanup;
         }
 
         /* timeout? */
         if (status == 0)
         {
             msg(D_LINK_ERRORS | M_ERRNO, "socks_username_password_auth: TCP port read timeout expired");
-            return false;
+            goto cleanup;
         }
 
         /* error */
         if (status < 0)
         {
             msg(D_LINK_ERRORS | M_ERRNO, "socks_username_password_auth: TCP port read failed on select()");
-            return false;
+            goto cleanup;
         }
 
         /* read single char */
@@ -171,7 +163,7 @@ socks_username_password_auth(struct socks_proxy_info *p,
         if (size != 1)
         {
             msg(D_LINK_ERRORS | M_ERRNO, "socks_username_password_auth: TCP port read failed on recv()");
-            return false;
+            goto cleanup;
         }
 
         /* store char in buffer */
@@ -182,10 +174,14 @@ socks_username_password_auth(struct socks_proxy_info *p,
     if (buf[0] != 5 && buf[1] != 0)
     {
         msg(D_LINK_ERRORS, "socks_username_password_auth: server refused the authentication");
-        return false;
+        goto cleanup;
     }
 
-    return true;
+    ret = true;
+cleanup:
+    secure_memzero(&creds, sizeof(creds));
+    secure_memzero(to_send, sizeof(to_send));
+    return ret;
 }
 
 static bool
@@ -312,7 +308,7 @@ recv_socks_reply(socket_descriptor_t sd,
     char atyp = '\0';
     int alen = 0;
     int len = 0;
-    char buf[22];
+    char buf[270];              /* 4 + alen(max 256) + 2 */
     const int timeout_sec = 5;
 
     if (addr != NULL)
@@ -381,7 +377,10 @@ recv_socks_reply(socket_descriptor_t sd,
                     break;
 
                 case '\x03':    /* DOMAINNAME */
-                    alen = (unsigned char) c;
+                    /* RFC 1928, section 5: 1 byte length, <n> bytes name,
+                     * so the total "address length" is (length+1)
+                     */
+                    alen = (unsigned char) c + 1;
                     break;
 
                 case '\x04':    /* IP V6 */
@@ -451,7 +450,7 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
                                const char *servname,    /* openvpn server port */
                                volatile int *signal_received)
 {
-    char buf[128];
+    char buf[270];
     size_t len;
 
     if (!socks_handshake(p, sd, signal_received))
@@ -602,7 +601,7 @@ socks_process_outgoing_udp(struct buffer *buf,
     /*
      * Get a 10 byte subset buffer prepended to buf --
      * we expect these bytes will be here because
-     * we allocated frame space in socks_adjust_frame_parameters.
+     * we always allocate space for these bytes
      */
     struct buffer head = buf_sub(buf, 10, true);
 

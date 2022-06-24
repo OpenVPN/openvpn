@@ -5,9 +5,9 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *  Copyright (C) 2014-2015  David Sommerseth <davids@redhat.com>
- *  Copyright (C) 2016-2018 David Sommerseth <davids@openvpn.net>
+ *  Copyright (C) 2016-2022 David Sommerseth <davids@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -40,6 +40,10 @@
 #include "buffer.h"
 #include "misc.h"
 
+#ifdef HAVE_TERMIOS_H
+#include <termios.h>
+#endif
+
 #ifdef _WIN32
 
 #include "win32.h"
@@ -58,78 +62,77 @@
 static bool
 get_console_input_win32(const char *prompt, const bool echo, char *input, const int capacity)
 {
-    HANDLE in = INVALID_HANDLE_VALUE;
-    HANDLE err = INVALID_HANDLE_VALUE;
-    DWORD len = 0;
-
     ASSERT(prompt);
     ASSERT(input);
     ASSERT(capacity > 0);
 
     input[0] = '\0';
 
-    in = GetStdHandle(STD_INPUT_HANDLE);
-    err = get_orig_stderr();
-
-    if (in != INVALID_HANDLE_VALUE
-        && err != INVALID_HANDLE_VALUE
-        && !win32_service_interrupt(&win32_signal)
-        && WriteFile(err, prompt, strlen(prompt), &len, NULL))
+    HANDLE in = GetStdHandle(STD_INPUT_HANDLE);
+    int orig_stderr = get_orig_stderr(); /* guaranteed to be always valid */
+    if ((in == INVALID_HANDLE_VALUE)
+        || win32_service_interrupt(&win32_signal)
+        || (_write(orig_stderr, prompt, strlen(prompt)) == -1))
     {
-        bool is_console = (GetFileType(in) == FILE_TYPE_CHAR);
-        DWORD flags_save = 0;
-        int status = 0;
-        WCHAR *winput;
+        msg(M_WARN|M_ERRNO, "get_console_input_win32(): unexpected error");
+        return false;
+    }
 
-        if (is_console)
+    bool is_console = (GetFileType(in) == FILE_TYPE_CHAR);
+    DWORD flags_save = 0;
+    int status = 0;
+    WCHAR *winput;
+
+    if (is_console)
+    {
+        if (GetConsoleMode(in, &flags_save))
         {
-            if (GetConsoleMode(in, &flags_save))
+            DWORD flags = ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT;
+            if (echo)
             {
-                DWORD flags = ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT;
-                if (echo)
-                {
-                    flags |= ENABLE_ECHO_INPUT;
-                }
-                SetConsoleMode(in, flags);
+                flags |= ENABLE_ECHO_INPUT;
             }
-            else
-            {
-                is_console = 0;
-            }
-        }
-
-        if (is_console)
-        {
-            winput = malloc(capacity * sizeof(WCHAR));
-            if (winput == NULL)
-            {
-                return false;
-            }
-
-            status = ReadConsoleW(in, winput, capacity, &len, NULL);
-            WideCharToMultiByte(CP_UTF8, 0, winput, len, input, capacity, NULL, NULL);
-            free(winput);
+            SetConsoleMode(in, flags);
         }
         else
         {
-            status = ReadFile(in, input, capacity, &len, NULL);
+            is_console = 0;
+        }
+    }
+
+    DWORD len = 0;
+
+    if (is_console)
+    {
+        winput = malloc(capacity * sizeof(WCHAR));
+        if (winput == NULL)
+        {
+            return false;
         }
 
-        string_null_terminate(input, (int)len, capacity);
-        chomp(input);
+        status = ReadConsoleW(in, winput, capacity, &len, NULL);
+        WideCharToMultiByte(CP_UTF8, 0, winput, len, input, capacity, NULL, NULL);
+        free(winput);
+    }
+    else
+    {
+        status = ReadFile(in, input, capacity, &len, NULL);
+    }
 
-        if (!echo)
-        {
-            WriteFile(err, "\r\n", 2, &len, NULL);
-        }
-        if (is_console)
-        {
-            SetConsoleMode(in, flags_save);
-        }
-        if (status && !win32_service_interrupt(&win32_signal))
-        {
-            return true;
-        }
+    string_null_terminate(input, (int)len, capacity);
+    chomp(input);
+
+    if (!echo)
+    {
+        _write(orig_stderr, "\r\n", 2);
+    }
+    if (is_console)
+    {
+        SetConsoleMode(in, flags_save);
+    }
+    if (status && !win32_service_interrupt(&win32_signal))
+    {
+        return true;
     }
 
     return false;
@@ -138,7 +141,7 @@ get_console_input_win32(const char *prompt, const bool echo, char *input, const 
 #endif   /* _WIN32 */
 
 
-#ifdef HAVE_GETPASS
+#ifdef HAVE_TERMIOS_H
 
 /**
  * Open the current console TTY for read/write operations
@@ -177,7 +180,7 @@ close_tty(FILE *fp)
     }
 }
 
-#endif   /* HAVE_GETPASS */
+#endif   /* HAVE_TERMIOS_H */
 
 
 /**
@@ -201,7 +204,9 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
 
 #if defined(_WIN32)
     return get_console_input_win32(prompt, echo, input, capacity);
-#elif defined(HAVE_GETPASS)
+#elif defined(HAVE_TERMIOS_H)
+    bool restore_tty = false;
+    struct termios tty_tmp, tty_save;
 
     /* did we --daemon'ize before asking for passwords?
      * (in which case neither stdin or stderr are connected to a tty and
@@ -220,33 +225,41 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
         close(fd);
     }
 
-    if (echo)
-    {
-        FILE *fp;
+    FILE *fp = open_tty(true);
+    fprintf(fp, "%s", prompt);
+    fflush(fp);
+    close_tty(fp);
 
+    fp = open_tty(false);
+
+    if (!echo && (tcgetattr(fileno(fp), &tty_tmp) == 0))
+    {
+        tty_save = tty_tmp;
+        tty_tmp.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL | ISIG);
+        restore_tty = (tcsetattr(fileno(fp), TCSAFLUSH, &tty_tmp) == 0);
+    }
+
+    if (fgets(input, capacity, fp) != NULL)
+    {
+        chomp(input);
+        ret = true;
+    }
+
+    if (restore_tty)
+    {
+        if (tcsetattr(fileno(fp), TCSAFLUSH, &tty_save) == -1)
+        {
+            msg(M_WARN | M_ERRNO, "tcsetattr() failed to restore tty settings");
+        }
+
+        /* Echo the non-echoed newline */
+        close_tty(fp);
         fp = open_tty(true);
-        fprintf(fp, "%s", prompt);
+        fprintf(fp, "\n");
         fflush(fp);
-        close_tty(fp);
+    }
 
-        fp = open_tty(false);
-        if (fgets(input, capacity, fp) != NULL)
-        {
-            chomp(input);
-            ret = true;
-        }
-        close_tty(fp);
-    }
-    else
-    {
-        char *gp = getpass(prompt);
-        if (gp)
-        {
-            strncpynt(input, gp, capacity);
-            secure_memzero(gp, strlen(gp));
-            ret = true;
-        }
-    }
+    close_tty(fp);
 #else  /* if defined(_WIN32) */
     msg(M_FATAL, "Sorry, but I can't get console input on this OS (%s)", prompt);
 #endif /* if defined(_WIN32) */

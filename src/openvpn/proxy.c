@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -366,10 +366,7 @@ get_proxy_authenticate(socket_descriptor_t sd,
 static void
 store_proxy_authenticate(struct http_proxy_info *p, char *data)
 {
-    if (p->proxy_authenticate)
-    {
-        free(p->proxy_authenticate);
-    }
+    free(p->proxy_authenticate);
     p->proxy_authenticate = data;
 }
 

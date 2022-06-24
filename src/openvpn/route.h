@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -230,7 +230,6 @@ struct route_ipv6_list {
     struct gc_arena gc;
 };
 
-#if P2MP
 /* internal OpenVPN route */
 struct iroute {
     in_addr_t network;
@@ -243,7 +242,6 @@ struct iroute_ipv6 {
     unsigned int netbits;
     struct iroute_ipv6 *next;
 };
-#endif
 
 struct route_option_list *new_route_option_list(struct gc_arena *a);
 

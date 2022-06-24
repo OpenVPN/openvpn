@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -27,8 +27,6 @@
 
 #ifndef MTCP_H
 #define MTCP_H
-
-#if P2MP_SERVER
 
 #include "event.h"
 
@@ -75,5 +73,4 @@ void tunnel_server_tcp(struct context *top);
 
 void multi_tcp_delete_event(struct multi_tcp *mtcp, event_t event);
 
-#endif /* if P2MP_SERVER */
 #endif /* ifndef MTCP_H */

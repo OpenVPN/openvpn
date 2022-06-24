@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -39,12 +39,283 @@
 #include "errlevel.h"
 #include "pkcs11_backend.h"
 #include "ssl_verify.h"
+#include "xkey_common.h"
 #include <pkcs11-helper-1.0/pkcs11h-openssl.h>
+
+#ifdef HAVE_XKEY_PROVIDER
+static XKEY_EXTERNAL_SIGN_fn xkey_pkcs11h_sign;
+
+#if PKCS11H_VERSION > ((1<<16) | (27<<8)) /* version > 1.27 */
+
+/* Table linking OpenSSL digest NID with CKM and CKG constants in PKCS#11 */
+#define MD_TYPE(n) {NID_sha ## n, CKM_SHA ## n, CKG_MGF1_SHA ## n}
+static const struct
+{
+    int nid;
+    unsigned long ckm_id;
+    unsigned long mgf_id;
+} mdtypes[] = {MD_TYPE(224), MD_TYPE(256), MD_TYPE(384), MD_TYPE(512),
+               {NID_sha1, CKM_SHA_1, CKG_MGF1_SHA1}, /* SHA_1 naming is an oddity */
+               {NID_undef, 0, 0}};
+
+/* From sigalg, derive parameters for pss signature and fill in  pss_params.
+ * Its of type CK_RSA_PKCS_PSS_PARAMS struct with three fields to be filled in:
+ * {enum hashAlg, enum mgf, ulong sLen}
+ * where hashAlg is CKM_SHA256 etc., mgf is CKG_MGF1_SHA256 etc.
+ */
+static int
+set_pss_params(CK_RSA_PKCS_PSS_PARAMS *pss_params, XKEY_SIGALG sigalg,
+               pkcs11h_certificate_t cert)
+{
+    int ret = 0;
+    X509 *x509 = NULL;
+    EVP_PKEY *pubkey = NULL;
+
+    if ((x509 = pkcs11h_openssl_getX509(cert)) == NULL
+        || (pubkey = X509_get0_pubkey(x509)) == NULL)
+    {
+        msg(M_WARN, "PKCS#11: Unable get public key");
+        goto cleanup;
+    }
+
+    /* map mdname to CKM and CKG constants for hash and mgf algorithms */
+    int i = 0;
+    int nid = OBJ_sn2nid(sigalg.mdname);
+    while (mdtypes[i].nid != NID_undef && mdtypes[i].nid != nid)
+    {
+        i++;
+    }
+    pss_params->hashAlg = mdtypes[i].ckm_id;
+    pss_params->mgf = mdtypes[i].mgf_id;
+
+    /* determine salt length */
+    const EVP_MD *md = EVP_get_digestbyname(sigalg.mdname);
+    if (!md)
+    {
+        msg(M_WARN, "WARN: set_pss_params: EVP_get_digestbyname returned NULL "
+            "for mdname = <%s>", sigalg.mdname);
+        goto cleanup;
+    }
+    int mdsize = EVP_MD_get_size(md);
+
+    int saltlen = -1;
+    if (!strcmp(sigalg.saltlen, "digest")) /* same as digest size */
+    {
+        saltlen = mdsize;
+    }
+    else if (!strcmp(sigalg.saltlen, "max")) /* maximum possible value */
+    {
+        saltlen = xkey_max_saltlen(EVP_PKEY_get_bits(pubkey), mdsize);
+    }
+
+    if (saltlen < 0 || pss_params->hashAlg == 0)
+    {
+        msg(M_WARN, "WARN: invalid RSA_PKCS1_PSS parameters: saltlen = <%s> "
+            "mdname = <%s>.", sigalg.saltlen, sigalg.mdname);
+        goto cleanup;
+    }
+    pss_params->sLen = (unsigned long) saltlen; /* saltlen >= 0 at this point */
+
+    msg(D_XKEY, "set_pss_params: sLen = %lu, hashAlg = %lu, mgf = %lu",
+        pss_params->sLen, pss_params->hashAlg, pss_params->mgf);
+
+    ret = 1;
+
+cleanup:
+    if (x509)
+    {
+        X509_free(x509);
+    }
+    return ret;
+}
+
+#else  /* if PKCS11H_VERSION > ((1<<16) | (27<<8)) */
+
+/* Make set_pss_params a no-op that always succeeds */
+#define set_pss_params(...) (1)
+
+/* Use a wrapper for pkcs11h_certificate_signAny_ex() for versions < 1.28
+ * where its not available.
+ * We just call pkcs11h_certificate_signAny() unless the padding
+ * is PSS in which case we return an error.
+ */
+static CK_RV
+pkcs11h_certificate_signAny_ex(const pkcs11h_certificate_t cert,
+                               const CK_MECHANISM *mech, const unsigned char *tbs,
+                               size_t tbslen, unsigned char *sig, size_t *siglen)
+{
+    if (mech->mechanism == CKM_RSA_PKCS_PSS)
+    {
+        msg(M_NONFATAL, "PKCS#11: Error: PSS padding is not supported by "
+            "this version of pkcs11-helper library.");
+        return CKR_MECHANISM_INVALID;
+    }
+    return pkcs11h_certificate_signAny(cert, mech->mechanism, tbs, tbslen, sig, siglen);
+}
+#endif /* PKCS11H_VERSION > 1.27 */
+
+/**
+ * Sign op called from xkey provider
+ *
+ * We support ECDSA, RSA_NO_PADDING, RSA_PKCS1_PADDING, RSA_PKCS_PSS_PADDING
+ */
+static int
+xkey_pkcs11h_sign(void *handle, unsigned char *sig,
+                  size_t *siglen, const unsigned char *tbs, size_t tbslen, XKEY_SIGALG sigalg)
+{
+    pkcs11h_certificate_t cert = handle;
+    CK_MECHANISM mech = {CKM_RSA_PKCS, NULL, 0}; /* default value */
+
+    unsigned char buf[EVP_MAX_MD_SIZE];
+    size_t buflen;
+
+    if (!strcmp(sigalg.op, "DigestSign"))
+    {
+        msg(D_XKEY, "xkey_pkcs11h_sign: computing digest");
+        if (xkey_digest(tbs, tbslen, buf, &buflen, sigalg.mdname))
+        {
+            tbs = buf;
+            tbslen = (size_t) buflen;
+            sigalg.op = "Sign";
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    if (!strcmp(sigalg.keytype, "EC"))
+    {
+        msg(D_XKEY, "xkey_pkcs11h_sign: signing with EC key");
+        mech.mechanism = CKM_ECDSA;
+    }
+    else if (!strcmp(sigalg.keytype, "RSA"))
+    {
+        msg(D_XKEY, "xkey_pkcs11h_sign: signing with RSA key: padmode = %s",
+            sigalg.padmode);
+        if (!strcmp(sigalg.padmode, "none"))
+        {
+            mech.mechanism = CKM_RSA_X_509;
+        }
+        else if (!strcmp(sigalg.padmode, "pss"))
+        {
+            CK_RSA_PKCS_PSS_PARAMS pss_params = {0};
+            mech.mechanism = CKM_RSA_PKCS_PSS;
+
+            if (!set_pss_params(&pss_params, sigalg, cert))
+            {
+                return 0;
+            }
+
+            mech.pParameter = &pss_params;
+            mech.ulParameterLen = sizeof(pss_params);
+        }
+        else if (!strcmp(sigalg.padmode, "pkcs1"))
+        {
+            /* CMA_RSA_PKCS needs pkcs1 encoded digest */
+
+            unsigned char enc[EVP_MAX_MD_SIZE + 32]; /* 32 bytes enough for DigestInfo header */
+            size_t enc_len = sizeof(enc);
+
+            if (!encode_pkcs1(enc, &enc_len, sigalg.mdname, tbs, tbslen))
+            {
+                return 0;
+            }
+            tbs = enc;
+            tbslen = enc_len;
+        }
+        else /* should not happen */
+        {
+            msg(M_WARN, "PKCS#11: Unknown padmode <%s>", sigalg.padmode);
+        }
+    }
+    else
+    {
+        ASSERT(0);  /* coding error -- we couldnt have created any such key */
+    }
+
+    return CKR_OK == pkcs11h_certificate_signAny_ex(cert, &mech,
+                                                    tbs, tbslen, sig, siglen);
+}
+
+/* wrapper for handle free */
+static void
+xkey_handle_free(void *handle)
+{
+    pkcs11h_certificate_freeCertificate(handle);
+}
+
+
+/**
+ * Load certificate and public key from pkcs11h to SSL_CTX
+ * through xkey provider.
+ *
+ * @param certificate          pkcs11h certificate object
+ * @param ctx                  OpenVPN root tls context
+ *
+ * @returns                    1 on success, 0 on error to match
+ *                             other xkey_load_.. routines
+ */
+static int
+xkey_load_from_pkcs11h(pkcs11h_certificate_t certificate,
+                       struct tls_root_ctx *const ctx)
+{
+    int ret = 0;
+
+    X509 *x509 = pkcs11h_openssl_getX509(certificate);
+    if (!x509)
+    {
+        msg(M_WARN, "PKCS#11: Unable get x509 certificate object");
+        return 0;
+    }
+
+    EVP_PKEY *pubkey = X509_get0_pubkey(x509);
+
+    XKEY_PRIVKEY_FREE_fn *free_op = xkey_handle_free; /* it calls pkcs11h_..._freeCertificate() */
+    XKEY_EXTERNAL_SIGN_fn *sign_op = xkey_pkcs11h_sign;
+
+    EVP_PKEY *pkey = xkey_load_generic_key(tls_libctx, certificate, pubkey, sign_op, free_op);
+    if (!pkey)
+    {
+        msg(M_WARN, "PKCS#11: Failed to load private key into xkey provider");
+        goto cleanup;
+    }
+    /* provider took ownership of the pkcs11h certificate object -- do not free below */
+    certificate = NULL;
+
+    if (!SSL_CTX_use_cert_and_key(ctx->ctx, x509, pkey, NULL, 0))
+    {
+        msg(M_WARN, "PKCS#11: Failed to set cert and private key for OpenSSL");
+        goto cleanup;
+    }
+    ret = 1;
+
+cleanup:
+    if (x509)
+    {
+        X509_free(x509);
+    }
+    if (pkey)
+    {
+        EVP_PKEY_free(pkey);
+    }
+    if (certificate)
+    {
+        pkcs11h_certificate_freeCertificate(certificate);
+    }
+    return ret;
+}
+#endif /* HAVE_XKEY_PROVIDER */
 
 int
 pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
                         struct tls_root_ctx *const ssl_ctx)
 {
+
+#ifdef HAVE_XKEY_PROVIDER
+    return (xkey_load_from_pkcs11h(certificate, ssl_ctx) == 0); /* inverts the return value */
+#endif
+
     int ret = 1;
 
     X509 *x509 = NULL;
@@ -102,17 +373,11 @@ cleanup:
      * openssl objects have reference
      * count, so release them
      */
-    if (x509 != NULL)
-    {
-        X509_free(x509);
-        x509 = NULL;
-    }
+    X509_free(x509);
+    x509 = NULL;
 
-    if (evp != NULL)
-    {
-        EVP_PKEY_free(evp);
-        evp = NULL;
-    }
+    EVP_PKEY_free(evp);
+    evp = NULL;
 
     if (openssl_session != NULL)
     {
@@ -138,11 +403,8 @@ pkcs11_certificate_dn(pkcs11h_certificate_t certificate, struct gc_arena *gc)
     dn = x509_get_subject(x509, gc);
 
 cleanup:
-    if (x509 != NULL)
-    {
-        X509_free(x509);
-        x509 = NULL;
-    }
+    X509_free(x509);
+    x509 = NULL;
 
     return dn;
 }
@@ -183,12 +445,9 @@ pkcs11_certificate_serial(pkcs11h_certificate_t certificate, char *serial,
     ret = 0;
 
 cleanup:
+    X509_free(x509);
+    x509 = NULL;
 
-    if (x509 != NULL)
-    {
-        X509_free(x509);
-        x509 = NULL;
-    }
     return ret;
 }
 #endif /* defined(ENABLE_PKCS11) && defined(ENABLE_OPENSSL) */

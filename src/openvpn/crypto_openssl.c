@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -43,12 +43,29 @@
 #include "crypto_backend.h"
 #include "openssl_compat.h"
 
+#include <openssl/conf.h>
 #include <openssl/des.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L) && !defined(LIBRESSL_VERSION_NUMBER)
+#include <openssl/kdf.h>
+#endif
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#include <openssl/provider.h>
+#endif
+
+#if defined(_WIN32) && defined(OPENSSL_NO_EC)
+#error Windows build with OPENSSL_NO_EC: disabling EC key is not supported.
+#endif
+
+#ifdef _MSC_VER
+/* mute ossl3 deprecation warnings treated as errors in msvc */
+#pragma warning(disable: 4996)
+#endif
 
 /*
  * Check for key size creepage.
@@ -63,6 +80,7 @@
 #endif
 
 #if HAVE_OPENSSL_ENGINE
+#include <openssl/ui.h>
 #include <openssl/engine.h>
 
 static bool engine_initialized = false; /* GLOBAL */
@@ -139,6 +157,34 @@ crypto_init_lib_engine(const char *engine_name)
 #endif
 }
 
+provider_t *
+crypto_load_provider(const char *provider)
+{
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    /* Load providers into the default (NULL) library context */
+    OSSL_PROVIDER *prov = OSSL_PROVIDER_load(NULL, provider);
+    if (!prov)
+    {
+        crypto_msg(M_FATAL, "failed to load provider '%s'", provider);
+    }
+    return prov;
+#else  /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
+    msg(M_WARN, "Note: OpenSSL provider functionality is not available");
+    return NULL;
+#endif
+}
+
+void
+crypto_unload_provider(const char *provname, provider_t *provider)
+{
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    if (!OSSL_PROVIDER_unload(provider))
+    {
+        crypto_msg(M_FATAL, "failed to unload provider '%s'", provname);
+    }
+#endif
+}
+
 /*
  *
  * Functions related to the core crypto library
@@ -148,6 +194,11 @@ crypto_init_lib_engine(const char *engine_name)
 void
 crypto_init_lib(void)
 {
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
+    OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG, NULL);
+#else
+    OPENSSL_config(NULL);
+#endif
     /*
      * If you build the OpenSSL library and OpenVPN with
      * CRYPTO_MDEBUG, you will get a listing of OpenSSL
@@ -188,7 +239,7 @@ crypto_clear_error(void)
 void
 crypto_print_openssl_errors(const unsigned int flags)
 {
-    size_t err = 0;
+    unsigned long err = 0;
 
     while ((err = ERR_get_error()))
     {
@@ -266,97 +317,123 @@ cipher_name_cmp(const void *a, const void *b)
     const EVP_CIPHER *const *cipher_a = a;
     const EVP_CIPHER *const *cipher_b = b;
 
-    const char *cipher_name_a =
-        translate_cipher_name_to_openvpn(EVP_CIPHER_name(*cipher_a));
-    const char *cipher_name_b =
-        translate_cipher_name_to_openvpn(EVP_CIPHER_name(*cipher_b));
+    return strcmp(EVP_CIPHER_get0_name(*cipher_a), EVP_CIPHER_get0_name(*cipher_b));
+}
 
-    return strcmp(cipher_name_a, cipher_name_b);
+struct collect_ciphers {
+    /* If we ever exceed this, we must be more selective */
+    const EVP_CIPHER *list[1000];
+    size_t num;
+};
+
+static void
+collect_ciphers(EVP_CIPHER *cipher, void *list)
+{
+    if (!cipher)
+    {
+        return;
+    }
+    struct collect_ciphers *cipher_list = list;
+    if (cipher_list->num == SIZE(cipher_list->list))
+    {
+        msg(M_WARN, "WARNING: Too many ciphers, not showing all");
+        return;
+    }
+
+    const char *ciphername = EVP_CIPHER_get0_name(cipher);
+
+    if (ciphername && (cipher_kt_mode_cbc(ciphername)
+#ifdef ENABLE_OFB_CFB_MODE
+                       || cipher_kt_mode_ofb_cfb(ciphername)
+#endif
+                       || cipher_kt_mode_aead(ciphername)
+                       ))
+    {
+        cipher_list->list[cipher_list->num++] = cipher;
+    }
 }
 
 void
 show_available_ciphers(void)
 {
-    int nid;
-    size_t i;
+    struct collect_ciphers cipher_list = { 0 };
 
-    /* If we ever exceed this, we must be more selective */
-    const EVP_CIPHER *cipher_list[1000];
-    size_t num_ciphers = 0;
 #ifndef ENABLE_SMALL
     printf("The following ciphers and cipher modes are available for use\n"
-           "with " PACKAGE_NAME ".  Each cipher shown below may be use as a\n"
-           "parameter to the --cipher option.  The default key size is\n"
-           "shown as well as whether or not it can be changed with the\n"
-           "--keysize directive.  Using a CBC or GCM mode is recommended.\n"
-           "In static key mode only CBC mode is allowed.\n\n");
+           "with " PACKAGE_NAME ".  Each cipher shown below may be used as a\n"
+           "parameter to the --data-ciphers (or --cipher) option. In static \n"
+           "key mode only CBC mode is allowed.\n");
+    printf("See also openssl list -cipher-algorithms\n\n");
 #endif
 
-    for (nid = 0; nid < 10000; ++nid)
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_CIPHER_do_all_provided(NULL, collect_ciphers, &cipher_list);
+#else
+    for (int nid = 0; nid < 10000; ++nid)
     {
         const EVP_CIPHER *cipher = EVP_get_cipherbynid(nid);
-        if (cipher && (cipher_kt_mode_cbc(cipher)
-#ifdef ENABLE_OFB_CFB_MODE
-                       || cipher_kt_mode_ofb_cfb(cipher)
-#endif
-#ifdef HAVE_AEAD_CIPHER_MODES
-                       || cipher_kt_mode_aead(cipher)
-#endif
-                       ))
-        {
-            cipher_list[num_ciphers++] = cipher;
-        }
-        if (num_ciphers == (sizeof(cipher_list)/sizeof(*cipher_list)))
-        {
-            msg(M_WARN, "WARNING: Too many ciphers, not showing all");
-            break;
-        }
+        /* We cast the const away so we can keep the function prototype
+         * compatible with EVP_CIPHER_do_all_provided */
+        collect_ciphers((EVP_CIPHER *) cipher, &cipher_list);
     }
+#endif
 
-    qsort(cipher_list, num_ciphers, sizeof(*cipher_list), cipher_name_cmp);
+    /* cast to non-const to prevent warning */
+    qsort((EVP_CIPHER *)cipher_list.list, cipher_list.num, sizeof(*cipher_list.list), cipher_name_cmp);
 
-    for (i = 0; i < num_ciphers; i++)
+    for (size_t i = 0; i < cipher_list.num; i++)
     {
-        if (!cipher_kt_insecure(cipher_list[i]))
+        if (!cipher_kt_insecure(EVP_CIPHER_get0_name(cipher_list.list[i])))
         {
-            print_cipher(cipher_list[i]);
+            print_cipher(EVP_CIPHER_get0_name(cipher_list.list[i]));
         }
     }
 
     printf("\nThe following ciphers have a block size of less than 128 bits, \n"
            "and are therefore deprecated.  Do not use unless you have to.\n\n");
-    for (i = 0; i < num_ciphers; i++)
+    for (int i = 0; i < cipher_list.num; i++)
     {
-        if (cipher_kt_insecure(cipher_list[i]))
+        if (cipher_kt_insecure(EVP_CIPHER_get0_name(cipher_list.list[i])))
         {
-            print_cipher(cipher_list[i]);
+            print_cipher(EVP_CIPHER_get0_name(cipher_list.list[i]));
         }
     }
     printf("\n");
 }
 
 void
+print_digest(EVP_MD *digest, void *unused)
+{
+    printf("%s %d bit digest size\n", md_kt_name(EVP_MD_get0_name(digest)),
+           EVP_MD_size(digest) * 8);
+}
+
+void
 show_available_digests(void)
 {
-    int nid;
-
 #ifndef ENABLE_SMALL
     printf("The following message digests are available for use with\n"
            PACKAGE_NAME ".  A message digest is used in conjunction with\n"
            "the HMAC function, to authenticate received packets.\n"
            "You can specify a message digest as parameter to\n"
-           "the --auth option.\n\n");
+           "the --auth option.\n");
+    printf("See also openssl list -digest-algorithms\n\n");
 #endif
 
-    for (nid = 0; nid < 10000; ++nid)
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    EVP_MD_do_all_provided(NULL, print_digest, NULL);
+#else
+    for (int nid = 0; nid < 10000; ++nid)
     {
         const EVP_MD *digest = EVP_get_digestbynid(nid);
         if (digest)
         {
-            printf("%s %d bit digest size\n",
-                   OBJ_nid2sn(nid), EVP_MD_size(digest) * 8);
+            /* We cast the const away so we can keep the function prototype
+             * compatible with EVP_MD_do_all_provided */
+            print_digest((EVP_MD *)digest, NULL);
         }
     }
+#endif
     printf("\n");
 }
 
@@ -400,9 +477,8 @@ crypto_pem_encode(const char *name, struct buffer *dst,
     BUF_MEM *bptr;
     BIO_get_mem_ptr(bio, &bptr);
 
-    *dst = alloc_buf_gc(bptr->length + 1, gc);
+    *dst = alloc_buf_gc(bptr->length, gc);
     ASSERT(buf_write(dst, bptr->data, bptr->length));
-    buf_null_terminate(dst);
 
     ret = true;
 cleanup:
@@ -489,148 +565,100 @@ rand_bytes(uint8_t *output, int len)
 
 /*
  *
- * Key functions, allow manipulation of keys.
- *
- */
-
-
-int
-key_des_num_cblocks(const EVP_CIPHER *kt)
-{
-    int ret = 0;
-    const char *name = OBJ_nid2sn(EVP_CIPHER_nid(kt));
-    if (name)
-    {
-        if (!strncmp(name, "DES-", 4))
-        {
-            ret = EVP_CIPHER_key_length(kt) / sizeof(DES_cblock);
-        }
-        else if (!strncmp(name, "DESX-", 5))
-        {
-            ret = 1;
-        }
-    }
-    dmsg(D_CRYPTO_DEBUG, "CRYPTO INFO: n_DES_cblocks=%d", ret);
-    return ret;
-}
-
-bool
-key_des_check(uint8_t *key, int key_len, int ndc)
-{
-    int i;
-    struct buffer b;
-
-    buf_set_read(&b, key, key_len);
-
-    for (i = 0; i < ndc; ++i)
-    {
-        DES_cblock *dc = (DES_cblock *) buf_read_alloc(&b, sizeof(DES_cblock));
-        if (!dc)
-        {
-            crypto_msg(D_CRYPT_ERRORS,
-                       "CRYPTO INFO: check_key_DES: insufficient key material");
-            goto err;
-        }
-        if (DES_is_weak_key(dc))
-        {
-            crypto_msg(D_CRYPT_ERRORS,
-                       "CRYPTO INFO: check_key_DES: weak key detected");
-            goto err;
-        }
-        if (!DES_check_key_parity(dc))
-        {
-            crypto_msg(D_CRYPT_ERRORS,
-                       "CRYPTO INFO: check_key_DES: bad parity detected");
-            goto err;
-        }
-    }
-    return true;
-
-err:
-    ERR_clear_error();
-    return false;
-}
-
-void
-key_des_fixup(uint8_t *key, int key_len, int ndc)
-{
-    int i;
-    struct buffer b;
-
-    buf_set_read(&b, key, key_len);
-    for (i = 0; i < ndc; ++i)
-    {
-        DES_cblock *dc = (DES_cblock *) buf_read_alloc(&b, sizeof(DES_cblock));
-        if (!dc)
-        {
-            msg(D_CRYPT_ERRORS, "CRYPTO INFO: fixup_key_DES: insufficient key material");
-            ERR_clear_error();
-            return;
-        }
-        DES_set_odd_parity(dc);
-    }
-}
-
-
-/*
- *
  * Generic cipher key type functions
  *
  */
 
-
-const EVP_CIPHER *
-cipher_kt_get(const char *ciphername)
+static evp_cipher_type *
+cipher_get(const char *ciphername)
 {
-    const EVP_CIPHER *cipher = NULL;
-
     ASSERT(ciphername);
 
-    cipher = EVP_get_cipherbyname(ciphername);
+    ciphername = translate_cipher_name_from_openvpn(ciphername);
+    return EVP_CIPHER_fetch(NULL, ciphername, NULL);
+}
 
-    if (NULL == cipher)
+bool
+cipher_valid_reason(const char *ciphername, const char **reason)
+{
+    bool ret = false;
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    if (!cipher)
     {
         crypto_msg(D_LOW, "Cipher algorithm '%s' not found", ciphername);
-        return NULL;
+        *reason = "disabled because unknown";
+        goto out;
     }
 
+#ifdef OPENSSL_FIPS
+    /* Rhel 8/CentOS 8 have a patched OpenSSL version that return a cipher
+     * here that is actually not usable if in FIPS mode */
 
+    if (FIPS_mode() && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_FIPS))
+    {
+        msg(D_LOW, "Cipher algorithm '%s' is known by OpenSSL library but "
+            "currently disabled by running in FIPS mode.", ciphername);
+        *reason = "disabled by FIPS mode";
+        goto out;
+    }
+#endif
     if (EVP_CIPHER_key_length(cipher) > MAX_CIPHER_KEY_LENGTH)
     {
         msg(D_LOW, "Cipher algorithm '%s' uses a default key size (%d bytes) "
             "which is larger than " PACKAGE_NAME "'s current maximum key size "
             "(%d bytes)", ciphername, EVP_CIPHER_key_length(cipher),
             MAX_CIPHER_KEY_LENGTH);
-        return NULL;
+        *reason = "disabled due to key size too large";
+        goto out;
     }
 
-    return cipher;
+    ret = true;
+    *reason = NULL;
+out:
+    EVP_CIPHER_free(cipher);
+    return ret;
 }
 
 const char *
-cipher_kt_name(const EVP_CIPHER *cipher_kt)
+cipher_kt_name(const char *ciphername)
 {
-    if (NULL == cipher_kt)
+    ASSERT(ciphername);
+    if (strcmp("none", ciphername) == 0)
     {
         return "[null-cipher]";
     }
-    return EVP_CIPHER_name(cipher_kt);
+
+    evp_cipher_type *cipher_kt = cipher_get(ciphername);
+    if (!cipher_kt)
+    {
+        return NULL;
+    }
+
+    const char *name = EVP_CIPHER_name(cipher_kt);
+    EVP_CIPHER_free(cipher_kt);
+    return translate_cipher_name_to_openvpn(name);
 }
 
 int
-cipher_kt_key_size(const EVP_CIPHER *cipher_kt)
+cipher_kt_key_size(const char *ciphername)
 {
-    return EVP_CIPHER_key_length(cipher_kt);
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    int size = EVP_CIPHER_key_length(cipher);
+    EVP_CIPHER_free(cipher);
+    return size;
 }
 
 int
-cipher_kt_iv_size(const EVP_CIPHER *cipher_kt)
+cipher_kt_iv_size(const char *ciphername)
 {
-    return EVP_CIPHER_iv_length(cipher_kt);
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    int ivsize = EVP_CIPHER_iv_length(cipher);
+    EVP_CIPHER_free(cipher);
+    return ivsize;
 }
 
 int
-cipher_kt_block_size(const EVP_CIPHER *cipher)
+cipher_kt_block_size(const char *ciphername)
 {
     /*
      * OpenSSL reports OFB/CFB/GCM cipher block sizes as '1 byte'.  To work
@@ -641,11 +669,16 @@ cipher_kt_block_size(const EVP_CIPHER *cipher)
     char *name = NULL;
     char *mode_str = NULL;
     const char *orig_name = NULL;
-    const EVP_CIPHER *cbc_cipher = NULL;
+    evp_cipher_type *cbc_cipher = NULL;
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    if (!cipher)
+    {
+        return 0;
+    }
 
     int block_size = EVP_CIPHER_block_size(cipher);
 
-    orig_name = cipher_kt_name(cipher);
+    orig_name = EVP_CIPHER_name(cipher);
     if (!orig_name)
     {
         goto cleanup;
@@ -660,21 +693,23 @@ cipher_kt_block_size(const EVP_CIPHER *cipher)
 
     strcpy(mode_str, "-CBC");
 
-    cbc_cipher = EVP_get_cipherbyname(translate_cipher_name_from_openvpn(name));
+    cbc_cipher = EVP_CIPHER_fetch(NULL, translate_cipher_name_from_openvpn(name), NULL);
     if (cbc_cipher)
     {
         block_size = EVP_CIPHER_block_size(cbc_cipher);
     }
 
 cleanup:
+    EVP_CIPHER_free(cbc_cipher);
+    EVP_CIPHER_free(cipher);
     free(name);
     return block_size;
 }
 
 int
-cipher_kt_tag_size(const EVP_CIPHER *cipher_kt)
+cipher_kt_tag_size(const char *ciphername)
 {
-    if (cipher_kt_mode_aead(cipher_kt))
+    if (cipher_kt_mode_aead(ciphername))
     {
         return OPENVPN_AEAD_TAG_LENGTH;
     }
@@ -685,13 +720,26 @@ cipher_kt_tag_size(const EVP_CIPHER *cipher_kt)
 }
 
 bool
-cipher_kt_insecure(const EVP_CIPHER *cipher)
+cipher_kt_insecure(const char *ciphername)
 {
-    return !(cipher_kt_block_size(cipher) >= 128 / 8
+
+    if (cipher_kt_block_size(ciphername) >= 128 / 8)
+    {
+        return false;
+    }
 #ifdef NID_chacha20_poly1305
-             || EVP_CIPHER_nid(cipher) == NID_chacha20_poly1305
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    if (cipher)
+    {
+        bool ischachapoly = (EVP_CIPHER_nid(cipher) == NID_chacha20_poly1305);
+        EVP_CIPHER_free(cipher);
+        if (ischachapoly)
+        {
+            return false;
+        }
+    }
 #endif
-             );
+    return true;
 }
 
 int
@@ -702,48 +750,56 @@ cipher_kt_mode(const EVP_CIPHER *cipher_kt)
 }
 
 bool
-cipher_kt_mode_cbc(const cipher_kt_t *cipher)
+cipher_kt_mode_cbc(const char *ciphername)
 {
-    return cipher && cipher_kt_mode(cipher) == OPENVPN_MODE_CBC
-#ifdef EVP_CIPH_FLAG_AEAD_CIPHER
-           /* Exclude AEAD cipher modes, they require a different API */
-           && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER)
+    evp_cipher_type *cipher = cipher_get(ciphername);
+
+    bool ret = cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_CBC
+                          /* Exclude AEAD cipher modes, they require a different API */
+#ifdef EVP_CIPH_FLAG_CTS
+                          && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_CTS)
 #endif
-    ;
+                          && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER));
+    EVP_CIPHER_free(cipher);
+    return ret;
 }
 
 bool
-cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher)
+cipher_kt_mode_ofb_cfb(const char *ciphername)
 {
-    return cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_OFB
-                      || cipher_kt_mode(cipher) == OPENVPN_MODE_CFB)
-#ifdef EVP_CIPH_FLAG_AEAD_CIPHER
-           /* Exclude AEAD cipher modes, they require a different API */
-           && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER)
-#endif
-    ;
+    evp_cipher_type *cipher = cipher_get(ciphername);
+    bool ofb_cfb = cipher && (cipher_kt_mode(cipher) == OPENVPN_MODE_OFB
+                              || cipher_kt_mode(cipher) == OPENVPN_MODE_CFB)
+                   /* Exclude AEAD cipher modes, they require a different API */
+                   && !(EVP_CIPHER_flags(cipher) & EVP_CIPH_FLAG_AEAD_CIPHER);
+    EVP_CIPHER_free(cipher);
+    return ofb_cfb;
 }
 
 bool
-cipher_kt_mode_aead(const cipher_kt_t *cipher)
+cipher_kt_mode_aead(const char *ciphername)
 {
-#ifdef HAVE_AEAD_CIPHER_MODES
+    bool isaead = false;
+
+    evp_cipher_type *cipher = cipher_get(ciphername);
     if (cipher)
     {
-        switch (EVP_CIPHER_nid(cipher))
+        if (EVP_CIPHER_mode(cipher) == OPENVPN_MODE_GCM)
         {
-            case NID_aes_128_gcm:
-            case NID_aes_192_gcm:
-            case NID_aes_256_gcm:
-#ifdef NID_chacha20_poly1305
-            case NID_chacha20_poly1305:
-#endif
-                return true;
+            isaead = true;
         }
-    }
-#endif
 
-    return false;
+#ifdef NID_chacha20_poly1305
+        if (EVP_CIPHER_nid(cipher) == NID_chacha20_poly1305)
+        {
+            isaead =  true;
+        }
+#endif
+    }
+
+    EVP_CIPHER_free(cipher);
+
+    return isaead;
 }
 
 /*
@@ -767,29 +823,25 @@ cipher_ctx_free(EVP_CIPHER_CTX *ctx)
 }
 
 void
-cipher_ctx_init(EVP_CIPHER_CTX *ctx, const uint8_t *key, int key_len,
-                const EVP_CIPHER *kt, int enc)
+cipher_ctx_init(EVP_CIPHER_CTX *ctx, const uint8_t *key,
+                const char *ciphername, int enc)
 {
-    ASSERT(NULL != kt && NULL != ctx);
+    ASSERT(NULL != ciphername && NULL != ctx);
+    evp_cipher_type *kt = cipher_get(ciphername);
 
     EVP_CIPHER_CTX_reset(ctx);
     if (!EVP_CipherInit(ctx, kt, NULL, NULL, enc))
     {
         crypto_msg(M_FATAL, "EVP cipher init #1");
     }
-#ifdef HAVE_EVP_CIPHER_CTX_SET_KEY_LENGTH
-    if (!EVP_CIPHER_CTX_set_key_length(ctx, key_len))
-    {
-        crypto_msg(M_FATAL, "EVP set key size");
-    }
-#endif
     if (!EVP_CipherInit_ex(ctx, NULL, NULL, key, NULL, enc))
     {
         crypto_msg(M_FATAL, "EVP cipher init #2");
     }
 
+    EVP_CIPHER_free(kt);
     /* make sure we used a big enough key */
-    ASSERT(EVP_CIPHER_CTX_key_length(ctx) <= key_len);
+    ASSERT(EVP_CIPHER_CTX_key_length(ctx) <= EVP_CIPHER_key_length(kt));
 }
 
 int
@@ -801,11 +853,7 @@ cipher_ctx_iv_length(const EVP_CIPHER_CTX *ctx)
 int
 cipher_ctx_get_tag(EVP_CIPHER_CTX *ctx, uint8_t *tag_buf, int tag_size)
 {
-#ifdef HAVE_AEAD_CIPHER_MODES
-    return EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, tag_size, tag_buf);
-#else
-    ASSERT(0);
-#endif
+    return EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, tag_size, tag_buf);
 }
 
 int
@@ -820,10 +868,61 @@ cipher_ctx_mode(const EVP_CIPHER_CTX *ctx)
     return EVP_CIPHER_CTX_mode(ctx);
 }
 
-const cipher_kt_t *
-cipher_ctx_get_cipher_kt(const cipher_ctx_t *ctx)
+
+bool
+cipher_ctx_mode_cbc(const cipher_ctx_t *ctx)
 {
-    return ctx ? EVP_CIPHER_CTX_cipher(ctx) : NULL;
+    if (!ctx)
+    {
+        return false;
+    }
+
+    int flags = EVP_CIPHER_CTX_flags(ctx);
+    int mode = EVP_CIPHER_CTX_mode(ctx);
+
+    return mode == EVP_CIPH_CBC_MODE
+           /* Exclude AEAD cipher modes, they require a different API */
+#ifdef EVP_CIPH_FLAG_CTS
+           && !(flags & EVP_CIPH_FLAG_CTS)
+#endif
+           && !(flags & EVP_CIPH_FLAG_AEAD_CIPHER);
+}
+
+bool
+cipher_ctx_mode_ofb_cfb(const cipher_ctx_t *ctx)
+{
+    if (!ctx)
+    {
+        return false;
+    }
+
+    int mode = EVP_CIPHER_CTX_get_mode(ctx);
+
+    return (mode == EVP_CIPH_OFB_MODE || mode == EVP_CIPH_CFB_MODE)
+           /* Exclude AEAD cipher modes, they require a different API */
+           && !(EVP_CIPHER_CTX_flags(ctx) & EVP_CIPH_FLAG_AEAD_CIPHER);
+}
+
+bool
+cipher_ctx_mode_aead(const cipher_ctx_t *ctx)
+{
+    if (ctx)
+    {
+        int flags = EVP_CIPHER_CTX_flags(ctx);
+        if (flags & EVP_CIPH_FLAG_AEAD_CIPHER)
+        {
+            return true;
+        }
+
+#if defined(NID_chacha20_poly1305) && OPENSSL_VERSION_NUMBER < 0x30000000L
+        if (EVP_CIPHER_CTX_nid(ctx) == NID_chacha20_poly1305)
+        {
+            return true;
+        }
+#endif
+    }
+
+    return false;
 }
 
 
@@ -836,16 +935,12 @@ cipher_ctx_reset(EVP_CIPHER_CTX *ctx, const uint8_t *iv_buf)
 int
 cipher_ctx_update_ad(EVP_CIPHER_CTX *ctx, const uint8_t *src, int src_len)
 {
-#ifdef HAVE_AEAD_CIPHER_MODES
     int len;
     if (!EVP_CipherUpdate(ctx, NULL, &len, src, src_len))
     {
         crypto_msg(M_FATAL, "%s: EVP_CipherUpdate() failed", __func__);
     }
     return 1;
-#else  /* ifdef HAVE_AEAD_CIPHER_MODES */
-    ASSERT(0);
-#endif
 }
 
 int
@@ -869,28 +964,58 @@ int
 cipher_ctx_final_check_tag(EVP_CIPHER_CTX *ctx, uint8_t *dst, int *dst_len,
                            uint8_t *tag, size_t tag_len)
 {
-#ifdef HAVE_AEAD_CIPHER_MODES
     ASSERT(tag_len < SIZE_MAX);
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, tag_len, tag))
+    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, tag_len, tag))
     {
         return 0;
     }
 
     return cipher_ctx_final(ctx, dst, dst_len);
-#else  /* ifdef HAVE_AEAD_CIPHER_MODES */
-    ASSERT(0);
-#endif
 }
 
 void
 cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
-                       unsigned char *src,
-                       unsigned char *dst)
+                       unsigned char src[DES_KEY_LENGTH],
+                       unsigned char dst[DES_KEY_LENGTH])
 {
-    DES_key_schedule sched;
+    /* We are using 3DES here with three times the same key to cheat
+     * and emulate DES as 3DES is better supported than DES */
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    if (!ctx)
+    {
+        crypto_msg(M_FATAL, "%s: EVP_CIPHER_CTX_new() failed", __func__);
+    }
 
-    DES_set_key_unchecked((DES_cblock *)key, &sched);
-    DES_ecb_encrypt((DES_cblock *)src, (DES_cblock *)dst, &sched, DES_ENCRYPT);
+    unsigned char key3[DES_KEY_LENGTH*3];
+    for (int i = 0; i < 3; i++)
+    {
+        memcpy(key3 + (i * DES_KEY_LENGTH), key, DES_KEY_LENGTH);
+    }
+
+    if (!EVP_EncryptInit_ex(ctx, EVP_des_ede3_ecb(), NULL, key3, NULL))
+    {
+        crypto_msg(M_FATAL, "%s: EVP_EncryptInit_ex() failed", __func__);
+    }
+
+    int len;
+
+    /* The EVP_EncryptFinal method will write to the dst+len pointer even
+     * though there is nothing to encrypt anymore, provide space for that to
+     * not overflow the stack */
+    unsigned char dst2[DES_KEY_LENGTH * 2];
+    if (!EVP_EncryptUpdate(ctx, dst2, &len, src, DES_KEY_LENGTH))
+    {
+        crypto_msg(M_FATAL, "%s: EVP_EncryptUpdate() failed", __func__);
+    }
+
+    if (!EVP_EncryptFinal(ctx, dst2 + len, &len))
+    {
+        crypto_msg(M_FATAL, "%s: EVP_EncryptFinal() failed", __func__);
+    }
+
+    memcpy(dst, dst2, DES_KEY_LENGTH);
+
+    EVP_CIPHER_CTX_free(ctx);
 }
 
 /*
@@ -900,12 +1025,12 @@ cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
  */
 
 
-const EVP_MD *
-md_kt_get(const char *digest)
+static evp_md_type *
+md_get(const char *digest)
 {
-    const EVP_MD *md = NULL;
+    evp_md_type *md = NULL;
     ASSERT(digest);
-    md = EVP_get_digestbyname(digest);
+    md = EVP_MD_fetch(NULL, digest, NULL);
     if (!md)
     {
         crypto_msg(M_FATAL, "Message hash algorithm '%s' not found", digest);
@@ -920,20 +1045,74 @@ md_kt_get(const char *digest)
     return md;
 }
 
-const char *
-md_kt_name(const EVP_MD *kt)
+
+bool
+md_valid(const char *digest)
 {
-    if (NULL == kt)
+    evp_md_type *md = EVP_MD_fetch(NULL, digest, NULL);
+    bool valid = (md != NULL);
+    EVP_MD_free(md);
+    return valid;
+}
+
+
+/* Since we used the OpenSSL <=1.1 names as part of our OCC message, they
+ * are now unfortunately part of our wire protocol.
+ *
+ * OpenSSL 3.0 will still accept the "old" names so we do not need to use
+ * this translation table for forward lookup, only for returning the name
+ * with md_kt_name() */
+const cipher_name_pair digest_name_translation_table[] = {
+    { "BLAKE2s256", "BLAKE2S-256"},
+    { "BLAKE2b512", "BLAKE2B-512"},
+    { "RIPEMD160", "RIPEMD-160" },
+    { "SHA224", "SHA2-224"},
+    { "SHA256", "SHA2-256"},
+    { "SHA384", "SHA2-384"},
+    { "SHA512", "SHA2-512"},
+    { "SHA512-224", "SHA2-512/224"},
+    { "SHA512-256", "SHA2-512/256"},
+    { "SHAKE128", "SHAKE-128"},
+    { "SHAKE256", "SHAKE-256"},
+};
+const size_t digest_name_translation_table_count =
+    sizeof(digest_name_translation_table) / sizeof(*digest_name_translation_table);
+
+const char *
+md_kt_name(const char *mdname)
+{
+    if (!strcmp("none", mdname))
     {
         return "[null-digest]";
     }
-    return EVP_MD_name(kt);
+    evp_md_type *kt = md_get(mdname);
+    const char *name = EVP_MD_get0_name(kt);
+
+    /* Search for a digest name translation */
+    for (size_t i = 0; i < digest_name_translation_table_count; i++)
+    {
+        const cipher_name_pair *pair = &digest_name_translation_table[i];
+        if (!strcmp(name, pair->lib_name))
+        {
+            name = pair->openvpn_name;
+        }
+    }
+
+    EVP_MD_free(kt);
+    return name;
 }
 
 unsigned char
-md_kt_size(const EVP_MD *kt)
+md_kt_size(const char *mdname)
 {
-    return (unsigned char)EVP_MD_size(kt);
+    if (!strcmp("none", mdname))
+    {
+        return 0;
+    }
+    evp_md_type *kt = md_get(mdname);
+    unsigned char size =  (unsigned char)EVP_MD_size(kt);
+    EVP_MD_free(kt);
+    return size;
 }
 
 
@@ -944,11 +1123,14 @@ md_kt_size(const EVP_MD *kt)
  */
 
 int
-md_full(const EVP_MD *kt, const uint8_t *src, int src_len, uint8_t *dst)
+md_full(const char *mdname, const uint8_t *src, int src_len, uint8_t *dst)
 {
     unsigned int in_md_len = 0;
+    evp_md_type *kt = md_get(mdname);
 
-    return EVP_Digest(src, src_len, dst, &in_md_len, kt, NULL);
+    int ret = EVP_Digest(src, src_len, dst, &in_md_len, kt, NULL);
+    EVP_MD_free(kt);
+    return ret;
 }
 
 EVP_MD_CTX *
@@ -966,12 +1148,17 @@ md_ctx_free(EVP_MD_CTX *ctx)
 }
 
 void
-md_ctx_init(EVP_MD_CTX *ctx, const EVP_MD *kt)
+md_ctx_init(EVP_MD_CTX *ctx, const char *mdname)
 {
+    evp_md_type *kt = md_get(mdname);
     ASSERT(NULL != ctx && NULL != kt);
 
     EVP_MD_CTX_init(ctx);
-    EVP_DigestInit(ctx, kt);
+    if (!EVP_DigestInit(ctx, kt))
+    {
+        crypto_msg(M_FATAL, "EVP_DigestInit failed");
+    }
+    EVP_MD_free(kt);
 }
 
 void
@@ -1006,7 +1193,7 @@ md_ctx_final(EVP_MD_CTX *ctx, uint8_t *dst)
  * Generic HMAC functions
  *
  */
-
+#if OPENSSL_VERSION_NUMBER < 0x30000000L
 HMAC_CTX *
 hmac_ctx_new(void)
 {
@@ -1022,13 +1209,17 @@ hmac_ctx_free(HMAC_CTX *ctx)
 }
 
 void
-hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, int key_len,
-              const EVP_MD *kt)
+hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, const char *mdname)
 {
+    evp_md_type *kt = md_get(mdname);
     ASSERT(NULL != kt && NULL != ctx);
 
+    int key_len = EVP_MD_size(kt);
     HMAC_CTX_reset(ctx);
-    HMAC_Init_ex(ctx, key, key_len, kt, NULL);
+    if (!HMAC_Init_ex(ctx, key, key_len, kt, NULL))
+    {
+        crypto_msg(M_FATAL, "HMAC_Init_ex failed");
+    }
 
     /* make sure we used a big enough key */
     ASSERT(HMAC_size(ctx) <= key_len);
@@ -1041,7 +1232,7 @@ hmac_ctx_cleanup(HMAC_CTX *ctx)
 }
 
 int
-hmac_ctx_size(const HMAC_CTX *ctx)
+hmac_ctx_size(HMAC_CTX *ctx)
 {
     return HMAC_size(ctx);
 }
@@ -1049,7 +1240,10 @@ hmac_ctx_size(const HMAC_CTX *ctx)
 void
 hmac_ctx_reset(HMAC_CTX *ctx)
 {
-    HMAC_Init_ex(ctx, NULL, 0, NULL, NULL);
+    if (!HMAC_Init_ex(ctx, NULL, 0, NULL, NULL))
+    {
+        crypto_msg(M_FATAL, "HMAC_Init_ex failed");
+    }
 }
 
 void
@@ -1065,5 +1259,390 @@ hmac_ctx_final(HMAC_CTX *ctx, uint8_t *dst)
 
     HMAC_Final(ctx, dst, &in_hmac_len);
 }
+#else  /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
+hmac_ctx_t *
+hmac_ctx_new(void)
+{
+    hmac_ctx_t *ctx;
+    ALLOC_OBJ_CLEAR(ctx, hmac_ctx_t);
+    EVP_MAC *hmac = EVP_MAC_fetch(NULL, "HMAC", NULL);
+    ctx->ctx = EVP_MAC_CTX_new(hmac);
+    check_malloc_return(ctx->ctx);
 
+    EVP_MAC_free(hmac);
+
+    return ctx;
+}
+
+void
+hmac_ctx_free(hmac_ctx_t *ctx)
+{
+    EVP_MAC_CTX_free(ctx->ctx);
+    secure_memzero(ctx, sizeof(hmac_ctx_t));
+    free(ctx);
+}
+
+void
+hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const char *mdname)
+{
+    evp_md_type *kt = md_get(mdname);
+    ASSERT(NULL != kt && NULL != ctx && ctx->ctx != NULL);
+
+    /* We need to make a copy of the key since the OSSL parameters
+     * only reference it */
+    memcpy(ctx->key, key, EVP_MD_size(kt));
+
+    /* Lookup/setting of parameters in OpenSSL 3.0 are string based
+     *
+     * The OSSL_PARAM_construct_utf8_string needs a non const str but this
+     * only used for lookup so we cast (as OpenSSL also does internally)
+     * the constness away here.
+     */
+    ctx->params[0] = OSSL_PARAM_construct_utf8_string("digest",
+                                                      (char *) EVP_MD_get0_name(kt), 0);
+    ctx->params[1] = OSSL_PARAM_construct_octet_string("key",
+                                                       ctx->key, EVP_MD_size(kt));
+    ctx->params[2] = OSSL_PARAM_construct_end();
+
+    if (!EVP_MAC_init(ctx->ctx, NULL, 0, ctx->params))
+    {
+        crypto_msg(M_FATAL, "EVP_MAC_init failed");
+    }
+
+    EVP_MD_free(kt);
+}
+
+void
+hmac_ctx_cleanup(hmac_ctx_t *ctx)
+{
+    EVP_MAC_init(ctx->ctx, NULL, 0, NULL);
+}
+
+int
+hmac_ctx_size(hmac_ctx_t *ctx)
+{
+    return (int)EVP_MAC_CTX_get_mac_size(ctx->ctx);
+}
+
+void
+hmac_ctx_reset(hmac_ctx_t *ctx)
+{
+    /* The OpenSSL MAC API lacks a reset method and passing NULL as params
+     * does not reset it either, so use the params array to reinitialise it the
+     * same way as before */
+    if (!EVP_MAC_init(ctx->ctx, NULL, 0, ctx->params))
+    {
+        crypto_msg(M_FATAL, "EVP_MAC_init failed");
+    }
+}
+
+void
+hmac_ctx_update(hmac_ctx_t *ctx, const uint8_t *src, int src_len)
+{
+    EVP_MAC_update(ctx->ctx, src, src_len);
+}
+
+void
+hmac_ctx_final(hmac_ctx_t *ctx, uint8_t *dst)
+{
+    /* The calling code always gives us a buffer that has the size of our
+     * algorithm */
+    size_t in_hmac_len = EVP_MAC_CTX_get_mac_size(ctx->ctx);
+
+    EVP_MAC_final(ctx->ctx, dst, &in_hmac_len, in_hmac_len);
+}
+#endif /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
+
+int
+memcmp_constant_time(const void *a, const void *b, size_t size)
+{
+    return CRYPTO_memcmp(a, b, size);
+}
+
+#if HAVE_OPENSSL_ENGINE
+static int
+ui_reader(UI *ui, UI_STRING *uis)
+{
+    SSL_CTX *ctx = UI_get0_user_data(ui);
+
+    if (UI_get_string_type(uis) == UIT_PROMPT)
+    {
+        pem_password_cb *cb = SSL_CTX_get_default_passwd_cb(ctx);
+        void *d = SSL_CTX_get_default_passwd_cb_userdata(ctx);
+        char password[64];
+
+        cb(password, sizeof(password), 0, d);
+        UI_set_result(ui, uis, password);
+
+        return 1;
+    }
+    return 0;
+}
+#endif
+
+EVP_PKEY *
+engine_load_key(const char *file, SSL_CTX *ctx)
+{
+#if HAVE_OPENSSL_ENGINE
+    UI_METHOD *ui;
+    EVP_PKEY *pkey;
+
+    if (!engine_persist)
+    {
+        return NULL;
+    }
+
+    /* this will print out the error from BIO_read */
+    crypto_msg(M_INFO, "PEM_read_bio failed, now trying engine method to load private key");
+
+    ui = UI_create_method("openvpn");
+    if (!ui)
+    {
+        crypto_msg(M_FATAL, "Engine UI creation failed");
+        return NULL;
+    }
+
+    UI_method_set_reader(ui, ui_reader);
+
+    ENGINE_init(engine_persist);
+    pkey = ENGINE_load_private_key(engine_persist, file, ui, ctx);
+    ENGINE_finish(engine_persist);
+    if (!pkey)
+    {
+        crypto_msg(M_FATAL, "Engine could not load key file");
+    }
+
+    UI_destroy_method(ui);
+    return pkey;
+#else  /* if HAVE_OPENSSL_ENGINE */
+    return NULL;
+#endif /* if HAVE_OPENSSL_ENGINE */
+}
+
+#if (OPENSSL_VERSION_NUMBER >= 0x10100000L) && !defined(LIBRESSL_VERSION_NUMBER)
+bool
+ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret,
+             int secret_len, uint8_t *output, int output_len)
+{
+    EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_TLS1_PRF, NULL);
+    if (!pctx)
+    {
+        return false;
+    }
+
+    bool ret = false;
+    if (!EVP_PKEY_derive_init(pctx))
+    {
+        goto out;
+    }
+
+    if (!EVP_PKEY_CTX_set_tls1_prf_md(pctx, EVP_md5_sha1()))
+    {
+        goto out;
+    }
+
+    if (!EVP_PKEY_CTX_set1_tls1_prf_secret(pctx, secret, secret_len))
+    {
+        goto out;
+    }
+
+    if (!EVP_PKEY_CTX_add1_tls1_prf_seed(pctx, seed, seed_len))
+    {
+        goto out;
+    }
+
+    size_t out_len = output_len;
+    if (!EVP_PKEY_derive(pctx, output, &out_len))
+    {
+        goto out;
+    }
+    if (out_len != output_len)
+    {
+        goto out;
+    }
+    ret = true;
+out:
+    EVP_PKEY_CTX_free(pctx);
+    return ret;
+}
+#else  /* if OPENSSL_VERSION_NUMBER >= 0x10100000L */
+/*
+ * Generate the hash required by for the \c tls1_PRF function.
+ *
+ * We cannot use our normal hmac_* function as they do not work
+ * in a FIPS environment (no MD5 allowed, which we need). Instead
+ * we need to directly use the EVP_MD_* API with the special
+ * EVP_MD_CTX_FLAG_NON_FIPS_ALLOW flag.
+ *
+ * The function below is adapted from OpenSSL 1.0.2t
+ *
+ * @param md_kt         Message digest to use
+ * @param sec           Secret to base the hash on
+ * @param sec_len       Length of the secret
+ * @param seed          Seed to hash
+ * @param seed_len      Length of the seed
+ * @param out           Output buffer
+ * @param olen          Length of the output buffer
+ */
+static
+bool
+tls1_P_hash(const EVP_MD *md, const unsigned char *sec,
+            int sec_len, const void *seed, int seed_len,
+            unsigned char *out, int olen)
+{
+    int chunk;
+    size_t j;
+    EVP_MD_CTX ctx, ctx_tmp, ctx_init;
+    EVP_PKEY *mac_key;
+    unsigned char A1[EVP_MAX_MD_SIZE];
+    size_t A1_len = EVP_MAX_MD_SIZE;
+    int ret = false;
+
+    chunk = EVP_MD_size(md);
+    OPENSSL_assert(chunk >= 0);
+
+    EVP_MD_CTX_init(&ctx);
+    EVP_MD_CTX_init(&ctx_tmp);
+    EVP_MD_CTX_init(&ctx_init);
+    EVP_MD_CTX_set_flags(&ctx_init, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
+    mac_key = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, sec, sec_len);
+    if (!mac_key)
+    {
+        goto err;
+    }
+    if (!EVP_DigestSignInit(&ctx_init, NULL, md, NULL, mac_key))
+    {
+        goto err;
+    }
+    if (!EVP_MD_CTX_copy_ex(&ctx, &ctx_init))
+    {
+        goto err;
+    }
+    if (!EVP_DigestSignUpdate(&ctx, seed, seed_len))
+    {
+        goto err;
+    }
+    if (!EVP_DigestSignFinal(&ctx, A1, &A1_len))
+    {
+        goto err;
+    }
+
+    for (;; )
+    {
+        /* Reinit mac contexts */
+        if (!EVP_MD_CTX_copy_ex(&ctx, &ctx_init))
+        {
+            goto err;
+        }
+        if (!EVP_DigestSignUpdate(&ctx, A1, A1_len))
+        {
+            goto err;
+        }
+        if (olen > chunk && !EVP_MD_CTX_copy_ex(&ctx_tmp, &ctx))
+        {
+            goto err;
+        }
+        if (!EVP_DigestSignUpdate(&ctx, seed, seed_len))
+        {
+            goto err;
+        }
+
+        if (olen > chunk)
+        {
+            j = olen;
+            if (!EVP_DigestSignFinal(&ctx, out, &j))
+            {
+                goto err;
+            }
+            out += j;
+            olen -= j;
+            /* calc the next A1 value */
+            if (!EVP_DigestSignFinal(&ctx_tmp, A1, &A1_len))
+            {
+                goto err;
+            }
+        }
+        else
+        {
+            A1_len = EVP_MAX_MD_SIZE;
+            /* last one */
+            if (!EVP_DigestSignFinal(&ctx, A1, &A1_len))
+            {
+                goto err;
+            }
+            memcpy(out, A1, olen);
+            break;
+        }
+    }
+    ret = true;
+err:
+    EVP_PKEY_free(mac_key);
+    EVP_MD_CTX_cleanup(&ctx);
+    EVP_MD_CTX_cleanup(&ctx_tmp);
+    EVP_MD_CTX_cleanup(&ctx_init);
+    OPENSSL_cleanse(A1, sizeof(A1));
+    return ret;
+}
+
+/*
+ * Use the TLS PRF function for generating data channel keys.
+ * This code is based on the OpenSSL library.
+ *
+ * TLS generates keys as such:
+ *
+ * master_secret[48] = PRF(pre_master_secret[48], "master secret",
+ *                         ClientHello.random[32] + ServerHello.random[32])
+ *
+ * key_block[] = PRF(SecurityParameters.master_secret[48],
+ *                 "key expansion",
+ *                 SecurityParameters.server_random[32] +
+ *                 SecurityParameters.client_random[32]);
+ *
+ * Notes:
+ *
+ * (1) key_block contains a full set of 4 keys.
+ * (2) The pre-master secret is generated by the client.
+ */
+bool
+ssl_tls1_PRF(const uint8_t *label, int label_len, const uint8_t *sec,
+             int slen, uint8_t *out1, int olen)
+{
+    bool ret = true;
+    struct gc_arena gc = gc_new();
+    /* For some reason our md_get("MD5") fails otherwise in the unit test */
+    const EVP_MD *md5 = EVP_md5();
+    const EVP_MD *sha1 = EVP_sha1();
+
+    uint8_t *out2 = (uint8_t *)gc_malloc(olen, false, &gc);
+
+    int len = slen/2;
+    const uint8_t *S1 = sec;
+    const uint8_t *S2 = &(sec[len]);
+    len += (slen&1); /* add for odd, make longer */
+
+    if (!tls1_P_hash(md5, S1, len, label, label_len, out1, olen))
+    {
+        ret = false;
+        goto done;
+    }
+
+    if (!tls1_P_hash(sha1, S2, len, label, label_len, out2, olen))
+    {
+        ret = false;
+        goto done;
+    }
+
+    for (int i = 0; i < olen; i++)
+    {
+        out1[i] ^= out2[i];
+    }
+
+    secure_memzero(out2, olen);
+
+    dmsg(D_SHOW_KEY_SOURCE, "tls1_PRF out[%d]: %s", olen, format_hex(out1, olen, 0, &gc));
+done:
+    gc_free(&gc);
+    return ret;
+}
+#endif /* if OPENSSL_VERSION_NUMBER >= 0x10100000L */
 #endif /* ENABLE_CRYPTO_OPENSSL */

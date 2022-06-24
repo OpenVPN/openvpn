@@ -1,0 +1,4 @@
+Source: pkcs11-helper
+Version: 1.29-1
+Homepage: https://github.com/OpenSC/pkcs11-helper
+Description: pkcs11-helper is a library that simplifies the interaction with PKCS#11 providers for end-user applications.

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -34,7 +34,7 @@
         int x_size; \
         int x_cap; \
         int x_sizeof; \
-        type x_list[EMPTY_ARRAY_SIZE]; \
+        type x_list[]; \
     }
 
 #define CIRC_LIST_PUSH(obj, item) \

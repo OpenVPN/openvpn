@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2011-2018 Heiko Hund <heiko.hund@sophos.com>
+ *  Copyright (C) 2011-2022 Heiko Hund <heiko.hund@sophos.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -32,44 +32,29 @@ static wchar_t win_sys_path[MAX_PATH];
  * that don't guarantee null termination for size > 0.
  */
 BOOL
-openvpn_vsntprintf(LPTSTR str, size_t size, LPCTSTR format, va_list arglist)
+openvpn_vswprintf(LPTSTR str, size_t size, LPCTSTR format, va_list arglist)
 {
     int len = -1;
     if (size > 0)
     {
-        len = _vsntprintf(str, size, format, arglist);
+        len = vswprintf_s(str, size, format, arglist);
         str[size - 1] = 0;
     }
     return (len >= 0 && (size_t)len < size);
 }
 
 BOOL
-openvpn_sntprintf(LPTSTR str, size_t size, LPCTSTR format, ...)
+openvpn_swprintf(LPTSTR str, size_t size, LPCTSTR format, ...)
 {
     va_list arglist;
     BOOL res = FALSE;
     if (size > 0)
     {
         va_start(arglist, format);
-        res = openvpn_vsntprintf(str, size, format, arglist);
+        res = openvpn_vswprintf(str, size, format, arglist);
         va_end(arglist);
     }
     return res;
-}
-
-BOOL
-openvpn_swprintf(wchar_t *const str, const size_t size, const wchar_t *const format, ...)
-{
-    va_list arglist;
-    int len = -1;
-    if (size > 0)
-    {
-        va_start(arglist, format);
-        len = vswprintf(str, size, format, arglist);
-        va_end(arglist);
-        str[size - 1] = L'\0';
-    }
-    return (len >= 0 && len < size);
 }
 
 static DWORD
@@ -81,7 +66,7 @@ GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size, LPCTSTR default_v
     if (status == ERROR_FILE_NOT_FOUND && default_value)
     {
         size_t len = size/sizeof(data[0]);
-        if (openvpn_sntprintf(data, len, default_value))
+        if (openvpn_swprintf(data, len, default_value))
         {
             status = ERROR_SUCCESS;
         }
@@ -90,7 +75,7 @@ GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size, LPCTSTR default_v
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        return MsgToEventLog(M_SYSERR, TEXT("Error querying registry value: HKLM\\SOFTWARE\\" PACKAGE_NAME "%s\\%s"), service_instance, value);
+        return MsgToEventLog(M_SYSERR, TEXT("Error querying registry value: HKLM\\SOFTWARE\\" PACKAGE_NAME "%ls\\%ls"), service_instance, value);
     }
 
     return ERROR_SUCCESS;
@@ -108,13 +93,13 @@ GetOpenvpnSettings(settings_t *s)
     TCHAR install_path[MAX_PATH];
     TCHAR default_value[MAX_PATH];
 
-    openvpn_sntprintf(reg_path, _countof(reg_path), TEXT("SOFTWARE\\" PACKAGE_NAME "%s"), service_instance);
+    openvpn_swprintf(reg_path, _countof(reg_path), TEXT("SOFTWARE\\" PACKAGE_NAME "%ls"), service_instance);
 
     LONG status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path, 0, KEY_READ, &key);
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        return MsgToEventLog(M_SYSERR, TEXT("Could not open Registry key HKLM\\%s not found"), reg_path);
+        return MsgToEventLog(M_SYSERR, TEXT("Could not open Registry key HKLM\\%ls not found"), reg_path);
     }
 
     /* The default value of REG_KEY is the install path */
@@ -125,15 +110,15 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
 
-    openvpn_sntprintf(default_value, _countof(default_value), TEXT("%s\\bin\\openvpn.exe"),
-                      install_path);
+    openvpn_swprintf(default_value, _countof(default_value), TEXT("%ls\\bin\\openvpn.exe"),
+                     install_path);
     error = GetRegString(key, TEXT("exe_path"), s->exe_path, sizeof(s->exe_path), default_value);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    openvpn_sntprintf(default_value, _countof(default_value), TEXT("%s\\config"), install_path);
+    openvpn_swprintf(default_value, _countof(default_value), TEXT("%ls\\config"), install_path);
     error = GetRegString(key, TEXT("config_dir"), s->config_dir, sizeof(s->config_dir),
                          default_value);
     if (error != ERROR_SUCCESS)
@@ -148,7 +133,7 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
 
-    openvpn_sntprintf(default_value, _countof(default_value), TEXT("%s\\log"), install_path);
+    openvpn_swprintf(default_value, _countof(default_value), TEXT("%ls\\log"), install_path);
     error = GetRegString(key, TEXT("log_dir"), s->log_dir, sizeof(s->log_dir), default_value);
     if (error != ERROR_SUCCESS)
     {
@@ -176,30 +161,30 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
     /* set process priority */
-    if (!_tcsicmp(priority, TEXT("IDLE_PRIORITY_CLASS")))
+    if (!_wcsicmp(priority, TEXT("IDLE_PRIORITY_CLASS")))
     {
         s->priority = IDLE_PRIORITY_CLASS;
     }
-    else if (!_tcsicmp(priority, TEXT("BELOW_NORMAL_PRIORITY_CLASS")))
+    else if (!_wcsicmp(priority, TEXT("BELOW_NORMAL_PRIORITY_CLASS")))
     {
         s->priority = BELOW_NORMAL_PRIORITY_CLASS;
     }
-    else if (!_tcsicmp(priority, TEXT("NORMAL_PRIORITY_CLASS")))
+    else if (!_wcsicmp(priority, TEXT("NORMAL_PRIORITY_CLASS")))
     {
         s->priority = NORMAL_PRIORITY_CLASS;
     }
-    else if (!_tcsicmp(priority, TEXT("ABOVE_NORMAL_PRIORITY_CLASS")))
+    else if (!_wcsicmp(priority, TEXT("ABOVE_NORMAL_PRIORITY_CLASS")))
     {
         s->priority = ABOVE_NORMAL_PRIORITY_CLASS;
     }
-    else if (!_tcsicmp(priority, TEXT("HIGH_PRIORITY_CLASS")))
+    else if (!_wcsicmp(priority, TEXT("HIGH_PRIORITY_CLASS")))
     {
         s->priority = HIGH_PRIORITY_CLASS;
     }
     else
     {
         SetLastError(ERROR_INVALID_DATA);
-        error = MsgToEventLog(M_SYSERR, TEXT("Unknown priority name: %s"), priority);
+        error = MsgToEventLog(M_SYSERR, TEXT("Unknown priority name: %ls"), priority);
         goto out;
     }
 
@@ -215,7 +200,7 @@ GetOpenvpnSettings(settings_t *s)
     else
     {
         SetLastError(ERROR_INVALID_DATA);
-        error = MsgToEventLog(M_ERR, TEXT("Log file append flag (given as '%s') must be '0' or '1'"), append);
+        error = MsgToEventLog(M_ERR, TEXT("Log file append flag (given as '%ls') must be '0' or '1'"), append);
         goto out;
     }
 
@@ -228,12 +213,14 @@ out:
 LPCTSTR
 GetLastErrorText()
 {
+    DWORD error;
     static TCHAR buf[256];
     DWORD len;
     LPTSTR tmp = NULL;
 
+    error = GetLastError();
     len = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY,
-                        NULL, GetLastError(), LANG_NEUTRAL, (LPTSTR)&tmp, 0, NULL);
+                        NULL, error, LANG_NEUTRAL, tmp, 0, NULL);
 
     if (len == 0 || (long) _countof(buf) < (long) len + 14)
     {
@@ -241,8 +228,8 @@ GetLastErrorText()
     }
     else
     {
-        tmp[_tcslen(tmp) - 2] = TEXT('\0'); /* remove CR/LF characters */
-        openvpn_sntprintf(buf, _countof(buf), TEXT("%s (0x%x)"), tmp, GetLastError());
+        tmp[wcslen(tmp) - 2] = TEXT('\0'); /* remove CR/LF characters */
+        openvpn_swprintf(buf, _countof(buf), TEXT("%ls (0x%x)"), tmp, error);
     }
 
     if (tmp)
@@ -272,12 +259,12 @@ MsgToEventLog(DWORD flags, LPCTSTR format, ...)
     hEventSource = RegisterEventSource(NULL, APPNAME);
     if (hEventSource != NULL)
     {
-        openvpn_sntprintf(msg[0], _countof(msg[0]),
-                          TEXT("%s%s%s: %s"), APPNAME, service_instance,
-                          (flags & MSG_FLAGS_ERROR) ? TEXT(" error") : TEXT(""), err_msg);
+        openvpn_swprintf(msg[0], _countof(msg[0]),
+                         TEXT("%ls%ls%ls: %ls"), APPNAME, service_instance,
+                         (flags & MSG_FLAGS_ERROR) ? TEXT(" error") : TEXT(""), err_msg);
 
         va_start(arglist, format);
-        openvpn_vsntprintf(msg[1], _countof(msg[1]), format, arglist);
+        openvpn_vswprintf(msg[1], _countof(msg[1]), format, arglist);
         va_end(arglist);
 
         const TCHAR *mesg[] = { msg[0], msg[1] };
@@ -311,7 +298,7 @@ get_win_sys_path(void)
 
     if (!GetSystemDirectoryW(win_sys_path, _countof(win_sys_path)))
     {
-        wcsncpy(win_sys_path, default_sys_path, _countof(win_sys_path));
+        wcscpy_s(win_sys_path, _countof(win_sys_path), default_sys_path);
         win_sys_path[_countof(win_sys_path) - 1] = L'\0';
     }
 

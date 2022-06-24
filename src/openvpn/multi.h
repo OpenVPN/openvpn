@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -27,8 +27,6 @@
 
 #ifndef MULTI_H
 #define MULTI_H
-
-#if P2MP_SERVER
 
 #include "init.h"
 #include "forward.h"
@@ -65,6 +63,31 @@ struct deferred_signal_schedule_entry
 };
 
 /**
+ * Detached client connection state.  This is the state that is tracked while
+ * the client connect hooks are executed.
+ */
+struct client_connect_defer_state
+{
+    /* Index of currently executed handler.  */
+    int cur_handler_index;
+    /* Remember which option classes where processed for delayed option
+     * handling. */
+    unsigned int option_types_found;
+
+    /**
+     * The temporary file name that contains the return status of the
+     * client-connect script if it exits with defer as status
+     */
+    char *deferred_ret_file;
+
+    /**
+     * The temporary file name that contains the config directives
+     * returned by the client-connect script
+     */
+    char *config_file;
+};
+
+/**
  * Server-mode state structure for one single VPN tunnel.
  *
  * This structure is used by OpenVPN processes running in server-mode to
@@ -77,7 +100,6 @@ struct deferred_signal_schedule_entry
 struct multi_instance {
     struct schedule_entry se;  /* this must be the first element of the structure */
     struct gc_arena gc;
-    bool defined;
     bool halt;
     int refcount;
     int route_count;           /* number of routes (including cached routes) owned by this instance */
@@ -99,20 +121,18 @@ struct multi_instance {
     in_addr_t reporting_addr;     /* IP address shown in status listing */
     struct in6_addr reporting_addr_ipv6; /* IPv6 address in status listing */
 
-    bool did_open_context;
     bool did_real_hash;
     bool did_iter;
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     bool did_cid_hash;
     struct buffer_list *cc_config;
 #endif
-    bool connection_established_flag;
     bool did_iroutes;
     int n_clients_delta; /* added to multi_context.n_clients when instance is closed */
 
     struct context context;     /**< The context structure storing state
                                  *   for this VPN tunnel. */
-
+    struct client_connect_defer_state client_connect_defer_state;
 #ifdef ENABLE_ASYNC_PUSH
     int inotify_watch; /* watch descriptor for acf */
 #endif
@@ -130,14 +150,6 @@ struct multi_instance {
  * server-mode.
  */
 struct multi_context {
-#define MC_UNDEF                      0
-#define MC_SINGLE_THREADED            (1<<0)
-#define MC_MULTI_THREADED_MASTER      (1<<1)
-#define MC_MULTI_THREADED_WORKER      (1<<2)
-#define MC_MULTI_THREADED_SCHEDULER   (1<<3)
-#define MC_WORK_THREAD                (MC_MULTI_THREADED_WORKER|MC_MULTI_THREADED_SCHEDULER)
-    int thread_mode;
-
     struct multi_instance **instances;  /**< Array of multi_instances. An instance can be
                                          * accessed using peer-id as an index. */
 
@@ -165,7 +177,7 @@ struct multi_context {
     int status_file_version;
     int n_clients; /* current number of authenticated clients */
 
-#ifdef MANAGEMENT_DEF_AUTH
+#ifdef ENABLE_MANAGEMENT
     struct hash *cid_hash;
     unsigned long cid_counter;
 #endif
@@ -179,6 +191,9 @@ struct multi_context {
     struct context top;         /**< Storage structure for process-wide
                                  *   configuration. */
 
+    struct buffer hmac_reply;
+    struct link_socket_actual *hmac_reply_dest;
+
     /*
      * Timer object for stale route check
      */
@@ -190,6 +205,17 @@ struct multi_context {
 #endif
 
     struct deferred_signal_schedule_entry deferred_shutdown_signal;
+};
+
+/**
+ * Return values used by the client connect call-back functions.
+ */
+enum client_connect_return
+{
+    CC_RET_FAILED,
+    CC_RET_SUCCEEDED,
+    CC_RET_DEFERRED,
+    CC_RET_SKIPPED
 };
 
 /*
@@ -230,11 +256,11 @@ const char *multi_instance_string(const struct multi_instance *mi, bool null, st
  * Called by mtcp.c, mudp.c, or other (to be written) protocol drivers
  */
 
-void multi_init(struct multi_context *m, struct context *t, bool tcp_mode, int thread_mode);
+void multi_init(struct multi_context *m, struct context *t, bool tcp_mode);
 
 void multi_uninit(struct multi_context *m);
 
-void multi_top_init(struct multi_context *m, const struct context *top);
+void multi_top_init(struct multi_context *m, struct context *top);
 
 void multi_top_free(struct multi_context *m);
 
@@ -628,7 +654,9 @@ multi_process_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags
     return ret;
 }
 
-
+#define CLIENT_CONNECT_OPT_MASK (OPT_P_INSTANCE | OPT_P_INHERIT   \
+                                 |OPT_P_PUSH | OPT_P_TIMER | OPT_P_CONFIG   \
+                                 |OPT_P_ECHO | OPT_P_COMP | OPT_P_SOCKFLAGS)
 
 static inline bool
 multi_process_outgoing_link_dowork(struct multi_context *m, struct multi_instance *mi, const unsigned int mpp_flags)
@@ -651,6 +679,15 @@ multi_set_pending(struct multi_context *m, struct multi_instance *mi)
 {
     m->pending = mi;
 }
+/**
+ * Assigns a peer-id to a a client and adds the instance to the
+ * the instances array of the \c multi_context structure.
+ *
+ * @param m            - The single \c multi_context structure.
+ * @param mi           - The \c multi_instance of the VPN tunnel to be
+ *                       postprocessed.
+ */
+void multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi);
 
-#endif /* P2MP_SERVER */
+
 #endif /* MULTI_H */

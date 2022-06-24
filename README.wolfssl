@@ -1,0 +1,30 @@
+Support for wolfSSL is implemented and maintained by wolfSSL Inc. The support is
+implemented using wolfSSL's compatibility layer. The wolfSSL support in OpenVPN
+receives very limited testing/support from the OpenVPN community itself.
+
+If bugs in OpenVPN when using wolfSSL are encountered, the user should try to
+also compile OpenVPN with OpenSSL to determine if these are bugs in the
+wolfSSL TLS implementation or OpenVPN itself. If bugs are caused by compiling
+with wolfSSL, please contact support@wolfssl.com directly.
+
+To Build and Install,
+
+	./configure --with-crypto-library=wolfssl
+	make
+	make install
+
+
+The wolfSSL library will include the installed options.h file by default.
+To include a custom user_settings.h file for wolfSSL,
+
+./configure --with-crypto-library=wolfssl --disable-wolfssl-options-h
+make
+make install
+
+*************************************************************************
+Due to limitations in the wolfSSL TLS library or its compatibility layer, the
+following features are missing
+
+ * blowfish support (BF-CBC), you must use something like
+   cipher AES-128-CBC to avoid trying to use BF-CBC
+ * Windows CryptoAPI support

@@ -3,7 +3,7 @@
 #include "networking.h"
 
 
-static char *iface = "dummy0";
+static char *iface = "ovpn-dummy0";
 
 static int
 net__iface_up(bool up)
@@ -11,6 +11,20 @@ net__iface_up(bool up)
     printf("CMD: ip link set %s %s\n", iface, up ? "up" : "down");
 
     return net_iface_up(NULL, iface, up);
+}
+
+static int
+net__iface_new(const char *name, const char *type)
+{
+    printf("CMD: ip link add %s type %s\n", name, type);
+    return net_iface_new(NULL, name, type, NULL);
+}
+
+static int
+net__iface_del(const char *name)
+{
+    printf("CMD: ip link del %s\n", name);
+    return net_iface_del(NULL, name);
 }
 
 static int
@@ -29,7 +43,9 @@ net__addr_v4_add(const char *addr_str, int prefixlen)
 
     ret = inet_pton(AF_INET, addr_str, &addr);
     if (ret != 1)
+    {
         return -1;
+    }
 
     addr = ntohl(addr);
 
@@ -46,7 +62,9 @@ net__addr_v6_add(const char *addr_str, int prefixlen)
 
     ret = inet_pton(AF_INET6, addr_str, &addr);
     if (ret != 1)
+    {
         return -1;
+    }
 
     printf("CMD: ip -6 addr add %s/%d dev %s\n", addr_str, prefixlen, iface);
 
@@ -60,17 +78,23 @@ net__route_v4_add(const char *dst_str, int prefixlen, int metric)
     int ret;
 
     if (!dst_str)
+    {
         return -1;
+    }
 
     ret = inet_pton(AF_INET, dst_str, &dst);
     if (ret != 1)
+    {
         return -1;
+    }
 
     dst = ntohl(dst);
 
     printf("CMD: ip route add %s/%d dev %s", dst_str, prefixlen, iface);
     if (metric > 0)
+    {
         printf(" metric %d", metric);
+    }
     printf("\n");
 
     return net_route_v4_add(NULL, &dst, prefixlen, NULL, iface, 0, metric);
@@ -85,15 +109,21 @@ net__route_v4_add_gw(const char *dst_str, int prefixlen, const char *gw_str,
     int ret;
 
     if (!dst_str || !gw_str)
+    {
         return -1;
+    }
 
     ret = inet_pton(AF_INET, dst_str, &dst);
     if (ret != 1)
+    {
         return -1;
+    }
 
     ret = inet_pton(AF_INET, gw_str, &gw);
     if (ret != 1)
+    {
         return -1;
+    }
 
     dst = ntohl(dst);
     gw = ntohl(gw);
@@ -101,7 +131,9 @@ net__route_v4_add_gw(const char *dst_str, int prefixlen, const char *gw_str,
     printf("CMD: ip route add %s/%d dev %s via %s", dst_str, prefixlen, iface,
            gw_str);
     if (metric > 0)
+    {
         printf(" metric %d", metric);
+    }
     printf("\n");
 
     return net_route_v4_add(NULL, &dst, prefixlen, &gw, iface, 0, metric);
@@ -114,15 +146,21 @@ net__route_v6_add(const char *dst_str, int prefixlen, int metric)
     int ret;
 
     if (!dst_str)
+    {
         return -1;
+    }
 
     ret = inet_pton(AF_INET6, dst_str, &dst);
     if (ret != 1)
+    {
         return -1;
+    }
 
     printf("CMD: ip -6 route add %s/%d dev %s", dst_str, prefixlen, iface);
     if (metric > 0)
+    {
         printf(" metric %d", metric);
+    }
     printf("\n");
 
     return net_route_v6_add(NULL, &dst, prefixlen, NULL, iface, 0, metric);
@@ -137,20 +175,28 @@ net__route_v6_add_gw(const char *dst_str, int prefixlen, const char *gw_str,
     int ret;
 
     if (!dst_str || !gw_str)
+    {
         return -1;
+    }
 
     ret = inet_pton(AF_INET6, dst_str, &dst);
     if (ret != 1)
+    {
         return -1;
+    }
 
     ret = inet_pton(AF_INET6, gw_str, &gw);
     if (ret != 1)
+    {
         return -1;
+    }
 
     printf("CMD: ip -6 route add %s/%d dev %s via %s", dst_str, prefixlen,
            iface, gw_str);
     if (metric > 0)
+    {
         printf(" metric %d", metric);
+    }
     printf("\n");
 
     return net_route_v6_add(NULL, &dst, prefixlen, &gw, iface, 0, metric);
@@ -159,7 +205,7 @@ net__route_v6_add_gw(const char *dst_str, int prefixlen, const char *gw_str,
 static void
 usage(char *name)
 {
-    printf("Usage: %s <0-7>\n", name);
+    printf("Usage: %s <0-9>\n", name);
 }
 
 int
@@ -189,20 +235,34 @@ main(int argc, char *argv[])
     {
         case 0:
             return net__iface_up(true);
+
         case 1:
             return net__iface_mtu_set(1281);
+
         case 2:
             return net__addr_v4_add("10.255.255.1", 24);
+
         case 3:
             return net__addr_v6_add("2001::1", 64);
+
         case 4:
             return net__route_v4_add("11.11.11.0", 24, 0);
+
         case 5:
             return net__route_v4_add_gw("11.11.12.0", 24, "10.255.255.2", 0);
+
         case 6:
             return net__route_v6_add("2001:babe:cafe:babe::", 64, 600);
+
         case 7:
             return net__route_v6_add_gw("2001:cafe:babe::", 48, "2001::2", 600);
+
+        case 8:
+            return net__iface_new("dummy0815", "dummy");
+
+        case 9:
+            return net__iface_del("dummy0815");
+
         default:
             printf("invalid test: %d\n", test);
             break;

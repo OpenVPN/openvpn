@@ -7,7 +7,8 @@
 #include <cmocka.h>
 
 static int
-setup(void **state) {
+setup(void **state)
+{
     int *answer  = malloc(sizeof(int));
 
     *answer = 42;
@@ -17,31 +18,37 @@ setup(void **state) {
 }
 
 static int
-teardown(void **state) {
+teardown(void **state)
+{
     free(*state);
 
     return 0;
 }
 
 static void
-null_test_success(void **state) {
+null_test_success(void **state)
+{
     (void) state;
 }
 
 static void
-int_test_success(void **state) {
+int_test_success(void **state)
+{
     int *answer = *state;
     assert_int_equal(*answer, 42);
 }
 
+__attribute__((unused))
 static void
-failing_test(void **state) {
+failing_test(void **state)
+{
     /* This tests fails to test that make check fails */
     assert_int_equal(0, 42);
 }
 
 int
-main(void) {
+main(void)
+{
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(null_test_success),
         cmocka_unit_test_setup_teardown(int_test_success, setup, teardown),

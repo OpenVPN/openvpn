@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2010-2018 Fox Crypto B.V. <openvpn@fox-it.com>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -82,6 +82,19 @@ struct external_context {
     void *sign_ctx;
 };
 
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
+/** struct to cache TLS secrets for keying material exporter (RFC 5705).
+ * The constants (64 and 48) are inherent to TLS version and
+ * the whole keying material export will likely change when they change */
+struct tls_key_cache {
+    unsigned char client_server_random[64];
+    mbedtls_tls_prf_types tls_prf_type;
+    unsigned char master_secret[48];
+};
+#else  /* ifdef HAVE_EXPORT_KEYING_MATERIAL */
+struct tls_key_cache { };
+#endif
+
 /**
  * Structure that wraps the TLS context. Contents differ depending on the
  * SSL library used.
@@ -105,17 +118,16 @@ struct tls_root_ctx {
 #endif
     struct external_context external_key; /**< External key context */
     int *allowed_ciphers;       /**< List of allowed ciphers for this connection */
+    mbedtls_ecp_group_id *groups;     /**< List of allowed groups for this connection */
     mbedtls_x509_crt_profile cert_profile; /**< Allowed certificate types */
 };
 
 struct key_state_ssl {
-    mbedtls_ssl_config ssl_config;      /**< mbedTLS global ssl config */
+    mbedtls_ssl_config *ssl_config;     /**< mbedTLS global ssl config */
     mbedtls_ssl_context *ctx;           /**< mbedTLS connection context */
-    bio_ctx bio_ctx;
+    bio_ctx *bio_ctx;
 
-    /** Keying material exporter cache (RFC 5705). */
-    uint8_t *exported_key_material;
-
+    struct tls_key_cache tls_key_cache;
 };
 
 /**
@@ -132,4 +144,8 @@ int tls_ctx_use_external_signing_func(struct tls_root_ctx *ctx,
                                       external_sign_func sign_func,
                                       void *sign_ctx);
 
+static inline void
+tls_clear_error(void)
+{
+}
 #endif /* SSL_MBEDTLS_H_ */

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2018 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -68,46 +68,11 @@ extern counter_type link_read_bytes_global;
 
 extern counter_type link_write_bytes_global;
 
-void check_tls_dowork(struct context *c);
-
-void check_tls_errors_co(struct context *c);
-
-void check_tls_errors_nco(struct context *c);
-
-#if P2MP
-void check_incoming_control_channel_dowork(struct context *c);
-
-void check_scheduled_exit_dowork(struct context *c);
-
-void check_push_request_dowork(struct context *c);
-
-#endif /* P2MP */
-
-#ifdef ENABLE_FRAGMENT
-void check_fragment_dowork(struct context *c);
-
-#endif /* ENABLE_FRAGMENT */
-
-void check_connection_established_dowork(struct context *c);
-
-void check_add_routes_dowork(struct context *c);
-
-void check_inactivity_timeout_dowork(struct context *c);
-
-void check_server_poll_timeout_dowork(struct context *c);
-
-void check_status_file_dowork(struct context *c);
-
 void io_wait_dowork(struct context *c, const unsigned int flags);
 
 void pre_select(struct context *c);
 
 void process_io(struct context *c);
-
-const char *wait_status_string(struct context *c, struct gc_arena *gc);
-
-void show_wait_status(struct context *c);
-
 
 /**********************************************************************/
 /**
@@ -317,6 +282,15 @@ bool
 send_control_channel_string_dowork(struct tls_multi *multi,
                                    const char *str, int msglevel);
 
+
+/**
+ * Reschedule tls_multi_process.
+ * NOTE: in multi-client mode, usually calling the function is
+ * insufficient to reschedule the client instance object unless
+ * multi_schedule_context_wakeup(m, mi) is also called.
+ */
+void reschedule_multi_process(struct context *c);
+
 #define PIPV4_PASSTOS                   (1<<0)
 #define PIP_MSSFIX                      (1<<1)         /* v4 and v6 */
 #define PIP_OUTGOING                    (1<<2)
@@ -327,10 +301,7 @@ send_control_channel_string_dowork(struct tls_multi *multi,
 
 void process_ip_header(struct context *c, unsigned int flags, struct buffer *buf);
 
-#if P2MP
 void schedule_exit(struct context *c, const int n_seconds, const int signal);
-
-#endif
 
 static inline struct link_socket_info *
 get_link_socket_info(struct context *c)
@@ -391,8 +362,6 @@ p2p_iow_flags(const struct context *c)
 static inline void
 io_wait(struct context *c, const unsigned int flags)
 {
-    void io_wait_dowork(struct context *c, const unsigned int flags);
-
     if (c->c2.fast_io && (flags & (IOW_TO_TUN|IOW_TO_LINK|IOW_MBUF)))
     {
         /* fast path -- only for TUN/TAP/UDP writes */
@@ -434,7 +403,7 @@ io_wait(struct context *c, const unsigned int flags)
             c->c2.event_set_status = ret;
         }
         else
-#endif
+#endif /* ifdef _WIN32 */
         {
             /* slow path */
             io_wait_dowork(c, flags);
@@ -442,6 +411,17 @@ io_wait(struct context *c, const unsigned int flags)
     }
 }
 
-#define CONNECTION_ESTABLISHED(c) (get_link_socket_info(c)->connection_established)
+static inline bool
+connection_established(struct context *c)
+{
+    if (c->c2.tls_multi)
+    {
+        return c->c2.tls_multi->multi_state >= CAS_WAITING_OPTIONS_IMPORT;
+    }
+    else
+    {
+        return get_link_socket_info(c)->connection_established;
+    }
+}
 
 #endif /* FORWARD_H */

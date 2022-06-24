@@ -18,14 +18,18 @@
 
 #define _WIN32_WINNT_WINBLUE    0x0603
 
+#ifndef _WIN32_WINNT_WINTHRESHOLD
+#define _WIN32_WINNT_WINTHRESHOLD    0x0A00 /* Windows 10 */
+#endif
+
 VERSIONHELPERAPI
 IsWindowsVersionOrGreater(WORD major, WORD minor, WORD servpack)
 {
-    OSVERSIONINFOEXW vi = {sizeof(vi),major,minor,0,0,{0},servpack};
+    OSVERSIONINFOEXW vi = {sizeof(vi), major, minor, 0, 0, {0}, servpack};
     return VerifyVersionInfoW(&vi, VER_MAJORVERSION|VER_MINORVERSION|VER_SERVICEPACKMAJOR,
                               VerSetConditionMask(VerSetConditionMask(VerSetConditionMask(0,
-                                                                                          VER_MAJORVERSION,VER_GREATER_EQUAL),
-                                                                      VER_MINORVERSION,VER_GREATER_EQUAL),
+                                                                                          VER_MAJORVERSION, VER_GREATER_EQUAL),
+                                                                      VER_MINORVERSION, VER_GREATER_EQUAL),
                                                   VER_SERVICEPACKMAJOR, VER_GREATER_EQUAL));
 }
 
@@ -96,9 +100,15 @@ IsWindows8Point1OrGreater(void)
 }
 
 VERSIONHELPERAPI
+IsWindows10OrGreater()
+{
+    return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINTHRESHOLD), LOBYTE(_WIN32_WINNT_WINTHRESHOLD), 0);
+}
+
+VERSIONHELPERAPI
 IsWindowsServer(void)
 {
-    OSVERSIONINFOEXW vi = {sizeof(vi),0,0,0,0,{0},0,0,0,VER_NT_WORKSTATION};
+    OSVERSIONINFOEXW vi = {sizeof(vi), 0, 0, 0, 0, {0}, 0, 0, 0, VER_NT_WORKSTATION};
     return !VerifyVersionInfoW(&vi, VER_PRODUCT_TYPE, VerSetConditionMask(0, VER_PRODUCT_TYPE, VER_EQUAL));
 }
 
