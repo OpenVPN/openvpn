@@ -38,6 +38,8 @@ struct event_set;
 struct options;
 struct tuntap;
 
+#define DCO_DEFAULT_METRIC  200
+
 #if defined(ENABLE_DCO)
 
 /**
