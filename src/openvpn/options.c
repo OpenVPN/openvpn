@@ -3492,7 +3492,7 @@ options_postprocess_cipher(struct options *o)
         msg(M_INFO, "Note: --cipher is not set. OpenVPN versions before 2.5 "
             "defaulted to BF-CBC as fallback when cipher negotiation "
             "failed in this case. If you need this fallback please add "
-            "'--data-ciphers-fallback 'BF-CBC' to your configuration "
+            "'--data-ciphers-fallback BF-CBC' to your configuration "
             "and/or add BF-CBC to --data-ciphers.");
     }
     else if (!o->enable_ncp_fallback
@@ -3570,11 +3570,11 @@ options_set_backwards_compatible_options(struct options *o)
     }
 
     /* Versions < 2.5.0 do need --cipher in the list of accepted ciphers.
-     * Version 2.4 might probably does not need it but NCP was not so
+     * Version 2.4 probably does not need it but NCP was not so
      * good with 2.4 and ncp-disable might be more common on 2.4 peers.
-     * Only do this iif --cipher is not explicitly (BF-CBC). This is not
-     * 100% correct backwards compatible behaviour but 2.5 already behaved like
-     * this */
+     * Only do this iff --cipher is set (explicitly or by compat mode
+     * < 2.4.0, see above). This is not 100% correct backwards compatible
+     * behaviour but 2.5 already behaved like this */
     if (o->ciphername && need_compatibility_before(o, 20500)
         && !tls_item_in_cipher_list(o->ciphername, o->ncp_ciphers))
     {

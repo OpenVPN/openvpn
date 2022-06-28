@@ -73,7 +73,7 @@ configured in a compatible way between both the local and remote side.
   Starting with 2.6.0, this option is always ignored in TLS mode
   when it comes to configuring the cipher and will only control the
   cipher for ``--secret`` pre-shared-key mode (note: this mode is
-  deprecated strictly not recommended).
+  deprecated and strictly not recommended).
 
   If you wish to specify the cipher to use on the data channel,
   please see ``--data-ciphers`` (for regular negotiation) and
@@ -87,8 +87,8 @@ configured in a compatible way between both the local and remote side.
   Set ``alg`` to :code:`none` to disable encryption.
 
 --compress algorithm
-  **DEPRECATED** Enable a compression algorithm.  Compression is generally
-  not recommended.  VPN tunnels which use compression are susceptible to
+  **DEPRECATED** Enable a compression algorithm. Compression is generally
+  not recommended. VPN tunnels which use compression are susceptible to
   the VORALCE attack vector. See also the :code:`migrate` parameter below.
 
   The ``algorithm`` parameter may be :code:`lzo`, :code:`lz4`,
@@ -193,6 +193,10 @@ configured in a compatible way between both the local and remote side.
   supported by the client will be pushed to clients that support cipher
   negotiation.
 
+  For more details see the chapter on `Data channel cipher negotiation`_.
+  *Especially* if you need to support clients with OpenVPN versions older
+  than 2.4!
+
   Starting with OpenVPN 2.6 a cipher can be prefixed with a :code:`?` to mark
   it as optional. This allows including ciphers in the list that may not be
   available on all platforms.
@@ -201,25 +205,17 @@ configured in a compatible way between both the local and remote side.
   supports it.
 
   Cipher negotiation is enabled in client-server mode only. I.e. if
-  ``--mode`` is set to 'server' (server-side, implied by setting
+  ``--mode`` is set to `server` (server-side, implied by setting
   ``--server`` ), or if ``--pull`` is specified (client-side, implied by
-  setting --client).
+  setting ``--client``).
 
   If no common cipher is found during cipher negotiation, the connection
   is terminated. To support old clients/old servers that do not provide any
   cipher negotiation support see ``--data-ciphers-fallback``.
 
-  Additionally, to allow for more smooth transition, if NCP is enabled,
-  OpenVPN will inherit the cipher of the peer if that cipher is different
-  from the local ``--cipher`` setting, but the peer cipher is one of the
-  ciphers specified in ``--data-ciphers``. E.g. a non-NCP client (<=v2.3,
-  or with --ncp-disabled set) connecting to a NCP server (v2.4+) with
-  ``--cipher BF-CBC`` and ``--data-ciphers AES-256-GCM:AES-256-CBC`` set can
-  either specify ``--cipher BF-CBC`` or ``--cipher AES-256-CBC`` and both
-  will work.
-
-  Note for using NCP with an OpenVPN 2.4 peer: This list must include the
-  :code:`AES-256-GCM` and :code:`AES-128-GCM` ciphers.
+  If ``--compat-mode`` is set to a version older than 2.5.0 the cipher
+  specified by ``--cipher`` will be appended to ``--data-ciphers`` if
+  not already present.
 
   This list is restricted to be 127 chars long after conversion to OpenVPN
   ciphers.
@@ -228,14 +224,13 @@ configured in a compatible way between both the local and remote side.
   to ``--data-ciphers`` in OpenVPN 2.5 to more accurately reflect its meaning.
 
 --data-ciphers-fallback alg
+  Configure a cipher that is used to fall back to if we could not determine
+  which cipher the peer is willing to use.
 
-    Configure a cipher that is used to fall back to if we could not determine
-    which cipher the peer is willing to use.
-
-    This option should only be needed to
-    connect to peers that are running OpenVPN 2.3 and older version, and
-    have been configured with `--enable-small`
-    (typically used on routers or other embedded devices).
+  This option should only be needed to
+  connect to peers that are running OpenVPN 2.3 or older versions, and
+  have been configured with ``--enable-small``
+  (typically used on routers or other embedded devices).
 
 --secret args
   **DEPRECATED** Enable Static Key encryption mode (non-TLS). Use pre-shared secret
