@@ -1649,9 +1649,27 @@ man_new_connection_post(struct management *man, const char *description)
     }
     else
 #endif
-    msg(D_MANAGEMENT, "MANAGEMENT: %s %s",
-        description,
-        print_sockaddr(man->settings.local->ai_addr, &gc));
+    if (man->settings.flags & MF_CONNECT_AS_CLIENT)
+    {
+        msg(D_MANAGEMENT, "MANAGEMENT: %s %s",
+            description,
+            print_sockaddr(man->settings.local->ai_addr, &gc));
+    }
+    else
+    {
+        struct sockaddr_storage addr;
+        socklen_t addrlen = sizeof(addr);
+        if (!getpeername(man->connection.sd_cli, (struct sockaddr *) &addr,
+                         &addrlen))
+        {
+            msg(D_MANAGEMENT, "MANAGEMENT: %s %s", description,
+                print_sockaddr((struct sockaddr *) &addr, &gc));
+        }
+        else
+        {
+            msg(D_MANAGEMENT, "MANAGEMENT: %s %s", description, "unknown");
+        }
+    }
 
     buffer_list_reset(man->connection.out);
 
