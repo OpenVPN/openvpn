@@ -1788,8 +1788,22 @@ man_listen(struct management *man)
         }
         else
 #endif
-        msg(D_MANAGEMENT, "MANAGEMENT: TCP Socket listening on %s",
-            print_sockaddr(man->settings.local->ai_addr, &gc));
+        {
+            const struct sockaddr *man_addr = man->settings.local->ai_addr;
+            struct sockaddr_storage addr;
+            socklen_t addrlen = sizeof(addr);
+            if (!getsockname(man->connection.sd_top, (struct sockaddr *) &addr, &addrlen))
+            {
+                man_addr = (struct sockaddr *) &addr;
+            }
+            else
+            {
+                msg(M_WARN|M_ERRNO,
+                    "Failed to get the management socket address");
+            }
+            msg(D_MANAGEMENT, "MANAGEMENT: TCP Socket listening on %s",
+                print_sockaddr(man_addr, &gc));
+        }
     }
 
 #ifdef _WIN32
