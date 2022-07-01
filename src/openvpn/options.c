@@ -1893,7 +1893,6 @@ show_settings(const struct options *o)
     SHOW_STR(management_user_pass);
     SHOW_INT(management_log_history_cache);
     SHOW_INT(management_echo_buffer_size);
-    SHOW_STR(management_write_peer_info_file);
     SHOW_STR(management_client_user);
     SHOW_STR(management_client_group);
     SHOW_INT(management_flags);
@@ -2380,7 +2379,6 @@ options_postprocess_verify_ce(const struct options *options,
 #ifdef ENABLE_MANAGEMENT
     if (!options->management_addr
         && (options->management_flags
-            || options->management_write_peer_info_file
             || options->management_log_history_cache != defaults.management_log_history_cache))
     {
         msg(M_USAGE, "--management is not specified, however one or more options which modify the behavior of --management were specified");
@@ -5718,11 +5716,10 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->management_flags |= MF_UP_DOWN;
     }
-    else if (streq(p[0], "management-client") && !p[2])
+    else if (streq(p[0], "management-client") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->management_flags |= MF_CONNECT_AS_CLIENT;
-        options->management_write_peer_info_file = p[1];
     }
 #ifdef ENABLE_MANAGEMENT
     else if (streq(p[0], "management-external-key"))

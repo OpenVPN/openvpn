@@ -421,7 +421,6 @@ struct options
     int management_log_history_cache;
     int management_echo_buffer_size;
     int management_state_buffer_size;
-    const char *management_write_peer_info_file;
 
     const char *management_client_user;
     const char *management_client_group;

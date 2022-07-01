@@ -1615,48 +1615,6 @@ man_stop_ne32(struct management *man)
 #endif /* ifdef _WIN32 */
 
 static void
-man_record_peer_info(struct management *man)
-{
-    struct gc_arena gc = gc_new();
-    if (man->settings.write_peer_info_file)
-    {
-        bool success = false;
-#ifdef HAVE_GETSOCKNAME
-        if (socket_defined(man->connection.sd_cli))
-        {
-            struct sockaddr_in addr;
-            socklen_t addrlen = sizeof(addr);
-            int status;
-
-            CLEAR(addr);
-            status = getsockname(man->connection.sd_cli, (struct sockaddr *)&addr, &addrlen);
-            if (!status && addrlen == sizeof(addr))
-            {
-                const in_addr_t a = ntohl(addr.sin_addr.s_addr);
-                const int p = ntohs(addr.sin_port);
-                FILE *fp = platform_fopen(man->settings.write_peer_info_file, "w");
-                if (fp)
-                {
-                    fprintf(fp, "%s\n%d\n", print_in_addr_t(a, 0, &gc), p);
-                    if (!fclose(fp))
-                    {
-                        success = true;
-                    }
-                }
-            }
-        }
-#endif /* ifdef HAVE_GETSOCKNAME */
-        if (!success)
-        {
-            msg(D_MANAGEMENT, "MANAGEMENT: failed to write peer info to file %s",
-                man->settings.write_peer_info_file);
-            throw_signal_soft(SIGTERM, "management-connect-failed");
-        }
-    }
-    gc_free(&gc);
-}
-
-static void
 man_connection_settings_reset(struct management *man)
 {
     man->connection.state_realtime = false;
@@ -1903,7 +1861,6 @@ man_connect(struct management *man)
         goto done;
     }
 
-    man_record_peer_info(man);
     man_new_connection_post(man, "Connected to management server at");
 
 done:
@@ -2376,7 +2333,6 @@ man_settings_init(struct man_settings *ms,
                   const int log_history_cache,
                   const int echo_buffer_size,
                   const int state_buffer_size,
-                  const char *write_peer_info_file,
                   const int remap_sigusr1,
                   const unsigned int flags)
 {
@@ -2415,8 +2371,6 @@ man_settings_init(struct man_settings *ms,
             msg(D_MANAGEMENT, "MANAGEMENT: client_gid=%d", ms->client_gid);
             ASSERT(ms->client_gid >= 0);
         }
-
-        ms->write_peer_info_file = string_alloc(write_peer_info_file, NULL);
 
 #if UNIX_SOCK_SUPPORT
         if (ms->flags & MF_UNIX_SOCK)
@@ -2481,7 +2435,6 @@ man_settings_close(struct man_settings *ms)
     {
         freeaddrinfo(ms->local);
     }
-    free(ms->write_peer_info_file);
     CLEAR(*ms);
 }
 
@@ -2584,7 +2537,6 @@ management_open(struct management *man,
                 const int log_history_cache,
                 const int echo_buffer_size,
                 const int state_buffer_size,
-                const char *write_peer_info_file,
                 const int remap_sigusr1,
                 const unsigned int flags)
 {
@@ -2603,7 +2555,6 @@ management_open(struct management *man,
                       log_history_cache,
                       echo_buffer_size,
                       state_buffer_size,
-                      write_peer_info_file,
                       remap_sigusr1,
                       flags);
 

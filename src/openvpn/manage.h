@@ -229,7 +229,6 @@ struct man_settings {
     int log_history_cache;
     int echo_buffer_size;
     int state_buffer_size;
-    char *write_peer_info_file;
     int client_uid;
     int client_gid;
 
@@ -351,7 +350,6 @@ bool management_open(struct management *man,
                      const int log_history_cache,
                      const int echo_buffer_size,
                      const int state_buffer_size,
-                     const char *write_peer_info_file,
                      const int remap_sigusr1,
                      const unsigned int flags);
 
