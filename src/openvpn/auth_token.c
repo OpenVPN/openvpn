@@ -349,8 +349,8 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
         return 0;
     }
 
-    /* Accept session tokens that not expired are in the acceptable range
-     * for renogiations */
+    /* Accept session tokens only if their timestamp is in the acceptable range
+     * for renegotiations */
     bool in_renog_time = now >= timestamp
                          && now < timestamp + 2 * session->opt->renegotiate_seconds;
 
@@ -362,13 +362,15 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
 
     if (!in_renog_time && !initialtoken)
     {
+        msg(M_WARN, "Timestamp (%" PRIu64 ") of auth-token is out of the renegotiation window",
+            timestamp);
         ret |= AUTH_TOKEN_EXPIRED;
     }
 
     /* Sanity check the initial timestamp */
     if (timestamp < timestamp_initial)
     {
-        msg(M_WARN, "Initial timestamp (%" PRIu64 " in token from client earlier than "
+        msg(M_WARN, "Initial timestamp (%" PRIu64 ") in token from client earlier than "
             "current timestamp %" PRIu64 ". Broken/unsynchronised clock?",
             timestamp_initial, timestamp);
         ret |= AUTH_TOKEN_EXPIRED;
