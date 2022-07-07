@@ -115,7 +115,7 @@ xkey_load_management_key(OSSL_LIB_CTX *libctx, EVP_PKEY *pubkey)
  */
 EVP_PKEY *
 xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
-                      XKEY_EXTERNAL_SIGN_fn sign_op, XKEY_PRIVKEY_FREE_fn free_op)
+                      XKEY_EXTERNAL_SIGN_fn *sign_op, XKEY_PRIVKEY_FREE_fn *free_op)
 {
     EVP_PKEY *pkey = NULL;
     const char *origin = "external";
@@ -125,8 +125,8 @@ xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
         {"xkey-origin", OSSL_PARAM_UTF8_STRING, (char *) origin, 0, 0},
         {"pubkey", OSSL_PARAM_OCTET_STRING, &pubkey, sizeof(pubkey), 0},
         {"handle", OSSL_PARAM_OCTET_PTR, &handle, sizeof(handle), 0},
-        {"sign_op", OSSL_PARAM_OCTET_PTR, (void **) &sign_op, sizeof(void *), 0},
-        {"free_op", OSSL_PARAM_OCTET_PTR, (void **) &free_op, sizeof(void *), 0},
+        {"sign_op", OSSL_PARAM_OCTET_PTR, (void **) &sign_op, sizeof(sign_op), 0},
+        {"free_op", OSSL_PARAM_OCTET_PTR, (void **) &free_op, sizeof(free_op), 0},
         {NULL, 0, NULL, 0, 0}
     };
 
