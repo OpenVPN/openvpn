@@ -356,9 +356,9 @@ strncpynt(char *dest, const char *src, size_t maxlen)
 
 /* return true if string contains at least one numerical digit */
 static inline bool
-has_digit(const unsigned char *src)
+has_digit(const char *src)
 {
-    unsigned char c;
+    char c;
     while ((c = *src++))
     {
         if (isdigit(c))

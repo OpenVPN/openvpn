@@ -694,5 +694,6 @@ tun_set(struct tuntap *tt,
 }
 
 const char *tun_stat(const struct tuntap *tt, unsigned int rwflags, struct gc_arena *gc);
+bool tun_name_is_fixed(const char *dev);
 
 #endif /* TUN_H */

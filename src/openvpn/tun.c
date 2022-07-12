@@ -1717,6 +1717,11 @@ read_tun_header(struct tuntap *tt, uint8_t *buf, int len)
 }
 #endif /* if defined (TARGET_OPENBSD) || (defined(TARGET_DARWIN) && HAVE_NET_IF_UTUN_H) */
 
+bool
+tun_name_is_fixed(const char *dev)
+{
+    return has_digit(dev);
+}
 
 #if !(defined(_WIN32) || defined(TARGET_LINUX))
 static void
@@ -1771,7 +1776,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
             else
 #endif
 
-            if (dynamic && !has_digit((unsigned char *)dev))
+            if (dynamic && !tun_name_is_fixed(dev))
             {
                 int i;
                 for (i = 0; i < 256; ++i)
