@@ -241,15 +241,16 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
                         hash_add_fast(hash, bucket, &mi->real, hv, mi);
                         mi->did_real_hash = true;
                         multi_assign_peer_id(m, mi);
-                    }
-                    /* If we have a session id already, ensure that the
-                     * state is using the same */
-                    if (session_id_defined(&state.server_session_id)
-                        && session_id_defined((&state.peer_session_id)))
-                    {
-                        mi->context.c2.tls_multi->n_sessions++;
-                        struct tls_session *session = &mi->context.c2.tls_multi->session[TM_ACTIVE];
-                        session_skip_to_pre_start(session, &state, &m->top.c2.from);
+
+                        /* If we have a session id already, ensure that the
+                         * state is using the same */
+                        if (session_id_defined(&state.server_session_id)
+                            && session_id_defined((&state.peer_session_id)))
+                        {
+                            mi->context.c2.tls_multi->n_sessions++;
+                            struct tls_session *session = &mi->context.c2.tls_multi->session[TM_ACTIVE];
+                            session_skip_to_pre_start(session, &state, &m->top.c2.from);
+                        }
                     }
                 }
                 else
