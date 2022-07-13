@@ -2,6 +2,7 @@
 #include "syshead.h"
 #include "networking.h"
 
+#include <assert.h>
 
 static char *iface = "ovpn-dummy0";
 
@@ -16,14 +17,25 @@ net__iface_up(bool up)
 static int
 net__iface_new(const char *name, const char *type)
 {
-    printf("CMD: ip link add %s type %s\n", name, type);
     return net_iface_new(NULL, name, type, NULL);
+}
+
+static int
+net__iface_type(const char *name, const char *type)
+{
+    char ret_type[IFACE_TYPE_LEN_MAX];
+    int ret = net_iface_type(NULL, name, ret_type);
+    if (ret == 0)
+    {
+        assert(strcmp(type, ret_type) == 0);
+    }
+
+    return ret;
 }
 
 static int
 net__iface_del(const char *name)
 {
-    printf("CMD: ip link del %s\n", name);
     return net_iface_del(NULL, name);
 }
 
@@ -205,7 +217,7 @@ net__route_v6_add_gw(const char *dst_str, int prefixlen, const char *gw_str,
 static void
 usage(char *name)
 {
-    printf("Usage: %s <0-9>\n", name);
+    printf("Usage: %s <0-8>\n", name);
 }
 
 int
@@ -257,11 +269,13 @@ main(int argc, char *argv[])
         case 7:
             return net__route_v6_add_gw("2001:cafe:babe::", 48, "2001::2", 600);
 
+        /* following tests are standalone and do not print any CMD= */
         case 8:
-            return net__iface_new("dummy0815", "dummy");
-
-        case 9:
-            return net__iface_del("dummy0815");
+            assert(net__iface_new("dummy0815", "dummy") == 0);
+            assert(net__iface_type("dummy0815", "dummy") == 0);
+            assert(net__iface_del("dummy0815") == 0);
+            assert(net__iface_type("dummy0815", NULL) == -ENODEV);
+            return 0;
 
         default:
             printf("invalid test: %d\n", test);

@@ -2,7 +2,8 @@
 
 IFACE="ovpn-dummy0"
 UNIT_TEST="./unit_tests/openvpn/networking_testdriver"
-MAX_TEST=${1:-7}
+LAST_AUTO_TEST=7
+LAST_TEST=8
 
 srcdir="${srcdir:-.}"
 top_builddir="${top_builddir:-..}"
@@ -128,7 +129,7 @@ else
     fi
 fi
 
-for i in $(seq 0 $MAX_TEST); do
+for i in $(seq 0 $LAST_AUTO_TEST); do
     # reload dummy module to cleanup state
     reload_dummy
     typeset -a STATE_TEST
@@ -167,5 +168,15 @@ done
 
 # remove interface for good
 $RUN_SUDO ip link del $IFACE
+
+for i in $(seq $(($LAST_AUTO_TEST + 1)) ${LAST_TEST}); do
+    $RUN_SUDO $UNIT_TEST $i
+    if [ $? -ne 0 ]; then
+        echo "unit-test $i errored out"
+        exit 1
+    fi
+
+    echo "Test $i: OK"
+done
 
 exit 0

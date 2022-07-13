@@ -79,6 +79,15 @@ net_iface_new(openvpn_net_ctx_t *ctx, const char *iface, const char *type,
 }
 
 int
+net_iface_type(openvpn_net_ctx_t *ctx, const char *iface,
+               char type[IFACE_TYPE_LEN_MAX])
+{
+    /* not supported by iproute2 */
+    msg(M_WARN, "%s: operation not supported by iproute2 backend", __func__);
+    return -1;
+}
+
+int
 net_iface_del(openvpn_net_ctx_t *ctx, const char *iface)
 {
     struct argv argv = argv_new();
