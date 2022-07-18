@@ -146,6 +146,10 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   server. Don't use this option if you want to firewall tunnel traffic
   using custom, per-client rules.
 
+  Please note that when using data channel offload this option has no
+  effect. Packets are always sent to the tunnel interface and then
+  routed based on the system routing table.
+
 --disable
   Disable a particular client (based on the common name) from connecting.
   Don't use this option to disable a client due to key or password

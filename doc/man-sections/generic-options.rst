@@ -171,6 +171,15 @@ which mode OpenVPN is configured as.
   on console) and ``--auth-nocache`` will fail as soon as key
   renegotiation (and reauthentication) occurs.
 
+--disable-dco
+  Disable "data channel offload" (DCO).
+
+  On Linux don't use the ovpn-dco device driver, but rather rely on the
+  legacy tun module.
+
+  You may want to use this option if your server needs to allow clients
+  older than version 2.4 to connect.
+
 --disable-occ
   Disable "options consistency check" (OCC).
 

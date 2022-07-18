@@ -61,6 +61,7 @@
 #include "ssl_verify.h"
 #include "platform.h"
 #include "xkey_common.h"
+#include "dco.h"
 #include <ctype.h>
 
 #include "memdbg.h"
@@ -106,6 +107,9 @@ const char title_string[] =
 #endif
 #endif
     " [AEAD]"
+#ifdef ENABLE_DCO
+    " [DCO]"
+#endif
     " built on " __DATE__
 ;
 
@@ -177,6 +181,9 @@ static const char usage_message[] =
     "                  does not begin with \"tun\" or \"tap\".\n"
     "--dev-node node : Explicitly set the device node rather than using\n"
     "                  /dev/net/tun, /dev/tun, /dev/tap, etc.\n"
+#if defined(ENABLE_DCO) && defined(TARGET_LINUX)
+    "--disable-dco   : Do not attempt using Data Channel Offload.\n"
+#endif
     "--lladdr hw     : Set the link layer address of the tap device.\n"
     "--topology t    : Set --dev tun topology: 'net30', 'p2p', or 'subnet'.\n"
 #ifdef ENABLE_IPROUTE
@@ -1785,6 +1792,9 @@ show_settings(const struct options *o)
     SHOW_STR(dev);
     SHOW_STR(dev_type);
     SHOW_STR(dev_node);
+#if defined(ENABLE_DCO) && defined(TARGET_LINUX)
+    SHOW_BOOL(tuntap_options.disable_dco);
+#endif
     SHOW_STR(lladdr);
     SHOW_INT(topology);
     SHOW_STR(ifconfig_local);
@@ -3401,6 +3411,13 @@ options_postprocess_verify(const struct options *o)
     }
 
     dns_options_verify(M_FATAL, &o->dns_options);
+
+    if (dco_enabled(o) && o->enable_c2c)
+    {
+        msg(M_WARN, "Note: --client-to-client has no effect when using data "
+            "channel offload: packets are always sent to the VPN "
+            "interface and then routed based on the system routing table");
+    }
 }
 
 /**
@@ -5839,6 +5856,12 @@ add_option(struct options *options,
         options->windows_driver = parse_windows_driver(p[1], M_FATAL);
     }
 #endif
+    else if (streq(p[0], "disable-dco"))
+    {
+#if defined(TARGET_LINUX)
+        options->tuntap_options.disable_dco = true;
+#endif
+    }
     else if (streq(p[0], "dev-node") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
