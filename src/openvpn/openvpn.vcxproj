@@ -276,6 +276,7 @@
     <ClCompile Include="crypto.c" />
     <ClCompile Include="crypto_openssl.c" />
     <ClCompile Include="cryptoapi.c" />
+    <ClCompile Include="dco.c" />
     <ClCompile Include="dco_linux.c" />
     <ClCompile Include="dhcp.c" />
     <ClCompile Include="dns.c" />

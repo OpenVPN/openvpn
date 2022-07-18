@@ -36,6 +36,9 @@
     <ClCompile Include="cryptoapi.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dco.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="dco_linux.c">
       <Filter>Source Files</Filter>
     </ClCompile>

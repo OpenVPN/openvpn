@@ -3645,6 +3645,11 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
         o->verify_hash_no_ca = true;
     }
 
+    /* check if any option should force disabling DCO */
+#if defined(TARGET_LINUX)
+    o->tuntap_options.disable_dco = !dco_check_option_conflict(D_DCO, o);
+#endif
+
     /*
      * Save certain parms before modifying options during connect, especially
      * when using --pull
