@@ -1054,7 +1054,7 @@ do_genkey(const struct options *options)
  * Persistent TUN/TAP device management mode?
  */
 bool
-do_persist_tuntap(const struct options *options, openvpn_net_ctx_t *ctx)
+do_persist_tuntap(struct options *options, openvpn_net_ctx_t *ctx)
 {
     if (options->persist_config)
     {
@@ -1069,6 +1069,26 @@ do_persist_tuntap(const struct options *options, openvpn_net_ctx_t *ctx)
             msg(M_FATAL|M_OPTERR,
                 "options --mktun or --rmtun should only be used together with --dev");
         }
+
+#if defined(ENABLE_DCO)
+        if (dco_enabled(options))
+        {
+            /* creating a DCO interface via --mktun is not supported as it does not
+             * make much sense. Since DCO is enabled by default, people may run into
+             * this without knowing, therefore this case should be properly handled.
+             *
+             * Disable DCO if --mktun was provided and print a message to let
+             * user know.
+             */
+            if (dev_type_enum(options->dev, options->dev_type) == DEV_TYPE_TUN)
+            {
+                msg(M_WARN, "Note: --mktun does not support DCO. Creating TUN interface.");
+            }
+
+            options->tuntap_options.disable_dco = true;
+        }
+#endif
+
 #ifdef ENABLE_FEATURE_TUN_PERSIST
         tuncfg(options->dev, options->dev_type, options->dev_node,
                options->persist_mode,
@@ -1763,7 +1783,7 @@ do_open_tun(struct context *c)
 #endif
     /* open the tun device */
     open_tun(c->options.dev, c->options.dev_type, c->options.dev_node,
-             c->c1.tuntap);
+             c->c1.tuntap, &c->net_ctx);
 
     /* set the hardware address */
     if (c->options.lladdr)
