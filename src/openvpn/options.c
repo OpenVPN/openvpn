@@ -3662,7 +3662,7 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
         o->verify_hash_no_ca = true;
     }
 
-    if (streq(o->config, "stdin") && o->remap_sigusr1 == SIGHUP)
+    if (o->config && streq(o->config, "stdin") && o->remap_sigusr1 == SIGHUP)
     {
         msg(M_USAGE, "Options 'config stdin' and 'remap-usr1 SIGHUP' are "
             "incompatible with each other.");
