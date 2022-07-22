@@ -3662,6 +3662,12 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
         o->verify_hash_no_ca = true;
     }
 
+    if (streq(o->config, "stdin") && o->remap_sigusr1 == SIGHUP)
+    {
+        msg(M_USAGE, "Options 'config stdin' and 'remap-usr1 SIGHUP' are "
+            "incompatible with each other.");
+    }
+
     /* check if any option should force disabling DCO */
 #if defined(TARGET_LINUX)
     o->tuntap_options.disable_dco = !dco_check_option_conflict(D_DCO, o);
