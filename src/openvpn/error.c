@@ -658,6 +658,9 @@ x_check_status(int status,
 {
     const char *extended_msg = NULL;
 
+    bool crt_error = false;
+    int my_errno = openvpn_errno_maybe_crt(&crt_error);
+
     msg(x_cs_verbose_level, "%s %s returned %d",
         sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
         description,
@@ -687,9 +690,6 @@ x_check_status(int status,
             extended_msg = tap_win_getinfo(tt, &gc);
         }
 #endif
-
-        bool crt_error = false;
-        int my_errno = openvpn_errno_maybe_crt(&crt_error);
 
         if (!ignore_sys_error(my_errno, crt_error))
         {
