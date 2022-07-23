@@ -268,7 +268,7 @@ void alloc_buf_sock_tun(struct buffer *buf,
 
 #if EXTENDED_SOCKET_ERROR_CAPABILITY
 
-void set_sock_extended_error_passing(int sd);
+void set_sock_extended_error_passing(int sd, sa_family_t proto_af);
 
 const char *format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc);
 

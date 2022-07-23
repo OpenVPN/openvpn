@@ -1131,6 +1131,10 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
     {
         ASSERT(0);
     }
+    /* Set af field of sock->info, so it always reflects the address family
+     * of the created socket */
+    sock->info.af = addr->ai_family;
+
     /* set socket buffers based on --sndbuf and --rcvbuf options */
     socket_set_buffers(sock->sd, &sock->socket_buffer_sizes);
 
@@ -1949,7 +1953,7 @@ phase2_set_socket_flags(struct link_socket *sock)
 
 #if EXTENDED_SOCKET_ERROR_CAPABILITY
     /* if the OS supports it, enable extended error passing on the socket */
-    set_sock_extended_error_passing(sock->sd);
+    set_sock_extended_error_passing(sock->sd, sock->info.af);
 #endif
 }
 

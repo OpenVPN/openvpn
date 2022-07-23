@@ -413,17 +413,22 @@ exit:
 }
 
 void
-set_sock_extended_error_passing(int sd)
+set_sock_extended_error_passing(int sd, sa_family_t proto_af)
 {
     int on = 1;
-    /* see "man 7 ip" (on Linux) */
+    /* see "man 7 ip" (on Linux)
+     * this works on IPv4 and IPv6(-dual-stack) sockets (v4-mapped)
+     */
     if (setsockopt(sd, SOL_IP, IP_RECVERR, (void *) &on, sizeof(on)) != 0)
     {
         msg(M_WARN | M_ERRNO,
             "Note: enable extended error passing on TCP/UDP socket failed (IP_RECVERR)");
     }
-    /* see "man 7 ipv6" (on Linux) */
-    if (setsockopt(sd, IPPROTO_IPV6, IPV6_RECVERR, (void *) &on, sizeof(on)) != 0)
+    /* see "man 7 ipv6" (on Linux)
+     * this only works on IPv6 sockets
+     */
+    if (proto_af == AF_INET6
+        && setsockopt(sd, IPPROTO_IPV6, IPV6_RECVERR, (void *) &on, sizeof(on)) != 0)
     {
         msg(M_WARN | M_ERRNO,
             "Note: enable extended error passing on TCP/UDP socket failed (IPV6_RECVERR)");
