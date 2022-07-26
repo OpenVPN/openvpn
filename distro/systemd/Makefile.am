@@ -21,6 +21,7 @@ if ENABLE_SYSTEMD
 systemdunit_DATA = \
 	openvpn-client@.service \
 	openvpn-server@.service
+CLEANFILES = $(systemdunit_DATA)
 tmpfiles_DATA = \
 	tmpfiles-openvpn.conf
 dist_doc_DATA = \
