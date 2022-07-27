@@ -85,6 +85,7 @@ xkey_digest(const unsigned char *src, size_t srclen, unsigned char *buf,
     return 1;
 }
 
+#ifdef ENABLE_MANAGEMENT
 /**
  * Load external key for signing via management interface.
  * The public key must be passed in by the caller as we may not
@@ -107,6 +108,7 @@ xkey_load_management_key(OSSL_LIB_CTX *libctx, EVP_PKEY *pubkey)
 
     return xkey_load_generic_key(libctx, dummy, pubkey, sign_op, NULL);
 }
+#endif
 
 /**
  * Load a generic key into the xkey provider.
@@ -147,6 +149,7 @@ xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
     return pkey;
 }
 
+#ifdef ENABLE_MANAGEMENT
 /**
  * Signature callback for xkey_provider with management-external-key
  *
@@ -277,6 +280,7 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
 
     return (*siglen > 0);
 }
+#endif /* ENABLE MANAGEMENT */
 
 /**
  * Add PKCS1 DigestInfo to tbs and return the result in *enc.

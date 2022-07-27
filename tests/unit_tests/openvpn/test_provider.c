@@ -30,6 +30,7 @@
 
 #include "syshead.h"
 #include "manage.h"
+#include "integer.h"
 #include "xkey_common.h"
 
 #ifdef HAVE_XKEY_PROVIDER
@@ -127,7 +128,9 @@ init_test()
     /* set default propq matching what we use in ssl_openssl.c */
     EVP_set_default_properties(NULL, "?provider!=ovpn.xkey");
 
+#ifdef ENABLE_MANAGEMENT
     management = test_calloc(sizeof(*management), 1);
+#endif
 }
 
 static void
@@ -272,6 +275,7 @@ done:
     return sig;
 }
 
+#ifdef ENABLE_MANAGEMENT
 /* Check loading of management external key and have sign callback exercised
  * for RSA and EC keys with and without digest support in management client.
  * Sha256 digest used for both cases with pss padding for RSA.
@@ -310,6 +314,7 @@ again:
         EVP_PKEY_free(privkey);
     }
 }
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 /* helpers for testing generic key load and sign */
 static int xkey_free_called;
@@ -409,7 +414,9 @@ main(void)
 
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(xkey_provider_test_fetch),
+#ifdef ENABLE_MANAGEMENT
         cmocka_unit_test(xkey_provider_test_mgmt_sign_cb),
+#endif
         cmocka_unit_test(xkey_provider_test_generic_sign_cb),
     };
 
