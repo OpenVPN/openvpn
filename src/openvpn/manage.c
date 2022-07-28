@@ -314,8 +314,7 @@ virtual_output_callback_func(void *arg, const unsigned int flags, const char *st
 
 #define AF_DID_PUSH  (1<<0)
 #define AF_DID_RESET (1<<1)
-
-    if (!recursive_level) /* don't allow recursion */
+    if (recursive_level < 5) /* limit recursion */
     {
         struct gc_arena gc = gc_new();
         struct log_entry e;
@@ -381,6 +380,12 @@ virtual_output_callback_func(void *arg, const unsigned int flags, const char *st
         }
 
         --recursive_level;
+    }
+    else
+    {
+        /* cannot use msg here */
+        printf("virtual_output: message to management interface "
+               "dropped due to recursion: <%s>\n", str);
     }
 }
 
