@@ -530,6 +530,13 @@ encrypt_sign(struct context *c, bool comp_frag)
     const uint8_t *orig_buf = c->c2.buf.data;
     struct crypto_options *co = NULL;
 
+    if (dco_enabled(&c->options))
+    {
+        msg(M_WARN, "Attempting to send data packet while data channel offload is in use. "
+            "Dropping packet");
+        c->c2.buf.len = 0;
+    }
+
     /*
      * Drop non-TLS outgoing packet if client-connect script/plugin
      * has not yet succeeded. In non-TLS tls_multi mode is not defined

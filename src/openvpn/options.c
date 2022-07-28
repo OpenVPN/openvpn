@@ -3193,7 +3193,6 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         msg(M_WARN, "NOTICE: --explicit-exit-notify ignored for --proto tcp");
         ce->explicit_exit_notification = 0;
     }
-
 }
 
 #ifdef _WIN32

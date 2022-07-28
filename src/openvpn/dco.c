@@ -33,11 +33,66 @@
 #if defined(ENABLE_DCO)
 
 #include "syshead.h"
+#include "crypto.h"
 #include "dco.h"
+#include "errlevel.h"
 #include "networking.h"
+#include "openvpn.h"
 #include "options.h"
+#include "ssl_common.h"
 #include "ssl_ncp.h"
 #include "tun.h"
+
+static int
+dco_install_key(struct tls_multi *multi, struct key_state *ks,
+                const uint8_t *encrypt_key, const uint8_t *encrypt_iv,
+                const uint8_t *decrypt_key, const uint8_t *decrypt_iv,
+                const char *ciphername)
+
+{
+    msg(D_DCO_DEBUG, "%s: peer_id=%d keyid=%d", __func__, multi->peer_id,
+        ks->key_id);
+
+    /* Install a key in the PRIMARY slot only when no other key exist.
+     * From that moment on, any new key will be installed in the SECONDARY
+     * slot and will be promoted to PRIMARY when userspace says so (a swap
+     * will be performed in that case)
+     */
+    dco_key_slot_t slot = OVPN_KEY_SLOT_PRIMARY;
+    if (multi->dco_keys_installed > 0)
+    {
+        slot = OVPN_KEY_SLOT_SECONDARY;
+    }
+
+    int ret = dco_new_key(multi->dco, multi->peer_id, ks->key_id, slot,
+                          encrypt_key, encrypt_iv,
+                          decrypt_key, decrypt_iv,
+                          ciphername);
+    if ((ret == 0) && (multi->dco_keys_installed < 2))
+    {
+        multi->dco_keys_installed++;
+        ks->dco_status = (slot == OVPN_KEY_SLOT_PRIMARY) ? DCO_INSTALLED_PRIMARY :
+                         DCO_INSTALLED_SECONDARY;
+    }
+
+    return ret;
+}
+
+int
+init_key_dco_bi(struct tls_multi *multi, struct key_state *ks,
+                const struct key2 *key2, int key_direction,
+                const char *ciphername, bool server)
+{
+    struct key_direction_state kds;
+    key_direction_state_init(&kds, key_direction);
+
+    return dco_install_key(multi, ks,
+                           key2->keys[kds.out_key].cipher,
+                           key2->keys[(int)server].hmac,
+                           key2->keys[kds.in_key].cipher,
+                           key2->keys[1 - (int)server].hmac,
+                           ciphername);
+}
 
 static bool
 dco_check_option_conflict_platform(int msglevel, const struct options *o)

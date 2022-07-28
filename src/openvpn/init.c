@@ -2226,8 +2226,9 @@ do_deferred_p2p_ncp(struct context *c)
     }
 #endif
 
-    if (!tls_session_update_crypto_params(session, &c->options, &c->c2.frame,
-                                          frame_fragment, get_link_socket_info(c)))
+    if (!tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options,
+                                          &c->c2.frame, frame_fragment,
+                                          get_link_socket_info(c)))
     {
         msg(D_TLS_ERRORS, "ERROR: failed to set crypto cipher");
         return false;
@@ -2340,8 +2341,10 @@ do_deferred_options(struct context *c, const unsigned int found)
 #endif
 
         struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-        if (!tls_session_update_crypto_params(session, &c->options, &c->c2.frame,
-                                              frame_fragment, get_link_socket_info(c)))
+        if (!tls_session_update_crypto_params(c->c2.tls_multi, session,
+                                              &c->options, &c->c2.frame,
+                                              frame_fragment,
+                                              get_link_socket_info(c)))
         {
             msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
             return false;

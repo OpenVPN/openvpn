@@ -2286,7 +2286,7 @@ multi_client_generate_tls_keys(struct context *c)
     }
 #endif
     struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-    if (!tls_session_update_crypto_params(session, &c->options,
+    if (!tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options,
                                           &c->c2.frame, frame_fragment,
                                           get_link_socket_info(c)))
     {

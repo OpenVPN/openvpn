@@ -35,7 +35,10 @@
  * order problems)
  */
 struct event_set;
+struct key2;
+struct key_state;
 struct options;
+struct tls_multi;
 struct tuntap;
 
 #define DCO_DEFAULT_METRIC  200
@@ -111,6 +114,24 @@ int dco_do_write(dco_context_t *dco, int peer_id, struct buffer *buf);
  */
 void dco_event_set(dco_context_t *dco, struct event_set *es, void *arg);
 
+/**
+ * Install the key material in DCO for the specified peer.
+ * The key is installed in the primary slot when no other key was yet installed.
+ * Any subsequent invocation will install the key in the secondary slot.
+ *
+ * @param multi     the TLS context of the current instance
+ * @param ks        the state of the key being installed
+ * @param key2      the container for the raw key material
+ * @param key_direction the key direction to be used to extract the material
+ * @param ciphername    the name of the cipher to use the key with
+ * @param server    whether we are running on a server instance or not
+ *
+ * @return          0 on success or a negative error code otherwise
+ */
+int init_key_dco_bi(struct tls_multi *multi, struct key_state *ks,
+                    const struct key2 *key2, int key_direction,
+                    const char *ciphername, bool server);
+
 #else /* if defined(ENABLE_DCO) */
 
 typedef void *dco_context_t;
@@ -161,6 +182,14 @@ dco_do_write(dco_context_t *dco, int peer_id, struct buffer *buf)
 static inline void
 dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
 {
+}
+
+static inline int
+init_key_dco_bi(struct tls_multi *multi, struct key_state *ks,
+                const struct key2 *key2, int key_direction,
+                const char *ciphername, bool server)
+{
+    return 0;
 }
 
 #endif /* defined(ENABLE_DCO) */

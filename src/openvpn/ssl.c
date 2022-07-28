@@ -63,6 +63,7 @@
 #include "ssl_util.h"
 #include "auth_token.h"
 #include "mss.h"
+#include "dco.h"
 
 #include "memdbg.h"
 
@@ -1429,21 +1430,48 @@ openvpn_PRF(const uint8_t *secret,
 }
 
 static void
-init_key_contexts(struct key_ctx_bi *key,
+init_key_contexts(struct key_state *ks,
+                  struct tls_multi *multi,
                   const struct key_type *key_type,
                   bool server,
-                  struct key2 *key2)
+                  struct key2 *key2,
+                  bool dco_enabled)
 {
+    struct key_ctx_bi *key = &ks->crypto_options.key_ctx_bi;
+
     /* Initialize key contexts */
     int key_direction = server ? KEY_DIRECTION_INVERSE : KEY_DIRECTION_NORMAL;
-    init_key_ctx_bi(key, key2, key_direction, key_type, "Data Channel");
 
-    /* Initialize implicit IVs */
-    key_ctx_update_implicit_iv(&key->encrypt, key2->keys[(int)server].hmac,
-                               MAX_HMAC_KEY_LENGTH);
-    key_ctx_update_implicit_iv(&key->decrypt, key2->keys[1 - (int)server].hmac,
-                               MAX_HMAC_KEY_LENGTH);
+    if (dco_enabled)
+    {
+        if (key->encrypt.hmac)
+        {
+            msg(M_FATAL, "FATAL: DCO does not support --auth");
+        }
 
+        int ret = init_key_dco_bi(multi, ks, key2, key_direction,
+                                  key_type->cipher, server);
+        if (ret < 0)
+        {
+            msg(M_FATAL, "Impossible to install key material in DCO: %s",
+                strerror(-ret));
+        }
+
+        /* encrypt/decrypt context are unused with DCO */
+        CLEAR(key->encrypt);
+        CLEAR(key->decrypt);
+        key->initialized = true;
+    }
+    else
+    {
+        init_key_ctx_bi(key, key2, key_direction, key_type, "Data Channel");
+        /* Initialize implicit IVs */
+        key_ctx_update_implicit_iv(&key->encrypt, key2->keys[(int)server].hmac,
+                                   MAX_HMAC_KEY_LENGTH);
+        key_ctx_update_implicit_iv(&key->decrypt,
+                                   key2->keys[1 - (int)server].hmac,
+                                   MAX_HMAC_KEY_LENGTH);
+    }
 }
 
 static bool
@@ -1519,9 +1547,10 @@ generate_key_expansion_openvpn_prf(const struct tls_session *session, struct key
  * master key.
  */
 static bool
-generate_key_expansion(struct key_ctx_bi *key,
+generate_key_expansion(struct tls_multi *multi, struct key_state *ks,
                        struct tls_session *session)
 {
+    struct key_ctx_bi *key = &ks->crypto_options.key_ctx_bi;
     bool ret = false;
     struct key2 key2;
 
@@ -1562,7 +1591,9 @@ generate_key_expansion(struct key_ctx_bi *key,
             goto exit;
         }
     }
-    init_key_contexts(key, &session->opt->key_type, server, &key2);
+
+    init_key_contexts(ks, multi, &session->opt->key_type, server, &key2,
+                      session->opt->dco_enabled);
     ret = true;
 
 exit:
@@ -1594,7 +1625,8 @@ key_ctx_update_implicit_iv(struct key_ctx *ctx, uint8_t *key, size_t key_len)
  * can thus be called only once per session.
  */
 bool
-tls_session_generate_data_channel_keys(struct tls_session *session)
+tls_session_generate_data_channel_keys(struct tls_multi *multi,
+                                       struct tls_session *session)
 {
     bool ret = false;
     struct key_state *ks = &session->key[KS_PRIMARY];   /* primary key */
@@ -1607,7 +1639,7 @@ tls_session_generate_data_channel_keys(struct tls_session *session)
 
     ks->crypto_options.flags = session->opt->crypto_flags;
 
-    if (!generate_key_expansion(&ks->crypto_options.key_ctx_bi, session))
+    if (!generate_key_expansion(multi, ks, session))
     {
         msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
         goto cleanup;
@@ -1625,8 +1657,10 @@ cleanup:
 }
 
 bool
-tls_session_update_crypto_params_do_work(struct tls_session *session,
-                                         struct options *options, struct frame *frame,
+tls_session_update_crypto_params_do_work(struct tls_multi *multi,
+                                         struct tls_session *session,
+                                         struct options *options,
+                                         struct frame *frame,
                                          struct frame *frame_fragment,
                                          struct link_socket_info *lsi)
 {
@@ -1669,11 +1703,12 @@ tls_session_update_crypto_params_do_work(struct tls_session *session,
         frame_print(frame_fragment, D_MTU_INFO, "Fragmentation MTU parms");
     }
 
-    return tls_session_generate_data_channel_keys(session);
+    return tls_session_generate_data_channel_keys(multi, session);
 }
 
 bool
-tls_session_update_crypto_params(struct tls_session *session,
+tls_session_update_crypto_params(struct tls_multi *multi,
+                                 struct tls_session *session,
                                  struct options *options, struct frame *frame,
                                  struct frame *frame_fragment,
                                  struct link_socket_info *lsi)
@@ -1686,8 +1721,8 @@ tls_session_update_crypto_params(struct tls_session *session,
     /* Import crypto settings that might be set by pull/push */
     session->opt->crypto_flags |= options->data_channel_crypto_flags;
 
-    return tls_session_update_crypto_params_do_work(session, options, frame,
-                                                    frame_fragment, lsi);
+    return tls_session_update_crypto_params_do_work(multi, session, options,
+                                                    frame, frame_fragment, lsi);
 }
 
 
@@ -3083,7 +3118,7 @@ tls_multi_process(struct tls_multi *multi,
                 /* Session is now fully authenticated.
                 * tls_session_generate_data_channel_keys will move ks->state
                 * from S_ACTIVE to S_GENERATED_KEYS */
-                if (!tls_session_generate_data_channel_keys(session))
+                if (!tls_session_generate_data_channel_keys(multi, session))
                 {
                     msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
                     ks->authenticated = KS_AUTH_FALSE;
