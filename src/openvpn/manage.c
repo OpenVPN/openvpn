@@ -428,13 +428,10 @@ man_signal(struct management *man, const char *name)
         }
         else
         {
+            msg(M_CLIENT, "ERROR: signal '%s' is currently ignored", name);
             if (man->persist.special_state_msg)
             {
                 msg(M_CLIENT, "%s", man->persist.special_state_msg);
-            }
-            else
-            {
-                msg(M_CLIENT, "ERROR: signal '%s' is currently ignored", name);
             }
         }
     }
