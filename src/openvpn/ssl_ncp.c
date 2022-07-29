@@ -490,3 +490,25 @@ p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session)
 
     gc_free(&gc);
 }
+
+
+bool
+check_session_cipher(struct tls_session *session, struct options *options)
+{
+    bool cipher_allowed_as_fallback = options->enable_ncp_fallback
+                                      && streq(options->ciphername, session->opt->config_ciphername);
+
+    if (!session->opt->server && !cipher_allowed_as_fallback
+        && !tls_item_in_cipher_list(options->ciphername, options->ncp_ciphers))
+    {
+        msg(D_TLS_ERRORS, "Error: negotiated cipher not allowed - %s not in %s",
+            options->ciphername, options->ncp_ciphers);
+        /* undo cipher push, abort connection setup */
+        options->ciphername = session->opt->config_ciphername;
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}

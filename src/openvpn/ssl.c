@@ -1678,17 +1678,8 @@ tls_session_update_crypto_params(struct tls_session *session,
                                  struct frame *frame_fragment,
                                  struct link_socket_info *lsi)
 {
-
-    bool cipher_allowed_as_fallback = options->enable_ncp_fallback
-                                      && streq(options->ciphername, session->opt->config_ciphername);
-
-    if (!session->opt->server && !cipher_allowed_as_fallback
-        && !tls_item_in_cipher_list(options->ciphername, options->ncp_ciphers))
+    if (!check_session_cipher(session, options))
     {
-        msg(D_TLS_ERRORS, "Error: negotiated cipher not allowed - %s not in %s",
-            options->ciphername, options->ncp_ciphers);
-        /* undo cipher push, abort connection setup */
-        options->ciphername = session->opt->config_ciphername;
         return false;
     }
 

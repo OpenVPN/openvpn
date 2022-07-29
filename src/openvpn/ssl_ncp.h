@@ -148,4 +148,12 @@ const char *
 get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info,
                    struct gc_arena *gc);
 
+
+/**
+ * Checks if the cipher is allowed, otherwise returns false and reset the
+ * cipher to the config cipher.
+ */
+bool
+check_session_cipher(struct tls_session *session, struct options *options);
+
 #endif /* ifndef OPENVPN_SSL_NCP_H */
