@@ -164,6 +164,11 @@ dco_check_option_conflict(int msglevel, const struct options *o)
         return false;
     }
 
+    if (!o->dev)
+    {
+        return false;
+    }
+
     if (!dco_check_option_conflict_platform(msglevel, o))
     {
         return false;
