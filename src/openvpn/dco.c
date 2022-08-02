@@ -311,18 +311,11 @@ dco_check_option_conflict_ce(const struct connection_entry *ce, int msglevel)
 bool
 dco_check_option_conflict(int msglevel, const struct options *o)
 {
-    if (o->tuntap_options.disable_dco)
-    {
-        /* already disabled by --disable-dco, no need to print warnings */
-        return false;
-    }
-
-    if (!dco_available(msglevel))
-    {
-        return false;
-    }
-
-    if (!o->dev)
+    /* check if DCO was already disabled by the user or if no dev name was
+     * specified at all. In the latter case, later logic will most likely stop
+     * OpenVPN, so no need to print any message here.
+     */
+    if (o->tuntap_options.disable_dco || !o->dev)
     {
         return false;
     }
@@ -399,7 +392,10 @@ dco_check_option_conflict(int msglevel, const struct options *o)
     }
     gc_free(&gc);
 
-    return true;
+    /* now that all options have been confirmed to be supported, check
+     * if DCO is truly available on the system
+     */
+    return dco_available(msglevel);
 }
 
 bool
