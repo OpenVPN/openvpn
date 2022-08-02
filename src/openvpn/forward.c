@@ -41,6 +41,7 @@
 #include "dhcp.h"
 #include "common.h"
 #include "ssl_verify.h"
+#include "dco.h"
 
 #include "memdbg.h"
 
@@ -140,6 +141,18 @@ context_reschedule_sec(struct context *c, int sec)
     }
 }
 
+void
+check_dco_key_status(struct context *c)
+{
+    /* DCO context is not yet initialised or enabled */
+    if (!dco_enabled(&c->options))
+    {
+        return;
+    }
+
+    dco_update_keys(&c->c1.tuntap->dco, c->c2.tls_multi);
+}
+
 /*
  * In TLS mode, let TLS level respond to any control-channel
  * packets which were received, or prepare any packets for
@@ -181,6 +194,12 @@ check_tls(struct context *c)
     }
 
     interval_schedule_wakeup(&c->c2.tmp_int, &wakeup);
+
+    /* Our current code has no good hooks in the TLS machinery to update
+     * DCO keys. So we check the key status after the whole TLS machinery
+     * has been completed and potentially update them
+     */
+    check_dco_key_status(c);
 
     if (wakeup)
     {

@@ -132,6 +132,14 @@ int init_key_dco_bi(struct tls_multi *multi, struct key_state *ks,
                     const struct key2 *key2, int key_direction,
                     const char *ciphername, bool server);
 
+/**
+ * Possibly swap or wipe keys from DCO
+ *
+ * @param dco           DCO device context
+ * @param multi         TLS multi instance
+ */
+void dco_update_keys(dco_context_t *dco, struct tls_multi *multi);
+
 #else /* if defined(ENABLE_DCO) */
 
 typedef void *dco_context_t;
@@ -190,6 +198,12 @@ init_key_dco_bi(struct tls_multi *multi, struct key_state *ks,
                 const char *ciphername, bool server)
 {
     return 0;
+}
+
+static inline void
+dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
+{
+    ASSERT(false);
 }
 
 #endif /* defined(ENABLE_DCO) */

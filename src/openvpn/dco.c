@@ -94,6 +94,129 @@ init_key_dco_bi(struct tls_multi *multi, struct key_state *ks,
                            ciphername);
 }
 
+/**
+ * Find a usable key that is not the primary (i.e. the secondary key)
+ *
+ * @param multi     The TLS struct to retrieve keys from
+ * @param primary   The primary key that should be skipped during the scan
+ *
+ * @return          The secondary key or NULL if none could be found
+ */
+static struct key_state *
+dco_get_secondary_key(struct tls_multi *multi, const struct key_state *primary)
+{
+    for (int i = 0; i < KEY_SCAN_SIZE; ++i)
+    {
+        struct key_state *ks = get_key_scan(multi, i);
+        struct key_ctx_bi *key = &ks->crypto_options.key_ctx_bi;
+
+        if (ks == primary)
+        {
+            continue;
+        }
+
+        if (ks->state >= S_GENERATED_KEYS && ks->authenticated == KS_AUTH_TRUE)
+        {
+            ASSERT(key->initialized);
+            return ks;
+        }
+    }
+
+    return NULL;
+}
+
+void
+dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
+{
+    msg(D_DCO_DEBUG, "%s: peer_id=%d", __func__, multi->peer_id);
+
+    /* this function checks if keys have to be swapped or erased, therefore it
+     * can't do much if we don't have any key installed
+     */
+    if (multi->dco_keys_installed == 0)
+    {
+        return;
+    }
+
+    struct key_state *primary = tls_select_encryption_key(multi);
+    /* no primary key available -> no usable key exists, therefore we should
+     * tell DCO to simply wipe all keys
+     */
+    if (!primary)
+    {
+        msg(D_DCO, "No encryption key found. Purging data channel keys");
+
+        int ret = dco_del_key(dco, multi->peer_id, OVPN_KEY_SLOT_PRIMARY);
+        if (ret < 0)
+        {
+            msg(D_DCO, "Cannot delete primary key during wipe: %s (%d)", strerror(-ret), ret);
+            return;
+        }
+
+        ret = dco_del_key(dco, multi->peer_id, OVPN_KEY_SLOT_SECONDARY);
+        if (ret < 0)
+        {
+            msg(D_DCO, "Cannot delete secondary key during wipe: %s (%d)", strerror(-ret), ret);
+            return;
+        }
+
+        multi->dco_keys_installed = 0;
+        return;
+    }
+
+    /* if we have a primary key, it must have been installed already (keys
+     * are installed upon generation in the TLS code)
+     */
+    ASSERT(primary->dco_status != DCO_NOT_INSTALLED);
+
+    struct key_state *secondary = dco_get_secondary_key(multi, primary);
+    /* if the current primary key was installed as secondary in DCO,
+     * this means we have promoted it since installation in DCO, and
+     * we now need to tell DCO to swap keys
+     */
+    if (primary->dco_status == DCO_INSTALLED_SECONDARY)
+    {
+        msg(D_DCO_DEBUG, "Swapping primary and secondary keys, now: id1=%d id2=%d",
+            primary->key_id, secondary ? secondary->key_id : -1);
+
+        int ret = dco_swap_keys(dco, multi->peer_id);
+        if (ret < 0)
+        {
+            msg(D_DCO, "Cannot swap keys: %s (%d)", strerror(-ret), ret);
+            return;
+        }
+
+        primary->dco_status = DCO_INSTALLED_PRIMARY;
+        if (secondary)
+        {
+            ASSERT(secondary->dco_status == DCO_INSTALLED_PRIMARY);
+            secondary->dco_status = DCO_INSTALLED_SECONDARY;
+        }
+    }
+
+    /* if we have no secondary key anymore, inform DCO about it */
+    if (!secondary && multi->dco_keys_installed == 2)
+    {
+        int ret = dco_del_key(dco, multi->peer_id, OVPN_KEY_SLOT_SECONDARY);
+        if (ret < 0)
+        {
+            msg(D_DCO, "Cannot delete secondary key: %s (%d)", strerror(-ret), ret);
+            return;
+        }
+        multi->dco_keys_installed = 1;
+    }
+
+    /* all keys that are not installed are set to NOT installed */
+    for (int i = 0; i < KEY_SCAN_SIZE; ++i)
+    {
+        struct key_state *ks = get_key_scan(multi, i);
+        if (ks != primary && ks != secondary)
+        {
+            ks->dco_status = DCO_NOT_INSTALLED;
+        }
+    }
+}
+
 static bool
 dco_check_option_conflict_platform(int msglevel, const struct options *o)
 {
