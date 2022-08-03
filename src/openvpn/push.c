@@ -58,12 +58,6 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
         return;
     }
 
-    struct buffer buf = *buffer;
-
-    /* If the AUTH_FAIL message ends with a , it is an extended message that
-     * contains further flags */
-    bool authfail_extended = buf_string_compare_advance(&buf, "AUTH_FAILED,");
-
     /* Before checking how to react on AUTH_FAILED, first check if the
      * failed auth might be the result of an expired auth-token.
      * Note that a server restart will trigger a generic AUTH_FAILED
@@ -95,6 +89,12 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
         c->sig->signal_text = "auth-failure";
     }
 #ifdef ENABLE_MANAGEMENT
+    struct buffer buf = *buffer;
+
+    /* If the AUTH_FAIL message ends with a , it is an extended message that
+     * contains further flags */
+    bool authfail_extended = buf_string_compare_advance(&buf, "AUTH_FAILED,");
+
     if (management)
     {
         const char *reason = NULL;
@@ -112,7 +112,7 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
     {
         ssl_put_auth_challenge(BSTR(&buf));
     }
-#endif
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 }
 
