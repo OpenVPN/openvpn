@@ -2078,6 +2078,37 @@ options_hash_changed_or_zero(const struct sha256_digest *a,
            || !memcmp(a, &zero, sizeof(struct sha256_digest));
 }
 
+/**
+ * This function is expected to be invoked after open_tun() was performed.
+ *
+ * This kind of behaviour is required by DCO, because the following operations
+ * can be done only after the DCO device was created and the new peer was
+ * properly added.
+ */
+static bool
+do_deferred_options_part2(struct context *c)
+{
+    struct frame *frame_fragment = NULL;
+#ifdef ENABLE_FRAGMENT
+    if (c->options.ce.fragment)
+    {
+        frame_fragment = &c->c2.frame_fragment;
+    }
+#endif
+
+    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
+    if (!tls_session_update_crypto_params(c->c2.tls_multi, session,
+                                          &c->options, &c->c2.frame,
+                                          frame_fragment,
+                                          get_link_socket_info(c)))
+    {
+        msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
+        return false;
+    }
+
+    return true;
+}
+
 bool
 do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
 {
@@ -2090,14 +2121,6 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
             if (!do_deferred_options(c, option_types_found))
             {
                 msg(D_PUSH_ERRORS, "ERROR: Failed to apply push options");
-                return false;
-            }
-        }
-        else if (c->mode == MODE_POINT_TO_POINT)
-        {
-            if (!do_deferred_p2p_ncp(c))
-            {
-                msg(D_TLS_ERRORS, "ERROR: Failed to apply P2P negotiated protocol options");
                 return false;
             }
         }
@@ -2124,6 +2147,31 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
                 management_sleep(1);
                 c->c2.did_open_tun = do_open_tun(c);
                 update_time();
+            }
+        }
+
+        /* do_deferred_options_part2() and do_deferred_p2p_ncp() *must* be
+         * invoked after open_tun().
+         * This is required by DCO because we must have created the interface
+         * and added the peer before we can fiddle with the keys or any other
+         * data channel per-peer setting.
+         */
+        if (pulled_options)
+        {
+            if (!do_deferred_options_part2(c))
+            {
+                return false;
+            }
+        }
+        else
+        {
+            if (c->mode == MODE_POINT_TO_POINT)
+            {
+                if (!do_deferred_p2p_ncp(c))
+                {
+                    msg(D_TLS_ERRORS, "ERROR: Failed to apply P2P negotiated protocol options");
+                    return false;
+                }
             }
         }
 
@@ -2330,23 +2378,6 @@ do_deferred_options(struct context *c, const unsigned int found)
     {
         if (!check_pull_client_ncp(c, found))
         {
-            return false;
-        }
-        struct frame *frame_fragment = NULL;
-#ifdef ENABLE_FRAGMENT
-        if (c->options.ce.fragment)
-        {
-            frame_fragment = &c->c2.frame_fragment;
-        }
-#endif
-
-        struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-        if (!tls_session_update_crypto_params(c->c2.tls_multi, session,
-                                              &c->options, &c->c2.frame,
-                                              frame_fragment,
-                                              get_link_socket_info(c)))
-        {
-            msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
             return false;
         }
     }
