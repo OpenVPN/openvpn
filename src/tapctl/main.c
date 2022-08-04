@@ -44,7 +44,6 @@
 
 const TCHAR title_string[] =
     TEXT(PACKAGE_NAME) TEXT(" ") TEXT(PACKAGE_VERSION)
-    TEXT(" built on ") TEXT(__DATE__)
 ;
 
 static const TCHAR usage_message[] =

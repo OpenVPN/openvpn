@@ -110,7 +110,9 @@ const char title_string[] =
 #ifdef ENABLE_DCO
     " [DCO]"
 #endif
+#ifdef CONFIGURE_GIT_REVISION
     " built on " __DATE__
+#endif
 ;
 
 #ifndef ENABLE_SMALL
