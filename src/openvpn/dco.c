@@ -370,4 +370,16 @@ dco_check_option_conflict(int msglevel, const struct options *o)
     return true;
 }
 
+bool
+dco_check_pull_options(int msglevel, const struct options *o)
+{
+    if (!o->use_peer_id)
+    {
+        msg(msglevel, "OPTIONS IMPORT: Server did not request DATA_V2 packet "
+            "format required for data channel offload");
+        return false;
+    }
+    return true;
+}
+
 #endif /* defined(ENABLE_DCO) */

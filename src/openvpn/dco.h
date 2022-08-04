@@ -66,6 +66,17 @@ bool dco_available(int msglevel);
 bool dco_check_option_conflict(int msglevel, const struct options *o);
 
 /**
+ * Check whether any of the options pushed by the server is not supported by
+ * our current dco implementation. If so print a warning at warning level
+ * for the first conflicting option found and return false.
+ *
+ * @param msglevel  the msg level to use to print the warnings
+ * @param o         the options struct that hold the options
+ * @return          true if no conflict was detected, false otherwise
+ */
+bool dco_check_pull_options(int msglevel, const struct options *o);
+
+/**
  * Initialize the DCO context
  *
  * @param mode      the instance operating mode (P2P or multi-peer)
@@ -152,6 +163,12 @@ dco_available(int msglevel)
 
 static inline bool
 dco_check_option_conflict(int msglevel, const struct options *o)
+{
+    return false;
+}
+
+static inline bool
+dco_check_pull_options(int msglevel, const struct options *o)
 {
     return false;
 }

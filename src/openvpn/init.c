@@ -2382,6 +2382,15 @@ do_deferred_options(struct context *c, const unsigned int found)
         }
     }
 
+    /* Check if pushed options are compatible with DCO, if enabled */
+    if (dco_enabled(&c->options)
+        && !dco_check_pull_options(D_PUSH_ERRORS, &c->options))
+    {
+        msg(D_PUSH_ERRORS, "OPTIONS ERROR: pushed options are incompatible with "
+            "data channel offload. Use --disable-dco to connect to this server");
+        return false;
+    }
+
     return true;
 }
 
