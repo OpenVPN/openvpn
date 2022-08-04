@@ -1867,13 +1867,18 @@ open_tun_dco_generic(const char *dev, const char *dev_type,
         {
             openvpn_snprintf(dynamic_name, sizeof(dynamic_name),
                              "%s%d", dev, i);
-            if (open_tun_dco(tt, ctx, dynamic_name) == 0)
+            int ret = open_tun_dco(tt, ctx, dynamic_name);
+            if (ret == 0)
             {
                 dynamic_opened = true;
                 msg(M_INFO, "DCO device %s opened", dynamic_name);
                 break;
             }
-            msg(D_READ_WRITE | M_ERRNO, "Tried opening %s (failed)", dynamic_name);
+            /* "permission denied" won't succeed if we try 256 times */
+            else if (ret == -EPERM)
+            {
+                break;
+            }
         }
         if (!dynamic_opened)
         {
