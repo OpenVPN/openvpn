@@ -36,6 +36,7 @@
 #include "crypto.h"
 #include "dco.h"
 #include "errlevel.h"
+#include "multi.h"
 #include "networking.h"
 #include "openvpn.h"
 #include "options.h"
@@ -380,6 +381,95 @@ dco_check_pull_options(int msglevel, const struct options *o)
         return false;
     }
     return true;
+}
+
+int
+dco_p2p_add_new_peer(struct context *c)
+{
+    if (!dco_enabled(&c->options))
+    {
+        return 0;
+    }
+
+    struct tls_multi *multi = c->c2.tls_multi;
+    struct link_socket *ls = c->c2.link_socket;
+
+    struct in6_addr remote_ip6 = { 0 };
+    struct in_addr remote_ip4 = { 0 };
+
+    struct in6_addr *remote_addr6 = NULL;
+    struct in_addr *remote_addr4 = NULL;
+
+    const char *gw = NULL;
+
+    ASSERT(ls->info.connection_established);
+
+    /* In client mode if a P2P style topology is used we assume the
+     * remote-gateway is the IP of the peer */
+    if (c->options.topology == TOP_NET30 || c->options.topology == TOP_P2P)
+    {
+        gw = c->options.ifconfig_remote_netmask;
+    }
+    if (c->options.route_default_gateway)
+    {
+        gw = c->options.route_default_gateway;
+    }
+
+    /* These inet_pton conversion are fatal since options.c already implements
+     * checks to have only valid addresses when setting the options */
+    if (c->options.ifconfig_ipv6_remote)
+    {
+        if (inet_pton(AF_INET6, c->options.ifconfig_ipv6_remote, &remote_ip6) != 1)
+        {
+            msg(M_FATAL,
+                "DCO peer init: problem converting IPv6 ifconfig remote address %s to binary",
+                c->options.ifconfig_ipv6_remote);
+        }
+        remote_addr6 = &remote_ip6;
+    }
+
+    if (gw)
+    {
+        if (inet_pton(AF_INET, gw, &remote_ip4) != 1)
+        {
+            msg(M_FATAL, "DCO peer init: problem converting IPv4 ifconfig gateway address %s to binary", gw);
+        }
+        remote_addr4 = &remote_ip4;
+    }
+    else if (c->options.ifconfig_local)
+    {
+        msg(M_INFO, "DCO peer init: Need a peer VPN addresss to setup IPv4 (set --route-gateway)");
+    }
+
+    struct sockaddr *remoteaddr = &ls->info.lsa->actual.dest.addr.sa;
+
+    int ret = dco_new_peer(&c->c1.tuntap->dco, multi->peer_id,
+                           c->c2.link_socket->sd, NULL, remoteaddr,
+                           remote_addr4, remote_addr6);
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    c->c2.tls_multi->dco_peer_added = true;
+    c->c2.link_socket->info.dco_installed = true;
+
+    return 0;
+}
+
+void
+dco_remove_peer(struct context *c)
+{
+    if (!dco_enabled(&c->options))
+    {
+        return;
+    }
+
+    if (c->c1.tuntap && c->c2.tls_multi && c->c2.tls_multi->dco_peer_added)
+    {
+        dco_del_peer(&c->c1.tuntap->dco, c->c2.tls_multi->peer_id);
+        c->c2.tls_multi->dco_peer_added = false;
+    }
 }
 
 #endif /* defined(ENABLE_DCO) */

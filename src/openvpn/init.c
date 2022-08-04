@@ -2106,6 +2106,22 @@ do_deferred_options_part2(struct context *c)
         return false;
     }
 
+    if (dco_enabled(&c->options)
+        && (c->options.ping_send_timeout || c->c2.frame.mss_fix))
+    {
+        int ret = dco_set_peer(&c->c1.tuntap->dco,
+                               c->c2.tls_multi->peer_id,
+                               c->options.ping_send_timeout,
+                               c->options.ping_rec_timeout,
+                               c->c2.frame.mss_fix);
+        if (ret < 0)
+        {
+            msg(D_DCO, "Cannot set parameters for DCO peer (id=%u): %s",
+                c->c2.tls_multi->peer_id, strerror(-ret));
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -2147,6 +2163,19 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
                 management_sleep(1);
                 c->c2.did_open_tun = do_open_tun(c);
                 update_time();
+            }
+        }
+
+        if (c->mode == MODE_POINT_TO_POINT)
+        {
+            /* ovpn-dco requires adding the peer now, before any option can be set,
+             * but *after* having parsed the pushed peer-id in do_deferred_options()
+             */
+            int ret = dco_p2p_add_new_peer(c);
+            if (ret < 0)
+            {
+                msg(D_DCO, "Cannot add peer to DCO: %s (%d)", strerror(-ret), ret);
+                return false;
             }
         }
 
@@ -4362,6 +4391,10 @@ close_instance(struct context *c)
 
         /* free buffers */
         do_close_free_buf(c);
+
+        /* close peer for DCO if enabled, needs peer-id so must be done before
+         * closing TLS contexts */
+        dco_remove_peer(c);
 
         /* close TLS */
         do_close_tls(c);

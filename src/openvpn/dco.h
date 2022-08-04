@@ -151,6 +151,36 @@ int init_key_dco_bi(struct tls_multi *multi, struct key_state *ks,
  */
 void dco_update_keys(dco_context_t *dco, struct tls_multi *multi);
 
+/**
+ * Install a new peer in DCO - to be called by a CLIENT (or P2P) instance
+ *
+ * @param c         the main instance context
+ * @return          0 on success or a negative error code otherwise
+ */
+int dco_p2p_add_new_peer(struct context *c);
+
+/**
+ * Modify DCO peer options. Special values are 0 (disable)
+ * and -1 (do not touch).
+ *
+ * @param dco                DCO device context
+ * @param peer_id            the ID of the peer to be modified
+ * @param keepalive_interval keepalive interval in seconds
+ * @param keepalive_timeout  keepalive timeout in seconds
+ * @param mss                TCP MSS value
+ *
+ * @return                   0 on success or a negative error code otherwise
+ */
+int dco_set_peer(dco_context_t *dco, unsigned int peerid,
+                 int keepalive_interval, int keepalive_timeout, int mss);
+
+/**
+ * Remove a peer from DCO
+ *
+ * @param c         the main instance context of the peer to remove
+ */
+void dco_remove_peer(struct context *c);
+
 #else /* if defined(ENABLE_DCO) */
 
 typedef void *dco_context_t;
@@ -221,6 +251,24 @@ static inline void
 dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
 {
     ASSERT(false);
+}
+
+static inline bool
+dco_p2p_add_new_peer(struct context *c)
+{
+    return true;
+}
+
+static inline int
+dco_set_peer(dco_context_t *dco, unsigned int peerid,
+             int keepalive_interval, int keepalive_timeout, int mss)
+{
+    return 0;
+}
+
+static inline void
+dco_remove_peer(struct context *c)
+{
 }
 
 #endif /* defined(ENABLE_DCO) */
