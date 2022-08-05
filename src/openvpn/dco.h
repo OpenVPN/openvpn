@@ -37,10 +37,14 @@
 struct event_set;
 struct key2;
 struct key_state;
+struct multi_context;
+struct multi_instance;
+struct mroute_addr;
 struct options;
 struct tls_multi;
 struct tuntap;
 
+#define DCO_IROUTE_METRIC   100
 #define DCO_DEFAULT_METRIC  200
 
 #if defined(ENABLE_DCO)
@@ -181,6 +185,34 @@ int dco_set_peer(dco_context_t *dco, unsigned int peerid,
  */
 void dco_remove_peer(struct context *c);
 
+/**
+ * Install a new peer in DCO - to be called by a SERVER instance
+ *
+ * @param m         the server context
+ * @param mi        the client instance
+ * @return          0 on success or a negative error code otherwise
+ */
+int dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi);
+
+/**
+ * Install an iroute in DCO, which means adding a route to the system routing
+ * table. To be called by a SERVER instance only.
+ *
+ * @param m         the server context
+ * @param mi        the client instance acting as nexthop for the route
+ * @param addr      the route to add
+ */
+void dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
+                        struct mroute_addr *addr);
+
+/**
+ * Remove all routes added through the specified client
+ *
+ * @param m         the server context
+ * @param mi        the client instance for which routes have to be removed
+ */
+void dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi);
+
 #else /* if defined(ENABLE_DCO) */
 
 typedef void *dco_context_t;
@@ -268,6 +300,23 @@ dco_set_peer(dco_context_t *dco, unsigned int peerid,
 
 static inline void
 dco_remove_peer(struct context *c)
+{
+}
+
+static inline bool
+dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
+{
+    return true;
+}
+
+static inline void
+dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
+                   struct mroute_addr *addr)
+{
+}
+
+static inline void
+dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
 {
 }
 

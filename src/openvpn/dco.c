@@ -472,4 +472,206 @@ dco_remove_peer(struct context *c)
     }
 }
 
+static bool
+dco_multi_get_localaddr(struct multi_context *m, struct multi_instance *mi,
+                        struct sockaddr_storage *local)
+{
+#if ENABLE_IP_PKTINFO
+    struct context *c = &mi->context;
+
+    if (!(c->options.sockflags & SF_USE_IP_PKTINFO))
+    {
+        return false;
+    }
+
+    struct link_socket_actual *actual = &c->c2.link_socket_info->lsa->actual;
+
+    switch (actual->dest.addr.sa.sa_family)
+    {
+        case AF_INET:
+        {
+            struct sockaddr_in *sock_in4 = (struct sockaddr_in *)local;
+#if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
+            sock_in4->sin_addr = actual->pi.in4.ipi_addr;
+#elif defined(IP_RECVDSTADDR)
+            sock_in4->sin_addr = actual->pi.in4;
+#else
+            /* source IP not available on this platform */
+            return false;
+#endif
+            sock_in4->sin_family = AF_INET;
+            break;
+        }
+
+        case AF_INET6:
+        {
+            struct sockaddr_in6 *sock_in6 = (struct sockaddr_in6 *)local;
+            sock_in6->sin6_addr = actual->pi.in6.ipi6_addr;
+            sock_in6->sin6_family = AF_INET6;
+            break;
+        }
+
+        default:
+            ASSERT(false);
+    }
+
+    return true;
+#else  /* if ENABLE_IP_PKTINFO */
+    return false;
+#endif /* if ENABLE_IP_PKTINFO */
+}
+
+int
+dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
+{
+    struct context *c = &mi->context;
+
+    int peer_id = mi->context.c2.tls_multi->peer_id;
+    struct sockaddr *remoteaddr, *localaddr = NULL;
+    struct sockaddr_storage local = { 0 };
+    int sd = c->c2.link_socket->sd;
+
+    if (c->mode == CM_CHILD_TCP)
+    {
+        /* the remote address will be inferred from the TCP socket endpoint */
+        remoteaddr = NULL;
+    }
+    else
+    {
+        ASSERT(c->c2.link_socket_info->connection_established);
+        remoteaddr = &c->c2.link_socket_info->lsa->actual.dest.addr.sa;
+    }
+
+    struct in_addr remote_ip4 = { 0 };
+    struct in6_addr *remote_addr6 = NULL;
+    struct in_addr *remote_addr4 = NULL;
+
+    /* In server mode we need to fetch the remote addresses from the push config */
+    if (c->c2.push_ifconfig_defined)
+    {
+        remote_ip4.s_addr =  htonl(c->c2.push_ifconfig_local);
+        remote_addr4 = &remote_ip4;
+    }
+    if (c->c2.push_ifconfig_ipv6_defined)
+    {
+        remote_addr6 = &c->c2.push_ifconfig_ipv6_local;
+    }
+
+    if (dco_multi_get_localaddr(m, mi, &local))
+    {
+        localaddr = (struct sockaddr *)&local;
+    }
+
+    int ret = dco_new_peer(&c->c1.tuntap->dco, peer_id, sd, localaddr,
+                           remoteaddr, remote_addr4, remote_addr6);
+    if (ret < 0)
+    {
+        return ret;
+    }
+
+    c->c2.tls_multi->dco_peer_added = true;
+
+    if (c->mode == CM_CHILD_TCP)
+    {
+        multi_tcp_dereference_instance(m->mtcp, mi);
+        if (close(sd))
+        {
+            msg(D_DCO|M_ERRNO, "error closing TCP socket after DCO handover");
+        }
+        c->c2.link_socket->info.dco_installed = true;
+        c->c2.link_socket->sd = SOCKET_UNDEFINED;
+    }
+
+    return 0;
+}
+
+void
+dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
+                   struct mroute_addr *addr)
+{
+#if defined(TARGET_LINUX)
+    if (!dco_enabled(&m->top.options))
+    {
+        return;
+    }
+
+    int addrtype = (addr->type & MR_ADDR_MASK);
+
+    /* If we do not have local IP addr to install, skip the route */
+    if ((addrtype == MR_ADDR_IPV6 && !mi->context.c2.push_ifconfig_ipv6_defined)
+        || (addrtype == MR_ADDR_IPV4 && !mi->context.c2.push_ifconfig_defined))
+    {
+        return;
+    }
+
+    struct context *c = &mi->context;
+    const char *dev = c->c1.tuntap->actual_name;
+
+    if (addrtype == MR_ADDR_IPV6)
+    {
+        int netbits = 128;
+        if (addr->type & MR_WITH_NETBITS)
+        {
+            netbits = addr->netbits;
+        }
+
+        net_route_v6_add(&m->top.net_ctx, &addr->v6.addr, netbits,
+                         &mi->context.c2.push_ifconfig_ipv6_local, dev, 0,
+                         DCO_IROUTE_METRIC);
+    }
+    else if (addrtype == MR_ADDR_IPV4)
+    {
+        int netbits = 32;
+        if (addr->type & MR_WITH_NETBITS)
+        {
+            netbits = addr->netbits;
+        }
+
+        in_addr_t dest = htonl(addr->v4.addr);
+        net_route_v4_add(&m->top.net_ctx, &dest, netbits,
+                         &mi->context.c2.push_ifconfig_local, dev, 0,
+                         DCO_IROUTE_METRIC);
+    }
+#endif /* if defined(TARGET_LINUX) */
+}
+
+void
+dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
+{
+#if defined(TARGET_LINUX)
+    if (!dco_enabled(&m->top.options))
+    {
+        return;
+    }
+    ASSERT(TUNNEL_TYPE(mi->context.c1.tuntap) == DEV_TYPE_TUN);
+
+    struct context *c = &mi->context;
+    const char *dev = c->c1.tuntap->actual_name;
+
+    if (mi->context.c2.push_ifconfig_defined)
+    {
+        for (const struct iroute *ir = c->options.iroutes;
+             ir;
+             ir = ir->next)
+        {
+            net_route_v4_del(&m->top.net_ctx, &ir->network, ir->netbits,
+                             &mi->context.c2.push_ifconfig_local, dev,
+                             0, DCO_IROUTE_METRIC);
+        }
+    }
+
+    if (mi->context.c2.push_ifconfig_ipv6_defined)
+    {
+        for (const struct iroute_ipv6 *ir6 = c->options.iroutes_ipv6;
+             ir6;
+             ir6 = ir6->next)
+        {
+            net_route_v6_del(&m->top.net_ctx, &ir6->network, ir6->netbits,
+                             &mi->context.c2.push_ifconfig_ipv6_local, dev,
+                             0, DCO_IROUTE_METRIC);
+        }
+    }
+#endif /* if defined(TARGET_LINUX) */
+}
+
 #endif /* defined(ENABLE_DCO) */
