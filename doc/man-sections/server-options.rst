@@ -325,6 +325,12 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   from the kernel to OpenVPN. Once in OpenVPN, the ``--iroute`` directive
   routes to the specific client.
 
+  However, when using DCO, the ``--iroute`` directive is usually enough
+  for DCO to fully configure the routing table. The extra ``--route``
+  directive is required only if the expected behaviour is to route the
+  traffic for a specific network to the VPN interface also when the
+  responsible client is not connected (traffic will then be dropped).
+
   This option must be specified either in a client instance config file
   using ``--client-config-dir`` or dynamically generated using a
   ``--client-connect`` script.
