@@ -1736,7 +1736,7 @@ tun_dco_enabled(struct tuntap *tt)
 #if !(defined(_WIN32) || defined(TARGET_LINUX))
 static void
 open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
-                 bool dynamic, struct tuntap *tt)
+                 struct tuntap *tt)
 {
     char tunname[256];
     char dynamic_name[256];
@@ -1767,7 +1767,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
              * opening /dev/tap and then querying the system about the
              * actual device name (tap0, tap1, ...) assigned
              */
-            if (dynamic && strcmp( dev, "tap" ) == 0)
+            if (strcmp(dev, "tap") == 0)
             {
                 struct ifreq ifr;
                 if ((tt->fd = open( "/dev/tap", O_RDWR)) < 0)
@@ -1786,10 +1786,9 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
             else
 #endif
 
-            if (dynamic && !tun_name_is_fixed(dev))
+            if (!tun_name_is_fixed(dev))
             {
-                int i;
-                for (i = 0; i < 256; ++i)
+                for (int i = 0; i < 256; ++i)
                 {
                     openvpn_snprintf(tunname, sizeof(tunname),
                                      "/dev/%s%d", dev, i);
@@ -2682,7 +2681,7 @@ void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
          openvpn_net_ctx_t *ctx)
 {
-    open_tun_generic(dev, dev_type, dev_node, true, tt);
+    open_tun_generic(dev, dev_type, dev_node, tt);
 
     /* Enable multicast on the interface */
     if (tt->fd >= 0)
@@ -2777,7 +2776,7 @@ void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
          openvpn_net_ctx_t *ctx)
 {
-    open_tun_generic(dev, dev_type, dev_node, true, tt);
+    open_tun_generic(dev, dev_type, dev_node, tt);
 
     if (tt->fd >= 0)
     {
@@ -2918,7 +2917,7 @@ void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
          openvpn_net_ctx_t *ctx)
 {
-    open_tun_generic(dev, dev_type, dev_node, true, tt);
+    open_tun_generic(dev, dev_type, dev_node, tt);
 
     if (tt->fd >= 0 && tt->type == DEV_TYPE_TUN)
     {
@@ -3047,7 +3046,7 @@ void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
          openvpn_net_ctx_t *ctx)
 {
-    open_tun_generic(dev, dev_type, dev_node, true, tt);
+    open_tun_generic(dev, dev_type, dev_node, tt);
 
     if (tt->fd >= 0)
     {
@@ -3300,7 +3299,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             {
                 /* No explicit utun and utun failed, try the generic way) */
                 msg(M_INFO, "Failed to open utun device. Falling back to /dev/tun device");
-                open_tun_generic(dev, dev_type, NULL, true, tt);
+                open_tun_generic(dev, dev_type, NULL, tt);
             }
             else
             {
@@ -3323,7 +3322,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             dev_node = NULL;
         }
 
-        open_tun_generic(dev, dev_type, dev_node, true, tt);
+        open_tun_generic(dev, dev_type, dev_node, tt);
     }
 }
 
@@ -7004,7 +7003,7 @@ void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
          openvpn_net_ctx_t *ctx)
 {
-    open_tun_generic(dev, dev_type, dev_node, true, tt);
+    open_tun_generic(dev, dev_type, dev_node, tt);
 }
 
 void
