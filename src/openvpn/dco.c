@@ -306,7 +306,7 @@ dco_check_option_conflict(int msglevel, const struct options *o)
 
     /* At this point the ciphers have already been normalised */
     if (o->enable_ncp_fallback
-        && !tls_item_in_cipher_list(o->ciphername, DCO_SUPPORTED_CIPHERS))
+        && !tls_item_in_cipher_list(o->ciphername, dco_get_supported_ciphers()))
     {
         msg(msglevel, "Note: --data-cipher-fallback with cipher '%s' "
             "disables data channel offload.", o->ciphername);
@@ -360,7 +360,7 @@ dco_check_option_conflict(int msglevel, const struct options *o)
     const char *token;
     while ((token = strsep(&tmp_ciphers, ":")))
     {
-        if (!tls_item_in_cipher_list(token, DCO_SUPPORTED_CIPHERS))
+        if (!tls_item_in_cipher_list(token, dco_get_supported_ciphers()))
         {
             msg(msglevel, "Note: cipher '%s' in --data-ciphers is not supported "
                 "by ovpn-dco, disabling data channel offload.", token);

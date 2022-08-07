@@ -213,6 +213,13 @@ void dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
  */
 void dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi);
 
+/**
+ * Retrieve the list of ciphers supported by the current platform
+ *
+ * @return                   list of colon-separated ciphers
+ */
+const char *dco_get_supported_ciphers();
+
 #else /* if defined(ENABLE_DCO) */
 
 typedef void *dco_context_t;
@@ -318,6 +325,12 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
 static inline void
 dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
 {
+}
+
+static inline const char *
+dco_get_supported_ciphers()
+{
+    return "";
 }
 
 #endif /* defined(ENABLE_DCO) */
