@@ -1386,7 +1386,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     }
 
 #elif defined(TARGET_NETBSD)
-    in_addr_t remote_end;           /* for "virtual" subnet topology */
+    in_addr_t remote_end = INADDR_ANY;  /* for "virtual" subnet topology */
 
     if (tun)
     {
@@ -1850,29 +1850,6 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
              * explicit unit number.  Try opening /dev/[dev]n
              * where n = [0, 255].
              */
-#ifdef TARGET_NETBSD
-            /* on NetBSD, tap (but not tun) devices are opened by
-             * opening /dev/tap and then querying the system about the
-             * actual device name (tap0, tap1, ...) assigned
-             */
-            if (strcmp(dev, "tap") == 0)
-            {
-                struct ifreq ifr;
-                if ((tt->fd = open( "/dev/tap", O_RDWR)) < 0)
-                {
-                    msg(M_FATAL, "Cannot allocate NetBSD TAP dev dynamically");
-                }
-                if (ioctl( tt->fd, TAPGIFNAME, (void *)&ifr ) < 0)
-                {
-                    msg(M_FATAL, "Cannot query NetBSD TAP device name");
-                }
-                CLEAR(dynamic_name);
-                strncpy( dynamic_name, ifr.ifr_name, sizeof(dynamic_name)-1 );
-                dynamic_opened = true;
-                openvpn_snprintf(tunname, sizeof(tunname), "/dev/%s", dynamic_name );
-            }
-            else
-#endif
 
             if (!tun_name_is_fixed(dev))
             {
@@ -2773,24 +2750,51 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
 #elif defined(TARGET_NETBSD)
 
 /*
- * NetBSD before 4.0 does not support IPv6 on tun out of the box,
- * but there exists a patch (sys/net/if_tun.c, 1.79->1.80, see PR 32944).
+ * NetBSD 4.0 and up support IPv6 on tun interfaces, but we need to put
+ * the tun interface into "multi_af" mode, which will prepend the address
+ * family to all packets (same as OpenBSD and FreeBSD).
  *
- * NetBSD 4.0 and up do, but we need to put the tun interface into
- * "multi_af" mode, which will prepend the address family to all packets
- * (same as OpenBSD and FreeBSD).  If this is not enabled, the kernel
- * silently drops all IPv6 packets on output and gets confused on input.
+ * If this is not enabled, the kernel silently drops all IPv6 packets on
+ * output and gets confused on input.
  *
- * On earlier versions, multi_af is not available at all, so we have
- * two different NetBSD code variants here :-(
- *
+ * Note: --dev tap3 works *if* the interface is created externally by
+ *         "ifconfig tap3 create"
+ *         (and for devices beyond tap3, "mknod /dev/tapN c ...")
+ *       but we do not have code to do that inside OpenVPN
  */
 
 void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
          openvpn_net_ctx_t *ctx)
 {
-    open_tun_generic(dev, dev_type, dev_node, tt);
+    /* on NetBSD, tap (but not tun) devices are opened by
+     * opening /dev/tap and then querying the system about the
+     * actual device name (tap0, tap1, ...) assigned
+     */
+    if (strcmp(dev, "tap") == 0)
+    {
+        struct ifreq ifr;
+        if ((tt->fd = open( "/dev/tap", O_RDWR)) < 0)
+        {
+            msg(M_FATAL, "Cannot allocate NetBSD TAP dev dynamically");
+        }
+        if (ioctl( tt->fd, TAPGIFNAME, (void *)&ifr ) < 0)
+        {
+            msg(M_FATAL, "Cannot query NetBSD TAP device name");
+        }
+        set_nonblock(tt->fd);
+        set_cloexec(tt->fd); /* don't pass fd to scripts */
+        msg(M_INFO, "TUN/TAP device %s opened", ifr.ifr_name);
+
+        tt->actual_name = string_alloc(ifr.ifr_name, NULL);
+    }
+    else
+    {
+        /* dynamic / named tun can be handled by the generic function
+         * named tap ("tap3") is handled there as well, if pre-created
+         */
+        open_tun_generic(dev, dev_type, dev_node, tt);
+    }
 
     if (tt->fd >= 0)
     {
