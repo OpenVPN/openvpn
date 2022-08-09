@@ -745,7 +745,6 @@ init_tun(const char *dev,        /* --dev option */
          struct env_set *es,
          openvpn_net_ctx_t *ctx)
 {
-    struct gc_arena gc = gc_new();
     struct tuntap *tt;
 
     ALLOC_OBJ(tt, struct tuntap);
@@ -878,7 +877,6 @@ init_tun(const char *dev,        /* --dev option */
         do_ifconfig_setenv(tt, es);
     }
 
-    gc_free(&gc);
     return tt;
 }
 
