@@ -314,6 +314,14 @@ void do_ifconfig_setenv(const struct tuntap *tt,
 void do_ifconfig(struct tuntap *tt, const char *ifname, int tun_mtu,
                  const struct env_set *es, openvpn_net_ctx_t *ctx);
 
+/**
+ * undo_ifconfig - undo configuration of the tunnel interface
+ *
+ * @param tt    the tuntap interface context
+ * @param ctx   the networking API opaque context
+ */
+void undo_ifconfig(struct tuntap *tt, openvpn_net_ctx_t *ctx);
+
 bool is_dev_type(const char *dev, const char *dev_type, const char *match_type);
 
 int dev_type_enum(const char *dev, const char *dev_type);

@@ -1920,6 +1920,10 @@ do_close_tun_simple(struct context *c)
     msg(D_CLOSE, "Closing TUN/TAP interface");
     if (c->c1.tuntap)
     {
+        if (!c->options.ifconfig_noexec)
+        {
+            undo_ifconfig(c->c1.tuntap, &c->net_ctx);
+        }
         close_tun(c->c1.tuntap, &c->net_ctx);
         c->c1.tuntap = NULL;
     }
