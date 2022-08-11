@@ -205,9 +205,10 @@ need_keep_caps(struct context *c)
  * ==0: Don't attempt to retain any capabilities, just sitch user/group.
  *  <0: Try to retain capabilities, but continue on failure.
  */
-void platform_user_group_set(const struct platform_state_user *user_state,
-                             const struct platform_state_group *group_state,
-                             struct context *c)
+void
+platform_user_group_set(const struct platform_state_user *user_state,
+                        const struct platform_state_group *group_state,
+                        struct context *c)
 {
     int keep_caps = need_keep_caps(c);
     unsigned int err_flags = (keep_caps > 0) ? M_FATAL : M_NONFATAL;
@@ -249,7 +250,7 @@ void platform_user_group_set(const struct platform_state_user *user_state,
     if (res == -4 || res == -6)
     {
         /* -4 and -6 mean failure of setuid/gid respectively.
-           There is no point for us to continue if those failed. */
+         * There is no point for us to continue if those failed. */
         msg(M_ERR, "capng_change_id('%s','%s') failed: %d",
             user_state->username, group_state->groupname, res);
     }
@@ -268,11 +269,11 @@ void platform_user_group_set(const struct platform_state_user *user_state,
 
     if (new_uid >= 0)
     {
-         msg(M_INFO, "UID set to %s", user_state->username);
+        msg(M_INFO, "UID set to %s", user_state->username);
     }
     if (new_gid >= 0)
     {
-         msg(M_INFO, "GID set to %s", group_state->groupname);
+        msg(M_INFO, "GID set to %s", group_state->groupname);
     }
 
     msg(M_INFO, "Capabilities retained: CAP_NET_ADMIN");
