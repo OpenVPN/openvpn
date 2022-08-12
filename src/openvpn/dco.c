@@ -583,7 +583,7 @@ void
 dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
                    struct mroute_addr *addr)
 {
-#if defined(TARGET_LINUX)
+#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
     if (!dco_enabled(&m->top.options))
     {
         return;
@@ -626,13 +626,13 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
                          &mi->context.c2.push_ifconfig_local, dev, 0,
                          DCO_IROUTE_METRIC);
     }
-#endif /* if defined(TARGET_LINUX) */
+#endif /* if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) */
 }
 
 void
 dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
 {
-#if defined(TARGET_LINUX)
+#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
     if (!dco_enabled(&m->top.options))
     {
         return;
@@ -665,7 +665,7 @@ dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
                              0, DCO_IROUTE_METRIC);
         }
     }
-#endif /* if defined(TARGET_LINUX) */
+#endif /* if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) */
 }
 
 #endif /* defined(ENABLE_DCO) */

@@ -27,6 +27,8 @@
 
 #include "ovpn_dco_freebsd.h"
 
+#define DCO_IROUTE_METRIC   100
+
 typedef enum ovpn_key_slot dco_key_slot_t;
 typedef enum ovpn_key_cipher dco_cipher_t;
 
