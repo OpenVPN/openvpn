@@ -913,7 +913,7 @@ nla_put_failure:
 bool
 dco_available(int msglevel)
 {
-    if (resolve_ovpn_netlink_id(msglevel) < 0)
+    if (resolve_ovpn_netlink_id(D_DCO_DEBUG) < 0)
     {
         msg(msglevel,
             "Note: Kernel support for ovpn-dco missing, disabling data channel offload.");
