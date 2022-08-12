@@ -1722,7 +1722,7 @@ tun_name_is_fixed(const char *dev)
     return has_digit(dev);
 }
 
-#if defined(TARGET_LINUX)
+#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
 static bool
 tun_dco_enabled(struct tuntap *tt)
 {
@@ -1836,9 +1836,9 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
         tt->actual_name = string_alloc(dynamic_opened ? dynamic_name : dev, NULL);
     }
 }
-#endif /* !_WIN32 && !TARGET_LINUX */
+#endif /* !_WIN32 && !TARGET_LINUX && !TARGET_FREEBSD*/
 
-#if defined(TARGET_LINUX)
+#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
 static void
 open_tun_dco_generic(const char *dev, const char *dev_type,
                      struct tuntap *tt, openvpn_net_ctx_t *ctx)
@@ -1911,7 +1911,7 @@ open_tun_dco_generic(const char *dev, const char *dev_type,
         tt->actual_name = string_alloc(dev, NULL);
     }
 }
-#endif /* TARGET_LINUX */
+#endif /* TARGET_LINUX || TARGET_FREEBSD*/
 
 #if !defined(_WIN32)
 static void
@@ -2294,7 +2294,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
         net_ctx_reset(ctx);
     }
 
-#ifdef TARGET_LINUX
+#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
     if (tun_dco_enabled(tt))
     {
         close_tun_dco(tt, ctx);
@@ -2915,20 +2915,27 @@ void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
          openvpn_net_ctx_t *ctx)
 {
-    open_tun_generic(dev, dev_type, dev_node, tt);
-
-    if (tt->fd >= 0 && tt->type == DEV_TYPE_TUN)
+    if (tun_dco_enabled(tt))
     {
-        int i = IFF_POINTOPOINT | IFF_MULTICAST;
+        open_tun_dco_generic(dev, dev_type, tt, ctx);
+    }
+    else
+    {
+        open_tun_generic(dev, dev_type, dev_node, tt);
 
-        if (ioctl(tt->fd, TUNSIFMODE, &i) < 0)
+        if (tt->fd >= 0 && tt->type == DEV_TYPE_TUN)
         {
-            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFMODE)");
-        }
-        i = 1;
-        if (ioctl(tt->fd, TUNSIFHEAD, &i) < 0)
-        {
-            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD)");
+            int i = IFF_POINTOPOINT | IFF_MULTICAST;
+
+            if (ioctl(tt->fd, TUNSIFMODE, &i) < 0)
+            {
+                msg(M_WARN | M_ERRNO, "ioctl(TUNSIFMODE)");
+            }
+            i = 1;
+            if (ioctl(tt->fd, TUNSIFHEAD, &i) < 0)
+            {
+                msg(M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD)");
+            }
         }
     }
 }

@@ -271,6 +271,14 @@ dco_check_option_conflict_ce(const struct connection_entry *ce, int msglevel)
         return false;
     }
 
+#if defined(TARGET_FREEBSD)
+    if (!proto_is_udp(ce->proto))
+    {
+        msg(msglevel, "NOTE: TCP transport disables data channel offload on FreeBSD.");
+        return false;
+    }
+#endif
+
     return true;
 }
 

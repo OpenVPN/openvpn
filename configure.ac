@@ -787,6 +787,11 @@ dnl
 			AC_DEFINE(ENABLE_DCO, 1, [Enable shared data channel offload])
 			AC_MSG_NOTICE([Enabled ovpn-dco support for Linux])
 			;;
+		*-*-freebsd*)
+			LIBS="${LIBS} -lnv"
+			AC_DEFINE(ENABLE_DCO, 1, [Enable data channel offload for FreeBSD])
+			AC_MSG_NOTICE([Enabled ovpn-dco support for FreeBSD])
+			;;
 		*)
 			AC_MSG_NOTICE([Ignoring --enable-dco on non Linux platform])
 			;;

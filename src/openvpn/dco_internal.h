@@ -27,6 +27,7 @@
 
 #if defined(ENABLE_DCO)
 
+#include "dco_freebsd.h"
 #include "dco_linux.h"
 
 /**

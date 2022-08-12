@@ -142,6 +142,12 @@ struct tuntap_options {
     bool disable_dco;
 };
 
+#elif defined(TARGET_FREEBSD)
+
+struct tuntap_options {
+    bool disable_dco;
+};
+
 #else  /* if defined(_WIN32) || defined(TARGET_ANDROID) */
 
 struct tuntap_options {

@@ -876,7 +876,7 @@ void options_string_import(struct options *options,
 
 bool key_is_external(const struct options *options);
 
-#if defined(ENABLE_DCO) && defined(TARGET_LINUX)
+#if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD))
 
 /**
  * Returns whether the current configuration has dco enabled.
@@ -887,7 +887,7 @@ dco_enabled(const struct options *o)
     return !o->tuntap_options.disable_dco;
 }
 
-#else /* if defined(ENABLE_DCO) && defined(TARGET_LINUX) */
+#else /* if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD))*/
 
 static inline bool
 dco_enabled(const struct options *o)
