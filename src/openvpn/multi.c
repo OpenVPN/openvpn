@@ -837,7 +837,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 
         status_reset(so);
 
-        if (version == 1) /* WAS: m->status_file_version */
+        if (version == 1)
         {
             /*
              * Status file version 1
@@ -984,6 +984,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
                               sep, sep, mbuf_maximum_queued(m->mbuf));
             }
 
+            status_printf(so, "GLOBAL_STATS%cdco_enabled%c%d", sep, sep, dco_enabled(&m->top.options));
             status_printf(so, "END");
         }
         else
