@@ -29,6 +29,7 @@
 
 #include "dco_freebsd.h"
 #include "dco_linux.h"
+#include "dco_win.h"
 
 /**
  * This file contains the internal DCO API definition.

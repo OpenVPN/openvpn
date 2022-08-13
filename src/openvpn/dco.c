@@ -315,7 +315,7 @@ dco_check_option_conflict(int msglevel, const struct options *o)
      * specified at all. In the latter case, later logic will most likely stop
      * OpenVPN, so no need to print any message here.
      */
-    if (o->tuntap_options.disable_dco || !o->dev)
+    if (!dco_enabled(o) || !o->dev)
     {
         return false;
     }

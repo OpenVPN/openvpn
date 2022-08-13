@@ -144,7 +144,7 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[dco],
-	[AS_HELP_STRING([--enable-dco], [enable data channel offload support using ovpn-dco kernel module @<:@default=no@:>@])],
+	[AS_HELP_STRING([--enable-dco], [enable data channel offload support using the ovpn-dco kernel module (always enabled on Windows) @<:@default=no@:>@])],
 	,
 	[enable_dco="no"]
 )
@@ -328,6 +328,7 @@ case "$host" in
 		;;
 	*-mingw*)
 		AC_DEFINE([TARGET_WIN32], [1], [Are we running WIN32?])
+		AC_DEFINE([ENABLE_DCO], [1], [DCO is always enabled on Windows])
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["W"], [Target prefix])
 		CPPFLAGS="${CPPFLAGS} -DWIN32_LEAN_AND_MEAN"
 		CPPFLAGS="${CPPFLAGS} -DNTDDI_VERSION=NTDDI_VISTA -D_WIN32_WINNT=_WIN32_WINNT_VISTA"
@@ -772,7 +773,6 @@ if test "$enable_dco" = "yes"; then
 dnl
 dnl Include generic netlink library used to talk to ovpn-dco
 dnl
-
 	case "$host" in
 		*-*-linux*)
 			PKG_CHECK_MODULES([LIBNL_GENL],
@@ -792,8 +792,11 @@ dnl
 			AC_DEFINE(ENABLE_DCO, 1, [Enable data channel offload for FreeBSD])
 			AC_MSG_NOTICE([Enabled ovpn-dco support for FreeBSD])
 			;;
+		*-mingw*)
+			AC_MSG_NOTICE([NOTE: --enable-dco ignored on Windows because it's always enabled])
+			;;
 		*)
-			AC_MSG_NOTICE([Ignoring --enable-dco on non Linux platform])
+			AC_MSG_NOTICE([Ignoring --enable-dco on non supported platform])
 			;;
 	esac
 fi
