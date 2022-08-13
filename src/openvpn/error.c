@@ -808,15 +808,6 @@ msg_flags_string(const unsigned int flags, struct gc_arena *gc)
     return BSTR(&out);
 }
 
-#ifdef ENABLE_DEBUG
-void
-crash(void)
-{
-    char *null = NULL;
-    *null = 0;
-}
-#endif
-
 #ifdef _WIN32
 
 const char *

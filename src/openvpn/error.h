@@ -220,11 +220,6 @@ __attribute__((__noreturn__))
     [!!sizeof(struct { int __error_if_negative : (expr) ? 2 : -1; })]
 #endif
 
-#ifdef ENABLE_DEBUG
-void crash(void);  /* force a segfault (debugging only) */
-
-#endif
-
 /* Inline functions */
 
 static inline bool
