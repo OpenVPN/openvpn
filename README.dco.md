@@ -57,6 +57,13 @@ see a message like
 in your log.
 
 
+Getting started (Windows)
+-------------------------
+The simplest way to test DCO under Windows is to download the latest installer
+from https://build.openvpn.net/downloads/snapshots/github-actions/openvpn2/ .
+This installer contains the latest OpenVPN code and the ovpn-dco-win driver.
+
+
 DCO and P2P mode
 ----------------
 DCO is also available when running OpenVPN in P2P mode without `--pull` /
@@ -111,7 +118,9 @@ Limitations by design
   - older versions are missing support for the AEAD ciphers;
 - topology subnet is the only supported `--topology` for servers;
 - iroute directives install routes on the host operating system, see also
-  Routing with ovpn-dco.
+  Routing with ovpn-dco;
+- (ovpn-dco-win) client and p2p mode only;
+- (ovpn-dco-win) Chacha20-Poly1305 support available starting with Windows 11.
 
 
 Current implementation limitations
