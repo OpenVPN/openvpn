@@ -1930,65 +1930,38 @@ do_close_tun_simple(struct context *c)
 static void
 do_close_tun(struct context *c, bool force)
 {
-    struct gc_arena gc = gc_new();
-    if (c->c1.tuntap && c->c1.tuntap_owned)
+    if (!c->c1.tuntap || !c->c1.tuntap_owned)
     {
-        const char *tuntap_actual = string_alloc(c->c1.tuntap->actual_name, &gc);
-#ifdef _WIN32
-        DWORD adapter_index = c->c1.tuntap->adapter_index;
-#endif
-        const in_addr_t local = c->c1.tuntap->local;
-        const in_addr_t remote_netmask = c->c1.tuntap->remote_netmask;
+        return;
+    }
 
-        if (force || !(c->sig->signal_received == SIGUSR1 && c->options.persist_tun))
-        {
-            static_context = NULL;
+    struct gc_arena gc = gc_new();
+    const char *tuntap_actual = string_alloc(c->c1.tuntap->actual_name, &gc);
+#ifdef _WIN32
+    DWORD adapter_index = c->c1.tuntap->adapter_index;
+#endif
+    const in_addr_t local = c->c1.tuntap->local;
+    const in_addr_t remote_netmask = c->c1.tuntap->remote_netmask;
+
+    if (force || !(c->sig->signal_received == SIGUSR1 && c->options.persist_tun))
+    {
+        static_context = NULL;
 
 #ifdef ENABLE_MANAGEMENT
-            /* tell management layer we are about to close the TUN/TAP device */
-            if (management)
-            {
-                management_pre_tunnel_close(management);
-                management_up_down(management, "DOWN", c->c2.es);
-            }
+        /* tell management layer we are about to close the TUN/TAP device */
+        if (management)
+        {
+            management_pre_tunnel_close(management);
+            management_up_down(management, "DOWN", c->c2.es);
+        }
 #endif
 
-            /* delete any routes we added */
-            if (c->c1.route_list || c->c1.route_ipv6_list)
-            {
-                run_up_down(c->options.route_predown_script,
-                            c->plugins,
-                            OPENVPN_PLUGIN_ROUTE_PREDOWN,
-                            tuntap_actual,
-#ifdef _WIN32
-                            adapter_index,
-#endif
-                            NULL,
-                            c->c2.frame.tun_mtu,
-                            print_in_addr_t(local, IA_EMPTY_IF_UNDEF, &gc),
-                            print_in_addr_t(remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
-                            "init",
-                            signal_description(c->sig->signal_received,
-                                               c->sig->signal_text),
-                            "route-pre-down",
-                            c->c2.es);
-
-                delete_routes(c->c1.route_list, c->c1.route_ipv6_list,
-                              c->c1.tuntap, ROUTE_OPTION_FLAGS(&c->options),
-                              c->c2.es, &c->net_ctx);
-            }
-
-            /* actually close tun/tap device based on --down-pre flag */
-            if (!c->options.down_pre)
-            {
-                do_close_tun_simple(c);
-            }
-
-            /* Run the down script -- note that it will run at reduced
-             * privilege if, for example, "--user nobody" was used. */
-            run_up_down(c->options.down_script,
+        /* delete any routes we added */
+        if (c->c1.route_list || c->c1.route_ipv6_list)
+        {
+            run_up_down(c->options.route_predown_script,
                         c->plugins,
-                        OPENVPN_PLUGIN_DOWN,
+                        OPENVPN_PLUGIN_ROUTE_PREDOWN,
                         tuntap_actual,
 #ifdef _WIN32
                         adapter_index,
@@ -2000,59 +1973,88 @@ do_close_tun(struct context *c, bool force)
                         "init",
                         signal_description(c->sig->signal_received,
                                            c->sig->signal_text),
-                        "down",
+                        "route-pre-down",
                         c->c2.es);
 
-#if defined(_WIN32)
-            if (c->options.block_outside_dns)
-            {
-                if (!win_wfp_uninit(adapter_index, c->options.msg_channel))
-                {
-                    msg(M_FATAL, "Uninitialising WFP failed!");
-                }
-            }
-#endif
-
-            /* actually close tun/tap device based on --down-pre flag */
-            if (c->options.down_pre)
-            {
-                do_close_tun_simple(c);
-            }
+            delete_routes(c->c1.route_list, c->c1.route_ipv6_list,
+                          c->c1.tuntap, ROUTE_OPTION_FLAGS(&c->options),
+                          c->c2.es, &c->net_ctx);
         }
-        else
+
+        /* actually close tun/tap device based on --down-pre flag */
+        if (!c->options.down_pre)
         {
-            /* run the down script on this restart if --up-restart was specified */
-            if (c->options.up_restart)
-            {
-                run_up_down(c->options.down_script,
-                            c->plugins,
-                            OPENVPN_PLUGIN_DOWN,
-                            tuntap_actual,
+            do_close_tun_simple(c);
+        }
+
+        /* Run the down script -- note that it will run at reduced
+         * privilege if, for example, "--user nobody" was used. */
+        run_up_down(c->options.down_script,
+                    c->plugins,
+                    OPENVPN_PLUGIN_DOWN,
+                    tuntap_actual,
 #ifdef _WIN32
-                            adapter_index,
+                    adapter_index,
 #endif
-                            NULL,
-                            c->c2.frame.tun_mtu,
-                            print_in_addr_t(local, IA_EMPTY_IF_UNDEF, &gc),
-                            print_in_addr_t(remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
-                            "restart",
-                            signal_description(c->sig->signal_received,
-                                               c->sig->signal_text),
-                            "down",
-                            c->c2.es);
-            }
+                    NULL,
+                    c->c2.frame.tun_mtu,
+                    print_in_addr_t(local, IA_EMPTY_IF_UNDEF, &gc),
+                    print_in_addr_t(remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
+                    "init",
+                    signal_description(c->sig->signal_received,
+                                       c->sig->signal_text),
+                    "down",
+                    c->c2.es);
 
 #if defined(_WIN32)
-            if (c->options.block_outside_dns)
+        if (c->options.block_outside_dns)
+        {
+            if (!win_wfp_uninit(adapter_index, c->options.msg_channel))
             {
-                if (!win_wfp_uninit(adapter_index, c->options.msg_channel))
-                {
-                    msg(M_FATAL, "Uninitialising WFP failed!");
-                }
+                msg(M_FATAL, "Uninitialising WFP failed!");
             }
+        }
 #endif
 
+        /* actually close tun/tap device based on --down-pre flag */
+        if (c->options.down_pre)
+        {
+            do_close_tun_simple(c);
         }
+    }
+    else
+    {
+        /* run the down script on this restart if --up-restart was specified */
+        if (c->options.up_restart)
+        {
+            run_up_down(c->options.down_script,
+                        c->plugins,
+                        OPENVPN_PLUGIN_DOWN,
+                        tuntap_actual,
+#ifdef _WIN32
+                        adapter_index,
+#endif
+                        NULL,
+                        c->c2.frame.tun_mtu,
+                        print_in_addr_t(local, IA_EMPTY_IF_UNDEF, &gc),
+                        print_in_addr_t(remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
+                        "restart",
+                        signal_description(c->sig->signal_received,
+                                           c->sig->signal_text),
+                        "down",
+                        c->c2.es);
+        }
+
+#if defined(_WIN32)
+        if (c->options.block_outside_dns)
+        {
+            if (!win_wfp_uninit(adapter_index, c->options.msg_channel))
+            {
+                msg(M_FATAL, "Uninitialising WFP failed!");
+            }
+        }
+#endif
+
     }
     gc_free(&gc);
 }
