@@ -552,19 +552,20 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
         remoteaddr = &c->c2.link_socket_info->lsa->actual.dest.addr.sa;
     }
 
-    struct in_addr remote_ip4 = { 0 };
-    struct in6_addr *remote_addr6 = NULL;
-    struct in_addr *remote_addr4 = NULL;
-
     /* In server mode we need to fetch the remote addresses from the push config */
+
+    struct in_addr vpn_ip4 = { 0 };
+    struct in_addr *vpn_addr4 = NULL;
     if (c->c2.push_ifconfig_defined)
     {
-        remote_ip4.s_addr =  htonl(c->c2.push_ifconfig_local);
-        remote_addr4 = &remote_ip4;
+        vpn_ip4.s_addr = htonl(c->c2.push_ifconfig_local);
+        vpn_addr4 = &vpn_ip4;
     }
+
+    struct in6_addr *vpn_addr6 = NULL;
     if (c->c2.push_ifconfig_ipv6_defined)
     {
-        remote_addr6 = &c->c2.push_ifconfig_ipv6_local;
+        vpn_addr6 = &c->c2.push_ifconfig_ipv6_local;
     }
 
     if (dco_multi_get_localaddr(m, mi, &local))
@@ -573,7 +574,7 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
     }
 
     int ret = dco_new_peer(&c->c1.tuntap->dco, peer_id, sd, localaddr,
-                           remoteaddr, remote_addr4, remote_addr6);
+                           remoteaddr, vpn_addr4, vpn_addr6);
     if (ret < 0)
     {
         return ret;
