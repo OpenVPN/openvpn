@@ -1593,6 +1593,26 @@ process_ip_header(struct context *c, unsigned int flags, struct buffer *buf)
     }
 }
 
+/* Linux-like DCO implementations pass the socket to the kernel and
+ * disallow usage of it from userland, so (control) packets sent and
+ * received by OpenVPN need to go through the DCO interface.
+ *
+ * Windows DCO needs control packets to be sent via the normal
+ * standard Overlapped I/O.
+ *
+ * Hide that complexity (...especially if more platforms show up
+ * in future...) in a small inline function.
+ */
+static inline bool
+should_use_dco_socket(struct link_socket *sock)
+{
+#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
+    return sock->info.dco_installed;
+#else
+    return false;
+#endif
+}
+
 /*
  * Input: c->c2.to_link
  */
@@ -1666,7 +1686,7 @@ process_outgoing_link(struct context *c)
                 socks_preprocess_outgoing_link(c, &to_addr, &size_delta);
 
                 /* Send packet */
-                if (c->c2.link_socket->info.dco_installed)
+                if (should_use_dco_socket(c->c2.link_socket))
                 {
                     size = dco_do_write(&c->c1.tuntap->dco,
                                         c->c2.tls_multi->peer_id,
