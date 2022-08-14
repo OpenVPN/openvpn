@@ -388,7 +388,7 @@ struct panel_reg
 struct device_instance_id_interface
 {
     LPBYTE net_cfg_instance_id;
-    const char *device_interface_list;
+    const char *device_interface;
     struct device_instance_id_interface *next;
 };
 

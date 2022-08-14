@@ -3722,7 +3722,6 @@ get_device_instance_id_interface(struct gc_arena *gc)
         LONG status;
         ULONG dev_interface_list_size;
         CONFIGRET cr;
-        struct buffer dev_interface_list;
 
         ZeroMemory(&device_info_data, sizeof(SP_DEVINFO_DATA));
         device_info_data.cbSize = sizeof(SP_DEVINFO_DATA);
@@ -3775,9 +3774,9 @@ get_device_instance_id_interface(struct gc_arena *gc)
             goto next;
         }
 
-        dev_interface_list = alloc_buf_gc(dev_interface_list_size, gc);
+        char *dev_interface_list = gc_malloc(dev_interface_list_size, false, gc);
         cr = CM_Get_Device_Interface_List((LPGUID)&GUID_DEVINTERFACE_NET, device_instance_id,
-                                          BSTR(&dev_interface_list),
+                                          dev_interface_list,
                                           dev_interface_list_size,
                                           CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
         if (cr != CR_SUCCESS)
@@ -3785,21 +3784,29 @@ get_device_instance_id_interface(struct gc_arena *gc)
             goto next;
         }
 
-        struct device_instance_id_interface *dev_if;
-        ALLOC_OBJ_CLEAR_GC(dev_if, struct device_instance_id_interface, gc);
-        dev_if->net_cfg_instance_id = (unsigned char *)string_alloc((char *)net_cfg_instance_id, gc);
-        dev_if->device_interface_list = string_alloc(BSTR(&dev_interface_list), gc);
+        char *dev_if = dev_interface_list;
 
-        /* link into return list */
-        if (!first)
+        /* device interface list ends with empty string */
+        while (strlen(dev_if) > 0)
         {
-            first = dev_if;
+            struct device_instance_id_interface *dev_iif;
+            ALLOC_OBJ_CLEAR_GC(dev_iif, struct device_instance_id_interface, gc);
+            dev_iif->net_cfg_instance_id = (unsigned char *)string_alloc((char *)net_cfg_instance_id, gc);
+            dev_iif->device_interface = string_alloc(dev_if, gc);
+
+            /* link into return list */
+            if (!first)
+            {
+                first = dev_iif;
+            }
+            if (last)
+            {
+                last->next = dev_iif;
+            }
+            last = dev_iif;
+
+            dev_if += strlen(dev_if) + 1;
         }
-        if (last)
-        {
-            last->next = dev_if;
-        }
-        last = dev_if;
 
 next:
         RegCloseKey(dev_key);
@@ -6475,12 +6482,11 @@ tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct dev
     {
         const struct device_instance_id_interface *dev_if;
 
-        /* Open Wintun adapter */
         for (dev_if = device_instance_id_interface; dev_if != NULL; dev_if = dev_if->next)
         {
             if (strcmp((const char *)dev_if->net_cfg_instance_id, device_guid) == 0)
             {
-                path = dev_if->device_interface_list;
+                path = dev_if->device_interface;
                 break;
             }
         }
