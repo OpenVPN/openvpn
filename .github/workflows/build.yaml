@@ -13,7 +13,7 @@ jobs:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y uncrustify
       - name: Checkout OpenVPN
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: openvpn
       - name: Show uncrustify version
@@ -27,7 +27,7 @@ jobs:
       - name: Show changes on standard output
         run: git diff
         working-directory: openvpn
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: uncrustify-changes.patch
           path: 'openvpn/uncrustify-changes.patch'
@@ -60,12 +60,12 @@ jobs:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y mingw-w64 libtool automake autoconf man2html unzip
       - name: Checkout ovpn-dco-win
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: OpenVPN/ovpn-dco-win
           path: ovpn-dco-win
       - name: Checkout OpenVPN
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: openvpn
 
@@ -75,7 +75,7 @@ jobs:
 
       - name: Cache dependencies
         id: cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: '~/mingw/'
           key: ${{ matrix.target }}-mingw-${{ env.OPENSSL_VERSION }}-${{ env.LZO_VERSION }}-${{ env.PKCS11_HELPER_VERSION }}-${{ env.TAP_WINDOWS_VERSION }}
@@ -226,7 +226,7 @@ jobs:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev libcap-ng-dev linux-libc-dev man2html libcmocka-dev python3-docutils libtool automake autoconf ${SSLPKG} ${NLPKG}
       - name: Checkout OpenVPN
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: autoconf
         run: autoreconf -fvi
       - name: configure
@@ -250,7 +250,7 @@ jobs:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev libcap-ng-dev linux-libc-dev man2html clang libcmocka-dev python3-docutils libtool automake autoconf libmbedtls-dev
       - name: Checkout OpenVPN
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: autoconf
         run: autoreconf -fvi
       - name: configure
@@ -288,7 +288,7 @@ jobs:
       - name: Install dependencies
         run: brew install openssl@1.1 openssl@3 lzo lz4 man2html cmocka libtool automake autoconf
       - name: Checkout OpenVPN
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: autoconf
         run: autoreconf -fvi
       - name: configure
@@ -319,13 +319,13 @@ jobs:
 
       runs-on: windows-latest
       steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v1
+        uses: microsoft/setup-msbuild@v1.1
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
@@ -345,7 +345,7 @@ jobs:
             msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="${{ matrix.plat }}" .
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: artifacts-${{ matrix.plat }}
           path: |
