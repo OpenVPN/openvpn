@@ -3671,7 +3671,8 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
 
     /* check if any option should force disabling DCO */
 #if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
-    o->tuntap_options.disable_dco = !dco_check_option_conflict(D_DCO, o);
+    o->tuntap_options.disable_dco = !dco_check_option_conflict(D_DCO, o)
+                                    || !dco_check_startup_option_conflict(D_DCO, o);
 #endif
 
     if (dco_enabled(o) && o->dev_node)

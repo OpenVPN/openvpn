@@ -222,8 +222,8 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
     }
 }
 
-static bool
-dco_check_option_conflict_platform(int msglevel, const struct options *o)
+bool
+dco_check_startup_option_conflict(int msglevel, const struct options *o)
 {
 #if defined(TARGET_LINUX)
     /* if the device name is fixed, we need to check if an interface with this
@@ -323,11 +323,6 @@ dco_check_option_conflict(int msglevel, const struct options *o)
     }
 
     if (!o->dev)
-    {
-        return false;
-    }
-
-    if (!dco_check_option_conflict_platform(msglevel, o))
     {
         return false;
     }
