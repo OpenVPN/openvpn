@@ -44,6 +44,10 @@
 #include "ssl_ncp.h"
 #include "tun.h"
 
+#ifdef HAVE_LIBCAPNG
+#include <cap-ng.h>
+#endif
+
 static int
 dco_install_key(struct tls_multi *multi, struct key_state *ks,
                 const uint8_t *encrypt_key, const uint8_t *encrypt_iv,
@@ -247,6 +251,28 @@ dco_check_option_conflict_platform(int msglevel, const struct options *o)
         }
     }
 #endif /* if defined(TARGET_LINUX) */
+
+#if defined(HAVE_LIBCAPNG)
+    /* DCO can't operate without CAP_NET_ADMIN. To retain it when switching user
+     * we need CAP_SETPCAP. CAP_NET_ADMIN also needs to be part of the permitted set
+     * of capabilities in order to retain it.
+     */
+    if (o->username)
+    {
+        if (!capng_have_capability(CAPNG_EFFECTIVE, CAP_SETPCAP))
+        {
+            msg(msglevel, "--user specified but lacking CAP_SETPCAP. "
+                "Cannot retain CAP_NET_ADMIN. Disabling data channel offload");
+            return false;
+        }
+        if (!capng_have_capability(CAPNG_PERMITTED, CAP_NET_ADMIN))
+        {
+            msg(msglevel, "--user specified but not permitted to retain CAP_NET_ADMIN. "
+                "Disabling data channel offload");
+            return false;
+        }
+    }
+#endif /* if defined(HAVE_LIBCAPNG) */
     return true;
 }
 
