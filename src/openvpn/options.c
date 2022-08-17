@@ -226,7 +226,7 @@ static const char usage_message[] =
     "--route-noexec  : Don't add routes automatically.  Instead pass routes to\n"
     "                  --route-up script using environmental variables.\n"
     "--route-nopull  : When used with --client or --pull, accept options pushed\n"
-    "                  by server EXCEPT for routes and dhcp options.\n"
+    "                  by server EXCEPT for routes, dns, and dhcp options.\n"
     "--allow-pull-fqdn : Allow client to pull DNS names from server for\n"
     "                    --ifconfig, --route, and --route-gateway.\n"
     "--redirect-gateway [flags]: Automatically execute routing\n"
@@ -7744,7 +7744,7 @@ add_option(struct options *options,
         const int index = ascii2ipset(p[1]);
         struct tuntap_options *to = &options->tuntap_options;
 
-        VERIFY_PERMISSION(OPT_P_IPWIN32);
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
 
         if (index < 0)
         {
@@ -7798,7 +7798,7 @@ add_option(struct options *options,
 #endif /* ifdef _WIN32 */
     else if (streq(p[0], "dns") && p[1])
     {
-        VERIFY_PERMISSION(OPT_P_DEFAULT);
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
 
         if (streq(p[1], "search-domains") && p[2])
         {
@@ -7906,7 +7906,7 @@ add_option(struct options *options,
     else if (streq(p[0], "dhcp-option") && p[1])
     {
         struct tuntap_options *o = &options->tuntap_options;
-        VERIFY_PERMISSION(OPT_P_IPWIN32);
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
         bool ipv6dns = false;
 
         if ((streq(p[1], "DOMAIN") || streq(p[1], "ADAPTER_DOMAIN_SUFFIX"))
@@ -8014,7 +8014,7 @@ add_option(struct options *options,
     else if (streq(p[0], "tap-sleep") && p[1] && !p[2])
     {
         int s;
-        VERIFY_PERMISSION(OPT_P_IPWIN32);
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
         s = atoi(p[1]);
         if (s < 0 || s >= 256)
         {
@@ -8025,12 +8025,12 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "dhcp-renew") && !p[1])
     {
-        VERIFY_PERMISSION(OPT_P_IPWIN32);
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
         options->tuntap_options.dhcp_renew = true;
     }
     else if (streq(p[0], "dhcp-pre-release") && !p[1])
     {
-        VERIFY_PERMISSION(OPT_P_IPWIN32);
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
         options->tuntap_options.dhcp_pre_release = true;
         options->tuntap_options.dhcp_renew = true;
     }
@@ -8057,12 +8057,12 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "register-dns") && !p[1])
     {
-        VERIFY_PERMISSION(OPT_P_IPWIN32);
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
         options->tuntap_options.register_dns = true;
     }
     else if (streq(p[0], "block-outside-dns") && !p[1])
     {
-        VERIFY_PERMISSION(OPT_P_IPWIN32);
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
         options->block_outside_dns = true;
     }
     else if (streq(p[0], "rdns-internal") && !p[1])
@@ -8130,7 +8130,7 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "dhcp-option") && p[1] && !p[3])
     {
-        VERIFY_PERMISSION(OPT_P_IPWIN32);
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
         setenv_foreign_option(options, (const char **)p, 3, es);
     }
     else if (streq(p[0], "route-method") && p[1] && !p[2]) /* ignore when pushed to non-Windows OS */

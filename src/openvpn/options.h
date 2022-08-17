@@ -691,7 +691,7 @@ struct options
 #define OPT_P_GENERAL         (1<<0)
 #define OPT_P_UP              (1<<1)
 #define OPT_P_ROUTE           (1<<2)
-#define OPT_P_IPWIN32         (1<<3)
+#define OPT_P_DHCPDNS         (1<<3)    /* includes ip windows options like */
 #define OPT_P_SCRIPT          (1<<4)
 #define OPT_P_SETENV          (1<<5)
 #define OPT_P_SHAPER          (1<<6)

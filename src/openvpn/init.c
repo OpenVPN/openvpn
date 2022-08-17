@@ -2271,7 +2271,7 @@ pull_permission_mask(const struct context *c)
 
     if (!c->options.route_nopull)
     {
-        flags |= (OPT_P_ROUTE | OPT_P_IPWIN32);
+        flags |= (OPT_P_ROUTE | OPT_P_DHCPDNS);
     }
 
     return flags;
@@ -2395,7 +2395,7 @@ do_deferred_options(struct context *c, const unsigned int found)
     {
         msg(D_PUSH, "OPTIONS IMPORT: route-related options modified");
     }
-    if (found & OPT_P_IPWIN32)
+    if (found & OPT_P_DHCPDNS)
     {
         msg(D_PUSH, "OPTIONS IMPORT: --ip-win32 and/or --dhcp-option options modified");
     }
