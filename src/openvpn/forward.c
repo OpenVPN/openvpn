@@ -1127,7 +1127,8 @@ process_incoming_dco(struct context *c)
 
     dco_do_read(dco);
 
-    if (dco->dco_message_type == OVPN_CMD_DEL_PEER)
+    if ((dco->dco_message_type == OVPN_CMD_DEL_PEER)
+        && (dco->dco_del_peer_reason == OVPN_DEL_PEER_REASON_EXPIRED))
     {
         trigger_ping_timeout_signal(c);
         return;
