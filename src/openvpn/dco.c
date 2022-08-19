@@ -225,7 +225,20 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
 bool
 dco_check_startup_option_conflict(int msglevel, const struct options *o)
 {
-#if defined(TARGET_LINUX)
+#if defined(_WIN32)
+    if (o->mode == MODE_SERVER)
+    {
+        msg(msglevel, "Only client and p2p data channel offload is supported "
+            "with ovpn-dco-win.");
+        return false;
+    }
+
+    if (o->persist_tun)
+    {
+        msg(msglevel, "--persist-tun is not supported with ovpn-dco-win.");
+        return false;
+    }
+#elif defined(TARGET_LINUX)
     /* if the device name is fixed, we need to check if an interface with this
      * name already exists. IF it does, it must be a DCO interface, otherwise
      * DCO has to be disabled in order to continue.
@@ -250,7 +263,7 @@ dco_check_startup_option_conflict(int msglevel, const struct options *o)
                 strerror(-ret), ret);
         }
     }
-#endif /* if defined(TARGET_LINUX) */
+#endif /* if defined(_WIN32) */
 
 #if defined(HAVE_LIBCAPNG)
     /* DCO can't operate without CAP_NET_ADMIN. To retain it when switching user
