@@ -178,7 +178,8 @@ create_interface(struct tuntap *tt, const char *dev)
     ret = ioctl(tt->dco.fd, SIOCIFCREATE2, &ifr);
     if (ret)
     {
-        msg(M_ERR | M_ERRNO, "Failed to create interface %s", ifr.ifr_name);
+        ret = -errno;
+        msg(M_WARN|M_ERRNO, "Failed to create interface %s (SIOCIFCREATE2)", ifr.ifr_name);
         return ret;
     }
 
@@ -194,9 +195,10 @@ create_interface(struct tuntap *tt, const char *dev)
     ret = ioctl(tt->dco.fd, SIOCSIFNAME, &ifr);
     if (ret)
     {
+        ret = -errno;
         /* Delete the created interface again. */
         (void)ioctl(tt->dco.fd, SIOCIFDESTROY, &ifr);
-        msg(M_ERR | M_ERRNO, "Failed to create interface %s", ifr.ifr_data);
+        msg(M_WARN|M_ERRNO, "Failed to create interface %s (SIOCSIFNAME)", ifr.ifr_data);
         return ret;
     }
 
@@ -229,16 +231,7 @@ remove_interface(struct tuntap *tt)
 int
 open_tun_dco(struct tuntap *tt, openvpn_net_ctx_t *ctx, const char *dev)
 {
-    int ret;
-
-    ret = create_interface(tt, dev);
-
-    if (ret < 0)
-    {
-        msg(M_ERR, "Failed to create interface");
-    }
-
-    return ret;
+    return create_interface(tt, dev);
 }
 
 void
