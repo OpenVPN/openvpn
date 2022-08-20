@@ -1241,6 +1241,7 @@ multi_learn_in_addr_t(struct multi_context *m,
         /* "primary" is the VPN ifconfig address of the peer and already
          * known to DCO, so only install "extra" iroutes (primary = false)
          */
+        ASSERT(netbits >= 0);           /* DCO requires populated netbits */
         dco_install_iroute(m, mi, &addr);
     }
 
@@ -1280,6 +1281,7 @@ multi_learn_in6_addr(struct multi_context *m,
         /* "primary" is the VPN ifconfig address of the peer and already
          * known to DCO, so only install "extra" iroutes (primary = false)
          */
+        ASSERT(netbits >= 0);           /* DCO requires populated netbits */
         dco_install_iroute(m, mi, &addr);
     }
 

@@ -603,26 +603,14 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
 
     if (addrtype == MR_ADDR_IPV6)
     {
-        int netbits = 128;
-        if (addr->type & MR_WITH_NETBITS)
-        {
-            netbits = addr->netbits;
-        }
-
-        net_route_v6_add(&m->top.net_ctx, &addr->v6.addr, netbits,
+        net_route_v6_add(&m->top.net_ctx, &addr->v6.addr, addr->netbits,
                          &mi->context.c2.push_ifconfig_ipv6_local, dev, 0,
                          DCO_IROUTE_METRIC);
     }
     else if (addrtype == MR_ADDR_IPV4)
     {
-        int netbits = 32;
-        if (addr->type & MR_WITH_NETBITS)
-        {
-            netbits = addr->netbits;
-        }
-
         in_addr_t dest = htonl(addr->v4.addr);
-        net_route_v4_add(&m->top.net_ctx, &dest, netbits,
+        net_route_v4_add(&m->top.net_ctx, &dest, addr->netbits,
                          &mi->context.c2.push_ifconfig_local, dev, 0,
                          DCO_IROUTE_METRIC);
     }

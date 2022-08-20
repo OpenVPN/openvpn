@@ -1572,12 +1572,14 @@ option_iroute(struct options *o,
 
     ALLOC_OBJ_GC(ir, struct iroute, &o->gc);
     ir->network = getaddr(GETADDR_HOST_ORDER, network_str, 0, NULL, NULL);
-    ir->netbits = -1;
+    ir->netbits = 32;           /* host route if no netmask given */
 
     if (netmask_str)
     {
         const in_addr_t netmask = getaddr(GETADDR_HOST_ORDER, netmask_str, 0, NULL, NULL);
-        if (!netmask_to_netbits(ir->network, netmask, &ir->netbits))
+        ir->netbits = netmask_to_netbits2(netmask);
+
+        if (ir->netbits < 0)
         {
             msg(msglevel, "in --iroute %s %s : Bad network/subnet specification",
                 network_str,
