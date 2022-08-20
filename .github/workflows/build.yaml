@@ -335,7 +335,7 @@ jobs:
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v10
         with:
-          vcpkgGitCommitId: '4b766c1cd17205e1b768c4fadfd5f867c1d0510e'
+          vcpkgGitCommitId: '9259a0719d94c402aae2ab7975bc096afdec15df'
           appendedCacheKey: '${{matrix.triplet}}'
 
       - name: Run MSBuild consuming vcpkg.json
