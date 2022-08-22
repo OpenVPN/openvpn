@@ -366,3 +366,65 @@ jobs:
         token: ${{ secrets.OPENVPN_BUILD_REPO_DISPATCH }}
         repository: openvpn/openvpn-build
         event-type: openvpn-commit
+
+  libressl:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04]
+        ssllib: [libressl]
+        build: [ normal, asan ]
+        configureflags: ["--with-openssl-engine=no"]
+        include:
+          - build: asan
+            cflags: "-fsanitize=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
+            ldflags: -fsanitize=address
+            cc: clang
+          - build: normal
+            cflags: "-O2 -g"
+            ldflags: ""
+            cc: gcc
+
+    name: "${{matrix.cc}} ${{matrix.build}} - ${{matrix.os}} - ${{matrix.ssllib}}"
+    runs-on: ${{matrix.os}}
+    env:
+      CFLAGS: ${{ matrix.cflags }}
+      LDFLAGS: ${{ matrix.ldflags }}
+      CC: ${{matrix.cc}}
+
+    steps:
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html clang libcmocka-dev python3-docutils libtool automake autoconf pkg-config libcap-ng-dev
+      - name: "libressl: checkout"
+        uses: actions/checkout@v3
+        with:
+          path: libressl
+          repository: libressl-portable/portable
+          ref: v3.5.3
+      - name: "libressl: autogen.sh"
+        run: ./autogen.sh
+        working-directory: libressl
+      - name: "libressl: autoconf"
+        run: autoreconf -fvi
+        working-directory: libressl
+      - name: "libressl: configure"
+        run: ./configure --enable-openvpn
+        working-directory: libressl
+      - name: "libressl: make all"
+        run: make -j3
+        working-directory: libressl
+      - name: "libressl: make install"
+        run: sudo make install
+        working-directory: libressl
+      - name: "ldconfig"
+        run: sudo ldconfig
+      - name: Checkout OpenVPN
+        uses: actions/checkout@v3
+      - name: autoconf
+        run: autoreconf -fvi
+      - name: configure
+        run: ./configure --with-crypto-library=openssl ${{matrix.configureflags}}
+      - name: make all
+        run: make -j3
+      - name: make check
+        run: make check
