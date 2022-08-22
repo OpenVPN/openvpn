@@ -51,8 +51,8 @@
 #define SSL_CTX_set1_groups SSL_CTX_set1_curves
 #endif
 
-/* Functionality missing in LibreSSL and OpenSSL 1.0.2 */
-#if (OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)) && !defined(ENABLE_CRYPTO_WOLFSSL)
+/* Functionality missing in LibreSSL before 3.5 and OpenSSL 1.0.2 */
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x3050000fL)) && !defined(ENABLE_CRYPTO_WOLFSSL)
 /**
  * Destroy a X509 object
  *
@@ -68,11 +68,13 @@ X509_OBJECT_free(X509_OBJECT *obj)
     }
 }
 
-#define RSA_F_RSA_OSSL_PRIVATE_ENCRYPT       RSA_F_RSA_EAY_PRIVATE_ENCRYPT
 #define EVP_CTRL_AEAD_SET_TAG                EVP_CTRL_GCM_SET_TAG
 #define EVP_CTRL_AEAD_GET_TAG                EVP_CTRL_GCM_GET_TAG
 #endif
 
+#if (OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)) && !defined(ENABLE_CRYPTO_WOLFSSL)
+#define RSA_F_RSA_OSSL_PRIVATE_ENCRYPT       RSA_F_RSA_EAY_PRIVATE_ENCRYPT
+#endif
 
 /* Functionality missing in 1.0.2 */
 #if OPENSSL_VERSION_NUMBER < 0x10100000L && !defined(ENABLE_CRYPTO_WOLFSSL)
