@@ -15,7 +15,7 @@ net_route_v4(const char *op, const in_addr_t *dst, int prefixlen,
              const in_addr_t *gw, const char *iface, uint32_t table,
              int metric)
 {
-    char buf1[16], buf2[16];
+    char buf1[INET_ADDRSTRLEN], buf2[INET_ADDRSTRLEN];
     in_addr_t _dst, _gw;
     struct argv argv = argv_new();
     bool status;
@@ -23,17 +23,16 @@ net_route_v4(const char *op, const in_addr_t *dst, int prefixlen,
     _dst = ntohl(*dst);
     _gw = ntohl(*gw);
 
-    argv_printf(&argv, "%s %s",
-                ROUTE_PATH, op);
-    argv_printf_cat(&argv, "-net %s/%d %s -fib %d",
-                    inet_ntop(AF_INET, &_dst, buf1, sizeof(buf1)),
-                    prefixlen,
-                    inet_ntop(AF_INET, &_gw, buf2, sizeof(buf2)),
-                    table);
+    argv_printf(&argv, "%s %s -net %s/%d %s -fib %d",
+                ROUTE_PATH, op,
+                inet_ntop(AF_INET, &_dst, buf1, sizeof(buf1)),
+                prefixlen,
+                inet_ntop(AF_INET, &_gw, buf2, sizeof(buf2)),
+                table);
 
     argv_msg(M_INFO, &argv);
     status = openvpn_execve_check(&argv, NULL, 0,
-                                  "ERROR: FreeBSD route add command failed");
+                                  "ERROR: FreeBSD route command failed");
 
     argv_free(&argv);
 
@@ -45,21 +44,20 @@ net_route_v6(const char *op, const struct in6_addr *dst,
              int prefixlen, const struct in6_addr *gw, const char *iface,
              uint32_t table, int metric)
 {
-    char buf1[64], buf2[64];
+    char buf1[INET6_ADDRSTRLEN], buf2[INET6_ADDRSTRLEN];
     struct argv argv = argv_new();
     bool status;
 
-    argv_printf(&argv, "%s -6 %s",
-                ROUTE_PATH, op);
-    argv_printf_cat(&argv, "-net %s/%d %s -fib %d",
-                    inet_ntop(AF_INET6, dst, buf1, sizeof(buf1)),
-                    prefixlen,
-                    inet_ntop(AF_INET6, gw, buf2, sizeof(buf2)),
-                    table);
+    argv_printf(&argv, "%s -6 %s -net %s/%d %s -fib %d",
+                ROUTE_PATH, op,
+                inet_ntop(AF_INET6, dst, buf1, sizeof(buf1)),
+                prefixlen,
+                inet_ntop(AF_INET6, gw, buf2, sizeof(buf2)),
+                table);
 
     argv_msg(M_INFO, &argv);
     status = openvpn_execve_check(&argv, NULL, 0,
-                                  "ERROR: FreeBSD route add command failed");
+                                  "ERROR: FreeBSD route command failed");
 
     argv_free(&argv);
 
