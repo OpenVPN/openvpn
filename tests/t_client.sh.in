@@ -9,7 +9,7 @@
 # - writable current directory to create subdir for logs
 # - t_client.rc in current directory OR source dir that specifies tests
 # - for "ping4" checks: fping binary in $PATH
-# - for "ping6" checks: fping6 binary in $PATH
+# - for "ping6" checks: fping (4.0+) or fping6 binary in $PATH
 #
 
 # by changing this to 1 we can force automated builds to fail
@@ -29,6 +29,8 @@ else
 fi
 
 # Check for external dependencies
+FPING="fping"
+FPING6="fping6"
 which fping > /dev/null
 if [ $? -ne 0 ]; then
     echo "$0: fping is not available in \$PATH" >&2
@@ -36,8 +38,9 @@ if [ $? -ne 0 ]; then
 fi
 which fping6 > /dev/null
 if [ $? -ne 0 ]; then
-    echo "$0: fping6 is not available in \$PATH" >&2
-    exit "${TCLIENT_SKIP_RC}"
+    echo "$0: fping6 is not available in \$PATH, assuming fping 4.0 or later" >&2
+    FPING="fping -4"
+    FPING6="fping -6"
 fi
 
 KILL_EXEC=`which kill`
@@ -220,8 +223,8 @@ run_ping_tests()
     if [ -z "$targetlist" ] ; then return ; fi
 
     case $proto in
-	4) cmd=fping ;;
-	6) cmd=fping6 ;;
+	4) cmd="$FPING" ;;
+	6) cmd="$FPING6" ;;
 	*) echo "internal error in run_ping_tests arg 1: '$proto'" >&2
 	   exit 1 ;;
     esac
