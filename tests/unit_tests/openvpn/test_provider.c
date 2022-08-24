@@ -52,24 +52,24 @@ static int mgmt_callback_called;
 static OSSL_PROVIDER *prov[2];
 
 /* public keys for testing -- RSA and EC */
-static const char *const pubkey1 = "-----BEGIN PUBLIC KEY-----\n"
-                                   "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7GWP6RLCGlvmVioIqYI6\n"
-                                   "LUR4owA7sJ/nJxBAk+/xzD6gqgSigBsTqeb+gdZwkKjY1N4w2DUA0r5i8Eja/BWN\n"
-                                   "xMZtC5nxK4MACtMqIwvlzfk130NhFXKtlZj2cyFBXqDdRyeg1ZrUQagcHVcgcReP\n"
-                                   "9yiePgfO7NUOQk8edEeOR53SFCgnLBQQ9dGWtZN0hO/5BN6NSm/fd6vq0VjTRP5a\n"
-                                   "BAH/BnqX9/3jV0jh8N9AE59mI1rjVVQ9VDnuAPkS8dLfdC661/CNxt0YWByTIgt1\n"
-                                   "+qjW4LUvLbnU/rlPhuJ1SBZg+z/JtDBCKfs7syu5WYFqRvNFg7/91Rr/NwxvW/1h\n"
-                                   "8QIDAQAB\n"
-                                   "-----END PUBLIC KEY-----\n";
+static const char pubkey1[] = "-----BEGIN PUBLIC KEY-----\n"
+                              "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7GWP6RLCGlvmVioIqYI6\n"
+                              "LUR4owA7sJ/nJxBAk+/xzD6gqgSigBsTqeb+gdZwkKjY1N4w2DUA0r5i8Eja/BWN\n"
+                              "xMZtC5nxK4MACtMqIwvlzfk130NhFXKtlZj2cyFBXqDdRyeg1ZrUQagcHVcgcReP\n"
+                              "9yiePgfO7NUOQk8edEeOR53SFCgnLBQQ9dGWtZN0hO/5BN6NSm/fd6vq0VjTRP5a\n"
+                              "BAH/BnqX9/3jV0jh8N9AE59mI1rjVVQ9VDnuAPkS8dLfdC661/CNxt0YWByTIgt1\n"
+                              "+qjW4LUvLbnU/rlPhuJ1SBZg+z/JtDBCKfs7syu5WYFqRvNFg7/91Rr/NwxvW/1h\n"
+                              "8QIDAQAB\n"
+                              "-----END PUBLIC KEY-----\n";
 
-static const char *const pubkey2 = "-----BEGIN PUBLIC KEY-----\n"
-                                   "MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEO85iXW+HgnUkwlj1DohNVw0GsnGIh1gZ\n"
-                                   "u95ff1JiUaJIkYNIkZA+hwIPFVH5aJcSCv3SPIeDS2VUAESNKHZJBQ==\n"
-                                   "-----END PUBLIC KEY-----\n";
+static const char pubkey2[] = "-----BEGIN PUBLIC KEY-----\n"
+                              "MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEO85iXW+HgnUkwlj1DohNVw0GsnGIh1gZ\n"
+                              "u95ff1JiUaJIkYNIkZA+hwIPFVH5aJcSCv3SPIeDS2VUAESNKHZJBQ==\n"
+                              "-----END PUBLIC KEY-----\n";
 
-static const char *const pubkey3 = "-----BEGIN PUBLIC KEY-----\n"
-                                   "MCowBQYDK2VwAyEA+q5xjF5hGyyqYZidJdz/0saEQabL3N4wIZJBxNGbgJE=\n"
-                                   "-----END PUBLIC KEY-----";
+static const char pubkey3[] = "-----BEGIN PUBLIC KEY-----\n"
+                              "MCowBQYDK2VwAyEA+q5xjF5hGyyqYZidJdz/0saEQabL3N4wIZJBxNGbgJE=\n"
+                              "-----END PUBLIC KEY-----";
 
 static const char *pubkeys[] = {pubkey1, pubkey2, pubkey3};
 
