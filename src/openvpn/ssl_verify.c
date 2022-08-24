@@ -989,6 +989,12 @@ key_state_rm_auth_control_files(struct auth_deferred_status *ads)
         free(ads->auth_control_file);
         ads->auth_control_file = NULL;
     }
+    if (ads->auth_failed_reason_file)
+    {
+        platform_unlink(ads->auth_failed_reason_file);
+        free(ads->auth_failed_reason_file);
+        ads->auth_failed_reason_file = NULL;
+    }
     key_state_rm_auth_pending_file(ads);
 }
 
@@ -1007,18 +1013,46 @@ key_state_gen_auth_control_files(struct auth_deferred_status *ads,
     key_state_rm_auth_control_files(ads);
     const char *acf = platform_create_temp_file(opt->tmp_dir, "acf", &gc);
     const char *apf = platform_create_temp_file(opt->tmp_dir, "apf", &gc);
+    const char *afr = platform_create_temp_file(opt->tmp_dir, "afr", &gc);
 
     if (acf && apf)
     {
         ads->auth_control_file = string_alloc(acf, NULL);
         ads->auth_pending_file = string_alloc(apf, NULL);
+        ads->auth_failed_reason_file = string_alloc(afr, NULL);
+
         setenv_str(opt->es, "auth_control_file", ads->auth_control_file);
         setenv_str(opt->es, "auth_pending_file", ads->auth_pending_file);
+        setenv_str(opt->es, "auth_failed_reason_file", ads->auth_failed_reason_file);
     }
 
     gc_free(&gc);
     return (acf && apf);
 }
+
+/**
+ * Checks if the auth failed reason file has any content and if yes it will
+ * be returned as string allocated in gc to the caller.
+ */
+static char *
+key_state_check_auth_failed_message_file(const struct auth_deferred_status *ads,
+                                         struct tls_multi *multi,
+                                         struct gc_arena *gc)
+{
+    char *ret = NULL;
+    if (ads->auth_failed_reason_file)
+    {
+        struct buffer reason = buffer_read_from_file(ads->auth_failed_reason_file, gc);
+
+        if (BLEN(&reason))
+        {
+            ret = BSTR(&reason);
+        }
+
+    }
+    return ret;
+}
+
 
 /**
  * Checks the auth control status from a file. The function will try
@@ -1184,12 +1218,27 @@ tls_authentication_status(struct tls_multi *multi)
 #endif
     if (failed_auth)
     {
+        struct gc_arena gc = gc_new();
+        const struct key_state *ks = get_primary_key(multi);
+        const char *plugin_message = key_state_check_auth_failed_message_file(&ks->plugin_auth, multi, &gc);
+        const char *script_message = key_state_check_auth_failed_message_file(&ks->script_auth, multi, &gc);
+
+        if (plugin_message)
+        {
+            auth_set_client_reason(multi, plugin_message);
+        }
+        if (script_message)
+        {
+            auth_set_client_reason(multi, script_message);
+        }
+
         /* We have at least one session that failed authentication. There
          * might be still another session with valid keys.
          * Although our protocol allows keeping the VPN session alive
          * with the other session (and we actually did that in earlier
          * version, this behaviour is really strange from a user (admin)
          * experience */
+        gc_free(&gc);
         return TLS_AUTHENTICATION_FAILED;
     }
     else if (success)
@@ -1248,6 +1297,21 @@ tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, con
  * this is the place to start.
  *************************************************************************** */
 
+/**
+ * Check if the script/plugin left a message in the auth failed message
+ * file and relay it to the user */
+static void
+check_for_client_reason(struct tls_multi *multi,
+                        struct auth_deferred_status *status)
+{
+    struct gc_arena gc = gc_new();
+    const char *msg = key_state_check_auth_failed_message_file(status, multi, &gc);
+    if (msg)
+    {
+        auth_set_client_reason(multi, msg);
+    }
+    gc_free(&gc);
+}
 /*
  * Verify the user name and password using a script
  */
@@ -1316,6 +1380,7 @@ verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
             break;
 
         default:
+            check_for_client_reason(multi, &ks->script_auth);
             retval = OPENVPN_PLUGIN_FUNC_ERROR;
             break;
     }
@@ -1450,10 +1515,15 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
         if (!key_state_check_auth_pending_file(&ks->plugin_auth, multi))
         {
             retval = OPENVPN_PLUGIN_FUNC_ERROR;
-            key_state_rm_auth_control_files(&ks->plugin_auth);
         }
     }
-    else
+
+    if (retval == OPENVPN_PLUGIN_FUNC_ERROR)
+    {
+        check_for_client_reason(multi, &ks->plugin_auth);
+    }
+
+    if (retval != OPENVPN_PLUGIN_FUNC_DEFERRED)
     {
         /* purge auth control filename (and file itself) for non-deferred returns */
         key_state_rm_auth_control_files(&ks->plugin_auth);

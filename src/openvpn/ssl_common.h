@@ -155,6 +155,7 @@ struct auth_deferred_status
 {
     char *auth_control_file;
     char *auth_pending_file;
+    char *auth_failed_reason_file;
     unsigned int auth_control_status;
 };
 
