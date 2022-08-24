@@ -1525,6 +1525,7 @@ show_p2mp_parms(const struct options *o)
     SHOW_STR(client_connect_script);
     SHOW_STR(learn_address_script);
     SHOW_STR(client_disconnect_script);
+    SHOW_STR(client_crresponse_script);
     SHOW_STR(client_config_dir);
     SHOW_BOOL(ccd_exclusive);
     SHOW_STR(tmp_dir);
@@ -2685,6 +2686,10 @@ options_postprocess_verify_ce(const struct options *options,
         if (options->client_connect_script)
         {
             msg(M_USAGE, "--client-connect requires --mode server");
+        }
+        if (options->client_crresponse_script)
+        {
+            msg(M_USAGE, "--client-crresponse requires --mode server");
         }
         if (options->client_disconnect_script)
         {
@@ -7467,6 +7472,16 @@ add_option(struct options *options,
         }
         set_user_script(options, &options->client_connect_script,
                         p[1], "client-connect", true);
+    }
+    else if (streq(p[0], "client-crresponse") && p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_SCRIPT);
+        if (!no_more_than_n_args(msglevel, p, 2, NM_QUOTE_HINT))
+        {
+            goto err;
+        }
+        set_user_script(options, &options->client_crresponse_script,
+                        p[1], "client-crresponse", true);
     }
     else if (streq(p[0], "client-disconnect") && p[1])
     {

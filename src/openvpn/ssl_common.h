@@ -362,6 +362,7 @@ struct tls_options
 
     /* used for username/password authentication */
     const char *auth_user_pass_verify_script;
+    const char *client_crresponse_script;
     bool auth_user_pass_verify_script_via_file;
     const char *tmp_dir;
     const char *auth_user_pass_file;

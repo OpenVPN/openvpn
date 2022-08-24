@@ -229,6 +229,10 @@ receive_cr_response(struct context *c, const struct buffer *buffer)
 
     management_notify_client_cr_response(key_id, mda, es, m);
 #endif
+#if ENABLE_PLUGIN
+    verify_crresponse_plugin(c->c2.tls_multi, m);
+#endif
+    verify_crresponse_script(c->c2.tls_multi, m);
     msg(D_PUSH, "CR response was sent by client ('%s')", m);
 }
 

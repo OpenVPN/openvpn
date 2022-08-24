@@ -102,7 +102,7 @@ plugin_type_name(const int type)
             return "PLUGIN_CLIENT_CONNECT";
 
         case OPENVPN_PLUGIN_CLIENT_CONNECT_V2:
-            return "PLUGIN_CLIENT_CONNECT";
+            return "PLUGIN_CLIENT_CONNECT_V2";
 
         case OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER:
             return "PLUGIN_CLIENT_CONNECT_DEFER";
@@ -121,6 +121,9 @@ plugin_type_name(const int type)
 
         case OPENVPN_PLUGIN_ROUTE_PREDOWN:
             return "PLUGIN_ROUTE_PREDOWN";
+
+        case OPENVPN_PLUGIN_CLIENT_CRRESPONSE:
+            return "PLUGIN_CRRESPONSE";
 
         default:
             return "PLUGIN_???";

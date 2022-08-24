@@ -52,6 +52,11 @@ Script Order of Execution
    Executed in ``--mode server`` mode on new client connections, when the
    client is still untrusted.
 
+#. ``--client-crresponse``
+
+    Execute in ``--mode server`` whenever a client sends a
+    :code:`CR_RESPONSE` message
+
 SCRIPT HOOKS
 ------------
 
@@ -72,7 +77,7 @@ SCRIPT HOOKS
   double-quoted and/or escaped using a backslash, and should be separated
   by one or more spaces.
 
-  If ``method`` is set to :code:`via-env`, OpenVPN will call ``script``
+  If ``method`` is set to :code:`via-env`, OpenVPN will call ``cmd``
   with the environmental variables :code:`username` and :code:`password`
   set to the username/password strings provided by the client. *Beware*
   that this method is insecure on some platforms which make the environment
@@ -80,7 +85,7 @@ SCRIPT HOOKS
 
   If ``method`` is set to :code:`via-file`, OpenVPN will write the username
   and password to the first two lines of a temporary file. The filename
-  will be passed as an argument to ``script``, and the file will be
+  will be passed as an argument to ``cmd``, and the file will be
   automatically deleted by OpenVPN after the script returns. The location
   of the temporary file is controlled by the ``--tmp-dir`` option, and
   will default to the current directory if unspecified. For security,
@@ -122,6 +127,25 @@ SCRIPT HOOKS
 
   For a sample script that performs PAM authentication, see
   :code:`sample-scripts/auth-pam.pl` in the OpenVPN source distribution.
+
+--client-crresponse
+    Executed when the client sends a text based challenge response.
+
+    Valid syntax:
+    ::
+
+        client-crresponse cmd
+
+  OpenVPN will write the response of the client into a temporary file.
+  The filename will be passed as an argument to ``cmd``, and the file will be
+  automatically deleted by OpenVPN after the script returns.
+
+  The response is passed as is from the client. The script needs to check
+  itself if the input is valid, e.g. if the input is valid base64 encoding.
+
+  The script can either directly write the result of the verification to
+  :code:`auth_control_file or further defer it. See ``--auth-user-pass-verify``
+  for details.
 
 --client-connect cmd
   Run command ``cmd`` on client connection.

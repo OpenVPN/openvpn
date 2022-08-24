@@ -1352,6 +1352,73 @@ done:
     return retval;
 }
 
+#ifdef ENABLE_PLUGIN
+void
+verify_crresponse_plugin(struct tls_multi *multi, const char *cr_response)
+{
+    struct tls_session *session = &multi->session[TM_ACTIVE];
+    setenv_str(session->opt->es, "crresponse", cr_response);
+
+    plugin_call(session->opt->plugins, OPENVPN_PLUGIN_CLIENT_CRRESPONSE, NULL,
+                NULL, session->opt->es);
+
+    setenv_del(session->opt->es, "crresponse");
+}
+#endif
+
+void
+verify_crresponse_script(struct tls_multi *multi, const char *cr_response)
+{
+
+    struct tls_session *session = &multi->session[TM_ACTIVE];
+
+    if (!session->opt->client_crresponse_script)
+    {
+        return;
+    }
+    struct argv argv = argv_new();
+    struct gc_arena gc = gc_new();
+
+    setenv_str(session->opt->es, "script_type", "client-crresponse");
+
+    /* Since cr response might be sensitive, like a stupid way to query
+     * a password via 2FA, we pass it via file instead environment */
+    const char *tmp_file = platform_create_temp_file(session->opt->tmp_dir, "cr", &gc);
+    static const char *openerrmsg = "TLS CR Response Error: could not write "
+                                    "crtext challenge response to file: %s";
+
+    if (tmp_file)
+    {
+        struct status_output *so = status_open(tmp_file, 0, -1, NULL,
+                                               STATUS_OUTPUT_WRITE);
+        status_printf(so, "%s", cr_response);
+        if (!status_close(so))
+        {
+            msg(D_TLS_ERRORS, openerrmsg, tmp_file);
+            tls_deauthenticate(multi);
+            goto done;
+        }
+    }
+    else
+    {
+        msg(D_TLS_ERRORS, openerrmsg, "creating file failed");
+        tls_deauthenticate(multi);
+        goto done;
+    }
+
+    argv_parse_cmd(&argv, session->opt->client_crresponse_script);
+    argv_printf_cat(&argv, "%s", tmp_file);
+
+
+    if (!openvpn_run_script(&argv, session->opt->es, 0, "--client-crresponse"))
+    {
+        tls_deauthenticate(multi);
+    }
+done:
+    argv_free(&argv);
+    gc_free(&gc);
+}
+
 /*
  * Verify the username and password using a plugin
  */

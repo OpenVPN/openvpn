@@ -83,6 +83,10 @@ extern "C" {
  * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_CLIENT_CONNECT_V2
  * FUNC: openvpn_plugin_func_v1 OPENVPN_PLUGIN_LEARN_ADDRESS
  *
+ * The OPENVPN_PLUGIN_CLIENT_CRRESPONSE function is called when the client sends
+ * the CR_RESPONSE message, this is *typically* after OPENVPN_PLUGIN_TLS_FINAL
+ * but may also occur much later.
+ *
  * [Client session ensues]
  *
  * For each "TLS soft reset", according to reneg-sec option (or similar):
@@ -128,7 +132,8 @@ extern "C" {
 #define OPENVPN_PLUGIN_ROUTE_PREDOWN            12
 #define OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER     13
 #define OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2  14
-#define OPENVPN_PLUGIN_N                        15
+#define OPENVPN_PLUGIN_CLIENT_CRRESPONSE        15
+#define OPENVPN_PLUGIN_N                        16
 
 /*
  * Build a mask out of a set of plug-in types.
