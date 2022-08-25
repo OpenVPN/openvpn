@@ -229,13 +229,13 @@ dco_check_startup_option_conflict(int msglevel, const struct options *o)
     if (o->mode == MODE_SERVER)
     {
         msg(msglevel, "Only client and p2p data channel offload is supported "
-            "with ovpn-dco-win.");
+            "with ovpn-dco.");
         return false;
     }
 
     if (o->persist_tun)
     {
-        msg(msglevel, "--persist-tun is not supported with ovpn-dco-win.");
+        msg(msglevel, "--persist-tun is not supported with ovpn-dco.");
         return false;
     }
 #elif defined(TARGET_LINUX)

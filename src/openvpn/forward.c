@@ -864,8 +864,16 @@ read_incoming_link(struct context *c)
         return;
     }
 
+    /* check_status() call below resets last-error code */
+    bool dco_win_timeout = tuntap_is_dco_win_timeout(c->c1.tuntap, status);
+
     /* check recvfrom status */
     check_status(status, "read", c->c2.link_socket, NULL);
+
+    if (dco_win_timeout)
+    {
+        trigger_ping_timeout_signal(c);
+    }
 
     /* Remove socks header if applicable */
     socks_postprocess_incoming_link(c);
