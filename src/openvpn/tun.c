@@ -1943,12 +1943,14 @@ open_tun_dco_generic(const char *dev, const char *dev_type,
     }
 
     /*
-     * dynamic open is indicated by --dev specified without
-     * explicit unit number.  Try opening DCO device named "[dev]n"
-     * where n = [0, 255].
+     * unlike "open_tun_generic()", DCO on Linux and FreeBSD follows
+     * the device naming model of "non-DCO linux", that is:
+     *   --dev tun         -> try tun0, tun1, ... tun255, use first free
+     *   --dev <anything>  -> (try to) create a tun device named "anything"
+     * ("--dev tap" and "--dev null" are caught earlier and not handled here)
      */
 
-    if (!tun_name_is_fixed(dev))
+    if (strcmp(dev, "tun") == 0)
     {
         for (int i = 0; i < 256; ++i)
         {
