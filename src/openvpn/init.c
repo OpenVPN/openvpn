@@ -2187,10 +2187,23 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
             {
                 /* if so, close tun, delete routes, then reinitialize tun and add routes */
                 msg(M_INFO, "NOTE: Pulled options changed on restart, will need to close and reopen TUN/TAP device.");
+
+                bool tt_dco_win = tuntap_is_dco_win(c->c1.tuntap);
                 do_close_tun(c, true);
-                management_sleep(1);
-                c->c2.did_open_tun = do_open_tun(c);
-                update_time();
+
+                if (tt_dco_win)
+                {
+                    msg(M_NONFATAL, "dco-win doesn't yet support reopening TUN device");
+                    /* prevent link_socket_close() from closing handle with WinSock API */
+                    c->c2.link_socket->sd = SOCKET_UNDEFINED;
+                    return false;
+                }
+                else
+                {
+                    management_sleep(1);
+                    c->c2.did_open_tun = do_open_tun(c);
+                    update_time();
+                }
             }
         }
 

@@ -306,11 +306,6 @@ dco_check_startup_option(int msglevel, const struct options *o)
         return false;
     }
 
-    if (o->persist_tun)
-    {
-        msg(msglevel, "--persist-tun is not supported with ovpn-dco.");
-        return false;
-    }
 #elif defined(TARGET_LINUX)
     /* if the device name is fixed, we need to check if an interface with this
      * name already exists. IF it does, it must be a DCO interface, otherwise

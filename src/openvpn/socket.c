@@ -2128,23 +2128,25 @@ static void
 create_socket_dco_win(struct context *c, struct link_socket *sock,
                       volatile int *signal_received)
 {
-    struct tuntap *tt;
-    /* In this case persist-tun is enabled, which we don't support yet */
-    ASSERT(!c->c1.tuntap);
+    if (!c->c1.tuntap)
+    {
+        struct tuntap *tt;
+        ALLOC_OBJ(tt, struct tuntap);
 
-    ALLOC_OBJ(tt, struct tuntap);
+        *tt = create_dco_handle(c->options.dev_node, &c->gc);
 
-    *tt = dco_create_socket(sock->info.lsa->current_remote,
-                            sock->bind_local,
-                            sock->info.lsa->bind_local,
-                            c->options.dev_node,
-                            &c->gc,
-                            get_server_poll_remaining_time(sock->server_poll_timeout),
-                            signal_received);
+        /* Ensure we can "safely" cast the handle to a socket */
+        static_assert(sizeof(sock->sd) == sizeof(tt->hand), "HANDLE and SOCKET size differs");
 
-    /* This state is used by signal handler which does teardown,
-     * so it has to be set before return */
-    c->c1.tuntap = tt;
+        c->c1.tuntap = tt;
+    }
+
+    dco_create_socket(c->c1.tuntap->hand,
+                      sock->info.lsa->current_remote,
+                      sock->bind_local, sock->info.lsa->bind_local,
+                      get_server_poll_remaining_time(sock->server_poll_timeout),
+                      signal_received);
+
     sock->info.dco_installed = true;
 
     if (*signal_received)
@@ -2152,10 +2154,7 @@ create_socket_dco_win(struct context *c, struct link_socket *sock,
         return;
     }
 
-    /* Ensure we can "safely" cast the handle to a socket */
-    static_assert(sizeof(sock->sd) == sizeof(tt->hand), "HANDLE and SOCKET size differs");
-    sock->sd = (SOCKET)tt->hand;
-
+    sock->sd = (SOCKET)c->c1.tuntap->hand;
     linksock_print_addr(sock);
 }
 #endif /* if defined(_WIN32) */

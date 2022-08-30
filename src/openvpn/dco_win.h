@@ -37,9 +37,11 @@ struct dco_context {
 typedef struct dco_context dco_context_t;
 
 struct tuntap
-dco_create_socket(struct addrinfo *remoteaddr, bool bind_local,
-                  struct addrinfo *bind, const char *devname,
-                  struct gc_arena *gc, int timeout,
+create_dco_handle(const char *devname, struct gc_arena *gc);
+
+void
+dco_create_socket(HANDLE handle, struct addrinfo *remoteaddr, bool bind_local,
+                  struct addrinfo *bind, int timeout,
                   volatile int *signal_received);
 
 void
