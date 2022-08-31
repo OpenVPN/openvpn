@@ -177,6 +177,15 @@ write_control_auth(struct tls_session *session,
 {
     uint8_t header = ks->key_id | (opcode << P_OPCODE_SHIFT);
 
+    /* Workaround for Softether servers. Softether has a bug that it only
+     * allows 4 ACks in packets and drops packets if more ACKs are contained
+     * in a packet (see commit 37aa1ba5 in Softether) */
+    if (session->tls_wrap.mode == TLS_WRAP_NONE && !session->opt->server
+        && !(session->opt->crypto_flags & CO_USE_TLS_KEY_MATERIAL_EXPORT))
+    {
+        max_ack = min_int(max_ack, 4);
+    }
+
     ASSERT(link_socket_actual_defined(&ks->remote_addr));
     ASSERT(reliable_ack_write
                (ks->rec_ack, ks->lru_acks, buf, &ks->session_id_remote,
