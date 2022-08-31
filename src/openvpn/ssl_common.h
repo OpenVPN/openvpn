@@ -233,6 +233,7 @@ struct key_state
     struct reliable *send_reliable; /* holds a copy of outgoing packets until ACK received */
     struct reliable *rec_reliable; /* order incoming ciphertext packets before we pass to TLS */
     struct reliable_ack *rec_ack; /* buffers all packet IDs we want to ACK back to sender */
+    struct reliable_ack *lru_acks; /* keeps the most recently acked packages*/
 
     /** Holds outgoing message for the control channel until ks->state reaches
      * S_ACTIVE */
