@@ -14,7 +14,6 @@ MAINTAINERCLEANFILES = \
 
 EXTRA_DIST = \
 	compat.vcxproj \
-	compat.vcxproj.filters \
 	PropertySheet.props \
 	Debug.props \
 	Release.props

@@ -24,7 +24,6 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 EXTRA_DIST = \
 	openvpnmsica.vcxproj \
-	openvpnmsica.vcxproj.filters \
 	openvpnmsica.props \
 	openvpnmsica-Debug.props \
 	openvpnmsica-Release.props

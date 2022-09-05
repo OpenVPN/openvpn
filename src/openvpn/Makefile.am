@@ -16,7 +16,6 @@ MAINTAINERCLEANFILES = \
 
 EXTRA_DIST = \
 	openvpn.vcxproj \
-	openvpn.vcxproj.filters \
 	openvpn.manifest
 
 AM_CPPFLAGS = \

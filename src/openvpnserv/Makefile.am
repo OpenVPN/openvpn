@@ -14,8 +14,7 @@ include $(top_srcdir)/build/ltrc.inc
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 EXTRA_DIST = \
-	openvpnserv.vcxproj \
-	openvpnserv.vcxproj.filters
+	openvpnserv.vcxproj
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/include -I$(top_srcdir)/src/openvpn -I$(top_srcdir)/src/compat

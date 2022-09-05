@@ -24,7 +24,6 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
 EXTRA_DIST = \
 	tapctl.vcxproj \
-	tapctl.vcxproj.filters \
 	tapctl.props \
 	tapctl.exe.manifest
 
