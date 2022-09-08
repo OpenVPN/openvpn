@@ -198,7 +198,7 @@ static const char usage_message[] =
     "                  is established.  Multiple routes can be specified.\n"
     "                  netmask default: 255.255.255.255\n"
     "                  gateway default: taken from --route-gateway or --ifconfig\n"
-    "                  Specify default by leaving blank or setting to \"nil\".\n"
+    "                  Specify default by leaving blank or setting to \"default\".\n"
     "--route-ipv6 network/bits [gateway] [metric] :\n"
     "                  Add IPv6 route to routing table after connection\n"
     "                  is established.  Multiple routes can be specified.\n"
