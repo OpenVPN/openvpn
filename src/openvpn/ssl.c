@@ -2904,7 +2904,7 @@ tls_process(struct tls_multi *multi,
     ASSERT(session_id_defined(&session->session_id));
 
     /* Should we trigger a soft reset? -- new key, keeps old key for a while */
-    if (ks->state >= S_ACTIVE
+    if (ks->state >= S_GENERATED_KEYS
         && ((session->opt->renegotiate_seconds
              && now >= ks->established + session->opt->renegotiate_seconds)
             || (session->opt->renegotiate_bytes > 0
@@ -3591,9 +3591,11 @@ tls_pre_decrypt(struct tls_multi *multi,
         }
 
         /*
-         * Remote is requesting a key renegotiation
+         * Remote is requesting a key renegotiation.  We only allow renegotiation
+         * when the previous session is fully established to avoid weird corner
+         * cases.
          */
-        if (op == P_CONTROL_SOFT_RESET_V1 && TLS_AUTHENTICATED(multi, ks))
+        if (op == P_CONTROL_SOFT_RESET_V1 && ks->state >= S_GENERATED_KEYS)
         {
             if (!read_control_auth(buf, &session->tls_wrap, from,
                                    session->opt))
