@@ -1057,57 +1057,59 @@ do_genkey(const struct options *options)
 bool
 do_persist_tuntap(struct options *options, openvpn_net_ctx_t *ctx)
 {
-    if (options->persist_config)
+    if (!options->persist_config)
     {
-        /* sanity check on options for --mktun or --rmtun */
-        notnull(options->dev, "TUN/TAP device (--dev)");
-        if (options->ce.remote || options->ifconfig_local
-            || options->ifconfig_remote_netmask
-            || options->shared_secret_file
-            || options->tls_server || options->tls_client
-            )
-        {
-            msg(M_FATAL|M_OPTERR,
-                "options --mktun or --rmtun should only be used together with --dev");
-        }
+        return false;
+    }
+
+    /* sanity check on options for --mktun or --rmtun */
+    notnull(options->dev, "TUN/TAP device (--dev)");
+    if (options->ce.remote || options->ifconfig_local
+        || options->ifconfig_remote_netmask
+        || options->shared_secret_file
+        || options->tls_server || options->tls_client
+        )
+    {
+        msg(M_FATAL|M_OPTERR,
+            "options --mktun or --rmtun should only be used together with --dev");
+    }
 
 #if defined(ENABLE_DCO)
-        if (dco_enabled(options))
+    if (dco_enabled(options))
+    {
+        /* creating a DCO interface via --mktun is not supported as it does not
+         * make much sense. Since DCO is enabled by default, people may run into
+         * this without knowing, therefore this case should be properly handled.
+         *
+         * Disable DCO if --mktun was provided and print a message to let
+         * user know.
+         */
+        if (dev_type_enum(options->dev, options->dev_type) == DEV_TYPE_TUN)
         {
-            /* creating a DCO interface via --mktun is not supported as it does not
-             * make much sense. Since DCO is enabled by default, people may run into
-             * this without knowing, therefore this case should be properly handled.
-             *
-             * Disable DCO if --mktun was provided and print a message to let
-             * user know.
-             */
-            if (dev_type_enum(options->dev, options->dev_type) == DEV_TYPE_TUN)
-            {
-                msg(M_WARN, "Note: --mktun does not support DCO. Creating TUN interface.");
-            }
-
-            options->tuntap_options.disable_dco = true;
+            msg(M_WARN, "Note: --mktun does not support DCO. Creating TUN interface.");
         }
+
+        options->tuntap_options.disable_dco = true;
+    }
 #endif
 
 #ifdef ENABLE_FEATURE_TUN_PERSIST
-        tuncfg(options->dev, options->dev_type, options->dev_node,
-               options->persist_mode,
-               options->username, options->groupname, &options->tuntap_options,
-               ctx);
-        if (options->persist_mode && options->lladdr)
-        {
-            set_lladdr(ctx, options->dev, options->lladdr, NULL);
-        }
-        return true;
-#else  /* ifdef ENABLE_FEATURE_TUN_PERSIST */
-        msg( M_FATAL|M_OPTERR,
-             "options --mktun and --rmtun are not available on your operating "
-             "system.  Please check 'man tun' (or 'tap'), whether your system "
-             "supports using 'ifconfig %s create' / 'destroy' to create/remove "
-             "persistent tunnel interfaces.", options->dev );
-#endif
+    tuncfg(options->dev, options->dev_type, options->dev_node,
+           options->persist_mode,
+           options->username, options->groupname, &options->tuntap_options,
+           ctx);
+    if (options->persist_mode && options->lladdr)
+    {
+        set_lladdr(ctx, options->dev, options->lladdr, NULL);
     }
+    return true;
+#else  /* ifdef ENABLE_FEATURE_TUN_PERSIST */
+    msg(M_FATAL|M_OPTERR,
+        "options --mktun and --rmtun are not available on your operating "
+        "system.  Please check 'man tun' (or 'tap'), whether your system "
+        "supports using 'ifconfig %s create' / 'destroy' to create/remove "
+        "persistent tunnel interfaces.", options->dev );
+#endif
     return false;
 }
 
