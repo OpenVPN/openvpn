@@ -67,7 +67,7 @@ bool dco_available(int msglevel);
  * @param o         the options struct that hold the options
  * @return          true if no conflict was detected, false otherwise
  */
-bool dco_check_option_conflict(int msglevel, const struct options *o);
+bool dco_check_option(int msglevel, const struct options *o);
 
 /**
  * Check whether the options struct has any further option that is not supported
@@ -79,7 +79,7 @@ bool dco_check_option_conflict(int msglevel, const struct options *o);
  * @param o         the options struct that hold the options
  * @return          true if no conflict was detected, false otherwise
  */
-bool dco_check_startup_option_conflict(int msglevel, const struct options *o);
+bool dco_check_startup_option(int msglevel, const struct options *o);
 
 /**
  * Check whether any of the options pushed by the server is not supported by
@@ -243,13 +243,13 @@ dco_available(int msglevel)
 }
 
 static inline bool
-dco_check_option_conflict(int msglevel, const struct options *o)
+dco_check_option(int msglevel, const struct options *o)
 {
     return false;
 }
 
 static inline bool
-dco_check_startup_option_conflict(int msglevel, const struct options *o)
+dco_check_startup_option(int msglevel, const struct options *o)
 {
     return false;
 }

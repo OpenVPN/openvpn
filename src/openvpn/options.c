@@ -3690,14 +3690,17 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
 
 #if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
     /* check if any option should force disabling DCO */
-    o->tuntap_options.disable_dco = !dco_check_option_conflict(D_DCO, o)
-                                    || !dco_check_startup_option_conflict(D_DCO, o);
+    o->tuntap_options.disable_dco = !dco_check_option(D_DCO, o)
+                                    || !dco_check_startup_option(D_DCO, o);
 #elif defined(_WIN32)
     /* in Windows we have no 'fallback to non-DCO' strategy, so if a conflicting
      * option is found, we simply bail out by means of M_USAGE
      */
-    dco_check_option_conflict(M_USAGE, o);
-    dco_check_startup_option_conflict(M_USAGE, o);
+    if (dco_enabled(o))
+    {
+        dco_check_option(M_USAGE, o);
+        dco_check_startup_option(M_USAGE, o);
+    }
 #endif
 
     if (dco_enabled(o) && o->dev_node)

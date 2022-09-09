@@ -2719,7 +2719,7 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
 
     /* Check if we have forbidding options in the current mode */
     if (dco_enabled(&mi->context.options)
-        && !dco_check_option_conflict(D_MULTI_ERRORS, &mi->context.options))
+        && !dco_check_option(D_MULTI_ERRORS, &mi->context.options))
     {
         msg(D_MULTI_ERRORS, "MULTI: client has been rejected due to incompatible DCO options");
         cc_succeeded = false;

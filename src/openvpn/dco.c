@@ -222,9 +222,75 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
     }
 }
 
-bool
-dco_check_startup_option_conflict(int msglevel, const struct options *o)
+static bool
+dco_check_option_ce(const struct connection_entry *ce, int msglevel)
 {
+    if (ce->fragment)
+    {
+        msg(msglevel, "Note: --fragment disables data channel offload.");
+        return false;
+    }
+
+    if (ce->http_proxy_options)
+    {
+        msg(msglevel, "Note: --http-proxy disables data channel offload.");
+        return false;
+    }
+
+    if (ce->socks_proxy_server)
+    {
+        msg(msglevel, "Note: --socks-proxy disables data channel offload.");
+        return false;
+    }
+
+#if defined(TARGET_FREEBSD)
+    if (!proto_is_udp(ce->proto))
+    {
+        msg(msglevel, "NOTE: TCP transport disables data channel offload on FreeBSD.");
+        return false;
+    }
+#endif
+
+    return true;
+}
+
+bool
+dco_check_startup_option(int msglevel, const struct options *o)
+{
+    /* check if DCO was already disabled by the user or if no dev name was
+     * specified at all. In the latter case, later logic will most likely stop
+     * OpenVPN, so no need to print any message here.
+     */
+    if (!dco_enabled(o) || !o->dev)
+    {
+        return false;
+    }
+
+    if (dev_type_enum(o->dev, o->dev_type) != DEV_TYPE_TUN)
+    {
+        msg(msglevel, "Note: dev-type not tun, disabling data channel offload.");
+        return false;
+    }
+
+    if (o->connection_list)
+    {
+        const struct connection_list *l = o->connection_list;
+        for (int i = 0; i < l->len; ++i)
+        {
+            if (!dco_check_option_ce(l->array[i], msglevel))
+            {
+                return false;
+            }
+        }
+    }
+    else
+    {
+        if (!dco_check_option_ce(&o->ce, msglevel))
+        {
+            return false;
+        }
+    }
+
 #if defined(_WIN32)
     if (o->mode == MODE_SERVER)
     {
@@ -286,90 +352,28 @@ dco_check_startup_option_conflict(int msglevel, const struct options *o)
         }
     }
 #endif /* if defined(HAVE_LIBCAPNG) */
-    return true;
-}
 
-static bool
-dco_check_option_conflict_ce(const struct connection_entry *ce, int msglevel)
-{
-    if (ce->fragment)
+    if (o->mode == MODE_SERVER && o->topology != TOP_SUBNET)
     {
-        msg(msglevel, "Note: --fragment disables data channel offload.");
+        msg(msglevel, "Note: NOT using '--topology subnet' disables data channel offload.");
         return false;
     }
 
-    if (ce->http_proxy_options)
-    {
-        msg(msglevel, "Note: --http-proxy disables data channel offload.");
-        return false;
-    }
-
-    if (ce->socks_proxy_server)
-    {
-        msg(msglevel, "Note: --socks-proxy disables data channel offload.");
-        return false;
-    }
-
-#if defined(TARGET_FREEBSD)
-    if (!proto_is_udp(ce->proto))
-    {
-        msg(msglevel, "NOTE: TCP transport disables data channel offload on FreeBSD.");
-        return false;
-    }
-#endif
-
-    return true;
+    /* now that all options have been confirmed to be supported, check
+     * if DCO is truly available on the system
+     */
+    return dco_available(msglevel);
 }
 
 bool
-dco_check_option_conflict(int msglevel, const struct options *o)
+dco_check_option(int msglevel, const struct options *o)
 {
-    /* check if DCO was already disabled by the user or if no dev name was
-     * specified at all. In the latter case, later logic will most likely stop
-     * OpenVPN, so no need to print any message here.
-     */
-    if (!dco_enabled(o) || !o->dev)
-    {
-        return false;
-    }
-
-    if (dev_type_enum(o->dev, o->dev_type) != DEV_TYPE_TUN)
-    {
-        msg(msglevel, "Note: dev-type not tun, disabling data channel offload.");
-        return false;
-    }
-
     /* At this point the ciphers have already been normalised */
     if (o->enable_ncp_fallback
         && !tls_item_in_cipher_list(o->ciphername, dco_get_supported_ciphers()))
     {
         msg(msglevel, "Note: --data-cipher-fallback with cipher '%s' "
             "disables data channel offload.", o->ciphername);
-        return false;
-    }
-
-    if (o->connection_list)
-    {
-        const struct connection_list *l = o->connection_list;
-        for (int i = 0; i < l->len; ++i)
-        {
-            if (!dco_check_option_conflict_ce(l->array[i], msglevel))
-            {
-                return false;
-            }
-        }
-    }
-    else
-    {
-        if (!dco_check_option_conflict_ce(&o->ce, msglevel))
-        {
-            return false;
-        }
-    }
-
-    if (o->mode == MODE_SERVER && o->topology != TOP_SUBNET)
-    {
-        msg(msglevel, "Note: NOT using '--topology subnet' disables data channel offload.");
         return false;
     }
 
@@ -405,10 +409,7 @@ dco_check_option_conflict(int msglevel, const struct options *o)
     }
     gc_free(&gc);
 
-    /* now that all options have been confirmed to be supported, check
-     * if DCO is truly available on the system
-     */
-    return dco_available(msglevel);
+    return true;
 }
 
 bool
