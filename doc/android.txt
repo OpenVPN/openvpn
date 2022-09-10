@@ -8,7 +8,7 @@ Android provides the VPNService API
 (http://developer.android.com/reference/android/net/VpnService.html)
 which allows establishing VPN connections without rooting the device.
 
-Since all the interfaces are are Android specific the calls to this
+Since all the interfaces are Android specific the calls to this
 interface are made from the UI instead of OpenVPN directly. The API
 needs the following parameters:
 
