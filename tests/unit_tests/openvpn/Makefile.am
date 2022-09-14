@@ -176,5 +176,6 @@ misc_testdriver_LDFLAGS = @TEST_LDFLAGS@
 misc_testdriver_SOURCES = test_misc.c mock_msg.c \
     mock_get_random.c \
 	$(openvpn_srcdir)/buffer.c \
+	$(openvpn_srcdir)/options_util.c \
 	$(openvpn_srcdir)/ssl_util.c \
 	$(openvpn_srcdir)/platform.c

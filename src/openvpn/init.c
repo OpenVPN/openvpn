@@ -484,13 +484,15 @@ next_connection_entry(struct context *c)
             /* Check if there is another resolved address to try for
              * the current connection */
             if (c->c1.link_socket_addr.current_remote
-                && c->c1.link_socket_addr.current_remote->ai_next)
+                && c->c1.link_socket_addr.current_remote->ai_next
+                && !c->options.advance_next_remote)
             {
                 c->c1.link_socket_addr.current_remote =
                     c->c1.link_socket_addr.current_remote->ai_next;
             }
             else
             {
+                c->options.advance_next_remote = false;
                 /* FIXME (schwabe) fix the persist-remote-ip option for real,
                  * this is broken probably ever since connection lists and multiple
                  * remote existed
@@ -2512,6 +2514,11 @@ socket_restart_pause(struct context *c)
         {
             /* sec is less than 2^16; we can left shift it by up to 15 bits without overflow */
             sec = max_int(sec, 1) << min_int(backoff, 15);
+        }
+        if (c->options.server_backoff_time)
+        {
+            sec = max_int(sec, c->options.server_backoff_time);
+            c->options.server_backoff_time = 0;
         }
 
         if (sec > c->options.ce.connect_retry_seconds_max)

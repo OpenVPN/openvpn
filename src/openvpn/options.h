@@ -272,10 +272,17 @@ struct options
     struct connection_list *connection_list;
 
     struct remote_list *remote_list;
-    /* Do not advanced the connection or remote addr list*/
+    /* Do not advance the connection or remote addr list */
     bool no_advance;
+    /* Advance directly to the next remote, skipping remaining addresses of the
+     * current remote */
+    bool advance_next_remote;
     /* Counts the number of unsuccessful connection attempts */
     unsigned int unsuccessful_attempts;
+    /* the server can suggest a backoff time to the client, it
+     * will still be capped by the max timeout between connections
+     * (300s by default) */
+    int server_backoff_time;
 
 #if ENABLE_MANAGEMENT
     struct http_proxy_options *http_proxy_override;

@@ -101,6 +101,7 @@ openvpn_SOURCES = \
 	pkcs11_mbedtls.c \
 	openvpn.c openvpn.h \
 	options.c options.h \
+	options_util.c options_util.h \
 	otime.c otime.h \
 	packet_id.c packet_id.h \
 	perf.c perf.h \

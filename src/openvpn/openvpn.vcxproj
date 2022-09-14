@@ -308,6 +308,7 @@
     <ClCompile Include="occ.c" />
     <ClCompile Include="openvpn.c" />
     <ClCompile Include="options.c" />
+    <ClCompile Include="options_util.c" />
     <ClCompile Include="otime.c" />
     <ClCompile Include="packet_id.c" />
     <ClCompile Include="perf.c" />
@@ -400,6 +401,7 @@
     <ClInclude Include="occ.h" />
     <ClInclude Include="openvpn.h" />
     <ClInclude Include="options.h" />
+    <ClInclude Include="options_util.h" />
     <ClInclude Include="otime.h" />
     <ClInclude Include="ovpn_dco_win.h" />
     <ClInclude Include="packet_id.h" />

@@ -102,6 +102,42 @@ SCRIPT HOOKS
   the authentication, a :code:`1` or :code:`0` must be written to the
   file specified by the :code:`auth_control_file`.
 
+  If the file specified by :code:`auth_failed_reason_file` exists and has
+  non-empty content, the content of this file will be used as AUTH_FAILED
+  message. To avoid race conditions, this file should be written before
+  :code:`auth_control_file`.
+
+  This auth fail reason can be something simple like "User has been permanently
+  disabled" but there are also some special auth failed messages.
+
+  The ``TEMP`` message indicates that the authentication
+  temporarily failed and that the client should continue to retry to connect.
+  The server can optionally give a user readable message and hint the client a
+  behavior how to proceed. The keywords of the ``AUTH_FAILED,TEMP`` message
+  are comma separated keys/values and provide a hint to the client how to
+  proceed. Currently defined keywords are:
+
+  ``backoff`` :code:`s`
+        instructs the client to wait at least :code:`s` seconds before the next
+        connection attempt. If the client already uses a higher delay for
+        reconnection attempt, the delay will not be shortened.
+
+  ``advance addr``
+        Instructs the client to reconnect to the next (IP) address of the
+        current server.
+
+  ``advance remote``
+        Instructs the client to skip the remaining IP addresses of the current
+        server and instead connect to the next server specified in the
+        configuration file.
+
+  ``advance no``
+        Instructs the client to retry connecting to the same server again.
+
+  For example, the message ``TEMP[backoff 42,advance no]: No free IP addresses``
+  indicates that the VPN connection can currently not succeed and instructs
+  the client to retry in 42 seconds again.
+
   When deferred authentication is in use, the script can also request
   pending authentication by writing to the file specified by the
   :code:`auth_pending_file`. The first line must be the timeout in
