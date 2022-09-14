@@ -321,20 +321,46 @@ print_status(const struct context *c, struct status_output *so)
     gc_free(&gc);
 }
 
+
+/* Small helper function to determine if we should send the exit notification
+ * via control channel */
+static inline bool
+cc_exit_notify_enabled(struct context *c)
+{
+    /* Check if we have TLS active at all */
+    if (!c->c2.tls_multi)
+    {
+        return false;
+    }
+
+    const struct key_state *ks = get_primary_key(c->c2.tls_multi);
+    return (ks->crypto_options.flags & CO_USE_CC_EXIT_NOTIFY);
+}
+
 /*
  * Handle the triggering and time-wait of explicit
  * exit notification.
  */
-
 static void
 process_explicit_exit_notification_init(struct context *c)
 {
     msg(M_INFO, "SIGTERM received, sending exit notification to peer");
+    /* init the timeout to send the OCC_EXIT messages if cc exit is not
+     * enabled and also to exit after waiting for retries of resending of
+     * exit messages */
     event_timeout_init(&c->c2.explicit_exit_notification_interval, 1, 0);
     reset_coarse_timers(c);
+
     signal_reset(c->sig);
     halt_non_edge_triggered_signals();
     c->c2.explicit_exit_notification_time_wait = now;
+
+    /* Check if we are in TLS mode and should send the notification via data
+     * channel */
+    if (cc_exit_notify_enabled(c))
+    {
+        send_control_channel_string(c, "EXIT", D_PUSH);
+    }
 }
 
 void
@@ -351,7 +377,7 @@ process_explicit_exit_notification_timer_wakeup(struct context *c)
             c->sig->signal_received = SIGTERM;
             c->sig->signal_text = "exit-with-notification";
         }
-        else
+        else if (!cc_exit_notify_enabled(c))
         {
             c->c2.occ_op = OCC_EXIT;
         }

@@ -1719,7 +1719,7 @@ tls_session_update_crypto_params(struct tls_multi *multi,
     }
 
     /* Import crypto settings that might be set by pull/push */
-    session->opt->crypto_flags |= options->data_channel_crypto_flags;
+    session->opt->crypto_flags |= options->imported_protocol_flags;
 
     return tls_session_update_crypto_params_do_work(multi, session, options,
                                                     frame, frame_fragment, lsi);
@@ -1968,6 +1968,9 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 
         /* support for the --dns option */
         iv_proto |= IV_PROTO_DNS_OPTION;
+
+        /* support for exit notify via control channel */
+        iv_proto |= IV_PROTO_CC_EXIT_NOTIFY;
 
         /* support for receiving push_reply before sending
          * push request, also signal that the client wants

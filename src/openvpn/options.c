@@ -3341,7 +3341,7 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
 
     o->push_continuation = 0;
     o->push_option_types_found = 0;
-    o->data_channel_crypto_flags = 0;
+    o->imported_protocol_flags = 0;
 }
 
 static void
@@ -8496,16 +8496,42 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "key-derivation") && p[1])
     {
+        /* NCP only option that is pushed by the server to enable EKM,
+         * should not be used by normal users in config files*/
         VERIFY_PERMISSION(OPT_P_NCP)
 #ifdef HAVE_EXPORT_KEYING_MATERIAL
         if (streq(p[1], "tls-ekm"))
         {
-            options->data_channel_crypto_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
+            options->imported_protocol_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
         }
         else
 #endif
         {
             msg(msglevel, "Unknown key-derivation method %s", p[1]);
+        }
+    }
+    else if (streq(p[0], "protocol-flags") && p[1])
+    {
+        /* NCP only option that is pushed by the server to enable protocol
+         * features that are negotiated, should not be used by normal users
+         * in config files */
+        VERIFY_PERMISSION(OPT_P_NCP)
+        for (size_t j = 1; j < MAX_PARMS && p[j] != NULL; j++)
+        {
+            if (streq(p[j], "cc-exit"))
+            {
+                options->imported_protocol_flags |= CO_USE_CC_EXIT_NOTIFY;
+            }
+#ifdef HAVE_EXPORT_KEYING_MATERIAL
+            else if (streq(p[j], "tls-ekm"))
+            {
+                options->imported_protocol_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
+            }
+#endif
+            else
+            {
+                msg(msglevel, "Unknown protocol-flags flag: %s", p[j]);
+            }
         }
     }
     else if (streq(p[0], "prng") && p[1] && !p[3])

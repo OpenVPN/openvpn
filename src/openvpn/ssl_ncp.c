@@ -419,6 +419,11 @@ p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session)
         multi->peer_id = 0x76706e; /* 'v' 'p' 'n' */
     }
 
+    if (iv_proto_peer & IV_PROTO_CC_EXIT_NOTIFY)
+    {
+        session->opt->crypto_flags |= CO_USE_CC_EXIT_NOTIFY;
+    }
+
 #if defined(HAVE_EXPORT_KEYING_MATERIAL)
     if (iv_proto_peer & IV_PROTO_TLS_KEY_EXPORT)
     {

@@ -681,7 +681,7 @@ struct options
     bool allow_recursive_routing;
 
     /* data channel crypto flags set by push/pull. Reuses the CO_* crypto_flags */
-    unsigned int data_channel_crypto_flags;
+    unsigned int imported_protocol_flags;
 };
 
 #define streq(x, y) (!strcmp((x), (y)))

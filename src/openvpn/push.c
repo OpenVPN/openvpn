@@ -180,6 +180,21 @@ server_pushed_signal(struct context *c, const struct buffer *buffer, const bool 
 }
 
 void
+receive_exit_message(struct context *c)
+{
+    dmsg(D_STREAM_ERRORS, "Exit message received by peer");
+    c->sig->signal_received = SIGTERM;
+    c->sig->signal_text = "remote-exit";
+#ifdef ENABLE_MANAGEMENT
+    if (management)
+    {
+        management_notify(management, "info", c->sig->signal_text, "EXIT");
+    }
+#endif
+}
+
+
+void
 server_pushed_info(struct context *c, const struct buffer *buffer,
                    const int adv)
 {
@@ -606,10 +621,30 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
     {
         push_option_fmt(gc, push_list, M_USAGE, "cipher %s", o->ciphername);
     }
-    if (o->data_channel_crypto_flags & CO_USE_TLS_KEY_MATERIAL_EXPORT)
+
+    struct buffer proto_flags = alloc_buf_gc(128, gc);
+
+    if (o->imported_protocol_flags & CO_USE_CC_EXIT_NOTIFY)
+    {
+        buf_printf(&proto_flags, " cc-exit");
+
+        /* if the cc exit flag is supported, pushing tls-ekm via protocol-flags
+         * is also supported */
+        if (o->imported_protocol_flags & CO_USE_TLS_KEY_MATERIAL_EXPORT)
+        {
+            buf_printf(&proto_flags, " tls-ekm");
+        }
+    }
+    else if (o->imported_protocol_flags & CO_USE_TLS_KEY_MATERIAL_EXPORT)
     {
         push_option_fmt(gc, push_list, M_USAGE, "key-derivation tls-ekm");
     }
+
+    if (buf_len(&proto_flags) > 0)
+    {
+        push_option_fmt(gc, push_list, M_USAGE, "protocol-flags%s", buf_str(&proto_flags));
+    }
+
     return true;
 }
 

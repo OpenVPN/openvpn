@@ -264,6 +264,11 @@ struct crypto_options
     /**< Bit-flag indicating that we do not allow clients that do
      * not support resending the wrapped client key (WKc) with the
      * third packet of the three-way handshake */
+#define CO_USE_CC_EXIT_NOTIFY       (1<<6)
+    /**< Bit-flag indicating that explicit exit notifies should be
+     * sent via the control channel instead of using an OCC message
+     */
+
     unsigned int flags;         /**< Bit-flags determining behavior of
                                  *   security operation functions. */
 };

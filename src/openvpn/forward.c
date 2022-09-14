@@ -260,6 +260,10 @@ check_incoming_control_channel(struct context *c)
         {
             receive_auth_pending(c, &buf);
         }
+        else if (buf_string_match_head_str(&buf, "EXIT"))
+        {
+            receive_exit_message(c);
+        }
         else
         {
             msg(D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR(&buf));

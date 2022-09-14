@@ -48,6 +48,8 @@ void receive_auth_failed(struct context *c, const struct buffer *buffer);
 
 void server_pushed_signal(struct context *c, const struct buffer *buffer, const bool restart, const int adv);
 
+void receive_exit_message(struct context *c);
+
 void server_pushed_info(struct context *c, const struct buffer *buffer,
                         const int adv);
 
