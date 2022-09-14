@@ -95,7 +95,9 @@ Session timeout
 
 Inline auth username and password
     Username and password can now be specified inline in the configuration file
-    within the <auth-user-pass></auth-user-pass> tags.
+    within the <auth-user-pass></auth-user-pass> tags. If the password is
+    missing OpenVPN will prompt for input via stdin. This applies to inline'd
+    http-proxy-user-pass too.
 
 
 Deprecated features

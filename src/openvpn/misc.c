@@ -197,6 +197,11 @@ get_user_pass_cr(struct user_pass *up,
                 buf_parse(&buf, '\n', up->username, USER_PASS_LEN);
             }
             buf_parse(&buf, '\n', up->password, USER_PASS_LEN);
+
+            if (strlen(up->password) == 0)
+            {
+                password_from_stdin = 1;
+            }
         }
         /*
          * Read from auth file unless this is a dynamic challenge request.
