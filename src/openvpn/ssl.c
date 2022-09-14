@@ -3343,11 +3343,62 @@ nohard:
     return (tas == TLS_AUTHENTICATION_FAILED) ? TLSMP_KILL : active;
 }
 
-/*
- * Pre and post-process the encryption & decryption buffers in order
- * to implement a multiplexed TLS channel over the TCP/UDP port.
+/**
+ * We have not found a matching key to decrypt data channel packet,
+ * try to generate a sensible error message and print it
  */
+static void
+print_key_id_not_found_reason(struct tls_multi *multi,
+                              const struct link_socket_actual *from, int key_id)
+{
+    struct gc_arena gc = gc_new();
+    const char *source = print_link_socket_actual(from, &gc);
 
+
+    for (int i = 0; i < KEY_SCAN_SIZE; ++i)
+    {
+        struct key_state *ks = get_key_scan(multi, i);
+        if (ks->key_id != key_id)
+        {
+            continue;
+        }
+
+        /* Our key state has been progressed far enough to be part of a valid
+         * session but has not generated keys. */
+        if (ks->state >= S_INITIAL && ks->state < S_GENERATED_KEYS)
+        {
+            msg(D_MULTI_DROPPED,
+                "Key %s [%d] not initialized (yet), dropping packet.",
+                source, key_id);
+            gc_free(&gc);
+            return;
+        }
+        if (ks->state >= S_ACTIVE && ks->authenticated != KS_AUTH_TRUE)
+        {
+            msg(D_MULTI_DROPPED,
+                "Key %s [%d] not authorized%s, dropping packet.",
+                source, key_id,
+                (ks->authenticated == KS_AUTH_DEFERRED) ? " (deferred)" : "");
+            gc_free(&gc);
+            return;
+        }
+    }
+
+    msg(D_TLS_ERRORS,
+        "TLS Error: local/remote TLS keys are out of sync: %s "
+        "(received key id: %d, known key ids: %s)",
+        source, key_id,
+        print_key_id(multi, &gc));
+    gc_free(&gc);
+}
+
+/**
+ * Check the keyid of the an incoming data channel packet and
+ * return the matching crypto parameters in \c opt if found.
+ * Also move the \c buf to the start of the encrypted data, skipping
+ * the opcode and peer id header and setting also set \c ad_start for
+ * AEAD ciphers to the start of the authenticated data.
+ */
 static inline void
 handle_data_channel_packet(struct tls_multi *multi,
                            const struct link_socket_actual *from,
@@ -3362,7 +3413,6 @@ handle_data_channel_packet(struct tls_multi *multi,
     int op = c >> P_OPCODE_SHIFT;
     int key_id = c & P_KEY_ID_MASK;
 
-    /* data channel packet */
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
         struct key_state *ks = get_key_scan(multi, i);
@@ -3384,14 +3434,7 @@ handle_data_channel_packet(struct tls_multi *multi,
             && ks->authenticated == KS_AUTH_TRUE
             && (floated || link_socket_actual_match(from, &ks->remote_addr)))
         {
-            if (!ks->crypto_options.key_ctx_bi.initialized)
-            {
-                msg(D_MULTI_DROPPED,
-                    "Key %s [%d] not initialized (yet), dropping packet.",
-                    print_link_socket_actual(from, &gc), key_id);
-                goto done;
-            }
-
+            ASSERT(ks->crypto_options.key_ctx_bi.initialized);
             /* return appropriate data channel decrypt key in opt */
             *opt = &ks->crypto_options;
             if (op == P_DATA_V2)
@@ -3425,17 +3468,13 @@ handle_data_channel_packet(struct tls_multi *multi,
         }
     }
 
-    msg(D_TLS_ERRORS,
-        "TLS Error: local/remote TLS keys are out of sync: %s "
-        "(received key id: %d, known key ids: %s)",
-        print_link_socket_actual(from, &gc), key_id,
-        print_key_id(multi, &gc));
+    print_key_id_not_found_reason(multi, from, key_id);
 
 done:
+    gc_free(&gc);
     tls_clear_error();
     buf->len = 0;
     *opt = NULL;
-    gc_free(&gc);
 }
 
 /*
