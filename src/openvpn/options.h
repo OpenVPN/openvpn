@@ -883,13 +883,11 @@ bool key_is_external(const struct options *options);
 static inline bool
 dco_enabled(const struct options *o)
 {
-#if defined(_WIN32)
-    return o->windows_driver == WINDOWS_DRIVER_DCO;
-#elif defined(ENABLE_DCO)
+#ifdef ENABLE_DCO
     return !o->tuntap_options.disable_dco;
 #else
     return false;
-#endif /* defined(_WIN32) */
+#endif /* ENABLE_DCO */
 }
 
 #endif /* ifndef OPTIONS_H */

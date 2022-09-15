@@ -257,11 +257,11 @@ dco_check_option_ce(const struct connection_entry *ce, int msglevel)
 bool
 dco_check_startup_option(int msglevel, const struct options *o)
 {
-    /* check if DCO was already disabled by the user or if no dev name was
-     * specified at all. In the latter case, later logic will most likely stop
-     * OpenVPN, so no need to print any message here.
+    /* check if no dev name was specified at all. In the case,
+     * later logic will most likely stop OpenVPN, so no need to
+     * print any message here.
      */
-    if (!dco_enabled(o) || !o->dev)
+    if (!o->dev)
     {
         return false;
     }
@@ -294,8 +294,15 @@ dco_check_startup_option(int msglevel, const struct options *o)
 #if defined(_WIN32)
     if (o->mode == MODE_SERVER)
     {
-        msg(msglevel, "Only client and p2p data channel offload is supported "
-            "with ovpn-dco.");
+        msg(msglevel, "--mode server is set. Disabling Data Channel Offload");
+        return false;
+    }
+
+    if ((o->windows_driver == WINDOWS_DRIVER_WINTUN)
+        || (o->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6))
+    {
+        msg(msglevel, "--windows-driver is set to '%s'. Disabling Data Channel Offload",
+            print_windows_driver(o->windows_driver));
         return false;
     }
 

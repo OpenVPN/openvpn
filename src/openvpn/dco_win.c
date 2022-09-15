@@ -360,7 +360,28 @@ dco_swap_keys(dco_context_t *dco, unsigned int peer_id)
 bool
 dco_available(int msglevel)
 {
-    return true;
+    /* try to open device by symbolic name */
+    HANDLE h = CreateFile("\\\\.\\ovpn-dco", GENERIC_READ | GENERIC_WRITE,
+                          0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED, NULL);
+
+    if (h != INVALID_HANDLE_VALUE)
+    {
+        CloseHandle(h);
+        return true;
+    }
+
+    DWORD err = GetLastError();
+    if (err == ERROR_ACCESS_DENIED)
+    {
+        /* this likely means that device exists but is already in use,
+         * don't bail out since later we try to open all existing dco
+         * devices and then bail out if all devices are in use
+         */
+        return true;
+    }
+
+    msg(msglevel, "Note: ovpn-dco-win driver is missing, disabling data channel offload.");
+    return false;
 }
 
 int

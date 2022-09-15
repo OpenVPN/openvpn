@@ -183,7 +183,7 @@ static const char usage_message[] =
     "                  does not begin with \"tun\" or \"tap\".\n"
     "--dev-node node : Explicitly set the device node rather than using\n"
     "                  /dev/net/tun, /dev/tun, /dev/tap, etc.\n"
-#if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD))
+#if defined(ENABLE_DCO)
     "--disable-dco   : Do not attempt using Data Channel Offload.\n"
 #endif
     "--lladdr hw     : Set the link layer address of the tap device.\n"
@@ -851,7 +851,7 @@ init_options(struct options *o, const bool init_gc)
     o->tuntap_options.dhcp_masq_offset = 0;     /* use network address as internal DHCP server address */
     o->route_method = ROUTE_METHOD_ADAPTIVE;
     o->block_outside_dns = false;
-    o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
+    o->windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
 #endif
     o->vlan_accept = VLAN_ALL;
     o->vlan_pvid = 1;
@@ -903,6 +903,10 @@ init_options(struct options *o, const bool init_gc)
     }
 #endif /* _WIN32 */
     o->allow_recursive_routing = false;
+
+#ifndef ENABLE_DCO
+    o->tuntap_options.disable_dco = true;
+#endif /* ENABLE_DCO */
 }
 
 void
@@ -1797,7 +1801,7 @@ show_settings(const struct options *o)
     SHOW_STR(dev);
     SHOW_STR(dev_type);
     SHOW_STR(dev_node);
-#if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD))
+#if defined(ENABLE_DCO)
     SHOW_BOOL(tuntap_options.disable_dco);
 #endif
     SHOW_STR(lladdr);
@@ -3611,8 +3615,6 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     options_set_backwards_compatible_options(o);
 
     options_postprocess_cipher(o);
-    options_postprocess_mutate_invariant(o);
-
     o->ncp_ciphers = mutate_ncp_cipher_list(o->ncp_ciphers, &o->gc);
     if (o->ncp_ciphers == NULL)
     {
@@ -3688,18 +3690,29 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
             "incompatible with each other.");
     }
 
-#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
-    /* check if any option should force disabling DCO */
-    o->tuntap_options.disable_dco = !dco_check_option(D_DCO, o)
-                                    || !dco_check_startup_option(D_DCO, o);
-#elif defined(_WIN32)
-    /* in Windows we have no 'fallback to non-DCO' strategy, so if a conflicting
-     * option is found, we simply bail out by means of M_USAGE
-     */
     if (dco_enabled(o))
     {
-        dco_check_option(M_USAGE, o);
-        dco_check_startup_option(M_USAGE, o);
+        /* check if any option should force disabling DCO */
+        o->tuntap_options.disable_dco = !dco_check_option(D_DCO, o)
+                                        || !dco_check_startup_option(D_DCO, o);
+    }
+
+#ifdef _WIN32
+    if (dco_enabled(o))
+    {
+        o->windows_driver = WINDOWS_DRIVER_DCO;
+    }
+    else
+    {
+        if (o->windows_driver == WINDOWS_DRIVER_DCO)
+        {
+            msg(M_WARN, "Option --windows-driver ovpn-dco is ignored because Data Channel Offload is disabled");
+            o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
+        }
+        else if (o->windows_driver == WINDOWS_DRIVER_UNSPECIFIED)
+        {
+            o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
+        }
     }
 #endif
 
@@ -3709,6 +3722,9 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
             "data channel offload");
         o->dev_node = NULL;
     }
+
+    /* this depends on o->windows_driver, which is set above */
+    options_postprocess_mutate_invariant(o);
 
     /*
      * Save certain parms before modifying options during connect, especially
@@ -5908,9 +5924,7 @@ add_option(struct options *options,
 #endif
     else if (streq(p[0], "disable-dco"))
     {
-#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
         options->tuntap_options.disable_dco = true;
-#endif
     }
     else if (streq(p[0], "dev-node") && p[1] && !p[2])
     {

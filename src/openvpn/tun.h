@@ -156,6 +156,7 @@ struct tuntap_options {
 
 struct tuntap_options {
     int dummy; /* not used */
+    bool disable_dco; /* not used, but removes the need in #ifdefs */
 };
 
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
@@ -658,6 +659,25 @@ static inline bool
 tuntap_is_dco_win_timeout(struct tuntap *tt, int status)
 {
     return tuntap_is_dco_win(tt) && (status < 0) && (openvpn_errno() == ERROR_NETNAME_DELETED);
+}
+
+static const char *
+print_windows_driver(enum windows_driver_type windows_driver)
+{
+    switch (windows_driver)
+    {
+        case WINDOWS_DRIVER_TAP_WINDOWS6:
+            return "tap-windows6";
+
+        case WINDOWS_DRIVER_WINTUN:
+            return "wintun";
+
+        case WINDOWS_DRIVER_DCO:
+            return "ovpn-dco";
+
+        default:
+            return "unspecified";
+    }
 }
 
 #else  /* ifdef _WIN32 */
