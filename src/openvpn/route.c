@@ -2145,8 +2145,6 @@ delete_route(struct route_ipv4 *r,
              const struct env_set *es,
              openvpn_net_ctx_t *ctx)
 {
-    struct gc_arena gc;
-    struct argv argv = argv_new();
 #if !defined(TARGET_LINUX)
     const char *network;
 #if !defined(TARGET_AIX)
@@ -2165,7 +2163,8 @@ delete_route(struct route_ipv4 *r,
         return;
     }
 
-    gc_init(&gc);
+    struct gc_arena gc = gc_new();
+    struct argv argv = argv_new();
 
 #if !defined(TARGET_LINUX)
     network = print_in_addr_t(r->network, 0, &gc);
@@ -2336,8 +2335,6 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
                   unsigned int flags, const struct env_set *es,
                   openvpn_net_ctx_t *ctx)
 {
-    struct gc_arena gc;
-    struct argv argv = argv_new();
     const char *network;
 #if !defined(TARGET_LINUX)
     const char *gateway;
@@ -2360,7 +2357,8 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     }
 #endif
 
-    gc_init(&gc);
+    struct gc_arena gc = gc_new();
+    struct argv argv = argv_new();
 
     network = print_in6_addr( r6->network, 0, &gc);
 #if !defined(TARGET_LINUX)
