@@ -238,7 +238,7 @@ Windows-Specific Options
   logged when this is found in the configuration file.
 
 --windows-driver drv
-  Specifies which tun driver to use. Values are :code:`tap-windows6`
-  (default) and :code:`wintun`.  This is a Windows-only option.
-  :code:`wintun`" requires ``--dev tun`` and the OpenVPN process to run
+  Specifies which tun driver to use. Values are :code:`ovpn-dco` (default),
+  :code:`tap-windows6` and :code:`wintun`. :code:`ovpn-dco` and :code:`wintun`
+  require ``--dev tun``. :code:`wintun` also requires OpenVPN process to run
   elevated, or be invoked using the Interactive Service.
