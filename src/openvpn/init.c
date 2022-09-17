@@ -71,6 +71,7 @@ static const char *saved_pid_file_name; /* GLOBAL */
 #define CF_INIT_TLS_AUTH_STANDALONE (1<<2)
 
 static void do_init_first_time(struct context *c);
+
 static bool do_deferred_p2p_ncp(struct context *c);
 
 void
@@ -595,9 +596,12 @@ init_query_passwords(const struct context *c)
     if (c->options.auth_user_pass_file)
     {
 #ifdef ENABLE_MANAGEMENT
-        auth_user_pass_setup(c->options.auth_user_pass_file, &c->options.sc_info);
+        auth_user_pass_setup(c->options.auth_user_pass_file,
+                             c->options.auth_user_pass_file_inline,
+                             &c->options.sc_info);
 #else
-        auth_user_pass_setup(c->options.auth_user_pass_file, NULL);
+        auth_user_pass_setup(c->options.auth_user_pass_file,
+                             c->options.auth_user_pass_file_inline, NULL);
 #endif
     }
 }
@@ -3080,6 +3084,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         to.client_config_dir_exclusive = options->client_config_dir;
     }
     to.auth_user_pass_file = options->auth_user_pass_file;
+    to.auth_user_pass_file_inline = options->auth_user_pass_file_inline;
     to.auth_token_generate = options->auth_token_generate;
     to.auth_token_lifetime = options->auth_token_lifetime;
     to.auth_token_call_auth = options->auth_token_call_auth;

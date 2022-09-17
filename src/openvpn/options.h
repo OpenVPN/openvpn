@@ -532,6 +532,7 @@ struct options
     int push_continuation;
     unsigned int push_option_types_found;
     const char *auth_user_pass_file;
+    bool auth_user_pass_file_inline;
     struct options_pre_connect *pre_connect;
 
     int scheduled_exit_interval;

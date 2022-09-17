@@ -1562,7 +1562,7 @@ show_p2mp_parms(const struct options *o)
 
     SHOW_BOOL(client);
     SHOW_BOOL(pull);
-    SHOW_STR(auth_user_pass_file);
+    SHOW_STR_INLINE(auth_user_pass_file);
 
     gc_free(&gc);
 }
@@ -4046,9 +4046,10 @@ options_postprocess_filechecks(struct options *options)
                               options->management_user_pass, R_OK,
                               "--management user/password file");
 #endif /* ENABLE_MANAGEMENT */
-    errs |= check_file_access(CHKACC_FILE|CHKACC_ACPTSTDIN|CHKACC_PRIVATE,
-                              options->auth_user_pass_file, R_OK,
-                              "--auth-user-pass");
+    errs |= check_file_access_inline(options->auth_user_pass_file_inline,
+                                     CHKACC_FILE|CHKACC_ACPTSTDIN|CHKACC_PRIVATE,
+                                     options->auth_user_pass_file, R_OK,
+                                     "--auth-user-pass");
     /* ** System related ** */
     errs |= check_file_access(CHKACC_FILE, options->chroot_dir,
                               R_OK|X_OK, "--chroot directory");
@@ -7727,10 +7728,11 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "auth-user-pass") && !p[2])
     {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
+        VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_INLINE);
         if (p[1])
         {
             options->auth_user_pass_file = p[1];
+            options->auth_user_pass_file_inline = is_inline;
         }
         else
         {

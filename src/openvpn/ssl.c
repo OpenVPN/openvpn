@@ -395,23 +395,32 @@ static char *auth_challenge; /* GLOBAL */
 #endif
 
 void
-auth_user_pass_setup(const char *auth_file, const struct static_challenge_info *sci)
+auth_user_pass_setup(const char *auth_file, bool is_inline,
+                     const struct static_challenge_info *sci)
 {
+    unsigned int flags = GET_USER_PASS_MANAGEMENT;
+
+    if (is_inline)
+    {
+        flags |= GET_USER_PASS_INLINE_CREDS;
+    }
+
     auth_user_pass_enabled = true;
     if (!auth_user_pass.defined && !auth_token.defined)
     {
 #ifdef ENABLE_MANAGEMENT
         if (auth_challenge) /* dynamic challenge/response */
         {
+            flags |= GET_USER_PASS_DYNAMIC_CHALLENGE;
             get_user_pass_cr(&auth_user_pass,
                              auth_file,
                              UP_TYPE_AUTH,
-                             GET_USER_PASS_MANAGEMENT|GET_USER_PASS_DYNAMIC_CHALLENGE,
+                             flags,
                              auth_challenge);
         }
         else if (sci) /* static challenge response */
         {
-            int flags = GET_USER_PASS_MANAGEMENT|GET_USER_PASS_STATIC_CHALLENGE;
+            flags |= GET_USER_PASS_STATIC_CHALLENGE;
             if (sci->flags & SC_ECHO)
             {
                 flags |= GET_USER_PASS_STATIC_CHALLENGE_ECHO;
@@ -424,7 +433,7 @@ auth_user_pass_setup(const char *auth_file, const struct static_challenge_info *
         }
         else
 #endif /* ifdef ENABLE_MANAGEMENT */
-        get_user_pass(&auth_user_pass, auth_file, UP_TYPE_AUTH, GET_USER_PASS_MANAGEMENT);
+        get_user_pass(&auth_user_pass, auth_file, UP_TYPE_AUTH, flags);
     }
 }
 
@@ -2139,9 +2148,12 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
     if (auth_user_pass_enabled || (auth_token.token_defined && auth_token.defined))
     {
 #ifdef ENABLE_MANAGEMENT
-        auth_user_pass_setup(session->opt->auth_user_pass_file, session->opt->sci);
+        auth_user_pass_setup(session->opt->auth_user_pass_file,
+                             session->opt->auth_user_pass_file_inline,
+                             session->opt->sci);
 #else
-        auth_user_pass_setup(session->opt->auth_user_pass_file, NULL);
+        auth_user_pass_setup(session->opt->auth_user_pass_file,
+                             session->opt->auth_user_pass_file_inline, NULL);
 #endif
         struct user_pass *up = &auth_user_pass;
 

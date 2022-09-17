@@ -93,6 +93,10 @@ Session timeout
     using ``--session-timeout``. This option can be configured on the server, on
     the client or can also be pushed.
 
+Inline auth username and password
+    Username and password can now be specified inline in the configuration file
+    within the <auth-user-pass></auth-user-pass> tags.
+
 
 Deprecated features
 -------------------

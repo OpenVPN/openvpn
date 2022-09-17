@@ -373,9 +373,11 @@ void pem_password_setup(const char *auth_file);
 
 /*
  * Setup authentication username and password. If auth_file is given, use the
- * credentials stored in the file.
+ * credentials stored in the file, however, if is_inline is true then auth_file
+ * contains the username/password inline.
  */
-void auth_user_pass_setup(const char *auth_file, const struct static_challenge_info *sc_info);
+void auth_user_pass_setup(const char *auth_file, bool is_inline,
+                          const struct static_challenge_info *sc_info);
 
 /*
  * Ensure that no caching is performed on authentication information
