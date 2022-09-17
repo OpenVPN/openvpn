@@ -2379,10 +2379,11 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         msg(M_ERR, "Can't open %s", dev_node);
     }
 
+    ptr = dev;
+
     /* get unit number */
-    if (*dev)
+    if (*ptr)
     {
-        ptr = dev;
         while (*ptr && !isdigit((int) *ptr))
         {
             ptr++;
