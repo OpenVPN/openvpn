@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
+#include <stdint.h>
 #include <cmocka.h>
 
 unsigned long
@@ -33,4 +34,13 @@ get_random(void)
 {
     /* rand() is not very random, but it's C99 and this is just for testing */
     return rand();
+}
+
+void
+prng_bytes(uint8_t *output, int len)
+{
+    for (int i = 0; i < len; i++)
+    {
+        output[i] = rand();
+    }
 }

@@ -36,6 +36,7 @@
 #include <cmocka.h>
 
 #include "packet_id.h"
+#include "reliable.h"
 
 #include "mock_msg.h"
 
@@ -156,6 +157,59 @@ test_packet_id_write_long_wrap(void **state)
     assert_true(data->test_buf_data.buf_time == htonl(now));
 }
 
+static void
+test_get_num_output_sequenced_available(void **state)
+{
+
+    struct reliable *rel = malloc(sizeof(struct reliable));
+    reliable_init(rel, 100, 50, 8, false);
+
+    rel->array[5].active = true;
+    rel->array[5].packet_id = 100;
+
+    rel->packet_id = 103;
+
+    assert_int_equal(5, reliable_get_num_output_sequenced_available(rel));
+
+    rel->array[6].active = true;
+    rel->array[6].packet_id = 97;
+    assert_int_equal(2, reliable_get_num_output_sequenced_available(rel));
+
+    /* test ids close to int/unsigned int barrier */
+
+    rel->array[5].active = true;
+    rel->array[5].packet_id = (0x80000000u -3);
+    rel->array[6].active = false;
+    rel->packet_id = (0x80000000u -1);
+
+    assert_int_equal(6, reliable_get_num_output_sequenced_available(rel));
+
+    rel->array[5].active = true;
+    rel->array[5].packet_id = (0x80000000u -3);
+    rel->packet_id = 0x80000001u;
+
+    assert_int_equal(4, reliable_get_num_output_sequenced_available(rel));
+
+
+    /* test wrapping */
+    rel->array[5].active = true;
+    rel->array[5].packet_id = (0xffffffffu -3);
+    rel->array[6].active = false;
+    rel->packet_id = (0xffffffffu - 1);
+
+    assert_int_equal(6, reliable_get_num_output_sequenced_available(rel));
+
+    rel->array[2].packet_id = 0;
+    rel->array[2].active = true;
+
+    assert_int_equal(6, reliable_get_num_output_sequenced_available(rel));
+
+    rel->packet_id = 3;
+    assert_int_equal(1, reliable_get_num_output_sequenced_available(rel));
+
+    reliable_free(rel);
+}
+
 int
 main(void)
 {
@@ -178,6 +232,7 @@ main(void)
         cmocka_unit_test_setup_teardown(test_packet_id_write_long_wrap,
                                         test_packet_id_write_setup,
                                         test_packet_id_write_teardown),
+        cmocka_unit_test(test_get_num_output_sequenced_available)
     };
 
     return cmocka_run_group_tests_name("packet_id tests", tests, NULL, NULL);
