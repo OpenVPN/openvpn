@@ -3703,6 +3703,7 @@ options_string(const struct options *o,
         tt = init_tun(o->dev,
                       o->dev_type,
                       o->topology,
+                      o->tun2tap,
                       o->ifconfig_local,
                       o->ifconfig_remote_netmask,
                       o->ifconfig_ipv6_local,
@@ -3727,6 +3728,12 @@ options_string(const struct options *o,
             buf_printf(&out, ",ifconfig %s", ios);
         }
     }
+
+    if (tt && tt->tun2tap)
+    {
+        buf_printf(&out, ",tun2tap");
+    }
+
     if (tt_local)
     {
         free(tt);

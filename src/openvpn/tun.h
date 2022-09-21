@@ -156,6 +156,8 @@ struct tuntap
 
     struct tuntap_options options; /* options set on command line */
 
+    bool tun2tap; /* options set on --tun2tap for tun mode */
+
     char *actual_name; /* actual name of TUN/TAP dev, usually including unit number */
 
     /* number of TX buffers */
@@ -263,6 +265,7 @@ const char *guess_tuntap_dev(const char *dev,
 struct tuntap *init_tun(const char *dev,        /* --dev option */
                         const char *dev_type,   /* --dev-type option */
                         int topology,           /* one of the TOP_x values */
+                        const bool tun2tap,     /* --tun2tap */
                         const char *ifconfig_local_parm,           /* --ifconfig parm 1 */
                         const char *ifconfig_remote_netmask_parm,  /* --ifconfig parm 2 */
                         const char *ifconfig_ipv6_local_parm,      /* --ifconfig parm 1 / IPv6 */

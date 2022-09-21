@@ -1731,6 +1731,7 @@ do_init_tun(struct context *c)
     c->c1.tuntap = init_tun(c->options.dev,
                             c->options.dev_type,
                             c->options.topology,
+                            c->options.tun2tap,
                             c->options.ifconfig_local,
                             c->options.ifconfig_remote_netmask,
                             c->options.ifconfig_ipv6_local,
@@ -1839,7 +1840,7 @@ do_open_tun(struct context *c)
     /*
     * detect tun2tap
     */
-    if (c->options.tun2tap && TUNNEL_TYPE(c->c1.tuntap) == DEV_TYPE_TUN && !c->options.lladdr){
+    if (c->c1.tuntap->tun2tap && !c->options.lladdr){
         char *lladdr_tmp = NULL;
         char mac_addr[OPENVPN_ETH_ALEN] = {0};
         char buf[4*OPENVPN_ETH_ALEN] = {0};
@@ -1899,7 +1900,7 @@ do_open_tun(struct context *c)
             , (unsigned char)mac_addr[5]
         );
         memcpy(c->options.lladdr_v, mac_addr, sizeof(mac_addr));
-        if (c->options.tun2tap && (mac_addr[0] & 1)){
+        if (c->c1.tuntap->tun2tap && (mac_addr[0] & 1)){
             msg(M_INFO, "mac %s is mcast addr (mac[0]&1 == true)", buf);
             ASSERT(0);
         }

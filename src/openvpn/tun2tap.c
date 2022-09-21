@@ -109,6 +109,7 @@ check_tun2tap_arp_dowork(struct context *c, int flag)
             struct openvpn_ethhdr *hdr = (struct openvpn_ethhdr *) BPTR(&c->c2.buf);
             memcpy(c->c1.tuntap->remote_mac_addr, hdr->source, OPENVPN_ETH_ALEN);
             if (hdr->proto == htons(OPENVPN_ETH_P_ARP)){
+                dmsg(D_TUN2TAP, "TUN2TAP: processing arp from tun");
                 if (BLEN(&c->c2.buf) >= sizeof(struct openvpn_ethhdr) + sizeof(struct openvpn_arp)){
                     struct openvpn_arp *arp_in = (struct openvpn_arp *)(BPTR(&c->c2.buf) + sizeof(struct openvpn_ethhdr));
                     if (arp_in->arp_command == htons(ARP_REPLY)){
@@ -136,10 +137,12 @@ check_tun2tap_arp_dowork(struct context *c, int flag)
                             arp_out.ip_src = arp_in->ip_dest;
                             arp_out.ip_dest = arp_in->ip_src;
                             buf_clear(&c->c2.buf);
+                            ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
+                            ASSERT(buf_safe(&c->c2.buf, MAX_RW_SIZE_TUN(&c->c2.frame)));
                             buf_write(&c->c2.buf, &hdr_out, sizeof(hdr_out));
                             buf_write(&c->c2.buf, &arp_out, sizeof(arp_out));
-                            encrypt_sign(c, true);
                             dmsg(D_TUN2TAP, "TUN2TAP: build arp reply success");
+                            encrypt_sign(c, true);
                         } else {
                             dmsg(D_TUN2TAP, "TUN2TAP: ignore any arp request not to me dest:%x me:%x", ntohl(arp_in->ip_dest), c->c1.tuntap->local);
                             buf_clear(&c->c2.buf);
@@ -152,6 +155,7 @@ check_tun2tap_arp_dowork(struct context *c, int flag)
                     }
                 }
             } else {
+                dmsg(D_TUN2TAP, "TUN2TAP: trim ethhdr for tun");
                 buf_advance(&c->c2.to_tun, sizeof(struct openvpn_ethhdr));
             }
         }
