@@ -86,7 +86,7 @@ check_tun2tap_arp_dowork(struct context *c, int flag)
             * if client send the first packet to server after connected, remote_mac_addr is zero
             * so we build a arp request to replace this packet.
             */
-            if (0 == memcmp(hdr.dest, "\x00\x00\x00\x00\x00\x00", sizeof("\x00\x00\x00\x00\x00\x00") - 1)){
+            if (0 == memcmp(hdr.dest, "\x00\x00\x00\x00\x00\x00", OPENVPN_ETH_ALEN)){
                 struct openvpn_arp arp = { 0 };
                 arp.mac_addr_type = htons(0x0001);
                 arp.proto_addr_type = htons(0x0800);
