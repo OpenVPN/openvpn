@@ -37,6 +37,29 @@
 
 #include "memdbg.h"
 
+void build_arp_reply(struct context *c, struct openvpn_ethhdr *hdr_out, struct openvpn_arp *arp_in, struct openvpn_arp *arp_out);
+void build_arp_reply(struct context *c, struct openvpn_ethhdr *hdr_out, struct openvpn_arp *arp_in, struct openvpn_arp *arp_out)
+{
+    if (!c || !hdr_out || !arp_in || !arp_out)
+    {
+        return;
+    }
+    memset(hdr_out, 0, sizeof(*hdr_out));
+    memset(arp_out, 0, sizeof(*arp_out));
+    hdr_out->proto = htons(OPENVPN_ETH_P_ARP);
+    arp_out->mac_addr_type = htons(0x0001);
+    arp_out->proto_addr_type = htons(0x0800);
+    arp_out->mac_addr_size = 0x06;
+    arp_out->proto_addr_size = 0x04;
+    arp_out->arp_command = htons(ARP_REPLY);
+    memcpy(arp_out->mac_src, c->options.lladdr_v, OPENVPN_ETH_ALEN);
+    memcpy(arp_out->mac_dest, arp_in->mac_src, OPENVPN_ETH_ALEN);
+    memcpy(hdr_out->source, c->options.lladdr_v, OPENVPN_ETH_ALEN);
+    memcpy(hdr_out->dest, c->c1.tuntap->remote_mac_addr, OPENVPN_ETH_ALEN);
+    arp_out->ip_src = arp_in->ip_dest;
+    arp_out->ip_dest = arp_in->ip_src;
+}
+
 /*
  * arp check and build for tun
  */
@@ -81,7 +104,11 @@ check_tun2tap_arp_dowork(struct context *c, int flag)
                     arp.ip_dest = ip_hdr->daddr;
                     break;
                 case 6: 
-                    /* do nothing, arp has been removed in ipv6 */
+                    /* 
+                        do nothing, arp has been removed in ipv6
+                        so we will not receive any ipv6 packet without mac
+                        this case will never in
+                    */
                 default:
                     break;
                 }
@@ -121,21 +148,9 @@ check_tun2tap_arp_dowork(struct context *c, int flag)
                             /*
                             * build reply and write arp to link
                             */
-                            struct openvpn_ethhdr hdr_out = {
-                                .proto=htons(OPENVPN_ETH_P_ARP)
-                            };
-                            struct openvpn_arp arp_out = { 0 };
-                            arp_out.mac_addr_type = htons(0x0001);
-                            arp_out.proto_addr_type = htons(0x0800);
-                            arp_out.mac_addr_size = 0x06;
-                            arp_out.proto_addr_size = 0x04;
-                            arp_out.arp_command = htons(ARP_REPLY);
-                            memcpy(arp_out.mac_src, c->options.lladdr_v, OPENVPN_ETH_ALEN);
-                            memcpy(arp_out.mac_dest, arp_in->mac_src, OPENVPN_ETH_ALEN);
-                            memcpy(hdr_out.source, c->options.lladdr_v, OPENVPN_ETH_ALEN);
-                            memcpy(hdr_out.dest, c->c1.tuntap->remote_mac_addr, OPENVPN_ETH_ALEN);
-                            arp_out.ip_src = arp_in->ip_dest;
-                            arp_out.ip_dest = arp_in->ip_src;
+                            struct openvpn_ethhdr hdr_out;
+                            struct openvpn_arp arp_out;
+                            build_arp_reply(c, &hdr_out, arp_in, &arp_out);
                             buf_clear(&c->c2.buf);
                             ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
                             ASSERT(buf_safe(&c->c2.buf, MAX_RW_SIZE_TUN(&c->c2.frame)));
