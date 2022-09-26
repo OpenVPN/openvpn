@@ -150,7 +150,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="Makefile.mak" />
-    <None Include="msc-generate.js" />
+    <None Include="msvc-generate.js" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
