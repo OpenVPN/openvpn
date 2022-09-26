@@ -89,3 +89,5 @@ typedef uint16_t in_port_t;
 #endif
 
 #define ENABLE_DCO 1
+
+#define HAVE_CONFIG_VERSION_H 1
