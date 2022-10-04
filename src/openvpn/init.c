@@ -3528,7 +3528,7 @@ do_init_first_time(struct context *c)
         /* get user and/or group that we want to setuid/setgid to */
         c0->uid_gid_specified =
             platform_group_get(c->options.groupname, &c0->platform_state_group)
-            |platform_user_get(c->options.username, &c0->platform_state_user);
+            || platform_user_get(c->options.username, &c0->platform_state_user);
 
         /* perform postponed chdir if --daemon */
         if (c->did_we_daemonize && c->options.cd_dir == NULL)
