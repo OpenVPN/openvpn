@@ -386,7 +386,9 @@ struct context_2
      * Event loop info
      */
 
-    /* how long to wait on link/tun read before we will need to be serviced */
+    /** Time to next event of timers and similar. This is used to determine
+     *  how long to wait on event wait (select/poll on link/tun read)
+     *  before this context wants to be serviced. */
     struct timeval timeval;
 
     /* next wakeup for processing coarse timers (>1 sec resolution) */

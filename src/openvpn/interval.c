@@ -46,39 +46,40 @@ event_timeout_trigger(struct event_timeout *et,
                       struct timeval *tv,
                       const int et_const_retry)
 {
-    bool ret = false;
-    const time_t local_now = now;
-
-    if (et->defined)
+    if (!et->defined)
     {
-        time_t wakeup = et->last - local_now + et->n;
-        if (wakeup <= 0)
-        {
-#if INTERVAL_DEBUG
-            dmsg(D_INTERVAL, "EVENT event_timeout_trigger (%d) etcr=%d", et->n,
-                 et_const_retry);
-#endif
-            if (et_const_retry < 0)
-            {
-                et->last = local_now;
-                wakeup = et->n;
-                ret = true;
-            }
-            else
-            {
-                wakeup = et_const_retry;
-            }
-        }
+        return false;
+    }
 
-        if (tv && wakeup < tv->tv_sec)
-        {
+    bool ret = false;
+    time_t wakeup = event_timeout_remaining(et);
+
+    if (wakeup <= 0)
+    {
 #if INTERVAL_DEBUG
-            dmsg(D_INTERVAL, "EVENT event_timeout_wakeup (%d/%d) etcr=%d",
-                 (int) wakeup, et->n, et_const_retry);
+        dmsg(D_INTERVAL, "EVENT event_timeout_trigger (%d) etcr=%d", et->n,
+             et_const_retry);
 #endif
-            tv->tv_sec = wakeup;
-            tv->tv_usec = 0;
+        if (et_const_retry < 0)
+        {
+            et->last = now;
+            wakeup = et->n;
+            ret = true;
         }
+        else
+        {
+            wakeup = et_const_retry;
+        }
+    }
+
+    if (tv && wakeup < tv->tv_sec)
+    {
+#if INTERVAL_DEBUG
+        dmsg(D_INTERVAL, "EVENT event_timeout_wakeup (%d/%d) etcr=%d",
+             (int) wakeup, et->n, et_const_retry);
+#endif
+        tv->tv_sec = wakeup;
+        tv->tv_usec = 0;
     }
     return ret;
 }
