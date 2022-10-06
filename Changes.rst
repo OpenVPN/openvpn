@@ -87,6 +87,12 @@ Data channel offloading with ovpn-dco
     this implies that peers must be running 2.6.0+ in order to have P2P-NCP
     which brings DATA_V2 packet support.
 
+Session timeout
+    It is now possible to terminate a session (or all) after a specified amount
+    of seconds has passed session commencement. This behaviour can be configured
+    using ``--session-timeout``. This option can be configured on the server, on
+    the client or can also be pushed.
+
 
 Deprecated features
 -------------------

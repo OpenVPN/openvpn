@@ -631,6 +631,21 @@ encrypt_sign(struct context *c, bool comp_frag)
 }
 
 /*
+ * Should we exit due to session timeout?
+ */
+static void
+check_session_timeout(struct context *c)
+{
+    if (c->options.session_timeout
+        && event_timeout_trigger(&c->c2.session_interval, &c->c2.timeval,
+                                 ETT_DEFAULT))
+    {
+        msg(M_INFO, "Session timeout, exiting");
+        register_signal(c, SIGTERM, "session-timeout");
+    }
+}
+
+/*
  * Coarse timers work to 1 second resolution.
  */
 static void
@@ -676,6 +691,13 @@ process_coarse_timers(struct context *c)
         check_inactivity_timeout(c);
     }
 
+    if (c->sig->signal_received)
+    {
+        return;
+    }
+
+    /* kill session if time is over */
+    check_session_timeout(c);
     if (c->sig->signal_received)
     {
         return;

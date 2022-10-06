@@ -426,7 +426,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   ``--inactive``, ``--ping``, ``--ping-exit``, ``--ping-restart``,
   ``--setenv``, ``--auth-token``, ``--persist-key``, ``--persist-tun``,
   ``--echo``, ``--comp-lzo``, ``--socket-flags``, ``--sndbuf``,
-  ``--rcvbuf``
+  ``--rcvbuf``, ``--session-timeout``
 
 --push-remove opt
   Selectively remove all ``--push`` options matching "opt" from the option

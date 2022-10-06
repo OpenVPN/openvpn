@@ -1320,6 +1320,13 @@ do_init_timers(struct context *c, bool deferred)
         event_timeout_init(&c->c2.inactivity_interval, c->options.inactivity_timeout, now);
     }
 
+    /* initialize inactivity timeout */
+    if (c->options.session_timeout)
+    {
+        event_timeout_init(&c->c2.session_interval, c->options.session_timeout,
+                           now);
+    }
+
     /* initialize pings */
     if (dco_enabled(&c->options))
     {

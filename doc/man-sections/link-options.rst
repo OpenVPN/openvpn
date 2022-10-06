@@ -427,6 +427,17 @@ the local and the remote host.
   default) and you are using either ``--secret`` (shared-secret key mode)
   or TLS mode with ``--tls-auth``.
 
+--session-timeout n
+  Raises :code:`SIGTERM` for the client instance after ``n`` seconds since
+  the beginning of the session, forcing OpenVPN to disconnect.
+  In client mode, OpenVPN will disconnect and exit, while in server mode
+  all client sessions are terminated.
+
+  This option can also be specified in a client instance config file
+  using ``--client-config-dir`` or dynamically generated using a
+  ``--client-connect`` script. In these cases, only the related client
+  session is terminated.
+
 --socket-flags flags
   Apply the given flags to the OpenVPN transport socket. Currently, only
   :code:`TCP_NODELAY` is supported.

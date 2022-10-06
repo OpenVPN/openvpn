@@ -261,6 +261,7 @@ static const char usage_message[] =
     "                  for m seconds.\n"
     "--inactive n [bytes] : Exit after n seconds of activity on tun/tap device\n"
     "                  produces a combined in/out byte count < bytes.\n"
+    "--session-timeout n: Limit connection time to n seconds.\n"
     "--ping-exit n   : Exit if n seconds pass without reception of remote ping.\n"
     "--ping-restart n: Restart if n seconds pass without reception of remote ping.\n"
     "--ping-timer-rem: Run the --ping-exit/--ping-restart timer only if we have a\n"
@@ -1823,6 +1824,7 @@ show_settings(const struct options *o)
     SHOW_INT(keepalive_ping);
     SHOW_INT(keepalive_timeout);
     SHOW_INT(inactivity_timeout);
+    SHOW_INT(session_timeout);
     SHOW_INT64(inactivity_minimum_bytes);
     SHOW_INT(ping_send_timeout);
     SHOW_INT(ping_rec_timeout);
@@ -6596,6 +6598,11 @@ add_option(struct options *options,
                     options->inactivity_timeout );
             }
         }
+    }
+    else if (streq(p[0], "session-timeout") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_TIMER);
+        options->session_timeout = positive_atoi(p[1]);
     }
     else if (streq(p[0], "proto") && p[1] && !p[2])
     {

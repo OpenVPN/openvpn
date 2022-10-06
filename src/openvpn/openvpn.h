@@ -288,6 +288,8 @@ struct context_2
     struct event_timeout inactivity_interval;
     int64_t inactivity_bytes;
 
+    struct event_timeout session_interval;
+
     /* the option strings must match across peers */
     char *options_string_local;
     char *options_string_remote;
