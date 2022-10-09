@@ -395,6 +395,12 @@ static char *auth_challenge; /* GLOBAL */
 #endif
 
 void
+enable_auth_user_pass()
+{
+    auth_user_pass_enabled = true;
+}
+
+void
 auth_user_pass_setup(const char *auth_file, bool is_inline,
                      const struct static_challenge_info *sci)
 {
@@ -405,7 +411,6 @@ auth_user_pass_setup(const char *auth_file, bool is_inline,
         flags |= GET_USER_PASS_INLINE_CREDS;
     }
 
-    auth_user_pass_enabled = true;
     if (!auth_user_pass.defined && !auth_token.defined)
     {
 #ifdef ENABLE_MANAGEMENT
