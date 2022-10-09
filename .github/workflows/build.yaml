@@ -299,7 +299,7 @@ jobs:
       - name: autoconf
         run: autoreconf -fvi
       - name: configure
-        run: ./configure ${{matrix.configureflags}} ${{matrix.configuressllib}}
+        run: ./configure --enable-werror ${{matrix.configureflags}} ${{matrix.configuressllib}}
       - name: make all
         run: make -j4
       - name: make check
