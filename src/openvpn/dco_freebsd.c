@@ -166,6 +166,33 @@ ovpn_dco_init(int mode, dco_context_t *dco)
 }
 
 static int
+dco_set_ifmode(dco_context_t *dco, int ifmode)
+{
+    struct ifdrv drv;
+    nvlist_t *nvl;
+    int ret;
+
+    nvl = nvlist_create(0);
+    nvlist_add_number(nvl, "ifmode", ifmode);
+
+    CLEAR(drv);
+    snprintf(drv.ifd_name, IFNAMSIZ, "%s", dco->ifname);
+    drv.ifd_cmd = OVPN_SET_IFMODE;
+    drv.ifd_data = nvlist_pack(nvl, &drv.ifd_len);
+
+    ret = ioctl(dco->fd, SIOCSDRVSPEC, &drv);
+    if (ret)
+    {
+        msg(M_WARN | M_ERRNO, "dco_set_ifmode: failed to set ifmode=%08x", ifmode);
+    }
+
+    free(drv.ifd_data);
+    nvlist_destroy(nvl);
+
+    return ret;
+}
+
+static int
 create_interface(struct tuntap *tt, const char *dev)
 {
     int ret;
@@ -204,6 +231,14 @@ create_interface(struct tuntap *tt, const char *dev)
 
     snprintf(tt->dco.ifname, IFNAMSIZ, "%s", ifr.ifr_data);
     tt->actual_name = string_alloc(tt->dco.ifname, NULL);
+
+    /* see "Interface Flags" in ifnet(9) */
+    int i = IFF_POINTOPOINT | IFF_MULTICAST;
+    if (tt->topology == TOP_SUBNET)
+    {
+        i = IFF_BROADCAST | IFF_MULTICAST;
+    }
+    dco_set_ifmode(&tt->dco, i);
 
     return 0;
 }

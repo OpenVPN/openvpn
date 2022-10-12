@@ -60,5 +60,6 @@ enum ovpn_key_cipher {
 #define OVPN_SEND_PKT           _IO('D', 9)
 #define OVPN_POLL_PKT           _IO('D', 10)
 #define OVPN_GET_PKT            _IO('D', 11)
+#define OVPN_SET_IFMODE         _IO('D', 12)
 
 #endif /* ifndef _NET_IF_OVPN_H_ */
