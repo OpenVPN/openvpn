@@ -169,6 +169,11 @@ User-visible Changes
   been changed to "restart on reception of explicit-exit-notify message".
   If the old behaviour is still desired, ``--remap-usr1 SIGTERM`` can be used.
 
+- FreeBSD tun interfaces with ``--topology subnet`` are now put into real
+  subnet mode (IFF_BROADCAST instead of IFF_POINTOPOINT) - this might upset
+  software that enumerates interfaces, looking for "broadcast capable?" and
+  expecting certain results.  Normal uses should not see any difference.
+
 
 Overview of changes in 2.5
 ==========================

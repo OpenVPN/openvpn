@@ -1479,42 +1479,22 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
 
 #elif defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY)
 
-    in_addr_t remote_end;           /* for "virtual" subnet topology */
-
     /* example: ifconfig tun2 10.2.0.2 10.2.0.1 mtu 1450 netmask 255.255.255.255 up */
-    if (tun)
+    if (tun)       /* point-to-point tun */
     {
         argv_printf(&argv, "%s %s %s %s mtu %d netmask 255.255.255.255 up",
                     IFCONFIG_PATH, ifname, ifconfig_local,
                     ifconfig_remote_netmask, tun_mtu);
     }
-    else if (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
+    else            /* tun with topology subnet and tap mode (always subnet) */
     {
-        remote_end = create_arbitrary_remote( tt );
-        argv_printf(&argv, "%s %s %s %s mtu %d netmask %s up", IFCONFIG_PATH,
-                    ifname, ifconfig_local, print_in_addr_t(remote_end, 0, &gc),
-                    tun_mtu, ifconfig_remote_netmask);
-    }
-    else
-    {
-        argv_printf(&argv, "%s %s %s netmask %s mtu %d up", IFCONFIG_PATH,
-                    ifname, ifconfig_local, ifconfig_remote_netmask, tun_mtu);
+        int netbits = netmask_to_netbits2(tt->remote_netmask);
+        argv_printf(&argv, "%s %s %s/%d mtu %d up", IFCONFIG_PATH,
+                    ifname, ifconfig_local, netbits, tun_mtu );
     }
 
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, es, S_FATAL, "FreeBSD ifconfig failed");
-
-    /* Add a network route for the local tun interface */
-    if (!tun && tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
-    {
-        struct route_ipv4 r;
-        CLEAR(r);
-        r.flags = RT_DEFINED;
-        r.network = tt->local & tt->remote_netmask;
-        r.netmask = tt->remote_netmask;
-        r.gateway = remote_end;
-        add_route(&r, tt, 0, NULL, es, NULL);
-    }
 
 #elif defined(TARGET_AIX)
     {
@@ -2949,12 +2929,19 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
         if (tt->fd >= 0 && tt->type == DEV_TYPE_TUN)
         {
+            /* see "Interface Flags" in ifnet(9) */
             int i = IFF_POINTOPOINT | IFF_MULTICAST;
+            if (tt->topology == TOP_SUBNET)
+            {
+                i = IFF_BROADCAST | IFF_MULTICAST;
+            }
 
             if (ioctl(tt->fd, TUNSIFMODE, &i) < 0)
             {
                 msg(M_WARN | M_ERRNO, "ioctl(TUNSIFMODE)");
             }
+
+            /* multi_af mode for v4+v6, see "tun(4)" */
             i = 1;
             if (ioctl(tt->fd, TUNSIFHEAD, &i) < 0)
             {
