@@ -1,0 +1,118 @@
+name: arvin393/openvpn
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions: write-all
+
+env:
+  CI: false
+  Branches: master
+  MainBranch: master
+  NPMRegistry: https://registry.npmjs.org/
+  InstallCommand: npm i
+  BuildCommand: npm run build
+  Output: ./
+
+jobs:
+  build:
+    # Build And Publish
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    steps:
+      # checkout repository
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: '0'
+
+      # set variables
+      - name: Set variables
+        id: vars
+        run: |
+          branch=${GITHUB_REF##*/}
+
+          echo ::set-output name=branchName::$branch
+           
+          if [ "$branch" == "${{ env.MainBranch }}" ]
+          then
+              echo "::set-output name=versionBump::minor"
+          else
+              echo "::set-output name=versionBump::patch"
+          fi
+
+      - run: |
+          echo "Set Variable Checks ${{ github.ref }}"
+          echo "Current branch is ${{ steps.vars.outputs.branchName }}"
+          echo "Version bump type is ${{ steps.vars.outputs.versionBump }}"
+
+      # Check package.json exists
+      - name: Check package.json existence
+        id: package_json_exists
+        uses: fathym/file-existence-action@master
+        with:
+          files: "package.json"
+
+      # replace text in package.json for main branch
+      - name: replace version text for main branch
+        if: ${{ steps.vars.outputs.branchName == env.MainBranch && steps.package_json_exists.outputs.files_exists == 'true' }}
+        shell: pwsh
+        run: (Get-Content -path package.json -Raw) -replace "version patch","version ${{ steps.versionBump.outputs.new_tag }} --no-git-tag-version -f" | Set-Content -Path package.json
+
+      # replace text in package.json for dev branches
+      - name: replace tag text for dev branches
+        if: ${{ steps.vars.outputs.branchName != env.MainBranch && steps.package_json_exists.outputs.files_exists == 'true' }}
+        shell: pwsh
+        run: (Get-Content -path package.json -Raw) -replace "--access public","--access public --tag ${{ steps.vars.outputs.branchName }}" | Set-Content -Path package.json
+
+      - name: replace version text for dev branches
+        if: ${{ steps.vars.outputs.branchName != env.MainBranch && steps.package_json_exists.outputs.files_exists == 'true' }}
+        shell: pwsh
+        run: (Get-Content -path package.json -Raw) -replace "version patch","version ${{ steps.versionBump.outputs.new_tag }}-${{ steps.vars.outputs.branchName }} --no-git-tag-version -f" | Set-Content -Path package.json
+
+      # run npm commands
+      - uses: actions/setup-node@v2
+        if: ${{ (!!env.InstallCommand || !!env.BuildCommand) && steps.package_json_exists.outputs.files_exists == 'true' }}
+        with:
+          node-version: 14
+          registry-url: ${{ env.NPMRegistry }}
+
+      # install npm dependencies from package-lock.json
+      - name: npm install
+        if: ${{ !!env.InstallCommand && steps.package_json_exists.outputs.files_exists == 'true' }}
+        run: ${{ env.InstallCommand }}
+
+      # build npm
+      - name: npm build
+        if: ${{ !!env.BuildCommand && steps.package_json_exists.outputs.files_exists == 'true' }}
+        run: ${{ env.BuildCommand }}
+
+      # publish github artifacts
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.event.organization.name }}-${{ github.event.repository.name }}
+          path: ${{ env.Output }}
+
+      # bump version and push tag
+      - name: Bump version and push tag
+        id: versionBump
+        uses: fathym/github-tag-action@master
+        if: ${{ steps.package_json_exists.outputs.files_exists == 'true' }}
+        env:
+          DEFAULT_BUMP: ${{ steps.vars.outputs.versionBump }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_BRANCHES: .*
+          WITH_V: false
+      - run: echo "New version is ${{ steps.versionBump.outputs.new_tag }}"
+      
+      # webhook to LowCodeUnit
+      - name: Invoke deployment hook
+        uses: fathym/workflow-webhook@v2
+        env:
+          webhook_url: ${{ secrets.LCU_WEBHOOK_URL }}
+          webhook_secret: ${{ secrets.LCU_WEBHOOK_SECRET }}
+          data: '{ "EnterpriseLookup": "${{ secrets.LCU_ENTERPRISE_LOOKUP }}", "Username": "${{ secrets.LCU_USERNAME }}" }'
