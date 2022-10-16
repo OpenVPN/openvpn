@@ -163,6 +163,13 @@ User-visible Changes
 - :code:`link_mtu` parameter is removed from environment or replaced with 0 when scripts are
   called with parameters. This parameter is unreliable and no longer internally calculated.
 
+- In point-to-point OpenVPN setups (no ``--server``), using
+  ``--explict-exit-notiy`` on one end would terminate the other side at
+  session end.  This is considered a no longer useful default and has
+  been changed to "restart on reception of explicit-exit-notify message".
+  If the old behaviour is still desired, ``--remap-usr1 SIGTERM`` can be used.
+
+
 Overview of changes in 2.5
 ==========================
 

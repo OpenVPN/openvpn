@@ -431,7 +431,7 @@ process_received_occ_msg(struct context *c)
 
         case OCC_EXIT:
             dmsg(D_PACKET_CONTENT, "RECEIVED OCC_EXIT");
-            c->sig->signal_received = SIGTERM;
+            c->sig->signal_received = SIGUSR1;
             c->sig->signal_text = "remote-exit";
             break;
     }

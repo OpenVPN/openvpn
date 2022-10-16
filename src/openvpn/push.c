@@ -193,7 +193,25 @@ void
 receive_exit_message(struct context *c)
 {
     dmsg(D_STREAM_ERRORS, "Exit message received by peer");
-    c->sig->signal_received = SIGTERM;
+    /* With control channel exit notification, we want to give the session
+     * enough time to handle retransmits and acknowledgment, so that eventual
+     * retries from the client to resend the exit or ACKs will not trigger
+     * a new session (we already forgot the session but the packet's HMAC
+     * is still valid).  This could happen for the entire period that the
+     * HMAC timeslot is still valid, but waiting five seconds here does not
+     * hurt much, takes care of the retransmits, and is easier code-wise.
+     *
+     * This does not affect OCC exit since the HMAC session code will
+     * ignore DATA packets
+     * */
+    if (c->options.mode == MODE_SERVER)
+    {
+        schedule_exit(c, c->options.scheduled_exit_interval, SIGTERM);
+    }
+    else
+    {
+        c->sig->signal_received = SIGUSR1;
+    }
     c->sig->signal_text = "remote-exit";
 #ifdef ENABLE_MANAGEMENT
     if (management)
