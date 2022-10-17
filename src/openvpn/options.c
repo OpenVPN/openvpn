@@ -2632,6 +2632,14 @@ options_postprocess_verify_ce(const struct options *options,
             msg(M_USAGE, "--auth-gen-token needs a non-infinite "
                 "--renegotiate_seconds setting");
         }
+        if (options->auth_token_generate && options->auth_token_renewal
+            && options->auth_token_renewal < 2 * options->handshake_window)
+        {
+            msg(M_USAGE, "--auth-gen-token reneweal time needs to be at least "
+                " two times --hand-window (%d).",
+                options->handshake_window);
+
+        }
         {
             const bool ccnr = (options->auth_user_pass_verify_script
                                || PLUGIN_OPTION_LIST(options)
@@ -3744,6 +3752,10 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
 #else
         foreign_options_copy_dns(o, es);
 #endif
+    }
+    if (o->auth_token_generate && !o->auth_token_renewal)
+    {
+        o->auth_token_renewal = o->renegotiate_seconds;
     }
     pre_connect_save(o);
 }
@@ -7469,15 +7481,21 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->auth_token_generate = true;
         options->auth_token_lifetime = p[1] ? positive_atoi(p[1]) : 0;
-        if (p[2])
+
+        for (int i = 2; i < MAX_PARMS && p[i] != NULL; i++)
         {
-            if (streq(p[2], "external-auth"))
+            /* the second parameter can be the reneweal time */
+            if (i == 2 && positive_atoi(p[i]))
+            {
+                options->auth_token_renewal = positive_atoi(p[i]);
+            }
+            else if (streq(p[i], "external-auth"))
             {
                 options->auth_token_call_auth = true;
             }
             else
             {
-                msg(msglevel, "Invalid argument to auth-gen-token: %s", p[2]);
+                msg(msglevel, "Invalid argument to auth-gen-token: %s (%d)", p[i], i);
             }
         }
 

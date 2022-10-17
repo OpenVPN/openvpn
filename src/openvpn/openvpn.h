@@ -290,6 +290,9 @@ struct context_2
 
     struct event_timeout session_interval;
 
+    /* auth token renewal timer */
+    struct event_timeout auth_token_renewal_interval;
+
     /* the option strings must match across peers */
     char *options_string_local;
     char *options_string_remote;

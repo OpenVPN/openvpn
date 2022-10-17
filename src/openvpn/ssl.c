@@ -3150,8 +3150,12 @@ tls_multi_process(struct tls_multi *multi,
                     ks->state = S_ERROR;
                 }
 
-                /* Update auth token on the client if needed */
-                resend_auth_token_renegotiation(multi, session);
+                /* Update auth token on the client if needed on renegotiation
+                 * (key id !=0) */
+                if (session->key[KS_PRIMARY].key_id != 0)
+                {
+                    resend_auth_token_renegotiation(multi, session);
+                }
             }
         }
     }

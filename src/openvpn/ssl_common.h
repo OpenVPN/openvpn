@@ -196,7 +196,7 @@ struct key_state
 {
     int state;
     /** The state of the auth-token sent from the client */
-    int auth_token_state_flags;
+    unsigned int auth_token_state_flags;
 
     /**
      * Key id for this key_state,  inherited from struct tls_session.
@@ -374,6 +374,7 @@ struct tls_options
                                  * options->auth_token_generate. */
     bool auth_token_call_auth; /**< always call normal authentication */
     unsigned int auth_token_lifetime;
+    unsigned int auth_token_renewal;
 
     struct key_ctx auth_token_key;
 

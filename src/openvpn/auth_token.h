@@ -46,11 +46,11 @@
  * (2 * renogiation timeout)
  *
  * The session id is a random string of 12 byte (or 16 in base64) that is not
- * used by OpenVPN itself but kept intact so that external logging/managment
- * can track the session multiple reconnects/servers. It is delibrately chosen
+ * used by OpenVPN itself but kept intact so that external logging/management
+ * can track the session multiple reconnects/servers. It is deliberately chosen
  * be a multiple of 3 bytes to have a base64 encoding without padding.
  *
- * The hmac is calculated over the username contactinated with the
+ * The hmac is calculated over the username concatenated with the
  * raw auth-token bytes to include authentication of the username in the token
  *
  * We encode the auth-token with base64 and then prepend "SESS_ID_" before
@@ -137,5 +137,13 @@ is_auth_token(const char *password)
  */
 void
 resend_auth_token_renegotiation(struct tls_multi *multi, struct tls_session *session);
+
+
+/**
+ * Checks if the timer to resend the auth-token has expired and if a new
+ * auth-token should be send to the client and triggers the resending
+ */
+void
+check_send_auth_token(struct context *c);
 
 #endif /* AUTH_TOKEN_H */

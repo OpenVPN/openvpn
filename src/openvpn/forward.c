@@ -42,6 +42,7 @@
 #include "common.h"
 #include "ssl_verify.h"
 #include "dco.h"
+#include "auth_token.h"
 
 #include "memdbg.h"
 
@@ -682,6 +683,12 @@ process_coarse_timers(struct context *c)
     if (event_timeout_trigger(&c->c2.route_wakeup, &c->c2.timeval, ETT_DEFAULT))
     {
         check_add_routes(c);
+    }
+
+    /* check if we want to refresh the auth-token */
+    if (event_timeout_trigger(&c->c2.auth_token_renewal_interval, &c->c2.timeval, ETT_DEFAULT))
+    {
+        check_send_auth_token(c);
     }
 
     /* possibly exit due to --inactive */

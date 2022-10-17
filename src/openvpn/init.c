@@ -1352,6 +1352,18 @@ do_init_timers(struct context *c, bool deferred)
         }
     }
 
+    /* If the auth-token renewal interval is shorter than reneg-sec, arm
+     * "auth-token renewal" timer to send additional auth-token to update the
+     * token on the client more often.  If not, this happens automatically
+     * at renegotiation time, without needing an extra event.
+     */
+    if (c->options.auth_token_generate
+        && c->options.auth_token_renewal < c->options.renegotiate_seconds)
+    {
+        event_timeout_init(&c->c2.auth_token_renewal_interval,
+                           c->options.auth_token_renewal, now);
+    }
+
     if (!deferred)
     {
         /* initialize connection establishment timer */
@@ -3088,6 +3100,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.auth_user_pass_file_inline = options->auth_user_pass_file_inline;
     to.auth_token_generate = options->auth_token_generate;
     to.auth_token_lifetime = options->auth_token_lifetime;
+    to.auth_token_renewal = options->auth_token_renewal;
     to.auth_token_call_auth = options->auth_token_call_auth;
     to.auth_token_key = c->c1.ks.auth_token_key;
 

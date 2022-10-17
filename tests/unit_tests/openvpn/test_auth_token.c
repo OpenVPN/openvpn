@@ -102,7 +102,8 @@ setup(void **state)
     ctx->session = &ctx->multi.session[TM_ACTIVE];
 
     ctx->session->opt = calloc(1, sizeof(struct tls_options));
-    ctx->session->opt->renegotiate_seconds = 120;
+    ctx->session->opt->renegotiate_seconds = 240;
+    ctx->session->opt->auth_token_renewal = 120;
     ctx->session->opt->auth_token_lifetime = 3000;
 
     strcpy(ctx->up.username, "test user name");
@@ -187,8 +188,13 @@ auth_token_test_timeout(void **state)
     assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED);
 
-    /* Token still in validity, should be accepted */
+    /* Token no valid for renegotiate_seconds but still for renewal_time */
     now = 100000 + 2*ctx->session->opt->renegotiate_seconds - 20;
+    assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
+                     AUTH_TOKEN_HMAC_OK|AUTH_TOKEN_EXPIRED);
+
+
+    now = 100000 + 2*ctx->session->opt->auth_token_renewal - 20;
     assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),
                      AUTH_TOKEN_HMAC_OK);
 
@@ -213,7 +219,7 @@ auth_token_test_timeout(void **state)
                          AUTH_TOKEN_HMAC_OK);
         generate_auth_token(&ctx->up, &ctx->multi);
         strcpy(ctx->up.password, ctx->multi.auth_token);
-        now += ctx->session->opt->renegotiate_seconds;
+        now += ctx->session->opt->auth_token_renewal;
     }
 
 

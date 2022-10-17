@@ -14,7 +14,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   Valid syntax:
   ::
 
-     auth-gen-token [lifetime] [external-auth]
+     auth-gen-token [lifetime] [renewal-time] [external-auth]
 
   After successful user/password authentication, the OpenVPN server will
   with this option generate a temporary authentication token and push that
@@ -31,13 +31,17 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   The lifetime is defined in seconds. If lifetime is not set or it is set
   to :code:`0`, the token will never expire.
 
+  If ``renewal-time`` is not set it defaults to ``reneg-sec``.
+
+
   The token will expire either after the configured ``lifetime`` of the
   token is reached or after not being renewed for more than 2 \*
-  ``reneg-sec`` seconds. Clients will be sent renewed tokens on every TLS
-  renogiation to keep the client's token updated. This is done to
-  invalidate a token if a client is disconnected for a sufficiently long
-  time, while at the same time permitting much longer token lifetimes for
-  active clients.
+  ``renewal-time`` seconds. Clients will be sent renewed tokens on every TLS
+  renegotiation. If ``renewal-time`` is lower than ``reneg-sec`` the server
+  will push an  updated temporary authentication token every ``reneweal-time``
+  seconds. This is done to invalidate a token if a client is disconnected for a
+  sufficiently long time, while at the same time permitting much longer token
+  lifetimes for active clients.
 
   This feature is useful for environments which are configured to use One
   Time Passwords (OTP) as part of the user/password authentications and
