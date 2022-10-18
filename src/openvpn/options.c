@@ -2635,7 +2635,7 @@ options_postprocess_verify_ce(const struct options *options,
         if (options->auth_token_generate && options->auth_token_renewal
             && options->auth_token_renewal < 2 * options->handshake_window)
         {
-            msg(M_USAGE, "--auth-gen-token reneweal time needs to be at least "
+            msg(M_USAGE, "--auth-gen-token renewal time needs to be at least "
                 " two times --hand-window (%d).",
                 options->handshake_window);
 
@@ -7476,7 +7476,7 @@ add_option(struct options *options,
                         &options->auth_user_pass_verify_script,
                         p[1], "auth-user-pass-verify", true);
     }
-    else if (streq(p[0], "auth-gen-token") && !p[3])
+    else if (streq(p[0], "auth-gen-token"))
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->auth_token_generate = true;
@@ -7484,7 +7484,7 @@ add_option(struct options *options,
 
         for (int i = 2; i < MAX_PARMS && p[i] != NULL; i++)
         {
-            /* the second parameter can be the reneweal time */
+            /* the second parameter can be the renewal time */
             if (i == 2 && positive_atoi(p[i]))
             {
                 options->auth_token_renewal = positive_atoi(p[i]);
