@@ -3551,10 +3551,14 @@ do_init_first_time(struct context *c)
         ALLOC_OBJ_CLEAR_GC(c->c0, struct context_0, &c->gc);
         c0 = c->c0;
 
-        /* get user and/or group that we want to setuid/setgid to */
-        c0->uid_gid_specified =
-            platform_group_get(c->options.groupname, &c0->platform_state_group)
-            || platform_user_get(c->options.username, &c0->platform_state_user);
+        /* get user and/or group that we want to setuid/setgid to,
+         * sets also platform_x_state */
+        bool group_defined =  platform_group_get(c->options.groupname,
+                                                 &c0->platform_state_group);
+        bool user_defined = platform_user_get(c->options.username,
+                                              &c0->platform_state_user);
+
+        c0->uid_gid_specified = user_defined || group_defined;
 
         /* perform postponed chdir if --daemon */
         if (c->did_we_daemonize && c->options.cd_dir == NULL)
