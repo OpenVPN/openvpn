@@ -1946,7 +1946,9 @@ do_open_tun(struct context *c)
 static void
 do_close_tun_simple(struct context *c)
 {
-    msg(D_CLOSE, "Closing TUN/TAP interface");
+    msg(D_CLOSE, "Closing %s interface",
+        dco_enabled(&c->options) ? "DCO" : "TUN/TAP");
+
     if (c->c1.tuntap)
     {
         if (!c->options.ifconfig_noexec)
