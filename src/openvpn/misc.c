@@ -519,19 +519,13 @@ set_auth_token(struct user_pass *up, struct user_pass *tk, const char *token)
          * --auth-token has no username, so it needs the username
          * either already set or copied from up, or later set by
          * --auth-token-user
-         *
-         * Do not overwrite the username if already set to avoid
-         * overwriting an username set by --auth-token-user
+         * If already set, tk is fully defined.
          */
-        if (up->defined && !tk->defined)
+        if (strlen(tk->username))
         {
-            strncpynt(tk->username, up->username, USER_PASS_LEN);
             tk->defined = true;
         }
     }
-
-    /* Cleans user/pass for nocache */
-    purge_user_pass(up, false);
 }
 
 void

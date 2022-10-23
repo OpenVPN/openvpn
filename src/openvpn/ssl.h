@@ -603,12 +603,6 @@ void extract_x509_field_test(void);
  */
 bool is_hard_reset_method2(int op);
 
-/**
- * Cleans the saved user/password unless auth-nocache is in use.
- */
-void ssl_clean_user_pass(void);
-
-
 /*
  * Show the TLS ciphers that are available for us to use in the SSL
  * library with headers hinting their usage and warnings about usage.

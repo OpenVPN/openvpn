@@ -2391,20 +2391,13 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi,
         {
             goto error;
         }
-        /* if auth-nocache was specified, the auth_user_pass object reaches
-         * a "complete" state only after having received the push-reply
-         * message. The push message might contain an auth-token that needs
-         * the username of auth_user_pass.
-         *
-         * For this reason, skip the purge operation here if no push-reply
-         * message has been received yet.
-         *
-         * This normally happens upon first negotiation only.
-         */
-        if (!session->opt->pull)
+        /* save username for auth-token which may get pushed later */
+        if (session->opt->pull)
         {
-            purge_user_pass(&auth_user_pass, false);
+            strncpynt(auth_token.username, up->username, USER_PASS_LEN);
         }
+        /* respect auth-nocache */
+        purge_user_pass(&auth_user_pass, false);
     }
     else
     {
@@ -4142,10 +4135,4 @@ print_data:
 
 done:
     return BSTR(&out);
-}
-
-void
-ssl_clean_user_pass(void)
-{
-    purge_user_pass(&auth_user_pass, false);
 }
