@@ -436,6 +436,7 @@ void ssl_set_auth_nocache(void);
 /*
  * Purge any stored authentication information, both for key files and tunnel
  * authentication. If PCKS #11 is enabled, purge authentication for that too.
+ * Note that auth_token is not cleared.
  */
 void ssl_purge_auth(const bool auth_user_pass_only);
 
