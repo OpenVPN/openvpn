@@ -762,6 +762,7 @@ static void
 man_forget_passwords(struct management *man)
 {
     ssl_purge_auth(false);
+    (void)ssl_clean_auth_token();
     msg(M_CLIENT, "SUCCESS: Passwords were forgotten");
 }
 
@@ -1922,6 +1923,7 @@ man_reset_client_socket(struct management *man, const bool exiting)
         if (man->settings.flags & MF_FORGET_DISCONNECT)
         {
             ssl_purge_auth(false);
+            (void)ssl_clean_auth_token();
         }
 
         if (man->settings.flags & MF_SIGNAL)
