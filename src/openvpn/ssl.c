@@ -2392,7 +2392,7 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi,
             goto error;
         }
         /* save username for auth-token which may get pushed later */
-        if (session->opt->pull)
+        if (session->opt->pull && up != &auth_token)
         {
             strncpynt(auth_token.username, up->username, USER_PASS_LEN);
         }
