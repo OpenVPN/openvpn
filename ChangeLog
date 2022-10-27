@@ -1,6 +1,39 @@
 OpenVPN Change Log
 Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
 
+2022.10.27 -- Version 2.5.8
+
+Antonio Quartulli (1):
+      tls-crypt-v2: bail out if the client key is too small
+
+Arne Schwabe (4):
+      Remove useless empty line from CR_RESPONSE message
+      Allow running a default configuration with TLS libraries without BF-CBC
+      Change command help to match man page and implementation
+      Fix OpenVPN querying user/password if auth-token with user expires
+
+Frank Lichtenheld (2):
+      t_client: Allow to force FAIL on prerequisite fails
+      t_client.sh: do not require fping6
+
+Gert Doering (1):
+      Preparing release 2.5.8
+
+Lev Stipakov (1):
+      msvc: add branch name and commit hash to version output
+
+Martin Janů (1):
+      Update the replay-window backtrack log message
+
+Selva Nair (5):
+      Do not skip ERROR:/SUCCESS: response from management interface
+      Fix auth-token usage with management-def-auth
+      Allow a few levels of recursion in virtual_output_callback()
+      Ensure --auth-nocache is handled during renegotiation
+      Purge auth-token as well while purging passwords
+      Do not copy auth_token username to itself
+
+
 2022.05.24 -- Version 2.5.7
 
 Antonio Quartulli (4):

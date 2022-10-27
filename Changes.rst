@@ -1,3 +1,58 @@
+Overview of changes in 2.5.8
+============================
+
+New features
+------------
+- allow running a default configuration with TLS libraries without BF-CBC
+  (even if TLS cipher negotiation would not actually use BF-CBC, the
+  long-term compatibility "default cipher BF-CBC" would trigger an error
+  on such TLS libraries)
+
+User-visible Changes
+--------------------
+- add git branch name + commit ID to OpenVPN version string on
+  MSVC builds (windows)
+
+Testing Enhancements
+--------------------
+- t_client.sh: if fping is found and fping6 is not, assume we have
+  fping 4.0 and up, and call "fping -6" for IPv6 ping tests
+
+- t_client.sh: allow to force FAIL on prerequisite fails, so a CI
+  environment will no longer "silently skip" t_client runs if fping (etc)
+  can not be found, but will error out
+
+Bugfixes
+--------
+- ``--auth-nocache'' was not always correctly clearing username+password
+  after a renegotiation
+
+- ensure that auth-token received from server is cleared if requested
+  by the management interface ("forget password" or automatically
+  via ``--management-forget-disconnect'')
+
+- in a setup without username+password, but with auth-token and
+  auth-token-username pushed by the server, OpenVPN would start asking
+  for username+password on token expiry.  Fix.
+
+- using ``--auth-token`` together with ``--management-client-auth``
+  (on the server) would lead to TLS keys getting out of sync and client
+  being disconnected.  Fix.
+
+- management interface would sometimes get stuck if client and server
+  try to write something simultaneously.  Fix by allowing a limited
+  level of recursion in virtual_output_callback()
+
+- fix management interface not returning ERROR:/SUCCESS: response
+  on "signal SIGxxx" commands when in HOLD state
+
+- tls-crypt-v2: abort connection if client-key is too short
+
+- make man page agree with actual code on replay-window backtrag log message
+
+- remove useless empty line from CR_RESPONSE message
+
+
 Overview of changes in 2.5.7
 ============================
 
