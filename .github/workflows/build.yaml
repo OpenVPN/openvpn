@@ -342,13 +342,15 @@ jobs:
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v10
         with:
-          vcpkgGitCommitId: '9259a0719d94c402aae2ab7975bc096afdec15df'
+          vcpkgGitCommitId: 'cafd398be781144787573ca78390e951673c7055'
           appendedCacheKey: '${{matrix.triplet}}'
 
       - name: Run MSBuild consuming vcpkg.json
         working-directory: ${{env.GITHUB_WORKSPACE}}
         run: |
-            vcpkg integrate install
+            # workaround for GHA runner bug where vcpkg installation is detected at c:\vcpkg
+            # see https://github.com/lukka/run-vcpkg/issues/170
+            ${{ github.workspace }}/vcpkg/vcpkg.exe integrate install
             msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="${{ matrix.plat }}" .
 
       - name: Archive artifacts

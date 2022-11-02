@@ -8,6 +8,5 @@
     "lzo",
     "lz4",
     "pkcs11-helper"
-  ],
-  "builtin-baseline": "9259a0719d94c402aae2ab7975bc096afdec15df"
+  ]
 }
