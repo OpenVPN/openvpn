@@ -41,6 +41,14 @@
 
 #include "memdbg.h"
 
+/* calculates test - base while allowing for base or test wraparound. test is
+ * assumed to be higher than base */
+static inline packet_id_type
+subtract_pid(const packet_id_type test, const packet_id_type base)
+{
+    return test - base;
+}
+
 /*
  * verify that test - base < extent while allowing for base or test wraparound
  */
@@ -49,22 +57,7 @@ reliable_pid_in_range1(const packet_id_type test,
                        const packet_id_type base,
                        const unsigned int extent)
 {
-    if (test >= base)
-    {
-        if (test - base < extent)
-        {
-            return true;
-        }
-    }
-    else
-    {
-        if ((test+0x80000000u) - (base+0x80000000u) < extent)
-        {
-            return true;
-        }
-    }
-
-    return false;
+    return subtract_pid(test, base) < extent;
 }
 
 /*
@@ -496,6 +489,36 @@ reliable_get_buf(struct reliable *rel)
         }
     }
     return NULL;
+}
+
+int
+reliable_get_num_output_sequenced_available(struct reliable *rel)
+{
+    struct gc_arena gc = gc_new();
+    packet_id_type min_id = 0;
+    bool min_id_defined = false;
+
+    /* find minimum active packet_id */
+    for (int i = 0; i < rel->size; ++i)
+    {
+        const struct reliable_entry *e = &rel->array[i];
+        if (e->active)
+        {
+            if (!min_id_defined || reliable_pid_min(e->packet_id, min_id))
+            {
+                min_id_defined = true;
+                min_id = e->packet_id;
+            }
+        }
+    }
+
+    int ret = rel->size;
+    if (min_id_defined)
+    {
+        ret -= subtract_pid(rel->packet_id, min_id);
+    }
+    gc_free(&gc);
+    return ret;
 }
 
 /* grab a free buffer, fail if buffer clogged by unacknowledged low packet IDs */

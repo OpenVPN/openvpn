@@ -1285,8 +1285,7 @@ key_state_write_plaintext_const(struct key_state_ssl *ks, const uint8_t *data, i
 }
 
 int
-key_state_read_ciphertext(struct key_state_ssl *ks, struct buffer *buf,
-                          int maxlen)
+key_state_read_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
 {
     int retval = 0;
     int len = 0;
@@ -1304,10 +1303,6 @@ key_state_read_ciphertext(struct key_state_ssl *ks, struct buffer *buf,
     }
 
     len = buf_forward_capacity(buf);
-    if (maxlen < len)
-    {
-        len = maxlen;
-    }
 
     retval = endless_buf_read(&ks->bio_ctx->out, BPTR(buf), len);
 
@@ -1388,8 +1383,7 @@ key_state_write_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
 }
 
 int
-key_state_read_plaintext(struct key_state_ssl *ks, struct buffer *buf,
-                         int maxlen)
+key_state_read_plaintext(struct key_state_ssl *ks, struct buffer *buf)
 {
     int retval = 0;
     int len = 0;
@@ -1407,10 +1401,6 @@ key_state_read_plaintext(struct key_state_ssl *ks, struct buffer *buf,
     }
 
     len = buf_forward_capacity(buf);
-    if (maxlen < len)
-    {
-        len = maxlen;
-    }
 
     retval = mbedtls_ssl_read(ks->ctx, BPTR(buf), len);
 

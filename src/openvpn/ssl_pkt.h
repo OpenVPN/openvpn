@@ -67,8 +67,8 @@
 /*
  * Define number of buffers for send and receive in the reliability layer.
  */
-#define TLS_RELIABLE_N_SEND_BUFFERS  4 /* also window size for reliability layer */
-#define TLS_RELIABLE_N_REC_BUFFERS   8
+#define TLS_RELIABLE_N_SEND_BUFFERS  6 /* also window size for reliability layer */
+#define TLS_RELIABLE_N_REC_BUFFERS   12
 
 /*
  * Used in --mode server mode to check tls-auth signature on initial

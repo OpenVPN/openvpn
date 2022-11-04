@@ -1871,7 +1871,7 @@ bio_write_post(const int status, struct buffer *buf)
  * Read from an OpenSSL BIO in non-blocking mode.
  */
 static int
-bio_read(BIO *bio, struct buffer *buf, int maxlen, const char *desc)
+bio_read(BIO *bio, struct buffer *buf, const char *desc)
 {
     int i;
     int ret = 0;
@@ -1882,10 +1882,6 @@ bio_read(BIO *bio, struct buffer *buf, int maxlen, const char *desc)
     else
     {
         int len = buf_forward_capacity(buf);
-        if (maxlen < len)
-        {
-            len = maxlen;
-        }
 
         /*
          * BIO_read brackets most of the serious RSA
@@ -2012,15 +2008,14 @@ key_state_write_plaintext_const(struct key_state_ssl *ks_ssl, const uint8_t *dat
 }
 
 int
-key_state_read_ciphertext(struct key_state_ssl *ks_ssl, struct buffer *buf,
-                          int maxlen)
+key_state_read_ciphertext(struct key_state_ssl *ks_ssl, struct buffer *buf)
 {
     int ret = 0;
     perf_push(PERF_BIO_READ_CIPHERTEXT);
 
     ASSERT(NULL != ks_ssl);
 
-    ret = bio_read(ks_ssl->ct_out, buf, maxlen, "tls_read_ciphertext");
+    ret = bio_read(ks_ssl->ct_out, buf, "tls_read_ciphertext");
 
     perf_pop();
     return ret;
@@ -2042,15 +2037,14 @@ key_state_write_ciphertext(struct key_state_ssl *ks_ssl, struct buffer *buf)
 }
 
 int
-key_state_read_plaintext(struct key_state_ssl *ks_ssl, struct buffer *buf,
-                         int maxlen)
+key_state_read_plaintext(struct key_state_ssl *ks_ssl, struct buffer *buf)
 {
     int ret = 0;
     perf_push(PERF_BIO_READ_PLAINTEXT);
 
     ASSERT(NULL != ks_ssl);
 
-    ret = bio_read(ks_ssl->ssl_bio, buf, maxlen, "tls_read_plaintext");
+    ret = bio_read(ks_ssl->ssl_bio, buf, "tls_read_plaintext");
 
     perf_pop();
     return ret;

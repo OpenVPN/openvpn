@@ -461,7 +461,6 @@ int key_state_write_plaintext_const(struct key_state_ssl *ks_ssl,
  * @param ks_ssl       - The security parameter state for this %key
  *                       session.
  * @param buf          - A buffer in which to store the ciphertext.
- * @param maxlen       - The maximum number of bytes to extract.
  *
  * @return The return value indicates whether the data was successfully
  *     processed:
@@ -470,8 +469,8 @@ int key_state_write_plaintext_const(struct key_state_ssl *ks_ssl,
  *   later to retry.
  * - \c -1: An error occurred.
  */
-int key_state_read_ciphertext(struct key_state_ssl *ks_ssl, struct buffer *buf,
-                              int maxlen);
+int key_state_read_ciphertext(struct key_state_ssl *ks_ssl, struct buffer *buf);
+
 
 /** @} name Functions for packets to be sent to a remote OpenVPN peer */
 
@@ -517,8 +516,7 @@ int key_state_write_ciphertext(struct key_state_ssl *ks_ssl,
  *   later to retry.
  * - \c -1: An error occurred.
  */
-int key_state_read_plaintext(struct key_state_ssl *ks_ssl, struct buffer *buf,
-                             int maxlen);
+int key_state_read_plaintext(struct key_state_ssl *ks_ssl, struct buffer *buf);
 
 /** @} name Functions for packets received from a remote OpenVPN peer */
 

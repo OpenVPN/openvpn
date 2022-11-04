@@ -46,7 +46,7 @@
                                  *   be stored in one \c reliable_ack
                                  *   structure. */
 
-#define RELIABLE_CAPACITY 8     /**< The maximum number of packets that
+#define RELIABLE_CAPACITY 12    /**< The maximum number of packets that
                                  *   the reliability layer for one VPN
                                  *   tunnel in one direction can store. */
 
@@ -93,7 +93,7 @@ struct reliable
     int size;
     interval_t initial_timeout;
     packet_id_type packet_id;
-    int offset;
+    int offset; /**< Offset of the bufs in the reliable_entry array */
     bool hold; /* don't xmit until reliable_schedule_now is called */
     struct reliable_entry array[RELIABLE_CAPACITY];
 };
@@ -177,6 +177,20 @@ reliable_ack_empty(struct reliable_ack *ack)
 {
     return !ack->len;
 }
+
+/**
+ * Returns the number of packets that need to be acked.
+ *
+ * @param ack The acknowledgment structure to check.
+ *
+ * @returns the number of outstanding acks
+ */
+static inline int
+reliable_ack_outstanding(struct reliable_ack *ack)
+{
+    return ack->len;
+}
+
 
 /**
  * Write a packet ID acknowledgment record to a buffer.
@@ -384,6 +398,20 @@ void reliable_mark_deleted(struct reliable *rel, struct buffer *buf);
  *     broken, this function also returns NULL.
  */
 struct buffer *reliable_get_buf_output_sequenced(struct reliable *rel);
+
+
+/**
+ * Counts the number of free buffers in output that can be potentially used
+ * for sending
+ *
+ *  @param rel The reliable structure in which to search for a free
+ *     entry.
+ *
+ *  @return the number of buffer that are available for sending without
+ *             breaking ack sequence
+ * */
+int
+reliable_get_num_output_sequenced_available(struct reliable *rel);
 
 /**
  * Mark the reliable entry associated with the given buffer as
