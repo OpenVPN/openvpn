@@ -172,9 +172,9 @@ the local and the remote host.
   the first place, and if big packets come through anyhow (from protocols
   other than TCP), ``--fragment`` will internally fragment them.
 
-  Both ``--fragment`` and ``--mssfix`` are designed to work around cases
-  where Path MTU discovery is broken on the network path between OpenVPN
-  peers.
+  ``--max-packet-size``, ``--fragment``, and ``--mssfix`` are designed to
+  work around cases where Path MTU discovery is broken on the network path
+  between OpenVPN peers.
 
   The usual symptom of such a breakdown is an OpenVPN connection which
   successfully starts, but then stalls during active usage.
@@ -188,6 +188,10 @@ the local and the remote host.
   ::
 
      --tun-mtu 1500 --fragment 1300 --mssfix
+
+  If the ``max-packet-size size`` option is used in the configuration
+  it will also act as if ``mssfix size mtu`` was specified in the
+  configuration.
 
 --mtu-disc type
   Should we do Path MTU discovery on TCP/UDP channel? Only supported on
@@ -465,3 +469,27 @@ the local and the remote host.
      if mode server:
          socket-flags TCP_NODELAY
          push "socket-flags TCP_NODELAY"
+
+--max-packet-size size
+  This option will instruct OpenVPN to try to limit the maximum on-write packet
+  size by restricting the control channel packet size and setting ``--mssfix``.
+
+  OpenVPN will try to keep its control channel messages below this size but
+  due to some constraints in the protocol this is not always possible. If the
+  option is not set, the control packet maximum size defaults to 1250.
+  The control channel packet size will be restricted to values between
+  154 and 2048. The maximum packet size includes encapsulation overhead like
+  UDP and IP.
+
+  In terms of ``--mssfix`` it will expand to:
+  ::
+
+      mssfix size mtu
+
+  If you need to set ``--mssfix`` for data channel and control channel maximum
+  packet size independently, use ``--max-packet-size`` first, followed by a
+  ``--mssfix`` in the configuration.
+
+  In general the default size of 1250 should work almost universally apart
+  from specific corner cases, especially since IPv6 requires a MTU of 1280
+  or larger.

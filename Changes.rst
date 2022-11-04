@@ -100,6 +100,13 @@ Inline auth username and password
     http-proxy-user-pass too.
 
 
+Improved control channel packet size control (``max-packet-size``)
+    The size of control channel is no longer tied to
+    ``--link-mtu``/``--tun-mtu`` and can be set using ``--max-packet-size``.
+    Sending large control channel frames is also optimised by allowing 6
+    outstanding packets instead of just 4. ``max-packet-size`` will also set
+    ``mssfix`` to try to limit data-channel packets as well.
+
 Deprecated features
 -------------------
 ``inetd`` has been removed
@@ -162,6 +169,10 @@ User-visible Changes
 - Option ``--nobind`` is default when ``--client`` or ``--pull`` is used in the configuration
 - :code:`link_mtu` parameter is removed from environment or replaced with 0 when scripts are
   called with parameters. This parameter is unreliable and no longer internally calculated.
+
+- control channel packet maximum size is no longer influenced by
+  ``--link-mtu``/``--tun-mtu`` and must be set by ``--max-packet-size`` now.
+  The default is 1250 for the control channel size.
 
 - In point-to-point OpenVPN setups (no ``--server``), using
   ``--explict-exit-notiy`` on one end would terminate the other side at

@@ -166,10 +166,9 @@ struct tls_multi *tls_multi_init(struct tls_options *tls_options);
  *
  * @param multi        - The \c tls_multi structure of which to finalize
  *                       initialization.
- * @param frame        - The data channel's \c frame structure.
+ * @param tls_mtu      - maximum allowed size for control channel packets
  */
-void tls_multi_init_finalize(struct tls_multi *multi,
-                             const struct frame *frame);
+void tls_multi_init_finalize(struct tls_multi *multi, int tls_mtu);
 
 /*
  * Initialize a standalone tls-auth verification object.
@@ -181,8 +180,7 @@ struct tls_auth_standalone *tls_auth_standalone_init(struct tls_options *tls_opt
  * Setups the control channel frame size parameters from the data channel
  * parameters
  */
-void tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame,
-                                               struct frame *frame);
+void tls_init_control_channel_frame_parameters(struct frame *frame, int tls_mtu);
 
 /*
  * Set local and remote option compatibility strings.

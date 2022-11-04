@@ -123,6 +123,7 @@ struct connection_entry
     bool tun_mtu_extra_defined;
     int link_mtu;        /* MTU of device over which tunnel packets pass via TCP/UDP */
     bool link_mtu_defined; /* true if user overriding parm with command line option */
+    int tls_mtu;         /* Maximum MTU for the control channel messages */
 
     /* Advanced MTU negotiation and datagram fragmentation options */
     int mtu_discover_type; /* used if OS supports setting Path MTU discovery options on socket */

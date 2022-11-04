@@ -297,8 +297,7 @@ tls_limit_reneg_bytes(const char *ciphername, int *reneg_bytes)
 }
 
 void
-tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame,
-                                          struct frame *frame)
+tls_init_control_channel_frame_parameters(struct frame *frame, int tls_mtu)
 {
     /*
      * frame->extra_frame is already initialized with tls_auth buffer requirements,
@@ -323,18 +322,21 @@ tls_init_control_channel_frame_parameters(const struct frame *data_channel_frame
 
     /* Previous OpenVPN version calculated the maximum size and buffer of a
      * control frame depending on the overhead of the data channel frame
-     * overhead and limited its maximum size to 1250. We always allocate the
-     * TLS_CHANNEL_BUF_SIZE buffer size since a lot of code blindly assumes
-     * a large buffer (e.g. PUSH_BUNDLE_SIZE) and also our peer might have
-     * a higher size configured and we still want to be able to receive the
-     * packets. frame->mtu_mtu is set as suggestion for the maximum packet
-     * size */
-    frame->buf.payload_size = 1250 + overhead;
+     * overhead and limited its maximum size to 1250. Since control frames
+     * also need to fit into data channel buffer we have the same
+     * default of 1500 + 100 as data channel buffers have. Increasing
+     * control channel mtu beyond this limit also increases the data channel
+     * buffers */
+    frame->buf.payload_size = max_int(1500, tls_mtu) + 100;
 
     frame->buf.headroom = overhead;
     frame->buf.tailroom = overhead;
 
-    frame->tun_mtu = min_int(data_channel_frame->tun_mtu, 1250);
+    frame->tun_mtu = tls_mtu;
+
+    /* Ensure the tun-mtu stays in a valid range */
+    frame->tun_mtu = min_int(frame->tun_mtu, TLS_CHANNEL_BUF_SIZE);
+    frame->tun_mtu = max_int(frame->tun_mtu, TLS_CHANNEL_MTU_MIN);
 }
 
 /**
@@ -1315,9 +1317,9 @@ tls_multi_init(struct tls_options *tls_options)
 }
 
 void
-tls_multi_init_finalize(struct tls_multi *multi, const struct frame *frame)
+tls_multi_init_finalize(struct tls_multi *multi, int tls_mtu)
 {
-    tls_init_control_channel_frame_parameters(frame, &multi->opt.frame);
+    tls_init_control_channel_frame_parameters(&multi->opt.frame, tls_mtu);
     /* initialize the active and untrusted sessions */
 
     tls_session_init(multi, &multi->session[TM_ACTIVE]);

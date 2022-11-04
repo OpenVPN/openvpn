@@ -2640,6 +2640,10 @@ frame_finalize_options(struct context *c, const struct options *o)
      * space */
     size_t payload_size = max_int(1500, frame->tun_mtu);
 
+    /* we need to be also large enough to hold larger control channel packets
+     * if configured */
+    payload_size = max_int(payload_size, o->ce.tls_mtu);
+
     /* The extra tun needs to be added to the payload size */
     if (o->ce.tun_mtu_defined)
     {
@@ -2839,6 +2843,21 @@ do_init_tls_wrap_key(struct context *c)
                                          &c->c1.ks.tls_crypt_v2_wkc,
                                          options->ce.tls_crypt_v2_file,
                                          options->ce.tls_crypt_v2_file_inline);
+        }
+        /* We have to ensure that the loaded tls-crypt key is small enough
+         * to fit into the initial hard reset v3 packet */
+        int wkc_len = buf_len(&c->c1.ks.tls_crypt_v2_wkc);
+
+        /* empty ACK/message id, tls-crypt, Opcode, UDP, ipv6 */
+        int required_size = 5 + wkc_len + tls_crypt_buf_overhead() + 1 + 8 + 40;
+
+        if (required_size > c->options.ce.tls_mtu)
+        {
+            msg(M_WARN, "ERROR: tls-crypt-v2 client key too large to work with "
+                "requested --max-packet-size %d, requires at least "
+                "--max-packet-size %d. Packets will ignore requested "
+                "maximum packet size", c->options.ce.tls_mtu,
+                required_size);
         }
     }
 
@@ -3187,7 +3206,7 @@ do_init_frame_tls(struct context *c)
 {
     if (c->c2.tls_multi)
     {
-        tls_multi_init_finalize(c->c2.tls_multi, &c->c2.frame);
+        tls_multi_init_finalize(c->c2.tls_multi, c->options.ce.tls_mtu);
         ASSERT(c->c2.tls_multi->opt.frame.buf.payload_size <=
                c->c2.frame.buf.payload_size);
         frame_print(&c->c2.tls_multi->opt.frame, D_MTU_INFO,
@@ -3195,7 +3214,7 @@ do_init_frame_tls(struct context *c)
     }
     if (c->c2.tls_auth_standalone)
     {
-        tls_init_control_channel_frame_parameters(&c->c2.frame, &c->c2.tls_auth_standalone->frame);
+        tls_init_control_channel_frame_parameters(&c->c2.tls_auth_standalone->frame, c->options.ce.tls_mtu);
         frame_print(&c->c2.tls_auth_standalone->frame, D_MTU_INFO,
                     "TLS-Auth MTU parms");
         c->c2.tls_auth_standalone->tls_wrap.work = alloc_buf_gc(BUF_SIZE(&c->c2.frame), &c->c2.gc);
