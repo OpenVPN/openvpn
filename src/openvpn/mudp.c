@@ -148,14 +148,18 @@ do_pre_decrypt_check(struct multi_context *m,
         bool ret = check_session_id_hmac(state, from, hmac, handwindow);
 
         const char *peer = print_link_socket_actual(&m->top.c2.from, &gc);
+        uint8_t pkt_firstbyte = *BPTR( &m->top.c2.buf);
+        int op = pkt_firstbyte >> P_OPCODE_SHIFT;
+
         if (!ret)
         {
-            msg(D_MULTI_MEDIUM, "Packet with invalid or missing SID from %s", peer);
+            msg(D_MULTI_MEDIUM, "Packet (%s) with invalid or missing SID from %s",
+                packet_opcode_name(op), peer);
         }
         else
         {
-            msg(D_MULTI_DEBUG, "Valid packet with HMAC challenge from peer (%s), "
-                "accepting new connection.", peer);
+            msg(D_MULTI_DEBUG, "Valid packet (%s) with HMAC challenge from peer (%s), "
+                "accepting new connection.", packet_opcode_name(op), peer);
         }
         gc_free(&gc);
 
