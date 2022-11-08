@@ -69,15 +69,34 @@ routing.
      dev tap4
      dev ovpn
 
-  When the device name starts with :code:`tun` or :code:`tap`, the device
-  type is extracted automatically.  Otherwise the ``--dev-type`` option
-  needs to be added as well.
+  What happens if the device name is not :code:`tun` or :code:`tap` is
+  platform dependent.
+
+  On most platforms, :code:`tunN` (e.g. tun2, tun30) and :code:`tapN`
+  (e.g. tap3) will create a numbered tun/tap interface with the number
+  specified - this is useful if multiple OpenVPN instances are active,
+  and the instance-to-device mapping needs to be known.  Some platforms
+  do not support "numbered tap", so trying ``--dev tap3`` will fail.
+
+  Arbitrary device names (e.g. ``--dev tun-home``) will only work on
+  FreeBSD (with the DCO kernel driver for ``tun`` devices) and Linux
+  (for both ``tun`` and ``tap`` devices, DCO and tun/tap driver).
+
+  If such a device name starts with ``tun`` or ``tap`` (e.g. ``tun-home``),
+  OpenVPN will choose the right device type automatically.  Otherwise the
+  desired device type needs to be specified with ``--dev-type tun`` or
+  ``--dev-type tap``.
+
+  On Windows, only the names :code:`tun` and :code:`tap` are supported.
+  Selection among multiple installed drivers or driver instances is done
+  with ``--dev-node`` and ``--windows-driver``.
 
 --dev-node node
-  Explicitly set the device node rather than using :code:`/dev/net/tun`,
-  :code:`/dev/tun`, :code:`/dev/tap`, etc. If OpenVPN cannot figure out
-  whether ``node`` is a TUN or TAP device based on the name, you should
-  also specify ``--dev-type tun`` or ``--dev-type tap``.
+  This is a highly system dependent option to influence tun/tap driver
+  selection.
+
+  On Linux, tun/tap devices are created by accessing :code:`/dev/net/tun`,
+  and this device name can be changed using ``--dev-node ...``.
 
   Under Mac OS X this option can be used to specify the default tun
   implementation. Using ``--dev-node utun`` forces usage of the native
@@ -92,6 +111,11 @@ routing.
   also be used to enumerate all available TAP-Win32 adapters and will show
   both the network connections control panel name and the GUID for each
   TAP-Win32 adapter.
+
+  On other platforms, ``--dev-node node`` will influence the naming of the
+  created tun/tap device, if supported on that platform.  If OpenVPN cannot
+  figure out whether ``node`` is a TUN or TAP device based on the name,
+  you should also specify ``--dev-type tun`` or ``--dev-type tap``.
 
 --dev-type device-type
   Which device type are we using? ``device-type`` should be :code:`tun`
