@@ -996,8 +996,22 @@ generate_key_random(struct key *key, const struct key_type *kt)
     gc_free(&gc);
 }
 
-/*
- * Print key material
+static void
+key_print(const struct key *key,
+          const struct key_type *kt,
+          const char *prefix)
+{
+    struct gc_arena gc = gc_new();
+    dmsg(D_SHOW_KEY_SOURCE, "%s (cipher, %s, %d bits): %s",
+         prefix, cipher_kt_name(kt->cipher), cipher_kt_key_size(kt->cipher) * 8,
+         format_hex(key->cipher, cipher_kt_key_size(kt->cipher), 0, &gc));
+    dmsg(D_SHOW_KEY_SOURCE, "%s (hmac, %s, %d bits): %s",
+         prefix, md_kt_name(kt->digest), md_kt_size(kt->digest) * 8,
+         format_hex(key->hmac, md_kt_size(kt->digest), 0, &gc));
+    gc_free(&gc);
+}
+/**
+ * Prints the keys in a key2 structure.
  */
 void
 key2_print(const struct key2 *k,
@@ -1005,21 +1019,9 @@ key2_print(const struct key2 *k,
            const char *prefix0,
            const char *prefix1)
 {
-    struct gc_arena gc = gc_new();
     ASSERT(k->n == 2);
-    dmsg(D_SHOW_KEY_SOURCE, "%s (cipher): %s",
-         prefix0,
-         format_hex(k->keys[0].cipher, cipher_kt_key_size(kt->cipher), 0, &gc));
-    dmsg(D_SHOW_KEY_SOURCE, "%s (hmac): %s",
-         prefix0,
-         format_hex(k->keys[0].hmac, md_kt_size(kt->digest), 0, &gc));
-    dmsg(D_SHOW_KEY_SOURCE, "%s (cipher): %s",
-         prefix1,
-         format_hex(k->keys[1].cipher, cipher_kt_key_size(kt->cipher), 0, &gc));
-    dmsg(D_SHOW_KEY_SOURCE, "%s (hmac): %s",
-         prefix1,
-         format_hex(k->keys[1].hmac, md_kt_size(kt->digest), 0, &gc));
-    gc_free(&gc);
+    key_print(&k->keys[0], kt, prefix0);
+    key_print(&k->keys[1], kt, prefix1);
 }
 
 void
