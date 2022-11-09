@@ -809,11 +809,11 @@ md_kt_name(const char *mdname)
 unsigned char
 md_kt_size(const char *mdname)
 {
-    const mbedtls_md_info_t *kt = md_get(mdname);
-    if (NULL == kt)
+    if (!strcmp("none", mdname))
     {
         return 0;
     }
+    const mbedtls_md_info_t *kt = md_get(mdname);
     return mbedtls_md_get_size(kt);
 }
 
