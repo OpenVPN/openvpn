@@ -863,20 +863,6 @@ addr_zero_host(struct openvpn_sockaddr *addr)
     }
 }
 
-static inline void
-addr_copy_sa(struct openvpn_sockaddr *dst, const struct openvpn_sockaddr *src)
-{
-    dst->addr = src->addr;
-}
-
-static inline bool
-addr_inet4or6(struct sockaddr *addr)
-{
-    return addr->sa_family == AF_INET || addr->sa_family == AF_INET6;
-}
-
-int addr_guess_family(sa_family_t af, const char *name);
-
 static inline int
 af_addr_size(sa_family_t af)
 {
@@ -1052,7 +1038,7 @@ link_socket_read_udp_win32(struct link_socket *sock,
     sockethandle_t sh = { .s = sock->sd };
     if (sock->info.dco_installed)
     {
-        addr_copy_sa(&from->dest, &sock->info.lsa->actual.dest);
+        from->dest = sock->info.lsa->actual.dest;
         sh.is_handle = true;
     }
     return sockethandle_finalize(sh, &sock->reads, buf, from);
@@ -1089,7 +1075,7 @@ link_socket_read(struct link_socket *sock,
     else if (proto_is_tcp(sock->info.proto)) /* unified TCPv4 and TCPv6 */
     {
         /* from address was returned by accept */
-        addr_copy_sa(&from->dest, &sock->info.lsa->actual.dest);
+        from->dest = sock->info.lsa->actual.dest;
         return link_socket_read_tcp(sock, buf);
     }
     else
