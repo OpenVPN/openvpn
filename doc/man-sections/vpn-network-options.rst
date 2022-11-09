@@ -524,10 +524,23 @@ routing.
   arguments of ``--ifconfig`` to mean "address netmask", no longer "local
   remote".
 
---tun-mtu n
-  Take the TUN device MTU to be **n** and derive the link MTU from it
-  (default :code:`1500`). In most cases, you will probably want to leave
-  this parameter set to its default value.
+--tun-mtu args
+
+  Valid syntaxes:
+  ::
+
+      tun-mtu tun-mtu
+      tun-mtu tun-mtu occ-mtu
+
+  Take the TUN device MTU to be ``tun-mtu`` and derive the link MTU from it.
+  In most cases, you will probably want to leave this parameter set to
+  its default value.
+
+  The default for :code:`tun-mtu` is 1500.
+
+  The OCC MTU can be used to avoid warnings about mismatched MTU from
+  clients. If :code:`occ-mtu` is not specified, it will to default to the
+  tun-mtu.
 
   The MTU (Maximum Transmission Units) is the maximum datagram size in
   bytes that can be sent unfragmented over a particular network path.
@@ -539,6 +552,10 @@ routing.
 
   It's best to use the ``--fragment`` and/or ``--mssfix`` options to deal
   with MTU sizing issues.
+
+  Note: Depending on the platform, the operating system allows to receive
+  packets larger than ``tun-mtu`` (e.g. Linux and FreeBSD) but other platforms
+  (like macOS) limit received packets to the same size as the MTU.
 
 --tun-max-mtu maxmtu
   This configures the maximum MTU size that a server can push to ``maxmtu``,

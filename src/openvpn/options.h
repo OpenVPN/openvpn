@@ -118,6 +118,7 @@ struct connection_entry
     const char *socks_proxy_authfile;
 
     int tun_mtu;         /* MTU of tun device */
+    int occ_mtu;         /* if non-null, this is the MTU we announce to peers in OCC */
     int tun_mtu_max;     /* maximum MTU that can be pushed */
 
     bool tun_mtu_defined; /* true if user overriding parm with command line option */
