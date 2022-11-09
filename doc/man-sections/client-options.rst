@@ -363,6 +363,10 @@ configuration.
         The client announces the list of supported ciphers configured with the
         ``--data-ciphers`` option to the server.
 
+  :code:`IV_MTU=<max_mtu>`
+        The client announces the support of pushable MTU and the maximum MTU
+        it is willing to accept.
+
   :code:`IV_GUI_VER=<gui_id> <version>`
         The UI version of a UI if one is running, for example
         :code:`de.blinkt.openvpn 0.5.47` for the Android app.

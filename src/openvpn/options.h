@@ -118,6 +118,8 @@ struct connection_entry
     const char *socks_proxy_authfile;
 
     int tun_mtu;         /* MTU of tun device */
+    int tun_mtu_max;     /* maximum MTU that can be pushed */
+
     bool tun_mtu_defined; /* true if user overriding parm with command line option */
     int tun_mtu_extra;
     bool tun_mtu_extra_defined;
@@ -730,6 +732,7 @@ struct options
 #define OPT_P_CONNECTION      (1<<27)
 #define OPT_P_PEER_ID         (1<<28)
 #define OPT_P_INLINE          (1<<29)
+#define OPT_P_PUSH_MTU        (1<<30)
 
 #define OPT_P_DEFAULT   (~(OPT_P_INSTANCE|OPT_P_PULL_MODE))
 

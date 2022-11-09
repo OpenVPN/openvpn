@@ -540,6 +540,12 @@ routing.
   It's best to use the ``--fragment`` and/or ``--mssfix`` options to deal
   with MTU sizing issues.
 
+--tun-max-mtu maxmtu
+  This configures the maximum MTU size that a server can push to ``maxmtu``,
+  by configuring the internal buffers to allow at least this packet size.
+  The default for ``maxmtu`` is 1600. Currently, only increasing beyond 1600
+  is possible, and attempting to reduce max-mtu below 1600 will be ignored.
+
 --tun-mtu-extra n
   Assume that the TUN/TAP device might return as many as ``n`` bytes more
   than the ``--tun-mtu`` size on read. This parameter defaults to 0, which

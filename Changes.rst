@@ -99,6 +99,11 @@ Inline auth username and password
     missing OpenVPN will prompt for input via stdin. This applies to inline'd
     http-proxy-user-pass too.
 
+Tun MTU can be pushed
+    The  client can now also dynamically configure its MTU and the server
+    will try to push the client MTU when the client supports it. The
+    directive ``--tun-mtu-max`` has been introduced to increase the maximum
+    pushable MTU size (defaults to 1600).
 
 Improved control channel packet size control (``max-packet-size``)
     The size of control channel is no longer tied to

@@ -2312,7 +2312,8 @@ pull_permission_mask(const struct context *c)
         | OPT_P_ECHO
         | OPT_P_PULL_MODE
         | OPT_P_PEER_ID
-        | OPT_P_NCP;
+        | OPT_P_NCP
+        | OPT_P_PUSH_MTU;
 
     if (!c->options.route_nopull)
     {
@@ -2475,6 +2476,23 @@ do_deferred_options(struct context *c, const unsigned int found)
         }
     }
 
+    if (found & OPT_P_PUSH_MTU)
+    {
+        /* MTU has changed, check that the pushed MTU is small enough to
+         * be able to change it */
+        msg(D_PUSH, "OPTIONS IMPORT: tun-mtu set to %d", c->options.ce.tun_mtu);
+
+        struct frame *frame = &c->c2.frame;
+
+        if (c->options.ce.tun_mtu > frame->tun_max_mtu)
+        {
+            msg(D_PUSH_ERRORS, "Server-pushed tun-mtu is too large, please add "
+                "tun-mtu-max %d in the client configuration",
+                c->options.ce.tun_mtu);
+        }
+        frame->tun_mtu = min_int(frame->tun_max_mtu, c->options.ce.tun_mtu);
+    }
+
     return true;
 }
 
@@ -2635,10 +2653,16 @@ frame_finalize_options(struct context *c, const struct options *o)
     struct frame *frame = &c->c2.frame;
 
     frame->tun_mtu = get_frame_mtu(c, o);
+    frame->tun_max_mtu = o->ce.tun_mtu_max;
 
-    /* We always allow at least 1500 MTU packets to be received in our buffer
-     * space */
-    size_t payload_size = max_int(1500, frame->tun_mtu);
+    /* max mtu needs to be at least as large as the tun mtu */
+    frame->tun_max_mtu = max_int(frame->tun_mtu, frame->tun_max_mtu);
+
+    /* We always allow at least 1600 MTU packets to be received in our buffer
+     * space to allow server to push "baby giant" MTU sizes */
+    frame->tun_max_mtu = max_int(1600, frame->tun_max_mtu);
+
+    size_t payload_size = frame->tun_max_mtu;
 
     /* we need to be also large enough to hold larger control channel packets
      * if configured */
@@ -2650,9 +2674,9 @@ frame_finalize_options(struct context *c, const struct options *o)
         payload_size += o->ce.tun_mtu_extra;
     }
 
-    /* Add 100 byte of extra space in the buffer to account for slightly
-     * mismatched MUTs between peers */
-    payload_size += 100;
+    /* Add 32 byte of extra space in the buffer to account for small errors
+     * in the calculation */
+    payload_size += 32;
 
 
     /* the space that is reserved before the payload to add extra headers to it
@@ -3211,6 +3235,10 @@ do_init_frame_tls(struct context *c)
                c->c2.frame.buf.payload_size);
         frame_print(&c->c2.tls_multi->opt.frame, D_MTU_INFO,
                     "Control Channel MTU parms");
+
+        /* Keep the max mtu also in the frame of tls multi so it can access
+         * it in push_peer_info */
+        c->c2.tls_multi->opt.frame.tun_max_mtu = c->c2.frame.tun_max_mtu;
     }
     if (c->c2.tls_auth_standalone)
     {

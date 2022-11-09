@@ -6449,9 +6449,22 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "tun-mtu") && p[1] && !p[2])
     {
-        VERIFY_PERMISSION(OPT_P_MTU|OPT_P_CONNECTION);
+        VERIFY_PERMISSION(OPT_P_PUSH_MTU|OPT_P_CONNECTION);
         options->ce.tun_mtu = positive_atoi(p[1]);
         options->ce.tun_mtu_defined = true;
+    }
+    else if (streq(p[0], "tun-mtu-max") && p[1] && !p[3])
+    {
+        VERIFY_PERMISSION(OPT_P_MTU|OPT_P_CONNECTION);
+        int max_mtu = positive_atoi(p[1]);
+        if (max_mtu < 68 || max_mtu > 65536)
+        {
+            msg(msglevel, "--tun-mtu-max value '%s' is invalid", p[1]);
+        }
+        else
+        {
+            options->ce.tun_mtu_max = max_mtu;
+        }
     }
     else if (streq(p[0], "tun-mtu-extra") && p[1] && !p[2])
     {

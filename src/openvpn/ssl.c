@@ -2048,6 +2048,9 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 
             /* support for AUTH_FAIL,TEMP control message */
             iv_proto |= IV_PROTO_AUTH_FAIL_TEMP;
+
+            /* support for tun-mtu as part of the push message */
+            buf_printf(&out, "IV_MTU=%d\n", session->opt->frame.tun_max_mtu);
         }
 
         /* support for Negotiable Crypto Parameters */

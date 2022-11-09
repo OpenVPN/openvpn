@@ -138,6 +138,9 @@ struct frame {
                                  *   control frame payload (although most of
                                  *   code ignores it)
                                  */
+    int tun_max_mtu;            /**< the maximum tun-mtu size the buffers are
+                                 *   are sized for. This is the upper bound that
+                                 *   a server can push as MTU */
 
     int extra_tun;              /**< Maximum number of bytes in excess of
                                  *   the tun/tap MTU that might be read

@@ -222,6 +222,7 @@ frame_print(const struct frame *frame,
     buf_printf(&out, " max_frag:%d", frame->max_fragment_size);
 #endif
     buf_printf(&out, " tun_mtu:%d", frame->tun_mtu);
+    buf_printf(&out, " tun_max_mtu:%d", frame->tun_max_mtu);
     buf_printf(&out, " headroom:%d", frame->buf.headroom);
     buf_printf(&out, " payload:%d", frame->buf.payload_size);
     buf_printf(&out, " tailroom:%d", frame->buf.tailroom);
