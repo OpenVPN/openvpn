@@ -667,7 +667,7 @@ dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
 const char *
 dco_get_supported_ciphers()
 {
-    return "none:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305";
+    return "none:AES-256-GCM:AES-192-GCM:AES-128-GCM:CHACHA20-POLY1305";
 }
 
 #endif /* defined(ENABLE_DCO) && defined(TARGET_FREEBSD) */
