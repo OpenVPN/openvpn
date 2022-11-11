@@ -51,10 +51,13 @@ $(OUTPUT_PLUGIN): $(INPUT_PLUGIN) $(OUTPUT_PLUGIN_CONFIG)
 	cscript //nologo msvc-generate.js --config="$(OUTPUT_PLUGIN_CONFIG)" --input="$(INPUT_PLUGIN)" --output="$(OUTPUT_PLUGIN)"
 
 $(OUTPUT_MAN): $(INPUT_MAN)
-    -FOR /F %i IN ('where rst2html.py') DO python %i "$(INPUT_MAN)" "$(OUTPUT_MAN)"
+	-FOR /F %i IN ('where rst2html.py') DO python %i "$(INPUT_MAN)" "$(OUTPUT_MAN)"
 
-$(OUTPUT_MSVC_GIT_CONFIG):
-    python git-version.py $(SOLUTIONDIR)
+# Force regeneration because we can't detect whether it is outdated
+$(OUTPUT_MSVC_GIT_CONFIG): FORCE
+	python git-version.py $(SOLUTIONDIR)
+
+FORCE:
 
 clean:
 	-del "$(OUTPUT_MSVC_VER)"
