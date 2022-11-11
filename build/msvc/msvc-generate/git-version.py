@@ -41,10 +41,25 @@ def main():
     except:
         branch, commit_id = "unknown", "unknown"
 
+    prev_content = ""
+
     name = os.path.join("%s" %  (sys.argv[1] if len(sys.argv) > 1 else "."), "config-version.h")
-    with open(name, "w") as f:
-        f.write("#define CONFIGURE_GIT_REVISION \"%s/%s\"\n" % (branch, commit_id))
-        f.write("#define CONFIGURE_GIT_FLAGS \"\"\n")
+    try:
+        with open(name, "r") as f:
+            prev_content = f.read()
+    except:
+        # file doesn't exist
+        pass
+
+    content = "#define CONFIGURE_GIT_REVISION \"%s/%s\"\n" % (branch, commit_id)
+    content += "#define CONFIGURE_GIT_FLAGS \"\"\n"
+
+    if prev_content != content:
+        print("Writing %s" % name)
+        with open(name, "w") as f:
+            f.write(content)
+    else:
+        print("Content of %s hasn't changed" % name)
 
 if __name__ == "__main__":
     main()
