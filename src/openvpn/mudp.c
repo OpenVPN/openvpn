@@ -92,7 +92,7 @@ do_pre_decrypt_check(struct multi_context *m,
         ASSERT(packet_id_read(&pin, &tmp, true));
 
         /* The most significant byte is 0x0f if early negotiation is supported */
-        bool early_neg_support = (pin.id & EARLY_NEG_MASK) == EARLY_NEG_START;
+        bool early_neg_support = ((pin.id & EARLY_NEG_MASK) & EARLY_NEG_START) == EARLY_NEG_START;
 
         /* All clients that support early negotiation and tls-crypt are assumed
          * to also support resending the WKc in the 2nd packet */
