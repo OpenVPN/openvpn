@@ -165,7 +165,13 @@ tls_ctx_free(struct tls_root_ctx *ctx)
         free(ctx->crl);
 
 #if defined(ENABLE_PKCS11)
-        pkcs11h_certificate_freeCertificate(ctx->pkcs11_cert);
+        /* ...freeCertificate() can handle NULL ptrs, but if pkcs11 helper
+         * has not been initialized, it will ASSERT() - so, do not pass NULL
+         */
+        if (ctx->pkcs11_cert)
+        {
+            pkcs11h_certificate_freeCertificate(ctx->pkcs11_cert);
+        }
 #endif
 
         free(ctx->allowed_ciphers);
