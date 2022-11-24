@@ -285,7 +285,7 @@ ovpn_nl_cb_finish(struct nl_msg (*msg) __attribute__ ((unused)), void *arg)
  *
  * We pass the error code to the user by means of a variable pointed by *arg
  * (supplied by the user when setting this callback) and we parse the kernel
- * reply to see if it contains a human readable error. If found, it is printed.
+ * reply to see if it contains a human-readable error. If found, it is printed.
  */
 static int
 ovpn_nl_cb_error(struct sockaddr_nl (*nla) __attribute__ ((unused)),

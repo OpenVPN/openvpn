@@ -2147,7 +2147,7 @@ create_socket_dco_win(struct context *c, struct link_socket *sock,
                       get_server_poll_remaining_time(sock->server_poll_timeout),
                       signal_received);
 
-    sock->info.dco_installed = true;
+    sock->info.lsa->actual.dco_installed = true;
 
     if (*signal_received)
     {
@@ -3480,7 +3480,7 @@ link_socket_write_udp_posix_sendmsg(struct link_socket *sock,
 static int
 socket_get_last_error(const struct link_socket *sock)
 {
-    if (sock->info.dco_installed)
+    if (sock->info.lsa->actual.dco_installed)
     {
         return GetLastError();
     }
@@ -3521,7 +3521,7 @@ socket_recv_queue(struct link_socket *sock, int maxsize)
         ASSERT(ResetEvent(sock->reads.overlapped.hEvent));
         sock->reads.flags = 0;
 
-        if (sock->info.dco_installed)
+        if (sock->info.lsa->actual.dco_installed)
         {
             status = ReadFile((HANDLE)sock->sd, wsabuf[0].buf, wsabuf[0].len,
                               &sock->reads.size, &sock->reads.overlapped);
@@ -3626,7 +3626,7 @@ socket_send_queue(struct link_socket *sock, struct buffer *buf, const struct lin
         ASSERT(ResetEvent(sock->writes.overlapped.hEvent));
         sock->writes.flags = 0;
 
-        if (sock->info.dco_installed)
+        if (sock->info.lsa->actual.dco_installed)
         {
             status = WriteFile((HANDLE)sock->sd, wsabuf[0].buf, wsabuf[0].len,
                                &sock->writes.size, &sock->writes.overlapped);

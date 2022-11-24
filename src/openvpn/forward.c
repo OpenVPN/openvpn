@@ -1643,13 +1643,13 @@ process_ip_header(struct context *c, unsigned int flags, struct buffer *buf)
  * standard Overlapped I/O.
  *
  * Hide that complexity (...especially if more platforms show up
- * in future...) in a small inline function.
+ * in the future...) in a small inline function.
  */
 static inline bool
-should_use_dco_socket(struct link_socket *sock)
+should_use_dco_socket(struct link_socket_actual *actual)
 {
 #if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
-    return sock->info.dco_installed;
+    return actual->dco_installed;
 #else
     return false;
 #endif
@@ -1728,7 +1728,7 @@ process_outgoing_link(struct context *c)
                 socks_preprocess_outgoing_link(c, &to_addr, &size_delta);
 
                 /* Send packet */
-                if (should_use_dco_socket(c->c2.link_socket))
+                if (should_use_dco_socket(c->c2.to_link_addr))
                 {
                     size = dco_do_write(&c->c1.tuntap->dco,
                                         c->c2.tls_multi->peer_id,

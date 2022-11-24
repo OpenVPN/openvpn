@@ -88,6 +88,7 @@ struct link_socket_actual
     /*int dummy;*/ /* add offset to force a bug if dest not explicitly dereferenced */
 
     struct openvpn_sockaddr dest;
+    bool dco_installed;
 #if ENABLE_IP_PKTINFO
     union {
 #if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
@@ -121,7 +122,6 @@ struct link_socket_info
     sa_family_t af;                     /* Address family like AF_INET, AF_INET6 or AF_UNSPEC*/
     bool bind_ipv6_only;
     int mtu_changed;            /* Set to true when mtu value is changed */
-    bool dco_installed;
 };
 
 /*
@@ -1036,9 +1036,9 @@ link_socket_read_udp_win32(struct link_socket *sock,
                            struct link_socket_actual *from)
 {
     sockethandle_t sh = { .s = sock->sd };
-    if (sock->info.dco_installed)
+    if (sock->info.lsa->actual.dco_installed)
     {
-        from->dest = sock->info.lsa->actual.dest;
+        *from = sock->info.lsa->actual;
         sh.is_handle = true;
     }
     return sockethandle_finalize(sh, &sock->reads, buf, from);
@@ -1059,7 +1059,7 @@ link_socket_read(struct link_socket *sock,
                  struct link_socket_actual *from)
 {
     if (proto_is_udp(sock->info.proto)
-        || sock->info.dco_installed)
+        || sock->info.lsa->actual.dco_installed)
     /* unified UDPv4 and UDPv6, for DCO the kernel
      * will strip the length header */
     {
@@ -1102,7 +1102,7 @@ link_socket_write_win32(struct link_socket *sock,
 {
     int err = 0;
     int status = 0;
-    sockethandle_t sh = { .s = sock->sd, .is_handle = sock->info.dco_installed };
+    sockethandle_t sh = { .s = sock->sd, .is_handle = sock->info.lsa->actual.dco_installed };
     if (overlapped_io_active(&sock->writes))
     {
         status = sockethandle_finalize(sh, &sock->writes, NULL, NULL);
@@ -1176,7 +1176,7 @@ link_socket_write(struct link_socket *sock,
                   struct buffer *buf,
                   struct link_socket_actual *to)
 {
-    if (proto_is_udp(sock->info.proto) || sock->info.dco_installed)
+    if (proto_is_udp(sock->info.proto) || to->dco_installed)
     {
         /* unified UDPv4 and UDPv6 and DCO (kernel adds size header) */
         return link_socket_write_udp(sock, buf, to);
