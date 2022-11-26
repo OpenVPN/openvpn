@@ -1635,12 +1635,15 @@ process_ip_header(struct context *c, unsigned int flags, struct buffer *buf)
     }
 }
 
-/* Linux-like DCO implementations pass the socket to the kernel and
+/* Linux DCO implementations pass the socket to the kernel and
  * disallow usage of it from userland, so (control) packets sent and
  * received by OpenVPN need to go through the DCO interface.
  *
  * Windows DCO needs control packets to be sent via the normal
  * standard Overlapped I/O.
+ *
+ * FreeBSD DCO allows control packets to pass through the socket in both
+ * directions.
  *
  * Hide that complexity (...especially if more platforms show up
  * in the future...) in a small inline function.
@@ -1648,7 +1651,7 @@ process_ip_header(struct context *c, unsigned int flags, struct buffer *buf)
 static inline bool
 should_use_dco_socket(struct link_socket_actual *actual)
 {
-#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
+#if defined(TARGET_LINUX)
     return actual->dco_installed;
 #else
     return false;

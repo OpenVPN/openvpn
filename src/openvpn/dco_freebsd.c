@@ -536,35 +536,10 @@ dco_do_read(dco_context_t *dco)
 int
 dco_do_write(dco_context_t *dco, int peer_id, struct buffer *buf)
 {
-    struct ifdrv drv;
-    nvlist_t *nvl;
-    int ret;
-
-    nvl = nvlist_create(0);
-
-    nvlist_add_binary(nvl, "packet", BSTR(buf), BLEN(buf));
-    nvlist_add_number(nvl, "peerid", peer_id);
-
-    CLEAR(drv);
-    snprintf(drv.ifd_name, IFNAMSIZ, "%s", dco->ifname);
-    drv.ifd_cmd = OVPN_SEND_PKT;
-    drv.ifd_data = nvlist_pack(nvl, &drv.ifd_len);
-
-    ret = ioctl(dco->fd, SIOCSDRVSPEC, &drv);
-    if (ret)
-    {
-        msg(M_WARN | M_ERRNO, "Failed to send control packet");
-        ret = -errno;
-    }
-    else
-    {
-        ret = BLEN(buf);
-    }
-
-    free(drv.ifd_data);
-    nvlist_destroy(nvl);
-
-    return ret;
+    /* Control packets are passed through the socket, so this should never get
+     * called. See should_use_dco_socket(). */
+    ASSERT(0);
+    return -EINVAL;
 }
 
 bool
