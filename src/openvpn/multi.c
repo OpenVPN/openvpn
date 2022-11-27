@@ -2305,6 +2305,42 @@ cleanup:
     return ret;
 }
 
+static bool
+multi_client_setup_dco_initial(struct multi_context *m,
+                               struct multi_instance *mi,
+                               struct gc_arena *gc)
+{
+    if (!dco_enabled(&mi->context.options))
+    {
+        /* DCO not enabled, nothing to do, return sucess */
+        return true;
+    }
+    int ret = dco_multi_add_new_peer(m, mi);
+    if (ret < 0)
+    {
+        msg(D_DCO, "Cannot add peer to DCO for %s: %s (%d)",
+            multi_instance_string(mi, false, gc), strerror(-ret), ret);
+        return false;
+    }
+
+    if (mi->context.options.ping_send_timeout || mi->context.c2.frame.mss_fix)
+    {
+        ret = dco_set_peer(&mi->context.c1.tuntap->dco,
+                           mi->context.c2.tls_multi->dco_peer_id,
+                           mi->context.options.ping_send_timeout,
+                           mi->context.options.ping_rec_timeout,
+                           mi->context.c2.frame.mss_fix);
+        if (ret < 0)
+        {
+            msg(D_DCO, "Cannot set DCO peer parameters for %s (id=%u): %s",
+                multi_instance_string(mi, false, gc),
+                mi->context.c2.tls_multi->dco_peer_id, strerror(-ret));
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
  * Generates the data channel keys
  */
@@ -2432,39 +2468,16 @@ multi_client_connect_late_setup(struct multi_context *m,
     {
         mi->context.c2.tls_multi->multi_state = CAS_FAILED;
     }
-    /* Generate data channel keys only if setting protocol options
-     * has not failed */
-    else
+    /* only continue if setting protocol options worked */
+    else if (!multi_client_setup_dco_initial(m, mi, &gc))
     {
-        if (dco_enabled(&mi->context.options))
-        {
-            int ret = dco_multi_add_new_peer(m, mi);
-            if (ret < 0)
-            {
-                msg(D_DCO, "Cannot add peer to DCO: %s (%d)", strerror(-ret), ret);
-                mi->context.c2.tls_multi->multi_state = CAS_FAILED;
-            }
-
-            if (mi->context.options.ping_send_timeout || mi->context.c2.frame.mss_fix)
-            {
-                int ret = dco_set_peer(&mi->context.c1.tuntap->dco,
-                                       mi->context.c2.tls_multi->peer_id,
-                                       mi->context.options.ping_send_timeout,
-                                       mi->context.options.ping_rec_timeout,
-                                       mi->context.c2.frame.mss_fix);
-                if (ret < 0)
-                {
-                    msg(D_DCO, "Cannot set parameters for DCO peer (id=%u): %s",
-                        mi->context.c2.tls_multi->peer_id, strerror(-ret));
-                    mi->context.c2.tls_multi->multi_state = CAS_FAILED;
-                }
-            }
-        }
-
-        if (!multi_client_generate_tls_keys(&mi->context))
-        {
-            mi->context.c2.tls_multi->multi_state = CAS_FAILED;
-        }
+        mi->context.c2.tls_multi->multi_state = CAS_FAILED;
+    }
+    /* Generate data channel keys only if setting protocol options
+     * and DCO initial setup has not failed */
+    else if (!multi_client_generate_tls_keys(&mi->context))
+    {
+        mi->context.c2.tls_multi->multi_state = CAS_FAILED;
     }
 
     /* send push reply if ready */
@@ -2472,7 +2485,6 @@ multi_client_connect_late_setup(struct multi_context *m,
     {
         process_incoming_push_request(&mi->context);
     }
-
     gc_free(&gc);
 }
 
@@ -3226,8 +3238,8 @@ process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi,
     }
 
     /* When kernel already deleted the peer, the socket is no longer
-     * installed and we don't need to cleanup the state in the kernel */
-    mi->context.c2.tls_multi->dco_peer_added = false;
+     * installed, and we do not need to clean up the state in the kernel */
+    mi->context.c2.tls_multi->dco_peer_id = -1;
     mi->context.sig->signal_text = reason;
     multi_signal_instance(m, mi, SIGTERM);
 }

@@ -661,7 +661,14 @@ struct tls_multi
     /* Only used when DCO is used to remember how many keys we installed
      * for this session */
     int dco_keys_installed;
-    bool dco_peer_added;
+    /**
+     * This is the handle that DCO uses to identify this session with the
+     * kernel.
+     *
+     * We keep this separate as the normal peer_id can change during
+     * p2p NCP and we need to track the id that is really used.
+     */
+    int dco_peer_id;
 
     dco_context_t *dco;
 };

@@ -1734,7 +1734,7 @@ process_outgoing_link(struct context *c)
                 if (should_use_dco_socket(c->c2.to_link_addr))
                 {
                     size = dco_do_write(&c->c1.tuntap->dco,
-                                        c->c2.tls_multi->peer_id,
+                                        c->c2.tls_multi->dco_peer_id,
                                         &c->c2.to_link);
                 }
                 else

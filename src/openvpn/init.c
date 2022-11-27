@@ -2151,14 +2151,14 @@ do_deferred_options_part2(struct context *c)
         && (c->options.ping_send_timeout || c->c2.frame.mss_fix))
     {
         int ret = dco_set_peer(&c->c1.tuntap->dco,
-                               c->c2.tls_multi->peer_id,
+                               c->c2.tls_multi->dco_peer_id,
                                c->options.ping_send_timeout,
                                c->options.ping_rec_timeout,
                                c->c2.frame.mss_fix);
         if (ret < 0)
         {
             msg(D_DCO, "Cannot set parameters for DCO peer (id=%u): %s",
-                c->c2.tls_multi->peer_id, strerror(-ret));
+                c->c2.tls_multi->dco_peer_id, strerror(-ret));
             return false;
         }
     }
