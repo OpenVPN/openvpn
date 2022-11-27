@@ -442,10 +442,10 @@ struct options
     const char *management_client_user;
     const char *management_client_group;
 
-    /* Mask of MF_ values of manage.h */
-    unsigned int management_flags;
     const char *management_certificate;
 #endif
+    /* Mask of MF_ values of manage.h */
+    unsigned int management_flags;
 
 #ifdef ENABLE_PLUGIN
     struct plugin_option_list *plugin_list;
