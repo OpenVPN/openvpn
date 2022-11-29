@@ -2020,7 +2020,7 @@ do_close_tun(struct context *c, bool force)
         }
 
         /* Run the down script -- note that it will run at reduced
-         * privilege if, for example, "--user nobody" was used. */
+         * privilege if, for example, "--user" was used. */
         run_up_down(c->options.down_script,
                     c->plugins,
                     OPENVPN_PLUGIN_DOWN,

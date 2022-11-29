@@ -294,7 +294,7 @@ which mode OpenVPN is configured as.
 --persist-key
   Don't re-read key files across :code:`SIGUSR1` or ``--ping-restart``.
 
-  This option can be combined with ``--user nobody`` to allow restarts
+  This option can be combined with ``--user`` to allow restarts
   triggered by the :code:`SIGUSR1` signal. Normally if you drop root
   privileges in OpenVPN, the daemon cannot be restarted since it will now
   be unable to re-read protected key files.
@@ -491,7 +491,7 @@ which mode OpenVPN is configured as.
   able to gain control of an OpenVPN session. Though OpenVPN's security
   features make this unlikely, it is provided as a second line of defense.
 
-  By setting ``user`` to :code:`nobody` or somebody similarly unprivileged,
+  By setting ``user`` to an unprivileged user dedicated to run openvpn,
   the hostile party would be limited in what damage they could cause. Of
   course once you take away privileges, you cannot return them to an
   OpenVPN session. This means, for example, that if you want to reset an
@@ -500,6 +500,11 @@ which mode OpenVPN is configured as.
   options to ensure that OpenVPN doesn't need to execute any privileged
   operations in order to restart (such as re-reading key files or running
   ``ifconfig`` on the TUN device).
+
+  NOTE: Previous versions of openvpn used :code:`nobody` as the example
+  unpriviledged user. It is not recommended to actually use that user
+  since it is usually used by other system services already. Always
+  create a dedicated user for openvpn.
 
 --writepid file
   Write OpenVPN's main process ID to ``file``.
