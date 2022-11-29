@@ -24,9 +24,9 @@ OpenVPN releases are also available as Debian/RPM packages:
 
 OpenVPN development versions can be found here:
 
-   https://github.com/OpenVPN/openvpn
-   https://gitlab.com/OpenVPN/openvpn
-   https://sourceforge.net/p/openvpn/openvpn/ci/master/tree/
+    https://github.com/OpenVPN/openvpn
+    https://gitlab.com/OpenVPN/openvpn
+    https://sourceforge.net/p/openvpn/openvpn/ci/master/tree/
 
 They should all be in sync at any time.
 
@@ -37,6 +37,10 @@ To download easy-rsa go to:
 To download tap-windows (NDIS 6) driver source code go to:
 
     https://github.com/OpenVPN/tap-windows6
+
+To download ovpn-dco Windows driver source code go to:
+
+    https://github.com/OpenVPN/ovpn-dco-win
 
 To get the cross-compilation environment go to:
 
@@ -263,13 +267,10 @@ TUN/TAP Driver References:
 
   OpenVPN on Windows needs a TUN/TAP kernel driver to work. OpenVPN installers
   include this driver, so installing it separately is not usually required.
-  Windows XP/2003 must use the NDIS 5 (tap-windows) driver, whereas on more
-  recent Windows versions it is recommended to use the NDIS 6 driver
-  (tap-windows6) instead.
 
-  Windows 10 and Server 2016 and up can use the dco-win driver for
-  kernel-level acceleration for OpenVPN client setups.  This is also
-  included in the community-provided OpenVPN installers.
+  Starting from Windows 10 2004 / Windows Server 2022, OpenVPN can use the
+  dco-win driver for kernel-level acceleration for OpenVPN client setups.
+  This driver is also included in the community-provided OpenVPN installers.
 
 *************************************************************************
 
