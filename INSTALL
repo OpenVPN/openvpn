@@ -276,6 +276,8 @@ TUN/TAP Driver References:
 
 CAVEATS & BUGS:
 
-* see the bug tracker on https://community.openvpn.net/openvpn/report
+* See the bug tracker on https://github.com/OpenVPN/openvpn/issues
   and the wiki on https://community.openvpn.net/wiki for more detailed
   caveats on operating systems, and for open and resolved bug reports.
+* Note: We only recently switched to GitHub for reporting new issues,
+  old issues can be found at https://community.openvpn.net/openvpn/report
