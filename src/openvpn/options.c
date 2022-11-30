@@ -5385,6 +5385,12 @@ apply_pull_filter(const struct options *o, char *line)
         return true;
     }
 
+    /* skip leading spaces matching the behaviour of parse_line */
+    while (isspace(*line))
+    {
+        line++;
+    }
+
     for (f = o->pull_filter_list->head; f; f = f->next)
     {
         if (f->type == PUF_TYPE_ACCEPT && strncmp(line, f->pattern, f->size) == 0)
