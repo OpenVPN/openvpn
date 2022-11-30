@@ -212,6 +212,7 @@ void tls_multi_free(struct tls_multi *multi, bool clear);
 #define TLSMP_INACTIVE 0
 #define TLSMP_ACTIVE   1
 #define TLSMP_KILL     2
+#define TLSMP_RECONNECT 3
 
 /*
  * Called by the top-level event loop.

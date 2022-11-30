@@ -3249,29 +3249,29 @@ tls_multi_process(struct tls_multi *multi,
 
     if (multi->multi_state >= CAS_CONNECT_DONE)
     {
-        for (int i = 0; i < TM_SIZE; ++i)
+        /* Only generate keys for the TM_ACTIVE session. We defer generating
+         * keys for TM_UNTRUSTED until we actually trust it.
+         * For TM_LAME_DUCK it makes no sense to generate new keys. */
+        struct tls_session *session = &multi->session[TM_ACTIVE];
+        struct key_state *ks = &session->key[KS_PRIMARY];
+
+        if (ks->state == S_ACTIVE && ks->authenticated == KS_AUTH_TRUE)
         {
-            struct tls_session *session = &multi->session[i];
-            struct key_state *ks = &session->key[KS_PRIMARY];
-
-            if (ks->state == S_ACTIVE && ks->authenticated == KS_AUTH_TRUE)
+            /* Session is now fully authenticated.
+            * tls_session_generate_data_channel_keys will move ks->state
+            * from S_ACTIVE to S_GENERATED_KEYS */
+            if (!tls_session_generate_data_channel_keys(multi, session))
             {
-                /* Session is now fully authenticated.
-                * tls_session_generate_data_channel_keys will move ks->state
-                * from S_ACTIVE to S_GENERATED_KEYS */
-                if (!tls_session_generate_data_channel_keys(multi, session))
-                {
-                    msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
-                    ks->authenticated = KS_AUTH_FALSE;
-                    ks->state = S_ERROR;
-                }
+                msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
+                ks->authenticated = KS_AUTH_FALSE;
+                ks->state = S_ERROR;
+            }
 
-                /* Update auth token on the client if needed on renegotiation
-                 * (key id !=0) */
-                if (session->key[KS_PRIMARY].key_id != 0)
-                {
-                    resend_auth_token_renegotiation(multi, session);
-                }
+            /* Update auth token on the client if needed on renegotiation
+             * (key id !=0) */
+            if (session->key[KS_PRIMARY].key_id != 0)
+            {
+                resend_auth_token_renegotiation(multi, session);
             }
         }
     }
@@ -3304,6 +3304,12 @@ tls_multi_process(struct tls_multi *multi,
         move_session(multi, TM_ACTIVE, TM_UNTRUSTED, true);
         msg(D_TLS_DEBUG_LOW, "TLS: tls_multi_process: untrusted session promoted to %strusted",
             tas == TLS_AUTHENTICATION_SUCCEEDED ? "" : "semi-");
+
+        if (multi->multi_state == CAS_CONNECT_DONE)
+        {
+            multi->multi_state = CAS_RECONNECT_PENDING;
+            active = TLSMP_RECONNECT;
+        }
     }
 
     /*

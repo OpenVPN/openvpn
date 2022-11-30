@@ -2219,7 +2219,14 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
                 }
             }
         }
+    }
 
+    /* This part needs to be run in p2p mode (without pull) when the client
+     * reconnects to setup various things (like DCO and NCP cipher) that
+     * might have changed from the previous connection.
+     */
+    if (!c->c2.do_up_ran || (c->c2.tls_multi && c->c2.tls_multi->multi_state == CAS_RECONNECT_PENDING))
+    {
         if (c->mode == MODE_POINT_TO_POINT)
         {
             /* ovpn-dco requires adding the peer now, before any option can be set,

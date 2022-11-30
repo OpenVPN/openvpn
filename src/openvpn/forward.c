@@ -174,7 +174,14 @@ check_tls(struct context *c)
         const int tmp_status = tls_multi_process
                                    (c->c2.tls_multi, &c->c2.to_link, &c->c2.to_link_addr,
                                    get_link_socket_info(c), &wakeup);
-        if (tmp_status == TLSMP_ACTIVE)
+
+        if (tmp_status == TLSMP_RECONNECT)
+        {
+            event_timeout_init(&c->c2.wait_for_connect, 1, now);
+            reset_coarse_timers(c);
+        }
+
+        if (tmp_status == TLSMP_ACTIVE || tmp_status == TLSMP_RECONNECT)
         {
             update_time();
             interval_action(&c->c2.tmp_int);
@@ -196,9 +203,15 @@ check_tls(struct context *c)
 
     interval_schedule_wakeup(&c->c2.tmp_int, &wakeup);
 
-    /* Our current code has no good hooks in the TLS machinery to update
+    /*
+     * Our current code has no good hooks in the TLS machinery to update
      * DCO keys. So we check the key status after the whole TLS machinery
      * has been completed and potentially update them
+     *
+     * We have a hidden state transition from secondary to primary key based
+     * on ks->auth_deferred_expire that DCO needs to check that the normal
+     * TLS state engine does not check. So we call the \c check_dco_key_status
+     * function even if tmp_status does not indicate that something has changed.
      */
     check_dco_key_status(c);
 
@@ -302,7 +315,6 @@ check_push_request(struct context *c)
 static void
 check_connection_established(struct context *c)
 {
-
     if (connection_established(c))
     {
         /* if --pull was specified, send a push request to server */
@@ -337,7 +349,6 @@ check_connection_established(struct context *c)
 
         event_timeout_clear(&c->c2.wait_for_connect);
     }
-
 }
 
 bool

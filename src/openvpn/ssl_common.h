@@ -551,6 +551,10 @@ enum multi_status {
     CAS_PENDING_DEFERRED_PARTIAL,   /**< at least handler succeeded but another is still pending */
     CAS_FAILED,                     /**< Option import failed or explicitly denied the client */
     CAS_WAITING_OPTIONS_IMPORT,     /**< client with pull or p2p waiting for first time options import */
+    CAS_RECONNECT_PENDING,          /**< session has already successful established (CAS_CONNECT_DONE)
+                                     * but has a reconnect and needs to redo some initialisation, this state is
+                                     * similar CAS_WAITING_OPTIONS_IMPORT but skips a few things. The normal connection
+                                     * skips this step. */
     CAS_CONNECT_DONE,
 };
 
