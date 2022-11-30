@@ -344,7 +344,10 @@ check_connection_established(struct context *c)
         }
         else
         {
-            do_up(c, false, 0);
+            if (!do_up(c, false, 0))
+            {
+                register_signal(c, SIGUSR1, "connection initialisation failed");
+            }
         }
 
         event_timeout_clear(&c->c2.wait_for_connect);
