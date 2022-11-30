@@ -1,6 +1,12 @@
 Overview of changes in 2.6
 ==========================
 
+Project changes
+---------------
+
+We want to deprecate our old Trac bug tracking system.
+Please report any issues with this release in GitHub
+instead: https://github.com/OpenVPN/openvpn/issues
 
 New features
 ------------
