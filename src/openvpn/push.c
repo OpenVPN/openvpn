@@ -746,7 +746,7 @@ send_push_reply_auth_token(struct tls_multi *multi)
 
     /* Construct a mimimal control channel push reply message */
     struct buffer buf = alloc_buf_gc(PUSH_BUNDLE_SIZE, &gc);
-    buf_printf(&buf, "%s, %s", push_reply_cmd, e->option);
+    buf_printf(&buf, "%s,%s", push_reply_cmd, e->option);
     send_control_channel_string_dowork(multi, BSTR(&buf), D_PUSH);
     gc_free(&gc);
 }
