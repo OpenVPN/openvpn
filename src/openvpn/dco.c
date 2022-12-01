@@ -458,6 +458,15 @@ dco_p2p_add_new_peer(struct context *c)
 
     struct sockaddr *remoteaddr = &ls->info.lsa->actual.dest.addr.sa;
     struct tls_multi *multi = c->c2.tls_multi;
+#ifdef TARGET_FREEBSD
+    /* In Linux in P2P mode the kernel automatically removes an existing peer
+     * when adding a new peer. FreeBSD needs to explicitly be told to do that */
+    if (c->c2.tls_multi->dco_peer_id != -1)
+    {
+        dco_del_peer(&c->c1.tuntap->dco, c->c2.tls_multi->dco_peer_id);
+        c->c2.tls_multi->dco_peer_id = -1;
+    }
+#endif
     int ret = dco_new_peer(&c->c1.tuntap->dco, multi->peer_id,
                            c->c2.link_socket->sd, NULL, remoteaddr, NULL, NULL);
     if (ret < 0)

@@ -312,6 +312,8 @@ dco_del_peer(dco_context_t *dco, unsigned int peerid)
     nvlist_t *nvl;
     int ret;
 
+    msg(D_DCO_DEBUG, "%s: peer-id %d", __func__, peerid);
+
     nvl = nvlist_create(0);
     nvlist_add_number(nvl, "peerid", peerid);
 

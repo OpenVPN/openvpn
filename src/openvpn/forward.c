@@ -1174,9 +1174,22 @@ process_incoming_dco(struct context *c)
 
     dco_do_read(dco);
 
+    /* FreeBSD currently sends us removal notifcation with the old peer-id in
+     * p2p mode with the ping timeout reason, so ignore that one to not shoot
+     * ourselves in the foot and removing the just established session */
+    if (dco->dco_message_peer_id != c->c2.tls_multi->dco_peer_id)
+    {
+        msg(D_DCO_DEBUG, "%s: received message for mismatching peer-id %d, "
+            "expected %d", __func__, dco->dco_message_peer_id,
+            c->c2.tls_multi->dco_peer_id);
+        return;
+    }
+
     if ((dco->dco_message_type == OVPN_CMD_DEL_PEER)
         && (dco->dco_del_peer_reason == OVPN_DEL_PEER_REASON_EXPIRED))
     {
+        msg(D_DCO_DEBUG, "%s: received peer expired notification of for peer-id "
+            "%d", __func__, dco->dco_message_peer_id);
         trigger_ping_timeout_signal(c);
         return;
     }
