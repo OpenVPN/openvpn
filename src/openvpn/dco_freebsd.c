@@ -489,8 +489,7 @@ dco_do_read(dco_context_t *dco)
     struct ifdrv drv;
     uint8_t buf[4096];
     nvlist_t *nvl;
-    const uint8_t *pkt;
-    size_t pktlen;
+    enum ovpn_notif_type type;
     int ret;
 
     /* Flush any pending data from the pipe. */
@@ -518,39 +517,39 @@ dco_do_read(dco_context_t *dco)
 
     dco->dco_message_peer_id = nvlist_get_number(nvl, "peerid");
 
-    if (nvlist_exists_binary(nvl, "packet"))
+    type = nvlist_get_number(nvl, "notification");
+    switch (type)
     {
-        pkt = nvlist_get_binary(nvl, "packet", &pktlen);
-        memcpy(BPTR(&dco->dco_packet_in), pkt, pktlen);
-        dco->dco_packet_in.len = pktlen;
-        dco->dco_message_type = OVPN_CMD_PACKET;
-    }
-    else
-    {
-        dco->dco_del_peer_reason = OVPN_DEL_PEER_REASON_EXPIRED;
+        case OVPN_NOTIF_DEL_PEER:
+            dco->dco_del_peer_reason = OVPN_DEL_PEER_REASON_EXPIRED;
 
-        if (nvlist_exists_number(nvl, "del_reason"))
-        {
-            uint32_t reason = nvlist_get_number(nvl, "del_reason");
-            if (reason == OVPN_DEL_REASON_TIMEOUT)
+            if (nvlist_exists_number(nvl, "del_reason"))
             {
-                dco->dco_del_peer_reason = OVPN_DEL_PEER_REASON_EXPIRED;
+                uint32_t reason = nvlist_get_number(nvl, "del_reason");
+                if (reason == OVPN_DEL_REASON_TIMEOUT)
+                {
+                    dco->dco_del_peer_reason = OVPN_DEL_PEER_REASON_EXPIRED;
+                }
+                else
+                {
+                    dco->dco_del_peer_reason = OVPN_DEL_PEER_REASON_USERSPACE;
+                }
             }
-            else
+
+            if (nvlist_exists_nvlist(nvl, "bytes"))
             {
-                dco->dco_del_peer_reason = OVPN_DEL_PEER_REASON_USERSPACE;
+                const nvlist_t *bytes = nvlist_get_nvlist(nvl, "bytes");
+
+                dco->dco_read_bytes = nvlist_get_number(bytes, "in");
+                dco->dco_write_bytes = nvlist_get_number(bytes, "out");
             }
-        }
 
-        if (nvlist_exists_nvlist(nvl, "bytes"))
-        {
-            const nvlist_t *bytes = nvlist_get_nvlist(nvl, "bytes");
+            dco->dco_message_type = OVPN_CMD_DEL_PEER;
+            break;
 
-            dco->dco_read_bytes = nvlist_get_number(bytes, "in");
-            dco->dco_write_bytes = nvlist_get_number(bytes, "out");
-        }
-
-        dco->dco_message_type = OVPN_CMD_DEL_PEER;
+        default:
+            msg(M_WARN, "Unknown kernel notification %d", type);
+            break;
     }
 
     nvlist_destroy(nvl);
