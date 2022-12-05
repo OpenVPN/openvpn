@@ -37,6 +37,7 @@
 #include "dco.h"
 #include "tun.h"
 #include "crypto.h"
+#include "multi.h"
 #include "ssl_common.h"
 
 static nvlist_t *
@@ -639,6 +640,86 @@ dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
     }
 
     nvlist_destroy(nvl);
+}
+
+static void
+dco_update_peer_stat(struct multi_context *m, uint32_t peerid, const nvlist_t *nvl)
+{
+    struct hash_element *he;
+    struct hash_iterator hi;
+
+    hash_iterator_init(m->hash, &hi);
+
+    while ((he = hash_iterator_next(&hi)))
+    {
+        struct multi_instance *mi = (struct multi_instance *) he->value;
+
+        if (mi->context.c2.tls_multi->peer_id != peerid)
+        {
+            continue;
+        }
+
+        mi->context.c2.dco_read_bytes = nvlist_get_number(nvl, "in");
+        mi->context.c2.dco_write_bytes = nvlist_get_number(nvl, "out");
+
+        return;
+    }
+
+    msg(M_INFO, "Peer %d returned by kernel, but not found locally", peerid);
+}
+
+int
+dco_get_peer_stats(dco_context_t *dco, struct multi_context *m)
+{
+
+    struct ifdrv drv;
+    uint8_t buf[4096];
+    nvlist_t *nvl;
+    const nvlist_t *const *nvpeers;
+    size_t npeers;
+    int ret;
+
+    if (!dco || !dco->open)
+    {
+        return 0;
+    }
+
+    CLEAR(drv);
+    snprintf(drv.ifd_name, IFNAMSIZ, "%s", dco->ifname);
+    drv.ifd_cmd = OVPN_GET_PEER_STATS;
+    drv.ifd_len = sizeof(buf);
+    drv.ifd_data = buf;
+
+    ret = ioctl(dco->fd, SIOCGDRVSPEC, &drv);
+    if (ret)
+    {
+        msg(M_WARN | M_ERRNO, "Failed to get peer stats");
+        return -EINVAL;
+    }
+
+    nvl = nvlist_unpack(buf, drv.ifd_len, 0);
+    if (!nvl)
+    {
+        msg(M_WARN, "Failed to unpack nvlist");
+        return -EINVAL;
+    }
+
+    if (!nvlist_exists_nvlist_array(nvl, "peers"))
+    {
+        /* no peers */
+        return 0;
+    }
+
+    nvpeers = nvlist_get_nvlist_array(nvl, "peers", &npeers);
+    for (size_t i = 0; i < npeers; i++)
+    {
+        const nvlist_t *peer = nvpeers[i];
+        uint32_t peerid = nvlist_get_number(peer, "peerid");
+
+        dco_update_peer_stat(m, peerid, nvlist_get_nvlist(peer, "bytes"));
+    }
+
+    return 0;
 }
 
 const char *
