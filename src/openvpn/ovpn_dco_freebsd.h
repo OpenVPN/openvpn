@@ -38,6 +38,11 @@ enum ovpn_notif_type {
     OVPN_NOTIF_DEL_PEER,
 };
 
+enum ovpn_del_reason {
+    OVPN_DEL_REASON_REQUESTED       = 0,
+    OVPN_DEL_REASON_TIMEOUT         = 1
+};
+
 enum ovpn_key_slot {
     OVPN_KEY_SLOT_PRIMARY   = 0,
     OVPN_KEY_SLOT_SECONDARY = 1
