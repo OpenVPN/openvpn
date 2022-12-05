@@ -267,8 +267,10 @@ struct context_2
     counter_type tun_read_bytes;
     counter_type tun_write_bytes;
     counter_type link_read_bytes;
+    counter_type dco_read_bytes;
     counter_type link_read_bytes_auth;
     counter_type link_write_bytes;
+    counter_type dco_write_bytes;
 #ifdef PACKET_TRUNCATION_CHECK
     counter_type n_trunc_tun_read;
     counter_type n_trunc_tun_write;

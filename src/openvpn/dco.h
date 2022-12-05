@@ -226,6 +226,14 @@ void dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
 void dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi);
 
 /**
+ * Update traffic statistics for all peers
+ *
+ * @param dco   DCO device context
+ * @param m     the server context
+ **/
+int dco_get_peer_stats(dco_context_t *dco, struct multi_context *m);
+
+/**
  * Retrieve the list of ciphers supported by the current platform
  *
  * @return                   list of colon-separated ciphers
@@ -343,6 +351,12 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
 static inline void
 dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
 {
+}
+
+static inline int
+dco_get_peer_stats(dco_context_t *dco, struct multi_context *m)
+{
+    return 0;
 }
 
 static inline const char *

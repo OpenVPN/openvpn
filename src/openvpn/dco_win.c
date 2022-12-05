@@ -399,6 +399,13 @@ dco_do_write(dco_context_t *dco, int peer_id, struct buffer *buf)
     return 0;
 }
 
+int
+dco_get_peer_stats(dco_context_t *dco, struct multi_context *m)
+{
+    /* Not implemented. */
+    return 0;
+}
+
 void
 dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
 {

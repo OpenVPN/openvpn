@@ -538,29 +538,31 @@ multi_del_iroutes(struct multi_context *m,
 }
 
 static void
-setenv_stats(struct context *c)
+setenv_stats(struct multi_context *m, struct context *c)
 {
-    setenv_counter(c->c2.es, "bytes_received", c->c2.link_read_bytes);
-    setenv_counter(c->c2.es, "bytes_sent", c->c2.link_write_bytes);
+    dco_get_peer_stats(&m->top.c1.tuntap->dco, m);
+
+    setenv_counter(c->c2.es, "bytes_received", c->c2.link_read_bytes + c->c2.dco_read_bytes);
+    setenv_counter(c->c2.es, "bytes_sent", c->c2.link_write_bytes + c->c2.dco_write_bytes);
 }
 
 static void
-multi_client_disconnect_setenv(struct multi_instance *mi)
+multi_client_disconnect_setenv(struct multi_context *m, struct multi_instance *mi)
 {
     /* setenv client real IP address */
     setenv_trusted(mi->context.c2.es, get_link_socket_info(&mi->context));
 
     /* setenv stats */
-    setenv_stats(&mi->context);
+    setenv_stats(m, &mi->context);
 
     /* setenv connection duration */
     setenv_long_long(mi->context.c2.es, "time_duration", now - mi->created);
 }
 
 static void
-multi_client_disconnect_script(struct multi_instance *mi)
+multi_client_disconnect_script(struct multi_context *m, struct multi_instance *mi)
 {
-    multi_client_disconnect_setenv(mi);
+    multi_client_disconnect_setenv(m, mi);
 
     if (plugin_defined(mi->context.plugins, OPENVPN_PLUGIN_CLIENT_DISCONNECT))
     {
@@ -667,7 +669,7 @@ multi_close_instance(struct multi_context *m,
 
     if (mi->context.c2.tls_multi->multi_state >= CAS_CONNECT_DONE)
     {
-        multi_client_disconnect_script(mi);
+        multi_client_disconnect_script(m, mi);
     }
 
     close_context(&mi->context, SIGTERM, CC_GC_FREE);
@@ -837,6 +839,8 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 
         status_reset(so);
 
+        dco_get_peer_stats(&m->top.c1.tuntap->dco, m);
+
         if (version == 1)
         {
             /*
@@ -856,8 +860,8 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
                     status_printf(so, "%s,%s," counter_format "," counter_format ",%s",
                                   tls_common_name(mi->context.c2.tls_multi, false),
                                   mroute_addr_print(&mi->real, &gc),
-                                  mi->context.c2.link_read_bytes,
-                                  mi->context.c2.link_write_bytes,
+                                  mi->context.c2.link_read_bytes + mi->context.c2.dco_read_bytes,
+                                  mi->context.c2.link_write_bytes + mi->context.c2.dco_write_bytes,
                                   time_string(mi->created, 0, false, &gc));
                 }
                 gc_free(&gc);
@@ -932,8 +936,8 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
                                   sep, mroute_addr_print(&mi->real, &gc),
                                   sep, print_in_addr_t(mi->reporting_addr, IA_EMPTY_IF_UNDEF, &gc),
                                   sep, print_in6_addr(mi->reporting_addr_ipv6, IA_EMPTY_IF_UNDEF, &gc),
-                                  sep, mi->context.c2.link_read_bytes,
-                                  sep, mi->context.c2.link_write_bytes,
+                                  sep, mi->context.c2.link_read_bytes + mi->context.c2.dco_read_bytes,
+                                  sep, mi->context.c2.link_write_bytes + mi->context.c2.dco_write_bytes,
                                   sep, time_string(mi->created, 0, false, &gc),
                                   sep, (unsigned int)mi->created,
                                   sep, tls_username(mi->context.c2.tls_multi, false),
@@ -2752,7 +2756,7 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
          * did not fail */
         if (mi->context.c2.tls_multi->multi_state == CAS_PENDING_DEFERRED_PARTIAL)
         {
-            multi_client_disconnect_script(mi);
+            multi_client_disconnect_script(m, mi);
         }
 
         mi->context.c2.tls_multi->multi_state = CAS_FAILED;
