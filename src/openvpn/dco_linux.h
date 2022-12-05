@@ -53,6 +53,8 @@ typedef struct
     int dco_message_type;
     int dco_message_peer_id;
     int dco_del_peer_reason;
+    uint64_t dco_read_bytes;
+    uint64_t dco_write_bytes;
 } dco_context_t;
 
 #endif /* defined(ENABLE_DCO) && defined(TARGET_LINUX) */

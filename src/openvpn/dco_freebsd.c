@@ -528,6 +528,15 @@ dco_do_read(dco_context_t *dco)
     else
     {
         dco->dco_del_peer_reason = OVPN_DEL_PEER_REASON_EXPIRED;
+
+        if (nvlist_exists_nvlist(nvl, "bytes"))
+        {
+            const nvlist_t *bytes = nvlist_get_nvlist(nvl, "bytes");
+
+            dco->dco_read_bytes = nvlist_get_number(bytes, "in");
+            dco->dco_write_bytes = nvlist_get_number(bytes, "out");
+        }
+
         dco->dco_message_type = OVPN_CMD_DEL_PEER;
     }
 
