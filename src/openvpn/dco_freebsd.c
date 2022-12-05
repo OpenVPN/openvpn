@@ -529,6 +529,19 @@ dco_do_read(dco_context_t *dco)
     {
         dco->dco_del_peer_reason = OVPN_DEL_PEER_REASON_EXPIRED;
 
+        if (nvlist_exists_number(nvl, "del_reason"))
+        {
+            uint32_t reason = nvlist_get_number(nvl, "del_reason");
+            if (reason == OVPN_DEL_REASON_TIMEOUT)
+            {
+                dco->dco_del_peer_reason = OVPN_DEL_PEER_REASON_EXPIRED;
+            }
+            else
+            {
+                dco->dco_del_peer_reason = OVPN_DEL_PEER_REASON_USERSPACE;
+            }
+        }
+
         if (nvlist_exists_nvlist(nvl, "bytes"))
         {
             const nvlist_t *bytes = nvlist_get_nvlist(nvl, "bytes");
