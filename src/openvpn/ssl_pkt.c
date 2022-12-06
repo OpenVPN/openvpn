@@ -495,7 +495,7 @@ calculate_session_id_hmac(struct session_id client_sid,
     /* Get the valid time quantisation for our hmac,
      * we divide time by handwindow/2 and allow the previous
      * and future session time if specified by offset */
-    uint32_t session_id_time = now/((handwindow+1)/2) + offset;
+    uint32_t session_id_time = ntohl(now/((handwindow+1)/2) + offset);
 
     hmac_ctx_reset(hmac);
     /* We do not care about endian here since it does not need to be
@@ -504,7 +504,7 @@ calculate_session_id_hmac(struct session_id client_sid,
                     sizeof(session_id_time));
 
     /* add client IP and port */
-    switch (af_addr_size(from->addr.sa.sa_family))
+    switch (from->addr.sa.sa_family)
     {
         case AF_INET:
             hmac_ctx_update(hmac, (const uint8_t *) &from->addr.in4, sizeof(struct sockaddr_in));
