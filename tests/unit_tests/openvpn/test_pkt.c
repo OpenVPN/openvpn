@@ -61,6 +61,14 @@ print_link_socket_actual(const struct link_socket_actual *act, struct gc_arena *
     return "dummy print_link_socket_actual from unit test";
 }
 
+#ifdef _WIN32
+int
+openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned int flags)
+{
+    ASSERT(0);
+}
+#endif
+
 struct test_pkt_context {
     struct tls_auth_standalone tas_tls_auth;
     struct tls_auth_standalone tas_crypt;
@@ -488,7 +496,18 @@ test_calc_session_id_hmac_static(void **ut_state)
     now = 1005;
     struct session_id server_id = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 0);
 
-    struct session_id expected_server_id = { {0x84, 0x73, 0x52, 0x2b, 0x5b, 0xa9, 0x2a, 0x70 }};
+
+    struct session_id expected_server_id = {{0x84, 0x73, 0x52, 0x2b, 0x5b, 0xa9, 0x2a, 0x70}};
+    /* We have to deal with different structs here annoyingly */
+    /* Linux has an unsigned short int as family_t and this is field is always
+     * stored in host endianness even though the rest of the struct isn't...,
+     * so Linux little endian differs from all BSD and Linux big endian */
+    if (sizeof(addr.addr.in4.sin_family) == sizeof(unsigned short int)
+        && ntohs(AF_INET) != AF_INET)
+    {
+        struct session_id linuxle = {{0x8b, 0xeb, 0x3d, 0x20, 0x14, 0x53, 0xbe, 0x0a }};
+        expected_server_id = linuxle;
+    }
     assert_memory_equal(expected_server_id.id, server_id.id, SID_SIZE);
 
     struct session_id server_id_m1 = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, -1);
