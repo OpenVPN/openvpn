@@ -398,7 +398,7 @@ Arne Schwabe (289):
       Signal USR1 when connection initialising fails
       Allow reconnecting in p2p mode work under FreeBSD
 
-Camille GuÈrin (1):
+Camille Gu√©rin (1):
       Removed error message for an option flag not supported with --server-ipv6
 
 David Korczynski (1):
@@ -683,12 +683,10 @@ Michael Baentsch (1):
 Paolo Cerrito (1):
       Insert client connection data into PAM environment
 
-Richard Bonhomme (3):
+Richard Bonhomme (6):
       Improve error msg when all TAP adapters are in use 'or disabled'
       Man page sections corrections
       Do not print Diffie Hellman parameters file to log file
-
-Richard T Bonhomme (3):
       Log messages: Replace NCP with --data-ciphers (NFC)
       doc link-options.rst: Use free open-source dynamic-DNS provider URL
       doc/protocol-options.rst: Correct default for --allow-compression
@@ -794,10 +792,10 @@ Todd Zullinger (2):
       Update IRC information in CONTRIBUTING.rst
       doc/man (vpn-network-options): fix foreign_option_{n} typo
 
-Tıivo Leedj‰rv (1):
+T√µivo Leedj√§rv (1):
       Stop using deprecated getpass()
 
-Ville Skytt‰ (1):
+Ville Skytt√§ (1):
       README.down-root: Fix plugin module name
 
 Vladislav Grishenko (8):
