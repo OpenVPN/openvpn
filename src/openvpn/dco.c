@@ -274,6 +274,12 @@ dco_check_startup_option(int msglevel, const struct options *o)
         return false;
     }
 
+    if (o->shared_secret_file)
+    {
+        msg(msglevel, "--secret is set. Disabling data channel offload");
+        return false;
+    }
+
     if (dev_type_enum(o->dev, o->dev_type) != DEV_TYPE_TUN)
     {
         msg(msglevel, "Note: dev-type not tun, disabling data channel offload.");
