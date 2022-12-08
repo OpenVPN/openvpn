@@ -229,8 +229,13 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
         if (!mi)
         {
             struct tls_pre_decrypt_state state = {0};
-
-            if (do_pre_decrypt_check(m, &state, real))
+            if (m->deferred_shutdown_signal.signal_received)
+            {
+                msg(D_MULTI_ERRORS,
+                    "MULTI: Connection attempt from %s ignored while server is "
+                    "shutting down", mroute_addr_print(&real, &gc));
+            }
+            else if (do_pre_decrypt_check(m, &state, real))
             {
                 /* This is an unknown session but with valid tls-auth/tls-crypt
                  * (or no auth at all).  If this is the initial packet of a
