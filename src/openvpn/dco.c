@@ -274,9 +274,10 @@ dco_check_startup_option(int msglevel, const struct options *o)
         return false;
     }
 
-    if (o->shared_secret_file)
+    if (!o->tls_client && !o->tls_server)
     {
-        msg(msglevel, "--secret is set. Disabling data channel offload");
+        msg(msglevel, "No tls-client or tls-server option in configuration "
+            "detected. Disabling data channel offload.");
         return false;
     }
 
