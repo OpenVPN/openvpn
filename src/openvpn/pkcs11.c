@@ -853,19 +853,9 @@ show_pkcs11_ids(
         goto cleanup;
     }
 
-    if (
-        (rv = pkcs11h_addProvider(
-             provider,
-             provider,
-             TRUE,
-             0,
-             FALSE,
-             0,
-             cert_private ? TRUE : FALSE
-             )) != CKR_OK
-        )
+    if (!pkcs11_addProvider(provider, TRUE, 0, cert_private ? TRUE : FALSE))
     {
-        msg(M_FATAL, "PKCS#11: Cannot add provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage(rv));
+        msg(M_FATAL, "Failed to add PKCS#11 provider '%s", provider);
         goto cleanup;
     }
 
