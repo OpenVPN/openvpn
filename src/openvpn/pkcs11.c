@@ -396,6 +396,38 @@ pkcs11_addProvider(
         provider
         );
 
+#if PKCS11H_VERSION >= ((1<<16) | (28<<8) | (0<<0))
+    if ((rv = pkcs11h_registerProvider(provider)) != CKR_OK)
+    {
+        msg(M_WARN, "PKCS#11: Cannot register provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage(rv));
+    }
+    else
+    {
+        PKCS11H_BOOL allow_protected_auth = protected_auth;
+        PKCS11H_BOOL cert_is_private = cert_private;
+
+        rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_LOCATION, provider, strlen(provider) + 1);
+
+        if (rv == CKR_OK)
+        {
+            rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_ALLOW_PROTECTED_AUTH, &allow_protected_auth, sizeof(allow_protected_auth));
+        }
+        if (rv == CKR_OK)
+        {
+            rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_MASK_PRIVATE_MODE, &private_mode, sizeof(private_mode));
+        }
+        if (rv == CKR_OK)
+        {
+            rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_CERT_IS_PRIVATE, &cert_is_private, sizeof(cert_is_private));
+        }
+
+        if (rv != CKR_OK || (rv = pkcs11h_initializeProvider(provider)) != CKR_OK)
+        {
+            msg(M_WARN, "PKCS#11: Cannot initialize provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage(rv));
+            pkcs11h_removeProvider(provider);
+        }
+    }
+#else  /* if PKCS11H_VERSION >= ((1<<16) | (28<<8) | (0<<0)) */
     if (
         (rv = pkcs11h_addProvider(
              provider,
@@ -410,6 +442,7 @@ pkcs11_addProvider(
     {
         msg(M_WARN, "PKCS#11: Cannot initialize provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage(rv));
     }
+#endif /* if PKCS11H_VERSION >= ((1<<16) | (28<<8) | (0<<0)) */
 
     dmsg(
         D_PKCS11_DEBUG,
