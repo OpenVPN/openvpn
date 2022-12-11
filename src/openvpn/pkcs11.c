@@ -420,6 +420,13 @@ pkcs11_addProvider(
         {
             rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_CERT_IS_PRIVATE, &cert_is_private, sizeof(cert_is_private));
         }
+#if defined(WIN32) && defined(PKCS11H_PROVIDER_PROPERTY_LOADER_FLAGS)
+        if (rv == CKR_OK && platform_absolute_pathname(provider))
+        {
+            unsigned loader_flags = LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR;
+            rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_LOADER_FLAGS, &loader_flags, sizeof(loader_flags));
+        }
+#endif
 
         if (rv != CKR_OK || (rv = pkcs11h_initializeProvider(provider)) != CKR_OK)
         {
