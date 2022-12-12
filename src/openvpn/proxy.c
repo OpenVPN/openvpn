@@ -40,6 +40,9 @@
 #include "httpdigest.h"
 #include "ntlm.h"
 #include "memdbg.h"
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#include "fuzz_header.h"
+#endif
 #include "forward.h"
 
 #define UP_TYPE_PROXY        "HTTP Proxy"
@@ -97,7 +100,11 @@ recv_line(socket_descriptor_t sd,
         tv.tv_sec = timeout_sec;
         tv.tv_usec = 0;
 
+        #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        status = fuzz_select(sd + 1, &reads, NULL, NULL, &tv);
+        #else
         status = select(sd + 1, &reads, NULL, NULL, &tv);
+        #endif
 
         get_signal(signal_received);
         if (*signal_received)
@@ -126,7 +133,11 @@ recv_line(socket_descriptor_t sd,
         }
 
         /* read single char */
+        #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        size = fuzz_recv(sd, &c, 1, MSG_NOSIGNAL);
+        #else
         size = recv(sd, &c, 1, MSG_NOSIGNAL);
+        #endif
 
         /* error? */
         if (size != 1)
@@ -196,7 +207,11 @@ static bool
 send_line(socket_descriptor_t sd,
           const char *buf)
 {
+    #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    const ssize_t size = fuzz_send(sd, buf, strlen(buf), MSG_NOSIGNAL);
+    #else
     const ssize_t size = send(sd, buf, strlen(buf), MSG_NOSIGNAL);
+    #endif
     if (size != (ssize_t) strlen(buf))
     {
         msg(D_LINK_ERRORS | M_ERRNO, "send_line: TCP port write failed on send()");
@@ -772,7 +787,12 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 buf2[128] = 0; /* we only need the beginning - ensure it's null terminated. */
 
                 /* check for "Proxy-Authenticate: NTLM TlRM..." */
+                #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+                // this condition is hard to pass for fuzzer as the loop consumes a lot of input
+                if (true)
+                #else
                 if (nparms == 1)
+                #endif
                 {
                     /* parse buf2 */
                     msg(D_PROXY, "auth string: '%s'", buf2);

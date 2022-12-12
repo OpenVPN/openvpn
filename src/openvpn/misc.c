@@ -223,7 +223,11 @@ get_user_pass_cr(struct user_pass *up,
             if ((flags & GET_USER_PASS_PASSWORD_ONLY) == 0)
             {
                 /* Read username first */
+                #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+                if (fuzz_fgets(up->username, USER_PASS_LEN, fp) == NULL)
+                #else
                 if (fgets(up->username, USER_PASS_LEN, fp) == NULL)
+                #endif
                 {
                     msg(M_FATAL, "Error reading username from %s authfile: %s",
                         prefix,
@@ -232,7 +236,11 @@ get_user_pass_cr(struct user_pass *up,
             }
             chomp(up->username);
 
+            #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+            if (fuzz_fgets(password_buf, USER_PASS_LEN, fp) != NULL)
+            #else
             if (fgets(password_buf, USER_PASS_LEN, fp) != NULL)
+            #endif
             {
                 chomp(password_buf);
             }
@@ -775,7 +783,9 @@ output_peer_info_env(struct env_set *es, const char *peer_info)
         }
         else
         {
+            #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
             msg(M_WARN, "validation failed on peer_info line received from client");
+            #endif
         }
     }
 }

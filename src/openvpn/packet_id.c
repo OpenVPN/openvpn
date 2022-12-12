@@ -494,7 +494,11 @@ packet_id_persist_save(struct packet_id_persist *p)
         seek_ret = lseek(p->fd, (off_t)0, SEEK_SET);
         if (seek_ret == (off_t)0)
         {
+            #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+            n = fuzz_write(p->fd, &image, sizeof(image));
+            #else
             n = write(p->fd, &image, sizeof(image));
+            #endif
             if (n == sizeof(image))
             {
                 p->time_last_written = p->time;

@@ -157,7 +157,11 @@ static FILE *
 open_tty(const bool write)
 {
     FILE *ret;
+    #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    ret = fuzz_fopen("/dev/tty", write ? "w" : "r");
+    #else
     ret = fopen("/dev/tty", write ? "w" : "r");
+    #endif
     if (!ret)
     {
         ret = write ? stderr : stdin;
@@ -176,7 +180,11 @@ close_tty(FILE *fp)
 {
     if (fp != stderr && fp != stdin)
     {
+        #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        fuzz_fclose(fp);
+        #else
         fclose(fp);
+        #endif
     }
 }
 
@@ -212,7 +220,11 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
      * (in which case neither stdin or stderr are connected to a tty and
      * /dev/tty can not be open()ed anymore)
      */
+    #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (!fuzz_isatty(0) && !fuzz_isatty(2) )
+    #else
     if (!isatty(0) && !isatty(2) )
+    #endif
     {
         int fd = open( "/dev/tty", O_RDWR );
         if (fd < 0)
@@ -239,7 +251,11 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
         restore_tty = (tcsetattr(fileno(fp), TCSAFLUSH, &tty_tmp) == 0);
     }
 
+    #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (fuzz_fgets(input, capacity, fp) != NULL)
+    #else
     if (fgets(input, capacity, fp) != NULL)
+    #endif
     {
         chomp(input);
         ret = true;
