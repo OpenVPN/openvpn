@@ -42,7 +42,8 @@ pkcs11_addProvider(
     const char *const provider,
     const bool fProtectedAuthentication,
     const unsigned private_mode,
-    const bool fCertIsPrivate
+    const bool fCertIsPrivate,
+    const unsigned init_flags
     );
 
 int
