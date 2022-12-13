@@ -130,7 +130,7 @@ dco_get_secondary_key(struct tls_multi *multi, const struct key_state *primary)
     return NULL;
 }
 
-void
+bool
 dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
 {
     msg(D_DCO_DEBUG, "%s: peer_id=%d", __func__, multi->dco_peer_id);
@@ -140,7 +140,7 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
      */
     if (multi->dco_keys_installed == 0)
     {
-        return;
+        return true;
     }
 
     struct key_state *primary = tls_select_encryption_key(multi);
@@ -155,18 +155,18 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
         if (ret < 0)
         {
             msg(D_DCO, "Cannot delete primary key during wipe: %s (%d)", strerror(-ret), ret);
-            return;
+            return false;
         }
 
         ret = dco_del_key(dco, multi->dco_peer_id, OVPN_KEY_SLOT_SECONDARY);
         if (ret < 0)
         {
             msg(D_DCO, "Cannot delete secondary key during wipe: %s (%d)", strerror(-ret), ret);
-            return;
+            return false;
         }
 
         multi->dco_keys_installed = 0;
-        return;
+        return true;
     }
 
     /* if we have a primary key, it must have been installed already (keys
@@ -198,7 +198,7 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
         if (ret < 0)
         {
             msg(D_DCO, "Cannot swap keys: %s (%d)", strerror(-ret), ret);
-            return;
+            return false;
         }
 
         primary->dco_status = DCO_INSTALLED_PRIMARY;
@@ -216,7 +216,7 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
         if (ret < 0)
         {
             msg(D_DCO, "Cannot delete secondary key: %s (%d)", strerror(-ret), ret);
-            return;
+            return false;
         }
         multi->dco_keys_installed = 1;
     }
@@ -230,6 +230,7 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
             ks->dco_status = DCO_NOT_INSTALLED;
         }
     }
+    return true;
 }
 
 static bool
