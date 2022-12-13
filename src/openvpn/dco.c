@@ -55,8 +55,8 @@ dco_install_key(struct tls_multi *multi, struct key_state *ks,
                 const char *ciphername)
 
 {
-    msg(D_DCO_DEBUG, "%s: peer_id=%d keyid=%d", __func__, multi->dco_peer_id,
-        ks->key_id);
+    msg(D_DCO_DEBUG, "%s: peer_id=%d keyid=%d, currently %d keys installed",
+        __func__, multi->dco_peer_id, ks->key_id, multi->dco_keys_installed);
 
     /* Install a key in the PRIMARY slot only when no other key exist.
      * From that moment on, any new key will be installed in the SECONDARY
@@ -181,8 +181,18 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
      */
     if (primary->dco_status == DCO_INSTALLED_SECONDARY)
     {
-        msg(D_DCO_DEBUG, "Swapping primary and secondary keys, now: id1=%d id2=%d",
-            primary->key_id, secondary ? secondary->key_id : -1);
+        if (secondary)
+        {
+            msg(D_DCO_DEBUG, "Swapping primary and secondary keys to "
+                "primary-id=%d secondary-id=%d",
+                primary->key_id, secondary->key_id);
+        }
+        else
+        {
+            msg(D_DCO_DEBUG, "Swapping primary and secondary keys to"
+                "primary-id=%d secondary-id=(to be deleted)",
+                primary->key_id);
+        }
 
         int ret = dco_swap_keys(dco, multi->dco_peer_id);
         if (ret < 0)
