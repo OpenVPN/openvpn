@@ -221,13 +221,17 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
         multi->dco_keys_installed = 1;
     }
 
-    /* all keys that are not installed are set to NOT installed */
-    for (int i = 0; i < KEY_SCAN_SIZE; ++i)
+    /* all keys that are not installed are set to NOT installed. Include also
+     * keys that might even be considered as active keys to be sure*/
+    for (int i = 0; i < TM_SIZE; ++i)
     {
-        struct key_state *ks = get_key_scan(multi, i);
-        if (ks != primary && ks != secondary)
+        for (int j = 0; j < KS_SIZE; j++)
         {
-            ks->dco_status = DCO_NOT_INSTALLED;
+            struct key_state *ks = &multi->session[i].key[j];
+            if (ks != primary && ks != secondary)
+            {
+                ks->dco_status = DCO_NOT_INSTALLED;
+            }
         }
     }
     return true;
