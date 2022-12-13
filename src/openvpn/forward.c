@@ -151,7 +151,12 @@ check_dco_key_status(struct context *c)
         return;
     }
 
-    dco_update_keys(&c->c1.tuntap->dco, c->c2.tls_multi);
+    if (!dco_update_keys(&c->c1.tuntap->dco, c->c2.tls_multi))
+    {
+        /* Something bad happened. Kill the connection to
+         * be able to recover. */
+        register_signal(c, SIGUSR1, "dco update keys error");
+    }
 }
 
 /*

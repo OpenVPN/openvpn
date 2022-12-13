@@ -164,9 +164,11 @@ int init_key_dco_bi(struct tls_multi *multi, struct key_state *ks,
  *
  * @param dco           DCO device context
  * @param multi         TLS multi instance
+ *
+ * @return              returns false if an error occurred that is not
+ *                      recoverable and should reset the connection
  */
-void dco_update_keys(dco_context_t *dco, struct tls_multi *multi);
-
+bool dco_update_keys(dco_context_t *dco, struct tls_multi *multi);
 /**
  * Install a new peer in DCO - to be called by a CLIENT (or P2P) instance
  *
@@ -312,10 +314,11 @@ init_key_dco_bi(struct tls_multi *multi, struct key_state *ks,
     return 0;
 }
 
-static inline void
+static inline bool
 dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
 {
     ASSERT(false);
+    return false;
 }
 
 static inline int
