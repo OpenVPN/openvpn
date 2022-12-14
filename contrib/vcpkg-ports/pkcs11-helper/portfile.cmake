@@ -14,6 +14,7 @@ vcpkg_extract_source_archive_ex(
         0001-nmake-compatibility-with-vcpkg-nmake.patch
         0002-config-w32-vc.h.in-indicate-OpenSSL.patch
         pkcs11-helper-001-RFC7512.patch
+        pkcs11-helper-002-dynamic_loader_flags.patch
 )
 
 vcpkg_build_nmake(
