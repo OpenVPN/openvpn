@@ -918,7 +918,7 @@ nla_put_failure:
 }
 
 int
-dco_get_peer_stats(dco_context_t *dco, struct multi_context *m)
+dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
 {
     /* Not implemented. */
     return 0;

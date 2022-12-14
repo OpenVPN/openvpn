@@ -691,7 +691,7 @@ dco_update_peer_stat(struct multi_context *m, uint32_t peerid, const nvlist_t *n
 }
 
 int
-dco_get_peer_stats(dco_context_t *dco, struct multi_context *m)
+dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
 {
 
     struct ifdrv drv;
