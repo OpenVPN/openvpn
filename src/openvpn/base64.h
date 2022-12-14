@@ -38,6 +38,10 @@
 #define OPENVPN_BASE64_LENGTH(binary_length) \
     ((((8 * binary_length) / 6) + 3) & ~3)
 
+/** Compute the maximal number of bytes encoded in a base64 string. */
+#define OPENVPN_BASE64_DECODED_LENGTH(base64_length) \
+    ((base64_length / 4) * 3)
+
 int openvpn_base64_encode(const void *data, int size, char **str);
 
 int openvpn_base64_decode(const char *str, void *data, int size);
