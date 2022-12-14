@@ -743,6 +743,13 @@ dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
     return 0;
 }
 
+int
+dco_get_peer_stats(struct context *c)
+{
+    /* Not implemented. */
+    return 0;
+}
+
 const char *
 dco_get_supported_ciphers()
 {

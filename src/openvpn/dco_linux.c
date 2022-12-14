@@ -924,6 +924,13 @@ dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
     return 0;
 }
 
+int
+dco_get_peer_stats(struct context *c)
+{
+    /* Not implemented. */
+    return 0;
+}
+
 bool
 dco_available(int msglevel)
 {
