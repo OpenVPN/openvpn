@@ -33,6 +33,7 @@
 #include "tun.h"
 #include "crypto.h"
 #include "ssl_common.h"
+#include "openvpn.h"
 
 #include <bcrypt.h>
 #include <winsock2.h>
@@ -403,6 +404,33 @@ int
 dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
 {
     /* Not implemented. */
+    return 0;
+}
+
+int
+dco_get_peer_stats(struct context *c)
+{
+    struct tuntap *tt = c->c1.tuntap;
+
+    if (!tuntap_defined(tt))
+    {
+        return -1;
+    }
+
+    OVPN_STATS stats;
+    ZeroMemory(&stats, sizeof(OVPN_STATS));
+
+    DWORD bytes_returned = 0;
+    if (!DeviceIoControl(tt->hand, OVPN_IOCTL_GET_STATS, NULL, 0,
+                         &stats, sizeof(stats), &bytes_returned, NULL))
+    {
+        msg(M_WARN | M_ERRNO, "DeviceIoControl(OVPN_IOCTL_GET_STATS) failed");
+        return -1;
+    }
+
+    c->c2.dco_read_bytes = stats.TransportBytesReceived;
+    c->c2.dco_write_bytes = stats.TransportBytesSent;
+
     return 0;
 }
 

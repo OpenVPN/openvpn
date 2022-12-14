@@ -43,6 +43,7 @@
 #include "common.h"
 #include "manage.h"
 #include "openvpn.h"
+#include "dco.h"
 
 #include "memdbg.h"
 
@@ -4051,10 +4052,14 @@ management_check_bytecount(struct context *c, struct management *man, struct tim
     if (event_timeout_trigger(&man->connection.bytecount_update_interval,
                               timeval, ETT_DEFAULT))
     {
-        /* TODO: get stats from DCO */
-
         counter_type dco_read_bytes = 0;
         counter_type dco_write_bytes = 0;
+
+        if (dco_enabled(&c->options) && (dco_get_peer_stats(c) == 0))
+        {
+            dco_read_bytes = c->c2.dco_read_bytes;
+            dco_write_bytes = c->c2.dco_write_bytes;
+        }
 
         if (!(man->persist.callback.flags & MCF_SERVER))
         {
