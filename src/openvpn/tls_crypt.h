@@ -101,8 +101,6 @@
 #define TLS_CRYPT_V2_MAX_METADATA_LEN (unsigned)(TLS_CRYPT_V2_MAX_WKC_LEN \
                                                  - (TLS_CRYPT_V2_CLIENT_KEY_LEN + TLS_CRYPT_V2_TAG_SIZE \
                                                     + sizeof(uint16_t)))
-#define TLS_CRYPT_V2_MAX_B64_METADATA_LEN \
-    OPENVPN_BASE64_LENGTH(TLS_CRYPT_V2_MAX_METADATA_LEN - 1)
 
 /**
  * Initialize a key_ctx_bi structure for use with --tls-crypt.
