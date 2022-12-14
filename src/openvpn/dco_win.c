@@ -400,7 +400,7 @@ dco_do_write(dco_context_t *dco, int peer_id, struct buffer *buf)
 }
 
 int
-dco_get_peer_stats(dco_context_t *dco, struct multi_context *m)
+dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
 {
     /* Not implemented. */
     return 0;

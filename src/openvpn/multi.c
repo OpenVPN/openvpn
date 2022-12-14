@@ -540,7 +540,7 @@ multi_del_iroutes(struct multi_context *m,
 static void
 setenv_stats(struct multi_context *m, struct context *c)
 {
-    dco_get_peer_stats(&m->top.c1.tuntap->dco, m);
+    dco_get_peer_stats_multi(&m->top.c1.tuntap->dco, m);
 
     setenv_counter(c->c2.es, "bytes_received", c->c2.link_read_bytes + c->c2.dco_read_bytes);
     setenv_counter(c->c2.es, "bytes_sent", c->c2.link_write_bytes + c->c2.dco_write_bytes);
@@ -839,7 +839,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 
         status_reset(so);
 
-        dco_get_peer_stats(&m->top.c1.tuntap->dco, m);
+        dco_get_peer_stats_multi(&m->top.c1.tuntap->dco, m);
 
         if (version == 1)
         {
