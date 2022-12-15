@@ -143,6 +143,19 @@ my_strupr(char *str)
     }
 }
 
+/**
+ * This function expects a null-terminated string in src and will
+ * copy it (including the terminating NUL byte),
+ * alternating it with 0 to dst.
+ *
+ * This basically will transform a ASCII string into valid UTF-16.
+ * Characters that are 8bit in src, will get the same treatment, resulting in
+ * invalid or wrong unicode code points.
+ *
+ * @note the function will blindly assume that dst has double
+ * the space of src.
+ * @return  the length of the number of bytes written to dst
+ */
 static int
 unicodize(char *dst, const char *src)
 {

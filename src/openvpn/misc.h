@@ -74,6 +74,7 @@ struct user_pass
 #else
 #define USER_PASS_LEN 128
 #endif
+    /* Note that username and password are expected to be null-terminated */
     char username[USER_PASS_LEN];
     char password[USER_PASS_LEN];
 };
