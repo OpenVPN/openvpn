@@ -4068,6 +4068,19 @@ management_check_bytecount(struct context *c, struct management *man, struct tim
     }
 }
 
+/* DCO resets stats on reconnect. Since client expects stats
+ * to be preserved across reconnects, we need to save DCO
+ * stats before tearing the tunnel down.
+ */
+void
+man_persist_client_stats(struct management *man, struct context *c)
+{
+    if (dco_enabled(&c->options) && (dco_get_peer_stats(c) == 0))
+    {
+        management_bytes_client(man, c->c2.dco_read_bytes, c->c2.dco_write_bytes);
+    }
+}
+
 #else  /* ifdef ENABLE_MANAGEMENT */
 
 void

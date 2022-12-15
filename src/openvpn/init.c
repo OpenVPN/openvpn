@@ -4165,6 +4165,17 @@ uninit_management_callback(void)
 #endif
 }
 
+void
+persist_client_stats(struct context *c)
+{
+#ifdef ENABLE_MANAGEMENT
+    if (management)
+    {
+        man_persist_client_stats(management, c);
+    }
+#endif
+}
+
 /*
  * Initialize a tunnel instance, handle pre and post-init
  * signal settings.
