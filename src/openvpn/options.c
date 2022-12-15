@@ -4657,8 +4657,6 @@ parse_argv(struct options *options,
            unsigned int *option_types_found,
            struct env_set *es)
 {
-    int i, j;
-
     /* usage message */
     if (argc <= 1)
     {
@@ -4668,7 +4666,7 @@ parse_argv(struct options *options,
     /* config filename specified only? */
     if (argc == 2 && strncmp(argv[1], "--", 2))
     {
-        char *p[MAX_PARMS];
+        char *p[MAX_PARMS+1];
         CLEAR(p);
         p[0] = "config";
         p[1] = argv[1];
@@ -4677,9 +4675,9 @@ parse_argv(struct options *options,
     else
     {
         /* parse command line */
-        for (i = 1; i < argc; ++i)
+        for (int i = 1; i < argc; ++i)
         {
-            char *p[MAX_PARMS];
+            char *p[MAX_PARMS+1];
             CLEAR(p);
             p[0] = argv[i];
             if (strncmp(p[0], "--", 2))
@@ -4691,6 +4689,7 @@ parse_argv(struct options *options,
                 p[0] += 2;
             }
 
+            int j;
             for (j = 1; j < MAX_PARMS; ++j)
             {
                 if (i + j < argc)
