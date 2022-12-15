@@ -1,3 +1,39 @@
+Overview of changes in 2.6_beta2
+================================
+
+New features
+------------
+Transport statistics (bytes in/out) for DCO environments
+    With DCO, OpenVPN userland will not see data packets and can not
+    count them, thus, no statistics.  This feature implements server-side
+    statistics for FreeBSD+DCO and client-side statistics for Windows+DCO,
+    Linux and FreeBSD client will follow.
+
+pkcs11-helper updates
+    improve shared library loading on Windows, so "copy .dll to application
+    directory" recipes should no longer be necessary for pkcs#11 providers
+
+Bugfixes / minor improvements
+-----------------------------
+- add proper documentation for tls-crypt-v2 metadata limits, and better
+  error messages when these are exceeded
+
+- trigger SIGUSR1 if dco_update_keys() fails - this is, when OpenVPN
+  userland and kernel side key handling gets out of sync, restart instance
+  to recover.
+
+- improve logging for DCO key update handling
+
+- ignore incoming client connects while server is being shutdown
+  (Github: OpenVPN/openvpn#189)
+
+- disable DCO for p2p modes with no crypto or --secret pre-shared key
+  (= everything that is not TLS)
+
+- fix endianness issues for TLS cookie handling and unit test
+
+
+
 Overview of changes in 2.6
 ==========================
 

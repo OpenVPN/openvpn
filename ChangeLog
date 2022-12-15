@@ -1,6 +1,45 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
 
+2022.12.15 -- Version 2.6_beta2
+
+Antonio Quartulli (1):
+      disable DCO if --secret is specified
+
+Arne Schwabe (7):
+      Fix connection cookie not including address and fix endianness in test
+      Fix unit test of test_pkt on little endian Linux
+      Disable DCO when TLS mode is not used
+      Ignore connection attempts while server is shutting down
+      Improve debug logging of DCO swap key message and Linux dco_new_peer
+      Trigger a USR1 if dco_update_keys fails
+      Set DCO_NOT_INSTALLED also for keys not in the get_key_scan range
+
+Frank Lichtenheld (1):
+      ChangeLog: Fix encoding
+
+Kristof Provost (4):
+      Read DCO traffic stats from the kernel
+      dco: Update counters when a client disconnects
+      Read the peer deletion reason from the kernel
+      dco: cleanup FreeBSD dco_do_read()
+
+Lev Stipakov (3):
+      Rename dco_get_peer_stats to dco_get_peer_stats_multi
+      management: add timer to output BYTECOUNT
+      Introduce dco_get_peer_stats API and Windows implementation
+
+Marc Becker (4):
+      unify code path for adding PKCS#11 providers
+      use new pkcs11-helper interface to add providers
+      special handling for PKCS11 providers on win32
+      vcpkg-ports/pkcs11-helper: support loader flags
+
+Max Fillinger (2):
+      Correct tls-crypt-v2 metadata length in man page
+      Fix message for too long tls-crypt-v2 metadata
+
+
 2022.12.01 -- Version 2.6_beta1
 
 Adrian (1):
