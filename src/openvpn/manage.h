@@ -548,6 +548,9 @@ management_bytes_server(struct management *man,
     }
 }
 
+void
+man_persist_client_stats(struct management *man, struct context *c);
+
 #endif /* ifdef ENABLE_MANAGEMENT */
 
 /**

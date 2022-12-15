@@ -97,6 +97,8 @@ tunnel_point_to_point(struct context *c)
         perf_pop();
     }
 
+    persist_client_stats(c);
+
     uninit_management_callback();
 
     /* tear down tunnel instance (unless --persist-tun) */

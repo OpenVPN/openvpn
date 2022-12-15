@@ -147,4 +147,6 @@ void write_pid_file(const char *filename, const char *chroot_dir);
 
 void remove_pid_file(void);
 
+void persist_client_stats(struct context *c);
+
 #endif /* ifndef INIT_H */
