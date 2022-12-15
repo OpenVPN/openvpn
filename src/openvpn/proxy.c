@@ -519,6 +519,8 @@ http_proxy_new(const struct http_proxy_options *o)
 #if NTLM
         else if (!strcmp(o->auth_method_string, "ntlm"))
         {
+            msg(M_INFO, "NTLM v1 authentication is deprecated and will be removed in "
+                "OpenVPN 2.7");
             p->auth_method = HTTP_AUTH_NTLM;
         }
         else if (!strcmp(o->auth_method_string, "ntlm2"))
