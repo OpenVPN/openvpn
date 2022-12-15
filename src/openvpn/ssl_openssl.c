@@ -1826,10 +1826,7 @@ bio_write(BIO *bio, const uint8_t *data, int size, const char *desc)
 
         if (i < 0)
         {
-            if (BIO_should_retry(bio))
-            {
-            }
-            else
+            if (!BIO_should_retry(bio))
             {
                 crypto_msg(D_TLS_ERRORS, "TLS ERROR: BIO write %s error", desc);
                 ret = -1;
@@ -1873,51 +1870,48 @@ bio_write_post(const int status, struct buffer *buf)
 static int
 bio_read(BIO *bio, struct buffer *buf, const char *desc)
 {
-    int i;
-    int ret = 0;
     ASSERT(buf->len >= 0);
     if (buf->len)
     {
+        /* we only want to write empty buffers, ignore read request
+         * if the buffer is not empty */
+        return 0;
     }
-    else
-    {
-        int len = buf_forward_capacity(buf);
+    int len = buf_forward_capacity(buf);
 
-        /*
-         * BIO_read brackets most of the serious RSA
-         * key negotiation number crunching.
-         */
-        i = BIO_read(bio, BPTR(buf), len);
+    /*
+     * BIO_read brackets most of the serious RSA
+     * key negotiation number crunching.
+     */
+    int i = BIO_read(bio, BPTR(buf), len);
 
-        VALGRIND_MAKE_READABLE((void *) &i, sizeof(i));
+    VALGRIND_MAKE_READABLE((void *) &i, sizeof(i));
 
 #ifdef BIO_DEBUG
-        bio_debug_data("read", bio, BPTR(buf), i, desc);
+    bio_debug_data("read", bio, BPTR(buf), i, desc);
 #endif
-        if (i < 0)
+
+    int ret = 0;
+    if (i < 0)
+    {
+        if (!BIO_should_retry(bio))
         {
-            if (BIO_should_retry(bio))
-            {
-            }
-            else
-            {
-                crypto_msg(D_TLS_ERRORS, "TLS_ERROR: BIO read %s error", desc);
-                buf->len = 0;
-                ret = -1;
-                ERR_clear_error();
-            }
-        }
-        else if (!i)
-        {
+            crypto_msg(D_TLS_ERRORS, "TLS_ERROR: BIO read %s error", desc);
             buf->len = 0;
+            ret = -1;
+            ERR_clear_error();
         }
-        else
-        {                       /* successful read */
-            dmsg(D_HANDSHAKE_VERBOSE, "BIO read %s %d bytes", desc, i);
-            buf->len = i;
-            ret = 1;
-            VALGRIND_MAKE_READABLE((void *) BPTR(buf), BLEN(buf));
-        }
+    }
+    else if (!i)
+    {
+        buf->len = 0;
+    }
+    else
+    {                       /* successful read */
+        dmsg(D_HANDSHAKE_VERBOSE, "BIO read %s %d bytes", desc, i);
+        buf->len = i;
+        ret = 1;
+        VALGRIND_MAKE_READABLE((void *) BPTR(buf), BLEN(buf));
     }
     return ret;
 }

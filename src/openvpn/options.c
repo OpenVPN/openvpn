@@ -2973,10 +2973,7 @@ options_postprocess_verify_ce(const struct options *options,
                             "--auth-user-pass");
                     }
                 }
-                else if (sum == 2)
-                {
-                }
-                else
+                else if (sum != 2)
                 {
                     msg(M_USAGE, "If you use one of --cert or --key, you must use them both");
                 }

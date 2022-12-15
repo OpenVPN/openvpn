@@ -2921,6 +2921,7 @@ do_init_crypto_tls_c1(struct context *c)
 
                 case AR_INTERACT:
                     ssl_purge_auth(false);
+                /* Intentional [[fallthrough]]; */
 
                 case AR_NOINTERACT:
                     c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- Password failure error */

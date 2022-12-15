@@ -237,6 +237,7 @@ lz4_decompress(struct buffer *buf, struct buffer work,
     }
     else if (c == NO_COMPRESS_BYTE_SWAP) /* packet was not compressed */
     {
+        /* nothing to do */
     }
     else
     {

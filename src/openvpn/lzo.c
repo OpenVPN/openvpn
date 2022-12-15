@@ -250,6 +250,7 @@ lzo_decompress(struct buffer *buf, struct buffer work,
     }
     else if (c == NO_COMPRESS_BYTE)     /* packet was not compressed */
     {
+        /* nothing to do */
     }
     else
     {

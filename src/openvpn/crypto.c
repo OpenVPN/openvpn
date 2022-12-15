@@ -1300,6 +1300,7 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
                 }
                 else if (isspace(c))
                 {
+                    /* ignore white space characters */
                 }
                 else
                 {
