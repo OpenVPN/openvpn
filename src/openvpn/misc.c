@@ -273,6 +273,7 @@ get_user_pass_cr(struct user_pass *up,
                 msg(D_LOW, "No password found in %s authfile '%s'. Querying the management interface", prefix, auth_file);
                 if (!auth_user_pass_mgmt(up, prefix, flags, auth_challenge))
                 {
+                    fclose(fp);
                     return false;
                 }
             }
