@@ -138,12 +138,19 @@ configuration.
   Set ``--verb 6`` for debugging info showing the transformation of
   src/dest addresses in packets.
 
---connect-retry n
-  Wait ``n`` seconds between connection attempts (default :code:`5`).
+--connect-retry args
+  Wait ``n`` seconds between connection attempts (default :code:`1`).
   Repeated reconnection attempts are slowed down after 5 retries per
-  remote by doubling the wait time after each unsuccessful attempt. An
-  optional argument ``max`` specifies the maximum value of wait time in
-  seconds at which it gets capped (default :code:`300`).
+  remote by doubling the wait time after each unsuccessful attempt.
+
+  Valid syntaxes:
+  ::
+
+     connect retry n
+     connect retry n max
+
+  If the optional argument ``max`` is specified, the maximum wait time in
+  seconds gets capped at that value (default :code:`300`).
 
 --connect-retry-max n
   ``n`` specifies the number of times each ``--remote`` or
