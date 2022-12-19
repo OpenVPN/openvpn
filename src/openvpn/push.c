@@ -989,8 +989,10 @@ push_update_digest(md_ctx_t *ctx, struct buffer *buf, const struct options *opt)
     char line[OPTION_PARM_SIZE];
     while (buf_parse(buf, ',', line, sizeof(line)))
     {
-        /* peer-id might change on restart and this should not trigger reopening tun */
-        if (strprefix(line, "peer-id "))
+        /* peer-id and auth-token might change on restart and this should not trigger reopening tun */
+        if (strprefix(line, "peer-id ")
+            || strprefix(line, "auth-token ")
+            || strprefix(line, "auth-token-user "))
         {
             continue;
         }
