@@ -22,7 +22,7 @@
 
 #if defined(ENABLE_DCO) && defined(TARGET_FREEBSD)
 
-#include <buffer.h>
+#include "buffer.h"
 #include "event.h"
 
 #include "ovpn_dco_freebsd.h"
