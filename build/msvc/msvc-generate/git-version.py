@@ -24,15 +24,25 @@
 
 import os
 import sys
+import subprocess
+
+def run_command(args):
+    sp = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    o, _ = sp.communicate()
+    return o.decode("utf-8")[:-1]
 
 def get_branch_commit_id():
-    commit_id = os.popen("git rev-parse --short=16 HEAD").read()[:-1]
+    commit_id = run_command(["git", "rev-parse", "--short=16", "HEAD"])
     if not commit_id:
         raise
-    l = os.popen("git rev-parse --symbolic-full-name HEAD").read().split("/")[2:]
-    if not l:
-        l = ["none\n"]
-    branch = "/" .join(l)[:-1]
+    branch = run_command(["git", "describe", "--exact-match"])
+    if not branch:
+        # this returns an array like ["master"] or ["release", "2.6"]
+        branch = run_command(["git", "rev-parse", "--symbolic-full-name", "HEAD"]).split("/")[2:]
+        if not branch:
+            branch = ["none"]
+        branch = "/" .join(branch) # handle cases like release/2.6
+
     return branch, commit_id
 
 def main():
