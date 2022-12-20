@@ -198,7 +198,12 @@ man_check_password(struct management *man, const char *line)
 {
     if (man_password_needed(man))
     {
-        if (streq(line, man->settings.up.password))
+        /* This comparison is not fixed time but since strlen(time) is based on
+         * the attacker choice, it should not give any indication of the real
+         * password length, use + 1 to include the NUL byte that terminates the
+         * string*/
+        size_t compare_len = min_uint(strlen(line) + 1, sizeof(man->settings.up.password));
+        if (memcmp_constant_time(line, man->settings.up.password, compare_len) == 0)
         {
             man->connection.password_verified = true;
             msg(M_CLIENT, "SUCCESS: password is correct");
