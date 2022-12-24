@@ -890,8 +890,8 @@ session_index_name(int index)
         case TM_ACTIVE:
             return "TM_ACTIVE";
 
-        case TM_UNTRUSTED:
-            return "TM_UNTRUSTED";
+        case TM_INITIAL:
+            return "TM_INITIAL";
 
         case TM_LAME_DUCK:
             return "TM_LAME_DUCK";
@@ -1327,11 +1327,7 @@ tls_multi_init_finalize(struct tls_multi *multi, int tls_mtu)
     /* initialize the active and untrusted sessions */
 
     tls_session_init(multi, &multi->session[TM_ACTIVE]);
-
-    if (!multi->opt.single_session)
-    {
-        tls_session_init(multi, &multi->session[TM_UNTRUSTED]);
-    }
+    tls_session_init(multi, &multi->session[TM_INITIAL]);
 }
 
 /*
@@ -3173,8 +3169,11 @@ tls_multi_process(struct tls_multi *multi,
         struct key_state *ks = &session->key[KS_PRIMARY];
         struct key_state *ks_lame = &session->key[KS_LAME_DUCK];
 
-        /* set initial remote address */
-        if (i == TM_ACTIVE && ks->state == S_INITIAL
+        /* set initial remote address. This triggers connecting with that
+         * session. So we only do that if the TM_ACTIVE session is not
+         * established */
+        if (i == TM_INITIAL && ks->state == S_INITIAL
+            && get_primary_key(multi)->state <= S_INITIAL
             && link_socket_actual_defined(&to_link_socket_info->lsa->actual))
         {
             ks->remote_addr = to_link_socket_info->lsa->actual;
@@ -3221,13 +3220,14 @@ tls_multi_process(struct tls_multi *multi,
             {
                 ++multi->n_soft_errors;
 
-                if (i == TM_ACTIVE)
+                if (i == TM_ACTIVE
+                    || (i == TM_INITIAL && get_primary_key(multi)->state < S_ACTIVE))
                 {
                     error = true;
                 }
 
                 if (i == TM_ACTIVE
-                    && ks_lame->state >= S_ACTIVE
+                    && ks_lame->state >= S_GENERATED_KEYS
                     && !multi->opt.single_session)
                 {
                     move_session(multi, TM_LAME_DUCK, TM_ACTIVE, true);
@@ -3250,7 +3250,7 @@ tls_multi_process(struct tls_multi *multi,
     if (multi->multi_state >= CAS_CONNECT_DONE)
     {
         /* Only generate keys for the TM_ACTIVE session. We defer generating
-         * keys for TM_UNTRUSTED until we actually trust it.
+         * keys for TM_INITIAL until we actually trust it.
          * For TM_LAME_DUCK it makes no sense to generate new keys. */
         struct tls_session *session = &multi->session[TM_ACTIVE];
         struct key_state *ks = &session->key[KS_PRIMARY];
@@ -3299,10 +3299,12 @@ tls_multi_process(struct tls_multi *multi,
      * verification failed.  A semi-trusted session can forward data on the
      * TLS control channel but not on the tunnel channel.
      */
-    if (TLS_AUTHENTICATED(multi, &multi->session[TM_UNTRUSTED].key[KS_PRIMARY]))
+    if (TLS_AUTHENTICATED(multi, &multi->session[TM_INITIAL].key[KS_PRIMARY]))
     {
-        move_session(multi, TM_ACTIVE, TM_UNTRUSTED, true);
-        msg(D_TLS_DEBUG_LOW, "TLS: tls_multi_process: untrusted session promoted to %strusted",
+        move_session(multi, TM_ACTIVE, TM_INITIAL, true);
+        tas = tls_authentication_status(multi);
+        msg(D_TLS_DEBUG_LOW, "TLS: tls_multi_process: initial untrusted "
+            "session promoted to %strusted",
             tas == TLS_AUTHENTICATION_SUCCEEDED ? "" : "semi-");
 
         if (multi->multi_state == CAS_CONNECT_DONE)
@@ -3633,55 +3635,8 @@ tls_pre_decrypt(struct tls_multi *multi,
 
     /*
      * Hard reset and session id does not match any session in
-     * multi->session: Possible initial packet
-     */
-    if (i == TM_SIZE && is_hard_reset_method2(op))
-    {
-        struct tls_session *session = &multi->session[TM_ACTIVE];
-        const struct key_state *ks = get_primary_key(multi);
-
-        /*
-         * If we have no session currently in progress, the initial packet will
-         * open a new session in TM_ACTIVE rather than TM_UNTRUSTED.
-         */
-        if (!session_id_defined(&ks->session_id_remote))
-        {
-            if (multi->opt.single_session && multi->n_sessions)
-            {
-                msg(D_TLS_ERRORS,
-                    "TLS Error: Cannot accept new session request from %s due to session context expire or --single-session [1]",
-                    print_link_socket_actual(from, &gc));
-                goto error;
-            }
-
-#ifdef ENABLE_MANAGEMENT
-            if (management)
-            {
-                management_set_state(management,
-                                     OPENVPN_STATE_AUTH,
-                                     NULL,
-                                     NULL,
-                                     NULL,
-                                     NULL,
-                                     NULL);
-            }
-#endif
-
-            msg(D_TLS_DEBUG_LOW,
-                "TLS: Initial packet from %s, sid=%s",
-                print_link_socket_actual(from, &gc),
-                session_id_print(&sid, &gc));
-
-            do_burst = true;
-            new_link = true;
-            i = TM_ACTIVE;
-            session->untrusted_addr = *from;
-        }
-    }
-
-    /*
-     * If we detected new session in the last if block, variable i has
-     * changed to TM_ACTIVE, so check the condition again.
+     * multi->session: Possible initial packet. New sessions always start
+     * as TM_INITIAL
      */
     if (i == TM_SIZE && is_hard_reset_method2(op))
     {
@@ -3689,16 +3644,17 @@ tls_pre_decrypt(struct tls_multi *multi,
          * No match with existing sessions,
          * probably a new session.
          */
-        struct tls_session *session = &multi->session[TM_UNTRUSTED];
+        struct tls_session *session = &multi->session[TM_INITIAL];
 
         /*
          * If --single-session, don't allow any hard-reset connection request
          * unless it the first packet of the session.
          */
-        if (multi->opt.single_session)
+        if (multi->opt.single_session && multi->n_sessions)
         {
             msg(D_TLS_ERRORS,
-                "TLS Error: Cannot accept new session request from %s due to session context expire or --single-session [2]",
+                "TLS Error: Cannot accept new session request from %s due "
+                "to session context expire or --single-session",
                 print_link_socket_actual(from, &gc));
             goto error;
         }
@@ -3709,6 +3665,19 @@ tls_pre_decrypt(struct tls_multi *multi,
             goto error;
         }
 
+#ifdef ENABLE_MANAGEMENT
+        if (management)
+        {
+            management_set_state(management,
+                                 OPENVPN_STATE_AUTH,
+                                 NULL,
+                                 NULL,
+                                 NULL,
+                                 NULL,
+                                 NULL);
+        }
+#endif
+
         /*
          * New session-initiating control packet is authenticated at this point,
          * assuming that the --tls-auth command line option was used.
@@ -3716,11 +3685,13 @@ tls_pre_decrypt(struct tls_multi *multi,
          * Without --tls-auth, we leave authentication entirely up to TLS.
          */
         msg(D_TLS_DEBUG_LOW,
-            "TLS: new session incoming connection from %s",
-            print_link_socket_actual(from, &gc));
+            "TLS: Initial packet from %s, sid=%s",
+            print_link_socket_actual(from, &gc),
+            session_id_print(&sid, &gc));
 
+        do_burst = true;
         new_link = true;
-        i = TM_UNTRUSTED;
+        i = TM_INITIAL;
         session->untrusted_addr = *from;
     }
     else
@@ -3731,7 +3702,7 @@ tls_pre_decrypt(struct tls_multi *multi,
         /*
          * Packet must belong to an existing session.
          */
-        if (i != TM_ACTIVE && i != TM_UNTRUSTED)
+        if (i != TM_ACTIVE && i != TM_INITIAL)
         {
             msg(D_TLS_ERRORS,
                 "TLS Error: Unroutable control packet received from %s (si=%d op=%s)",
