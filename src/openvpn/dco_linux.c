@@ -348,9 +348,6 @@ ovpn_dco_init_netlink(dco_context_t *dco)
         msg(M_ERR, "Cannot create netlink socket");
     }
 
-    /* TODO: Why are we setting this buffer size? */
-    nl_socket_set_buffer_size(dco->nl_sock, 8192, 8192);
-
     int ret = genl_connect(dco->nl_sock);
     if (ret)
     {
