@@ -3276,6 +3276,8 @@ multi_process_incoming_dco(struct multi_context *m)
     else
     {
         msg(D_DCO, "Received packet for peer-id unknown to OpenVPN: %d", peer_id);
+        /* Also clear the buffer if this was incoming packet for a dropped peer */
+        buf_init(&dco->dco_packet_in, 0);
     }
 
     dco->dco_message_type = 0;
