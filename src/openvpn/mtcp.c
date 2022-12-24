@@ -402,7 +402,7 @@ multi_tcp_wait_lite(struct multi_context *m, struct multi_instance *mi, const in
 
     tv_clear(&c->c2.timeval); /* ZERO-TIMEOUT */
 
-    if (mi && mi->context.c2.link_socket->info.lsa->actual.dco_installed)
+    if (mi && mi->context.c2.link_socket->dco_installed)
     {
         /* If we got a socket that has been handed over to the kernel
          * we must not call the normal socket function to figure out
@@ -537,7 +537,7 @@ multi_tcp_dispatch(struct multi_context *m, struct multi_instance *mi, const int
 
         case TA_INITIAL:
             ASSERT(mi);
-            if (!mi->context.c2.link_socket->info.lsa->actual.dco_installed)
+            if (!mi->context.c2.link_socket->dco_installed)
             {
                 multi_tcp_set_global_rw_flags(m, mi);
             }
@@ -590,7 +590,7 @@ multi_tcp_post(struct multi_context *m, struct multi_instance *mi, const int act
             }
             else
             {
-                if (!c->c2.link_socket->info.lsa->actual.dco_installed)
+                if (!c->c2.link_socket->dco_installed)
                 {
                     multi_tcp_set_global_rw_flags(m, mi);
                 }

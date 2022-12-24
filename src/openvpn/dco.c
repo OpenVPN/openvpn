@@ -456,22 +456,6 @@ dco_check_pull_options(int msglevel, const struct options *o)
     return true;
 }
 
-static void
-addr_set_dco_installed(struct context *c)
-{
-    /* We ensure that all addresses we currently hold have the dco_installed
-     * bit set */
-    for (int i = 0; i < KEY_SCAN_SIZE; ++i)
-    {
-        struct key_state *ks = get_key_scan(c->c2.tls_multi, i);
-        if (ks)
-        {
-            ks->remote_addr.dco_installed = true;
-        }
-    }
-    get_link_socket_info(c)->lsa->actual.dco_installed = true;
-}
-
 int
 dco_p2p_add_new_peer(struct context *c)
 {
@@ -483,8 +467,6 @@ dco_p2p_add_new_peer(struct context *c)
     struct link_socket *ls = c->c2.link_socket;
 
     ASSERT(ls->info.connection_established);
-
-    addr_set_dco_installed(c);
 
     struct sockaddr *remoteaddr = &ls->info.lsa->actual.dest.addr.sa;
     struct tls_multi *multi = c->c2.tls_multi;
@@ -505,7 +487,7 @@ dco_p2p_add_new_peer(struct context *c)
     }
 
     c->c2.tls_multi->dco_peer_id = multi->peer_id;
-    c->c2.link_socket->info.lsa->actual.dco_installed = true;
+    c->c2.link_socket->dco_installed = true;
 
     return 0;
 }
@@ -595,7 +577,6 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
         ASSERT(c->c2.link_socket_info->connection_established);
         remoteaddr = &c->c2.link_socket_info->lsa->actual.dest.addr.sa;
     }
-    addr_set_dco_installed(c);
 
     /* In server mode we need to fetch the remote addresses from the push config */
     struct in_addr vpn_ip4 = { 0 };
@@ -633,7 +614,7 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
         {
             msg(D_DCO|M_ERRNO, "error closing TCP socket after DCO handover");
         }
-        c->c2.link_socket->info.lsa->actual.dco_installed = true;
+        c->c2.link_socket->dco_installed = true;
         c->c2.link_socket->sd = SOCKET_UNDEFINED;
     }
 
