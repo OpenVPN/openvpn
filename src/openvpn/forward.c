@@ -1194,6 +1194,8 @@ process_incoming_dco(struct context *c)
         msg(D_DCO_DEBUG, "%s: received message for mismatching peer-id %d, "
             "expected %d", __func__, dco->dco_message_peer_id,
             c->c2.tls_multi->dco_peer_id);
+        /* ensure we also drop a message if there is one in the buffer */
+        buf_init(&dco->dco_packet_in, 0);
         return;
     }
 
