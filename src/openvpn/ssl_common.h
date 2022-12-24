@@ -512,7 +512,7 @@ struct tls_session
  *
  *  @{ */
 #define TM_ACTIVE    0          /**< Active \c tls_session. */
-#define TM_UNTRUSTED 1          /**< As yet un-trusted \c tls_session
+#define TM_INITIAL   1          /**< As yet un-trusted \c tls_session
                                  *   being negotiated. */
 #define TM_LAME_DUCK 2          /**< Old \c tls_session. */
 #define TM_SIZE      3          /**< Size of the \c tls_multi.session

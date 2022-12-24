@@ -159,7 +159,7 @@ struct tls_multi *tls_multi_init(struct tls_options *tls_options);
  * @ingroup control_processor
  *
  * This function initializes the \c TM_ACTIVE \c tls_session, and in
- * server mode also the \c TM_UNTRUSTED \c tls_session, associated with
+ * server mode also the \c TM_INITIAL \c tls_session, associated with
  * this \c tls_multi structure.  It also configures the control channel's
  * \c frame structure based on the data channel's \c frame given in
  * argument \a frame.

@@ -257,7 +257,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
                             && session_id_defined((&state.peer_session_id)))
                         {
                             mi->context.c2.tls_multi->n_sessions++;
-                            struct tls_session *session = &mi->context.c2.tls_multi->session[TM_ACTIVE];
+                            struct tls_session *session = &mi->context.c2.tls_multi->session[TM_INITIAL];
                             session_skip_to_pre_start(session, &state, &m->top.c2.from);
                         }
                     }
