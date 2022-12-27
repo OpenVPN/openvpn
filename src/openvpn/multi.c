@@ -3235,10 +3235,19 @@ process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi,
             break;
 
         case OVPN_DEL_PEER_REASON_USERSPACE:
-            /* This very likely ourselves but might be another process, so
-             * still process it */
-            reason = "ovpn-dco: userspace request";
-            break;
+            /* We assume that is ourselves. Unfortunately, sometimes these
+             * events happen with enough delay that they can have an order of
+             *
+             * dco_del_peer x
+             * [new client connecting]
+             * dco_new_peer x
+             * event from dco_del_peer arrives.
+             *
+             * if we do not ignore this we get desynced with the kernel
+             * since we assume the peer-id is free again. The other way would
+             * be to send a dco_del_peer again
+             */
+            return;
     }
 
     /* When kernel already deleted the peer, the socket is no longer
