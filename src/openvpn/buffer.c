@@ -412,6 +412,39 @@ gc_malloc(size_t size, bool clear, struct gc_arena *a)
     return ret;
 }
 
+void *
+gc_realloc(void *ptr, size_t size, struct gc_arena *a)
+{
+    void *ret = realloc(ptr, size);
+    check_malloc_return(ret);
+    if (a)
+    {
+        if (ptr && ptr != ret)
+        {
+            /* find the old entry and modify it if realloc changed
+             * the pointer */
+            struct gc_entry_special *e = NULL;
+            for (e = a->list_special; e != NULL; e = e->next)
+            {
+                if (e->addr == ptr)
+                {
+                    break;
+                }
+            }
+            ASSERT(e);
+            ASSERT(e->addr == ptr);
+            e->addr = ret;
+        }
+        else if (!ptr)
+        {
+            /* sets e->addr to newptr */
+            gc_addspecial(ret, free, a);
+        }
+    }
+
+    return ret;
+}
+
 void
 x_gc_free(struct gc_arena *a)
 {
