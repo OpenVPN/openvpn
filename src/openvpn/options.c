@@ -918,12 +918,10 @@ uninit_options(struct options *o)
 {
     if (o->connection_list)
     {
-        free(o->connection_list->array);
         CLEAR(*o->connection_list);
     }
     if (o->remote_list)
     {
-        free(o->remote_list->array);
         CLEAR(*o->remote_list);
     }
     if (o->gc_owned)
@@ -2173,7 +2171,7 @@ alloc_connection_entry(struct options *options, const int msglevel)
     if (l->len == l->capacity)
     {
         int capacity = l->capacity + CONNECTION_LIST_SIZE;
-        struct connection_entry **ce = realloc(l->array, capacity*sizeof(struct connection_entry *));
+        struct connection_entry **ce = gc_realloc(l->array, capacity*sizeof(struct connection_entry *), &options->gc);
         if (ce == NULL)
         {
             msg(msglevel, "Unable to process more connection options: out of memory. Number of entries = %d", l->len);
@@ -2206,7 +2204,7 @@ alloc_remote_entry(struct options *options, const int msglevel)
     if (l->len == l->capacity)
     {
         int capacity = l->capacity + CONNECTION_LIST_SIZE;
-        struct remote_entry **re = realloc(l->array, capacity*sizeof(struct remote_entry *));
+        struct remote_entry **re = gc_realloc(l->array, capacity*sizeof(struct remote_entry *), &options->gc);
         if (re == NULL)
         {
             msg(msglevel, "Unable to process more remote options: out of memory. Number of entries = %d", l->len);

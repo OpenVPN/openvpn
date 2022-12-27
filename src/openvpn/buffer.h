@@ -187,6 +187,19 @@ struct buffer string_alloc_buf(const char *str, struct gc_arena *gc);
 
 void gc_addspecial(void *addr, void (*free_function)(void *), struct gc_arena *a);
 
+/**
+ * allows to realloc a pointer previously allocated by gc_malloc or gc_realloc
+ *
+ * @note only use this function on pointers returned by gc_malloc or re_alloc
+ *       with the same gc_arena
+ *
+ * @param ptr   Pointer of the previously allocated memory
+ * @param size  New size
+ * @param a     gc_arena to use
+ * @return      new pointer
+ */
+void *
+gc_realloc(void *ptr, size_t size, struct gc_arena *a);
 
 #ifdef BUF_INIT_TRACKING
 #define buf_init(buf, offset) buf_init_debug(buf, offset, __FILE__, __LINE__)
