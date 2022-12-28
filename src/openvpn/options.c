@@ -2306,7 +2306,7 @@ check_ca_required(const struct options *options)
                             " or CA path (--capath)"
 #endif
                             " and/or peer fingerprint verification (--peer-fingerprint)";
-    msg(M_USAGE, str);
+    msg(M_USAGE, "%s", str);
 }
 
 static void
