@@ -1,3 +1,48 @@
+Overview of changes in 2.6_rc1
+==============================
+
+New features
+------------
+Support unlimited number of connection entries and remote entries
+
+New management commands to enumerate and list remote entries
+    Use ``remote-entry-count`` and ``remote-entry-get``
+    commands from the management interface to get the number of
+    remote entries and the entries themselves.
+
+
+Bugfixes / minor improvements
+-----------------------------
+Improve DCO-related logging in many places.
+
+DCO/Linux robustness fixes.
+
+DCO/Linux TCP crashbug (recvfrom(-1) endless loop) worked around - root
+    cause has not been found, but the condition is detected and the 
+    offending client is removed, instead of crashing the server.
+
+Rename internal TLS state TM_UNTRUSTED to TM_INITIAL, always start new
+    peer handshake (new connect or renegotiation) in TM_INITIAL state.
+
+Upgrade Windows build environment to MSVC 2022
+
+Make management password check constant time
+
+Repair keepalive and mss setting in DCO peer-to-peer mode.
+
+Persist DCO client data channel traffic stats on restart (Windows only).
+
+Do not include auth-token in pulled option digest.
+
+Reduce default restart pause (--connect-retry) to 1 second.
+
+Deprecate NTLMv1 proxy auth method.
+
+Fix possible buffer-overrun in command line and ccd/ argument parsing.
+
+Fix memleak if creating deferred auth control files fails
+
+
 Overview of changes in 2.6_beta2
 ================================
 
@@ -46,13 +91,6 @@ instead: https://github.com/OpenVPN/openvpn/issues
 
 New features
 ------------
-Support unlimited number of connection entries and remote entries
-
-New management commands to enumerate and list remote entries
-    Use ``remote-entry-count`` and ``remote-entry-get``
-    commands from the management interface to get the number of
-    remote entries and the entries themselves.
-
 Keying Material Exporters (RFC 5705) based key generation
     As part of the cipher negotiation OpenVPN will automatically prefer
     the RFC5705 based key material generation to the current custom

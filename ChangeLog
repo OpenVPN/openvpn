@@ -1,6 +1,47 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
 
+2022.12.29 -- Version 2.6_rc1
+
+Arne Schwabe (17):
+      Ensure that argument to parse_line has always space for final sentinel
+      Improve documentation on user/password requirement and unicodize function
+      Eliminate or comment empty blocks and switch fallthrough
+      Remove unused gc_arena
+      Fix corner case that might lead to leaked file descriptor
+      Deprecate NTLMv1 proxy auth method.
+      Use include "buffer.h" instead of include <buffer.h>
+      Ensure that dco keepalive and mssfix options are also set in pure p2p mode
+      Make management password check constant time
+      Rename TM_UNTRUSTED to TM_INITIAL, always start session in TM_INITIAL rather than TM_ACTIVE or TM_INITIAL
+      Move dco_installed back to link_socket from link_socket.info.actual
+      Do not set nl socket buffer size
+      Also drop incoming dco packet content when dropping the packet
+      Improve logging when seeing a message for an unkown peer
+      Ignore OVPN_DEL_PEER_REASON_USERSPACE to avoid race conditions
+      Replace custom min macro and use more C99 style in man_remote_entry_get
+      Replace realloc with new gc_realloc function
+
+David Sommerseth (1):
+      ssl_verify: Fix memleak if creating deferred auth control files fails
+
+Gert Doering (1):
+      bandaid fix for TCP multipoint server crash with Linux-DCO
+
+Lev Stipakov (2):
+      git-version.py: proper support for tags
+      msvc: upgrade to Visual Studio 2022
+
+Selva Nair (7):
+      Reduce default restart pause to 1 second
+      Do not include auth-token in pulled option digest
+      Persist DCO client data channel traffic stats on restart
+      Add remote-count and remote-entry query via management
+      Permit unlimited connection entries and remotes
+      Use a template for 'unsupported management commands' error
+      Allow skipping multple remotes via management interface
+
+
 2022.12.15 -- Version 2.6_beta2
 
 Antonio Quartulli (1):
