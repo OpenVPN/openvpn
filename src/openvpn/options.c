@@ -543,8 +543,8 @@ static const char usage_message[] =
     "                  digest algorithm alg (default=%s).\n"
     "                  (usually adds 16 or 20 bytes per packet)\n"
     "                  Set alg=none to disable authentication.\n"
-    "--cipher alg    : Encrypt packets with cipher algorithm alg\n"
-    "                  (default=%s).\n"
+    "--cipher alg    : Encrypt packets with cipher algorithm alg.\n"
+    "                  You should usually use --data-ciphers instead.\n"
     "                  Set alg=none to disable encryption.\n"
     "--data-ciphers list : List of ciphers that are allowed to be negotiated.\n"
 #ifndef ENABLE_CRYPTO_MBEDTLS
@@ -4779,7 +4779,7 @@ usage(void)
             o.ce.local_port, o.ce.remote_port,
             TUN_MTU_DEFAULT, TAP_MTU_EXTRA_DEFAULT,
             o.verbosity,
-            o.authname, o.ciphername,
+            o.authname,
             o.replay_window, o.replay_time,
             o.tls_timeout, o.renegotiate_seconds,
             o.handshake_window, o.transition_window);
