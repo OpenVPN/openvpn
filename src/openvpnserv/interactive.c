@@ -105,14 +105,9 @@ typedef struct {
 } block_dns_data_t;
 
 typedef struct {
-    HANDLE send_ring_handle;
-    HANDLE receive_ring_handle;
-    HANDLE send_tail_moved;
-    HANDLE receive_tail_moved;
-    HANDLE device;
     struct tun_ring *send_ring;
     struct tun_ring *receive_ring;
-} ring_buffer_handles_t;
+} ring_buffer_maps_t;
 
 
 static DWORD
@@ -179,15 +174,10 @@ OvpnUnmapViewOfFile(struct tun_ring **ring)
 }
 
 static void
-CloseRingBufferHandles(ring_buffer_handles_t *ring_buffer_handles)
+UnmapRingBuffer(ring_buffer_maps_t *ring_buffer_maps)
 {
-    CloseHandleEx(&ring_buffer_handles->device);
-    CloseHandleEx(&ring_buffer_handles->receive_tail_moved);
-    CloseHandleEx(&ring_buffer_handles->send_tail_moved);
-    OvpnUnmapViewOfFile(&ring_buffer_handles->send_ring);
-    OvpnUnmapViewOfFile(&ring_buffer_handles->receive_ring);
-    CloseHandleEx(&ring_buffer_handles->receive_ring_handle);
-    CloseHandleEx(&ring_buffer_handles->send_ring_handle);
+    OvpnUnmapViewOfFile(&ring_buffer_maps->send_ring);
+    OvpnUnmapViewOfFile(&ring_buffer_maps->receive_ring);
 }
 
 static HANDLE
@@ -1333,16 +1323,19 @@ OvpnDuplicateHandle(HANDLE ovpn_proc, HANDLE orig_handle, HANDLE *new_handle)
 }
 
 static DWORD
-DuplicateAndMapRing(HANDLE ovpn_proc, HANDLE orig_handle, HANDLE *new_handle, struct tun_ring **ring)
+DuplicateAndMapRing(HANDLE ovpn_proc, HANDLE orig_handle, struct tun_ring **ring)
 {
     DWORD err = ERROR_SUCCESS;
 
-    err = OvpnDuplicateHandle(ovpn_proc, orig_handle, new_handle);
+    HANDLE dup_handle = NULL;
+
+    err = OvpnDuplicateHandle(ovpn_proc, orig_handle, &dup_handle);
     if (err != ERROR_SUCCESS)
     {
         return err;
     }
-    *ring = (struct tun_ring *)MapViewOfFile(*new_handle, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(struct tun_ring));
+    *ring = (struct tun_ring *)MapViewOfFile(dup_handle, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(struct tun_ring));
+    CloseHandleEx(&dup_handle);
     if (*ring == NULL)
     {
         err = GetLastError();
@@ -1359,65 +1352,71 @@ HandleRegisterRingBuffers(const register_ring_buffers_message_t *rrb, HANDLE ovp
 {
     DWORD err = 0;
 
-    ring_buffer_handles_t *ring_buffer_handles = RemoveListItem(&(*lists)[undo_ring_buffer], CmpAny, NULL);
+    ring_buffer_maps_t *ring_buffer_maps = RemoveListItem(&(*lists)[undo_ring_buffer], CmpAny, NULL);
 
-    if (ring_buffer_handles)
+    if (ring_buffer_maps)
     {
-        CloseRingBufferHandles(ring_buffer_handles);
+        UnmapRingBuffer(ring_buffer_maps);
     }
-    else if ((ring_buffer_handles = calloc(1, sizeof(*ring_buffer_handles))) == NULL)
+    else if ((ring_buffer_maps = calloc(1, sizeof(*ring_buffer_maps))) == NULL)
     {
         return ERROR_OUTOFMEMORY;
     }
 
-    err = OvpnDuplicateHandle(ovpn_proc, rrb->device, &ring_buffer_handles->device);
+    HANDLE device = NULL;
+    HANDLE send_tail_moved = NULL;
+    HANDLE receive_tail_moved = NULL;
+
+    err = OvpnDuplicateHandle(ovpn_proc, rrb->device, &device);
     if (err != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    err = DuplicateAndMapRing(ovpn_proc, rrb->send_ring_handle, &ring_buffer_handles->send_ring_handle, &ring_buffer_handles->send_ring);
+    err = DuplicateAndMapRing(ovpn_proc, rrb->send_ring_handle, &ring_buffer_maps->send_ring);
     if (err != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    err = DuplicateAndMapRing(ovpn_proc, rrb->receive_ring_handle, &ring_buffer_handles->receive_ring_handle, &ring_buffer_handles->receive_ring);
+    err = DuplicateAndMapRing(ovpn_proc, rrb->receive_ring_handle, &ring_buffer_maps->receive_ring);
     if (err != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    err = OvpnDuplicateHandle(ovpn_proc, rrb->send_tail_moved, &ring_buffer_handles->send_tail_moved);
+    err = OvpnDuplicateHandle(ovpn_proc, rrb->send_tail_moved, &send_tail_moved);
     if (err != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    err = OvpnDuplicateHandle(ovpn_proc, rrb->receive_tail_moved, &ring_buffer_handles->receive_tail_moved);
+    err = OvpnDuplicateHandle(ovpn_proc, rrb->receive_tail_moved, &receive_tail_moved);
     if (err != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    if (!register_ring_buffers(ring_buffer_handles->device, ring_buffer_handles->send_ring,
-                               ring_buffer_handles->receive_ring,
-                               ring_buffer_handles->send_tail_moved, ring_buffer_handles->receive_tail_moved))
+    if (!register_ring_buffers(device, ring_buffer_maps->send_ring,
+                               ring_buffer_maps->receive_ring,
+                               send_tail_moved, receive_tail_moved))
     {
         err = GetLastError();
         MsgToEventLog(M_SYSERR, TEXT("Could not register ring buffers"));
         goto out;
     }
 
-    err = AddListItem(&(*lists)[undo_ring_buffer], ring_buffer_handles);
+    err = AddListItem(&(*lists)[undo_ring_buffer], ring_buffer_maps);
 
 out:
-    if (err != ERROR_SUCCESS && ring_buffer_handles)
+    if (err != ERROR_SUCCESS && ring_buffer_maps)
     {
-        CloseRingBufferHandles(ring_buffer_handles);
-        free(ring_buffer_handles);
+        UnmapRingBuffer(ring_buffer_maps);
+        free(ring_buffer_maps);
     }
-
+    CloseHandleEx(&device);
+    CloseHandleEx(&send_tail_moved);
+    CloseHandleEx(&receive_tail_moved);
     return err;
 }
 
@@ -1600,7 +1599,7 @@ Undo(undo_lists_t *lists)
                     break;
 
                 case undo_ring_buffer:
-                    CloseRingBufferHandles(item->data);
+                    UnmapRingBuffer(item->data);
                     break;
 
                 case _undo_type_max:
