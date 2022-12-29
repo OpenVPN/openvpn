@@ -109,6 +109,8 @@ typedef struct {
     HANDLE send_tail_moved;
     HANDLE receive_tail_moved;
     HANDLE device;
+    struct tun_ring *send_ring;
+    struct tun_ring *receive_ring;
 } ring_buffer_handles_t;
 
 
@@ -165,15 +167,14 @@ CloseHandleEx(LPHANDLE handle)
     return INVALID_HANDLE_VALUE;
 }
 
-static HANDLE
-OvpnUnmapViewOfFile(LPHANDLE handle)
+static void
+OvpnUnmapViewOfFile(struct tun_ring **ring)
 {
-    if (handle && *handle && *handle != INVALID_HANDLE_VALUE)
+    if (ring && *ring)
     {
-        UnmapViewOfFile(*handle);
-        *handle = INVALID_HANDLE_VALUE;
+        UnmapViewOfFile(*ring);
+        *ring = NULL;
     }
-    return INVALID_HANDLE_VALUE;
 }
 
 static void
@@ -182,8 +183,10 @@ CloseRingBufferHandles(ring_buffer_handles_t *ring_buffer_handles)
     CloseHandleEx(&ring_buffer_handles->device);
     CloseHandleEx(&ring_buffer_handles->receive_tail_moved);
     CloseHandleEx(&ring_buffer_handles->send_tail_moved);
-    OvpnUnmapViewOfFile(&ring_buffer_handles->send_ring_handle);
-    OvpnUnmapViewOfFile(&ring_buffer_handles->receive_ring_handle);
+    OvpnUnmapViewOfFile(&ring_buffer_handles->send_ring);
+    OvpnUnmapViewOfFile(&ring_buffer_handles->receive_ring);
+    CloseHandleEx(&ring_buffer_handles->receive_ring_handle);
+    CloseHandleEx(&ring_buffer_handles->send_ring_handle);
 }
 
 static HANDLE
@@ -1354,8 +1357,6 @@ HandleRegisterRingBuffers(const register_ring_buffers_message_t *rrb, HANDLE ovp
                           ring_buffer_handles_t *ring_buffer_handles)
 {
     DWORD err = 0;
-    struct tun_ring *send_ring;
-    struct tun_ring *receive_ring;
 
     CloseRingBufferHandles(ring_buffer_handles);
 
@@ -1365,13 +1366,13 @@ HandleRegisterRingBuffers(const register_ring_buffers_message_t *rrb, HANDLE ovp
         return err;
     }
 
-    err = DuplicateAndMapRing(ovpn_proc, rrb->send_ring_handle, &ring_buffer_handles->send_ring_handle, &send_ring);
+    err = DuplicateAndMapRing(ovpn_proc, rrb->send_ring_handle, &ring_buffer_handles->send_ring_handle, &ring_buffer_handles->send_ring);
     if (err != ERROR_SUCCESS)
     {
         return err;
     }
 
-    err = DuplicateAndMapRing(ovpn_proc, rrb->receive_ring_handle, &ring_buffer_handles->receive_ring_handle, &receive_ring);
+    err = DuplicateAndMapRing(ovpn_proc, rrb->receive_ring_handle, &ring_buffer_handles->receive_ring_handle, &ring_buffer_handles->receive_ring);
     if (err != ERROR_SUCCESS)
     {
         return err;
@@ -1389,7 +1390,8 @@ HandleRegisterRingBuffers(const register_ring_buffers_message_t *rrb, HANDLE ovp
         return err;
     }
 
-    if (!register_ring_buffers(ring_buffer_handles->device, send_ring, receive_ring,
+    if (!register_ring_buffers(ring_buffer_handles->device, ring_buffer_handles->send_ring,
+                               ring_buffer_handles->receive_ring,
                                ring_buffer_handles->send_tail_moved, ring_buffer_handles->receive_tail_moved))
     {
         err = GetLastError();
