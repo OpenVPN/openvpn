@@ -1080,10 +1080,7 @@ done:
     return ret;
 
 error:
-    if (!sig_info->signal_received)
-    {
-        register_signal(sig_info, SIGUSR1, "HTTP proxy error"); /* SOFT-SIGUSR1 -- HTTP proxy error */
-    }
+    register_signal(sig_info, SIGUSR1, "HTTP proxy error"); /* SOFT-SIGUSR1 -- HTTP proxy error */
     gc_free(&gc);
     return ret;
 }

@@ -499,11 +499,8 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
     return;
 
 error:
-    if (!sig_info->signal_received)
-    {
-        /* SOFT-SIGUSR1 -- socks error */
-        register_signal(sig_info, SIGUSR1, "socks-error");
-    }
+    /* SOFT-SIGUSR1 -- socks error */
+    register_signal(sig_info, SIGUSR1, "socks-error");
     return;
 }
 
@@ -543,11 +540,8 @@ establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
     return;
 
 error:
-    if (!sig_info->signal_received)
-    {
-        /* SOFT-SIGUSR1 -- socks error */
-        register_signal(sig_info, SIGUSR1, "socks-error");
-    }
+    /* SOFT-SIGUSR1 -- socks error */
+    register_signal(sig_info, SIGUSR1, "socks-error");
     return;
 }
 

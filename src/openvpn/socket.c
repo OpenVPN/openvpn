@@ -2277,8 +2277,12 @@ link_socket_init_phase2(struct context *c)
 done:
     if (sig_save.signal_received)
     {
-        /* This can potentially lose a saved high priority signal -- to be fixed */
-        if (!sig_info->signal_received)
+        /* Always restore the saved signal -- register/throw_signal will handle priority */
+        if (sig_save.source == SIG_SOURCE_HARD && sig_info == &siginfo_static)
+        {
+            throw_signal(sig_save.signal_received);
+        }
+        else
         {
             register_signal(sig_info, sig_save.signal_received, sig_save.signal_text);
         }

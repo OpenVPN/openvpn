@@ -47,16 +47,17 @@ struct signal_info siginfo_static; /* GLOBAL */
 
 struct signame {
     int value;
+    int priority;
     const char *upper;
     const char *lower;
 };
 
 static const struct signame signames[] = {
-    { SIGINT,  "SIGINT",  "sigint"},
-    { SIGTERM, "SIGTERM", "sigterm" },
-    { SIGHUP,  "SIGHUP",  "sighup" },
-    { SIGUSR1, "SIGUSR1", "sigusr1" },
-    { SIGUSR2, "SIGUSR2", "sigusr2" }
+    { SIGINT, 5, "SIGINT",  "sigint"},
+    { SIGTERM, 4, "SIGTERM", "sigterm" },
+    { SIGHUP, 3, "SIGHUP",  "sighup" },
+    { SIGUSR1, 2, "SIGUSR1", "sigusr1" },
+    { SIGUSR2, 1, "SIGUSR2", "sigusr2" }
 };
 
 int
@@ -68,6 +69,19 @@ parse_signal(const char *signame)
         if (!strcmp(signame, signames[i].upper))
         {
             return signames[i].value;
+        }
+    }
+    return -1;
+}
+
+static int
+signal_priority(int sig)
+{
+    for (size_t i = 0; i < SIZE(signames); ++i)
+    {
+        if (sig == signames[i].value)
+        {
+            return signames[i].priority;
         }
     }
     return -1;
@@ -103,16 +117,22 @@ signal_description(const int signum, const char *sigtext)
 void
 throw_signal(const int signum)
 {
-    siginfo_static.signal_received = signum;
-    siginfo_static.source = SIG_SOURCE_HARD;
+    if (signal_priority(signum) >= signal_priority(siginfo_static.signal_received))
+    {
+        siginfo_static.signal_received = signum;
+        siginfo_static.source = SIG_SOURCE_HARD;
+    }
 }
 
 void
 throw_signal_soft(const int signum, const char *signal_text)
 {
-    siginfo_static.signal_received = signum;
-    siginfo_static.source = SIG_SOURCE_SOFT;
-    siginfo_static.signal_text = signal_text;
+    if (signal_priority(signum) >= signal_priority(siginfo_static.signal_received))
+    {
+        siginfo_static.signal_received = signum;
+        siginfo_static.source = SIG_SOURCE_SOFT;
+        siginfo_static.signal_text = signal_text;
+    }
 }
 
 void
@@ -472,9 +492,10 @@ process_signal(struct context *c)
 void
 register_signal(struct signal_info *si, int sig, const char *text)
 {
-    if (si->signal_received != SIGTERM)
+    if (signal_priority(sig) >= signal_priority(si->signal_received))
     {
         si->signal_received = sig;
+        si->signal_text = text;
+        si->source = SIG_SOURCE_SOFT;
     }
-    si->signal_text = text;
 }
