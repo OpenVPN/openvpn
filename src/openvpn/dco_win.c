@@ -106,8 +106,9 @@ dco_start_tun(struct tuntap *tt)
 }
 
 static void
-dco_connect_wait(HANDLE handle, OVERLAPPED *ov, int timeout, volatile int *signal_received)
+dco_connect_wait(HANDLE handle, OVERLAPPED *ov, int timeout, struct signal_info *sig_info)
 {
+    volatile int *signal_received = &sig_info->signal_received;
     /* GetOverlappedResultEx is available starting from Windows 8 */
     typedef BOOL (*get_overlapped_result_ex_t) (HANDLE, LPOVERLAPPED, LPDWORD, DWORD, BOOL);
     get_overlapped_result_ex_t get_overlapped_result_ex =
@@ -138,7 +139,7 @@ dco_connect_wait(HANDLE handle, OVERLAPPED *ov, int timeout, volatile int *signa
         {
             /* dco reported connection error */
             msg(M_NONFATAL | M_ERRNO, "dco connect error");
-            *signal_received = SIGUSR1;
+            register_signal(sig_info, SIGUSR1, "dco-connect-error");
             return;
         }
 
@@ -153,13 +154,13 @@ dco_connect_wait(HANDLE handle, OVERLAPPED *ov, int timeout, volatile int *signa
 
     /* we end up here when timeout occurs in userspace */
     msg(M_NONFATAL, "dco connect timeout");
-    *signal_received = SIGUSR1;
+    register_signal(sig_info, SIGUSR1, "dco-connect-timeout");
 }
 
 void
 dco_create_socket(HANDLE handle, struct addrinfo *remoteaddr, bool bind_local,
                   struct addrinfo *bind, int timeout,
-                  volatile int *signal_received)
+                  struct signal_info *sig_info)
 {
     msg(D_DCO_DEBUG, "%s", __func__);
 
@@ -240,7 +241,7 @@ dco_create_socket(HANDLE handle, struct addrinfo *remoteaddr, bool bind_local,
         }
         else
         {
-            dco_connect_wait(handle, &ov, timeout, signal_received);
+            dco_connect_wait(handle, &ov, timeout, sig_info);
         }
     }
 }

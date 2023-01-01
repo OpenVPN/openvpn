@@ -1586,7 +1586,7 @@ socket_connect(socket_descriptor_t *sd,
 
         openvpn_close_socket(*sd);
         *sd = SOCKET_UNDEFINED;
-        sig_info->signal_received = SIGUSR1;
+        register_signal(sig_info, SIGUSR1, "connection-failed");
         sig_info->source = SIG_SOURCE_CONNECTION_FAILED;
     }
     else
@@ -1694,8 +1694,9 @@ static void
 resolve_remote(struct link_socket *sock,
                int phase,
                const char **remote_dynamic,
-               volatile int *signal_received)
+               struct signal_info *sig_info)
 {
+    volatile int *signal_received = sig_info ? &sig_info->signal_received : NULL;
     struct gc_arena gc = gc_new();
 
     /* resolve remote address if undefined */
@@ -1774,18 +1775,16 @@ resolve_remote(struct link_socket *sock,
                      signal_received ? *signal_received : -1,
                      status);
             }
-            if (signal_received)
+            if (signal_received && *signal_received)
             {
-                if (*signal_received)
-                {
-                    goto done;
-                }
+                goto done;
             }
             if (status!=0)
             {
                 if (signal_received)
                 {
-                    *signal_received = SIGUSR1;
+                    /* potential overwrite of signal */
+                    register_signal(sig_info, SIGUSR1, "socks-resolve-failure");
                 }
                 goto done;
             }
@@ -2002,8 +2001,9 @@ linksock_print_addr(struct link_socket *sock)
 
 static void
 phase2_tcp_server(struct link_socket *sock, const char *remote_dynamic,
-                  volatile int *signal_received)
+                  struct signal_info *sig_info)
 {
+    volatile int *signal_received = sig_info ? &sig_info->signal_received : NULL;
     switch (sock->mode)
     {
         case LS_MODE_DEFAULT:
@@ -2029,7 +2029,7 @@ phase2_tcp_server(struct link_socket *sock, const char *remote_dynamic,
                                         false);
             if (!socket_defined(sock->sd))
             {
-                *signal_received = SIGTERM;
+                register_signal(sig_info, SIGTERM, "socket-undefiled");
                 return;
             }
             tcp_connection_established(&sock->info.lsa->actual);
@@ -2065,7 +2065,7 @@ phase2_tcp_client(struct link_socket *sock, struct signal_info *sig_info)
                                                         sock->proxy_dest_port,
                                                         sock->server_poll_timeout,
                                                         &sock->stream_buf.residual,
-                                                        &sig_info->signal_received);
+                                                        sig_info);
         }
         else if (sock->socks_proxy)
         {
@@ -2073,7 +2073,7 @@ phase2_tcp_client(struct link_socket *sock, struct signal_info *sig_info)
                                            sock->sd,
                                            sock->proxy_dest_host,
                                            sock->proxy_dest_port,
-                                           &sig_info->signal_received);
+                                           sig_info);
         }
         if (proxy_retry)
         {
@@ -2102,7 +2102,7 @@ phase2_socks_client(struct link_socket *sock, struct signal_info *sig_info)
                                    sock->ctrl_sd,
                                    sock->sd,
                                    &sock->socks_relay.dest,
-                                   &sig_info->signal_received);
+                                   sig_info);
 
     if (sig_info->signal_received)
     {
@@ -2120,13 +2120,13 @@ phase2_socks_client(struct link_socket *sock, struct signal_info *sig_info)
         sock->info.lsa->remote_list = NULL;
     }
 
-    resolve_remote(sock, 1, NULL, &sig_info->signal_received);
+    resolve_remote(sock, 1, NULL, sig_info);
 }
 
 #if defined(_WIN32)
 static void
 create_socket_dco_win(struct context *c, struct link_socket *sock,
-                      volatile int *signal_received)
+                      struct signal_info *sig_info)
 {
     if (!c->c1.tuntap)
     {
@@ -2145,11 +2145,11 @@ create_socket_dco_win(struct context *c, struct link_socket *sock,
                       sock->info.lsa->current_remote,
                       sock->bind_local, sock->info.lsa->bind_local,
                       get_server_poll_remaining_time(sock->server_poll_timeout),
-                      signal_received);
+                      sig_info);
 
     sock->dco_installed = true;
 
-    if (*signal_received)
+    if (sig_info->signal_received)
     {
         return;
     }
@@ -2168,15 +2168,15 @@ link_socket_init_phase2(struct context *c)
     struct signal_info *sig_info = c->sig;
 
     const char *remote_dynamic = NULL;
-    int sig_save = 0;
+    struct signal_info sig_save = {0};
 
     ASSERT(sock);
     ASSERT(sig_info);
 
     if (sig_info->signal_received)
     {
-        sig_save = sig_info->signal_received;
-        sig_info->signal_received = 0;
+        sig_save = *sig_info;
+        signal_reset(sig_info);
     }
 
     /* initialize buffers */
@@ -2193,7 +2193,7 @@ link_socket_init_phase2(struct context *c)
     }
 
     /* Second chance to resolv/create socket */
-    resolve_remote(sock, 2, &remote_dynamic,  &sig_info->signal_received);
+    resolve_remote(sock, 2, &remote_dynamic,  sig_info);
 
     /* If a valid remote has been found, create the socket with its addrinfo */
     if (sock->info.lsa->current_remote)
@@ -2201,7 +2201,7 @@ link_socket_init_phase2(struct context *c)
 #if defined(_WIN32)
         if (dco_enabled(&c->options))
         {
-            create_socket_dco_win(c, sock, &sig_info->signal_received);
+            create_socket_dco_win(c, sock, sig_info);
             goto done;
         }
         else
@@ -2237,7 +2237,7 @@ link_socket_init_phase2(struct context *c)
     if (sock->sd == SOCKET_UNDEFINED)
     {
         msg(M_WARN, "Could not determine IPv4/IPv6 protocol");
-        sig_info->signal_received = SIGUSR1;
+        register_signal(sig_info, SIGUSR1, "Could not determine IPv4/IPv6 protocol");
         goto done;
     }
 
@@ -2248,8 +2248,7 @@ link_socket_init_phase2(struct context *c)
 
     if (sock->info.proto == PROTO_TCP_SERVER)
     {
-        phase2_tcp_server(sock, remote_dynamic,
-                          &sig_info->signal_received);
+        phase2_tcp_server(sock, remote_dynamic, sig_info);
     }
     else if (sock->info.proto == PROTO_TCP_CLIENT)
     {
@@ -2275,11 +2274,12 @@ link_socket_init_phase2(struct context *c)
     linksock_print_addr(sock);
 
 done:
-    if (sig_save)
+    if (sig_save.signal_received)
     {
+        /* This can potentially lose a saved high priority signal -- to be fixed */
         if (!sig_info->signal_received)
         {
-            sig_info->signal_received = sig_save;
+            register_signal(sig_info, sig_save.signal_received, sig_save.signal_text);
         }
     }
 }

@@ -74,8 +74,7 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
     if (authfail_extended && buf_string_match_head_str(&buf, "TEMP"))
     {
         parse_auth_failed_temp(&c->options, reason + strlen("TEMP"));
-        c->sig->signal_received = SIGUSR1;
-        c->sig->signal_text = "auth-temp-failure (server temporary reject)";
+        register_signal(c->sig, SIGUSR1, "auth-temp-failure (server temporary reject)");
     }
 
     /* Before checking how to react on AUTH_FAILED, first check if the
@@ -85,8 +84,8 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
      * identical for this scenario */
     else if (ssl_clean_auth_token())
     {
-        c->sig->signal_received = SIGUSR1;     /* SOFT-SIGUSR1 -- Auth failure error */
-        c->sig->signal_text = "auth-failure (auth-token)";
+        /* SOFT-SIGUSR1 -- Auth failure error */
+        register_signal(c->sig, SIGUSR1, "auth-failure (auth-token)");
         c->options.no_advance = true;
     }
     else
@@ -94,20 +93,21 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
         switch (auth_retry_get())
         {
             case AR_NONE:
-                c->sig->signal_received = SIGTERM;     /* SOFT-SIGTERM -- Auth failure error */
+                /* SOFT-SIGTERM -- Auth failure error */
+                register_signal(c->sig, SIGTERM, "auth-failure");
                 break;
 
             case AR_INTERACT:
                 ssl_purge_auth(false);
 
             case AR_NOINTERACT:
-                c->sig->signal_received = SIGUSR1;     /* SOFT-SIGUSR1 -- Auth failure error */
+                /* SOFT-SIGTUSR1 -- Auth failure error */
+                register_signal(c->sig, SIGUSR1, "auth-failure");
                 break;
 
             default:
                 ASSERT(0);
         }
-        c->sig->signal_text = "auth-failure";
     }
 #ifdef ENABLE_MANAGEMENT
     if (management)
@@ -171,14 +171,14 @@ server_pushed_signal(struct context *c, const struct buffer *buffer, const bool 
         if (restart)
         {
             msg(D_STREAM_ERRORS, "Connection reset command was pushed by server ('%s')", m);
-            c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- server-pushed connection reset */
-            c->sig->signal_text = "server-pushed-connection-reset";
+            /* SOFT-SIGUSR1 -- server-pushed connection reset */
+            register_signal(c->sig, SIGUSR1, "server-pushed-connection-reset");
         }
         else
         {
             msg(D_STREAM_ERRORS, "Halt command was pushed by server ('%s')", m);
-            c->sig->signal_received = SIGTERM; /* SOFT-SIGTERM -- server-pushed halt */
-            c->sig->signal_text = "server-pushed-halt";
+            /* SOFT-SIGTERM -- server-pushed halt */
+            register_signal(c->sig, SIGTERM, "server-pushed-halt");
         }
 #ifdef ENABLE_MANAGEMENT
         if (management)
@@ -210,13 +210,12 @@ receive_exit_message(struct context *c)
     }
     else
     {
-        c->sig->signal_received = SIGUSR1;
+        register_signal(c->sig, SIGUSR1, "remote-exit");
     }
-    c->sig->signal_text = "remote-exit";
 #ifdef ENABLE_MANAGEMENT
     if (management)
     {
-        management_notify(management, "info", c->sig->signal_text, "EXIT");
+        management_notify(management, "info", "remote-exit", "EXIT");
     }
 #endif
 }
@@ -527,7 +526,7 @@ incoming_push_message(struct context *c, const struct buffer *buffer)
     goto cleanup;
 
 error:
-    register_signal(c, SIGUSR1, "process-push-msg-failed");
+    register_signal(c->sig, SIGUSR1, "process-push-msg-failed");
 cleanup:
     gc_free(&gc);
 }
@@ -555,8 +554,8 @@ send_push_request(struct context *c)
     {
         msg(D_STREAM_ERRORS, "No reply from server to push requests in %ds",
             (int)(now - ks->established));
-        c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- server-pushed connection reset */
-        c->sig->signal_text = "no-push-reply";
+        /* SOFT-SIGUSR1 -- server-pushed connection reset */
+        register_signal(c->sig, SIGUSR1, "no-push-reply");
         return false;
     }
 }

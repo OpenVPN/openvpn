@@ -115,7 +115,7 @@ throw_signal_soft(const int signum, const char *signal_text)
     siginfo_static.signal_text = signal_text;
 }
 
-static void
+void
 signal_reset(struct signal_info *si)
 {
     if (si)
@@ -374,8 +374,7 @@ process_explicit_exit_notification_timer_wakeup(struct context *c)
         if (now >= c->c2.explicit_exit_notification_time_wait + c->options.ce.explicit_exit_notification)
         {
             event_timeout_clear(&c->c2.explicit_exit_notification_interval);
-            c->sig->signal_received = SIGTERM;
-            c->sig->signal_text = "exit-with-notification";
+            register_signal(c->sig, SIGTERM, "exit-with-notification");
         }
         else if (!cc_exit_notify_enabled(c))
         {
@@ -393,7 +392,7 @@ remap_signal(struct context *c)
 {
     if (c->sig->signal_received == SIGUSR1 && c->options.remap_sigusr1)
     {
-        c->sig->signal_received = c->options.remap_sigusr1;
+        register_signal(c->sig, c->options.remap_sigusr1, c->sig->signal_text);
     }
 }
 
@@ -442,7 +441,7 @@ ignore_restart_signals(struct context *c)
         {
             msg(M_INFO, "Converting soft %s received during exit notification to SIGTERM",
                 signal_name(c->sig->signal_received, true));
-            register_signal(c, SIGTERM, "exit-with-notification");
+            register_signal(c->sig, SIGTERM, "exit-with-notification");
             ret = false;
         }
     }
@@ -471,11 +470,11 @@ process_signal(struct context *c)
 }
 
 void
-register_signal(struct context *c, int sig, const char *text)
+register_signal(struct signal_info *si, int sig, const char *text)
 {
-    if (c->sig->signal_received != SIGTERM)
+    if (si->signal_received != SIGTERM)
     {
-        c->sig->signal_received = sig;
+        si->signal_received = sig;
     }
-    c->sig->signal_text = text;
+    si->signal_text = text;
 }
