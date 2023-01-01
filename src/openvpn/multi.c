@@ -2364,7 +2364,7 @@ multi_client_generate_tls_keys(struct context *c)
                                           get_link_socket_info(c)))
     {
         msg(D_TLS_ERRORS, "TLS Error: initializing data channel failed");
-        register_signal(c, SIGUSR1, "process-push-msg-failed");
+        register_signal(c->sig, SIGUSR1, "process-push-msg-failed");
         return false;
     }
 
@@ -3837,7 +3837,7 @@ multi_push_restart_schedule_exit(struct multi_context *m, bool next_server)
                        &m->deferred_shutdown_signal.wakeup,
                        compute_wakeup_sigma(&m->deferred_shutdown_signal.wakeup));
 
-    m->top.sig->signal_received = 0;
+    signal_reset(m->top.sig);
 }
 
 /*
@@ -3852,7 +3852,7 @@ multi_process_signal(struct multi_context *m)
         struct status_output *so = status_open(NULL, 0, M_INFO, NULL, 0);
         multi_print_status(m, so, m->status_file_version);
         status_close(so);
-        m->top.sig->signal_received = 0;
+        signal_reset(m->top.sig);
         return false;
     }
     else if (proto_is_dgram(m->top.options.ce.proto)

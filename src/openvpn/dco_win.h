@@ -26,6 +26,7 @@
 
 #include "buffer.h"
 #include "ovpn_dco_win.h"
+#include "sig.h"
 
 typedef OVPN_KEY_SLOT dco_key_slot_t;
 typedef OVPN_CIPHER_ALG dco_cipher_t;
@@ -42,7 +43,7 @@ create_dco_handle(const char *devname, struct gc_arena *gc);
 void
 dco_create_socket(HANDLE handle, struct addrinfo *remoteaddr, bool bind_local,
                   struct addrinfo *bind, int timeout,
-                  volatile int *signal_received);
+                  struct signal_info *sig_info);
 
 void
 dco_start_tun(struct tuntap *tt);

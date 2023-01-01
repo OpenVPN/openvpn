@@ -636,7 +636,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                               const char *port,          /* openvpn server port */
                               struct event_timeout *server_poll_timeout,
                               struct buffer *lookahead,
-                              volatile int *signal_received)
+                              struct signal_info *sig_info)
 {
     struct gc_arena gc = gc_new();
     char buf[512];
@@ -646,6 +646,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
     int nparms;
     bool ret = false;
     bool processed = false;
+    volatile int *signal_received = &sig_info->signal_received;
 
     /* get user/pass if not previously given */
     if (p->auth_method == HTTP_AUTH_BASIC
@@ -1079,9 +1080,9 @@ done:
     return ret;
 
 error:
-    if (!*signal_received)
+    if (!sig_info->signal_received)
     {
-        *signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- HTTP proxy error */
+        register_signal(sig_info, SIGUSR1, "HTTP proxy error"); /* SOFT-SIGUSR1 -- HTTP proxy error */
     }
     gc_free(&gc);
     return ret;

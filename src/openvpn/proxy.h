@@ -86,7 +86,7 @@ bool establish_http_proxy_passthru(struct http_proxy_info *p,
                                    const char *port,          /* openvpn server port */
                                    struct event_timeout *server_poll_timeout,
                                    struct buffer *lookahead,
-                                   volatile int *signal_received);
+                                   struct signal_info *sig_info);
 
 uint8_t *make_base64_string2(const uint8_t *str, int str_len, struct gc_arena *gc);
 

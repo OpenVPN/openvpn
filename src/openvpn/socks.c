@@ -448,12 +448,12 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
                                socket_descriptor_t sd,  /* already open to proxy */
                                const char *host,        /* openvpn server remote */
                                const char *servname,    /* openvpn server port */
-                               volatile int *signal_received)
+                               struct signal_info *sig_info)
 {
     char buf[270];
     size_t len;
 
-    if (!socks_handshake(p, sd, signal_received))
+    if (!socks_handshake(p, sd, &sig_info->signal_received))
     {
         goto error;
     }
@@ -491,7 +491,7 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
 
 
     /* receive reply from Socks proxy and discard */
-    if (!recv_socks_reply(sd, NULL, signal_received))
+    if (!recv_socks_reply(sd, NULL, &sig_info->signal_received))
     {
         goto error;
     }
@@ -499,9 +499,10 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
     return;
 
 error:
-    if (!*signal_received)
+    if (!sig_info->signal_received)
     {
-        *signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- socks error */
+        /* SOFT-SIGUSR1 -- socks error */
+        register_signal(sig_info, SIGUSR1, "socks-error");
     }
     return;
 }
@@ -511,9 +512,9 @@ establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
                                socket_descriptor_t ctrl_sd,  /* already open to proxy */
                                socket_descriptor_t udp_sd,
                                struct openvpn_sockaddr *relay_addr,
-                               volatile int *signal_received)
+                               struct signal_info *sig_info)
 {
-    if (!socks_handshake(p, ctrl_sd, signal_received))
+    if (!socks_handshake(p, ctrl_sd, &sig_info->signal_received))
     {
         goto error;
     }
@@ -534,7 +535,7 @@ establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
 
     /* receive reply from Socks proxy */
     CLEAR(*relay_addr);
-    if (!recv_socks_reply(ctrl_sd, relay_addr, signal_received))
+    if (!recv_socks_reply(ctrl_sd, relay_addr, &sig_info->signal_received))
     {
         goto error;
     }
@@ -542,9 +543,10 @@ establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
     return;
 
 error:
-    if (!*signal_received)
+    if (!sig_info->signal_received)
     {
-        *signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- socks error */
+        /* SOFT-SIGUSR1 -- socks error */
+        register_signal(sig_info, SIGUSR1, "socks-error");
     }
     return;
 }

@@ -27,8 +27,6 @@
 #include "status.h"
 #include "win32.h"
 
-
-
 #define SIG_SOURCE_SOFT 0
 #define SIG_SOURCE_HARD 1
 /* CONNECTION_FAILED is also a "soft" status,
@@ -79,41 +77,42 @@ void signal_restart_status(const struct signal_info *si);
 
 bool process_signal(struct context *c);
 
-void register_signal(struct context *c, int sig, const char *text);
+void register_signal(struct signal_info *si, int sig, const char *text);
 
 void process_explicit_exit_notification_timer_wakeup(struct context *c);
 
-#ifdef _WIN32
-
-static inline void
-get_signal(volatile int *sig)
-{
-    *sig = win32_signal_get(&win32_signal);
-}
+void signal_reset(struct signal_info *si);
 
 static inline void
 halt_non_edge_triggered_signals(void)
 {
+#ifdef _WIN32
     win32_signal_close(&win32_signal);
+#endif
 }
 
-#else  /* ifdef _WIN32 */
+/**
+ * Copy the global signal_received (if non-zero) to the passed-in argument sig.
+ * As the former is volatile, do not assign if sig and &signal_received are the
+ * same.  Even on windows signal_received is really volatile as it can change if
+ * a ctrl-C or ctrl-break is delivered. So use the same logic as above.
+ *
+ * Also, on windows always call win32_signal_get to pickup any signals simulated by
+ * key-board short cuts or the exit event.
+ */
 
 static inline void
 get_signal(volatile int *sig)
 {
+#ifdef _WIN32
+    const int i = win32_signal_get(&win32_signal);
+#else
     const int i = siginfo_static.signal_received;
-    if (i)
+#endif
+    if (i && sig != &siginfo_static.signal_received)
     {
         *sig = i;
     }
 }
-
-static inline void
-halt_non_edge_triggered_signals(void)
-{
-}
-
-#endif /* ifdef _WIN32 */
 
 #endif /* ifndef SIG_H */
