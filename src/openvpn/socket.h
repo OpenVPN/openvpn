@@ -526,7 +526,7 @@ in_addr_t getaddr(unsigned int flags,
                   const char *hostname,
                   int resolve_retry_seconds,
                   bool *succeeded,
-                  volatile int *signal_received);
+                  struct signal_info *sig_info);
 
 /**
  * Translate an IPv6 addr or hostname from string form to in6_addr
@@ -538,7 +538,7 @@ int openvpn_getaddrinfo(unsigned int flags,
                         const char *hostname,
                         const char *servname,
                         int resolve_retry_seconds,
-                        volatile int *signal_received,
+                        struct signal_info *sig_info,
                         int ai_family,
                         struct addrinfo **res);
 
