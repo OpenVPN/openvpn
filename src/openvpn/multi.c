@@ -3296,12 +3296,17 @@ multi_process_incoming_dco(struct multi_context *m)
         if (dco->dco_message_type == OVPN_CMD_DEL_PEER
             && dco->dco_del_peer_reason == OVPN_DEL_PEER_REASON_USERSPACE)
         {
-            /* we get notified after we kill the peer ourselves and probably
-             * have already forgotten about it. This is expected */
+            /* we receive OVPN_CMD_DEL_PEER message with reason USERSPACE
+             * after we kill the peer ourselves. This peer may have already
+             * been deleted, so we end up here.
+             * In this case, print the following debug message with DCO_DEBUG
+             * level only to avoid polluting the standard DCO level with this
+             * harmless event.
+             */
             msglevel = D_DCO_DEBUG;
         }
-        msg(msglevel, "Received packet for peer-id unknown to OpenVPN: %d, "
-            "type %d, reason %d", peer_id, dco->dco_message_type,
+        msg(msglevel, "Received DCO message for unknown peer-id: %d, "
+            "type %d, del_peer_reason %d", peer_id, dco->dco_message_type,
             dco->dco_del_peer_reason);
         /* Also clear the buffer if this was incoming packet for a dropped peer */
         buf_init(&dco->dco_packet_in, 0);
