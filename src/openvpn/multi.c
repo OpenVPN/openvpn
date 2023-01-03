@@ -3301,6 +3301,7 @@ multi_process_incoming_dco(struct multi_context *m)
 
     dco->dco_message_type = 0;
     dco->dco_message_peer_id = -1;
+    dco->dco_del_peer_reason = -1;
     dco->dco_read_bytes = 0;
     dco->dco_write_bytes = 0;
     return ret > 0;
