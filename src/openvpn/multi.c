@@ -3270,7 +3270,15 @@ multi_process_incoming_dco(struct multi_context *m)
 
     int peer_id = dco->dco_message_peer_id;
 
-    if ((peer_id >= 0) && (peer_id < m->max_clients) && (m->instances[peer_id]))
+    /* no peer-specific message delivered -> nothing to process.
+     * bail out right away
+     */
+    if (peer_id < 0)
+    {
+        return ret > 0;
+    }
+
+    if ((peer_id < m->max_clients) && (m->instances[peer_id]))
     {
         mi = m->instances[peer_id];
         if (dco->dco_message_type == OVPN_CMD_PACKET)
