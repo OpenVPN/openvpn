@@ -259,15 +259,12 @@ void copy_route_ipv6_option_list(struct route_ipv6_option_list *dest,
 
 void route_ipv6_clear_host_bits( struct route_ipv6 *r6 );
 
-void add_route_ipv6(struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es, openvpn_net_ctx_t *ctx);
+bool add_route_ipv6(struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es, openvpn_net_ctx_t *ctx);
 
 void delete_route_ipv6(const struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es, openvpn_net_ctx_t *ctx);
 
-void add_route(struct route_ipv4 *r,
-               const struct tuntap *tt,
-               unsigned int flags,
-               const struct route_gateway_info *rgi,
-               const struct env_set *es,
+bool add_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
+               const struct route_gateway_info *rgi, const struct env_set *es,
                openvpn_net_ctx_t *ctx);
 
 void add_route_to_option_list(struct route_option_list *l,
@@ -301,12 +298,9 @@ void route_list_add_vpn_gateway(struct route_list *rl,
                                 struct env_set *es,
                                 const in_addr_t addr);
 
-void add_routes(struct route_list *rl,
-                struct route_ipv6_list *rl6,
-                const struct tuntap *tt,
-                unsigned int flags,
-                const struct env_set *es,
-                openvpn_net_ctx_t *ctx);
+bool add_routes(struct route_list *rl, struct route_ipv6_list *rl6,
+                const struct tuntap *tt, unsigned int flags,
+                const struct env_set *es, openvpn_net_ctx_t *ctx);
 
 void delete_routes(struct route_list *rl,
                    struct route_ipv6_list *rl6,

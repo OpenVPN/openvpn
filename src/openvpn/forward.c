@@ -405,12 +405,16 @@ send_control_channel_string(struct context *c, const char *str, int msglevel)
 static void
 check_add_routes_action(struct context *c, const bool errors)
 {
-    do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
-             c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
+    bool route_status = do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
+                                 c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
+
+    int flags = (errors ? ISC_ERRORS : 0);
+    flags |= (!route_status ? ISC_ROUTE_ERRORS : 0);
+
     update_time();
     event_timeout_clear(&c->c2.route_wakeup);
     event_timeout_clear(&c->c2.route_wakeup_expire);
-    initialization_sequence_completed(c, errors ? ISC_ERRORS : 0); /* client/p2p --route-delay was defined */
+    initialization_sequence_completed(c, flags); /* client/p2p --route-delay was defined */
 }
 
 static void
