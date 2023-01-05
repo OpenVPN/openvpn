@@ -71,12 +71,9 @@ void init_instance(struct context *c, const struct env_set *env, const unsigned 
  */
 void init_query_passwords(const struct context *c);
 
-void do_route(const struct options *options,
-              struct route_list *route_list,
-              struct route_ipv6_list *route_ipv6_list,
-              const struct tuntap *tt,
-              const struct plugin_list *plugins,
-              struct env_set *es,
+bool do_route(const struct options *options, struct route_list *route_list,
+              struct route_ipv6_list *route_ipv6_list, const struct tuntap *tt,
+              const struct plugin_list *plugins, struct env_set *es,
               openvpn_net_ctx_t *ctx);
 
 void close_instance(struct context *c);
@@ -116,6 +113,7 @@ void free_context_buffers(struct context_buffers *b);
 
 #define ISC_ERRORS (1<<0)
 #define ISC_SERVER (1<<1)
+#define ISC_ROUTE_ERRORS (1<<2)
 void initialization_sequence_completed(struct context *c, const unsigned int flags);
 
 #ifdef ENABLE_MANAGEMENT

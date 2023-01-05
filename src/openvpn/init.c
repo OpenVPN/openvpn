@@ -1648,6 +1648,15 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
         {
             detail = "ERROR";
         }
+        /* Flag route error only on platforms where trivial "already exists" errors
+         * are filtered out. Currently this is the case on Windows or if usng netlink.
+         */
+#if defined(_WIN32) || defined(ENABLE_SITNL)
+        else if (flags & ISC_ROUTE_ERRORS)
+        {
+            detail = "ROUTE_ERROR";
+        }
+#endif
 
         CLEAR(local);
         actual = &get_link_socket_info(c)->lsa->actual;
@@ -1697,7 +1706,7 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
  * Possibly add routes and/or call route-up script
  * based on options.
  */
-void
+bool
 do_route(const struct options *options,
          struct route_list *route_list,
          struct route_ipv6_list *route_ipv6_list,
@@ -1706,10 +1715,11 @@ do_route(const struct options *options,
          struct env_set *es,
          openvpn_net_ctx_t *ctx)
 {
+    bool ret = true;
     if (!options->route_noexec && ( route_list || route_ipv6_list ) )
     {
-        add_routes(route_list, route_ipv6_list, tt, ROUTE_OPTION_FLAGS(options),
-                   es, ctx);
+        ret = add_routes(route_list, route_ipv6_list, tt, ROUTE_OPTION_FLAGS(options),
+                         es, ctx);
         setenv_int(es, "redirect_gateway", route_did_redirect_default_gateway(route_list));
     }
 #ifdef ENABLE_MANAGEMENT
@@ -1748,6 +1758,7 @@ do_route(const struct options *options,
         show_adapters(D_SHOW_NET|M_NOPREFIX);
     }
 #endif
+    return ret;
 }
 
 /*
@@ -1798,10 +1809,11 @@ can_preserve_tun(struct tuntap *tt)
 }
 
 static bool
-do_open_tun(struct context *c)
+do_open_tun(struct context *c, int *error_flags)
 {
     struct gc_arena gc = gc_new();
     bool ret = false;
+    *error_flags = 0;
 
     if (!can_preserve_tun(c->c1.tuntap))
     {
@@ -1868,8 +1880,9 @@ do_open_tun(struct context *c)
         if (route_order() == ROUTE_BEFORE_TUN)
         {
             /* Ignore route_delay, would cause ROUTE_BEFORE_TUN to be ignored */
-            do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
-                     c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
+            bool status = do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
+                                   c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
+            *error_flags |= (status ? 0 : ISC_ROUTE_ERRORS);
         }
 #ifdef TARGET_ANDROID
         /* Store the old fd inside the fd so open_tun can use it */
@@ -1930,8 +1943,9 @@ do_open_tun(struct context *c)
         /* possibly add routes */
         if ((route_order() == ROUTE_AFTER_TUN) && (!c->options.route_delay_defined))
         {
-            do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
-                     c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
+            int status = do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
+                                  c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
+            *error_flags |= (status ? 0 : ISC_ROUTE_ERRORS);
         }
 
         ret = true;
@@ -2227,6 +2241,7 @@ do_deferred_options_part2(struct context *c)
 bool
 do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
 {
+    int error_flags = 0;
     if (!c->c2.do_up_ran)
     {
         reset_coarse_timers(c);
@@ -2243,7 +2258,7 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
         /* if --up-delay specified, open tun, do ifconfig, and run up script now */
         if (c->options.up_delay || PULL_DEFINED(&c->options))
         {
-            c->c2.did_open_tun = do_open_tun(c);
+            c->c2.did_open_tun = do_open_tun(c, &error_flags);
             update_time();
 
             /*
@@ -2272,7 +2287,7 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
                 else
                 {
                     management_sleep(1);
-                    c->c2.did_open_tun = do_open_tun(c);
+                    c->c2.did_open_tun = do_open_tun(c, &error_flags);
                     update_time();
                 }
             }
@@ -2345,12 +2360,12 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
             }
             else
             {
-                initialization_sequence_completed(c, 0); /* client/p2p --route-delay undefined */
+                initialization_sequence_completed(c, error_flags); /* client/p2p --route-delay undefined */
             }
         }
         else if (c->options.mode == MODE_POINT_TO_POINT)
         {
-            initialization_sequence_completed(c, 0); /* client/p2p restart with --persist-tun */
+            initialization_sequence_completed(c, error_flags); /* client/p2p restart with --persist-tun */
         }
 
         c->c2.do_up_ran = true;
@@ -4481,7 +4496,8 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
      * open tun/tap device, ifconfig, run up script, etc. */
     if (!(options->up_delay || PULL_DEFINED(options)) && (c->mode == CM_P2P || c->mode == CM_TOP))
     {
-        c->c2.did_open_tun = do_open_tun(c);
+        int error_flags = 0;
+        c->c2.did_open_tun = do_open_tun(c, &error_flags);
     }
 
     c->c2.frame_initial = c->c2.frame;

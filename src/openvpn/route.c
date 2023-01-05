@@ -907,7 +907,7 @@ init_route_ipv6_list(struct route_ipv6_list *rl6,
     return ret;
 }
 
-static void
+static bool
 add_route3(in_addr_t network,
            in_addr_t netmask,
            in_addr_t gateway,
@@ -923,7 +923,7 @@ add_route3(in_addr_t network,
     r.network = network;
     r.netmask = netmask;
     r.gateway = gateway;
-    add_route(&r, tt, flags, rgi, es, ctx);
+    return add_route(&r, tt, flags, rgi, es, ctx);
 }
 
 static void
@@ -945,7 +945,7 @@ del_route3(in_addr_t network,
     delete_route(&r, tt, flags, rgi, es, ctx);
 }
 
-static void
+static bool
 add_bypass_routes(struct route_bypass *rb,
                   in_addr_t gateway,
                   const struct tuntap *tt,
@@ -954,21 +954,16 @@ add_bypass_routes(struct route_bypass *rb,
                   const struct env_set *es,
                   openvpn_net_ctx_t *ctx)
 {
-    int i;
-    for (i = 0; i < rb->n_bypass; ++i)
+    int ret = true;
+    for (int i = 0; i < rb->n_bypass; ++i)
     {
         if (rb->bypass[i])
         {
-            add_route3(rb->bypass[i],
-                       IPV4_NETMASK_HOST,
-                       gateway,
-                       tt,
-                       flags | ROUTE_REF_GW,
-                       rgi,
-                       es,
-                       ctx);
+            ret = add_route3(rb->bypass[i], IPV4_NETMASK_HOST, gateway, tt,
+                             flags | ROUTE_REF_GW, rgi, es, ctx) && ret;
         }
     }
+    return ret;
 }
 
 static void
@@ -997,12 +992,13 @@ del_bypass_routes(struct route_bypass *rb,
     }
 }
 
-static void
+static bool
 redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
                               unsigned int flags, const struct env_set *es,
                               openvpn_net_ctx_t *ctx)
 {
     const char err[] = "NOTE: unable to redirect IPv4 default gateway --";
+    bool ret = true;
 
     if (rl && rl->flags & RG_ENABLE)
     {
@@ -1011,6 +1007,7 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
         if (!(rl->spec.flags & RTSA_REMOTE_ENDPOINT) && (rl->flags & RG_REROUTE_GW))
         {
             msg(M_WARN, "%s VPN gateway parameter (--route-gateway or --ifconfig) is missing", err);
+            ret = false;
         }
         /*
          * check if a default route is defined, unless:
@@ -1021,6 +1018,7 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
                  && (rl->spec.flags & RTSA_REMOTE_HOST))
         {
             msg(M_WARN, "%s Cannot read current default gateway from system", err);
+            ret = false;
         }
         else
         {
@@ -1047,14 +1045,9 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
                 if ((rl->spec.flags & RTSA_REMOTE_HOST)
                     && rl->spec.remote_host != IPV4_INVALID_ADDR)
                 {
-                    add_route3(rl->spec.remote_host,
-                               IPV4_NETMASK_HOST,
-                               rl->rgi.gateway.addr,
-                               tt,
-                               flags | ROUTE_REF_GW,
-                               &rl->rgi,
-                               es,
-                               ctx);
+                    ret = add_route3(rl->spec.remote_host, IPV4_NETMASK_HOST,
+                                     rl->rgi.gateway.addr, tt, flags | ROUTE_REF_GW,
+                                     &rl->rgi, es, ctx);
                     rl->iflags |= RL_DID_LOCAL;
                 }
                 else
@@ -1065,32 +1058,20 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
 #endif /* ifndef TARGET_ANDROID */
 
             /* route DHCP/DNS server traffic through original default gateway */
-            add_bypass_routes(&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags,
-                              &rl->rgi, es, ctx);
+            ret = add_bypass_routes(&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags,
+                                    &rl->rgi, es, ctx);
 
             if (rl->flags & RG_REROUTE_GW)
             {
                 if (rl->flags & RG_DEF1)
                 {
                     /* add new default route (1st component) */
-                    add_route3(0x00000000,
-                               0x80000000,
-                               rl->spec.remote_endpoint,
-                               tt,
-                               flags,
-                               &rl->rgi,
-                               es,
-                               ctx);
+                    ret = add_route3(0x00000000, 0x80000000, rl->spec.remote_endpoint,
+                                     tt, flags, &rl->rgi, es, ctx) && ret;
 
                     /* add new default route (2nd component) */
-                    add_route3(0x80000000,
-                               0x80000000,
-                               rl->spec.remote_endpoint,
-                               tt,
-                               flags,
-                               &rl->rgi,
-                               es,
-                               ctx);
+                    ret = add_route3(0x80000000, 0x80000000, rl->spec.remote_endpoint,
+                                     tt, flags, &rl->rgi, es, ctx) && ret;
                 }
                 else
                 {
@@ -1103,14 +1084,8 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
                     }
 
                     /* add new default route */
-                    add_route3(0,
-                               0,
-                               rl->spec.remote_endpoint,
-                               tt,
-                               flags,
-                               &rl->rgi,
-                               es,
-                               ctx);
+                    ret = add_route3(0, 0, rl->spec.remote_endpoint, tt,
+                                     flags, &rl->rgi, es, ctx) && ret;
                 }
             }
 
@@ -1118,6 +1093,7 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
             rl->iflags |= RL_DID_REDIRECT_DEFAULT_GATEWAY;
         }
     }
+    return ret;
 }
 
 static void
@@ -1194,12 +1170,12 @@ undo_redirect_default_route_to_vpn(struct route_list *rl,
     }
 }
 
-void
+bool
 add_routes(struct route_list *rl, struct route_ipv6_list *rl6,
            const struct tuntap *tt, unsigned int flags,
            const struct env_set *es, openvpn_net_ctx_t *ctx)
 {
-    redirect_default_route_to_vpn(rl, tt, flags, es, ctx);
+    bool ret = redirect_default_route_to_vpn(rl, tt, flags, es, ctx);
     if (rl && !(rl->iflags & RL_ROUTES_ADDED) )
     {
         struct route_ipv4 *r;
@@ -1232,7 +1208,7 @@ add_routes(struct route_list *rl, struct route_ipv6_list *rl6,
             {
                 delete_route(r, tt, flags, &rl->rgi, es, ctx);
             }
-            add_route(r, tt, flags, &rl->rgi, es, ctx);
+            ret = add_route(r, tt, flags, &rl->rgi, es, ctx) && ret;
         }
         rl->iflags |= RL_ROUTES_ADDED;
     }
@@ -1254,10 +1230,11 @@ add_routes(struct route_list *rl, struct route_ipv6_list *rl6,
             {
                 delete_route_ipv6(r, tt, flags, es, ctx);
             }
-            add_route_ipv6(r, tt, flags, es, ctx);
+            ret = add_route_ipv6(r, tt, flags, es, ctx) && ret;
         }
         rl6->iflags |= RL_ROUTES_ADDED;
     }
+    return ret;
 }
 
 void
@@ -1569,7 +1546,7 @@ is_on_link(const int is_local_route, const unsigned int flags, const struct rout
     return rgi && (is_local_route == LR_MATCH || ((flags & ROUTE_REF_GW) && (rgi->flags & RGI_ON_LINK)));
 }
 
-void
+bool
 add_route(struct route_ipv4 *r,
           const struct tuntap *tt,
           unsigned int flags,
@@ -1582,7 +1559,7 @@ add_route(struct route_ipv4 *r,
 
     if (!(r->flags & RT_DEFINED))
     {
-        return;
+        return true; /* no error */
     }
 
     struct argv argv = argv_new();
@@ -1635,7 +1612,7 @@ add_route(struct route_ipv4 *r,
     {
         openvpn_snprintf(out, sizeof(out), "%s %s %s", network, netmask, gateway);
     }
-    management_android_control(management, "ROUTE", out);
+    status = management_android_control(management, "ROUTE", out);
 
 #elif defined (_WIN32)
     {
@@ -1845,6 +1822,8 @@ done:
     gc_free(&gc);
     /* release resources potentially allocated during route setup */
     net_ctx_reset(ctx);
+
+    return (status != 0);
 }
 
 
@@ -1871,7 +1850,7 @@ route_ipv6_clear_host_bits( struct route_ipv6 *r6 )
     }
 }
 
-void
+bool
 add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
                unsigned int flags, const struct env_set *es,
                openvpn_net_ctx_t *ctx)
@@ -1882,7 +1861,7 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
 
     if (!(r6->flags & RT_DEFINED) )
     {
-        return;
+        return true; /* no error */
     }
 
     struct argv argv = argv_new();
@@ -1972,7 +1951,7 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
 
     openvpn_snprintf(out, sizeof(out), "%s/%d %s", network, r6->netbits, device);
 
-    management_android_control(management, "ROUTE6", out);
+    status = management_android_control(management, "ROUTE6", out);
 
 #elif defined (_WIN32)
 
@@ -2092,6 +2071,8 @@ done:
     gc_free(&gc);
     /* release resources potentially allocated during route setup */
     net_ctx_reset(ctx);
+
+    return (status != 0);
 }
 
 static void
