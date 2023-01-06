@@ -330,5 +330,8 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
 bool
 openvpn_swprintf(wchar_t *const str, const size_t size, const wchar_t *const format, ...);
 
+/* Sleep that can be interrupted by signals and exit event */
+void win32_sleep(const int n);
+
 #endif /* ifndef OPENVPN_WIN32_H */
 #endif /* ifdef _WIN32 */
