@@ -1104,8 +1104,9 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     openvpn_execve_check(&argv, es, S_FATAL,
                          "generic BSD ifconfig inet6 failed");
 
-#if defined(TARGET_FREEBSD) && __FreeBSD_version >= 1200000
-    /* On FreeBSD 12 and up, there is ipv6_activate_all_interfaces="YES"
+#if defined(TARGET_FREEBSD) && __FreeBSD_version >= 1200000 \
+    && __FreeBSD_version < 1204000
+    /* On FreeBSD 12.0-12.3, there is ipv6_activate_all_interfaces="YES"
      * in rc.conf, which is not set by default.  If it is *not* set,
      * "all new interfaces that are not already up" are configured by
      * devd + /etc/pccard_ether as "inet6 ifdisabled".
