@@ -7028,6 +7028,25 @@ ipset2ascii_all(struct gc_arena *gc)
     return BSTR(&out);
 }
 
+const char *
+print_windows_driver(enum windows_driver_type windows_driver)
+{
+    switch (windows_driver)
+    {
+        case WINDOWS_DRIVER_TAP_WINDOWS6:
+            return "tap-windows6";
+
+        case WINDOWS_DRIVER_WINTUN:
+            return "wintun";
+
+        case WINDOWS_DRIVER_DCO:
+            return "ovpn-dco";
+
+        default:
+            return "unspecified";
+    }
+}
+
 #else /* generic */
 
 void
