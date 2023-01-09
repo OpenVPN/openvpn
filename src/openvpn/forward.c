@@ -151,6 +151,12 @@ check_dco_key_status(struct context *c)
         return;
     }
 
+    /* no active peer (p2p tls-server mode) */
+    if (c->c2.tls_multi->dco_peer_id == -1)
+    {
+        return;
+    }
+
     if (!dco_update_keys(&c->c1.tuntap->dco, c->c2.tls_multi))
     {
         /* Something bad happened. Kill the connection to
