@@ -27,7 +27,7 @@ ${top_builddir}/src/openvpn/openvpn --cd ${top_srcdir}/sample --config sample-co
 # first off check we died because of a key mismatch.  If this doesn't
 # pass, suspect openssl of returning different messages and update the
 # test accordingly
-loggrep '(X509_check_private_key:key values mismatch|func\(128\):reason\(116\))' log.txt || { echo "Key mismatch not detected"; exit 1; }
+loggrep '(x509 certificate routines:(X509_check_private_key)?:key values mismatch|func\(128\):reason\(116\))' log.txt || { echo "Key mismatch not detected"; exit 1; }
 
 # now look for the engine prints (these are under our control)
 loggrep 'ENGINE: engine_init called' || { echo "Engine initialization not detected"; exit 1; }
