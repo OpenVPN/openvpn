@@ -39,6 +39,7 @@
 #include "mtcp.h"
 #include "perf.h"
 #include "vlan.h"
+#include "reflect_filter.h"
 
 #define MULTI_PREFIX_MAX_LENGTH 256
 
@@ -170,6 +171,7 @@ struct multi_context {
                                  *   as external transport. */
     struct ifconfig_pool *ifconfig_pool;
     struct frequency_limit *new_connection_limiter;
+    struct initial_packet_rate_limit *initial_rate_limiter;
     struct mroute_helper *route_helper;
     struct multi_reap *reaper;
     struct mroute_addr local;

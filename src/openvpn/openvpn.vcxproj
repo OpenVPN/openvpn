@@ -322,6 +322,7 @@
     <ClCompile Include="proxy.c" />
     <ClCompile Include="ps.c" />
     <ClCompile Include="push.c" />
+    <ClCompile Include="reflect_filter.c" />
     <ClCompile Include="reliable.c" />
     <ClCompile Include="route.c" />
     <ClCompile Include="run_command.c" />
@@ -417,6 +418,7 @@
     <ClInclude Include="ps.h" />
     <ClInclude Include="push.h" />
     <ClInclude Include="pushlist.h" />
+    <ClInclude Include="reflect_filter.h" />
     <ClInclude Include="reliable.h" />
     <ClInclude Include="ring_buffer.h" />
     <ClInclude Include="route.h" />

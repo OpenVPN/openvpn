@@ -82,6 +82,16 @@ do_pre_decrypt_check(struct multi_context *m,
     struct openvpn_sockaddr *from = &m->top.c2.from.dest;
     int handwindow = m->top.options.handshake_window;
 
+    if (verdict == VERDICT_VALID_RESET_V3 || verdict == VERDICT_VALID_RESET_V2)
+    {
+        /* Check if we are still below our limit for sending out
+         * responses */
+        if (!reflect_filter_rate_limit_check(m->initial_rate_limiter))
+        {
+            return false;
+        }
+    }
+
     if (verdict == VERDICT_VALID_RESET_V3)
     {
         /* Extract the packet id to check if it has the special format that
@@ -244,6 +254,10 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated)
 
                 if (frequency_limit_event_allowed(m->new_connection_limiter))
                 {
+                    /* a successful three-way handshake only counts against
+                     * connect-freq but not against connect-freq-initial */
+                    reflect_filter_rate_limit_decrease(m->initial_rate_limiter);
+
                     mi = multi_create_instance(m, &real);
                     if (mi)
                     {

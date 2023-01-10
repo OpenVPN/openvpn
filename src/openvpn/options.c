@@ -480,6 +480,7 @@ static const char usage_message[] =
     "                  as well as pushes it to connecting clients.\n"
     "--learn-address cmd : Run command cmd to validate client virtual addresses.\n"
     "--connect-freq n s : Allow a maximum of n new connections per s seconds.\n"
+    "--connect-freq-initial n s : Allow a maximum of n replies for initial connections attempts per s seconds.\n"
     "--max-clients n : Allow a maximum of n simultaneously connected clients.\n"
     "--max-routes-per-client n : Allow a maximum of n internal routes per client.\n"
     "--stale-routes-check n [t] : Remove routes with a last activity timestamp\n"
@@ -864,6 +865,8 @@ init_options(struct options *o, const bool init_gc)
     o->n_bcast_buf = 256;
     o->tcp_queue_limit = 64;
     o->max_clients = 1024;
+    o->cf_initial_per = 10;
+    o->cf_initial_max = 100;
     o->max_routes_per_client = 256;
     o->stale_routes_check_interval = 0;
     o->ifconfig_pool_persist_refresh_freq = 600;
@@ -1555,6 +1558,8 @@ show_p2mp_parms(const struct options *o)
     SHOW_BOOL(duplicate_cn);
     SHOW_INT(cf_max);
     SHOW_INT(cf_per);
+    SHOW_INT(cf_initial_max);
+    SHOW_INT(cf_initial_per);
     SHOW_INT(max_clients);
     SHOW_INT(max_routes_per_client);
     SHOW_STR(auth_user_pass_verify_script);
@@ -7451,6 +7456,22 @@ add_option(struct options *options,
         }
         options->cf_max = cf_max;
         options->cf_per = cf_per;
+    }
+    else if (streq(p[0], "connect-freq-initial") && p[1] && p[2] && !p[3])
+    {
+        long cf_max, cf_per;
+
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        char *e1, *e2;
+        cf_max = strtol(p[1], &e1, 10);
+        cf_per = strtol(p[2], &e2, 10);
+        if (cf_max < 0 || cf_per < 0 || *e1 != '\0' || *e2 != '\0')
+        {
+            msg(msglevel, "--connect-freq-initial parameters must be integers and >= 0");
+            goto err;
+        }
+        options->cf_initial_max = cf_max;
+        options->cf_initial_per = cf_per;
     }
     else if (streq(p[0], "max-clients") && p[1] && !p[2])
     {
