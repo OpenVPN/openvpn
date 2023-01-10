@@ -68,6 +68,10 @@ tests/t_client-*-20??????-??????/
 t_client.rc
 t_client_ips.rc
 tests/unit_tests/**/*_testdriver
+tests/unit_tests/engine-key/client.key
+tests/unit_tests/engine-key/log.txt
+tests/unit_tests/engine-key/openssl.cnf
+tests/unit_tests/engine-key/passwd
 
 src/openvpn/openvpn
 include/openvpn-plugin.h
