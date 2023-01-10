@@ -169,6 +169,9 @@ xkey_pkcs11h_sign(void *handle, unsigned char *sig,
     unsigned char buf[EVP_MAX_MD_SIZE];
     size_t buflen;
 
+    unsigned char enc[EVP_MAX_MD_SIZE + 32]; /* 32 bytes enough for DigestInfo header */
+    size_t enc_len = sizeof(enc);
+
     if (!strcmp(sigalg.op, "DigestSign"))
     {
         msg(D_XKEY, "xkey_pkcs11h_sign: computing digest");
@@ -213,9 +216,6 @@ xkey_pkcs11h_sign(void *handle, unsigned char *sig,
         else if (!strcmp(sigalg.padmode, "pkcs1"))
         {
             /* CMA_RSA_PKCS needs pkcs1 encoded digest */
-
-            unsigned char enc[EVP_MAX_MD_SIZE + 32]; /* 32 bytes enough for DigestInfo header */
-            size_t enc_len = sizeof(enc);
 
             if (!encode_pkcs1(enc, &enc_len, sigalg.mdname, tbs, tbslen))
             {
