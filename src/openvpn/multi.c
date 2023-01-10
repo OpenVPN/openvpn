@@ -52,6 +52,7 @@
 #include "crypto_backend.h"
 #include "ssl_util.h"
 #include "dco.h"
+#include "reflect_filter.h"
 
 /*#define MULTI_DEBUG_EVENT_LOOP*/
 
@@ -368,6 +369,8 @@ multi_init(struct multi_context *m, struct context *t, bool tcp_mode)
      */
     m->new_connection_limiter = frequency_limit_init(t->options.cf_max,
                                                      t->options.cf_per);
+    m->initial_rate_limiter = initial_rate_limit_init(t->options.cf_initial_max,
+                                                      t->options.cf_initial_per);
 
     /*
      * Allocate broadcast/multicast buffer list
@@ -729,6 +732,7 @@ multi_uninit(struct multi_context *m)
         mbuf_free(m->mbuf);
         ifconfig_pool_free(m->ifconfig_pool);
         frequency_limit_free(m->new_connection_limiter);
+        initial_rate_limit_free(m->initial_rate_limiter);
         multi_reap_free(m->reaper);
         mroute_helper_free(m->route_helper);
         multi_tcp_free(m->mtcp);

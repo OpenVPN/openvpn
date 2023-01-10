@@ -92,6 +92,10 @@ Cookie based handshake for UDP server
     shake. The tls-crypt-v2 option allows controlling if older clients are
     accepted.
 
+    By default the rate of initial packet responses is limited to 100 per 10s
+    interval to avoid OpenVPN servers being abused in reflection attacks
+    (see ``--connect-freq-initial``).
+
 Data channel offloading with ovpn-dco
     2.6.0+ implements support for data-channel offloading where the data packets
     are directly processed and forwarded in kernel space thanks to the ovpn-dco

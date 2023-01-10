@@ -513,8 +513,13 @@ struct options
     bool push_ifconfig_ipv6_blocked;                    /* IPv6 */
     bool enable_c2c;
     bool duplicate_cn;
+
     int cf_max;
     int cf_per;
+
+    int cf_initial_max;
+    int cf_initial_per;
+
     int max_clients;
     int max_routes_per_client;
     int stale_routes_check_interval;

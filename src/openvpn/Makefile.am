@@ -113,6 +113,7 @@ openvpn_SOURCES = \
 	ps.c ps.h \
 	push.c push.h \
 	pushlist.h \
+	reflect_filter.c reflect_filter.h \
 	reliable.c reliable.h \
 	route.c route.h \
 	run_command.c run_command.h \

@@ -178,11 +178,35 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   with connection requests using certificates which will ultimately fail
   to authenticate.
 
+  This limit applies after ``--connect-freq-initial`` and
+  only applies to client that have completed the three-way handshake
+  or client that use ``--tls-crypt-v2`` without cookie support
+  (``allow-noncookie`` argument to ``--tls-crypt-v2``).
+
   This is an imperfect solution however, because in a real DoS scenario,
   legitimate connections might also be refused.
 
   For the best protection against DoS attacks in server mode, use
   ``--proto udp`` and either ``--tls-auth`` or ``--tls-crypt``.
+
+--connect-freq-initial args
+  (UDP only) Allow a maximum of ``n`` initial connection packet responses
+  per ``sec`` seconds from the OpenVPN server to clients.
+
+  Valid syntax:
+  ::
+
+     connect-freq-initial n sec
+
+  OpenVPN starting at 2.6 is very efficient in responding to initial
+  connection packets. When not limiting the initial responses
+  an OpenVPN daemon can be abused in reflection attacks.
+  This option is designed to limit the rate OpenVPN will respond to initial
+  attacks.
+
+  Connection attempts that complete the initial three-way handshake
+  will not be counted against the limit. The default is to allow
+  100 initial connection per 10s.
 
 --duplicate-cn
   Allow multiple clients with the same common name to concurrently
