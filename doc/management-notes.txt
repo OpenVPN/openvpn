@@ -806,9 +806,12 @@ COMMAND -- remote-entry-get (OpenVPN 2.6+ management version > 3)
 
   remote-entry-get <start> [<end>]
 
-Retrieve remote entry (host, port and protocol) for index
-<start> or indices from <start> to <end>+1. Alternatively
-<start> = "all" retrieves all remote entries.
+Retrieve remote entry (host, port, protocol, and status) for index
+<start> or indices from <start> to <end>-1. Alternatively
+<start> = "all" retrieves all remote entries. The index is 0-based.
+If the entry is disabled due to protocol or proxy restrictions
+(i.e., ce->flag & CE_DISABLED == 1), the status is returned as "disabled",
+otherwise it reads "enabled" without quotes.
 
 Example 1:
 
@@ -818,8 +821,8 @@ Example 1:
 
   OpenVPN daemon responds with
 
-  1,vpn.example.com,1194,udp
-  END
+    1,vpn.example.com,1194,udp,enabled
+    END
 
 Example 2:
 
@@ -829,8 +832,8 @@ Example 2:
 
   OpenVPN daemon responds with
 
-    1,vpn.example.com,1194,udp
-    2,vpn.example.net,443,tcp-client
+    1,vpn.example.com,1194,udp,enabled
+    2,vpn.example.net,443,tcp-client,disabled
     END
 
 Example 3:
@@ -840,9 +843,9 @@ Example 3:
 
   OpenVPN daemon with 3 connection entries responds with
 
-    1,vpn.example.com,1194,udp
-    2,vpn.example.com,443,tcp-client
-    3,vpn.example.net,443,udp
+    0,vpn.example.com,1194,udp,enabled
+    1,vpn.example.com,443,tcp-client,enabled
+    2,vpn.example.net,443,udp,enabled
     END
 
 COMMAND -- remote  (OpenVPN AS 2.1.5/OpenVPN 2.3 or higher)
