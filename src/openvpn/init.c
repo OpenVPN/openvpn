@@ -353,13 +353,15 @@ management_callback_remote_entry_get(void *arg, unsigned int index, char **remot
     {
         struct connection_entry *ce = l->array[index];
         const char *proto = proto2ascii(ce->proto, ce->af, false);
+        const char *status = (ce->flags & CE_DISABLED) ? "disabled" : "enabled";
 
-        /* space for output including 2 commas and a nul */
-        int len = strlen(ce->remote) + strlen(ce->remote_port) + strlen(proto) + 2 + 1;
+        /* space for output including 3 commas and a nul */
+        int len = strlen(ce->remote) + strlen(ce->remote_port) + strlen(proto)
+                  + strlen(status) + 3 + 1;
         char *out = malloc(len);
         check_malloc_return(out);
 
-        openvpn_snprintf(out, len, "%s,%s,%s", ce->remote, ce->remote_port, proto);
+        openvpn_snprintf(out, len, "%s,%s,%s,%s", ce->remote, ce->remote_port, proto, status);
         *remote = out;
     }
     else
