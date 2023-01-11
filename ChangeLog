@@ -1,6 +1,50 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>
 
+2023.01.12 -- Version 2.6_rc2
+
+Antonio Quartulli (4):
+      dco: properly re-initialize dco_del_peer_reason
+      dco: bail out when no peer-specific message is delivered
+      dco: improve comment about hidden debug message
+      dco: print proper message in case of transport disconnection
+
+Arne Schwabe (3):
+      Add connect-freq-initial option to limit initial connection responses
+      Log peer-id if loglevel is D_DCO_DEBUG and dco is enabled
+      Deprecate OCC checking
+
+Frank Lichtenheld (7):
+      options.c: fix format security error when compiling without optimization
+      options.c: update usage description of --cipher
+      Update copyright year to 2023
+      xkey_pkcs11h_sign: fix dangling pointer
+      options: Always define options->management_flags
+      check_engine_keys: make pass with OpenSSL 3
+      documentation: update 'unsupported options' section
+
+Gert Doering (3):
+      Undo FreeBSD 12.x workaround on IPv6 ifconfig for 12.4 and up
+      Reduce logspam about 'dco_update_keys: peer_id=-1' in p2p server mode
+      preparing release 2.6_rc2
+
+Lev Stipakov (1):
+      tun: move print_windows_driver() out of tun.h
+
+Selva Nair (11):
+      Properly unmap ring buffer file-map in interactive service
+      Use undo_lists for saving ring-buffer handles in interactive service
+      Cleanup: Close duplicated handles in interactive service
+      Preparing for better signal handling: some code refactoring
+      Refactor signal handling in openvpn_getaddrinfo
+      Use IPAPI for setting ipv6 routes when iservice not available
+      Fix signal handling on Windows
+      Assign and honour signal priority order
+      Distinguish route addition errors from route already exists
+      Propagate route error to initialization_completed()
+      Include CE_DISABLED status of remote in "remote-entry-get" response
+
+
 2022.12.29 -- Version 2.6_rc1
 
 Arne Schwabe (17):

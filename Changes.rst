@@ -1,3 +1,52 @@
+Overview of changes in 2.6_rc2
+==============================
+New features
+------------
+- ``remote-entry-get`` management command will now show enabled/disabled
+  status for each connection entry
+
+- report ``CONNECTED,ROUTE_ERROR`` to management GUI if connection to
+  server succeeds but not all routes can be installed (Windows and
+  Linux/Netlink only, so far)
+
+- add rate limiter for incoming "initial handshake packets", enabled by
+  default with a limit of 100 packets per 10 seconds.  New option
+  ``--connect-freq-initial`` to configure values.  This change makes
+  OpenVPN servers uninteresting as an UDP reflection DDoS engine.
+
+User-Visible Changes
+--------------------
+- OCC (options compatibility check) log messages are considered obsolete
+  and are only shown on loglevel 7 or higher now
+
+- copyright line has been updated in all files to "xxx-2023"
+
+- include peer-id=nn in multi prefix for DCO servers if loglevel is 7+
+  (helps with DCO debugging)
+
+Bugfixes / minor improvements
+-----------------------------
+- improve documentation on no-longer-supported options
+
+- reduce amount of log messages about "dco_update_keys: peer_id=-1"
+
+- undo FreeBSD "ipv6 ifconfig" workaround for FreeBSD 12.4 and up (Trac 1226)
+
+- fix signal handling issues where a SIGUSR1 "restart" signal could overwrite
+  a SIGTERM/SIGINT "please end!" signal already queued, making OpenVPN hard
+  to stop (Trac 311, Trac 639, GH issue #205)
+
+- fix signal handling issues on windows, where OpenVPN could not be
+  interrupted by ctrl-c when sleep()ing between connection attempts
+
+- use IPAPI for IPv6 route installation on Windows, if OpenVPN runs without
+  service pipe ("run as admin from cmd.exe")
+
+- fix spurious DCO log messages about "peer-id unknown to OpenVPN: -1"
+
+- on Windows, repair wintun buffer cleanup on program end
+
+
 Overview of changes in 2.6_rc1
 ==============================
 
