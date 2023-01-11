@@ -181,7 +181,8 @@ which mode OpenVPN is configured as.
   older than version 2.4 to connect.
 
 --disable-occ
-  Disable "options consistency check" (OCC).
+  **DEPRECATED** Disable "options consistency check" (OCC) in configurations
+  that do not use TLS.
 
   Don't output a warning message if option inconsistencies are detected
   between peers. An example of an option inconsistency would be where one

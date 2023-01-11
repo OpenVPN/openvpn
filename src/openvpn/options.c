@@ -359,7 +359,7 @@ static const char usage_message[] =
     "--status file [n] : Write operational status to file every n seconds.\n"
     "--status-version [n] : Choose the status file format version number.\n"
     "                  Currently, n can be 1, 2, or 3 (default=1).\n"
-    "--disable-occ   : Disable options consistency check between peers.\n"
+    "--disable-occ   : (DEPRECATED) Disable options consistency check between peers.\n"
 #ifdef ENABLE_DEBUG
     "--gremlin mask  : Special stress testing mode (for debugging only).\n"
 #endif
@@ -458,7 +458,7 @@ static const char usage_message[] =
     "                  OTP based two-factor auth mechanisms are in use and\n"
     "                  --reneg-* options are enabled. Optionally a lifetime in seconds\n"
     "                  for generated tokens can be set.\n"
-    "--opt-verify    : Clients that connect with options that are incompatible\n"
+    "--opt-verify    : (DEPRECATED) Clients that connect with options that are incompatible\n"
     "                  with those of the server will be disconnected.\n"
     "--auth-user-pass-optional : Allow connections by clients that don't\n"
     "                  specify a username/password.\n"
@@ -4553,15 +4553,15 @@ options_cmp_equal_safe(char *actual, const char *expected, size_t actual_n)
     if (actual_n > 0)
     {
         actual[actual_n - 1] = 0;
-#ifndef ENABLE_STRICT_OPTIONS_CHECK
         if (strncmp(actual, expected, 2))
         {
             msg(D_SHOW_OCC, "NOTE: Options consistency check may be skewed by version differences");
             options_warning_safe_ml(D_SHOW_OCC, actual, expected, actual_n);
         }
         else
-#endif
-        ret = !strcmp(actual, expected);
+        {
+            ret = !strcmp(actual, expected);
+        }
     }
     gc_free(&gc);
     return ret;
@@ -4570,7 +4570,7 @@ options_cmp_equal_safe(char *actual, const char *expected, size_t actual_n)
 void
 options_warning_safe(char *actual, const char *expected, size_t actual_n)
 {
-    options_warning_safe_ml(M_WARN, actual, expected, actual_n);
+    options_warning_safe_ml(D_SHOW_OCC, actual, expected, actual_n);
 }
 
 const char *
@@ -7520,6 +7520,8 @@ add_option(struct options *options,
     else if (streq(p[0], "opt-verify") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
+        msg(M_INFO, "DEPRECATION: opt-verify is deprecated and will be removed "
+            "in OpenVPN 2.7");
         options->ssl_flags |= SSLF_OPT_VERIFY;
     }
     else if (streq(p[0], "auth-user-pass-verify") && p[1])

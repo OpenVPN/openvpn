@@ -400,8 +400,8 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   the kernel routing table.
 
 --opt-verify
-  Clients that connect with options that are incompatible with those of the
-  server will be disconnected.
+  **DEPRECATED** Clients that connect with options that are incompatible with
+  those of the server will be disconnected.
 
   Options that will be compared for compatibility include ``dev-type``,
   ``link-mtu``, ``tun-mtu``, ``proto``, ``ifconfig``,
