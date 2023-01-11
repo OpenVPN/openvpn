@@ -3175,8 +3175,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         to.xmit_hold = true;
     }
 
-    to.disable_occ = !options->occ;
-
     to.verify_command = options->tls_verify;
     to.verify_export_cert = options->tls_export_cert;
     to.verify_x509_type = (options->verify_x509_type & 0xff);

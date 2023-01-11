@@ -2420,14 +2420,13 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     }
 
     /* check options consistency */
-    if (!session->opt->disable_occ
-        && !options_cmp_equal(options, session->opt->remote_options))
+    if (!options_cmp_equal(options, session->opt->remote_options))
     {
         const char *remote_options = session->opt->remote_options;
 #ifdef USE_COMP
         if (multi->opt.comp_options.flags & COMP_F_MIGRATE && multi->remote_usescomp)
         {
-            msg(D_SHOW_OCC, "Note: 'compress migrate' detected remote peer "
+            msg(D_PUSH, "Note: 'compress migrate' detected remote peer "
                 "with compression enabled.");
             remote_options = options_string_compat_lzo(remote_options, &gc);
         }
