@@ -1,8 +1,8 @@
-/* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
 /*
  *  OpenVPN data channel accelerator
  *
- *  Copyright (C) 2019-2021 OpenVPN, Inc.
+ *  Copyright (C) 2019-2022 OpenVPN, Inc.
  *
  *  Author:	James Yonan <james@openvpn.net>
  *		Antonio Quartulli <antonio@openvpn.net>
@@ -85,6 +85,7 @@ enum ovpn_del_peer_reason {
 	OVPN_DEL_PEER_REASON_USERSPACE,
 	OVPN_DEL_PEER_REASON_EXPIRED,
 	OVPN_DEL_PEER_REASON_TRANSPORT_ERROR,
+	OVPN_DEL_PEER_REASON_TRANSPORT_DISCONNECT,
 	__OVPN_DEL_PEER_REASON_AFTER_LAST
 };
 
