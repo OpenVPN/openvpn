@@ -375,6 +375,11 @@ ovpn_dco_init_netlink(dco_context_t *dco)
      * wrong sequence numbers (NLE_SEQ_MISMATCH), so disable libnl's sequence
      * number check */
     nl_socket_disable_seq_check(dco->nl_sock);
+
+    /* nl library sets the buffer size to 32k/32k by default which is sometimes
+     * overrun with very fast connecting/disconnecting clients.
+     * TODO: fix this in a better and more reliable way */
+    ASSERT(!nl_socket_set_buffer_size(dco->nl_sock, 1024*1024, 1024*1024));
 }
 
 bool
