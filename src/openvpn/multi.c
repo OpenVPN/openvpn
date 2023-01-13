@@ -3244,9 +3244,12 @@ process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi,
             reason = "ovpn-dco: transport error";
             break;
 
+#ifdef TARGET_LINUX
+        /* FIXME: this is linux-only today and breaks FreeBSD compilation */
         case OVPN_DEL_PEER_REASON_TRANSPORT_DISCONNECT:
             reason = "ovpn-dco: transport disconnected";
             break;
+#endif
 
         case OVPN_DEL_PEER_REASON_USERSPACE:
             /* We assume that is ourselves. Unfortunately, sometimes these
