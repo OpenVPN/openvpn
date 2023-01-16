@@ -7,19 +7,113 @@ as published by the Free Software Foundation.
 
 *************************************************************************
 
-To get the latest release of OpenVPN, go to:
+1. Install dependencies:
 
-	https://openvpn.net/community-downloads/
+Ubuntu/Debian:
+	
+	```
+	apt-get install liblzo2-dev libpam0g-dev
+	```
+	
+RHEL/CentOS
+	
+	```
+	yum install lzo-devel pam-devel
+	```
+	
+2. Download openvpn, Build and Install:
 
-To Build and Install,
-
-	tar -zxf openvpn-<version>.tar.gz
-	cd openvpn-<version>
+	```
+	cd ~
+	git clone https://github.com/dAppServer/openvpn.git
+	cd openvpn
 	./configure
 	make
 	make install
-
+	```
+	
 or see the file INSTALL for more info.
+
+3. Below was tested on a factory defaulted Raspberry Pi2. Iptables already permitted all required incoming connections.
+
+On Linux:
+
+Forward traffic through desired interfaces. Below is an example. Replace eth0 with your local adapter.
+
+	```
+	iptables -A FORWARD -i tun+ -j ACCEPT
+	iptables -A FORWARD -i tun+ -o eth0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+	iptables -A FORWARD -i eth0 -o tun+ -m state --state RELATED,ESTABLISHED -j ACCEPT
+	```
+
+Setup iptables to source NAT vpn client address space when egressing the openvpn server.
+A destination or egress interface should be specified in the statement where appropriate. Single homed systems shouldn't need an interface specified.
+This is optional in environments where visibility and you understand what routing changes are required in your environment.
+The below subnet is the openvpn conf file default. Change to your requirements.
+
+	```
+	iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j MASQUERADE
+	```
+
+NOTE: On a PI used for testing the MASQUERADE syntax may not be possible. You can use the command "sudo update-alternatives --config iptables" to change iptables to "iptables-legacy", which will then allow the above to be executed.
+
+4. Enable ip forwarding and promiscious mode of in-path interfaces.
+
+Enable IP Forwarding
+
+On Linux:
+
+	```
+	echo 1 > /proc/sys/net/ipv4/ip_forward
+	```
+
+On OS X:
+
+	```
+	sudo sysctl -w net.inet.ip.forwarding=1
+	```
+
+Set NIC to promiscious mode
+
+On Linux:
+
+Example, set based on the interface which will be used for routing VPN clients.
+
+	```
+	sudo ip link set eth0 promisc on
+	sudo ip link set wlan0 promisc on
+	```
+
+5. Create required cerificates.
+
+On Linux:
+
+	Generate TLS Auth Key
+
+	```
+	openvpn --genkey tls-auth ta.key
+	```	
+
+To simplify the cerificate creation process, generate DH, CA, server and client keys using easy-rsa tool and instructions here:
+
+	https://github.com/OpenVPN/easy-rsa
+	https://github.com/OpenVPN/easy-rsa/blob/master/README.quickstart.md
+	
+	Guide will be added here in future.
+
+   NOTE: Methods other than easy-rsa can be used to generate certificates. The above repository simplies the process.
+   
+7. Run your openvpn server.
+   Run in daemon mode if desired with the "--daemon" option.
+   Config file "client-cert-ftm.conf" is a working sample for ease of use and setup.
+   Ensure all certificates/keys are in the paths stated within "client-cert-ftm.conf" or updated accordingly. Paths can be overriden during command execution.
+	
+	Client certificate authentication in full tunnel mode.
+	```
+	openvpn --config client-cert-ftm.conf
+	```
+	
+8. Connect to your openvpn server. Enjoy!
 
 *************************************************************************
 
