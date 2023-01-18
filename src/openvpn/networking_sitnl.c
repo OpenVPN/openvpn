@@ -944,10 +944,6 @@ sitnl_route_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
     }
 
     ret = sitnl_send(&req.n, 0, 0, NULL, NULL);
-    if (ret == -EEXIST)
-    {
-        ret = 0;
-    }
 err:
     return ret;
 }
@@ -1177,7 +1173,7 @@ sitnl_route_add(const char *iface, sa_family_t af_family, const void *dst,
         scope = RT_SCOPE_LINK;
     }
 
-    return sitnl_route_set(RTM_NEWROUTE, NLM_F_CREATE | NLM_F_REPLACE, ifindex,
+    return sitnl_route_set(RTM_NEWROUTE, NLM_F_CREATE, ifindex,
                            af_family, dst, prefixlen, gw, table, metric, scope,
                            RTPROT_BOOT, RTN_UNICAST);
 }
