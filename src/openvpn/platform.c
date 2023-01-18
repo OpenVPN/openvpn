@@ -246,7 +246,7 @@ platform_user_group_set(const struct platform_state_user *user_state,
     /* Change to new UID/GID.
      * capng_change_id() internally calls capng_apply() to apply prepared capabilities.
      */
-    res = capng_change_id(new_uid, new_gid, CAPNG_DROP_SUPP_GRP | CAPNG_CLEAR_BOUNDING);
+    res = capng_change_id(new_uid, new_gid, CAPNG_DROP_SUPP_GRP);
     if (res == -4 || res == -6)
     {
         /* -4 and -6 mean failure of setuid/gid respectively.
