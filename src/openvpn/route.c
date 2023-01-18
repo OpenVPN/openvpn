@@ -1599,8 +1599,14 @@ add_route(struct route_ipv4 *r,
     }
 
     status = RTA_SUCCESS;
-    if (net_route_v4_add(ctx, &r->network, netmask_to_netbits2(r->netmask),
-                         &r->gateway, iface, 0, metric) < 0)
+    int ret = net_route_v4_add(ctx, &r->network, netmask_to_netbits2(r->netmask),
+                               &r->gateway, iface, 0, metric);
+    if (ret == -EEXIST)
+    {
+        msg(D_ROUTE, "NOTE: Linux route add command failed because route exists");
+        status = RTA_EEXIST;
+    }
+    else if (ret < 0)
     {
         msg(M_WARN, "ERROR: Linux route add command failed");
         status = RTA_ERROR;
@@ -1963,11 +1969,17 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
     }
 
     status = RTA_SUCCESS;
-    if (net_route_v6_add(ctx, &r6->network, r6->netbits,
-                         gateway_needed ? &r6->gateway : NULL, device, 0,
-                         metric) < 0)
+    int ret = net_route_v6_add(ctx, &r6->network, r6->netbits,
+                               gateway_needed ? &r6->gateway : NULL,
+                               device, 0, metric);
+    if (ret == -EEXIST)
     {
-        msg(M_WARN, "ERROR: Linux IPv6 route can't be added");
+        msg(D_ROUTE, "NOTE: Linux route add command failed because route exists");
+        status = RTA_EEXIST;
+    }
+    else if (ret < 0)
+    {
+        msg(M_WARN, "ERROR: Linux route add command failed");
         status = RTA_ERROR;
     }
 
