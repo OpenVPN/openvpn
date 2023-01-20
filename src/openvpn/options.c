@@ -2855,6 +2855,15 @@ options_postprocess_verify_ce(const struct options *options,
     {
         check_ca_required(options);
 #ifdef ENABLE_PKCS11
+        if (!options->pkcs11_providers[0] && options->pkcs11_id)
+        {
+            msg(M_WARN, "Option pkcs11-id is ignored as no pkcs11-providers are specified");
+        }
+        else if (!options->pkcs11_providers[0] && options->pkcs11_id_management)
+        {
+            msg(M_WARN, "Option pkcs11-id-management is ignored as no pkcs11-providers are specified");
+        }
+
         if (options->pkcs11_providers[0])
         {
             if (options->pkcs11_id_management && options->pkcs11_id != NULL)
