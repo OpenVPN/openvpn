@@ -65,6 +65,8 @@
 
 #define FILE_NEED_REBOOT        L".ovpn_need_reboot"
 
+#define OPENVPN_CONNECT_ADAPTER_SUBSTR L"OpenVPN Connect"
+
 /**
  * Joins an argument sequence and sets it to the MSI property.
  *
@@ -224,6 +226,13 @@ find_adapters(
 
     for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
     {
+        /* exclude adapters created by OpenVPN Connect, since they're removed on Connect uninstallation */
+        if (_tcsstr(pAdapter->szName, OPENVPN_CONNECT_ADAPTER_SUBSTR))
+        {
+            msg(M_WARN, "%s: skip OpenVPN Connect adapter '%ls'", __FUNCTION__, pAdapter->szName);
+            continue;
+        }
+
         /* Convert adapter GUID to UTF-16 string. (LPOLESTR defaults to LPWSTR) */
         LPOLESTR szAdapterId = NULL;
         StringFromIID((REFIID)&pAdapter->guid, &szAdapterId);
@@ -316,7 +325,7 @@ FindSystemInfo(_In_ MSIHANDLE hInstall)
     find_adapters(
         hInstall,
         TEXT("ovpn-dco") TEXT("\0"),
-        TEXT("OVPNDCOAPTERS"),
+        TEXT("OVPNDCOADAPTERS"),
         TEXT("ACTIVEOVPNDCOADAPTERS"));
 
     if (bIsCoInitialized)
