@@ -1,3 +1,41 @@
+Overview of changes in 2.6.0, relative to 2.6_rc2
+=================================================
+
+(See below for changes in 2.6 relative to 2.5)
+
+New features
+------------
+- no new features relative to 2.6_rc2
+
+User-Visible Changes
+--------------------
+- no user-visible changes relative to 2.6_rc2
+
+Bugfixes / minor improvements
+-----------------------------
+- repair handling of "route already exists" errors for Linux/sitnl builds,
+  which would lead to erroneous attempts to remove routes later on, possibly
+  removing "non openvpn installed" routes.
+
+- repair error handling for Linux/iproute2 builds - this was ignoring
+  all errors on route installation, causing issues on route removal.
+
+- improve logging (errors and debug messages) for route handling on Windows
+
+- print warning if pkcs11-id or pkcs11-id-management options are used but
+  no pkcs11-providers has been selected
+
+- openvpnmsica: improve handling of win-dco driver (use MSM now)
+
+- for Linux/DCO builds, increase libnl buffer size to reduce propability
+  of ENOBUFS occurance if kernel-to-userland netlink queue overruns
+  (bandaid fix)
+
+- re-enable use of suid binaries in scripts run by OpenVPN - new
+  capability-handling code was too strict and cleared all capabilities,
+  breaking users' use of "sudo" (etc) in scripts (Github OpenVPN/openvpn#220).
+
+
 Overview of changes in 2.6_rc2
 ==============================
 New features

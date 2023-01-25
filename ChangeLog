@@ -1,6 +1,34 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>
 
+2023.01.25 -- Version 2.6.0
+
+Antonio Quartulli (1):
+      dco_linux: update license for ovpn_dco_linux.h
+
+Arne Schwabe (1):
+      Workaround: make ovpn-dco more reliable
+
+Gert Doering (3):
+      Fix OVPN_DEL_PEER_REASON_TRANSPORT_DISCONNECT breakage on FreeBSD+DCO
+      Repair special-casing of EEXIST for Linux/SITNL route install
+      preparing release 2.6.0
+
+Lev Stipakov (3):
+      openvpnmsica: remove dco installer custom actions
+      openvpnmsica: remove unused declarations
+      openvpnmsica: fix adapters discovery logic for DCO
+
+Selva Nair (4):
+      Define and use macros for route addition status code
+      Warn when pkcs11-id or pkcs11-id-management options are ignored
+      Cleanup route error and debug logging on Windows
+      Fix one more 'existing route may get deleted' case
+
+Timo Rothenpieler (1):
+      Don't clear capability bounding set on capng_change_id
+
+
 2023.01.12 -- Version 2.6_rc2
 
 Antonio Quartulli (4):
