@@ -78,6 +78,7 @@ openvpn_SOURCES = \
 	mbuf.c mbuf.h \
 	memdbg.h \
 	misc.c misc.h \
+	ovpn_dco_freebsd.h \
 	ovpn_dco_linux.h \
 	ovpn_dco_win.h \
 	platform.c platform.h \
