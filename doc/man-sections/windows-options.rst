@@ -41,13 +41,22 @@ Windows-Specific Options
 
      cryptoapicert "SUBJ:Peter Runestig"
 
-  To select a certificate, based on certificate's thumbprint:
+  To select a certificate, based on certificate's thumbprint (SHA1 hash):
   ::
 
      cryptoapicert "THUMB:f6 49 24 41 01 b4 ..."
 
   The thumbprint hex string can easily be copy-and-pasted from the Windows
-  Certificate Store GUI.
+  Certificate Store GUI. The embedded spaces in the hex string are optional.
+
+  To select a certificate based on a substring in certificate's
+  issuer name:
+  ::
+
+     cryptoapicert "ISSUER:Sample CA"
+
+  The first non-expired certificate found in the user's store or the
+  machine store that matches the select-string is used.
 
 --dhcp-release
   Ask Windows to release the TAP adapter lease on shutdown. This option

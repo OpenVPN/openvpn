@@ -236,6 +236,11 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
         find_param = wide_string(cert_prop + 5, &gc);
         find_type = CERT_FIND_SUBJECT_STR_W;
     }
+    else if (!strncmp(cert_prop, "ISSUER:", 7))
+    {
+        find_param = wide_string(cert_prop + 7, &gc);
+        find_type = CERT_FIND_ISSUER_STR_W;
+    }
     else if (!strncmp(cert_prop, "THUMB:", 6))
     {
         find_type = CERT_FIND_HASH;
