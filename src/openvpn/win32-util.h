@@ -34,6 +34,9 @@
 /* Convert a string from UTF-8 to UCS-2 */
 WCHAR *wide_string(const char *utf8, struct gc_arena *gc);
 
+/* Convert a string from UTF-16 to UTF-8 */
+char *utf16to8(const wchar_t *utf16, struct gc_arena *gc);
+
 /* return true if filename is safe to be used on Windows */
 bool win_safe_filename(const char *fn);
 
