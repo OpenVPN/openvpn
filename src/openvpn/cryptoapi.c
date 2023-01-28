@@ -934,12 +934,31 @@ xkey_cng_sign(void *handle, unsigned char *sig, size_t *siglen, const unsigned c
 
 #endif /* HAVE_XKEY_PROVIDER */
 
+static char *
+get_cert_name(const CERT_CONTEXT *cc, struct gc_arena *gc)
+{
+    DWORD len = CertGetNameStringW(cc, CERT_NAME_FRIENDLY_DISPLAY_TYPE, 0, NULL, NULL, 0);
+    char *name = NULL;
+    if (len)
+    {
+        wchar_t *wname = gc_malloc(len*sizeof(wchar_t), false, gc);
+        if (!wname
+            || CertGetNameStringW(cc, CERT_NAME_FRIENDLY_DISPLAY_TYPE, 0, NULL, wname, len) == 0)
+        {
+            return NULL;
+        }
+        name = utf16to8(wname, gc);
+    }
+    return name;
+}
+
 int
 SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
 {
     HCERTSTORE cs;
     X509 *cert = NULL;
     CAPI_DATA *cd = calloc(1, sizeof(*cd));
+    struct gc_arena gc = gc_new();
 
     if (cd == NULL)
     {
@@ -972,6 +991,13 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
             msg(M_NONFATAL, "Error in cryptoapicert: certificate matching <%s> not found", cert_prop);
             goto err;
         }
+    }
+
+    /* try to log the "name" of the selected certificate */
+    char *cert_name = get_cert_name(cd->cert_context, &gc);
+    if (cert_name)
+    {
+        msg(D_LOW, "cryptapicert: using certificate with name <%s>", cert_name);
     }
 
     /* cert_context->pbCertEncoded is the cert X509 DER encoded. */
@@ -1017,6 +1043,7 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     EVP_PKEY *privkey = xkey_load_generic_key(tls_libctx, cd, pkey,
                                               xkey_cng_sign, (XKEY_PRIVKEY_FREE_fn *) CAPI_DATA_free);
     SSL_CTX_use_PrivateKey(ssl_ctx, privkey);
+    gc_free(&gc);
     return 1; /* do not free cd -- its kept by xkey provider */
 
 #else  /* ifdef HAVE_XKEY_PROVIDER */
@@ -1042,12 +1069,14 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
         goto err;
     }
     CAPI_DATA_free(cd); /* this will do a ref_count-- */
+    gc_free(gc);
     return 1;
 
 #endif /* HAVE_XKEY_PROVIDER */
 
 err:
     CAPI_DATA_free(cd);
+    gc_free(&gc);
     return 0;
 }
 #endif                          /* _WIN32 */
