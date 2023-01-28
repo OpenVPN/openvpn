@@ -1593,7 +1593,6 @@ socket_connect(socket_descriptor_t *sd,
         openvpn_close_socket(*sd);
         *sd = SOCKET_UNDEFINED;
         register_signal(sig_info, SIGUSR1, "connection-failed");
-        sig_info->source = SIG_SOURCE_CONNECTION_FAILED;
     }
     else
     {
