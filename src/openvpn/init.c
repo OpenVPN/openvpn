@@ -4457,9 +4457,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         do_inherit_env(c, env);
     }
 
-    /* signals caught here will abort */
-    signal_reset(c->sig);
-
     if (c->mode == CM_P2P)
     {
         init_management_callback_p2p(c);

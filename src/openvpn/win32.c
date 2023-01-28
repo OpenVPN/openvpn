@@ -675,7 +675,7 @@ win32_signal_get(struct win32_signal *ws)
     }
     if (ret)
     {
-        throw_signal(ret); /* this will update signinfo_static.signal received */
+        throw_signal(ret); /* this will update siginfo_static.signal received */
     }
     return (siginfo_static.signal_received);
 }

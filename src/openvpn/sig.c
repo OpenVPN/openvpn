@@ -257,15 +257,37 @@ register_signal(struct signal_info *si, int signum, const char *signal_text)
     }
 }
 
-void
-signal_reset(struct signal_info *si)
+/**
+ * Clear the signal if its current value equals signum. If
+ * signum is zero the signal is cleared independent of its current
+ * value. Returns the current value of the signal.
+ */
+int
+signal_reset(struct signal_info *si, int signum)
 {
+    int sig_saved = 0;
     if (si)
     {
-        si->signal_received = 0;
-        si->signal_text = NULL;
-        si->source = SIG_SOURCE_SOFT;
+        if (si == &siginfo_static) /* attempting to alter the global signal */
+        {
+            block_async_signals();
+        }
+
+        sig_saved = si->signal_received;
+        if (!signum || sig_saved == signum)
+        {
+            si->signal_received = 0;
+            si->signal_text = NULL;
+            si->source = SIG_SOURCE_SOFT;
+            msg(D_SIGNAL_DEBUG, "signal_reset: signal %s is cleared", signal_name(signum, true));
+        }
+
+        if (si == &siginfo_static)
+        {
+            unblock_async_signals();
+        }
     }
+    return sig_saved;
 }
 
 void
@@ -395,6 +417,10 @@ pre_init_signal_catch(void)
     sigaction(SIGUSR2, &sa, NULL);
     sigaction(SIGPIPE, &sa, NULL);
 #endif /* _WIN32 */
+    /* clear any pending signals of the ignored type */
+    signal_reset(&siginfo_static, SIGUSR1);
+    signal_reset(&siginfo_static, SIGUSR2);
+    signal_reset(&siginfo_static, SIGHUP);
 }
 
 void
@@ -522,7 +548,7 @@ process_explicit_exit_notification_init(struct context *c)
      * will be ignored during the exit notification period.
      */
     halt_low_priority_signals(); /* Set hard SIGUSR1/SIGHUP/SIGUSR2 to be ignored */
-    signal_reset(c->sig);
+    signal_reset(c->sig, 0);
 
     c->c2.explicit_exit_notification_time_wait = now;
 
@@ -573,7 +599,7 @@ process_sigusr2(struct context *c)
     struct status_output *so = status_open(NULL, 0, M_INFO, NULL, 0);
     print_status(c, so);
     status_close(so);
-    signal_reset(c->sig);
+    signal_reset(c->sig, SIGUSR2);
 }
 
 static bool

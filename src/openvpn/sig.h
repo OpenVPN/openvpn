@@ -81,7 +81,12 @@ void register_signal(struct signal_info *si, int sig, const char *text);
 
 void process_explicit_exit_notification_timer_wakeup(struct context *c);
 
-void signal_reset(struct signal_info *si);
+/**
+ * Clear the signal if its current value equals signum. If signum is
+ * zero the signal is cleared independent of its current value.
+ * @returns the current value of the signal.
+ */
+int signal_reset(struct signal_info *si, int signum);
 
 static inline void
 halt_non_edge_triggered_signals(void)
