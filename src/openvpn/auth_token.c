@@ -324,8 +324,14 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
     const uint8_t *tstamp_initial = sessid + AUTH_TOKEN_SESSION_ID_LEN;
     const uint8_t *tstamp = tstamp_initial + sizeof(int64_t);
 
-    uint64_t timestamp = ntohll(*((uint64_t *) (tstamp)));
-    uint64_t timestamp_initial = ntohll(*((uint64_t *) (tstamp_initial)));
+    /* tstamp, tstamp_initial might not be aligned to an uint64, use memcpy
+     * to avoid unaligned access */
+    uint64_t timestamp = 0, timestamp_initial = 0;
+    memcpy(&timestamp, tstamp, sizeof(uint64_t));
+    timestamp = ntohll(timestamp);
+
+    memcpy(&timestamp_initial, tstamp_initial, sizeof(uint64_t));
+    timestamp_initial = ntohll(timestamp_initial);
 
     hmac_ctx_t *ctx = multi->opt.auth_token_key.hmac;
     if (check_hmac_token(ctx, b64decoded, up->username))
