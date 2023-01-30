@@ -242,6 +242,9 @@ jobs:
 
     name: "clang-asan - ${{matrix.os}} - ${{matrix.ssllib}}"
 
+    env:
+      UBSAN_OPTIONS: print_stacktrace=1
+
     runs-on: ${{matrix.os}}
     steps:
       - name: Install dependencies
@@ -291,6 +294,7 @@ jobs:
       LDFLAGS: ${{ matrix.ldflags }}
       OPENSSL_CFLAGS: "-I/usr/local/opt/${{matrix.libdir}}/include"
       OPENSSL_LIBS: "-L/usr/local/opt/${{matrix.libdir}}/lib -lcrypto -lssl"
+      UBSAN_OPTIONS: print_stacktrace=1
     steps:
       - name: Install dependencies
         run: brew install openssl@1.1 openssl@3 lzo lz4 man2html cmocka libtool automake autoconf libressl
@@ -400,6 +404,7 @@ jobs:
       CFLAGS: ${{ matrix.cflags }}
       LDFLAGS: ${{ matrix.ldflags }}
       CC: ${{matrix.cc}}
+      UBSAN_OPTIONS: print_stacktrace=1
 
     steps:
       - name: Install dependencies
