@@ -409,7 +409,7 @@ jobs:
         with:
           path: libressl
           repository: libressl-portable/portable
-          ref: v3.5.3
+          ref: v3.7.0
       - name: "libressl: autogen.sh"
         run: ./autogen.sh
         working-directory: libressl
@@ -417,7 +417,7 @@ jobs:
         run: autoreconf -fvi
         working-directory: libressl
       - name: "libressl: configure"
-        run: ./configure --enable-openvpn
+        run: ./configure
         working-directory: libressl
       - name: "libressl: make all"
         run: make -j3
