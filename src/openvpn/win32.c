@@ -1351,7 +1351,7 @@ win32_get_arch(arch_t *process_arch, arch_t *host_arch)
     *process_arch = ARCH_UNKNOWN;
     *host_arch = ARCH_NATIVE;
 
-    typedef BOOL (__stdcall *is_wow64_process2_t)(HANDLE, USHORT *, USHORT *);
+    typedef BOOL (WINAPI *is_wow64_process2_t)(HANDLE, USHORT *, USHORT *);
     is_wow64_process2_t is_wow64_process2 = (is_wow64_process2_t)
                                             GetProcAddress(GetModuleHandle("Kernel32.dll"), "IsWow64Process2");
 

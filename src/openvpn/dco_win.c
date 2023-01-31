@@ -110,7 +110,7 @@ dco_connect_wait(HANDLE handle, OVERLAPPED *ov, int timeout, struct signal_info 
 {
     volatile int *signal_received = &sig_info->signal_received;
     /* GetOverlappedResultEx is available starting from Windows 8 */
-    typedef BOOL (*get_overlapped_result_ex_t) (HANDLE, LPOVERLAPPED, LPDWORD, DWORD, BOOL);
+    typedef BOOL (WINAPI *get_overlapped_result_ex_t)(HANDLE, LPOVERLAPPED, LPDWORD, DWORD, BOOL);
     get_overlapped_result_ex_t get_overlapped_result_ex =
         (get_overlapped_result_ex_t)GetProcAddress(GetModuleHandle("Kernel32.dll"),
                                                    "GetOverlappedResultEx");
