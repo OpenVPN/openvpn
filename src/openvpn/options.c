@@ -4176,7 +4176,6 @@ options_postprocess_pull(struct options *o, struct env_set *es)
  *
  * --cipher
  * --auth
- * --keysize
  * --secret
  * --no-replay
  *
