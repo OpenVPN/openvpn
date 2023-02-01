@@ -170,6 +170,11 @@ TLS 1.0 and 1.1 are deprecated
     a PRNG is better left to a crypto library. So we use the PRNG
     mbed TLS or OpenSSL now.
 
+``--keysize`` has been removed
+    The ``--keysize`` option was only useful to change the key length when using the
+    BF, CAST6 or RC2 ciphers. For all other ciphers the key size is fixed with the
+    chosen cipher. As OpenVPN v2.6 no longer supports any of these variable length
+    ciphers, this option was removed as well to avoid confusion.
 
 Compression no longer enabled by default
     Unless an explicit compression option is specified in the configuration,
