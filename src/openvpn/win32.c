@@ -173,8 +173,7 @@ init_security_attributes_allow_all(struct security_attributes *obj)
 void
 overlapped_io_init(struct overlapped_io *o,
                    const struct frame *frame,
-                   BOOL event_state,
-                   bool tuntap_buffer)  /* if true: tuntap buffer, if false: socket buffer */
+                   BOOL event_state)
 {
     CLEAR(*o);
 
@@ -186,7 +185,7 @@ overlapped_io_init(struct overlapped_io *o,
     }
 
     /* allocate buffer for overlapped I/O */
-    alloc_buf_sock_tun(&o->buf_init, frame, tuntap_buffer);
+    alloc_buf_sock_tun(&o->buf_init, frame);
 }
 
 void

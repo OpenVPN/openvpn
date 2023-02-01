@@ -898,8 +898,8 @@ init_tun_post(struct tuntap *tt,
         return;
     }
 
-    overlapped_io_init(&tt->reads, frame, FALSE, true);
-    overlapped_io_init(&tt->writes, frame, TRUE, true);
+    overlapped_io_init(&tt->reads, frame, FALSE);
+    overlapped_io_init(&tt->writes, frame, TRUE);
     tt->adapter_index = TUN_ADAPTER_INDEX_INVALID;
 
     if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)

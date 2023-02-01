@@ -265,8 +265,7 @@ calc_packet_id_size_dc(const struct options *options,
  * allocate a buffer for socket or tun layer
  */
 void alloc_buf_sock_tun(struct buffer *buf,
-                        const struct frame *frame,
-                        const bool tuntap_buffer);
+                        const struct frame *frame);
 
 /*
  * EXTENDED_SOCKET_ERROR_CAPABILITY functions -- print extra error info

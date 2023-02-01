@@ -42,8 +42,7 @@
 /* allocate a buffer for socket or tun layer */
 void
 alloc_buf_sock_tun(struct buffer *buf,
-                   const struct frame *frame,
-                   const bool tuntap_buffer)
+                   const struct frame *frame)
 {
     /* allocate buffer for overlapped I/O */
     *buf = alloc_buf(BUF_SIZE(frame));
