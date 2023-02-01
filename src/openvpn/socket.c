@@ -1623,8 +1623,8 @@ static void
 socket_frame_init(const struct frame *frame, struct link_socket *sock)
 {
 #ifdef _WIN32
-    overlapped_io_init(&sock->reads, frame, FALSE, false);
-    overlapped_io_init(&sock->writes, frame, TRUE, false);
+    overlapped_io_init(&sock->reads, frame, FALSE);
+    overlapped_io_init(&sock->writes, frame, TRUE);
     sock->rw_handle.read = sock->reads.overlapped.hEvent;
     sock->rw_handle.write = sock->writes.overlapped.hEvent;
 #endif
@@ -1637,9 +1637,7 @@ socket_frame_init(const struct frame *frame, struct link_socket *sock)
                         sock->sockflags,
                         sock->info.proto);
 #else
-        alloc_buf_sock_tun(&sock->stream_buf_data,
-                           frame,
-                           false);
+        alloc_buf_sock_tun(&sock->stream_buf_data, frame);
 
         stream_buf_init(&sock->stream_buf,
                         &sock->stream_buf_data,
