@@ -8872,7 +8872,7 @@ add_option(struct options *options,
             listend->next = newlist;
         }
     }
-#ifdef ENABLE_CRYPTOAPI
+#if defined(ENABLE_CRYPTOAPI) && defined(HAVE_XKEY_PROVIDER)
     else if (streq(p[0], "cryptoapicert") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
