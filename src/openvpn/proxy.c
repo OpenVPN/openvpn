@@ -126,7 +126,7 @@ recv_line(socket_descriptor_t sd,
         }
 
         /* read single char */
-        size = recv(sd, &c, 1, MSG_NOSIGNAL);
+        size = recv(sd, (void *)&c, 1, MSG_NOSIGNAL);
 
         /* error? */
         if (size != 1)

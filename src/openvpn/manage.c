@@ -2255,7 +2255,7 @@ man_read(struct management *man)
         man->connection.lastfdreceived = fd;
     }
 #else  /* ifdef TARGET_ANDROID */
-    len = recv(man->connection.sd_cli, buf, sizeof(buf), MSG_NOSIGNAL);
+    len = recv(man->connection.sd_cli, (void *)buf, sizeof(buf), MSG_NOSIGNAL);
 #endif
 
     if (len == 0)
@@ -2352,7 +2352,7 @@ man_write(struct management *man)
         }
         else
 #endif
-        sent = send(man->connection.sd_cli, BPTR(buf), len, MSG_NOSIGNAL);
+        sent = send(man->connection.sd_cli, (const void *)BPTR(buf), len, MSG_NOSIGNAL);
         if (sent >= 0)
         {
             buffer_list_advance(man->connection.out, sent);
