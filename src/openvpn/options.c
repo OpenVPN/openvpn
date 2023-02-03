@@ -1041,6 +1041,7 @@ setenv_settings(struct env_set *es, const struct options *o)
     }
 }
 
+#ifndef _WIN32
 static void
 setenv_foreign_option(struct options *o, const char *argv[], int len, struct env_set *es)
 {
@@ -1078,6 +1079,7 @@ setenv_foreign_option(struct options *o, const char *argv[], int len, struct env
         gc_free(&gc);
     }
 }
+#endif /* ifndef _WIN32 */
 
 static in_addr_t
 get_ip_addr(const char *ip_string, int msglevel, bool *error)
