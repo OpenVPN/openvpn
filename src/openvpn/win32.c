@@ -1358,7 +1358,6 @@ win32_get_arch(arch_t *process_arch, arch_t *host_arch)
 
     USHORT process_machine = 0;
     USHORT native_machine = 0;
-    BOOL is_wow64 = FALSE;
 
 #ifdef _ARM64_
     *process_arch = ARCH_ARM64;
@@ -1380,8 +1379,8 @@ win32_get_arch(arch_t *process_arch, arch_t *host_arch)
     if (is_wow64_process2)
     {
         /* check if we're running on arm64 or amd64 machine */
-        is_wow64 = is_wow64_process2(GetCurrentProcess(),
-                                     &process_machine, &native_machine);
+        BOOL is_wow64 = is_wow64_process2(GetCurrentProcess(),
+                                          &process_machine, &native_machine);
         if (is_wow64)
         {
             switch (native_machine)
@@ -1403,7 +1402,7 @@ win32_get_arch(arch_t *process_arch, arch_t *host_arch)
     else
     {
         BOOL w64 = FALSE;
-        is_wow64 = IsWow64Process(GetCurrentProcess(), &w64) && w64;
+        BOOL is_wow64 = IsWow64Process(GetCurrentProcess(), &w64) && w64;
         if (is_wow64)
         {
             /* we are unable to differentiate between arm64 and amd64
