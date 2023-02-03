@@ -2333,12 +2333,6 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
                   openvpn_net_ctx_t *ctx)
 {
     const char *network;
-#if !defined(TARGET_LINUX)
-    const char *gateway;
-#else
-    int metric;
-#endif
-    bool gateway_needed = false;
 
     if ((r6->flags & (RT_DEFINED|RT_ADDED)) != (RT_DEFINED|RT_ADDED))
     {
@@ -2346,10 +2340,25 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     }
 
 #ifndef _WIN32
+#if !defined(TARGET_LINUX)
+    const char *gateway;
+#else
+    int metric;
+#endif
+    bool gateway_needed = false;
     const char *device = tt->actual_name;
     if (r6->iface != NULL)              /* vpn server special route */
     {
         device = r6->iface;
+        gateway_needed = true;
+    }
+
+    /* if we used a gateway on "add route", we also need to specify it on
+     * delete, otherwise some OSes will refuse to delete the route
+     */
+    if (tt->type == DEV_TYPE_TAP
+        && !( (r6->flags & RT_METRIC_DEFINED) && r6->metric == 0 ) )
+    {
         gateway_needed = true;
     }
 #endif
@@ -2358,7 +2367,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     struct argv argv = argv_new();
 
     network = print_in6_addr( r6->network, 0, &gc);
-#if !defined(TARGET_LINUX)
+#if !defined(TARGET_LINUX) && !defined(_WIN32)
     gateway = print_in6_addr( r6->gateway, 0, &gc);
 #endif
 
@@ -2381,15 +2390,6 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
 #endif
 
     msg( M_INFO, "delete_route_ipv6(%s/%d)", network, r6->netbits );
-
-    /* if we used a gateway on "add route", we also need to specify it on
-     * delete, otherwise some OSes will refuse to delete the route
-     */
-    if (tt->type == DEV_TYPE_TAP
-        && !( (r6->flags & RT_METRIC_DEFINED) && r6->metric == 0 ) )
-    {
-        gateway_needed = true;
-    }
 
 #if defined(TARGET_LINUX)
     metric = -1;
