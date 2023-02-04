@@ -180,6 +180,39 @@ err:
     return NULL;
 }
 
+/**
+ * Parse a hex string with optional embedded spaces into
+ * a byte array.
+ * @param p         pointer to the input string
+ * @param arr       on output contains the parsed bytes
+ * @param capacity  capacity of the byte array arr
+ * @returns the number of bytes parsed or 0 on error
+ */
+int
+parse_hexstring(const char *p, unsigned char *arr, size_t capacity)
+{
+    int i = 0;
+    for ( ; *p && i < capacity; p += 2)
+    {
+        /* skip spaces */
+        while (*p == ' ')
+        {
+            p++;
+        }
+        if (!*p) /* ending with spaces is not an error */
+        {
+            break;
+        }
+
+        if (!isxdigit(p[0]) || !isxdigit(p[1])
+            || sscanf(p, "%2hhx", &arr[i++]) != 1)
+        {
+            return 0;
+        }
+    }
+    return i;
+}
+
 static const CERT_CONTEXT *
 find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
 {
@@ -205,51 +238,15 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
     }
     else if (!strncmp(cert_prop, "THUMB:", 6))
     {
-        const char *p;
-        int i, x = 0;
         find_type = CERT_FIND_HASH;
         find_param = &blob;
 
-        /* skip the tag */
-        cert_prop += 6;
-        for (p = cert_prop, i = 0; *p && i < sizeof(hash); i++)
+        blob.cbData = parse_hexstring(cert_prop + 6, hash, sizeof(hash));
+        if (blob.cbData == 0)
         {
-            if (*p >= '0' && *p <= '9')
-            {
-                x = (*p - '0') << 4;
-            }
-            else if (*p >= 'A' && *p <= 'F')
-            {
-                x = (*p - 'A' + 10) << 4;
-            }
-            else if (*p >= 'a' && *p <= 'f')
-            {
-                x = (*p - 'a' + 10) << 4;
-            }
-            if (!*++p)  /* unexpected end of string */
-            {
-                msg(M_WARN|M_INFO, "WARNING: cryptoapicert: error parsing <THUMB:%s>.", cert_prop);
-                goto out;
-            }
-            if (*p >= '0' && *p <= '9')
-            {
-                x += *p - '0';
-            }
-            else if (*p >= 'A' && *p <= 'F')
-            {
-                x += *p - 'A' + 10;
-            }
-            else if (*p >= 'a' && *p <= 'f')
-            {
-                x += *p - 'a' + 10;
-            }
-            hash[i] = x;
-            /* skip any space(s) between hex numbers */
-            for (p++; *p && *p == ' '; p++)
-            {
-            }
+            msg(M_WARN|M_INFO, "WARNING: cryptoapicert: error parsing <%s>.", cert_prop);
+            goto out;
         }
-        blob.cbData = i;
     }
     else
     {
