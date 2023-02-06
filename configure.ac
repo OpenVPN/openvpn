@@ -80,14 +80,16 @@ AC_ARG_ENABLE(
 	[enable_lzo="yes"]
 )
 
-AC_ARG_ENABLE(lz4,
-	[  --disable-lz4           Disable LZ4 compression support],
+AC_ARG_ENABLE(
+	[lz4],
+	[AS_HELP_STRING([--disable-lz4], [disable LZ4 compression support @<:@default=yes@:>@])],
 	[enable_lz4="$enableval"],
 	[enable_lz4="yes"]
 )
 
-AC_ARG_ENABLE(comp-stub,
-	[  --enable-comp-stub      Don't compile compression support but still allow limited interoperability with compression-enabled peers],
+AC_ARG_ENABLE(
+	[comp-stub],
+	[AS_HELP_STRING([--enable-comp-stub], [disable compression support but still allow limited interoperability with compression-enabled peers @<:@default=no@:>@])],
 	[enable_comp_stub="$enableval"],
 	[enable_comp_stub="no"]
 )
