@@ -695,14 +695,14 @@ x_check_status(int status,
         {
             if (extended_msg)
             {
-                msg(x_cs_info_level, "%s %s [%s]: %s (fd=%d,code=%d)", description,
+                msg(x_cs_info_level, "%s %s [%s]: %s (fd=" SOCKET_PRINTF ",code=%d)", description,
                     sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
                     extended_msg, openvpn_strerror(my_errno, crt_error, &gc),
                     sock ? sock->sd : -1, my_errno);
             }
             else
             {
-                msg(x_cs_info_level, "%s %s: %s (fd=%d,code=%d)", description,
+                msg(x_cs_info_level, "%s %s: %s (fd=" SOCKET_PRINTF ",code=%d)", description,
                     sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
                     openvpn_strerror(my_errno, crt_error, &gc),
                     sock ? sock->sd : -1, my_errno);

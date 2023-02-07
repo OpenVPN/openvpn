@@ -48,7 +48,6 @@
 #ifdef _MSC_VER /* Visual Studio */
 #define __func__ __FUNCTION__
 #define __attribute__(x)
-#include <inttypes.h>
 #endif
 
 #if defined(__APPLE__)
@@ -442,9 +441,11 @@ typedef unsigned short sa_family_t;
  */
 #ifdef _WIN32
 #define SOCKET_UNDEFINED (INVALID_SOCKET)
+#define SOCKET_PRINTF "%" PRIuPTR
 typedef SOCKET socket_descriptor_t;
 #else
 #define SOCKET_UNDEFINED (-1)
+#define SOCKET_PRINTF "%d"
 typedef int socket_descriptor_t;
 #endif
 
