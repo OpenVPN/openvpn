@@ -62,6 +62,10 @@ enum windows_driver_type {
 #define IPW32_SET_ADAPTIVE_DELAY_WINDOW 300
 #define IPW32_SET_ADAPTIVE_TRY_NETSH    20
 
+/* bit flags for DHCP options */
+#define DHCP_OPTIONS_DHCP_OPTIONAL (1<<0)
+#define DHCP_OPTIONS_DHCP_REQUIRED (1<<1)
+
 struct tuntap_options {
     /* --ip-win32 options */
     bool ip_win32_defined;
@@ -90,7 +94,7 @@ struct tuntap_options {
 
     /* --dhcp-option options */
 
-    bool dhcp_options;
+    int dhcp_options;
 
     const char *domain;      /* DOMAIN (15) */
 

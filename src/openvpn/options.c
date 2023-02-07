@@ -1292,7 +1292,7 @@ show_tuntap_options(const struct tuntap_options *o)
     SHOW_INT(dhcp_masq_offset);
     SHOW_INT(dhcp_lease_time);
     SHOW_INT(tap_sleep);
-    SHOW_BOOL(dhcp_options);
+    SHOW_UNSIGNED(dhcp_options);
     SHOW_BOOL(dhcp_renew);
     SHOW_BOOL(dhcp_pre_release);
     SHOW_STR(domain);
@@ -2480,12 +2480,20 @@ options_postprocess_verify_ce(const struct options *options,
         msg(M_USAGE, "On Windows, --ip-win32 doesn't make sense unless --ifconfig is also used");
     }
 
-    if (options->tuntap_options.dhcp_options
-        && options->windows_driver != WINDOWS_DRIVER_WINTUN
-        && options->tuntap_options.ip_win32_type != IPW32_SET_DHCP_MASQ
-        && options->tuntap_options.ip_win32_type != IPW32_SET_ADAPTIVE)
+    if (options->tuntap_options.dhcp_options & DHCP_OPTIONS_DHCP_REQUIRED)
     {
-        msg(M_USAGE, "--dhcp-option requires --ip-win32 dynamic or adaptive");
+        const char *prefix = "Some dhcp-options require DHCP server";
+        if (options->windows_driver != WINDOWS_DRIVER_TAP_WINDOWS6)
+        {
+            msg(M_USAGE, "%s, which is not supported by selected %s driver",
+                prefix, print_windows_driver(options->windows_driver));
+        }
+        else if (options->tuntap_options.ip_win32_type != IPW32_SET_DHCP_MASQ
+                 && options->tuntap_options.ip_win32_type != IPW32_SET_ADAPTIVE)
+        {
+            msg(M_USAGE, "%s, which requires --ip-win32 dynamic or adaptive",
+                prefix);
+        }
     }
 
     if (options->windows_driver == WINDOWS_DRIVER_WINTUN && dev != DEV_TYPE_TUN)
@@ -8085,16 +8093,17 @@ add_option(struct options *options,
     {
         struct tuntap_options *o = &options->tuntap_options;
         VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        bool ipv6dns = false;
 
         if ((streq(p[1], "DOMAIN") || streq(p[1], "ADAPTER_DOMAIN_SUFFIX"))
             && p[2] && !p[3])
         {
             o->domain = p[2];
+            o->dhcp_options |= DHCP_OPTIONS_DHCP_OPTIONAL;
         }
         else if (streq(p[1], "NBS") && p[2] && !p[3])
         {
             o->netbios_scope = p[2];
+            o->dhcp_options |= DHCP_OPTIONS_DHCP_REQUIRED;
         }
         else if (streq(p[1], "NBT") && p[2] && !p[3])
         {
@@ -8106,31 +8115,35 @@ add_option(struct options *options,
                 goto err;
             }
             o->netbios_node_type = t;
+            o->dhcp_options |= DHCP_OPTIONS_DHCP_REQUIRED;
         }
         else if ((streq(p[1], "DNS") || streq(p[1], "DNS6")) && p[2] && !p[3]
                  && (!strstr(p[2], ":") || ipv6_addr_safe(p[2])))
         {
             if (strstr(p[2], ":"))
             {
-                ipv6dns = true;
                 dhcp_option_dns6_parse(p[2], o->dns6, &o->dns6_len, msglevel);
             }
             else
             {
                 dhcp_option_address_parse("DNS", p[2], o->dns, &o->dns_len, msglevel);
+                o->dhcp_options |= DHCP_OPTIONS_DHCP_OPTIONAL;
             }
         }
         else if (streq(p[1], "WINS") && p[2] && !p[3])
         {
             dhcp_option_address_parse("WINS", p[2], o->wins, &o->wins_len, msglevel);
+            o->dhcp_options |= DHCP_OPTIONS_DHCP_OPTIONAL;
         }
         else if (streq(p[1], "NTP") && p[2] && !p[3])
         {
             dhcp_option_address_parse("NTP", p[2], o->ntp, &o->ntp_len, msglevel);
+            o->dhcp_options |= DHCP_OPTIONS_DHCP_REQUIRED;
         }
         else if (streq(p[1], "NBDD") && p[2] && !p[3])
         {
             dhcp_option_address_parse("NBDD", p[2], o->nbdd, &o->nbdd_len, msglevel);
+            o->dhcp_options |= DHCP_OPTIONS_DHCP_REQUIRED;
         }
         else if (streq(p[1], "DOMAIN-SEARCH") && p[2] && !p[3])
         {
@@ -8143,10 +8156,12 @@ add_option(struct options *options,
                 msg(msglevel, "--dhcp-option %s: maximum of %d search entries can be specified",
                     p[1], N_SEARCH_LIST_LEN);
             }
+            o->dhcp_options |= DHCP_OPTIONS_DHCP_REQUIRED;
         }
         else if (streq(p[1], "DISABLE-NBT") && !p[2])
         {
             o->disable_nbt = 1;
+            o->dhcp_options |= DHCP_OPTIONS_DHCP_REQUIRED;
         }
 #if defined(TARGET_ANDROID)
         else if (streq(p[1], "PROXY_HTTP") && p[3] && !p[4])
@@ -8159,14 +8174,6 @@ add_option(struct options *options,
         {
             msg(msglevel, "--dhcp-option: unknown option type '%s' or missing or unknown parameter", p[1]);
             goto err;
-        }
-
-        /* flag that we have options to give to the TAP driver's DHCPv4 server
-         *  - skipped for "DNS6", as that's not a DHCPv4 option
-         */
-        if (!ipv6dns)
-        {
-            o->dhcp_options = true;
         }
     }
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
