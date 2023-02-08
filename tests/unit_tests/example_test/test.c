@@ -4,6 +4,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <setjmp.h>
+#include <stdint.h>
 #include <cmocka.h>
 
 static int
