@@ -364,6 +364,8 @@ case "$host" in
 		;;
 esac
 
+AM_CONDITIONAL([CROSS_COMPILING], test "${cross_compiling}" = "yes")
+
 PKG_PROG_PKG_CONFIG
 AC_PROG_CPP
 AC_PROG_INSTALL

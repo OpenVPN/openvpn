@@ -12,7 +12,9 @@ TESTS_ENVIRONMENT = srcdir="$(abs_srcdir)"; \
 	top_srcdir="$(top_srcdir)"; \
 	export srcdir builddir top_builddir top_srcdir;
 
+if !CROSS_COMPILING
 TESTS = check_engine_keys.sh
+endif
 check_engine_keys.sh: $(conffiles)
 
 CLEANFILES = \
