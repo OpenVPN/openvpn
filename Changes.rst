@@ -208,7 +208,7 @@ User-visible Changes
   The default is 1250 for the control channel size.
 
 - In point-to-point OpenVPN setups (no ``--server``), using
-  ``--explict-exit-notiy`` on one end would terminate the other side at
+  ``--explict-exit-notify`` on one end would terminate the other side at
   session end.  This is considered a no longer useful default and has
   been changed to "restart on reception of explicit-exit-notify message".
   If the old behaviour is still desired, ``--remap-usr1 SIGTERM`` can be used.
