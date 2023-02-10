@@ -42,8 +42,9 @@ options to avoid this behaviour.
 OpenVPN 3 clients
 -----------------
 Clients based on the OpenVPN 3.x library (https://github.com/openvpn/openvpn3/)
-do not have a configurable ``--ncp-ciphers`` or ``--data-ciphers`` option. Instead
-these clients will announce support for all their supported AEAD ciphers
+do not have a configurable ``--ncp-ciphers`` or ``--data-ciphers`` option. Newer
+versions by default disable legacy AES-CBC, BF-CBC, and DES-CBC ciphers.
+These clients will always announce support for all their supported AEAD ciphers
 (`AES-256-GCM`, `AES-128-GCM` and in newer versions also `Chacha20-Poly1305`).
 
 To support OpenVPN 3.x based clients at least one of these ciphers needs to be
