@@ -303,7 +303,7 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
 
     /* Calculate the number of bytes that the payload differs from the payload
      * MTU. This are fragment/compression/ethernet headers */
-    payload_overhead = frame_calculate_payload_overhead(frame, options, kt, true);
+    payload_overhead = frame_calculate_payload_overhead(frame->extra_tun, options, kt);
 
     /* We are in a "liberal" position with respect to MSS,
      * i.e. we assume that MSS can be calculated from MTU
