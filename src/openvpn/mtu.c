@@ -107,20 +107,16 @@ frame_calculate_protocol_header_size(const struct key_type *kt,
 
 
 size_t
-frame_calculate_payload_overhead(const struct frame *frame,
+frame_calculate_payload_overhead(size_t extra_tun,
                                  const struct options *options,
-                                 const struct key_type *kt,
-                                 bool extra_tun)
+                                 const struct key_type *kt)
 {
     size_t overhead = 0;
 
     /* This is the overhead of tap device that is not included in the MTU itself
      * i.e. Ethernet header that we still need to transmit as part of the
-     * payload */
-    if (extra_tun)
-    {
-        overhead += frame->extra_tun;
-    }
+     * payload, this is set to 0 by caller if not applicable */
+    overhead += extra_tun;
 
 #if defined(USE_COMP)
     /* v1 Compression schemes add 1 byte header. V2 only adds a header when it
@@ -157,7 +153,7 @@ frame_calculate_payload_size(const struct frame *frame,
                              const struct key_type *kt)
 {
     size_t payload_size = options->ce.tun_mtu;
-    payload_size += frame_calculate_payload_overhead(frame, options, kt, true);
+    payload_size += frame_calculate_payload_overhead(frame->extra_tun, options, kt);
     return payload_size;
 }
 

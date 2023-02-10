@@ -217,10 +217,10 @@ frame_calculate_payload_size(const struct frame *frame,
  * *  [IP][UDP][OPENVPN PROTOCOL HEADER][ **PAYLOAD incl compression header** ]
  */
 size_t
-frame_calculate_payload_overhead(const struct frame *frame,
+frame_calculate_payload_overhead(size_t extra_tun,
                                  const struct options *options,
-                                 const struct key_type *kt,
-                                 bool extra_tun);
+                                 const struct key_type *kt);
+
 
 /**
  * Calculates the size of the OpenVPN protocol header. This includes
