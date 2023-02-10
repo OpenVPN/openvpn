@@ -7,6 +7,9 @@ assignees: ''
 
 ---
 
+**IMPORTANT NOTE**
+Bugs about OpenVPN Access Server, OpenVPN Connect or any other product by OpenVPN Inc. should be directly reported to OpenVPN Inc. at https://support.openvpn.net
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 
