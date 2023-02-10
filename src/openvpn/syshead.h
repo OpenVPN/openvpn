@@ -441,7 +441,7 @@ typedef unsigned short sa_family_t;
  */
 #ifdef _WIN32
 #define SOCKET_UNDEFINED (INVALID_SOCKET)
-#define SOCKET_PRINTF "%" PRIuPTR
+#define SOCKET_PRINTF "%" PRIxPTR
 typedef SOCKET socket_descriptor_t;
 #else
 #define SOCKET_UNDEFINED (-1)
