@@ -97,6 +97,8 @@ https://community.openvpn.net/openvpn/wiki/FAQ
 
 HOWTO
 =====
+The manual ``openvpn-examples``\(5) gives some examples, especially for
+small setups.
 
 For a more comprehensive guide to setting up OpenVPN in a production
 setting, see the OpenVPN HOWTO at
@@ -107,18 +109,17 @@ https://openvpn.net/community-resources/how-to/
 PROTOCOL
 ========
 
-For a description of OpenVPN's underlying protocol, see
-https://openvpn.net/community-resources/openvpn-protocol/
-
+An ongoing effort to document the OpenVPN protocol can be found under
+https://github.com/openvpn/openvpn-rfc
 
 
 WEB
 ===
 
-OpenVPN's web site is at https://openvpn.net/
+OpenVPN's web site is at https://community.openvpn.net/
 
 Go here to download the latest version of OpenVPN, subscribe to the
-mailing lists, read the mailing list archives, or browse the SVN
+mailing lists, read the mailing list archives, or browse the Git
 repository.
 
 
