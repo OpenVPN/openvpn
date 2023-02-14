@@ -1730,11 +1730,6 @@ tls_session_update_crypto_params_do_work(struct tls_multi *multi,
         return true;
 
     }
-    if (strcmp(options->ciphername, session->opt->config_ciphername))
-    {
-        msg(D_HANDSHAKE, "Data Channel: using negotiated cipher '%s'",
-            options->ciphername);
-    }
 
     init_key_type(&session->opt->key_type, options->ciphername,
                   options->authname, true, true);

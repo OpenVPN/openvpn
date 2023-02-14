@@ -318,7 +318,7 @@ check_pull_client_ncp(struct context *c, const int found)
 {
     if (found & OPT_P_NCP)
     {
-        msg(D_PUSH, "OPTIONS IMPORT: data channel crypto options modified");
+        msg(D_PUSH_DEBUG, "OPTIONS IMPORT: data channel crypto options modified");
         return true;
     }
 

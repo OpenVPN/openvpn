@@ -105,6 +105,7 @@
 #define D_MTU_INFO           LOGLEV(4, 61, 0)        /* show terse MTU info */
 #define D_PID_DEBUG_LOW      LOGLEV(4, 63, 0)        /* show low-freq packet-id debugging info */
 #define D_PID_DEBUG_MEDIUM   LOGLEV(4, 64, 0)        /* show medium-freq packet-id debugging info */
+#define D_CIPHER_INIT        LOGLEV(4, 65, 0)        /* show messages about cipher init */
 
 #define D_LOG_RW             LOGLEV(5, 0,  0)        /* Print 'R' or 'W' to stdout for read/write */
 

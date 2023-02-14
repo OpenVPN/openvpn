@@ -835,7 +835,7 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
         cipher_ctx_init(ctx->cipher, key->cipher, kt->cipher, enc);
 
         const char *ciphername = cipher_kt_name(kt->cipher);
-        msg(D_HANDSHAKE, "%s: Cipher '%s' initialized with %d bit key",
+        msg(D_CIPHER_INIT, "%s: Cipher '%s' initialized with %d bit key",
             prefix, ciphername, cipher_kt_key_size(kt->cipher) * 8);
 
         dmsg(D_SHOW_KEYS, "%s: CIPHER KEY: %s", prefix,
@@ -850,7 +850,7 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
         ctx->hmac = hmac_ctx_new();
         hmac_ctx_init(ctx->hmac, key->hmac, kt->digest);
 
-        msg(D_HANDSHAKE,
+        msg(D_CIPHER_INIT,
             "%s: Using %d bit message hash '%s' for HMAC authentication",
             prefix, md_kt_size(kt->digest) * 8, md_kt_name(kt->digest));
 

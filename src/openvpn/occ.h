@@ -153,4 +153,20 @@ check_send_occ_msg(struct context *c)
     }
 }
 
+/**
+ * Small helper function to determine if we should send the exit notification
+ * via control channel.
+ * @return control channel exit message should be used */
+static inline bool
+cc_exit_notify_enabled(struct context *c)
+{
+    /* Check if we have TLS active at all */
+    if (!c->c2.tls_multi)
+    {
+        return false;
+    }
+
+    const struct key_state *ks = get_primary_key(c->c2.tls_multi);
+    return (ks->crypto_options.flags & CO_USE_CC_EXIT_NOTIFY);
+}
 #endif /* ifndef OCC_H */
