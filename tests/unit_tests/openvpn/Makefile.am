@@ -17,6 +17,7 @@ endif
 test_binaries += provider_testdriver
 
 if WIN32
+test_binaries += cryptoapi_testdriver
 LDADD = -lws2_32
 endif
 
@@ -151,6 +152,21 @@ provider_testdriver_SOURCES = test_provider.c mock_msg.c \
 	mock_get_random.c \
 	$(openvpn_srcdir)/win32-util.c \
 	$(openvpn_srcdir)/platform.c
+
+if WIN32
+cryptoapi_testdriver_CFLAGS  = @TEST_CFLAGS@ \
+	-I$(openvpn_includedir) -I$(compat_srcdir) -I$(openvpn_srcdir) \
+	$(OPTIONAL_CRYPTO_CFLAGS)
+cryptoapi_testdriver_LDFLAGS = @TEST_LDFLAGS@ \
+	$(OPTIONAL_CRYPTO_LIBS) -lcrypt32 -lncrypt
+cryptoapi_testdriver_SOURCES = test_cryptoapi.c mock_msg.c \
+	$(openvpn_srcdir)/xkey_helper.c \
+	$(openvpn_srcdir)/buffer.c \
+	$(openvpn_srcdir)/base64.c \
+	$(openvpn_srcdir)/platform.c \
+	mock_get_random.c \
+	$(openvpn_srcdir)/win32-util.c
+endif
 
 auth_token_testdriver_CFLAGS  = @TEST_CFLAGS@ \
 	-I$(openvpn_includedir) -I$(compat_srcdir) -I$(openvpn_srcdir) \
