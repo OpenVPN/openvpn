@@ -243,6 +243,9 @@ jobs:
       - name: Run bufferunit test
         run: ./unittests/buffer_testdriver.exe
 
+      - name: Run cryptoapi unit test
+        run: ./unittests/cryptoapi_testdriver.exe
+
       - name: Run cryptounit test
         run: ./unittests/crypto_testdriver.exe
 
