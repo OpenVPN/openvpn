@@ -1850,7 +1850,8 @@ do_open_tun(struct context *c, int *error_flags)
 #ifdef _WIN32
         /* store (hide) interactive service handle in tuntap_options */
         c->c1.tuntap->options.msg_channel = c->options.msg_channel;
-        msg(D_ROUTE, "interactive service msg_channel=%" PRIu64, (unsigned long long) c->options.msg_channel);
+        msg(D_ROUTE, "interactive service msg_channel=%" PRIuPTR,
+            (intptr_t) c->options.msg_channel);
 #endif
 
         /* allocate route list structure */
