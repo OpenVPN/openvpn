@@ -1,6 +1,31 @@
 OpenVPN Change Log
 Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
 
+2023.02.14 -- Version 2.5.9
+
+Arne Schwabe (6):
+      Implement optional cipher in --data-ciphers prefixed with ?
+      Fix handling an optional invalid cipher at the end of data-ciphers
+      Ensure that argument to parse_line has always space for final sentinel
+      Improve documentation on user/password requirement and unicodize function
+      Remove unused gc_arena
+      Fix corner case that might lead to leaked file descriptor
+
+Frank Lichtenheld (1):
+      msvc: always call git-version.py
+
+Lev Stipakov (1):
+      git-version.py: proper support for tags
+
+Max Fillinger (1):
+      Check if pkcs11_cert is NULL before freeing it
+
+Selva Nair (3):
+      Do not add leading space to pushed options
+      pull-filter: ignore leading "spaces" in option names
+      Do not include auth-token in pulled option digest
+
+
 2022.10.27 -- Version 2.5.8
 
 Antonio Quartulli (1):

@@ -7,6 +7,29 @@ New features
   Ciphers in ``--data-ciphers`` can now be prefixed with a ``?`` to mark
   those as optional and only use them if the SSL library supports them.
 
+User-visible Changes
+--------------------
+- when compiling from a git checkout, put proper branch names into
+  windows builds
+
+Bugfixes
+--------
+- do not include auth-token in pulled-option digest (interferes with
+  persist-tun when auth-token is in use, GH #200).
+
+- fix corner case that might lead to leaked file descriptor
+
+- fix parser bug (parse_line()) that can lead to buffer overflows on
+  malformed command line or server ccd file handling.  Not exploitable.
+
+- pull-filter: ignore leading spaces in option names (work around server side
+  bug with erroneous extra spaces)
+
+- push: do not add leading spaces to "out of renegotiations" pushed auth-token
+
+- fix NULL pointer crash on "openvpn --show-tls" with mbedtls
+
+
 Overview of changes in 2.5.8
 ============================
 
