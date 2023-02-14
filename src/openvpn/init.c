@@ -2216,6 +2216,141 @@ p2p_set_dco_keepalive(struct context *c)
     }
     return true;
 }
+
+/**
+ * Helper function for tls_print_deferred_options_results
+ * Adds the ", " delimitor if there already some data in the
+ * buffer.
+ */
+static void
+add_delim_if_non_empty(struct buffer *buf, const char *header)
+{
+    if (buf_len(buf) > strlen(header))
+    {
+        buf_printf(buf, ", ");
+    }
+}
+
+
+/**
+ * Prints the results of options imported for the data channel
+ * @param o
+ */
+static void
+tls_print_deferred_options_results(struct context *c)
+{
+    struct options *o = &c->options;
+
+    struct buffer out;
+    uint8_t line[1024] = { 0 };
+    buf_set_write(&out, line, sizeof(line));
+
+
+    if (cipher_kt_mode_aead(o->ciphername))
+    {
+        buf_printf(&out, "Data Channel: cipher '%s'",
+                   cipher_kt_name(o->ciphername));
+    }
+    else
+    {
+        buf_printf(&out, "Data Channel: cipher '%s', auth '%s'",
+                   cipher_kt_name(o->ciphername), md_kt_name(o->authname));
+    }
+
+    if (o->use_peer_id)
+    {
+        buf_printf(&out, ", peer-id: %d", o->peer_id);
+    }
+
+#ifdef USE_COMP
+    if (c->c2.comp_context)
+    {
+        buf_printf(&out, ", compression: '%s'", c->c2.comp_context->alg.name);
+    }
+#endif
+
+    msg(D_HANDSHAKE, "%s", BSTR(&out));
+
+    buf_clear(&out);
+
+    const char *header = "Timers: ";
+
+    buf_printf(&out, "%s", header);
+
+    if (o->ping_send_timeout)
+    {
+        buf_printf(&out, "ping %d", o->ping_send_timeout);
+    }
+
+    if (o->ping_rec_timeout_action != PING_UNDEF)
+    {
+        /* yes unidirectional ping is possible .... */
+        add_delim_if_non_empty(&out, header);
+
+        if (o->ping_rec_timeout_action == PING_EXIT)
+        {
+            buf_printf(&out, "ping-exit %d", o->ping_rec_timeout);
+        }
+        else
+        {
+            buf_printf(&out, "ping-restart %d", o->ping_rec_timeout);
+        }
+    }
+
+    if (o->inactivity_timeout)
+    {
+        add_delim_if_non_empty(&out, header);
+
+        buf_printf(&out, "inactive %d", o->inactivity_timeout);
+        if (o->inactivity_minimum_bytes)
+        {
+            buf_printf(&out, " %" PRIu64, o->inactivity_minimum_bytes);
+        }
+    }
+
+    if (o->session_timeout)
+    {
+        add_delim_if_non_empty(&out, header);
+        buf_printf(&out, "session-timeout %d", o->session_timeout);
+    }
+
+    if (buf_len(&out) > strlen(header))
+    {
+        msg(D_HANDSHAKE, "%s", BSTR(&out));
+    }
+
+    buf_clear(&out);
+    header = "Protocol options: ";
+    buf_printf(&out, "%s", header);
+
+    if (c->options.ce.explicit_exit_notification)
+    {
+        buf_printf(&out, "explicit-exit-notify %d",
+                   c->options.ce.explicit_exit_notification);
+    }
+    if (c->options.imported_protocol_flags)
+    {
+        add_delim_if_non_empty(&out, header);
+
+        buf_printf(&out, "protocol-flags");
+
+        if (o->imported_protocol_flags & CO_USE_CC_EXIT_NOTIFY)
+        {
+            buf_printf(&out, " cc-exit");
+        }
+        if (o->imported_protocol_flags & CO_USE_TLS_KEY_MATERIAL_EXPORT)
+        {
+            buf_printf(&out, " tls-ekm");
+        }
+    }
+
+    if (buf_len(&out) > strlen(header))
+    {
+        msg(D_HANDSHAKE, "%s", BSTR(&out));
+    }
+}
+
+
 /**
  * This function is expected to be invoked after open_tun() was performed.
  *
@@ -2377,6 +2512,8 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
             initialization_sequence_completed(c, error_flags); /* client/p2p restart with --persist-tun */
         }
 
+        tls_print_deferred_options_results(c);
+
         c->c2.do_up_ran = true;
         if (c->c2.tls_multi)
         {
@@ -2477,7 +2614,7 @@ do_deferred_options(struct context *c, const unsigned int found)
     if (found & OPT_P_TIMER)
     {
         do_init_timers(c, true);
-        msg(D_PUSH, "OPTIONS IMPORT: timers and/or timeouts modified");
+        msg(D_PUSH_DEBUG, "OPTIONS IMPORT: timers and/or timeouts modified");
     }
 
     if (found & OPT_P_EXPLICIT_NOTIFY)
@@ -2489,14 +2626,14 @@ do_deferred_options(struct context *c, const unsigned int found)
         }
         else
         {
-            msg(D_PUSH, "OPTIONS IMPORT: explicit notify parm(s) modified");
+            msg(D_PUSH_DEBUG, "OPTIONS IMPORT: explicit notify parm(s) modified");
         }
     }
 
 #ifdef USE_COMP
     if (found & OPT_P_COMP)
     {
-        msg(D_PUSH, "OPTIONS IMPORT: compression parms modified");
+        msg(D_PUSH_DEBUG, "OPTIONS IMPORT: compression parms modified");
         comp_uninit(c->c2.comp_context);
         c->c2.comp_context = comp_init(&c->options.comp);
     }
@@ -2547,7 +2684,7 @@ do_deferred_options(struct context *c, const unsigned int found)
 
     if (found & OPT_P_PEER_ID)
     {
-        msg(D_PUSH, "OPTIONS IMPORT: peer-id set");
+        msg(D_PUSH_DEBUG, "OPTIONS IMPORT: peer-id set");
         c->c2.tls_multi->use_peer_id = true;
         c->c2.tls_multi->peer_id = c->options.peer_id;
     }
