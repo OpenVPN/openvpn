@@ -3249,7 +3249,11 @@ link_socket_read_tcp(struct link_socket *sock,
 #else
         struct buffer frag;
         stream_buf_get_next(&sock->stream_buf, &frag);
+        #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        len = fuzz_recv(sock->sd, BPTR(&frag), BLEN(&frag), MSG_NOSIGNAL);
+        #else
         len = recv(sock->sd, BPTR(&frag), BLEN(&frag), MSG_NOSIGNAL);
+        #endif
 #endif
 
         if (!len)

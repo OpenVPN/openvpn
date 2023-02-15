@@ -198,7 +198,11 @@ msg_fp(const unsigned int flags)
     FILE *fp = msgfp;
     if (!fp)
     {
+        #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+        fp = stdout;
+        #else
         fp = (flags & (M_FATAL|M_USAGE_SMALL)) ? default_err : default_out;
+        #endif
     }
     if (!fp)
     {

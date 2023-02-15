@@ -394,3 +394,7 @@ main(int argc, char *argv[])
     return openvpn_main(argc, argv);
 }
 #endif /* ifdef _WIN32 */
+
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#include "fake_fuzz_header.h"
+#endif

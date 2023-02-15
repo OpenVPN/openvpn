@@ -34,6 +34,11 @@
 #include "proxy.h"
 #include "socks.h"
 #include "misc.h"
+
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+extern size_t fuzz_sendto(int sockfd, void *buf, size_t len, int flags, struct sockaddr *dest_addr, socklen_t addrlen);
+#endif
+
 #include "tun.h"
 
 /*
@@ -1146,7 +1151,11 @@ link_socket_write_udp_posix(struct link_socket *sock,
     }
     else
 #endif
+    #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    return fuzz_sendto(sock->sd, BPTR(buf), BLEN(buf), 0,
+    #else
     return sendto(sock->sd, BPTR(buf), BLEN(buf), 0,
+    #endif
                   (struct sockaddr *) &to->dest.addr.sa,
                   (socklen_t) af_addr_size(to->dest.addr.sa.sa_family));
 }

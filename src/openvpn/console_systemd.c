@@ -78,7 +78,11 @@ get_console_input_systemd(const char *prompt, const bool echo, char *input, cons
         return false;
     }
     memset(input, 0, capacity);
+    #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if (fuzz_read(std_out, input, capacity-1) != 0)
+    #else
     if (read(std_out, input, capacity-1) != 0)
+    #endif
     {
         chomp(input);
         ret = true;

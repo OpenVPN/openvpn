@@ -206,9 +206,11 @@ mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
                 }
                 break;
 
+            #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
             default:
                 msg(M_WARN, "IP packet with unknown IP version=%d seen",
                     OPENVPN_IPH_GET_VER(*BPTR(buf)));
+            #endif
         }
     }
     return ret;
