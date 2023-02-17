@@ -133,8 +133,6 @@ dco_get_secondary_key(struct tls_multi *multi, const struct key_state *primary)
 bool
 dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
 {
-    msg(D_DCO_DEBUG, "%s: peer_id=%d", __func__, multi->dco_peer_id);
-
     /* this function checks if keys have to be swapped or erased, therefore it
      * can't do much if we don't have any key installed
      */
