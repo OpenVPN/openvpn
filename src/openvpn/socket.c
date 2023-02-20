@@ -1161,6 +1161,11 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
 static void
 protect_fd_nonlocal(int fd, const struct sockaddr *addr)
 {
+    if (!management)
+    {
+        msg(M_FATAL, "Required management interface not available.")
+    }
+
     /* pass socket FD to management interface to pass on to VPNService API
      * as "protected socket" (exempt from being routed into tunnel)
      */

@@ -2192,6 +2192,10 @@ man_recv_with_fd(int fd, void *ptr, size_t nbytes, int flags, int *recvfd)
 bool
 management_android_control(struct management *man, const char *command, const char *msg)
 {
+    if (!man)
+    {
+        msg(M_FATAL, "Required management interface not available.");
+    }
     struct user_pass up;
     CLEAR(up);
     strncpy(up.username, msg, sizeof(up.username)-1);
