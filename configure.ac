@@ -832,9 +832,7 @@ if test "$enable_dco" != "no"; then
 			fi
 			;;
 		*-*-freebsd*)
-			AC_CHECK_LIB(
-				[nv],
-				[nvlist_create],
+			AC_CHECK_HEADERS([net/if_ovpn.h],
 				[
 				 LIBS="${LIBS} -lnv"
 				 AC_DEFINE(ENABLE_DCO, 1, [Enable data channel offload for FreeBSD])
@@ -842,7 +840,7 @@ if test "$enable_dco" != "no"; then
 				],
 				[
 				 enable_dco="no"
-				 AC_MSG_WARN([Name/Value pair library not found.])
+				 AC_MSG_WARN([DCO header not found.])
 				]
 			)
 			if test "$enable_dco" = "no"; then
