@@ -4687,14 +4687,15 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
     {
         link_socket_init_phase2(c);
-    }
 
-    /* Update dynamic frame calculation as exact transport socket information
-     * (IP vs IPv6) may be only available after socket phase2 has finished.
-     * This is only needed for --static or no crypto, NCP will recalculate this
-     * in tls_session_update_crypto_params (P2MP) */
-    frame_calculate_dynamic(&c->c2.frame, &c->c1.ks.key_type, &c->options,
-                            get_link_socket_info(c));
+
+        /* Update dynamic frame calculation as exact transport socket information
+         * (IP vs IPv6) may be only available after socket phase2 has finished.
+         * This is only needed for --static or no crypto, NCP will recalculate this
+         * in tls_session_update_crypto_params (P2MP) */
+        frame_calculate_dynamic(&c->c2.frame, &c->c1.ks.key_type, &c->options,
+                                get_link_socket_info(c));
+    }
 
     /*
      * Actually do UID/GID downgrade, and chroot, if requested.
