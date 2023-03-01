@@ -6549,6 +6549,12 @@ add_option(struct options *options,
         VERIFY_PERMISSION(OPT_P_MTU|OPT_P_CONNECTION);
         options->ce.fragment = positive_atoi(p[1]);
 
+        if (options->ce.fragment < 68)
+        {
+            msg(msglevel, "--fragment needs to be at least 68");
+            goto err;
+        }
+
         if (p[2] && streq(p[2], "mtu"))
         {
             options->ce.fragment_encap = true;
