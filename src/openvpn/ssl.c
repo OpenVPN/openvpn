@@ -4007,18 +4007,15 @@ tls_post_encrypt(struct tls_multi *multi, struct buffer *buf)
  */
 
 bool
-tls_send_payload(struct tls_multi *multi,
+tls_send_payload(struct key_state *ks,
                  const uint8_t *data,
                  int size)
 {
-    struct key_state *ks;
     bool ret = false;
 
     tls_clear_error();
 
-    ASSERT(multi);
-
-    ks = get_key_scan(multi, 0);
+    ASSERT(ks);
 
     if (ks->state >= S_ACTIVE)
     {
