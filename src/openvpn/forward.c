@@ -372,8 +372,11 @@ send_control_channel_string_dowork(struct tls_multi *multi,
     struct gc_arena gc = gc_new();
     bool stat;
 
+    ASSERT(multi);
+    struct key_state *ks = get_key_scan(multi, 0);
+
     /* buffered cleartext write onto TLS control channel */
-    stat = tls_send_payload(multi, (uint8_t *) str, strlen(str) + 1);
+    stat = tls_send_payload(ks, (uint8_t *) str, strlen(str) + 1);
 
     msg(msglevel, "SENT CONTROL [%s]: '%s' (status=%d)",
         tls_common_name(multi, false),
