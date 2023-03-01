@@ -1,3 +1,16 @@
+Overview of changes in 2.6.2
+============================
+
+Bug fixes
+---------
+- sending of AUTH_PENDING and INFO_PRE messages fixed (OpenVPN/openvpn#256)
+
+User visible changes
+--------------------
+- The ``client-pending-auth`` management command now requires also the
+  key id. The management version has been changed to 5 to indicate this change.
+
+
 Overview of changes in 2.6.1
 ============================
 

@@ -265,21 +265,22 @@ send_control_channel_string(struct context *c, const char *str, int msglevel);
 
 /*
  * Send a string to remote over the TLS control channel.
- * Used for push/pull messages, passing username/password,
- * etc.
+ * Used for push/pull messages, auth pending and other clear text
+ * control messages.
  *
  * This variant does not schedule the actual sending of the message
  * The caller needs to ensure that it is scheduled or call
  * send_control_channel_string
  *
- * @param multi      - The tls_multi structure of the VPN tunnel associated
- *                     with the packet.
+ * @param session    - The session structure of the VPN tunnel associated
+ *                     with the packet. The method will always use the
+ *                     primary key (KS_PRIMARY) for sending the message
  * @param str        - The message to be sent
  * @param msglevel   - Message level to use for logging
  */
 
 bool
-send_control_channel_string_dowork(struct tls_multi *multi,
+send_control_channel_string_dowork(struct tls_session *session,
                                    const char *str, int msglevel);
 
 

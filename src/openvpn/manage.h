@@ -52,7 +52,7 @@
 #include "socket.h"
 #include "mroute.h"
 
-#define MANAGEMENT_VERSION                      4
+#define MANAGEMENT_VERSION                      5
 #define MANAGEMENT_N_PASSWORD_RETRIES           3
 #define MANAGEMENT_LOG_HISTORY_INITIAL_SIZE   100
 #define MANAGEMENT_ECHO_BUFFER_SIZE           100
@@ -194,6 +194,7 @@ struct management_callback
                          struct buffer_list *cc_config); /* ownership transferred */
     bool (*client_pending_auth) (void *arg,
                                  const unsigned long cid,
+                                 const unsigned int kid,
                                  const char *extra,
                                  unsigned int timeout);
     char *(*get_peer_info) (void *arg, const unsigned long cid);

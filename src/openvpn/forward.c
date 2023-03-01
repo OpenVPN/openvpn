@@ -366,20 +366,20 @@ check_connection_established(struct context *c)
 }
 
 bool
-send_control_channel_string_dowork(struct tls_multi *multi,
+send_control_channel_string_dowork(struct tls_session *session,
                                    const char *str, int msglevel)
 {
     struct gc_arena gc = gc_new();
     bool stat;
 
-    ASSERT(multi);
-    struct key_state *ks = get_key_scan(multi, 0);
+    ASSERT(session);
+    struct key_state *ks = &session->key[KS_PRIMARY];
 
     /* buffered cleartext write onto TLS control channel */
     stat = tls_send_payload(ks, (uint8_t *) str, strlen(str) + 1);
 
     msg(msglevel, "SENT CONTROL [%s]: '%s' (status=%d)",
-        tls_common_name(multi, false),
+        session->common_name ? session->common_name : "UNDEF",
         sanitize_control_message(str, &gc),
         (int) stat);
 
@@ -399,8 +399,8 @@ send_control_channel_string(struct context *c, const char *str, int msglevel)
 {
     if (c->c2.tls_multi)
     {
-        bool ret = send_control_channel_string_dowork(c->c2.tls_multi,
-                                                      str, msglevel);
+        struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
+        bool ret = send_control_channel_string_dowork(session, str, msglevel);
         reschedule_multi_process(c);
 
         return ret;

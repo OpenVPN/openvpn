@@ -613,10 +613,10 @@ COMMAND -- client-pending-auth  (OpenVPN 2.5 or higher)
 
 Instruct OpenVPN server to send AUTH_PENDING and INFO_PRE message
 to signal a pending authenticating to the client. A pending auth means
-that the connecting requires extra authentication like a one time
+that connecting requires extra authentication like a one time
 password or doing a single sign on via web.
 
-    client-pending-auth {CID} {EXTRA} {TIMEOUT}
+    client-pending-auth {CID} {KID} {EXTRA} {TIMEOUT}
 
 The server will send AUTH_PENDING and INFO_PRE,{EXTRA} to the client. If the
 client supports accepting keywords to AUTH_PENDING (announced via IV_PROTO),
@@ -639,11 +639,16 @@ Both client and server limit the maximum timeout to the smaller value of half th
 
 For the format of {EXTRA} see below. For OpenVPN server this is a stateless
 operation and needs to be followed by a client-deny/client-auth[-nt] command
-(that is the result of the out of band authentication).
+(that is the result of the out-of-band authentication).
+
+Note that the {KID} argument has been added in management version 5
+to specify the pending client key the authentication belongs to.
+This ensures that the pending auth message is tied strictly to the
+authentication session.
 
 Before issuing a client-pending-auth to a client instead of a
 client-auth/client-deny, the server should check the IV_SSO
-environment variable for whether the method is supported. Currently
+environment variable for whether the method is supported. Currently,
 defined methods are crtext for challenge/response using text
 (e.g., TOTP), openurl (deprecated) and webauth for opening a URL in
 the client to continue authentication. A client supporting webauth and

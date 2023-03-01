@@ -916,7 +916,8 @@ check_auth_pending_method(const char *peer_info, const char *method)
  */
 static bool
 key_state_check_auth_pending_file(struct auth_deferred_status *ads,
-                                  struct tls_multi *multi)
+                                  struct tls_multi *multi,
+                                  struct tls_session *session)
 {
     bool ret = true;
     if (ads->auth_pending_file)
@@ -965,7 +966,7 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads,
             }
             else
             {
-                send_auth_pending_messages(multi, BSTR(extra_buf), timeout);
+                send_auth_pending_messages(multi, session, BSTR(extra_buf), timeout);
             }
         }
 
@@ -1390,7 +1391,7 @@ verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
         /* Check if we the plugin has written the pending auth control
          * file and send the pending auth to the client */
         if (!key_state_check_auth_pending_file(&ks->script_auth,
-                                               multi))
+                                               multi, session))
         {
             retval = OPENVPN_PLUGIN_FUNC_ERROR;
             key_state_rm_auth_control_files(&ks->script_auth);
@@ -1514,7 +1515,7 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
     {
         /* Check if the plugin has written the pending auth control
          * file and send the pending auth to the client */
-        if (!key_state_check_auth_pending_file(&ks->plugin_auth, multi))
+        if (!key_state_check_auth_pending_file(&ks->plugin_auth, multi, session))
         {
             retval = OPENVPN_PLUGIN_FUNC_ERROR;
         }
