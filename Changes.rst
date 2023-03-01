@@ -229,6 +229,9 @@ User-visible Changes
   compatibility with older versions. See the manual page on the
   ``--compat-mode`` for details.
 
+- The ``client-pending-auth`` management command now requires also the
+  key id. The management version has been changed to 5 to indicate this change.
+
 Common errors with OpenSSL 3.0 and OpenVPN 2.6
 ----------------------------------------------
 Both OpenVPN 2.6 and OpenSSL 3.0 tighten the security considerable, so some

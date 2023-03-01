@@ -412,7 +412,16 @@ send_auth_failed(struct context *c, const char *client_reason)
         {
             buf_printf(&buf, ",%s", client_reason);
         }
-        send_control_channel_string(c, BSTR(&buf), D_PUSH);
+
+        /* We kill the whole session, send the AUTH_FAILED to any TLS session
+         * that might be active */
+        send_control_channel_string_dowork(&c->c2.tls_multi->session[TM_INITIAL],
+                                           BSTR(&buf), D_PUSH);
+        send_control_channel_string_dowork(&c->c2.tls_multi->session[TM_ACTIVE],
+                                           BSTR(&buf), D_PUSH);
+
+        reschedule_multi_process(c);
+
     }
 
     gc_free(&gc);
@@ -420,10 +429,11 @@ send_auth_failed(struct context *c, const char *client_reason)
 
 
 bool
-send_auth_pending_messages(struct tls_multi *tls_multi, const char *extra,
-                           unsigned int timeout)
+send_auth_pending_messages(struct tls_multi *tls_multi,
+                           struct tls_session *session,
+                           const char *extra, unsigned int timeout)
 {
-    struct key_state *ks = get_key_scan(tls_multi, 0);
+    struct key_state *ks = &session->key[KS_PRIMARY];
 
     static const char info_pre[] = "INFO_PRE,";
 
@@ -440,7 +450,7 @@ send_auth_pending_messages(struct tls_multi *tls_multi, const char *extra,
     struct gc_arena gc = gc_new();
     if ((proto & IV_PROTO_AUTH_PENDING_KW) == 0)
     {
-        send_control_channel_string_dowork(tls_multi, "AUTH_PENDING", D_PUSH);
+        send_control_channel_string_dowork(session, "AUTH_PENDING", D_PUSH);
     }
     else
     {
@@ -451,7 +461,7 @@ send_auth_pending_messages(struct tls_multi *tls_multi, const char *extra,
         struct buffer buf = alloc_buf_gc(len, &gc);
         buf_printf(&buf, auth_pre);
         buf_printf(&buf, "%u", timeout);
-        send_control_channel_string_dowork(tls_multi, BSTR(&buf), D_PUSH);
+        send_control_channel_string_dowork(session, BSTR(&buf), D_PUSH);
     }
 
     size_t len = strlen(extra) + 1 + sizeof(info_pre);
@@ -464,7 +474,7 @@ send_auth_pending_messages(struct tls_multi *tls_multi, const char *extra,
     struct buffer buf = alloc_buf_gc(len, &gc);
     buf_printf(&buf, info_pre);
     buf_printf(&buf, "%s", extra);
-    send_control_channel_string_dowork(tls_multi, BSTR(&buf), D_PUSH);
+    send_control_channel_string_dowork(session, BSTR(&buf), D_PUSH);
 
     ks->auth_deferred_expire = now + timeout;
 
@@ -741,6 +751,7 @@ send_push_reply_auth_token(struct tls_multi *multi)
 {
     struct gc_arena gc = gc_new();
     struct push_list push_list = { 0 };
+    struct tls_session *session = &multi->session[TM_ACTIVE];
 
     prepare_auth_token_push_reply(multi, &gc, &push_list);
 
@@ -751,7 +762,7 @@ send_push_reply_auth_token(struct tls_multi *multi)
     /* Construct a mimimal control channel push reply message */
     struct buffer buf = alloc_buf_gc(PUSH_BUNDLE_SIZE, &gc);
     buf_printf(&buf, "%s,%s", push_reply_cmd, e->option);
-    send_control_channel_string_dowork(multi, BSTR(&buf), D_PUSH);
+    send_control_channel_string_dowork(session, BSTR(&buf), D_PUSH);
     gc_free(&gc);
 }
 

@@ -1042,22 +1042,25 @@ parse_uint(const char *str, const char *what, unsigned int *uint)
  *
  * @param man           The management interface struct
  * @param cid_str       The CID in string form
+ * @param kid_str       The key ID in string form
  * @param extra         The string to be send to the client containing
  *                      the information of the additional steps
  */
 static void
 man_client_pending_auth(struct management *man, const char *cid_str,
-                        const char *extra, const char *timeout_str)
+                        const char *kid_str, const char *extra,
+                        const char *timeout_str)
 {
     unsigned long cid = 0;
+    unsigned int kid = 0;
     unsigned int timeout = 0;
-    if (parse_cid(cid_str, &cid)
+    if (parse_cid(cid_str, &cid) && parse_uint(kid_str, "KID", &kid)
         && parse_uint(timeout_str, "TIMEOUT", &timeout))
     {
         if (man->persist.callback.client_pending_auth)
         {
             bool ret = (*man->persist.callback.client_pending_auth)
-                           (man->persist.callback.arg, cid, extra, timeout);
+                           (man->persist.callback.arg, cid, kid, extra, timeout);
 
             if (ret)
             {
@@ -1594,9 +1597,9 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "client-pending-auth"))
     {
-        if (man_need(man, p, 3, 0))
+        if (man_need(man, p, 4, 0))
         {
-            man_client_pending_auth(man, p[1], p[2], p[3]);
+            man_client_pending_auth(man, p[1], p[2], p[3], p[4]);
         }
     }
     else if (streq(p[0], "rsa-sig"))
