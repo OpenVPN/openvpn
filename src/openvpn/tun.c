@@ -2242,7 +2242,7 @@ tuncfg(const char *dev, const char *dev_type, const char *dev_node,
         {
             msg(M_ERR, "Cannot get user entry for %s", username);
         }
-        else if (ioctl(tt->fd, TUNSETOWNER, platform_state_user.pw->pw_uid) < 0)
+        else if (ioctl(tt->fd, TUNSETOWNER, platform_state_user.uid) < 0)
         {
             msg(M_ERR, "Cannot ioctl TUNSETOWNER(%s) %s", username, dev);
         }
@@ -2255,7 +2255,7 @@ tuncfg(const char *dev, const char *dev_type, const char *dev_node,
         {
             msg(M_ERR, "Cannot get group entry for %s", groupname);
         }
-        else if (ioctl(tt->fd, TUNSETGROUP, platform_state_group.gr->gr_gid) < 0)
+        else if (ioctl(tt->fd, TUNSETGROUP, platform_state_group.gid) < 0)
         {
             msg(M_ERR, "Cannot ioctl TUNSETGROUP(%s) %s", groupname, dev);
         }
