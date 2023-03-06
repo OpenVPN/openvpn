@@ -63,7 +63,7 @@ struct context;
 struct platform_state_user {
 #if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
     const char *username;
-    struct passwd *pw;
+    uid_t uid;
 #else
     int dummy;
 #endif
@@ -74,7 +74,7 @@ struct platform_state_user {
 struct platform_state_group {
 #if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
     const char *groupname;
-    struct group *gr;
+    gid_t gid;
 #else
     int dummy;
 #endif
@@ -97,10 +97,7 @@ static inline int
 platform_state_user_uid(const struct platform_state_user *s)
 {
 #if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
-    if (s->pw)
-    {
-        return s->pw->pw_uid;
-    }
+    return s->uid;
 #endif
     return -1;
 }
@@ -109,10 +106,7 @@ static inline int
 platform_state_group_gid(const struct platform_state_group *s)
 {
 #if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
-    if (s->gr)
-    {
-        return s->gr->gr_gid;
-    }
+    return s->gid;
 #endif
     return -1;
 }
