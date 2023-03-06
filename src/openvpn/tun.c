@@ -1105,11 +1105,11 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
                          "generic BSD ifconfig inet6 failed");
 
 #if defined(TARGET_FREEBSD) && __FreeBSD_version >= 1200000 \
-    && __FreeBSD_version < 1204000
-    /* On FreeBSD 12.0-12.3, there is ipv6_activate_all_interfaces="YES"
+    && __FreeBSD_version < 1300000
+    /* On FreeBSD 12.0-12.4, there is ipv6_activate_all_interfaces="YES"
      * in rc.conf, which is not set by default.  If it is *not* set,
      * "all new interfaces that are not already up" are configured by
-     * devd + /etc/pccard_ether as "inet6 ifdisabled".
+     * devd -> /etc/pccard_ether -> /etc/network.subr as "inet6 ifdisabled".
      *
      * The "is this interface already up?" test is a non-zero time window
      * which we manage to hit with our ifconfig often enough to cause
