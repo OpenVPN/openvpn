@@ -122,6 +122,12 @@ Tun MTU can be pushed
     directive ``--tun-mtu-max`` has been introduced to increase the maximum
     pushable MTU size (defaults to 1600).
 
+Dynamic TLS Crypt
+    When both peers are OpenVPN 2.6.1+, OpenVPN will dynamically create
+    a tls-crypt key that is used for renegotiation. This ensure that only the
+    previously authenticated peer can do trigger renegotiation and complete
+    renegotiations.
+
 Improved control channel packet size control (``max-packet-size``)
     The size of control channel is no longer tied to
     ``--link-mtu``/``--tun-mtu`` and can be set using ``--max-packet-size``.

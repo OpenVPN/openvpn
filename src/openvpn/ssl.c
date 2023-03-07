@@ -1202,6 +1202,7 @@ static void
 tls_session_free(struct tls_session *session, bool clear)
 {
     tls_wrap_free(&session->tls_wrap);
+    tls_wrap_free(&session->tls_wrap_reneg);
 
     for (size_t i = 0; i < KS_SIZE; ++i)
     {
@@ -1758,6 +1759,17 @@ tls_session_update_crypto_params_do_work(struct tls_multi *multi,
         frame_print(frame_fragment, D_MTU_INFO, "Fragmentation MTU parms");
     }
 
+    if (session->key[KS_PRIMARY].key_id == 0
+        && session->opt->crypto_flags & CO_USE_DYNAMIC_TLS_CRYPT)
+    {
+        /* If dynamic tls-crypt has been negotiated, and we are on the
+         * first session (key_id = 0), generate a tls-crypt key for the
+         * following renegotiations */
+        if (!tls_session_generate_dynamic_tls_crypt_key(multi, session))
+        {
+            return false;
+        }
+    }
     return tls_session_generate_data_channel_keys(multi, session);
 }
 
@@ -2065,6 +2077,7 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 
 #ifdef HAVE_EXPORT_KEYING_MATERIAL
         iv_proto |= IV_PROTO_TLS_KEY_EXPORT;
+        iv_proto |= IV_PROTO_DYN_TLS_CRYPT;
 #endif
 
         buf_printf(&out, "IV_PROTO=%d\n", iv_proto);
@@ -3642,7 +3655,7 @@ tls_pre_decrypt(struct tls_multi *multi,
 
         /*
          * If --single-session, don't allow any hard-reset connection request
-         * unless it the first packet of the session.
+         * unless it is the first packet of the session.
          */
         if (multi->opt.single_session && multi->n_sessions)
         {
@@ -3653,7 +3666,7 @@ tls_pre_decrypt(struct tls_multi *multi,
             goto error;
         }
 
-        if (!read_control_auth(buf, &session->tls_wrap, from,
+        if (!read_control_auth(buf, tls_session_get_tls_wrap(session, key_id), from,
                                session->opt))
         {
             goto error;
@@ -3723,8 +3736,8 @@ tls_pre_decrypt(struct tls_multi *multi,
          */
         if (op == P_CONTROL_SOFT_RESET_V1 && ks->state >= S_GENERATED_KEYS)
         {
-            if (!read_control_auth(buf, &session->tls_wrap, from,
-                                   session->opt))
+            if (!read_control_auth(buf, tls_session_get_tls_wrap(session, key_id),
+                                   from, session->opt))
             {
                 goto error;
             }
@@ -3745,8 +3758,8 @@ tls_pre_decrypt(struct tls_multi *multi,
                 do_burst = true;
             }
 
-            if (!read_control_auth(buf, &session->tls_wrap, from,
-                                   session->opt))
+            if (!read_control_auth(buf, tls_session_get_tls_wrap(session, key_id),
+                                   from, session->opt))
             {
                 goto error;
             }

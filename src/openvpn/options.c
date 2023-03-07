@@ -8657,6 +8657,10 @@ add_option(struct options *options,
             {
                 options->imported_protocol_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
             }
+            else if (streq(p[j], "dyn-tls-crypt"))
+            {
+                options->imported_protocol_flags |= CO_USE_DYNAMIC_TLS_CRYPT;
+            }
 #endif
             else
             {

@@ -60,8 +60,8 @@ tls_crypt_buf_overhead(void)
 }
 
 void
-tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
-                   bool key_inline, bool tls_server)
+tls_crypt_init_key(struct key_ctx_bi *key, struct key2 *keydata,
+                   const char *key_file, bool key_inline, bool tls_server)
 {
     const int key_direction = tls_server ?
                               KEY_DIRECTION_NORMAL : KEY_DIRECTION_INVERSE;
@@ -71,8 +71,77 @@ tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
         msg(M_FATAL, "ERROR: --tls-crypt not supported");
     }
     crypto_read_openvpn_key(&kt, key, key_file, key_inline, key_direction,
-                            "Control Channel Encryption", "tls-crypt");
+                            "Control Channel Encryption", "tls-crypt", keydata);
 }
+
+/**
+ * Will produce key = key XOR other
+ */
+static void
+xor_key2(struct key2 *key, const struct key2 *other)
+{
+    ASSERT(key->n == 2 && other->n == 2);
+    for (int k = 0; k < 2; k++)
+    {
+        for (int j = 0; j < MAX_CIPHER_KEY_LENGTH; j++)
+        {
+            key->keys[k].cipher[j] = key->keys[k].cipher[j] ^ other->keys[k].cipher[j];
+        }
+
+        for (int j = 0; j < MAX_HMAC_KEY_LENGTH; j++)
+        {
+            key->keys[k].hmac[j] = key->keys[k].hmac[j] ^ other->keys[k].hmac[j];
+        }
+
+    }
+}
+
+bool
+tls_session_generate_dynamic_tls_crypt_key(struct tls_multi *multi,
+                                           struct tls_session *session)
+{
+    session->tls_wrap_reneg.opt = session->tls_wrap.opt;
+    session->tls_wrap_reneg.mode = TLS_WRAP_CRYPT;
+    session->tls_wrap_reneg.cleanup_key_ctx = true;
+    session->tls_wrap_reneg.work = alloc_buf(BUF_SIZE(&session->opt->frame));
+    session->tls_wrap_reneg.opt.pid_persist = NULL;
+
+    packet_id_init(&session->tls_wrap_reneg.opt.packet_id,
+                   session->opt->replay_window,
+                   session->opt->replay_time,
+                   "TLS_WRAP_RENEG", session->key_id);
+
+
+    struct key2 rengokeys;
+    if (!key_state_export_keying_material(session, EXPORT_DYNAMIC_TLS_CRYPT_LABEL,
+                                          strlen(EXPORT_DYNAMIC_TLS_CRYPT_LABEL),
+                                          rengokeys.keys, sizeof(rengokeys.keys)))
+    {
+        return false;
+    }
+    rengokeys.n = 2;
+
+    if (session->tls_wrap.mode == TLS_WRAP_CRYPT
+        || session->tls_wrap.mode == TLS_WRAP_AUTH)
+    {
+        xor_key2(&rengokeys, &session->tls_wrap.original_wrap_keydata);
+    }
+
+    const int key_direction = session->opt->server ?
+                              KEY_DIRECTION_NORMAL : KEY_DIRECTION_INVERSE;
+
+    struct key_direction_state kds;
+    key_direction_state_init(&kds, key_direction);
+
+    struct key_type kt = tls_crypt_kt();
+
+    init_key_ctx_bi(&session->tls_wrap_reneg.opt.key_ctx_bi, &rengokeys, key_direction,
+                    &kt, "dynamic tls-crypt");
+    secure_memzero(&rengokeys, sizeof(rengokeys));
+
+    return true;
+}
+
 
 bool
 tls_crypt_wrap(const struct buffer *src, struct buffer *dst,
@@ -266,8 +335,9 @@ tls_crypt_v2_load_client_key(struct key_ctx_bi *key, const struct key2 *key2,
 }
 
 void
-tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct buffer *wkc_buf,
-                             const char *key_file, bool key_inline)
+tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct key2 *original_key,
+                             struct buffer *wkc_buf, const char *key_file,
+                             bool key_inline)
 {
     struct buffer client_key = alloc_buf(TLS_CRYPT_V2_CLIENT_KEY_LEN
                                          + TLS_CRYPT_V2_MAX_WKC_LEN);
@@ -278,14 +348,14 @@ tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct buffer *wkc_buf,
         msg(M_FATAL, "ERROR: invalid tls-crypt-v2 client key format");
     }
 
-    struct key2 key2;
+    struct key2 key2 = { .n = 2, .keys = { 0 } };
     if (!buf_read(&client_key, &key2.keys, sizeof(key2.keys)))
     {
         msg(M_FATAL, "ERROR: not enough data in tls-crypt-v2 client key");
     }
 
     tls_crypt_v2_load_client_key(key, &key2, false);
-    secure_memzero(&key2, sizeof(key2));
+    *original_key = key2;
 
     *wkc_buf = client_key;
 }
@@ -570,15 +640,14 @@ tls_crypt_v2_extract_client_key(struct buffer *buf,
         return false;
     }
 
-    struct key2 client_key = { 0 };
     ctx->tls_crypt_v2_metadata = alloc_buf(TLS_CRYPT_V2_MAX_METADATA_LEN);
-    if (!tls_crypt_v2_unwrap_client_key(&client_key,
+    if (!tls_crypt_v2_unwrap_client_key(&ctx->original_wrap_keydata,
                                         &ctx->tls_crypt_v2_metadata,
                                         wrapped_client_key,
                                         &ctx->tls_crypt_v2_server_key))
     {
         msg(D_TLS_ERRORS, "Can not unwrap tls-crypt-v2 client key");
-        secure_memzero(&client_key, sizeof(client_key));
+        secure_memzero(&ctx->original_wrap_keydata, sizeof(ctx->original_wrap_keydata));
         return false;
     }
 
@@ -587,8 +656,8 @@ tls_crypt_v2_extract_client_key(struct buffer *buf,
     ctx->cleanup_key_ctx = true;
     ctx->opt.flags |= CO_PACKET_ID_LONG_FORM;
     memset(&ctx->opt.key_ctx_bi, 0, sizeof(ctx->opt.key_ctx_bi));
-    tls_crypt_v2_load_client_key(&ctx->opt.key_ctx_bi, &client_key, true);
-    secure_memzero(&client_key, sizeof(client_key));
+    tls_crypt_v2_load_client_key(&ctx->opt.key_ctx_bi,
+                                 &ctx->original_wrap_keydata, true);
 
     /* Remove client key from buffer so tls-crypt code can unwrap message */
     ASSERT(buf_inc_len(buf, -(BLEN(&wrapped_client_key))));
@@ -692,8 +761,9 @@ tls_crypt_v2_write_client_key_file(const char *filename,
     /* Sanity check: load client key (as "client") */
     struct key_ctx_bi test_client_key;
     struct buffer test_wrapped_client_key;
+    struct key2 keydata;
     msg(D_GENKEY, "Testing client-side key loading...");
-    tls_crypt_v2_init_client_key(&test_client_key, &test_wrapped_client_key,
+    tls_crypt_v2_init_client_key(&test_client_key, &keydata, &test_wrapped_client_key,
                                  client_file, client_inline);
     free_key_ctx_bi(&test_client_key);
 

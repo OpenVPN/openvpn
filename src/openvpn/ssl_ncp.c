@@ -461,6 +461,10 @@ p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session)
 
         }
     }
+    if (iv_proto_peer & IV_PROTO_DYN_TLS_CRYPT)
+    {
+        session->opt->crypto_flags |= CO_USE_DYNAMIC_TLS_CRYPT;
+    }
 #endif /* if defined(HAVE_EXPORT_KEYING_MATERIAL) */
 }
 

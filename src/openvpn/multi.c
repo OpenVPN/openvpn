@@ -1817,6 +1817,10 @@ multi_client_set_protocol_options(struct context *c)
     {
         o->imported_protocol_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
     }
+    if (proto & IV_PROTO_DYN_TLS_CRYPT)
+    {
+        o->imported_protocol_flags |= CO_USE_DYNAMIC_TLS_CRYPT;
+    }
 #endif
 
     if (proto & IV_PROTO_CC_EXIT_NOTIFY)
