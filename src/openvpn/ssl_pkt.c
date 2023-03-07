@@ -193,7 +193,7 @@ write_control_auth(struct tls_session *session,
 
     msg(D_TLS_DEBUG, "%s(): %s", __func__, packet_opcode_name(opcode));
 
-    tls_wrap_control(&session->tls_wrap, header, buf, &session->session_id);
+    tls_wrap_control(tls_session_get_tls_wrap(session, ks->key_id), header, buf, &session->session_id);
 
     *to_link_addr = &ks->remote_addr;
 }

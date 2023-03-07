@@ -1,3 +1,15 @@
+Overview of changes in 2.6.1
+============================
+
+New features
+------------
+- Dynamic TLS Crypt
+  When both peers are OpenVPN 2.6.1+, OpenVPN will dynamically create
+  a tls-crypt key that is used for renegotiation. This ensure that only the
+  previously authenticated peer can do trigger renegotiation and complete
+  renegotiations.
+
+
 Overview of changes in 2.6.0, relative to 2.6_rc2
 =================================================
 

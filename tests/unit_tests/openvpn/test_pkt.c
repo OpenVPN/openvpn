@@ -55,6 +55,16 @@ parse_line(const char *line, char **p, const int n, const char *file,
     return 0;
 }
 
+/* Define this function here as dummy since including the ssl_*.c files
+ * leads to having to include even more unrelated code */
+bool
+key_state_export_keying_material(struct tls_session *session,
+                                 const char *label, size_t label_size,
+                                 void *ekm, size_t ekm_size)
+{
+    ASSERT(0);
+}
+
 const char *
 print_link_socket_actual(const struct link_socket_actual *act, struct gc_arena *gc)
 {
@@ -191,7 +201,8 @@ init_tas_auth(int key_direction)
 
     crypto_read_openvpn_key(&tls_crypt_kt, &tas.tls_wrap.opt.key_ctx_bi,
                             static_key, true, key_direction,
-                            "Control Channel Authentication", "tls-auth");
+                            "Control Channel Authentication", "tls-auth",
+                            NULL);
 
     return tas;
 }
@@ -203,7 +214,9 @@ init_tas_crypt(bool server)
     tas.tls_wrap.mode = TLS_WRAP_CRYPT;
     tas.tls_wrap.opt.flags |= (CO_IGNORE_PACKET_ID|CO_PACKET_ID_LONG_FORM);
 
-    tls_crypt_init_key(&tas.tls_wrap.opt.key_ctx_bi, static_key, true, server);
+    tls_crypt_init_key(&tas.tls_wrap.opt.key_ctx_bi,
+                       &tas.tls_wrap.original_wrap_keydata, static_key,
+                       true, server);
 
     return tas;
 }

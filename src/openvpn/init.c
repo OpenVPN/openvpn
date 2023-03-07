@@ -2342,6 +2342,10 @@ tls_print_deferred_options_results(struct context *c)
         {
             buf_printf(&out, " tls-ekm");
         }
+        if (o->imported_protocol_flags & CO_USE_DYNAMIC_TLS_CRYPT)
+        {
+            buf_printf(&out, " dyn-tls-crypt");
+        }
     }
 
     if (buf_len(&out) > strlen(header))
@@ -3032,7 +3036,7 @@ do_init_crypto_static(struct context *c, const unsigned int flags)
                                 options->shared_secret_file,
                                 options->shared_secret_file_inline,
                                 options->key_direction, "Static Key Encryption",
-                                "secret");
+                                "secret", NULL);
     }
     else
     {
@@ -3072,13 +3076,15 @@ do_init_tls_wrap_key(struct context *c)
                                 options->ce.tls_auth_file,
                                 options->ce.tls_auth_file_inline,
                                 options->ce.key_direction,
-                                "Control Channel Authentication", "tls-auth");
+                                "Control Channel Authentication", "tls-auth",
+                                &c->c1.ks.original_wrap_keydata);
     }
 
     /* TLS handshake encryption+authentication (--tls-crypt) */
     if (options->ce.tls_crypt_file)
     {
         tls_crypt_init_key(&c->c1.ks.tls_wrap_key,
+                           &c->c1.ks.original_wrap_keydata,
                            options->ce.tls_crypt_file,
                            options->ce.tls_crypt_file_inline,
                            options->tls_server);
@@ -3096,6 +3102,7 @@ do_init_tls_wrap_key(struct context *c)
         else
         {
             tls_crypt_v2_init_client_key(&c->c1.ks.tls_wrap_key,
+                                         &c->c1.ks.original_wrap_keydata,
                                          &c->c1.ks.tls_crypt_v2_wkc,
                                          options->ce.tls_crypt_v2_file,
                                          options->ce.tls_crypt_v2_file_inline);
@@ -3399,9 +3406,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     if (options->ce.tls_auth_file)
     {
         to.tls_wrap.mode = TLS_WRAP_AUTH;
-        to.tls_wrap.opt.key_ctx_bi = c->c1.ks.tls_wrap_key;
-        to.tls_wrap.opt.pid_persist = &c->c1.pid_persist;
-        to.tls_wrap.opt.flags |= CO_PACKET_ID_LONG_FORM;
     }
 
     /* TLS handshake encryption (--tls-crypt) */
@@ -3409,19 +3413,21 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         || (options->ce.tls_crypt_v2_file && options->tls_client))
     {
         to.tls_wrap.mode = TLS_WRAP_CRYPT;
+    }
+
+    if (to.tls_wrap.mode == TLS_WRAP_AUTH || to.tls_wrap.mode == TLS_WRAP_CRYPT)
+    {
         to.tls_wrap.opt.key_ctx_bi = c->c1.ks.tls_wrap_key;
         to.tls_wrap.opt.pid_persist = &c->c1.pid_persist;
         to.tls_wrap.opt.flags |= CO_PACKET_ID_LONG_FORM;
-
-        if (options->ce.tls_crypt_v2_file)
-        {
-            to.tls_wrap.tls_crypt_v2_wkc = &c->c1.ks.tls_crypt_v2_wkc;
-        }
+        to.tls_wrap.original_wrap_keydata = c->c1.ks.original_wrap_keydata;
     }
 
     if (options->ce.tls_crypt_v2_file)
     {
         to.tls_crypt_v2 = true;
+        to.tls_wrap.tls_crypt_v2_wkc = &c->c1.ks.tls_crypt_v2_wkc;
+
         if (options->tls_server)
         {
             to.tls_wrap.tls_crypt_v2_server_key = c->c1.ks.tls_crypt_v2_server_key;

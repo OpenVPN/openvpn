@@ -65,6 +65,9 @@ struct key_schedule
     /* optional TLS control channel wrapping */
     struct key_type tls_auth_key_type;
     struct key_ctx_bi tls_wrap_key;
+    /** original tls-crypt key preserved to xored into the tls_crypt
+     * renegotiation key */
+    struct key2 original_wrap_keydata;
     struct key_ctx tls_crypt_v2_server_key;
     struct buffer tls_crypt_v2_wkc;             /**< Wrapped client key */
     struct key_ctx auth_token_key;

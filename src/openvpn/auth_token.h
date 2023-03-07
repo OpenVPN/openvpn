@@ -43,7 +43,7 @@
  *
  * The second timestamp is the time the token was renewed/regenerated and is used
  * to determine if this token has been renewed in the acceptable time range
- * (2 * renogiation timeout)
+ * (2 * renegotiation timeout)
  *
  * The session id is a random string of 12 byte (or 16 in base64) that is not
  * used by OpenVPN itself but kept intact so that external logging/management

@@ -275,6 +275,15 @@ struct tls_wrap_ctx
     struct buffer tls_crypt_v2_metadata;     /**< Received from client */
     bool cleanup_key_ctx;                    /**< opt.key_ctx_bi is owned by
                                               *   this context */
+    /** original key data to be xored in to the key for dynamic tls-crypt.
+     *
+     * We keep the original key data to ensure that the newly generated key
+     * for the dynamic tls-crypt has the same level of quality by using
+     * xor with the original key. This gives us the same same entropy/randomness
+     * as the original tls-crypt key to ensure the post-quantum use case of
+     * tls-crypt still holds true
+     * */
+    struct key2 original_wrap_keydata;
 };
 
 /*
@@ -467,6 +476,10 @@ struct tls_session
 
     /* authenticate control packets */
     struct tls_wrap_ctx tls_wrap;
+
+    /* Specific tls-crypt for renegotiations, if this is valid,
+     * tls_wrap_reneg.mode is TLS_WRAP_CRYPT, otherwise ignore it */
+    struct tls_wrap_ctx tls_wrap_reneg;
 
     int initial_opcode;         /* our initial P_ opcode */
     struct session_id session_id; /* our random session ID */

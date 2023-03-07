@@ -667,6 +667,11 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
         push_option_fmt(gc, push_list, M_USAGE, "key-derivation tls-ekm");
     }
 
+    if (o->imported_protocol_flags & CO_USE_DYNAMIC_TLS_CRYPT)
+    {
+        buf_printf(&proto_flags, " dyn-tls-crypt");
+    }
+
     if (buf_len(&proto_flags) > 0)
     {
         push_option_fmt(gc, push_list, M_USAGE, "protocol-flags%s", buf_str(&proto_flags));

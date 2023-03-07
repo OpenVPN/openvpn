@@ -1123,7 +1123,8 @@ void
 crypto_read_openvpn_key(const struct key_type *key_type,
                         struct key_ctx_bi *ctx, const char *key_file,
                         bool key_inline, const int key_direction,
-                        const char *key_name, const char *opt_name)
+                        const char *key_name, const char *opt_name,
+                        struct key2 *keydata)
 {
     struct key2 key2;
     struct key_direction_state kds;
@@ -1151,6 +1152,10 @@ crypto_read_openvpn_key(const struct key_type *key_type,
 
     /* initialize key in both directions */
     init_key_ctx_bi(ctx, &key2, key_direction, key_type, key_name);
+    if (keydata)
+    {
+        *keydata = key2;
+    }
     secure_memzero(&key2, sizeof(key2));
 }
 

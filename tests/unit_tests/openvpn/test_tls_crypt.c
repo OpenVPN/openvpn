@@ -40,6 +40,18 @@
 
 #include "mock_msg.h"
 
+/* Define this function here as dummy since including the ssl_*.c files
+ * leads to having to include even more unrelated code */
+bool
+key_state_export_keying_material(struct tls_session *session,
+                                 const char *label, size_t label_size,
+                                 void *ekm, size_t ekm_size)
+{
+    memset(ekm, 0xba, ekm_size);
+    return true;
+}
+
+
 #define TESTBUF_SIZE            128
 
 /* Defines for use in the tests and the mock parse_line() */
@@ -141,6 +153,7 @@ struct test_tls_crypt_context {
     struct buffer unwrapped;
 };
 
+
 static int
 test_tls_crypt_setup(void **state)
 {
@@ -216,6 +229,75 @@ tls_crypt_loopback(void **state)
     assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
     assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped),
                         BLEN(&ctx->source));
+}
+
+
+/**
+ * Test generating dynamic tls-crypt key
+ */
+static void
+test_tls_crypt_secure_reneg_key(void **state)
+{
+    struct test_tls_crypt_context *ctx =
+        (struct test_tls_crypt_context *)*state;
+
+    struct gc_arena gc = gc_new();
+
+    struct tls_multi multi = { 0 };
+    struct tls_session session = { 0 };
+
+    struct tls_options tls_opt = { 0 };
+    tls_opt.replay_window = 32;
+    tls_opt.replay_time = 60;
+    tls_opt.frame.buf.payload_size = 512;
+    session.opt = &tls_opt;
+
+    tls_session_generate_dynamic_tls_crypt_key(&multi, &session);
+
+    struct tls_wrap_ctx *rctx = &session.tls_wrap_reneg;
+
+    tls_crypt_wrap(&ctx->source, &rctx->work, &rctx->opt);
+    assert_int_equal(buf_len(&ctx->source) + 40, buf_len(&rctx->work));
+
+    uint8_t expected_ciphertext[] = {
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0xe3, 0x19, 0x27, 0x7f, 0x1c, 0x8d, 0x6e, 0x6a,
+        0x77, 0x96, 0xa8, 0x55, 0x33, 0x7b, 0x9c, 0xfb, 0x56, 0xe1, 0xf1, 0x3a, 0x87, 0x0e, 0x66, 0x47,
+        0xdf, 0xa1, 0x95, 0xc9, 0x2c, 0x17, 0xa0, 0x15, 0xba, 0x49, 0x67, 0xa1, 0x1d, 0x55, 0xea, 0x1a,
+        0x06, 0xa7
+    };
+    assert_memory_equal(BPTR(&rctx->work), expected_ciphertext, buf_len(&rctx->work));
+    tls_wrap_free(&session.tls_wrap_reneg);
+
+    /* Use previous tls-crypt key as 0x00, with xor we should have the same key
+     * and expect the same result */
+    session.tls_wrap.mode = TLS_WRAP_CRYPT;
+    memset(&session.tls_wrap.original_wrap_keydata.keys, 0x00, sizeof(session.tls_wrap.original_wrap_keydata.keys));
+    session.tls_wrap.original_wrap_keydata.n = 2;
+
+    tls_session_generate_dynamic_tls_crypt_key(&multi, &session);
+    tls_crypt_wrap(&ctx->source, &rctx->work, &rctx->opt);
+    assert_int_equal(buf_len(&ctx->source) + 40, buf_len(&rctx->work));
+
+    assert_memory_equal(BPTR(&rctx->work), expected_ciphertext, buf_len(&rctx->work));
+    tls_wrap_free(&session.tls_wrap_reneg);
+
+    /* XOR should not force a different key */
+    memset(&session.tls_wrap.original_wrap_keydata.keys, 0x42, sizeof(session.tls_wrap.original_wrap_keydata.keys));
+    tls_session_generate_dynamic_tls_crypt_key(&multi, &session);
+
+    tls_crypt_wrap(&ctx->source, &rctx->work, &rctx->opt);
+    assert_int_equal(buf_len(&ctx->source) + 40, buf_len(&rctx->work));
+
+    /* packet id at the start should be equal */
+    assert_memory_equal(BPTR(&rctx->work), expected_ciphertext, 8);
+
+    /* Skip packet id */
+    buf_advance(&rctx->work, 8);
+    assert_memory_not_equal(BPTR(&rctx->work), expected_ciphertext, buf_len(&rctx->work));
+    tls_wrap_free(&session.tls_wrap_reneg);
+
+
+    gc_free(&gc);
 }
 
 /**
@@ -632,6 +714,9 @@ main(void)
         cmocka_unit_test_setup_teardown(tls_crypt_v2_wrap_unwrap_dst_too_small,
                                         test_tls_crypt_v2_setup,
                                         test_tls_crypt_v2_teardown),
+        cmocka_unit_test_setup_teardown(test_tls_crypt_secure_reneg_key,
+                                        test_tls_crypt_setup,
+                                        test_tls_crypt_teardown),
         cmocka_unit_test(test_tls_crypt_v2_write_server_key_file),
         cmocka_unit_test(test_tls_crypt_v2_write_client_key_file),
         cmocka_unit_test(test_tls_crypt_v2_write_client_key_file_metadata),

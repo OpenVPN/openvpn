@@ -273,6 +273,32 @@ packet_opcode_name(int op)
     }
 }
 
+/**
+ * Determines if the current session should use the renegotiation tls wrap
+ * struct instead the normal one and returns it.
+ *
+ * @param session
+ * @param key_id    key_id of the received/or to be send packet
+ * @return
+ */
+static inline struct tls_wrap_ctx *
+tls_session_get_tls_wrap(struct tls_session *session, int key_id)
+{
+    /* OpenVPN has the hardcoded assumption in its protocol that
+     * key-id 0 is always first session and renegotiations use key-id
+     * 1 to 7 and wrap around to 1 after that. So key-id > 0 is equivalent
+     * to "this is a renegotiation"
+     */
+    if (key_id > 0 && session->tls_wrap_reneg.mode == TLS_WRAP_CRYPT)
+    {
+        return &session->tls_wrap_reneg;
+    }
+    else
+    {
+        return &session->tls_wrap;
+    }
+}
+
 /* initial packet id (instead of 0) that indicates that the peer supports
  * early protocol negotiation. This will make the packet id turn a bit faster
  * but the network time part of the packet id takes care of that. And

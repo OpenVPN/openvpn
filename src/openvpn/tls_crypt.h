@@ -108,12 +108,27 @@
  * @param key           The key context to initialize
  * @param key_file      The file to read the key from or the key itself if
  *                      key_inline is true.
+ * @param keydata       The keydata used to create key will be written here.
  * @param key_inline    True if key_file contains an inline key, False
  *                      otherwise.
  * @param tls_server    Must be set to true is this is a TLS server instance.
  */
-void tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
-                        bool key_inline, bool tls_server);
+void tls_crypt_init_key(struct key_ctx_bi *key, struct key2 *keydata,
+                        const char *key_file, bool key_inline, bool tls_server);
+
+/**
+ * Generates a TLS-Crypt key to be used with dynamic tls-crypt using the
+ * TLS EKM exporter function.
+ *
+ * All renegotiations of a session use the same generated dynamic key.
+ *
+ * @param multi     multi session struct
+ * @param session   session that will be used for the TLS EKM exporter
+ * @return          true iff generating the key was successful
+ */
+bool
+tls_session_generate_dynamic_tls_crypt_key(struct tls_multi *multi,
+                                           struct tls_session *session);
 
 /**
  * Returns the maximum overhead (in bytes) added to the destination buffer by
@@ -169,6 +184,8 @@ void tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
  *
  * @param key               Key structure to be initialized with the client
  *                          key.
+ * @param original_key      contains the key data that has been used to
+ *                          initialise the key parameter
  * @param wrapped_key_buf   Returns buffer containing the wrapped key that will
  *                          be sent to the server when connecting.  Caller must
  *                          free this buffer when no longer needed.
@@ -178,6 +195,7 @@ void tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
  *                          otherwise.
  */
 void tls_crypt_v2_init_client_key(struct key_ctx_bi *key,
+                                  struct key2 *original_key,
                                   struct buffer *wrapped_key_buf,
                                   const char *key_file, bool key_inline);
 
