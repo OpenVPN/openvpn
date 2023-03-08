@@ -355,7 +355,9 @@ ovpn_dco_init_netlink(dco_context_t *dco)
             nl_geterror(ret));
     }
 
+    /* set close on exec and non-block on the netlink socket */
     set_cloexec(nl_socket_get_fd(dco->nl_sock));
+    set_nonblock(nl_socket_get_fd(dco->nl_sock));
 
     dco->nl_cb = nl_cb_alloc(NL_CB_DEFAULT);
     if (!dco->nl_cb)
