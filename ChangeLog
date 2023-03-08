@@ -1,6 +1,65 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>
 
+2023.03.08 -- Version 2.6.1
+
+Arne Schwabe (13):
+      Fix unaligned access in auth-token
+      Update LibreSSL to 3.7.0 in Github actions
+      Add printing USAN stack trace on github actions
+      Fix LibreSSL not building in Github Actions
+      Add missing stdint.h includes in unit tests files
+      Combine extra_tun/frame parameter of frame_calculate_payload_overhead
+      Update the last sections in the man page to a be a bit less outdated
+      Add building unit tests with mingw to github actions
+      Revise the cipher negotiation info about OpenVPN3 in the man page
+      Exit if a proper message instead of segfault on Android without management
+      Use proper print format/casting when converting msg_channel handle
+      Reduce initialisation spam from verb <= 3 and print summary instead
+      Dynamic tls-crypt for secure soft_reset/session renegotiation
+
+Frank Lichtenheld (8):
+      Changes.rst: document removal of --keysize
+      Windows: fix unused function setenv_foreign_option
+      Windows: fix unused variables in delete_route_ipv6
+      Windows: fix wrong printf format in x_check_status
+      Windows: fix unused variable in win32_get_arch
+      configure: enable DCO by default on FreeBSD/Linux
+      Windows: fix signedness errors with recv/send
+      configure: fix formatting of --disable-lz4 and --enable-comp-stub
+
+Gert Doering (2):
+      Get rid of unused 'bool tuntap_buffer' arguments.
+      FreeBSD 12.x workaround for IPv6 ifconfig is needed on 12.4 as well
+
+Kristof Provost (3):
+      options.c: enforce a minimal fragment size
+      configure: improve FreeBSD DCO check
+      dco: define OVPN_DEL_PEER_REASON_TRANSPORT_DISCONNECT on FreeBSD
+
+Lev Stipakov (6):
+      Allow certain DHCP options to be used without DHCP server
+      dco-win: use proper calling convention on x86
+      Improve format specifier for socket handle in Windows
+      Disable DCO if proxy is set via management
+      Add logging for windows driver selection process
+      Avoid management log loop with verb >= 6
+
+Matthias Andree (1):
+      make dist: Ship ovpn_dco_freebsd.h, too
+
+Selva Nair (9):
+      block-dns using iservice: fix a potential double free
+      Conditionally add subdir-objects option to automake
+      Build unit tests in mingw Windows build
+      cyryptapi.c: log the selected certificate's name
+      cryptoapi.c: remove pre OpenSSL-3.01 support
+      cryptoapi.c: simplify parsing of thumbprint hex string
+      Option --cryptoapicert: support issuer name as a selector
+      Add a unit test for functions in cryptoapi.c
+      Do not save pointer to 'struct passwd' returned by getpwnam etc.
+
+
 2023.01.25 -- Version 2.6.0
 
 Antonio Quartulli (1):

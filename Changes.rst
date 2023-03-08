@@ -9,6 +9,82 @@ New features
   previously authenticated peer can do trigger renegotiation and complete
   renegotiations.
 
+- CryptoAPI (Windows): support issuer name as a selector.
+  Certificate selection string can now specify a partial
+  issuer name string as "--cryptoapicert ISSUER:<string>" where
+  <string> is matched as a substring of the issuer (CA) name in
+  the certificate.
+
+
+User visible changes
+--------------------
+- on crypto initialization, move old "quite verbose" messages to --verb 4
+  and only print a more compact summary about crypto and timing parameters
+  by default
+
+- configure now enables DCO build by default on FreeBSD and Linux, which
+  brings in a default dependency for libnl-genl (for Linux distributions
+  that are too old to have this library, use "configure --disable-dco")
+
+- make "configure --help" output more consistent
+
+- CryptoAPI (Windows): remove support code for OpenSSL before 3.0.1
+  (this will not affect official OpenVPN for Windows installers, as they
+  will always be built with OpenSSL 3.0.x)
+
+- CryptoAPI (Windows): log the selected certificate's name
+
+- "configure" now uses "subdir-objects", for automake >= 1.16
+  (less warnings for recent-enough automake versions, will change
+  the way .o files are created)
+
+
+Bugfixes / minor improvements
+-----------------------------
+- fixed old IPv6 ifconfig race condition for FreeBSD 12.4 (trac #1226)
+
+- fix compile-time breakage related to DCO defines on FreeBSD 14
+
+- enforce minimum packet size for "--fragment" (avoid division by zero)
+
+- some alignment fixes to avoid unaligned memory accesses, which will
+  bring problems on some architectures (Sparc64, some ARM versions) -
+  found by USAN clang checker
+
+- windows source code fixes to reduce number of compile time warnings
+  (eventual goal is to be able to compile with -Werror on MinGW), mostly
+  related to signed/unsigned char * conversions, printf() format specifiers
+  and unused variables.
+
+- avoid endless loop on logging with --management + --verb 6+
+
+- build (but not run) unit tests on MinGW cross compiles, and run them
+  when building with GitHub Actions.
+
+- add unit test for parts of cryptoapi.c
+
+- add debug logging to help with diagnosing windows driver selection
+
+- disable DCO if proxy config is set via management interface
+
+- do not crash on Android if run without --management
+
+- improve documentation about cipher negotiation and OpenVPN3
+
+- for x86 windows builds, use proper calling conventions for dco-win
+  (__stdcall)
+
+- differentiate "dhcp-option ..." options into "needs an interface with
+  true DHCP service" (tap-windows) and "can also be installed by IPAPI
+  or service, and can be used on non-DHCP interfaces" (wintun, dco-win)
+
+- windows interactive service: fix possible double-free if "--block-dns"
+  installation fails due to "security products" interfering
+  (Github OpenVPN/openvpn#232)
+
+- "make dist": package ovpn_dco_freebsd.h to permit building from tarballs
+  on FreeBSD 14
+
 
 Overview of changes in 2.6.0, relative to 2.6_rc2
 =================================================
