@@ -348,7 +348,7 @@ tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct key2 *original_key,
         msg(M_FATAL, "ERROR: invalid tls-crypt-v2 client key format");
     }
 
-    struct key2 key2 = { .n = 2, .keys = { 0 } };
+    struct key2 key2 = { .n = 2 };
     if (!buf_read(&client_key, &key2.keys, sizeof(key2.keys)))
     {
         msg(M_FATAL, "ERROR: not enough data in tls-crypt-v2 client key");
