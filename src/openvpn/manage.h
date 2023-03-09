@@ -58,6 +58,9 @@
 #define MANAGEMENT_ECHO_BUFFER_SIZE           100
 #define MANAGEMENT_STATE_BUFFER_SIZE          100
 
+#define COMMAND_LINE_OPTION_BUFFER_SIZE OPTION_PARM_SIZE
+#define MANAGEMENT_SOCKET_READ_BUFFER_SIZE OPTION_PARM_SIZE
+
 /*
  * Management-interface-based deferred authentication
  */

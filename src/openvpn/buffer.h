@@ -27,7 +27,7 @@
 #include "basic.h"
 #include "error.h"
 
-#define BUF_SIZE_MAX 1000000
+#define BUF_SIZE_MAX 2097152 // 2^21
 
 /*
  * Define verify_align function, otherwise

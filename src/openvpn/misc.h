@@ -65,7 +65,10 @@ struct user_pass
 #ifdef ENABLE_PKCS11
 #define USER_PASS_LEN 4096
 #else
-#define USER_PASS_LEN 128
+/*
+ * Increase the username and password length size to 128KB.
+ */
+#define USER_PASS_LEN 131072 // 2^17
 #endif
     /* Note that username and password are expected to be null-terminated */
     char username[USER_PASS_LEN];

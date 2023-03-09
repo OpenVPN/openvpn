@@ -1914,7 +1914,7 @@ key_state_soft_reset(struct tls_session *session)
 static bool
 write_empty_string(struct buffer *buf)
 {
-    if (!buf_write_u16(buf, 0))
+    if (!buf_write_u32(buf, 0))
     {
         return false;
     }
@@ -1929,7 +1929,7 @@ write_string(struct buffer *buf, const char *str, const int maxlen)
     {
         return false;
     }
-    if (!buf_write_u16(buf, len))
+    if (!buf_write_u32(buf, len))
     {
         return false;
     }
@@ -2268,6 +2268,10 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
          * are a P2P client running in tls-server mode */
         p2p_mode_ncp(multi, session);
     }
+
+    // Write key length in the first 4 octets of the buffer.
+    uint32_t length = BLEN(buf);
+    memcpy(buf->data, &length, sizeof(length));
 
     return true;
 

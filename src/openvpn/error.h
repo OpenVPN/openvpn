@@ -40,7 +40,10 @@
 #if defined(ENABLE_PKCS11) || defined(ENABLE_MANAGEMENT)
 #define ERR_BUF_SIZE 10240
 #else
-#define ERR_BUF_SIZE 1280
+/*
+ * Increase the error buffer size to 256 KB.
+ */
+#define ERR_BUF_SIZE 262144 // 2^18
 #endif
 
 struct gc_arena;
