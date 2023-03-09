@@ -128,15 +128,6 @@ void close_tun_dco(struct tuntap *tt, openvpn_net_ctx_t *ctx);
 int dco_do_read(dco_context_t *dco);
 
 /**
- * Write data to the DCO communication channel (control packet expected)
- *
- * @param dco       the DCO context
- * @param peer_id   the ID of the peer to send the data to
- * @param buf       the buffer containing the data to send
- */
-int dco_do_write(dco_context_t *dco, int peer_id, struct buffer *buf);
-
-/**
  * Install a DCO in the main event loop
  */
 void dco_event_set(dco_context_t *dco, struct event_set *es, void *arg);
@@ -296,13 +287,6 @@ close_tun_dco(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
 static inline int
 dco_do_read(dco_context_t *dco)
-{
-    ASSERT(false);
-    return 0;
-}
-
-static inline int
-dco_do_write(dco_context_t *dco, int peer_id, struct buffer *buf)
 {
     ASSERT(false);
     return 0;

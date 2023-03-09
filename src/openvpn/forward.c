@@ -1191,7 +1191,6 @@ static void
 process_incoming_dco(struct context *c)
 {
 #if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD))
-    struct link_socket_info *lsi = get_link_socket_info(c);
     dco_context_t *dco = &c->c1.tuntap->dco;
 
     dco_do_read(dco);
@@ -1204,35 +1203,23 @@ process_incoming_dco(struct context *c)
         msg(D_DCO_DEBUG, "%s: received message for mismatching peer-id %d, "
             "expected %d", __func__, dco->dco_message_peer_id,
             c->c2.tls_multi->dco_peer_id);
-        /* ensure we also drop a message if there is one in the buffer */
-        buf_init(&dco->dco_packet_in, 0);
         return;
     }
 
-    if ((dco->dco_message_type == OVPN_CMD_DEL_PEER)
-        && (dco->dco_del_peer_reason == OVPN_DEL_PEER_REASON_EXPIRED))
-    {
-        msg(D_DCO_DEBUG, "%s: received peer expired notification of for peer-id "
-            "%d", __func__, dco->dco_message_peer_id);
-        trigger_ping_timeout_signal(c);
-        return;
-    }
-
-    if (dco->dco_message_type != OVPN_CMD_PACKET)
+    if (dco->dco_message_type != OVPN_CMD_DEL_PEER)
     {
         msg(D_DCO_DEBUG, "%s: received message of type %u - ignoring", __func__,
             dco->dco_message_type);
         return;
     }
 
-    struct buffer orig_buff = c->c2.buf;
-    c->c2.buf = dco->dco_packet_in;
-    c->c2.from = lsi->lsa->actual;
-
-    process_incoming_link(c);
-
-    c->c2.buf = orig_buff;
-    buf_init(&dco->dco_packet_in, 0);
+    if (dco->dco_del_peer_reason == OVPN_DEL_PEER_REASON_EXPIRED)
+    {
+        msg(D_DCO_DEBUG, "%s: received peer expired notification of for peer-id "
+            "%d", __func__, dco->dco_message_peer_id);
+        trigger_ping_timeout_signal(c);
+        return;
+    }
 #endif /* if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD)) */
 }
 
@@ -1687,30 +1674,6 @@ process_ip_header(struct context *c, unsigned int flags, struct buffer *buf)
 }
 
 /*
- * Linux DCO implementations pass the socket to the kernel and
- * disallow usage of it from userland for TCP, so (control) packets
- * sent and received by OpenVPN need to go through the DCO interface.
- *
- * Windows DCO needs control packets to be sent via the normal
- * standard Overlapped I/O.
- *
- * FreeBSD DCO allows control packets to pass through the socket in both
- * directions.
- *
- * Hide that complexity (...especially if more platforms show up
- * in the future...) in a small inline function.
- */
-static inline bool
-should_use_dco_socket(struct link_socket *ls)
-{
-#if defined(TARGET_LINUX)
-    return ls->dco_installed && proto_is_tcp(ls->info.proto);
-#else
-    return false;
-#endif
-}
-
-/*
  * Input: c->c2.to_link
  */
 
@@ -1783,17 +1746,7 @@ process_outgoing_link(struct context *c)
                 socks_preprocess_outgoing_link(c, &to_addr, &size_delta);
 
                 /* Send packet */
-                if (should_use_dco_socket(c->c2.link_socket))
-                {
-                    size = dco_do_write(&c->c1.tuntap->dco,
-                                        c->c2.tls_multi->dco_peer_id,
-                                        &c->c2.to_link);
-                }
-                else
-                {
-                    size = link_socket_write(c->c2.link_socket, &c->c2.to_link,
-                                             to_addr);
-                }
+                size = link_socket_write(c->c2.link_socket, &c->c2.to_link, to_addr);
 
                 /* Undo effect of prepend */
                 link_socket_write_post_size_adjust(&size, size_delta, &c->c2.to_link);

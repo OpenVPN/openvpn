@@ -402,18 +402,6 @@ multi_tcp_wait_lite(struct multi_context *m, struct multi_instance *mi, const in
 
     tv_clear(&c->c2.timeval); /* ZERO-TIMEOUT */
 
-    if (mi && mi->context.c2.link_socket->dco_installed)
-    {
-        /* If we got a socket that has been handed over to the kernel
-         * we must not call the normal socket function to figure out
-         * if it is readable or writable */
-        /* Assert that we only have the DCO exptected flags */
-        ASSERT(action & (TA_SOCKET_READ | TA_SOCKET_WRITE));
-
-        /* We are always ready! */
-        return action;
-    }
-
     switch (action)
     {
         case TA_TUN_READ:
@@ -537,10 +525,7 @@ multi_tcp_dispatch(struct multi_context *m, struct multi_instance *mi, const int
 
         case TA_INITIAL:
             ASSERT(mi);
-            if (!mi->context.c2.link_socket->dco_installed)
-            {
-                multi_tcp_set_global_rw_flags(m, mi);
-            }
+            multi_tcp_set_global_rw_flags(m, mi);
             multi_process_post(m, mi, mpp_flags);
             break;
 
@@ -590,10 +575,7 @@ multi_tcp_post(struct multi_context *m, struct multi_instance *mi, const int act
             }
             else
             {
-                if (!c->c2.link_socket->dco_installed)
-                {
-                    multi_tcp_set_global_rw_flags(m, mi);
-                }
+                multi_tcp_set_global_rw_flags(m, mi);
             }
             break;
 

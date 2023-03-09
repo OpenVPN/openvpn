@@ -3203,37 +3203,6 @@ multi_signal_instance(struct multi_context *m, struct multi_instance *mi, const 
 
 #if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD))
 static void
-process_incoming_dco_packet(struct multi_context *m, struct multi_instance *mi,
-                            dco_context_t *dco)
-{
-    if (BLEN(&dco->dco_packet_in) < 1)
-    {
-        msg(D_DCO, "Received too short packet for peer %d",
-            dco->dco_message_peer_id);
-        goto done;
-    }
-
-    uint8_t *ptr = BPTR(&dco->dco_packet_in);
-    uint8_t op = ptr[0] >> P_OPCODE_SHIFT;
-    if ((op == P_DATA_V1) || (op == P_DATA_V2))
-    {
-        msg(D_DCO, "DCO: received data channel packet for peer %d",
-            dco->dco_message_peer_id);
-        goto done;
-    }
-
-    struct buffer orig_buf = mi->context.c2.buf;
-    mi->context.c2.buf = dco->dco_packet_in;
-
-    multi_process_incoming_link(m, mi, 0);
-
-    mi->context.c2.buf = orig_buf;
-
-done:
-    buf_init(&dco->dco_packet_in, 0);
-}
-
-static void
 process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi,
                           dco_context_t *dco)
 {
@@ -3299,11 +3268,7 @@ multi_process_incoming_dco(struct multi_context *m)
     if ((peer_id < m->max_clients) && (m->instances[peer_id]))
     {
         mi = m->instances[peer_id];
-        if (dco->dco_message_type == OVPN_CMD_PACKET)
-        {
-            process_incoming_dco_packet(m, mi, dco);
-        }
-        else if (dco->dco_message_type == OVPN_CMD_DEL_PEER)
+        if (dco->dco_message_type == OVPN_CMD_DEL_PEER)
         {
             process_incoming_del_peer(m, mi, dco);
         }
@@ -3326,8 +3291,6 @@ multi_process_incoming_dco(struct multi_context *m)
         msg(msglevel, "Received DCO message for unknown peer-id: %d, "
             "type %d, del_peer_reason %d", peer_id, dco->dco_message_type,
             dco->dco_del_peer_reason);
-        /* Also clear the buffer if this was incoming packet for a dropped peer */
-        buf_init(&dco->dco_packet_in, 0);
     }
 
     dco->dco_message_type = 0;

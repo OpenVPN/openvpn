@@ -394,14 +394,6 @@ dco_do_read(dco_context_t *dco)
 }
 
 int
-dco_do_write(dco_context_t *dco, int peer_id, struct buffer *buf)
-{
-    /* no-op on windows */
-    ASSERT(0);
-    return 0;
-}
-
-int
 dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
 {
     /* Not implemented. */

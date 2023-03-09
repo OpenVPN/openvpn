@@ -11,7 +11,7 @@
 #ifndef _UAPI_LINUX_OVPN_DCO_H_
 #define _UAPI_LINUX_OVPN_DCO_H_
 
-#define OVPN_NL_NAME "ovpn-dco"
+#define OVPN_NL_NAME "ovpn-dco-v2"
 
 #define OVPN_NL_MULTICAST_GROUP_PEERS "peers"
 
@@ -44,19 +44,6 @@ enum ovpn_nl_commands {
 	OVPN_CMD_SWAP_KEYS,
 
 	OVPN_CMD_DEL_KEY,
-
-	/**
-	 * @OVPN_CMD_REGISTER_PACKET: Register for specific packet types to be
-	 * forwarded to userspace
-	 */
-	OVPN_CMD_REGISTER_PACKET,
-
-	/**
-	 * @OVPN_CMD_PACKET: Send a packet from userspace to kernelspace. Also
-	 * used to send to userspace packets for which a process had registered
-	 * with OVPN_CMD_REGISTER_PACKET
-	 */
-	OVPN_CMD_PACKET,
 
 	/**
 	 * @OVPN_CMD_GET_PEER: Retrieve the status of a peer or all peers
@@ -105,7 +92,6 @@ enum ovpn_netlink_attrs {
 	OVPN_ATTR_NEW_KEY,
 	OVPN_ATTR_SWAP_KEYS,
 	OVPN_ATTR_DEL_KEY,
-	OVPN_ATTR_PACKET,
 	OVPN_ATTR_GET_PEER,
 
 	__OVPN_ATTR_AFTER_LAST,
