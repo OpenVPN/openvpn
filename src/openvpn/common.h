@@ -64,9 +64,11 @@ typedef unsigned long ptr_type;
 /*
  * This parameter controls the TLS channel buffer size and the
  * maximum size of a single TLS message (cleartext).
- * This parameter must be >= PUSH_BUNDLE_SIZE
+ * This parameter must be >= PUSH_BUNDLE_SIZE. It must also be greater than 
+ * the size of a long (>50Kb) password in the dyanmic challenge/response
+ * protocol,
  */
-#define TLS_CHANNEL_BUF_SIZE 2048
+#define TLS_CHANNEL_BUF_SIZE 65536
 
 /* TLS control buffer minimum size
  *
