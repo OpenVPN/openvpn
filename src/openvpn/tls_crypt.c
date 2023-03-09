@@ -532,6 +532,7 @@ tls_crypt_v2_unwrap_client_key(struct key2 *client_key, struct buffer *metadata,
     }
     memcpy(&client_key->keys, BPTR(&plaintext), sizeof(client_key->keys));
     ASSERT(buf_advance(&plaintext, sizeof(client_key->keys)));
+    client_key->n = 2;
 
     if (!buf_copy(metadata, &plaintext))
     {
