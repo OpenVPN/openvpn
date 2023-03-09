@@ -58,6 +58,15 @@ struct tuntap;
  */
 bool dco_available(int msglevel);
 
+
+/**
+ * Return a human readable string representing the DCO version
+ *
+ * @param gc    the garbage collector to use for any dynamic allocation
+ * @return      a pointer to the string (allocated via gc) containing the string
+ */
+const char *dco_version_string(struct gc_arena *gc);
+
 /**
  * Check whether the options struct has any option that is not supported by
  * our current dco implementation. If so print a warning at warning level
@@ -248,6 +257,12 @@ static inline bool
 dco_available(int msglevel)
 {
     return false;
+}
+
+static inline const char *
+dco_version_string(struct gc_arena *gc)
+{
+    return "not-compiled";
 }
 
 static inline bool

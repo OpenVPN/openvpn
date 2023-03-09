@@ -4817,6 +4817,16 @@ show_windows_version(const unsigned int flags)
 #endif
 
 void
+show_dco_version(const unsigned int flags)
+{
+#ifdef ENABLE_DCO
+    struct gc_arena gc = gc_new();
+    msg(flags, "DCO version: %s", dco_version_string(&gc));
+    gc_free(&gc);
+#endif
+}
+
+void
 show_library_versions(const unsigned int flags)
 {
 #ifdef ENABLE_LZO
@@ -4839,6 +4849,7 @@ usage_version(void)
 #ifdef _WIN32
     show_windows_version( M_INFO|M_NOPREFIX );
 #endif
+    show_dco_version(M_INFO | M_NOPREFIX);
     msg(M_INFO|M_NOPREFIX, "Originally developed by James Yonan");
     msg(M_INFO|M_NOPREFIX, "Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>");
 #ifndef ENABLE_SMALL

@@ -385,6 +385,12 @@ dco_available(int msglevel)
     return false;
 }
 
+const char *
+dco_version_string(struct gc_arena *gc)
+{
+    return "v0";
+}
+
 int
 dco_do_read(dco_context_t *dco)
 {

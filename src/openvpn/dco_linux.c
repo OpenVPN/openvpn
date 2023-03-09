@@ -843,7 +843,34 @@ dco_available(int msglevel)
             "Note: Kernel support for ovpn-dco missing, disabling data channel offload.");
         return false;
     }
+
     return true;
+}
+
+const char *
+dco_version_string(struct gc_arena *gc)
+{
+    struct buffer out = alloc_buf_gc(256, gc);
+    FILE *fp = fopen("/sys/module/ovpn_dco_v2/version", "r");
+    if (!fp)
+    {
+        return "N/A";
+    }
+
+    if (!fgets(BSTR(&out), BCAP(&out), fp))
+    {
+        return "ERR";
+    }
+
+    /* remove potential newline at the end of the string */
+    char *str = BSTR(&out);
+    char *nl = strchr(str, '\n');
+    if (nl)
+    {
+        *nl = '\0';
+    }
+
+    return BSTR(&out);
 }
 
 void
