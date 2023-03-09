@@ -31,6 +31,8 @@
 #include <sys/param.h>
 #include <sys/linker.h>
 #include <sys/nv.h>
+#include <sys/utsname.h>
+
 #include <netinet/in.h>
 
 #include "dco_freebsd.h"
@@ -617,7 +619,15 @@ out:
 const char *
 dco_version_string(struct gc_arena *gc)
 {
-    return "v0";
+    struct utsname *uts;
+    ALLOC_OBJ_GC(uts, struct utsname, gc);
+
+    if (uname(uts) != 0)
+    {
+        return "N/A";
+    }
+
+    return uts->version;
 }
 
 void
