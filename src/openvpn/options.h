@@ -796,6 +796,8 @@ void show_windows_version(const unsigned int flags);
 
 #endif
 
+void show_dco_version(const unsigned int flags);
+
 void init_options(struct options *o, const bool init_gc);
 
 void uninit_options(struct options *o);

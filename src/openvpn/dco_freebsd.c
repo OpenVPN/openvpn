@@ -614,6 +614,12 @@ out:
     return available;
 }
 
+const char *
+dco_version_string(struct gc_arena *gc)
+{
+    return "v0";
+}
+
 void
 dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
 {

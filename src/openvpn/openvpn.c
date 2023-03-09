@@ -262,6 +262,8 @@ openvpn_main(int argc, char *argv[])
 #endif
             show_library_versions(M_INFO);
 
+            show_dco_version(M_INFO);
+
             /* misc stuff */
             pre_setup(&c.options);
 
