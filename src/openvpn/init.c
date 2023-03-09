@@ -3914,8 +3914,7 @@ do_close_link_socket(struct context *c)
     /* in dco-win case, link socket is a tun handle which is
      * closed in do_close_tun(). Set it to UNDEFINED so
      * we won't use WinSock API to close it. */
-    if (tuntap_is_dco_win(c->c1.tuntap) && c->c2.link_socket
-        && c->c2.link_socket->dco_installed)
+    if (tuntap_is_dco_win(c->c1.tuntap) && c->c2.link_socket)
     {
         c->c2.link_socket->sd = SOCKET_UNDEFINED;
     }

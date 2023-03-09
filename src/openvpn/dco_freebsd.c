@@ -142,7 +142,6 @@ open_fd(dco_context_t *dco)
     {
         dco->open = true;
     }
-    dco->dco_packet_in = alloc_buf(PAGE_SIZE);
 
     return dco->fd;
 }
@@ -558,15 +557,6 @@ dco_do_read(dco_context_t *dco)
     nvlist_destroy(nvl);
 
     return 0;
-}
-
-int
-dco_do_write(dco_context_t *dco, int peer_id, struct buffer *buf)
-{
-    /* Control packets are passed through the socket, so this should never get
-     * called. See should_use_dco_socket(). */
-    ASSERT(0);
-    return -EINVAL;
 }
 
 bool

@@ -51,8 +51,6 @@ typedef struct dco_context {
 
     char ifname[IFNAMSIZ];
 
-    struct buffer dco_packet_in;
-
     int dco_message_type;
     int dco_message_peer_id;
     int dco_del_peer_reason;

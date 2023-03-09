@@ -168,7 +168,6 @@ struct link_socket
 
     socket_descriptor_t sd;
     socket_descriptor_t ctrl_sd; /* only used for UDP over Socks */
-    bool dco_installed;
 
 #ifdef _WIN32
     struct overlapped_io reads;
@@ -207,6 +206,7 @@ struct link_socket
 #define SF_PORT_SHARE (1<<2)
 #define SF_HOST_RANDOMIZE (1<<3)
 #define SF_GETADDRINFO_DGRAM (1<<4)
+#define SF_DCO_WIN (1<<5)
     unsigned int sockflags;
     int mark;
     const char *bind_dev;
@@ -1021,6 +1021,17 @@ stream_buf_read_setup(struct link_socket *sock)
     }
 }
 
+/**
+ * Returns true if we are on Windows and this link is running on DCO-WIN.
+ * This helper is used to enable DCO-WIN specific logic that is not relevant
+ * to other platforms.
+ */
+static inline bool
+socket_is_dco_win(const struct link_socket *s)
+{
+    return s->sockflags & SF_DCO_WIN;
+}
+
 /*
  * Socket Read Routines
  */
@@ -1036,7 +1047,7 @@ link_socket_read_udp_win32(struct link_socket *sock,
                            struct link_socket_actual *from)
 {
     sockethandle_t sh = { .s = sock->sd };
-    if (sock->dco_installed)
+    if (socket_is_dco_win(sock))
     {
         *from = sock->info.lsa->actual;
         sh.is_handle = true;
@@ -1058,12 +1069,8 @@ link_socket_read(struct link_socket *sock,
                  struct buffer *buf,
                  struct link_socket_actual *from)
 {
-#ifdef _WIN32
-    if (proto_is_udp(sock->info.proto) || sock->dco_installed)
-#else
-    if (proto_is_udp(sock->info.proto))
-#endif
-    /* unified UDPv4 and UDPv6, for DCO the kernel
+    if (proto_is_udp(sock->info.proto) || socket_is_dco_win(sock))
+    /* unified UDPv4 and UDPv6, for DCO-WIN the kernel
      * will strip the length header */
     {
         int res;
@@ -1105,7 +1112,7 @@ link_socket_write_win32(struct link_socket *sock,
 {
     int err = 0;
     int status = 0;
-    sockethandle_t sh = { .s = sock->sd, .is_handle = sock->dco_installed };
+    sockethandle_t sh = { .s = sock->sd, .is_handle = socket_is_dco_win(sock) };
     if (overlapped_io_active(&sock->writes))
     {
         status = sockethandle_finalize(sh, &sock->writes, NULL, NULL);
@@ -1179,9 +1186,9 @@ link_socket_write(struct link_socket *sock,
                   struct buffer *buf,
                   struct link_socket_actual *to)
 {
-    if (proto_is_udp(sock->info.proto) || sock->dco_installed)
+    if (proto_is_udp(sock->info.proto) || socket_is_dco_win(sock))
     {
-        /* unified UDPv4 and UDPv6 and DCO (kernel adds size header) */
+        /* unified UDPv4, UDPv6 and DCO-WIN (driver adds length header) */
         return link_socket_write_udp(sock, buf, to);
     }
     else if (proto_is_tcp(sock->info.proto)) /* unified TCPv4 and TCPv6 */
