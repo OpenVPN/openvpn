@@ -660,10 +660,8 @@ instances.
     ::
 
        dns_search_domain_{n}
-       dns_server_{n}_address4
-       dns_server_{n}_port4
-       dns_server_{n}_address6
-       dns_server_{n}_port6
+       dns_server_{n}_address_{m}
+       dns_server_{n}_port_{m}
        dns_server_{n}_resolve_domain_{m}
        dns_server_{n}_exclude_domain_{m}
        dns_server_{n}_dnssec

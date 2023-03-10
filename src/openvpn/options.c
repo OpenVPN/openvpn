@@ -512,7 +512,7 @@ static const char usage_message[] =
     "                  each filter is applied in the order of appearance.\n"
     "--dns server <n> <option> <value> [value ...] : Configure option for DNS server #n\n"
     "                  Valid options are :\n"
-    "                  address <addr[:port]> [addr[:port]] : server address 4/6\n"
+    "                  address <addr[:port]> [addr[:port] ...] : server addresses 4/6\n"
     "                  resolve-domains <domain> [domain ...] : split domains\n"
     "                  exclude-domains <domain> [domain ...] : domains not to resolve\n"
     "                  dnssec <yes|no|optional> : option to use DNSSEC\n"
@@ -1387,21 +1387,26 @@ tuntap_options_copy_dns(struct options *o)
         const struct dns_server *server = dns->servers;
         while (server)
         {
-            if (server->addr4_defined && tt->dns_len < N_DHCP_ADDR)
+            for (int i = 0; i < server->addr_count; ++i)
             {
-                tt->dns[tt->dns_len++] = server->addr4.s_addr;
-            }
-            else
-            {
-                overflow = true;
-            }
-            if (server->addr6_defined && tt->dns6_len < N_DHCP_ADDR)
-            {
-                tt->dns6[tt->dns6_len++] = server->addr6;
-            }
-            else
-            {
-                overflow = true;
+                if (server->addr[i].family == AF_INET)
+                {
+                    if (tt->dns_len >= N_DHCP_ADDR)
+                    {
+                        overflow = true;
+                        continue;
+                    }
+                    tt->dns[tt->dns_len++] = server->addr[i].in.a4.s_addr;
+                }
+                else
+                {
+                    if (tt->dns6_len >= N_DHCP_ADDR)
+                    {
+                        overflow = true;
+                        continue;
+                    }
+                    tt->dns6[tt->dns6_len++] = server->addr[i].in.a6;
+                }
             }
             server = server->next;
         }
@@ -1448,23 +1453,26 @@ foreign_options_copy_dns(struct options *o, struct env_set *es)
 
     while (server)
     {
-        if (server->addr4_defined)
+        for (int i = 0; i < server->addr_count; ++i)
         {
-            const char *argv[] = {
-                "dhcp-option",
-                "DNS",
-                print_in_addr_t(server->addr4.s_addr, 0, &gc)
-            };
-            setenv_foreign_option(o, argv, 3, es);
-        }
-        if (server->addr6_defined)
-        {
-            const char *argv[] = {
-                "dhcp-option",
-                "DNS6",
-                print_in6_addr(server->addr6, 0, &gc)
-            };
-            setenv_foreign_option(o, argv, 3, es);
+            if (server->addr[i].family == AF_INET)
+            {
+                const char *argv[] = {
+                    "dhcp-option",
+                    "DNS",
+                    print_in_addr_t(server->addr[i].in.a4.s_addr, 0, &gc)
+                };
+                setenv_foreign_option(o, argv, 3, es);
+            }
+            else
+            {
+                const char *argv[] = {
+                    "dhcp-option",
+                    "DNS6",
+                    print_in6_addr(server->addr[i].in.a6, 0, &gc)
+                };
+                setenv_foreign_option(o, argv, 3, es);
+            }
         }
         server = server->next;
     }
@@ -8018,13 +8026,13 @@ add_option(struct options *options,
 
             struct dns_server *server = dns_server_get(&options->dns_options.servers, priority, &options->dns_options.gc);
 
-            if (streq(p[3], "address") && !p[6])
+            if (streq(p[3], "address") && p[4])
             {
-                for (int i = 4; p[i]; i++)
+                for (int i = 4; p[i]; ++i)
                 {
                     if (!dns_server_addr_parse(server, p[i]))
                     {
-                        msg(msglevel, "--dns server %ld: malformed or duplicate address '%s'", priority, p[i]);
+                        msg(msglevel, "--dns server %ld: malformed address or maximum exceeded '%s'", priority, p[i]);
                         goto err;
                     }
                 }
