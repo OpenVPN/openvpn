@@ -168,7 +168,7 @@ configuration.
   ::
 
      dns search-domains domain [domain ...]
-     dns server n address addr[:port] [addr[:port]]
+     dns server n address addr[:port] [addr[:port] ...]
      dns server n resolve-domains|exclude-domains domain [domain ...]
      dns server n dnssec yes|optional|no
      dns server n transport DoH|DoT|plain
@@ -186,9 +186,10 @@ configuration.
   lower numbers come first. DNS servers being pushed to a client replace
   already configured DNS servers with the same server id.
 
-  The ``address`` option configures the IPv4 and / or IPv6 address of
-  the DNS server. Optionally a port can be appended after a colon. IPv6
-  addresses need to be enclosed in brackets if a port is appended.
+  The ``address`` option configures the IPv4 and / or IPv6 address(es) of
+  the DNS server. Up to eight addresses can be specified per DNS server.
+  Optionally a port can be appended after a colon. IPv6 addresses need to
+  be enclosed in brackets if a port is appended.
 
   The ``resolve-domains`` and ``exclude-domains`` options take one or
   more DNS domains which are explicitly resolved or explicitly not resolved
