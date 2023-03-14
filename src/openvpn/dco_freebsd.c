@@ -232,7 +232,6 @@ create_interface(struct tuntap *tt, const char *dev)
     }
 
     snprintf(tt->dco.ifname, IFNAMSIZ, "%s", ifr.ifr_data);
-    tt->actual_name = string_alloc(tt->dco.ifname, NULL);
 
     /* see "Interface Flags" in ifnet(9) */
     int i = IFF_POINTOPOINT | IFF_MULTICAST;
