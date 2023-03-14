@@ -457,7 +457,6 @@ open_tun_dco(struct tuntap *tt, openvpn_net_ctx_t *ctx, const char *dev)
         msg(M_FATAL, "DCO: cannot retrieve ifindex for interface %s", dev);
     }
 
-    tt->actual_name = string_alloc(dev, NULL);
     tt->dco.dco_message_peer_id = -1;
 
     ovpn_dco_register(&tt->dco);
