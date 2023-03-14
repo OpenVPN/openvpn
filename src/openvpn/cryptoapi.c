@@ -147,40 +147,6 @@ CAPI_DATA_free(CAPI_DATA *cd)
 }
 
 /**
- * Helper to convert ECDSA signature returned by NCryptSignHash
- * to an ECDSA_SIG structure.
- * On entry 'buf[]' of length len contains r and s concatenated.
- * Returns a newly allocated ECDSA_SIG or NULL (on error).
- */
-static ECDSA_SIG *
-ecdsa_bin2sig(unsigned char *buf, int len)
-{
-    ECDSA_SIG *ecsig = NULL;
-    DWORD rlen = len/2;
-    BIGNUM *r = BN_bin2bn(buf, rlen, NULL);
-    BIGNUM *s = BN_bin2bn(buf+rlen, rlen, NULL);
-    if (!r || !s)
-    {
-        goto err;
-    }
-    ecsig = ECDSA_SIG_new(); /* in openssl 1.1 this does not allocate r, s */
-    if (!ecsig)
-    {
-        goto err;
-    }
-    if (!ECDSA_SIG_set0(ecsig, r, s)) /* ecsig takes ownership of r and s */
-    {
-        ECDSA_SIG_free(ecsig);
-        goto err;
-    }
-    return ecsig;
-err:
-    BN_free(r); /* it is ok to free NULL BN */
-    BN_free(s);
-    return NULL;
-}
-
-/**
  * Parse a hex string with optional embedded spaces into
  * a byte array.
  * @param p         pointer to the input string
@@ -287,12 +253,11 @@ static int
 xkey_cng_ec_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsigned char *tbs,
                  size_t tbslen)
 {
-    BYTE buf[1024]; /* large enough for EC keys upto 1024 bits */
-    DWORD len = _countof(buf);
+    DWORD len = *siglen;
 
     msg(D_LOW, "Signing using NCryptSignHash with EC key");
 
-    DWORD status = NCryptSignHash(cd->crypt_prov, NULL, (BYTE *)tbs, tbslen, buf, len, &len, 0);
+    DWORD status = NCryptSignHash(cd->crypt_prov, NULL, (BYTE *)tbs, tbslen, sig, len, &len, 0);
 
     if (status != ERROR_SUCCESS)
     {
@@ -301,26 +266,14 @@ xkey_cng_ec_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsign
         return 0;
     }
 
-    /* NCryptSignHash returns r|s -- convert to OpenSSL's ECDSA_SIG */
-    ECDSA_SIG *ecsig = ecdsa_bin2sig(buf, len);
-    if (!ecsig)
+    /* NCryptSignHash returns r|s -- convert to DER encoded buffer expected by OpenSSL */
+    int derlen = ecdsa_bin2der(sig, (int) len, *siglen);
+    if (derlen <= 0)
     {
-        msg(M_NONFATAL, "Error in cryptopicert: Failed to convert ECDSA signature");
         return 0;
     }
-
-    /* convert internal signature structure 's' to DER encoded byte array in sig */
-    if (i2d_ECDSA_SIG(ecsig, NULL) > EVP_PKEY_size(cd->pubkey))
-    {
-        ECDSA_SIG_free(ecsig);
-        msg(M_NONFATAL, "Error in cryptoapicert: DER encoded ECDSA signature is too long");
-        return 0;
-    }
-
-    *siglen = i2d_ECDSA_SIG(ecsig, &sig);
-    ECDSA_SIG_free(ecsig);
-
-    return (*siglen > 0);
+    *siglen = derlen;
+    return 1;
 }
 
 /** Sign hash in tbs using RSA key in cd and NCryptSignHash */
