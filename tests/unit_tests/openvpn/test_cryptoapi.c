@@ -47,6 +47,7 @@
 #include <cryptoapi.c> /* pull-in the whole file to test static functions */
 
 struct management *management; /* global */
+static OSSL_PROVIDER *prov[2];
 
 /* mock a management function that xkey_provider needs */
 char *
@@ -65,6 +66,11 @@ OSSL_LIB_CTX *tls_libctx;
 #ifndef _countof
 #define _countof(x) sizeof((x))/sizeof(*(x))
 #endif
+
+/* A message for signing */
+static const char *test_msg = "Lorem ipsum dolor sit amet, consectetur "
+                              "adipisici elit, sed eiusmod tempor incidunt "
+                              "ut labore et dolore magna aliqua.";
 
 /* test data */
 static const uint8_t test_hash[] = {
@@ -336,6 +342,164 @@ test_find_cert_byissuer(void **state)
     gc_free(&gc);
 }
 
+static int
+setup_cryptoapi_sign(void **state)
+{
+    (void) state;
+    /* Initialize providers in a way matching what OpenVPN core does */
+    tls_libctx = OSSL_LIB_CTX_new();
+    prov[0] = OSSL_PROVIDER_load(tls_libctx, "default");
+    OSSL_PROVIDER_add_builtin(tls_libctx, "ovpn.xkey", xkey_provider_init);
+    prov[1] = OSSL_PROVIDER_load(tls_libctx, "ovpn.xkey");
+
+    /* set default propq as we do in ssl_openssl.c */
+    EVP_set_default_properties(tls_libctx, "?provider!=ovpn.xkey");
+    return 0;
+}
+
+static int
+teardown_cryptoapi_sign(void **state)
+{
+    (void) state;
+    for (size_t i = 0; i < _countof(prov); i++)
+    {
+        if (prov[i])
+        {
+            OSSL_PROVIDER_unload(prov[i]);
+            prov[i] = NULL;
+        }
+    }
+    OSSL_LIB_CTX_free(tls_libctx);
+    tls_libctx = NULL;
+    return 0;
+}
+
+/**
+ * Sign "test_msg" using a private key. The key may be a "provided" key
+ * in which case its signed by the provider's backend -- cryptoapi in our
+ * case. Then verify the signature using OpenSSL.
+ * Returns 1 on success, 0 on error.
+ */
+static int
+digest_sign_verify(EVP_PKEY *privkey, EVP_PKEY *pubkey)
+{
+    uint8_t *sig = NULL;
+    size_t siglen = 0;
+    int ret = 0;
+
+    OSSL_PARAM params[2] = {OSSL_PARAM_END};
+    const char *mdname = "SHA256";
+
+    if (EVP_PKEY_get_id(privkey) == EVP_PKEY_RSA)
+    {
+        const char *padmode = "pss"; /* RSA_PSS: for all other params, use defaults */
+        params[0] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PAD_MODE,
+                                                     (char *)padmode, 0);
+        params[1] = OSSL_PARAM_construct_end();
+    }
+    else if (EVP_PKEY_get_id(privkey) == EVP_PKEY_EC)
+    {
+        params[0] = OSSL_PARAM_construct_end();
+    }
+    else
+    {
+        print_error("Unknown key type in digest_sign_verify()");
+        return ret;
+    }
+
+    EVP_PKEY_CTX *pctx = NULL;
+    EVP_MD_CTX *mctx = EVP_MD_CTX_new();
+
+    if (!mctx
+        || EVP_DigestSignInit_ex(mctx, &pctx, mdname, tls_libctx, NULL, privkey,  params) <= 0)
+    {
+        /* cmocka assert output for these kinds of failures is hardly explanatory,
+         * print a message and assert in caller. */
+        print_error("Failed to initialize EVP_DigestSignInit_ex()\n");
+        goto done;
+    }
+
+    /* sign with sig = NULL to get required siglen */
+    if (EVP_DigestSign(mctx, sig, &siglen, (uint8_t *)test_msg, strlen(test_msg)) != 1)
+    {
+        print_error("EVP_DigestSign: failed to get required signature size");
+        goto done;
+    }
+    assert_true(siglen > 0);
+
+    if ((sig = test_calloc(1, siglen)) == NULL)
+    {
+        print_error("Out of memory");
+        goto done;
+    }
+    if (EVP_DigestSign(mctx, sig, &siglen, (uint8_t *)test_msg, strlen(test_msg)) != 1)
+    {
+        print_error("EVP_DigestSign: signing failed");
+        goto done;
+    }
+
+    /*
+     * Now validate the signature using OpenSSL. Just use the public key
+     * which is a native OpenSSL key.
+     */
+    EVP_MD_CTX_free(mctx); /* this also frees pctx */
+    mctx = EVP_MD_CTX_new();
+    pctx = NULL;
+    if (!mctx
+        || EVP_DigestVerifyInit_ex(mctx, &pctx, mdname, tls_libctx, NULL, pubkey,  params) <= 0)
+    {
+        print_error("Failed to initialize EVP_DigestVerifyInit_ex()");
+        goto done;
+    }
+    if (EVP_DigestVerify(mctx, sig, siglen, (uint8_t *)test_msg, strlen(test_msg)) != 1)
+    {
+        print_error("EVP_DigestVerify failed");
+        goto done;
+    }
+    ret = 1;
+
+done:
+    if (mctx)
+    {
+        EVP_MD_CTX_free(mctx); /* this also frees pctx */
+    }
+    test_free(sig);
+    return ret;
+}
+
+/* Load sample certificates & keys, sign a test message using
+ * them and verify the signature.
+ */
+void
+test_cryptoapi_sign(void **state)
+{
+    (void) state;
+    char select_string[64];
+    X509 *x509 = NULL;
+    EVP_PKEY *privkey = NULL;
+
+    import_certs(state); /* a no-op if already imported */
+    assert_true(certs_loaded);
+
+    for (struct test_cert *c = certs; c->cert; c++)
+    {
+        if (c->valid == 0)
+        {
+            continue;
+        }
+        openvpn_snprintf(select_string, sizeof(select_string), "THUMB:%s", c->hash);
+        if (Load_CryptoAPI_certificate(select_string, &x509, &privkey) != 1)
+        {
+            fail_msg("Load_CryptoAPI_certificate failed: <%s>", c->friendly_name);
+            return;
+        }
+        EVP_PKEY *pubkey = X509_get_pubkey(x509);
+        assert_int_equal(digest_sign_verify(privkey, pubkey), 1);
+        X509_free(x509);
+        EVP_PKEY_free(privkey);
+    }
+}
+
 static void
 test_parse_hexstring(void **state)
 {
@@ -366,6 +530,8 @@ main(void)
         cmocka_unit_test(test_find_cert_bythumb),
         cmocka_unit_test(test_find_cert_byname),
         cmocka_unit_test(test_find_cert_byissuer),
+        cmocka_unit_test_setup_teardown(test_cryptoapi_sign, setup_cryptoapi_sign,
+                                        teardown_cryptoapi_sign),
     };
 
     int ret = cmocka_run_group_tests_name("cryptoapi tests", tests, NULL, cleanup);
