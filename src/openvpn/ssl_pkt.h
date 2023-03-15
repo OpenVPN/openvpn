@@ -77,6 +77,7 @@
 struct tls_auth_standalone
 {
     struct tls_wrap_ctx tls_wrap;
+    struct buffer workbuf;
     struct frame frame;
 };
 
@@ -220,7 +221,6 @@ read_control_auth(struct buffer *buf,
  * This function creates a reset packet using the information
  * from the tls pre decrypt state.
  *
- * The returned buf needs to be free with \c free_buf
  */
 struct buffer
 tls_reset_standalone(struct tls_wrap_ctx *ctx,
