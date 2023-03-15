@@ -238,6 +238,105 @@ cleanup(void **state)
 }
 
 static void
+test_find_cert_bythumb(void **state)
+{
+    (void) state;
+    char select_string[64];
+    struct gc_arena gc = gc_new();
+    const CERT_CONTEXT *ctx;
+
+    import_certs(state); /* a no-op if already imported */
+    assert_non_null(user_store);
+
+    for (struct test_cert *c = certs; c->cert; c++)
+    {
+        openvpn_snprintf(select_string, sizeof(select_string), "THUMB:%s", c->hash);
+        ctx = find_certificate_in_store(select_string, user_store);
+        if (ctx)
+        {
+            /* check we got the right certificate and is valid */
+            assert_int_equal(c->valid, 1);
+            char *friendly_name = get_cert_name(ctx, &gc);
+            assert_string_equal(c->friendly_name, friendly_name);
+            CertFreeCertificateContext(ctx);
+        }
+        else
+        {
+            /* find should fail only if the certificate has expired */
+            assert_int_equal(c->valid, 0);
+        }
+    }
+
+    gc_free(&gc);
+}
+
+static void
+test_find_cert_byname(void **state)
+{
+    (void) state;
+    char select_string[64];
+    struct gc_arena gc = gc_new();
+    const CERT_CONTEXT *ctx;
+
+    import_certs(state); /* a no-op if already imported */
+    assert_non_null(user_store);
+
+    for (struct test_cert *c = certs; c->cert; c++)
+    {
+        openvpn_snprintf(select_string, sizeof(select_string), "SUBJ:%s", c->cname);
+        ctx = find_certificate_in_store(select_string, user_store);
+        /* In this case we expect a successful return as there is at least one valid
+         * cert that matches the common name. But the returned cert may not exactly match
+         * c->cert as multiple certs with same common names exist in the db. We check that
+         * the return cert is one from our db, has a matching common name and is valid.
+         */
+        assert_non_null(ctx);
+
+        char *friendly_name = get_cert_name(ctx, &gc);
+        struct test_cert *found = lookup_cert(friendly_name);
+        assert_non_null(found);
+        assert_string_equal(found->cname, c->cname);
+        assert_int_equal(found->valid, 1);
+        CertFreeCertificateContext(ctx);
+    }
+
+    gc_free(&gc);
+}
+
+static void
+test_find_cert_byissuer(void **state)
+{
+    (void) state;
+    char select_string[64];
+    struct gc_arena gc = gc_new();
+    const CERT_CONTEXT *ctx;
+
+    import_certs(state); /* a no-op if already imported */
+    assert_non_null(user_store);
+
+    for (struct test_cert *c = certs; c->cert; c++)
+    {
+        openvpn_snprintf(select_string, sizeof(select_string), "ISSUER:%s", c->issuer);
+        ctx = find_certificate_in_store(select_string, user_store);
+        /* In this case we expect a successful return as there is at least one valid
+         * cert that matches the issuer. But the returned cert may not exactly match
+         * c->cert as multiple certs with same issuer exist in the db. We check that
+         * the returned cert is one from our db, has a matching issuer name and is valid.
+         */
+        assert_non_null(ctx);
+
+        char *friendly_name = get_cert_name(ctx, &gc);
+        struct test_cert *found = lookup_cert(friendly_name);
+        assert_non_null(found);
+        assert_string_equal(found->issuer, c->issuer);
+        assert_int_equal(found->valid, 1);
+        CertFreeCertificateContext(ctx);
+    }
+
+    gc_free(&gc);
+}
+
+static void
 test_parse_hexstring(void **state)
 {
     unsigned char hash[255];
@@ -264,6 +363,9 @@ main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_parse_hexstring),
         cmocka_unit_test(import_certs),
+        cmocka_unit_test(test_find_cert_bythumb),
+        cmocka_unit_test(test_find_cert_byname),
+        cmocka_unit_test(test_find_cert_byissuer),
     };
 
     int ret = cmocka_run_group_tests_name("cryptoapi tests", tests, NULL, cleanup);
