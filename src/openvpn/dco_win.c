@@ -429,6 +429,8 @@ dco_get_peer_stats(struct context *c)
 
     c->c2.dco_read_bytes = stats.TransportBytesReceived;
     c->c2.dco_write_bytes = stats.TransportBytesSent;
+    c->c2.tun_read_bytes = stats.TunBytesReceived;
+    c->c2.tun_write_bytes = stats.TunBytesSent;
 
     return 0;
 }
