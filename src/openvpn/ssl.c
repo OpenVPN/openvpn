@@ -1361,6 +1361,17 @@ tls_auth_standalone_init(struct tls_options *tls_options,
     return tas;
 }
 
+void
+tls_auth_standalone_free(struct tls_auth_standalone *tas)
+{
+    if (!tas)
+    {
+        return;
+    }
+
+    packet_id_free(&tas->tls_wrap.opt.packet_id);
+}
+
 /*
  * Set local and remote option compatibility strings.
  * Used to verify compatibility of local and remote option
