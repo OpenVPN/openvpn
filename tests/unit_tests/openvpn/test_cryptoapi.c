@@ -32,6 +32,7 @@
 #include "manage.h"
 #include "integer.h"
 #include "xkey_common.h"
+#include "cert_data.h"
 
 #if defined(HAVE_XKEY_PROVIDER) && defined (ENABLE_CRYPTOAPI)
 #include <setjmp.h>
@@ -40,6 +41,7 @@
 #include <openssl/pem.h>
 #include <openssl/core_names.h>
 #include <openssl/evp.h>
+#include <openssl/pkcs12.h>
 
 #include <cryptoapi.h>
 #include <cryptoapi.c> /* pull-in the whole file to test static functions */
@@ -84,6 +86,157 @@ static const char *invalid_str[] = {
     "7738x5001e9648c6570baec0b796f9664d5fd0b7",   /* non hex character */
 };
 
+/* Test certificate database: data for cert1, cert2 .. key1, key2 etc.
+ * are stashed away in cert_data.h
+ */
+static struct test_cert
+{
+    const char *const cert;             /* certificate as PEM */
+    const char *const key;              /* key as unencrypted PEM */
+    const char *const cname;            /* common-name */
+    const char *const issuer;           /* issuer common-name */
+    const char *const friendly_name;    /* identifies certs loaded to the store -- keep unique */
+    const char *hash;                   /* SHA1 fingerprint */
+    int valid;                          /* nonzero if certificate has not expired */
+} certs[] = {
+    {cert1,  key1,  cname1,  "OVPN TEST CA1",  "OVPN Test Cert 1",  hash1,  1},
+    {cert2,  key2,  cname2,  "OVPN TEST CA2",  "OVPN Test Cert 2",  hash2,  1},
+    {cert3,  key3,  cname3,  "OVPN TEST CA1",  "OVPN Test Cert 3",  hash3,  1},
+    {cert4,  key4,  cname4,  "OVPN TEST CA2",  "OVPN Test Cert 4",  hash4,  0},
+    {}
+};
+
+static bool certs_loaded;
+static HCERTSTORE user_store;
+
+/* Lookup a certificate in our certificate/key db */
+static struct test_cert *
+lookup_cert(const char *friendly_name)
+{
+    struct test_cert *c = certs;
+    while (c->cert && strcmp(c->friendly_name, friendly_name))
+    {
+        c++;
+    }
+    return c->cert ? c : NULL;
+}
+
+/* import sample certificates into windows cert store */
+static void
+import_certs(void **state)
+{
+    (void) state;
+    if (certs_loaded)
+    {
+        return;
+    }
+    user_store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, 0, CERT_SYSTEM_STORE_CURRENT_USER
+                               |CERT_STORE_OPEN_EXISTING_FLAG, L"MY");
+    assert_non_null(user_store);
+    for (struct test_cert *c = certs; c->cert; c++)
+    {
+        /* Convert PEM cert & key to pkcs12 and import */
+        const char *pass = "opensesame";        /* some password */
+        const wchar_t *wpass = L"opensesame";   /* same as a wide string */
+
+        X509 *x509 = NULL;
+        EVP_PKEY *pkey = NULL;
+
+        BIO *buf = BIO_new_mem_buf(c->cert, -1);
+        if (buf)
+        {
+            x509 = PEM_read_bio_X509(buf, NULL, NULL, NULL);
+        }
+        BIO_free(buf);
+
+        buf = BIO_new_mem_buf(c->key, -1);
+        if (buf)
+        {
+            pkey = PEM_read_bio_PrivateKey(buf, NULL, NULL, NULL);
+        }
+        BIO_free(buf);
+
+        if (!x509 || !pkey)
+        {
+            fail_msg("Failed to parse certificate/key data: <%s>", c->friendly_name);
+            return;
+        }
+
+        PKCS12 *p12 = PKCS12_create(pass, c->friendly_name, pkey, x509, NULL, 0, 0, 0, 0, 0);
+        X509_free(x509);
+        EVP_PKEY_free(pkey);
+        if (!p12)
+        {
+            fail_msg("Failed to convert to PKCS12: <%s>", c->friendly_name);
+            return;
+        }
+
+        CRYPT_DATA_BLOB blob = {.cbData = 0, .pbData = NULL};
+        int len = i2d_PKCS12(p12, &blob.pbData); /* pbData will be allocated by OpenSSL */
+        if (len <= 0)
+        {
+            fail_msg("Failed to DER encode PKCS12: <%s>", c->friendly_name);
+            return;
+        }
+        blob.cbData = len;
+
+        DWORD flags = PKCS12_ALLOW_OVERWRITE_KEY|PKCS12_ALWAYS_CNG_KSP;
+        HCERTSTORE tmp_store = PFXImportCertStore(&blob, wpass, flags);
+        PKCS12_free(p12);
+        OPENSSL_free(blob.pbData);
+
+        assert_non_null(tmp_store);
+
+        /* The cert and key get imported into a temp store. We have to move it to
+         * user's store to accumulate all certs in one place and use them for tests.
+         * It seems there is no API to directly import a p12 blob into an existing store.
+         * Nothing in Windows is ever easy.
+         */
+
+        const CERT_CONTEXT *ctx = CertEnumCertificatesInStore(tmp_store, NULL);
+        assert_non_null(ctx);
+        bool added = CertAddCertificateContextToStore(user_store, ctx,
+                                                      CERT_STORE_ADD_REPLACE_EXISTING, NULL);
+        assert_true(added);
+
+        CertFreeCertificateContext(ctx);
+        CertCloseStore(tmp_store, 0);
+    }
+    certs_loaded = true;
+}
+
+static int
+cleanup(void **state)
+{
+    (void) state;
+    struct gc_arena gc = gc_new();
+    if (user_store) /* delete all certs we imported */
+    {
+        const CERT_CONTEXT *ctx = NULL;
+        while ((ctx = CertEnumCertificatesInStore(user_store, ctx)))
+        {
+            char *friendly_name = get_cert_name(ctx, &gc);
+            if (!lookup_cert(friendly_name)) /* not our cert */
+            {
+                continue;
+            }
+
+            /* create a dup context to not destroy the state of loop iterator */
+            const CERT_CONTEXT *ctx_dup = CertDuplicateCertificateContext(ctx);
+            if (ctx_dup)
+            {
+                CertDeleteCertificateFromStore(ctx_dup);
+                /* the above also releases ctx_dup */
+            }
+        }
+        CertCloseStore(user_store, 0);
+    }
+    user_store = NULL;
+    certs_loaded = false;
+    gc_free(&gc);
+    return 0;
+}
+
 static void
 test_parse_hexstring(void **state)
 {
@@ -108,9 +261,12 @@ test_parse_hexstring(void **state)
 int
 main(void)
 {
-    const struct CMUnitTest tests[] = { cmocka_unit_test(test_parse_hexstring) };
+    const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_parse_hexstring),
+        cmocka_unit_test(import_certs),
+    };
 
-    int ret = cmocka_run_group_tests_name("cryptoapi tests", tests, NULL, NULL);
+    int ret = cmocka_run_group_tests_name("cryptoapi tests", tests, NULL, cleanup);
 
     return ret;
 }
