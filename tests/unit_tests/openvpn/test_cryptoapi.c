@@ -343,7 +343,7 @@ test_find_cert_byissuer(void **state)
 }
 
 static int
-setup_cryptoapi_sign(void **state)
+setup_xkey_provider(void **state)
 {
     (void) state;
     /* Initialize providers in a way matching what OpenVPN core does */
@@ -358,7 +358,7 @@ setup_cryptoapi_sign(void **state)
 }
 
 static int
-teardown_cryptoapi_sign(void **state)
+teardown_xkey_provider(void **state)
 {
     (void) state;
     for (size_t i = 0; i < _countof(prov); i++)
@@ -493,10 +493,49 @@ test_cryptoapi_sign(void **state)
             fail_msg("Load_CryptoAPI_certificate failed: <%s>", c->friendly_name);
             return;
         }
-        EVP_PKEY *pubkey = X509_get_pubkey(x509);
+        EVP_PKEY *pubkey = X509_get0_pubkey(x509);
+        assert_non_null(pubkey);
         assert_int_equal(digest_sign_verify(privkey, pubkey), 1);
         X509_free(x509);
         EVP_PKEY_free(privkey);
+    }
+}
+
+/* Test that SSL_CTX_use_Cryptoapi_certificate() sets a matching certificate
+ * and key in ssl_ctx.
+ */
+void
+test_ssl_ctx_use_cryptoapicert(void **state)
+{
+    (void) state;
+    char select_string[64];
+
+    import_certs(state); /* a no-op if already imported */
+    assert_true(certs_loaded);
+
+    for (struct test_cert *c = certs; c->cert; c++)
+    {
+        if (c->valid == 0)
+        {
+            continue;
+        }
+        SSL_CTX *ssl_ctx = SSL_CTX_new_ex(tls_libctx, NULL, SSLv23_client_method());
+        assert_non_null(ssl_ctx);
+
+        openvpn_snprintf(select_string, sizeof(select_string), "THUMB:%s", c->hash);
+        if (!SSL_CTX_use_CryptoAPI_certificate(ssl_ctx, select_string))
+        {
+            fail_msg("SSL_CTX_use_CryptoAPI_certificate failed: <%s>", c->friendly_name);
+            return;
+        }
+        /* Use OpenSSL to check that the cert and private key in ssl_ctx "match" */
+        if (!SSL_CTX_check_private_key(ssl_ctx))
+        {
+            fail_msg("Certificate and private key in ssl_ctx do not match for <%s>", c->friendly_name);
+            return;
+        }
+
+        SSL_CTX_free(ssl_ctx);
     }
 }
 
@@ -530,8 +569,10 @@ main(void)
         cmocka_unit_test(test_find_cert_bythumb),
         cmocka_unit_test(test_find_cert_byname),
         cmocka_unit_test(test_find_cert_byissuer),
-        cmocka_unit_test_setup_teardown(test_cryptoapi_sign, setup_cryptoapi_sign,
-                                        teardown_cryptoapi_sign),
+        cmocka_unit_test_setup_teardown(test_cryptoapi_sign, setup_xkey_provider,
+                                        teardown_xkey_provider),
+        cmocka_unit_test_setup_teardown(test_ssl_ctx_use_cryptoapicert, setup_xkey_provider,
+                                        teardown_xkey_provider),
     };
 
     int ret = cmocka_run_group_tests_name("cryptoapi tests", tests, NULL, cleanup);
