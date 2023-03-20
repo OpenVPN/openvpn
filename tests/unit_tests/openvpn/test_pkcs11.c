@@ -40,32 +40,13 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
-#if defined(HAVE_XKEY_PROVIDER)
-#include <openssl/core_names.h>
-
-OSSL_LIB_CTX *tls_libctx;
-OSSL_PROVIDER *prov[2];
-#endif
-
-#ifndef SOFTHSM2_MODULE_PATH
-#define SOFTHSM2_MODULE_PATH /usr/lib/softhsm/libsofthsm2.so
-#endif
-
-#ifndef SOFTHSM2_UTIL_PATH
-#define SOFTHSM2_UTIL_PATH /usr/bin/softhsm2-util
-#endif
-
-#ifndef P11TOOL_PATH
-#define P11TOOL_PATH /usr/bin/p11tool
-#endif
-
 #define token_name "Test Token"
 #define PIN "12345"
 #define HASHSIZE 20
 
 struct management *management; /* global */
 
-/* mock some less critical functions instead of pulling in too many dependencies */
+/* stubs for some unused functions instead of pulling in too many dependencies */
 int
 parse_line(const char *line, char **p, const int n, const char *file,
            const int line_num, int msglevel, struct gc_arena *gc)
@@ -106,7 +87,6 @@ purge_user_pass(struct user_pass *up, const bool force)
     secure_memzero(up, sizeof(*up));
 }
 
-/* mock a management function that xkey_provider needs */
 char *
 management_query_pk_sig(struct management *man, const char *b64_data,
                         const char *algorithm)
@@ -116,8 +96,6 @@ management_query_pk_sig(struct management *man, const char *b64_data,
     (void) algorithm;
     return NULL;
 }
-
-#if defined(ENABLE_PKCS11) && defined(HAVE_XKEY_PROVIDER)
 
 int
 digest_sign_verify(EVP_PKEY *privkey, EVP_PKEY *pubkey);
@@ -158,7 +136,7 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
     bool ret = true;
     if (!strcmp(prefix, "pkcs11-id-request") && flags&GET_USER_PASS_NEED_STR)
     {
-        assert(pkcs11_id_management);
+        assert_true(pkcs11_id_management);
         strncpynt(up->password, pkcs11_id_current, sizeof(up->password));
     }
     else if (flags & GET_USER_PASS_PASSWORD_ONLY)
@@ -182,6 +160,11 @@ sha1_fingerprint(X509 *x509, uint8_t *hash, int capacity)
     assert_int_equal(X509_digest(x509, EVP_sha1(), hash, NULL), 1);
 }
 
+#if defined(HAVE_XKEY_PROVIDER)
+OSSL_LIB_CTX *tls_libctx;
+OSSL_PROVIDER *prov[2];
+#endif
+
 static int
 init(void **state)
 {
@@ -200,8 +183,9 @@ init(void **state)
     {
         fail_msg("make tmpfile using template <%s> failed (error = %d)", softhsm2_conf_path, errno);
     }
-    openvpn_snprintf(config, sizeof(config), "directories.tokendir=%s/", softhsm2_tokens_path);
-    assert_true(write(fd, config, strlen(config)) > 0);
+    openvpn_snprintf(config, sizeof(config), "directories.tokendir=%s/",
+                     softhsm2_tokens_path);
+    assert_int_equal(write(fd, config, strlen(config)), strlen(config));
     close(fd);
 
     /* environment */
@@ -210,14 +194,13 @@ init(void **state)
     setenv_str(es, "SOFTHSM2_CONF", softhsm2_conf_path);
     setenv_str(es, "GNUTLS_PIN", PIN);
 
-    /* Init the token using the temporary location as storage */
+    /* init the token using the temporary location as storage */
     struct argv a = argv_new();
     argv_printf(&a, "%s --init-token --free --label \"%s\" --so-pin %s --pin %s",
                 SOFTHSM2_UTIL_PATH, token_name, PIN, PIN);
     assert_true(openvpn_execve_check(&a, es, 0, "Failed to initialize token"));
 
     /* Import certificates and keys in our test database into the token */
-    int id = 1;
     char cert[] = "cert_XXXXXX";
     char key[] = "key_XXXXXX";
     int cert_fd = mkstemp(cert);
@@ -226,7 +209,6 @@ init(void **state)
     {
         fail_msg("make tmpfile for certificate or key data failed (error = %d)", errno);
     }
-
 
     for (struct test_cert *c = certs; c->cert; c++)
     {
@@ -244,25 +226,25 @@ init(void **state)
 
         /* we load all cert/key pairs even if expired as
          * signing should still work */
-        assert_true(write(cert_fd, c->cert, strlen(c->cert)) > 0);
-        assert_true(write(key_fd, c->key, strlen(c->key)) > 0);
+        assert_int_equal(write(cert_fd, c->cert, strlen(c->cert)), strlen(c->cert));
+        assert_int_equal(write(key_fd, c->key, strlen(c->key)), strlen(c->key));
 
         argv_free(&a);
         a = argv_new();
+        /* Use numcerts+1 as a unique id of the object  -- same id for matching cert and key */
         argv_printf(&a, "%s --provider %s --load-certificate %s --label \"%s\" --id %08x --login --write",
-                    P11TOOL_PATH, SOFTHSM2_MODULE_PATH, cert, c->friendly_name, id);
+                    P11TOOL_PATH, SOFTHSM2_MODULE_PATH, cert, c->friendly_name, num_certs+1);
         assert_true(openvpn_execve_check(&a, es, 0, "Failed to upload certificate into token"));
 
         argv_free(&a);
         a = argv_new();
         argv_printf(&a, "%s --provider %s --load-privkey %s --label \"%s\" --id %08x --login --write",
-                    P11TOOL_PATH, SOFTHSM2_MODULE_PATH, key, c->friendly_name, id);
+                    P11TOOL_PATH, SOFTHSM2_MODULE_PATH, key, c->friendly_name, num_certs+1);
         assert_true(openvpn_execve_check(&a, es, 0, "Failed to upload key into token"));
 
         assert_int_equal(ftruncate(cert_fd, 0), 0);
         assert_int_equal(ftruncate(key_fd, 0), 0);
         num_certs++;
-        id++;
     }
 
     argv_free(&a);
@@ -297,6 +279,7 @@ cleanup(void **state)
 static int
 setup_pkcs11(void **state)
 {
+#if defined(HAVE_XKEY_PROVIDER)
     /* Initialize providers in a way matching what OpenVPN core does */
     tls_libctx = OSSL_LIB_CTX_new();
     prov[0] = OSSL_PROVIDER_load(tls_libctx, "default");
@@ -306,7 +289,7 @@ setup_pkcs11(void **state)
 
     /* set default propq as we do in ssl_openssl.c */
     EVP_set_default_properties(tls_libctx, "?provider!=ovpn.xkey");
-
+#endif
     pkcs11_initialize(true, 0); /* protected auth enabled, pin-cache = 0 */
     pkcs11_addProvider(SOFTHSM2_MODULE_PATH, false, 0, false);
     return 0;
@@ -316,7 +299,7 @@ static int
 teardown_pkcs11(void **state)
 {
     pkcs11_terminate();
-
+#if defined(HAVE_XKEY_PROVIDER)
     for (size_t i = 0; i < SIZE(prov); i++)
     {
         if (prov[i])
@@ -326,6 +309,7 @@ teardown_pkcs11(void **state)
         }
     }
     OSSL_LIB_CTX_free(tls_libctx);
+#endif
     return 0;
 }
 
@@ -359,7 +343,7 @@ test_pkcs11_ids(void **state)
          * to enumerate objects available for private key operations */
         if (!pkcs11_management_id_get(i, &p11_id, &base64))
         {
-            fail_msg("Failed to get pkcs11-id (%d) from pkcs11-helper", i);
+            fail_msg("Failed to get pkcs11-id for index (%d) from pkcs11-helper", i);
         }
         /* decode the base64 data and convert to X509 and get its sha1 fingerprint */
         unsigned char *der = malloc(strlen(base64));
@@ -368,7 +352,7 @@ test_pkcs11_ids(void **state)
         free(base64);
         assert_true(derlen > 0);
 
-        const unsigned char *ppin = der; /* copy needed as d2i_X509 alters the pointer */
+        const unsigned char *ppin = der; /* alias needed as d2i_X509 alters the pointer */
         assert_non_null(d2i_X509(&x509, &ppin, derlen));
         sha1_fingerprint(x509, sha1, HASHSIZE);
         X509_free(x509);
@@ -377,7 +361,7 @@ test_pkcs11_ids(void **state)
         /* Save the pkcs11-id of this ceritificate in our database */
         struct test_cert *c = lookup_cert_byhash(sha1);
         assert_non_null(c);
-        c->p11_id = p11_id; /* id is freed in cleanup */
+        c->p11_id = p11_id; /* p11_id is freed in cleanup */
         assert_memory_equal(c->hash, sha1, HASHSIZE);
     }
     /* check whether all certs in our db were found by pkcs11-helper*/
@@ -401,11 +385,16 @@ test_tls_ctx_use_pkcs11(void **state)
     uint8_t sha1[HASHSIZE];
     for (struct test_cert *c = certs; c->cert; c++)
     {
+#ifdef HAVE_XKEY_PROVIDER
         tls_ctx.ctx = SSL_CTX_new_ex(tls_libctx, NULL, SSLv23_client_method());
+#else
+        tls_ctx.ctx = SSL_CTX_new(SSLv23_client_method());
+#endif
         if (pkcs11_id_management)
         {
             /* The management callback will return pkcs11_id_current as the
-             * selection. Set it here as the current certificates p11_id */
+             * selection. Set it here as the current certificate's p11_id
+             */
             pkcs11_id_current = c->p11_id;
             tls_ctx_use_pkcs11(&tls_ctx, 1, NULL);
         }
@@ -426,8 +415,15 @@ test_tls_ctx_use_pkcs11(void **state)
         EVP_PKEY *privkey = SSL_CTX_get0_privatekey(tls_ctx.ctx);
         assert_non_null(pubkey);
         assert_non_null(privkey);
+#ifdef HAVE_XKEY_PROVIDER
         digest_sign_verify(privkey, pubkey); /* this will exercise signing via pkcs11 backend */
-
+#else
+        if (!SSL_CTX_check_private_key(tls_ctx.ctx))
+        {
+            fail_msg("Certificate and private key in ssl_ctx do not match for <%s>", c->friendly_name);
+            return;
+        }
+#endif
         SSL_CTX_free(tls_ctx.ctx);
     }
 }
@@ -455,11 +451,3 @@ main(void)
 
     return ret;
 }
-#else /* ENABLE_PKCS11 */
-int
-main(void)
-{
-    return 0;
-}
-
-#endif /* ENABLE_PKCS11 */
