@@ -408,6 +408,19 @@ AC_DEFINE_UNQUOTED([ROUTE_PATH], ["$ROUTE"], [Path to route tool])
 AC_DEFINE_UNQUOTED([SYSTEMD_ASK_PASSWORD_PATH], ["$SYSTEMD_ASK_PASSWORD"], [Path to systemd-ask-password tool])
 
 #
+# softhsm2 for pkcs11 tests
+#
+AC_ARG_VAR([P11TOOL], [full path to p11tool])
+AC_PATH_PROGS([P11TOOL], [p11tool],, [$PATH:/usr/local/bin:/usr/bin:/bin])
+AC_DEFINE_UNQUOTED([P11TOOL_PATH], ["$P11TOOL"], [Path to p11tool])
+AC_ARG_VAR([SOFTHSM2_UTIL], [full path to softhsm2-util])
+AC_ARG_VAR([SOFTHSM2_MDOULE], [full path to softhsm2 module])
+AC_PATH_PROGS([SOFTHSM2_UTIL], [softhsm2-util],, [$PATH:/usr/local/bin:/usr/bin:/bin])
+AC_DEFINE_UNQUOTED([SOFTHSM2_UTIL_PATH], ["$SOFTHSM2_UTIL"], [Path to softhsm2-util])
+AC_DEFINE_UNQUOTED([SOFTHSM2_MODULE_PATH], ["$SOFTHSM2_MODULE"], [Path to softhsm2 module])
+AM_CONDITIONAL([HAVE_SOFTHSM2], [test "${P11TOOL}" -a "${SOFTHSM2_UTIL}" -a "${SOFTHSM2_MODULE}"])
+
+#
 #  man page generation - based on python-docutils
 #
 AC_ARG_VAR([RST2MAN], [path to rst2man utility])
