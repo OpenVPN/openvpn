@@ -153,7 +153,7 @@ ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
         default:
             if (ret)
             {
-                msg(M_NONFATAL|M_ERRNO, "%s: netlink reports error (%d): %s", prefix, ret, nl_geterror(-ret));
+                msg(M_NONFATAL, "%s: netlink reports error (%d): %s", prefix, ret, nl_geterror(-ret));
             }
             break;
     }
