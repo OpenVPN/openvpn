@@ -297,6 +297,7 @@ jobs:
             sslpkg: "libssl-dev"
             libname: OpenSSL 3.0.2
             ssllib: openssl
+            extraconf: --enable-pkcs11 SOFTHSM2_MODULE=/usr/lib/softhsm/libsofthsm2.so
           - os: ubuntu-20.04
             sslpkg: "libssl-dev"
             libname: OpenSSL 1.1.1
@@ -330,7 +331,7 @@ jobs:
     runs-on: ${{matrix.os}}
     steps:
       - name: Install dependencies
-        run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev libcap-ng-dev libnl-genl-3-dev linux-libc-dev man2html libcmocka-dev python3-docutils libtool automake autoconf ${SSLPKG}
+        run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev libcap-ng-dev libnl-genl-3-dev linux-libc-dev man2html libcmocka-dev python3-docutils libtool automake autoconf ${SSLPKG} libpkcs11-helper1-dev gnutls-bin softhsm2
       - name: Checkout OpenVPN
         uses: actions/checkout@v3
       - name: autoconf
