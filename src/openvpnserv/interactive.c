@@ -847,8 +847,13 @@ AddBlockDNS(const block_dns_message_t *msg, undo_lists_t *lists)
                                        BLOCK_DNS_IFACE_METRIC);
             if (!err)
             {
-                err = set_interface_metric(msg->iface.index, AF_INET6,
-                                           BLOCK_DNS_IFACE_METRIC);
+                /* for IPv6, we intentionally ignore errors, because
+                 * otherwise block-dns activation will fail if a user or
+                 * admin has disabled IPv6 on the tun/tap/dco interface
+                 * (if OpenVPN wants IPv6 ifconfig, we'll fail there)
+                 */
+                set_interface_metric(msg->iface.index, AF_INET6,
+                                     BLOCK_DNS_IFACE_METRIC);
             }
             if (err)
             {
