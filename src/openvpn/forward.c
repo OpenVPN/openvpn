@@ -481,7 +481,7 @@ check_inactivity_timeout(struct context *c)
         int64_t tot_bytes = c->c2.tun_read_bytes + c->c2.tun_write_bytes;
         int64_t new_bytes = tot_bytes - c->c2.inactivity_bytes;
 
-        if (new_bytes >= c->options.inactivity_minimum_bytes)
+        if (new_bytes > c->options.inactivity_minimum_bytes)
         {
             c->c2.inactivity_bytes = tot_bytes;
             event_timeout_reset(&c->c2.inactivity_interval);
