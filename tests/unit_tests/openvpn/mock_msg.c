@@ -48,6 +48,12 @@ mock_set_debug_level(int level)
     x_debug_level = level;
 }
 
+int
+get_debug_level(void)
+{
+    return x_debug_level;
+}
+
 void
 x_msg_va(const unsigned int flags, const char *format,
          va_list arglist)

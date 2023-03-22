@@ -21,6 +21,12 @@ test_binaries += cryptoapi_testdriver
 LDADD = -lws2_32
 endif
 
+if HAVE_SOFTHSM2
+if !WIN32
+test_binaries += pkcs11_testdriver
+endif
+endif
+
 if !CROSS_COMPILING
 TESTS = $(test_binaries)
 endif
@@ -164,6 +170,29 @@ cryptoapi_testdriver_SOURCES = test_cryptoapi.c mock_msg.c \
 	$(top_srcdir)/src/openvpn/platform.c \
 	mock_get_random.c \
 	$(top_srcdir)/src/openvpn/win32-util.c
+endif
+
+if HAVE_SOFTHSM2
+if !WIN32
+pkcs11_testdriver_CFLAGS  = @TEST_CFLAGS@ \
+	-I$(top_srcdir)/include -I$(top_srcdir)/src/compat -I$(top_srcdir)/src/openvpn \
+	$(OPTIONAL_CRYPTO_CFLAGS)
+pkcs11_testdriver_LDFLAGS = @TEST_LDFLAGS@ \
+	$(OPTIONAL_CRYPTO_LIBS)
+pkcs11_testdriver_SOURCES = test_pkcs11.c mock_msg.c \
+	pkey_test_utils.c mock_get_random.c \
+	$(top_srcdir)/src/openvpn/xkey_helper.c \
+	$(top_srcdir)/src/openvpn/xkey_provider.c \
+	$(top_srcdir)/src/openvpn/argv.c \
+	$(top_srcdir)/src/openvpn/env_set.c \
+	$(top_srcdir)/src/openvpn/buffer.c \
+	$(top_srcdir)/src/openvpn/otime.c \
+	$(top_srcdir)/src/openvpn/run_command.c \
+	$(top_srcdir)/src/openvpn/base64.c \
+	$(top_srcdir)/src/openvpn/platform.c \
+	$(top_srcdir)/src/openvpn/pkcs11.c \
+	$(top_srcdir)/src/openvpn/pkcs11_openssl.c
+endif
 endif
 
 auth_token_testdriver_CFLAGS  = @TEST_CFLAGS@ \

@@ -1345,6 +1345,7 @@ if test "${enable_comp_stub}" = "yes"; then
 	AC_DEFINE([ENABLE_COMP_STUB], [1], [Enable compression stub capability])
 fi
 
+AM_CONDITIONAL([HAVE_SOFTHSM2], [false])
 if test "${enable_pkcs11}" = "yes"; then
 	test "${have_pkcs11_helper}" != "yes" && AC_MSG_ERROR([PKCS11 enabled but libpkcs11-helper is missing])
 	OPTIONAL_PKCS11_HELPER_CFLAGS="${PKCS11_HELPER_CFLAGS}"
@@ -1357,6 +1358,21 @@ if test "${enable_pkcs11}" = "yes"; then
 		 AC_DEFINE_UNQUOTED([DEFAULT_PKCS11_MODULE], "${proxy_module}", [p11-kit proxy])],
 		[]
 	)
+	#
+	# softhsm2 for pkcs11 tests
+	#
+	AC_ARG_VAR([P11TOOL], [full path to p11tool])
+	AC_PATH_PROGS([P11TOOL], [p11tool],, [$PATH:/usr/local/bin:/usr/bin:/bin])
+	AC_DEFINE_UNQUOTED([P11TOOL_PATH], ["$P11TOOL"], [Path to p11tool])
+	AC_ARG_VAR([SOFTHSM2_UTIL], [full path to softhsm2-util])
+	AC_ARG_VAR([SOFTHSM2_MODULE], [full path to softhsm2 module @<:@default=/usr/lib/softhsm/libsofthsm2.so@:>@])
+	AC_PATH_PROGS([SOFTHSM2_UTIL], [softhsm2-util],, [$PATH:/usr/local/bin:/usr/bin:/bin])
+	test -z "$SOFTHSM2_MODULE" && SOFTHSM2_MODULE=/usr/lib/softhsm/libsofthsm2.so
+	AC_DEFINE_UNQUOTED([SOFTHSM2_UTIL_PATH], ["$SOFTHSM2_UTIL"], [Path to softhsm2-util])
+	AC_DEFINE_UNQUOTED([SOFTHSM2_MODULE_PATH], ["$SOFTHSM2_MODULE"], [Path to softhsm2 module])
+	if test "${with_crypto_library}" = "openssl"; then
+		AM_CONDITIONAL([HAVE_SOFTHSM2], [test "${P11TOOL}" -a "${SOFTHSM2_UTIL}" -a "${SOFTHSM2_MODULE}"])
+	fi
 fi
 
 # When testing a compiler option, we add -Werror to force
