@@ -69,7 +69,7 @@ void restore_signal_state(void);
 
 void print_signal(const struct signal_info *si, const char *title, int msglevel);
 
-void print_status(const struct context *c, struct status_output *so);
+void print_status(struct context *c, struct status_output *so);
 
 void remap_signal(struct context *c);
 
