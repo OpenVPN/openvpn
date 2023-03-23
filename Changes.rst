@@ -232,6 +232,10 @@ User-visible Changes
 - The ``client-pending-auth`` management command now requires also the
   key id. The management version has been changed to 5 to indicate this change.
 
+- (OpenVPN 2.6.2) A client will now refuse a connection if pushed compression
+  settings will contradict the setting of allow-compression as this almost
+  always results in a non-working connection.
+
 Common errors with OpenSSL 3.0 and OpenVPN 2.6
 ----------------------------------------------
 Both OpenVPN 2.6 and OpenSSL 3.0 tighten the security considerable, so some
