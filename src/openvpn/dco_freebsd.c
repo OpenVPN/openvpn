@@ -674,27 +674,17 @@ dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
 static void
 dco_update_peer_stat(struct multi_context *m, uint32_t peerid, const nvlist_t *nvl)
 {
-    struct hash_element *he;
-    struct hash_iterator hi;
 
-    hash_iterator_init(m->hash, &hi);
-
-    while ((he = hash_iterator_next(&hi)))
+    if (peerid >= m->max_clients || !m->instances[peerid])
     {
-        struct multi_instance *mi = (struct multi_instance *) he->value;
-
-        if (mi->context.c2.tls_multi->peer_id != peerid)
-        {
-            continue;
-        }
-
-        mi->context.c2.dco_read_bytes = nvlist_get_number(nvl, "in");
-        mi->context.c2.dco_write_bytes = nvlist_get_number(nvl, "out");
-
+        msg(M_WARN, "dco_update_peer_stat: invalid peer ID %d returned by kernel", peerid);
         return;
     }
 
-    msg(M_INFO, "Peer %d returned by kernel, but not found locally", peerid);
+    struct multi_instance *mi = m->instances[peerid];
+
+    mi->context.c2.dco_read_bytes = nvlist_get_number(nvl, "in");
+    mi->context.c2.dco_write_bytes = nvlist_get_number(nvl, "out");
 }
 
 int
