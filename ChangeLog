@@ -1,6 +1,62 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>
 
+2023.03.24 -- Version 2.6.2
+
+Antonio Quartulli (6):
+      dco: don't use NetLink to exchange control packets
+      dco: print version to log if available
+      dco-linux: remove M_ERRNO flag when printing netlink error message
+      multi: don't call DCO APIs if DCO is disabled
+      dco-freebsd: use m->instances[] instead of m->hash
+      dco-linux: implement dco_get_peer_stats{, multi} API
+
+Arne Schwabe (12):
+      Set netlink socket to be non-blocking
+      Ensure n = 2 is set in key2 struct in tls_crypt_v2_unwrap_client_key
+      Fix memory leaks in open_tun_dco()
+      Fix memory leaks in HMAC initial packet generation
+      Use key_state instead of multi for tls_send_payload parameter
+      Make sending plain text control message session aware
+      Only update frame calculation if we have a valid link sockets
+      Improve description of compat-mode
+      Simplify --compress parsing in options.c
+      Refuse connection if server pushes an option contradicting allow-compress
+      Add 'allow-compression stub-only' internally for DCO
+      Parse compression options and bail out when compression is disabled
+
+Frank Lichtenheld (1):
+      tests/unit_tests: Fix 'make distcheck' with subdir-objects enabled
+
+Gert Doering (1):
+      preparing release 2.6.2
+
+Heiko Hund (1):
+      dns option: allow up to eight addresses per server
+
+Kristof Provost (1):
+      dco: print FreeBSD version
+
+Lev Stipakov (4):
+      Support --inactive option for DCO
+      Fix '--inactive <time> 0' behavior for DCO
+      Print DCO client stats on SIGUSR2
+      Don't overwrite socket flags when using DCO on Windows
+
+Michael Baentsch (1):
+      using OpenSSL3 API for EVP PKEY type name reporting
+
+Selva Nair (8):
+      Bugfix: Convert ECDSA signature form pkcs11-helper to DER encoded form
+      Import some sample certificates into Windows store for testing
+      Add tests for finding certificates in Windows cert store
+      Refactor SSL_CTX_use_CryptoAPI_certificate()
+      Add a test for signing with certificates in Windows store
+      Unit tests: add test for SSL_CTX_use_Cryptoapi_certificate()
+      Improve error message on short read from socks proxy
+      Make error in setting metric for IPv6 interface non-fatal
+
+
 2023.03.08 -- Version 2.6.1
 
 Arne Schwabe (13):
