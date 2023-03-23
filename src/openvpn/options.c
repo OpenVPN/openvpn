@@ -8458,60 +8458,59 @@ add_option(struct options *options,
     else if (streq(p[0], "compress") && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_COMP);
+        const char *alg = "stub";
         if (p[1])
         {
-            if (streq(p[1], "stub"))
-            {
-                options->comp.alg = COMP_ALG_STUB;
-                options->comp.flags |= (COMP_F_SWAP|COMP_F_ADVERTISE_STUBS_ONLY);
-            }
-            else if (streq(p[1], "stub-v2"))
-            {
-                options->comp.alg = COMP_ALGV2_UNCOMPRESSED;
-                options->comp.flags |= COMP_F_ADVERTISE_STUBS_ONLY;
-            }
-            else if (streq(p[1], "migrate"))
-            {
-                options->comp.alg = COMP_ALG_UNDEF;
-                options->comp.flags = COMP_F_MIGRATE;
-
-            }
-            else if (options->comp.flags & COMP_F_ALLOW_STUB_ONLY)
-            {
-                /* Also printed on a push to hint at configuration problems */
-                msg(msglevel, "Cannot set compress to '%s', "
-                    "allow-compression is set to 'no'", p[1]);
-                goto err;
-            }
-#if defined(ENABLE_LZO)
-            else if (streq(p[1], "lzo"))
-            {
-                options->comp.alg = COMP_ALG_LZO;
-                options->comp.flags &= ~(COMP_F_ADAPTIVE | COMP_F_SWAP);
-            }
-#endif
-#if defined(ENABLE_LZ4)
-            else if (streq(p[1], "lz4"))
-            {
-                options->comp.alg = COMP_ALG_LZ4;
-                options->comp.flags |= COMP_F_SWAP;
-            }
-            else if (streq(p[1], "lz4-v2"))
-            {
-                options->comp.alg = COMP_ALGV2_LZ4;
-            }
-#endif
-            else
-            {
-                msg(msglevel, "bad comp option: %s", p[1]);
-                goto err;
-            }
+            alg = p[1];
         }
-        else
+
+        if (streq(alg, "stub"))
         {
             options->comp.alg = COMP_ALG_STUB;
+            options->comp.flags |= (COMP_F_SWAP|COMP_F_ADVERTISE_STUBS_ONLY);
+        }
+        else if (streq(alg, "stub-v2"))
+        {
+            options->comp.alg = COMP_ALGV2_UNCOMPRESSED;
+            options->comp.flags |= COMP_F_ADVERTISE_STUBS_ONLY;
+        }
+        else if (streq(alg, "migrate"))
+        {
+            options->comp.alg = COMP_ALG_UNDEF;
+            options->comp.flags = COMP_F_MIGRATE;
+
+        }
+        else if (options->comp.flags & COMP_F_ALLOW_STUB_ONLY)
+        {
+            /* Also printed on a push to hint at configuration problems */
+            msg(msglevel, "Cannot set compress to '%s', "
+                "allow-compression is set to 'no'", alg);
+            goto err;
+        }
+#if defined(ENABLE_LZO)
+        else if (streq(alg, "lzo"))
+        {
+            options->comp.alg = COMP_ALG_LZO;
+            options->comp.flags &= ~(COMP_F_ADAPTIVE | COMP_F_SWAP);
+        }
+#endif
+#if defined(ENABLE_LZ4)
+        else if (streq(alg, "lz4"))
+        {
+            options->comp.alg = COMP_ALG_LZ4;
             options->comp.flags |= COMP_F_SWAP;
         }
+        else if (streq(alg, "lz4-v2"))
+        {
+            options->comp.alg = COMP_ALGV2_LZ4;
+        }
+#endif
+        else
+        {
+            msg(msglevel, "bad comp option: %s", alg);
+            goto err;
+        }
+
         show_compression_warning(&options->comp);
     }
 #endif /* USE_COMP */
