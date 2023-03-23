@@ -157,4 +157,33 @@ comp_generate_peer_info_string(const struct compress_options *opt, struct buffer
     }
 }
 
+bool
+check_compression_settings_valid(struct compress_options *info, int msglevel)
+{
+    if ((info->flags & COMP_F_ALLOW_STUB_ONLY) && comp_non_stub_enabled(info))
+    {
+        msg(msglevel, "Compression is not allowed since allow-compression is "
+            "set to 'no'");
+        return false;
+    }
+#ifndef ENABLE_LZ4
+    if (info->alg == COMP_ALGV2_LZ4 || info->alg == COMP_ALG_LZ4)
+    {
+        msg(msglevel, "OpenVPN is compiled without LZ4 support. Requested "
+            "compression cannot be enabled.");
+        return false;
+    }
+#endif
+#ifndef ENABLE_LZO
+    if (info->alg == COMP_ALG_LZO || info->alg == COMP_ALG_LZ4)
+    {
+        msg(msglevel, "OpenVPN is compiled without LZO support. Requested "
+            "compression cannot be enabled.");
+        return false;
+    }
+#endif
+    return true;
+}
+
+
 #endif /* USE_COMP */

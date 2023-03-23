@@ -3779,6 +3779,9 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     /* this depends on o->windows_driver, which is set above */
     options_postprocess_mutate_invariant(o);
 
+    /* check that compression settings in the options are okay */
+    check_compression_settings_valid(&o->comp, M_USAGE);
+
     /*
      * Save certain parms before modifying options during connect, especially
      * when using --pull
@@ -8405,20 +8408,11 @@ add_option(struct options *options,
 
         /* All lzo variants do not use swap */
         options->comp.flags &= ~COMP_F_SWAP;
-#if defined(ENABLE_LZO)
+
         if (p[1] && streq(p[1], "no"))
-#endif
         {
             options->comp.alg = COMP_ALG_STUB;
             options->comp.flags &= ~COMP_F_ADAPTIVE;
-        }
-#if defined(ENABLE_LZO)
-        else if (options->comp.flags & COMP_F_ALLOW_STUB_ONLY)
-        {
-            /* Also printed on a push to hint at configuration problems */
-            msg(msglevel, "Cannot set comp-lzo to '%s', "
-                "allow-compression is set to 'no'", p[1]);
-            goto err;
         }
         else if (p[1])
         {
@@ -8444,7 +8438,6 @@ add_option(struct options *options,
             options->comp.flags |= COMP_F_ADAPTIVE;
         }
         show_compression_warning(&options->comp);
-#endif /* if defined(ENABLE_LZO) */
     }
     else if (streq(p[0], "comp-noadapt") && !p[1])
     {
@@ -8478,23 +8471,12 @@ add_option(struct options *options,
         {
             options->comp.alg = COMP_ALG_UNDEF;
             options->comp.flags = COMP_F_MIGRATE;
-
         }
-        else if (options->comp.flags & COMP_F_ALLOW_STUB_ONLY)
-        {
-            /* Also printed on a push to hint at configuration problems */
-            msg(msglevel, "Cannot set compress to '%s', "
-                "allow-compression is set to 'no'", alg);
-            goto err;
-        }
-#if defined(ENABLE_LZO)
         else if (streq(alg, "lzo"))
         {
             options->comp.alg = COMP_ALG_LZO;
             options->comp.flags &= ~(COMP_F_ADAPTIVE | COMP_F_SWAP);
         }
-#endif
-#if defined(ENABLE_LZ4)
         else if (streq(alg, "lz4"))
         {
             options->comp.alg = COMP_ALG_LZ4;
@@ -8504,7 +8486,6 @@ add_option(struct options *options,
         {
             options->comp.alg = COMP_ALGV2_LZ4;
         }
-#endif
         else
         {
             msg(msglevel, "bad comp option: %s", alg);

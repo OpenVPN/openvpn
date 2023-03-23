@@ -10,6 +10,10 @@ User visible changes
 - The ``client-pending-auth`` management command now requires also the
   key id. The management version has been changed to 5 to indicate this change.
 
+- A client will now refuse a connection if pushed compression settings
+  will contradict the setting of ``allow-compression`` as this almost
+  always results in a non-working connection.
+
 
 Overview of changes in 2.6.1
 ============================
