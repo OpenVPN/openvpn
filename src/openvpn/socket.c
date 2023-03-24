@@ -957,7 +957,8 @@ socket_set_mark(socket_descriptor_t sd, int mark)
 static bool
 socket_set_flags(socket_descriptor_t sd, unsigned int sockflags)
 {
-    if (sockflags & SF_TCP_NODELAY)
+    /* SF_TCP_NODELAY doesn't make sense for dco-win */
+    if ((sockflags & SF_TCP_NODELAY) && (!(sockflags & SF_DCO_WIN)))
     {
         return socket_set_tcp_nodelay(sd, 1);
     }
@@ -972,7 +973,8 @@ link_socket_update_flags(struct link_socket *ls, unsigned int sockflags)
 {
     if (ls && socket_defined(ls->sd))
     {
-        return socket_set_flags(ls->sd, ls->sockflags = sockflags);
+        ls->sockflags |= sockflags;
+        return socket_set_flags(ls->sd, ls->sockflags);
     }
     else
     {
