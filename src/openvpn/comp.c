@@ -134,36 +134,51 @@ comp_print_stats(const struct compress_context *compctx, struct status_output *s
 void
 comp_generate_peer_info_string(const struct compress_options *opt, struct buffer *out)
 {
-    if (opt)
+    if (!opt || opt->flags & COMP_F_ALLOW_NOCOMP_ONLY)
     {
-        bool lzo_avail = false;
-        if (!(opt->flags & COMP_F_ADVERTISE_STUBS_ONLY))
-        {
+        return;
+    }
+
+    bool lzo_avail = false;
+    if (!(opt->flags & COMP_F_ADVERTISE_STUBS_ONLY))
+    {
 #if defined(ENABLE_LZ4)
-            buf_printf(out, "IV_LZ4=1\n");
-            buf_printf(out, "IV_LZ4v2=1\n");
+        buf_printf(out, "IV_LZ4=1\n");
+        buf_printf(out, "IV_LZ4v2=1\n");
 #endif
 #if defined(ENABLE_LZO)
-            buf_printf(out, "IV_LZO=1\n");
-            lzo_avail = true;
+        buf_printf(out, "IV_LZO=1\n");
+        lzo_avail = true;
 #endif
-        }
-        if (!lzo_avail)
-        {
-            buf_printf(out, "IV_LZO_STUB=1\n");
-        }
-        buf_printf(out, "IV_COMP_STUB=1\n");
-        buf_printf(out, "IV_COMP_STUBv2=1\n");
     }
+    if (!lzo_avail)
+    {
+        buf_printf(out, "IV_LZO_STUB=1\n");
+    }
+    buf_printf(out, "IV_COMP_STUB=1\n");
+    buf_printf(out, "IV_COMP_STUBv2=1\n");
 }
 
 bool
 check_compression_settings_valid(struct compress_options *info, int msglevel)
 {
+    /*
+     * We also allow comp-stub-v2 here as it technically allows escaping of
+     * weird mac address and IPv5 protocol but practically always is used
+     * as an way to disable all framing.
+     */
+    if (info->alg != COMP_ALGV2_UNCOMPRESSED && info->alg != COMP_ALG_UNDEF
+        && (info->flags & COMP_F_ALLOW_NOCOMP_ONLY))
+    {
+        msg(msglevel, "Compression or compression stub framing is not allowed "
+            "since data-channel offloading is enabled.");
+        return false;
+    }
+
     if ((info->flags & COMP_F_ALLOW_STUB_ONLY) && comp_non_stub_enabled(info))
     {
         msg(msglevel, "Compression is not allowed since allow-compression is "
-            "set to 'no'");
+            "set to 'stub-only'");
         return false;
     }
 #ifndef ENABLE_LZ4
