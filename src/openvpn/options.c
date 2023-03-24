@@ -3644,10 +3644,12 @@ options_set_backwards_compatible_options(struct options *o)
      *
      * Disable compression by default starting with 2.6.0 if no other
      * compression related option has been explicitly set */
-    if (!comp_non_stub_enabled(&o->comp) && !need_compatibility_before(o, 20600)
-        && (o->comp.flags == 0))
+    if (!need_compatibility_before(o, 20600) && (o->comp.flags == 0))
     {
-        o->comp.flags = COMP_F_ALLOW_STUB_ONLY|COMP_F_ADVERTISE_STUBS_ONLY;
+        if (!comp_non_stub_enabled(&o->comp))
+        {
+            o->comp.flags = COMP_F_ALLOW_STUB_ONLY | COMP_F_ADVERTISE_STUBS_ONLY;
+        }
     }
 #endif
 }
@@ -3749,6 +3751,12 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
         o->tuntap_options.disable_dco = !dco_check_option(D_DCO, o)
                                         || !dco_check_startup_option(D_DCO, o);
     }
+#ifdef USE_COMP
+    if (dco_enabled(o))
+    {
+        o->comp.flags |= COMP_F_ALLOW_NOCOMP_ONLY;
+    }
+#endif
 
 #ifdef _WIN32
     if (dco_enabled(o))

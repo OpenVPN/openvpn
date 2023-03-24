@@ -25,7 +25,9 @@ configured in a compatible way between both the local and remote side.
       compression at the same time is not a feasible option.
 
   :code:`no`  (default)
-      OpenVPN will refuse any non-stub compression.
+      OpenVPN will refuse any compression.  If data-channel offloading
+      is enabled, OpenVPN will additionally also refuse compression
+      framing (stub).
 
   :code:`yes`
       OpenVPN will send and receive compressed packets.
