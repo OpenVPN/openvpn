@@ -2766,13 +2766,11 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
         cc_succeeded = false;
     }
 
-#ifdef USE_COMP
     if (!check_compression_settings_valid(&mi->context.options.comp, D_MULTI_ERRORS))
     {
         msg(D_MULTI_ERRORS, "MULTI: client has been rejected due to invalid compression options");
         cc_succeeded = false;
     }
-#endif
 
     if (cc_succeeded)
     {

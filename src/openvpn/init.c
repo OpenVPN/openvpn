@@ -2634,7 +2634,6 @@ do_deferred_options(struct context *c, const unsigned int found)
         }
     }
 
-#ifdef USE_COMP
     if (found & OPT_P_COMP)
     {
         if (!check_compression_settings_valid(&c->options.comp, D_PUSH_ERRORS))
@@ -2645,11 +2644,12 @@ do_deferred_options(struct context *c, const unsigned int found)
                 "See also allow-compression in the manual.");
             return false;
         }
+#ifdef USE_COMP
         msg(D_PUSH_DEBUG, "OPTIONS IMPORT: compression parms modified");
         comp_uninit(c->c2.comp_context);
         c->c2.comp_context = comp_init(&c->options.comp);
-    }
 #endif
+    }
 
     if (found & OPT_P_SHAPER)
     {
