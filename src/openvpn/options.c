@@ -1906,10 +1906,8 @@ show_settings(const struct options *o)
 
     SHOW_BOOL(fast_io);
 
-#ifdef USE_COMP
     SHOW_INT(comp.alg);
     SHOW_INT(comp.flags);
-#endif
 
     SHOW_STR(route_script);
     SHOW_STR(route_default_gateway);
@@ -3320,9 +3318,7 @@ pre_connect_save(struct options *o)
     o->pre_connect->ping_send_timeout = o->ping_send_timeout;
 
     /* Miscellaneous Options */
-#ifdef USE_COMP
     o->pre_connect->comp = o->comp;
-#endif
 }
 
 void
@@ -3386,9 +3382,7 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
         o->ping_send_timeout = pp->ping_send_timeout;
 
         /* Miscellaneous Options */
-#ifdef USE_COMP
         o->comp = pp->comp;
-#endif
     }
 
     o->push_continuation = 0;
@@ -3651,6 +3645,8 @@ options_set_backwards_compatible_options(struct options *o)
             o->comp.flags = COMP_F_ALLOW_STUB_ONLY | COMP_F_ADVERTISE_STUBS_ONLY;
         }
     }
+#else  /* ifdef USE_COMP */
+    o->comp.flags = COMP_F_ALLOW_NOCOMP_ONLY;
 #endif
 }
 
@@ -5665,7 +5661,6 @@ set_user_script(struct options *options,
 #endif
 }
 
-#ifdef USE_COMP
 static void
 show_compression_warning(struct compress_options *info)
 {
@@ -5684,7 +5679,6 @@ show_compression_warning(struct compress_options *info)
         }
     }
 }
-#endif
 
 bool
 key_is_external(const struct options *options)
@@ -8366,7 +8360,6 @@ add_option(struct options *options,
         options->passtos = true;
     }
 #endif
-#if defined(USE_COMP)
     else if (streq(p[0], "allow-compression") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
@@ -8502,7 +8495,6 @@ add_option(struct options *options,
 
         show_compression_warning(&options->comp);
     }
-#endif /* USE_COMP */
     else if (streq(p[0], "show-ciphers") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);

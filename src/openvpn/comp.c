@@ -29,10 +29,11 @@
 
 #include "syshead.h"
 
-#ifdef USE_COMP
-
 #include "comp.h"
 #include "error.h"
+
+#ifdef USE_COMP
+
 #include "otime.h"
 
 #include "memdbg.h"
@@ -158,6 +159,7 @@ comp_generate_peer_info_string(const struct compress_options *opt, struct buffer
     buf_printf(out, "IV_COMP_STUB=1\n");
     buf_printf(out, "IV_COMP_STUBv2=1\n");
 }
+#endif /* USE_COMP */
 
 bool
 check_compression_settings_valid(struct compress_options *info, int msglevel)
@@ -170,8 +172,13 @@ check_compression_settings_valid(struct compress_options *info, int msglevel)
     if (info->alg != COMP_ALGV2_UNCOMPRESSED && info->alg != COMP_ALG_UNDEF
         && (info->flags & COMP_F_ALLOW_NOCOMP_ONLY))
     {
+#ifdef USE_COMP
         msg(msglevel, "Compression or compression stub framing is not allowed "
             "since data-channel offloading is enabled.");
+#else
+        msg(msglevel, "Compression or compression stub framing is not allowed "
+            "since OpenVPN was built without compression support.");
+#endif
         return false;
     }
 
@@ -199,6 +206,3 @@ check_compression_settings_valid(struct compress_options *info, int msglevel)
 #endif
     return true;
 }
-
-
-#endif /* USE_COMP */

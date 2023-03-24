@@ -28,12 +28,19 @@
 #ifndef OPENVPN_COMP_H
 #define OPENVPN_COMP_H
 
-#ifdef USE_COMP
+/* We always parse all compression options, so we include these defines/struct
+ * outside of the USE_COMP define */
 
-#include "buffer.h"
-#include "mtu.h"
-#include "common.h"
-#include "status.h"
+/* Compression flags */
+#define COMP_F_ADAPTIVE             (1<<0) /* COMP_ALG_LZO only */
+#define COMP_F_ALLOW_COMPRESS       (1<<1) /* not only downlink is compressed but also uplink */
+#define COMP_F_SWAP                 (1<<2) /* initial command byte is swapped with last byte in buffer to preserve payload alignment */
+#define COMP_F_ADVERTISE_STUBS_ONLY (1<<3) /* tell server that we only support compression stubs */
+#define COMP_F_ALLOW_STUB_ONLY      (1<<4) /* Only accept stub compression, even with COMP_F_ADVERTISE_STUBS_ONLY
+                                            * we still accept other compressions to be pushed */
+#define COMP_F_MIGRATE              (1<<5) /* push stub-v2 or comp-lzo no when we see a client with comp-lzo in occ */
+#define COMP_F_ALLOW_ASYM           (1<<6) /* Compression was explicitly set to allow asymetric compression */
+#define COMP_F_ALLOW_NOCOMP_ONLY    (1<<7) /* Do not allow compression framing (breaks DCO) */
 
 /* algorithms */
 #define COMP_ALG_UNDEF  0
@@ -51,16 +58,37 @@
  #define COMP_ALGV2_SNAPPY   13
  */
 
-/* Compression flags */
-#define COMP_F_ADAPTIVE             (1<<0) /* COMP_ALG_LZO only */
-#define COMP_F_ALLOW_COMPRESS       (1<<1) /* not only downlink is compressed but also uplink */
-#define COMP_F_SWAP                 (1<<2) /* initial command byte is swapped with last byte in buffer to preserve payload alignment */
-#define COMP_F_ADVERTISE_STUBS_ONLY (1<<3) /* tell server that we only support compression stubs */
-#define COMP_F_ALLOW_STUB_ONLY      (1<<4) /* Only accept stub compression, even with COMP_F_ADVERTISE_STUBS_ONLY
-                                            * we still accept other compressions to be pushed */
-#define COMP_F_MIGRATE              (1<<5) /* push stub-v2 or comp-lzo no when we see a client with comp-lzo in occ */
-#define COMP_F_ALLOW_ASYM           (1<<6) /* Compression was explicitly set to allow asymetric compression */
-#define COMP_F_ALLOW_NOCOMP_ONLY    (1<<7) /* Do not allow compression framing (breaks DCO) */
+/*
+ * Information that basically identifies a compression
+ * algorithm and related flags.
+ */
+struct compress_options
+{
+    int alg;
+    unsigned int flags;
+};
+
+static inline bool
+comp_non_stub_enabled(const struct compress_options *info)
+{
+    return info->alg != COMP_ALGV2_UNCOMPRESSED
+           && info->alg != COMP_ALG_STUB
+           && info->alg != COMP_ALG_UNDEF;
+}
+
+/**
+ * Checks if the compression settings are valid. Takes into account the
+ * flags of allow-compression and also the whether algorithms are compiled
+ * in
+ */
+bool
+check_compression_settings_valid(struct compress_options *info, int msglevel);
+
+#ifdef USE_COMP
+#include "buffer.h"
+#include "mtu.h"
+#include "common.h"
+#include "status.h"
 
 /*
  * Length of prepended prefix on compressed packets
@@ -131,16 +159,6 @@ struct compress_alg
 #endif
 
 /*
- * Information that basically identifies a compression
- * algorithm and related flags.
- */
-struct compress_options
-{
-    int alg;
-    unsigned int flags;
-};
-
-/*
  * Workspace union of all supported compression algorithms
  */
 union compress_workspace_union
@@ -187,22 +205,5 @@ comp_enabled(const struct compress_options *info)
 {
     return info->alg != COMP_ALG_UNDEF;
 }
-
-static inline bool
-comp_non_stub_enabled(const struct compress_options *info)
-{
-    return info->alg != COMP_ALGV2_UNCOMPRESSED
-           && info->alg != COMP_ALG_STUB
-           && info->alg != COMP_ALG_UNDEF;
-}
-
-/**
- * Checks if the compression settings are valid. Takes into account the
- * flags of allow-compression and also the whether algorithms are compiled
- * in
- */
-bool
-check_compression_settings_valid(struct compress_options *info, int msglevel);
-
 #endif /* USE_COMP */
 #endif /* ifndef OPENVPN_COMP_H */
