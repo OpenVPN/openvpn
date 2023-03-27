@@ -112,13 +112,7 @@ static struct test_cert
     const char *const friendly_name;    /* identifies certs loaded to the store -- keep unique */
     uint8_t hash[HASHSIZE];             /* SHA1 fingerprint: computed and filled in later */
     char *p11_id;                       /* PKCS#11 id -- filled in later */
-} certs[] = {
-    {cert1,  key1,  cname1,  "OVPN TEST CA1",  "OVPN Test Cert 1",  {},  NULL},
-    {cert2,  key2,  cname2,  "OVPN TEST CA2",  "OVPN Test Cert 2",  {},  NULL},
-    {cert3,  key3,  cname3,  "OVPN TEST CA1",  "OVPN Test Cert 3",  {},  NULL},
-    {cert4,  key4,  cname4,  "OVPN TEST CA2",  "OVPN Test Cert 4",  {},  NULL},
-    {}
-};
+} certs[5];
 
 static bool pkcs11_id_management;
 static char softhsm2_tokens_path[] = "softhsm2_tokens_XXXXXX";
@@ -126,6 +120,21 @@ static char softhsm2_conf_path[] = "softhsm2_conf_XXXXXX";
 int num_certs;
 static const char *pkcs11_id_current;
 struct env_set *es;
+
+/* Fill-in certs[] array */
+void
+init_cert_data()
+{
+    struct test_cert certs_local[] = {
+        {cert1,  key1,  cname1,  "OVPN TEST CA1",  "OVPN Test Cert 1",  {0},  NULL},
+        {cert2,  key2,  cname2,  "OVPN TEST CA2",  "OVPN Test Cert 2",  {0},  NULL},
+        {cert3,  key3,  cname3,  "OVPN TEST CA1",  "OVPN Test Cert 3",  {0},  NULL},
+        {cert4,  key4,  cname4,  "OVPN TEST CA2",  "OVPN Test Cert 4",  {0},  NULL},
+        {0}
+    };
+    assert(sizeof(certs_local) == sizeof(certs));
+    memcpy(certs, certs_local, sizeof(certs_local));
+}
 
 /* Intercept get_user_pass for PIN and other prompts */
 bool
@@ -173,6 +182,7 @@ init(void **state)
     umask(0077);  /* ensure all files and directories we create get user only access */
     char config[256];
 
+    init_cert_data();
     if (!mkdtemp(softhsm2_tokens_path))
     {
         fail_msg("make tmpdir using template <%s> failed (error = %d)", softhsm2_tokens_path, errno);
@@ -416,7 +426,8 @@ test_tls_ctx_use_pkcs11(void **state)
         assert_non_null(pubkey);
         assert_non_null(privkey);
 #ifdef HAVE_XKEY_PROVIDER
-        digest_sign_verify(privkey, pubkey); /* this will exercise signing via pkcs11 backend */
+        /* this will exercise signing via pkcs11 backend */
+        assert_int_equal(digest_sign_verify(privkey, pubkey), 1);
 #else
         if (!SSL_CTX_check_private_key(tls_ctx.ctx))
         {
