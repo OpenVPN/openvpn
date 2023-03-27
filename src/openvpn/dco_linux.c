@@ -975,6 +975,11 @@ dco_get_peer_stats(struct context *c)
     uint32_t peer_id = c->c2.tls_multi->dco_peer_id;
     msg(D_DCO_DEBUG, "%s: peer-id %d", __func__, peer_id);
 
+    if (!c->c1.tuntap)
+    {
+        return 0;
+    }
+
     dco_context_t *dco = &c->c1.tuntap->dco;
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_GET_PEER);
     struct nlattr *attr = nla_nest_start(nl_msg, OVPN_ATTR_GET_PEER);
