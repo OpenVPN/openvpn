@@ -274,21 +274,6 @@ jobs:
         libname: [mbed TLS]
 
         include:
-          - os: ubuntu-18.04
-            sslpkg: "libmbedtls-dev"
-            ssllib: mbedtls
-            libname: mbed TLS
-            extraconf: "--disable-dco"
-          - os: ubuntu-18.04
-            sslpkg: "libssl1.0-dev"
-            ssllib: openssl
-            libname: OpenSSL 1.0.2
-            extraconf: "--disable-dco"
-          - os: ubuntu-18.04
-            sslpkg: "libssl-dev"
-            libname: OpenSSL 1.1.1
-            ssllib: openssl
-            extraconf: "--disable-dco"
           - os: ubuntu-20.04
             sslpkg: "libssl-dev"
             libname: OpenSSL 1.1.1
