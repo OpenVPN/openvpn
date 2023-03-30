@@ -70,11 +70,6 @@ dist_noinst_HEADERS = \
 	config-msvc.h \
 	config-msvc-version.h.in
 
-if WIN32
-rootdir=$(prefix)
-root_DATA = version.sh
-endif
-
 config-version.h:
 	@CONFIGURE_GIT_CHFILES="`GIT_DIR=\"$(top_srcdir)/.git\" $(GIT) diff-files --name-status -r --ignore-submodules --quiet -- || echo \"+\"`"; \
 	CONFIGURE_GIT_UNCOMMITTED="`GIT_DIR=\"$(top_srcdir)/.git\" $(GIT) diff-index --cached  --quiet --ignore-submodules HEAD || echo \"*\"`"; \

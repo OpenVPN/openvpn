@@ -46,7 +46,6 @@ m4/ltversion.m4
 m4/lt~obsolete.m4
 vcpkg_installed
 
-version.sh
 msvc-env-local.bat
 config-msvc-local.h
 config-msvc-version.h

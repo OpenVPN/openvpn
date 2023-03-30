@@ -1502,7 +1502,6 @@ AC_SUBST([TEST_LDFLAGS])
 AC_SUBST([TEST_CFLAGS])
 
 AC_CONFIG_FILES([
-	version.sh
 	Makefile
 	build/Makefile
 	build/msvc/Makefile
