@@ -3,7 +3,10 @@
   "name": "openvpn",
   "version": "2.6",
   "dependencies": [
-    "openssl",
+     {
+       "name": "openssl",
+       "features": ["tools"]
+     },
     "tap-windows6",
     "lzo",
     "lz4",
