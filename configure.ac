@@ -453,7 +453,7 @@ AC_CHECK_HEADERS([ \
 	fcntl.h io.h \
 	sys/types.h sys/socket.h \
 	unistd.h dlfcn.h \
-	netinet/in.h netinet/in_systm.h \
+	netinet/in.h \
 	netinet/tcp.h arpa/inet.h netdb.h \
 	versionhelpers.h \
 ])
@@ -488,9 +488,6 @@ SOCKET_INCLUDES="
 #endif
 #ifdef _WIN32
 #include <ws2tcpip.h>
-#endif
-#ifdef HAVE_NETINET_IN_SYSTM_H
-#include <netinet/in_systm.h>
 #endif
 #ifdef HAVE_NETINET_IP_H
 #include <netinet/ip.h>
