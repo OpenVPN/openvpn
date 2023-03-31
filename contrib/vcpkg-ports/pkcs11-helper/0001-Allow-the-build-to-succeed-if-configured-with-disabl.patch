@@ -12,6 +12,8 @@ Signed-off-by: Frank Lichtenheld <frank@lichtenheld.com>
  lib/Makefile.am | 2 ++
  2 files changed, 3 insertions(+)
 
+upstream PR: https://github.com/OpenSC/pkcs11-helper/pull/62
+
 diff --git a/configure.ac b/configure.ac
 index a7e9760..f154ae3 100644
 --- a/configure.ac

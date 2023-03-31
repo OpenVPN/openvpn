@@ -11,6 +11,8 @@ set original values as defaults, use verbatim (user-supplied) value
  lib/pkcs11h-core.c                       | 13 +++++++++++--
  3 files changed, 23 insertions(+), 3 deletions(-)
 
+upstream PR: https://github.com/OpenSC/pkcs11-helper/pull/59
+
 diff --git a/include/pkcs11-helper-1.0/pkcs11h-core.h b/include/pkcs11-helper-1.0/pkcs11h-core.h
 index 9028c277..56f87718 100644
 --- a/include/pkcs11-helper-1.0/pkcs11h-core.h
