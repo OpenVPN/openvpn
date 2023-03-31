@@ -1,0 +1,7 @@
+{
+    "name": "pkcs11-helper",
+    "version": "1.29.0",
+    "description": "pkcs11-helper is a library that simplifies the interaction with PKCS#11 providers for end-user applications.",
+    "homepage": "https://github.com/OpenSC/pkcs11-helper",
+    "license": "BSD-3-Clause OR GPL-2.0-only"
+}
