@@ -68,19 +68,21 @@ openvpn-examples.5 openvpn-examples.5.html: $(openvpn_examples_sections)
 
 SUFFIXES = .8.rst .8 .8.html .5.rst .5 .5.html
 
+RST_FLAGS = --strict
+
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
 .8.rst.8 .5.rst.5 :
 if HAVE_PYDOCUTILS
-	$(RST2MAN) $< > $@
+	$(RST2MAN) $(RST_FLAGS) $< > $@
 else
 	@echo "Missing python-docutils - skipping man page generation ($@)"
 endif
 
 .8.rst.8.html .5.rst.5.html :
 if HAVE_PYDOCUTILS
-	$(RST2HTML) $< > $@
+	$(RST2HTML) $(RST_FLAGS) $< > $@
 else
 	@echo "Missing python-docutils - skipping html page generation ($@)"
 endif
