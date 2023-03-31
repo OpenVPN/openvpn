@@ -23,11 +23,13 @@ VRF setup with iproute2
 ```````````````````````
 
 Create VRF :code:`vrf_external` and map it to routing table :code:`1023`
+
 ::
 
       ip link add vrf_external type vrf table 1023
 
 Move :code:`eth0` into :code:`vrf_external`
+
 ::
 
       ip link set master vrf_external dev eth0
@@ -42,8 +44,7 @@ VRF setup with ifupdown
 For Debian based Distributions :code:`ifupdown2` provides an almost drop-in
 replacement for :code:`ifupdown` including VRFs and other features.
 A configuration for an interface :code:`eth0` being part of VRF
-code:`vrf_external` could look like this:
-::
+code:`vrf_external` could look like this::
 
       auto eth0
       iface eth0
@@ -61,6 +62,7 @@ code:`vrf_external` could look like this:
 OpenVPN configuration
 `````````````````````
 The OpenVPN configuration needs to contain this line:
+
 ::
 
       bind-dev vrf_external

@@ -16,8 +16,7 @@ achieves a successful connection.
 ``--remote-random`` can be used to initially "scramble" the connection
 list.
 
-Here is an example of connection profile usage:
-::
+Here is an example of connection profile usage::
 
    client
    dev tun

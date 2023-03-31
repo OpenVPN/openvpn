@@ -34,8 +34,7 @@ Server setup
      SHA256 Fingerprint=00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff
 
 
-3. Write a server configuration (`server.conf`):
-::
+4. Write a server configuration (`server.conf`)::
 
     # The server certificate we created in step 1
     cert server.crt
@@ -65,9 +64,9 @@ Server setup
     # Ping every 60s, restart if no data received for 5 minutes
     keepalive 60 300
 
-4. Add at least one client as described in the client section.
+5. Add at least one client as described in the client section.
 
-5. Start the server.
+6. Start the server.
     - On systemd based distributions move `server.crt`, `server.key` and
       `server.conf` to :code:`/etc/openvpn/server` and start it via systemctl
 
