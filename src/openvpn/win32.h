@@ -38,6 +38,7 @@
 #define WIN_ROUTE_PATH_SUFFIX "\\system32\\route.exe"
 #define WIN_IPCONFIG_PATH_SUFFIX "\\system32\\ipconfig.exe"
 #define WIN_NET_PATH_SUFFIX "\\system32\\net.exe"
+#define WMIC_PATH_SUFFIX "\\system32\\wbem\\wmic.exe"
 
 /*
  * Win32-specific OpenVPN code, targeted at the mingw
