@@ -1,3 +1,29 @@
+Overview of changes in 2.6.3
+============================
+
+New features
+------------
+- Windows: support setting DNS domain in configurations without DHCP
+  (typically wintun or windco drivers), see GH OpenVPN/openvpn#306.
+
+Bug fixes
+---------
+- fix possible crash with Linux client on reconnect on TLS errors
+  (needs either "--status file" or active management interface to trigger)
+
+- fix incorrect formatting in .rst documents
+
+- Windows .msi installer: ensure interactive service stays enabled after
+  silent reinstall, see GH OpenVPN/openvpn-build#348, #349 and #351
+
+- Windows installer: repair querying install path info for easyrsa-start.bat
+  on some Windows language versions, see GH OpenVPN/openvpn-build#352.
+
+- Windows DCO driver: use correct crypto library so it loads on x86,
+  see GH OpenVPN/ovpn-dco-win#43
+  
+
+
 Overview of changes in 2.6.2
 ============================
 

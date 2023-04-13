@@ -1,6 +1,19 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>
 
+2023.04.13 -- Version 2.6.3
+
+Frank Lichtenheld (3):
+      GHA: remove Ubuntu 18.04 builds
+      vcpkg: request "tools" feature of openssl for MSVC build
+      doc: run rst2* with --strict to catch warnings
+
+Lev Stipakov (1):
+      Support of DNS domain for DHCP-less drivers
+
+Selva Nair (1):
+      Bug-fix: segfault in dco_get_peer_stats()
+
 2023.03.24 -- Version 2.6.2
 
 Antonio Quartulli (6):
