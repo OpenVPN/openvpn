@@ -1918,6 +1918,12 @@ key_state_soft_reset(struct tls_session *session)
     ks->remote_addr = ks_lame->remote_addr;
 }
 
+void
+tls_session_soft_reset(struct tls_multi *tls_multi)
+{
+    key_state_soft_reset(&tls_multi->session[TM_ACTIVE]);
+}
+
 /*
  * Read/write strings from/to a struct buffer with a u16 length prefix.
  */

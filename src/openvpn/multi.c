@@ -3284,6 +3284,10 @@ multi_process_incoming_dco(struct multi_context *m)
         {
             process_incoming_del_peer(m, mi, dco);
         }
+        else if (dco->dco_message_type == OVPN_CMD_SWAP_KEYS)
+        {
+            tls_session_soft_reset(mi->context.c2.tls_multi);
+        }
     }
     else
     {
