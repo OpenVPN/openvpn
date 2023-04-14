@@ -35,6 +35,7 @@ typedef enum ovpn_key_cipher dco_cipher_t;
 enum ovpn_message_type_t {
     OVPN_CMD_DEL_PEER,
     OVPN_CMD_PACKET,
+    OVPN_CMD_SWAP_KEYS,
 };
 
 enum ovpn_del_reason_t {

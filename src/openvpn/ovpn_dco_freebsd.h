@@ -36,6 +36,7 @@
 
 enum ovpn_notif_type {
     OVPN_NOTIF_DEL_PEER,
+    OVPN_NOTIF_ROTATE_KEY,
 };
 
 enum ovpn_del_reason {

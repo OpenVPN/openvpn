@@ -573,6 +573,9 @@ bool
 tls_session_generate_data_channel_keys(struct tls_multi *multi,
                                        struct tls_session *session);
 
+void
+tls_session_soft_reset(struct tls_multi *multi);
+
 /**
  * Load ovpn.xkey provider used for external key signing
  */
