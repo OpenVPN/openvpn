@@ -248,7 +248,7 @@ static const char usage_message[] =
     "--setenv name value : Set a custom environmental variable to pass to script.\n"
     "--setenv FORWARD_COMPATIBLE 1 : Relax config file syntax checking to allow\n"
     "                  directives for future OpenVPN versions to be ignored.\n"
-    "--ignore-unkown-option opt1 opt2 ...: Relax config file syntax. Allow\n"
+    "--ignore-unknown-option opt1 opt2 ...: Relax config file syntax. Allow\n"
     "                  these options to be ignored when unknown\n"
     "--script-security level: Where level can be:\n"
     "                  0 -- strictly no calling of external programs\n"
