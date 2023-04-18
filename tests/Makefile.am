@@ -25,8 +25,10 @@ TESTS_ENVIRONMENT = top_srcdir="$(top_srcdir)"
 TESTS = $(test_scripts)
 
 dist_noinst_SCRIPTS = \
-	$(test_scripts) \
+	t_cltsrv.sh \
 	t_cltsrv-down.sh \
+	t_lpback.sh \
+	t_net.sh \
 	update_t_client_ips.sh
 
 dist_noinst_DATA = \
