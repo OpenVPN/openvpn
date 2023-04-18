@@ -970,19 +970,24 @@ strerror_win32(DWORD errnum, struct gc_arena *gc)
 
     /* format a windows error message */
     {
-        char message[256];
+        wchar_t wmessage[256];
+        char *message = NULL;
         struct buffer out = alloc_buf_gc(256, gc);
-        const int status =  FormatMessage(
+        const DWORD status =  FormatMessageW(
             FORMAT_MESSAGE_IGNORE_INSERTS
             | FORMAT_MESSAGE_FROM_SYSTEM
             | FORMAT_MESSAGE_ARGUMENT_ARRAY,
             NULL,
             errnum,
             0,
-            message,
-            sizeof(message),
+            wmessage,
+            SIZE(wmessage),
             NULL);
-        if (!status)
+        if (status)
+        {
+            message = utf16to8(wmessage, gc);
+        }
+        if (!status || !message)
         {
             buf_printf(&out, "[Unknown Win32 Error]");
         }
