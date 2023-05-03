@@ -499,7 +499,7 @@ routing.
     Use a point-to-point topology, by allocating one /30 subnet
     per client. This is designed to allow point-to-point semantics when some
     or all of the connecting clients might be Windows systems. This is the
-    default on OpenVPN 2.0.
+    default.
 
   :code:`p2p`
     Use a point-to-point topology where the remote endpoint of
@@ -513,12 +513,7 @@ routing.
     configuring the tun interface with a local IP address and subnet mask,
     similar to the topology used in ``--dev tap`` and ethernet bridging
     mode. This mode allocates a single IP address per connecting client and
-    works on Windows as well. Only available when server and clients are
-    OpenVPN 2.1 or higher, or OpenVPN 2.0.x which has been manually patched
-    with the ``--topology`` directive code. When used on Windows, requires
-    version 8.2 or higher of the TAP-Win32 driver. When used on \*nix,
-    requires that the tun driver supports an ``ifconfig``\(8) command which
-    sets a subnet instead of a remote endpoint IP address.
+    works on Windows as well.
 
   *Note:* Using ``--topology subnet`` changes the interpretation of the
   arguments of ``--ifconfig`` to mean "address netmask", no longer "local
