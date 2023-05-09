@@ -165,6 +165,7 @@ xkey_pkcs11h_sign(void *handle, unsigned char *sig,
 {
     pkcs11h_certificate_t cert = handle;
     CK_MECHANISM mech = {CKM_RSA_PKCS, NULL, 0}; /* default value */
+    CK_RSA_PKCS_PSS_PARAMS pss_params = {0};
 
     unsigned char buf[EVP_MAX_MD_SIZE];
     size_t buflen;
@@ -203,7 +204,6 @@ xkey_pkcs11h_sign(void *handle, unsigned char *sig,
         }
         else if (!strcmp(sigalg.padmode, "pss"))
         {
-            CK_RSA_PKCS_PSS_PARAMS pss_params = {0};
             mech.mechanism = CKM_RSA_PKCS_PSS;
 
             if (!set_pss_params(&pss_params, sigalg, cert))
