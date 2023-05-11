@@ -1,6 +1,28 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>
 
+2023.05.11 -- Version 2.6.4
+
+Arne Schwabe (3):
+      Remove unused variable line
+      Add Apache2 linking with for new commits
+      Fix compile error on TARGET_ANDROID
+
+Frank Lichtenheld (2):
+      man page: Remove cruft from --topology documentation
+      tests: do not include t_client.sh in dist
+
+Kristof Provost (1):
+      DCO: support key rotation notifications
+
+Michael Nix (1):
+      fix typo in help text: --ignore-unknown-option
+
+Selva Nair (2):
+      Format Windows error message in Unicode
+      Bugfix: dangling pointer passed to pkcs11-helper
+
+
 2023.04.13 -- Version 2.6.3
 
 Frank Lichtenheld (3):
