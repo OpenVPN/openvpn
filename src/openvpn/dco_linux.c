@@ -1020,6 +1020,7 @@ dco_version_string(struct gc_arena *gc)
 
     if (!fgets(BSTR(&out), BCAP(&out), fp))
     {
+        fclose(fp);
         return "ERR";
     }
 
@@ -1031,6 +1032,7 @@ dco_version_string(struct gc_arena *gc)
         *nl = '\0';
     }
 
+    fclose(fp);
     return BSTR(&out);
 }
 
