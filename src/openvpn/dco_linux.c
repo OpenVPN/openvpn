@@ -925,7 +925,10 @@ dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
 
     nlmsg_hdr(nl_msg)->nlmsg_flags |= NLM_F_DUMP;
 
-    return ovpn_nl_msg_send(dco, nl_msg, dco_parse_peer_multi, m, __func__);
+    int ret = ovpn_nl_msg_send(dco, nl_msg, dco_parse_peer_multi, m, __func__);
+
+    nlmsg_free(nl_msg);
+    return ret;
 }
 
 static int
