@@ -713,7 +713,6 @@ send_push_options(struct context *c, struct buffer *buf,
 {
     struct push_entry *e = push_list->head;
 
-    e = push_list->head;
     while (e)
     {
         if (e->enable)
