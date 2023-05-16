@@ -155,7 +155,7 @@ session_user_set(struct session *sess, X509 *x509)
 
         if (!strncasecmp(objbuf, "CN", 2))
         {
-            snprintf(sess->user, sizeof(sess->user) - 1, (char *)buf);
+            strncpy(sess->user, (char *)buf, sizeof(sess->user) - 1);
         }
 
         OPENSSL_free(buf);
@@ -234,7 +234,7 @@ tls_final(struct openvpn_plugin_args_func_in const *args,
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
-    snprintf(sess->key, sizeof(sess->key) - 1, "%s", key);
+    strncpy(sess->key, key, sizeof(sess->key) - 1);
     ovpn_note("app session key:  %s", sess->key);
 
     switch (plugin->type)
