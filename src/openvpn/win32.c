@@ -509,19 +509,19 @@ win32_signal_open(struct win32_signal *ws,
         && !HANDLE_DEFINED(ws->in.read) && exit_event_name)
     {
         struct security_attributes sa;
+        struct gc_arena gc = gc_new();
+        const wchar_t *exit_event_nameW = wide_string(exit_event_name, &gc);
 
         if (!init_security_attributes_allow_all(&sa))
         {
             msg(M_ERR, "Error: win32_signal_open: init SA failed");
         }
 
-        ws->in.read = CreateEvent(&sa.sa,
-                                  TRUE,
-                                  exit_event_initial_state ? TRUE : FALSE,
-                                  exit_event_name);
+        ws->in.read = CreateEventW(&sa.sa, TRUE, exit_event_initial_state ? TRUE : FALSE,
+                                   exit_event_nameW);
         if (ws->in.read == NULL)
         {
-            msg(M_WARN|M_ERRNO, "NOTE: CreateEvent '%s' failed", exit_event_name);
+            msg(M_WARN|M_ERRNO, "NOTE: CreateEventW '%s' failed", exit_event_name);
         }
         else
         {
@@ -534,6 +534,7 @@ win32_signal_open(struct win32_signal *ws,
                 ws->mode = WSO_MODE_SERVICE;
             }
         }
+        gc_free(&gc);
     }
     /* set the ctrl handler in both console and service modes */
     if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE) win_ctrl_handler, true))
