@@ -594,6 +594,10 @@ dco_available(int msglevel)
     }
 
     buf = malloc(ifcr.ifcr_total * IFNAMSIZ);
+    if (!buf)
+    {
+        goto out;
+    }
 
     ifcr.ifcr_count = ifcr.ifcr_total;
     ifcr.ifcr_buffer = buf;
