@@ -1868,7 +1868,6 @@ RunOpenvpn(LPVOID p)
     }
 
     startup_info.cb = sizeof(startup_info);
-    startup_info.lpDesktop = L"winsta0\\default";
     startup_info.dwFlags = STARTF_USESTDHANDLES;
     startup_info.hStdInput = stdin_read;
     startup_info.hStdOutput = stdout_write;
