@@ -3771,14 +3771,14 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
             o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
         }
     }
-#endif
-
+#else  /* _WIN32 */
     if (dco_enabled(o) && o->dev_node)
     {
         msg(M_WARN, "Note: ignoring --dev-node as it has no effect when using "
             "data channel offload");
         o->dev_node = NULL;
     }
+#endif /* _WIN32 */
 
     /* this depends on o->windows_driver, which is set above */
     options_postprocess_mutate_invariant(o);
