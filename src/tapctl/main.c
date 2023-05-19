@@ -126,6 +126,85 @@ usage(void)
               title_string);
 }
 
+/**
+ * Checks if adapter with given name doesn't already exist
+ */
+static BOOL
+is_adapter_name_available(LPCTSTR name, struct tap_adapter_node *adapter_list, BOOL log)
+{
+    for (struct tap_adapter_node *a = adapter_list; a; a = a->pNext)
+    {
+        if (_tcsicmp(name, a->szName) == 0)
+        {
+            if (log)
+            {
+                LPOLESTR adapter_id = NULL;
+                StringFromIID((REFIID)&a->guid, &adapter_id);
+                _ftprintf(stderr, TEXT("Adapter \"%") TEXT(PRIsLPTSTR) TEXT("\" already exists (GUID %")
+                          TEXT(PRIsLPOLESTR) TEXT(").\n"), a->szName, adapter_id);
+                CoTaskMemFree(adapter_id);
+            }
+
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+/**
+ * Returns unique adapter name based on hwid or NULL if name cannot be generated.
+ * Caller is responsible for freeing it.
+ */
+static LPTSTR
+get_unique_adapter_name(LPCTSTR hwid, struct tap_adapter_node *adapter_list)
+{
+    if (hwid == NULL)
+    {
+        return NULL;
+    }
+
+    LPCTSTR base_name;
+    if (_tcsicmp(hwid, TEXT("ovpn-dco")) == 0)
+    {
+        base_name = TEXT("OpenVPN Data Channel Offload");
+    }
+    else if (_tcsicmp(hwid, TEXT("wintun")) == 0)
+    {
+        base_name = TEXT("OpenVPN Wintun");
+    }
+    else if (_tcsicmp(hwid, TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID)) == 0)
+    {
+        base_name = TEXT("OpenVPN TAP-Windows6");
+    }
+    else
+    {
+        return NULL;
+    }
+
+    if (is_adapter_name_available(base_name, adapter_list, FALSE))
+    {
+        return _tcsdup(base_name);
+    }
+
+    size_t name_len = _tcslen(base_name) + 10;
+    LPTSTR name = malloc(name_len * sizeof(TCHAR));
+    if (name == NULL)
+    {
+        return NULL;
+    }
+    for (int i = 1; i < 100; ++i)
+    {
+        _stprintf_s(name, name_len, TEXT("%ls #%d"), base_name, i);
+
+        if (is_adapter_name_available(name, adapter_list, FALSE))
+        {
+            return name;
+        }
+    }
+
+    return NULL;
+}
 
 /**
  * Program entry point
@@ -210,50 +289,49 @@ _tmain(int argc, LPCTSTR argv[])
             iResult = 1; goto quit;
         }
 
-        if (szName)
+        /* Get existing network adapters. */
+        struct tap_adapter_node *pAdapterList = NULL;
+        dwResult = tap_list_adapters(NULL, NULL, &pAdapterList);
+        if (dwResult != ERROR_SUCCESS)
         {
-            /* Get existing network adapters. */
-            struct tap_adapter_node *pAdapterList = NULL;
-            dwResult = tap_list_adapters(NULL, NULL, &pAdapterList);
-            if (dwResult != ERROR_SUCCESS)
-            {
-                _ftprintf(stderr, TEXT("Enumerating adapters failed (error 0x%x).\n"), dwResult);
-                iResult = 1; goto create_delete_adapter;
-            }
+            _ftprintf(stderr, TEXT("Enumerating adapters failed (error 0x%x).\n"), dwResult);
+            iResult = 1;
+            goto create_delete_adapter;
+        }
 
-            /* Check for duplicates. */
-            for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
+        LPTSTR adapter_name = szName ? _tcsdup(szName) : get_unique_adapter_name(szHwId, pAdapterList);
+        if (adapter_name)
+        {
+            /* Check for duplicates when name was specified,
+             * otherwise get_adapter_default_name() takes care of it */
+            if (szName && !is_adapter_name_available(adapter_name, pAdapterList, TRUE))
             {
-                if (_tcsicmp(szName, pAdapter->szName) == 0)
-                {
-                    StringFromIID((REFIID)&pAdapter->guid, &szAdapterId);
-                    _ftprintf(stderr, TEXT("Adapter \"%") TEXT(PRIsLPTSTR) TEXT("\" already exists (GUID %")
-                              TEXT(PRIsLPOLESTR) TEXT(").\n"), pAdapter->szName, szAdapterId);
-                    CoTaskMemFree(szAdapterId);
-                    iResult = 1; goto create_cleanup_pAdapterList;
-                }
+                iResult = 1;
+                goto create_cleanup_pAdapterList;
             }
 
             /* Rename the adapter. */
-            dwResult = tap_set_adapter_name(&guidAdapter, szName, FALSE);
+            dwResult = tap_set_adapter_name(&guidAdapter, adapter_name, FALSE);
             if (dwResult != ERROR_SUCCESS)
             {
                 StringFromIID((REFIID)&guidAdapter, &szAdapterId);
                 _ftprintf(stderr, TEXT("Renaming TUN/TAP adapter %") TEXT(PRIsLPOLESTR)
                           TEXT(" to \"%") TEXT(PRIsLPTSTR) TEXT("\" failed (error 0x%x).\n"),
-                          szAdapterId, szName, dwResult);
+                          szAdapterId, adapter_name, dwResult);
                 CoTaskMemFree(szAdapterId);
                 iResult = 1; goto quit;
             }
+        }
 
-            iResult = 0;
+        iResult = 0;
 
 create_cleanup_pAdapterList:
-            tap_free_adapter_list(pAdapterList);
-            if (iResult)
-            {
-                goto create_delete_adapter;
-            }
+        free(adapter_name);
+
+        tap_free_adapter_list(pAdapterList);
+        if (iResult)
+        {
+            goto create_delete_adapter;
         }
 
         /* Output adapter GUID. */
