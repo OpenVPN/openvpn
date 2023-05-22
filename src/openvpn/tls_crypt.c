@@ -524,6 +524,8 @@ tls_crypt_v2_unwrap_client_key(struct key2 *client_key, struct buffer *metadata,
         dmsg(D_CRYPTO_DEBUG, "tag_check: %s",
              format_hex(tag_check, sizeof(tag_check), 0, &gc));
         CRYPT_ERROR("client key authentication error");
+        msg(D_TLS_DEBUG_LOW, "This might be a client-key that was generated for "
+            "a different tls-crypt-v2 server key)");
     }
 
     if (buf_len(&plaintext) < sizeof(client_key->keys))
