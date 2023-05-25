@@ -569,8 +569,6 @@ static const char usage_message[] =
     "(These options are meaningful only for TLS-mode)\n"
     "--tls-server    : Enable TLS and assume server role during TLS handshake.\n"
     "--tls-client    : Enable TLS and assume client role during TLS handshake.\n"
-    "--key-method m  : (DEPRECATED) Data channel key exchange method.  m should be a method\n"
-    "                  number, such as 1 (default), 2, etc.\n"
     "--ca file       : Certificate authority file in .pem format containing\n"
     "                  root certificate.\n"
 #ifndef ENABLE_CRYPTO_MBEDTLS
