@@ -15,4 +15,5 @@ MAINTAINERCLEANFILES = \
 dist_noinst_DATA = \
 	msvc-generate.vcxproj \
 	Makefile.mak \
-	msvc-generate.js
+	msvc-generate.js \
+	version.m4.in
