@@ -3888,7 +3888,7 @@ check_file_access(const int type, const char *file, const int mode, const char *
     /* Scream if an error is found */
     if (errcode > 0)
     {
-        msg(M_NOPREFIX | M_OPTERR | M_ERRNO, "%s fails with '%s'", opt, file);
+        msg(M_NOPREFIX | M_OPTERR | M_ERRNO, "%s fails with '%s', you can check file Permissions or selinux security context", opt, file);
     }
 
     /* Return true if an error occurred */
