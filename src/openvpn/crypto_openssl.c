@@ -839,9 +839,9 @@ cipher_ctx_init(EVP_CIPHER_CTX *ctx, const uint8_t *key,
         crypto_msg(M_FATAL, "EVP cipher init #2");
     }
 
-    EVP_CIPHER_free(kt);
     /* make sure we used a big enough key */
     ASSERT(EVP_CIPHER_CTX_key_length(ctx) <= EVP_CIPHER_key_length(kt));
+    EVP_CIPHER_free(kt);
 }
 
 int
