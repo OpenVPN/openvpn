@@ -957,41 +957,25 @@ check_replay_consistency(const struct key_type *kt, bool packet_id)
 }
 
 /*
- * Generate a random key.  If key_type is provided, make
- * sure generated key is valid for key_type.
+ * Generate a random key.
  */
-void
-generate_key_random(struct key *key, const struct key_type *kt)
+static void
+generate_key_random(struct key *key)
 {
     int cipher_len = MAX_CIPHER_KEY_LENGTH;
     int hmac_len = MAX_HMAC_KEY_LENGTH;
 
     struct gc_arena gc = gc_new();
 
-    do
+    CLEAR(*key);
+    if (!rand_bytes(key->cipher, cipher_len)
+        || !rand_bytes(key->hmac, hmac_len))
     {
-        CLEAR(*key);
-        if (kt)
-        {
-            cipher_len = cipher_kt_key_size(kt->cipher);
+        msg(M_FATAL, "ERROR: Random number generator cannot obtain entropy for key generation");
+    }
 
-            int kt_hmac_length = md_kt_size(kt->digest);
-
-            if (kt->digest && kt_hmac_length > 0 && kt_hmac_length <= hmac_len)
-            {
-                hmac_len = kt_hmac_length;
-            }
-        }
-        if (!rand_bytes(key->cipher, cipher_len)
-            || !rand_bytes(key->hmac, hmac_len))
-        {
-            msg(M_FATAL, "ERROR: Random number generator cannot obtain entropy for key generation");
-        }
-
-        dmsg(D_SHOW_KEY_SOURCE, "Cipher source entropy: %s", format_hex(key->cipher, cipher_len, 0, &gc));
-        dmsg(D_SHOW_KEY_SOURCE, "HMAC source entropy: %s", format_hex(key->hmac, hmac_len, 0, &gc));
-
-    } while (kt && !check_key(key, kt));
+    dmsg(D_SHOW_KEY_SOURCE, "Cipher source entropy: %s", format_hex(key->cipher, cipher_len, 0, &gc));
+    dmsg(D_SHOW_KEY_SOURCE, "HMAC source entropy: %s", format_hex(key->hmac, hmac_len, 0, &gc));
 
     gc_free(&gc);
 }
@@ -1398,7 +1382,7 @@ write_key_file(const int nkeys, const char *filename)
         char *fmt;
 
         /* generate random bits */
-        generate_key_random(&key, NULL);
+        generate_key_random(&key);
 
         /* format key as ascii */
         fmt = format_hex_ex((const uint8_t *)&key,

@@ -304,8 +304,6 @@ void read_key_file(struct key2 *key2, const char *file, const unsigned int flags
  */
 int write_key_file(const int nkeys, const char *filename);
 
-void generate_key_random(struct key *key, const struct key_type *kt);
-
 void check_replay_consistency(const struct key_type *kt, bool packet_id);
 
 bool check_key(struct key *key, const struct key_type *kt);
