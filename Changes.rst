@@ -1,3 +1,41 @@
+Overview of changes in 2.6.5
+============================
+
+User visible changes
+--------------------
+- tapctl (windows): generate driver-specific names (if using tapctl to
+  create additional tap/wintun/dco devices, and not using --name)
+  (Github #337)
+
+- interactive service (windows): do not force target desktop for
+  openvpn.exe - this has no impact for normal use, but enables running
+  of OpenVPN in a scripted way when no user is logged on (for example,
+  via task scheduler) (Github OpenVPN/openvpn-gui#626)
+
+Bug fixes
+---------
+- fix use-after-free with EVP_CIPHER_free
+
+- fix building with MSVC from release tarball (missing version.m4.in)
+
+- dco-win: repair use of --dev-node to select specific DCO drivers
+  (Github #336)
+
+- fix missing malloc() return check in dco_freebsd.c
+
+- windows: correctly handle unicode names for "exit event"
+
+- fix memleak in client-connect example plugin
+
+- fix fortify build problem in keying-material-exporter-demo plugin
+
+- fix memleak in dco_linux.c/dco_get_peer_stats_multi() - this will
+  leak a small amount of memory every 15s on DCO enabled servers,
+  leading to noticeable memory waste for long-running processes.
+
+- dco_linux.c: properly close dco version file (fd leak)
+
+
 Overview of changes in 2.6.4
 ============================
 
@@ -52,7 +90,7 @@ Bug fixes
 
 - Windows DCO driver: use correct crypto library so it loads on x86,
   see GH OpenVPN/ovpn-dco-win#43
-  
+
 
 
 Overview of changes in 2.6.2

@@ -1,6 +1,31 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>
 
+2023.06.13 -- Version 2.6.5
+
+Arne Schwabe (1):
+      Fix use-after-free with EVP_CIPHER_free
+
+Frank Lichtenheld (6):
+      dco_linux: properly close dco version file
+      DCO: fix memory leak in dco_get_peer_stats_multi for Linux
+      Fix two unused assignments
+      sample-plugins: Fix memleak in client-connect example plugin
+      options: remove --key-method from usage message
+      msvc-generate: include version.m4.in in tarball
+
+Ilya Shipitsin (1):
+      src/openvpn/dco_freebsd.c: handle malloc failure
+
+Lev Stipakov (2):
+      dco-win: support for --dev-node
+      tapctl: generate driver-specific adapter names
+
+Selva Nair (2):
+      Correctly handle Unicode names for exit event
+      Interactive service: do not force a target desktop for openvpn.exe
+
+
 2023.05.11 -- Version 2.6.4
 
 Arne Schwabe (3):
