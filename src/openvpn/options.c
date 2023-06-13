@@ -6543,10 +6543,10 @@ add_option(struct options *options,
     else if (streq(p[0], "max-packet-size") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_MTU|OPT_P_CONNECTION);
-        int maxmtu = positive_atoi(p[1]);
-        options->ce.tls_mtu = constrain_int(maxmtu, TLS_CHANNEL_MTU_MIN, TLS_CHANNEL_BUF_SIZE);
+        int max_mtu = positive_atoi(p[1]);
+        options->ce.tls_mtu = constrain_int(max_mtu, TLS_CHANNEL_MTU_MIN, TLS_CHANNEL_BUF_SIZE);
 
-        if (maxmtu < TLS_CHANNEL_MTU_MIN || maxmtu > TLS_CHANNEL_BUF_SIZE)
+        if (max_mtu < TLS_CHANNEL_MTU_MIN || max_mtu > TLS_CHANNEL_BUF_SIZE)
         {
             msg(M_WARN, "Note: max-packet-size value outside of allowed "
                 "control channel packet size (%d to %d), will use %d "
@@ -6555,7 +6555,7 @@ add_option(struct options *options,
         }
 
         /* also set mssfix maxmtu mtu */
-        options->ce.mssfix = maxmtu;
+        options->ce.mssfix = max_mtu;
         options->ce.mssfix_default = false;
         options->ce.mssfix_encap = true;
     }
@@ -7231,7 +7231,7 @@ add_option(struct options *options,
     else if (streq(p[0], "compat-mode") && p[1] && !p[3])
     {
         unsigned int major, minor, patch;
-        if (!(sscanf(p[1], "%u.%u.%u", &major, &minor, &patch) == 3))
+        if (sscanf(p[1], "%u.%u.%u", &major, &minor, &patch) != 3)
         {
             msg(msglevel, "cannot parse version number for --compat-mode: %s",
                 p[1]);
