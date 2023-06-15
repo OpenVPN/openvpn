@@ -151,6 +151,11 @@ ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
             msg(M_INFO, "%s: netlink reports object not found, ovpn-dco unloaded?", prefix);
             break;
 
+        case -NLE_AGAIN:
+            msg(M_INFO, "%s: netlink reports EAGAIN - ignoring.", prefix);
+            ret = 0;
+            break;
+
         default:
             if (ret)
             {
