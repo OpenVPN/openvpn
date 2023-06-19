@@ -162,7 +162,7 @@ cryptoapi_testdriver_CFLAGS  = @TEST_CFLAGS@ \
 cryptoapi_testdriver_LDFLAGS = @TEST_LDFLAGS@ \
 	$(OPTIONAL_CRYPTO_LIBS) -lcrypt32 -lncrypt
 cryptoapi_testdriver_SOURCES = test_cryptoapi.c mock_msg.c \
-	pkey_test_utils.c \
+	pkey_test_utils.c cert_data.h \
 	$(top_srcdir)/src/openvpn/xkey_helper.c \
 	$(top_srcdir)/src/openvpn/xkey_provider.c \
 	$(top_srcdir)/src/openvpn/buffer.c \
@@ -180,7 +180,7 @@ pkcs11_testdriver_CFLAGS  = @TEST_CFLAGS@ \
 pkcs11_testdriver_LDFLAGS = @TEST_LDFLAGS@ \
 	$(OPTIONAL_CRYPTO_LIBS)
 pkcs11_testdriver_SOURCES = test_pkcs11.c mock_msg.c \
-	pkey_test_utils.c mock_get_random.c \
+	pkey_test_utils.c cert_data.h mock_get_random.c \
 	$(top_srcdir)/src/openvpn/xkey_helper.c \
 	$(top_srcdir)/src/openvpn/xkey_provider.c \
 	$(top_srcdir)/src/openvpn/argv.c \
