@@ -62,8 +62,11 @@ dist_doc_DATA = \
 dist_noinst_DATA = \
 	.gitignore \
 	.gitattributes \
+	CONTRIBUTING.rst \
 	PORTS \
-	README.mbedtls \
+	README.dco.md \
+	README.ec \
+	README.wolfssl \
 	openvpn.sln
 
 dist_noinst_HEADERS = \

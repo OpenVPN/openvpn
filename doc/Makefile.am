@@ -54,11 +54,18 @@ openvpn_examples_sections = \
 	man-sections/examples.rst
 
 dist_noinst_DATA = \
-	README.plugins interactive-service-notes.rst \
+	android.txt \
+	interactive-service-notes.rst \
+	keying-material-exporter.txt \
 	openvpn.8.rst \
 	openvpn-examples.5.rst \
+	README.man \
+	README.plugins \
+	tls-crypt-v2.txt \
 	$(openvpn_sections) \
 	$(openvpn_examples_sections)
+
+EXTRA_DIST = tests
 
 # dependencies
 openvpn.8 openvpn.8.html: $(openvpn_sections)
