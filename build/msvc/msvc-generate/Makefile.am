@@ -13,6 +13,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
 dist_noinst_DATA = \
+	git-version.py \
 	msvc-generate.vcxproj \
 	Makefile.mak \
 	msvc-generate.js \
