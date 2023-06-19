@@ -16,7 +16,8 @@ MAINTAINERCLEANFILES = \
 
 EXTRA_DIST = \
 	openvpn.vcxproj \
-	openvpn.manifest
+	openvpn.manifest \
+	vcpkg.json
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/include \
