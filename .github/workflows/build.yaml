@@ -52,11 +52,10 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Restore from cache and install vcpkg
-        uses: lukka/run-vcpkg@v10
+        uses: lukka/run-vcpkg@v11
         with:
-          vcpkgGitCommitId: 'd10d511f25620ca0f315cd83dcef6485efc63010'
+          vcpkgGitCommitId: '1ba9a2591f15af5900f2ce2b3e2bf31771e3ac48'
           vcpkgJsonGlob: '**/mingw/vcpkg.json'
-          appendedCacheKey: mingw_${{ matrix.arch }}
 
       - name: Run CMake with vcpkg.json manifest
         uses: lukka/run-cmake@v10
@@ -291,11 +290,10 @@ jobs:
         run: python -m pip install --upgrade pip docutils
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
-        uses: lukka/run-vcpkg@v10
+        uses: lukka/run-vcpkg@v11
         with:
-          vcpkgGitCommitId: 'd10d511f25620ca0f315cd83dcef6485efc63010'
+          vcpkgGitCommitId: '1ba9a2591f15af5900f2ce2b3e2bf31771e3ac48'
           vcpkgJsonGlob: '**/windows/vcpkg.json'
-          appendedCacheKey: msvc_${{ matrix.arch }}
 
       - name: Run CMake with vcpkg.json manifest (NO TESTS)
         uses: lukka/run-cmake@v10
