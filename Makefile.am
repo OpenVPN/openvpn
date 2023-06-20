@@ -41,7 +41,10 @@ CLEANFILES = \
 
 EXTRA_DIST = \
 	contrib \
-	debug
+	debug \
+	CMakeLists.txt \
+	CMakePresets.json \
+	config.h.cmake.in
 
 .PHONY: config-version.h doxygen
 

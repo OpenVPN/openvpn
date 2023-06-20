@@ -34,6 +34,9 @@ AM_CPPFLAGS = \
 AM_CFLAGS = \
 	$(TAP_CFLAGS)
 
+EXTRA_DIST = \
+	CMakeLists.txt
+
 if WIN32
 lib_LTLIBRARIES = libopenvpnmsica.la
 libopenvpnmsica_la_CFLAGS = \

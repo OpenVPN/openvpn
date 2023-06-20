@@ -39,230 +39,95 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        osslver: [1.1.1q, 3.0.5]
-        target: [mingw64, mingw]
-        include:
-          - target: mingw64
-            chost: x86_64-w64-mingw32
-          - target: mingw
-            chost: i686-w64-mingw32
+        arch: [x86, x64]
 
-    name: "gcc-mingw - ${{matrix.target}} - OSSL ${{ matrix.osslver }}"
+    name: "gcc-mingw - ${{ matrix.arch }} - OSSL"
     runs-on: ubuntu-22.04
     env:
-      MAKEFLAGS: -j3
-      LZO_VERSION: "2.10"
-      PKCS11_HELPER_VERSION: "1.29.0"
-      OPENSSL_VERSION: "${{ matrix.osslver }}"
-      TAP_WINDOWS_VERSION: "9.23.3"
-      CMOCKA_VERSION: "1.1.5"
+      VCPKG_ROOT: ${{ github.workspace }}/vcpkg
     steps:
       - name: Install dependencies
-        run: sudo apt update && sudo apt install -y mingw-w64 libtool automake autoconf man2html unzip cmake ninja-build build-essential wget
+        run: sudo apt update && sudo apt install -y mingw-w64 unzip cmake ninja-build build-essential wget python3-docutils man2html-base
       - name: Checkout OpenVPN
         uses: actions/checkout@v3
+
+      - name: Restore from cache and install vcpkg
+        uses: lukka/run-vcpkg@v10
         with:
-          path: openvpn
+          vcpkgGitCommitId: 'd10d511f25620ca0f315cd83dcef6485efc63010'
+          vcpkgJsonGlob: '**/mingw/vcpkg.json'
+          appendedCacheKey: mingw_${{ matrix.arch }}
 
-      - name: autoconf
-        run: autoreconf -fvi
-        working-directory: openvpn
-
-      - name: Cache dependencies
-        id: cache
-        uses: actions/cache@v3
+      - name: Run CMake with vcpkg.json manifest
+        uses: lukka/run-cmake@v10
         with:
-          path: '~/mingw/'
-          key: ${{ matrix.target }}-mingw-${{ matrix.osslver }}-${{ env.LZO_VERSION }}-${{ env.PKCS11_HELPER_VERSION }}-${{ env.TAP_WINDOWS_VERSION }}--${{ env.CMOCKA_VERSION }}
+          configurePreset: mingw-${{ matrix.arch }}
+          buildPreset: mingw-${{ matrix.arch }}
+          buildPresetAdditionalArgs: "['--config Debug']"
 
-      # Repeating  if: steps.cache.outputs.cache-hit != 'true'
-      # on every step for building dependencies is ugly but
-      # I haven't found a better solution so far.
-
-      - name: Download mingw dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: |
-          wget -c -P download-cache/ "https://build.openvpn.net/downloads/releases/tap-windows-${TAP_WINDOWS_VERSION}.zip"
-          wget -c -P download-cache/ "https://www.oberhumer.com/opensource/lzo/download/lzo-${LZO_VERSION}.tar.gz"
-          wget -c -P download-cache/ "https://github.com/OpenSC/pkcs11-helper/releases/download/pkcs11-helper-${PKCS11_HELPER_VERSION}/pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.bz2"
-          wget -c -P download-cache/ "https://github.com/coreboot/cmocka/archive/refs/tags/cmocka-${CMOCKA_VERSION}.tar.gz"
-          tar jxf "download-cache/pkcs11-helper-${PKCS11_HELPER_VERSION}.tar.bz2"
-          wget -c -P download-cache/ "https://www.openssl.org/source/old/1.1.1/openssl-${OPENSSL_VERSION}.tar.gz" || wget -c -P download-cache/ "https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
-          tar zxf "download-cache/openssl-${OPENSSL_VERSION}.tar.gz"
-          tar zxf "download-cache/lzo-${LZO_VERSION}.tar.gz"
-          tar zxf "download-cache/cmocka-${CMOCKA_VERSION}.tar.gz"
-          unzip download-cache/tap-windows-${TAP_WINDOWS_VERSION}.zip
-
-      - name: create cmocka build directory
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: mkdir cmocka-build
-
-      - name: configure cmocka
-        if: steps.cache.outputs.cache-hit != 'true'
-        working-directory: "./cmocka-build"
-        run: cmake -GNinja -DCMAKE_C_COMPILER=${{ matrix.chost }}-gcc -DCMAKE_CXX_COMPILER=${{ matrix.chost }}-g++ -DCMAKE_SYSTEM_NAME=Windows -DCMAKE_SHARED_LINKER_FLAGS=-static-libgcc -DCMAKE_PREFIX_PATH=${HOME}/mingw/opt/lib/pkgconfig/ -DCMAKE_INCLUDE_PATH=${HOME}/mingw/opt/lib/include -DCMAKE_LIBRARY_PATH=${HOME}/mingw/opt/lib -DCMAKE_INSTALL_PREFIX=${HOME}/mingw/opt/ ../cmocka-cmocka-${{ env.CMOCKA_VERSION }}
-
-      - name: build cmocka
-        if: steps.cache.outputs.cache-hit != 'true'
-        working-directory: "./cmocka-build"
-        run: ninja
-
-      - name: install cmocka
-        if: steps.cache.outputs.cache-hit != 'true'
-        working-directory: "./cmocka-build"
-        run: ninja install
-
-      - name: Configure OpenSSL
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: ./Configure --cross-compile-prefix=${{ matrix.chost }}- shared ${{ matrix.target }} no-capieng --prefix="${HOME}/mingw/opt" --openssldir="${HOME}/mingw/opt" -static-libgcc
-        working-directory: "./openssl-${{ env.OPENSSL_VERSION }}"
-
-      - name: Build OpenSSL
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: make
-        working-directory: "./openssl-${{ env.OPENSSL_VERSION }}"
-
-      # OpenSSL 3.0.5 installs itself into mingw/opt/lib64 instead of
-      # mingw/opt/lib, so we include both dirs in the following steps
-      # (pkcs11-helper and OpenVPN) so the libraries will be found
-      - name: Install OpenSSL
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: make install
-        working-directory: "./openssl-${{ env.OPENSSL_VERSION }}"
-
-      - name: autoreconf pkcs11-helper
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: autoreconf -iv
-        working-directory: "./pkcs11-helper-${{ env.PKCS11_HELPER_VERSION }}"
-
-      - name: configure pkcs11-helper
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: OPENSSL_LIBS="-L${HOME}/mingw/opt/lib -L${HOME}/mingw/opt/lib64 -lssl -lcrypto" OPENSSL_CFLAGS=-I$HOME/mingw/opt/include PKG_CONFIG_PATH=${HOME}/mingw/opt/lib/pkgconfig ./configure --host=${{ matrix.chost }} --program-prefix='' --libdir=${HOME}/mingw/opt/lib --prefix=${HOME}/mingw/opt --build=x86_64-pc-linux-gnu --disable-crypto-engine-gnutls --disable-crypto-engine-nss --disable-crypto-engine-polarssl --disable-crypto-engine-mbedtls
-        working-directory: "./pkcs11-helper-${{ env.PKCS11_HELPER_VERSION }}"
-
-      - name: build pkcs11-helper
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: make all
-        working-directory: "./pkcs11-helper-${{ env.PKCS11_HELPER_VERSION }}"
-
-      - name: install pkcs11-helper
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: make install
-        working-directory: "./pkcs11-helper-${{ env.PKCS11_HELPER_VERSION }}"
-
-      - name: Configure lzo
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: ./configure --host=${{ matrix.chost }} --program-prefix='' --libdir=${HOME}/mingw/opt/lib --prefix=${HOME}/mingw/opt --build=x86_64-pc-linux-gnu
-        working-directory: "./lzo-${{ env.LZO_VERSION }}"
-
-      - name: build lzo
-        if: steps.cache.outputs.cache-hit != 'true'
-        working-directory: "./lzo-${{ env.LZO_VERSION }}"
-        run: make
-
-      - name: install lzo
-        if: steps.cache.outputs.cache-hit != 'true'
-        working-directory: "./lzo-${{ env.LZO_VERSION }}"
-        run: make install
-
-      - name: copy tap-windows.h header
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: cp ./tap-windows-${TAP_WINDOWS_VERSION}/include/tap-windows.h ${HOME}/mingw/opt/include/
-
-      - name: configure OpenVPN
-        run: PKG_CONFIG_PATH=${HOME}/mingw/opt/lib/pkgconfig LDFLAGS=-L$HOME/mingw/opt/lib CFLAGS=-I$HOME/mingw/opt/include OPENSSL_LIBS="-L${HOME}/opt/lib -L$HOME/mingw/opt/lib64 -lssl -lcrypto" OPENSSL_CFLAGS=-I$HOME/mingw/opt/include PREFIX=$HOME/mingw/opt LZO_CFLAGS=-I$HOME/mingw/opt/include LZO_LIBS="-L${HOME}/mingw/opt/lib -llzo2" ./configure  --host=${{ matrix.chost }} --disable-lz4
-        working-directory: openvpn
-
-      - name: build OpenVPN
-        run: make -j3
-        working-directory: openvpn
-      - name: build OpenVPN unittests
-        run: make -j3 check
-        working-directory: openvpn
-
-      # We use multiple upload-artifact here, so it becomes a flat folder
-      # structure since we need the dlls on the same level as the binaries
-      - name: Archive cmocka/openssl/lzo dlls
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v3
         with:
-          retention-days: 1
-          name: mingw-unittest-${{matrix.target}}-ossl${{ matrix.osslver }}-dlls
-          path: '~/mingw/opt/bin/*.dll'
+          name: openvpn-mingw-${{ matrix.arch }}
+          path: |
+            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/Debug/*.exe
+            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/Debug/*.dll
+            !${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/Debug/test_*.exe
 
-      # libtool puts some wrapper binaries in openvpn/tests/unit_tests/openvpn/
-      # and the real binaries in openvpn/tests/unit_tests/openvpn/.libs/
-      - name: Archive unittest artifacts
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v3
         with:
-          retention-days: 1
-          name: mingw-unittest-${{matrix.target}}-ossl${{ matrix.osslver }}-tests
-          path: openvpn/tests/unit_tests/openvpn/.libs/*.exe
-
-      # Currently not used by the unit test but might in the future and also
-      # helpful if manually downloading and running openvpn.exe from a mingw
-      # build
-      - name: Archive openvpn binary
-        uses: actions/upload-artifact@v3
-        with:
-          retention-days: 1
-          name: mingw-unittest-${{matrix.target}}-ossl${{ matrix.osslver }}-tests
-          path: openvpn/src/openvpn/.libs/*.exe
+          name: openvpn-mingw-${{ matrix.arch }}-tests
+          path: |
+            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/Debug/test_*.exe
+            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/Debug/*.dll
 
   mingw-unittest:
     needs: [ mingw ]
     strategy:
       fail-fast: false
       matrix:
-        osslver: [ 1.1.1q, 3.0.5 ]
-        target: [ mingw64, mingw ]
+        arch: [x86, x64]
 
     runs-on: windows-latest
-    name: "mingw unittests - ${{matrix.target}} - OSSL ${{ matrix.osslver }}"
+    name: "mingw unittests - ${{ matrix.arch }} - OSSL"
     steps:
-      - name: Retrieve mingw unittest dlls
-        uses: actions/download-artifact@v3
-        with:
-          name: mingw-unittest-${{matrix.target}}-ossl${{ matrix.osslver }}-dlls
-          path: unittests
-
       - name: Retrieve mingw unittest
         uses: actions/download-artifact@v3
         with:
-          name: mingw-unittest-${{matrix.target}}-ossl${{ matrix.osslver }}-tests
+          name: openvpn-mingw-${{ matrix.arch }}-tests
           path: unittests
 
       - name: List unittests directory
         run: "dir unittests"
 
-      - name: Run argvunit test
-        run: ./unittests/argv_testdriver.exe
+      - name: Run argv unit test
+        run: ./unittests/test_argv.exe
 
-      - name: Run auth_tokenunit test
-        run: ./unittests/auth_token_testdriver.exe
+      - name: Run auth_token unit test
+        run: ./unittests/test_auth_token.exe
 
-      - name: Run bufferunit test
-        run: ./unittests/buffer_testdriver.exe
+      - name: Run buffer unit test
+        run: ./unittests/test_buffer.exe
 
       - name: Run cryptoapi unit test
-        run: ./unittests/cryptoapi_testdriver.exe
+        run: ./unittests/test_cryptoapi.exe
 
-      - name: Run cryptounit test
-        run: ./unittests/crypto_testdriver.exe
+      - name: Run crypto unit test
+        run: ./unittests/test_crypto.exe
 
-      - name: Run miscunit test
-        run: ./unittests/misc_testdriver.exe
+      - name: Run misc unit test
+        run: ./unittests/test_misc.exe
 
-      - name: Run ncpunit test
-        run: ./unittests/ncp_testdriver.exe
+      - name: Run ncp unit test
+        run: ./unittests/test_ncp.exe
 
-      - name: Run packet idunit test
-        run: ./unittests/packet_id_testdriver.exe
+      - name: Run packet id unit test
+        run: ./unittests/test_packet_id.exe
 
-      - name: Run pktunit test
-        run: ./unittests/pkt_testdriver.exe
+      - name: Run pkt unit test
+        run: ./unittests/test_pkt.exe
 
-      - name: Run providerunit test
-        run: ./unittests/provider_testdriver.exe
+      - name: Run provider unit test
+        run: ./unittests/test_provider.exe
 
   ubuntu:
     strategy:
@@ -411,60 +276,51 @@ jobs:
       strategy:
         fail-fast: false
         matrix:
-          plat: [ARM64, Win32, x64]
-          include:
-            - plat: ARM64
-              triplet: arm64
-            - plat: Win32
-              triplet: x86
-            - plat: x64
-              triplet: x64
+          arch: [amd64, x86, arm64]
 
-      name: "msbuild - ${{matrix.triplet}} - openssl"
+      name: "msbuild - ${{ matrix.arch }} - openssl"
       env:
         BUILD_CONFIGURATION: Release
-        VCPKG_OVERLAY_PORTS: ${{ github.workspace }}/contrib/vcpkg-ports
-        VCPKG_OVERLAY_TRIPLETS: ${{ github.workspace }}/contrib/vcpkg-triplets
 
       runs-on: windows-latest
       steps:
       - uses: actions/checkout@v3
-
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v1.1
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+      - uses: lukka/get-cmake@latest
 
       - name: Install rst2html
-        run: python -m pip install --upgrade pip rst2html
+        run: python -m pip install --upgrade pip docutils
 
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@v10
         with:
           vcpkgGitCommitId: 'd10d511f25620ca0f315cd83dcef6485efc63010'
-          vcpkgJsonGlob: '**/openvpn/vcpkg.json'
-          appendedCacheKey: '${{matrix.triplet}}'
+          vcpkgJsonGlob: '**/windows/vcpkg.json'
+          appendedCacheKey: msvc_${{ matrix.arch }}
 
-      - name: Run MSBuild consuming vcpkg.json
-        working-directory: ${{env.GITHUB_WORKSPACE}}
-        run: |
-            # workaround for GHA runner bug where vcpkg installation is detected at c:\vcpkg
-            # see https://github.com/lukka/run-vcpkg/issues/170
-            ${{ github.workspace }}/vcpkg/vcpkg.exe integrate install
-            msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform="${{ matrix.plat }}" .
-
-      - name: Archive artifacts
-        uses: actions/upload-artifact@v3
+      - name: Run CMake with vcpkg.json manifest (NO TESTS)
+        uses: lukka/run-cmake@v10
+        if: ${{ matrix.arch == 'arm64' }}
         with:
-          name: artifacts-${{ matrix.plat }}
+          configurePreset: win-${{ matrix.arch }}-release
+          buildPreset: win-${{ matrix.arch }}-release
+
+      - name: Run CMake with vcpkg.json manifest
+        uses: lukka/run-cmake@v10
+        if: ${{ matrix.arch != 'arm64' }}
+        with:
+          configurePreset: win-${{ matrix.arch }}-release
+          buildPreset: win-${{ matrix.arch }}-release
+          testPreset: win-${{ matrix.arch }}-release
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: openvpn-msvc-${{ matrix.arch }}
           path: |
-            ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.exe
-            ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.dll
-            ${{ matrix.plat }}-Output/${{env.BUILD_CONFIGURATION}}/*.pdb
-            doc/openvpn.8.html
+            ${{ github.workspace }}/out/**/*.exe
+            ${{ github.workspace }}/out/**/*.dll
+            !${{ github.workspace }}/out/**/test_*.exe
+            !${{ github.workspace }}/out/**/CMakeFiles/**
+            !${{ github.workspace }}/out/**/vcpkg_installed/**
 
   trigger_openvpn_build:
     runs-on: windows-latest

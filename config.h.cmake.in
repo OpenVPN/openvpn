@@ -42,7 +42,7 @@
 #define ENABLE_OFB_CFB_MODE
 
 /* Enable PKCS11 */
-/* #undef ENABLE_PKCS11 */
+#cmakedefine ENABLE_PKCS11
 
 /* Enable plug-in support */
 #define ENABLE_PLUGIN 1
@@ -82,6 +82,9 @@
 
 /* struct cmsghdr needed for extended socket error support */
 #cmakedefine HAVE_CMSGHDR
+
+/* git version information in config-version.h */
+#cmakedefine HAVE_CONFIG_VERSION_H
 
 /* Define to 1 if you have the `daemon' function. */
 #cmakedefine HAVE_DAEMON
@@ -192,9 +195,6 @@ don't. */
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #cmakedefine HAVE_NETINET_IN_H
-
-/* Define to 1 if you have the <netinet/in_systm.h> header file. */
-#undef HAVE_NETINET_IN_SYSTM_H
 
 /* Define to 1 if you have the <netinet/ip.h> header file. */
 #cmakedefine HAVE_NETINET_IP_H
@@ -398,14 +398,8 @@ don't. */
 /* Path to route tool */
 #define ROUTE_PATH "@ROUTE_PATH@"
 
-/* OpenVPN major version - integer */
-#undef OPENVPN_VERSION_MAJOR
-
-/* OpenVPN minor version - integer */
-#undef OPENVPN_VERSION_MINOR
-
-/* OpenVPN patch level - may be a string or integer */
-#define OPENVPN_VERSION_PATCH "@OPENVPN_VERSION_PATCH@"
+/* OpenVPN version in Windows resource format - string */
+#define OPENVPN_VERSION_RESOURCE @OPENVPN_VERSION_RESOURCE@
 
 /* Name of package */
 #define PACKAGE "openvpn"
@@ -421,12 +415,6 @@ don't. */
 
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "@OPENVPN_VERSION_MAJOR@.@OPENVPN_VERSION_MINOR@@OPENVPN_VERSION_PATCH@"
-
-/* OpenVPN major version - integer */
-#define OPENVPN_VERSION_MAJOR @OPENVPN_VERSION_MAJOR@
-
-/* OpenVPN minor version - integer */
-#define OPENVPN_VERSION_MINOR @OPENVPN_VERSION_MINOR@
 
 /* Path to systemd-ask-password tool */
 #undef SYSTEMD_ASK_PASSWORD_PATH
@@ -480,7 +468,6 @@ typedef uint16_t in_port_t;
 typedef SSIZE_T ssize_t;
 #define strncasecmp strnicmp
 #define strcasecmp _stricmp
-
 
 #define S_IRUSR 0
 #define S_IWUSR 0
