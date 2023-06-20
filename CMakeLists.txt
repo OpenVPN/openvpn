@@ -56,6 +56,7 @@ if (MSVC)
         "$<$<CONFIG:Release>:/Zi>"
         )
     add_link_options(
+        /Brepro
         "$<$<CONFIG:Release>:/LTCG:incremental>"
         "$<$<CONFIG:Release>:/DEBUG:FULL>"
         "$<$<CONFIG:Release>:/OPT:REF>"
