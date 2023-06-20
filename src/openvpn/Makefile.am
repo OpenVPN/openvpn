@@ -15,9 +15,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
 EXTRA_DIST = \
-	openvpn.vcxproj \
-	openvpn.manifest \
-	vcpkg.json
+	openvpn.manifest
 
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/include \

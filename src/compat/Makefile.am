@@ -12,12 +12,6 @@
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
-EXTRA_DIST = \
-	compat.vcxproj \
-	PropertySheet.props \
-	Debug.props \
-	Release.props
-
 noinst_LTLIBRARIES = libcompat.la
 
 libcompat_la_SOURCES = \

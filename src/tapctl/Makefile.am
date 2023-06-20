@@ -22,11 +22,6 @@ include $(top_srcdir)/build/ltrc.inc
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 
-EXTRA_DIST = \
-	tapctl.vcxproj \
-	tapctl.props \
-	tapctl.exe.manifest
-
 AM_CPPFLAGS = \
 	-I$(top_srcdir)/include -I$(top_srcdir)/src/compat
 
