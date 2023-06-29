@@ -12,6 +12,14 @@ project(openvpn)
 # and OpenSSL having version 1.1.1+ and generally does not offer the same
 # configurability like autoconf
 
+find_package(PkgConfig REQUIRED)
+include(CheckSymbolExists)
+include(CheckIncludeFiles)
+include(CheckCCompilerFlag)
+include(CheckTypeSize)
+include(CheckStructHasMember)
+include(CTest)
+
 option(UNSUPPORTED_BUILDS "Allow unsupported builds" OFF)
 
 if (NOT WIN32 AND NOT ${UNSUPPORTED_BUILDS})
@@ -70,20 +78,18 @@ else ()
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")
     set(CMAKE_C_FLAGS_DEBUG "-g -O1")
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O1")
-    add_compile_options(-Wall -Wuninitialized -Wno-stringop-truncation)
+    add_compile_options(-Wall -Wuninitialized)
+    check_c_compiler_flag(-Wno-stringop-truncation NoStringOpTruncation)
+
+    if (${NoStringOpTruncation})
+        add_compile_options(-Wno-stringop-truncation)
+    endif()
     # We are not ready for this
     #add_compile_options(-Wconversion -Wno-sign-conversion -Wsign-compare)
     if (USE_WERROR)
         add_compile_options(-Werror)
     endif ()
 endif ()
-
-find_package(PkgConfig REQUIRED)
-include(CheckSymbolExists)
-include(CheckIncludeFiles)
-include(CheckTypeSize)
-include(CheckStructHasMember)
-include(CTest)
 
 find_program(PYTHON NAMES python3 python)
 execute_process(
