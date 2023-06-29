@@ -50,13 +50,13 @@ if (_GENERATE_HTML_DOC)
     list(APPEND ALL_DOCS openvpn.8.html openvpn-examples.5.html)
     add_custom_command(
         OUTPUT openvpn.8.html
-        COMMAND ${PYTHON} ${RST2HTML} ${RST_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/openvpn.8.rst ${CMAKE_CURRENT_BINARY_DIR}/openvpn.8.html
+        COMMAND ${RST2HTML} ${RST_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/openvpn.8.rst ${CMAKE_CURRENT_BINARY_DIR}/openvpn.8.html
         MAIN_DEPENDENCY openvpn.8.rst
         DEPENDS ${OPENVPN_SECTIONS}
         )
     add_custom_command(
         OUTPUT openvpn-examples.5.html
-        COMMAND ${PYTHON} ${RST2HTML} ${RST_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/openvpn-examples.5.rst ${CMAKE_CURRENT_BINARY_DIR}/openvpn-examples.5.html
+        COMMAND ${RST2HTML} ${RST_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/openvpn-examples.5.rst ${CMAKE_CURRENT_BINARY_DIR}/openvpn-examples.5.html
         MAIN_DEPENDENCY openvpn-examples.5.rst
         DEPENDS ${OPENVPN_EXAMPLES_SECTIONS}
         )
@@ -65,13 +65,13 @@ if (_GENERATE_MAN_DOC)
     list(APPEND ALL_DOCS openvpn.8 openvpn-examples.5)
     add_custom_command(
         OUTPUT openvpn.8
-        COMMAND ${PYTHON} ${RST2MAN} ${RST_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/openvpn.8.rst ${CMAKE_CURRENT_BINARY_DIR}/openvpn.8
+        COMMAND ${RST2MAN} ${RST_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/openvpn.8.rst ${CMAKE_CURRENT_BINARY_DIR}/openvpn.8
         MAIN_DEPENDENCY openvpn.8.rst
         DEPENDS ${OPENVPN_SECTIONS}
         )
     add_custom_command(
         OUTPUT openvpn-examples.5
-        COMMAND ${PYTHON} ${RST2MAN} ${RST_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/openvpn-examples.5.rst ${CMAKE_CURRENT_BINARY_DIR}/openvpn-examples.5
+        COMMAND ${RST2MAN} ${RST_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/openvpn-examples.5.rst ${CMAKE_CURRENT_BINARY_DIR}/openvpn-examples.5
         MAIN_DEPENDENCY openvpn-examples.5.rst
         DEPENDS ${OPENVPN_EXAMPLES_SECTIONS}
         )
