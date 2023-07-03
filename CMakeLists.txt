@@ -26,6 +26,10 @@ if (NOT WIN32 AND NOT ${UNSUPPORTED_BUILDS})
     message(FATAL_ERROR "Note: on Unix platform the official and supported build method is using autoconfig. CMake based build should be only used for Windows and internal testing/development.")
 endif()
 
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config.h")
+    message(FATAL_ERROR "The top level source directory has a config.h file. Note that you can't mix in-tree autoconfig builds with out-of-tree cmake builds.")
+endif ()
+
 option(MBED "BUILD with mbed" OFF)
 option(WOLFSSL "BUILD with wolfSSL" OFF)
 option(ENABLE_LZ4 "BUILD with lz4" ON)
