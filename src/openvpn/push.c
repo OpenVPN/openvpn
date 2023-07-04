@@ -265,7 +265,7 @@ receive_cr_response(struct context *c, const struct buffer *buffer)
     struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
     struct man_def_auth_context *mda = session->opt->mda_context;
     struct env_set *es = session->opt->es;
-    int key_id = get_primary_key(c->c2.tls_multi)->key_id;
+    int key_id = get_primary_key(c->c2.tls_multi)->mda_key_id;
 
     management_notify_client_cr_response(key_id, mda, es, m);
 #endif
