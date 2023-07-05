@@ -26,6 +26,14 @@ target_compile_options(openvpnmsica PRIVATE
     -UNTDDI_VERSION
     -D_WIN32_WINNT=_WIN32_WINNT_VISTA
     )
+
+if (MSVC)
+    target_compile_options(openvpnmsica PRIVATE
+        "$<$<CONFIG:Release>:/MT>"
+        "$<$<CONFIG:Debug>:/MTd>"
+        )
+endif ()
+
 target_link_libraries(openvpnmsica
     advapi32.lib ole32.lib msi.lib setupapi.lib iphlpapi.lib shell32.lib shlwapi.lib version.lib newdev.lib)
 if (MINGW)
