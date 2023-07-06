@@ -319,7 +319,7 @@ init_route(struct route_ipv4 *r,
     const in_addr_t default_netmask = IPV4_NETMASK_HOST;
     bool status;
     int ret;
-    struct in_addr special;
+    struct in_addr special = {0};
 
     CLEAR(*r);
     r->option = ro;
