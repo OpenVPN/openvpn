@@ -67,6 +67,7 @@ dist_noinst_DATA = \
 	.gitattributes \
 	CONTRIBUTING.rst \
 	PORTS \
+	README.cmake.md \
 	README.dco.md \
 	README.ec \
 	README.wolfssl
