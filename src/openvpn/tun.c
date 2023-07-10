@@ -333,7 +333,7 @@ do_dns_domain_wmic(bool add, const struct tuntap *tt)
     }
 
     struct argv argv = argv_new();
-    argv_printf(&argv, "%s%s nicconfig where (InterfaceIndex=%ld) call SetDNSDomain %s",
+    argv_printf(&argv, "%s%s nicconfig where (InterfaceIndex=%ld) call SetDNSDomain '%s'",
                 get_win_sys_path(), WMIC_PATH_SUFFIX, tt->adapter_index, add ? tt->options.domain : "");
     exec_command("WMIC", &argv, 1, M_WARN);
 
