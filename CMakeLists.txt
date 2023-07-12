@@ -679,6 +679,7 @@ if (BUILD_TESTING)
         )
 
     target_sources(test_pkt PRIVATE
+        tests/unit_tests/openvpn/mock_win32_execve.c
         src/openvpn/argv.c
         src/openvpn/base64.c
         src/openvpn/crypto_mbedtls.c
@@ -740,6 +741,7 @@ if (BUILD_TESTING)
             -Wl,--wrap=buffer_write_file
             -Wl,--wrap=rand_bytes)
         target_sources(test_tls_crypt PRIVATE
+            tests/unit_tests/openvpn/mock_win32_execve.c
             src/openvpn/argv.c
             src/openvpn/base64.c
             src/openvpn/crypto_mbedtls.c
