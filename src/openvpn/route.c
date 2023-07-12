@@ -2304,8 +2304,9 @@ delete_route(struct route_ipv4 *r,
     openvpn_execve_check(&argv, es, 0, "ERROR: OpenBSD/NetBSD route delete command failed");
 
 #elif defined(TARGET_ANDROID)
-    msg(M_NONFATAL, "Sorry, deleting routes on Android is not possible. The VpnService API allows routes to be set on connect only.");
-
+    msg(D_ROUTE_DEBUG, "Deleting routes on Android is not possible/not "
+        "needed. The VpnService API allows routes to be set "
+        "on connect only and will clean up automatically.");
 #elif defined(TARGET_AIX)
 
     {
@@ -2492,7 +2493,10 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
                 network, r6->netbits, gateway);
     argv_msg(D_ROUTE, &argv);
     openvpn_execve_check(&argv, es, 0, "ERROR: AIX route add command failed");
-
+#elif defined(TARGET_ANDROID)
+    msg(D_ROUTE_DEBUG, "Deleting routes on Android is not possible/not "
+        "needed. The VpnService API allows routes to be set "
+        "on connect only and will clean up automatically.");
 #else  /* if defined(TARGET_LINUX) */
     msg(M_FATAL, "Sorry, but I don't know how to do 'route ipv6' commands on this operating system.  Try putting your routes in a --route-down script");
 #endif /* if defined(TARGET_LINUX) */
