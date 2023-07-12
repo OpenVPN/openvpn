@@ -16,6 +16,7 @@ find_package(PkgConfig REQUIRED)
 include(CheckSymbolExists)
 include(CheckIncludeFiles)
 include(CheckCCompilerFlag)
+include(CheckLinkerFlag OPTIONAL)
 include(CheckTypeSize)
 include(CheckStructHasMember)
 include(CTest)
@@ -564,18 +565,24 @@ if (BUILD_TESTING)
             )
     endif ()
 
-    if (NOT MSVC)
-        # MSVC does not support --wrap
+    # MSVC and Apple's LLVM ld do not support --wrap
+    # This test requires cmake >= 3.18, so check if check_linker_flag is
+    # available
+    if (COMMAND check_linker_flag)
+        check_linker_flag(C -Wl,--wrap=parse_line LD_SUPPORTS_WRAP)
+    endif()
+
+    if (${LD_SUPPORTS_WRAP})
         list(APPEND unit_tests
             "test_argv"
+            "test_tls_crypt"
             )
     endif ()
 
-    # These tests work on only on Linux since they depend on special linker features
+    # These tests work on only on Linux since they depend on special Linux features
     if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
         list(APPEND unit_tests
             "test_networking"
-            "test_tls_crypt"
             )
     endif ()
 
