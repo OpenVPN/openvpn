@@ -116,7 +116,7 @@ routing.
   Valid syntax:
   ::
 
-     dhcp-options type [parm]
+     dhcp-option type [parm]
 
   :code:`DOMAIN` ``name``
         Set Connection-specific DNS Suffix to :code:`name`.
