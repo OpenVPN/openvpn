@@ -198,7 +198,7 @@ jobs:
       matrix:
         ssllib: [ openssl11, openssl3, libressl]
         build: [ normal, asan ]
-        os: [macos-11, macos-12]
+        os: [macos-11, macos-12, macos-13]
         include:
           - build: asan
             cflags: "-fsanitize=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
