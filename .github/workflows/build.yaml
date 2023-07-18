@@ -85,48 +85,18 @@ jobs:
       fail-fast: false
       matrix:
         arch: [x86, x64]
+        test: [argv, auth_token, buffer, cryptoapi, crypto, misc, ncp, packet_id, pkt, provider, tls_crypt]
 
     runs-on: windows-latest
-    name: "mingw unittests - ${{ matrix.arch }} - OSSL"
+    name: "mingw unittest ${{ matrix.test }} - ${{ matrix.arch }} - OSSL"
     steps:
       - name: Retrieve mingw unittest
         uses: actions/download-artifact@v3
         with:
           name: openvpn-mingw-${{ matrix.arch }}-tests
           path: unittests
-
-      - name: List unittests directory
-        run: "dir unittests"
-
-      - name: Run argv unit test
-        run: ./unittests/test_argv.exe
-
-      - name: Run auth_token unit test
-        run: ./unittests/test_auth_token.exe
-
-      - name: Run buffer unit test
-        run: ./unittests/test_buffer.exe
-
-      - name: Run cryptoapi unit test
-        run: ./unittests/test_cryptoapi.exe
-
-      - name: Run crypto unit test
-        run: ./unittests/test_crypto.exe
-
-      - name: Run misc unit test
-        run: ./unittests/test_misc.exe
-
-      - name: Run ncp unit test
-        run: ./unittests/test_ncp.exe
-
-      - name: Run packet id unit test
-        run: ./unittests/test_packet_id.exe
-
-      - name: Run pkt unit test
-        run: ./unittests/test_pkt.exe
-
-      - name: Run provider unit test
-        run: ./unittests/test_provider.exe
+      - name: Run ${{ matrix.test }} unit test
+        run: ./unittests/test_${{ matrix.test }}.exe
 
   ubuntu:
     strategy:
