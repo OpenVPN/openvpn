@@ -872,7 +872,7 @@ case "$host" in
 		)
 		AC_CHECK_HEADER([sys/prctl.h],,[AC_MSG_ERROR([sys/prctl.h not found!])])
 
-		CFLAGS="${CFLAGS} ${LIBCAPNG_CFALGS}"
+		CFLAGS="${CFLAGS} ${LIBCAPNG_CFLAGS}"
 		LIBS="${LIBS} ${LIBCAPNG_LIBS}"
 		AC_DEFINE(HAVE_LIBCAPNG, 1, [Enable libcap-ng support])
 	;;
