@@ -93,6 +93,7 @@ typedef enum {
     undo_dns6,
     undo_domain,
     undo_ring_buffer,
+    undo_wins,
     _undo_type_max
 } undo_type_t;
 typedef list_item_t *undo_lists_t[_undo_type_max];
@@ -1084,6 +1085,63 @@ out:
 }
 
 /**
+ * Run the command: netsh interface ip $action wins $if_name [static] $addr
+ * @param  action      "delete", "add" or "set"
+ * @param  if_name     "name_of_interface"
+ * @param  addr        IPv4 address as a string
+ *
+ * If addr is null and action = "delete" all addresses are deleted.
+ * if action = "set" then "static" is added before $addr
+ */
+static DWORD
+netsh_wins_cmd(const wchar_t *action, const wchar_t *if_name, const wchar_t *addr)
+{
+    DWORD err = 0;
+    int timeout = 30000; /* in msec */
+    wchar_t argv0[MAX_PATH];
+    wchar_t *cmdline = NULL;
+    const wchar_t *addr_static = (wcscmp(action, L"set") == 0) ? L"static" : L"";
+
+    if (!addr)
+    {
+        if (wcscmp(action, L"delete") == 0)
+        {
+            addr = L"all";
+        }
+        else /* nothing to do -- return success*/
+        {
+            goto out;
+        }
+    }
+
+    /* Path of netsh */
+    openvpn_swprintf(argv0, _countof(argv0), L"%ls\\%ls", get_win_sys_path(), L"netsh.exe");
+
+    /* cmd template:
+     * netsh interface ip $action wins $if_name $static $addr
+     */
+    const wchar_t *fmt = L"netsh interface ip %ls wins \"%ls\" %ls %ls";
+
+    /* max cmdline length in wchars -- include room for worst case and some */
+    size_t ncmdline = wcslen(fmt) + wcslen(if_name) + wcslen(action) + wcslen(addr)
+                      +wcslen(addr_static) + 32 + 1;
+    cmdline = malloc(ncmdline * sizeof(wchar_t));
+    if (!cmdline)
+    {
+        err = ERROR_OUTOFMEMORY;
+        goto out;
+    }
+
+    openvpn_swprintf(cmdline, ncmdline, fmt, action, if_name, addr_static, addr);
+
+    err = ExecCommand(argv0, cmdline, timeout);
+
+out:
+    free(cmdline);
+    return err;
+}
+
+/**
  * Run command: wmic nicconfig (InterfaceIndex=$if_index) call $action ($data)
  * @param  if_index    "index of interface"
  * @param  action      e.g., "SetDNSDomain"
@@ -1299,6 +1357,86 @@ out:
 }
 
 static DWORD
+HandleWINSConfigMessage(const wins_cfg_message_t *msg, undo_lists_t *lists)
+{
+    DWORD err = 0;
+    wchar_t addr[16]; /* large enough to hold string representation of an ipv4 */
+    int addr_len = msg->addr_len;
+
+    /* sanity check */
+    if (addr_len > _countof(msg->addr))
+    {
+        addr_len = _countof(msg->addr);
+    }
+
+    if (!msg->iface.name[0]) /* interface name is required */
+    {
+        return ERROR_MESSAGE_DATA;
+    }
+
+    /* use a non-const reference with limited scope to enforce null-termination of strings from client */
+    {
+        wins_cfg_message_t *msgptr = (wins_cfg_message_t *)msg;
+        msgptr->iface.name[_countof(msg->iface.name) - 1] = '\0';
+    }
+
+    wchar_t *wide_name = utf8to16(msg->iface.name); /* utf8 to wide-char */
+    if (!wide_name)
+    {
+        return ERROR_OUTOFMEMORY;
+    }
+
+    /* We delete all current addresses before adding any
+     * OR if the message type is del_wins_cfg
+     */
+    if (addr_len > 0 || msg->header.type == msg_del_wins_cfg)
+    {
+        err = netsh_wins_cmd(L"delete", wide_name, NULL);
+        if (err)
+        {
+            goto out;
+        }
+        free(RemoveListItem(&(*lists)[undo_wins], CmpWString, wide_name));
+    }
+
+    if (msg->header.type == msg_del_wins_cfg)
+    {
+        goto out;  /* job done */
+    }
+
+    for (int i = 0; i < addr_len; ++i)
+    {
+        RtlIpv4AddressToStringW(&msg->addr[i].ipv4, addr);
+        err = netsh_wins_cmd(i == 0 ? L"set" : L"add", wide_name, addr);
+        if (i == 0 && err)
+        {
+            goto out;
+        }
+        /* We do not check for duplicate addresses, so any error in adding
+         * additional addresses is ignored.
+         */
+    }
+
+    err = 0;
+
+    if (addr_len > 0)
+    {
+        wchar_t *tmp_name = _wcsdup(wide_name);
+        if (!tmp_name || AddListItem(&(*lists)[undo_wins], tmp_name))
+        {
+            free(tmp_name);
+            netsh_wins_cmd(L"delete", wide_name, NULL);
+            err = ERROR_OUTOFMEMORY;
+            goto out;
+        }
+    }
+
+out:
+    free(wide_name);
+    return err;
+}
+
+static DWORD
 HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)
 {
     DWORD err = 0;
@@ -1487,6 +1625,7 @@ HandleMessage(HANDLE pipe, HANDLE ovpn_proc,
         enable_dhcp_message_t dhcp;
         register_ring_buffers_message_t rrb;
         set_mtu_message_t mtu;
+        wins_cfg_message_t wins;
     } msg;
     ack_message_t ack = {
         .header = {
@@ -1545,6 +1684,11 @@ HandleMessage(HANDLE pipe, HANDLE ovpn_proc,
         case msg_add_dns_cfg:
         case msg_del_dns_cfg:
             ack.error_number = HandleDNSConfigMessage(&msg.dns, lists);
+            break;
+
+        case msg_add_wins_cfg:
+        case msg_del_wins_cfg:
+            ack.error_number = HandleWINSConfigMessage(&msg.wins, lists);
             break;
 
         case msg_enable_dhcp:
@@ -1606,6 +1750,10 @@ Undo(undo_lists_t *lists)
 
                 case undo_dns6:
                     DeleteDNS(AF_INET6, item->data);
+                    break;
+
+                case undo_wins:
+                    netsh_wins_cmd(L"delete", item->data, NULL);
                     break;
 
                 case undo_domain:
