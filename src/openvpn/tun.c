@@ -280,6 +280,72 @@ out:
 }
 
 static bool
+do_wins_service(bool add, const struct tuntap *tt)
+{
+    bool ret = false;
+    ack_message_t ack;
+    struct gc_arena gc = gc_new();
+    HANDLE pipe = tt->options.msg_channel;
+    int len = tt->options.wins_len;
+    int addr_len = add ? len : 0;
+
+    if (addr_len == 0 && add) /* no addresses to add */
+    {
+        return true;
+    }
+
+    wins_cfg_message_t wins = {
+        .header = {
+            (add ? msg_add_wins_cfg : msg_del_wins_cfg),
+            sizeof(wins_cfg_message_t),
+            0
+        },
+        .iface = {.index = tt->adapter_index, .name = "" },
+        .addr_len = addr_len
+    };
+
+    /* interface name is required */
+    strncpy(wins.iface.name, tt->actual_name, sizeof(wins.iface.name));
+    wins.iface.name[sizeof(wins.iface.name) - 1] = '\0';
+
+    if (addr_len > _countof(wins.addr))
+    {
+        addr_len = _countof(wins.addr);
+        wins.addr_len = addr_len;
+        msg(M_WARN, "Number of WINS addresses sent to service truncated to %d",
+            addr_len);
+    }
+
+    for (int i = 0; i < addr_len; ++i)
+    {
+        wins.addr[i].ipv4.s_addr = htonl(tt->options.wins[i]);
+    }
+
+    msg(D_LOW, "%s WINS servers on '%s' (if_index = %d) using service",
+        (add ? "Setting" : "Deleting"), wins.iface.name, wins.iface.index);
+
+    if (!send_msg_iservice(pipe, &wins, sizeof(wins), &ack, "TUN"))
+    {
+        goto out;
+    }
+
+    if (ack.error_number != NO_ERROR)
+    {
+        msg(M_WARN, "TUN: %s WINS failed using service: %s [status=%u if_name=%s]",
+            (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc),
+            ack.error_number, wins.iface.name);
+        goto out;
+    }
+
+    msg(M_INFO, "WINS servers %s using service", (add ? "set" : "deleted"));
+    ret = true;
+
+out:
+    gc_free(&gc);
+    return ret;
+}
+
+static bool
 do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
 {
     bool ret = false;
@@ -1555,6 +1621,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         do_address_service(true, AF_INET, tt);
         do_dns_service(true, AF_INET, tt);
         do_dns_domain_service(true, tt);
+        do_wins_service(true, tt);
     }
     else
     {
@@ -6977,6 +7044,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
         }
         else if (tt->options.msg_channel)
         {
+            do_wins_service(false, tt);
             do_dns_domain_service(false, tt);
             do_dns_service(false, AF_INET, tt);
             do_address_service(false, AF_INET, tt);
