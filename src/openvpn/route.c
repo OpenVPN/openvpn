@@ -1062,7 +1062,7 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
 
             /* route DHCP/DNS server traffic through original default gateway */
             ret = add_bypass_routes(&rl->spec.bypass, rl->rgi.gateway.addr, tt, flags,
-                                    &rl->rgi, es, ctx);
+                                    &rl->rgi, es, ctx) && ret;
 
             if (rl->flags & RG_REROUTE_GW)
             {
