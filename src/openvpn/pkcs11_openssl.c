@@ -333,8 +333,7 @@ pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
 
 #ifdef HAVE_XKEY_PROVIDER
     return (xkey_load_from_pkcs11h(certificate, ssl_ctx) == 0); /* inverts the return value */
-#endif
-
+#else
     int ret = 1;
 
     X509 *x509 = NULL;
@@ -404,6 +403,7 @@ cleanup:
         openssl_session = NULL;
     }
     return ret;
+#endif /* ifdef HAVE_XKEY_PROVIDER */
 }
 
 char *
