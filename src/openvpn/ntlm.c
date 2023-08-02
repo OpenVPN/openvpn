@@ -209,7 +209,6 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
      */
 
     char pwbuf[sizeof(p->up.password) * 2]; /* for unicode password */
-    uint8_t buf2[128]; /* decoded reply from proxy */
     uint8_t phase3[464];
 
     uint8_t md4_hash[MD4_DIGEST_LENGTH + 5];
@@ -231,8 +230,6 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
     char *separator;
 
     bool ntlmv2_enabled = (p->auth_method == HTTP_AUTH_NTLM2);
-
-    CLEAR(buf2);
 
     ASSERT(strlen(p->up.username) > 0);
     ASSERT(strlen(p->up.password) > 0);
@@ -266,6 +263,12 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
     /* pad to 21 bytes */
     memset(md4_hash + MD4_DIGEST_LENGTH, 0, 5);
 
+    /* If the decoded challenge is shorter than required by the protocol,
+     * the missing bytes will be NULL, as buf2 is known to be zeroed
+     * when this decode happens.
+     */
+    uint8_t buf2[128]; /* decoded reply from proxy */
+    CLEAR(buf2);
     ret_val = openvpn_base64_decode(phase_2, buf2, -1);
     if (ret_val < 0)
     {
