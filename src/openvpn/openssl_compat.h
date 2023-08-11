@@ -45,6 +45,7 @@
 #include <openssl/rsa.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
+#include <openssl/err.h>
 
 /* Functionality missing in 1.1.0 */
 #if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(ENABLE_CRYPTO_WOLFSSL)
@@ -799,6 +800,17 @@ static inline void
 EVP_MD_free(const EVP_MD *md)
 {
     /* OpenSSL 1.1.1 and lower use only const EVP_MD, nothing to free */
+}
+
+static inline unsigned long
+ERR_get_error_all(const char **file, int *line,
+                  const char **func,
+                  const char **data, int *flags)
+{
+    static const char *empty = "";
+    *func = empty;
+    unsigned long err = ERR_get_error_line_data(file, line, data, flags);
+    return err;
 }
 
 #endif /* OPENSSL_VERSION_NUMBER < 0x30000000L */

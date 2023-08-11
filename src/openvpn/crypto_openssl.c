@@ -240,9 +240,16 @@ void
 crypto_print_openssl_errors(const unsigned int flags)
 {
     unsigned long err = 0;
+    int line, errflags;
+    const char *file, *data, *func;
 
-    while ((err = ERR_get_error()))
+    while ((err = ERR_get_error_all(&file, &line, &func, &data, &errflags)) != 0)
     {
+        if (!(errflags & ERR_TXT_STRING))
+        {
+            data = "";
+        }
+
         /* Be more clear about frequently occurring "no shared cipher" error */
         if (ERR_GET_REASON(err) == SSL_R_NO_SHARED_CIPHER)
         {
@@ -260,7 +267,17 @@ crypto_print_openssl_errors(const unsigned int flags)
                 "tls-version-min 1.0 to the client configuration to use TLS 1.0+ "
                 "instead of TLS 1.0 only");
         }
-        msg(flags, "OpenSSL: %s", ERR_error_string(err, NULL));
+
+        /* print file and line if verb >=8 */
+        if (!check_debug_level(D_TLS_DEBUG_MED))
+        {
+            msg(flags, "OpenSSL: %s:%s", ERR_error_string(err, NULL), data);
+        }
+        else
+        {
+            msg(flags, "OpenSSL: %s:%s:%s:%d:%s", ERR_error_string(err, NULL),
+                data, file, line, func);
+        }
     }
 }
 
