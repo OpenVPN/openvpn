@@ -190,7 +190,7 @@ server_pushed_signal(struct context *c, const struct buffer *buffer, const bool 
 void
 receive_exit_message(struct context *c)
 {
-    dmsg(D_STREAM_ERRORS, "Exit message received by peer");
+    dmsg(D_STREAM_ERRORS, "CC-EEN exit message received by peer");
     /* With control channel exit notification, we want to give the session
      * enough time to handle retransmits and acknowledgment, so that eventual
      * retries from the client to resend the exit or ACKs will not trigger
