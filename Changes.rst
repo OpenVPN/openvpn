@@ -1,3 +1,67 @@
+Overview of changes in 2.6.6
+============================
+
+User visible changes
+--------------------
+- OCC exit messages are now logged more visibly
+  (Github #391)
+
+- OpenSSL error messages are now logged with more details (for example,
+  when loading a provider fails, which .so was tried, and why did it fail)
+  (Github #361)
+
+- print a more user-friendly message when tls-crypt-v2 client auth fails
+
+- packaging now includes all documentation in the tarball
+
+
+New features
+------------
+- set WINS server via interactive service - this adds support for
+  "dhcp-option WINS 192.0.2.1" for DCO + wintun interfaces where no
+  DHCP server is used (Github #373).
+
+Bug fixes / Code cleanup
+------------------------
+- route.c was sometimes ignoring return values of add_route3()
+  (found by coverity)
+
+- ntlm: clarify use of buffer in case of truncated NTLM challenge,
+  no actual code change (reported by Trial of Bits, TOB-OVPN-14)
+
+- pkcs11_openssl.c: disable unused code (found by coverity)
+
+- options.c: do not hide variable from parent scope (found by coverity)
+
+- configure: fix typo in LIBCAPNG_CFALGS (Github #371)
+
+- ignore IPv6 route deletion request on Android, reduce IPv4 route-related
+  message verbosity on Android
+
+- manage.c: document missing KID parameter of "client-pending-auth"
+  (new addition in da083c3b (2.6.2)) in manage interface help text
+
+- vpn-network-options.rst: fix typo of "dhcp-option" (Github #313)
+
+- tun.c/windows: quote WMIC call to set DHCP/DNS domain with hyphen
+  (Github #363)
+
+- fix CR_RESPONSE management message using wrong key_id
+
+- work around false positive compiler warnings with MinGW 12
+
+- work around false positive compiler warnings with GCC 12.2.0
+
+- fix more compiler warnings on FreeBSD
+
+- test_tls_crypt: improve cmocka testing portability
+
+- dco-linux: fix counter print format (signed/unsigned)
+
+- packaging: include everything that is needed for a MSVC build in tarballs
+  (Github #344)
+
+
 Overview of changes in 2.6.5
 ============================
 

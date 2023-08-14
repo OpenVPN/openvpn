@@ -1,6 +1,52 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>
 
+2023.08.14 -- Version 2.6.6
+
+Antonio Quartulli (1):
+      configure.ac: fix typ0 in LIBCAPNG_CFALGS
+
+Arne Schwabe (8):
+      Avoid unused function warning/error on FreeBSD (and potientially others)
+      fix warning with gcc 12.2.0 (compiler bug?)
+      Fix CR_RESPONSE mangaement message using wrong key_id
+      Print a more user-friendly error when tls-crypt-v2 client auth fails
+      Ignore Ipv6 route delete request on Android and set ipv4 verbosity to 7
+      Revert commit 423ced962d
+      Implement using --peer-fingerprint without CA certificates
+      show extra info for OpenSSL errors
+
+David Sommerseth (1):
+      ntlm: Clarify details on NTLM phase 3 decoding
+
+Frank Lichtenheld (8):
+      dist: add more missing files only used in the MSVC build
+      dist: Include all documentation in distribution
+      unit_tests: Add missing cert_data.h to source list for unit tests
+      test_tls_crypt: Improve mock() usage to be more portable
+      Remove old Travis CI related files
+      options: Do not hide variables from parent scope
+      pkcs11_openssl: Disable unused code
+      route: Fix overriding return value of add_route3
+
+George Pchelkin (1):
+      fix typo: dhcp-options to dhcp-option in vpn-network-options.rst
+
+Gert Doering (1):
+      Make received OCC exit messages more visible in log.
+
+Heiko Hund (1):
+      work around false positive warning with mingw 12
+
+Lev Stipakov (3):
+      tun.c: enclose DNS domain in single quotes in WMIC call
+      manage.c: document missing KID parameter
+      Set WINS servers via interactice service
+
+Sergey Korolev (1):
+      dco-linux: fix counter print format
+
+
 2023.06.13 -- Version 2.6.5
 
 Arne Schwabe (1):
