@@ -429,7 +429,7 @@ process_received_occ_msg(struct context *c)
             break;
 
         case OCC_EXIT:
-            dmsg(D_PACKET_CONTENT, "RECEIVED OCC_EXIT");
+            dmsg(D_STREAM_ERRORS, "OCC exit message received by peer");
             register_signal(c->sig, SIGUSR1, "remote-exit");
             break;
     }
