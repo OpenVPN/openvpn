@@ -930,11 +930,17 @@ if test "${with_crypto_library}" = "openssl"; then
 				    [AC_LANG_PROGRAM(
 					    [[
 	    #include <openssl/opensslv.h>
+	    #include <openssl/opensslconf.h>
 					    ]],
 					    [[
 	    /*	     Version encoding: MNNFFPPS - see opensslv.h for details */
 	    #if OPENSSL_VERSION_NUMBER >= 0x30000000L
-	    #error Engine supported disabled by default in OpenSSL 3.0+
+	    #error Engine support disabled by default in OpenSSL 3.0+
+	    #endif
+
+	    /*	     BoringSSL and LibreSSL >= 3.8.1 removed engine support */
+	    #ifdef OPENSSL_NO_ENGINE
+	    #error Engine support disabled in openssl/opensslconf.h
 	    #endif
 					    ]]
 				    )],
