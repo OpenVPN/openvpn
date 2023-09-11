@@ -1,0 +1,69 @@
+name: coverity-scan
+on:
+  schedule:
+    - cron: '0 20 * * *' # Daily at 20:00 UTC
+  workflow_dispatch:
+
+jobs:
+  latest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check submission cache
+        id: check_submit
+        uses: actions/cache/restore@v3
+        with:
+          path: |
+            cov-int
+          key: check-submit-${{ github.sha }}
+
+      - name: Install dependencies
+        if: steps.check_submit.outputs.cache-hit != 'true'
+        run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev libcap-ng-dev libnl-genl-3-dev linux-libc-dev man2html libcmocka-dev python3-docutils libtool automake autoconf libssl-dev libpkcs11-helper1-dev softhsm2 gnutls-bin
+
+      - name: Checkout OpenVPN
+        if: steps.check_submit.outputs.cache-hit != 'true'
+        uses: actions/checkout@v3
+
+      - name: Download Coverity Build Tool
+        if: steps.check_submit.outputs.cache-hit != 'true'
+        run: |
+          wget -q https://scan.coverity.com/download/cxx/linux64 --post-data "token=$TOKEN&project=OpenVPN%2Fopenvpn" -O cov-analysis-linux64.tar.gz
+          mkdir cov-analysis-linux64
+          tar xzf cov-analysis-linux64.tar.gz --strip 1 -C cov-analysis-linux64
+        env:
+          TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+
+      - name: autoconf
+        if: steps.check_submit.outputs.cache-hit != 'true'
+        run: autoreconf -fvi
+      - name: configure
+        if: steps.check_submit.outputs.cache-hit != 'true'
+        run: ./configure --enable-pkcs11
+
+      - name: Build with cov-build
+        if: steps.check_submit.outputs.cache-hit != 'true'
+        run: |
+          PATH=`pwd`/cov-analysis-linux64/bin:$PATH
+          cov-build --dir cov-int make
+
+      - name: Submit the result to Coverity Scan
+        if: steps.check_submit.outputs.cache-hit != 'true'
+        run: |
+          tar czvf openvpn.tgz cov-int
+          curl --form token=$TOKEN \
+          --form email=$EMAIL \
+          --form file=@openvpn.tgz \
+          --form version="$GITHUB_SHA" \
+          --form description="master" \
+          https://scan.coverity.com/builds?project=OpenVPN%2Fopenvpn
+        env:
+          TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
+          EMAIL: ${{ secrets.COVERITY_SCAN_EMAIL }}
+
+      - name: Cache submission
+        if: steps.check_submit.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v3
+        with:
+          path: |
+            cov-int
+          key: ${{ steps.check_submit.outputs.cache-primary-key }}
