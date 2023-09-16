@@ -2075,6 +2075,7 @@ phase2_tcp_client(struct link_socket *sock, struct signal_info *sig_info)
                                            sock->sd,
                                            sock->proxy_dest_host,
                                            sock->proxy_dest_port,
+                                           sock->server_poll_timeout,
                                            sig_info);
         }
         if (proxy_retry)
@@ -2104,6 +2105,7 @@ phase2_socks_client(struct link_socket *sock, struct signal_info *sig_info)
                                    sock->ctrl_sd,
                                    sock->sd,
                                    &sock->socks_relay.dest,
+                                   sock->server_poll_timeout,
                                    sig_info);
 
     if (sig_info->signal_received)
