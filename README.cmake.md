@@ -24,7 +24,7 @@ MSVC builds
 -----------
 
 The following tools are expected to be present on the system, you
-can them install with a package manager of your choice (e.g.
+can install them with a package manager of your choice (e.g.
 chocolatey, winget) or manually:
 
 * CMake

@@ -292,7 +292,7 @@ set(HAVE_CONFIG_VERSION_H YES)
 
 configure_file(config.h.cmake.in config.h)
 configure_file(include/openvpn-plugin.h.in openvpn-plugin.h)
-# TODO remove later when msvc-config.h is removed and we can always include config.h
+# TODO we should remove the need for this, and always include config.h
 add_definitions(-DHAVE_CONFIG_H)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
