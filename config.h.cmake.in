@@ -218,7 +218,7 @@ don't. */
 #undef HAVE_NICE
 
 /* Define to 1 if you have the `openlog' function. */
-#undef HAVE_OPENLOG
+#cmakedefine HAVE_OPENLOG
 
 /* OpenSSL engine support available */
 #undef HAVE_OPENSSL_ENGINE
@@ -258,7 +258,7 @@ don't. */
 #undef HAVE_SETGROUPS
 
 /* Define to 1 if you have the `setsid' function. */
-#undef HAVE_SETSID
+#cmakedefine HAVE_SETSID
 
 /* Define to 1 if you have the `setsockopt' function. */
 #define HAVE_SETSOCKOPT 1
@@ -303,7 +303,7 @@ don't. */
 #undef HAVE_STRSEP
 
 /* Define to 1 if you have the `syslog' function. */
-#undef HAVE_SYSLOG
+#cmakedefine HAVE_SYSLOG
 
 /* Define to 1 if you have the <syslog.h> header file. */
 #cmakedefine HAVE_SYSLOG_H

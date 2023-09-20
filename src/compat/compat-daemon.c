@@ -70,7 +70,10 @@ daemon(int nochdir, int noclose)
 
     if (!nochdir)
     {
-        chdir("/");
+        if (chdir("/") == -1)
+        {
+            return (-1);
+        }
     }
 
     if (!noclose)

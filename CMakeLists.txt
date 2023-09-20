@@ -150,6 +150,7 @@ check_symbol_exists(execve unistd.h HAVE_EXECVE)
 check_symbol_exists(ftruncate unistd.h HAVE_FTRUNCATE)
 check_symbol_exists(setgid unistd.h HAVE_SETGID)
 check_symbol_exists(setuid unistd.h HAVE_SETUID)
+check_symbol_exists(setsid unistd.h HAVE_SETSID)
 check_symbol_exists(getpeereid unistd.h HAVE_GETPEEREID)
 
 check_symbol_exists(epoll_create sys/epoll.h HAVE_EPOLL_CREATE)
