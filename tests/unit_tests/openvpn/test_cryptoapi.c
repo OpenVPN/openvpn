@@ -104,16 +104,25 @@ static struct test_cert
     const char *const friendly_name;    /* identifies certs loaded to the store -- keep unique */
     const char *hash;                   /* SHA1 fingerprint */
     int valid;                          /* nonzero if certificate has not expired */
-} certs[] = {
-    {cert1,  key1,  cname1,  "OVPN TEST CA1",  "OVPN Test Cert 1",  hash1,  1},
-    {cert2,  key2,  cname2,  "OVPN TEST CA2",  "OVPN Test Cert 2",  hash2,  1},
-    {cert3,  key3,  cname3,  "OVPN TEST CA1",  "OVPN Test Cert 3",  hash3,  1},
-    {cert4,  key4,  cname4,  "OVPN TEST CA2",  "OVPN Test Cert 4",  hash4,  0},
-    {}
-};
+} certs[5];
 
 static bool certs_loaded;
 static HCERTSTORE user_store;
+
+/* Fill-in certs[] array */
+void
+init_cert_data()
+{
+    struct test_cert certs_local[] = {
+        {cert1,  key1,  cname1,  "OVPN TEST CA1",  "OVPN Test Cert 1",  hash1,  1},
+        {cert2,  key2,  cname2,  "OVPN TEST CA2",  "OVPN Test Cert 2",  hash2,  1},
+        {cert3,  key3,  cname3,  "OVPN TEST CA1",  "OVPN Test Cert 3",  hash3,  1},
+        {cert4,  key4,  cname4,  "OVPN TEST CA2",  "OVPN Test Cert 4",  hash4,  0},
+        {0}
+    };
+    assert(sizeof(certs_local) == sizeof(certs));
+    memcpy(certs, certs_local, sizeof(certs_local));
+}
 
 /* Lookup a certificate in our certificate/key db */
 static struct test_cert *
@@ -136,6 +145,7 @@ import_certs(void **state)
     {
         return;
     }
+    init_cert_data();
     user_store = CertOpenStore(CERT_STORE_PROV_SYSTEM, 0, 0, CERT_SYSTEM_STORE_CURRENT_USER
                                |CERT_STORE_OPEN_EXISTING_FLAG, L"MY");
     assert_non_null(user_store);

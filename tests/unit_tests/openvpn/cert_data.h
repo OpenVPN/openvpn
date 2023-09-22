@@ -79,7 +79,7 @@ static const char *const cert2 =
     "HeTsAlHjfFEReVDiNCI9vMQLKFKKWnAorT2+iyRueA3bt2gchf863BBhZvJddL7Q\n"
     "KBa0osXw+eGBRAwsm7m1qCho3b3fN2nFAa+k07ptRkOeablmFdXE81nVlA==\n"
     "-----END CERTIFICATE-----\n";
-static const char *const key2 = key1;
+#define key2 key1
 static const char *const hash2 = "FA18FD34BAABE47D6E2910E080F421C109CA97F5";
 static const char *const cname2 = "ovpn-test-ec2";
 
@@ -159,8 +159,8 @@ static const char *const cert4 =
     "353PpJJ9s2b/Fqoc4d7udqhQogA7jqbayTKhJxbT134l2NzqDROzuS0kXbX8bXCi\n"
     "mXSa4c8=\n"
     "-----END CERTIFICATE-----\n";
-static const char *const key4 = key3;
+#define key4 key3
 static const char *const hash4 = "E1401D4497C944783E3D62CDBD2A1F69F5E5071E";
-static const char *const cname4 = cname3; /* same CN as that of cert3 */
+#define cname4 cname3 /* same CN as that of cert3 */
 
 #endif /* CERT_DATA_H */
