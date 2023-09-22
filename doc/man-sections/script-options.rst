@@ -663,7 +663,6 @@ instances.
        dns_server_{n}_address_{m}
        dns_server_{n}_port_{m}
        dns_server_{n}_resolve_domain_{m}
-       dns_server_{n}_exclude_domain_{m}
        dns_server_{n}_dnssec
        dns_server_{n}_transport
        dns_server_{n}_sni
