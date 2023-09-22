@@ -402,11 +402,9 @@ setenv_dns_options(const struct dns_options *o, struct env_set *es)
 
         if (s->domains)
         {
-            const char *format = s->domain_type == DNS_RESOLVE_DOMAINS ?
-                                 "dns_server_%d_resolve_domain_%d" : "dns_server_%d_exclude_domain_%d";
             for (j = 1, d = s->domains; d != NULL; j++, d = d->next)
             {
-                setenv_dns_option(es, format, i, j, d->name);
+                setenv_dns_option(es, "dns_server_%d_resolve_domain_%d", i, j, d->name);
             }
         }
 
@@ -484,14 +482,7 @@ show_dns_options(const struct dns_options *o)
         struct dns_domain *domain = server->domains;
         if (domain)
         {
-            if (server->domain_type == DNS_RESOLVE_DOMAINS)
-            {
-                msg(D_SHOW_PARMS, "    resolve domains:");
-            }
-            else
-            {
-                msg(D_SHOW_PARMS, "    exclude domains:");
-            }
+            msg(D_SHOW_PARMS, "    resolve domains:");
             while (domain)
             {
                 msg(D_SHOW_PARMS, "      %s", domain->name);

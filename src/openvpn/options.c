@@ -514,7 +514,6 @@ static const char usage_message[] =
     "                  Valid options are :\n"
     "                  address <addr[:port]> [addr[:port] ...] : server addresses 4/6\n"
     "                  resolve-domains <domain> [domain ...] : split domains\n"
-    "                  exclude-domains <domain> [domain ...] : domains not to resolve\n"
     "                  dnssec <yes|no|optional> : option to use DNSSEC\n"
     "                  type <DoH|DoT> : query server over HTTPS / TLS\n"
     "                  sni <domain> : DNS server name indication\n"
@@ -8042,22 +8041,6 @@ add_option(struct options *options,
             }
             else if (streq(p[3], "resolve-domains"))
             {
-                if (server->domain_type == DNS_EXCLUDE_DOMAINS)
-                {
-                    msg(msglevel, "--dns server %ld: cannot use resolve-domains and exclude-domains", priority);
-                    goto err;
-                }
-                server->domain_type = DNS_RESOLVE_DOMAINS;
-                dns_domain_list_append(&server->domains, &p[4], &options->dns_options.gc);
-            }
-            else if (streq(p[3], "exclude-domains"))
-            {
-                if (server->domain_type == DNS_RESOLVE_DOMAINS)
-                {
-                    msg(msglevel, "--dns server %ld: cannot use exclude-domains and resolve-domains", priority);
-                    goto err;
-                }
-                server->domain_type = DNS_EXCLUDE_DOMAINS;
                 dns_domain_list_append(&server->domains, &p[4], &options->dns_options.gc);
             }
             else if (streq(p[3], "dnssec") && !p[5])
