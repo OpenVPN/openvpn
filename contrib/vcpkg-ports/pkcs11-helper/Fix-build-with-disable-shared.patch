@@ -1,0 +1,48 @@
+From 7171396a151a2edb3474c7a321b7ae4ff7e171fc Mon Sep 17 00:00:00 2001
+From: Frank Lichtenheld <frank@lichtenheld.com>
+Date: Wed, 29 Mar 2023 12:44:44 +0200
+Subject: [PATCH] Allow the build to succeed if configured with
+ --disable-shared
+
+Do not try to install a file that does not exist.
+
+Signed-off-by: Frank Lichtenheld <frank@lichtenheld.com>
+---
+ configure.ac    | 1 +
+ lib/Makefile.am | 2 ++
+ 2 files changed, 3 insertions(+)
+
+upstream PR: https://github.com/OpenSC/pkcs11-helper/pull/62
+
+diff --git a/configure.ac b/configure.ac
+index a7e9760..f154ae3 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -581,6 +581,7 @@ AC_SUBST([LIBPKCS11_HELPER_LT_AGE])
+ AC_SUBST([LIBPKCS11_HELPER_LT_OLDEST])
+ AC_SUBST([WIN_LIBPREFIX])
+ AC_SUBST([PKCS11H_FEATURES])
++AM_CONDITIONAL([ENABLE_SHARED], [test "${enable_shared}" = "yes" ])
+ AM_CONDITIONAL([WIN32], [test "${WIN32}" = "yes"])
+ AM_CONDITIONAL([CYGWIN], [test "${CYGWIN}" = "yes"])
+ AM_CONDITIONAL([ENABLE_DOC], [test "${enable_doc}" = "yes"])
+diff --git a/lib/Makefile.am b/lib/Makefile.am
+index 31b928f..3cba32f 100644
+--- a/lib/Makefile.am
++++ b/lib/Makefile.am
+@@ -128,10 +128,12 @@ if ENABLE_PKCS11H_TOKEN
+ endif
+ 
+ if WIN32
++if ENABLE_SHARED
+ mylibdir=$(libdir)
+ mylib_DATA=.libs/@WIN_LIBPREFIX@pkcs11-helper-@LIBPKCS11_HELPER_LT_OLDEST@.dll.def
+ .libs/@WIN_LIBPREFIX@pkcs11-helper-@LIBPKCS11_HELPER_LT_OLDEST@.dll.def:	libpkcs11-helper.la
+ endif
++endif
+ 
+ RCCOMPILE = $(RC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+ 	$(AM_CPPFLAGS) $(CPPFLAGS)
+-- 
+2.34.1
+
