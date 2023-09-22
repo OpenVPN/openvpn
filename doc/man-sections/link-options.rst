@@ -366,8 +366,7 @@ the local and the remote host.
   order they were received to the TCP/IP protocol stack, provided they
   satisfy several constraints.
 
-  (a)   The packet cannot be a replay (unless ``--no-replay`` is
-        specified, which disables replay protection altogether).
+  (a)   The packet cannot be a replay.
 
   (b)   If a packet arrives out of order, it will only be accepted if
         the difference between its sequence number and the highest sequence

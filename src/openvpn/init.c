@@ -3019,17 +3019,14 @@ do_init_crypto_static(struct context *c, const unsigned int flags)
     }
 
     /* Initialize packet ID tracking */
-    if (options->replay)
-    {
-        packet_id_init(&c->c2.crypto_options.packet_id,
-                       options->replay_window,
-                       options->replay_time,
-                       "STATIC", 0);
-        c->c2.crypto_options.pid_persist = &c->c1.pid_persist;
-        c->c2.crypto_options.flags |= CO_PACKET_ID_LONG_FORM;
-        packet_id_persist_load_obj(&c->c1.pid_persist,
-                                   &c->c2.crypto_options.packet_id);
-    }
+    packet_id_init(&c->c2.crypto_options.packet_id,
+                   options->replay_window,
+                   options->replay_time,
+                   "STATIC", 0);
+    c->c2.crypto_options.pid_persist = &c->c1.pid_persist;
+    c->c2.crypto_options.flags |= CO_PACKET_ID_LONG_FORM;
+    packet_id_persist_load_obj(&c->c1.pid_persist,
+                               &c->c2.crypto_options.packet_id);
 
     if (!key_ctx_bi_defined(&c->c1.ks.static_key))
     {
@@ -3051,9 +3048,6 @@ do_init_crypto_static(struct context *c, const unsigned int flags)
 
     /* Get key schedule */
     c->c2.crypto_options.key_ctx_bi = c->c1.ks.static_key;
-
-    /* Sanity check on sequence number, and cipher mode options */
-    check_replay_consistency(&c->c1.ks.key_type, options->replay);
 }
 
 /*
@@ -3256,9 +3250,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         return;
     }
 
-    /* Sanity check on sequence number, and cipher mode options */
-    check_replay_consistency(&c->c1.ks.key_type, options->replay);
-
     /* In short form, unique datagram identifier is 32 bits, in long form 64 bits */
     packet_id_long_form = cipher_kt_mode_ofb_cfb(c->c1.ks.key_type.cipher);
 
@@ -3279,7 +3270,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.ssl_ctx = c->c1.ks.ssl_ctx;
     to.key_type = c->c1.ks.key_type;
     to.server = options->tls_server;
-    to.replay = options->replay;
     to.replay_window = options->replay_window;
     to.replay_time = options->replay_time;
     to.tcp_mode = link_socket_proto_connection_oriented(options->ce.proto);
@@ -3643,11 +3633,6 @@ do_option_warnings(struct context *c)
         {
             msg(M_WARN, "WARNING: --keepalive option is missing from server config");
         }
-    }
-
-    if (!o->replay)
-    {
-        msg(M_WARN, "WARNING: You have disabled Replay Protection (--no-replay) which may make " PACKAGE_NAME " less secure");
     }
 
     if (o->tls_server)

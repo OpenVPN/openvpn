@@ -40,7 +40,7 @@
  *    HMAC at all.
  *  - \b Ciphertext \b IV. The IV size depends on the \c \-\-cipher option.
  *  - \b Packet \b ID, a 32-bit incrementing packet counter that provides replay
- *    protection (if not disabled by \c \-\-no-replay).
+ *    protection.
  *  - \b Timestamp, a 32-bit timestamp of the current time.
  *  - \b Payload, the plain text network packet to be encrypted (unless
  *    encryption is disabled by using \c \-\-cipher \c none). The payload might
@@ -304,8 +304,6 @@ void read_key_file(struct key2 *key2, const char *file, const unsigned int flags
  */
 int write_key_file(const int nkeys, const char *filename);
 
-void check_replay_consistency(const struct key_type *kt, bool packet_id);
-
 bool check_key(struct key *key, const struct key_type *kt);
 
 bool write_key(const struct key *key, const struct key_type *kt,
@@ -445,7 +443,7 @@ void crypto_adjust_frame_parameters(struct frame *frame,
  * this and add it themselves.
  *
  * @param kt            Struct with the crypto algorithm to use
- * @param packet_id_size Size of the packet id, can be 0 if no-replay is used
+ * @param packet_id_size Size of the packet id
  * @param occ           if true calculates the overhead for crypto in the same
  *                      incorrect way as all previous OpenVPN versions did, to
  *                      end up with identical numbers for OCC compatibility

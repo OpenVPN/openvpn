@@ -560,7 +560,6 @@ struct options
     const char *authname;
     const char *engine;
     struct provider_list providers;
-    bool replay;
     bool mute_replay_warnings;
     int replay_window;
     int replay_time;

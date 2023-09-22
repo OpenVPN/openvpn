@@ -1007,12 +1007,9 @@ key_state_init(struct tls_session *session, struct key_state *ks)
     reliable_set_timeout(ks->send_reliable, session->opt->packet_timeout);
 
     /* init packet ID tracker */
-    if (session->opt->replay)
-    {
-        packet_id_init(&ks->crypto_options.packet_id,
-                       session->opt->replay_window, session->opt->replay_time, "SSL",
-                       ks->key_id);
-    }
+    packet_id_init(&ks->crypto_options.packet_id,
+                   session->opt->replay_window, session->opt->replay_time, "SSL",
+                   ks->key_id);
 
     ks->crypto_options.pid_persist = NULL;
 

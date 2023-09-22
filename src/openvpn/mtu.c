@@ -52,13 +52,6 @@ alloc_buf_sock_tun(struct buffer *buf,
 unsigned int
 calc_packet_id_size_dc(const struct options *options, const struct key_type *kt)
 {
-    /* Unless no-replay is enabled, we have a packet id, no matter if
-     * encryption is used or not */
-    if (!options->replay)
-    {
-        return 0;
-    }
-
     bool tlsmode = options->tls_server || options->tls_client;
 
     bool packet_id_long_form = !tlsmode || cipher_kt_mode_ofb_cfb(kt->cipher);

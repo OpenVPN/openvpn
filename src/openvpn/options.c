@@ -549,7 +549,6 @@ static const char usage_message[] =
 #ifndef ENABLE_CRYPTO_MBEDTLS
     "--engine [name] : Enable OpenSSL hardware crypto engine functionality.\n"
 #endif
-    "--no-replay     : (DEPRECATED) Disable replay protection.\n"
     "--mute-replay-warnings : Silence the output of replay warnings to log file.\n"
     "--replay-window n [t]  : Use a replay protection sliding window of size n\n"
     "                         and a time window of t seconds.\n"
@@ -868,7 +867,6 @@ init_options(struct options *o, const bool init_gc)
     o->ifconfig_pool_persist_refresh_freq = 600;
     o->scheduled_exit_interval = 5;
     o->authname = "SHA1";
-    o->replay = true;
     o->replay_window = DEFAULT_SEQ_BACKTRACK;
     o->replay_time = DEFAULT_TIME_BACKTRACK;
     o->key_direction = KEY_DIRECTION_BIDIRECTIONAL;
@@ -1954,7 +1952,6 @@ show_settings(const struct options *o)
 #ifndef ENABLE_CRYPTO_MBEDTLS
     SHOW_BOOL(engine);
 #endif /* ENABLE_CRYPTO_MBEDTLS */
-    SHOW_BOOL(replay);
     SHOW_BOOL(mute_replay_warnings);
     SHOW_INT(replay_window);
     SHOW_INT(replay_time);
@@ -2814,16 +2811,6 @@ options_postprocess_verify_ce(const struct options *options,
         {
             msg(M_USAGE, "--vlan-tagging requires --mode server");
         }
-    }
-
-    /*
-     * Check consistency of replay options
-     */
-    if (!options->replay
-        && (options->replay_window != defaults.replay_window
-            || options->replay_time != defaults.replay_time))
-    {
-        msg(M_USAGE, "--replay-window doesn't make sense when replay protection is disabled with --no-replay");
     }
 
     /*
@@ -4198,7 +4185,6 @@ options_postprocess_pull(struct options *o, struct env_set *es)
  * --cipher
  * --auth
  * --secret
- * --no-replay
  *
  * SSL Options:
  *
@@ -4363,10 +4349,6 @@ options_string(const struct options *o,
         if (o->shared_secret_file)
         {
             buf_printf(&out, ",secret");
-        }
-        if (!o->replay)
-        {
-            buf_printf(&out, ",no-replay");
         }
 
 #ifdef ENABLE_PREDICTION_RESISTANCE
@@ -8670,7 +8652,9 @@ add_option(struct options *options,
     else if (streq(p[0], "no-replay") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->replay = false;
+        /* always error out, this breaks the connection */
+        msg(M_FATAL, "--no-replay was removed in OpenVPN 2.7. "
+            "Update your configuration.");
     }
     else if (streq(p[0], "replay-window") && !p[3])
     {

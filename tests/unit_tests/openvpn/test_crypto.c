@@ -247,7 +247,6 @@ test_occ_mtu_calculation(void **state)
 
     /* common defaults */
     o.ce.tun_mtu = 1400;
-    o.replay = true;
     o.ce.proto = PROTO_UDP;
 
     /* No crypto at all */
@@ -334,15 +333,6 @@ test_occ_mtu_calculation(void **state)
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1405);
 
-    /* tls client, auth none, cipher none, no-replay */
-    o.replay = false;
-
-    linkmtu = calc_options_string_link_mtu(&o, &f);
-    assert_int_equal(linkmtu, 1401);
-
-
-    o.replay = true;
-
     /* tls client, auth SHA1, cipher AES-256-GCM */
     o.authname = "SHA1";
     o.ciphername = "AES-256-GCM";
@@ -378,7 +368,6 @@ test_mssfix_mtu_calculation(void **state)
     /* common defaults */
     o.ce.tun_mtu = 1400;
     o.ce.mssfix = 1000;
-    o.replay = true;
     o.ce.proto = PROTO_UDP;
 
     /* No crypto at all */

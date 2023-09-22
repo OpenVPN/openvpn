@@ -328,7 +328,7 @@ crypto_check_replay(struct crypto_options *opt,
         if (!(opt->flags & CO_MUTE_REPLAY_WARNINGS))
         {
             msg(D_REPLAY_ERRORS, "%s: bad packet ID (may be a replay): %s -- "
-                "see the man page entry for --no-replay and --replay-window for "
+                "see the man page entry for --replay-window for "
                 "more info or silence this warning with --mute-replay-warnings",
                 error_prefix, packet_id_net_print(pin, true, gc));
         }
@@ -940,18 +940,6 @@ check_key(struct key *key, const struct key_type *kt)
         }
     }
     return true;
-}
-
-void
-check_replay_consistency(const struct key_type *kt, bool packet_id)
-{
-    ASSERT(kt);
-
-    if (!packet_id && (cipher_kt_mode_ofb_cfb(kt->cipher)
-                       || cipher_kt_mode_aead(kt->cipher)))
-    {
-        msg(M_FATAL, "--no-replay cannot be used with a CFB, OFB or AEAD mode cipher");
-    }
 }
 
 /*
