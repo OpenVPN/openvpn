@@ -290,19 +290,6 @@ jobs:
             !${{ github.workspace }}/out/**/CMakeFiles/**
             !${{ github.workspace }}/out/**/vcpkg_installed/**
 
-  trigger_openvpn_build:
-    runs-on: windows-latest
-    needs: [checkuncrustify, mingw, ubuntu, ubuntu-clang-asan, macos, msvc]
-    if: ${{ github.event_name != 'pull_request' && github.repository == 'openvpn/openvpn' && github.ref == 'refs/heads/master' }}
-
-    steps:
-    - name: Repository Dispatch
-      uses: peter-evans/repository-dispatch@v2
-      with:
-        token: ${{ secrets.OPENVPN_BUILD_REPO_DISPATCH }}
-        repository: openvpn/openvpn-build
-        event-type: openvpn-commit
-
   libressl:
     strategy:
       fail-fast: false
