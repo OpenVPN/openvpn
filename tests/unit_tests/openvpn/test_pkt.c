@@ -71,14 +71,6 @@ print_link_socket_actual(const struct link_socket_actual *act, struct gc_arena *
     return "dummy print_link_socket_actual from unit test";
 }
 
-#ifdef _WIN32
-int
-openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned int flags)
-{
-    ASSERT(0);
-}
-#endif
-
 struct test_pkt_context {
     struct tls_auth_standalone tas_tls_auth;
     struct tls_auth_standalone tas_crypt;
