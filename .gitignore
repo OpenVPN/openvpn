@@ -17,6 +17,7 @@
 Release
 Debug
 Win32-Output
+out
 .vs
 .deps
 .libs

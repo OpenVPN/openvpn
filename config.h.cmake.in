@@ -1,0 +1,479 @@
+
+/* Configuration settings */
+#define CONFIGURE_DEFINES "N/A"
+
+/* Enable async push */
+#cmakedefine ENABLE_ASYNC_PUSH
+
+/* Use mbed TLS library */
+#cmakedefine ENABLE_CRYPTO_MBEDTLS
+
+/* Use Openssl */
+#cmakedefine ENABLE_CRYPTO_OPENSSL
+
+/* Use wolfSSL crypto library */
+#cmakedefine ENABLE_CRYPTO_WOLFSSL
+
+/* Enable shared data channel offload */
+#cmakedefine ENABLE_DCO
+
+/* Enable debugging support (needed for verb>=4) */
+#define ENABLE_DEBUG 1
+
+/* We have persist tun capability */
+#cmakedefine ENABLE_FEATURE_TUN_PERSIST
+
+/* Enable internal fragmentation support */
+#define ENABLE_FRAGMENT 1
+
+/* Enable linux data channel offload */
+#cmakedefine ENABLE_LINUXDCO
+
+/* Enable LZ4 compression library */
+#cmakedefine ENABLE_LZ4
+
+/* Enable LZO compression library */
+#cmakedefine ENABLE_LZO
+
+/* Enable management server capability */
+#define ENABLE_MANAGEMENT 1
+
+/* Enable OFB and CFB cipher modes */
+#define ENABLE_OFB_CFB_MODE
+
+/* Enable PKCS11 */
+#cmakedefine ENABLE_PKCS11
+
+/* Enable plug-in support */
+#define ENABLE_PLUGIN 1
+
+/* Enable TCP Server port sharing */
+#cmakedefine ENABLE_PORT_SHARE
+
+/* SELinux support */
+#cmakedefine ENABLE_SELINUX
+
+/* enable sitnl support */
+#cmakedefine ENABLE_SITNL
+
+/* Enable systemd integration */
+/* #undef ENABLE_SYSTEMD */
+
+/* Enable --x509-username-field feature */
+#cmakedefine ENABLE_X509ALTUSERNAME
+
+/* Compiler supports anonymous unions */
+#define HAVE_ANONYMOUS_UNION_SUPPORT
+
+/* Define to 1 if you have the <arpa/inet.h> header file. */
+#cmakedefine HAVE_ARPA_INET_H 1
+
+/* Define to 1 if you have the `basename' function. */
+#cmakedefine HAVE_BASENAME
+
+/* Define to 1 if you have the `chdir' function. */
+#cmakedefine HAVE_CHDIR
+
+/* Define to 1 if you have the `chroot' function. */
+#cmakedefine HAVE_CHROOT
+
+/* Define to 1 if you have the `chsize' function. */
+#cmakedefine HAVE_CHSIZE
+
+/* struct cmsghdr needed for extended socket error support */
+#cmakedefine HAVE_CMSGHDR
+
+/* git version information in config-version.h */
+#cmakedefine HAVE_CONFIG_VERSION_H
+
+/* Define to 1 if you have the `daemon' function. */
+#cmakedefine HAVE_DAEMON
+
+/* Define to 1 if you have the declaration of `SO_MARK', and to 0 if you
+don't. */
+#cmakedefine01 HAVE_DECL_SO_MARK
+
+/* Define to 1 if you have the <direct.h> header file. */
+#cmakedefine HAVE_DIRECT_H
+
+/* Define to 1 if you have the `dirname' function. */
+#cmakedefine HAVE_DIRNAME
+
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#cmakedefine HAVE_DLFCN_H
+
+/* Define to 1 if you have the <dmalloc.h> header file. */
+#cmakedefine HAVE_DMALLOC_H
+
+/* Define to 1 if you have the `dup' function. */
+#cmakedefine HAVE_DUP
+
+/* Define to 1 if you have the `dup2' function. */
+#cmakedefine HAVE_DUP2
+
+/* Define to 1 if you have the `epoll_create' function. */
+#cmakedefine HAVE_EPOLL_CREATE
+
+/* Define to 1 if you have the <err.h> header file. */
+#cmakedefine HAVE_ERR_H
+
+/* Crypto library supports keying material exporter */
+#define HAVE_EXPORT_KEYING_MATERIAL 1
+
+/* Define to 1 if you have the <fcntl.h> header file. */
+#cmakedefine HAVE_FCNTL_H
+
+/* Define to 1 if you have the `fork' function. */
+#cmakedefine HAVE_FORK
+#cmakedefine HAVE_EXECVE
+
+/* Define to 1 if you have the `ftruncate' function. */
+#cmakedefine HAVE_FTRUNCATE
+
+/* Define to 1 if you have the `getgrnam' function. */
+#cmakedefine HAVE_GETGRNAM
+
+/* Define to 1 if you have the `getpeereid' function. */
+#cmakedefine HAVE_GETPEEREID
+
+/* Define to 1 if you have the `getpwnam' function. */
+#cmakedefine HAVE_GETPWNAM
+
+/* Define to 1 if you have the `getrlimit' function. */
+#undef HAVE_GETRLIMIT
+
+/* Define to 1 if you have the `getsockname' function. */
+#cmakedefine HAVE_GETSOCKNAME
+
+/* Define to 1 if you have the `gettimeofday' function. */
+#cmakedefine HAVE_GETTIMEOFDAY
+
+/* Define to 1 if you have the <grp.h> header file. */
+#cmakedefine HAVE_GRP_H
+
+/* struct in_pktinfo needed for IP_PKTINFO support */
+#cmakedefine HAVE_IN_PKTINFO
+
+/* Define to 1 if you have the <io.h> header file. */
+#cmakedefine HAVE_IO_H
+
+/* struct in_pktinfo.ipi_spec_dst needed for IP_PKTINFO support */
+#cmakedefine HAVE_IPI_SPEC_DST
+
+/* Define to 1 if you have the <libgen.h> header file. */
+#cmakedefine HAVE_LIBGEN_H
+
+/* Define to 1 if you have the <limits.h> header file. */
+#define HAVE_LIMITS_H 1
+
+/* Define to 1 if you have the <linux/if_tun.h> header file. */
+#cmakedefine HAVE_LINUX_IF_TUN_H
+
+/* Define to 1 if you have the <linux/sockios.h> header file. */
+#cmakedefine HAVE_LINUX_SOCKIOS_H
+
+/* Define to 1 if you have the <linux/types.h> header file. */
+#cmakedefine HAVE_LINUX_TYPES_H
+
+/* Define to 1 if you have the <lzoconf.h> header file. */
+#define HAVE_LZO_CONF_H
+
+/* Define to 1 if you have the <lzo1x.h> header file. */
+#define HAVE_LZO1X_H 1
+
+/* Define to 1 if you have the <lzoutil.h> header file. */
+#define HAVE_LZOUTIL_H 1
+
+/* Define to 1 if you have the `mlockall' function. */
+#cmakedefine HAVE_MLOCKALL
+
+/* struct msghdr needed for extended socket error support */
+#cmakedefine HAVE_MSGHDR
+
+/* Define to 1 if you have the <netdb.h> header file. */
+#cmakedefine HAVE_NETDB_H
+
+/* Define to 1 if you have the <netinet/in.h> header file. */
+#cmakedefine HAVE_NETINET_IN_H
+
+/* Define to 1 if you have the <netinet/ip.h> header file. */
+#cmakedefine HAVE_NETINET_IP_H
+
+/* Define to 1 if you have the <netinet/tcp.h> header file. */
+#undef HAVE_NETINET_TCP_H
+
+/* Define to 1 if you have the <net/if.h> header file. */
+#cmakedefine HAVE_NET_IF_H
+
+/* Define to 1 if you have the <net/if_tun.h> header file. */
+#cmakedefine HAVE_NET_IF_TUN_H
+
+/* Define to 1 if you have the <net/if_utun.h> header file. */
+#cmakedefine01 HAVE_NET_IF_UTUN_H
+
+/* Define to 1 if you have the <net/tun/if_tun.h> header file. */
+#cmakedefine HAVE_NET_TUN_IF_TUN_H
+
+/* Define to 1 if you have the `nice' function. */
+#undef HAVE_NICE
+
+/* Define to 1 if you have the `openlog' function. */
+#cmakedefine HAVE_OPENLOG
+
+/* OpenSSL engine support available */
+#undef HAVE_OPENSSL_ENGINE
+
+/* Define to 1 if you have the `poll' function. */
+#undef HAVE_POLL
+
+/* Define to 1 if you have the <poll.h> header file. */
+#cmakedefine HAVE_POLL_H
+
+/* Define to 1 if you have the `putenv' function. */
+#undef HAVE_PUTENV
+
+/* Define to 1 if you have the <pwd.h> header file. */
+#cmakedefine HAVE_PWD_H
+
+/* Define to 1 if you have the `readv' function. */
+#undef HAVE_READV
+
+/* Define to 1 if you have the `recvmsg' function. */
+#cmakedefine HAVE_RECVMSG
+#cmakedefine HAVE_SENDMSG
+
+/* Define to 1 if you have the <resolv.h> header file. */
+#cmakedefine HAVE_RESOLV_H
+
+/* sa_family_t, needed to hold AF_* info */
+#cmakedefine HAVE_SA_FAMILY_T
+
+/* Define to 1 if you have the `sd_booted' function. */
+#undef HAVE_SD_BOOTED
+
+/* Define to 1 if you have the `setgid' function. */
+#cmakedefine HAVE_SETGID
+
+/* Define to 1 if you have the `setgroups' function. */
+#undef HAVE_SETGROUPS
+
+/* Define to 1 if you have the `setsid' function. */
+#cmakedefine HAVE_SETSID
+
+/* Define to 1 if you have the `setsockopt' function. */
+#define HAVE_SETSOCKOPT 1
+
+/* Define to 1 if you have the `setuid' function. */
+#cmakedefine HAVE_SETUID
+
+/* Define to 1 if you have the <signal.h> header file. */
+#undef HAVE_SIGNAL_H
+
+/* Define to 1 if you have the `socket' function. */
+#undef HAVE_SOCKET
+
+/* struct sock_extended_err needed for extended socket error support */
+#undef HAVE_SOCK_EXTENDED_ERR
+
+/* Define to 1 if you have the `stat' function. */
+#define HAVE_STAT 1
+
+/* Define to 1 if you have the <stdarg.h> header file. */
+#define HAVE_STDARG_H 1
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#define HAVE_STDINT_H 1
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#define HAVE_STDIO_H 1
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#define HAVE_STDLIB_H 1
+
+/* Define to 1 if you have the `strdup' function. */
+#undef HAVE_STRDUP
+
+/* Define to 1 if you have the <strings.h> header file. */
+#define HAVE_STRINGS_H 1
+
+/* Define to 1 if you have the <string.h> header file. */
+#define HAVE_STRING_H 1
+
+/* Define to 1 if you have the `strsep' function. */
+#undef HAVE_STRSEP
+
+/* Define to 1 if you have the `syslog' function. */
+#cmakedefine HAVE_SYSLOG
+
+/* Define to 1 if you have the <syslog.h> header file. */
+#cmakedefine HAVE_SYSLOG_H
+
+/* Define to 1 if you have the `system' function. */
+#undef HAVE_SYSTEM
+
+/* Define to 1 if you have the <systemd/sd-daemon.h> header file. */
+#undef HAVE_SYSTEMD_SD_DAEMON_H
+
+/* Define to 1 if you have the <sys/epoll.h> header file. */
+#cmakedefine HAVE_SYS_EPOLL_H
+
+/* Define to 1 if you have the <sys/file.h> header file. */
+#undef HAVE_SYS_FILE_H
+
+/* Define to 1 if you have the <sys/inotify.h> header file. */
+#cmakedefine HAVE_SYS_INOTIFY_H
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#cmakedefine HAVE_SYS_IOCTL_H
+
+/* Define to 1 if you have the <sys/kern_control.h> header file. */
+#undef HAVE_SYS_KERN_CONTROL_H
+
+/* Define to 1 if you have the <sys/mman.h> header file. */
+#cmakedefine HAVE_SYS_MMAN_H
+
+/* Define to 1 if you have the <sys/socket.h> header file. */
+#cmakedefine HAVE_SYS_SOCKET_H
+
+/* Define to 1 if you have the <sys/sockio.h> header file. */
+#undef HAVE_SYS_SOCKIO_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#define HAVE_SYS_STAT_H 1
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#cmakedefine HAVE_SYS_TIME_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <sys/uio.h> header file. */
+#cmakedefine HAVE_SYS_UIO_H
+
+/* Define to 1 if you have the <sys/un.h> header file. */
+#cmakedefine HAVE_SYS_UN_H
+
+/* Define to 1 if you have the <sys/wait.h> header file. */
+#cmakedefine HAVE_SYS_WAIT_H
+
+/* Define to 1 if you have the <tap-windows.h> header file. */
+#undef HAVE_TAP_WINDOWS_H
+
+/* Define to 1 if you have the `time' function. */
+#define HAVE_TIME 1
+
+/* Define to 1 if you have the <time.h> header file. */
+#define HAVE_TIME_H 1
+
+/* Define to 1 if you have the <uapi.h> header file. */
+#undef HAVE_UAPI_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#cmakedefine HAVE_UNISTD_H
+
+/* Define to 1 if you have the <valgrind/memcheck.h> header file. */
+#undef HAVE_VALGRIND_MEMCHECK_H
+
+/* Define to 1 if you have the <versionhelpers.h> header file. */
+#undef HAVE_VERSIONHELPERS_H
+
+/* Define to 1 if you have the `vfork' function. */
+#undef HAVE_VFORK
+
+/* Define to 1 if you have the <vfork.h> header file. */
+#undef HAVE_VFORK_H
+
+/* Define to 1 if you have the `vsnprintf' function. */
+#undef HAVE_VSNPRINTF
+
+/* we always assume a recent mbed TLS version */
+#define HAVE_CTR_DRBG_UPDATE_RET 1
+
+/* Path to ifconfig tool */
+#define IFCONFIG_PATH "@IFCONFIG_PATH@"
+
+/* Path to iproute tool */
+#define IPROUTE_PATH "@IPROUTE_PATH@"
+
+/* Path to route tool */
+#define ROUTE_PATH "@ROUTE_PATH@"
+
+/* OpenVPN version in Windows resource format - string */
+#define OPENVPN_VERSION_RESOURCE @OPENVPN_VERSION_RESOURCE@
+
+/* Name of package */
+#define PACKAGE "openvpn"
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#define PACKAGE_NAME "OpenVPN"
+
+/* Define to the full name and version of this package. */
+#define PACKAGE_STRING "OpenVPN @OPENVPN_VERSION_MAJOR@.@OPENVPN_VERSION_MINOR@@OPENVPN_VERSION_PATCH@"
+
+/* Define to the version of this package. */
+#define PACKAGE_VERSION "@OPENVPN_VERSION_MAJOR@.@OPENVPN_VERSION_MINOR@@OPENVPN_VERSION_PATCH@"
+
+/* Path to systemd-ask-password tool */
+#undef SYSTEMD_ASK_PASSWORD_PATH
+
+/* systemd is newer than v216 */
+#define SYSTEMD_NEWER_THAN_216
+
+/* The tap-windows id */
+#define TAP_WIN_COMPONENT_ID "tap0901"
+
+/* The tap-windows version number is required for OpenVPN */
+#define TAP_WIN_MIN_MAJOR 9
+
+/* The tap-windows version number is required for OpenVPN */
+#define TAP_WIN_MIN_MINOR 9
+
+/* Are we running on Mac OS X? */
+#cmakedefine TARGET_DARWIN
+
+/* Are we running on FreeBSD? */
+#cmakedefine TARGET_FREEBSD
+
+/* Are we running on Linux? */
+#cmakedefine TARGET_LINUX
+
+/* Are we running WIN32? */
+#cmakedefine TARGET_WIN32
+
+#define TARGET_ALIAS "@CMAKE_SYSTEM_NAME@"
+
+/* Enable GNU extensions on systems that have them.  */
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE 1
+#endif
+
+
+#if defined(_WIN32)
+#include <inttypes.h>
+typedef uint32_t in_addr_t;
+typedef uint16_t in_port_t;
+
+#define SIGHUP    1
+#define SIGINT    2
+#define SIGUSR1   10
+#define SIGUSR2   12
+#define SIGTERM   15
+#endif
+
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#define strncasecmp strnicmp
+#define strcasecmp _stricmp
+
+#define S_IRUSR 0
+#define S_IWUSR 0
+#define R_OK 4
+#define W_OK 2
+#define X_OK 1
+#define F_OK 0
+#endif
+

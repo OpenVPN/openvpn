@@ -41,7 +41,10 @@ CLEANFILES = \
 
 EXTRA_DIST = \
 	contrib \
-	debug
+	debug \
+	CMakeLists.txt \
+	CMakePresets.json \
+	config.h.cmake.in
 
 .PHONY: config-version.h doxygen
 
@@ -64,6 +67,7 @@ dist_noinst_DATA = \
 	.gitattributes \
 	CONTRIBUTING.rst \
 	PORTS \
+	README.cmake.md \
 	README.dco.md \
 	README.ec \
 	README.wolfssl \

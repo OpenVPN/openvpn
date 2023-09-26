@@ -63,7 +63,8 @@ dist_noinst_DATA = \
 	README.plugins \
 	tls-crypt-v2.txt \
 	$(openvpn_sections) \
-	$(openvpn_examples_sections)
+	$(openvpn_examples_sections) \
+	CMakeLists.txt
 
 EXTRA_DIST = tests
 

@@ -21,6 +21,9 @@ To Build and Install,
 
 or see the file INSTALL for more info.
 
+For information on how to build OpenVPN on/for Windows with MinGW
+or MSVC see README.cmake.md.
+
 *************************************************************************
 
 For detailed information on OpenVPN, including examples, see the man page
@@ -69,8 +72,7 @@ Their source code is available here:
   https://github.com/OpenVPN/easy-rsa
   https://github.com/OpenVPN/tap-windows6
 
-The old cross-compilation environment (domake-win) and the Python-based
-buildsystem have been replaced with openvpn-build:
+Community-provided Windows installers (MSI) and Debian packages are built from
 
   https://github.com/OpenVPN/openvpn-build
 

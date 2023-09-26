@@ -33,6 +33,10 @@ AM_CPPFLAGS = \
 AM_CFLAGS = \
 	$(TAP_CFLAGS)
 
+EXTRA_DIST = \
+	CMakeLists.txt \
+	tapctl.exe.manifest
+
 if WIN32
 sbin_PROGRAMS = tapctl
 tapctl_CFLAGS = \

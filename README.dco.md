@@ -59,8 +59,11 @@ in your log.
 
 Getting started (Windows)
 -------------------------
-The simplest way to test DCO under Windows is to download the latest installer
-from https://build.openvpn.net/downloads/snapshots/github-actions/openvpn2/ .
+Official releases published at https://openvpn.net/community-downloads/
+include ovpn-dco-win driver since 2.6.0.
+
+There are also snapshot releases available at
+https://build.openvpn.net/downloads/snapshots/github-actions/openvpn2/ .
 This installer contains the latest OpenVPN code and the ovpn-dco-win driver.
 
 
