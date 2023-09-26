@@ -71,11 +71,7 @@ dist_noinst_DATA = \
 	README.dco.md \
 	README.ec \
 	README.wolfssl \
-	openvpn.sln
-
-dist_noinst_HEADERS = \
-	config-msvc.h \
-	config-msvc-version.h.in
+	README.mbedtls
 
 if WIN32
 rootdir=$(prefix)

@@ -13,5 +13,3 @@ MAINTAINERCLEANFILES = \
 
 EXTRA_DIST = \
 	ltrc.inc
-
-SUBDIRS = msvc
