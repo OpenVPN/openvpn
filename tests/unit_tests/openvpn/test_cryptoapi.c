@@ -58,6 +58,17 @@ management_query_pk_sig(struct management *man, const char *b64_data,
     return NULL;
 }
 
+/* replacement for crypto_print_openssl_errors() */
+void
+crypto_print_openssl_errors(const unsigned int flags)
+{
+    unsigned long e;
+    while ((e = ERR_get_error()))
+    {
+        msg(flags, "OpenSSL error %lu: %s\n", e, ERR_error_string(e, NULL));
+    }
+}
+
 /* tls_libctx is defined in ssl_openssl.c which we do not want to compile in */
 OSSL_LIB_CTX *tls_libctx;
 
