@@ -118,16 +118,4 @@ void crypto_print_openssl_errors(const unsigned int flags);
         msg((flags), __VA_ARGS__); \
     } while (false)
 
-/**
- * Load a key file from an engine
- *
- * @param file  The engine file to load
- * @param ui    The UI method for the password prompt
- * @param data  The data to pass to the UI method
- *
- * @return      The private key if successful or NULL if not
- */
-EVP_PKEY *
-engine_load_key(const char *file, SSL_CTX *ctx);
-
 #endif /* CRYPTO_OPENSSL_H_ */
