@@ -188,7 +188,7 @@ struct multi_instance *
 multi_get_create_instance_udp(struct multi_context *m, bool *floated)
 {
     struct gc_arena gc = gc_new();
-    struct mroute_addr real;
+    struct mroute_addr real = {0};
     struct multi_instance *mi = NULL;
     struct hash *hash = m->hash;
 

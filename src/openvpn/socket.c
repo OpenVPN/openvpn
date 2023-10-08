@@ -3298,7 +3298,7 @@ link_socket_read_udp_posix_recvmsg(struct link_socket *sock,
 {
     struct iovec iov;
     uint8_t pktinfo_buf[PKTINFO_BUF_SIZE];
-    struct msghdr mesg;
+    struct msghdr mesg = {0};
     socklen_t fromlen = sizeof(from->dest.addr);
 
     ASSERT(sock->sd >= 0);                      /* can't happen */

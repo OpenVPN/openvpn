@@ -1234,7 +1234,7 @@ multi_learn_in_addr_t(struct multi_context *m,
                       bool primary)
 {
     struct openvpn_sockaddr remote_si;
-    struct mroute_addr addr;
+    struct mroute_addr addr = {0};
 
     CLEAR(remote_si);
     remote_si.addr.in4.sin_family = AF_INET;
@@ -1273,7 +1273,7 @@ multi_learn_in6_addr(struct multi_context *m,
                      int netbits,   /* -1 if host route, otherwise # of network bits in address */
                      bool primary)
 {
-    struct mroute_addr addr;
+    struct mroute_addr addr = {0};
 
     addr.len = 16;
     addr.type = MR_ADDR_IPV6;
@@ -3137,7 +3137,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
 void
 multi_process_float(struct multi_context *m, struct multi_instance *mi)
 {
-    struct mroute_addr real;
+    struct mroute_addr real = {0};
     struct hash *hash = m->hash;
     struct gc_arena gc = gc_new();
 
@@ -3551,7 +3551,7 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
     if (BLEN(&m->top.c2.buf) > 0)
     {
         unsigned int mroute_flags;
-        struct mroute_addr src, dest;
+        struct mroute_addr src = {0}, dest = {0};
         const int dev_type = TUNNEL_TYPE(m->top.c1.tuntap);
         int16_t vid = 0;
 

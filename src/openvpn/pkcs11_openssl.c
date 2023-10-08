@@ -166,7 +166,7 @@ xkey_pkcs11h_sign(void *handle, unsigned char *sig,
     CK_RSA_PKCS_PSS_PARAMS pss_params = {0};
 
     unsigned char buf[EVP_MAX_MD_SIZE];
-    size_t buflen;
+    size_t buflen = 0;
     size_t siglen_max = *siglen;
 
     unsigned char enc[EVP_MAX_MD_SIZE + 32]; /* 32 bytes enough for DigestInfo header */
