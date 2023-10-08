@@ -36,6 +36,13 @@
                    ((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
 #endif
 
+static inline int
+clamp_size_to_int(size_t size)
+{
+    ASSERT(size <= INT_MAX);
+    return (int)size;
+}
+
 /*
  * min/max functions
  */
@@ -188,8 +195,8 @@ index_verify(int index, int size, const char *file, int line)
 /**
  * Rounds down num to the nearest multiple of multiple
  */
-static inline unsigned int
-round_down_uint(unsigned int num, unsigned int multiple)
+static inline size_t
+round_down_size(size_t num, size_t multiple)
 {
     return (num / multiple) * multiple;
 }

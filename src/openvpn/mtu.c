@@ -167,7 +167,7 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
      */
     const char *ciphername = o->ciphername;
 
-    unsigned int overhead = 0;
+    size_t overhead = 0;
 
     if (strcmp(o->ciphername, "BF-CBC") == 0)
     {
@@ -185,7 +185,7 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
      * the ciphers are actually valid for non tls in occ calucation */
     init_key_type(&occ_kt, ciphername, o->authname, true, false);
 
-    unsigned int payload = frame_calculate_payload_size(frame, o, &occ_kt);
+    size_t payload = frame_calculate_payload_size(frame, o, &occ_kt);
     overhead += frame_calculate_protocol_header_size(&occ_kt, o, true);
 
     return payload + overhead;

@@ -207,8 +207,8 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
     }
 }
 
-static inline unsigned int
-adjust_payload_max_cbc(const struct key_type *kt, unsigned int target)
+static inline size_t
+adjust_payload_max_cbc(const struct key_type *kt, size_t target)
 {
     if (!cipher_kt_mode_cbc(kt->cipher))
     {
@@ -221,13 +221,13 @@ adjust_payload_max_cbc(const struct key_type *kt, unsigned int target)
         /* With CBC we need at least one extra byte for padding and then need
          * to ensure that the resulting CBC ciphertext length, which is always
          * a multiple of the block size, is not larger than the target value */
-        unsigned int block_size = cipher_kt_block_size(kt->cipher);
-        target = round_down_uint(target, block_size);
+        size_t block_size = cipher_kt_block_size(kt->cipher);
+        target = round_down_size(target, block_size);
         return target - 1;
     }
 }
 
-static unsigned int
+static size_t
 get_ip_encap_overhead(const struct options *options,
                       const struct link_socket_info *lsi)
 {
@@ -258,7 +258,7 @@ frame_calculate_fragment(struct frame *frame, struct key_type *kt,
                          struct link_socket_info *lsi)
 {
 #if defined(ENABLE_FRAGMENT)
-    unsigned int overhead;
+    size_t overhead;
 
     overhead = frame_calculate_protocol_header_size(kt, options, false);
 
@@ -267,12 +267,12 @@ frame_calculate_fragment(struct frame *frame, struct key_type *kt,
         overhead += get_ip_encap_overhead(options, lsi);
     }
 
-    unsigned int target = options->ce.fragment - overhead;
+    size_t target = options->ce.fragment - overhead;
     /* The 4 bytes of header that fragment adds itself. The other extra payload
      * bytes (Ethernet header/compression) are handled by the fragment code
      * just as part of the payload and therefore automatically taken into
      * account if the packet needs to fragmented */
-    frame->max_fragment_size = adjust_payload_max_cbc(kt, target) - 4;
+    frame->max_fragment_size = clamp_size_to_int(adjust_payload_max_cbc(kt, target)) - 4;
 
     if (cipher_kt_mode_cbc(kt->cipher))
     {
@@ -296,7 +296,7 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
         return;
     }
 
-    unsigned int overhead, payload_overhead;
+    size_t overhead, payload_overhead;
 
     overhead = frame_calculate_protocol_header_size(kt, options, false);
 
@@ -325,7 +325,7 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
      * by ce.mssfix */
 
     /* This is the target value our payload needs to be smaller */
-    unsigned int target = options->ce.mssfix - overhead;
+    size_t target = options->ce.mssfix - overhead;
     frame->mss_fix = (uint16_t)(adjust_payload_max_cbc(kt, target) - payload_overhead);
 
 
