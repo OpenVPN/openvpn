@@ -3058,9 +3058,11 @@ management_post_tunnel_open(struct management *man, const in_addr_t tun_local_ip
         /* listen on our local TUN/TAP IP address */
         struct in_addr ia;
         int ret;
+        char buf[INET_ADDRSTRLEN];
 
         ia.s_addr = htonl(tun_local_ip);
-        ret = openvpn_getaddrinfo(GETADDR_PASSIVE, inet_ntoa(ia), NULL, 0, NULL,
+        inet_ntop(AF_INET, &ia, buf, sizeof(buf));
+        ret = openvpn_getaddrinfo(GETADDR_PASSIVE, buf, NULL, 0, NULL,
                                   AF_INET, &man->settings.local);
         ASSERT(ret==0);
         man_connection_init(man);

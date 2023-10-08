@@ -2901,16 +2901,16 @@ const char *
 print_in_addr_t(in_addr_t addr, unsigned int flags, struct gc_arena *gc)
 {
     struct in_addr ia;
-    struct buffer out = alloc_buf_gc(64, gc);
+    char *out = gc_malloc(INET_ADDRSTRLEN, true, gc);
 
     if (addr || !(flags & IA_EMPTY_IF_UNDEF))
     {
         CLEAR(ia);
         ia.s_addr = (flags & IA_NET_ORDER) ? addr : htonl(addr);
 
-        buf_printf(&out, "%s", inet_ntoa(ia));
+        inet_ntop(AF_INET, &ia, out, INET_ADDRSTRLEN);
     }
-    return BSTR(&out);
+    return out;
 }
 
 /*
@@ -2920,16 +2920,14 @@ print_in_addr_t(in_addr_t addr, unsigned int flags, struct gc_arena *gc)
 const char *
 print_in6_addr(struct in6_addr a6, unsigned int flags, struct gc_arena *gc)
 {
-    struct buffer out = alloc_buf_gc(64, gc);
-    char tmp_out_buf[64];       /* inet_ntop wants pointer to buffer */
+    char *out = gc_malloc(INET6_ADDRSTRLEN, true, gc);
 
     if (memcmp(&a6, &in6addr_any, sizeof(a6)) != 0
         || !(flags & IA_EMPTY_IF_UNDEF))
     {
-        inet_ntop(AF_INET6, &a6, tmp_out_buf, sizeof(tmp_out_buf)-1);
-        buf_printf(&out, "%s", tmp_out_buf );
+        inet_ntop(AF_INET6, &a6, out, INET6_ADDRSTRLEN);
     }
-    return BSTR(&out);
+    return out;
 }
 
 /*
@@ -2978,7 +2976,7 @@ setenv_sockaddr(struct env_set *es, const char *name_prefix, const struct openvp
 {
     char name_buf[256];
 
-    char buf[128];
+    char buf[INET6_ADDRSTRLEN];
     switch (addr->addr.sa.sa_family)
     {
         case AF_INET:
@@ -2991,7 +2989,8 @@ setenv_sockaddr(struct env_set *es, const char *name_prefix, const struct openvp
                 openvpn_snprintf(name_buf, sizeof(name_buf), "%s", name_prefix);
             }
 
-            setenv_str(es, name_buf, inet_ntoa(addr->addr.in4.sin_addr));
+            inet_ntop(AF_INET, &addr->addr.in4.sin_addr, buf, sizeof(buf));
+            setenv_str(es, name_buf, buf);
 
             if ((flags & SA_IP_PORT) && addr->addr.in4.sin_port)
             {
@@ -3007,13 +3006,12 @@ setenv_sockaddr(struct env_set *es, const char *name_prefix, const struct openvp
                 memcpy(&ia.s_addr, &addr->addr.in6.sin6_addr.s6_addr[12],
                        sizeof(ia.s_addr));
                 openvpn_snprintf(name_buf, sizeof(name_buf), "%s_ip", name_prefix);
-                openvpn_snprintf(buf, sizeof(buf), "%s", inet_ntoa(ia) );
+                inet_ntop(AF_INET, &ia, buf, sizeof(buf));
             }
             else
             {
                 openvpn_snprintf(name_buf, sizeof(name_buf), "%s_ip6", name_prefix);
-                getnameinfo(&addr->addr.sa, sizeof(struct sockaddr_in6),
-                            buf, sizeof(buf), NULL, 0, NI_NUMERICHOST);
+                inet_ntop(AF_INET6, &addr->addr.in6.sin6_addr, buf, sizeof(buf));
             }
             setenv_str(es, name_buf, buf);
 

@@ -342,7 +342,9 @@ init_route(struct route_ipv4 *r,
             goto fail;
         }
         special.s_addr = htonl(special.s_addr);
-        ret = openvpn_getaddrinfo(0, inet_ntoa(special), NULL, 0, NULL,
+        char buf[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &special, buf, sizeof(buf));
+        ret = openvpn_getaddrinfo(0, buf, NULL, 0, NULL,
                                   AF_INET, network_list);
     }
     else
