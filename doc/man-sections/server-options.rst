@@ -406,7 +406,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   Options that will be compared for compatibility include ``dev-type``,
   ``link-mtu``, ``tun-mtu``, ``proto``, ``ifconfig``,
   ``comp-lzo``, ``fragment``, ``keydir``, ``cipher``,
-  ``auth``, ``keysize``, ``secret``,
+  ``auth``, ``keysize``,
   ``tls-auth``, ``key-method``, ``tls-server``
   and ``tls-client``.
 

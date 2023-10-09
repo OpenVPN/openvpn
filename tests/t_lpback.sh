@@ -97,7 +97,7 @@ set +e
 for cipher in ${CIPHERS}
 do
     test_start "Testing cipher ${cipher}... "
-    ( "${openvpn}" --test-crypto --secret key.$$ --cipher ${cipher} ) >log.$$ 2>&1
+    ( "${openvpn}" --test-crypto --secret key.$$  --allow-deprecated-insecure-static-crypto --cipher ${cipher} ) >log.$$ 2>&1
     test_end $? log.$$
 done
 

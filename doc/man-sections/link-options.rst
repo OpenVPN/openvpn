@@ -226,10 +226,7 @@ the local and the remote host.
   Ping remote over the TCP/UDP control channel if no packets have been
   sent for at least ``n`` seconds (specify ``--ping`` on both peers to
   cause ping packets to be sent in both directions since OpenVPN ping
-  packets are not echoed like IP ping packets). When used in one of
-  OpenVPN's secure modes (where ``--secret``, ``--tls-server`` or
-  ``--tls-client`` is specified), the ping packet will be
-  cryptographically secure.
+  packets are not echoed like IP ping packets).
 
   This option has two intended uses:
 
@@ -427,8 +424,7 @@ the local and the remote host.
   received by the prior session.
 
   This option only makes sense when replay protection is enabled (the
-  default) and you are using either ``--secret`` (shared-secret key mode)
-  or TLS mode with ``--tls-auth``.
+  default) and you are using TLS mode with ``--tls-auth``.
 
 --session-timeout n
   Raises :code:`SIGTERM` for the client instance after ``n`` seconds since

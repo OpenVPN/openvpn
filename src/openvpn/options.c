@@ -531,12 +531,6 @@ static const char usage_message[] =
     "\n"
     "Data Channel Encryption Options (must be compatible between peers):\n"
     "(These options are meaningful for both Static Key & TLS-mode)\n"
-    "--secret f [d]  : (DEPRECATED) Enable Static Key encryption mode (non-TLS).\n"
-    "                  Use shared secret file f, generate with --genkey.\n"
-    "                  The optional d parameter controls key directionality.\n"
-    "                  If d is specified, use separate keys for each\n"
-    "                  direction, set d=0 on one side of the connection,\n"
-    "                  and d=1 on the other side.\n"
     "--auth alg      : Authenticate packets with HMAC using message\n"
     "                  digest algorithm alg (default=%s).\n"
     "                  (usually adds 16 or 20 bytes per packet)\n"
@@ -619,14 +613,12 @@ static const char usage_message[] =
     "                  control channel to protect against attacks on the TLS stack\n"
     "                  and DoS attacks.\n"
     "                  f (required) is a shared-secret key file.\n"
-    "                  The optional d parameter controls key directionality,\n"
-    "                  see --secret option for more info.\n"
+    "                  The optional d parameter controls key directionality.\n"
     "--tls-crypt key : Add an additional layer of authenticated encryption on top\n"
     "                  of the TLS control channel to hide the TLS certificate,\n"
     "                  provide basic post-quantum security and protect against\n"
     "                  attacks on the TLS stack and DoS attacks.\n"
     "                  key (required) provides the pre-shared key file.\n"
-    "                  see --secret option for more info.\n"
     "--tls-crypt-v2 key : For clients: use key as a client-specific tls-crypt key.\n"
     "                  For servers: use key to decrypt client-specific keys.  For\n"
     "                  key generation (--genkey tls-crypt-v2-client): use key to\n"
@@ -759,8 +751,8 @@ static const char usage_message[] =
 #endif /* ifdef _WIN32 */
     "\n"
     "Generate a new key :\n"
-    "--genkey secret file   : Generate a new random key of type and write to file\n"
-    "                         (for use with --secret, --tls-auth or --tls-crypt)."
+    "--genkey tls-auth file   : Generate a new random key of type and write to file\n"
+    "                         (for use with --tls-auth or --tls-crypt)."
 #ifdef ENABLE_FEATURE_TUN_PERSIST
     "\n"
     "Tun/tap config mode (available with linux 2.4+):\n"
@@ -2823,11 +2815,21 @@ options_postprocess_verify_ce(const struct options *options,
 
     if (!options->tls_server && !options->tls_client)
     {
-        msg(M_INFO, "DEPRECATION: No tls-client or tls-server option in "
-            "configuration detected. OpenVPN 2.7 will remove the "
+        int msglevel = M_USAGE;
+        if (options->allow_deprecated_insecure_static_crypto)
+        {
+            msglevel = M_INFO;
+        }
+
+        msg(msglevel, "DEPRECATION: No tls-client or tls-server option in "
+            "configuration detected. OpenVPN 2.8 will remove the "
             "functionality to run a VPN without TLS. "
             "See the examples section in the manual page for "
-            "examples of a similar quick setup with peer-fingerprint.");
+            "examples of a similar quick setup with peer-fingerprint."
+            "OpenVPN 2.7 allows using this configuration when using "
+            "--allow-deprecated-insecure-static-crypto but you should move"
+            "to a proper configuration using TLS as soon as possible."
+            );
     }
 
     if (options->ssl_flags & (SSLF_CLIENT_CERT_NOT_REQUIRED|SSLF_CLIENT_CERT_OPTIONAL))
@@ -8514,6 +8516,12 @@ add_option(struct options *options,
                 goto err;
             }
         }
+    }
+    else if (streq(p[0], "allow-deprecated-insecure-static-crypto"))
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->allow_deprecated_insecure_static_crypto = true;
+
     }
     else if (streq(p[0], "genkey") && !p[4])
     {
