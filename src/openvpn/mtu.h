@@ -115,7 +115,7 @@ struct frame {
                                   *  decryption/encryption or compression. */
     } buf;
 
-    unsigned int mss_fix;       /**< The actual MSS value that should be
+    uint16_t mss_fix;           /**< The actual MSS value that should be
                                  *   written to the payload packets. This
                                  *   is the value for IPv4 TCP packets. For
                                  *   IPv6 packets another 20 bytes must

@@ -44,7 +44,7 @@
  *              if yes, hand to mss_fixup_dowork()
  */
 void
-mss_fixup_ipv4(struct buffer *buf, int maxmss)
+mss_fixup_ipv4(struct buffer *buf, uint16_t maxmss)
 {
     const struct openvpn_iphdr *pip;
     int hlen;
@@ -72,7 +72,7 @@ mss_fixup_ipv4(struct buffer *buf, int maxmss)
             struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *) BPTR(&newbuf);
             if (tc->flags & OPENVPN_TCPH_SYN_MASK)
             {
-                mss_fixup_dowork(&newbuf, (uint16_t) maxmss);
+                mss_fixup_dowork(&newbuf, maxmss);
             }
         }
     }
@@ -84,7 +84,7 @@ mss_fixup_ipv4(struct buffer *buf, int maxmss)
  *              (IPv6 header structure is sufficiently different from IPv4...)
  */
 void
-mss_fixup_ipv6(struct buffer *buf, int maxmss)
+mss_fixup_ipv6(struct buffer *buf, uint16_t maxmss)
 {
     const struct openvpn_ipv6hdr *pip6;
     struct buffer newbuf;
@@ -130,7 +130,7 @@ mss_fixup_ipv6(struct buffer *buf, int maxmss)
         struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *) BPTR(&newbuf);
         if (tc->flags & OPENVPN_TCPH_SYN_MASK)
         {
-            mss_fixup_dowork(&newbuf, (uint16_t) maxmss-20);
+            mss_fixup_dowork(&newbuf, maxmss-20);
         }
     }
 }
@@ -191,13 +191,14 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
                 {
                     continue;
                 }
-                mssval = (opt[2]<<8)+opt[3];
+                mssval = opt[2] << 8;
+                mssval += opt[3];
                 if (mssval > maxmss)
                 {
-                    dmsg(D_MSS, "MSS: %d -> %d", (int) mssval, (int) maxmss);
+                    dmsg(D_MSS, "MSS: %" PRIu16 " -> %" PRIu16, mssval, maxmss);
                     accumulate = htons(mssval);
-                    opt[2] = (maxmss>>8)&0xff;
-                    opt[3] = maxmss&0xff;
+                    opt[2] = (uint8_t)((maxmss>>8)&0xff);
+                    opt[3] = (uint8_t)(maxmss&0xff);
                     accumulate -= htons(maxmss);
                     ADJUST_CHECKSUM(accumulate, tc->check);
                 }
@@ -291,7 +292,7 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
     {
         /* we subtract IPv4 and TCP overhead here, mssfix method will add the
          * extra 20 for IPv6 */
-        frame->mss_fix = options->ce.mssfix - (20 + 20);
+        frame->mss_fix = (uint16_t)(options->ce.mssfix - (20 + 20));
         return;
     }
 
@@ -325,7 +326,7 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
 
     /* This is the target value our payload needs to be smaller */
     unsigned int target = options->ce.mssfix - overhead;
-    frame->mss_fix = adjust_payload_max_cbc(kt, target) - payload_overhead;
+    frame->mss_fix = (uint16_t)(adjust_payload_max_cbc(kt, target) - payload_overhead);
 
 
 }
