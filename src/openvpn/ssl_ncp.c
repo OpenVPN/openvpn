@@ -24,7 +24,7 @@
  */
 
 /**
- * @file Control Channel SSL/Data dynamic negotion Module
+ * @file Control Channel SSL/Data dynamic negotiation Module
  * This file is split from ssl.c to be able to unit test it.
  */
 
@@ -258,8 +258,8 @@ ncp_get_best_cipher(const char *server_list, const char *peer_info,
 
     const char *peer_ncp_list = tls_peer_ncp_list(peer_info, &gc_tmp);
 
-    /* non-NCP client without OCC?  "assume nothing" */
-    /* For client doing the newer version of NCP (that send IV_CIPHER)
+    /* non-NCP clients without OCC?  "assume nothing" */
+    /* For client doing the newer version of NCP (that send IV_CIPHERS)
      * we cannot assume that they will accept remote_cipher */
     if (remote_cipher == NULL
         || (peer_info && strstr(peer_info, "IV_CIPHERS=")))
