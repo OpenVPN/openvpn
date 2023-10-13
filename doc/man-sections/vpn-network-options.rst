@@ -420,7 +420,7 @@ routing.
 
        route-delay
        route-delay n
-       route-delay n m
+       route-delay n w
 
   Delay ``n`` seconds (default :code:`0`) after connection establishment,
   before adding routes. If ``n`` is :code:`0`, routes will be added
@@ -434,7 +434,7 @@ routing.
   to complete before routes are added.
 
   On Windows, ``--route-delay`` tries to be more intelligent by waiting
-  ``w`` seconds (default :code:`30` by default) for the TAP-Win32 adapter
+  ``w`` seconds (default :code:`30`) for the TAP-Win32 adapter
   to come up before adding routes.
 
 --route-ipv6 args
