@@ -51,9 +51,9 @@ configuration.
   react according to ``--auth-retry``
 
 --auth-token-user base64username
-  Companion option to ``--auth-token``. This options allows to override
+  Companion option to ``--auth-token``. This options allows one to override
   the username used by the client when reauthenticating with the ``auth-token``.
-  It also allows to use ``--auth-token`` in setups that normally do not use
+  It also allows one to use ``--auth-token`` in setups that normally do not use
   username and password.
 
   The username has to be base64 encoded.
