@@ -249,14 +249,11 @@ struct context_2
 
     /* MTU frame parameters */
     struct frame frame;                         /* Active frame parameters */
-    struct frame frame_initial;                 /* Restored on new session */
 
 #ifdef ENABLE_FRAGMENT
     /* Object to handle advanced MTU negotiation and datagram fragmentation */
     struct fragment_master *fragment;
     struct frame frame_fragment;
-    struct frame frame_fragment_initial;
-    struct frame frame_fragment_omit;
 #endif
 
     /*
