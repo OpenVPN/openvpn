@@ -3537,15 +3537,6 @@ do_init_frame(struct context *c)
      */
     frame_finalize_options(c, NULL);
 
-#ifdef ENABLE_FRAGMENT
-    /*
-     * Set frame parameter for fragment code.  This is necessary because
-     * the fragmentation code deals with payloads which have already been
-     * passed through the compression code.
-     */
-    c->c2.frame_fragment = c->c2.frame;
-    c->c2.frame_fragment_initial = c->c2.frame_fragment;
-#endif
 
 #if defined(ENABLE_FRAGMENT)
     /*
@@ -3736,6 +3727,14 @@ static void
 do_init_fragment(struct context *c)
 {
     ASSERT(c->options.ce.fragment);
+
+    /*
+     * Set frame parameter for fragment code.  This is necessary because
+     * the fragmentation code deals with payloads which have already been
+     * passed through the compression code.
+     */
+    c->c2.frame_fragment = c->c2.frame;
+
     frame_calculate_dynamic(&c->c2.frame_fragment, &c->c1.ks.key_type,
                             &c->options, get_link_socket_info(c));
     fragment_frame_init(c->c2.fragment, &c->c2.frame_fragment);
@@ -4639,8 +4638,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         int error_flags = 0;
         c->c2.did_open_tun = do_open_tun(c, &error_flags);
     }
-
-    c->c2.frame_initial = c->c2.frame;
 
     /* print MTU info */
     do_print_data_channel_mtu_parms(c);
