@@ -548,7 +548,7 @@ routing.
   It's best to use the ``--fragment`` and/or ``--mssfix`` options to deal
   with MTU sizing issues.
 
-  Note: Depending on the platform, the operating system allows to receive
+  Note: Depending on the platform, the operating system allows one to receive
   packets larger than ``tun-mtu`` (e.g. Linux and FreeBSD) but other platforms
   (like macOS) limit received packets to the same size as the MTU.
 

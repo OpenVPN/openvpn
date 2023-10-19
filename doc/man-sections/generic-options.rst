@@ -483,7 +483,7 @@ which mode OpenVPN is configured as.
 
   * :code:`OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY` plug-in hooks returns
     success/failure via :code:`auth_control_file` when using deferred auth
-    method and pending authentification via :code:`pending_auth_file`.
+    method and pending authentication via :code:`pending_auth_file`.
 
 --use-prediction-resistance
   Enable prediction resistance on mbed TLS's RNG.
