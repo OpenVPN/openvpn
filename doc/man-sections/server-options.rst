@@ -739,7 +739,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
 
 --vlan-pvid v
   Specifies which VLAN identifier a "port" is associated with. Only valid
-  when ``--vlan-tagging`` is speficied.
+  when ``--vlan-tagging`` is specified.
 
   In the client context, the setting specifies which VLAN ID a client is
   associated with. In the global context, the VLAN ID of the server TAP
