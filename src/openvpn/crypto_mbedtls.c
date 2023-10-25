@@ -41,6 +41,7 @@
 #include "integer.h"
 #include "crypto_backend.h"
 #include "otime.h"
+#include "mbedtls_compat.h"
 #include "misc.h"
 
 #include <mbedtls/base64.h>
@@ -170,10 +171,11 @@ show_available_ciphers(void)
     while (*ciphers != 0)
     {
         const mbedtls_cipher_info_t *info = mbedtls_cipher_info_from_type(*ciphers);
-        if (info && !cipher_kt_insecure(info->name)
-            && (cipher_kt_mode_aead(info->name) || cipher_kt_mode_cbc(info->name)))
+        const char *name = mbedtls_cipher_info_get_name(info);
+        if (info && name && !cipher_kt_insecure(name)
+            && (cipher_kt_mode_aead(name) || cipher_kt_mode_cbc(name)))
         {
-            print_cipher(info->name);
+            print_cipher(name);
         }
         ciphers++;
     }
@@ -184,10 +186,11 @@ show_available_ciphers(void)
     while (*ciphers != 0)
     {
         const mbedtls_cipher_info_t *info = mbedtls_cipher_info_from_type(*ciphers);
-        if (info && cipher_kt_insecure(info->name)
-            && (cipher_kt_mode_aead(info->name) || cipher_kt_mode_cbc(info->name)))
+        const char *name = mbedtls_cipher_info_get_name(info);
+        if (info && name && cipher_kt_insecure(name)
+            && (cipher_kt_mode_aead(name) || cipher_kt_mode_cbc(name)))
         {
-            print_cipher(info->name);
+            print_cipher(name);
         }
         ciphers++;
     }
@@ -295,7 +298,9 @@ crypto_pem_decode(const char *name, struct buffer *dst,
     mbedtls_pem_context ctx = { 0 };
     bool ret = mbed_ok(mbedtls_pem_read_buffer(&ctx, header, footer, BPTR(&input),
                                                NULL, 0, &use_len));
-    if (ret && !buf_write(dst, ctx.buf, ctx.buflen))
+    size_t buf_size = 0;
+    const unsigned char *buf = mbedtls_pem_get_buffer(&ctx, &buf_size);
+    if (ret && !buf_write(dst, buf, buf_size))
     {
         ret = false;
         msg(M_WARN, "PEM decode error: destination buffer too small");
@@ -416,11 +421,12 @@ cipher_valid_reason(const char *ciphername, const char **reason)
         return false;
     }
 
-    if (cipher->key_bitlen/8 > MAX_CIPHER_KEY_LENGTH)
+    const size_t key_bytelen = mbedtls_cipher_info_get_key_bitlen(cipher)/8;
+    if (key_bytelen > MAX_CIPHER_KEY_LENGTH)
     {
-        msg(D_LOW, "Cipher algorithm '%s' uses a default key size (%d bytes) "
+        msg(D_LOW, "Cipher algorithm '%s' uses a default key size (%zu bytes) "
             "which is larger than " PACKAGE_NAME "'s current maximum key size "
-            "(%d bytes)", ciphername, cipher->key_bitlen/8, MAX_CIPHER_KEY_LENGTH);
+            "(%d bytes)", ciphername, key_bytelen, MAX_CIPHER_KEY_LENGTH);
         *reason = "disabled due to key size too large";
         return false;
     }
@@ -438,7 +444,7 @@ cipher_kt_name(const char *ciphername)
         return "[null-cipher]";
     }
 
-    return translate_cipher_name_to_openvpn(cipher_kt->name);
+    return translate_cipher_name_to_openvpn(mbedtls_cipher_info_get_name(cipher_kt));
 }
 
 int
@@ -451,7 +457,7 @@ cipher_kt_key_size(const char *ciphername)
         return 0;
     }
 
-    return cipher_kt->key_bitlen/8;
+    return (int)mbedtls_cipher_info_get_key_bitlen(cipher_kt)/8;
 }
 
 int
@@ -463,7 +469,7 @@ cipher_kt_iv_size(const char *ciphername)
     {
         return 0;
     }
-    return cipher_kt->iv_size;
+    return (int)mbedtls_cipher_info_get_iv_size(cipher_kt);
 }
 
 int
@@ -474,7 +480,7 @@ cipher_kt_block_size(const char *ciphername)
     {
         return 0;
     }
-    return cipher_kt->block_size;
+    return (int)mbedtls_cipher_info_get_block_size(cipher_kt);
 }
 
 int
@@ -498,16 +504,16 @@ cipher_kt_insecure(const char *ciphername)
 
     return !(cipher_kt_block_size(ciphername) >= 128 / 8
 #ifdef MBEDTLS_CHACHAPOLY_C
-             || cipher_kt->type == MBEDTLS_CIPHER_CHACHA20_POLY1305
+             || mbedtls_cipher_info_get_type(cipher_kt) == MBEDTLS_CIPHER_CHACHA20_POLY1305
 #endif
              );
 }
 
-static int
+static mbedtls_cipher_mode_t
 cipher_kt_mode(const mbedtls_cipher_info_t *cipher_kt)
 {
     ASSERT(NULL != cipher_kt);
-    return cipher_kt->mode;
+    return mbedtls_cipher_info_get_mode(cipher_kt);
 }
 
 bool
@@ -566,22 +572,29 @@ cipher_ctx_init(mbedtls_cipher_context_t *ctx, const uint8_t *key,
     CLEAR(*ctx);
 
     const mbedtls_cipher_info_t *kt = cipher_get(ciphername);
-    int key_len = kt->key_bitlen/8;
-
     ASSERT(kt);
+    size_t key_bitlen = mbedtls_cipher_info_get_key_bitlen(kt);
 
     if (!mbed_ok(mbedtls_cipher_setup(ctx, kt)))
     {
         msg(M_FATAL, "mbed TLS cipher context init #1");
     }
 
-    if (!mbed_ok(mbedtls_cipher_setkey(ctx, key, key_len*8, operation)))
+    if (!mbed_ok(mbedtls_cipher_setkey(ctx, key, (int)key_bitlen, operation)))
     {
         msg(M_FATAL, "mbed TLS cipher set key");
     }
 
+    if (mbedtls_cipher_info_get_mode(kt) == MBEDTLS_MODE_CBC)
+    {
+        if (!mbed_ok(mbedtls_cipher_set_padding_mode(ctx, MBEDTLS_PADDING_PKCS7)))
+        {
+            msg(M_FATAL, "mbed TLS cipher set padding mode");
+        }
+    }
+
     /* make sure we used a big enough key */
-    ASSERT(ctx->key_bitlen <= key_len*8);
+    ASSERT(mbedtls_cipher_get_key_bitlen(ctx) <= key_bitlen);
 }
 
 int
@@ -609,7 +622,7 @@ cipher_ctx_get_tag(cipher_ctx_t *ctx, uint8_t *tag, int tag_len)
 int
 cipher_ctx_block_size(const mbedtls_cipher_context_t *ctx)
 {
-    return mbedtls_cipher_get_block_size(ctx);
+    return (int)mbedtls_cipher_get_block_size(ctx);
 }
 
 int
@@ -617,7 +630,7 @@ cipher_ctx_mode(const mbedtls_cipher_context_t *ctx)
 {
     ASSERT(NULL != ctx);
 
-    return cipher_kt_mode(ctx->cipher_info);
+    return mbedtls_cipher_get_cipher_mode(ctx);
 }
 
 bool
@@ -652,7 +665,7 @@ cipher_ctx_reset(mbedtls_cipher_context_t *ctx, const uint8_t *iv_buf)
         return 0;
     }
 
-    if (!mbed_ok(mbedtls_cipher_set_iv(ctx, iv_buf, ctx->cipher_info->iv_size)))
+    if (!mbed_ok(mbedtls_cipher_set_iv(ctx, iv_buf, (size_t)mbedtls_cipher_get_iv_size(ctx))))
     {
         return 0;
     }
@@ -714,7 +727,7 @@ cipher_ctx_final_check_tag(mbedtls_cipher_context_t *ctx, uint8_t *dst,
 {
     size_t olen = 0;
 
-    if (MBEDTLS_DECRYPT != ctx->operation)
+    if (MBEDTLS_DECRYPT != mbedtls_cipher_get_operation(ctx))
     {
         return 0;
     }
@@ -866,7 +879,7 @@ md_ctx_size(const mbedtls_md_context_t *ctx)
     {
         return 0;
     }
-    return mbedtls_md_get_size(ctx->md_info);
+    return (int)mbedtls_md_get_size(mbedtls_md_info_from_ctx(ctx));
 }
 
 void
@@ -936,7 +949,7 @@ hmac_ctx_size(mbedtls_md_context_t *ctx)
     {
         return 0;
     }
-    return mbedtls_md_get_size(ctx->md_info);
+    return mbedtls_md_get_size(mbedtls_md_info_from_ctx(ctx));
 }
 
 void
