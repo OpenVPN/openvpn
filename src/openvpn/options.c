@@ -644,8 +644,10 @@ static const char usage_message[] =
     "--verify-x509-name name: Accept connections only from a host with X509 subject\n"
     "                  DN name. The remote host must also pass all other tests\n"
     "                  of verification.\n"
+#ifndef ENABLE_CRYPTO_MBEDTLS
     "--ns-cert-type t: (DEPRECATED) Require that peer certificate was signed with \n"
     "                  an explicit nsCertType designation t = 'client' | 'server'.\n"
+#endif
     "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
     "                  plugins and management interface.\n"
 #ifdef HAVE_EXPORT_KEYING_MATERIAL
@@ -9051,6 +9053,10 @@ add_option(struct options *options,
     }
     else if (streq(p[0], "ns-cert-type") && p[1] && !p[2])
     {
+#ifdef ENABLE_CRYPTO_MBEDTLS
+        msg(msglevel, "--ns-cert-type is not available with mbedtls.");
+        goto err;
+#else
         VERIFY_PERMISSION(OPT_P_GENERAL);
         if (streq(p[1], "server"))
         {
@@ -9065,6 +9071,7 @@ add_option(struct options *options,
             msg(msglevel, "--ns-cert-type must be 'client' or 'server'");
             goto err;
         }
+#endif /* ENABLE_CRYPTO_MBEDTLS */
     }
     else if (streq(p[0], "remote-cert-ku"))
     {

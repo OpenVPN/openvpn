@@ -35,6 +35,7 @@
 #if defined(ENABLE_CRYPTO_MBEDTLS)
 
 #include "crypto_mbedtls.h"
+#include "mbedtls_compat.h"
 #include "ssl_verify.h"
 #include <mbedtls/asn1.h>
 #include <mbedtls/error.h>
@@ -432,24 +433,14 @@ x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
     }
 }
 
+/* Dummy function because Netscape certificate types are not supported in OpenVPN with mbedtls.
+ * Returns SUCCESS if usage is NS_CERT_CHECK_NONE, FAILURE otherwise. */
 result_t
 x509_verify_ns_cert_type(mbedtls_x509_crt *cert, const int usage)
 {
     if (usage == NS_CERT_CHECK_NONE)
     {
         return SUCCESS;
-    }
-    if (usage == NS_CERT_CHECK_CLIENT)
-    {
-        return ((cert->ext_types & MBEDTLS_X509_EXT_NS_CERT_TYPE)
-                && (cert->ns_cert_type & MBEDTLS_X509_NS_CERT_TYPE_SSL_CLIENT)) ?
-               SUCCESS : FAILURE;
-    }
-    if (usage == NS_CERT_CHECK_SERVER)
-    {
-        return ((cert->ext_types & MBEDTLS_X509_EXT_NS_CERT_TYPE)
-                && (cert->ns_cert_type & MBEDTLS_X509_NS_CERT_TYPE_SSL_SERVER)) ?
-               SUCCESS : FAILURE;
     }
 
     return FAILURE;
@@ -461,7 +452,7 @@ x509_verify_cert_ku(mbedtls_x509_crt *cert, const unsigned *const expected_ku,
 {
     msg(D_HANDSHAKE, "Validating certificate key usage");
 
-    if (!(cert->ext_types & MBEDTLS_X509_EXT_KEY_USAGE))
+    if (!mbedtls_x509_crt_has_ext_type(cert, MBEDTLS_X509_EXT_KEY_USAGE))
     {
         msg(D_TLS_ERRORS,
             "ERROR: Certificate does not have key usage extension");
@@ -486,9 +477,7 @@ x509_verify_cert_ku(mbedtls_x509_crt *cert, const unsigned *const expected_ku,
 
     if (fFound != SUCCESS)
     {
-        msg(D_TLS_ERRORS,
-            "ERROR: Certificate has key usage %04x, expected one of:",
-            cert->key_usage);
+        msg(D_TLS_ERRORS, "ERROR: Certificate has invalid key usage, expected one of:");
         for (size_t i = 0; i < expected_len && expected_ku[i]; i++)
         {
             msg(D_TLS_ERRORS, " * %04x", expected_ku[i]);
@@ -503,7 +492,7 @@ x509_verify_cert_eku(mbedtls_x509_crt *cert, const char *const expected_oid)
 {
     result_t fFound = FAILURE;
 
-    if (!(cert->ext_types & MBEDTLS_X509_EXT_EXTENDED_KEY_USAGE))
+    if (!mbedtls_x509_crt_has_ext_type(cert, MBEDTLS_X509_EXT_EXTENDED_KEY_USAGE))
     {
         msg(D_HANDSHAKE, "Certificate does not have extended key usage extension");
     }
