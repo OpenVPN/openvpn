@@ -108,8 +108,9 @@ Acked-by according to Gerrit (reflected above):
         + patch_text[comment_start:]
     )
     filename = f"gerrit-{args.changeid}-{details['revision']}.patch"
+    patch_text_final = patch_text_mod.replace("Subject: [PATCH]", f"Subject: [PATCH v{details['revision']}]")
     with open(filename, "w") as patch_file:
-        patch_file.write(patch_text_mod)
+        patch_file.write(patch_text_final)
     print("send with:")
     print(f"git send-email --in-reply-to {details['msg_id']} {filename}")
 
