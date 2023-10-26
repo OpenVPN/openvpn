@@ -525,6 +525,7 @@ tls_set_single_session(struct tls_multi *multi)
 #define PD_SHOW_DATA               (1<<8)
 #define PD_TLS                     (1<<9)
 #define PD_VERBOSE                 (1<<10)
+#define PD_TLS_CRYPT               (1<<11)
 
 const char *protocol_dump(struct buffer *buffer,
                           unsigned int flags,
