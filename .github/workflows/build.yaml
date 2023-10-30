@@ -360,3 +360,54 @@ jobs:
         run: make -j3
       - name: make check
         run: make check
+
+  mbedtls3:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04]
+        ssllib: [mbedtls3]
+        build: [ normal, asan ]
+        include:
+          - build: asan
+            cflags: "-fsanitize=address -fno-sanitize-recover=all  -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
+            ldflags: -fsanitize=address -fno-sanitize-recover=all
+            cc: clang
+          - build: normal
+            cflags: "-O2 -g"
+            ldflags: ""
+            cc: gcc
+
+    name: "${{matrix.cc}} ${{matrix.build}} - ${{matrix.os}} - ${{matrix.ssllib}}"
+    runs-on: ${{matrix.os}}
+    env:
+      CFLAGS: ${{ matrix.cflags }}
+      LDFLAGS: ${{ matrix.ldflags }}
+      CC: ${{matrix.cc}}
+      UBSAN_OPTIONS: print_stacktrace=1
+
+    steps:
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html clang libcmocka-dev python3-docutils python3-jinja2 python3-jsonschema libtool automake autoconf pkg-config libcap-ng-dev libnl-genl-3-dev
+      - name: "mbedtls: checkout"
+        uses: actions/checkout@v3
+        with:
+          path: mbedtls
+          repository: Mbed-TLS/mbedtls
+          ref: v3.5.0
+      - name: "mbedtls: make no_test"
+        run: make -j3 no_test SHARED=1
+        working-directory: mbedtls
+      - name: "mbedtls: make install"
+        run: sudo make install DESTDIR=/usr
+        working-directory: mbedtls
+      - name: Checkout OpenVPN
+        uses: actions/checkout@v3
+      - name: autoconf
+        run: autoreconf -fvi
+      - name: configure
+        run: ./configure --with-crypto-library=mbedtls
+      - name: make all
+        run: make -j3
+      - name: make check
+        run: make check
