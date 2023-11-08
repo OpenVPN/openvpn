@@ -1,6 +1,46 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>
 
+2023.11.08 -- Version 2.6.7
+
+Antonio Quartulli (1):
+      dco: fix crash when --multihome is used with --proto tcp
+
+Arne Schwabe (8):
+      Mock openvpn_exece on win32 also for test_tls_crypt
+      Add warning for the --show-groups command that some groups are missing
+      Print peer temporary key details
+      Add warning if a p2p NCP client connects to a p2mp server
+      Remove openssl engine method for loading the key
+      Remove saving initial frame code
+      Double check that we do not use a freed buffer when freeing a session
+      Fix using to_link buffer after freed
+
+Frank Lichtenheld (7):
+      GHA: do not trigger builds in openvpn-build anymore
+      GHA: new workflow to submit scan to Coverity Scan service
+      buffer: use memcpy in buf_catrunc
+      vcpkg-ports/pkcs11-helper: Backport MinGW series from master to release/2.6
+      CMake: backport CMake buildsystem from master to release/2.6
+      Remove all traces of the previous MSVC build system
+      doc: fix argument name in --route-delay documentation
+
+Heiko Hund (1):
+      dns option: remove support for exclude-domains
+
+Lev Stipakov (3):
+      Warn user if INFO control command is too long
+      dco-win: get driver version
+      dco: warn if DATA_V1 packets are sent to userspace
+
+Selva Nair (2):
+      Make cert_data.h and test_cryptoapi/pkcs11.c MSVC compliant
+      Log OpenSSL errors on failure to set certificate
+
+orbea (1):
+      configure: disable engines if OPENSSL_NO_ENGINE is defined
+
+
 2023.08.14 -- Version 2.6.6
 
 Antonio Quartulli (1):

@@ -1,3 +1,77 @@
+Overview of changes in 2.6.7
+============================
+
+Bug fixes / Code cleanup
+------------------------
+- CVE-2023-46850 OpenVPN versions between 2.6.0 and 2.6.6 incorrectly use
+  a send buffer after it has been free()d in some circumstances, causing
+  some free()d memory to be sent to the peer.  All configurations using TLS
+  (e.g. not using --secret) are affected by this issue.
+  (found while tracking down CVE-2023-46849 / Github #400, #417)
+
+- CVE-2023-46849 OpenVPN versions between 2.6.0 and 2.6.6 incorrectly
+  restore "--fragment" configuration in some circumstances, leading to
+  a division by zero when "--fragment" is used.  On platforms where
+  division by zero is fatal, this will cause an OpenVPN crash.
+
+  Reported by Niccolo Belli <niccolo.belli@linuxsystems.it> and WIPocket
+  (Github #400, #417).
+
+- cleanup bits and pieces of documentation
+
+- cleanup code to remove strlen() related warnings in buf_catrunc()
+
+- DCO on Linux: fix NULL-pointer crash if "--multihome" is used together
+  with "--proto tcp"
+
+- work around build fails caused by LibreSSL not longer having engine support
+
+
+User visible changes
+--------------------
+- DCO: warn if DATA_V1 packets are sent by the other side - this a hard
+  incompatibility between a 2.6.x client connecting to a 2.4.0-2.4.4 server,
+  and the only fix is to use "--disable-dco".
+
+- Remove OpenSSL Engine method for loading a key.  This had to be removed
+  because the original author did not agree to relicensing the code with
+  the new linking exception added.  This was a somewhat obsolete feature
+  anyway as it only worked with OpenSSL 1.x, which is end-of-support.
+
+- add warning if p2p NCP client connects to a p2mp server - this is a
+  combination that used to work without cipher negotiation (pre 2.6 on
+  both ends), but would fail in non-obvious ways with 2.6 to 2.6.
+
+- add warning to "--show-groups" that not all supported groups are listed
+  (this is due the internal enumeration in OpenSSL being a bit weird,
+  omitting X448 and X25519 curves).
+
+- "--dns": remove support for "exclude-domains" argument
+  (this was a new 2.6 option, with no backend support implemented yet
+  on any platform, and it turns out that no platform supported it at all -
+  so remove option again)
+
+- warn user if INFO control message too long, do not forward to management
+  client (safeguard against protocol-violating server implementations)
+
+
+New features
+------------
+- DCO-WIN: get and log driver version (for easier debugging).
+
+- print "peer temporary key details" in TLS handshake
+
+- log OpenSSL errors on failure to set certificate, for example if the
+  algorithms used are in acceptable to OpenSSL (misleading message would
+  be printed in cryptoapi / pkcs#11 scenarios)
+
+- add CMake build system for MinGW and MSVC builds
+
+- remove old MSVC build system
+
+- improve cmocka unit test building for Windows
+
+
 Overview of changes in 2.6.6
 ============================
 
