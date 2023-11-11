@@ -392,7 +392,6 @@ platform_mlockall(bool print_msg)
 int
 platform_chdir(const char *dir)
 {
-#ifdef HAVE_CHDIR
 #ifdef _WIN32
     int res;
     struct gc_arena gc = gc_new();
@@ -400,10 +399,11 @@ platform_chdir(const char *dir)
     gc_free(&gc);
     return res;
 #else  /* ifdef _WIN32 */
+#ifdef HAVE_CHDIR
     return chdir(dir);
-#endif
 #else  /* ifdef HAVE_CHDIR */
     return -1;
+#endif
 #endif
 }
 
