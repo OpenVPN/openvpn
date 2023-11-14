@@ -469,8 +469,8 @@ typedef SSIZE_T ssize_t;
 #define strncasecmp strnicmp
 #define strcasecmp _stricmp
 
-#define S_IRUSR 0
-#define S_IWUSR 0
+#define S_IRUSR _S_IREAD
+#define S_IWUSR _S_IWRITE
 #define R_OK 4
 #define W_OK 2
 #define X_OK 1
