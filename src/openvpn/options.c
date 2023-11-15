@@ -2476,10 +2476,10 @@ options_postprocess_verify_ce(const struct options *options,
 
     if (options->tuntap_options.dhcp_options & DHCP_OPTIONS_DHCP_REQUIRED)
     {
-        const char *prefix = "Some dhcp-options require DHCP server";
+        const char *prefix = "Some --dhcp-option or --dns options require DHCP server";
         if (options->windows_driver != WINDOWS_DRIVER_TAP_WINDOWS6)
         {
-            msg(M_USAGE, "%s, which is not supported by selected %s driver",
+            msg(M_USAGE, "%s, which is not supported by the selected %s driver",
                 prefix, print_windows_driver(options->windows_driver));
         }
         else if (options->tuntap_options.ip_win32_type != IPW32_SET_DHCP_MASQ
