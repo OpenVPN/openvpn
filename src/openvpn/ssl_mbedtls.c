@@ -980,17 +980,15 @@ tls_ctx_personalise_random(struct tls_root_ctx *ctx)
 int
 tls_version_max(void)
 {
-#if defined(MBEDTLS_SSL_PROTO_TLS1_3)
-    return TLS_VER_1_3;
-#elif defined(MBEDTLS_SSL_PROTO_TLS1_2)
+#if defined(MBEDTLS_SSL_PROTO_TLS1_2)
     return TLS_VER_1_2;
 #elif defined(MBEDTLS_SSL_PROTO_TLS1_1)
     return TLS_VER_1_1;
 #elif defined(MBEDTLS_SSL_PROTO_TLS1)
     return TLS_VER_1_0;
-#else /* if defined(MBEDTLS_SSL_PROTO_TLS1_3) */
-    #error "mbedtls is compiled without support for any version of TLS."
-#endif
+#else /* defined(MBEDTLS_SSL_PROTO_TLS1_2) */
+    #error "mbedtls is compiled without support for TLS 1.0, 1.1 and 1.2."
+#endif /* defined(MBEDTLS_SSL_PROTO_TLS1_2) */
 }
 
 /**
@@ -1029,13 +1027,6 @@ tls_version_to_major_minor(int tls_ver, int *major, int *minor)
         case TLS_VER_1_2:
             *major = MBEDTLS_SSL_MAJOR_VERSION_3;
             *minor = MBEDTLS_SSL_MINOR_VERSION_3;
-            break;
-#endif
-
-#if defined(MBEDTLS_SSL_PROTO_TLS1_3)
-        case TLS_VER_1_3:
-            *major = MBEDTLS_SSL_MAJOR_VERSION_3;
-            *minor = MBEDTLS_SSL_MINOR_VERSION_4;
             break;
 #endif
 
