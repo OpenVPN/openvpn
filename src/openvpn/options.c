@@ -1364,6 +1364,7 @@ tuntap_options_copy_dns(struct options *o)
         {
             msg(M_WARN, "WARNING: couldn't copy all --dns search-domains to --dhcp-option");
         }
+        tt->dhcp_options |= DHCP_OPTIONS_DHCP_REQUIRED;
     }
 
     if (dns->servers)
@@ -1401,6 +1402,7 @@ tuntap_options_copy_dns(struct options *o)
         {
             msg(M_WARN, "WARNING: couldn't copy all --dns server addresses to --dhcp-option");
         }
+        tt->dhcp_options |= DHCP_OPTIONS_DHCP_OPTIONAL;
     }
 }
 #else /* if defined(_WIN32) || defined(TARGET_ANDROID) */
