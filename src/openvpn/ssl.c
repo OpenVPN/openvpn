@@ -3192,6 +3192,22 @@ check_session_buf_not_used(struct buffer *to_link, struct tls_session *session)
     for (int i = 0; i < KS_SIZE; i++)
     {
         struct key_state *ks = &session->key[i];
+        if (ks->state == S_UNDEF)
+        {
+            continue;
+        }
+
+        /* we don't expect send_reliable to be NULL when state is
+         * not S_UNDEF, but people have reported crashes nonetheless,
+         * therefore we better catch this event, report and exit.
+         */
+        if (!ks->send_reliable)
+        {
+            msg(M_FATAL, "ERROR: session->key[%d]->send_reliable is NULL "
+                "while key state is %s. Exiting.",
+                i, state_name(ks->state));
+        }
+
         for (int j = 0; j < ks->send_reliable->size; j++)
         {
             if (ks->send_reliable->array[i].buf.data == dataptr)
