@@ -9,7 +9,10 @@
 #
 
 %.service: %.service.in Makefile
-	$(AM_V_GEN)sed -e 's|\@sbindir\@|$(sbindir)|' \
+	$(AM_V_GEN)sed \
+		-e 's|\@OPENVPN_VERSION_MAJOR\@|$(OPENVPN_VERSION_MAJOR)|g' \
+		-e 's|\@OPENVPN_VERSION_MINOR\@|$(OPENVPN_VERSION_MINOR)|g' \
+		-e 's|\@sbindir\@|$(sbindir)|g' \
 		$< > $@.tmp && mv $@.tmp $@
 
 EXTRA_DIST = \

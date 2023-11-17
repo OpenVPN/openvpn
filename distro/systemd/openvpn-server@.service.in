@@ -3,7 +3,7 @@ Description=OpenVPN service for %I
 After=syslog.target network-online.target
 Wants=network-online.target
 Documentation=man:openvpn(8)
-Documentation=https://community.openvpn.net/openvpn/wiki/Openvpn24ManPage
+Documentation=https://openvpn.net/community-resources/reference-manual-for-openvpn-@OPENVPN_VERSION_MAJOR@-@OPENVPN_VERSION_MINOR@/
 Documentation=https://community.openvpn.net/openvpn/wiki/HOWTO
 
 [Service]
