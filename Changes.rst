@@ -1,3 +1,30 @@
+Overview of changes in 2.6.8
+============================
+
+Bug fixes / Code cleanup
+------------------------
+- SIGSEGV crash: Do not check key_state buffers that are in S_UNDEF state
+  (Github #449) - the new sanity check function introduced in 2.6.7
+  sometimes tried to use a NULL pointer after an unsuccessful TLS handshake
+
+- Windows: --dns option did not work when tap-windows6 driver was used,
+  because internal flag for "apply DNS option to DHCP server" wasn't set
+  (Github #447)
+
+- Windows: fix status/log file permissions, caused by regression after
+  changing to CMake build system (Github: #454, Trac: #1430)
+
+- Windows: fix --chdir failures, also caused by error in CMake build system
+  (Github #448)
+
+- doc: fix typos in documentation
+
+User visible changes
+--------------------
+- Windows: print warning if pushed options require DHCP (e.g. DOMAIN-SEARCH)
+  and driver in use does not use DHCP (wintun, dco).
+
+
 Overview of changes in 2.6.7
 ============================
 

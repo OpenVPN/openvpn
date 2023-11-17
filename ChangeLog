@@ -1,6 +1,23 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>
 
+2023.11.17 -- Version 2.6.8
+
+Aquila Macedo (1):
+      doc: Correct typos in multiple documentation files
+
+Arne Schwabe (1):
+      Do not check key_state buffers that are in S_UNDEF state
+
+Frank Lichtenheld (1):
+      platform.c: Do not depend Windows build on HAVE_CHDIR
+
+Lev Stipakov (3):
+      config.h: fix incorrect defines for _wopen()
+      Make --dns options apply for tap-windows6 driver
+      Warn if pushed options require DHCP
+
+
 2023.11.08 -- Version 2.6.7
 
 Antonio Quartulli (1):
