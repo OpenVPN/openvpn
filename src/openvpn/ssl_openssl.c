@@ -196,8 +196,8 @@ info_callback(INFO_CALLBACK_SSL_CONST SSL *s, int where, int ret)
     }
     else if (where & SSL_CB_ALERT)
     {
-        dmsg(D_HANDSHAKE_VERBOSE, "SSL alert (%s): %s: %s",
-             where & SSL_CB_READ ? "read" : "write",
+        dmsg(D_TLS_DEBUG_LOW, "%s %s SSL alert: %s",
+             where & SSL_CB_READ ? "Received" : "Sent",
              SSL_alert_type_string_long(ret),
              SSL_alert_desc_string_long(ret));
     }
