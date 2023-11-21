@@ -15,7 +15,8 @@ then
 fi
 
 # Generate static key for tls-auth (or static key mode)
-$(dirname ${0})/../../src/openvpn/openvpn --genkey tls-auth ta.key
+top_builddir="${top_builddir:-$(dirname ${0})/../..}"
+${top_builddir}/src/openvpn/openvpn --genkey tls-auth ta.key
 
 # Create required directories and files
 mkdir -p sample-ca
