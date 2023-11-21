@@ -284,6 +284,24 @@ man_prompt(struct management *man)
 #endif
 }
 
+
+/**
+ * Small function to report the success or failure of a command to
+ * the management interface
+ */
+static void
+report_command_status(const bool status, const char *command)
+{
+    if (status)
+    {
+        msg(M_CLIENT, "SUCCESS: %s command succeeded", command);
+    }
+    else
+    {
+        msg(M_CLIENT, "ERROR: %s command failed", command);
+    }
+}
+
 static void
 man_delete_unix_socket(struct management *man)
 {
@@ -974,14 +992,7 @@ in_extra_dispatch(struct management *man)
                                         NULL,
                                         man->connection.in_extra);
                 man->connection.in_extra = NULL;
-                if (status)
-                {
-                    msg(M_CLIENT, "SUCCESS: client-auth command succeeded");
-                }
-                else
-                {
-                    msg(M_CLIENT, "ERROR: client-auth command failed");
-                }
+                report_command_status(status, "client-auth");
             }
             else
             {
@@ -1260,14 +1271,7 @@ man_proxy(struct management *man, const char **p)
     if (man->persist.callback.proxy_cmd)
     {
         const bool status = (*man->persist.callback.proxy_cmd)(man->persist.callback.arg, p);
-        if (status)
-        {
-            msg(M_CLIENT, "SUCCESS: proxy command succeeded");
-        }
-        else
-        {
-            msg(M_CLIENT, "ERROR: proxy command failed");
-        }
+        report_command_status(status, "proxy");
     }
     else
     {
@@ -1281,14 +1285,7 @@ man_remote(struct management *man, const char **p)
     if (man->persist.callback.remote_cmd)
     {
         const bool status = (*man->persist.callback.remote_cmd)(man->persist.callback.arg, p);
-        if (status)
-        {
-            msg(M_CLIENT, "SUCCESS: remote command succeeded");
-        }
-        else
-        {
-            msg(M_CLIENT, "ERROR: remote command failed");
-        }
+        report_command_status(status, "remote");
     }
     else
     {
