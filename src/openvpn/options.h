@@ -594,7 +594,6 @@ struct options
     const char *tls_verify;
     int verify_x509_type;
     const char *verify_x509_name;
-    const char *tls_export_cert;
     const char *crl_file;
     bool crl_file_inline;
 

@@ -490,65 +490,18 @@ verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
     return SUCCESS;
 }
 
-static const char *
-verify_cert_export_cert(openvpn_x509_cert_t *peercert, const char *tmp_dir, struct gc_arena *gc)
-{
-    FILE *peercert_file;
-    const char *peercert_filename = "";
-
-    /* create tmp file to store peer cert */
-    if (!tmp_dir
-        || !(peercert_filename = platform_create_temp_file(tmp_dir, "pcf", gc)))
-    {
-        msg(M_NONFATAL, "Failed to create peer cert file");
-        return NULL;
-    }
-
-    /* write peer-cert in tmp-file */
-    peercert_file = fopen(peercert_filename, "w+");
-    if (!peercert_file)
-    {
-        msg(M_NONFATAL|M_ERRNO, "Failed to open temporary file: %s",
-            peercert_filename);
-        return NULL;
-    }
-
-    if (SUCCESS != x509_write_pem(peercert_file, peercert))
-    {
-        msg(M_NONFATAL, "Error writing PEM file containing certificate");
-        (void) platform_unlink(peercert_filename);
-        peercert_filename = NULL;
-    }
-
-    fclose(peercert_file);
-    return peercert_filename;
-}
-
-
 /*
  * run --tls-verify script
  */
 static result_t
 verify_cert_call_command(const char *verify_command, struct env_set *es,
-                         int cert_depth, openvpn_x509_cert_t *cert, char *subject, const char *verify_export_cert)
+                         int cert_depth, openvpn_x509_cert_t *cert, char *subject)
 {
-    const char *tmp_file = NULL;
     int ret;
     struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
 
     setenv_str(es, "script_type", "tls-verify");
-
-    if (verify_export_cert)
-    {
-        tmp_file = verify_cert_export_cert(cert, verify_export_cert, &gc);
-        if (!tmp_file)
-        {
-            ret = false;
-            goto cleanup;
-        }
-        setenv_str(es, "peer_cert", tmp_file);
-    }
 
     argv_parse_cmd(&argv, verify_command);
     argv_printf_cat(&argv, "%d %s", cert_depth, subject);
@@ -556,15 +509,6 @@ verify_cert_call_command(const char *verify_command, struct env_set *es,
     argv_msg_prefix(D_TLS_DEBUG, &argv, "TLS: executing verify command");
     ret = openvpn_run_script(&argv, es, 0, "--tls-verify script");
 
-    if (verify_export_cert)
-    {
-        if (tmp_file)
-        {
-            platform_unlink(tmp_file);
-        }
-    }
-
-cleanup:
     gc_free(&gc);
     argv_free(&argv);
 
@@ -783,7 +727,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
 
     /* run --tls-verify script */
     if (opt->verify_command && SUCCESS != verify_cert_call_command(opt->verify_command,
-                                                                   opt->es, cert_depth, cert, subject, opt->verify_export_cert))
+                                                                   opt->es, cert_depth, cert, subject))
     {
         goto cleanup;
     }

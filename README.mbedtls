@@ -38,7 +38,6 @@ in the mbed TLS version of OpenVPN:
 Plugin/Script features:
 
  * X.509 subject line has a different format than the OpenSSL subject line
- * X.509 certificate export does not work
  * X.509 certificate tracking
 
 *************************************************************************

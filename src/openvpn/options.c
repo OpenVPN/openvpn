@@ -638,9 +638,6 @@ static const char usage_message[] =
     "                  tests of certification.  cmd should return 0 to allow\n"
     "                  TLS handshake to proceed, or 1 to fail.  (cmd is\n"
     "                  executed as 'cmd certificate_depth subject')\n"
-    "--tls-export-cert [directory] : Get peer cert in PEM format and store it \n"
-    "                  in an openvpn temporary file in [directory]. Peer cert is \n"
-    "                  stored before tls-verify script execution and deleted after.\n"
     "--verify-x509-name name: Accept connections only from a host with X509 subject\n"
     "                  DN name. The remote host must also pass all other tests\n"
     "                  of verification.\n"
@@ -1989,7 +1986,6 @@ show_settings(const struct options *o)
     SHOW_STR(cipher_list_tls13);
     SHOW_STR(tls_cert_profile);
     SHOW_STR(tls_verify);
-    SHOW_STR(tls_export_cert);
     SHOW_INT(verify_x509_type);
     SHOW_STR(verify_x509_name);
     SHOW_STR_INLINE(crl_file);
@@ -3052,7 +3048,6 @@ options_postprocess_verify_ce(const struct options *options,
         MUST_BE_UNDEF(cipher_list_tls13);
         MUST_BE_UNDEF(tls_cert_profile);
         MUST_BE_UNDEF(tls_verify);
-        MUST_BE_UNDEF(tls_export_cert);
         MUST_BE_UNDEF(verify_x509_name);
         MUST_BE_UNDEF(tls_timeout);
         MUST_BE_UNDEF(renegotiate_bytes);
@@ -4108,8 +4103,6 @@ options_postprocess_filechecks(struct options *options)
                               R_OK|W_OK, "--status");
 
     /* ** Config related ** */
-    errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE, options->tls_export_cert,
-                                     R_OK|W_OK|X_OK, "--tls-export-cert");
     errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE, options->client_config_dir,
                                      R_OK|X_OK, "--client-config-dir");
     errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE, options->tmp_dir,
@@ -9005,13 +8998,6 @@ add_option(struct options *options,
                         string_substitute(p[1], ',', ' ', &options->gc),
                         "tls-verify", true);
     }
-#ifndef ENABLE_CRYPTO_MBEDTLS
-    else if (streq(p[0], "tls-export-cert") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->tls_export_cert = p[1];
-    }
-#endif
     else if (streq(p[0], "compat-names"))
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);

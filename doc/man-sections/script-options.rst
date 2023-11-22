@@ -813,10 +813,6 @@ instances.
     translations will be recorded rather than their names as denoted on the
     command line or configuration file.
 
-:code:`peer_cert`
-    Temporary file name containing the client certificate upon connection.
-    Useful in conjunction with ``--tls-verify``.
-
 :code:`script_context`
     Set to "init" or "restart" prior to up/down script execution. For more
     information, see documentation for ``--up``.
