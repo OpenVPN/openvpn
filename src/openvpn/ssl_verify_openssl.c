@@ -762,17 +762,6 @@ x509_verify_cert_eku(X509 *x509, const char *const expected_oid)
     return fFound;
 }
 
-result_t
-x509_write_pem(FILE *peercert_file, X509 *peercert)
-{
-    if (PEM_write_X509(peercert_file, peercert) < 0)
-    {
-        msg(M_NONFATAL, "Failed to write peer certificate in PEM format");
-        return FAILURE;
-    }
-    return SUCCESS;
-}
-
 bool
 tls_verify_crl_missing(const struct tls_options *opt)
 {

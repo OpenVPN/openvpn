@@ -536,13 +536,6 @@ x509_verify_cert_eku(mbedtls_x509_crt *cert, const char *const expected_oid)
     return fFound;
 }
 
-result_t
-x509_write_pem(FILE *peercert_file, mbedtls_x509_crt *peercert)
-{
-    msg(M_WARN, "mbed TLS does not support writing peer certificate in PEM format");
-    return FAILURE;
-}
-
 bool
 tls_verify_crl_missing(const struct tls_options *opt)
 {
