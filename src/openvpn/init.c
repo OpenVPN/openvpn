@@ -3322,7 +3322,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     }
 
     to.verify_command = options->tls_verify;
-    to.verify_export_cert = options->tls_export_cert;
     to.verify_x509_type = (options->verify_x509_type & 0xff);
     to.verify_x509_name = options->verify_x509_name;
     to.crl_file = options->crl_file;

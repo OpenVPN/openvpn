@@ -541,13 +541,6 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   want to make one attempt at connecting, e.g. in a test or monitoring script.
   (OpenVPN's own test suite uses it this way.)
 
---tls-export-cert directory
-  Store the certificates the clients use upon connection to this
-  directory. This will be done before ``--tls-verify`` is called. The
-  certificates will use a temporary name and will be deleted when the
-  tls-verify script returns. The file name used for the certificate is
-  available via the ``peer_cert`` environment variable.
-
 --tls-server
   Enable TLS and assume server role during TLS handshake. Note that
   OpenVPN is designed as a peer-to-peer application. The designation of
