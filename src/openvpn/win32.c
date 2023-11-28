@@ -45,11 +45,7 @@
 
 #include "memdbg.h"
 
-#ifdef HAVE_VERSIONHELPERS_H
 #include <versionhelpers.h>
-#else
-#include "compat-versionhelpers.h"
-#endif
 
 #include "block_dns.h"
 
