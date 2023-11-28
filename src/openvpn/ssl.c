@@ -3210,7 +3210,7 @@ check_session_buf_not_used(struct buffer *to_link, struct tls_session *session)
 
         for (int j = 0; j < ks->send_reliable->size; j++)
         {
-            if (ks->send_reliable->array[i].buf.data == dataptr)
+            if (ks->send_reliable->array[j].buf.data == dataptr)
             {
                 msg(M_INFO, "Warning buffer of freed TLS session is still in"
                     " use (session->key[%d].send_reliable->array[%d])",
