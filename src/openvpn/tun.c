@@ -1900,7 +1900,7 @@ tun_dco_enabled(struct tuntap *tt)
 #endif
 
 
-#if !(defined(_WIN32) || defined(TARGET_LINUX))
+#if !(defined(_WIN32) || defined(TARGET_LINUX) || defined(TARGET_SOLARIS))
 static void
 open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
                  struct tuntap *tt)
@@ -2061,7 +2061,7 @@ open_tun_dco_generic(const char *dev, const char *dev_type,
 }
 #endif /* TARGET_LINUX || TARGET_FREEBSD*/
 
-#if !defined(_WIN32)
+#if !(defined(_WIN32) || defined(TARGET_SOLARIS))
 static void
 close_tun_generic(struct tuntap *tt)
 {
@@ -2398,13 +2398,12 @@ void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
          openvpn_net_ctx_t *ctx)
 {
-    int if_fd, ip_muxid, arp_muxid, arp_fd, ppa = -1;
+    int if_fd = -1, ip_muxid = -1, arp_muxid = -1, arp_fd = -1, ppa = -1;
     struct lifreq ifr;
     const char *ptr;
-    const char *ip_node, *arp_node;
+    const char *ip_node = NULL, *arp_node = NULL;
     const char *dev_tuntap_type;
     int link_type;
-    bool is_tun;
     struct strioctl strioc_if, strioc_ppa;
 
     /* improved generic TUN/TAP driver from
@@ -2428,7 +2427,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         }
         dev_tuntap_type = "tun";
         link_type = I_PLINK;
-        is_tun = true;
     }
     else if (tt->type == DEV_TYPE_TAP)
     {
@@ -2440,7 +2438,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         arp_node = dev_node;
         dev_tuntap_type = "tap";
         link_type = I_PLINK; /* was: I_LINK */
-        is_tun = false;
     }
     else
     {

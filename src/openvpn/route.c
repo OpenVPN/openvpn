@@ -2342,12 +2342,11 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
         return;
     }
 
-#ifndef _WIN32
+#if !defined(_WIN32)
 #if !defined(TARGET_LINUX)
     const char *gateway;
-#else
-    int metric;
 #endif
+#if !defined(TARGET_SOLARIS)
     bool gateway_needed = false;
     const char *device = tt->actual_name;
     if (r6->iface != NULL)              /* vpn server special route */
@@ -2364,6 +2363,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     {
         gateway_needed = true;
     }
+#endif
 #endif
 
     struct gc_arena gc = gc_new();
@@ -2395,7 +2395,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     msg( M_INFO, "delete_route_ipv6(%s/%d)", network, r6->netbits );
 
 #if defined(TARGET_LINUX)
-    metric = -1;
+    int metric = -1;
     if ((r6->flags & RT_METRIC_DEFINED) && (r6->metric > 0))
     {
         metric = r6->metric;

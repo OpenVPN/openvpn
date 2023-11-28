@@ -334,7 +334,7 @@ don't. */
 #cmakedefine HAVE_SYS_SOCKET_H
 
 /* Define to 1 if you have the <sys/sockio.h> header file. */
-#undef HAVE_SYS_SOCKIO_H
+#cmakedefine HAVE_SYS_SOCKIO_H
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #define HAVE_SYS_STAT_H 1
@@ -437,6 +437,9 @@ don't. */
 
 /* Are we running on Linux? */
 #cmakedefine TARGET_LINUX
+
+/* Are we running on Solaris/OpenIndiana? */
+#cmakedefine TARGET_SOLARIS
 
 /* Are we running WIN32? */
 #cmakedefine TARGET_WIN32
