@@ -215,7 +215,7 @@ don't. */
 #cmakedefine HAVE_NET_TUN_IF_TUN_H
 
 /* Define to 1 if you have the `nice' function. */
-#undef HAVE_NICE
+#cmakedefine HAVE_NICE
 
 /* Define to 1 if you have the `openlog' function. */
 #cmakedefine HAVE_OPENLOG
