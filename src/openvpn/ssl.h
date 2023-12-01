@@ -540,9 +540,6 @@ void show_tls_performance_stats(void);
 
 #endif
 
-/*#define EXTRACT_X509_FIELD_TEST*/
-void extract_x509_field_test(void);
-
 /**
  * Given a key_method, return true if opcode represents the one of the
  * hard_reset op codes for key-method 2

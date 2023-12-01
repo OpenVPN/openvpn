@@ -880,11 +880,6 @@ init_static(void)
     return false;
 #endif
 
-#ifdef EXTRACT_X509_FIELD_TEST
-    extract_x509_field_test();
-    return false;
-#endif
-
 #ifdef TIME_TEST
     time_test();
     return false;
