@@ -167,6 +167,7 @@ check_symbol_exists(syslog syslog.h HAVE_SYSLOG)
 check_symbol_exists(getgrnam grp.h HAVE_GETGRNAM)
 check_symbol_exists(getpwnam pwd.h HAVE_GETPWNAM)
 check_symbol_exists(getsockname sys/socket.h HAVE_GETSOCKNAME)
+check_symbol_exists(getrlimit "sys/time.h;sys/resource.h" HAVE_GETRLIMIT)
 
 # Some OS (e.g. FreeBSD) need some basic headers to allow
 # including network headers
