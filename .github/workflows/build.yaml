@@ -323,21 +323,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           path: libressl
-          repository: libressl-portable/portable
-          ref: v3.7.0
-      # LibreSSL has master in the OPENBSD_BRANCH by default even in the tagged releases
-      # Manually use the OpenBSD branch that is more appropiate and remove git pull that
-      # breaks when checking out a tag instead of branch
-      - name: "libressl: fix build"
-        run: |
-           echo libressl-v3.7.0 > OPENBSD_BRANCH
-           sed -i -e 's/ git pull --rebase//' update.sh
-        working-directory: libressl
+          repository: libressl/portable
+          ref: v3.8.2
       - name: "libressl: autogen.sh"
         run: ./autogen.sh
-        working-directory: libressl
-      - name: "libressl: autoconf"
-        run: autoreconf -fvi
         working-directory: libressl
       - name: "libressl: configure"
         run: ./configure
