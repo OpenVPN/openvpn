@@ -23,6 +23,15 @@ NTLMv1 authentication support for HTTP proxies has been removed.
 ``persist-key`` option has been enabled by default.
     All the keys will be kept in memory across restart.
 
+Default for ``--topology`` changed to ``subnet``
+    Previous releases used ``net30`` as default. This only affects
+    configs with ``--dev tun`` and only IPv4. Note that this
+    changes the semantics of ``--ifconfig``, so if you have manual
+    settings for that in your config but not set ``--topology``
+    your config might fail to parse with the new version. Just adding
+    ``--topology net30`` to the config should fix the problem.
+    By default ``--topology`` is pushed from server to client.
+
 Overview of changes in 2.6
 ==========================
 

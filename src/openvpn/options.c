@@ -796,7 +796,7 @@ init_options(struct options *o, const bool init_gc)
         o->gc_owned = true;
     }
     o->mode = MODE_POINT_TO_POINT;
-    o->topology = TOP_NET30;
+    o->topology = TOP_SUBNET;
     o->ce.proto = PROTO_UDP;
     o->ce.af = AF_UNSPEC;
     o->ce.bind_ipv6_only = false;

@@ -495,11 +495,17 @@ routing.
 
   ``mode`` can be one of:
 
+  :code:`subnet`
+    Use a subnet rather than a point-to-point topology by
+    configuring the tun interface with a local IP address and subnet mask,
+    similar to the topology used in ``--dev tap`` and ethernet bridging
+    mode. This mode allocates a single IP address per connecting client and
+    works on Windows as well. This is the default.
+
   :code:`net30`
     Use a point-to-point topology, by allocating one /30 subnet
     per client. This is designed to allow point-to-point semantics when some
-    or all of the connecting clients might be Windows systems. This is the
-    default.
+    or all of the connecting clients might be Windows systems.
 
   :code:`p2p`
     Use a point-to-point topology where the remote endpoint of
@@ -508,15 +514,8 @@ routing.
     connecting client. Only use when none of the connecting clients are
     Windows systems.
 
-  :code:`subnet`
-    Use a subnet rather than a point-to-point topology by
-    configuring the tun interface with a local IP address and subnet mask,
-    similar to the topology used in ``--dev tap`` and ethernet bridging
-    mode. This mode allocates a single IP address per connecting client and
-    works on Windows as well.
-
   *Note:* Using ``--topology subnet`` changes the interpretation of the
-  arguments of ``--ifconfig`` to mean "address netmask", no longer "local
+  arguments of ``--ifconfig`` to mean "address netmask", and not "local
   remote".
 
 --tun-mtu args
