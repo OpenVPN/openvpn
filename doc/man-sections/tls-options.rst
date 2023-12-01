@@ -553,7 +553,9 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   code.
 
 --tls-exit
-  Exit on TLS negotiation failure.
+  Exit on TLS negotiation failure. This option can be useful when you only
+  want to make one attempt at connecting, e.g. in a test or monitoring script.
+  (OpenVPN's own test suite uses it this way.)
 
 --tls-export-cert directory
   Store the certificates the clients use upon connection to this
