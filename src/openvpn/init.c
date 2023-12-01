@@ -875,11 +875,6 @@ init_static(void)
     return false;
 #endif
 
-#ifdef CHARACTER_CLASS_DEBUG
-    character_class_debug();
-    return false;
-#endif
-
 #ifdef TIME_TEST
     time_test();
     return false;

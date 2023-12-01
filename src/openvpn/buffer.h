@@ -896,8 +896,6 @@ int buf_substring_len(const struct buffer *buf, int delim);
  */
 const char *np(const char *str);
 
-/*#define CHARACTER_CLASS_DEBUG*/
-
 /* character classes */
 
 #define CC_ANY                (1<<0)
@@ -960,11 +958,6 @@ strprefix(const char *str, const char *prefix)
     return 0 == strncmp(str, prefix, strlen(prefix));
 }
 
-
-#ifdef CHARACTER_CLASS_DEBUG
-void character_class_debug(void);
-
-#endif
 
 /*
  * Verify that a pointer is correctly aligned

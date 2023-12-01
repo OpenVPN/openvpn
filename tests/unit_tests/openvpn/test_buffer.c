@@ -319,6 +319,30 @@ test_buffer_gc_realloc(void **state)
     gc_free(&gc);
 }
 
+static void
+test_character_class(void **state)
+{
+    char buf[256];
+    strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+    string_mod(buf, CC_PRINT, 0, '@');
+    assert_string_equal(buf, "There is @ a nice 1234 year old tr@ ee!");
+
+    strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+    string_mod(buf, CC_PRINT, CC_DIGIT, '@');
+    assert_string_equal(buf, "There is @ a nice @@@@ year old tr@ ee!");
+
+    strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+    string_mod(buf, CC_ALPHA, CC_DIGIT, '.');
+    assert_string_equal(buf, "There.is...a.nice......year.old.tr..ee.");
+
+    strcpy(buf, "There is \x01 a 'nice' \"1234\"\n year old \ntr\x7f ee!");
+    string_mod(buf, CC_ALPHA|CC_DIGIT|CC_NEWLINE|CC_SINGLE_QUOTE, CC_DOUBLE_QUOTE|CC_BLANK, '.');
+    assert_string_equal(buf, "There.is...a.'nice'..1234.\n.year.old.\ntr..ee.");
+
+    strcpy(buf, "There is a \\'nice\\' \"1234\" [*] year old \ntree!");
+    string_mod(buf, CC_PRINT, CC_BACKSLASH|CC_ASTERISK, '.');
+    assert_string_equal(buf, "There is a .'nice.' \"1234\" [.] year old .tree!");
+}
 
 int
 main(void)
@@ -351,6 +375,7 @@ main(void)
         cmocka_unit_test(test_buffer_free_gc_one),
         cmocka_unit_test(test_buffer_free_gc_two),
         cmocka_unit_test(test_buffer_gc_realloc),
+        cmocka_unit_test(test_character_class),
     };
 
     return cmocka_run_group_tests_name("buffer", tests, NULL, NULL);
