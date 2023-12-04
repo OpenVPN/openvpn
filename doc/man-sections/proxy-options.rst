@@ -1,7 +1,3 @@
---show-proxy-settings
-  Show sensed HTTP or SOCKS proxy settings. Currently, only Windows
-  clients support this option.
-
 --http-proxy args
   Connect to remote host through an HTTP proxy.  This requires at least an
   address ``server`` and ``port`` argument.  If HTTP Proxy-Authenticate
