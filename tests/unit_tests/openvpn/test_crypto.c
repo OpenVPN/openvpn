@@ -38,7 +38,6 @@
 #include "options.h"
 #include "ssl_backend.h"
 
-#include "mock_msg.h"
 #include "mss.h"
 
 static const char testtext[] = "Dummy text to test PEM encoding";

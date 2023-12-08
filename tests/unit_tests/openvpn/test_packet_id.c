@@ -36,8 +36,6 @@
 #include "packet_id.h"
 #include "reliable.h"
 
-#include "mock_msg.h"
-
 struct test_packet_id_write_data {
     struct {
         uint32_t buf_id;

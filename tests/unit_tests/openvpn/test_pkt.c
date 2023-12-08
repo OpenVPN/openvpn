@@ -40,7 +40,6 @@
 #include "ssl_pkt.h"
 #include "tls_crypt.h"
 
-#include "mock_msg.h"
 #include "mss.h"
 #include "reliable.h"
 

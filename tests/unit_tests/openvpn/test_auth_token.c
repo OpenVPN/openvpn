@@ -36,8 +36,6 @@
 
 #include "auth_token.c"
 
-#include "mock_msg.h"
-
 struct test_context {
     struct tls_multi multi;
     struct key_type kt;
