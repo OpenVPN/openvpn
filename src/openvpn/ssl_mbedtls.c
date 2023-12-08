@@ -44,6 +44,7 @@
 #include "mbedtls_compat.h"
 #include "pkcs11_backend.h"
 #include "ssl_common.h"
+#include "ssl_util.h"
 
 #include "ssl_verify_mbedtls.h"
 #include <mbedtls/debug.h>

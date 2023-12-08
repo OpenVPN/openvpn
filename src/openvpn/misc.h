@@ -193,20 +193,6 @@ bool validate_peer_info_line(char *line);
 void output_peer_info_env(struct env_set *es, const char *peer_info);
 
 /**
- * Returns the occurrences of 'delimiter' in a string +1
- * This is typically used to find out the number elements in a
- * cipher string or similar that is separated by : like
- *
- *   X25519:secp256r1:X448:secp512r1:secp384r1:brainpoolP384r1
- *
- * @param string        the string to work on
- * @param delimiter     the delimiter to count, typically ':'
- * @return              occrrences of delimiter + 1
- */
-int
-get_num_elements(const char *string, char delimiter);
-
-/**
  * Prepend a directory to a path.
  */
 struct buffer

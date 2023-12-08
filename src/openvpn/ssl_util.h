@@ -66,4 +66,27 @@ unsigned int extract_iv_proto(const char *peer_info);
  */
 const char *options_string_compat_lzo(const char *options, struct gc_arena *gc);
 
-#endif
+/**
+ * Get a tls_cipher_name_pair containing OpenSSL and IANA names for supplied TLS cipher name
+ *
+ * @param cipher_name   Can be either OpenSSL or IANA cipher name
+ * @return              tls_cipher_name_pair* if found, NULL otherwise
+ */
+typedef struct { const char *openssl_name; const char *iana_name; } tls_cipher_name_pair;
+const tls_cipher_name_pair *tls_get_cipher_name_pair(const char *cipher_name, size_t len);
+
+/**
+ * Returns the occurrences of 'delimiter' in a string +1
+ * This is typically used to find out the number elements in a
+ * cipher string or similar that is separated by : like
+ *
+ *   X25519:secp256r1:X448:secp512r1:secp384r1:brainpoolP384r1
+ *
+ * @param string        the string to work on
+ * @param delimiter     the delimiter to count, typically ':'
+ * @return              occrrences of delimiter + 1
+ */
+int
+get_num_elements(const char *string, char delimiter);
+
+#endif /* ifndef SSL_UTIL_H_ */

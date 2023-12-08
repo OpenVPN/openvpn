@@ -50,6 +50,7 @@
 #endif
 
 #include "ssl_verify_openssl.h"
+#include "ssl_util.h"
 
 #include <openssl/bn.h>
 #include <openssl/crypto.h>
