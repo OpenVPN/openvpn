@@ -77,13 +77,13 @@ mbedtls_compat_ctr_drbg_update(mbedtls_ctr_drbg_context *ctx,
                                const unsigned char *additional,
                                size_t add_len)
 {
-#if HAVE_MBEDTLS_CTR_DRBG_UPDATE_RET
+#if MBEDTLS_VERSION_NUMBER > 0x03000000
+    return mbedtls_ctr_drbg_update(ctx, additional, add_len);
+#elif HAVE_MBEDTLS_CTR_DRBG_UPDATE_RET
     return mbedtls_ctr_drbg_update_ret(ctx, additional, add_len);
-#elif MBEDTLS_VERSION_NUMBER < 0x03020100
+#else
     mbedtls_ctr_drbg_update(ctx, additional, add_len);
     return 0;
-#else
-    return mbedtls_ctr_drbg_update(ctx, additional, add_len);
 #endif /* HAVE_MBEDTLS_CTR_DRBG_UPDATE_RET */
 }
 

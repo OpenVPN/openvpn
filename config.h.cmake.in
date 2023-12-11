@@ -378,11 +378,11 @@ don't. */
 /* Define to 1 if you have the <vfork.h> header file. */
 #undef HAVE_VFORK_H
 
-/* we always assume a recent mbed TLS version */
-#define HAVE_MBEDTLS_PSA_CRYPTO_H 1
+/* Availability of different mbed TLS features and APIs */
+#cmakedefine01 HAVE_MBEDTLS_PSA_CRYPTO_H
 #define HAVE_MBEDTLS_SSL_TLS_PRF 1
-#define HAVE_MBEDTLS_SSL_SET_EXPORT_KEYS_CB 1
-#define HAVE_MBEDTLS_CTR_DRBG_UPDATE_RET 1
+#cmakedefine01 HAVE_MBEDTLS_SSL_SET_EXPORT_KEYS_CB
+#cmakedefine01 HAVE_MBEDTLS_CTR_DRBG_UPDATE_RET
 
 /* Path to ifconfig tool */
 #define IFCONFIG_PATH "@IFCONFIG_PATH@"
