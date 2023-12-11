@@ -324,23 +324,32 @@ test_character_class(void **state)
 {
     char buf[256];
     strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
-    string_mod(buf, CC_PRINT, 0, '@');
+    assert_false(string_mod(buf, CC_PRINT, 0, '@'));
     assert_string_equal(buf, "There is @ a nice 1234 year old tr@ ee!");
 
     strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
-    string_mod(buf, CC_PRINT, CC_DIGIT, '@');
+    assert_true(string_mod(buf, CC_ANY, 0, '@'));
+    assert_string_equal(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+
+    /* 0 as replace removes characters */
+    strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+    assert_false(string_mod(buf, CC_PRINT, 0, '\0'));
+    assert_string_equal(buf, "There is  a nice 1234 year old tr ee!");
+
+    strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+    assert_false(string_mod(buf, CC_PRINT, CC_DIGIT, '@'));
     assert_string_equal(buf, "There is @ a nice @@@@ year old tr@ ee!");
 
     strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
-    string_mod(buf, CC_ALPHA, CC_DIGIT, '.');
+    assert_false(string_mod(buf, CC_ALPHA, CC_DIGIT, '.'));
     assert_string_equal(buf, "There.is...a.nice......year.old.tr..ee.");
 
     strcpy(buf, "There is \x01 a 'nice' \"1234\"\n year old \ntr\x7f ee!");
-    string_mod(buf, CC_ALPHA|CC_DIGIT|CC_NEWLINE|CC_SINGLE_QUOTE, CC_DOUBLE_QUOTE|CC_BLANK, '.');
+    assert_false(string_mod(buf, CC_ALPHA|CC_DIGIT|CC_NEWLINE|CC_SINGLE_QUOTE, CC_DOUBLE_QUOTE|CC_BLANK, '.'));
     assert_string_equal(buf, "There.is...a.'nice'..1234.\n.year.old.\ntr..ee.");
 
     strcpy(buf, "There is a \\'nice\\' \"1234\" [*] year old \ntree!");
-    string_mod(buf, CC_PRINT, CC_BACKSLASH|CC_ASTERISK, '.');
+    assert_false(string_mod(buf, CC_PRINT, CC_BACKSLASH|CC_ASTERISK, '.'));
     assert_string_equal(buf, "There is a .'nice.' \"1234\" [.] year old .tree!");
 }
 
