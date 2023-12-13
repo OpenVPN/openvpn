@@ -916,6 +916,9 @@ instances.
     verification level is 0 for the client certificate and 1 for the CA
     certificate.
 
+    You can use the ``--x509-track`` option to export more or less information
+    from the certificates.
+
     ::
 
        X509_0_emailAddress=me@myhost.mydomain
