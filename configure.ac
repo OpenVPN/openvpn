@@ -41,20 +41,6 @@ AC_CONFIG_HEADERS([config.h include/openvpn-plugin.h])
 AC_CONFIG_SRCDIR([src/openvpn/syshead.h])
 AC_CONFIG_MACRO_DIR([m4])
 
-dnl Initialize automake.  automake < 1.12 didn't have serial-tests and
-dnl gives an error if it sees this, but for automake >= 1.13
-dnl serial-tests is required so we have to include it.  Solution is to
-dnl test for the version of automake (by running an external command)
-dnl and provide it if necessary.  Note we have to do this entirely using
-dnl m4 macros since automake queries this macro by running
-dnl 'autoconf --trace ...'.
-m4_define([serial_tests], [
-    m4_esyscmd([automake --version |
-                head -1 |
-                awk '{split ($NF,a,"."); if (a[1] == 1 && a[2] >= 12) { print "serial-tests" }}'
-    ])
-])
-
 dnl Automake 1.14+ warns if sources are in sub-directories but subdir-objects
 dnl options is not enabled. However, automake before 1.15a has a bug that causes
 dnl variable expansion to fail in foo_SOURCES when this option is used.
@@ -69,7 +55,7 @@ m4_define([subdir_objects], [
 
 # This foreign option prevents autoreconf from overriding our COPYING and
 # INSTALL targets:
-AM_INIT_AUTOMAKE(foreign serial_tests subdir_objects 1.9) dnl NB: Do not [quote] this parameter.
+AM_INIT_AUTOMAKE(foreign subdir_objects 1.9) dnl NB: Do not [quote] this parameter.
 AC_CANONICAL_HOST
 AC_USE_SYSTEM_EXTENSIONS
 

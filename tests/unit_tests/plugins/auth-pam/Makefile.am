@@ -1,5 +1,7 @@
 AUTOMAKE_OPTIONS = foreign
 
+AM_TESTSUITE_SUMMARY_HEADER = ' for $(PACKAGE_STRING) auth_pam Plugin Unit-Tests'
+
 if ENABLE_PLUGIN_AUTH_PAM
 check_PROGRAMS = auth_pam_testdriver
 TESTS = $(check_PROGRAMS)

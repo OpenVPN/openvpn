@@ -1,5 +1,7 @@
 AUTOMAKE_OPTIONS = foreign
 
+AM_TESTSUITE_SUMMARY_HEADER = ' for $(PACKAGE_STRING) Unit-Tests'
+
 test_binaries=
 
 if HAVE_LD_WRAP_SUPPORT
