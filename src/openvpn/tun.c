@@ -147,17 +147,16 @@ out:
     return ret;
 }
 
-static bool
+static void
 do_dns_domain_service(bool add, const struct tuntap *tt)
 {
-    bool ret = false;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
     HANDLE pipe = tt->options.msg_channel;
 
     if (!tt->options.domain) /* no  domain to add or delete */
     {
-        return true;
+        goto out;
     }
 
     /* Use dns_cfg_msg with addr_len = 0 for setting only the DOMAIN */
@@ -195,17 +194,14 @@ do_dns_domain_service(bool add, const struct tuntap *tt)
     }
 
     msg(M_INFO, "DNS domain %s using service", (add ? "set" : "deleted"));
-    ret = true;
 
 out:
     gc_free(&gc);
-    return ret;
 }
 
-static bool
+static void
 do_dns_service(bool add, const short family, const struct tuntap *tt)
 {
-    bool ret = false;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
     HANDLE pipe = tt->options.msg_channel;
@@ -213,9 +209,10 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
     int addr_len = add ? len : 0;
     const char *ip_proto_name = family == AF_INET6 ? "IPv6" : "IPv4";
 
-    if (addr_len == 0 && add) /* no addresses to add */
+    if (len == 0)
     {
-        return true;
+        /* nothing to do */
+        goto out;
     }
 
     /* Use dns_cfg_msg with domain = "" for setting only the DNS servers */
@@ -272,26 +269,23 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
     }
 
     msg(M_INFO, "%s dns servers %s using service", ip_proto_name, (add ? "set" : "deleted"));
-    ret = true;
 
 out:
     gc_free(&gc);
-    return ret;
 }
 
-static bool
+static void
 do_wins_service(bool add, const struct tuntap *tt)
 {
-    bool ret = false;
     ack_message_t ack;
     struct gc_arena gc = gc_new();
     HANDLE pipe = tt->options.msg_channel;
-    int len = tt->options.wins_len;
-    int addr_len = add ? len : 0;
+    int addr_len = add ? tt->options.wins_len : 0;
 
-    if (addr_len == 0 && add) /* no addresses to add */
+    if (tt->options.wins_len == 0)
     {
-        return true;
+        /* nothing to do */
+        goto out;
     }
 
     wins_cfg_message_t wins = {
@@ -338,11 +332,9 @@ do_wins_service(bool add, const struct tuntap *tt)
     }
 
     msg(M_INFO, "WINS servers %s using service", (add ? "set" : "deleted"));
-    ret = true;
 
 out:
     gc_free(&gc);
-    return ret;
 }
 
 static bool
@@ -7022,10 +7014,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
             {
                 do_dns_domain_service(false, tt);
             }
-            if (tt->options.dns6_len > 0)
-            {
-                do_dns_service(false, AF_INET6, tt);
-            }
+            do_dns_service(false, AF_INET6, tt);
             delete_route_connected_v6_net(tt);
             do_address_service(false, AF_INET6, tt);
         }
