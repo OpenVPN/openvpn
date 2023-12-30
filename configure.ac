@@ -56,6 +56,7 @@ m4_define([subdir_objects], [
 # This foreign option prevents autoreconf from overriding our COPYING and
 # INSTALL targets:
 AM_INIT_AUTOMAKE(foreign subdir_objects 1.9) dnl NB: Do not [quote] this parameter.
+AM_SILENT_RULES([yes])
 AC_CANONICAL_HOST
 AC_USE_SYSTEM_EXTENSIONS
 
