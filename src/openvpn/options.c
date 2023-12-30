@@ -6755,8 +6755,7 @@ add_option(struct options *options,
         if (p[3])
         {
             /* auto -- try to figure out proxy addr, port, and type automatically */
-            /* semiauto -- given proxy addr:port, try to figure out type automatically */
-            /* (auto|semiauto)-nct -- disable proxy auth cleartext protocols (i.e. basic auth) */
+            /* auto-nct -- disable proxy auth cleartext protocols (i.e. basic auth) */
             if (streq(p[3], "auto"))
             {
                 ho->auth_retry = PAR_ALL;

@@ -638,8 +638,6 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
 {
     struct gc_arena gc = gc_new();
     char buf[512];
-    char buf2[129];
-    char get[80];
     int status;
     int nparms;
     bool ret = false;
@@ -758,6 +756,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
         {
 #if NTLM
             /* look for the phase 2 response */
+            char buf2[129];
 
             while (true)
             {
@@ -768,7 +767,8 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 chomp(buf);
                 msg(D_PROXY, "HTTP proxy returned: '%s'", buf);
 
-                openvpn_snprintf(get, sizeof get, "%%*s NTLM %%%ds", (int) sizeof(buf2) - 1);
+                char get[80];
+                openvpn_snprintf(get, sizeof(get), "%%*s NTLM %%%zus", sizeof(buf2) - 1);
                 nparms = sscanf(buf, get, buf2);
                 buf2[128] = 0; /* we only need the beginning - ensure it's null terminated. */
 

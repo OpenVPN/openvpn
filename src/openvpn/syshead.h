@@ -472,7 +472,9 @@ socket_defined(const socket_descriptor_t sd)
 /*
  * Should we include NTLM proxy functionality
  */
+#ifdef ENABLE_NTLM
 #define NTLM 1
+#endif
 
 /*
  * Should we include proxy digest auth functionality
