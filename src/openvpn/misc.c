@@ -124,6 +124,83 @@ auth_user_pass_mgmt(struct user_pass *up, const char *prefix, const unsigned int
     }
     return true;
 }
+
+/**
+ * Parses an authentication challenge string and returns an auth_challenge_info structure.
+ * The authentication challenge string should follow the dynamic challenge/response protocol.
+ *
+ * See doc/management-notes.txt for more info on the the dynamic challenge/response protocol
+ * implemented here.
+ *
+ * @param auth_challenge The authentication challenge string to parse. Can't be NULL.
+ * @param gc             The gc_arena structure for memory allocation.
+ *
+ * @return               A pointer to the parsed auth_challenge_info structure, or NULL if parsing fails.
+ */
+static struct auth_challenge_info *
+parse_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
+{
+    ASSERT(auth_challenge);
+
+    struct auth_challenge_info *ac;
+    const int len = strlen(auth_challenge);
+    char *work = (char *) gc_malloc(len+1, false, gc);
+    char *cp;
+
+    struct buffer b;
+    buf_set_read(&b, (const uint8_t *)auth_challenge, len);
+
+    ALLOC_OBJ_CLEAR_GC(ac, struct auth_challenge_info, gc);
+
+    /* parse prefix */
+    if (!buf_parse(&b, ':', work, len))
+    {
+        return NULL;
+    }
+    if (strcmp(work, "CRV1"))
+    {
+        return NULL;
+    }
+
+    /* parse flags */
+    if (!buf_parse(&b, ':', work, len))
+    {
+        return NULL;
+    }
+    for (cp = work; *cp != '\0'; ++cp)
+    {
+        const char c = *cp;
+        if (c == 'E')
+        {
+            ac->flags |= CR_ECHO;
+        }
+        else if (c == 'R')
+        {
+            ac->flags |= CR_RESPONSE;
+        }
+    }
+
+    /* parse state ID */
+    if (!buf_parse(&b, ':', work, len))
+    {
+        return NULL;
+    }
+    ac->state_id = string_alloc(work, gc);
+
+    /* parse user name */
+    if (!buf_parse(&b, ':', work, len))
+    {
+        return NULL;
+    }
+    ac->user = (char *) gc_malloc(strlen(work)+1, true, gc);
+    openvpn_base64_decode(work, (void *)ac->user, -1);
+
+    /* parse challenge text */
+    ac->challenge_text = string_alloc(BSTR(&b), gc);
+
+    return ac;
+}
+
 #endif /* ifdef ENABLE_MANAGEMENT */
 
 /*
@@ -287,7 +364,7 @@ get_user_pass_cr(struct user_pass *up,
 #ifdef ENABLE_MANAGEMENT
             if (auth_challenge && (flags & GET_USER_PASS_DYNAMIC_CHALLENGE) && response_from_stdin)
             {
-                struct auth_challenge_info *ac = get_auth_challenge(auth_challenge, &gc);
+                struct auth_challenge_info *ac = parse_auth_challenge(auth_challenge, &gc);
                 if (ac)
                 {
                     char *response = (char *) gc_malloc(USER_PASS_LEN, false, &gc);
@@ -391,83 +468,6 @@ get_user_pass_cr(struct user_pass *up,
 
     return true;
 }
-
-#ifdef ENABLE_MANAGEMENT
-
-/*
- * See management/management-notes.txt for more info on the
- * the dynamic challenge/response protocol implemented here.
- */
-struct auth_challenge_info *
-get_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
-{
-    if (auth_challenge)
-    {
-        struct auth_challenge_info *ac;
-        const int len = strlen(auth_challenge);
-        char *work = (char *) gc_malloc(len+1, false, gc);
-        char *cp;
-
-        struct buffer b;
-        buf_set_read(&b, (const uint8_t *)auth_challenge, len);
-
-        ALLOC_OBJ_CLEAR_GC(ac, struct auth_challenge_info, gc);
-
-        /* parse prefix */
-        if (!buf_parse(&b, ':', work, len))
-        {
-            return NULL;
-        }
-        if (strcmp(work, "CRV1"))
-        {
-            return NULL;
-        }
-
-        /* parse flags */
-        if (!buf_parse(&b, ':', work, len))
-        {
-            return NULL;
-        }
-        for (cp = work; *cp != '\0'; ++cp)
-        {
-            const char c = *cp;
-            if (c == 'E')
-            {
-                ac->flags |= CR_ECHO;
-            }
-            else if (c == 'R')
-            {
-                ac->flags |= CR_RESPONSE;
-            }
-        }
-
-        /* parse state ID */
-        if (!buf_parse(&b, ':', work, len))
-        {
-            return NULL;
-        }
-        ac->state_id = string_alloc(work, gc);
-
-        /* parse user name */
-        if (!buf_parse(&b, ':', work, len))
-        {
-            return NULL;
-        }
-        ac->user = (char *) gc_malloc(strlen(work)+1, true, gc);
-        openvpn_base64_decode(work, (void *)ac->user, -1);
-
-        /* parse challenge text */
-        ac->challenge_text = string_alloc(BSTR(&b), gc);
-
-        return ac;
-    }
-    else
-    {
-        return NULL;
-    }
-}
-
-#endif /* ifdef ENABLE_MANAGEMENT */
 
 void
 purge_user_pass(struct user_pass *up, const bool force)

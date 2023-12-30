@@ -86,8 +86,6 @@ struct auth_challenge_info {
     const char *challenge_text;
 };
 
-struct auth_challenge_info *get_auth_challenge(const char *auth_challenge, struct gc_arena *gc);
-
 /*
  * Challenge response info on client as pushed by server.
  */

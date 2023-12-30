@@ -410,11 +410,7 @@ void ssl_set_auth_token_user(const char *username);
 bool ssl_clean_auth_token(void);
 
 #ifdef ENABLE_MANAGEMENT
-/*
- * ssl_get_auth_challenge will parse the server-pushed auth-failed
- * reason string and return a dynamically allocated
- * auth_challenge_info struct.
- */
+
 void ssl_purge_auth_challenge(void);
 
 void ssl_put_auth_challenge(const char *cr_str);
