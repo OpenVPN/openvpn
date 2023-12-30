@@ -354,7 +354,7 @@ get_proxy_authenticate(socket_descriptor_t sd,
             {
                 msg(D_PROXY, "PROXY AUTH NTLM: '%s'", buf);
                 *data = NULL;
-                ret = HTTP_AUTH_NTLM;
+                ret = HTTP_AUTH_NTLM2;
             }
 #endif
         }
@@ -517,9 +517,7 @@ http_proxy_new(const struct http_proxy_options *o)
 #if NTLM
         else if (!strcmp(o->auth_method_string, "ntlm"))
         {
-            msg(M_INFO, "NTLM v1 authentication is deprecated and will be removed in "
-                "OpenVPN 2.7");
-            p->auth_method = HTTP_AUTH_NTLM;
+            msg(M_FATAL, "ERROR: NTLM v1 support has been removed. For now, you can use NTLM v2 by selecting ntlm2 but it is deprecated as well.");
         }
         else if (!strcmp(o->auth_method_string, "ntlm2"))
         {
@@ -534,13 +532,13 @@ http_proxy_new(const struct http_proxy_options *o)
     }
 
     /* only basic and NTLM/NTLMv2 authentication supported so far */
-    if (p->auth_method == HTTP_AUTH_BASIC || p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2)
+    if (p->auth_method == HTTP_AUTH_BASIC || p->auth_method == HTTP_AUTH_NTLM2)
     {
         get_user_pass_http(p, true);
     }
 
 #if !NTLM
-    if (p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2)
+    if (p->auth_method == HTTP_AUTH_NTLM2)
     {
         msg(M_FATAL, "Sorry, this version of " PACKAGE_NAME " was built without NTLM Proxy support.");
     }
@@ -646,8 +644,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
 
     /* get user/pass if not previously given */
     if (p->auth_method == HTTP_AUTH_BASIC
-        || p->auth_method == HTTP_AUTH_DIGEST
-        || p->auth_method == HTTP_AUTH_NTLM)
+        || p->auth_method == HTTP_AUTH_DIGEST)
     {
         get_user_pass_http(p, false);
     }
@@ -697,7 +694,6 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 break;
 
 #if NTLM
-            case HTTP_AUTH_NTLM:
             case HTTP_AUTH_NTLM2:
                 /* keep-alive connection */
                 openvpn_snprintf(buf, sizeof(buf), "Proxy-Connection: Keep-Alive");
@@ -752,7 +748,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
         {
             processed = true;
         }
-        else if ((p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2) && !processed) /* check for NTLM */
+        else if ((p->auth_method == HTTP_AUTH_NTLM2) && !processed) /* check for NTLM */
         {
 #if NTLM
             /* look for the phase 2 response */

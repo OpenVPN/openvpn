@@ -1,5 +1,7 @@
 Overview of changes in 2.7
 ==========================
+Deprecated features
+-------------------
 ``secret`` support has been removed by default.
     static key mode (non-TLS) is no longer considered "good and secure enough"
     for today's requirements.  Use TLS mode instead.  If deploying a PKI CA
@@ -9,6 +11,10 @@ Overview of changes in 2.7
     This mode can still be enabled by using
     ``--allow-deprecated-insecure-static-crypto`` but will be removed in
     OpenVPN 2.8.
+
+NTLMv1 support has been removed because it is completely insecure.
+    NTLMv2 support is still available, but will removed in a future release.
+
 
 Overview of changes in 2.6
 ==========================
