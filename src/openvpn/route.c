@@ -24,6 +24,7 @@
 /*
  * Support routines for adding/deleting network routes.
  */
+#include <stddef.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -40,6 +41,7 @@
 #include "win32.h"
 #include "options.h"
 #include "networking.h"
+#include "integer.h"
 
 #include "memdbg.h"
 
@@ -3639,11 +3641,15 @@ get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
         rgi->flags |= RGI_NETMASK_DEFINED;
     }
 
+#if !defined(TARGET_SOLARIS)
+    /* Illumos/Solaris does not provide AF_LINK entries when calling the
+     * SIOCGIFCONF API, so there is little sense to trying to figure out a
+     * MAC address from an API that does not provide that information */
+
     /* try to read MAC addr associated with interface that owns default gateway */
     if (rgi->flags & RGI_IFACE_DEFINED)
     {
         struct ifconf ifc;
-        struct ifreq *ifr;
         const int bufsize = 4096;
         char *buffer;
 
@@ -3668,22 +3674,50 @@ get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
 
         for (cp = buffer; cp <= buffer + ifc.ifc_len - sizeof(struct ifreq); )
         {
-            ifr = (struct ifreq *)cp;
-#if defined(TARGET_SOLARIS)
-            const size_t len = sizeof(ifr->ifr_name) + sizeof(ifr->ifr_addr);
-#else
-            const size_t len = sizeof(ifr->ifr_name) + max(sizeof(ifr->ifr_addr), ifr->ifr_addr.sa_len);
-#endif
+            struct ifreq ifr = { 0 };
+            /* this is not always using an 8 byte alignment that struct ifr
+             * requires. Need to memcpy() to a strict ifr to force 8-byte
+             * alignment required for member access */
+            memcpy(&ifr, cp, sizeof(struct ifreq));
+            const size_t len = sizeof(ifr.ifr_name) + max(sizeof(ifr.ifr_addr), ifr.ifr_addr.sa_len);
 
-            if (!ifr->ifr_addr.sa_family)
+            if (!ifr.ifr_addr.sa_family)
             {
                 break;
             }
-            if (!strncmp(ifr->ifr_name, rgi->iface, IFNAMSIZ))
+            if (!strncmp(ifr.ifr_name, rgi->iface, IFNAMSIZ))
             {
-                if (ifr->ifr_addr.sa_family == AF_LINK)
+                if (ifr.ifr_addr.sa_family == AF_LINK)
                 {
-                    struct sockaddr_dl *sdl = (struct sockaddr_dl *)&ifr->ifr_addr;
+                    /* This is a confusing member access on multiple levels.
+                     *
+                     * struct sockaddr_dl is 20 bytes (on macOS and NetBSD,
+                     * larger on other BSDs) in size and has
+                     * 12 bytes space for the Ethernet interface name
+                     * (max 16 bytes) and  hw address (6 bytes)
+                     *
+                     * So if the interface name is more than 6 byte, the
+                     * location of hwaddr extends beyond the struct.
+                     *
+                     * This struct is embedded into ifreq that has
+                     * 16 bytes for a sockaddr and also expects this
+                     * struct to potentially extend beyond the bounds of
+                     * the struct.
+                     *
+                     * We only copied 32 bytes (size of ifr at least on macOS
+                     * might differ on other platforms again) from cp to ifr.
+                     *
+                     * But as hwaddr might extend but sdl might extend beyond
+                     * ifr's. So we need recalculate how large the actual size
+                     * of the embedded dl_sock actually is and then also need
+                     * to copy it since it also most likely does not have the
+                     * proper alignment required to access the struct.
+                     */
+                    const size_t sock_dl_len = max_int((int) (sizeof(struct sockaddr_dl)),
+                                                       (int) (ifr.ifr_addr.sa_len));
+
+                    struct sockaddr_dl *sdl = gc_malloc(sock_dl_len, true, &gc);
+                    memcpy(sdl, cp + offsetof(struct ifreq, ifr_addr), sock_dl_len);
                     memcpy(rgi->hwaddr, LLADDR(sdl), 6);
                     rgi->flags |= RGI_HWADDR_DEFINED;
                 }
@@ -3691,6 +3725,7 @@ get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
             cp += len;
         }
     }
+#endif /* if !defined(TARGET_SOLARIS) */
 
 done:
     if (sockfd >= 0)
