@@ -3513,7 +3513,11 @@ get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
     /* setup data to send to routing socket */
     pid = getpid();
     seq = 0;
+#ifdef TARGET_OPENBSD
+    rtm_addrs = RTA_DST | RTA_NETMASK;          /* Kernel refuses RTA_IFP */
+#else
     rtm_addrs = RTA_DST | RTA_NETMASK | RTA_IFP;
+#endif
 
     bzero(&m_rtmsg, sizeof(m_rtmsg));
     bzero(&so_dst, sizeof(so_dst));
@@ -3551,7 +3555,7 @@ get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
     }
     if (write(sockfd, (char *)&m_rtmsg, l) < 0)
     {
-        msg(M_WARN, "GDG: problem writing to routing socket");
+        msg(M_WARN|M_ERRNO, "GDG: problem writing to routing socket");
         goto done;
     }
     do
@@ -3764,7 +3768,11 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
     /* setup data to send to routing socket */
     pid = getpid();
     seq = 0;
+#ifdef TARGET_OPENBSD
+    rtm_addrs = RTA_DST | RTA_NETMASK;          /* Kernel refuses RTA_IFP */
+#else
     rtm_addrs = RTA_DST | RTA_NETMASK | RTA_IFP;
+#endif
 
     bzero(&m_rtmsg, sizeof(m_rtmsg));
     bzero(&so_dst, sizeof(so_dst));
