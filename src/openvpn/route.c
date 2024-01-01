@@ -3443,6 +3443,9 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
 #include <netinet/in.h>
 #include <net/route.h>
 #include <net/if_dl.h>
+#if !defined(TARGET_SOLARIS)
+#include <ifaddrs.h>
+#endif
 
 struct rtmsg {
     struct rt_msghdr m_rtm;
@@ -3643,19 +3646,11 @@ get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
         rgi->flags |= RGI_NETMASK_DEFINED;
     }
 
-#if !defined(TARGET_SOLARIS)
-    /* Illumos/Solaris does not provide AF_LINK entries when calling the
-     * SIOCGIFCONF API, so there is little sense to trying to figure out a
-     * MAC address from an API that does not provide that information */
-
     /* try to read MAC addr associated with interface that owns default gateway */
     if (rgi->flags & RGI_IFACE_DEFINED)
     {
-        struct ifconf ifc;
-        const int bufsize = 4096;
-        char *buffer;
-
-        buffer = (char *) gc_malloc(bufsize, true, &gc);
+#if defined(TARGET_SOLARIS)
+        /* OpenSolaris has getifaddrs(3), but it does not return AF_LINK */
         sockfd = socket(AF_INET, SOCK_DGRAM, 0);
         if (sockfd < 0)
         {
@@ -3663,71 +3658,43 @@ get_default_gateway(struct route_gateway_info *rgi, openvpn_net_ctx_t *ctx)
             goto done;
         }
 
-        ifc.ifc_len = bufsize;
-        ifc.ifc_buf = buffer;
+        struct ifreq ifreq = { 0 };
 
-        if (ioctl(sockfd, SIOCGIFCONF, (char *)&ifc) < 0)
+        /* now get the hardware address. */
+        strncpynt(ifreq.ifr_name, rgi->iface, sizeof(ifreq.ifr_name));
+        if (ioctl(sockfd, SIOCGIFHWADDR, &ifreq) < 0)
         {
-            msg(M_WARN, "GDG: ioctl #2 failed");
+            msg(M_WARN, "GDG: SIOCGIFHWADDR(%s) failed", ifreq.ifr_name);
+        }
+        else
+        {
+            memcpy(rgi->hwaddr, &ifreq.ifr_addr.sa_data, 6);
+            rgi->flags |= RGI_HWADDR_DEFINED;
+        }
+#else  /* if defined(TARGET_SOLARIS) */
+        struct ifaddrs *ifap, *ifa;
+
+        if (getifaddrs(&ifap) != 0)
+        {
+            msg(M_WARN|M_ERRNO, "GDG: getifaddrs() failed");
             goto done;
         }
-        close(sockfd);
-        sockfd = -1;
 
-        for (cp = buffer; cp <= buffer + ifc.ifc_len - sizeof(struct ifreq); )
+        for (ifa = ifap; ifa; ifa = ifa->ifa_next)
         {
-            struct ifreq ifr = { 0 };
-            /* this is not always using an 8 byte alignment that struct ifr
-             * requires. Need to memcpy() to a strict ifr to force 8-byte
-             * alignment required for member access */
-            memcpy(&ifr, cp, sizeof(struct ifreq));
-            const size_t len = sizeof(ifr.ifr_name) + max(sizeof(ifr.ifr_addr), ifr.ifr_addr.sa_len);
-
-            if (!ifr.ifr_addr.sa_family)
+            if (ifa->ifa_addr != NULL
+                && ifa->ifa_addr->sa_family == AF_LINK
+                && !strncmp(ifa->ifa_name, rgi->iface, IFNAMSIZ) )
             {
-                break;
+                struct sockaddr_dl *sdl = (struct sockaddr_dl *)ifa->ifa_addr;
+                memcpy(rgi->hwaddr, LLADDR(sdl), 6);
+                rgi->flags |= RGI_HWADDR_DEFINED;
             }
-            if (!strncmp(ifr.ifr_name, rgi->iface, IFNAMSIZ))
-            {
-                if (ifr.ifr_addr.sa_family == AF_LINK)
-                {
-                    /* This is a confusing member access on multiple levels.
-                     *
-                     * struct sockaddr_dl is 20 bytes (on macOS and NetBSD,
-                     * larger on other BSDs) in size and has
-                     * 12 bytes space for the Ethernet interface name
-                     * (max 16 bytes) and  hw address (6 bytes)
-                     *
-                     * So if the interface name is more than 6 byte, the
-                     * location of hwaddr extends beyond the struct.
-                     *
-                     * This struct is embedded into ifreq that has
-                     * 16 bytes for a sockaddr and also expects this
-                     * struct to potentially extend beyond the bounds of
-                     * the struct.
-                     *
-                     * We only copied 32 bytes (size of ifr at least on macOS
-                     * might differ on other platforms again) from cp to ifr.
-                     *
-                     * But as hwaddr might extend but sdl might extend beyond
-                     * ifr's. So we need recalculate how large the actual size
-                     * of the embedded dl_sock actually is and then also need
-                     * to copy it since it also most likely does not have the
-                     * proper alignment required to access the struct.
-                     */
-                    const size_t sock_dl_len = max_int((int) (sizeof(struct sockaddr_dl)),
-                                                       (int) (ifr.ifr_addr.sa_len));
-
-                    struct sockaddr_dl *sdl = gc_malloc(sock_dl_len, true, &gc);
-                    memcpy(sdl, cp + offsetof(struct ifreq, ifr_addr), sock_dl_len);
-                    memcpy(rgi->hwaddr, LLADDR(sdl), 6);
-                    rgi->flags |= RGI_HWADDR_DEFINED;
-                }
-            }
-            cp += len;
         }
+
+        freeifaddrs(ifap);
+#endif /* if defined(TARGET_SOLARIS) */
     }
-#endif /* if !defined(TARGET_SOLARIS) */
 
 done:
     if (sockfd >= 0)
