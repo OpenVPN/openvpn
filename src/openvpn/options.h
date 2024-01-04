@@ -687,6 +687,8 @@ struct options
     const char *keying_material_exporter_label;
     int keying_material_exporter_length;
 #endif
+    /* force using TLS key material export for data channel key generation */
+    bool force_key_material_export;
 
     bool vlan_tagging;
     enum vlan_acceptable_frames vlan_accept;

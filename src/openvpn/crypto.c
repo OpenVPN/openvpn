@@ -27,6 +27,7 @@
 #endif
 
 #include "syshead.h"
+#include <string.h>
 
 #include "crypto.h"
 #include "error.h"
@@ -1816,4 +1817,23 @@ cleanup:
     }
     gc_free(&gc);
     return ret;
+}
+
+bool
+check_tls_prf_working(void)
+{
+    /* Modern TLS libraries might no longer support the TLS 1.0 PRF with
+     * MD5+SHA1. This allows us to establish connections only
+     * with other 2.6.0+ OpenVPN peers.
+     * Do a simple dummy test here to see if it works. */
+    const char *seed = "tls1-prf-test";
+    const char *secret = "tls1-prf-test-secret";
+    uint8_t out[8];
+    uint8_t expected_out[] = { 'q', 'D', '\xfe', '%', '@', 's', 'u', '\x95' };
+
+    int ret = ssl_tls1_PRF((uint8_t *)seed, (int) strlen(seed),
+                           (uint8_t *)secret, (int) strlen(secret),
+                           out, sizeof(out));
+
+    return (ret && memcmp(out, expected_out, sizeof(out)) == 0);
 }
