@@ -163,7 +163,7 @@ jobs:
       - name: make all
         run: make -j3
       - name: make check
-        run: make check
+        run: make check VERBOSE=1
 
   ubuntu-clang-asan:
     strategy:
@@ -190,7 +190,7 @@ jobs:
       - name: make all
         run: make -j3
       - name: make check
-        run: make check
+        run: make check VERBOSE=1
 
   macos:
     strategy:
@@ -239,7 +239,7 @@ jobs:
       - name: make all
         run: make -j4
       - name: make check
-        run: make check
+        run: make check VERBOSE=1
 
   msvc:
       strategy:
@@ -348,7 +348,7 @@ jobs:
       - name: make all
         run: make -j3
       - name: make check
-        run: make check
+        run: make check VERBOSE=1
 
   mbedtls3:
     strategy:
@@ -399,4 +399,4 @@ jobs:
       - name: make all
         run: make -j3
       - name: make check
-        run: make check
+        run: make check VERBOSE=1
