@@ -329,6 +329,7 @@ case "$host" in
 		AM_CONDITIONAL([TARGET_LINUX], [true])
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["L"], [Target prefix])
 		have_sitnl="yes"
+		pkg_config_required="yes"
 		;;
 	*-*-solaris*)
 		AC_DEFINE([TARGET_SOLARIS], [1], [Are we running on Solaris?])
@@ -382,6 +383,16 @@ esac
 AM_CONDITIONAL([CROSS_COMPILING], test "${cross_compiling}" = "yes")
 
 PKG_PROG_PKG_CONFIG
+# Add variable to print if pkg-config is found or not. Users often miss that
+if test "${PKG_CONFIG}" = ""; then
+	if test "${pkg_config_required}" = "yes"; then
+		AC_MSG_ERROR([pkg-config is required])
+	fi
+	pkg_config_found="(not found)"
+else
+	pkg_config_found="(${PKG_CONFIG})"
+fi
+
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -819,7 +830,7 @@ if test "$enable_dco" != "no"; then
 					  [libnl-genl-3.0 >= 3.4.0],
 					  [have_libnl="yes"],
 					  [
-					   AC_MSG_ERROR([libnl-genl-3.0 package not found or too old. Is the development package and pkg-config installed? Must be version 3.4.0 or newer for DCO])
+					   AC_MSG_ERROR([libnl-genl-3.0 package not found or too old. Is the development package and pkg-config ${pkg_config_found} installed? Must be version 3.4.0 or newer for DCO])
 					  ]
 				)
 				CFLAGS="${CFLAGS} ${LIBNL_GENL_CFLAGS}"
@@ -863,10 +874,11 @@ dnl Depend on libcap-ng on Linux
 dnl
 case "$host" in
 	*-*-linux*)
+		# We require pkg-config
 		PKG_CHECK_MODULES([LIBCAPNG],
 				  [libcap-ng],
 				  [],
-				  [AC_MSG_ERROR([libcap-ng package not found. Is the development package and pkg-config installed?])]
+				  [AC_MSG_ERROR([libcap-ng package not found. Is the development package and pkg-config ${pkg_config_found} installed?])]
 		)
 		AC_CHECK_HEADER([sys/prctl.h],,[AC_MSG_ERROR([sys/prctl.h not found!])])
 
@@ -887,7 +899,7 @@ if test "${with_crypto_library}" = "openssl"; then
 			[OPENSSL],
 			[openssl >= 1.0.2],
 			[have_openssl="yes"],
-			[] # If this fails, we will do another test next
+			[AC_MSG_WARN([OpenSSL not found by pkg-config ${pkg_config_found}])] # If this fails, we will do another test next
 		)
 		OPENSSL_LIBS=${OPENSSL_LIBS:--lssl -lcrypto}
 	fi
@@ -1070,7 +1082,7 @@ elif test "${with_crypto_library}" = "wolfssl"; then
 			[WOLFSSL],
 			[wolfssl],
 			[],
-			[AC_MSG_ERROR([Could not find wolfSSL.])]
+			[AC_MSG_ERROR([Could not find wolfSSL using pkg-config ${pkg_config_found}])]
 		)
 		PKG_CHECK_VAR(
 			[WOLFSSL_INCLUDEDIR],
@@ -1478,7 +1490,7 @@ AC_ARG_ENABLE(
 PKG_CHECK_MODULES(
 	[CMOCKA], [cmocka],
 	[have_cmocka="yes"],
-	[AC_MSG_WARN([cmocka.pc not found on the system.  Unit tests disabled])]
+	[AC_MSG_WARN([cmocka.pc not found on the system using pkg-config ${pkg_config_found}.  Unit tests disabled])]
 )
 AM_CONDITIONAL([ENABLE_UNITTESTS], [test "${enable_unit_tests}" = "yes" -a "${have_cmocka}" = "yes" ])
 AC_SUBST([ENABLE_UNITTESTS])
