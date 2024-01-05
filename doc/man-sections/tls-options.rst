@@ -522,7 +522,9 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   stack (including the notoriously dangerous X.509 and ASN.1 stacks) to
   the connecting client.
 
-  OpenVPN supplies the following environment variables to the command:
+  OpenVPN supplies the following environment variables to the command (and
+  only these variables. The normal environment variables available for
+  other scripts are NOT present):
 
   * :code:`script_type` is set to :code:`tls-crypt-v2-verify`
 
