@@ -1938,10 +1938,10 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
 #endif
 
 #ifndef _WIN32
-    msg( M_INFO, "add_route_ipv6(%s/%d -> %s metric %d) dev %s",
+    msg(D_ROUTE, "add_route_ipv6(%s/%d -> %s metric %d) dev %s",
          network, r6->netbits, gateway, r6->metric, device );
 #else
-    msg( M_INFO, "add_route_ipv6(%s/%d -> %s metric %d) IF %lu",
+    msg(D_ROUTE, "add_route_ipv6(%s/%d -> %s metric %d) IF %lu",
          network, r6->netbits, gateway, r6->metric,
          r6->adapter_index ? r6->adapter_index : tt->adapter_index);
 #endif
@@ -2392,7 +2392,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     }
 #endif
 
-    msg( M_INFO, "delete_route_ipv6(%s/%d)", network, r6->netbits );
+    msg(D_ROUTE, "delete_route_ipv6(%s/%d)", network, r6->netbits );
 
 #if defined(TARGET_LINUX)
     metric = -1;
