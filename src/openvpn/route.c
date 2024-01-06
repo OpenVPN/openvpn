@@ -1939,11 +1939,11 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
 
 #ifndef _WIN32
     msg(D_ROUTE, "add_route_ipv6(%s/%d -> %s metric %d) dev %s",
-         network, r6->netbits, gateway, r6->metric, device );
+        network, r6->netbits, gateway, r6->metric, device );
 #else
     msg(D_ROUTE, "add_route_ipv6(%s/%d -> %s metric %d) IF %lu",
-         network, r6->netbits, gateway, r6->metric,
-         r6->adapter_index ? r6->adapter_index : tt->adapter_index);
+        network, r6->netbits, gateway, r6->metric,
+        r6->adapter_index ? r6->adapter_index : tt->adapter_index);
 #endif
 
     /*
