@@ -93,15 +93,15 @@ configuring routes to clients (aka "iroutes") and consults the main kernel
 routing tables for forwarding decisions.
 
 - Each client has a VPN IPv4 and/or a VPN IPv6 assigned to it;
-- additional IP ranges can be routed to a client by adding a route with
+- Additional IP ranges can be routed to a client by adding a route with
   a client VPN IP as the gateway/nexthop (i.e. ip route add a.b.c.d/24 via
   $VPNIP);
-- due to the point above, there is no real need to add a companion `--route` for
+- Due to the point above, there is no real need to add a companion `--route` for
   each `--iroute` directive, unless you want to blackhole traffic when the
   specific client is not connected;
-- no internal routing is available. If you need truly internal routes, this can
+- No internal routing is available. If you need truly internal routes, this can
   be achieved either with filtering using `iptables` or using `ip rule`;
-- client-to-client behaviour, as implemented in userspace, does not exist:
+- Client-to-client behaviour, as implemented in userspace, does not exist:
   packets always reach the tunnel interface and are then re-routed to the
   destination peer based on the system routing table.
 
@@ -109,17 +109,17 @@ routing tables for forwarding decisions.
 Limitations by design
 ----------------------
 - Layer 3 (dev tun) only;
-- only the following AEAD ciphers are currently supported: Chacha20-Poly1305
+- Only the following AEAD ciphers are currently supported: Chacha20-Poly1305
   and AES-GCM-128/192/256;
-- no support for compression or compression framing:
-  - see also the `--compress migrate` option to move to a setup without
+- No support for compression or compression framing:
+  - See also the `--compress migrate` option to move to a setup without
     compression;
-- various features not implemented since they have better replacements:
+- Various features not implemented since they have better replacements:
   - `--shaper`, use tc instead;
-  - packet manipulation, use nftables/iptables instead;
+  - Packet manipulation, use nftables/iptables instead;
 - OpenVPN 2.4.0 is the minimum version required for peers to connect:
-  - older versions are missing support for the AEAD ciphers;
-- topology subnet is the only supported `--topology` for servers;
+  - Older versions are missing support for the AEAD ciphers;
+- Topology subnet is the only supported `--topology` for servers;
 - iroute directives install routes on the host operating system, see also
   Routing with ovpn-dco;
 - (ovpn-dco-win) client and p2p mode only;
@@ -130,5 +130,5 @@ Current implementation limitations
 -------------------
 - `--persist-tun` not tested;
 - IPv6 mapped IPv4 addresses need Linux 5.4.189+/5.10.110+/5.12+ to work;
-- some incompatible options may not properly fallback to non-dco;
-- no per client statistics. Only total statistics available on the interface.
+- Some incompatible options may not properly fallback to non-dco;
+- No per client statistics. Only total statistics available on the interface.
