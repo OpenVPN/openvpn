@@ -40,5 +40,8 @@ char *utf16to8(const wchar_t *utf16, struct gc_arena *gc);
 /* return true if filename is safe to be used on Windows */
 bool win_safe_filename(const char *fn);
 
+/* Find temporary directory */
+const char *win_get_tempdir(void);
+
 #endif /* OPENVPN_WIN32_UTIL_H */
 #endif /* ifdef _WIN32 */

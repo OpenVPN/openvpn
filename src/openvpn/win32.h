@@ -286,9 +286,6 @@ char *get_win_sys_path(void);
 /* call self in a subprocess */
 void fork_to_self(const char *cmdline);
 
-/* Find temporary directory */
-const char *win_get_tempdir(void);
-
 bool win_wfp_block_dns(const NET_IFINDEX index, const HANDLE msg_channel);
 
 bool win_wfp_uninit(const NET_IFINDEX index, const HANDLE msg_channel);

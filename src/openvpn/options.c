@@ -885,7 +885,15 @@ init_options(struct options *o, const bool init_gc)
 #ifdef _WIN32
     /* On Windows, find temp dir via environment variables */
     o->tmp_dir = win_get_tempdir();
-#else
+
+    if (!o->tmp_dir)
+    {
+        /* Error out if we can't find a valid temporary directory, which should
+         * be very unlikely. */
+        msg(M_USAGE, "Could not find a suitable temporary directory."
+            " (GetTempPath() failed).  Consider using --tmp-dir");
+    }
+#else  /* ifdef _WIN32 */
     /* Non-windows platforms use $TMPDIR, and if not set, default to '/tmp' */
     o->tmp_dir = getenv("TMPDIR");
     if (!o->tmp_dir)
