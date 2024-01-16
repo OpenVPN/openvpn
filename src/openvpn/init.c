@@ -3336,6 +3336,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.auth_user_pass_verify_script_via_file = options->auth_user_pass_verify_script_via_file;
     to.client_crresponse_script = options->client_crresponse_script;
     to.tmp_dir = options->tmp_dir;
+    to.export_peer_cert_dir = options->tls_export_peer_cert_dir;
     if (options->ccd_exclusive)
     {
         to.client_config_dir_exclusive = options->client_config_dir;

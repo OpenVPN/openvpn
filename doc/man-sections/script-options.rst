@@ -423,6 +423,14 @@ SCRIPT HOOKS
   See the `Environmental Variables`_ section below for additional
   parameters passed as environmental variables.
 
+--tls-export-cert dir
+  Adds an environment variable ``peer_cert`` when calling the
+  ``--tls-verify`` script or executing the OPENVPN_PLUGIN_TLS_VERIFY plugin
+  hook to verify the certificate.
+
+  The environment variable contains the path to a PEM encoded certificate
+  of the current peer certificate in the directory ``dir``.
+
 --up cmd
   Run command ``cmd`` after successful TUN/TAP device open (pre ``--user``
   UID change).
@@ -633,6 +641,7 @@ instances.
     Name of first ``--config`` file. Set on program initiation and reset on
     SIGHUP.
 
+
 :code:`daemon`
     Set to "1" if the ``--daemon`` directive is specified, or "0" otherwise.
     Set on program initiation and reset on SIGHUP.
@@ -762,6 +771,11 @@ instances.
     ``--auth-user-pass-verify`` script execution only when the ``via-env``
     modifier is specified, and deleted from the environment after the script
     returns.
+
+:code:`peer_cert`
+    If the option ``--tls-export-cert`` is enabled, this option contains
+    the path to the current peer certificate to be verified in PEM format.
+    See also the argument certificate_depth to the ``--tls-verify`` command.
 
 :code:`proto`
     The ``--proto`` parameter. Set on program initiation and reset on

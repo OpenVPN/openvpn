@@ -1995,6 +1995,7 @@ show_settings(const struct options *o)
     SHOW_STR(cipher_list_tls13);
     SHOW_STR(tls_cert_profile);
     SHOW_STR(tls_verify);
+    SHOW_STR(tls_export_peer_cert_dir);
     SHOW_INT(verify_x509_type);
     SHOW_STR(verify_x509_name);
     SHOW_STR_INLINE(crl_file);
@@ -3062,6 +3063,7 @@ options_postprocess_verify_ce(const struct options *options,
         MUST_BE_UNDEF(cipher_list_tls13);
         MUST_BE_UNDEF(tls_cert_profile);
         MUST_BE_UNDEF(tls_verify);
+        MUST_BE_UNDEF(tls_export_peer_cert_dir);
         MUST_BE_UNDEF(verify_x509_name);
         MUST_BE_UNDEF(tls_timeout);
         MUST_BE_UNDEF(renegotiate_bytes);
@@ -4090,6 +4092,13 @@ options_postprocess_filechecks(struct options *options)
                                                 options->chroot_dir,
                                                 CHKACC_FILE, options->crl_file,
                                                 R_OK, "--crl-verify");
+    }
+
+    if (options->tls_export_peer_cert_dir)
+    {
+        errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE,
+                                         options->tls_export_peer_cert_dir,
+                                         W_OK, "--tls-export-cert");
     }
 
     ASSERT(options->connection_list);
@@ -9040,6 +9049,11 @@ add_option(struct options *options,
         set_user_script(options, &options->tls_verify,
                         string_substitute(p[1], ',', ' ', &options->gc),
                         "tls-verify", true);
+    }
+    else if (streq(p[0], "tls-export-cert") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_SCRIPT);
+        options->tls_export_peer_cert_dir = p[1];
     }
     else if (streq(p[0], "compat-names"))
     {
