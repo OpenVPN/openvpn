@@ -592,6 +592,7 @@ struct options
     const char *tls_cert_profile;
     const char *ecdh_curve;
     const char *tls_verify;
+    const char *tls_export_peer_cert_dir;
     int verify_x509_type;
     const char *verify_x509_name;
     const char *crl_file;

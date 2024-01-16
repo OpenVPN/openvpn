@@ -31,6 +31,7 @@
 #endif
 
 #include "syshead.h"
+#include <string.h>
 
 #include "base64.h"
 #include "manage.h"
@@ -457,6 +458,30 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
     gc_free(&gc);
 }
 
+/**
+ * Exports the certificate in \c peer_cert into the environment and adds
+ * the filname
+ */
+static bool
+verify_cert_cert_export_env(struct env_set *es, openvpn_x509_cert_t *peer_cert,
+                            const char *pem_export_fname)
+{
+    /* export the path to the current certificate in pem file format */
+    setenv_str(es, "peer_cert", pem_export_fname);
+
+    return backend_x509_write_pem(peer_cert, pem_export_fname) == SUCCESS;
+}
+
+static void
+verify_cert_cert_delete_env(struct env_set *es, const char *pem_export_fname)
+{
+    env_set_del(es, "peer_cert");
+    if (pem_export_fname)
+    {
+        unlink(pem_export_fname);
+    }
+}
+
 /*
  * call --tls-verify plug-in(s)
  */
@@ -572,18 +597,19 @@ cleanup:
 result_t
 verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_depth)
 {
+    /* need to define these variables here so goto cleanup will always have
+     * them defined */
     result_t ret = FAILURE;
-    char *subject = NULL;
-    const struct tls_options *opt;
     struct gc_arena gc = gc_new();
+    const char *pem_export_fname = NULL;
 
-    opt = session->opt;
+    const struct tls_options *opt = session->opt;
     ASSERT(opt);
 
     session->verified = false;
 
     /* get the X509 name */
-    subject = x509_get_subject(cert, &gc);
+    char *subject = x509_get_subject(cert, &gc);
     if (!subject)
     {
         msg(D_TLS_ERRORS, "VERIFY ERROR: depth=%d, could not extract X509 "
@@ -706,6 +732,19 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
 
     session->verify_maxlevel = max_int(session->verify_maxlevel, cert_depth);
 
+    if (opt->export_peer_cert_dir)
+    {
+        pem_export_fname = platform_create_temp_file(opt->export_peer_cert_dir,
+                                                     "pef", &gc);
+
+        if (!pem_export_fname
+            || !verify_cert_cert_export_env(opt->es, cert, pem_export_fname))
+        {
+            msg(D_TLS_ERRORS, "TLS Error: Failed to export certificate for "
+                "--tls-export-cert in %s", opt->export_peer_cert_dir);
+            goto cleanup;
+        }
+    }
     /* export certificate values to the environment */
     verify_cert_set_env(opt->es, cert, cert_depth, subject, common_name,
                         opt->x509_track);
@@ -757,12 +796,13 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
     ret = SUCCESS;
 
 cleanup:
-
+    verify_cert_cert_delete_env(opt->es, pem_export_fname);
     if (ret != SUCCESS)
     {
         tls_clear_error(); /* always? */
         session->verified = false; /* double sure? */
     }
+
     gc_free(&gc);
 
     return ret;
