@@ -167,8 +167,13 @@ unicodize(char *dst, const char *src)
 
 static void
 add_security_buffer(int sb_offset, void *data, int length,
-                    unsigned char *msg_buf, int *msg_bufpos)
+                    unsigned char *msg_buf, int *msg_bufpos, size_t msg_bufsize)
 {
+    if (*msg_bufpos + length > msg_bufsize)
+    {
+        msg(M_WARN, "NTLM: security buffer too big for message buffer");
+        return;
+    }
     /* Adds security buffer data to a message and sets security buffer's
      * offset and length */
     msg_buf[sb_offset] = (unsigned char)length;
@@ -396,20 +401,20 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
     if (ntlmv2_enabled)      /* NTLMv2 response */
     {
         add_security_buffer(0x14, ntlmv2_response, ntlmv2_blob_size + 16,
-                            phase3, &phase3_bufpos);
+                            phase3, &phase3_bufpos, sizeof(phase3));
     }
     else       /* NTLM response */
     {
-        add_security_buffer(0x14, ntlm_response, 24, phase3, &phase3_bufpos);
+        add_security_buffer(0x14, ntlm_response, 24, phase3, &phase3_bufpos, sizeof(phase3));
     }
 
     /* username in ascii */
     add_security_buffer(0x24, username, strlen(username), phase3,
-                        &phase3_bufpos);
+                        &phase3_bufpos, sizeof(phase3));
 
     /* Set domain. If <domain> is empty, default domain will be used
      * (i.e. proxy's domain) */
-    add_security_buffer(0x1c, domain, strlen(domain), phase3, &phase3_bufpos);
+    add_security_buffer(0x1c, domain, strlen(domain), phase3, &phase3_bufpos, sizeof(phase3));
 
     /* other security buffers will be empty */
     phase3[0x10] = phase3_bufpos;     /* lm not used */
