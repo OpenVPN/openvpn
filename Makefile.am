@@ -42,6 +42,7 @@ CLEANFILES = \
 EXTRA_DIST = \
 	contrib \
 	debug \
+	ltrc.inc \
 	CMakeLists.txt \
 	CMakePresets.json \
 	config.h.cmake.in
@@ -53,7 +54,7 @@ BUILT_SOURCES = \
 	config-version.h
 endif
 
-SUBDIRS = build distro include src sample doc tests
+SUBDIRS = distro include src sample doc tests
 
 dist_doc_DATA = \
 	README \

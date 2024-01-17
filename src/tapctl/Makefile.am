@@ -18,7 +18,7 @@
 #  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-include $(top_srcdir)/build/ltrc.inc
+include $(top_srcdir)/ltrc.inc
 
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 

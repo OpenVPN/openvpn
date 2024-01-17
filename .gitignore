@@ -40,7 +40,7 @@ m4/ltsugar.m4
 m4/ltversion.m4
 m4/lt~obsolete.m4
 
-compile_commands.json
+build
 doc/openvpn-examples.5
 doc/openvpn-examples.5.html
 doc/openvpn.8

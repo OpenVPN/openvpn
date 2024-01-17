@@ -135,3 +135,17 @@ to cmake to be able to use these builds.
 The `unix-native` CMake preset is available for these builds. This preset does
 not require VCPKG and instead assumes all build-dependencies are provided by
 the system natively.
+
+Generating compile_commands.json
+--------------------------------
+
+To have the CMake buildsystem generate compile_commands.json you can specify
+`-DENABLE_COMPILE_COMMANDS=ON` on the command line or enable the CMake option
+another way you like. For supported generators the file will then be created.
+Additionally, the buildsystem will create a symlink `build/` to the --preset
+build directory that contains the generated JSON file. This is done so that
+clangd is able to find it.
+
+Enabling this option may cause an error on Windows, since creating a symlink
+is a privileged operation there. If you enable Developer Mode for the system,
+symlinks can be created by regular users.

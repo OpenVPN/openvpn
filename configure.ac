@@ -1536,7 +1536,6 @@ AC_SUBST([TEST_CFLAGS])
 
 AC_CONFIG_FILES([
 	Makefile
-	build/Makefile
 	distro/Makefile
 	distro/systemd/Makefile
 	doc/Makefile

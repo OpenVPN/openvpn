@@ -9,7 +9,7 @@
 #  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 
-include $(top_srcdir)/build/ltrc.inc
+include $(top_srcdir)/ltrc.inc
 
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
