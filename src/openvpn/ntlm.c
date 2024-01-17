@@ -205,7 +205,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
     uint8_t challenge[8];
     int i, ret_val;
 
-    uint8_t ntlmv2_response[144];
+    uint8_t ntlmv2_response[256];
     char userdomain_u[256];     /* for uppercase unicode username and domain */
     char userdomain[128];       /* the same as previous but ascii */
     uint8_t ntlmv2_hash[MD5_DIGEST_LENGTH];
@@ -255,16 +255,14 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
      * the missing bytes will be NULL, as buf2 is known to be zeroed
      * when this decode happens.
      */
-    uint8_t buf2[128]; /* decoded reply from proxy */
+    uint8_t buf2[512]; /* decoded reply from proxy */
     CLEAR(buf2);
     ret_val = openvpn_base64_decode(phase_2, buf2, -1);
     if (ret_val < 0)
     {
+        msg(M_WARN, "NTLM: base64 decoding of phase 2 response failed");
         return NULL;
     }
-
-    /* we can be sure that phase_2 is less than 128
-     * therefore buf2 needs to be (3/4 * 128) */
 
     /* extract the challenge from bytes 24-31 */
     for (i = 0; i<8; i++)
@@ -284,7 +282,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
     }
     else
     {
-        msg(M_INFO, "Warning: Username or domain too long");
+        msg(M_INFO, "NTLM: Username or domain too long");
     }
     unicodize(userdomain_u, userdomain);
     gen_hmac_md5((uint8_t *)userdomain_u, 2 * strlen(userdomain), md4_hash,
@@ -319,9 +317,10 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
     if ((flags & 0x00800000) == 0x00800000)
     {
         tib_len = buf2[0x28];            /* Get Target Information block size */
-        if (tib_len > 96)
+        if (tib_len + 0x1c + 16 > sizeof(ntlmv2_response))
         {
-            tib_len = 96;
+            msg(M_WARN, "NTLM: target information buffer too long for response (len=%d)", tib_len);
+            return NULL;
         }
 
         {
@@ -329,6 +328,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
             uint8_t tib_pos = buf2[0x2c];
             if (tib_pos + tib_len > sizeof(buf2))
             {
+                msg(M_ERR, "NTLM: phase 2 response from server too long (need %d bytes at offset %u)", tib_len, tib_pos);
                 return NULL;
             }
             /* Get Target Information block pointer */
