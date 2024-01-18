@@ -4,7 +4,7 @@
   is required, a file name to an ``authfile`` file containing a username
   and password on 2 lines can be given, or :code:`stdin` to prompt from
   console. Its content can also be specified in the config file with the
-  ``--http-proxy-user-pass`` option. (See section on inline files)
+  ``--http-proxy-user-pass`` option (See `INLINE FILE SUPPORT`_).
 
   The last optional argument is an ``auth-method`` which should be one
   of :code:`none`, :code:`basic`, or :code:`ntlm`.
@@ -25,11 +25,40 @@
   Examples:
   ::
 
+     # no authentication
      http-proxy proxy.example.net 3128
+     # basic authentication, load credentials from file
      http-proxy proxy.example.net 3128 authfile.txt
+     # basic authentication, ask user for credentials
      http-proxy proxy.example.net 3128 stdin
-     http-proxy proxy.example.net 3128 auto basic
-     http-proxy proxy.example.net 3128 auto-nct ntlm
+     # NTLM authentication, load credentials from file
+     http-proxy proxy.example.net 3128 authfile.txt ntlm2
+     # determine which authentication is required, ask user for credentials
+     http-proxy proxy.example.net 3128 auto
+     # determine which authentication is required, but reject basic
+     http-proxy proxy.example.net 3128 auto-nct
+     # determine which authentication is required, but set credentials
+     http-proxy proxy.example.net 3128 auto
+     http-proxy-user-pass authfile.txt
+     # basic authentication, specify credentials inline
+     http-proxy proxy.example.net 3128 "" basic
+     <http-proxy-user-pass>
+     username
+     password
+     </http-proxy-user-pass>
+
+--http-proxy-user-pass userpass
+  Overwrite the username/password information for ``--http-proxy``. If specified
+  as an inline option (see `INLINE FILE SUPPORT`_), it will be interpreted as
+  username/password separated by a newline. When specified on the command line
+  it is interpreted as a filename same as the third argument to ``--http-proxy``.
+
+  Example::
+
+    <http-proxy-user-pass>
+    username
+    password
+    </http-proxy-user-pass>
 
 --http-proxy-option args
   Set extended HTTP proxy options. Requires an option ``type`` as argument
