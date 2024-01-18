@@ -33,11 +33,6 @@ OpenVPN license:
 
 Apache2 linking exception:
 ---------------------------
-OpenVPN is currently undergoing a license change to add an exception for
-Apache 2 linking. The following exception is only valid for new contributions
-after 2023-05-03 and past contribution where the authors have already agreed
-to the exception.
-
   In addition, as a special exception, OpenVPN Inc and the
   contributors give permission to link the code of this program to
   libraries (the "Libraries") licensed under the Apache License
