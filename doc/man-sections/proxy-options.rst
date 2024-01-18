@@ -48,6 +48,8 @@
      </http-proxy-user-pass>
 
   Note that support for NTLMv1 proxies was removed with OpenVPN 2.7.
+  :code:`ntlm` now is an alias for :code:`ntlm2`; i.e. OpenVPN will always
+  attempt to use NTLMv2 authentication.
 
 --http-proxy-user-pass userpass
   Overwrite the username/password information for ``--http-proxy``. If specified

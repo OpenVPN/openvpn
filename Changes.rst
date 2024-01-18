@@ -12,8 +12,13 @@ Deprecated features
     ``--allow-deprecated-insecure-static-crypto`` but will be removed in
     OpenVPN 2.8.
 
-NTLMv1 support has been removed because it is completely insecure.
-    NTLMv2 support is still available, but will removed in a future release.
+NTLMv1 authentication support for HTTP proxies has been removed.
+    This is considered an insecure method of authentication that uses
+    obsolete crypto algorithms.
+    NTLMv2 support is still available, but will be removed in a future
+    release.
+    When configured to authenticate with NTLMv1 (``ntlm`` keyword in
+    ``--http-proxy``) OpenVPN will try NTLMv2 instead.
 
 
 Overview of changes in 2.6

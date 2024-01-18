@@ -497,7 +497,7 @@ http_proxy_new(const struct http_proxy_options *o)
         msg(M_FATAL, "HTTP_PROXY: server not specified");
     }
 
-    ASSERT( o->port);
+    ASSERT(o->port);
 
     ALLOC_OBJ_CLEAR(p, struct http_proxy_info);
     p->options = *o;
@@ -517,7 +517,8 @@ http_proxy_new(const struct http_proxy_options *o)
 #if NTLM
         else if (!strcmp(o->auth_method_string, "ntlm"))
         {
-            msg(M_FATAL, "ERROR: NTLM v1 support has been removed. For now, you can use NTLM v2 by selecting ntlm2 but it is deprecated as well.");
+            msg(M_WARN, "NTLM v1 authentication has been removed in OpenVPN 2.7. Will try to use NTLM v2 authentication.");
+            p->auth_method = HTTP_AUTH_NTLM2;
         }
         else if (!strcmp(o->auth_method_string, "ntlm2"))
         {
@@ -531,7 +532,9 @@ http_proxy_new(const struct http_proxy_options *o)
         }
     }
 
-    /* only basic and NTLM/NTLMv2 authentication supported so far */
+    /* When basic or NTLMv2 authentication is requested, get credentials now.
+     * In case of "auto" negotiation credentials will be retrieved later once
+     * we know whether we need any. */
     if (p->auth_method == HTTP_AUTH_BASIC || p->auth_method == HTTP_AUTH_NTLM2)
     {
         get_user_pass_http(p, true);
@@ -644,7 +647,8 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
 
     /* get user/pass if not previously given */
     if (p->auth_method == HTTP_AUTH_BASIC
-        || p->auth_method == HTTP_AUTH_DIGEST)
+        || p->auth_method == HTTP_AUTH_DIGEST
+        || p->auth_method == HTTP_AUTH_NTLM2)
     {
         get_user_pass_http(p, false);
     }
@@ -748,7 +752,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
         {
             processed = true;
         }
-        else if ((p->auth_method == HTTP_AUTH_NTLM2) && !processed) /* check for NTLM */
+        else if (p->auth_method == HTTP_AUTH_NTLM2 && !processed) /* check for NTLM */
         {
 #if NTLM
             /* look for the phase 2 response */
