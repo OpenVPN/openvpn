@@ -822,7 +822,7 @@ bool
 buf_string_match_head_str(const struct buffer *src, const char *match)
 {
     const size_t size = strlen(match);
-    if (size < 0 || size > src->len)
+    if (size > src->len)
     {
         return false;
     }
