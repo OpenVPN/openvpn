@@ -127,13 +127,13 @@ main(void)
     };
 
 #if defined(ENABLE_CRYPTO_OPENSSL)
-    OpenSSL_add_all_algorithms();
+    tls_init_lib();
 #endif
 
     int ret = cmocka_run_group_tests_name("crypto tests", tests, NULL, NULL);
 
 #if defined(ENABLE_CRYPTO_OPENSSL)
-    EVP_cleanup();
+    tls_free_lib();
 #endif
 
     return ret;
