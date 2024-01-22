@@ -271,6 +271,11 @@ get_user_pass_http(struct http_proxy_info *p, const bool force)
     if (!static_proxy_user_pass.defined)
     {
         unsigned int flags = GET_USER_PASS_MANAGEMENT;
+        const char *auth_file = p->options.auth_file;
+        if (p->options.auth_file_up)
+        {
+            auth_file = p->options.auth_file_up;
+        }
         if (p->queried_creds)
         {
             flags |= GET_USER_PASS_PREVIOUS_CREDS_FAILED;
@@ -280,7 +285,7 @@ get_user_pass_http(struct http_proxy_info *p, const bool force)
             flags |= GET_USER_PASS_INLINE_CREDS;
         }
         get_user_pass(&static_proxy_user_pass,
-                      p->options.auth_file,
+                      auth_file,
                       UP_TYPE_PROXY,
                       flags);
         p->queried_creds = true;
