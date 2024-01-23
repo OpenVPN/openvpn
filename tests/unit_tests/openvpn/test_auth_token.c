@@ -35,6 +35,7 @@
 #include <cmocka.h>
 
 #include "auth_token.c"
+#include "test_common.h"
 
 struct test_context {
     struct tls_multi multi;
@@ -407,6 +408,7 @@ auth_token_test_key_load(void **state)
 int
 main(void)
 {
+    openvpn_unit_test_setup();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(auth_token_basic_test, setup, teardown),
         cmocka_unit_test_setup_teardown(auth_token_fail_invalid_key, setup, teardown),

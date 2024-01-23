@@ -32,6 +32,7 @@
 
 #include "buffer.h"
 #include "buffer.c"
+#include "test_common.h"
 
 static void
 test_buffer_strprefix(void **state)
@@ -356,6 +357,7 @@ test_character_class(void **state)
 int
 main(void)
 {
+    openvpn_unit_test_setup();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_buffer_strprefix),
         cmocka_unit_test(test_buffer_printf_catrunc),

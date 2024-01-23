@@ -37,10 +37,12 @@
 
 #include <setjmp.h>
 #include <cmocka.h>
+#include "test_common.h"
 
 #define token_name "Test Token"
 #define PIN "12345"
 #define HASHSIZE 20
+
 
 struct management *management; /* global */
 
@@ -459,6 +461,7 @@ test_tls_ctx_use_pkcs11__management(void **state)
 int
 main(void)
 {
+    openvpn_unit_test_setup();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_pkcs11_ids, setup_pkcs11,
                                         teardown_pkcs11),
