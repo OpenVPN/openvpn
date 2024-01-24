@@ -698,7 +698,8 @@ dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
 {
 
     struct ifdrv drv;
-    uint8_t buf[4096];
+    uint8_t *buf = NULL;
+    size_t buf_size = 4096;
     nvlist_t *nvl;
     const nvlist_t *const *nvpeers;
     size_t npeers;
@@ -712,17 +713,28 @@ dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
     CLEAR(drv);
     snprintf(drv.ifd_name, IFNAMSIZ, "%s", dco->ifname);
     drv.ifd_cmd = OVPN_GET_PEER_STATS;
-    drv.ifd_len = sizeof(buf);
+
+retry:
+    buf = realloc(buf, buf_size);
+    drv.ifd_len = buf_size;
     drv.ifd_data = buf;
 
     ret = ioctl(dco->fd, SIOCGDRVSPEC, &drv);
+    if (ret && errno == ENOSPC)
+    {
+        buf_size *= 2;
+        goto retry;
+    }
+
     if (ret)
     {
+        free(buf);
         msg(M_WARN | M_ERRNO, "Failed to get peer stats");
         return -EINVAL;
     }
 
     nvl = nvlist_unpack(buf, drv.ifd_len, 0);
+    free(buf);
     if (!nvl)
     {
         msg(M_WARN, "Failed to unpack nvlist");
