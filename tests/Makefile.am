@@ -15,6 +15,7 @@ MAINTAINERCLEANFILES = \
 SUBDIRS = unit_tests
 
 AM_TESTSUITE_SUMMARY_HEADER = ' for $(PACKAGE_STRING) System Tests'
+LOG_DRIVER = $(SHELL) $(top_srcdir)/forked-test-driver
 
 if !WIN32
 test_scripts = t_client.sh t_lpback.sh t_cltsrv.sh
