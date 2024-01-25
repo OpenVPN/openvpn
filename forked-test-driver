@@ -108,9 +108,14 @@ trap "st=143; $do_exit" 15
 # Test script is run here. We create the file first, then append to it,
 # to ameliorate tests themselves also writing to the log file. Our tests
 # don't, but others can (automake bug#35762).
+# OVPN changes:
+#  - add tee to see output of tests
+#  - needs portable pipefail mechanism
+estatusfile="${trs_file}.exit"
 : >"$log_file"
-"$@" >>"$log_file" 2>&1
-estatus=$?
+("$@" 2>&1; estatus=$?; echo $estatus >"$estatusfile") | tee -a "$log_file"
+estatus=$(cat "$estatusfile")
+rm -f "$estatusfile"
 
 if test $enable_hard_errors = no && test $estatus -eq 99; then
   tweaked_estatus=1
