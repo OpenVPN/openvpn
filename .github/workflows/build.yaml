@@ -85,11 +85,13 @@ jobs:
       fail-fast: false
       matrix:
         arch: [x86, x64]
-        test: [argv, auth_token, buffer, cryptoapi, crypto, misc, ncp, packet_id, pkt, provider, ssl, tls_crypt]
+        test: [argv, auth_token, buffer, cryptoapi, crypto, misc, ncp, packet_id, pkt, provider, ssl, tls_crypt, user_pass]
 
     runs-on: windows-latest
     name: "mingw unittest ${{ matrix.test }} - ${{ matrix.arch }} - OSSL"
     steps:
+      - name: Checkout OpenVPN
+        uses: actions/checkout@v3
       - name: Retrieve mingw unittest
         uses: actions/download-artifact@v3
         with:
@@ -97,6 +99,8 @@ jobs:
           path: unittests
       - name: Run ${{ matrix.test }} unit test
         run: ./unittests/test_${{ matrix.test }}.exe
+        env:
+          srcdir: "${{ github.workspace }}/tests/unit_tests/openvpn"
 
   ubuntu:
     strategy:
@@ -279,6 +283,7 @@ jobs:
           configurePreset: win-${{ matrix.arch }}-release
           buildPreset: win-${{ matrix.arch }}-release
           testPreset: win-${{ matrix.arch }}-release
+          testPresetAdditionalArgs: "['--output-on-failure']"
 
       - uses: actions/upload-artifact@v3
         with:

@@ -1,5 +1,7 @@
 AUTOMAKE_OPTIONS = foreign
 
+EXTRA_DIST = input
+
 AM_TESTSUITE_SUMMARY_HEADER = ' for $(PACKAGE_STRING) Unit-Tests'
 
 test_binaries=
@@ -9,7 +11,7 @@ test_binaries += argv_testdriver buffer_testdriver
 endif
 
 test_binaries += crypto_testdriver packet_id_testdriver auth_token_testdriver ncp_testdriver misc_testdriver \
-	pkt_testdriver ssl_testdriver
+	pkt_testdriver ssl_testdriver user_pass_testdriver
 
 if HAVE_LD_WRAP_SUPPORT
 if !WIN32
@@ -246,6 +248,22 @@ auth_token_testdriver_SOURCES = test_auth_token.c mock_msg.c \
 	$(top_srcdir)/src/openvpn/crypto_openssl.c \
 	$(top_srcdir)/src/openvpn/otime.c \
 	$(top_srcdir)/src/openvpn/packet_id.c \
+	$(top_srcdir)/src/openvpn/platform.c \
+	$(top_srcdir)/src/openvpn/win32-util.c \
+	$(top_srcdir)/src/openvpn/base64.c
+
+
+user_pass_testdriver_CFLAGS  = @TEST_CFLAGS@ \
+	-I$(top_srcdir)/include -I$(top_srcdir)/src/compat -I$(top_srcdir)/src/openvpn
+user_pass_testdriver_LDFLAGS = @TEST_LDFLAGS@
+
+user_pass_testdriver_SOURCES = test_user_pass.c mock_msg.c \
+	$(top_srcdir)/src/openvpn/buffer.c \
+	$(top_srcdir)/src/openvpn/console.c \
+	$(top_srcdir)/src/openvpn/env_set.c \
+	mock_win32_execve.c \
+	$(top_srcdir)/src/openvpn/run_command.c \
+	mock_get_random.c \
 	$(top_srcdir)/src/openvpn/platform.c \
 	$(top_srcdir)/src/openvpn/win32-util.c \
 	$(top_srcdir)/src/openvpn/base64.c

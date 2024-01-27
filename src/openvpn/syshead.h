@@ -524,4 +524,10 @@ socket_defined(const socket_descriptor_t sd)
 #define ENABLE_MEMSTATS
 #endif
 
+#ifdef _MSC_VER
+#ifndef PATH_MAX
+#define PATH_MAX MAX_PATH
+#endif
+#endif
+
 #endif /* ifndef SYSHEAD_H */

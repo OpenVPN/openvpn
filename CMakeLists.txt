@@ -604,6 +604,7 @@ if (BUILD_TESTING)
         "test_pkt"
         "test_provider"
         "test_ssl"
+        "test_user_pass"
         )
 
     if (WIN32)
@@ -662,6 +663,10 @@ if (BUILD_TESTING)
         # test_networking needs special environment
         if (NOT ${test_name} STREQUAL "test_networking")
             add_test(${test_name} ${test_name})
+            # for compat with autotools make check
+            set(_UT_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit_tests/openvpn)
+            set_tests_properties(${test_name} PROPERTIES
+                ENVIRONMENT "srcdir=${_UT_SOURCE_DIR}")
         endif ()
         add_executable(${test_name}
             tests/unit_tests/openvpn/${test_name}.c
@@ -780,6 +785,15 @@ if (BUILD_TESTING)
         src/openvpn/xkey_provider.c
         src/openvpn/xkey_helper.c
         src/openvpn/base64.c
+        )
+
+    target_sources(test_user_pass PRIVATE
+        tests/unit_tests/openvpn/mock_get_random.c
+        tests/unit_tests/openvpn/mock_win32_execve.c
+        src/openvpn/base64.c
+        src/openvpn/console.c
+        src/openvpn/env_set.c
+        src/openvpn/run_command.c
         )
 
     if (TARGET test_argv)
