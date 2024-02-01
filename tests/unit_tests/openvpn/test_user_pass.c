@@ -35,6 +35,7 @@
 #include <string.h>
 #include <setjmp.h>
 #include <cmocka.h>
+#include "test_common.h"
 
 #include "misc.c"
 
@@ -232,11 +233,9 @@ test_get_user_pass_authfile_file(void **state)
     reset_user_pass(&up);
     unsigned int flags = 0;
 
-    const char *srcdir = getenv("srcdir");
-    assert_non_null(srcdir);
     char authfile[PATH_MAX] = { 0 };
+    openvpn_test_get_srcdir_dir(authfile, PATH_MAX, "input/user_pass.txt" );
 
-    snprintf(authfile, PATH_MAX, "%s/%s", srcdir, "input/user_pass.txt");
     /*FIXME: query_user_exec() called even though nothing queued */
     will_return(query_user_exec_builtin, true);
     assert_true(get_user_pass_cr(&up, authfile, "UT", flags, NULL));
@@ -246,7 +245,7 @@ test_get_user_pass_authfile_file(void **state)
 
     reset_user_pass(&up);
 
-    snprintf(authfile, PATH_MAX, "%s/%s", srcdir, "input/user_only.txt");
+    openvpn_test_get_srcdir_dir(authfile, PATH_MAX, "input/user_only.txt");
     expect_string(query_user_exec_builtin, query_user[i].prompt, "Enter UT Password:");
     will_return(query_user_exec_builtin, "cpassword");
     will_return(query_user_exec_builtin, true);
@@ -259,7 +258,7 @@ test_get_user_pass_authfile_file(void **state)
     reset_user_pass(&up);
 
     flags |= GET_USER_PASS_PASSWORD_ONLY;
-    snprintf(authfile, PATH_MAX, "%s/%s", srcdir, "input/user_only.txt");
+    openvpn_test_get_srcdir_dir(authfile, PATH_MAX, "input/user_only.txt");
     /*FIXME: query_user_exec() called even though nothing queued */
     will_return(query_user_exec_builtin, true);
     assert_true(get_user_pass_cr(&up, authfile, "UT", flags, NULL));
@@ -279,5 +278,6 @@ const struct CMUnitTest user_pass_tests[] = {
 int
 main(void)
 {
+    openvpn_unit_test_setup();
     return cmocka_run_group_tests(user_pass_tests, NULL, NULL);
 }

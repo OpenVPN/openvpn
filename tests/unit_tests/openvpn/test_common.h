@@ -32,9 +32,36 @@
  * This has a openvpn prefix to avoid confusion with cmocka's unit_test_setup_*
  * methods
  */
-void
+static inline void
 openvpn_unit_test_setup()
 {
     assert_int_equal(setvbuf(stdout, NULL, _IONBF, BUFSIZ), 0);
     assert_int_equal(setvbuf(stderr, NULL, _IONBF, BUFSIZ), 0);
+}
+
+/**
+ * Helper function to get a file path from the unit test directory to open it
+ * or pass its path to another function. This function will first look for
+ * an environment variable or if failing that, will fall back to a hardcoded
+ * value from compile time if compiled with CMake.
+ *
+ * @param buf           buffer holding the path to the file
+ * @param bufsize       size of buf
+ * @param filename      name of the filename to retrieve relative to the
+ *                      unit test source directory
+ */
+void
+openvpn_test_get_srcdir_dir(char *buf, size_t bufsize, const char *filename)
+{
+    const char *srcdir = getenv("srcdir");
+
+#if defined(UNIT_TEST_SOURCEDIR)
+    if (!srcdir)
+    {
+        srcdir = UNIT_TEST_SOURCEDIR;
+    }
+#endif
+    assert_non_null(srcdir);
+
+    snprintf(buf, bufsize, "%s/%s", srcdir, filename);
 }
