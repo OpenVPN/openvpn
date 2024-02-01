@@ -17,6 +17,10 @@ also makes cross-building with MinGW on Linux much simpler. However,
 builds are also possible by providing the build dependencies manually,
 but that might require specifying more information to CMake.
 
+You need at least CMake version 3.21 or newer for the `CMakePreset.json`
+file to be supported. Manual builds might be possible with older CMake
+versions, see `cmake_minimum_required` in `CMakeLists.txt`.
+
 If you're looking to build the full Windows installer MSI, take a look
 at https://github.com/OpenVPN/openvpn-build.git .
 
@@ -27,7 +31,7 @@ The following tools are expected to be present on the system, you
 can install them with a package manager of your choice (e.g.
 chocolatey, winget) or manually:
 
-* CMake
+* CMake (>= 3.21)
 * Git
 * Python (3.x), plus the Python module `docutils`
 * Visual Studion 17 (2022), C/C++ Environment
@@ -101,6 +105,7 @@ To build the Windows executables on a Linux system:
     git clone https://github.com/OpenVPN/openvpn.git
     export VCPKG_ROOT=$PWD/vcpkg
     cd openvpn
+    # requires CMake 3.21 or newer
     cmake --preset mingw-x64
     cmake --build --preset mingw-x64
     # unit tests are built, but no testPreset is provided. You need to copy
