@@ -374,10 +374,11 @@ configuration.
   :code:`IV_GUI_VER=<gui_id> <version>`
         The UI version of a UI if one is running, for example
         :code:`de.blinkt.openvpn 0.5.47` for the Android app.
+        This may be set by the client UI/GUI using ``--setenv``.
 
   :code:`IV_SSO=[crtext,][openurl,][proxy_url]`
         Additional authentication methods supported by the client.
-        This may be set by the client UI/GUI using ``--setenv``
+        This may be set by the client UI/GUI using ``--setenv``.
 
   The following flags depend on which compression formats are compiled in
   and whether compression is allowed by options. See `Protocol options`_
@@ -388,13 +389,15 @@ configuration.
 
     :code:`IV_LZO_STUB=1`
         If client was built with LZO stub capability. This is only sent if
-        ``IV_LZO=1`` is not sent.
+        ``IV_LZO=1`` is not sent. This means the client can talk to a server
+        configured with ``--comp-lzo no``.
 
     :code:`IV_LZ4=1` and :code:`IV_LZ4v2=1`
         If the client supports LZ4 compression.
 
     :code:`IV_COMP_STUB=1` and :code:`IV_COMP_STUBv2=1`
-        If the client supports stub compression.
+        If the client supports stub compression. This means the client can talk
+        to a server configured with ``--compress``.
 
   When ``--push-peer-info`` is enabled the additional information consists
   of the following data:
@@ -414,7 +417,9 @@ configuration.
 
   :code:`IV_PLAT_VER=x.y`
         The version of the operating system, e.g. 6.1 for Windows 7.
-        This is only sent on Windows operating systems.
+        This may be set by the client UI/GUI using ``--setenv``.
+        On Windows systems it is automatically determined by openvpn
+        itself.
 
   :code:`UV_<name>=<value>`
         Client environment variables whose names start with
