@@ -2166,6 +2166,83 @@ print_server_tempkey(SSL *ssl, char *buf, size_t buflen)
     EVP_PKEY_free(pkey);
 }
 
+#if !defined(LIBRESSL_VERSION_NUMBER)  && OPENSSL_VERSION_NUMBER >= 0x1010000fL
+/**
+ * Translate an OpenSSL NID into a more human readable name
+ * @param nid
+ * @return
+ */
+static const char *
+get_sigtype(int nid)
+{
+    /* Fix a few OpenSSL names to be better understandable */
+    switch (nid)
+    {
+        case EVP_PKEY_RSA:
+            /* will otherwise say rsaEncryption */
+            return "RSA";
+
+        case EVP_PKEY_DSA:
+            /* dsaEncryption otherwise */
+            return "DSA";
+
+        case EVP_PKEY_EC:
+            /* will say id-ecPublicKey */
+            return "ECDSA";
+
+        case -1:
+            return "(error getting name)";
+
+        default:
+            return OBJ_nid2sn(nid);
+    }
+}
+#endif /* ifndef LIBRESSL_VERSION_NUMBER */
+
+/**
+ * Get the type of the signature that is used by the peer during the
+ * TLS handshake
+ */
+static void
+print_peer_signature(SSL *ssl, char *buf, size_t buflen)
+{
+    int peer_sig_nid = NID_undef, peer_sig_type_nid = NID_undef;
+    const char *peer_sig = "unknown";
+    const char *peer_sig_type = "unknown type";
+
+    /* Even though these methods use the deprecated NIDs instead of using
+     * string as new OpenSSL APIs do, there seem to be no API that replaces
+     * it yet */
+#if !defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER > 0x3050400fL
+    if (SSL_get_peer_signature_nid(ssl, &peer_sig_nid)
+        && peer_sig_nid != NID_undef)
+    {
+        peer_sig = OBJ_nid2sn(peer_sig_nid);
+    }
+#endif
+
+#if (!defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x1010000fL) \
+    || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER >= 0x3090000fL)
+    /* LibreSSL 3.7.x and 3.8.x implement this function but do not export it
+     * and fail linking with an unresolved symbol */
+    if (SSL_get_peer_signature_type_nid(ssl, &peer_sig_type_nid)
+        && peer_sig_type_nid != NID_undef)
+    {
+        peer_sig_type = get_sigtype(peer_sig_type_nid);
+    }
+#endif
+
+    if (peer_sig_nid == NID_undef && peer_sig_type_nid == NID_undef)
+    {
+        return;
+    }
+
+    openvpn_snprintf(buf, buflen, ", peer signing digest/type: %s %s",
+                     peer_sig, peer_sig_type);
+}
+
+
+
 /* **************************************
  *
  * Information functions
@@ -2180,8 +2257,9 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
     char s1[256];
     char s2[256];
     char s3[256];
+    char s4[256];
 
-    s1[0] = s2[0] = s3[0] = 0;
+    s1[0] = s2[0] = s3[0] = s4[0] = 0;
     ciph = SSL_get_current_cipher(ks_ssl->ssl);
     openvpn_snprintf(s1, sizeof(s1), "%s %s, cipher %s %s",
                      prefix,
@@ -2196,8 +2274,9 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
         X509_free(cert);
     }
     print_server_tempkey(ks_ssl->ssl, s3, sizeof(s3));
+    print_peer_signature(ks_ssl->ssl, s4, sizeof(s4));
 
-    msg(D_HANDSHAKE, "%s%s%s", s1, s2, s3);
+    msg(D_HANDSHAKE, "%s%s%s%s", s1, s2, s3, s4);
 }
 
 void
