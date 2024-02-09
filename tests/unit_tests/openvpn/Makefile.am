@@ -288,7 +288,8 @@ ncp_testdriver_SOURCES = test_ncp.c mock_msg.c \
 	$(top_srcdir)/src/openvpn/ssl_util.c
 
 misc_testdriver_CFLAGS  = @TEST_CFLAGS@ \
-	-I$(top_srcdir)/include -I$(top_srcdir)/src/compat -I$(top_srcdir)/src/openvpn
+	-I$(top_srcdir)/include -I$(top_srcdir)/src/compat -I$(top_srcdir)/src/openvpn \
+	-DSOURCEDIR=\"$(top_srcdir)\"
 
 misc_testdriver_LDFLAGS = @TEST_LDFLAGS@
 
@@ -298,4 +299,5 @@ misc_testdriver_SOURCES = test_misc.c mock_msg.c \
 	$(top_srcdir)/src/openvpn/options_util.c \
 	$(top_srcdir)/src/openvpn/ssl_util.c \
 	$(top_srcdir)/src/openvpn/win32-util.c \
-	$(top_srcdir)/src/openvpn/platform.c
+	$(top_srcdir)/src/openvpn/platform.c \
+	$(top_srcdir)/src/openvpn/list.c

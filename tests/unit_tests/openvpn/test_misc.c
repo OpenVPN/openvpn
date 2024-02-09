@@ -37,6 +37,7 @@
 #include "ssl_util.h"
 #include "options_util.h"
 #include "test_common.h"
+#include "list.h"
 
 static void
 test_compat_lzo_string(void **state)
@@ -108,11 +109,215 @@ test_auth_fail_temp_flags_msg(void **state)
     assert_int_equal(o.server_backoff_time, 77);
 }
 
+
+
+struct word
+{
+    const char *word;
+    int n;
+};
+
+
+static uint32_t
+word_hash_function(const void *key, uint32_t iv)
+{
+    const char *str = (const char *) key;
+    const int len = strlen(str);
+    return hash_func((const uint8_t *)str, len, iv);
+}
+
+static bool
+word_compare_function(const void *key1, const void *key2)
+{
+    return strcmp((const char *)key1, (const char *)key2) == 0;
+}
+
+static unsigned long
+get_random(void)
+{
+    /* rand() is not very random, but it's C99 and this is just for testing */
+    return rand();
+}
+
+static struct hash_element *
+hash_lookup_by_value(struct hash *hash, void *value)
+{
+    struct hash_iterator hi;
+    struct hash_element *he;
+    struct hash_element *ret = NULL;
+    hash_iterator_init(hash, &hi);
+
+    while ((he = hash_iterator_next(&hi)))
+    {
+        if (he->value == value)
+        {
+            ret = he;
+        }
+    }
+    hash_iterator_free(&hi);
+    return ret;
+}
+
+static void
+test_list(void **state)
+{
+
+/*
+ * Test the hash code by implementing a simple
+ * word frequency algorithm.
+ */
+
+    struct gc_arena gc = gc_new();
+    struct hash *hash = hash_init(10000, get_random(), word_hash_function, word_compare_function);
+    struct hash *nhash = hash_init(256, get_random(), word_hash_function, word_compare_function);
+
+    printf("hash_init n_buckets=%d mask=0x%08x\n", hash->n_buckets, hash->mask);
+
+    char wordfile[PATH_MAX] = { 0 };
+    openvpn_test_get_srcdir_dir(wordfile, PATH_MAX, "/../../../COPYRIGHT.GPL" );
+
+    FILE *words = fopen(wordfile, "r");
+    assert_non_null(words);
+
+    int wordcount = 0;
+
+    /* parse words from file */
+    while (true)
+    {
+        char buf[256];
+        char wordbuf[256];
+
+        if (!fgets(buf, sizeof(buf), words))
+        {
+            break;
+        }
+
+        char c = 0;
+        int bi = 0, wbi = 0;
+
+        do
+        {
+            c = buf[bi++];
+            if (isalnum(c) || c == '_')
+            {
+                assert_true(wbi < (int) sizeof(wordbuf));
+                wordbuf[wbi++] = c;
+            }
+            else
+            {
+                if (wbi)
+                {
+                    wordcount++;
+
+                    ASSERT(wbi < (int) sizeof(wordbuf));
+                    wordbuf[wbi++] = '\0';
+
+                    /* word is parsed from stdin */
+
+                    /* does it already exist in table? */
+                    struct word *w = (struct word *) hash_lookup(hash, wordbuf);
+
+                    if (w)
+                    {
+                        assert_string_equal(w->word, wordbuf);
+                        /* yes, increment count */
+                        ++w->n;
+                    }
+                    else
+                    {
+                        /* no, make a new object */
+                        ALLOC_OBJ_GC(w, struct word, &gc);
+                        w->word = string_alloc(wordbuf, &gc);
+                        w->n = 1;
+                        assert_true(hash_add(hash, w->word, w, false));
+                        assert_true(hash_add(nhash, w->word, (void *) ((ptr_type )(random() & 0x0F) + 1), false));
+                    }
+                }
+                wbi = 0;
+            }
+        }
+        while (c);
+    }
+
+    assert_int_equal(wordcount, 2978);
+
+    /* remove some words from the table */
+    {
+        assert_true(hash_remove(hash, "DEFECTIVE"));
+        assert_false(hash_remove(hash, "false"));
+    }
+
+    /* output contents of hash table */
+    {
+        ptr_type inc = 0;
+        int count = 0;
+
+        for (ptr_type base = 0; base < hash_n_buckets(hash); base += inc)
+        {
+            struct hash_iterator hi;
+            struct hash_element *he;
+            inc = (get_random() % 3) + 1;
+            hash_iterator_init_range(hash, &hi, base, base + inc);
+
+            while ((he = hash_iterator_next(&hi)))
+            {
+                struct word *w = (struct word *) he->value;
+                /*printf("%6d '%s'\n", w->n, w->word); */
+                ++count;
+                /* check a few words to match prior results */
+                if (!strcmp(w->word, "is"))
+                {
+                    assert_int_equal(w->n, 49);
+                }
+                else if  (!strcmp(w->word, "redistribute"))
+                {
+                    assert_int_equal(w->n, 5);
+                }
+                else if  (!strcmp(w->word, "circumstances"))
+                {
+                    assert_int_equal(w->n, 1);
+                }
+                else if  (!strcmp(w->word, "so"))
+                {
+                    assert_int_equal(w->n, 8);
+                }
+                else if  (!strcmp(w->word, "BECAUSE"))
+                {
+                    assert_int_equal(w->n, 1);
+                }
+            }
+
+            hash_iterator_free(&hi);
+        }
+        assert_int_equal(count, hash_n_elements(hash));
+    }
+
+    /* test hash_remove_by_value function */
+    {
+        for (ptr_type i = 1; i <= 16; ++i)
+        {
+            struct hash_element *item = hash_lookup_by_value(nhash, (void *) i);
+            hash_remove_by_value(nhash, (void *) i);
+            /* check item got removed if it was present before */
+            if (item)
+            {
+                assert_null(hash_lookup_by_value(nhash, (void *) i));
+            }
+        }
+    }
+
+    hash_free(hash);
+    hash_free(nhash);
+    gc_free(&gc);
+}
+
+
 const struct CMUnitTest misc_tests[] = {
     cmocka_unit_test(test_compat_lzo_string),
     cmocka_unit_test(test_auth_fail_temp_no_flags),
     cmocka_unit_test(test_auth_fail_temp_flags),
     cmocka_unit_test(test_auth_fail_temp_flags_msg),
+    cmocka_unit_test(test_list)
 };
 
 int
