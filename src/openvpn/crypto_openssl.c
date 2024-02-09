@@ -54,6 +54,7 @@
 #endif
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
 #include <openssl/provider.h>
+#include <openssl/core_names.h>
 #endif
 
 #if defined(_WIN32) && defined(OPENSSL_NO_EC)
@@ -1329,8 +1330,57 @@ memcmp_constant_time(const void *a, const void *b, size_t size)
 {
     return CRYPTO_memcmp(a, b, size);
 }
+#if (OPENSSL_VERSION_NUMBER >= 0x30000000L) && !defined(LIBRESSL_VERSION_NUMBER)
+bool
+ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret,
+             int secret_len, uint8_t *output, int output_len)
+{
+    bool ret = true;
+    EVP_KDF_CTX *kctx = NULL;
 
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L) && !defined(LIBRESSL_VERSION_NUMBER)
+
+    EVP_KDF *kdf = EVP_KDF_fetch(NULL, "TLS1-PRF", NULL);
+    if (!kdf)
+    {
+        goto err;
+    }
+
+    kctx = EVP_KDF_CTX_new(kdf);
+
+    if (!kctx)
+    {
+        goto err;
+    }
+
+    OSSL_PARAM params[4];
+
+    /* The OpenSSL APIs require us to cast the const aways even though the
+     * strings are never changed and only read */
+    params[0] = OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST,
+                                                 SN_md5_sha1, strlen(SN_md5_sha1));
+    params[1] = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SECRET,
+                                                  (uint8_t *) secret, (size_t) secret_len);
+    params[2] = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SEED,
+                                                  (uint8_t *) seed, (size_t) seed_len);
+    params[3] = OSSL_PARAM_construct_end();
+
+    if (EVP_KDF_derive(kctx, output, output_len, params) <= 0)
+    {
+        crypto_msg(D_TLS_DEBUG_LOW, "Generating TLS 1.0 PRF using "
+                   "EVP_KDF_derive failed");
+        goto err;
+    }
+
+    goto out;
+
+err:
+    ret = false;
+out:
+    EVP_KDF_free(kdf);
+
+    return ret;
+}
+#elif (OPENSSL_VERSION_NUMBER >= 0x10100000L) && !defined(LIBRESSL_VERSION_NUMBER)
 bool
 ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret,
              int secret_len, uint8_t *output, int output_len)
