@@ -1,6 +1,76 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2023 OpenVPN Inc <sales@openvpn.net>
 
+2024.02.11 -- Version 2.6.9
+
+Arne Schwabe (15):
+      Remove unused function prototype crypto_adjust_frame_parameters
+      Log SSL alerts more prominently
+      Document tls-exit option mainly as test option
+      Remove TEST_GET_DEFAULT_GATEWAY as it duplicates --show-gateway
+      Fix check_session_buf_not_used using wrong index
+      Add missing check for nl_socket_alloc failure
+      Add check for nice in cmake config
+      Remove compat versionhelpers.h and remove cmake/configure check for it
+      Extend the error message when TLS 1.0 PRF fails
+      Fix unaligned access in macOS, FreeBSD, Solaris hwaddr
+      Check PRF availability on initialisation and add --force-tls-key-material-export
+      Make it more explicit and visible when pkg-config is not found
+      Clarify that the tls-crypt-v2-verify has a very limited env set
+      Implement the --tls-export-cert feature
+      Remove conditional text for Apache2 linking exception
+
+David Sommerseth (2):
+      Remove --tls-export-cert
+      Remove superfluous x509_write_pem()
+
+Frank Lichtenheld (14):
+      sample-keys: renew for the next 10 years
+      GHA: clean up libressl builds with newer libressl
+      configure.ac: Remove unused AC_TYPE_SIGNAL macro
+      documentation: remove reference to removed option --show-proxy-settings
+      unit_tests: remove includes for mock_msg.h
+      documentation: improve documentation of --x509-track
+      NTLM: add length check to add_security_buffer
+      NTLM: increase size of phase 2 response we can handle
+      proxy-options.rst: Add proper documentation for --http-proxy-user-pass
+      buf_string_match_head_str: Fix Coverity issue 'Unsigned compared against 0'
+      --http-proxy-user-pass: allow to specify in either order with --http-proxy
+      README.cmake.md: Document minimum required CMake version for --preset
+      documentation: Update and fix documentation for --push-peer-info
+      documentation: Fixes for previous fixes to --push-peer-info
+
+Gert Doering (4):
+      OpenBSD: repair --show-gateway
+      get_default_gateway() HWADDR overhaul
+      fix uncrustify complaints about previous patch
+      preparing release 2.6.9
+
+Kristof Provost (1):
+      dco-freebsd: dynamically re-allocate buffer if it's too small
+
+Lev Stipakov (1):
+      tun.c: don't attempt to delete DNS and WINS servers if they're not set
+
+Marc Becker (1):
+      vcpkg-ports/pkcs11-helper: bump to version 1.30
+
+Max Fillinger (4):
+      Add support for mbedtls 3.X.Y
+      Update README.mbedtls
+      Disable TLS 1.3 support with mbed TLS
+      Enable key export with mbed TLS 3.x.y
+
+Reynir Bjoernsson (1):
+      protocol_dump: tls-crypt support
+
+Steffan Karger (1):
+      Fix IPv6 route add/delete message log level
+
+yatta (1):
+      fix(ssl): init peer_id when init tls_multi
+
+
 2023.11.17 -- Version 2.6.8
 
 Aquila Macedo (1):

@@ -1,3 +1,118 @@
+Overview of changes in 2.6.9
+============================
+
+Security fixes
+--------------
+- Windows Installer: fix CVE 2023-7235 where installing to a non-default
+  directory could lead to a local privilege escalation.
+  Reported by Will Dormann <will.dormann@analygence.com>.
+
+New features
+------------
+- add support for building with mbedTLS 3.x.x
+
+- new option "--force-tls-key-material-export" to only accept clients
+  that can do TLS keying material export to generate session keys
+  (mostly an internal option to better deal with TLS 1.0 PRF failures).
+
+- Windows: bump vcpkg-ports/pkcs11-helper to 1.30
+
+- Log incoming SSL alerts in easier to understand form and move logging
+  from "--verb 8" to "--verb 3".
+
+- protocol_dump(): add support for printing "--tls-crypt" packets
+
+
+User visible changes
+--------------------
+- license change is now complete, and all code has been re-licensed
+  under the new license (still GPLv2, but with new linking exception
+  for Apache2 licensed code).  See COPYING for details.
+
+  Code that could not be re-licensed has been removed or rewritten.
+
+- the original code for the "--tls-export-cert" feature has been removed
+  (due to the re-licensing effort) and rewritten without looking at the
+  original code.  Feature-compatibility has been tested by other developers,
+  looking at both old and new code and documentation, so there *should*
+  not be a user-visible change here.
+
+- IPv6 route addition/deletion are now logged on the same level (3) as
+  for IPv4.  Previously IPv6 was always logged at "--verb 1".
+
+- better handling of TLS 1.0 PRF failures in the underlying SSL library
+  (e.g. on some FIPS builds) - this is now reported on startup, and
+  clients before 2.6.0 that can not use TLS EKM to generate key material
+  are rejected by the server.  Also, error messages are improved to see
+  what exactly failed.
+
+- packaged sample-keys renewed (old keys due to expire in October 2024)
+
+
+Bug fixes / Code cleanup
+------------------------
+- Windows GUI: always update tray icon on state change (Github: #669)
+  (for persistent connection profiles, "connecting" state would not show)
+
+- FreeBSD: for servers with multiple clients, reporting of peer traffic
+  statistics would fail due to insufficient buffer space (Github: #487)
+
+- make interaction between "--http-proxy-user-pass" and "--http-proxy"
+  more consistent
+
+- doc: improve documentation on "--http-proxy-user-pass"
+
+- doc: improve documentation for IV_ variables and IV_PROTO bits
+
+- doc: improve documentation on CMake requirements
+
+- fix various coverity-reported complains (signed/unsigned comparison etc),
+  none of them actual bugs
+
+- NTLMv2: increase phase 2 buffers so things actually work
+
+- NTLM: add extra buffer size verification checks
+
+- doc: improve documentation on "--tls-crypt-v2-verify"
+
+- autoconf on Linux: improve error reporting for missing libraries - in
+  case the problem came due to missing "pkg-config" the previous error
+  was misleading.  Now clearly report that Linux builds require "pkg-config"
+  and abort if not found.
+
+- MacOS X: fix "undefined behaviour" found by UBSAN in get_default_gateway()
+  (IV_HWADDR), using getifaddrs(3) instead of old and convoluted
+  SIOCGIFCONF API.
+
+- OpenSolaris: correctly implement get_default_gateway() (IV_HWADDR), using
+  SIOCGIFHWADDR instead of SIOCGIFCONF API.
+
+- OpenBSD: work around route socket issue in get_default_gateway()
+  ("--show-gateway") where RA_IFP must not be set on the query message,
+  otherwise kernel will return EINVAL.
+
+- doc: improve documentation of --x509-track
+
+- bugfix: in UDP mode when exceeding "--max-clients", OpenVPN would
+  incorrectly close the connection to "peer-id 0".  Fix by correctly
+  initializing peer_id with MAX_PEER_ID.
+
+- Windows: do not attempt to delete DNS or WINS servers if they are not set
+
+- configure: get rid of AC_TYPE_SIGNAL macro (unused)
+
+- Linux DCO: add missing check for nl_socket_alloc() failure
+
+- bugfix: check_session_buf_not_used() was not working as planned
+
+- remove dead test code for TEST_GET_DEFAULT_GATEWAY (use "--show-gateway")
+
+- doc: better document "--tls-exit" option
+
+- Github Actions: clean up LibreSSL builds
+
+
+
 Overview of changes in 2.6.8
 ============================
 
@@ -526,7 +641,7 @@ Improve DCO-related logging in many places.
 DCO/Linux robustness fixes.
 
 DCO/Linux TCP crashbug (recvfrom(-1) endless loop) worked around - root
-    cause has not been found, but the condition is detected and the 
+    cause has not been found, but the condition is detected and the
     offending client is removed, instead of crashing the server.
 
 Rename internal TLS state TM_UNTRUSTED to TM_INITIAL, always start new
