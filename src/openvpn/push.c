@@ -29,6 +29,7 @@
 
 #include "push.h"
 #include "options.h"
+#include "crypto.h"
 #include "ssl.h"
 #include "ssl_verify.h"
 #include "ssl_ncp.h"
@@ -686,6 +687,11 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
     if (o->imported_protocol_flags & CO_USE_DYNAMIC_TLS_CRYPT)
     {
         buf_printf(&proto_flags, " dyn-tls-crypt");
+    }
+
+    if (o->imported_protocol_flags & CO_AEAD_TAG_AT_THE_END)
+    {
+        buf_printf(&proto_flags, " aead-tag-end");
     }
 
     if (buf_len(&proto_flags) > 0)

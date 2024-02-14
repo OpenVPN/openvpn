@@ -2328,6 +2328,10 @@ tls_print_deferred_options_results(struct context *c)
         {
             buf_printf(&out, " dyn-tls-crypt");
         }
+        if (o->imported_protocol_flags & CO_AEAD_TAG_AT_THE_END)
+        {
+            buf_printf(&out, " aead-tag-end");
+        }
     }
 
     if (buf_len(&out) > strlen(header))
