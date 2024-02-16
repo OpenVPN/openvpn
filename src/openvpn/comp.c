@@ -195,7 +195,7 @@ check_compression_settings_valid(struct compress_options *info, int msglevel)
     }
 #endif
 #ifndef ENABLE_LZO
-    if (info->alg == COMP_ALG_LZO || info->alg == COMP_ALG_LZ4)
+    if (info->alg == COMP_ALG_LZO)
     {
         msg(msglevel, "OpenVPN is compiled without LZO support. Requested "
             "compression cannot be enabled.");
