@@ -73,6 +73,17 @@ configuration.
   If ``up`` is omitted, username/password will be prompted from the
   console.
 
+  This option can also be inlined
+  ::
+
+    <auth-user-pass>
+    username
+    [password]
+    </auth-user-pass>
+
+  where password is optional, and will be prompted from the console if
+  missing.
+
   The server configuration must specify an ``--auth-user-pass-verify``
   script to verify the username/password provided by the client.
 
