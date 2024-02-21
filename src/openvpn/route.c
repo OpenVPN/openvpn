@@ -1053,7 +1053,10 @@ redirect_default_route_to_vpn(struct route_list *rl, const struct tuntap *tt,
                     ret = add_route3(rl->spec.remote_host, IPV4_NETMASK_HOST,
                                      rl->rgi.gateway.addr, tt, flags | ROUTE_REF_GW,
                                      &rl->rgi, es, ctx);
-                    rl->iflags |= RL_DID_LOCAL;
+                    if (ret)
+                    {
+                        rl->iflags |= RL_DID_LOCAL;
+                    }
                 }
                 else
                 {
