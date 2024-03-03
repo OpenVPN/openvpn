@@ -1,6 +1,6 @@
 [Unit]
 Description=OpenVPN service for %I
-After=syslog.target network-online.target
+After=network-online.target
 Wants=network-online.target
 Documentation=man:openvpn(8)
 Documentation=https://community.openvpn.net/openvpn/wiki/Openvpn24ManPage
