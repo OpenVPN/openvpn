@@ -400,7 +400,7 @@ dco_check_option(int msglevel, const struct options *o)
     if (o->enable_ncp_fallback
         && !tls_item_in_cipher_list(o->ciphername, dco_get_supported_ciphers()))
     {
-        msg(msglevel, "Note: --data-cipher-fallback with cipher '%s' "
+        msg(msglevel, "Note: --data-ciphers-fallback with cipher '%s' "
             "disables data channel offload.", o->ciphername);
         return false;
     }
