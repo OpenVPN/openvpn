@@ -283,7 +283,7 @@ the local and the remote host.
   See the signals section below for more information on :code:`SIGUSR1`.
 
   Note that the behavior of ``SIGUSR1`` can be modified by the
-  ``--persist-tun``, ``--persist-key``, ``--persist-local-ip`` and
+  ``--persist-tun``, ``--persist-local-ip`` and
   ``--persist-remote-ip`` options.
 
   Also note that ``--ping-exit`` and ``--ping-restart`` are mutually

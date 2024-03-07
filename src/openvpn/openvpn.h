@@ -48,7 +48,7 @@
 
 /*
  * Our global key schedules, packaged thusly
- * to facilitate --persist-key.
+ * to facilitate key persistence.
  */
 
 struct key_schedule

@@ -20,6 +20,8 @@ NTLMv1 authentication support for HTTP proxies has been removed.
     When configured to authenticate with NTLMv1 (``ntlm`` keyword in
     ``--http-proxy``) OpenVPN will try NTLMv2 instead.
 
+``persist-key`` option has been enabled by default.
+    All the keys will be kept in memory across restart.
 
 Overview of changes in 2.6
 ==========================

@@ -3559,14 +3559,6 @@ do_option_warnings(struct context *c)
         {
             msg(M_WARN, "WARNING: you are using user/group/chroot/setcon without persist-tun -- this may cause restarts to fail");
         }
-        if (!o->persist_key
-#ifdef ENABLE_PKCS11
-            && !o->pkcs11_id
-#endif
-            )
-        {
-            msg(M_WARN, "WARNING: you are using user/group/chroot/setcon without persist-key -- this may cause restarts to fail");
-        }
     }
 
     if (o->chroot_dir && !(o->username && o->groupname))
@@ -3857,7 +3849,7 @@ static void
 do_close_free_key_schedule(struct context *c, bool free_ssl_ctx)
 {
     /*
-     * always free the tls_auth/crypt key. If persist_key is true, the key will
+     * always free the tls_auth/crypt key. The key will
      * be reloaded from memory (pre-cached)
      */
     free_key_ctx(&c->c1.ks.tls_crypt_v2_server_key);
@@ -3866,7 +3858,7 @@ do_close_free_key_schedule(struct context *c, bool free_ssl_ctx)
     buf_clear(&c->c1.ks.tls_crypt_v2_wkc);
     free_buf(&c->c1.ks.tls_crypt_v2_wkc);
 
-    if (!(c->sig->signal_received == SIGUSR1 && c->options.persist_key))
+    if (!(c->sig->signal_received == SIGUSR1))
     {
         key_schedule_free(&c->c1.ks, free_ssl_ctx);
     }

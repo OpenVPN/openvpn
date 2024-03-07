@@ -344,7 +344,6 @@ struct options
     bool persist_tun;           /* Don't close/reopen TUN/TAP dev on SIGUSR1 or PING_RESTART */
     bool persist_local_ip;      /* Don't re-resolve local address on SIGUSR1 or PING_RESTART */
     bool persist_remote_ip;     /* Don't re-resolve remote address on SIGUSR1 or PING_RESTART */
-    bool persist_key;           /* Don't re-read key files on SIGUSR1 or PING_RESTART */
 
 #if PASSTOS_CAPABILITY
     bool passtos;
