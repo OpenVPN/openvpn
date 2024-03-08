@@ -1207,7 +1207,7 @@ CmpWString(LPVOID item, LPVOID str)
 
 /**
  * Set interface specific DNS domain suffix
- * @param  if_name    name of the the interface
+ * @param  if_name    name of the interface
  * @param  domain     a single domain name
  * @param  lists      pointer to the undo lists. If NULL
  *                    undo lists are not altered.

@@ -235,7 +235,7 @@ routing.
   address and subnet mask just as a physical ethernet adapter would be
   similarly configured. If you are attempting to connect to a remote
   ethernet bridge, the IP address and subnet should be set to values which
-  would be valid on the the bridged ethernet segment (note also that DHCP
+  would be valid on the bridged ethernet segment (note also that DHCP
   can be used for the same purpose).
 
   This option, while primarily a proxy for the ``ifconfig``\(8) command,
@@ -584,7 +584,7 @@ These two standalone operations will require ``--dev`` and optionally
   One of the advantages of persistent tunnels is that they eliminate the
   need for separate ``--up`` and ``--down`` scripts to run the appropriate
   ``ifconfig``\(8) and ``route``\(8) commands. These commands can be
-  placed in the the same shell script which starts or terminates an
+  placed in the same shell script which starts or terminates an
   OpenVPN session.
 
   Another advantage is that open connections through the TUN/TAP-based
