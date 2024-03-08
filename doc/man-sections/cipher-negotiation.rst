@@ -8,7 +8,7 @@ different backwards compatibility mechanism with older server and clients.
 OpenVPN 2.5 and later behaviour
 --------------------------------
 When both client and server are at least running OpenVPN 2.5, that the order of
-the ciphers of the server's ``--data-ciphers`` is used to pick the the data cipher.
+the ciphers of the server's ``--data-ciphers`` is used to pick the data cipher.
 That means that the first cipher in that list that is also in the client's
 ``--data-ciphers`` list is chosen. If no common cipher is found the client is rejected
 with a AUTH_FAILED message (as seen in client log):
