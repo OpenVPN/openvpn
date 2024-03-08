@@ -290,12 +290,14 @@ run_ping_tests()
 # main test loop
 # ----------------------------------------------------------
 SUMMARY_OK=
+SUMMARY_SKIP=
 SUMMARY_FAIL=
 
 for SUF in $TEST_RUN_LIST
 do
     # get config variables
     eval test_prep=\"\$PREPARE_$SUF\"
+    eval test_check_skip=\"\$CHECK_SKIP_$SUF\"
     eval test_postinit=\"\$POSTINIT_CMD_$SUF\"
     eval test_cleanup=\"\$CLEANUP_$SUF\"
     eval test_run_title=\"\$RUN_TITLE_$SUF\"
@@ -316,6 +318,16 @@ do
 
     output_start "### test run $SUF: '$test_run_title' ###"
     fail_count=0
+
+    if [ -n "$test_check_skip" ]; then
+        output "check whether we need to skip: '$test_check_skip'"
+        if eval $test_check_skip; then :
+        else
+            output "skip check failed, SKIP test $SUF."
+	    SUMMARY_SKIP="$SUMMARY_SKIP $SUF"
+	    echo -e "$outbuf" ; continue
+        fi
+    fi
 
     if [ -n "$test_prep" ]; then
         output "running preparation: '$test_prep'"
@@ -454,8 +466,10 @@ do
 done
 
 if [ -z "$SUMMARY_OK" ] ; then SUMMARY_OK=" none"; fi
+if [ -z "$SUMMARY_SKIP" ] ; then SUMMARY_SKIP=" none"; fi
 if [ -z "$SUMMARY_FAIL" ] ; then SUMMARY_FAIL=" none"; fi
 echo "Test sets succeeded:$SUMMARY_OK."
+echo "Test sets skipped:$SUMMARY_SKIP."
 echo "Test sets failed:$SUMMARY_FAIL."
 
 # remove trap handler

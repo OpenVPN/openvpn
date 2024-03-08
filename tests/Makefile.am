@@ -16,6 +16,8 @@ SUBDIRS = unit_tests
 
 if !WIN32
 test_scripts = t_client.sh t_lpback.sh t_cltsrv.sh
+
+check_PROGRAMS = ntlm_support
 if HAVE_SITNL
 test_scripts += t_net.sh
 endif
@@ -33,3 +35,15 @@ dist_noinst_SCRIPTS = \
 
 dist_noinst_DATA = \
 	t_client.rc-sample
+
+ntlm_support_CFLAGS  = -I$(top_srcdir)/src/openvpn -I$(top_srcdir)/src/compat -I$(top_srcdir)/tests/unit_tests/openvpn -DNO_CMOCKA @TEST_CFLAGS@
+ntlm_support_LDFLAGS = @TEST_LDFLAGS@ -L$(top_srcdir)/src/openvpn $(OPTIONAL_CRYPTO_LIBS)
+ntlm_support_SOURCES = ntlm_support.c \
+	unit_tests/openvpn/mock_msg.c unit_tests/openvpn/mock_msg.h \
+	$(top_srcdir)/src/openvpn/buffer.c \
+	$(top_srcdir)/src/openvpn/crypto.c \
+	$(top_srcdir)/src/openvpn/crypto_openssl.c \
+	$(top_srcdir)/src/openvpn/crypto_mbedtls.c \
+	$(top_srcdir)/src/openvpn/otime.c \
+	$(top_srcdir)/src/openvpn/packet_id.c \
+	$(top_srcdir)/src/openvpn/platform.c
