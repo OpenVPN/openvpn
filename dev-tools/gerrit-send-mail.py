@@ -50,6 +50,12 @@ def get_details(args):
                 ack = f"{reviewer_name} <{reviewer_mail}>"
                 print(f"Acked-by: {ack}")
                 acked_by.append(ack)
+    # construct Signed-off-by in case it is missing
+    owner = json_data["owner"]
+    owner_name = owner.get("display_name", owner["name"])
+    owner_mail = owner.get("email", owner["name"])
+    sign_off = f"{owner_name} <{owner_mail}>"
+    print(f"Signed-off-by: {sign_off}")
     change_id = json_data["change_id"]
     # assumes that the created date in Gerrit is in UTC
     utc_stamp = (
@@ -67,6 +73,7 @@ def get_details(args):
         "target": json_data["branch"],
         "msg_id": msg_id,
         "acked_by": acked_by,
+        "sign_off": sign_off,
     }
 
 
@@ -81,10 +88,14 @@ def get_patch(details, args):
 
 def apply_patch_mods(patch_text, details, args):
     comment_start = patch_text.index("\n---\n") + len("\n---\n")
+    signed_off_text = ""
+    signed_off_comment = ""
     try:
         signed_off_start = patch_text.rindex("\nSigned-off-by: ")
         signed_off_end = patch_text.index("\n", signed_off_start + 1) + 1
     except ValueError:  # Signed-off missing
+        signed_off_text = f"Signed-off-by: {details['sign_off']}\n"
+        signed_off_comment = "\nSigned-off-by line for the author was added as per our policy.\n"
         signed_off_end = patch_text.index("\n---\n") + 1
     assert comment_start > signed_off_end
     acked_by_text = ""
@@ -94,6 +105,7 @@ def apply_patch_mods(patch_text, details, args):
         acked_by_names += f"{ack}\n"
     patch_text_mod = (
         patch_text[:signed_off_end]
+        + signed_off_text
         + acked_by_text
         + patch_text[signed_off_end:comment_start]
         + f"""
@@ -102,6 +114,7 @@ developer. I request to merge it to {details["target"]}.
 
 Gerrit URL: {args.url}/c/{details["project"]}/+/{args.changeid}
 This mail reflects revision {details["revision"]} of this Change.
+{signed_off_comment}
 Acked-by according to Gerrit (reflected above):
 {acked_by_names}
         """
