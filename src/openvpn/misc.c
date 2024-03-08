@@ -129,7 +129,7 @@ auth_user_pass_mgmt(struct user_pass *up, const char *prefix, const unsigned int
  * Parses an authentication challenge string and returns an auth_challenge_info structure.
  * The authentication challenge string should follow the dynamic challenge/response protocol.
  *
- * See doc/management-notes.txt for more info on the the dynamic challenge/response protocol
+ * See doc/management-notes.txt for more info on the dynamic challenge/response protocol
  * implemented here.
  *
  * @param auth_challenge The authentication challenge string to parse. Can't be NULL.
