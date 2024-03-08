@@ -25,15 +25,9 @@
 #define ERROR_H
 
 #include "basic.h"
-
-#include <errno.h>
-#include <stdbool.h>
+#include "syshead.h"
 
 #include <assert.h>
-
-#if _WIN32
-#include <windows.h>
-#endif
 
 /* #define ABORT_ON_ERROR */
 

@@ -27,7 +27,7 @@ REMOTE=mytestserver
 #
 # tests to run (list suffixes for config stanzas below)
 #
-TEST_RUN_LIST="1 2"
+TEST_RUN_LIST="1 2 2n"
 
 #
 # use "sudo" (etc) to give openvpn the necessary privileges
@@ -53,14 +53,24 @@ OPENVPN_BASE_P2P="..."
 #
 # if something is not defined here, the corresponding test is not run
 #
-# possible test options:
+# common test options:
 #
-# RUN_TITLE_x="what is being tested on here" (purely informational)
-# OPENVPN_CONF_x = "how to call ./openvpn" [mandatory]
+# RUN_TITLE_x        = "what is being tested on here" (purely informational)
+# OPENVPN_CONF_x     = "how to call ./openvpn" [mandatory]
 # EXPECT_IFCONFIG4_x = "this IPv4 address needs to show up in ifconfig"
 # EXPECT_IFCONFIG6_x = "this IPv6 address needs to show up in ifconfig"
-# PING4_HOSTS_x = "these hosts musts ping when openvpn is up (IPv4 fping)"
-# PING6_HOSTS_x = "these hosts musts ping when openvpn is up (IPv6 fping6)"
+# PING4_HOSTS_x      = "these hosts musts ping when openvpn is up (IPv4 fping)"
+# PING6_HOSTS_x      = "these hosts musts ping when openvpn is up (IPv6 fping6)"
+#
+# hook test options:
+#
+# CHECK_SKIP_x      = "commands to execute before openvpn, skip test on failure"
+# PREPARE_x         = "commands to execute before openvpn"
+# POSTINIT_CMD_x    = "commands to execute after openvpn but before ping"
+# CLEANUP_x         = "commands to execute after the test"
+#
+# Note: all hooks are "eval"ed, so run in the original shell of the t_client.sh
+# script, not a child process.
 #
 # Test 1: UDP / p2mp tun
 #   specify IPv4+IPv6 addresses expected from server and ping targets
@@ -76,9 +86,17 @@ RUN_TITLE_2="testing tun/tcp/ipv4+ipv6"
 OPENVPN_CONF_2="$OPENVPN_BASE_P2MP --dev tun --proto tcp --remote $REMOTE --port 51194"
 PING4_HOSTS_2="10.100.51.1 10.100.0.1"
 PING6_HOSTS_2="2001:db8::1 2001:db8:a051::1"
-#
 # run command after openvpn initialization is done - here: delay 5 seconds
 POSTINIT_CMD_2="sleep 5"
+
+# Test 2n: TCP / p2mp tun / via NTLM proxy
+RUN_TITLE_2n="testing tun/tcp/ntlm-proxy"
+OPENVPN_CONF_2n="$OPENVPN_BASE_P2MP --dev tun --proto tcp --remote $REMOTE --port 51194
+ --http-proxy 192.168.1.2 8080 $KEYBASE/t_client_auth.txt ntlm --http-proxy-option VERSION 1.1"
+PING4_HOSTS_2n="10.100.51.1 10.100.0.1"
+PING6_HOSTS_2n="2001:db8::1 2001:db8:a051::1"
+# skip test if NTLM support is not available
+CHECK_SKIP_2n="${top_builddir}/tests/ntlm_support"
 
 # Test 3: UDP / p2p tun
 # ...
