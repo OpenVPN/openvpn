@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2019-2023 Arne Schwabe <arne@rfc2549.org>
+ *  Copyright (C) 2019-2024 Arne Schwabe <arne@rfc2549.org>
  *  Copyright (C) 1992-2019 Free Software Foundation, Inc.
  *
  *  This program is free software; you can redistribute it and/or modify
