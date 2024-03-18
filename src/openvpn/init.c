@@ -221,12 +221,6 @@ management_callback_proxy_cmd(void *arg, const char **p)
     }
     else if (p[2] && p[3])
     {
-        if (dco_enabled(&c->options))
-        {
-            msg(M_INFO, "Proxy set via management, disabling Data Channel Offload.");
-            c->options.tuntap_options.disable_dco = true;
-        }
-
         if (streq(p[1], "HTTP"))
         {
             struct http_proxy_options *ho;
