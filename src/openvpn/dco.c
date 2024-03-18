@@ -387,6 +387,12 @@ dco_check_startup_option(int msglevel, const struct options *o)
         return false;
     }
 
+    if (o->management_flags & MF_QUERY_PROXY)
+    {
+        msg(msglevel, "Note: --management-query-proxy disables data channel offload.");
+        return false;
+    }
+
     /* now that all options have been confirmed to be supported, check
      * if DCO is truly available on the system
      */
