@@ -1,3 +1,54 @@
+Overview of changes in 2.6.10
+=============================
+Security fixes
+--------------
+- CVE-2024-27459: Windows: fix a possible stack overflow in the
+  interactive service component which might lead to a local privilege
+  escalation.
+  Reported-by: Vladimir Tokarev <vtokarev@microsoft.com>
+
+- CVE-2024-24974: Windows: disallow access to the interactive service
+  pipe from remote computers.
+  Reported-by: Vladimir Tokarev <vtokarev@microsoft.com>
+
+- CVE-2024-27903: Windows: disallow loading of plugins from untrusted
+  installation paths, which could be used to attack openvpn.exe via
+  a malicious plugin.  Plugins can now only be loaded from the OpenVPN
+  install directory, the Windows system directory, and possibly from
+  a directory specified by HKLM\SOFTWARE\OpenVPN\plugin_dir.
+  Reported-by: Vladimir Tokarev <vtokarev@microsoft.com>
+
+Bug fixes
+---------
+- Windows: if the win-dco driver is used (default) and the GUI requests
+  use of a proxy server, the connection would fail.  Disable DCO in
+  this case.  (Github: #522)
+
+- Compression: minor bugfix in checking option consistency vs. compiled-in
+  algorithm support
+
+- systemd unit files: remove obsolete syslog.target
+
+User visible changes
+--------------------
+- Update copyright notices to 2024
+
+New features
+------------
+- t_client.sh can now run pre-tests and skip a test block if needed
+  (e.g. skip NTLM proxy tests if SSL library does not support MD4)
+
+Documentation
+-------------
+- remove license warnings about mbedTLS linking (README.mbedtls)
+
+- update documentation references in systemd unit files
+
+- sample config files: remove obsolete tls-*.conf files
+
+- document that auth-user-pass may be inlined
+
+
 Overview of changes in 2.6.9
 ============================
 

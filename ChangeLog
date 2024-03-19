@@ -1,6 +1,38 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2024 OpenVPN Inc <sales@openvpn.net>
 
+2024.03.20 -- Version 2.6.10
+
+Christoph Schug (1):
+      Update documentation references in systemd unit files
+
+Frank Lichtenheld (6):
+      Fix typo --data-cipher-fallback
+      samples: Remove tls-*.conf
+      check_compression_settings_valid: Do not test for LZ4 in LZO check
+      t_client.sh: Allow to skip tests
+      Update Copyright statements to 2024
+      GHA: general update March 2024
+
+Lev Stipakov (4):
+      win32: Enforce loading of plugins from a trusted directory
+      interactive.c: disable remote access to the service pipe
+      interactive.c: Fix potential stack overflow issue
+      Disable DCO if proxy is set via management
+
+Martin Rys (1):
+      openvpn-[client|server].service: Remove syslog.target
+
+Max Fillinger (1):
+      Remove license warning from README.mbedtls
+
+Selva Nair (1):
+      Document that auth-user-pass may be inlined
+
+wellweek (1):
+      remove repetitive words in documentation and comments
+
+
 2024.02.11 -- Version 2.6.9
 
 Arne Schwabe (15):
