@@ -279,11 +279,23 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
 
 #else  /* ifndef _WIN32 */
 
-    rel = !platform_absolute_pathname(p->so_pathname);
-    p->module = LoadLibraryW(wide_string(p->so_pathname, &gc));
+    WCHAR *wpath = wide_string(p->so_pathname, &gc);
+    WCHAR normalized_plugin_path[MAX_PATH] = {0};
+    /* Normalize the plugin path, converting any relative paths to absolute paths. */
+    if (!GetFullPathNameW(wpath, MAX_PATH, normalized_plugin_path, NULL))
+    {
+        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls. Failed to normalize plugin path.", wpath);
+    }
+
+    if (!plugin_in_trusted_dir(normalized_plugin_path))
+    {
+        msg(M_FATAL, "PLUGIN_INIT: could not load plugin DLL: %ls. The DLL is not in a trusted directory.", normalized_plugin_path);
+    }
+
+    p->module = LoadLibraryW(normalized_plugin_path);
     if (!p->module)
     {
-        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %s", p->so_pathname);
+        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls", normalized_plugin_path);
     }
 
 #define PLUGIN_SYM(var, name, flags) dll_resolve_symbol(p->module, (void *)&p->var, name, p->so_pathname, flags)

@@ -1532,27 +1532,24 @@ openvpn_swprintf(wchar_t *const str, const size_t size, const wchar_t *const for
     return (len >= 0 && len < size);
 }
 
-static BOOL
-get_install_path(WCHAR *path, DWORD size)
+bool
+get_openvpn_reg_value(const WCHAR *key, WCHAR *value, DWORD size)
 {
     WCHAR reg_path[256];
-    HKEY key;
-    BOOL res = FALSE;
+    HKEY hkey;
     openvpn_swprintf(reg_path, _countof(reg_path), L"SOFTWARE\\" PACKAGE_NAME);
 
-    LONG status = RegOpenKeyExW(HKEY_LOCAL_MACHINE, reg_path, 0, KEY_READ, &key);
+    LONG status = RegOpenKeyExW(HKEY_LOCAL_MACHINE, reg_path, 0, KEY_READ, &hkey);
     if (status != ERROR_SUCCESS)
     {
-        return res;
+        return false;
     }
 
-    /* The default value of REG_KEY is the install path */
-    status = RegGetValueW(key, NULL, NULL, RRF_RT_REG_SZ, NULL, (LPBYTE)path, &size);
-    res = status == ERROR_SUCCESS;
+    status = RegGetValueW(hkey, NULL, key, RRF_RT_REG_SZ, NULL, (LPBYTE)value, &size);
 
-    RegCloseKey(key);
+    RegCloseKey(hkey);
 
-    return res;
+    return status == ERROR_SUCCESS;
 }
 
 static void
@@ -1561,7 +1558,7 @@ set_openssl_env_vars()
     const WCHAR *ssl_fallback_dir = L"C:\\Windows\\System32";
 
     WCHAR install_path[MAX_PATH] = { 0 };
-    if (!get_install_path(install_path, _countof(install_path)))
+    if (!get_openvpn_reg_value(NULL, install_path, _countof(install_path)))
     {
         /* if we cannot find installation path from the registry,
          * use Windows directory as a fallback
@@ -1595,6 +1592,61 @@ set_openssl_env_vars()
             _wputenv_s(ossl_env[i].name, val);
         }
     }
+}
+
+bool
+plugin_in_trusted_dir(const WCHAR *plugin_path)
+{
+    /* UNC paths are not allowed */
+    if (wcsncmp(plugin_path, L"\\\\", 2) == 0)
+    {
+        msg(M_WARN, "UNC paths for plugins are not allowed.");
+        return false;
+    }
+
+    WCHAR plugin_dir[MAX_PATH] = { 0 };
+
+    /* Attempt to retrieve the trusted plugin directory path from the registry,
+     * using installation path as a fallback */
+    if (!get_openvpn_reg_value(L"plugin_dir", plugin_dir, _countof(plugin_dir))
+        && !get_openvpn_reg_value(NULL, plugin_dir, _countof(plugin_dir)))
+    {
+        msg(M_WARN, "Installation path could not be determined.");
+    }
+
+    /* Get the system directory */
+    WCHAR system_dir[MAX_PATH] = { 0 };
+    if (GetSystemDirectoryW(system_dir, _countof(system_dir)) == 0)
+    {
+        msg(M_NONFATAL | M_ERRNO, "Failed to get system directory.");
+    }
+
+    if ((wcslen(plugin_dir) == 0) && (wcslen(system_dir) == 0))
+    {
+        return false;
+    }
+
+    WCHAR normalized_plugin_dir[MAX_PATH] = { 0 };
+
+    /* Normalize the plugin dir */
+    if (wcslen(plugin_dir) > 0)
+    {
+        if (!GetFullPathNameW(plugin_dir, MAX_PATH, normalized_plugin_dir, NULL))
+        {
+            msg(M_NONFATAL | M_ERRNO, "Failed to normalize plugin dir.");
+            return false;
+        }
+    }
+
+    /* Check if the plugin path resides within the plugin/install directory */
+    if ((wcslen(normalized_plugin_dir) > 0) && (wcsnicmp(normalized_plugin_dir,
+                                                         plugin_path, wcslen(normalized_plugin_dir)) == 0))
+    {
+        return true;
+    }
+
+    /* Fallback to the system directory */
+    return wcsnicmp(system_dir, plugin_path, wcslen(system_dir)) == 0;
 }
 
 #endif /* ifdef _WIN32 */
