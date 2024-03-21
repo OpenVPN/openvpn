@@ -682,13 +682,6 @@ instances.
     recorded to this environmental variable sequence prior to ``--up``
     script execution.
 
-:code:`ifconfig_broadcast`
-    The broadcast address for the virtual ethernet segment which is derived
-    from the ``--ifconfig`` option when ``--dev tap`` is used. Set prior to
-    OpenVPN calling the :code:`ifconfig` or :code:`netsh` (windows version
-    of ifconfig) commands which normally occurs prior to ``--up`` script
-    execution.
-
 :code:`ifconfig_ipv6_local`
     The local VPN endpoint IPv6 address specified in the
     ``--ifconfig-ipv6`` option (first parameter). Set prior to OpenVPN
@@ -731,30 +724,53 @@ instances.
     occurs prior to ``--up`` script execution.
 
 :code:`ifconfig_pool_local_ip`
-    The local virtual IP address for the TUN/TAP tunnel taken from an
+    The local virtual IPv4 address for the TUN/TAP tunnel taken from an
     ``--ifconfig-push`` directive if specified, or otherwise from the
     ifconfig pool (controlled by the ``--ifconfig-pool`` config file
     directive). Only set for ``--dev tun`` tunnels. This option is set on
     the server prior to execution of the ``--client-connect`` and
     ``--client-disconnect`` scripts.
 
+:code:`ifconfig_pool_local_ip6`
+    The local virtual IPv6 address for the TUN/TAP tunnel taken from an
+    ``--ifconfig-ipv6-push`` directive if specified, or otherwise from the
+    ifconfig pool (controlled by the ``--ifconfig-ipv6-pool`` config file
+    directive). Only set for ``--dev tun`` tunnels. This option is set on
+    the server prior to execution of the ``--client-connect`` and
+    ``--client-disconnect`` scripts.
+
 :code:`ifconfig_pool_netmask`
-    The virtual IP netmask for the TUN/TAP tunnel taken from an
+    The virtual IPv4 netmask for the TUN/TAP tunnel taken from an
     ``--ifconfig-push`` directive if specified, or otherwise from the
     ifconfig pool (controlled by the ``--ifconfig-pool`` config file
     directive). Only set for ``--dev tap`` tunnels. This option is set on
     the server prior to execution of the ``--client-connect`` and
     ``--client-disconnect`` scripts.
 
+:code:`ifconfig_pool_ip6_netbits`
+    The virtual IPv6 prefix length for the TUN/TAP tunnel taken from an
+    ``--ifconfig-ipv6-push`` directive if specified, or otherwise from the
+    ifconfig pool (controlled by the ``--ifconfig-ipv6-pool`` config file
+    directive). Only set for ``--dev tap`` tunnels. This option is set on
+    the server prior to execution of the ``--client-connect`` and
+    ``--client-disconnect`` scripts.
+
 :code:`ifconfig_pool_remote_ip`
-    The remote virtual IP address for the TUN/TAP tunnel taken from an
+    The remote virtual IPv4 address for the TUN/TAP tunnel taken from an
     ``--ifconfig-push`` directive if specified, or otherwise from the
     ifconfig pool (controlled by the ``--ifconfig-pool`` config file
     directive). This option is set on the server prior to execution of the
     ``--client-connect`` and ``--client-disconnect`` scripts.
 
+:code:`ifconfig_pool_remote_ip6`
+    The remote virtual IPv6 address for the TUN/TAP tunnel taken from an
+    ``--ifconfig-ipv6-push`` directive if specified, or otherwise from the
+    ifconfig pool (controlled by the ``--ifconfig-ipv6-pool`` config file
+    directive). This option is set on the server prior to execution of the
+    ``--client-connect`` and ``--client-disconnect`` scripts.
+
 :code:`link_mtu`
-    No longer passed to scripts since OpenVPN 2.6.0.  Used to be the
+    *REMOVED* No longer passed to scripts since OpenVPN 2.6.0.  Used to be the
     maximum packet size (not including the IP header) of tunnel data in
     UDP tunnel transport mode.
 
