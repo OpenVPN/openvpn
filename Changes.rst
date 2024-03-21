@@ -1,3 +1,31 @@
+Overview of changes in 2.5.10
+=============================
+Security fixes
+--------------
+- CVE-2024-27459: Windows: fix a possible stack overflow in the
+  interactive service component which might lead to a local privilege
+  escalation.
+  Reported-by: Vladimir Tokarev <vtokarev@microsoft.com>
+
+- CVE-2024-24974: Windows: disallow access to the interactive service
+  pipe from remote computers.
+  Reported-by: Vladimir Tokarev <vtokarev@microsoft.com>
+
+- CVE-2024-27903: Windows: disallow loading of plugins from untrusted
+  installation paths, which could be used to attack openvpn.exe via
+  a malicious plugin.  Plugins can now only be loaded from the OpenVPN
+  install directory, the Windows system directory, and possibly from
+  a directory specified by HKLM\SOFTWARE\OpenVPN\plugin_dir.
+  Reported-by: Vladimir Tokarev <vtokarev@microsoft.com>
+
+User visible changes
+--------------------
+- License amendment: all NEW commits fall under a modified license that
+  explicitly permits linking with Apache2 libraries (mbedTLS, OpenSSL) -
+  see COPYING for details.  Existing code in the release/2.5 branch
+  will not been relicensed (only in release/2.6 and later branches).
+
+
 Overview of changes in 2.5.9
 ============================
 

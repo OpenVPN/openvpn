@@ -1,6 +1,20 @@
 OpenVPN Change Log
 Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
 
+2024.03.21 -- Version 2.5.10
+
+Arne Schwabe (1):
+      Add Apache2 linking with for new commits
+
+George Pchelkin (1):
+      fix typo: dhcp-options to dhcp-option in vpn-network-options.rst
+
+Lev Stipakov (3):
+      win32: Enforce loading of plugins from a trusted directory
+      interactive.c: disable remote access to the service pipe
+      interactive.c: Fix potential stack overflow issue
+
+
 2023.02.14 -- Version 2.5.9
 
 Arne Schwabe (6):
