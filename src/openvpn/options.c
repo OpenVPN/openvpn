@@ -499,7 +499,7 @@ static const char usage_message[] =
     "                  and a password on the second. If either the password or both\n"
     "                  the username and the password are omitted OpenVPN will prompt\n"
     "                  for them from console.\n"
-    "--external-auth  : If set, client-side credentials are optional.\n"
+    "--no-client-credential : If set, client-side credentials are optional.\n"
     "--pull           : Accept certain config file options from the peer as if they\n"
     "                  were part of the local config file.  Must be specified\n"
     "                  when connecting to a '--mode server' remote host.\n"
@@ -3005,12 +3005,12 @@ options_postprocess_verify_ce(const struct options *options,
 
                 if (sum == 0)
                 {
-                    if (!options->auth_user_pass_file && !options->external_auth)
+                    if (!options->auth_user_pass_file && !options->no_client_credential)
                     {
                         msg(M_USAGE, "No client-side authentication method is "
                             "specified.  You must use either "
                             "--cert/--key, --pkcs12, "
-                            "--auth-user-pass, or --external-auth");
+                            "--auth-user-pass, or --no-client-credential");
                     }
                 }
                 else if (sum != 2)
@@ -7918,10 +7918,10 @@ add_option(struct options *options,
             options->auth_user_pass_file = "stdin";
         }
     }
-    else if (streq(p[0], "external-auth") && !p[1])
+    else if (streq(p[0], "no-client-credential") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->external_auth = true;
+        options->no_client_credential = true;
     }
     else if (streq(p[0], "auth-retry") && p[1] && !p[2])
     {

@@ -87,7 +87,7 @@ configuration.
   The server configuration must specify an ``--auth-user-pass-verify``
   script to verify the username/password provided by the client.
 
---external-auth
+--no-client-credential
   This client-only option indicates that user authentication options in the
   client configuration are not mandatory. For security reasons, OpenVPN
   requires client-side credentials such as client certificates or a
@@ -97,11 +97,11 @@ configuration.
 
   ***Security Considerations***
 
-  When the ``--external-auth`` option is enabled in OpenVPN, it bypasses the
+  When the ``--no-client-credential`` option is enabled in OpenVPN, it bypasses the
   check that some form of user authentication method is specified. This
   configuration can potentially create a risky environment where an OpenVPN
   server operates without requiring authentication. If you opt to utilize
-  ``--external-auth``, it's crucial to thoroughly validate that the OpenVPN
+  ``--no-client-credential``, it's crucial to thoroughly validate that the OpenVPN
   server has been adequately secured.
 
 --auth-retry type
