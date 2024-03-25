@@ -1,8 +1,8 @@
 Encryption Options
-==================
+------------------
 
 SSL Library information
------------------------
+```````````````````````
 
 --show-ciphers
   (Standalone) Show all cipher algorithms to use with the ``--cipher``
@@ -32,7 +32,7 @@ SSL Library information
   ``--ecdh-curve`` and ``tls-groups`` options.
 
 Generating key material
------------------------
+```````````````````````
 
 --genkey args
   (Standalone) Generate a key to be used of the type keytype. if keyfile

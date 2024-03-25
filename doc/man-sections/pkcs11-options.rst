@@ -1,5 +1,5 @@
 PKCS#11 / SmartCard options
----------------------------
+```````````````````````````
 
 --pkcs11-cert-private args
   Set if access to certificate object should be performed after login.
