@@ -2007,7 +2007,8 @@ static void
 phase2_tcp_server(struct link_socket *sock, const char *remote_dynamic,
                   struct signal_info *sig_info)
 {
-    volatile int *signal_received = sig_info ? &sig_info->signal_received : NULL;
+    ASSERT(sig_info);
+    volatile int *signal_received = &sig_info->signal_received;
     switch (sock->mode)
     {
         case LS_MODE_DEFAULT:
@@ -2033,7 +2034,7 @@ phase2_tcp_server(struct link_socket *sock, const char *remote_dynamic,
                                         false);
             if (!socket_defined(sock->sd))
             {
-                register_signal(sig_info, SIGTERM, "socket-undefiled");
+                register_signal(sig_info, SIGTERM, "socket-undefined");
                 return;
             }
             tcp_connection_established(&sock->info.lsa->actual);
