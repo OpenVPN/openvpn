@@ -1,5 +1,5 @@
 TLS Mode Options
-----------------
+````````````````
 
 TLS mode is the most powerful crypto mode of OpenVPN in both security
 and flexibility. TLS mode works by establishing control and data

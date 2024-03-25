@@ -1,12 +1,12 @@
 Data channel cipher negotiation
-===============================
+-------------------------------
 
 OpenVPN 2.4 and higher have the capability to negotiate the data cipher that
 is used to encrypt data packets. This section describes the mechanism in more detail and the
 different backwards compatibility mechanism with older server and clients.
 
 OpenVPN 2.5 and later behaviour
---------------------------------
+```````````````````````````````
 When both client and server are at least running OpenVPN 2.5, that the order of
 the ciphers of the server's ``--data-ciphers`` is used to pick the data cipher.
 That means that the first cipher in that list that is also in the client's
@@ -25,7 +25,7 @@ For backwards compatibility OpenVPN 2.6 and later with ``--compat-mode 2.4.x``
 ``--cipher`` option to this list.
 
 OpenVPN 2.4 clients
--------------------
+```````````````````
 The negotiation support in OpenVPN 2.4 was the first iteration of the implementation
 and still had some quirks. Its main goal was "upgrade to AES-256-GCM when possible".
 An OpenVPN 2.4 client that is built against a crypto library that supports AES in GCM
@@ -40,7 +40,7 @@ always have the `AES-256-GCM` and `AES-128-GCM` ciphers to the ``--ncp-ciphers``
 options to avoid this behaviour.
 
 OpenVPN 3 clients
------------------
+`````````````````
 Clients based on the OpenVPN 3.x library (https://github.com/openvpn/openvpn3/)
 do not have a configurable ``--ncp-ciphers`` or ``--data-ciphers`` option. Newer
 versions by default disable legacy AES-CBC, BF-CBC, and DES-CBC ciphers.
@@ -52,7 +52,7 @@ included in the server's ``--data-ciphers`` option.
 
 
 OpenVPN 2.3 and older clients (and clients with ``--ncp-disable``)
-------------------------------------------------------------------
+``````````````````````````````````````````````````````````````````
 When a client without cipher negotiation support connects to a server the
 cipher specified with the ``--cipher`` option in the client configuration
 must be included in the ``--data-ciphers`` option of the server to allow
@@ -65,7 +65,7 @@ If the client is 2.3 or older and has been configured with the
 cipher used by the client is necessary.
 
 OpenVPN 2.4 server
-------------------
+``````````````````
 When a client indicates support for `AES-128-GCM` and `AES-256-GCM`
 (with ``IV_NCP=2``) an OpenVPN 2.4 server will send the first
 cipher of the ``--ncp-ciphers`` to the OpenVPN client regardless of what
@@ -76,7 +76,7 @@ option is required. OpenVPN 2.5+ will only announce the ``IV_NCP=2`` flag if
 those ciphers are present.
 
 OpenVPN 2.3 and older servers (and servers with ``--ncp-disable``)
-------------------------------------------------------------------
+``````````````````````````````````````````````````````````````````
 The cipher used by the server must be included in ``--data-ciphers`` to
 allow the client connecting to a server without cipher negotiation
 support.
@@ -89,7 +89,7 @@ If the server is 2.3 or older and  has been configured with the
 cipher used by the server is necessary.
 
 Blowfish in CBC mode (BF-CBC) deprecation
-------------------------------------------
+`````````````````````````````````````````
 The ``--cipher`` option defaulted to `BF-CBC` in OpenVPN 2.4 and older
 version. The default was never changed to ensure backwards compatibility.
 In OpenVPN 2.5 this behaviour has now been changed so that if the ``--cipher``

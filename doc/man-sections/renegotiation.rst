@@ -1,5 +1,5 @@
 Data Channel Renegotiation
---------------------------
+``````````````````````````
 
 When running OpenVPN in client/server mode, the data channel will use a
 separate ephemeral encryption key which is rotated at regular intervals.
