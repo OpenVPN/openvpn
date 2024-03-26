@@ -2069,7 +2069,7 @@ print_pkey_details(EVP_PKEY *pkey, char *buf, size_t buflen)
 #endif
 
 #ifndef OPENSSL_NO_EC
-    char groupname[256];
+    char groupname[64];
     if (is_ec)
     {
         size_t len;
@@ -2130,7 +2130,7 @@ static void
 print_cert_details(X509 *cert, char *buf, size_t buflen)
 {
     EVP_PKEY *pkey = X509_get_pubkey(cert);
-    char pkeybuf[128] = { 0 };
+    char pkeybuf[64] = { 0 };
     print_pkey_details(pkey, pkeybuf, sizeof(pkeybuf));
 
     char sig[128] = { 0 };

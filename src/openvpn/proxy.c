@@ -948,17 +948,21 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 }
 
                 /* send digest response */
-                openvpn_snprintf(buf, sizeof(buf), "Proxy-Authorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", qop=%s, nc=%s, cnonce=\"%s\", response=\"%s\"%s",
-                                 username,
-                                 realm,
-                                 nonce,
-                                 uri,
-                                 qop,
-                                 nonce_count,
-                                 cnonce,
-                                 response,
-                                 opaque_kv
-                                 );
+                int sret = openvpn_snprintf(buf, sizeof(buf), "Proxy-Authorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", qop=%s, nc=%s, cnonce=\"%s\", response=\"%s\"%s",
+                                            username,
+                                            realm,
+                                            nonce,
+                                            uri,
+                                            qop,
+                                            nonce_count,
+                                            cnonce,
+                                            response,
+                                            opaque_kv
+                                            );
+                if (sret >= sizeof(buf))
+                {
+                    goto error;
+                }
                 msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
                 if (!send_line_crlf(sd, buf))
                 {

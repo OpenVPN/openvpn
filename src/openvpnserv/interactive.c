@@ -33,6 +33,7 @@
 #include <sddl.h>
 #include <shellapi.h>
 #include <mstcpip.h>
+#include <inttypes.h>
 
 #include <versionhelpers.h>
 
@@ -2002,7 +2003,7 @@ RunOpenvpn(LPVOID p)
         ReturnLastError(pipe, L"malloc");
         goto out;
     }
-    openvpn_swprintf(cmdline, cmdline_size, L"openvpn %ls --msg-channel %lu",
+    openvpn_swprintf(cmdline, cmdline_size, L"openvpn %ls --msg-channel %" PRIuPTR,
                      sud.options, svc_pipe);
 
     if (!CreateEnvironmentBlock(&user_env, imp_token, FALSE))

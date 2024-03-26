@@ -109,8 +109,11 @@ socks_username_password_auth(struct socks_proxy_info *p,
             "Authentication not possible.");
         goto cleanup;
     }
-    openvpn_snprintf(to_send, sizeof(to_send), "\x01%c%s%c%s", (int) strlen(creds.username),
-                     creds.username, (int) strlen(creds.password), creds.password);
+    int sret = openvpn_snprintf(to_send, sizeof(to_send), "\x01%c%s%c%s",
+                                (int) strlen(creds.username), creds.username,
+                                (int) strlen(creds.password), creds.password);
+    ASSERT(sret <= sizeof(to_send));
+
     size = send(sd, to_send, strlen(to_send), MSG_NOSIGNAL);
 
     if (size != strlen(to_send))
