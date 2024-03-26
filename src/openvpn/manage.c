@@ -2242,7 +2242,7 @@ man_read(struct management *man)
     /*
      * read command line from socket
      */
-    unsigned char buf[256];
+    unsigned char buf[TLS_CHANNEL_BUF_SIZE];
     int len = 0;
 
 #ifdef TARGET_ANDROID
@@ -2578,7 +2578,7 @@ man_connection_init(struct management *man)
          * Allocate helper objects for command line input and
          * command output from/to the socket.
          */
-        man->connection.in = command_line_new(1024);
+        man->connection.in = command_line_new(TLS_CHANNEL_BUF_SIZE);
         man->connection.out = buffer_list_new();
 
         /*
