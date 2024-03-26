@@ -718,8 +718,8 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
             const char *hex_fp = format_hex_ex(BPTR(&cert_fp), BLEN(&cert_fp),
                                                0, 1, ":", &gc);
             msg(D_TLS_ERRORS, "TLS Error: --tls-verify/--peer-fingerprint"
-                "certificate hash verification failed. (got "
-                "fingerprint: %s", hex_fp);
+                "certificate hash verification failed. (got certificate "
+                "fingerprint: %s)", hex_fp);
             goto cleanup;
         }
     }
