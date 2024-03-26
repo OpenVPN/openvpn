@@ -3632,7 +3632,8 @@ do_option_warnings(struct context *c)
         && !o->tls_verify
         && o->verify_x509_type == VERIFY_X509_NONE
         && !(o->ns_cert_type & NS_CERT_CHECK_SERVER)
-        && !o->remote_cert_eku)
+        && !o->remote_cert_eku
+        && !(o->verify_hash_depth == 0 && o->verify_hash))
     {
         msg(M_WARN, "WARNING: No server certificate verification method has been enabled.  See http://openvpn.net/howto.html#mitm for more info.");
     }
