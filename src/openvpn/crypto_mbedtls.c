@@ -566,7 +566,7 @@ cipher_ctx_free(mbedtls_cipher_context_t *ctx)
 
 void
 cipher_ctx_init(mbedtls_cipher_context_t *ctx, const uint8_t *key,
-                const char *ciphername, const mbedtls_operation_t operation)
+                const char *ciphername, crypto_operation_t enc)
 {
     ASSERT(NULL != ciphername && NULL != ctx);
     CLEAR(*ctx);
@@ -580,7 +580,7 @@ cipher_ctx_init(mbedtls_cipher_context_t *ctx, const uint8_t *key,
         msg(M_FATAL, "mbed TLS cipher context init #1");
     }
 
-    if (!mbed_ok(mbedtls_cipher_setkey(ctx, key, (int)key_bitlen, operation)))
+    if (!mbed_ok(mbedtls_cipher_setkey(ctx, key, (int)key_bitlen, enc)))
     {
         msg(M_FATAL, "mbed TLS cipher set key");
     }

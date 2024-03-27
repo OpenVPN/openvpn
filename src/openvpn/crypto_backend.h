@@ -347,10 +347,10 @@ void cipher_ctx_free(cipher_ctx_t *ctx);
  * @param key           Buffer containing the key to use
  * @param ciphername    Ciphername of the cipher to use
  * @param enc           Whether to encrypt or decrypt (either
- *                      \c MBEDTLS_OP_ENCRYPT or \c MBEDTLS_OP_DECRYPT).
+ *                      \c OPENVPN_OP_ENCRYPT or \c OPENVPN_OP_DECRYPT).
  */
 void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key,
-                     const char *cipername, int enc);
+                     const char *cipername, crypto_operation_t enc);
 
 /**
  * Returns the size of the IV used by the cipher, in bytes, or 0 if no IV is

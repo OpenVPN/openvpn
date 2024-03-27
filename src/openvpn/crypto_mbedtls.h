@@ -63,6 +63,8 @@ typedef void provider_t;
 /** Cipher is in GCM mode */
 #define OPENVPN_MODE_GCM        MBEDTLS_MODE_GCM
 
+typedef mbedtls_operation_t crypto_operation_t;
+
 /** Cipher should encrypt */
 #define OPENVPN_OP_ENCRYPT      MBEDTLS_ENCRYPT
 

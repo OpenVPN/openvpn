@@ -863,7 +863,7 @@ cipher_ctx_free(EVP_CIPHER_CTX *ctx)
 
 void
 cipher_ctx_init(EVP_CIPHER_CTX *ctx, const uint8_t *key,
-                const char *ciphername, int enc)
+                const char *ciphername, crypto_operation_t enc)
 {
     ASSERT(NULL != ciphername && NULL != ctx);
     evp_cipher_type *kt = cipher_get(ciphername);
