@@ -85,6 +85,8 @@ typedef EVP_MD evp_md_type;
 /** Cipher is in GCM mode */
 #define OPENVPN_MODE_GCM        EVP_CIPH_GCM_MODE
 
+typedef int crypto_operation_t;
+
 /** Cipher should encrypt */
 #define OPENVPN_OP_ENCRYPT      1
 
