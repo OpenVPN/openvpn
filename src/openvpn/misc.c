@@ -491,19 +491,15 @@ purge_user_pass(struct user_pass *up, const bool force)
 }
 
 void
-set_auth_token(struct user_pass *up, struct user_pass *tk, const char *token)
+set_auth_token(struct user_pass *tk, const char *token)
 {
-
     if (strlen(token))
     {
         strncpynt(tk->password, token, USER_PASS_LEN);
         tk->token_defined = true;
 
         /*
-         * --auth-token has no username, so it needs the username
-         * either already set or copied from up, or later set by
-         * --auth-token-user
-         * If already set, tk is fully defined.
+         * If username already set, tk is fully defined.
          */
         if (strlen(tk->username))
         {

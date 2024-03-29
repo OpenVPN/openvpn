@@ -135,26 +135,18 @@ get_user_pass(struct user_pass *up,
     return get_user_pass_cr(up, auth_file, prefix, flags, NULL);
 }
 
-void fail_user_pass(const char *prefix,
-                    const unsigned int flags,
-                    const char *reason);
-
 void purge_user_pass(struct user_pass *up, const bool force);
 
 /**
- * Sets the auth-token to token. If a username is available from
- * either up or already present in tk that will be used as default
- * username for the token. The method will also purge up if
+ * Sets the auth-token to token. The method will also purge up if
  * the auth-nocache option is active.
  *
- * @param up        (non Auth-token) Username/password
  * @param tk        auth-token userpass to set
  * @param token     token to use as password for the auth-token
  *
  * @note    all parameters to this function must not be null.
  */
-void set_auth_token(struct user_pass *up, struct user_pass *tk,
-                    const char *token);
+void set_auth_token(struct user_pass *tk, const char *token);
 
 /**
  * Sets the auth-token username by base64 decoding the passed
