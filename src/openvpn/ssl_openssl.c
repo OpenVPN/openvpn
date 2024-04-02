@@ -2166,7 +2166,8 @@ print_server_tempkey(SSL *ssl, char *buf, size_t buflen)
     EVP_PKEY_free(pkey);
 }
 
-#if !defined(LIBRESSL_VERSION_NUMBER)  && OPENSSL_VERSION_NUMBER >= 0x1010000fL
+#if (!defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x1010000fL) \
+    || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER >= 0x3090000fL)
 /**
  * Translate an OpenSSL NID into a more human readable name
  * @param nid
