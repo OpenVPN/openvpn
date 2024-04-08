@@ -363,6 +363,13 @@ void key_state_ssl_init(struct key_state_ssl *ks_ssl,
                         const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_session *session);
 
 /**
+ * Sets a TLS session to be shutdown state, so the TLS library will generate
+ * a shutdown alert.
+ */
+void
+key_state_ssl_shutdown(struct key_state_ssl *ks_ssl);
+
+/**
  * Free the SSL channel part of the given key state.
  *
  * @param ks_ssl        The SSL channel's state info to free

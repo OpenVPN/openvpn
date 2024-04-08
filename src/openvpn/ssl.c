@@ -690,6 +690,9 @@ state_name(int state)
         case S_ERROR:
             return "S_ERROR";
 
+        case S_ERROR_PRE:
+            return "S_ERROR_PRE";
+
         case S_GENERATED_KEYS:
             return "S_GENERATED_KEYS";
 
@@ -2683,6 +2686,25 @@ write_outgoing_tls_ciphertext(struct tls_session *session, bool *continue_tls_pr
 }
 
 static bool
+check_outgoing_ciphertext(struct key_state *ks, struct tls_session *session,
+                          bool *continue_tls_process)
+{
+    /* Outgoing Ciphertext to reliable buffer */
+    if (ks->state >= S_START)
+    {
+        struct buffer *buf = reliable_get_buf_output_sequenced(ks->send_reliable);
+        if (buf)
+        {
+            if (!write_outgoing_tls_ciphertext(session, continue_tls_process))
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
 tls_process_state(struct tls_multi *multi,
                   struct tls_session *session,
                   struct buffer *to_link,
@@ -2706,7 +2728,7 @@ tls_process_state(struct tls_multi *multi,
     }
 
     /* Are we timed out on receive? */
-    if (now >= ks->must_negotiate && ks->state < S_ACTIVE)
+    if (now >= ks->must_negotiate && ks->state >= S_UNDEF && ks->state < S_ACTIVE)
     {
         msg(D_TLS_ERRORS,
             "TLS Error: TLS key negotiation failed to occur within %d seconds (check your network connectivity)",
@@ -2757,6 +2779,16 @@ tls_process_state(struct tls_multi *multi,
          * buffer and accessing the buffer that is now in to_link after it being
          * freed for a potential error, we shortcircuit exiting of the outer
          * process here. */
+        return false;
+    }
+
+    if (ks->state == S_ERROR_PRE)
+    {
+        /* When we end up here, we had one last chance to send an outstanding
+         * packet that contained an alert. We do not ensure that this packet
+         * has been successfully delivered  (ie wait for the ACK etc)
+         * but rather stop processing now */
+        ks->state = S_ERROR;
         return false;
     }
 
@@ -2840,29 +2872,31 @@ tls_process_state(struct tls_multi *multi,
             dmsg(D_TLS_DEBUG, "Outgoing Plaintext -> TLS");
         }
     }
-
-    /* Outgoing Ciphertext to reliable buffer */
-    if (ks->state >= S_START)
+    if (!check_outgoing_ciphertext(ks, session, &continue_tls_process))
     {
-        buf = reliable_get_buf_output_sequenced(ks->send_reliable);
-        if (buf)
-        {
-            if (!write_outgoing_tls_ciphertext(session, &continue_tls_process))
-            {
-                goto error;
-            }
-        }
+        goto error;
     }
 
     return continue_tls_process;
 error:
     tls_clear_error();
-    ks->state = S_ERROR;
+
+    /* Shut down the TLS session but do a last read from the TLS
+     * object to be able to read potential TLS alerts */
+    key_state_ssl_shutdown(&ks->ks_ssl);
+    check_outgoing_ciphertext(ks, session, &continue_tls_process);
+
+    /* Put ourselves in the pre error state that will only send out the
+     * control channel packets but nothing else */
+    ks->state = S_ERROR_PRE;
+
     msg(D_TLS_ERRORS, "TLS Error: TLS handshake failed");
     INCR_ERROR;
-    return false;
-
+    return true;
 }
+
+
+
 /*
  * This is the primary routine for processing TLS stuff inside the
  * the main event loop.  When this routine exits
@@ -2970,7 +3004,7 @@ tls_process(struct tls_multi *multi,
     }
 
     /* When should we wake up again? */
-    if (ks->state >= S_INITIAL)
+    if (ks->state >= S_INITIAL || ks->state == S_ERROR_PRE)
     {
         compute_earliest_wakeup(wakeup,
                                 reliable_send_timeout(ks->send_reliable));
@@ -3123,7 +3157,7 @@ tls_multi_process(struct tls_multi *multi,
              session_id_print(&ks->session_id_remote, &gc),
              print_link_socket_actual(&ks->remote_addr, &gc));
 
-        if (ks->state >= S_INITIAL && link_socket_actual_defined(&ks->remote_addr))
+        if ((ks->state >= S_INITIAL || ks->state == S_ERROR_PRE) &&  link_socket_actual_defined(&ks->remote_addr))
         {
             struct link_socket_actual *tla = NULL;
 
@@ -3201,7 +3235,8 @@ tls_multi_process(struct tls_multi *multi,
             {
                 msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
                 ks->authenticated = KS_AUTH_FALSE;
-                ks->state = S_ERROR;
+                key_state_ssl_shutdown(&ks->ks_ssl);
+                ks->state = S_ERROR_PRE;
             }
 
             /* Update auth token on the client if needed on renegotiation

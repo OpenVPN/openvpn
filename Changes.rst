@@ -1,5 +1,14 @@
 Overview of changes in 2.7
 ==========================
+New features
+------------
+TLS alerts
+    OpenVPN 2.7 will send out TLS alerts to peers informing them if the TLS
+    session shuts down or when the TLS implementation informs the peer about
+    an error in the TLS session (e.g. mismatching TLS versions). This improves
+    the user experience as the client shows an error instead of running into
+    a timeout when the server just stops responding completely.
+
 Deprecated features
 -------------------
 ``secret`` support has been removed by default.
