@@ -1372,6 +1372,7 @@ ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret,
 err:
     ret = false;
 out:
+    EVP_KDF_CTX_free(kctx);
     EVP_KDF_free(kdf);
 
     return ret;
