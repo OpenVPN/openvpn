@@ -796,7 +796,7 @@ init_options(struct options *o, const bool init_gc)
         o->gc_owned = true;
     }
     o->mode = MODE_POINT_TO_POINT;
-    o->topology = TOP_SUBNET;
+    o->topology = TOP_UNDEF;
     o->ce.proto = PROTO_UDP;
     o->ce.af = AF_UNSPEC;
     o->ce.bind_ipv6_only = false;
@@ -3478,6 +3478,7 @@ options_postprocess_verify(const struct options *o)
     }
 }
 
+
 /**
  * Checks for availibility of Chacha20-Poly1305 and sets
  * the ncp_cipher to either AES-256-GCM:AES-128-GCM or
@@ -3680,6 +3681,8 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
      * sequences of options.
      */
     helper_client_server(o);
+    /* must be called after helpers that might set --mode */
+    helper_setdefault_topology(o);
     helper_keepalive(o);
     helper_tcp_nodelay(o);
 

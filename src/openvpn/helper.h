@@ -30,6 +30,8 @@
 
 #include "options.h"
 
+void helper_setdefault_topology(struct options *o);
+
 void helper_keepalive(struct options *o);
 
 void helper_client_server(struct options *o);

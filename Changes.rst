@@ -23,11 +23,12 @@ NTLMv1 authentication support for HTTP proxies has been removed.
 ``persist-key`` option has been enabled by default.
     All the keys will be kept in memory across restart.
 
-Default for ``--topology`` changed to ``subnet``
-    Previous releases used ``net30`` as default. This only affects
-    configs with ``--dev tun`` and only IPv4. Note that this
-    changes the semantics of ``--ifconfig``, so if you have manual
-    settings for that in your config but not set ``--topology``
+Default for ``--topology`` changed to ``subnet`` for ``--mode server``
+    Previous releases always used ``net30`` as default. This only affects
+    configs with ``--mode server`` or ``--server`` (the latter implies the
+    former), and ``--dev tun``, and only if IPv4 is enabled.
+    Note that this changes the semantics of ``--ifconfig``, so if you have
+    manual settings for that in your config but not set ``--topology``
     your config might fail to parse with the new version. Just adding
     ``--topology net30`` to the config should fix the problem.
     By default ``--topology`` is pushed from server to client.
