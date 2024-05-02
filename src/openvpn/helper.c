@@ -454,7 +454,7 @@ helper_client_server(struct options *o)
      * if !nogw:
      *   push "route-gateway dhcp"
      */
-    else if (o->server_bridge_defined | o->server_bridge_proxy_dhcp)
+    else if (o->server_bridge_defined || o->server_bridge_proxy_dhcp)
     {
         if (o->client)
         {
