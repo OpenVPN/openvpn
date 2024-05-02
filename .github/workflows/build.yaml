@@ -202,8 +202,16 @@ jobs:
       matrix:
         ssllib: [ openssl11, openssl3, libressl]
         build: [ normal, asan ]
-        os: [macos-11, macos-12, macos-13]
+        os: [macos-12, macos-13, macos-14]
         include:
+           # macos14 and newer runners use ARM CPUs and homebrew uses /opt/homebrew/
+           # on ARM instead of /usr/local/
+          - os: macos-12
+            homebrew: /usr/local/opt
+          - os: macos-13
+            homebrew: /usr/local/opt
+          - os: macos-14
+            homebrew: /opt/homebrew/opt
           - build: asan
             cflags: "-fsanitize=address,undefined -fno-sanitize-recover=all  -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
             ldflags: -fsanitize=address,undefined -fno-sanitize-recover=all
@@ -228,8 +236,10 @@ jobs:
     env:
       CFLAGS: ${{ matrix.cflags }}
       LDFLAGS: ${{ matrix.ldflags }}
-      OPENSSL_CFLAGS: "-I/usr/local/opt/${{matrix.libdir}}/include"
-      OPENSSL_LIBS: "-L/usr/local/opt/${{matrix.libdir}}/lib -lcrypto -lssl"
+      OPENSSL_CFLAGS: "-I${{matrix.homebrew}}/${{matrix.libdir}}/include"
+      OPENSSL_LIBS: "-L${{matrix.homebrew}}/${{matrix.libdir}}/lib -lcrypto -lssl"
+      LZO_CFLAGS: "-I${{matrix.homebrew}}/lzo/include"
+      LZO_LIBS: "-L${{matrix.homebrew}}/lzo/lib -llzo2"
       UBSAN_OPTIONS: print_stacktrace=1
     steps:
       - name: Install dependencies
