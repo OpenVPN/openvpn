@@ -66,8 +66,8 @@ openvpn_run_script(const struct argv *a, const struct env_set *es,
 {
     char msg[256];
 
-    openvpn_snprintf(msg, sizeof(msg),
-                     "WARNING: Failed running command (%s)", hook);
+    snprintf(msg, sizeof(msg),
+             "WARNING: Failed running command (%s)", hook);
     return openvpn_execve_check(a, es, flags | S_SCRIPT, msg);
 }
 

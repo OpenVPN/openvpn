@@ -1621,11 +1621,11 @@ add_route(struct route_ipv4 *r,
 
     if (rgi)
     {
-        openvpn_snprintf(out, sizeof(out), "%s %s %s dev %s", network, netmask, gateway, rgi->iface);
+        snprintf(out, sizeof(out), "%s %s %s dev %s", network, netmask, gateway, rgi->iface);
     }
     else
     {
-        openvpn_snprintf(out, sizeof(out), "%s %s %s", network, netmask, gateway);
+        snprintf(out, sizeof(out), "%s %s %s", network, netmask, gateway);
     }
     bool ret = management_android_control(management, "ROUTE", out);
     status = ret ? RTA_SUCCESS : RTA_ERROR;
@@ -2000,7 +2000,7 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
 #elif defined (TARGET_ANDROID)
     char out[64];
 
-    openvpn_snprintf(out, sizeof(out), "%s/%d %s", network, r6->netbits, device);
+    snprintf(out, sizeof(out), "%s/%d %s", network, r6->netbits, device);
 
     status = management_android_control(management, "ROUTE6", out);
 

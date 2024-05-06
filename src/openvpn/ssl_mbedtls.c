@@ -1531,16 +1531,16 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
     char s2[256];
 
     s1[0] = s2[0] = 0;
-    openvpn_snprintf(s1, sizeof(s1), "%s %s, cipher %s",
-                     prefix,
-                     mbedtls_ssl_get_version(ks_ssl->ctx),
-                     mbedtls_ssl_get_ciphersuite(ks_ssl->ctx));
+    snprintf(s1, sizeof(s1), "%s %s, cipher %s",
+             prefix,
+             mbedtls_ssl_get_version(ks_ssl->ctx),
+             mbedtls_ssl_get_ciphersuite(ks_ssl->ctx));
 
     cert = mbedtls_ssl_get_peer_cert(ks_ssl->ctx);
     if (cert != NULL)
     {
-        openvpn_snprintf(s2, sizeof(s2), ", %u bit key",
-                         (unsigned int) mbedtls_pk_get_bitlen(&cert->pk));
+        snprintf(s2, sizeof(s2), ", %u bit key",
+                 (unsigned int) mbedtls_pk_get_bitlen(&cert->pk));
     }
 
     msg(D_HANDSHAKE, "%s%s", s1, s2);

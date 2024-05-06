@@ -27,36 +27,6 @@
 LPCTSTR service_instance = TEXT("");
 static wchar_t win_sys_path[MAX_PATH];
 
-/*
- * These are necessary due to certain buggy implementations of (v)snprintf,
- * that don't guarantee null termination for size > 0.
- */
-BOOL
-openvpn_vswprintf(LPTSTR str, size_t size, LPCTSTR format, va_list arglist)
-{
-    int len = -1;
-    if (size > 0)
-    {
-        len = vswprintf_s(str, size, format, arglist);
-        str[size - 1] = 0;
-    }
-    return (len >= 0 && (size_t)len < size);
-}
-
-BOOL
-openvpn_swprintf(LPTSTR str, size_t size, LPCTSTR format, ...)
-{
-    va_list arglist;
-    BOOL res = FALSE;
-    if (size > 0)
-    {
-        va_start(arglist, format);
-        res = openvpn_vswprintf(str, size, format, arglist);
-        va_end(arglist);
-    }
-    return res;
-}
-
 static DWORD
 GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size, LPCTSTR default_value)
 {
@@ -66,7 +36,7 @@ GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size, LPCTSTR default_v
     if (status == ERROR_FILE_NOT_FOUND && default_value)
     {
         size_t len = size/sizeof(data[0]);
-        if (openvpn_swprintf(data, len, default_value))
+        if (swprintf(data, len, default_value))
         {
             status = ERROR_SUCCESS;
         }
@@ -93,7 +63,7 @@ GetOpenvpnSettings(settings_t *s)
     TCHAR install_path[MAX_PATH];
     TCHAR default_value[MAX_PATH];
 
-    openvpn_swprintf(reg_path, _countof(reg_path), TEXT("SOFTWARE\\" PACKAGE_NAME "%ls"), service_instance);
+    swprintf(reg_path, _countof(reg_path), TEXT("SOFTWARE\\" PACKAGE_NAME "%ls"), service_instance);
 
     LONG status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path, 0, KEY_READ, &key);
     if (status != ERROR_SUCCESS)
@@ -110,15 +80,15 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
 
-    openvpn_swprintf(default_value, _countof(default_value), TEXT("%ls\\bin\\openvpn.exe"),
-                     install_path);
+    swprintf(default_value, _countof(default_value), TEXT("%ls\\bin\\openvpn.exe"),
+             install_path);
     error = GetRegString(key, TEXT("exe_path"), s->exe_path, sizeof(s->exe_path), default_value);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    openvpn_swprintf(default_value, _countof(default_value), TEXT("%ls\\config"), install_path);
+    swprintf(default_value, _countof(default_value), TEXT("%ls\\config"), install_path);
     error = GetRegString(key, TEXT("config_dir"), s->config_dir, sizeof(s->config_dir),
                          default_value);
     if (error != ERROR_SUCCESS)
@@ -133,7 +103,7 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
 
-    openvpn_swprintf(default_value, _countof(default_value), TEXT("%ls\\log"), install_path);
+    swprintf(default_value, _countof(default_value), TEXT("%ls\\log"), install_path);
     error = GetRegString(key, TEXT("log_dir"), s->log_dir, sizeof(s->log_dir), default_value);
     if (error != ERROR_SUCCESS)
     {
@@ -229,7 +199,7 @@ GetLastErrorText()
     else
     {
         tmp[wcslen(tmp) - 2] = TEXT('\0'); /* remove CR/LF characters */
-        openvpn_swprintf(buf, _countof(buf), TEXT("%ls (0x%x)"), tmp, error);
+        swprintf(buf, _countof(buf), TEXT("%ls (0x%x)"), tmp, error);
     }
 
     if (tmp)
@@ -259,12 +229,12 @@ MsgToEventLog(DWORD flags, LPCTSTR format, ...)
     hEventSource = RegisterEventSource(NULL, APPNAME);
     if (hEventSource != NULL)
     {
-        openvpn_swprintf(msg[0], _countof(msg[0]),
-                         TEXT("%ls%ls%ls: %ls"), APPNAME, service_instance,
-                         (flags & MSG_FLAGS_ERROR) ? TEXT(" error") : TEXT(""), err_msg);
+        swprintf(msg[0], _countof(msg[0]),
+                 TEXT("%ls%ls%ls: %ls"), APPNAME, service_instance,
+                 (flags & MSG_FLAGS_ERROR) ? TEXT(" error") : TEXT(""), err_msg);
 
         va_start(arglist, format);
-        openvpn_vswprintf(msg[1], _countof(msg[1]), format, arglist);
+        vswprintf(msg[1], _countof(msg[1]), format, arglist);
         va_end(arglist);
 
         const TCHAR *mesg[] = { msg[0], msg[1] };

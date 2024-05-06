@@ -885,8 +885,8 @@ env_block(const struct env_set *es)
     char force_path[256];
     char *sysroot = get_win_sys_path();
 
-    if (!openvpn_snprintf(force_path, sizeof(force_path), "PATH=%s\\System32;%s;%s\\System32\\Wbem",
-                          sysroot, sysroot, sysroot))
+    if (!snprintf(force_path, sizeof(force_path), "PATH=%s\\System32;%s;%s\\System32\\Wbem",
+                  sysroot, sysroot, sysroot))
     {
         msg(M_WARN, "env_block: default path truncated to %s", force_path);
     }
@@ -1483,26 +1483,11 @@ send_msg_iservice(HANDLE pipe, const void *data, size_t size,
 }
 
 bool
-openvpn_swprintf(wchar_t *const str, const size_t size, const wchar_t *const format, ...)
-{
-    va_list arglist;
-    int len = -1;
-    if (size > 0)
-    {
-        va_start(arglist, format);
-        len = vswprintf(str, size, format, arglist);
-        va_end(arglist);
-        str[size - 1] = L'\0';
-    }
-    return (len >= 0 && len < size);
-}
-
-bool
 get_openvpn_reg_value(const WCHAR *key, WCHAR *value, DWORD size)
 {
     WCHAR reg_path[256];
     HKEY hkey;
-    openvpn_swprintf(reg_path, _countof(reg_path), L"SOFTWARE\\" PACKAGE_NAME);
+    swprintf(reg_path, _countof(reg_path), L"SOFTWARE\\" PACKAGE_NAME);
 
     LONG status = RegOpenKeyExW(HKEY_LOCAL_MACHINE, reg_path, 0, KEY_READ, &hkey);
     if (status != ERROR_SUCCESS)
@@ -1528,7 +1513,7 @@ set_openssl_env_vars()
         /* if we cannot find installation path from the registry,
          * use Windows directory as a fallback
          */
-        openvpn_swprintf(install_path, _countof(install_path), L"%ls", ssl_fallback_dir);
+        swprintf(install_path, _countof(install_path), L"%ls", ssl_fallback_dir);
     }
 
     if ((install_path[wcslen(install_path) - 1]) == L'\\')
@@ -1553,7 +1538,7 @@ set_openssl_env_vars()
         if (size == 0)
         {
             WCHAR val[MAX_PATH] = {0};
-            openvpn_swprintf(val, _countof(val), L"%ls\\ssl\\%ls", install_path, ossl_env[i].value);
+            swprintf(val, _countof(val), L"%ls\\ssl\\%ls", install_path, ossl_env[i].value);
             _wputenv_s(ossl_env[i].name, val);
         }
     }

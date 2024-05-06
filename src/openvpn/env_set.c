@@ -259,7 +259,7 @@ void
 setenv_counter(struct env_set *es, const char *name, counter_type value)
 {
     char buf[64];
-    openvpn_snprintf(buf, sizeof(buf), counter_format, value);
+    snprintf(buf, sizeof(buf), counter_format, value);
     setenv_str(es, name, buf);
 }
 
@@ -267,7 +267,7 @@ void
 setenv_int(struct env_set *es, const char *name, int value)
 {
     char buf[64];
-    openvpn_snprintf(buf, sizeof(buf), "%d", value);
+    snprintf(buf, sizeof(buf), "%d", value);
     setenv_str(es, name, buf);
 }
 
@@ -275,7 +275,7 @@ void
 setenv_long_long(struct env_set *es, const char *name, long long value)
 {
     char buf[64];
-    openvpn_snprintf(buf, sizeof(buf), "%" PRIi64, (int64_t)value);
+    snprintf(buf, sizeof(buf), "%" PRIi64, (int64_t)value);
     setenv_str(es, name, buf);
 }
 
@@ -310,7 +310,7 @@ setenv_str_incr(struct env_set *es, const char *name, const char *value)
     strcpy(tmpname, name);
     while (NULL != env_set_get(es, tmpname) && counter < 1000)
     {
-        ASSERT(openvpn_snprintf(tmpname, tmpname_len, "%s_%u", name, counter));
+        ASSERT(snprintf(tmpname, tmpname_len, "%s_%u", name, counter));
         counter++;
     }
     if (counter < 1000)

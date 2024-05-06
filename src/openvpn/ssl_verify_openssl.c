@@ -279,7 +279,7 @@ backend_x509_get_username(char *common_name, int cn_len,
             gc_free(&gc);
             return FAILURE;
         }
-        openvpn_snprintf(common_name, cn_len, "0x%s", serial);
+        snprintf(common_name, cn_len, "0x%s", serial);
         gc_free(&gc);
     }
     else
@@ -454,7 +454,7 @@ do_setenv_x509(struct env_set *es, const char *name, char *value, int depth)
     name_expand_size = 64 + strlen(name);
     name_expand = (char *) malloc(name_expand_size);
     check_malloc_return(name_expand);
-    openvpn_snprintf(name_expand, name_expand_size, "X509_%d_%s", depth, name);
+    snprintf(name_expand, name_expand_size, "X509_%d_%s", depth, name);
     setenv_str(es, name_expand, value);
     free(name_expand);
 }
@@ -597,8 +597,8 @@ x509_setenv(struct env_set *es, int cert_depth, openvpn_x509_cert_t *peer_cert)
         name_expand_size = 64 + strlen(objbuf);
         name_expand = (char *) malloc(name_expand_size);
         check_malloc_return(name_expand);
-        openvpn_snprintf(name_expand, name_expand_size, "X509_%d_%s", cert_depth,
-                         objbuf);
+        snprintf(name_expand, name_expand_size, "X509_%d_%s", cert_depth,
+                 objbuf);
         string_mod(name_expand, CC_PRINT, CC_CRLF, '_');
         string_mod((char *)buf, CC_PRINT, CC_CRLF, '_');
         setenv_str_incr(es, name_expand, (char *)buf);

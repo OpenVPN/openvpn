@@ -421,12 +421,12 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
     }
 
     /* export subject name string as environmental variable */
-    openvpn_snprintf(envname, sizeof(envname), "tls_id_%d", cert_depth);
+    snprintf(envname, sizeof(envname), "tls_id_%d", cert_depth);
     setenv_str(es, envname, subject);
 
 #if 0
     /* export common name string as environmental variable */
-    openvpn_snprintf(envname, sizeof(envname), "tls_common_name_%d", cert_depth);
+    snprintf(envname, sizeof(envname), "tls_common_name_%d", cert_depth);
     setenv_str(es, envname, common_name);
 #endif
 
@@ -435,24 +435,24 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
         struct buffer sha1 = x509_get_sha1_fingerprint(peer_cert, &gc);
         struct buffer sha256 = x509_get_sha256_fingerprint(peer_cert, &gc);
 
-        openvpn_snprintf(envname, sizeof(envname), "tls_digest_%d", cert_depth);
+        snprintf(envname, sizeof(envname), "tls_digest_%d", cert_depth);
         setenv_str(es, envname,
                    format_hex_ex(BPTR(&sha1), BLEN(&sha1), 0, 1, ":", &gc));
 
-        openvpn_snprintf(envname, sizeof(envname), "tls_digest_sha256_%d",
-                         cert_depth);
+        snprintf(envname, sizeof(envname), "tls_digest_sha256_%d",
+                 cert_depth);
         setenv_str(es, envname,
                    format_hex_ex(BPTR(&sha256), BLEN(&sha256), 0, 1, ":", &gc));
     }
 
     /* export serial number as environmental variable */
     serial = backend_x509_get_serial(peer_cert, &gc);
-    openvpn_snprintf(envname, sizeof(envname), "tls_serial_%d", cert_depth);
+    snprintf(envname, sizeof(envname), "tls_serial_%d", cert_depth);
     setenv_str(es, envname, serial);
 
     /* export serial number in hex as environmental variable */
     serial = backend_x509_get_serial_hex(peer_cert, &gc);
-    openvpn_snprintf(envname, sizeof(envname), "tls_serial_hex_%d", cert_depth);
+    snprintf(envname, sizeof(envname), "tls_serial_hex_%d", cert_depth);
     setenv_str(es, envname, serial);
 
     gc_free(&gc);
@@ -569,7 +569,7 @@ verify_check_crl_dir(const char *crl_dir, openvpn_x509_cert_t *cert,
         goto cleanup;
     }
 
-    if (!openvpn_snprintf(fn, sizeof(fn), "%s%c%s", crl_dir, PATH_SEPARATOR, serial))
+    if (!snprintf(fn, sizeof(fn), "%s%c%s", crl_dir, PATH_SEPARATOR, serial))
     {
         msg(D_HANDSHAKE, "VERIFY CRL: filename overflow");
         goto cleanup;
@@ -938,9 +938,9 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads,
             if (!check_auth_pending_method(multi->peer_info, pending_method))
             {
                 char buf[128];
-                openvpn_snprintf(buf, sizeof(buf),
-                                 "Authentication failed, required pending auth "
-                                 "method '%s' not supported", pending_method);
+                snprintf(buf, sizeof(buf),
+                         "Authentication failed, required pending auth "
+                         "method '%s' not supported", pending_method);
                 auth_set_client_reason(multi, buf);
                 msg(M_INFO, "Client does not supported auth pending method "
                     "'%s'", pending_method);

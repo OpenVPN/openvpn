@@ -354,6 +354,56 @@ test_character_class(void **state)
     assert_string_equal(buf, "There is a .'nice.' \"1234\" [.] year old .tree!");
 }
 
+static void
+test_snprintf(void **state)
+{
+    /* we used to have a custom openvpn_snprintf function because some
+     * OS (the comment did not specify which) did not always put the
+     * null byte there. So we unit test this to be sure.
+     *
+     * This probably refers to the MSVC behaviour, see also
+     * https://stackoverflow.com/questions/7706936/is-snprintf-always-null-terminating
+     */
+
+    /* Instead of trying to trick the compiler here, disable the warnings
+     * for this unit test. We know that the results will be truncated
+     * and we want to test that */
+#if defined(__GNUC__)
+/* some clang version do not understand -Wformat-truncation, so ignore the
+ * warning to avoid warnings/errors (-Werror) about unknown pragma/option */
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
+
+    char buf[10] = { 'a' };
+    int ret = 0;
+
+    ret = snprintf(buf, sizeof(buf), "0123456789abcde");
+    assert_int_equal(ret, 15);
+    assert_int_equal(buf[9], '\0');
+
+    memset(buf, 'b', sizeof(buf));
+    ret = snprintf(buf, sizeof(buf), "- %d - %d -", 77, 88);
+    assert_int_equal(ret, 11);
+    assert_int_equal(buf[9], '\0');
+
+    memset(buf, 'c', sizeof(buf));
+    ret = snprintf(buf, sizeof(buf), "- %8.2f", 77.8899);
+    assert_int_equal(ret, 10);
+    assert_int_equal(buf[9], '\0');
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+#endif
+}
+
 int
 main(void)
 {
@@ -387,6 +437,7 @@ main(void)
         cmocka_unit_test(test_buffer_free_gc_two),
         cmocka_unit_test(test_buffer_gc_realloc),
         cmocka_unit_test(test_character_class),
+        cmocka_unit_test(test_snprintf)
     };
 
     return cmocka_run_group_tests_name("buffer", tests, NULL, NULL);

@@ -260,7 +260,7 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
     {
         char full[PATH_MAX];
 
-        openvpn_snprintf(full, sizeof(full), "%s/%s", PLUGIN_LIBDIR, p->so_pathname);
+        snprintf(full, sizeof(full), "%s/%s", PLUGIN_LIBDIR, p->so_pathname);
         p->handle = dlopen(full, RTLD_NOW);
     }
     else
@@ -409,7 +409,7 @@ plugin_vlog(openvpn_plugin_log_flags_t flags, const char *name, const char *form
 
         gc_init(&gc);
         msg_fmt = gc_malloc(ERR_BUF_SIZE, false, &gc);
-        openvpn_snprintf(msg_fmt, ERR_BUF_SIZE, "PLUGIN %s: %s", name, format);
+        snprintf(msg_fmt, ERR_BUF_SIZE, "PLUGIN %s: %s", name, format);
         x_msg_va(msg_flags, msg_fmt, arglist);
 
         gc_free(&gc);

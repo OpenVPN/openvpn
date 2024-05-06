@@ -359,7 +359,7 @@ management_callback_remote_entry_get(void *arg, unsigned int index, char **remot
         char *out = malloc(len);
         check_malloc_return(out);
 
-        openvpn_snprintf(out, len, "%s,%s,%s,%s", ce->remote, ce->remote_port, proto, status);
+        snprintf(out, len, "%s,%s,%s,%s", ce->remote, ce->remote_port, proto, status);
         *remote = out;
     }
     else

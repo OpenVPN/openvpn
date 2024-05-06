@@ -201,7 +201,7 @@ _pkcs11_openvpn_token_prompt(
     CLEAR(token_resp);
     token_resp.defined = false;
     token_resp.nocache = true;
-    openvpn_snprintf(
+    snprintf(
         token_resp.username,
         sizeof(token_resp.username),
         "Please insert %s token",
@@ -245,7 +245,7 @@ _pkcs11_openvpn_pin_prompt(
 
     ASSERT(token!=NULL);
 
-    openvpn_snprintf(prompt, sizeof(prompt), "%s token", token->label);
+    snprintf(prompt, sizeof(prompt), "%s token", token->label);
 
     token_pass.defined = false;
     token_pass.nocache = true;
@@ -719,7 +719,7 @@ tls_ctx_use_pkcs11(
 
         id_resp.defined = false;
         id_resp.nocache = true;
-        openvpn_snprintf(
+        snprintf(
             id_resp.username,
             sizeof(id_resp.username),
             "Please specify PKCS#11 id to use"

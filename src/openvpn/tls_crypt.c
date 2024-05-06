@@ -574,8 +574,8 @@ tls_crypt_v2_verify_metadata(const struct tls_wrap_ctx *ctx,
     }
 
     char metadata_type_str[4] = { 0 }; /* Max value: 255 */
-    openvpn_snprintf(metadata_type_str, sizeof(metadata_type_str),
-                     "%i", (uint8_t) metadata_type);
+    snprintf(metadata_type_str, sizeof(metadata_type_str),
+             "%i", (uint8_t) metadata_type);
     struct env_set *es = env_set_create(NULL);
     setenv_str(es, "script_type", "tls-crypt-v2-verify");
     setenv_str(es, "metadata_type", metadata_type_str);

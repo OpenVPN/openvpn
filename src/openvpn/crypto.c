@@ -874,11 +874,11 @@ init_key_ctx_bi(struct key_ctx_bi *ctx, const struct key2 *key2,
 
     key_direction_state_init(&kds, key_direction);
 
-    openvpn_snprintf(log_prefix, sizeof(log_prefix), "Outgoing %s", name);
+    snprintf(log_prefix, sizeof(log_prefix), "Outgoing %s", name);
     init_key_ctx(&ctx->encrypt, &key2->keys[kds.out_key], kt,
                  OPENVPN_OP_ENCRYPT, log_prefix);
 
-    openvpn_snprintf(log_prefix, sizeof(log_prefix), "Incoming %s", name);
+    snprintf(log_prefix, sizeof(log_prefix), "Incoming %s", name);
     init_key_ctx(&ctx->decrypt, &key2->keys[kds.in_key], kt,
                  OPENVPN_OP_DECRYPT, log_prefix);
 

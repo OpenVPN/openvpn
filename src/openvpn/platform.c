@@ -564,9 +564,9 @@ platform_create_temp_file(const char *directory, const char *prefix, struct gc_a
     {
         ++attempts;
 
-        if (!openvpn_snprintf(fname, sizeof(fname), fname_fmt, max_prefix_len,
-                              prefix, (unsigned long) get_random(),
-                              (unsigned long) get_random()))
+        if (!snprintf(fname, sizeof(fname), fname_fmt, max_prefix_len,
+                      prefix, (unsigned long) get_random(),
+                      (unsigned long) get_random()))
         {
             msg(M_WARN, "ERROR: temporary filename too long");
             return NULL;

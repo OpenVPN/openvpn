@@ -128,7 +128,7 @@ mbed_log_func_line(unsigned int flags, int errval, const char *func,
 {
     char prefix[256];
 
-    if (!openvpn_snprintf(prefix, sizeof(prefix), "%s:%d", func, line))
+    if (!snprintf(prefix, sizeof(prefix), "%s:%d", func, line))
     {
         return mbed_log_err(flags, errval, func);
     }
@@ -239,11 +239,11 @@ crypto_pem_encode(const char *name, struct buffer *dst,
     char header[1000+1] = { 0 };
     char footer[1000+1] = { 0 };
 
-    if (!openvpn_snprintf(header, sizeof(header), "-----BEGIN %s-----\n", name))
+    if (!snprintf(header, sizeof(header), "-----BEGIN %s-----\n", name))
     {
         return false;
     }
-    if (!openvpn_snprintf(footer, sizeof(footer), "-----END %s-----\n", name))
+    if (!snprintf(footer, sizeof(footer), "-----END %s-----\n", name))
     {
         return false;
     }
@@ -278,11 +278,11 @@ crypto_pem_decode(const char *name, struct buffer *dst,
     char header[1000+1] = { 0 };
     char footer[1000+1] = { 0 };
 
-    if (!openvpn_snprintf(header, sizeof(header), "-----BEGIN %s-----", name))
+    if (!snprintf(header, sizeof(header), "-----BEGIN %s-----", name))
     {
         return false;
     }
-    if (!openvpn_snprintf(footer, sizeof(footer), "-----END %s-----", name))
+    if (!snprintf(footer, sizeof(footer), "-----END %s-----", name))
     {
         return false;
     }

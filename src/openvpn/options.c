@@ -1427,7 +1427,7 @@ foreign_options_copy_dns(struct options *o, struct env_set *es)
     for (int i = 1; i <= opt_max; ++i)
     {
         char name[32];
-        openvpn_snprintf(name, sizeof(name), "foreign_option_%d", i);
+        snprintf(name, sizeof(name), "foreign_option_%d", i);
 
         const char *env_str = env_set_get(es, name);
         const char *value = strchr(env_str, '=') + 1;
@@ -1482,7 +1482,7 @@ foreign_options_copy_dns(struct options *o, struct env_set *es)
     while (o->foreign_option_index < opt_max)
     {
         char name[32];
-        openvpn_snprintf(name, sizeof(name), "foreign_option_%d", opt_max--);
+        snprintf(name, sizeof(name), "foreign_option_%d", opt_max--);
         setenv_del(es, name);
     }
 }
@@ -5674,8 +5674,8 @@ set_user_script(struct options *options,
 #ifndef ENABLE_SMALL
     {
         char script_name[100];
-        openvpn_snprintf(script_name, sizeof(script_name),
-                         "--%s script", type);
+        snprintf(script_name, sizeof(script_name),
+                 "--%s script", type);
 
         if (check_cmd_access(*script, script_name, (in_chroot ? options->chroot_dir : NULL)))
         {

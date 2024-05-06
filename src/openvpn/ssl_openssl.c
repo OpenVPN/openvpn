@@ -1774,7 +1774,7 @@ open_biofp(void)
     if (!biofp)
     {
         char fn[256];
-        openvpn_snprintf(fn, sizeof(fn), "bio/%d-%d.log", pid, biofp_toggle);
+        snprintf(fn, sizeof(fn), "bio/%d-%d.log", pid, biofp_toggle);
         biofp = fopen(fn, "w");
         ASSERT(biofp);
         biofp_last_open = time(NULL);
@@ -2116,8 +2116,8 @@ print_pkey_details(EVP_PKEY *pkey, char *buf, size_t buflen)
 #endif /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
     }
 
-    openvpn_snprintf(buf, buflen, "%d bits %s%s",
-                     EVP_PKEY_bits(pkey), type, curve);
+    snprintf(buf, buflen, "%d bits %s%s",
+             EVP_PKEY_bits(pkey), type, curve);
 }
 
 /**
@@ -2137,12 +2137,12 @@ print_cert_details(X509 *cert, char *buf, size_t buflen)
     int signature_nid = X509_get_signature_nid(cert);
     if (signature_nid != 0)
     {
-        openvpn_snprintf(sig, sizeof(sig), ", signature: %s",
-                         OBJ_nid2sn(signature_nid));
+        snprintf(sig, sizeof(sig), ", signature: %s",
+                 OBJ_nid2sn(signature_nid));
     }
 
-    openvpn_snprintf(buf, buflen, ", peer certificate: %s%s",
-                     pkeybuf, sig);
+    snprintf(buf, buflen, ", peer certificate: %s%s",
+             pkeybuf, sig);
 
     EVP_PKEY_free(pkey);
 }
@@ -2160,8 +2160,8 @@ print_server_tempkey(SSL *ssl, char *buf, size_t buflen)
     char pkeybuf[128] = { 0 };
     print_pkey_details(pkey, pkeybuf, sizeof(pkeybuf));
 
-    openvpn_snprintf(buf, buflen, ", peer temporary key: %s",
-                     pkeybuf);
+    snprintf(buf, buflen, ", peer temporary key: %s",
+             pkeybuf);
 
     EVP_PKEY_free(pkey);
 }
@@ -2238,8 +2238,8 @@ print_peer_signature(SSL *ssl, char *buf, size_t buflen)
         return;
     }
 
-    openvpn_snprintf(buf, buflen, ", peer signing digest/type: %s %s",
-                     peer_sig, peer_sig_type);
+    snprintf(buf, buflen, ", peer signing digest/type: %s %s",
+             peer_sig, peer_sig_type);
 }
 
 
@@ -2262,11 +2262,11 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
 
     s1[0] = s2[0] = s3[0] = s4[0] = 0;
     ciph = SSL_get_current_cipher(ks_ssl->ssl);
-    openvpn_snprintf(s1, sizeof(s1), "%s %s, cipher %s %s",
-                     prefix,
-                     SSL_get_version(ks_ssl->ssl),
-                     SSL_CIPHER_get_version(ciph),
-                     SSL_CIPHER_get_name(ciph));
+    snprintf(s1, sizeof(s1), "%s %s, cipher %s %s",
+             prefix,
+             SSL_get_version(ks_ssl->ssl),
+             SSL_CIPHER_get_version(ciph),
+             SSL_CIPHER_get_name(ciph));
     X509 *cert = SSL_get_peer_certificate(ks_ssl->ssl);
 
     if (cert)

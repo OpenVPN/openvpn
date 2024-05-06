@@ -161,7 +161,7 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
     }
     else if (flags & GET_USER_PASS_PASSWORD_ONLY)
     {
-        openvpn_snprintf(up->password, sizeof(up->password), "%s", PIN);
+        snprintf(up->password, sizeof(up->password), "%s", PIN);
     }
     else
     {
@@ -204,8 +204,8 @@ init(void **state)
     {
         fail_msg("make tmpfile using template <%s> failed (error = %d)", softhsm2_conf_path, errno);
     }
-    openvpn_snprintf(config, sizeof(config), "directories.tokendir=%s/",
-                     softhsm2_tokens_path);
+    snprintf(config, sizeof(config), "directories.tokendir=%s/",
+             softhsm2_tokens_path);
     assert_int_equal(write(fd, config, strlen(config)), strlen(config));
     close(fd);
 

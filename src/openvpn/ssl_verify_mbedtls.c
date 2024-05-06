@@ -86,8 +86,8 @@ verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
         char *serial = backend_x509_get_serial(cert, &gc);
 
         ret = mbedtls_x509_crt_verify_info(errstr, sizeof(errstr)-1, "", *flags);
-        if (ret <= 0 && !openvpn_snprintf(errstr, sizeof(errstr),
-                                          "Could not retrieve error string, flags=%" PRIx32, *flags))
+        if (ret <= 0 && !snprintf(errstr, sizeof(errstr),
+                                  "Could not retrieve error string, flags=%" PRIx32, *flags))
         {
             errstr[0] = '\0';
         }
@@ -307,7 +307,7 @@ do_setenv_x509(struct env_set *es, const char *name, char *value, int depth)
     name_expand_size = 64 + strlen(name);
     name_expand = (char *) malloc(name_expand_size);
     check_malloc_return(name_expand);
-    openvpn_snprintf(name_expand, name_expand_size, "X509_%d_%s", depth, name);
+    snprintf(name_expand, name_expand_size, "X509_%d_%s", depth, name);
     setenv_str(es, name_expand, value);
     free(name_expand);
 }
@@ -431,13 +431,13 @@ x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
 
         if (0 == mbedtls_oid_get_attr_short_name(&name->oid, &shortname) )
         {
-            openvpn_snprintf(name_expand, sizeof(name_expand), "X509_%d_%s",
-                             cert_depth, shortname);
+            snprintf(name_expand, sizeof(name_expand), "X509_%d_%s",
+                     cert_depth, shortname);
         }
         else
         {
-            openvpn_snprintf(name_expand, sizeof(name_expand), "X509_%d_\?\?",
-                             cert_depth);
+            snprintf(name_expand, sizeof(name_expand), "X509_%d_\?\?",
+                     cert_depth);
         }
 
         for (i = 0; i < name->val.len; i++)

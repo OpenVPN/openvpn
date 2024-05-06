@@ -311,7 +311,7 @@ ReturnProcessId(HANDLE pipe, DWORD pid, DWORD count, LPHANDLE events)
      * Same format as error messages (3 line string) with error = 0 in
      * 0x%08x format, PID on line 2 and a description "Process ID" on line 3
      */
-    openvpn_swprintf(buf, _countof(buf), L"0x%08x\n0x%08x\n%ls", 0, pid, msg);
+    swprintf(buf, _countof(buf), L"0x%08x\n0x%08x\n%ls", 0, pid, msg);
 
     WritePipeAsync(pipe, buf, (DWORD)(wcslen(buf) * 2), count, events);
 }
@@ -385,9 +385,9 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options, WCHAR *
 
     if (!argv)
     {
-        openvpn_swprintf(errmsg, capacity,
-                         L"Cannot validate options: CommandLineToArgvW failed with error = 0x%08x",
-                         GetLastError());
+        swprintf(errmsg, capacity,
+                 L"Cannot validate options: CommandLineToArgvW failed with error = 0x%08x",
+                 GetLastError());
         goto out;
     }
 
@@ -407,8 +407,8 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options, WCHAR *
 
         if (!CheckOption(workdir, 2, argv_tmp, &settings))
         {
-            openvpn_swprintf(errmsg, capacity, msg1, argv[0], workdir,
-                             settings.ovpn_admin_group);
+            swprintf(errmsg, capacity, msg1, argv[0], workdir,
+                     settings.ovpn_admin_group);
         }
         goto out;
     }
@@ -424,13 +424,13 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options, WCHAR *
         {
             if (wcscmp(L"--config", argv[i]) == 0 && argc-i > 1)
             {
-                openvpn_swprintf(errmsg, capacity, msg1, argv[i+1], workdir,
-                                 settings.ovpn_admin_group);
+                swprintf(errmsg, capacity, msg1, argv[i+1], workdir,
+                         settings.ovpn_admin_group);
             }
             else
             {
-                openvpn_swprintf(errmsg, capacity, msg2, argv[i],
-                                 settings.ovpn_admin_group);
+                swprintf(errmsg, capacity, msg2, argv[i],
+                         settings.ovpn_admin_group);
             }
             goto out;
         }
@@ -985,7 +985,7 @@ RegisterDNS(LPVOID unused)
 
     HANDLE wait_handles[2] = {rdns_semaphore, exit_event};
 
-    openvpn_swprintf(ipcfg, MAX_PATH, L"%ls\\%ls", get_win_sys_path(), L"ipconfig.exe");
+    swprintf(ipcfg, MAX_PATH, L"%ls\\%ls", get_win_sys_path(), L"ipconfig.exe");
 
     if (WaitForMultipleObjects(2, wait_handles, FALSE, timeout) == WAIT_OBJECT_0)
     {
@@ -1064,7 +1064,7 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
     }
 
     /* Path of netsh */
-    openvpn_swprintf(argv0, _countof(argv0), L"%ls\\%ls", get_win_sys_path(), L"netsh.exe");
+    swprintf(argv0, _countof(argv0), L"%ls\\%ls", get_win_sys_path(), L"netsh.exe");
 
     /* cmd template:
      * netsh interface $proto $action dns $if_name $addr [validate=no]
@@ -1080,7 +1080,7 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
         goto out;
     }
 
-    openvpn_swprintf(cmdline, ncmdline, fmt, proto, action, if_name, addr);
+    swprintf(cmdline, ncmdline, fmt, proto, action, if_name, addr);
 
     if (IsWindows7OrGreater())
     {
@@ -1124,7 +1124,7 @@ netsh_wins_cmd(const wchar_t *action, const wchar_t *if_name, const wchar_t *add
     }
 
     /* Path of netsh */
-    openvpn_swprintf(argv0, _countof(argv0), L"%ls\\%ls", get_win_sys_path(), L"netsh.exe");
+    swprintf(argv0, _countof(argv0), L"%ls\\%ls", get_win_sys_path(), L"netsh.exe");
 
     /* cmd template:
      * netsh interface ip $action wins $if_name $static $addr
@@ -1141,7 +1141,7 @@ netsh_wins_cmd(const wchar_t *action, const wchar_t *if_name, const wchar_t *add
         goto out;
     }
 
-    openvpn_swprintf(cmdline, ncmdline, fmt, action, if_name, addr_static, addr);
+    swprintf(cmdline, ncmdline, fmt, action, if_name, addr_static, addr);
 
     err = ExecCommand(argv0, cmdline, timeout);
 
@@ -1167,7 +1167,7 @@ wmic_nicconfig_cmd(const wchar_t *action, const NET_IFINDEX if_index,
     wchar_t *cmdline = NULL;
     int timeout = 10000; /* in msec */
 
-    openvpn_swprintf(argv0, _countof(argv0), L"%ls\\%ls", get_win_sys_path(), L"wbem\\wmic.exe");
+    swprintf(argv0, _countof(argv0), L"%ls\\%ls", get_win_sys_path(), L"wbem\\wmic.exe");
 
     const wchar_t *fmt;
     /* comma separated list must be enclosed in parenthesis */
@@ -1188,8 +1188,8 @@ wmic_nicconfig_cmd(const wchar_t *action, const NET_IFINDEX if_index,
         return ERROR_OUTOFMEMORY;
     }
 
-    openvpn_swprintf(cmdline, ncmdline, fmt, if_index, action,
-                     data ? data : L"");
+    swprintf(cmdline, ncmdline, fmt, if_index, action,
+             data ? data : L"");
     err = ExecCommand(argv0, cmdline, timeout);
 
     free(cmdline);
@@ -1453,7 +1453,7 @@ HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)
     wchar_t argv0[MAX_PATH];
 
     /* Path of netsh */
-    openvpn_swprintf(argv0, _countof(argv0), L"%ls\\%ls", get_win_sys_path(), L"netsh.exe");
+    swprintf(argv0, _countof(argv0), L"%ls\\%ls", get_win_sys_path(), L"netsh.exe");
 
     /* cmd template:
      * netsh interface ipv4 set address name=$if_index source=dhcp
@@ -1471,7 +1471,7 @@ HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)
         return err;
     }
 
-    openvpn_swprintf(cmdline, ncmdline, fmt, dhcp->iface.index);
+    swprintf(cmdline, ncmdline, fmt, dhcp->iface.index);
 
     err = ExecCommand(argv0, cmdline, timeout);
 
@@ -1970,8 +1970,8 @@ RunOpenvpn(LPVOID p)
         goto out;
     }
 
-    openvpn_swprintf(ovpn_pipe_name, _countof(ovpn_pipe_name),
-                     TEXT("\\\\.\\pipe\\" PACKAGE "%ls\\service_%lu"), service_instance, GetCurrentThreadId());
+    swprintf(ovpn_pipe_name, _countof(ovpn_pipe_name),
+             TEXT("\\\\.\\pipe\\" PACKAGE "%ls\\service_%lu"), service_instance, GetCurrentThreadId());
     ovpn_pipe = CreateNamedPipe(ovpn_pipe_name,
                                 PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE | FILE_FLAG_OVERLAPPED,
                                 PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 128, 128, 0, NULL);
@@ -2003,8 +2003,11 @@ RunOpenvpn(LPVOID p)
         ReturnLastError(pipe, L"malloc");
         goto out;
     }
-    openvpn_swprintf(cmdline, cmdline_size, L"openvpn %ls --msg-channel %" PRIuPTR,
-                     sud.options, svc_pipe);
+    /* there seem to be no common printf specifier that works on all
+     * mingw/msvc platforms without trickery, so convert to void* and use
+     * PRIuPTR to print that as best compromise */
+    swprintf(cmdline, cmdline_size, L"openvpn %ls --msg-channel %" PRIuPTR,
+             sud.options, (uintptr_t)svc_pipe);
 
     if (!CreateEnvironmentBlock(&user_env, imp_token, FALSE))
     {
@@ -2079,8 +2082,8 @@ RunOpenvpn(LPVOID p)
     else if (exit_code != 0)
     {
         WCHAR buf[256];
-        openvpn_swprintf(buf, _countof(buf),
-                         L"OpenVPN exited with error: exit code = %lu", exit_code);
+        swprintf(buf, _countof(buf),
+                 L"OpenVPN exited with error: exit code = %lu", exit_code);
         ReturnError(pipe, ERROR_OPENVPN_STARTUP, buf, 1, &exit_event);
     }
     Undo(&undo_lists);
@@ -2174,7 +2177,7 @@ CreateClientPipeInstance(VOID)
         initialized = TRUE;
     }
 
-    openvpn_swprintf(pipe_name, _countof(pipe_name), TEXT("\\\\.\\pipe\\" PACKAGE "%ls\\service"), service_instance);
+    swprintf(pipe_name, _countof(pipe_name), TEXT("\\\\.\\pipe\\" PACKAGE "%ls\\service"), service_instance);
     pipe = CreateNamedPipe(pipe_name, flags,
                            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_REJECT_REMOTE_CLIENTS,
                            PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0, NULL);

@@ -1114,8 +1114,8 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
 #elif defined(TARGET_ANDROID)
     char out6[64];
 
-    openvpn_snprintf(out6, sizeof(out6), "%s/%d %d",
-                     ifconfig_ipv6_local, tt->netbits_ipv6, tun_mtu);
+    snprintf(out6, sizeof(out6), "%s/%d %d",
+             ifconfig_ipv6_local, tt->netbits_ipv6, tun_mtu);
     management_android_control(management, "IFCONFIG6", out6);
 #elif defined(TARGET_SOLARIS)
     argv_printf(&argv, "%s %s inet6 unplumb", IFCONFIG_PATH, ifname);
@@ -1362,8 +1362,8 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
             top = "undef";
     }
 
-    openvpn_snprintf(out, sizeof(out), "%s %s %d %s", ifconfig_local,
-                     ifconfig_remote_netmask, tun_mtu, top);
+    snprintf(out, sizeof(out), "%s %s %d %s", ifconfig_local,
+             ifconfig_remote_netmask, tun_mtu, top);
     management_android_control(management, "IFCONFIG", out);
 
 #elif defined(TARGET_SOLARIS)
@@ -1912,7 +1912,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
          */
         if (dev_node)
         {
-            openvpn_snprintf(tunname, sizeof(tunname), "%s", dev_node);
+            snprintf(tunname, sizeof(tunname), "%s", dev_node);
         }
         else
         {
@@ -1926,10 +1926,10 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
             {
                 for (int i = 0; i < 256; ++i)
                 {
-                    openvpn_snprintf(tunname, sizeof(tunname),
-                                     "/dev/%s%d", dev, i);
-                    openvpn_snprintf(dynamic_name, sizeof(dynamic_name),
-                                     "%s%d", dev, i);
+                    snprintf(tunname, sizeof(tunname),
+                             "/dev/%s%d", dev, i);
+                    snprintf(dynamic_name, sizeof(dynamic_name),
+                             "%s%d", dev, i);
                     if ((tt->fd = open(tunname, O_RDWR)) > 0)
                     {
                         dynamic_opened = true;
@@ -1947,7 +1947,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
              */
             else
             {
-                openvpn_snprintf(tunname, sizeof(tunname), "/dev/%s", dev);
+                snprintf(tunname, sizeof(tunname), "/dev/%s", dev);
             }
         }
 
@@ -2002,8 +2002,8 @@ open_tun_dco_generic(const char *dev, const char *dev_type,
     {
         for (int i = 0; i < 256; ++i)
         {
-            openvpn_snprintf(dynamic_name, sizeof(dynamic_name),
-                             "%s%d", dev, i);
+            snprintf(dynamic_name, sizeof(dynamic_name),
+                     "%s%d", dev, i);
             int ret = open_tun_dco(tt, ctx, dynamic_name);
             if (ret == 0)
             {
@@ -2519,7 +2519,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     tt->actual_name = (char *) malloc(32);
     check_malloc_return(tt->actual_name);
 
-    openvpn_snprintf(tt->actual_name, 32, "%s%d", dev_tuntap_type, ppa);
+    snprintf(tt->actual_name, 32, "%s%d", dev_tuntap_type, ppa);
 
     if (tt->type == DEV_TYPE_TAP)
     {
@@ -3509,7 +3509,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         int i;
         for (i = 0; i<99; i++)
         {
-            openvpn_snprintf(tunname, sizeof(tunname), "/dev/tap%d", i);
+            snprintf(tunname, sizeof(tunname), "/dev/tap%d", i);
             if (access( tunname, F_OK ) < 0 && errno == ENOENT)
             {
                 break;
@@ -3520,7 +3520,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             msg( M_FATAL, "cannot find unused tap device" );
         }
 
-        openvpn_snprintf( dynamic_name, sizeof(dynamic_name), "tap%d", i );
+        snprintf( dynamic_name, sizeof(dynamic_name), "tap%d", i );
         dev = dynamic_name;
     }
     else                                        /* name given, sanity check */
@@ -3536,7 +3536,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             msg( M_FATAL, "TAP device name must be '--dev tapNNNN'" );
         }
 
-        openvpn_snprintf(tunname, sizeof(tunname), "/dev/%s", dev);
+        snprintf(tunname, sizeof(tunname), "/dev/%s", dev);
     }
 
     /* pre-existing device?
@@ -3956,8 +3956,8 @@ get_tap_reg(struct gc_arena *gc)
                 ADAPTER_KEY);
         }
 
-        openvpn_snprintf(unit_string, sizeof(unit_string), "%s\\%s",
-                         ADAPTER_KEY, enum_name);
+        snprintf(unit_string, sizeof(unit_string), "%s\\%s",
+                 ADAPTER_KEY, enum_name);
 
         status = RegOpenKeyEx(
             HKEY_LOCAL_MACHINE,
@@ -4098,9 +4098,9 @@ get_panel_reg(struct gc_arena *gc)
                 NETWORK_CONNECTIONS_KEY);
         }
 
-        openvpn_snprintf(connection_string, sizeof(connection_string),
-                         "%s\\%s\\Connection",
-                         NETWORK_CONNECTIONS_KEY, enum_name);
+        snprintf(connection_string, sizeof(connection_string),
+                 "%s\\%s\\Connection",
+                 NETWORK_CONNECTIONS_KEY, enum_name);
 
         status = RegOpenKeyEx(
             HKEY_LOCAL_MACHINE,
@@ -4984,7 +4984,7 @@ get_adapter_index_method_1(const char *guid)
     DWORD index;
     ULONG aindex;
     wchar_t wbuf[256];
-    openvpn_swprintf(wbuf, SIZE(wbuf), L"\\DEVICE\\TCPIP_%hs", guid);
+    swprintf(wbuf, SIZE(wbuf), L"\\DEVICE\\TCPIP_%hs", guid);
     if (GetAdapterIndex(wbuf, &aindex) != NO_ERROR)
     {
         index = TUN_ADAPTER_INDEX_INVALID;
@@ -5164,10 +5164,10 @@ tap_allow_nonadmin_access(const char *dev_node)
         }
 
         /* Open Windows TAP-Windows adapter */
-        openvpn_snprintf(device_path, sizeof(device_path), "%s%s%s",
-                         USERMODEDEVICEDIR,
-                         device_guid,
-                         TAP_WIN_SUFFIX);
+        snprintf(device_path, sizeof(device_path), "%s%s%s",
+                 USERMODEDEVICEDIR,
+                 device_guid,
+                 TAP_WIN_SUFFIX);
 
         hand = CreateFile(
             device_path,
@@ -5208,10 +5208,10 @@ tap_allow_nonadmin_access(const char *dev_node)
             }
 
             /* Open Windows TAP-Windows adapter */
-            openvpn_snprintf(device_path, sizeof(device_path), "%s%s%s",
-                             USERMODEDEVICEDIR,
-                             device_guid,
-                             TAP_WIN_SUFFIX);
+            snprintf(device_path, sizeof(device_path), "%s%s%s",
+                     USERMODEDEVICEDIR,
+                     device_guid,
+                     TAP_WIN_SUFFIX);
 
             hand = CreateFile(
                 device_path,
@@ -6607,10 +6607,10 @@ tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct dev
     else
     {
         /* Open TAP-Windows */
-        openvpn_snprintf(tuntap_device_path, sizeof(tuntap_device_path), "%s%s%s",
-                         USERMODEDEVICEDIR,
-                         device_guid,
-                         TAP_WIN_SUFFIX);
+        snprintf(tuntap_device_path, sizeof(tuntap_device_path), "%s%s%s",
+                 USERMODEDEVICEDIR,
+                 device_guid,
+                 TAP_WIN_SUFFIX);
         path = tuntap_device_path;
     }
 

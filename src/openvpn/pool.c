@@ -766,7 +766,7 @@ ifconfig_pool_test(in_addr_t start, in_addr_t end)
         ifconfig_pool_handle h;
         in_addr_t local, remote;
         char buf[256];
-        openvpn_snprintf(buf, sizeof(buf), "common-name-%d", i);
+        snprintf(buf, sizeof(buf), "common-name-%d", i);
 #ifdef DUP_CN
         cn = NULL;
 #else

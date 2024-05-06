@@ -448,19 +448,6 @@ __attribute__ ((format(__printf__, 2, 3)))
  */
 bool buf_puts(struct buffer *buf, const char *str);
 
-/*
- * Like snprintf but guarantees null termination for size > 0
- */
-bool openvpn_snprintf(char *str, size_t size, const char *format, ...)
-#ifdef __GNUC__
-#if __USE_MINGW_ANSI_STDIO
-__attribute__ ((format(gnu_printf, 3, 4)))
-#else
-__attribute__ ((format(__printf__, 3, 4)))
-#endif
-#endif
-;
-
 
 /*
  * remove/add trailing characters

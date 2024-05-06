@@ -354,7 +354,7 @@ journal_add(const char *journal_dir, struct proxy_connection *pc, struct proxy_c
         fnlen =  strlen(journal_dir) + strlen(t) + 2;
         jfn = (char *) malloc(fnlen);
         check_malloc_return(jfn);
-        openvpn_snprintf(jfn, fnlen, "%s/%s", journal_dir, t);
+        snprintf(jfn, fnlen, "%s/%s", journal_dir, t);
         dmsg(D_PS_PROXY_DEBUG, "PORT SHARE PROXY: client origin %s -> %s", jfn, f);
         fd = platform_open(jfn, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
         if (fd != -1)

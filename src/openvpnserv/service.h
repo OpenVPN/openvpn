@@ -81,12 +81,6 @@ VOID WINAPI ServiceStartInteractiveOwn(DWORD argc, LPTSTR *argv);
 
 VOID WINAPI ServiceStartInteractive(DWORD argc, LPTSTR *argv);
 
-BOOL openvpn_vsntprintf(LPTSTR str, size_t size, LPCTSTR format, va_list arglist);
-
-BOOL openvpn_sntprintf(LPTSTR str, size_t size, LPCTSTR format, ...);
-
-BOOL openvpn_swprintf(wchar_t *const str, const size_t size, const wchar_t *const format, ...);
-
 DWORD GetOpenvpnSettings(settings_t *s);
 
 BOOL ReportStatusToSCMgr(SERVICE_STATUS_HANDLE service, SERVICE_STATUS *status);

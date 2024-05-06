@@ -515,8 +515,8 @@ man_bytecount_output_client(struct management *man,
     char out[32];
 
     /* do in a roundabout way to work around possible mingw or mingw-glibc bug */
-    openvpn_snprintf(in, sizeof(in), counter_format, man->persist.bytes_in + dco_read_bytes);
-    openvpn_snprintf(out, sizeof(out), counter_format, man->persist.bytes_out + dco_write_bytes);
+    snprintf(in, sizeof(in), counter_format, man->persist.bytes_in + dco_read_bytes);
+    snprintf(out, sizeof(out), counter_format, man->persist.bytes_out + dco_write_bytes);
     msg(M_CLIENT, ">BYTECOUNT:%s,%s", in, out);
 }
 
@@ -528,8 +528,8 @@ man_bytecount_output_server(const counter_type *bytes_in_total,
     char in[32];
     char out[32];
     /* do in a roundabout way to work around possible mingw or mingw-glibc bug */
-    openvpn_snprintf(in, sizeof(in), counter_format, *bytes_in_total);
-    openvpn_snprintf(out, sizeof(out), counter_format, *bytes_out_total);
+    snprintf(in, sizeof(in), counter_format, *bytes_in_total);
+    snprintf(out, sizeof(out), counter_format, *bytes_out_total);
     msg(M_CLIENT, ">BYTECOUNT_CLI:%lu,%s,%s", mdac->cid, in, out);
     mdac->bytecount_last_update = now;
 }

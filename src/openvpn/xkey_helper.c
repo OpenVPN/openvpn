@@ -205,7 +205,7 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
         }
         else
         {
-            openvpn_snprintf(alg_str, sizeof(alg_str), "ECDSA,hashalg=%s", alg.mdname);
+            snprintf(alg_str, sizeof(alg_str), "ECDSA,hashalg=%s", alg.mdname);
         }
     }
     else if (!strcmp(alg.keytype, "ED448") || !strcmp(alg.keytype, "ED25519"))
@@ -229,8 +229,8 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
         /* For undigested message, add hashalg=digest parameter */
         else
         {
-            openvpn_snprintf(alg_str, sizeof(alg_str), "%s,hashalg=%s",
-                             "RSA_PKCS1_PADDING", alg.mdname);
+            snprintf(alg_str, sizeof(alg_str), "%s,hashalg=%s",
+                     "RSA_PKCS1_PADDING", alg.mdname);
         }
     }
     else if (!strcmp(alg.padmode, "none") && (flags & MF_EXTERNAL_KEY_NOPADDING)
@@ -240,8 +240,8 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen,
     }
     else if (!strcmp(alg.padmode, "pss") && (flags & MF_EXTERNAL_KEY_PSSPAD))
     {
-        openvpn_snprintf(alg_str, sizeof(alg_str), "%s,hashalg=%s,saltlen=%s",
-                         "RSA_PKCS1_PSS_PADDING", alg.mdname, alg.saltlen);
+        snprintf(alg_str, sizeof(alg_str), "%s,hashalg=%s,saltlen=%s",
+                 "RSA_PKCS1_PSS_PADDING", alg.mdname, alg.saltlen);
     }
     else
     {

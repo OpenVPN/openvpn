@@ -274,14 +274,14 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
 
     if ((flags & M_ERRNO) && e)
     {
-        openvpn_snprintf(m2, ERR_BUF_SIZE, "%s: %s (errno=%d)",
-                         m1, openvpn_strerror(e, crt_error, &gc), e);
+        snprintf(m2, ERR_BUF_SIZE, "%s: %s (errno=%d)",
+                 m1, openvpn_strerror(e, crt_error, &gc), e);
         SWAP;
     }
 
     if (flags & M_OPTERR)
     {
-        openvpn_snprintf(m2, ERR_BUF_SIZE, "Options error: %s", m1);
+        snprintf(m2, ERR_BUF_SIZE, "Options error: %s", m1);
         SWAP;
     }
 
@@ -321,10 +321,10 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         const struct virtual_output *vo = msg_get_virtual_output();
         if (vo)
         {
-            openvpn_snprintf(m2, ERR_BUF_SIZE, "%s%s%s",
-                             prefix,
-                             prefix_sep,
-                             m1);
+            snprintf(m2, ERR_BUF_SIZE, "%s%s%s",
+                     prefix,
+                     prefix_sep,
+                     m1);
             virtual_output_print(vo, flags, m2);
         }
     }

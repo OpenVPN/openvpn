@@ -2983,11 +2983,11 @@ setenv_sockaddr(struct env_set *es, const char *name_prefix, const struct openvp
         case AF_INET:
             if (flags & SA_IP_PORT)
             {
-                openvpn_snprintf(name_buf, sizeof(name_buf), "%s_ip", name_prefix);
+                snprintf(name_buf, sizeof(name_buf), "%s_ip", name_prefix);
             }
             else
             {
-                openvpn_snprintf(name_buf, sizeof(name_buf), "%s", name_prefix);
+                snprintf(name_buf, sizeof(name_buf), "%s", name_prefix);
             }
 
             inet_ntop(AF_INET, &addr->addr.in4.sin_addr, buf, sizeof(buf));
@@ -2995,7 +2995,7 @@ setenv_sockaddr(struct env_set *es, const char *name_prefix, const struct openvp
 
             if ((flags & SA_IP_PORT) && addr->addr.in4.sin_port)
             {
-                openvpn_snprintf(name_buf, sizeof(name_buf), "%s_port", name_prefix);
+                snprintf(name_buf, sizeof(name_buf), "%s_port", name_prefix);
                 setenv_int(es, name_buf, ntohs(addr->addr.in4.sin_port));
             }
             break;
@@ -3006,19 +3006,19 @@ setenv_sockaddr(struct env_set *es, const char *name_prefix, const struct openvp
                 struct in_addr ia;
                 memcpy(&ia.s_addr, &addr->addr.in6.sin6_addr.s6_addr[12],
                        sizeof(ia.s_addr));
-                openvpn_snprintf(name_buf, sizeof(name_buf), "%s_ip", name_prefix);
+                snprintf(name_buf, sizeof(name_buf), "%s_ip", name_prefix);
                 inet_ntop(AF_INET, &ia, buf, sizeof(buf));
             }
             else
             {
-                openvpn_snprintf(name_buf, sizeof(name_buf), "%s_ip6", name_prefix);
+                snprintf(name_buf, sizeof(name_buf), "%s_ip6", name_prefix);
                 inet_ntop(AF_INET6, &addr->addr.in6.sin6_addr, buf, sizeof(buf));
             }
             setenv_str(es, name_buf, buf);
 
             if ((flags & SA_IP_PORT) && addr->addr.in6.sin6_port)
             {
-                openvpn_snprintf(name_buf, sizeof(name_buf), "%s_port", name_prefix);
+                snprintf(name_buf, sizeof(name_buf), "%s_port", name_prefix);
                 setenv_int(es, name_buf, ntohs(addr->addr.in6.sin6_port));
             }
             break;
