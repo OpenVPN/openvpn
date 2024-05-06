@@ -1663,7 +1663,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
 #endif
     else
     {
-        msg(M_CLIENT, "ERROR: unknown command, enter 'help' for more options");
+        msg(M_CLIENT, "ERROR: unknown command [%s], enter 'help' for more options", p[0]);
     }
 
 done:
