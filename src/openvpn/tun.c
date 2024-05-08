@@ -1182,6 +1182,12 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     openvpn_execve_check(&argv, es, S_FATAL,
                          "generic BSD ifconfig inet6 failed");
 
+#if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
+    || defined(TARGET_DARWIN)
+    /* and, hooray, we explicitly need to add a route... */
+    add_route_connected_v6_net(tt, es);
+#endif
+
 #elif defined(TARGET_FREEBSD)
     /* read current fib number, codes are from: */
     /* https://github.com/freebsd/freebsd-src/blob/f9716eee8ab45ad906d9b5c5233ca20c10226ca7/sbin/route/route.c#L269 */
