@@ -1193,14 +1193,14 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     /* https://github.com/freebsd/freebsd-src/blob/f9716eee8ab45ad906d9b5c5233ca20c10226ca7/sbin/route/route.c#L269 */
     int numfibs = 0, defaultfib = 0;
     size_t len = sizeof(numfibs);
-	if (sysctlbyname("net.fibs", (void *)&numfibs, &len, NULL, 0) == -1)
-		numfibs = -1;
+    if (sysctlbyname("net.fibs", (void *)&numfibs, &len, NULL, 0) == -1)
+    numfibs = -1;
 
-	len = sizeof(defaultfib);
-	if (numfibs != -1 &&
-	    sysctlbyname("net.my_fibnum", (void *)&defaultfib, &len, NULL,
-		0) == -1)
-		defaultfib = -1;
+    len = sizeof(defaultfib);
+    if (numfibs != -1 &&
+        sysctlbyname("net.my_fibnum", (void *)&defaultfib, &len, NULL,
+        0) == -1)
+        defaultfib = -1;
 
     if (defaultfib <= 0)
     {
@@ -1617,14 +1617,14 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     /* https://github.com/freebsd/freebsd-src/blob/f9716eee8ab45ad906d9b5c5233ca20c10226ca7/sbin/route/route.c#L269 */
     int numfibs = 0, defaultfib = 0;
     size_t len = sizeof(numfibs);
-	if (sysctlbyname("net.fibs", (void *)&numfibs, &len, NULL, 0) == -1)
-		numfibs = -1;
+    if (sysctlbyname("net.fibs", (void *)&numfibs, &len, NULL, 0) == -1)
+        numfibs = -1;
 
-	len = sizeof(defaultfib);
-	if (numfibs != -1 &&
-	    sysctlbyname("net.my_fibnum", (void *)&defaultfib, &len, NULL,
-		0) == -1)
-		defaultfib = -1;
+    len = sizeof(defaultfib);
+    if (numfibs != -1 &&
+        sysctlbyname("net.my_fibnum", (void *)&defaultfib, &len, NULL,
+        0) == -1)
+        defaultfib = -1;
 
     /* example: ifconfig tun2 10.2.0.2 10.2.0.1 mtu 1450 netmask 255.255.255.255 up */
     if (tun)       /* point-to-point tun */
