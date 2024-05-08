@@ -1192,7 +1192,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
     /* read current fib number, codes are from: */
     /* https://github.com/freebsd/freebsd-src/blob/f9716eee8ab45ad906d9b5c5233ca20c10226ca7/sbin/route/route.c#L269 */
     int numfibs = 0, defaultfib = 0;
-	size_t len = sizeof(numfibs);
+    size_t len = sizeof(numfibs);
 	if (sysctlbyname("net.fibs", (void *)&numfibs, &len, NULL, 0) == -1)
 		numfibs = -1;
 
@@ -1621,7 +1621,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     /* read current fib number, codes are from: */
     /* https://github.com/freebsd/freebsd-src/blob/f9716eee8ab45ad906d9b5c5233ca20c10226ca7/sbin/route/route.c#L269 */
     int numfibs = 0, defaultfib = 0;
-	size_t len = sizeof(numfibs);
+    size_t len = sizeof(numfibs);
 	if (sysctlbyname("net.fibs", (void *)&numfibs, &len, NULL, 0) == -1)
 		numfibs = -1;
 
