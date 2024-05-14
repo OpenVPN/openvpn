@@ -49,7 +49,7 @@
 #include <openssl/rand.h>
 #include <openssl/ssl.h>
 
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L) && !defined(LIBRESSL_VERSION_NUMBER)
+#if !defined(LIBRESSL_VERSION_NUMBER)
 #include <openssl/kdf.h>
 #endif
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L
@@ -193,11 +193,7 @@ crypto_unload_provider(const char *provname, provider_t *provider)
 void
 crypto_init_lib(void)
 {
-#if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
     OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG, NULL);
-#else
-    OPENSSL_config(NULL);
-#endif
     /*
      * If you build the OpenSSL library and OpenVPN with
      * CRYPTO_MDEBUG, you will get a listing of OpenSSL
@@ -1401,7 +1397,7 @@ out:
 
     return ret;
 }
-#elif (OPENSSL_VERSION_NUMBER >= 0x10100000L) && !defined(LIBRESSL_VERSION_NUMBER)
+#elif !defined(LIBRESSL_VERSION_NUMBER)
 bool
 ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret,
              int secret_len, uint8_t *output, int output_len)
@@ -1447,7 +1443,7 @@ out:
     EVP_PKEY_CTX_free(pctx);
     return ret;
 }
-#else  /* if OPENSSL_VERSION_NUMBER >= 0x10100000L */
+#else  /* if defined(LIBRESSL_VERSION_NUMBER) */
 /*
  * Generate the hash required by for the \c tls1_PRF function.
  *
@@ -1626,5 +1622,5 @@ done:
     gc_free(&gc);
     return ret;
 }
-#endif /* if OPENSSL_VERSION_NUMBER >= 0x10100000L */
+#endif /* if LIBRESSL_VERSION_NUMBER */
 #endif /* ENABLE_CRYPTO_OPENSSL */

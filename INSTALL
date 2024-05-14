@@ -66,7 +66,7 @@ SYSTEM REQUIREMENTS:
   (1) TUN and/or TAP driver to allow user-space programs to control
       a virtual point-to-point IP or Ethernet device.
       See TUN/TAP Driver References section below for more info.
-  (2a) OpenSSL library, necessary for encryption, version 1.0.2 or higher
+  (2a) OpenSSL library, necessary for encryption, version 1.1.0 or higher
       required, available from http://www.openssl.org/
       or
   (2b) mbed TLS library, an alternative for encryption, version 2.0 or higher

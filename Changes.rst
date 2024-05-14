@@ -33,6 +33,10 @@ Default for ``--topology`` changed to ``subnet`` for ``--mode server``
     ``--topology net30`` to the config should fix the problem.
     By default ``--topology`` is pushed from server to client.
 
+OpenSSL 1.0.2 support
+    Support for building with OpenSSL 1.0.2 has been removed. The minimum
+    supported OpenSSL version is now 1.1.0.
+
 Overview of changes in 2.6
 ==========================
 
