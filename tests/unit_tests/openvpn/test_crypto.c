@@ -137,11 +137,6 @@ crypto_translate_cipher_names(void **state)
 }
 
 
-static uint8_t good_prf[32] = {0xd9, 0x8c, 0x85, 0x18, 0xc8, 0x5e, 0x94, 0x69,
-                               0x27, 0x91, 0x6a, 0xcf, 0xc2, 0xd5, 0x92, 0xfb,
-                               0xb1, 0x56, 0x7e, 0x4b, 0x4b, 0x14, 0x59, 0xe6,
-                               0xa9, 0x04, 0xac, 0x2d, 0xda, 0xb7, 0x2d, 0x67};
-
 static const char *ipsumlorem = "Lorem ipsum dolor sit amet, consectetur "
                                 "adipisici elit, sed eiusmod tempor incidunt "
                                 "ut labore et dolore magna aliqua.";
@@ -160,9 +155,19 @@ crypto_test_tls_prf(void **state)
 
 
     uint8_t out[32];
-    ssl_tls1_PRF(seed, seed_len, secret, secret_len, out, sizeof(out));
+    bool ret = ssl_tls1_PRF(seed, seed_len, secret, secret_len, out, sizeof(out));
 
+#if defined(LIBRESSL_VERSION_NUMBER) || defined(ENABLE_CRYPTO_WOLFSSL)
+    /* No TLS1 PRF support in these libraries */
+    assert_false(ret);
+#else
+    assert_true(ret);
+    uint8_t good_prf[32] = {0xd9, 0x8c, 0x85, 0x18, 0xc8, 0x5e, 0x94, 0x69,
+                            0x27, 0x91, 0x6a, 0xcf, 0xc2, 0xd5, 0x92, 0xfb,
+                            0xb1, 0x56, 0x7e, 0x4b, 0x4b, 0x14, 0x59, 0xe6,
+                            0xa9, 0x04, 0xac, 0x2d, 0xda, 0xb7, 0x2d, 0x67};
     assert_memory_equal(good_prf, out, sizeof(out));
+#endif
 }
 
 static uint8_t testkey[20] = {0x0b, 0x00};
