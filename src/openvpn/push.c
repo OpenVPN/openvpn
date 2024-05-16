@@ -204,7 +204,11 @@ receive_exit_message(struct context *c)
      * */
     if (c->options.mode == MODE_SERVER)
     {
-        schedule_exit(c, c->options.scheduled_exit_interval, SIGTERM);
+        if (!schedule_exit(c))
+        {
+            /* Return early when we don't need to notify management */
+            return;
+        }
     }
     else
     {
@@ -391,7 +395,7 @@ __attribute__ ((format(__printf__, 4, 5)))
 void
 send_auth_failed(struct context *c, const char *client_reason)
 {
-    if (event_timeout_defined(&c->c2.scheduled_exit))
+    if (!schedule_exit(c))
     {
         msg(D_TLS_DEBUG, "exit already scheduled for context");
         return;
@@ -400,8 +404,6 @@ send_auth_failed(struct context *c, const char *client_reason)
     struct gc_arena gc = gc_new();
     static const char auth_failed[] = "AUTH_FAILED";
     size_t len;
-
-    schedule_exit(c, c->options.scheduled_exit_interval, SIGTERM);
 
     len = (client_reason ? strlen(client_reason)+1 : 0) + sizeof(auth_failed);
     if (len > PUSH_BUNDLE_SIZE)
@@ -492,7 +494,7 @@ send_auth_pending_messages(struct tls_multi *tls_multi,
 void
 send_restart(struct context *c, const char *kill_msg)
 {
-    schedule_exit(c, c->options.scheduled_exit_interval, SIGTERM);
+    schedule_exit(c);
     send_control_channel_string(c, kill_msg ? kill_msg : "RESTART", D_PUSH);
 }
 

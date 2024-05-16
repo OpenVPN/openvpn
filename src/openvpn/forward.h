@@ -302,7 +302,7 @@ void reschedule_multi_process(struct context *c);
 
 void process_ip_header(struct context *c, unsigned int flags, struct buffer *buf);
 
-void schedule_exit(struct context *c, const int n_seconds, const int signal);
+bool schedule_exit(struct context *c);
 
 static inline struct link_socket_info *
 get_link_socket_info(struct context *c)
