@@ -184,6 +184,43 @@ check_tls_errors_nco(struct context *c)
 
 #if P2MP
 
+static void
+parse_incoming_control_channel_command(struct context *c, struct buffer *buf)
+{
+    if (buf_string_match_head_str(buf, "AUTH_FAILED"))
+    {
+        receive_auth_failed(c, buf);
+    }
+    else if (buf_string_match_head_str(buf, "PUSH_"))
+    {
+        incoming_push_message(c, buf);
+    }
+    else if (buf_string_match_head_str(buf, "RESTART"))
+    {
+        server_pushed_signal(c, buf, true, 7);
+    }
+    else if (buf_string_match_head_str(buf, "HALT"))
+    {
+        server_pushed_signal(c, buf, false, 4);
+    }
+    else if (buf_string_match_head_str(buf, "INFO_PRE"))
+    {
+        server_pushed_info(c, buf, 8);
+    }
+    else if (buf_string_match_head_str(buf, "INFO"))
+    {
+        server_pushed_info(c, buf, 4);
+    }
+    else if (buf_string_match_head_str(buf, "CR_RESPONSE"))
+    {
+        receive_cr_response(c, buf);
+    }
+    else
+    {
+        msg(D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR(buf));
+    }
+}
+
 /*
  * Handle incoming configuration
  * messages on the control channel.
@@ -199,43 +236,41 @@ check_incoming_control_channel(struct context *c)
     struct buffer buf = alloc_buf_gc(len, &gc);
     if (tls_rec_payload(c->c2.tls_multi, &buf))
     {
-        /* force null termination of message */
-        buf_null_terminate(&buf);
 
-        /* enforce character class restrictions */
-        string_mod(BSTR(&buf), CC_PRINT, CC_CRLF, 0);
+        while (BLEN(&buf) > 1)
+        {
+            /* commands on the control channel are seperated by 0x00 bytes.
+             * cmdlen does not include the 0 byte of the string */
+            int cmdlen = (int)strnlen(BSTR(&buf), BLEN(&buf));
 
-        if (buf_string_match_head_str(&buf, "AUTH_FAILED"))
-        {
-            receive_auth_failed(c, &buf);
-        }
-        else if (buf_string_match_head_str(&buf, "PUSH_"))
-        {
-            incoming_push_message(c, &buf);
-        }
-        else if (buf_string_match_head_str(&buf, "RESTART"))
-        {
-            server_pushed_signal(c, &buf, true, 7);
-        }
-        else if (buf_string_match_head_str(&buf, "HALT"))
-        {
-            server_pushed_signal(c, &buf, false, 4);
-        }
-        else if (buf_string_match_head_str(&buf, "INFO_PRE"))
-        {
-            server_pushed_info(c, &buf, 8);
-        }
-        else if (buf_string_match_head_str(&buf, "INFO"))
-        {
-            server_pushed_info(c, &buf, 4);
-        }
-        else if (buf_string_match_head_str(&buf, "CR_RESPONSE"))
-        {
-            receive_cr_response(c, &buf);
-        }
-        else
-        {
-            msg(D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR(&buf));
+            if (cmdlen < BLEN(&buf))
+            {
+                /* include the NUL byte and ensure NUL termination */
+                int cmdlen = (int)strlen(BSTR(&buf)) + 1;
+
+                /* Construct a buffer that only holds the current command and
+                 * its closing NUL byte */
+                struct buffer cmdbuf = alloc_buf_gc(cmdlen, &gc);
+                buf_write(&cmdbuf, BPTR(&buf), cmdlen);
+
+                /* check we have only printable characters or null byte in the
+                 * command string and no newlines */
+                if (!string_check_buf(&buf, CC_PRINT | CC_NULL, CC_CRLF))
+                {
+                    msg(D_PUSH_ERRORS, "WARNING: Received control with invalid characters: %s",
+                        format_hex(BPTR(&buf), BLEN(&buf), 256, &gc));
+                }
+                else
+                {
+                    parse_incoming_control_channel_command(c, &cmdbuf);
+                }
+            }
+            else
+            {
+                msg(D_PUSH_ERRORS, "WARNING: Ignoring control channel "
+                    "message command without NUL termination");
+            }
+            buf_advance(&buf, cmdlen);
         }
     }
     else
