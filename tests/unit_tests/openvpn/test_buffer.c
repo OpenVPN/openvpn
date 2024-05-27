@@ -259,6 +259,112 @@ test_buffer_gc_realloc(void **state)
     gc_free(&gc);
 }
 
+static void
+test_character_class(void **state)
+{
+    char buf[256];
+    strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+    assert_false(string_mod(buf, CC_PRINT, 0, '@'));
+    assert_string_equal(buf, "There is @ a nice 1234 year old tr@ ee!");
+
+    strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+    assert_true(string_mod(buf, CC_ANY, 0, '@'));
+    assert_string_equal(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+
+    /* 0 as replace removes characters */
+    strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+    assert_false(string_mod(buf, CC_PRINT, 0, '\0'));
+    assert_string_equal(buf, "There is  a nice 1234 year old tr ee!");
+
+    strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+    assert_false(string_mod(buf, CC_PRINT, CC_DIGIT, '@'));
+    assert_string_equal(buf, "There is @ a nice @@@@ year old tr@ ee!");
+
+    strcpy(buf, "There is \x01 a nice 1234 year old tr\x7f ee!");
+    assert_false(string_mod(buf, CC_ALPHA, CC_DIGIT, '.'));
+    assert_string_equal(buf, "There.is...a.nice......year.old.tr..ee.");
+
+    strcpy(buf, "There is \x01 a 'nice' \"1234\"\n year old \ntr\x7f ee!");
+    assert_false(string_mod(buf, CC_ALPHA|CC_DIGIT|CC_NEWLINE|CC_SINGLE_QUOTE, CC_DOUBLE_QUOTE|CC_BLANK, '.'));
+    assert_string_equal(buf, "There.is...a.'nice'..1234.\n.year.old.\ntr..ee.");
+
+    strcpy(buf, "There is a \\'nice\\' \"1234\" [*] year old \ntree!");
+    assert_false(string_mod(buf, CC_PRINT, CC_BACKSLASH|CC_ASTERISK, '.'));
+    assert_string_equal(buf, "There is a .'nice.' \"1234\" [.] year old .tree!");
+}
+
+
+static void
+test_character_string_mod_buf(void **state)
+{
+    struct gc_arena gc = gc_new();
+
+    struct buffer buf = alloc_buf_gc(1024, &gc);
+
+    const char test1[] =  "There is a nice 1234\x00 year old tree!";
+    buf_write(&buf, test1, sizeof(test1));
+
+    /* allow the null bytes and string but not the ! */
+    assert_false(string_check_buf(&buf, CC_ALNUM | CC_SPACE | CC_NULL, 0));
+
+    /* remove final ! and null byte to pass */
+    buf_inc_len(&buf, -2);
+    assert_true(string_check_buf(&buf, CC_ALNUM | CC_SPACE | CC_NULL, 0));
+
+    /* Check excluding digits works */
+    assert_false(string_check_buf(&buf, CC_ALNUM | CC_SPACE | CC_NULL, CC_DIGIT));
+    gc_free(&gc);
+}
+
+static void
+test_snprintf(void **state)
+{
+    /* we used to have a custom openvpn_snprintf function because some
+     * OS (the comment did not specify which) did not always put the
+     * null byte there. So we unit test this to be sure.
+     *
+     * This probably refers to the MSVC behaviour, see also
+     * https://stackoverflow.com/questions/7706936/is-snprintf-always-null-terminating
+     */
+
+    /* Instead of trying to trick the compiler here, disable the warnings
+     * for this unit test. We know that the results will be truncated
+     * and we want to test that */
+#if defined(__GNUC__)
+/* some clang version do not understand -Wformat-truncation, so ignore the
+ * warning to avoid warnings/errors (-Werror) about unknown pragma/option */
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
+
+    char buf[10] = { 'a' };
+    int ret = 0;
+
+    ret = snprintf(buf, sizeof(buf), "0123456789abcde");
+    assert_int_equal(ret, 15);
+    assert_int_equal(buf[9], '\0');
+
+    memset(buf, 'b', sizeof(buf));
+    ret = snprintf(buf, sizeof(buf), "- %d - %d -", 77, 88);
+    assert_int_equal(ret, 11);
+    assert_int_equal(buf[9], '\0');
+
+    memset(buf, 'c', sizeof(buf));
+    ret = snprintf(buf, sizeof(buf), "- %8.2f", 77.8899);
+    assert_int_equal(ret, 10);
+    assert_int_equal(buf[9], '\0');
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+#endif
+}
 
 int
 main(void)
@@ -289,6 +395,9 @@ main(void)
         cmocka_unit_test(test_buffer_free_gc_one),
         cmocka_unit_test(test_buffer_free_gc_two),
         cmocka_unit_test(test_buffer_gc_realloc),
+        cmocka_unit_test(test_character_class),
+        cmocka_unit_test(test_character_string_mod_buf),
+        cmocka_unit_test(test_snprintf)
     };
 
     return cmocka_run_group_tests_name("buffer", tests, NULL, NULL);

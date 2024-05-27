@@ -1113,6 +1113,23 @@ string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive
     return ret;
 }
 
+bool
+string_check_buf(struct buffer *buf, const unsigned int inclusive, const unsigned int exclusive)
+{
+    ASSERT(buf);
+
+    for (int i = 0; i < BLEN(buf); i++)
+    {
+        char c = BSTR(buf)[i];
+
+        if (!char_inc_exc(c, inclusive, exclusive))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 const char *
 string_mod_const(const char *str,
                  const unsigned int inclusive,
