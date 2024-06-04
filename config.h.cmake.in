@@ -181,9 +181,6 @@ don't. */
 /* Define to 1 if you have the <lzo1x.h> header file. */
 #define HAVE_LZO1X_H 1
 
-/* Define to 1 if you have the <lzoutil.h> header file. */
-#define HAVE_LZOUTIL_H 1
-
 /* Define to 1 if you have the `mlockall' function. */
 #cmakedefine HAVE_MLOCKALL
 

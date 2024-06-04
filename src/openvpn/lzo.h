@@ -40,15 +40,10 @@
 #if defined(HAVE_LZO_CONF_H)
 /* The lzo.h magic gets confused and still wants
  * to include lzo/lzoconf.h even if our include paths
- * are setup to include the paths without lzo/ include lzoconf.h to
- * avoid it being include by lzoutil.h */
+ * are setup to include the paths without lzo/
+ */
 #include <lzodefs.h>
 #include <lzoconf.h>
-#endif
-#if defined(HAVE_LZO_LZOUTIL_H)
-#include <lzo/lzoutil.h>
-#elif defined(HAVE_LZOUTIL_H)
-#include <lzoutil.h>
 #endif
 #if defined(HAVE_LZO_LZO1X_H)
 #include <lzo/lzo1x.h>

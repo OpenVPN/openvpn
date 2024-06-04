@@ -1170,15 +1170,6 @@ if test "${have_lzo}" = "yes"; then
 	saved_CFLAGS="${CFLAGS}"
 	CFLAGS="${CFLAGS} ${LZO_CFLAGS}"
 	AC_CHECK_HEADERS(
-		[lzo/lzoutil.h],
-		,
-		[AC_CHECK_HEADERS(
-			[lzoutil.h],
-			,
-			[AC_MSG_ERROR([lzoutil.h is missing])]
-		)]
-	)
-	AC_CHECK_HEADERS(
 		[lzo/lzo1x.h],
 		,
 		[AC_CHECK_HEADERS(
