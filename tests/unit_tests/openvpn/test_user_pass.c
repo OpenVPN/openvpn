@@ -27,6 +27,8 @@
 #endif
 
 #undef ENABLE_SYSTEMD
+/* avoid redefining ENABLE_SYSTEMD in misc.c */
+#undef HAVE_CONFIG_H
 
 #include "syshead.h"
 #include "manage.h"
