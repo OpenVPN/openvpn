@@ -39,7 +39,7 @@
 
 #include "openvpn-msg.h"
 #include "validate.h"
-#include "block_dns.h"
+#include "wfp_block.h"
 #include "ring_buffer.h"
 
 #define IO_TIMEOUT  2000 /*ms*/
@@ -85,7 +85,7 @@ typedef struct _list_item {
 typedef enum {
     address,
     route,
-    block_dns,
+    wfp_block,
     undo_dns4,
     undo_dns6,
     undo_domain,
@@ -100,7 +100,7 @@ typedef struct {
     int index;
     int metric_v4;
     int metric_v6;
-} block_dns_data_t;
+} wfp_block_data_t;
 
 typedef struct {
     struct tun_ring *send_ring;
@@ -112,7 +112,7 @@ typedef union {
     address_message_t address;
     route_message_t route;
     flush_neighbors_message_t flush_neighbors;
-    block_dns_message_t block_dns;
+    wfp_block_message_t wfp_block;
     dns_cfg_message_t dns;
     enable_dhcp_message_t dhcp;
     register_ring_buffers_message_t rrb;
@@ -787,74 +787,76 @@ CmpAny(LPVOID item, LPVOID any)
 }
 
 static DWORD
-DeleteBlockDNS(const block_dns_message_t *msg, undo_lists_t *lists)
+DeleteWfpBlock(const wfp_block_message_t *msg, undo_lists_t *lists)
 {
     DWORD err = 0;
-    block_dns_data_t *interface_data = RemoveListItem(&(*lists)[block_dns], CmpAny, NULL);
+    wfp_block_data_t *block_data = RemoveListItem(&(*lists)[wfp_block], CmpAny, NULL);
 
-    if (interface_data)
+    if (block_data)
     {
-        err = delete_block_dns_filters(interface_data->engine);
-        if (interface_data->metric_v4 >= 0)
+        err = delete_wfp_block_filters(block_data->engine);
+        if (block_data->metric_v4 >= 0)
         {
             set_interface_metric(msg->iface.index, AF_INET,
-                                 interface_data->metric_v4);
+                                 block_data->metric_v4);
         }
-        if (interface_data->metric_v6 >= 0)
+        if (block_data->metric_v6 >= 0)
         {
             set_interface_metric(msg->iface.index, AF_INET6,
-                                 interface_data->metric_v6);
+                                 block_data->metric_v6);
         }
-        free(interface_data);
+        free(block_data);
     }
     else
     {
-        MsgToEventLog(M_ERR, TEXT("No previous block DNS filters to delete"));
+        MsgToEventLog(M_ERR, TEXT("No previous block filters to delete"));
     }
 
     return err;
 }
 
 static DWORD
-AddBlockDNS(const block_dns_message_t *msg, undo_lists_t *lists)
+AddWfpBlock(const wfp_block_message_t *msg, undo_lists_t *lists)
 {
     DWORD err = 0;
-    block_dns_data_t *interface_data = NULL;
+    wfp_block_data_t *block_data = NULL;
     HANDLE engine = NULL;
     LPCWSTR exe_path;
+    BOOL dns_only;
 
     exe_path = settings.exe_path;
+    dns_only = (msg->flags == wfp_block_dns);
 
-    err = add_block_dns_filters(&engine, msg->iface.index, exe_path, BlockDNSErrHandler);
+    err = add_wfp_block_filters(&engine, msg->iface.index, exe_path, BlockDNSErrHandler, dns_only);
     if (!err)
     {
-        interface_data = malloc(sizeof(block_dns_data_t));
-        if (!interface_data)
+        block_data = malloc(sizeof(wfp_block_data_t));
+        if (!block_data)
         {
             err = ERROR_OUTOFMEMORY;
             goto out;
         }
-        interface_data->engine = engine;
-        interface_data->index = msg->iface.index;
+        block_data->engine = engine;
+        block_data->index = msg->iface.index;
         int is_auto = 0;
-        interface_data->metric_v4 = get_interface_metric(msg->iface.index,
-                                                         AF_INET, &is_auto);
+        block_data->metric_v4 = get_interface_metric(msg->iface.index,
+                                                     AF_INET, &is_auto);
         if (is_auto)
         {
-            interface_data->metric_v4 = 0;
+            block_data->metric_v4 = 0;
         }
-        interface_data->metric_v6 = get_interface_metric(msg->iface.index,
-                                                         AF_INET6, &is_auto);
+        block_data->metric_v6 = get_interface_metric(msg->iface.index,
+                                                     AF_INET6, &is_auto);
         if (is_auto)
         {
-            interface_data->metric_v6 = 0;
+            block_data->metric_v6 = 0;
         }
 
-        err = AddListItem(&(*lists)[block_dns], interface_data);
+        err = AddListItem(&(*lists)[wfp_block], block_data);
         if (!err)
         {
             err = set_interface_metric(msg->iface.index, AF_INET,
-                                       BLOCK_DNS_IFACE_METRIC);
+                                       WFP_BLOCK_IFACE_METRIC);
             if (!err)
             {
                 /* for IPv6, we intentionally ignore errors, because
@@ -863,12 +865,12 @@ AddBlockDNS(const block_dns_message_t *msg, undo_lists_t *lists)
                  * (if OpenVPN wants IPv6 ifconfig, we'll fail there)
                  */
                 set_interface_metric(msg->iface.index, AF_INET6,
-                                     BLOCK_DNS_IFACE_METRIC);
+                                     WFP_BLOCK_IFACE_METRIC);
             }
             if (err)
             {
                 /* delete the filters, remove undo item and free interface data */
-                DeleteBlockDNS(msg, lists);
+                DeleteWfpBlock(msg, lists);
                 engine = NULL;
             }
         }
@@ -877,23 +879,23 @@ AddBlockDNS(const block_dns_message_t *msg, undo_lists_t *lists)
 out:
     if (err && engine)
     {
-        delete_block_dns_filters(engine);
-        free(interface_data);
+        delete_wfp_block_filters(engine);
+        free(block_data);
     }
 
     return err;
 }
 
 static DWORD
-HandleBlockDNSMessage(const block_dns_message_t *msg, undo_lists_t *lists)
+HandleWfpBlockMessage(const wfp_block_message_t *msg, undo_lists_t *lists)
 {
-    if (msg->header.type == msg_add_block_dns)
+    if (msg->header.type == msg_add_wfp_block)
     {
-        return AddBlockDNS(msg, lists);
+        return AddWfpBlock(msg, lists);
     }
     else
     {
-        return DeleteBlockDNS(msg, lists);
+        return DeleteWfpBlock(msg, lists);
     }
 }
 
@@ -1666,11 +1668,11 @@ HandleMessage(HANDLE pipe, HANDLE ovpn_proc,
             }
             break;
 
-        case msg_add_block_dns:
-        case msg_del_block_dns:
-            if (msg.header.size == sizeof(msg.block_dns))
+        case msg_add_wfp_block:
+        case msg_del_wfp_block:
+            if (msg.header.size == sizeof(msg.wfp_block))
             {
-                ack.error_number = HandleBlockDNSMessage(&msg.block_dns, lists);
+                ack.error_number = HandleWfpBlockMessage(&msg.wfp_block, lists);
             }
             break;
 
@@ -1724,7 +1726,7 @@ static VOID
 Undo(undo_lists_t *lists)
 {
     undo_type_t type;
-    block_dns_data_t *interface_data;
+    wfp_block_data_t *interface_data;
     for (type = 0; type < _undo_type_max; type++)
     {
         list_item_t **pnext = &(*lists)[type];
@@ -1757,9 +1759,9 @@ Undo(undo_lists_t *lists)
                     SetDNSDomain(item->data, "", NULL);
                     break;
 
-                case block_dns:
-                    interface_data = (block_dns_data_t *)(item->data);
-                    delete_block_dns_filters(interface_data->engine);
+                case wfp_block:
+                    interface_data = (wfp_block_data_t *)(item->data);
+                    delete_wfp_block_filters(interface_data->engine);
                     if (interface_data->metric_v4 >= 0)
                     {
                         set_interface_metric(interface_data->index, AF_INET,

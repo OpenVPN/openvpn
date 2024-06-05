@@ -25,6 +25,7 @@
  * Support routines for adding/deleting network routes.
  */
 #include <stddef.h>
+#include <stdbool.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -74,7 +75,9 @@ static bool del_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt)
 
 #endif
 
-static void delete_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags, const struct route_gateway_info *rgi, const struct env_set *es, openvpn_net_ctx_t *ctx);
+static void delete_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
+                         const struct route_gateway_info *rgi, const struct env_set *es,
+                         openvpn_net_ctx_t *ctx);
 
 static void get_bypass_addresses(struct route_bypass *rb, const unsigned int flags);
 
@@ -566,9 +569,7 @@ add_block_local_item(struct route_list *rl,
                      const struct route_gateway_address *gateway,
                      in_addr_t target)
 {
-    const int rgi_needed = (RGI_ADDR_DEFINED|RGI_NETMASK_DEFINED);
-    if ((rl->rgi.flags & rgi_needed) == rgi_needed
-        && rl->rgi.gateway.netmask < 0xFFFFFFFF)
+    if (rl->rgi.gateway.netmask < 0xFFFFFFFF)
     {
         struct route_ipv4 *r1, *r2;
         unsigned int l2;
@@ -593,36 +594,37 @@ add_block_local_item(struct route_list *rl,
 }
 
 static void
-add_block_local(struct route_list *rl)
+add_block_local_routes(struct route_list *rl)
 {
-    const int rgi_needed = (RGI_ADDR_DEFINED|RGI_NETMASK_DEFINED);
-    if ((rl->flags & RG_BLOCK_LOCAL)
-        && (rl->rgi.flags & rgi_needed) == rgi_needed
-        && (rl->spec.flags & RTSA_REMOTE_ENDPOINT)
-        && rl->spec.remote_host_local != TLA_LOCAL)
-    {
-        size_t i;
-
 #ifndef TARGET_ANDROID
-        /* add bypass for gateway addr */
-        add_bypass_address(&rl->spec.bypass, rl->rgi.gateway.addr);
+    /* add bypass for gateway addr */
+    add_bypass_address(&rl->spec.bypass, rl->rgi.gateway.addr);
 #endif
 
-        /* block access to local subnet */
-        add_block_local_item(rl, &rl->rgi.gateway, rl->spec.remote_endpoint);
+    /* block access to local subnet */
+    add_block_local_item(rl, &rl->rgi.gateway, rl->spec.remote_endpoint);
 
-        /* process additional subnets on gateway interface */
-        for (i = 0; i < rl->rgi.n_addrs; ++i)
+    /* process additional subnets on gateway interface */
+    for (size_t i = 0; i < rl->rgi.n_addrs; ++i)
+    {
+        const struct route_gateway_address *gwa = &rl->rgi.addrs[i];
+        /* omit the add/subnet in &rl->rgi which we processed above */
+        if (!((rl->rgi.gateway.addr & rl->rgi.gateway.netmask) == (gwa->addr & gwa->netmask)
+              && rl->rgi.gateway.netmask == gwa->netmask))
         {
-            const struct route_gateway_address *gwa = &rl->rgi.addrs[i];
-            /* omit the add/subnet in &rl->rgi which we processed above */
-            if (!((rl->rgi.gateway.addr & rl->rgi.gateway.netmask) == (gwa->addr & gwa->netmask)
-                  && rl->rgi.gateway.netmask == gwa->netmask))
-            {
-                add_block_local_item(rl, gwa, rl->spec.remote_endpoint);
-            }
+            add_block_local_item(rl, gwa, rl->spec.remote_endpoint);
         }
     }
+}
+
+bool
+block_local_needed(const struct route_list *rl)
+{
+    const int rgi_needed = (RGI_ADDR_DEFINED|RGI_NETMASK_DEFINED);
+    return (rl->flags & RG_BLOCK_LOCAL)
+           && (rl->rgi.flags & rgi_needed) == rgi_needed
+           && (rl->spec.flags & RTSA_REMOTE_ENDPOINT)
+           && rl->spec.remote_host_local != TLA_LOCAL;
 }
 
 bool
@@ -698,7 +700,10 @@ init_route_list(struct route_list *rl,
 
     if (rl->flags & RG_ENABLE)
     {
-        add_block_local(rl);
+        if (block_local_needed(rl))
+        {
+            add_block_local_routes(rl);
+        }
         get_bypass_addresses(&rl->spec.bypass, rl->flags);
 #ifdef ENABLE_DEBUG
         print_bypass_addresses(&rl->spec.bypass);
@@ -1241,6 +1246,7 @@ add_routes(struct route_list *rl, struct route_ipv6_list *rl6,
         }
         rl6->iflags |= RL_ROUTES_ADDED;
     }
+
     return ret;
 }
 

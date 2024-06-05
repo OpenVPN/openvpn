@@ -34,6 +34,9 @@
 
 #ifdef _WIN32
 
+#include <minwindef.h>
+#include <winsock2.h>
+
 #include "buffer.h"
 #include "error.h"
 #include "mtu.h"
@@ -47,7 +50,7 @@
 
 #include <versionhelpers.h>
 
-#include "block_dns.h"
+#include "wfp_block.h"
 
 /*
  * WFP handle
@@ -1138,43 +1141,19 @@ set_win_sys_path_via_env(struct env_set *es)
 }
 
 static bool
-win_block_dns_service(bool add, int index, const HANDLE pipe)
+win_get_exe_path(PWCHAR path, DWORD size)
 {
-    bool ret = false;
-    ack_message_t ack;
-    struct gc_arena gc = gc_new();
-
-    block_dns_message_t data = {
-        .header = {
-            (add ? msg_add_block_dns : msg_del_block_dns),
-            sizeof(block_dns_message_t),
-            0
-        },
-        .iface = { .index = index, .name = "" }
-    };
-
-    if (!send_msg_iservice(pipe, &data, sizeof(data), &ack, "Block_DNS"))
+    DWORD status = GetModuleFileNameW(NULL, path, size);
+    if (status == 0 || status == size)
     {
-        goto out;
+        msg(M_WARN|M_ERRNO, "cannot get executable path");
+        return false;
     }
-
-    if (ack.error_number != NO_ERROR)
-    {
-        msg(M_WARN, "Block_DNS: %s block dns filters using service failed: %s [status=0x%x if_index=%d]",
-            (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc),
-            ack.error_number, data.iface.index);
-        goto out;
-    }
-
-    ret = true;
-    msg(M_INFO, "%s outside dns using service succeeded.", (add ? "Blocking" : "Unblocking"));
-out:
-    gc_free(&gc);
-    return ret;
+    return true;
 }
 
 static void
-block_dns_msg_handler(DWORD err, const char *msg)
+win_wfp_msg_handler(DWORD err, const char *msg)
 {
     struct gc_arena gc = gc_new();
 
@@ -1184,15 +1163,52 @@ block_dns_msg_handler(DWORD err, const char *msg)
     }
     else
     {
-        msg(M_WARN, "Error in add_block_dns_filters(): %s : %s [status=0x%lx]",
+        msg(M_WARN, "Error in WFP: %s : %s [status=0x%lx]",
             msg, strerror_win32(err, &gc), err);
     }
 
     gc_free(&gc);
 }
 
+static bool
+win_wfp_block_service(bool add, bool dns_only, int index, const HANDLE pipe)
+{
+    bool ret = false;
+    ack_message_t ack;
+    struct gc_arena gc = gc_new();
+
+    wfp_block_message_t data = {
+        .header = {
+            (add ? msg_add_wfp_block : msg_del_wfp_block),
+            sizeof(wfp_block_message_t),
+            0
+        },
+        .flags = dns_only ? wfp_block_dns : wfp_block_local,
+        .iface = { .index = index, .name = "" }
+    };
+
+    if (!send_msg_iservice(pipe, &data, sizeof(data), &ack, "WFP block"))
+    {
+        goto out;
+    }
+
+    if (ack.error_number != NO_ERROR)
+    {
+        msg(M_WARN, "WFP block: %s block filters using service failed: %s [status=0x%x if_index=%d]",
+            (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc),
+            ack.error_number, data.iface.index);
+        goto out;
+    }
+
+    ret = true;
+    msg(M_INFO, "%s WFP block filters using service succeeded.", (add ? "Adding" : "Deleting"));
+out:
+    gc_free(&gc);
+    return ret;
+}
+
 bool
-win_wfp_block_dns(const NET_IFINDEX index, const HANDLE msg_channel)
+win_wfp_block(const NET_IFINDEX index, const HANDLE msg_channel, BOOL dns_only)
 {
     WCHAR openvpnpath[MAX_PATH];
     bool ret = false;
@@ -1200,20 +1216,19 @@ win_wfp_block_dns(const NET_IFINDEX index, const HANDLE msg_channel)
 
     if (msg_channel)
     {
-        dmsg(D_LOW, "Using service to add block dns filters");
-        ret = win_block_dns_service(true, index, msg_channel);
+        dmsg(D_LOW, "Using service to add WFP block filters");
+        ret = win_wfp_block_service(true, dns_only, index, msg_channel);
         goto out;
     }
 
-    status = GetModuleFileNameW(NULL, openvpnpath, _countof(openvpnpath));
-    if (status == 0 || status == _countof(openvpnpath))
+    ret = win_get_exe_path(openvpnpath, _countof(openvpnpath));
+    if (ret == false)
     {
-        msg(M_WARN|M_ERRNO, "block_dns: cannot get executable path");
         goto out;
     }
 
-    status = add_block_dns_filters(&m_hEngineHandle, index, openvpnpath,
-                                   block_dns_msg_handler);
+    status = add_wfp_block_filters(&m_hEngineHandle, index, openvpnpath,
+                                   win_wfp_msg_handler, dns_only);
     if (status == 0)
     {
         int is_auto = 0;
@@ -1227,10 +1242,10 @@ win_wfp_block_dns(const NET_IFINDEX index, const HANDLE msg_channel)
         {
             tap_metric_v6 = 0;
         }
-        status = set_interface_metric(index, AF_INET, BLOCK_DNS_IFACE_METRIC);
+        status = set_interface_metric(index, AF_INET, WFP_BLOCK_IFACE_METRIC);
         if (!status)
         {
-            set_interface_metric(index, AF_INET6, BLOCK_DNS_IFACE_METRIC);
+            set_interface_metric(index, AF_INET6, WFP_BLOCK_IFACE_METRIC);
         }
     }
 
@@ -1248,12 +1263,12 @@ win_wfp_uninit(const NET_IFINDEX index, const HANDLE msg_channel)
 
     if (msg_channel)
     {
-        msg(D_LOW, "Using service to delete block dns filters");
-        win_block_dns_service(false, index, msg_channel);
+        msg(D_LOW, "Using service to delete WFP block filters");
+        win_wfp_block_service(false, false, index, msg_channel);
     }
     else
     {
-        delete_block_dns_filters(m_hEngineHandle);
+        delete_wfp_block_filters(m_hEngineHandle);
         m_hEngineHandle = NULL;
         if (tap_metric_v4 >= 0)
         {

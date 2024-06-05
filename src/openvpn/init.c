@@ -1782,6 +1782,54 @@ can_preserve_tun(struct tuntap *tt)
 #endif
 }
 
+/**
+ * Add WFP filters to block traffic to local networks.
+ * Depending on the configuration all or just DNS is filtered.
+ * This functionality is only available on Windows on all other
+ * systems this function is a noop.
+ *
+ * @param c pointer to the connection context
+ */
+static void
+add_wfp_block(struct context *c)
+{
+#if defined(_WIN32)
+    /* Fortify 'redirect-gateway block-local' with firewall rules? */
+    bool block_local = block_local_needed(c->c1.route_list);
+
+    if (c->options.block_outside_dns || block_local)
+    {
+        BOOL dns_only = !block_local;
+        if (!win_wfp_block(c->c1.tuntap->adapter_index, c->options.msg_channel, dns_only))
+        {
+            msg(M_FATAL, "WFP: initialization failed");
+        }
+    }
+#endif
+}
+
+/**
+ * Remove any WFP block filters previously added.
+ * This functionality is only available on Windows on all other
+ * systems the function is a noop.
+ *
+ * @param c             pointer to the connection context
+ * @param adapter_index the VPN adapter index
+ */
+static void
+del_wfp_block(struct context *c, unsigned long adapter_index)
+{
+#if defined(_WIN32)
+    if (c->options.block_outside_dns || block_local_needed(c->c1.route_list))
+    {
+        if (!win_wfp_uninit(adapter_index, c->options.msg_channel))
+        {
+            msg(M_FATAL, "WFP: deinitialization failed");
+        }
+    }
+#endif
+}
+
 static bool
 do_open_tun(struct context *c, int *error_flags)
 {
@@ -1904,16 +1952,7 @@ do_open_tun(struct context *c, int *error_flags)
                     "up",
                     c->c2.es);
 
-#if defined(_WIN32)
-        if (c->options.block_outside_dns)
-        {
-            dmsg(D_LOW, "Blocking outside DNS");
-            if (!win_wfp_block_dns(c->c1.tuntap->adapter_index, c->options.msg_channel))
-            {
-                msg(M_FATAL, "Blocking DNS failed!");
-            }
-        }
-#endif
+        add_wfp_block(c);
 
         /* possibly add routes */
         if ((route_order() == ROUTE_AFTER_TUN) && (!c->options.route_delay_defined))
@@ -1953,17 +1992,8 @@ do_open_tun(struct context *c, int *error_flags)
                         "up",
                         c->c2.es);
         }
-#if defined(_WIN32)
-        if (c->options.block_outside_dns)
-        {
-            dmsg(D_LOW, "Blocking outside DNS");
-            if (!win_wfp_block_dns(c->c1.tuntap->adapter_index, c->options.msg_channel))
-            {
-                msg(M_FATAL, "Blocking DNS failed!");
-            }
-        }
-#endif
 
+        add_wfp_block(c);
     }
     gc_free(&gc);
     return ret;
@@ -2012,11 +2042,12 @@ do_close_tun(struct context *c, bool force)
 
     struct gc_arena gc = gc_new();
     const char *tuntap_actual = string_alloc(c->c1.tuntap->actual_name, &gc);
-#ifdef _WIN32
-    DWORD adapter_index = c->c1.tuntap->adapter_index;
-#endif
     const in_addr_t local = c->c1.tuntap->local;
     const in_addr_t remote_netmask = c->c1.tuntap->remote_netmask;
+    unsigned long adapter_index = 0;
+#ifdef _WIN32
+    adapter_index = c->c1.tuntap->adapter_index;
+#endif
 
     if (force || !(c->sig->signal_received == SIGUSR1 && c->options.persist_tun))
     {
@@ -2081,15 +2112,7 @@ do_close_tun(struct context *c, bool force)
                     "down",
                     c->c2.es);
 
-#if defined(_WIN32)
-        if (c->options.block_outside_dns)
-        {
-            if (!win_wfp_uninit(adapter_index, c->options.msg_channel))
-            {
-                msg(M_FATAL, "Uninitialising WFP failed!");
-            }
-        }
-#endif
+        del_wfp_block(c, adapter_index);
 
         /* actually close tun/tap device based on --down-pre flag */
         if (c->options.down_pre)
@@ -2120,16 +2143,7 @@ do_close_tun(struct context *c, bool force)
                         c->c2.es);
         }
 
-#if defined(_WIN32)
-        if (c->options.block_outside_dns)
-        {
-            if (!win_wfp_uninit(adapter_index, c->options.msg_channel))
-            {
-                msg(M_FATAL, "Uninitialising WFP failed!");
-            }
-        }
-#endif
-
+        del_wfp_block(c, adapter_index);
     }
     gc_free(&gc);
 }

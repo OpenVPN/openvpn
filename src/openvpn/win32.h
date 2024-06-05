@@ -25,8 +25,10 @@
 #ifndef OPENVPN_WIN32_H
 #define OPENVPN_WIN32_H
 
-#include <winioctl.h>
+#include <iphlpapi.h>
+#include <ws2tcpip.h>
 
+#include "syshead.h"
 #include "mtu.h"
 #include "openvpn-msg.h"
 #include "argv.h"
@@ -286,7 +288,7 @@ char *get_win_sys_path(void);
 /* call self in a subprocess */
 void fork_to_self(const char *cmdline);
 
-bool win_wfp_block_dns(const NET_IFINDEX index, const HANDLE msg_channel);
+bool win_wfp_block(const NET_IFINDEX index, const HANDLE msg_channel, BOOL dns_only);
 
 bool win_wfp_uninit(const NET_IFINDEX index, const HANDLE msg_channel);
 
