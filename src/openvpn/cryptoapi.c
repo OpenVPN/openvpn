@@ -178,6 +178,87 @@ parse_hexstring(const char *p, unsigned char *arr, size_t capacity)
     return i;
 }
 
+static void *
+decode_object(struct gc_arena *gc, LPCSTR struct_type,
+              const CRYPT_OBJID_BLOB *val, DWORD flags, DWORD *cb)
+{
+    /* get byte count for decoding */
+    BYTE *buf;
+    if (!CryptDecodeObject(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, struct_type,
+                           val->pbData, val->cbData, flags, NULL, cb))
+    {
+        return NULL;
+    }
+
+    /* do the actual decode */
+    buf = gc_malloc(*cb, false, gc);
+    if (!CryptDecodeObject(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, struct_type,
+                           val->pbData, val->cbData, flags, buf, cb))
+    {
+        return NULL;
+    }
+
+    return buf;
+}
+
+static const CRYPT_OID_INFO *
+find_oid(DWORD keytype, const void *key, DWORD groupid)
+{
+    const CRYPT_OID_INFO *info = NULL;
+
+    /* try proper resolve, also including AD */
+    info = CryptFindOIDInfo(keytype, (void *)key, groupid);
+
+    /* fall back to all groups if not found yet */
+    if (!info && groupid)
+    {
+        info = CryptFindOIDInfo(keytype, (void *)key, 0);
+    }
+
+    return info;
+}
+
+static bool
+test_certificate_template(const char *cert_prop, const CERT_CONTEXT *cert_ctx)
+{
+    const CERT_INFO *info = cert_ctx->pCertInfo;
+    const CERT_EXTENSION *ext;
+    DWORD cbext;
+    void *pvext;
+    struct gc_arena gc = gc_new();
+    const WCHAR *tmpl_name = wide_string(cert_prop, &gc);
+
+    /* check for V2 extension (Windows 2003+) */
+    ext = CertFindExtension(szOID_CERTIFICATE_TEMPLATE, info->cExtension, info->rgExtension);
+    if (ext)
+    {
+        pvext = decode_object(&gc, X509_CERTIFICATE_TEMPLATE, &ext->Value, 0, &cbext);
+        if (pvext && cbext >= sizeof(CERT_TEMPLATE_EXT))
+        {
+            const CERT_TEMPLATE_EXT *cte = (const CERT_TEMPLATE_EXT *)pvext;
+            if (!stricmp(cert_prop, cte->pszObjId))
+            {
+                /* found direct OID match with certificate property specified */
+                gc_free(&gc);
+                return true;
+            }
+
+            const CRYPT_OID_INFO *tmpl_oid = find_oid(CRYPT_OID_INFO_NAME_KEY, tmpl_name,
+                                                      CRYPT_TEMPLATE_OID_GROUP_ID);
+            if (tmpl_oid && !stricmp(tmpl_oid->pszOID, cte->pszObjId))
+            {
+                /* found OID match in extension against resolved key */
+                gc_free(&gc);
+                return true;
+            }
+        }
+    }
+
+    /* no extension found, exit */
+    gc_free(&gc);
+    return false;
+}
+
 static const CERT_CONTEXT *
 find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
 {
@@ -186,6 +267,7 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
      * SUBJ:<certificate substring to match>
      * THUMB:<certificate thumbprint hex value>, e.g.
      *     THUMB:f6 49 24 41 01 b4 fb 44 0c ce f4 36 ae d0 c4 c9 df 7a b6 28
+     * TMPL:<template name or OID>
      * The first matching certificate that has not expired is returned.
      */
     const CERT_CONTEXT *rv = NULL;
@@ -218,6 +300,12 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
             goto out;
         }
     }
+    else if (!strncmp(cert_prop, "TMPL:", 5))
+    {
+        cert_prop += 5;
+        find_param = NULL;
+        find_type = CERT_FIND_HAS_PRIVATE_KEY;
+    }
     else
     {
         msg(M_NONFATAL, "Error in cryptoapicert: unsupported certificate specification <%s>", cert_prop);
@@ -230,11 +318,18 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
         /* this frees previous rv, if not NULL */
         rv = CertFindCertificateInStore(cert_store, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
                                         0, find_type, find_param, rv);
-        if (rv)
+        if (!rv)
         {
-            validity = CertVerifyTimeValidity(NULL, rv->pCertInfo);
+            break;
         }
-        if (!rv || validity == 0)
+        /* if searching by template name, check now if it matches */
+        if (find_type == CERT_FIND_HAS_PRIVATE_KEY
+            && !test_certificate_template(cert_prop, rv))
+        {
+            continue;
+        }
+        validity = CertVerifyTimeValidity(NULL, rv->pCertInfo);
+        if (validity == 0)
         {
             break;
         }

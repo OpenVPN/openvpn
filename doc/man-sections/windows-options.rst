@@ -55,6 +55,13 @@ Windows-Specific Options
 
      cryptoapicert "ISSUER:Sample CA"
 
+  To select a certificate based on a certificate's template name or
+  OID of the template:
+  ::
+
+     cryptoapicert "TMPL:Name of Template"
+     cryptoapicert "TMPL:1.3.6.1.4..."
+
   The first non-expired certificate found in the user's store or the
   machine store that matches the select-string is used.
 
