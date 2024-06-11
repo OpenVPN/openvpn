@@ -55,6 +55,7 @@ vendor/dist
 
 tests/t_client.sh
 tests/t_client-*-20??????-??????/
+tests/t_server_null.rc
 t_client.rc
 t_client_ips.rc
 tests/unit_tests/**/*_testdriver

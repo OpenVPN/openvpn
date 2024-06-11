@@ -1,0 +1,66 @@
+# Notes regarding --dev null server and client configurations:
+#
+# The t_server_null_server.sh exits when all client pid files have gone
+# missing. That is the most reliable and fastest way to detect client
+# disconnections in the "everything runs on localhost" context. Checking server
+# status files for client connections works, but introduces long delays as
+# --explicit-exit-notify does not seem to work on all client configurations.
+# This means that, by default, there is about 1 minute delay before the server
+# purges clients that have already exited and have not reported back.
+#
+srcdir="${srcdir:-.}"
+top_builddir="${top_builddir:-..}"
+sample_keys="${srcdir}/../sample/sample-keys"
+
+DH="${sample_keys}/dh2048.pem"
+CA="${sample_keys}/ca.crt"
+CLIENT_CERT="${sample_keys}/client.crt"
+CLIENT_KEY="${sample_keys}/client.key"
+SERVER_CERT="${sample_keys}/server.crt"
+SERVER_KEY="${sample_keys}/server.key"
+TA="${sample_keys}/ta.key"
+
+# Test server configurations
+MAX_CLIENTS="10"
+CLIENT_MATCH="Test-Client"
+SERVER_EXEC="${top_builddir}/src/openvpn/openvpn"
+SERVER_BASE_OPTS="--daemon --local 127.0.0.1 --dev tun --topology subnet --server 10.29.41.0 255.255.255.0 --max-clients $MAX_CLIENTS --persist-tun --verb 3"
+SERVER_CIPHER_OPTS=""
+SERVER_CERT_OPTS="--ca ${CA} --dh ${DH} --cert ${SERVER_CERT} --key ${SERVER_KEY} --tls-auth ${TA} 0"
+SERVER_CONF_BASE="${SERVER_BASE_OPTS} ${SERVER_CIPHER_OPTS} ${SERVER_CERT_OPTS}"
+
+TEST_SERVER_LIST="1 2"
+
+SERVER_NAME_1="t_server_null_server-1194_udp"
+SERVER_MGMT_PORT_1="11194"
+SERVER_EXEC_1="${SERVER_EXEC}"
+SERVER_CONF_1="${SERVER_CONF_BASE} --lport 1194 --proto udp --management 127.0.0.1 ${SERVER_MGMT_PORT_1}"
+
+SERVER_NAME_2="t_server_null_server-1195_tcp"
+SERVER_MGMT_PORT_2="11195"
+SERVER_EXEC_2="${SERVER_EXEC}"
+SERVER_CONF_2="${SERVER_CONF_BASE} --lport 1195 --proto tcp --management 127.0.0.1 ${SERVER_MGMT_PORT_2}"
+
+# Test client configurations
+CLIENT_EXEC="${top_builddir}/src/openvpn/openvpn"
+CLIENT_BASE_OPTS="--client --dev null --ifconfig-noexec --nobind --remote-cert-tls server --persist-tun --verb 3 --resolv-retry infinite --connect-retry-max 3 --server-poll-timeout 5 --explicit-exit-notify 3 --script-security 2 --up ${srcdir}/null_client_up.sh"
+CLIENT_CIPHER_OPTS=""
+CLIENT_CERT_OPTS="--ca ${CA} --cert ${CLIENT_CERT} --key ${CLIENT_KEY} --tls-auth ${TA} 1"
+
+TEST_RUN_LIST="1 2 3"
+CLIENT_CONF_BASE="${CLIENT_BASE_OPTS} ${CLIENT_CIPHER_OPTS} ${CLIENT_CERT_OPTS}"
+
+TEST_NAME_1="t_server_null_client.sh-openvpn_current_udp"
+SHOULD_PASS_1="yes"
+CLIENT_EXEC_1="${CLIENT_EXEC}"
+CLIENT_CONF_1="${CLIENT_CONF_BASE} --remote 127.0.0.1 1194 udp --proto udp"
+
+TEST_NAME_2="t_server_null_client.sh-openvpn_current_tcp"
+SHOULD_PASS_2="yes"
+CLIENT_EXEC_2="${CLIENT_EXEC}"
+CLIENT_CONF_2="${CLIENT_CONF_BASE} --remote 127.0.0.1 1195 tcp --proto tcp"
+
+TEST_NAME_3="t_server_null_client.sh-openvpn_current_udp_fail"
+SHOULD_PASS_3="no"
+CLIENT_EXEC_3="${CLIENT_EXEC}"
+CLIENT_CONF_3="${CLIENT_CONF_BASE} --remote 127.0.0.1 11194 udp --proto udp"
