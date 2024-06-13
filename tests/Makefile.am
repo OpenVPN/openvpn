@@ -15,10 +15,10 @@ MAINTAINERCLEANFILES = \
 SUBDIRS = unit_tests
 
 AM_TESTSUITE_SUMMARY_HEADER = ' for $(PACKAGE_STRING) System Tests'
-LOG_DRIVER = $(SHELL) $(top_srcdir)/forked-test-driver
+SH_LOG_DRIVER = $(SHELL) $(top_srcdir)/forked-test-driver
 
 if !WIN32
-test_scripts = t_client.sh t_lpback.sh t_cltsrv.sh
+test_scripts = t_client.sh t_lpback.sh t_cltsrv.sh t_server_null.sh
 
 check_PROGRAMS = ntlm_support
 if HAVE_SITNL
@@ -27,6 +27,7 @@ endif
 endif
 
 TESTS_ENVIRONMENT = top_srcdir="$(top_srcdir)"
+TEST_EXTENSIONS = .sh
 TESTS = $(test_scripts)
 
 dist_noinst_SCRIPTS = \
@@ -34,7 +35,13 @@ dist_noinst_SCRIPTS = \
 	t_cltsrv-down.sh \
 	t_lpback.sh \
 	t_net.sh \
+	t_server_null.sh \
+	t_server_null_client.sh \
+	t_server_null_server.sh \
+	t_server_null_default.rc \
 	update_t_client_ips.sh
+
+t_client.log: t_server_null.log
 
 dist_noinst_DATA = \
 	t_client.rc-sample
