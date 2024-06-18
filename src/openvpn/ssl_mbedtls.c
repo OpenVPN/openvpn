@@ -1040,12 +1040,8 @@ tls_version_max(void)
 {
 #if defined(MBEDTLS_SSL_PROTO_TLS1_2)
     return TLS_VER_1_2;
-#elif defined(MBEDTLS_SSL_PROTO_TLS1_1)
-    return TLS_VER_1_1;
-#elif defined(MBEDTLS_SSL_PROTO_TLS1)
-    return TLS_VER_1_0;
 #else /* defined(MBEDTLS_SSL_PROTO_TLS1_2) */
-    #error "mbedtls is compiled without support for TLS 1.0, 1.1 and 1.2."
+    #error "mbedtls is compiled without support for TLS 1.2."
 #endif /* defined(MBEDTLS_SSL_PROTO_TLS1_2) */
 }
 
@@ -1067,20 +1063,6 @@ tls_version_to_major_minor(int tls_ver, int *major, int *minor)
 
     switch (tls_ver)
     {
-#if defined(MBEDTLS_SSL_PROTO_TLS1)
-        case TLS_VER_1_0:
-            *major = MBEDTLS_SSL_MAJOR_VERSION_3;
-            *minor = MBEDTLS_SSL_MINOR_VERSION_1;
-            break;
-#endif
-
-#if defined(MBEDTLS_SSL_PROTO_TLS1_1)
-        case TLS_VER_1_1:
-            *major = MBEDTLS_SSL_MAJOR_VERSION_3;
-            *minor = MBEDTLS_SSL_MINOR_VERSION_2;
-            break;
-#endif
-
 #if defined(MBEDTLS_SSL_PROTO_TLS1_2)
         case TLS_VER_1_2:
             *major = MBEDTLS_SSL_MAJOR_VERSION_3;
