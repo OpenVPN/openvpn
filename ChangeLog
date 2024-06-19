@@ -1,6 +1,41 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2024 OpenVPN Inc <sales@openvpn.net>
 
+2024.06.20 -- Version 2.6.11
+
+5andr0 (1):
+      Implement server_poll_timeout for socks
+
+Arne Schwabe (6):
+      Use snprintf instead of sprintf for get_ssl_library_version
+      Add bracket in fingerprint message and do not warn about missing verification
+      Replace macos11 with macos14 in github runners
+      Only run coverity scan in OpenVPN/OpenVPN repository
+      Workaround issue in LibreSSL crashing when enumerating digests/ciphers
+      Properly handle null bytes and invalid characters in control messages
+
+Franco Fichtner (1):
+      Allow to set ifmode for existing DCO interfaces in FreeBSD
+
+Frank Lichtenheld (6):
+      samples: Update sample configurations
+      documentation: make section levels consistent
+      phase2_tcp_server: fix Coverity issue 'Dereference after null check'
+      script-options.rst: Update ifconfig_* variables
+      LZO: do not use lzoutils.h macros
+      Remove "experimental" denotation for --fast-io
+
+Heiko Wundram (1):
+      Implement Windows CA template match for Crypto-API selector
+
+Lev Stipakov (2):
+      misc.c: remove unused code
+      interactive.c: Improve access control for gui<->service pipe
+
+Reynir Björnsson (1):
+      Only schedule_exit() once
+
+
 2024.03.20 -- Version 2.6.10
 
 Christoph Schug (1):
