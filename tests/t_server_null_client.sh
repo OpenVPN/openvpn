@@ -130,7 +130,7 @@ do
     eval test_name=\"\$TEST_NAME_$SUF\"
     eval should_pass=\"\$SHOULD_PASS_$SUF\"
 
-    (get_client_test_result "${test_name}" "${should_pass}")
+    get_client_test_result "${test_name}" "${should_pass}"
 done
 
 exit $retval

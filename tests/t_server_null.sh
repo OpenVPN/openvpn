@@ -64,9 +64,12 @@ else
 fi
 
 "${srcdir}/t_server_null_client.sh"
+retval=$?
 
 # When running make jobs in parallel ("make -j<x> check") we need to ensure
 # that this script does not exit before all --dev null servers are dead and
 # their network interfaces are gone. Otherwise t_client.sh will fail because
 # pre and post ifconfig output does not match.
 wait
+
+exit $retval
