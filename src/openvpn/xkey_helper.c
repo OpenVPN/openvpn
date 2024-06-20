@@ -49,7 +49,7 @@ static const char *const props = XKEY_PROV_PROPS;
 XKEY_EXTERNAL_SIGN_fn xkey_management_sign;
 
 static void
-print_openssl_errors()
+print_openssl_errors(void)
 {
     unsigned long e;
     while ((e = ERR_get_error()))

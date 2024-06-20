@@ -119,7 +119,7 @@ load_pubkey(const char *pem)
 }
 
 static void
-init_test()
+init_test(void)
 {
     openvpn_unit_test_setup();
     prov[0] = OSSL_PROVIDER_load(NULL, "default");
@@ -135,7 +135,7 @@ init_test()
 }
 
 static void
-uninit_test()
+uninit_test(void)
 {
     for (size_t i = 0; i < _countof(prov); i++)
     {

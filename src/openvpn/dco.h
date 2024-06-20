@@ -247,7 +247,7 @@ int dco_get_peer_stats(struct context *c);
  *
  * @return                   list of colon-separated ciphers
  */
-const char *dco_get_supported_ciphers();
+const char *dco_get_supported_ciphers(void);
 
 #else /* if defined(ENABLE_DCO) */
 
@@ -375,7 +375,7 @@ dco_get_peer_stats(struct context *c)
 }
 
 static inline const char *
-dco_get_supported_ciphers()
+dco_get_supported_ciphers(void)
 {
     return "";
 }

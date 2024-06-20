@@ -773,7 +773,7 @@ dco_get_peer_stats(struct context *c)
 }
 
 const char *
-dco_get_supported_ciphers()
+dco_get_supported_ciphers(void)
 {
     return "none:AES-256-GCM:AES-192-GCM:AES-128-GCM:CHACHA20-POLY1305";
 }

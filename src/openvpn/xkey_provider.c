@@ -155,7 +155,7 @@ static int
 keymgmt_import_helper(XKEY_KEYDATA *key, const OSSL_PARAM params[]);
 
 static XKEY_KEYDATA *
-keydata_new()
+keydata_new(void)
 {
     xkey_dmsg(D_XKEY, "entry");
 

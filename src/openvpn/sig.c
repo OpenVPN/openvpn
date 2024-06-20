@@ -448,7 +448,7 @@ post_init_signal_catch(void)
 }
 
 void
-halt_low_priority_signals()
+halt_low_priority_signals(void)
 {
 #ifndef _WIN32
     struct sigaction sa;

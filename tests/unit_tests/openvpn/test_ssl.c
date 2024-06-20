@@ -81,7 +81,7 @@ const char *unittest_cert = "-----BEGIN CERTIFICATE-----\n"
                             "-----END CERTIFICATE-----\n";
 
 static const char *
-get_tmp_dir()
+get_tmp_dir(void)
 {
     const char *ret;
 #ifdef _WIN32

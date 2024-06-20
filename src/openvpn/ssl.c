@@ -277,7 +277,7 @@ static char *auth_challenge; /* GLOBAL */
 #endif
 
 void
-enable_auth_user_pass()
+enable_auth_user_pass(void)
 {
     auth_user_pass_enabled = true;
 }

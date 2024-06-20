@@ -35,7 +35,7 @@ pkcs11_initialize(
     );
 
 void
-pkcs11_terminate();
+pkcs11_terminate(void);
 
 bool
 pkcs11_addProvider(
@@ -46,10 +46,10 @@ pkcs11_addProvider(
     );
 
 int
-pkcs11_logout();
+pkcs11_logout(void);
 
 int
-pkcs11_management_id_count();
+pkcs11_management_id_count(void);
 
 bool
 pkcs11_management_id_get(
