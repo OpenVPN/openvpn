@@ -57,6 +57,8 @@ struct http_proxy_options {
     const char *user_agent;
     struct http_custom_header custom_headers[MAX_CUSTOM_HTTP_HEADER];
     bool inline_creds; /* auth_file_up is inline credentials */
+    bool first_time; /* indicates if we need to wipe user creds at the first iteration of the main loop */
+    bool nocache;
 };
 
 struct http_proxy_options_simple {
