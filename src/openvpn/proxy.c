@@ -276,7 +276,7 @@ get_user_pass_http(struct http_proxy_info *p, const bool force)
         {
             auth_file = p->options.auth_file_up;
         }
-        if (p->queried_creds)
+        if (p->queried_creds && !static_proxy_user_pass.nocache)
         {
             flags |= GET_USER_PASS_PREVIOUS_CREDS_FAILED;
         }
@@ -288,9 +288,14 @@ get_user_pass_http(struct http_proxy_info *p, const bool force)
                       auth_file,
                       UP_TYPE_PROXY,
                       flags);
-        p->queried_creds = true;
-        p->up = static_proxy_user_pass;
+        static_proxy_user_pass.nocache = p->options.nocache;
     }
+
+    /*
+     * Using cached credentials
+     */
+    p->queried_creds = true;
+    p->up = static_proxy_user_pass;
 }
 
 #if 0
@@ -541,7 +546,7 @@ http_proxy_new(const struct http_proxy_options *o)
     /* only basic and NTLM/NTLMv2 authentication supported so far */
     if (p->auth_method == HTTP_AUTH_BASIC || p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2)
     {
-        get_user_pass_http(p, true);
+        get_user_pass_http(p, p->options.first_time);
     }
 
 #if !NTLM
@@ -656,6 +661,11 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
         || p->auth_method == HTTP_AUTH_NTLM)
     {
         get_user_pass_http(p, false);
+
+        if (p->up.nocache)
+        {
+            clear_user_pass_http();
+        }
     }
 
     /* are we being called again after getting the digest server nonce in the previous transaction? */
@@ -1031,13 +1041,6 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
             }
             goto error;
         }
-
-        /* clear state */
-        if (p->options.auth_retry)
-        {
-            clear_user_pass_http();
-        }
-        store_proxy_authenticate(p, NULL);
     }
 
     /* check return code, success = 200 */

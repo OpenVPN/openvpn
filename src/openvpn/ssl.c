@@ -499,6 +499,15 @@ ssl_set_auth_nocache(void)
 }
 
 /*
+ * Get the password caching
+ */
+bool
+ssl_get_auth_nocache(void)
+{
+    return passbuf.nocache;
+}
+
+/*
  * Set an authentication token
  */
 void

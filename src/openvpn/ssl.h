@@ -397,6 +397,11 @@ void auth_user_pass_setup(const char *auth_file, bool is_inline,
 void ssl_set_auth_nocache(void);
 
 /*
+ * Getter method for retrieving the auth-nocache option.
+ */
+bool ssl_get_auth_nocache(void);
+
+/*
  * Purge any stored authentication information, both for key files and tunnel
  * authentication. If PCKS #11 is enabled, purge authentication for that too.
  * Note that auth_token is not cleared.

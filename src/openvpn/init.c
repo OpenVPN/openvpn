@@ -691,6 +691,8 @@ init_proxy_dowork(struct context *c)
 
     if (c->options.ce.http_proxy_options)
     {
+        c->options.ce.http_proxy_options->first_time = c->first_time;
+
         /* Possible HTTP proxy user/pass input */
         c->c1.http_proxy = http_proxy_new(c->options.ce.http_proxy_options);
         if (c->c1.http_proxy)
