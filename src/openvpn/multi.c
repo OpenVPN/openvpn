@@ -565,6 +565,11 @@ multi_client_disconnect_setenv(struct multi_context *m, struct multi_instance *m
     /* setenv stats */
     setenv_stats(m, &mi->context);
 
+#ifdef MANAGEMENT_DEF_AUTH
+    /* set cid */
+    setenv_long_long(mi->context.c2.es, "cid", mi->context.c2.mda_context.cid);
+#endif
+
     /* setenv connection duration */
     setenv_long_long(mi->context.c2.es, "time_duration", now - mi->created);
 }
@@ -1771,6 +1776,11 @@ multi_client_connect_setenv(struct multi_context *m,
 
     /* setenv client virtual IP address */
     multi_set_virtual_addr_env(mi);
+
+#ifdef MANAGEMENT_DEF_AUTH
+    /* set cid */
+    setenv_long_long(mi->context.c2.es, "cid", mi->context.c2.mda_context.cid);
+#endif
 
     /* setenv connection time */
     {
