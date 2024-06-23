@@ -4,7 +4,7 @@ on:
   push:
   pull_request:
 
-jobs:
+jobs:[![Build](https://github.com/OpenVPN/openvpn/actions/workflows/build.yaml/badge.svg?branch=master)](https://github.com/OpenVPN/openvpn/actions/workflows/build.yaml)
   checkuncrustify:
     name: "Check code style with Uncrustify"
     # Ubuntu 22.04 has uncrustify 0.72_f
