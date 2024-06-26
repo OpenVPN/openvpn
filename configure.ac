@@ -1152,8 +1152,17 @@ fi
 
 AC_ARG_VAR([LZO_CFLAGS], [C compiler flags for lzo])
 AC_ARG_VAR([LZO_LIBS], [linker flags for lzo])
-have_lzo="yes"
-if test -z "${LZO_LIBS}"; then
+if test -z "${LZO_CFLAGS}" -a -z "${LZO_LIBS}"; then
+    # if the user did not explicitly specify flags, try to autodetect
+    PKG_CHECK_MODULES([LZO],
+		[lzo2],
+		[have_lzo="yes"],
+		[]
+    )
+
+    if test "${have_lzo}" != "yes"; then
+	# try to detect without pkg-config
+	have_lzo="yes"
 	AC_CHECK_LIB(
 		[lzo2],
 		[lzo1x_1_15_compress],
@@ -1165,6 +1174,10 @@ if test -z "${LZO_LIBS}"; then
 			[have_lzo="no"]
 		)]
 	)
+    fi
+else
+    # assume the user configured it correctly
+    have_lzo="yes"
 fi
 if test "${have_lzo}" = "yes"; then
 	saved_CFLAGS="${CFLAGS}"
@@ -1175,8 +1188,11 @@ if test "${have_lzo}" = "yes"; then
 		[AC_CHECK_HEADERS(
 			[lzo1x.h],
 			,
-			[AC_MSG_ERROR([lzo1x.h is missing])]
-		)]
+			[AC_MSG_ERROR([lzo1x.h is missing])],
+                        [#include <limits.h>
+                         #include <lzodefs.h>
+                         #include <lzoconf.h>]
+		)],
 	)
 	CFLAGS="${saved_CFLAGS}"
 fi
