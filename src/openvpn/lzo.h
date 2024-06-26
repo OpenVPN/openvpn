@@ -37,17 +37,15 @@
  * @addtogroup compression
  * @{
  */
-#if defined(HAVE_LZO_CONF_H)
+#if defined(HAVE_LZO_LZO1X_H)
+#include <lzo/lzo1x.h>
+#elif defined(HAVE_LZO1X_H)
 /* The lzo.h magic gets confused and still wants
  * to include lzo/lzoconf.h even if our include paths
  * are setup to include the paths without lzo/
  */
 #include <lzodefs.h>
 #include <lzoconf.h>
-#endif
-#if defined(HAVE_LZO_LZO1X_H)
-#include <lzo/lzo1x.h>
-#elif defined(HAVE_LZO1X_H)
 #include <lzo1x.h>
 #endif
 
