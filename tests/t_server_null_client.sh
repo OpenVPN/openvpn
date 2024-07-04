@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 
 launch_client() {
     test_name=$1
@@ -76,18 +76,21 @@ export retval=0
 count=0
 server_max_wait=15
 while [ $count -lt $server_max_wait ]; do
-    server_pids=""
-    server_count=$(set|grep 'SERVER_NAME_'|wc -l)
+    servers_up=0
+    server_count=$(echo $TEST_SERVER_LIST|wc -w)
 
     # We need to trim single-quotes because some shells return quoted values
     # and some don't. Using "set -o posix" which would resolve this problem is
     # not supported in all shells.
+    #
+    # While inactive server configurations may get checked they won't increase
+    # the active server count as the processes won't be running.
     for i in `set|grep 'SERVER_NAME_'|cut -d "=" -f 2|tr -d "[\']"`; do
         server_pid=$(cat $i.pid 2> /dev/null)
-        server_pids="${server_pids} ${server_pid}"
+        if ps -p $server_pid > /dev/null 2>&1; then
+            servers_up=$(( $servers_up + 1 ))
+        fi
     done
-
-    servers_up=$(ps -p $server_pids 2>/dev/null|sed '1d'|wc -l)
 
     echo "OpenVPN test servers up: ${servers_up}/${server_count}"
 
@@ -101,6 +104,7 @@ while [ $count -lt $server_max_wait ]; do
 
     if [ $count -eq $server_max_wait ]; then
         retval=1
+        exit $retval
     fi
 done
 

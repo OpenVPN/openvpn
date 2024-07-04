@@ -1,6 +1,5 @@
 # Uncomment to run tests with sudo
-#SUDO_EXEC=`which sudo`
-#RUN_SUDO="${SUDO_EXEC} -E"
+#RUN_SUDO="sudo -E"
 
 TEST_RUN_LIST="1 2 3 10 11"
 

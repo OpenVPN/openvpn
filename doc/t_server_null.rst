@@ -43,6 +43,12 @@ Running the test suite requires the following:
   * run as root
   * a privilege escalation tool (sudo, doas, su) and the permission to become root
 
+If you use "doas" you should enable nopass feature in */etc/doas.conf*. For
+example to allow users in the *wheel* group to run commands without a password
+prompt::
+
+    permit nopass keepenv :wheel
+
 Technical implementation
 ------------------------
 
@@ -72,13 +78,6 @@ The tests suite is launched via "make check":
     * t_server_null_client.sh
 
       * Waits until servers have launched. Then launch all clients, wait for them to exit and then check test results by parsing the client log files. Each client kills itself after some delay using an "--up" script.
-
-Note that "make check" moves on once *t_server_null_client.sh* has exited. At
-that point *t_server_null_server.sh* is still running, because it exists only
-after waiting a few seconds for more client connections to potentially appear.
-This is a feature and not a bug, but means that launching "make check" runs too
-quickly might cause test failures or unexpected behavior such as leftover
-OpenVPN server processes.
 
 Configuration
 -------------
