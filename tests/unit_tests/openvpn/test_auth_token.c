@@ -245,6 +245,7 @@ auth_token_test_known_keys(void **state)
     now = 0;
     /* Preload the session id so the same session id is used here */
     ctx->multi.auth_token_initial = strdup(now0key0);
+    assert_non_null(ctx->multi.auth_token_initial);
 
     /* Zero the hmac part to ensure we have a newly generated token */
     zerohmac(ctx->multi.auth_token_initial);
@@ -374,6 +375,7 @@ auth_token_test_random_keys(void **state)
     now = 0x5c331e9c;
     /* Preload the session id so the same session id is used here */
     ctx->multi.auth_token_initial = strdup(random_token);
+    assert_non_null(ctx->multi.auth_token_initial);
 
     free_key_ctx(&ctx->multi.opt.auth_token_key);
     auth_token_init_secret(&ctx->multi.opt.auth_token_key, random_key, true);
