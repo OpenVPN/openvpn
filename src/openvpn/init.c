@@ -4971,6 +4971,10 @@ write_pid_file(const char *filename, const char *chroot_dir)
         if (!chroot_dir)
         {
             saved_pid_file_name = strdup(filename);
+            if (!saved_pid_file_name)
+            {
+                msg(M_FATAL, "Failed allocate memory saved_pid_file_name");
+            }
         }
     }
 }
