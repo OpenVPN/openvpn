@@ -206,9 +206,24 @@ openvpn_plugin_open_v3(const int v3structver,
     if ((args->argv[4]) && !args->argv[5])
     {
         context->authid = strdup(args->argv[1]);
+        if (!context->authid)
+        {
+            plog(context, PLOG_ERR, "Out of memory");
+            goto error;
+        }
         context->test_deferred_auth = atoi_null0(args->argv[2]);
         context->test_valid_user = strdup(args->argv[3]);
+        if (!context->test_valid_user)
+        {
+            plog(context, PLOG_ERR, "Out of memory");
+            goto error;
+        }
         context->test_valid_pass = strdup(args->argv[4]);
+        if (!context->test_valid_pass)
+        {
+            plog(context, PLOG_ERR, "Out of memory");
+            goto error;
+        }
     }
     else
     {
