@@ -625,6 +625,40 @@ test_generate_reset_packet_tls_auth(void **ut_state)
     free_tas(&tas_server);
 }
 
+static void
+test_extract_control_message(void **ut_state)
+{
+    struct gc_arena gc = gc_new();
+    struct buffer input_buf = alloc_buf_gc(1024, &gc);
+
+    /* This message will have a \0x00 at the end since it is a C string */
+    const char input[] = "valid control message\r\n\0\0Invalid\r\none\0valid one again";
+
+    buf_write(&input_buf, input, sizeof(input));
+    struct buffer cmd1 = extract_command_buffer(&input_buf, &gc);
+    struct buffer cmd2 = extract_command_buffer(&input_buf, &gc);
+    struct buffer cmd3 = extract_command_buffer(&input_buf, &gc);
+    struct buffer cmd4 = extract_command_buffer(&input_buf, &gc);
+    struct buffer cmd5 = extract_command_buffer(&input_buf, &gc);
+
+    assert_string_equal(BSTR(&cmd1), "valid control message");
+    /* empty message with just a \0x00 */
+    assert_int_equal(cmd2.len, 1);
+    assert_string_equal(BSTR(&cmd2), "");
+    assert_int_equal(cmd3.len, 0);
+    assert_string_equal(BSTR(&cmd4), "valid one again");
+    assert_int_equal(cmd5.len, 0);
+
+    const uint8_t nonull[6] = { 'n', 'o', ' ', 'N', 'U', 'L'};
+    struct buffer nonull_buf = alloc_buf_gc(1024, &gc);
+
+    buf_write(&nonull_buf, nonull, sizeof(nonull));
+    struct buffer nonullcmd = extract_command_buffer(&nonull_buf, &gc);
+    assert_int_equal(nonullcmd.len, 0);
+
+    gc_free(&gc);
+}
+
 int
 main(void)
 {
@@ -638,6 +672,7 @@ main(void)
         cmocka_unit_test(test_verify_hmac_tls_auth),
         cmocka_unit_test(test_generate_reset_packet_plain),
         cmocka_unit_test(test_generate_reset_packet_tls_auth),
+        cmocka_unit_test(test_extract_control_message)
     };
 
 #if defined(ENABLE_CRYPTO_OPENSSL)
