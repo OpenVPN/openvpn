@@ -290,41 +290,14 @@ check_incoming_control_channel(struct context *c)
     struct buffer buf = alloc_buf_gc(len, &gc);
     if (tls_rec_payload(c->c2.tls_multi, &buf))
     {
-
         while (BLEN(&buf) > 1)
         {
-            /* commands on the control channel are seperated by 0x00 bytes.
-             * cmdlen does not include the 0 byte of the string */
-            int cmdlen = (int)strnlen(BSTR(&buf), BLEN(&buf));
+            struct buffer cmdbuf = extract_command_buffer(&buf, &gc);
 
-            if (cmdlen < BLEN(&buf))
+            if (cmdbuf.len > 0)
             {
-                /* include the NUL byte and ensure NUL termination */
-                int cmdlen = (int)strlen(BSTR(&buf)) + 1;
-
-                /* Construct a buffer that only holds the current command and
-                 * its closing NUL byte */
-                struct buffer cmdbuf = alloc_buf_gc(cmdlen, &gc);
-                buf_write(&cmdbuf, BPTR(&buf), cmdlen);
-
-                /* check we have only printable characters or null byte in the
-                 * command string and no newlines */
-                if (!string_check_buf(&buf, CC_PRINT | CC_NULL, CC_CRLF))
-                {
-                    msg(D_PUSH_ERRORS, "WARNING: Received control with invalid characters: %s",
-                        format_hex(BPTR(&buf), BLEN(&buf), 256, &gc));
-                }
-                else
-                {
-                    parse_incoming_control_channel_command(c, &cmdbuf);
-                }
+                parse_incoming_control_channel_command(c, &cmdbuf);
             }
-            else
-            {
-                msg(D_PUSH_ERRORS, "WARNING: Ignoring control channel "
-                    "message command without NUL termination");
-            }
-            buf_advance(&buf, cmdlen);
         }
     }
     else

@@ -230,6 +230,20 @@ tls_reset_standalone(struct tls_wrap_ctx *ctx,
                      uint8_t header,
                      bool request_resend_wkc);
 
+
+/**
+ * Extracts a control channel message from buf and adjusts the size of
+ * buf after the message has been extracted
+ * @param buf   The buffer the message should be extracted from
+ * @param gc    gc_arena to be used for the returned buffer and displaying
+ *              diagnostic messages
+ * @return      A buffer with a control channel message or a buffer with
+ *              with length 0 if there is no message or the message has
+ *              invalid characters.
+ */
+struct buffer
+extract_command_buffer(struct buffer *buf, struct gc_arena *gc);
+
 static inline const char *
 packet_opcode_name(int op)
 {
