@@ -421,10 +421,10 @@ AC_CHECK_PROGS([RST2MAN], [rst2man rst2man.py])
 AC_CHECK_PROGS([RST2HTML], [rst2html rst2html.py])
 AM_CONDITIONAL([HAVE_PYDOCUTILS], [test "${RST2MAN}" -a "${RST2HTML}"])
 
-# Set -std=c99 unless user already specified a -std=
+# Set -std=c11 unless user already specified a -std=
 case "${CFLAGS}" in
   *-std=*) ;;
-  *)       CFLAGS="${CFLAGS} -std=c99" ;;
+  *)       CFLAGS="${CFLAGS} -std=c11" ;;
 esac
 
 #
