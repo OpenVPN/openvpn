@@ -1,3 +1,20 @@
+Overview of changes in 2.6.12
+=============================
+Bug fixes
+---------
+- the fix for CVE-2024-5594 (refuse control channel messages with
+  nonprintable characters) was too strict, breaking user configurations
+  with AUTH_FAIL messages having trailing CR/NL characters.  This often
+  happens if the AUTH_FAIL reason is set by a script.  Strip those before
+  testing the command buffer (Github: #568).  Also, add unit test.
+
+- Http-proxy: fix bug preventing proxy credentials caching (Trac: #1187)
+
+Code maintenance
+----------------
+- try to detect LZO installation with pkg-config (= on many systems
+  manually setting LZO_CFLAGS/LZO_LIBS should no longer be necessary)
+
 Overview of changes in 2.6.11
 =============================
 Security fixes

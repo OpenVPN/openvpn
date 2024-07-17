@@ -1,6 +1,18 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2024 OpenVPN Inc <sales@openvpn.net>
 
+2024.07.17 -- Version 2.6.12
+
+Arne Schwabe (1):
+      Allow trailing \r and \n in control channel message
+
+Frank Lichtenheld (1):
+      configure: Try to detect LZO with pkg-config
+
+Gianmarco De Gregori (1):
+      Http-proxy: fix bug preventing proxy credentials caching
+
+
 2024.06.20 -- Version 2.6.11
 
 5andr0 (1):
