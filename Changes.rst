@@ -1,3 +1,15 @@
+Overview of changes in 2.5.11
+=============================
+Security fixes
+--------------
+- CVE-2024-5594: control channel: refuse control channel messages with
+  nonprintable characters in them.  Security scope: a malicious openvpn
+  peer can send garbage to openvpn log, or cause high CPU load.
+  (Reynir Björnsson)
+
+  (Backport of the security fix in 2.6.11 and the fix for the bugfix
+  in 2.6.12)
+
 Overview of changes in 2.5.10
 =============================
 Security fixes

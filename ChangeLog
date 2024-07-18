@@ -1,6 +1,12 @@
 OpenVPN Change Log
 Copyright (C) 2002-2022 OpenVPN Inc <sales@openvpn.net>
 
+2024.07.18 -- Version 2.5.11
+
+Arne Schwabe (2):
+      Properly handle null bytes and invalid characters in control messages
+      Allow trailing \r and \n in control channel message
+
 2024.03.21 -- Version 2.5.10
 
 Arne Schwabe (1):
