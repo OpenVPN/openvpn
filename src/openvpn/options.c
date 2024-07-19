@@ -518,8 +518,10 @@ static const char usage_message[] =
     "                  Add domains to DNS domain search list\n"
     "--auth-retry t  : How to handle auth failures.  Set t to\n"
     "                  none (default), interact, or nointeract.\n"
-    "--static-challenge t e : Enable static challenge/response protocol using\n"
+    "--static-challenge t e [<scrv1|concat>]: Enable static challenge/response protocol using\n"
     "                  challenge text t, with e indicating echo flag (0|1)\n"
+    "                  and optional argument scrv1 or concat to use SCRV1 protocol or"
+    "                  concatenate response with password. Default is scrv1.\n"
     "--connect-timeout n : when polling possible remote servers to connect to\n"
     "                  in a round-robin fashion, spend no more than n seconds\n"
     "                  waiting for a response before trying the next server.\n"
@@ -7948,13 +7950,22 @@ add_option(struct options *options,
         auth_retry_set(msglevel, p[1]);
     }
 #ifdef ENABLE_MANAGEMENT
-    else if (streq(p[0], "static-challenge") && p[1] && p[2] && !p[3])
+    else if (streq(p[0], "static-challenge") && p[1] && p[2] && !p[4])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->sc_info.challenge_text = p[1];
         if (atoi(p[2]))
         {
             options->sc_info.flags |= SC_ECHO;
+        }
+        if (p[3] && streq(p[3], "concat"))
+        {
+            options->sc_info.flags |= SC_CONCAT;
+        }
+        else if (p[3] && !streq(p[3], "scrv1"))
+        {
+            msg(msglevel, "--static-challenge: unknown format indicator '%s'", p[3]);
+            goto err;
         }
     }
 #endif

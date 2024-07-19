@@ -1320,14 +1320,20 @@ request.
 
 OpenVPN's --static-challenge option is used to provide the
 challenge text to OpenVPN and indicate whether or not the response
-should be echoed.
+should be echoed and how the response should be combined with the
+password.
 
 When credentials are needed and the --static-challenge option is
 used, the management interface will send:
 
-  >PASSWORD:Need 'Auth' username/password SC:<ECHO>,<TEXT>
+  >PASSWORD:Need 'Auth' username/password SC:<flag>,<TEXT>
 
-  ECHO: "1" if response should be echoed, "0" to not echo
+  flag: an integer whose least significant bit is the ECHO flag and
+        the next significant bit is the FORMAT flag.
+        ECHO = (flag & 0x1) is 1 if response should be echoed, 0 to not echo
+        FORMAT = (flag & 0x2) is 1 if response should be concatenated with
+        password as plain text, 0 if response and password should be encoded
+        as described below. Thus flag could take values 0, 1, 2, or 3.
   TEXT: challenge text that should be shown to the user to
       facilitate their response
 
@@ -1342,8 +1348,9 @@ should be echoed.
 
 The management interface client in this case should add the static
 challenge text to the auth dialog followed by a field for the user to
-enter a response.  Then the management interface client should pack the
-password and response together into an encoded password and send:
+enter a response. If flag = 0 or 1 (i.e., FORMAT=0), the management
+interface client should pack the password and response together into
+an encoded password and send:
 
   username "Auth" <username>
   password "Auth" "SCRV1:<password_base64>:<response_base64>"
@@ -1354,6 +1361,12 @@ is the base 64 encoding of the password entered by the user, and
 the user. The <password_base64> and/or the <response_base64> can be
 empty strings.
 
+If flag = 2 or 3 (i.e., FORMAT=1), the client should simply concatenate
+password and response with no separator and send:
+
+  username "Auth" <username>
+  password "Auth" "<password><response>"
+
 (As in all username/password responses described in the "COMMAND --
 password and username" section above, the username can be in quotes,
 and special characters such as double quotes or backslashes must be
@@ -1361,10 +1374,15 @@ escaped. See the "Command Parsing" section above for more info.)
 
 For example, if user "foo" entered "bar" as the password and 8675309
 as the PIN, the following management interface commands should be
-issued:
+issued if flag = 0 or 1 (i.e., FORMAT = 0):
 
   username "Auth" foo
   password "Auth" "SCRV1:YmFy:ODY3NTMwOQ=="
 
   ("YmFy" is the base 64 encoding of "bar" and "ODY3NTMwOQ==" is the
    base 64 encoding of "8675309".)
+
+or, if flag = 2 or 3 (i.e., FORMAT = 1):
+
+  username "Auth" foo
+  password "Auth" "bar8675309"

@@ -439,17 +439,28 @@ get_user_pass_cr(struct user_pass *up,
                     {
                         msg(M_FATAL, "ERROR: could not retrieve static challenge response");
                     }
-                    if (openvpn_base64_encode(up->password, strlen(up->password), &pw64) == -1
-                        || openvpn_base64_encode(response, strlen(response), &resp64) == -1)
+                    if (!(flags & GET_USER_PASS_STATIC_CHALLENGE_CONCAT))
                     {
-                        msg(M_FATAL, "ERROR: could not base64-encode password/static_response");
+                        if (openvpn_base64_encode(up->password, strlen(up->password), &pw64) == -1
+                            || openvpn_base64_encode(response, strlen(response), &resp64) == -1)
+                        {
+                            msg(M_FATAL, "ERROR: could not base64-encode password/static_response");
+                        }
+                        buf_set_write(&packed_resp, (uint8_t *)up->password, USER_PASS_LEN);
+                        buf_printf(&packed_resp, "SCRV1:%s:%s", pw64, resp64);
+                        string_clear(pw64);
+                        free(pw64);
+                        string_clear(resp64);
+                        free(resp64);
                     }
-                    buf_set_write(&packed_resp, (uint8_t *)up->password, USER_PASS_LEN);
-                    buf_printf(&packed_resp, "SCRV1:%s:%s", pw64, resp64);
-                    string_clear(pw64);
-                    free(pw64);
-                    string_clear(resp64);
-                    free(resp64);
+                    else
+                    {
+                        if (strlen(up->password) + strlen(response) >= USER_PASS_LEN)
+                        {
+                            msg(M_FATAL, "ERROR: could not concatenate password/static_response: string too long");
+                        }
+                        strncat(up->password, response, USER_PASS_LEN - strlen(up->password) - 1);
+                    }
                 }
 #endif /* ifdef ENABLE_MANAGEMENT */
             }

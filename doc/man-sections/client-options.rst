@@ -541,12 +541,15 @@ configuration.
   Valid syntax:
   ::
 
-     static-challenge text echo
+     static-challenge text echo [format]
 
   The ``text`` challenge text is presented to the user which describes what
   information is requested.  The ``echo`` flag indicates if the user's
   input should be echoed on the screen.  Valid ``echo`` values are
-  :code:`0` or :code:`1`.
+  :code:`0` or :code:`1`. The optional ``format`` indicates whether
+  the password and response should be combined using the SCRV1 protocol
+  (``format`` = :code:`scrv1`) or simply concatenated (``format`` = :code:`concat`).
+  :code:`scrv1` is the default.
 
   See management-notes.txt in the OpenVPN distribution for a description of
   the OpenVPN challenge/response protocol.

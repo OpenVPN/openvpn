@@ -92,6 +92,7 @@ struct auth_challenge_info {
  */
 struct static_challenge_info {
 #define SC_ECHO     (1<<0)  /* echo response when typed by user */
+#define SC_CONCAT   (1<<1)  /* concatenate password and response and do not base64 encode */
     unsigned int flags;
 
     const char *challenge_text;
@@ -118,6 +119,7 @@ struct static_challenge_info {};
 #define GET_USER_PASS_STATIC_CHALLENGE_ECHO  (1<<9) /* SCRV1 protocol -- echo response */
 
 #define GET_USER_PASS_INLINE_CREDS (1<<10)  /* indicates that auth_file is actually inline creds */
+#define GET_USER_PASS_STATIC_CHALLENGE_CONCAT (1<<11)  /* indicates password and response should be concatenated */
 
 /**
  * Retrieves the user credentials from various sources depending on the flags.

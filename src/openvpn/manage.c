@@ -3544,7 +3544,8 @@ management_query_user_pass(struct management *man,
         if (sc)
         {
             buf_printf(&alert_msg, " SC:%d,%s",
-                       BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO),
+                       BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO)
+                       |(BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_CONCAT) << 1),
                        sc);
         }
 
