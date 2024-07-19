@@ -32,6 +32,7 @@
 #include "multi.h"
 #include "win32.h"
 #include "platform.h"
+#include "string.h"
 
 #include "memdbg.h"
 
@@ -60,9 +61,10 @@ tunnel_point_to_point(struct context *c)
 
     /* set point-to-point mode */
     c->mode = CM_P2P;
-
-    /* initialize tunnel instance */
-    init_instance_handle_signals(c, c->es, CC_HARD_USR1_TO_HUP);
+    /* initialize tunnel instance, avoid SIGHUP when config is stdin since
+     * re-reading the config from stdin will not work */
+    bool stdin_config = c->options.config && (strcmp(c->options.config, "stdin") == 0);
+    init_instance_handle_signals(c, c->es, stdin_config ? 0 : CC_HARD_USR1_TO_HUP);
     if (IS_SIG(c))
     {
         return;
