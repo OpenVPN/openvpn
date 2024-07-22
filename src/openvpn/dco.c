@@ -185,7 +185,7 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
         }
         else
         {
-            msg(D_DCO_DEBUG, "Swapping primary and secondary keys to"
+            msg(D_DCO_DEBUG, "Swapping primary and secondary keys to "
                 "primary-id=%d secondary-id=(to be deleted)",
                 primary->key_id);
         }
