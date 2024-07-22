@@ -1804,7 +1804,7 @@ multi_client_set_protocol_options(struct context *c)
     }
     else if (dco_enabled(o))
     {
-        msg(M_INFO, "Client does not support DATA_V2. Data channel offloaing "
+        msg(M_INFO, "Client does not support DATA_V2. Data channel offloading "
             "requires DATA_V2. Dropping client.");
         auth_set_client_reason(tls_multi, "Data channel negotiation "
                                "failed (missing DATA_V2)");
@@ -1815,7 +1815,7 @@ multi_client_set_protocol_options(struct context *c)
      * not accept our pushed ciphers */
     if (proto & IV_PROTO_NCP_P2P)
     {
-        msg(M_WARN, "Note: peer reports running in P2P mode (no --pull/--client"
+        msg(M_WARN, "Note: peer reports running in P2P mode (no --pull/--client "
             "option). It will not negotiate ciphers with this server. "
             "Expect this connection to fail.");
     }
@@ -2027,7 +2027,7 @@ ccs_test_deferred_ret_file(struct multi_instance *mi)
         /* Not EOF but other error -> fall through to error state */
         default:
             /* We received an unknown/unexpected value.  Assume failure. */
-            msg(M_WARN, "WARNING: Unknown/unexpected value in deferred"
+            msg(M_WARN, "WARNING: Unknown/unexpected value in deferred "
                 "client-connect resultfile");
             ret = CC_RET_FAILED;
     }
@@ -2427,7 +2427,7 @@ multi_client_connect_late_setup(struct multi_context *m,
      */
     if (!mi->context.c2.push_ifconfig_defined)
     {
-        msg(D_MULTI_ERRORS, "MULTI: no dynamic or static remote"
+        msg(D_MULTI_ERRORS, "MULTI: no dynamic or static remote "
             "--ifconfig address is available for %s",
             multi_instance_string(mi, false, &gc));
     }
@@ -2443,7 +2443,7 @@ multi_client_connect_late_setup(struct multi_context *m,
             print_in_addr_t(mi->context.options.push_ifconfig_constraint_netmask, 0, &gc);
 
         /* JYFIXME -- this should cause the connection to fail */
-        msg(D_MULTI_ERRORS, "MULTI ERROR: primary virtual IP for %s (%s)"
+        msg(D_MULTI_ERRORS, "MULTI ERROR: primary virtual IP for %s (%s) "
             "violates tunnel network/netmask constraint (%s/%s)",
             multi_instance_string(mi, false, &gc),
             print_in_addr_t(mi->context.c2.push_ifconfig_local, 0, &gc),
@@ -2492,7 +2492,7 @@ multi_client_connect_late_setup(struct multi_context *m,
     }
     else if (mi->context.options.iroutes)
     {
-        msg(D_MULTI_ERRORS, "MULTI: --iroute options rejected for %s -- iroute"
+        msg(D_MULTI_ERRORS, "MULTI: --iroute options rejected for %s -- iroute "
             "only works with tun-style tunnels",
             multi_instance_string(mi, false, &gc));
     }
