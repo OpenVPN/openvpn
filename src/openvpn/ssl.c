@@ -1900,8 +1900,8 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
         /* support for P_DATA_V2 */
         int iv_proto = IV_PROTO_DATA_V2;
 
-        /* support for the --dns option */
-        iv_proto |= IV_PROTO_DNS_OPTION;
+        /* support for the latest --dns option */
+        iv_proto |= IV_PROTO_DNS_OPTION_V2;
 
         /* support for exit notify via control channel */
         iv_proto |= IV_PROTO_CC_EXIT_NOTIFY;

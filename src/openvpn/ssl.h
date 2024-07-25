@@ -94,7 +94,7 @@
  * result. */
 #define IV_PROTO_NCP_P2P         (1<<5)
 
-/** Supports the --dns option introduced in version 2.6 */
+/** Supports the --dns option introduced in version 2.6. Not sent anymore. */
 #define IV_PROTO_DNS_OPTION      (1<<6)
 
 /** Support for explicit exit notify via control channel
@@ -106,6 +106,9 @@
 
 /** Support to dynamic tls-crypt (renegotiation with TLS-EKM derived tls-crypt key) */
 #define IV_PROTO_DYN_TLS_CRYPT   (1<<9)
+
+/** Supports the --dns option after all the incompatible changes */
+#define IV_PROTO_DNS_OPTION_V2   (1<<11)
 
 /* Default field in X509 to be username */
 #define X509_USERNAME_FIELD_DEFAULT "CN"
