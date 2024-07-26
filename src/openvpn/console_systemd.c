@@ -96,7 +96,7 @@ get_console_input_systemd(const char *prompt, const bool echo, char *input, cons
  *
  */
 bool
-query_user_exec(void)
+query_user_exec_systemd(void)
 {
     bool ret = true;  /* Presume everything goes okay */
     int i;

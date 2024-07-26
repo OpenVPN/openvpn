@@ -65,10 +65,9 @@ void query_user_add(char *prompt, size_t prompt_len,
 
 
 /**
- * Executes a configured setup, using the built-in method for querying the user.
+ * Loop through configured query_user slots, using the built-in method for
+ * querying the user.
  * This method uses the console/TTY directly.
- *
- * @param setup    Pointer to the setup defining what to ask the user
  *
  * @return True if executing all the defined steps completed successfully
  */
@@ -77,21 +76,34 @@ bool query_user_exec_builtin(void);
 
 #if defined(ENABLE_SYSTEMD)
 /**
- * Executes a configured setup, using the compiled method for querying the user
- *
- * @param setup    Pointer to the setup defining what to ask the user
+ * Loop through configured query_user slots, using the systemd method for
+ * querying the user.
+ * If systemd is not running it will fall back to use
+ * query_user_exec_builtin() instead.
  *
  * @return True if executing all the defined steps completed successfully
  */
-bool query_user_exec(void);
+bool query_user_exec_systemd(void);
 
-#else  /* ENABLE_SYSTEMD not defined*/
+/**
+ * Loop through configured query_user slots, using the compiled method for
+ * querying the user.
+ *
+ * @return True if executing all the defined steps completed successfully
+ */
+static inline bool
+query_user_exec(void)
+{
+    return query_user_exec_systemd();
+}
+
+#else  /* ENABLE_SYSTEMD not defined */
 /**
  * Wrapper function enabling query_user_exec() if no alternative methods have
  * been enabled
  *
  */
-static bool
+static inline bool
 query_user_exec(void)
 {
     return query_user_exec_builtin();
