@@ -389,9 +389,16 @@ dco_version_string(struct gc_arena *gc)
     OVPN_VERSION version;
     ZeroMemory(&version, sizeof(OVPN_VERSION));
 
-    /* try to open device by symbolic name */
-    HANDLE h = CreateFile("\\\\.\\ovpn-dco", GENERIC_READ | GENERIC_WRITE,
-                          0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED, NULL);
+    /* first, try a non-exclusive control device, available from 1.3.0 */
+    HANDLE h = CreateFile("\\\\.\\ovpn-dco-ver", GENERIC_READ,
+                          0, NULL, OPEN_EXISTING, 0, NULL);
+
+    if (h == INVALID_HANDLE_VALUE)
+    {
+        /* fallback to a "normal" device, this will fail if device is already in use */
+        h = CreateFile("\\\\.\\ovpn-dco", GENERIC_READ,
+                       0, NULL, OPEN_EXISTING, 0, NULL);
+    }
 
     if (h == INVALID_HANDLE_VALUE)
     {
