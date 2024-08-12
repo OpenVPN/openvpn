@@ -273,6 +273,8 @@ init(void **state)
 
         assert_int_equal(ftruncate(cert_fd, 0), 0);
         assert_int_equal(ftruncate(key_fd, 0), 0);
+        assert_int_equal(lseek(cert_fd, 0, SEEK_SET), 0);
+        assert_int_equal(lseek(key_fd, 0, SEEK_SET), 0);
         num_certs++;
     }
 
