@@ -265,7 +265,7 @@ send_auth_failed(struct context *c, const char *client_reason)
     static const char auth_failed[] = "AUTH_FAILED";
     size_t len;
 
-    schedule_exit(c, c->options.scheduled_exit_interval, SIGTERM);
+    schedule_exit(c);
 
     len = (client_reason ? strlen(client_reason)+1 : 0) + sizeof(auth_failed);
     if (len > PUSH_BUNDLE_SIZE)
@@ -316,7 +316,7 @@ send_auth_pending_messages(struct context *c, const char *extra)
 void
 send_restart(struct context *c, const char *kill_msg)
 {
-    schedule_exit(c, c->options.scheduled_exit_interval, SIGTERM);
+    schedule_exit(c);
     send_control_channel_string(c, kill_msg ? kill_msg : "RESTART", D_PUSH);
 }
 

@@ -328,7 +328,7 @@ send_control_channel_string_dowork(struct tls_multi *multi,
 void process_ip_header(struct context *c, unsigned int flags, struct buffer *buf);
 
 #if P2MP
-void schedule_exit(struct context *c, const int n_seconds, const int signal);
+bool schedule_exit(struct context *c);
 
 #endif
 
