@@ -326,7 +326,25 @@ test_get_user_pass_static_challenge(void **state)
 
     reset_user_pass(&up);
 
-    flags |= GET_USER_PASS_INLINE_CREDS;
+    flags |= GET_USER_PASS_STATIC_CHALLENGE_CONCAT;
+
+    expect_string(query_user_exec_builtin, query_user[i].prompt, "Enter UT Username:");
+    will_return(query_user_exec_builtin, "c1user");
+    expect_string(query_user_exec_builtin, query_user[i].prompt, "Enter UT Password:");
+    will_return(query_user_exec_builtin, "c1password");
+    will_return(query_user_exec_builtin, true);
+    expect_string(query_user_exec_builtin, query_user[i].prompt, "CHALLENGE: Please enter token PIN");
+    will_return(query_user_exec_builtin, "0123456");
+    will_return(query_user_exec_builtin, true);
+    assert_true(get_user_pass_cr(&up, NULL, "UT", flags, challenge));
+    assert_true(up.defined);
+    assert_string_equal(up.username, "c1user");
+    /* password and response concatenated */
+    assert_string_equal(up.password, "c1password0123456");
+
+    reset_user_pass(&up);
+
+    flags = GET_USER_PASS_STATIC_CHALLENGE|GET_USER_PASS_INLINE_CREDS;
 
     /*FIXME: query_user_exec() called even though nothing queued */
     will_return(query_user_exec_builtin, true);
