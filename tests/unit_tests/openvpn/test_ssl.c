@@ -66,6 +66,10 @@ throw_signal(const int signum)
 }
 #endif
 
+#if defined(ENABLE_CRYPTO_OPENSSL) && (OPENSSL_VERSION_NUMBER > 0x30000000L)
+#define HAVE_OPENSSL_STORE
+#endif
+
 /* stubs for some unused functions instead of pulling in too many dependencies */
 bool
 get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix,
@@ -232,6 +236,45 @@ test_load_certificate_and_key(void **state)
     tls_ctx_load_cert_file(&ctx, global_state.certfile, false);
     assert_int_equal(tls_ctx_load_priv_file(&ctx, global_state.keyfile, false), 0);
     tls_ctx_free(&ctx);
+}
+
+/* test loading cert and key using file:/path URI */
+static void
+test_load_certificate_and_key_uri(void **state)
+{
+    (void) state;
+
+#if !defined(HAVE_OPENSSL_STORE)
+    skip();
+#else /* HAVE_OPENSSL_STORE */
+
+    struct tls_root_ctx ctx = { 0 };
+    const char *certfile = global_state.certfile;
+    const char *keyfile = global_state.keyfile;
+    struct gc_arena *gc = &global_state.gc;
+
+    struct buffer certuri = alloc_buf_gc(6 + strlen(certfile) + 1, gc); /* 6 bytes for "file:/" */
+    struct buffer keyuri = alloc_buf_gc(6 + strlen(keyfile) + 1, gc);   /* 6 bytes for "file:/" */
+
+    /* Windows temp file path starts with drive letter -- add a leading slash for URI */
+    const char *lead = "";
+#ifdef _WIN32
+    lead = "/";
+#endif /* _WIN32 */
+    assert_true(buf_printf(&certuri, "file:%s%s", lead, certfile));
+    assert_true(buf_printf(&keyuri, "file:%s%s", lead, keyfile));
+
+    /* On Windows replace any '\' in path by '/' required for URI */
+#ifdef _WIN32
+    string_mod(BSTR(&certuri), CC_ANY, CC_BACKSLASH, '/');
+    string_mod(BSTR(&keyuri), CC_ANY, CC_BACKSLASH, '/');
+#endif /* _WIN32 */
+
+    tls_ctx_client_new(&ctx);
+    tls_ctx_load_cert_file(&ctx, BSTR(&certuri), false);
+    assert_int_equal(tls_ctx_load_priv_file(&ctx, BSTR(&keyuri), false), 0);
+    tls_ctx_free(&ctx);
+#endif /* HAVE_OPENSSL_STORE */
 }
 
 static void
@@ -469,6 +512,7 @@ main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(crypto_pem_encode_certificate),
         cmocka_unit_test(test_load_certificate_and_key),
+        cmocka_unit_test(test_load_certificate_and_key_uri),
         cmocka_unit_test(test_data_channel_roundtrip_aes_128_gcm),
         cmocka_unit_test(test_data_channel_roundtrip_aes_192_gcm),
         cmocka_unit_test(test_data_channel_roundtrip_aes_256_gcm),
