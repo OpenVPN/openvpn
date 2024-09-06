@@ -60,6 +60,7 @@ struct user_pass
      * use this second bool to track if the token (password) is defined */
     bool token_defined;
     bool nocache;
+    bool protected;
 
 /* max length of username/password */
 #ifdef ENABLE_PKCS11
@@ -203,6 +204,19 @@ get_num_elements(const char *string, char delimiter);
  */
 struct buffer
 prepend_dir(const char *dir, const char *path, struct gc_arena *gc);
+
+/**
+ * Encrypt username and password buffers in user_pass
+ */
+void
+protect_user_pass(struct user_pass *up);
+
+/**
+ * Decrypt username and password buffers in user_pass
+ */
+void
+unprotect_user_pass(struct user_pass *up);
+
 
 #define _STRINGIFY(S) #S
 /* *INDENT-OFF* - uncrustify need to ignore this macro */

@@ -360,5 +360,27 @@ get_openvpn_reg_value(const WCHAR *key, WCHAR *value, DWORD size);
 bool
 plugin_in_trusted_dir(const WCHAR *plugin_path);
 
+/**
+ * Encrypt a region of memory using CryptProtectMemory()
+ * with access restricted to the current process.
+ *
+ * - buf   pointer to the memory
+ * - len   number of bytes to encrypt -- must be a multiple of
+ *         CRYPTPROTECTMEMORY_BLOCK_SIZE = 16
+ */
+bool
+protect_buffer_win32(char *buf, size_t len);
+
+/**
+ * Decrypt a previously encrypted region of memory using CryptUnProtectMemory()
+ * with access restricted to the current process.
+ *
+ * - buf   pointer to the memory
+ * - len   number of bytes to encrypt -- must be a multiple of
+ *         CRYPTPROTECTMEMORY_BLOCK_SIZE = 16
+ */
+bool
+unprotect_buffer_win32(char *buf, size_t len);
+
 #endif /* ifndef OPENVPN_WIN32_H */
 #endif /* ifdef _WIN32 */

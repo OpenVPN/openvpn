@@ -301,6 +301,7 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
      * Base64 is <= input and input is < USER_PASS_LEN, so using USER_PASS_LEN
      * is safe here but a bit overkill
      */
+    ASSERT(up && !up->protected);
     uint8_t b64decoded[USER_PASS_LEN];
     int decoded_len = openvpn_base64_decode(up->password + strlen(SESSION_ID_PREFIX),
                                             b64decoded, USER_PASS_LEN);

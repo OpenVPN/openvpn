@@ -291,13 +291,14 @@ get_user_pass_http(struct http_proxy_info *p, const bool force)
                       UP_TYPE_PROXY,
                       flags);
         static_proxy_user_pass.nocache = p->options.nocache;
+        protect_user_pass(&static_proxy_user_pass);
     }
 
     /*
      * Using cached credentials
      */
     p->queried_creds = true;
-    p->up = static_proxy_user_pass;
+    p->up = static_proxy_user_pass; /* this is a copy of protected memory */
 }
 
 #if 0
@@ -668,6 +669,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
         {
             clear_user_pass_http();
         }
+        unprotect_user_pass(&p->up);
     }
 
     /* are we being called again after getting the digest server nonce in the previous transaction? */

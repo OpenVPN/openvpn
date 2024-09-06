@@ -1686,4 +1686,40 @@ plugin_in_trusted_dir(const WCHAR *plugin_path)
     return wcsnicmp(system_dir, plugin_path, wcslen(system_dir)) == 0;
 }
 
+bool
+protect_buffer_win32(char *buf, size_t len)
+{
+    bool ret;
+    if (len % CRYPTPROTECTMEMORY_BLOCK_SIZE)
+    {
+        msg(M_NONFATAL, "Error: Unable to encrypt memory: buffer size not a multiple of %d",
+            CRYPTPROTECTMEMORY_BLOCK_SIZE);
+        return false;
+    }
+    ret = CryptProtectMemory(buf, len, CRYPTPROTECTMEMORY_SAME_PROCESS);
+    if (!ret)
+    {
+        msg(M_NONFATAL | M_ERRNO, "Failed to encrypt memory.");
+    }
+    return ret;
+}
+
+bool
+unprotect_buffer_win32(char *buf, size_t len)
+{
+    bool ret;
+    if (len % CRYPTPROTECTMEMORY_BLOCK_SIZE)
+    {
+        msg(M_NONFATAL, "Error: Unable to decrypt memory: buffer size not a multiple of %d",
+            CRYPTPROTECTMEMORY_BLOCK_SIZE);
+        return false;
+    }
+    ret = CryptUnprotectMemory(buf, len, CRYPTPROTECTMEMORY_SAME_PROCESS);
+    if (!ret)
+    {
+        msg(M_FATAL | M_ERRNO, "Failed to decrypt memory.");
+    }
+    return ret;
+}
+
 #endif /* ifdef _WIN32 */

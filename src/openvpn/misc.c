@@ -146,6 +146,7 @@ get_user_pass_cr(struct user_pass *up,
         bool password_from_stdin = false;
         bool response_from_stdin = true;
 
+        unprotect_user_pass(up);
         if (flags & GET_USER_PASS_PREVIOUS_CREDS_FAILED)
         {
             msg(M_WARN, "Note: previous '%s' credentials failed", prefix);
@@ -479,14 +480,18 @@ purge_user_pass(struct user_pass *up, const bool force)
         secure_memzero(up, sizeof(*up));
         up->nocache = nocache;
     }
-    /*
-     * don't show warning if the pass has been replaced by a token: this is an
-     * artificial "auth-nocache"
-     */
-    else if (!warn_shown)
+    else
     {
-        msg(M_WARN, "WARNING: this configuration may cache passwords in memory -- use the auth-nocache option to prevent this");
-        warn_shown = true;
+        protect_user_pass(up);
+        /*
+         * don't show warning if the pass has been replaced by a token: this is an
+         * artificial "auth-nocache"
+         */
+        if (!warn_shown)
+        {
+            msg(M_WARN, "WARNING: this configuration may cache passwords in memory -- use the auth-nocache option to prevent this");
+            warn_shown = true;
+        }
     }
 }
 
@@ -495,6 +500,7 @@ set_auth_token(struct user_pass *tk, const char *token)
 {
     if (strlen(token))
     {
+        unprotect_user_pass(tk);
         strncpynt(tk->password, token, USER_PASS_LEN);
         tk->token_defined = true;
 
@@ -505,6 +511,7 @@ set_auth_token(struct user_pass *tk, const char *token)
         {
             tk->defined = true;
         }
+        protect_user_pass(tk);
     }
 }
 
@@ -513,6 +520,7 @@ set_auth_token_user(struct user_pass *tk, const char *username)
 {
     if (strlen(username))
     {
+        unprotect_user_pass(tk);
         /* Clear the username before decoding to ensure no old material is left
          * and also allow decoding to not use all space to ensure the last byte is
          * always 0 */
@@ -523,6 +531,7 @@ set_auth_token_user(struct user_pass *tk, const char *username)
         {
             msg(D_PUSH, "Error decoding auth-token-username");
         }
+        protect_user_pass(tk);
     }
 }
 
@@ -798,4 +807,44 @@ prepend_dir(const char *dir, const char *path, struct gc_arena *gc)
     ASSERT(combined_path.len > 0);
 
     return combined_path;
+}
+
+void
+protect_user_pass(struct user_pass *up)
+{
+    if (up->protected)
+    {
+        return;
+    }
+#ifdef _WIN32
+    if (protect_buffer_win32(up->username, sizeof(up->username))
+        && protect_buffer_win32(up->password, sizeof(up->password)))
+    {
+        up->protected = true;
+    }
+    else
+    {
+        purge_user_pass(up, true);
+    }
+#endif
+}
+
+void
+unprotect_user_pass(struct user_pass *up)
+{
+    if (!up->protected)
+    {
+        return;
+    }
+#ifdef _WIN32
+    if (unprotect_buffer_win32(up->username, sizeof(up->username))
+        && unprotect_buffer_win32(up->password, sizeof(up->password)))
+    {
+        up->protected = false;
+    }
+    else
+    {
+        purge_user_pass(up, true);
+    }
+#endif
 }
