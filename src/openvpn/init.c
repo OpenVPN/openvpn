@@ -2178,27 +2178,6 @@ options_hash_changed_or_zero(const struct sha256_digest *a,
            || !memcmp(a, &zero, sizeof(struct sha256_digest));
 }
 
-static bool
-p2p_set_dco_keepalive(struct context *c)
-{
-    if (dco_enabled(&c->options)
-        && (c->options.ping_send_timeout || c->c2.frame.mss_fix))
-    {
-        int ret = dco_set_peer(&c->c1.tuntap->dco,
-                               c->c2.tls_multi->dco_peer_id,
-                               c->options.ping_send_timeout,
-                               c->options.ping_rec_timeout,
-                               c->c2.frame.mss_fix);
-        if (ret < 0)
-        {
-            msg(D_DCO, "Cannot set parameters for DCO peer (id=%u): %s",
-                c->c2.tls_multi->dco_peer_id, strerror(-ret));
-            return false;
-        }
-    }
-    return true;
-}
-
 /**
  * Helper function for tls_print_deferred_options_results
  * Adds the ", " delimitor if there already some data in the
@@ -2363,7 +2342,8 @@ do_deferred_options_part2(struct context *c)
     if (!tls_session_update_crypto_params(c->c2.tls_multi, session,
                                           &c->options, &c->c2.frame,
                                           frame_fragment,
-                                          get_link_socket_info(c)))
+                                          get_link_socket_info(c),
+                                          &c->c1.tuntap->dco))
     {
         msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
         return false;
@@ -2472,12 +2452,6 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
             }
         }
 
-        if (c->mode == MODE_POINT_TO_POINT && !p2p_set_dco_keepalive(c))
-        {
-            msg(D_TLS_ERRORS, "ERROR: Failed to apply DCO keepalive or MSS fix parameters");
-            return false;
-        }
-
         if (c->c2.did_open_tun)
         {
             c->c1.pulled_options_digest_save = c->c2.pulled_options_digest;
@@ -2582,7 +2556,8 @@ do_deferred_p2p_ncp(struct context *c)
 
     if (!tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options,
                                           &c->c2.frame, frame_fragment,
-                                          get_link_socket_info(c)))
+                                          get_link_socket_info(c),
+                                          &c->c1.tuntap->dco))
     {
         msg(D_TLS_ERRORS, "ERROR: failed to set crypto cipher");
         return false;

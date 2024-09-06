@@ -460,6 +460,8 @@ void tls_update_remote_addr(struct tls_multi *multi,
  * @param frame_fragment  The fragment frame options.
  * @param lsi             link socket info to adjust MTU related options
  *                        depending on the current protocol
+ * @param dco             The dco context to perform dco_set_peer()
+ *                        whenever a crypto param update occurs.
  *
  * @return true if updating succeeded or keys are already generated, false otherwise.
  */
@@ -468,7 +470,8 @@ bool tls_session_update_crypto_params(struct tls_multi *multi,
                                       struct options *options,
                                       struct frame *frame,
                                       struct frame *frame_fragment,
-                                      struct link_socket_info *lsi);
+                                      struct link_socket_info *lsi,
+                                      dco_context_t *dco);
 
 /*
  * inline functions
