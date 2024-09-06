@@ -1308,9 +1308,11 @@ fi
 
 AC_MSG_CHECKING([git checkout])
 GIT_CHECKOUT="no"
-if test -n "${GIT}" -a -d "${srcdir}/.git"; then
-	AC_DEFINE([HAVE_CONFIG_VERSION_H], [1], [extra version available in config-version.h])
-	GIT_CHECKOUT="yes"
+if test -n "${GIT}"; then
+	if ${GIT} -C "$srcdir" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+		AC_DEFINE([HAVE_CONFIG_VERSION_H], [1], [extra version available in config-version.h])
+		GIT_CHECKOUT="yes"
+	fi
 fi
 AC_MSG_RESULT([${GIT_CHECKOUT}])
 
