@@ -65,6 +65,12 @@
 #include <openssl/ec.h>
 #endif
 
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+#define HAVE_OPENSSL_STORE_API
+#include <openssl/ui.h>
+#include <openssl/store.h>
+#endif
+
 #if defined(_MSC_VER) && !defined(_M_ARM64)
 #include <openssl/applink.c>
 #endif
@@ -768,6 +774,111 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name)
 #endif /* OPENSSL_NO_EC */
 }
 
+#if defined(HAVE_OPENSSL_STORE_API)
+/**
+ * A wrapper for pem_password_callback for use with OpenSSL UI_METHOD.
+ */
+static int
+ui_reader(UI *ui, UI_STRING *uis)
+{
+    SSL_CTX *ctx = UI_get0_user_data(ui);
+
+    if (UI_get_string_type(uis) == UIT_PROMPT)
+    {
+        const char *prompt = UI_get0_output_string(uis);
+
+        /* If pkcs#11 Use custom prompt similar to pkcs11-helper */
+        if (strstr(prompt, "PKCS#11"))
+        {
+            struct user_pass up;
+            get_user_pass(&up, NULL, "PKCS#11 token", GET_USER_PASS_MANAGEMENT|GET_USER_PASS_PASSWORD_ONLY);
+            UI_set_result(ui, uis, up.password);
+            purge_user_pass(&up, true);
+        }
+        else /* use our generic 'Private Key' passphrase callback */
+        {
+            char password[64];
+            pem_password_cb *cb = SSL_CTX_get_default_passwd_cb(ctx);
+            void *d = SSL_CTX_get_default_passwd_cb_userdata(ctx);
+
+            cb(password, sizeof(password), 0, d);
+            UI_set_result(ui, uis, password);
+            secure_memzero(password, sizeof(password));
+        }
+
+        return 1;
+    }
+    return 0;
+}
+#endif /* defined(HAVE_OPENSSL_STORE_API) */
+
+/**
+ * Load private key from OSSL_STORE URI or file
+ * uri : URI of object or filename
+ * ssl_ctx : SSL_CTX for UI prompt
+ *
+ * Return a pointer to the key or NULL if not found.
+ * Caller must free the key after use.
+ */
+static void *
+load_pkey_from_uri(const char *uri, SSL_CTX *ssl_ctx)
+{
+    EVP_PKEY *pkey = NULL;
+
+#if !defined(HAVE_OPENSSL_STORE_API)
+
+    /* Treat the uri as file name */
+    BIO *in = BIO_new_file(uri, "r");
+    if (!in)
+    {
+        return NULL;
+    }
+    pkey = PEM_read_bio_PrivateKey(in, NULL,
+                                   SSL_CTX_get_default_passwd_cb(ssl_ctx),
+                                   SSL_CTX_get_default_passwd_cb_userdata(ssl_ctx));
+    BIO_free(in);
+
+#else /* defined(HAVE_OPENSSL_STORE_API) */
+
+    OSSL_STORE_CTX *store_ctx = NULL;
+    OSSL_STORE_INFO *info = NULL;
+
+    UI_METHOD *ui_method = UI_create_method("openvpn");
+    if (!ui_method)
+    {
+        msg(M_WARN, "OpenSSL UI creation failed");
+        return NULL;
+    }
+    UI_method_set_reader(ui_method, ui_reader);
+
+    store_ctx = OSSL_STORE_open_ex(uri, tls_libctx, NULL, ui_method, ssl_ctx,
+                                   NULL, NULL, NULL);
+    if (!store_ctx)
+    {
+        goto end;
+    }
+    if (OSSL_STORE_expect(store_ctx, OSSL_STORE_INFO_PKEY) != 1)
+    {
+        goto end;
+    }
+    info = OSSL_STORE_load(store_ctx);
+    if (!info)
+    {
+        goto end;
+    }
+    pkey = OSSL_STORE_INFO_get1_PKEY(info);
+    OSSL_STORE_INFO_free(info);
+    msg(D_TLS_DEBUG_MED, "Found pkey in store using URI: %s", uri);
+
+end:
+    OSSL_STORE_close(store_ctx);
+    UI_destroy_method(ui_method);
+
+#endif /* defined(HAVE_OPENSSL_STORE_API) */
+
+    return pkey;
+}
+
 int
 tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
                     bool pkcs12_file_inline, bool load_ca_file)
@@ -945,9 +1056,103 @@ tls_ctx_add_extra_certs(struct tls_root_ctx *ctx, BIO *bio, bool optional)
     }
 }
 
-void
-tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
-                       bool cert_file_inline)
+static bool
+cert_uri_supported(void)
+{
+#if defined(HAVE_OPENSSL_STORE_API)
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static void
+tls_ctx_load_cert_uri(struct tls_root_ctx *tls_ctx, const char *uri)
+{
+#if defined(HAVE_OPENSSL_STORE_API)
+    X509 *x = NULL;
+    int ret = 0;
+    OSSL_STORE_CTX *store_ctx = NULL;
+    OSSL_STORE_INFO *info = NULL;
+
+    ASSERT(NULL != tls_ctx);
+
+    UI_METHOD *ui_method = UI_create_method("openvpn");
+    if (!ui_method)
+    {
+        msg(M_WARN, "OpenSSL UI method creation failed");
+        goto end;
+    }
+    UI_method_set_reader(ui_method, ui_reader);
+
+    store_ctx = OSSL_STORE_open_ex(uri, tls_libctx, NULL, ui_method, tls_ctx->ctx,
+                                   NULL, NULL, NULL);
+    if (!store_ctx)
+    {
+        goto end;
+    }
+    if (OSSL_STORE_expect(store_ctx, OSSL_STORE_INFO_CERT) != 1)
+    {
+        goto end;
+    }
+
+    info = OSSL_STORE_load(store_ctx);
+    if (!info)
+    {
+        goto end;
+    }
+
+    x = OSSL_STORE_INFO_get0_CERT(info);
+    if (x == NULL)
+    {
+        goto end;
+    }
+    msg(D_TLS_DEBUG_MED, "Found cert in store using URI: %s", uri);
+
+    ret = SSL_CTX_use_certificate(tls_ctx->ctx, x);
+    if (!ret)
+    {
+        goto end;
+    }
+    OSSL_STORE_INFO_free(info);
+
+    /* iterate through the store and add extra certificates if any to the chain */
+    info = OSSL_STORE_load(store_ctx);
+    while (info && !OSSL_STORE_eof(store_ctx))
+    {
+        x = OSSL_STORE_INFO_get1_CERT(info);
+        if (x && SSL_CTX_add_extra_chain_cert(tls_ctx->ctx, x) != 1)
+        {
+            X509_free(x);
+            crypto_msg(M_FATAL, "Error adding extra certificate");
+            break;
+        }
+        OSSL_STORE_INFO_free(info);
+        info = OSSL_STORE_load(store_ctx);
+    }
+
+end:
+    if (!ret)
+    {
+        crypto_print_openssl_errors(M_WARN);
+        crypto_msg(M_FATAL, "Cannot load certificate from URI <%s>", uri);
+    }
+    else
+    {
+        crypto_print_openssl_errors(M_DEBUG);
+    }
+
+    UI_destroy_method(ui_method);
+    OSSL_STORE_INFO_free(info);
+    OSSL_STORE_close(store_ctx);
+#else /* defined(HAVE_OPENSSL_STORE_API */
+    ASSERT(0);
+#endif /* defined(HAVE_OPENSSL_STORE_API */
+}
+
+static void
+tls_ctx_load_cert_pem_file(struct tls_root_ctx *ctx, const char *cert_file,
+                           bool cert_file_inline)
 {
     BIO *in = NULL;
     X509 *x = NULL;
@@ -961,7 +1166,7 @@ tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
     }
     else
     {
-        in = BIO_new_file(cert_file, "r");
+        in = BIO_new_file((char *) cert_file, "r");
     }
 
     if (in == NULL)
@@ -1007,6 +1212,20 @@ end:
     X509_free(x);
 }
 
+void
+tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
+                       bool cert_file_inline)
+{
+    if (cert_uri_supported() && !cert_file_inline)
+    {
+        tls_ctx_load_cert_uri(ctx, cert_file);
+    }
+    else
+    {
+        tls_ctx_load_cert_pem_file(ctx, cert_file, cert_file_inline);
+    }
+}
+
 int
 tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
                        bool priv_key_file_inline)
@@ -1023,20 +1242,18 @@ tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file,
     if (priv_key_file_inline)
     {
         in = BIO_new_mem_buf((char *) priv_key_file, -1);
+        if (in == NULL)
+        {
+            goto end;
+        }
+        pkey = PEM_read_bio_PrivateKey(in, NULL,
+                                       SSL_CTX_get_default_passwd_cb(ctx->ctx),
+                                       SSL_CTX_get_default_passwd_cb_userdata(ctx->ctx));
     }
     else
     {
-        in = BIO_new_file(priv_key_file, "r");
+        pkey = load_pkey_from_uri(priv_key_file, ssl_ctx);
     }
-
-    if (!in)
-    {
-        goto end;
-    }
-
-    pkey = PEM_read_bio_PrivateKey(in, NULL,
-                                   SSL_CTX_get_default_passwd_cb(ctx->ctx),
-                                   SSL_CTX_get_default_passwd_cb_userdata(ctx->ctx));
 
     if (!pkey || !SSL_CTX_use_PrivateKey(ssl_ctx, pkey))
     {

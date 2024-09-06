@@ -66,6 +66,18 @@ throw_signal(const int signum)
 }
 #endif
 
+/* stubs for some unused functions instead of pulling in too many dependencies */
+bool
+get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix,
+                 const unsigned int flags, const char *auth_challenge)
+{
+    return false;
+}
+void
+purge_user_pass(struct user_pass *up, bool force)
+{
+    return;
+}
 
 const char *unittest_cert = "-----BEGIN CERTIFICATE-----\n"
                             "MIIBuTCCAUCgAwIBAgIUTLtjSBzx53qZRvZ6Ur7D9kgoOHkwCgYIKoZIzj0EAwIw\n"
