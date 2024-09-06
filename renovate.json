@@ -1,0 +1,40 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "packageRules": [
+        {
+            "matchDepTypes": [
+                "action"
+            ],
+            "groupName": "github actions",
+            "pinDigests": true,
+            "extends": [
+                "schedule:monthly"
+            ]
+        },
+        {
+            "matchDepNames": [
+                "vcpkg"
+            ],
+            "extends": [
+                "schedule:monthly"
+            ]
+        }
+    ],
+    "customManagers": [
+        {
+            "customType": "regex",
+            "fileMatch": ["^\\.github/workflows/.+\\.ya?ml$"],
+            "matchStrings": ["vcpkgGitCommitId:\\s*(?<currentDigest>.*?)\\n"],
+            "currentValueTemplate": "master",
+            "depNameTemplate": "vcpkg",
+            "packageNameTemplate": "https://github.com/microsoft/vcpkg",
+            "datasourceTemplate": "git-refs"
+        },
+        {
+            "customType": "regex",
+            "fileMatch": ["^\\.github/workflows/.+\\.ya?ml$"],
+            "matchStrings": ["versioning=(?<versioning>.*?)\\n\\s*repository:\\s*(?<depName>.*?)\\n\\s*ref:\\s*(?<currentValue>.*?)\\n"],
+            "datasourceTemplate": "github-tags"
+        }
+    ]
+}
