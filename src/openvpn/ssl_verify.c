@@ -1594,6 +1594,8 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
 {
     struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
 
+    ASSERT(up && !up->protected);
+
 #ifdef ENABLE_MANAGEMENT
     int man_def_auth = KMDA_UNDEF;
 

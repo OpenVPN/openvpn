@@ -243,6 +243,7 @@ static struct user_pass passbuf; /* GLOBAL */
 void
 pem_password_setup(const char *auth_file)
 {
+    unprotect_user_pass(&passbuf);
     if (!strlen(passbuf.password))
     {
         get_user_pass(&passbuf, auth_file, UP_TYPE_PRIVATE_KEY, GET_USER_PASS_MANAGEMENT|GET_USER_PASS_PASSWORD_ONLY);
@@ -256,6 +257,7 @@ pem_password_callback(char *buf, int size, int rwflag, void *u)
     {
         /* prompt for password even if --askpass wasn't specified */
         pem_password_setup(NULL);
+        ASSERT(!passbuf.protected);
         strncpynt(buf, passbuf.password, size);
         purge_user_pass(&passbuf, false);
 
@@ -295,6 +297,7 @@ auth_user_pass_setup(const char *auth_file, bool is_inline,
 
     if (!auth_user_pass.defined && !auth_token.defined)
     {
+        unprotect_user_pass(&auth_user_pass);
 #ifdef ENABLE_MANAGEMENT
         if (auth_challenge) /* dynamic challenge/response */
         {
@@ -2094,6 +2097,7 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
         {
             up = &auth_token;
         }
+        unprotect_user_pass(up);
 
         if (!write_string(buf, up->username, -1))
         {
@@ -2106,8 +2110,11 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
         /* save username for auth-token which may get pushed later */
         if (session->opt->pull && up != &auth_token)
         {
+            unprotect_user_pass(&auth_token);
             strncpynt(auth_token.username, up->username, USER_PASS_LEN);
+            protect_user_pass(&auth_token);
         }
+        protect_user_pass(up);
         /* respect auth-nocache */
         purge_user_pass(&auth_user_pass, false);
     }

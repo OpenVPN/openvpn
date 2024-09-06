@@ -83,6 +83,18 @@ parse_line(const char *line, char **p, const int n, const char *file,
     return 0;
 }
 
+bool
+protect_buffer_win32(char *buf, size_t len)
+{
+    return true;
+}
+
+bool
+unprotect_buffer_win32(char *buf, size_t len)
+{
+    return true;
+}
+
 /* tooling */
 static void
 reset_user_pass(struct user_pass *up)
