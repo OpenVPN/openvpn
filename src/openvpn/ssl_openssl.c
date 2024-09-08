@@ -776,7 +776,9 @@ tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name)
 
 #if defined(HAVE_OPENSSL_STORE_API)
 /**
- * A wrapper for pem_password_callback for use with OpenSSL UI_METHOD.
+ * A wrapper for password callback for use with OpenSSL UI_METHOD.
+ * The callback is obtained using SSL_CTX_get_default_passwd_cb()
+ * which is set to pem_password_callback() in tls_ctx_set_options().
  */
 static int
 ui_reader(UI *ui, UI_STRING *uis)
@@ -791,6 +793,7 @@ ui_reader(UI *ui, UI_STRING *uis)
         if (strstr(prompt, "PKCS#11"))
         {
             struct user_pass up;
+            CLEAR(up);
             get_user_pass(&up, NULL, "PKCS#11 token", GET_USER_PASS_MANAGEMENT|GET_USER_PASS_PASSWORD_ONLY);
             UI_set_result(ui, uis, up.password);
             purge_user_pass(&up, true);
