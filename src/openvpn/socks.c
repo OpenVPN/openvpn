@@ -96,7 +96,7 @@ socks_username_password_auth(struct socks_proxy_info *p,
     ssize_t size;
     bool ret = false;
 
-    creds.defined = 0;
+    CLEAR(creds);
     if (!get_user_pass(&creds, p->authfile, UP_TYPE_SOCKS, GET_USER_PASS_MANAGEMENT))
     {
         msg(M_NONFATAL, "SOCKS failed to get username/password.");

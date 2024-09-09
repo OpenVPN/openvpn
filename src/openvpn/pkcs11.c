@@ -238,6 +238,7 @@ _pkcs11_openvpn_pin_prompt(
 {
     struct user_pass token_pass;
     char prompt[1024];
+    CLEAR(token_pass);
 
     (void)global_data;
     (void)user_data;
