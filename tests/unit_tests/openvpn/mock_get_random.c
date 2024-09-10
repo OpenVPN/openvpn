@@ -41,6 +41,6 @@ prng_bytes(uint8_t *output, int len)
 {
     for (int i = 0; i < len; i++)
     {
-        output[i] = rand();
+        output[i] = (uint8_t)rand();
     }
 }

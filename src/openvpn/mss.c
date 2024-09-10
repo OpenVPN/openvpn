@@ -165,7 +165,7 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
         return;
     }
 
-    for (olen = hlen - sizeof(struct openvpn_tcphdr),
+    for (olen = hlen - (int) sizeof(struct openvpn_tcphdr),
          opt = (uint8_t *)(tc + 1);
          olen > 1;
          olen -= optlen, opt += optlen)

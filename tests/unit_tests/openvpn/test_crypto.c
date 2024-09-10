@@ -97,8 +97,8 @@ test_cipher_names(const char *ciphername, const char *openvpn_name)
 
     for (int i = 0; i < strlen(ciphername); i++)
     {
-        upper[i] = toupper(ciphername[i]);
-        lower[i] = tolower(ciphername[i]);
+        upper[i] = (char)toupper((unsigned char)ciphername[i]);
+        lower[i] = (char)tolower((unsigned char)ciphername[i]);
         if (rand() & 0x1)
         {
             random_case[i] = upper[i];
@@ -155,7 +155,7 @@ crypto_test_tls_prf(void **state)
 
 
     uint8_t out[32];
-    bool ret = ssl_tls1_PRF(seed, seed_len, secret, secret_len, out, sizeof(out));
+    bool ret = ssl_tls1_PRF(seed, (int)seed_len, secret, (int)secret_len, out, sizeof(out));
 
 #if defined(LIBRESSL_VERSION_NUMBER) || defined(ENABLE_CRYPTO_WOLFSSL)
     /* No TLS1 PRF support in these libraries */

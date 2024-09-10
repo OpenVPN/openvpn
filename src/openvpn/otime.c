@@ -105,7 +105,7 @@ tv_string_abs(const struct timeval *tv, struct gc_arena *gc)
 /* format a time_t as ascii, or use current time if 0 */
 
 const char *
-time_string(time_t t, int usec, bool show_usec, struct gc_arena *gc)
+time_string(time_t t, long usec, bool show_usec, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(64, gc);
     struct timeval tv;

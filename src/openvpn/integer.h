@@ -28,12 +28,12 @@
 
 #ifndef htonll
 #define htonll(x) ((1==htonl(1)) ? (x) : \
-                   ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
+                   ((uint64_t)htonl((uint32_t)((x) & 0xFFFFFFFF)) << 32) | htonl((uint32_t)((x) >> 32)))
 #endif
 
 #ifndef ntohll
 #define ntohll(x) ((1==ntohl(1)) ? (x) : \
-                   ((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
+                   ((uint64_t)ntohl((uint32_t)((x) & 0xFFFFFFFF)) << 32) | ntohl((uint32_t)((x) >> 32)))
 #endif
 
 static inline int
@@ -61,6 +61,19 @@ max_uint(unsigned int x, unsigned int y)
 
 static inline unsigned int
 min_uint(unsigned int x, unsigned int y)
+{
+    if (x < y)
+    {
+        return x;
+    }
+    else
+    {
+        return y;
+    }
+}
+
+static inline size_t
+min_size(size_t x, size_t y)
 {
     if (x < y)
     {

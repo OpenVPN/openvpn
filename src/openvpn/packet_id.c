@@ -588,14 +588,14 @@ packet_id_debug_print(int msglevel,
         }
         else
         {
-            diff = (int) prev_now - v;
+            diff = (int)(prev_now - v);
             if (diff < 0)
             {
                 c = 'N';
             }
             else if (diff < 10)
             {
-                c = '0' + diff;
+                c = (char)('0' + diff);
             }
             else
             {

@@ -257,8 +257,7 @@ reliable_ack_write(struct reliable_ack *ack,
                    struct buffer *buf,
                    const struct session_id *sid, int max, bool prepend)
 {
-    int i, j;
-    uint8_t n;
+    int i, j, n;
     struct buffer sub;
 
     n = ack->len;
@@ -270,9 +269,9 @@ reliable_ack_write(struct reliable_ack *ack,
     copy_acks_to_mru(ack, ack_mru, n);
 
     /* Number of acks we can resend that still fit into the packet */
-    uint8_t total_acks = min_int(max, ack_mru->len);
+    uint8_t total_acks = (uint8_t)min_int(max, ack_mru->len);
 
-    sub = buf_sub(buf, ACK_SIZE(total_acks), prepend);
+    sub = buf_sub(buf, (int)ACK_SIZE(total_acks), prepend);
     if (!BDEF(&sub))
     {
         goto error;

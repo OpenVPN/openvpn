@@ -326,7 +326,7 @@ buffer_write_file(const char *filename, const struct buffer *buf)
         return false;
     }
 
-    const int size = write(fd, BPTR(buf), BLEN(buf));
+    const ssize_t size = write(fd, BPTR(buf), BLEN(buf));
     if (size != BLEN(buf))
     {
         msg(M_ERRNO, "Write error on file '%s'", filename);
@@ -863,7 +863,7 @@ buf_parse(struct buffer *buf, const int delim, char *line, const int size)
         {
             break;
         }
-        line[n++] = c;
+        line[n++] = (char)c;
     }
     while (c);
 

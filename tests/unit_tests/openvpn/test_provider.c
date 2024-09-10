@@ -368,7 +368,7 @@ xkey_sign(void *handle, unsigned char *sig, size_t *siglen,
     }
 
     /* return a predefined string as sig */
-    memcpy(sig, good_sig, min_int(sizeof(good_sig), *siglen));
+    memcpy(sig, good_sig, min_size(sizeof(good_sig), *siglen));
 
     return 1;
 }

@@ -43,7 +43,7 @@ void frequency_limit_free(struct frequency_limit *f);
 bool frequency_limit_event_allowed(struct frequency_limit *f);
 
 /* format a time_t as ascii, or use current time if 0 */
-const char *time_string(time_t t, int usec, bool show_usec, struct gc_arena *gc);
+const char *time_string(time_t t, long usec, bool show_usec, struct gc_arena *gc);
 
 /* struct timeval functions */
 

@@ -93,7 +93,7 @@ test_packet_id_write_long(void **state)
     assert(data->pis.id == 1);
     assert(data->pis.time == now);
     assert_true(data->test_buf_data.buf_id == htonl(1));
-    assert_true(data->test_buf_data.buf_time == htonl(now));
+    assert_true(data->test_buf_data.buf_time == htonl((uint32_t)now));
 }
 
 static void
@@ -120,7 +120,7 @@ test_packet_id_write_long_prepend(void **state)
     assert(data->pis.id == 1);
     assert(data->pis.time == now);
     assert_true(data->test_buf_data.buf_id == htonl(1));
-    assert_true(data->test_buf_data.buf_time == htonl(now));
+    assert_true(data->test_buf_data.buf_time == htonl((uint32_t)now));
 }
 
 static void
@@ -151,7 +151,7 @@ test_packet_id_write_long_wrap(void **state)
     assert(data->pis.id == 1);
     assert(data->pis.time == now);
     assert_true(data->test_buf_data.buf_id == htonl(1));
-    assert_true(data->test_buf_data.buf_time == htonl(now));
+    assert_true(data->test_buf_data.buf_time == htonl((uint32_t)now));
 }
 
 static void

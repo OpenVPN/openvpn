@@ -137,7 +137,7 @@ __wrap_rand_bytes(uint8_t *output, int len)
 {
     for (int i = 0; i < len; i++)
     {
-        output[i] = i;
+        output[i] = (uint8_t)i;
     }
     return true;
 }

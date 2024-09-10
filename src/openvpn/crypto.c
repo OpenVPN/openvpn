@@ -26,6 +26,8 @@
 #include "config.h"
 #endif
 
+#include <inttypes.h>
+
 #include "syshead.h"
 #include <string.h>
 
@@ -1283,8 +1285,8 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
                     hex_byte[hb_index++] = c;
                     if (hb_index == 2)
                     {
-                        unsigned int u;
-                        ASSERT(sscanf((const char *)hex_byte, "%x", &u) == 1);
+                        uint8_t u;
+                        ASSERT(sscanf((const char *)hex_byte, "%" SCNx8, &u) == 1);
                         *out++ = u;
                         hb_index = 0;
                         if (++count == keylen)
@@ -1546,13 +1548,13 @@ write_key(const struct key *key, const struct key_type *kt,
     ASSERT(cipher_kt_key_size(kt->cipher) <= MAX_CIPHER_KEY_LENGTH
            && md_kt_size(kt->digest) <= MAX_HMAC_KEY_LENGTH);
 
-    const uint8_t cipher_length = cipher_kt_key_size(kt->cipher);
+    const uint8_t cipher_length = (uint8_t)cipher_kt_key_size(kt->cipher);
     if (!buf_write(buf, &cipher_length, 1))
     {
         return false;
     }
 
-    uint8_t hmac_length = md_kt_size(kt->digest);
+    uint8_t hmac_length = (uint8_t)md_kt_size(kt->digest);
 
     if (!buf_write(buf, &hmac_length, 1))
     {

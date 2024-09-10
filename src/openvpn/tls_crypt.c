@@ -634,7 +634,7 @@ tls_crypt_v2_extract_client_key(struct buffer *buf,
     memcpy(&net_len, BEND(&wrapped_client_key) - sizeof(net_len),
            sizeof(net_len));
 
-    size_t wkc_len = ntohs(net_len);
+    uint16_t wkc_len = ntohs(net_len);
     if (!buf_advance(&wrapped_client_key, BLEN(&wrapped_client_key) - wkc_len))
     {
         msg(D_TLS_ERRORS, "Can not locate tls-crypt-v2 client key");
