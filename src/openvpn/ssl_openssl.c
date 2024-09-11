@@ -813,6 +813,15 @@ ui_reader(UI *ui, UI_STRING *uis)
     }
     return 0;
 }
+
+static void
+clear_ossl_store_error(OSSL_STORE_CTX *store_ctx)
+{
+    if (OSSL_STORE_error(store_ctx))
+    {
+        ERR_clear_error();
+    }
+}
 #endif /* defined(HAVE_OPENSSL_STORE_API) */
 
 /**
@@ -864,7 +873,19 @@ load_pkey_from_uri(const char *uri, SSL_CTX *ssl_ctx)
     {
         goto end;
     }
-    info = OSSL_STORE_load(store_ctx);
+    while (1)
+    {
+        info = OSSL_STORE_load(store_ctx);
+        if (info || OSSL_STORE_eof(store_ctx))
+        {
+            break;
+        }
+        /* OPENSSL_STORE_load can return error and still have usable objects to follow.
+         * ref: man OPENSSL_STORE_open
+         * Clear error and recurse through the file if info = NULL and eof not reached
+         */
+        clear_ossl_store_error(store_ctx);
+    }
     if (!info)
     {
         goto end;
@@ -1099,7 +1120,19 @@ tls_ctx_load_cert_uri(struct tls_root_ctx *tls_ctx, const char *uri)
         goto end;
     }
 
-    info = OSSL_STORE_load(store_ctx);
+    while (1)
+    {
+        info = OSSL_STORE_load(store_ctx);
+        if (info || OSSL_STORE_eof(store_ctx))
+        {
+            break;
+        }
+        /* OPENSSL_STORE_load can return error and still have usable objects to follow.
+         * ref: man OPENSSL_STORE_open
+         * Clear error and recurse through the file if info = NULL and eof not reached.
+         */
+        clear_ossl_store_error(store_ctx);
+    }
     if (!info)
     {
         goto end;
@@ -1120,9 +1153,14 @@ tls_ctx_load_cert_uri(struct tls_root_ctx *tls_ctx, const char *uri)
     OSSL_STORE_INFO_free(info);
 
     /* iterate through the store and add extra certificates if any to the chain */
-    info = OSSL_STORE_load(store_ctx);
-    while (info && !OSSL_STORE_eof(store_ctx))
+    while (!OSSL_STORE_eof(store_ctx))
     {
+        info = OSSL_STORE_load(store_ctx);
+        if (!info)
+        {
+            clear_ossl_store_error(store_ctx);
+            continue;
+        }
         x = OSSL_STORE_INFO_get1_CERT(info);
         if (x && SSL_CTX_add_extra_chain_cert(tls_ctx->ctx, x) != 1)
         {
@@ -1131,7 +1169,6 @@ tls_ctx_load_cert_uri(struct tls_root_ctx *tls_ctx, const char *uri)
             break;
         }
         OSSL_STORE_INFO_free(info);
-        info = OSSL_STORE_load(store_ctx);
     }
 
 end:
