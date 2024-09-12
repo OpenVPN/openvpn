@@ -1256,6 +1256,8 @@ process_incoming_dco(struct context *c)
     switch (dco->dco_message_type)
     {
         case OVPN_CMD_DEL_PEER:
+            /* peer is gone, unset ID to prevent more kernel calls */
+            c->c2.tls_multi->dco_peer_id = -1;
             if (dco->dco_del_peer_reason == OVPN_DEL_PEER_REASON_EXPIRED)
             {
                 msg(D_DCO_DEBUG, "%s: received peer expired notification of for peer-id "
