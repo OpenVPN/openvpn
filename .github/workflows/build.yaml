@@ -172,8 +172,11 @@ jobs:
         run: ./configure --with-crypto-library=${{matrix.ssllib}} ${{matrix.extraconf}} --enable-werror
       - name: make all
         run: make -j3
+      - name: configure checks
+        if: ${{ matrix.extraconf != '--disable-management' }}
+        run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
       - name: make check
-        run: make check VERBOSE=1
+        run: make -j3 check VERBOSE=1
 
   ubuntu-clang-asan:
     strategy:
@@ -199,8 +202,10 @@ jobs:
         run: CFLAGS="-fsanitize=address,undefined -fno-sanitize-recover=all  -fno-omit-frame-pointer -O2" CC=clang ./configure --with-crypto-library=${{matrix.ssllib}} --enable-werror
       - name: make all
         run: make -j3
+      - name: configure checks
+        run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
       - name: make check
-        run: make check VERBOSE=1
+        run: make -j3 check VERBOSE=1
 
   macos:
     strategy:
@@ -258,8 +263,10 @@ jobs:
         run: ./configure --enable-werror ${{matrix.configureflags}} ${{matrix.configuressllib}}
       - name: make all
         run: make -j4
+      - name: configure checks
+        run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
       - name: make check
-        run: make check VERBOSE=1
+        run: make -j4 check VERBOSE=1
 
   msvc:
       strategy:
@@ -369,8 +376,10 @@ jobs:
         run: ./configure --with-crypto-library=openssl ${{matrix.configureflags}} --enable-werror
       - name: make all
         run: make -j3
+      - name: configure checks
+        run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
       - name: make check
-        run: make check VERBOSE=1
+        run: make -j3 check VERBOSE=1
 
   mbedtls3:
     strategy:
@@ -422,5 +431,7 @@ jobs:
         run: ./configure --with-crypto-library=mbedtls
       - name: make all
         run: make -j3
+      - name: configure checks
+        run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
       - name: make check
-        run: make check VERBOSE=1
+        run: make -j3 check VERBOSE=1
