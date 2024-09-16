@@ -1792,7 +1792,7 @@ header_modify_read_write_return(int len)
     }
 }
 
-int
+static int
 write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
 {
     if (tt->type == DEV_TYPE_TUN)
@@ -1825,7 +1825,7 @@ write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
     }
 }
 
-int
+static int
 read_tun_header(struct tuntap *tt, uint8_t *buf, int len)
 {
     if (tt->type == DEV_TYPE_TUN)
