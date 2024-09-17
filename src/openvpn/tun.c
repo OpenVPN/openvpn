@@ -879,9 +879,10 @@ init_tun(const char *dev,        /* --dev option */
             {
                 if (curele->ai_family == AF_INET)
                 {
+                    const in_addr_t local = ntohl(((struct sockaddr_in *)curele->ai_addr)->sin_addr.s_addr);
                     check_addr_clash("local",
                                      tt->type,
-                                     ((struct sockaddr_in *)curele->ai_addr)->sin_addr.s_addr,
+                                     local,
                                      tt->local,
                                      tt->remote_netmask);
                 }
@@ -891,9 +892,10 @@ init_tun(const char *dev,        /* --dev option */
             {
                 if (curele->ai_family == AF_INET)
                 {
+                    const in_addr_t remote = ntohl(((struct sockaddr_in *)curele->ai_addr)->sin_addr.s_addr);
                     check_addr_clash("remote",
                                      tt->type,
-                                     ((struct sockaddr_in *)curele->ai_addr)->sin_addr.s_addr,
+                                     remote,
                                      tt->local,
                                      tt->remote_netmask);
                 }
