@@ -87,7 +87,10 @@ while [ $count -lt $server_max_wait ]; do
     # the active server count as the processes won't be running.
     for i in `set|grep 'SERVER_NAME_'|cut -d "=" -f 2|tr -d "[\']"`; do
         server_pid=$(cat $i.pid 2> /dev/null)
-        if ps -p $server_pid > /dev/null 2>&1; then
+        if [ -z "$server_pid" ] ; then
+            continue
+        fi
+        if $RUN_SUDO kill -0 $server_pid > /dev/null 2>&1; then
             servers_up=$(( $servers_up + 1 ))
         fi
     done

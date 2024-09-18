@@ -82,6 +82,11 @@ for PID_FILE in $server_pid_files
 do
     SERVER_PID=$(cat "${PID_FILE}")
 
+    if [ -z "$SERVER_PID" ] ; then
+        echo "WARNING: could not kill server ${PID_FILE}!"
+        continue
+    fi
+
     if [ -z "${RUN_SUDO}" ]; then
         $KILL_EXEC "${SERVER_PID}"
     else
