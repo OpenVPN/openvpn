@@ -23,7 +23,7 @@ dnl  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 dnl Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.59)
+AC_PREREQ(2.60)
 
 m4_include(version.m4)
 AC_INIT([PRODUCT_NAME], [PRODUCT_VERSION], [PRODUCT_BUGREPORT], [PRODUCT_TARNAME])
@@ -387,6 +387,7 @@ else
 	pkg_config_found="(${PKG_CONFIG})"
 fi
 
+AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
@@ -443,9 +444,7 @@ ifdef(
 	]
 )
 
-AC_C_CONST
 AC_C_INLINE
-AC_C_VOLATILE
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
@@ -958,7 +957,7 @@ if test "${with_crypto_library}" = "openssl"; then
 		[AC_MSG_ERROR([OpenSSL check for AES-256-GCM support failed])]
 	)
 
-	# All supported OpenSSL version (>= 1.1.0)
+	# All supported OpenSSL versions (>= 1.1.0)
 	# have this feature
 	have_export_keying_material="yes"
 
@@ -1065,9 +1064,8 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 
 elif test "${with_crypto_library}" = "wolfssl"; then
 	AC_ARG_VAR([WOLFSSL_CFLAGS], [C compiler flags for wolfssl. The include directory should
-								  contain the regular wolfSSL header files but also the
-								  wolfSSL OpenSSL header files. Ex: -I/usr/local/include
-								  -I/usr/local/include/wolfssl])
+ contain the regular wolfSSL header files but also the wolfSSL OpenSSL header files.
+ Ex: -I/usr/local/include -I/usr/local/include/wolfssl])
 	AC_ARG_VAR([WOLFSSL_LIBS], [linker flags for wolfssl])
 
 	saved_CFLAGS="${CFLAGS}"
@@ -1258,7 +1256,7 @@ if test "$enable_systemd" = "yes" ; then
                       [PKG_CHECK_MODULES([libsystemd], [libsystemd-daemon])]
                       )
 
-    PKG_CHECK_EXISTS( [libsystemd > 216],
+    PKG_CHECK_EXISTS([libsystemd > 216],
                      [AC_DEFINE([SYSTEMD_NEWER_THAN_216], [1],
                            [systemd is newer than v216])]
                     )
