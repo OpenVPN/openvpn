@@ -3399,7 +3399,7 @@ link_socket_read_udp_posix(struct link_socket *sock,
  * Socket Write Routines
  */
 
-int
+ssize_t
 link_socket_write_tcp(struct link_socket *sock,
                       struct buffer *buf,
                       struct link_socket_actual *to)
@@ -3418,7 +3418,7 @@ link_socket_write_tcp(struct link_socket *sock,
 
 #if ENABLE_IP_PKTINFO
 
-size_t
+ssize_t
 link_socket_write_udp_posix_sendmsg(struct link_socket *sock,
                                     struct buffer *buf,
                                     struct link_socket_actual *to)

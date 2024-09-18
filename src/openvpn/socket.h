@@ -1099,9 +1099,9 @@ link_socket_read(struct link_socket *sock,
  * Socket Write routines
  */
 
-int link_socket_write_tcp(struct link_socket *sock,
-                          struct buffer *buf,
-                          struct link_socket_actual *to);
+ssize_t link_socket_write_tcp(struct link_socket *sock,
+                              struct buffer *buf,
+                              struct link_socket_actual *to);
 
 #ifdef _WIN32
 
@@ -1135,12 +1135,12 @@ link_socket_write_win32(struct link_socket *sock,
 
 #else  /* ifdef _WIN32 */
 
-size_t link_socket_write_udp_posix_sendmsg(struct link_socket *sock,
-                                           struct buffer *buf,
-                                           struct link_socket_actual *to);
+ssize_t link_socket_write_udp_posix_sendmsg(struct link_socket *sock,
+                                            struct buffer *buf,
+                                            struct link_socket_actual *to);
 
 
-static inline size_t
+static inline ssize_t
 link_socket_write_udp_posix(struct link_socket *sock,
                             struct buffer *buf,
                             struct link_socket_actual *to)
@@ -1158,7 +1158,7 @@ link_socket_write_udp_posix(struct link_socket *sock,
                   (socklen_t) af_addr_size(to->dest.addr.sa.sa_family));
 }
 
-static inline size_t
+static inline ssize_t
 link_socket_write_tcp_posix(struct link_socket *sock,
                             struct buffer *buf,
                             struct link_socket_actual *to)
@@ -1168,7 +1168,7 @@ link_socket_write_tcp_posix(struct link_socket *sock,
 
 #endif /* ifdef _WIN32 */
 
-static inline size_t
+static inline ssize_t
 link_socket_write_udp(struct link_socket *sock,
                       struct buffer *buf,
                       struct link_socket_actual *to)
@@ -1181,7 +1181,7 @@ link_socket_write_udp(struct link_socket *sock,
 }
 
 /* write a TCP or UDP packet to link */
-static inline int
+static inline ssize_t
 link_socket_write(struct link_socket *sock,
                   struct buffer *buf,
                   struct link_socket_actual *to)
