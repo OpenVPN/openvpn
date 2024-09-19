@@ -55,6 +55,11 @@
 
 #include <string.h>
 
+#ifdef TARGET_FREEBSD
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
+
 #ifdef _WIN32
 
 const static GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
@@ -1168,14 +1173,49 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu,
         openvpn_execve_check(&argv, es, 0, "Solaris ifconfig IPv6 mtu failed");
     }
 #elif defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
-    || defined(TARGET_DARWIN) || defined(TARGET_FREEBSD) \
-    || defined(TARGET_DRAGONFLY)
+    || defined(TARGET_DARWIN) || defined(TARGET_DRAGONFLY)
     argv_printf(&argv, "%s %s inet6 %s/%d mtu %d up", IFCONFIG_PATH, ifname,
                 ifconfig_ipv6_local, tt->netbits_ipv6, tun_mtu);
     argv_msg(M_INFO, &argv);
 
     openvpn_execve_check(&argv, es, S_FATAL,
                          "generic BSD ifconfig inet6 failed");
+
+#if defined(TARGET_OPENBSD) || defined(TARGET_NETBSD) \
+    || defined(TARGET_DARWIN)
+    /* and, hooray, we explicitly need to add a route... */
+    add_route_connected_v6_net(tt, es);
+#endif
+
+#elif defined(TARGET_FREEBSD)
+    /* read current fib number, codes are from: */
+    /* https://github.com/freebsd/freebsd-src/blob/f9716eee8ab45ad906d9b5c5233ca20c10226ca7/sbin/route/route.c#L269 */
+    int numfibs = 0, defaultfib = 0;
+    size_t len = sizeof(numfibs);
+    if (sysctlbyname("net.fibs", (void *)&numfibs, &len, NULL, 0) == -1)
+    numfibs = -1;
+
+    len = sizeof(defaultfib);
+    if (numfibs != -1 &&
+        sysctlbyname("net.my_fibnum", (void *)&defaultfib, &len, NULL,
+        0) == -1)
+        defaultfib = -1;
+
+    if (defaultfib <= 0)
+    {
+        argv_printf(&argv, "%s %s inet6 %s/%d mtu %d up", IFCONFIG_PATH, ifname,
+                    ifconfig_ipv6_local, tt->netbits_ipv6, tun_mtu);
+    }
+    else
+    {
+        argv_printf(&argv, "%s %s inet6 %s/%d mtu %d up fib %d", IFCONFIG_PATH, ifname,
+                    ifconfig_ipv6_local, tt->netbits_ipv6, tun_mtu, defaultfib);
+    }
+
+    argv_msg(M_INFO, &argv);
+
+    openvpn_execve_check(&argv, es, S_FATAL,
+                         "FreeBSD ifconfig inet6 failed");
 
 #if defined(TARGET_FREEBSD) && __FreeBSD_version >= 1200000 \
     && __FreeBSD_version < 1300000
@@ -1529,7 +1569,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         add_route(&r, tt, 0, NULL, es, NULL);
     }
 
-#elif defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY)
+#elif defined(TARGET_DRAGONFLY)
 
     /* example: ifconfig tun2 10.2.0.2 10.2.0.1 mtu 1450 netmask 255.255.255.255 up */
     if (tun_p2p)    /* point-to-point tun */
@@ -1543,6 +1583,55 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
         int netbits = netmask_to_netbits2(tt->remote_netmask);
         argv_printf(&argv, "%s %s %s/%d mtu %d up", IFCONFIG_PATH,
                     ifname, ifconfig_local, netbits, tun_mtu );
+    }
+
+    argv_msg(M_INFO, &argv);
+    openvpn_execve_check(&argv, es, S_FATAL, "DragonflyBSD ifconfig failed");
+
+#elif defined(TARGET_FREEBSD)
+
+    /* read current fib number, codes are from: */
+    /* https://github.com/freebsd/freebsd-src/blob/f9716eee8ab45ad906d9b5c5233ca20c10226ca7/sbin/route/route.c#L269 */
+    int numfibs = 0, defaultfib = 0;
+    size_t len = sizeof(numfibs);
+    if (sysctlbyname("net.fibs", (void *)&numfibs, &len, NULL, 0) == -1)
+        numfibs = -1;
+
+    len = sizeof(defaultfib);
+    if (numfibs != -1 &&
+        sysctlbyname("net.my_fibnum", (void *)&defaultfib, &len, NULL,
+        0) == -1)
+        defaultfib = -1;
+
+    /* example: ifconfig tun2 10.2.0.2 10.2.0.1 mtu 1450 netmask 255.255.255.255 up */
+    if (tun)       /* point-to-point tun */
+    {
+        if (defaultfib <= 0)
+        {
+            argv_printf(&argv, "%s %s %s %s mtu %d netmask 255.255.255.255 up",
+                        IFCONFIG_PATH, ifname, ifconfig_local,
+                        ifconfig_remote_netmask, tun_mtu);
+        }
+        else
+        {
+            argv_printf(&argv, "%s %s %s %s mtu %d netmask 255.255.255.255 up fib %d",
+                        IFCONFIG_PATH, ifname, ifconfig_local,
+                        ifconfig_remote_netmask, tun_mtu, defaultfib);
+        }
+    }
+    else            /* tun with topology subnet and tap mode (always subnet) */
+    {
+        int netbits = netmask_to_netbits2(tt->remote_netmask);
+        if (defaultfib <= 0)
+        {
+            argv_printf(&argv, "%s %s %s/%d mtu %d up", IFCONFIG_PATH,
+                        ifname, ifconfig_local, netbits, tun_mtu );
+        }
+        else
+        {
+            argv_printf(&argv, "%s %s %s/%d mtu %d up fib %d", IFCONFIG_PATH,
+                        ifname, ifconfig_local, netbits, tun_mtu, defaultfib);
+        }
     }
 
     argv_msg(M_INFO, &argv);
