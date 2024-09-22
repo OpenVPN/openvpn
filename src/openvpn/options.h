@@ -354,6 +354,9 @@ struct options
     const char *ip_remote_hint;
 
     struct tuntap_options tuntap_options;
+    /* DCO is disabled and should not be used as backend driver for the
+     * tun/tap device */
+    bool disable_dco;
 
     /* Misc parms */
     const char *username;
@@ -676,7 +679,7 @@ struct options
     bool show_net_up;
     int route_method;
     bool block_outside_dns;
-    enum windows_driver_type windows_driver;
+    enum tun_driver_type windows_driver;
 #endif
 
     bool use_peer_id;
@@ -907,7 +910,7 @@ static inline bool
 dco_enabled(const struct options *o)
 {
 #ifdef ENABLE_DCO
-    return !o->tuntap_options.disable_dco;
+    return !o->disable_dco;
 #else
     return false;
 #endif /* ENABLE_DCO */

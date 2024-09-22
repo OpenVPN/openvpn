@@ -1126,7 +1126,7 @@ do_persist_tuntap(struct options *options, openvpn_net_ctx_t *ctx)
             msg(M_WARN, "Note: --mktun does not support DCO. Creating TUN interface.");
         }
 
-        options->tuntap_options.disable_dco = true;
+        options->disable_dco = true;
     }
 #endif
 
@@ -1759,7 +1759,16 @@ do_init_tun(struct context *c)
                             c->c1.tuntap);
 
 #ifdef _WIN32
-    c->c1.tuntap->windows_driver = c->options.windows_driver;
+    c->c1.tuntap->backend_driver = c->options.windows_driver;
+#else
+    if (dco_enabled(&c->options))
+    {
+        c->c1.tuntap->backend_driver = DRIVER_DCO;
+    }
+    else
+    {
+        c->c1.tuntap->backend_driver = DRIVER_GENERIC_TUNTAP;
+    }
 #endif
 
     init_tun_post(c->c1.tuntap,

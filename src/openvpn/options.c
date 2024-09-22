@@ -905,7 +905,7 @@ init_options(struct options *o, const bool init_gc)
     o->allow_recursive_routing = false;
 
 #ifndef ENABLE_DCO
-    o->tuntap_options.disable_dco = true;
+    o->disable_dco = true;
 #endif /* ENABLE_DCO */
 }
 
@@ -1829,7 +1829,7 @@ show_settings(const struct options *o)
     SHOW_STR(dev_type);
     SHOW_STR(dev_node);
 #if defined(ENABLE_DCO)
-    SHOW_BOOL(tuntap_options.disable_dco);
+    SHOW_BOOL(disable_dco);
 #endif
     SHOW_STR(lladdr);
     SHOW_INT(topology);
@@ -2489,7 +2489,7 @@ options_postprocess_verify_ce(const struct options *options,
         if (options->windows_driver != WINDOWS_DRIVER_TAP_WINDOWS6)
         {
             msg(M_USAGE, "%s, which is not supported by the selected %s driver",
-                prefix, print_windows_driver(options->windows_driver));
+                prefix, print_tun_backend_driver(options->windows_driver));
         }
         else if (options->tuntap_options.ip_win32_type != IPW32_SET_DHCP_MASQ
                  && options->tuntap_options.ip_win32_type != IPW32_SET_ADAPTIVE)
@@ -3403,7 +3403,7 @@ options_postprocess_mutate_invariant(struct options *options)
 
     /* when using wintun/ovpn-dco, kernel doesn't send DHCP requests, so don't use it */
     if ((options->windows_driver == WINDOWS_DRIVER_WINTUN
-         || options->windows_driver == WINDOWS_DRIVER_DCO)
+         || options->windows_driver == DRIVER_DCO)
         && (options->tuntap_options.ip_win32_type == IPW32_SET_DHCP_MASQ
             || options->tuntap_options.ip_win32_type == IPW32_SET_ADAPTIVE))
     {
@@ -3777,8 +3777,8 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     if (dco_enabled(o))
     {
         /* check if any option should force disabling DCO */
-        o->tuntap_options.disable_dco = !dco_check_option(D_DCO, o)
-                                        || !dco_check_startup_option(D_DCO, o);
+        o->disable_dco = !dco_check_option(D_DCO, o)
+                         || !dco_check_startup_option(D_DCO, o);
     }
 #ifdef USE_COMP
     if (dco_enabled(o))
@@ -3790,11 +3790,11 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
 #ifdef _WIN32
     if (dco_enabled(o))
     {
-        o->windows_driver = WINDOWS_DRIVER_DCO;
+        o->windows_driver = DRIVER_DCO;
     }
     else
     {
-        if (o->windows_driver == WINDOWS_DRIVER_DCO)
+        if (o->windows_driver == DRIVER_DCO)
         {
             msg(M_WARN, "Option --windows-driver ovpn-dco is ignored because Data Channel Offload is disabled");
             o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
@@ -4699,9 +4699,9 @@ options_string_extract_option(const char *options_string, const char *opt_name,
  *
  * @param str       value of --windows-driver option
  * @param msglevel  msglevel to report parsing error
- * @return enum windows_driver_type  driver type, WINDOWS_DRIVER_UNSPECIFIED on unknown --windows-driver value
+ * @return enum tun_driver_type  driver type, WINDOWS_DRIVER_UNSPECIFIED on unknown --windows-driver value
  */
-static enum windows_driver_type
+static enum tun_driver_type
 parse_windows_driver(const char *str, const int msglevel)
 {
     if (streq(str, "tap-windows6"))
@@ -4715,7 +4715,7 @@ parse_windows_driver(const char *str, const int msglevel)
 
     else if (streq(str, "ovpn-dco"))
     {
-        return WINDOWS_DRIVER_DCO;
+        return DRIVER_DCO;
     }
     else
     {
@@ -6053,7 +6053,7 @@ add_option(struct options *options,
 #endif
     else if (streq(p[0], "disable-dco"))
     {
-        options->tuntap_options.disable_dco = true;
+        options->disable_dco = true;
     }
     else if (streq(p[0], "dev-node") && p[1] && !p[2])
     {

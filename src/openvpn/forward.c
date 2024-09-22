@@ -1299,7 +1299,7 @@ read_incoming_tun(struct context *c)
     c->c2.buf = c->c2.buffers->read_tun_buf;
 
 #ifdef _WIN32
-    if (c->c1.tuntap->windows_driver == WINDOWS_DRIVER_WINTUN)
+    if (c->c1.tuntap->backend_driver == WINDOWS_DRIVER_WINTUN)
     {
         read_wintun(c->c1.tuntap, &c->c2.buf);
         if (c->c2.buf.len == -1)

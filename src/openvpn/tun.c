@@ -55,6 +55,31 @@
 
 #include <string.h>
 
+const char *
+print_tun_backend_driver(enum tun_driver_type driver)
+{
+    switch (driver)
+    {
+        case WINDOWS_DRIVER_TAP_WINDOWS6:
+            return "tap-windows6";
+
+        case WINDOWS_DRIVER_WINTUN:
+            return "wintun";
+
+        case DRIVER_GENERIC_TUNTAP:
+            return "tun/tap";
+
+        case DRIVER_DCO:
+            return "ovpn-dco";
+
+        case DRIVER_UTUN:
+            return "utun";
+
+        default:
+            return "unspecified";
+    }
+}
+
 #ifdef _WIN32
 
 const static GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
@@ -966,7 +991,7 @@ init_tun_post(struct tuntap *tt,
 {
     tt->options = *options;
 #ifdef _WIN32
-    if (tt->windows_driver == WINDOWS_DRIVER_DCO)
+    if (tt->backend_driver == DRIVER_DCO)
     {
         dco_start_tun(tt);
         return;
@@ -976,7 +1001,7 @@ init_tun_post(struct tuntap *tt,
     overlapped_io_init(&tt->writes, frame, TRUE);
     tt->adapter_index = TUN_ADAPTER_INDEX_INVALID;
 
-    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
+    if (tt->backend_driver == WINDOWS_DRIVER_WINTUN)
     {
         tt->wintun_send_ring_handle = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
                                                         PAGE_READWRITE,
@@ -1859,7 +1884,7 @@ tun_name_is_fixed(const char *dev)
 static bool
 tun_dco_enabled(struct tuntap *tt)
 {
-    return !tt->options.disable_dco;
+    return tt->backend_driver == DRIVER_DCO;
 }
 #endif
 
@@ -3339,7 +3364,7 @@ open_darwin_utun(const char *dev, const char *dev_type, const char *dev_node, st
     tt->actual_name = string_alloc(utunname, NULL);
 
     msg(M_INFO, "Opened utun device %s", utunname);
-    tt->is_utun = true;
+    tt->backend_driver = DRIVER_UTUN;
 }
 
 #endif /* ifdef HAVE_NET_IF_UTUN_H */
@@ -3366,7 +3391,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
          * and dev_node is not specified */
         open_darwin_utun(dev, dev_type, dev_node, tt);
 
-        if (!tt->is_utun)
+        if (tt->backend_driver != DRIVER_UTUN)
         {
             if (!dev_node)
             {
@@ -3428,7 +3453,7 @@ int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
 #ifdef HAVE_NET_IF_UTUN_H
-    if (tt->is_utun)
+    if (tt->backend_driver == DRIVER_UTUN)
     {
         return write_tun_header(tt, buf, len);
     }
@@ -3441,7 +3466,7 @@ int
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
 #ifdef HAVE_NET_IF_UTUN_H
-    if (tt->is_utun)
+    if (tt->backend_driver == DRIVER_UTUN)
     {
         return read_tun_header(tt, buf, len);
     }
@@ -3972,7 +3997,7 @@ get_tap_reg(struct gc_arena *gc)
                 if (status == ERROR_SUCCESS && data_type == REG_SZ)
                 {
                     /* Is this adapter supported? */
-                    enum windows_driver_type windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
+                    enum tun_driver_type windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
                     if (strcasecmp(component_id, TAP_WIN_COMPONENT_ID) == 0
                         || strcasecmp(component_id, "root\\" TAP_WIN_COMPONENT_ID) == 0)
                     {
@@ -3984,7 +4009,7 @@ get_tap_reg(struct gc_arena *gc)
                     }
                     else if (strcasecmp(component_id, "ovpn-dco") == 0)
                     {
-                        windows_driver = WINDOWS_DRIVER_DCO;
+                        windows_driver = DRIVER_DCO;
                     }
 
                     if (windows_driver != WINDOWS_DRIVER_UNSPECIFIED)
@@ -4006,7 +4031,7 @@ get_tap_reg(struct gc_arena *gc)
                         last = reg;
 
                         msg(D_TAP_WIN_DEBUG, "NetCfgInstanceId: %s, Driver: %s",
-                            reg->guid, print_windows_driver(reg->windows_driver));
+                            reg->guid, print_tun_backend_driver(reg->windows_driver));
                     }
                 }
             }
@@ -4238,7 +4263,7 @@ show_tap_win_adapters(int msglev, int warnlev)
         {
             if (!strcmp(tr->guid, pr->guid))
             {
-                msg(msglev, "'%s' %s %s", pr->name, tr->guid, print_windows_driver(tr->windows_driver));
+                msg(msglev, "'%s' %s %s", pr->name, tr->guid, print_tun_backend_driver(tr->windows_driver));
                 ++links;
             }
         }
@@ -4359,7 +4384,7 @@ get_unspecified_device_guid(const int device_number,
                             int actual_name_size,
                             const struct tap_reg *tap_reg_src,
                             const struct panel_reg *panel_reg_src,
-                            enum windows_driver_type *windows_driver,
+                            enum tun_driver_type *windows_driver,
                             struct gc_arena *gc)
 {
     const struct tap_reg *tap_reg = tap_reg_src;
@@ -4423,7 +4448,7 @@ static const char *
 get_device_guid(const char *name,
                 uint8_t *actual_name,
                 int actual_name_size,
-                enum windows_driver_type *windows_driver,
+                enum tun_driver_type *windows_driver,
                 const struct tap_reg *tap_reg,
                 const struct panel_reg *panel_reg,
                 struct gc_arena *gc)
@@ -6209,7 +6234,7 @@ tuntap_set_ip_addr(struct tuntap *tt,
     const DWORD index = tt->adapter_index;
 
     /* flush arp cache */
-    if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6
+    if (tt->backend_driver == WINDOWS_DRIVER_TAP_WINDOWS6
         && index != TUN_ADAPTER_INDEX_INVALID)
     {
         DWORD status = -1;
@@ -6546,8 +6571,8 @@ tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct dev
     const char *path = NULL;
     char tuntap_device_path[256];
 
-    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN
-        || tt->windows_driver == WINDOWS_DRIVER_DCO)
+    if (tt->backend_driver == WINDOWS_DRIVER_WINTUN
+        || tt->backend_driver == DRIVER_DCO)
     {
         const struct device_instance_id_interface *dev_if;
 
@@ -6558,7 +6583,7 @@ tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct dev
                 continue;
             }
 
-            if (tt->windows_driver == WINDOWS_DRIVER_DCO)
+            if (tt->backend_driver == DRIVER_DCO)
             {
                 char *last_sep = strrchr(dev_if->device_interface, '\\');
                 if (!last_sep
@@ -6597,11 +6622,11 @@ tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct dev
                           0);
     if (tt->hand == INVALID_HANDLE_VALUE)
     {
-        msg(D_TUNTAP_INFO | M_ERRNO, "CreateFile failed on %s device: %s", print_windows_driver(tt->windows_driver), path);
+        msg(D_TUNTAP_INFO | M_ERRNO, "CreateFile failed on %s device: %s", print_tun_backend_driver(tt->backend_driver), path);
         return false;
     }
 
-    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
+    if (tt->backend_driver == WINDOWS_DRIVER_WINTUN)
     {
         /* Wintun adapter may be considered "open" after ring buffers are successfuly registered. */
         if (!wintun_register_ring_buffer(tt, device_guid))
@@ -6631,7 +6656,7 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
      */
     if (dev_node)
     {
-        enum windows_driver_type windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
+        enum tun_driver_type windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
 
         /* Get the device GUID for the device specified with --dev-node. */
         *device_guid = get_device_guid(dev_node, actual_buffer, sizeof(actual_buffer), &windows_driver, tap_reg, panel_reg, gc);
@@ -6641,15 +6666,15 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
             msg(M_FATAL, "Adapter '%s' not found", dev_node);
         }
 
-        if (tt->windows_driver != windows_driver)
+        if (tt->backend_driver != windows_driver)
         {
             msg(M_FATAL, "Adapter '%s' is using %s driver, %s expected. If you want to use this device, adjust --windows-driver.",
-                dev_node, print_windows_driver(windows_driver), print_windows_driver(tt->windows_driver));
+                dev_node, print_tun_backend_driver(windows_driver), print_tun_backend_driver(tt->backend_driver));
         }
 
         if (!tun_try_open_device(tt, *device_guid, device_instance_id_interface))
         {
-            msg(M_FATAL, "Failed to open %s adapter: %s", print_windows_driver(tt->windows_driver), dev_node);
+            msg(M_FATAL, "Failed to open %s adapter: %s", print_tun_backend_driver(tt->backend_driver), dev_node);
         }
     }
     else
@@ -6659,7 +6684,7 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
         /* Try opening all TAP devices until we find one available */
         while (true)
         {
-            enum windows_driver_type windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
+            enum tun_driver_type windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
             *device_guid = get_unspecified_device_guid(device_number,
                                                        actual_buffer,
                                                        sizeof(actual_buffer),
@@ -6670,10 +6695,10 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
 
             if (!*device_guid)
             {
-                msg(M_FATAL, "All %s adapters on this system are currently in use or disabled.", print_windows_driver(tt->windows_driver));
+                msg(M_FATAL, "All %s adapters on this system are currently in use or disabled.", print_tun_backend_driver(tt->backend_driver));
             }
 
-            if (tt->windows_driver != windows_driver)
+            if (tt->backend_driver != windows_driver)
             {
                 goto next;
             }
@@ -6692,7 +6717,7 @@ next:
      * GUID using the registry */
     tt->actual_name = string_alloc((const char *)actual_buffer, NULL);
 
-    msg(M_INFO, "%s device [%s] opened", print_windows_driver(tt->windows_driver), tt->actual_name);
+    msg(M_INFO, "%s device [%s] opened", print_tun_backend_driver(tt->backend_driver), tt->actual_name);
     tt->adapter_index = get_adapter_index(*device_guid);
 }
 
@@ -6745,7 +6770,7 @@ tuntap_post_open(struct tuntap *tt, const char *device_guid)
     bool dhcp_masq = false;
     bool dhcp_masq_post = false;
 
-    if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
+    if (tt->backend_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
     {
         /* get driver version info */
         tuntap_get_version_info(tt);
@@ -6788,11 +6813,11 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
          openvpn_net_ctx_t *ctx)
 {
     if ((tt->options.dhcp_options & DHCP_OPTIONS_DHCP_REQUIRED)
-        && tt->windows_driver != WINDOWS_DRIVER_TAP_WINDOWS6)
+        && tt->backend_driver != WINDOWS_DRIVER_TAP_WINDOWS6)
     {
         msg(M_WARN, "Some --dhcp-option or --dns options require DHCP server,"
             " which is not supported by the selected %s driver. They will be"
-            " ignored.", print_windows_driver(tt->windows_driver));
+            " ignored.", print_tun_backend_driver(tt->backend_driver));
     }
 
     /* dco-win already opened the device, which handle we treat as socket */
@@ -6830,7 +6855,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 const char *
 tap_win_getinfo(const struct tuntap *tt, struct gc_arena *gc)
 {
-    if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
+    if (tt->backend_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
     {
         struct buffer out = alloc_buf_gc(256, gc);
         DWORD len;
@@ -6848,7 +6873,7 @@ tap_win_getinfo(const struct tuntap *tt, struct gc_arena *gc)
 void
 tun_show_debug(struct tuntap *tt)
 {
-    if (tt->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
+    if (tt->backend_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
     {
         struct buffer out = alloc_buf(1024);
         DWORD len;
@@ -6925,7 +6950,7 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
 void
 close_tun_handle(struct tuntap *tt)
 {
-    const char *adaptertype = print_windows_driver(tt->windows_driver);
+    const char *adaptertype = print_tun_backend_driver(tt->backend_driver);
 
     if (tt->hand)
     {
@@ -6952,7 +6977,7 @@ close_tun_handle(struct tuntap *tt)
         tt->hand = NULL;
     }
 
-    if (tt->windows_driver == WINDOWS_DRIVER_WINTUN)
+    if (tt->backend_driver == WINDOWS_DRIVER_WINTUN)
     {
         CloseHandle(tt->rw_handle.read);
         CloseHandle(tt->rw_handle.write);
@@ -7111,25 +7136,6 @@ ipset2ascii_all(struct gc_arena *gc)
         buf_printf(&out, "[%s]", ipset2ascii(i));
     }
     return BSTR(&out);
-}
-
-const char *
-print_windows_driver(enum windows_driver_type windows_driver)
-{
-    switch (windows_driver)
-    {
-        case WINDOWS_DRIVER_TAP_WINDOWS6:
-            return "tap-windows6";
-
-        case WINDOWS_DRIVER_WINTUN:
-            return "wintun";
-
-        case WINDOWS_DRIVER_DCO:
-            return "ovpn-dco";
-
-        default:
-            return "unspecified";
-    }
 }
 
 #else /* generic */

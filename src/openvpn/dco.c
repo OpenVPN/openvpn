@@ -328,7 +328,7 @@ dco_check_startup_option(int msglevel, const struct options *o)
         || (o->windows_driver == WINDOWS_DRIVER_TAP_WINDOWS6))
     {
         msg(msglevel, "--windows-driver is set to '%s'. Disabling Data Channel Offload",
-            print_windows_driver(o->windows_driver));
+            print_tun_backend_driver(o->windows_driver));
         return false;
     }
 

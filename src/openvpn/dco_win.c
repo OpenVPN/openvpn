@@ -44,7 +44,7 @@ const IN_ADDR in4addr_any = { 0 };
 struct tuntap
 create_dco_handle(const char *devname, struct gc_arena *gc)
 {
-    struct tuntap tt = { .windows_driver = WINDOWS_DRIVER_DCO };
+    struct tuntap tt = { .backend_driver = DRIVER_DCO };
     const char *device_guid;
 
     tun_open_device(&tt, devname, &device_guid, gc);
