@@ -1679,6 +1679,18 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
 #endif /* ifdef ENABLE_MANAGEMENT */
 }
 
+/**
+ * Determine if external route commands should be executed based on
+ * configured options and backend driver
+ */
+static bool
+route_noexec_enabled(const struct options *o, const struct tuntap *tt)
+{
+    return o->route_noexec
+           || (tt && tt->backend_driver == DRIVER_AFUNIX)
+           || (tt && tt->backend_driver == DRIVER_NULL);
+}
+
 /*
  * Possibly add routes and/or call route-up script
  * based on options.
@@ -1693,7 +1705,7 @@ do_route(const struct options *options,
          openvpn_net_ctx_t *ctx)
 {
     bool ret = true;
-    if (!options->route_noexec && ( route_list || route_ipv6_list ) )
+    if (!route_noexec_enabled(options, tt) && ( route_list || route_ipv6_list ) )
     {
         ret = add_routes(route_list, route_ipv6_list, tt, ROUTE_OPTION_FLAGS(options),
                          es, ctx);
@@ -1858,6 +1870,19 @@ del_wfp_block(struct context *c, unsigned long adapter_index)
 #endif
 }
 
+/**
+ * Determines if ifconfig execution should be disabled because of a
+ * @param c
+ * @return
+ */
+static bool
+ifconfig_noexec_enabled(const struct context *c)
+{
+    return c->options.ifconfig_noexec
+           || (c->c1.tuntap && c->c1.tuntap->backend_driver == DRIVER_AFUNIX)
+           || (c->c1.tuntap && c->c1.tuntap->backend_driver == DRIVER_NULL);
+}
+
 static void
 open_tun_backend(struct context *c)
 {
@@ -1937,7 +1962,7 @@ do_open_tun(struct context *c, int *error_flags)
         }
 
         /* do ifconfig */
-        if (!c->options.ifconfig_noexec
+        if (!ifconfig_noexec_enabled(c)
             && ifconfig_order(c->c1.tuntap) == IFCONFIG_BEFORE_TUN_OPEN)
         {
             /* guess actual tun/tap unit number that will be returned
@@ -1978,7 +2003,7 @@ do_open_tun(struct context *c, int *error_flags)
         }
 
         /* do ifconfig */
-        if (!c->options.ifconfig_noexec
+        if (!ifconfig_noexec_enabled(c)
             && ifconfig_order(c->c1.tuntap) == IFCONFIG_AFTER_TUN_OPEN)
         {
             do_ifconfig(c->c1.tuntap, c->c1.tuntap->actual_name,
@@ -2061,7 +2086,7 @@ do_close_tun_simple(struct context *c)
 
     if (c->c1.tuntap)
     {
-        if (!c->options.ifconfig_noexec)
+        if (!ifconfig_noexec_enabled(c))
         {
             undo_ifconfig(c->c1.tuntap, &c->net_ctx);
         }
