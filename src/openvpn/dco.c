@@ -305,6 +305,12 @@ dco_check_startup_option(int msglevel, const struct options *o)
         return false;
     }
 
+    if (is_dev_type(o->dev, o->dev_type, "null"))
+    {
+        msg(msglevel, "Note: null tun type selected, disabling data channel offload");
+        return false;
+    }
+
     if (o->connection_list)
     {
         const struct connection_list *l = o->connection_list;

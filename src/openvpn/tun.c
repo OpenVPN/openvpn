@@ -75,6 +75,9 @@ print_tun_backend_driver(enum tun_driver_type driver)
         case DRIVER_AFUNIX:
             return "unix";
 
+        case DRIVER_NULL:
+            return "null";
+
         case DRIVER_UTUN:
             return "utun";
 
@@ -463,17 +466,15 @@ is_dev_type(const char *dev, const char *dev_type, const char *match_type)
 int
 dev_type_enum(const char *dev, const char *dev_type)
 {
-    if (is_dev_type(dev, dev_type, "tun"))
+    /* We pretend that the null device is also a tun device but it does not
+     * really matter as it will discard everything anyway */
+    if (is_dev_type(dev, dev_type, "tun") || is_dev_type(dev, dev_type, "null"))
     {
         return DEV_TYPE_TUN;
     }
     else if (is_dev_type(dev, dev_type, "tap"))
     {
         return DEV_TYPE_TAP;
-    }
-    else if (is_dev_type(dev, dev_type, "null"))
-    {
-        return DEV_TYPE_NULL;
     }
     else
     {
@@ -491,9 +492,6 @@ dev_type_string(const char *dev, const char *dev_type)
 
         case DEV_TYPE_TAP:
             return "tap";
-
-        case DEV_TYPE_NULL:
-            return "null";
 
         default:
             return "[unknown-dev-type]";
@@ -768,8 +766,7 @@ is_tun_p2p(const struct tuntap *tt)
     bool tun_p2p = false;
 
     if (tt->type == DEV_TYPE_TAP
-        || (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET)
-        || tt->type == DEV_TYPE_NULL)
+        || (tt->type == DEV_TYPE_TUN && tt->topology == TOP_SUBNET))
     {
         tun_p2p = false;
     }
@@ -780,7 +777,6 @@ is_tun_p2p(const struct tuntap *tt)
     else
     {
         msg(M_FATAL, "Error: problem with tun vs. tap setting"); /* JYFIXME -- needs to be caught earlier, in init_tun? */
-
     }
     return tun_p2p;
 }
@@ -1748,7 +1744,7 @@ undo_ifconfig_ipv6(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 void
 undo_ifconfig(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
-    if (tt->type != DEV_TYPE_NULL)
+    if (tt->backend_driver != DRIVER_NULL)
     {
         if (tt->did_ifconfig_setup)
         {
@@ -1778,13 +1774,6 @@ clear_tuntap(struct tuntap *tuntap)
     tuntap->ip_fd = -1;
 #endif
 }
-
-static void
-open_null(struct tuntap *tt)
-{
-    tt->actual_name = string_alloc("null", NULL);
-}
-
 
 #if defined (TARGET_OPENBSD) || (defined(TARGET_DARWIN) && HAVE_NET_IF_UTUN_H)
 
@@ -1901,78 +1890,72 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
     char dynamic_name[256];
     bool dynamic_opened = false;
 
-    if (tt->type == DEV_TYPE_NULL)
+    /*
+     * --dev-node specified, so open an explicit device node
+     */
+    if (dev_node)
     {
-        open_null(tt);
+        snprintf(tunname, sizeof(tunname), "%s", dev_node);
     }
     else
     {
         /*
-         * --dev-node specified, so open an explicit device node
+         * dynamic open is indicated by --dev specified without
+         * explicit unit number.  Try opening /dev/[dev]n
+         * where n = [0, 255].
          */
-        if (dev_node)
+
+        if (!tun_name_is_fixed(dev))
         {
-            snprintf(tunname, sizeof(tunname), "%s", dev_node);
+            for (int i = 0; i < 256; ++i)
+            {
+                snprintf(tunname, sizeof(tunname),
+                         "/dev/%s%d", dev, i);
+                snprintf(dynamic_name, sizeof(dynamic_name),
+                         "%s%d", dev, i);
+                if ((tt->fd = open(tunname, O_RDWR)) > 0)
+                {
+                    dynamic_opened = true;
+                    break;
+                }
+                msg(D_READ_WRITE | M_ERRNO, "Tried opening %s (failed)", tunname);
+            }
+            if (!dynamic_opened)
+            {
+                msg(M_FATAL, "Cannot allocate TUN/TAP dev dynamically");
+            }
         }
+        /*
+         * explicit unit number specified
+         */
         else
         {
-            /*
-             * dynamic open is indicated by --dev specified without
-             * explicit unit number.  Try opening /dev/[dev]n
-             * where n = [0, 255].
-             */
-
-            if (!tun_name_is_fixed(dev))
-            {
-                for (int i = 0; i < 256; ++i)
-                {
-                    snprintf(tunname, sizeof(tunname),
-                             "/dev/%s%d", dev, i);
-                    snprintf(dynamic_name, sizeof(dynamic_name),
-                             "%s%d", dev, i);
-                    if ((tt->fd = open(tunname, O_RDWR)) > 0)
-                    {
-                        dynamic_opened = true;
-                        break;
-                    }
-                    msg(D_READ_WRITE | M_ERRNO, "Tried opening %s (failed)", tunname);
-                }
-                if (!dynamic_opened)
-                {
-                    msg(M_FATAL, "Cannot allocate TUN/TAP dev dynamically");
-                }
-            }
-            /*
-             * explicit unit number specified
-             */
-            else
-            {
-                snprintf(tunname, sizeof(tunname), "/dev/%s", dev);
-            }
+            snprintf(tunname, sizeof(tunname), "/dev/%s", dev);
         }
-
-        if (!dynamic_opened)
-        {
-            /* has named device existed before? if so, don't destroy at end */
-            if (if_nametoindex( dev ) > 0)
-            {
-                msg(M_INFO, "TUN/TAP device %s exists previously, keep at program end", dev );
-                tt->persistent_if = true;
-            }
-
-            if ((tt->fd = open(tunname, O_RDWR)) < 0)
-            {
-                msg(M_ERR, "Cannot open TUN/TAP dev %s", tunname);
-            }
-        }
-
-        set_nonblock(tt->fd);
-        set_cloexec(tt->fd); /* don't pass fd to scripts */
-        msg(M_INFO, "TUN/TAP device %s opened", tunname);
-
-        /* tt->actual_name is passed to up and down scripts and used as the ifconfig dev name */
-        tt->actual_name = string_alloc(dynamic_opened ? dynamic_name : dev, NULL);
     }
+
+    if (!dynamic_opened)
+    {
+        /* has named device existed before? if so, don't destroy at end */
+        if (if_nametoindex( dev ) > 0)
+        {
+            msg(M_INFO, "TUN/TAP device %s exists previously, keep at program end", dev );
+            tt->persistent_if = true;
+        }
+
+        if ((tt->fd = open(tunname, O_RDWR)) < 0)
+        {
+            msg(M_ERR, "Cannot open TUN/TAP dev %s", tunname);
+        }
+    }
+
+    set_nonblock(tt->fd);
+    set_cloexec(tt->fd); /* don't pass fd to scripts */
+    msg(M_INFO, "TUN/TAP device %s opened", tunname);
+
+    /* tt->actual_name is passed to up and down scripts and used as the ifconfig dev name */
+    tt->actual_name = string_alloc(dynamic_opened ? dynamic_name : dev, NULL);
+
 }
 #endif /* !_WIN32 && !TARGET_LINUX && !TARGET_FREEBSD*/
 
@@ -1983,12 +1966,6 @@ open_tun_dco_generic(const char *dev, const char *dev_type,
 {
     char dynamic_name[256];
     bool dynamic_opened = false;
-
-    if (tt->type == DEV_TYPE_NULL)
-    {
-        open_null(tt);
-        return;
-    }
 
     /*
      * unlike "open_tun_generic()", DCO on Linux and FreeBSD follows
@@ -2172,14 +2149,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 {
     struct ifreq ifr;
 
-    /*
-     * We handle --dev null specially, we do not open /dev/null for this.
-     */
-    if (tt->type == DEV_TYPE_NULL)
-    {
-        open_null(tt);
-    }
-    else if (tun_dco_enabled(tt))
+    if (tun_dco_enabled(tt))
     {
         open_tun_dco_generic(dev, dev_type, tt, ctx);
     }
@@ -2403,12 +2373,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
      * has IPv6 support
      */
     CLEAR(ifr);
-
-    if (tt->type == DEV_TYPE_NULL)
-    {
-        open_null(tt);
-        return;
-    }
 
     if (tt->type == DEV_TYPE_TUN)
     {
@@ -3487,12 +3451,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     char tunname[256];
     char dynamic_name[20];
     const char *p;
-
-    if (tt->type == DEV_TYPE_NULL)
-    {
-        open_null(tt);
-        return;
-    }
 
     if (tt->type == DEV_TYPE_TUN)
     {
@@ -6835,12 +6793,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
     msg( M_INFO, "open_tun");
 
-    if (tt->type == DEV_TYPE_NULL)
-    {
-        open_null(tt);
-        return;
-    }
-    else if (tt->type != DEV_TYPE_TAP && tt->type != DEV_TYPE_TUN)
+    if (tt->type != DEV_TYPE_TAP && tt->type != DEV_TYPE_TUN)
     {
         msg(M_FATAL|M_NOPREFIX, "Unknown virtual device type: '%s'", dev);
     }

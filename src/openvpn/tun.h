@@ -51,6 +51,7 @@ enum tun_driver_type {
      *  This is always defined. We error out if a user tries to open this type
      *  of backend on unsupported platforms. */
     DRIVER_AFUNIX,
+    DRIVER_NULL,
     DRIVER_DCO,
     /** macOS internal tun driver */
     DRIVER_UTUN
@@ -783,5 +784,11 @@ static inline bool
 is_tun_type_set(const struct tuntap *tt)
 {
     return tt && tt->type != DEV_TYPE_UNDEF;
+}
+
+static inline void
+open_tun_null(struct tuntap *tt)
+{
+    tt->actual_name = string_alloc("null", NULL);
 }
 #endif /* TUN_H */

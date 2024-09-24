@@ -1764,6 +1764,10 @@ do_init_tun(struct context *c)
         /* Using AF_UNIX trumps using DCO */
         c->c1.tuntap->backend_driver = DRIVER_AFUNIX;
     }
+    else if (is_dev_type(c->options.dev,  c->options.dev_type, "null"))
+    {
+        c->c1.tuntap->backend_driver = DRIVER_NULL;
+    }
 #ifdef _WIN32
     else
     {
@@ -1858,7 +1862,12 @@ static void
 open_tun_backend(struct context *c)
 {
     struct tuntap *tt = c->c1.tuntap;
-    if (tt->backend_driver == DRIVER_AFUNIX)
+
+    if (tt->backend_driver == DRIVER_NULL)
+    {
+        open_tun_null(c->c1.tuntap);
+    }
+    else if (tt->backend_driver == DRIVER_AFUNIX)
     {
         open_tun_afunix(&c->options, c->c2.frame.tun_mtu, tt, c->c2.es);
     }
@@ -2058,6 +2067,11 @@ do_close_tun_simple(struct context *c)
         if (c->c1.tuntap->backend_driver == DRIVER_AFUNIX)
         {
             close_tun_afunix(c->c1.tuntap);
+        }
+        else if (c->c1.tuntap->backend_driver == DRIVER_NULL)
+        {
+            free(c->c1.tuntap->actual_name);
+            free(c->c1.tuntap);
         }
         else
         {
