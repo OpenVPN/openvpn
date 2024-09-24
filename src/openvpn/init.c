@@ -1876,6 +1876,7 @@ open_tun_backend(struct context *c)
         open_tun(c->options.dev, c->options.dev_type, c->options.dev_node,
                  tt, &c->net_ctx);
     }
+    msg(M_INFO, "%s device [%s] opened", print_tun_backend_driver(tt->backend_driver), tt->actual_name);
 }
 
 
@@ -2056,7 +2057,7 @@ static void
 do_close_tun_simple(struct context *c)
 {
     msg(D_CLOSE, "Closing %s interface",
-        dco_enabled(&c->options) ? "DCO" : "TUN/TAP");
+        print_tun_backend_driver(c->c1.tuntap->backend_driver));
 
     if (c->c1.tuntap)
     {

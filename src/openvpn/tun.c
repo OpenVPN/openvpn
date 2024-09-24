@@ -6678,7 +6678,6 @@ next:
      * GUID using the registry */
     tt->actual_name = string_alloc((const char *)actual_buffer, NULL);
 
-    msg(M_INFO, "%s device [%s] opened", print_tun_backend_driver(tt->backend_driver), tt->actual_name);
     tt->adapter_index = get_adapter_index(*device_guid);
 }
 

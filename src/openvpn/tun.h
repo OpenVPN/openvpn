@@ -361,6 +361,12 @@ void check_subnet_conflict(const in_addr_t ip,
 
 void warn_on_use_of_common_subnets(openvpn_net_ctx_t *ctx);
 
+/**
+ * Return a string representation of the tun backed driver type
+ */
+const char *
+print_tun_backend_driver(enum tun_driver_type driver);
+
 /*
  * Should ifconfig be called before or after
  * tun dev open?
@@ -688,9 +694,6 @@ tuntap_is_dco_win_timeout(struct tuntap *tt, int status)
 {
     return tuntap_is_dco_win(tt) && (status < 0) && (openvpn_errno() == ERROR_NETNAME_DELETED);
 }
-
-const char *
-print_tun_backend_driver(enum tun_driver_type driver);
 
 #else  /* ifdef _WIN32 */
 
