@@ -72,6 +72,9 @@ print_tun_backend_driver(enum tun_driver_type driver)
         case DRIVER_DCO:
             return "ovpn-dco";
 
+        case DRIVER_AFUNIX:
+            return "unix";
+
         case DRIVER_UTUN:
             return "utun";
 

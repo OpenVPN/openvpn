@@ -47,6 +47,10 @@ enum tun_driver_type {
     WINDOWS_DRIVER_TAP_WINDOWS6,
     WINDOWS_DRIVER_WINTUN,
     DRIVER_GENERIC_TUNTAP,
+    /** using an AF_UNIX socket to pass packets from/to an external program.
+     *  This is always defined. We error out if a user tries to open this type
+     *  of backend on unsupported platforms. */
+    DRIVER_AFUNIX,
     DRIVER_DCO,
     /** macOS internal tun driver */
     DRIVER_UTUN
@@ -161,6 +165,17 @@ struct tuntap_options {
 /*
  * Define a TUN/TAP dev.
  */
+#ifndef WIN32
+typedef struct afunix_context
+{
+    pid_t childprocess;
+} afunix_context_t;
+
+#else /* ifndef WIN32 */
+typedef struct {
+    int dummy;
+} afunix_context_t;
+#endif
 
 struct tuntap
 {
@@ -175,7 +190,12 @@ struct tuntap
      */
     enum tun_driver_type backend_driver;
 
+    /** if the internal variables related to ifconfig of this struct have
+     * been set up. This does NOT mean ifconfig has been called */
     bool did_ifconfig_setup;
+
+    /** if the internal variables related to ifconfig-ipv6 of this struct have
+     * been set up. This does NOT mean ifconfig has been called */
     bool did_ifconfig_ipv6_setup;
 
     bool persistent_if;         /* if existed before, keep on program end */
@@ -227,6 +247,7 @@ struct tuntap
     unsigned int rwflags_debug;
 
     dco_context_t dco;
+    afunix_context_t afunix;
 };
 
 static inline bool
@@ -350,8 +371,12 @@ void warn_on_use_of_common_subnets(openvpn_net_ctx_t *ctx);
 #define IFCONFIG_DEFAULT         IFCONFIG_AFTER_TUN_OPEN
 
 static inline int
-ifconfig_order(void)
+ifconfig_order(struct tuntap *tt)
 {
+    if (tt->backend_driver == DRIVER_AFUNIX)
+    {
+        return IFCONFIG_BEFORE_TUN_OPEN;
+    }
 #if defined(TARGET_LINUX)
     return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(TARGET_SOLARIS)
@@ -376,8 +401,12 @@ ifconfig_order(void)
 #define ROUTE_ORDER_DEFAULT ROUTE_AFTER_TUN
 
 static inline int
-route_order(void)
+route_order(struct tuntap *tt)
 {
+    if (tt->backend_driver == DRIVER_AFUNIX)
+    {
+        return ROUTE_BEFORE_TUN;
+    }
 #if defined(TARGET_ANDROID)
     return ROUTE_BEFORE_TUN;
 #else
@@ -755,5 +784,4 @@ is_tun_type_set(const struct tuntap *tt)
 {
     return tt && tt->type != DEV_TYPE_UNDEF;
 }
-
 #endif /* TUN_H */

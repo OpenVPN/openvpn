@@ -47,6 +47,9 @@ void script_security_set(int level);
 /** Instead of returning 1/0 for success/fail,
  * return exit code when between 0 and 255 and -1 otherwise */
 #define S_EXITCODE  (1<<2)
+/** instead of waiting for child process to exit and report the status,
+ * return the pid of the child process */
+#define S_NOWAITPID (1<<3)
 
 /* wrapper around the execve() call */
 int openvpn_popen(const struct argv *a,  const struct env_set *es);

@@ -41,6 +41,7 @@
 #include "ssl_common.h"
 #include "ssl_ncp.h"
 #include "tun.h"
+#include "tun_afunix.h"
 
 #ifdef HAVE_LIBCAPNG
 #include <cap-ng.h>
@@ -295,6 +296,12 @@ dco_check_startup_option(int msglevel, const struct options *o)
     if (dev_type_enum(o->dev, o->dev_type) != DEV_TYPE_TUN)
     {
         msg(msglevel, "Note: dev-type not tun, disabling data channel offload.");
+        return false;
+    }
+
+    if (is_tun_afunix(o->dev_node))
+    {
+        msg(msglevel, "Note: afunix tun type selected, disabling data channel offload");
         return false;
     }
 

@@ -54,6 +54,7 @@
 #include "mss.h"
 #include "mudp.h"
 #include "dco.h"
+#include "tun_afunix.h"
 
 #include "memdbg.h"
 
@@ -1758,10 +1759,18 @@ do_init_tun(struct context *c)
                             &c->net_ctx,
                             c->c1.tuntap);
 
+    if (is_tun_afunix(c->options.dev_node))
+    {
+        /* Using AF_UNIX trumps using DCO */
+        c->c1.tuntap->backend_driver = DRIVER_AFUNIX;
+    }
 #ifdef _WIN32
-    c->c1.tuntap->backend_driver = c->options.windows_driver;
+    else
+    {
+        c->c1.tuntap->backend_driver = c->options.windows_driver;
+    }
 #else
-    if (dco_enabled(&c->options))
+    else if (dco_enabled(&c->options))
     {
         c->c1.tuntap->backend_driver = DRIVER_DCO;
     }
@@ -1786,6 +1795,10 @@ do_init_tun(struct context *c)
 static bool
 can_preserve_tun(struct tuntap *tt)
 {
+    if (tt && tt->backend_driver == DRIVER_AFUNIX)
+    {
+        return false;
+    }
 #ifdef TARGET_ANDROID
     return false;
 #else
@@ -1841,6 +1854,22 @@ del_wfp_block(struct context *c, unsigned long adapter_index)
 #endif
 }
 
+static void
+open_tun_backend(struct context *c)
+{
+    struct tuntap *tt = c->c1.tuntap;
+    if (tt->backend_driver == DRIVER_AFUNIX)
+    {
+        open_tun_afunix(&c->options, c->c2.frame.tun_mtu, tt, c->c2.es);
+    }
+    else
+    {
+        open_tun(c->options.dev, c->options.dev_type, c->options.dev_node,
+                 tt, &c->net_ctx);
+    }
+}
+
+
 static bool
 do_open_tun(struct context *c, int *error_flags)
 {
@@ -1863,7 +1892,8 @@ do_open_tun(struct context *c, int *error_flags)
         }
 #endif
 
-        /* initialize (but do not open) tun/tap object */
+        /* initialize (but do not open) tun/tap object, this also sets
+         * the backend driver type */
         do_init_tun(c);
 
         /* inherit the dco context from the tuntap object */
@@ -1898,7 +1928,7 @@ do_open_tun(struct context *c, int *error_flags)
 
         /* do ifconfig */
         if (!c->options.ifconfig_noexec
-            && ifconfig_order() == IFCONFIG_BEFORE_TUN_OPEN)
+            && ifconfig_order(c->c1.tuntap) == IFCONFIG_BEFORE_TUN_OPEN)
         {
             /* guess actual tun/tap unit number that will be returned
              * by open_tun */
@@ -1911,7 +1941,7 @@ do_open_tun(struct context *c, int *error_flags)
         }
 
         /* possibly add routes */
-        if (route_order() == ROUTE_BEFORE_TUN)
+        if (route_order(c->c1.tuntap) == ROUTE_BEFORE_TUN)
         {
             /* Ignore route_delay, would cause ROUTE_BEFORE_TUN to be ignored */
             bool status = do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
@@ -1928,8 +1958,7 @@ do_open_tun(struct context *c, int *error_flags)
         }
 
         /* open the tun device */
-        open_tun(c->options.dev, c->options.dev_type, c->options.dev_node,
-                 c->c1.tuntap, &c->net_ctx);
+        open_tun_backend(c);
 
         /* set the hardware address */
         if (c->options.lladdr)
@@ -1940,7 +1969,7 @@ do_open_tun(struct context *c, int *error_flags)
 
         /* do ifconfig */
         if (!c->options.ifconfig_noexec
-            && ifconfig_order() == IFCONFIG_AFTER_TUN_OPEN)
+            && ifconfig_order(c->c1.tuntap) == IFCONFIG_AFTER_TUN_OPEN)
         {
             do_ifconfig(c->c1.tuntap, c->c1.tuntap->actual_name,
                         c->c2.frame.tun_mtu, c->c2.es, &c->net_ctx);
@@ -1966,7 +1995,7 @@ do_open_tun(struct context *c, int *error_flags)
         add_wfp_block(c);
 
         /* possibly add routes */
-        if ((route_order() == ROUTE_AFTER_TUN) && (!c->options.route_delay_defined))
+        if ((route_order(c->c1.tuntap) == ROUTE_AFTER_TUN) && (!c->options.route_delay_defined))
         {
             int status = do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
                                   c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
@@ -2026,7 +2055,14 @@ do_close_tun_simple(struct context *c)
         {
             undo_ifconfig(c->c1.tuntap, &c->net_ctx);
         }
-        close_tun(c->c1.tuntap, &c->net_ctx);
+        if (c->c1.tuntap->backend_driver == DRIVER_AFUNIX)
+        {
+            close_tun_afunix(c->c1.tuntap);
+        }
+        else
+        {
+            close_tun(c->c1.tuntap, &c->net_ctx);
+        }
         c->c1.tuntap = NULL;
     }
     c->c1.tuntap_owned = false;
@@ -2466,7 +2502,7 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
             c->c1.pulled_options_digest_save = c->c2.pulled_options_digest;
 
             /* if --route-delay was specified, start timer */
-            if ((route_order() == ROUTE_AFTER_TUN) && c->options.route_delay_defined)
+            if ((route_order(c->c1.tuntap) == ROUTE_AFTER_TUN) && c->options.route_delay_defined)
             {
                 event_timeout_init(&c->c2.route_wakeup, c->options.route_delay, now);
                 event_timeout_init(&c->c2.route_wakeup_expire, c->options.route_delay + c->options.route_delay_window, now);

@@ -41,6 +41,7 @@
 #include "ssl_verify.h"
 #include "dco.h"
 #include "auth_token.h"
+#include "tun_afunix.h"
 
 #include "memdbg.h"
 
@@ -1319,7 +1320,14 @@ read_incoming_tun(struct context *c)
 #else  /* ifdef _WIN32 */
     ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
     ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
-    c->c2.buf.len = read_tun(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
+    if (c->c1.tuntap->backend_driver == DRIVER_AFUNIX)
+    {
+        c->c2.buf.len = read_tun_afunix(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
+    }
+    else
+    {
+        c->c2.buf.len = read_tun(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
+    }
 #endif /* ifdef _WIN32 */
 
 #ifdef PACKET_TRUNCATION_CHECK
@@ -1926,7 +1934,14 @@ process_outgoing_tun(struct context *c)
 #ifdef _WIN32
         size = write_tun_buffered(c->c1.tuntap, &c->c2.to_tun);
 #else
-        size = write_tun(c->c1.tuntap, BPTR(&c->c2.to_tun), BLEN(&c->c2.to_tun));
+        if (c->c1.tuntap->backend_driver == DRIVER_AFUNIX)
+        {
+            size = write_tun_afunix(c->c1.tuntap, BPTR(&c->c2.to_tun), BLEN(&c->c2.to_tun));
+        }
+        else
+        {
+            size = write_tun(c->c1.tuntap, BPTR(&c->c2.to_tun), BLEN(&c->c2.to_tun));
+        }
 #endif
 
         if (size > 0)
