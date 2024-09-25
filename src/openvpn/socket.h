@@ -157,6 +157,18 @@ struct socket_buffer_size
     int sndbuf;
 };
 
+/**
+ * Sets the receive and send buffer sizes of a socket descriptor.
+ *
+ * @param fd            The socket to modify
+ * @param sbs           new sizes.
+ * @param reduce_size   apply the new size even if smaller than current one
+ */
+void
+socket_set_buffers(socket_descriptor_t fd,
+                   const struct socket_buffer_size *sbs,
+                   bool reduce_size);
+
 /*
  * This is the main socket structure used by OpenVPN.  The SOCKET_
  * defines try to abstract away our implementation differences between

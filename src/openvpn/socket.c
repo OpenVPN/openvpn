@@ -890,20 +890,23 @@ socket_set_rcvbuf(socket_descriptor_t sd, int size)
 #endif
 }
 
-static void
-socket_set_buffers(socket_descriptor_t fd, const struct socket_buffer_size *sbs)
+void
+socket_set_buffers(socket_descriptor_t fd, const struct socket_buffer_size *sbs,
+                   bool reduce_size)
 {
     if (sbs)
     {
         const int sndbuf_old = socket_get_sndbuf(fd);
         const int rcvbuf_old = socket_get_rcvbuf(fd);
 
-        if (sbs->sndbuf)
+        if (sbs->sndbuf
+            && (reduce_size || sndbuf_old < sbs->sndbuf))
         {
             socket_set_sndbuf(fd, sbs->sndbuf);
         }
 
-        if (sbs->rcvbuf)
+        if (sbs->rcvbuf
+            && (reduce_size || rcvbuf_old < sbs->rcvbuf))
         {
             socket_set_rcvbuf(fd, sbs->rcvbuf);
         }
@@ -986,7 +989,7 @@ link_socket_update_buffer_sizes(struct link_socket *ls, int rcvbuf, int sndbuf)
     {
         ls->socket_buffer_sizes.sndbuf = sndbuf;
         ls->socket_buffer_sizes.rcvbuf = rcvbuf;
-        socket_set_buffers(ls->sd, &ls->socket_buffer_sizes);
+        socket_set_buffers(ls->sd, &ls->socket_buffer_sizes, true);
     }
 }
 
@@ -1136,7 +1139,7 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
     sock->info.af = addr->ai_family;
 
     /* set socket buffers based on --sndbuf and --rcvbuf options */
-    socket_set_buffers(sock->sd, &sock->socket_buffer_sizes);
+    socket_set_buffers(sock->sd, &sock->socket_buffer_sizes, true);
 
     /* set socket to --mark packets with given value */
     socket_set_mark(sock->sd, sock->mark);

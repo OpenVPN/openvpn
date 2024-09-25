@@ -35,6 +35,7 @@
 #include "wfp_block.h"
 #include "argv.h"
 #include "options.h"
+#include "socket.h"
 
 #ifndef WIN32
 /* Windows does implement some AF_UNIX functionality but key features
@@ -79,6 +80,13 @@ open_tun_afunix(struct options *o,
             "program");
         return;
     }
+
+
+    /* Ensure that the buffer sizes are decently sized. Otherwise macOS will
+     * just have 2048 */
+    struct socket_buffer_size newsizes = {65536, 65536 };
+    socket_set_buffers(fds[0], &newsizes, false);
+    socket_set_buffers(fds[1], &newsizes, false);
 
     /* Use the first file descriptor for our side and avoid passing it
      * to the child */
