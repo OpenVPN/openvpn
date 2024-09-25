@@ -2546,10 +2546,7 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
             {
                 event_timeout_init(&c->c2.route_wakeup, c->options.route_delay, now);
                 event_timeout_init(&c->c2.route_wakeup_expire, c->options.route_delay + c->options.route_delay_window, now);
-                if (c->c1.tuntap)
-                {
-                    tun_standby_init(c->c1.tuntap);
-                }
+                tun_standby_init(c->c1.tuntap);
             }
             else
             {
