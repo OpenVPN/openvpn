@@ -225,6 +225,7 @@ check_ifconfig()
     expect_list="$@"
 
     if [ -z "$expect_list" ] ; then return ; fi
+    if [ "$expect_list" = "-" ] ; then return ; fi
 
     for expect in $expect_list
     do
@@ -404,13 +405,17 @@ do
     output "save ifconfig+route"
     get_ifconfig_route >$LOGDIR/$SUF:ifconfig_route.txt
 
-    output -n "compare pre-openvpn ifconfig+route with current values..."
-    if diff $LOGDIR/$SUF:ifconfig_route_pre.txt \
-	    $LOGDIR/$SUF:ifconfig_route.txt >/dev/null
-    then
-	fail "no differences between ifconfig/route before OpenVPN start and now."
+    if [ "$expect_ifconfig4" = "-" ] ; then
+        output "skip ifconfig+route check"
     else
-	output " OK!\n"
+	output -n "compare pre-openvpn ifconfig+route with current values..."
+	if diff $LOGDIR/$SUF:ifconfig_route_pre.txt \
+		$LOGDIR/$SUF:ifconfig_route.txt >/dev/null
+	then
+	    fail "no differences between ifconfig/route before OpenVPN start and now."
+	else
+	    output " OK!\n"
+	fi
     fi
 
     # post init script needed?
