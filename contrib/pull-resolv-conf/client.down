@@ -44,7 +44,7 @@ if type resolvconf >/dev/null 2>&1; then
   resolvconf -d "${dev}" -f
 elif [ -e /etc/resolv.conf.ovpnsave ] ; then
   # cp + rm rather than mv in case it's a symlink
-  cp /etc/resolv.conf.ovpnsave /etc/resolv.conf
+  cat /etc/resolv.conf.ovpnsave > /etc/resolv.conf
   rm -f /etc/resolv.conf.ovpnsave
 fi
 
