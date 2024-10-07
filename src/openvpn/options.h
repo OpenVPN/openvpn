@@ -545,6 +545,7 @@ struct options
     const char *auth_user_pass_file;
     bool auth_user_pass_file_inline;
     struct options_pre_connect *pre_connect;
+    bool no_client_credential;
 
     int scheduled_exit_interval;
 
