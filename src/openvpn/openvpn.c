@@ -395,3 +395,10 @@ main(int argc, char *argv[])
     return openvpn_main(argc, argv);
 }
 #endif /* ifdef _WIN32 */
+
+
+// Wait until the VPN connection is up
+if (vpn_is_up())
+{
+    systemd_notify("READY=1");
+}
