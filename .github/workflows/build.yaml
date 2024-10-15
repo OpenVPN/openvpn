@@ -213,15 +213,15 @@ jobs:
       matrix:
         ssllib: [ openssl11, openssl3, libressl]
         build: [ normal, asan ]
-        os: [macos-12, macos-13, macos-14]
+        os: [macos-13, macos-14, macos-15]
         include:
            # macos14 and newer runners use ARM CPUs and homebrew uses /opt/homebrew/
            # on ARM instead of /usr/local/
-          - os: macos-12
-            homebrew: /usr/local/opt
           - os: macos-13
             homebrew: /usr/local/opt
           - os: macos-14
+            homebrew: /opt/homebrew/opt
+          - os: macos-15
             homebrew: /opt/homebrew/opt
           - build: asan
             cflags: "-fsanitize=address,undefined -fno-sanitize-recover=all  -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
