@@ -459,14 +459,14 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
     if (!cipher_ctx_update(ctx->cipher, BPTR(&work), &outlen, BPTR(buf),
                            data_len))
     {
-        CRYPT_ERROR("cipher update failed");
+        CRYPT_ERROR("packet decryption failed");
     }
 
     ASSERT(buf_inc_len(&work, outlen));
     if (!cipher_ctx_final_check_tag(ctx->cipher, BPTR(&work) + outlen,
                                     &outlen, tag_ptr, tag_size))
     {
-        CRYPT_ERROR("cipher final failed");
+        CRYPT_DROP("packet tag authentication failed");
     }
     ASSERT(buf_inc_len(&work, outlen));
 
@@ -538,7 +538,7 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work,
             /* Compare locally computed HMAC with packet HMAC */
             if (memcmp_constant_time(local_hmac, BPTR(buf), hmac_len))
             {
-                CRYPT_ERROR("packet HMAC authentication failed");
+                CRYPT_DROP("packet HMAC authentication failed");
             }
 
             ASSERT(buf_advance(buf, hmac_len));
@@ -572,26 +572,26 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work,
             /* ctx->cipher was already initialized with key & keylen */
             if (!cipher_ctx_reset(ctx->cipher, iv_buf))
             {
-                CRYPT_ERROR("cipher init failed");
+                CRYPT_ERROR("decrypt initialization failed");
             }
 
             /* Buffer overflow check (should never happen) */
             if (!buf_safe(&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
             {
-                CRYPT_ERROR("potential buffer overflow");
+                CRYPT_ERROR("packet too big to decrypt");
             }
 
             /* Decrypt packet ID, payload */
             if (!cipher_ctx_update(ctx->cipher, BPTR(&work), &outlen, BPTR(buf), BLEN(buf)))
             {
-                CRYPT_ERROR("cipher update failed");
+                CRYPT_ERROR("packet decryption failed");
             }
             ASSERT(buf_inc_len(&work, outlen));
 
             /* Flush the decryption buffer */
             if (!cipher_ctx_final(ctx->cipher, BPTR(&work) + outlen, &outlen))
             {
-                CRYPT_ERROR("cipher final failed");
+                CRYPT_DROP("packet authentication failed, dropping.");
             }
             ASSERT(buf_inc_len(&work, outlen));
 

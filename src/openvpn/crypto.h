@@ -288,8 +288,11 @@ struct crypto_options
                                  *   security operation functions. */
 };
 
-#define CRYPT_ERROR(format) \
-    do { msg(D_CRYPT_ERRORS, "%s: " format, error_prefix); goto error_exit; } while (false)
+#define CRYPT_ERROR_EXIT(flags, format) \
+    do { msg(flags, "%s: " format, error_prefix); goto error_exit; } while (false)
+
+#define CRYPT_ERROR(format) CRYPT_ERROR_EXIT(D_CRYPT_ERRORS, format)
+#define CRYPT_DROP(format) CRYPT_ERROR_EXIT(D_MULTI_DROPPED, format)
 
 /**
  * Minimal IV length for AEAD mode ciphers (in bytes):
