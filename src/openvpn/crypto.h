@@ -313,11 +313,6 @@ int write_key_file(const int nkeys, const char *filename);
 
 bool check_key(struct key *key, const struct key_type *kt);
 
-bool write_key(const struct key *key, const struct key_type *kt,
-               struct buffer *buf);
-
-int read_key(struct key *key, const struct key_type *kt, struct buffer *buf);
-
 /**
  * Initialize a key_type structure with.
  *
