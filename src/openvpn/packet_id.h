@@ -318,23 +318,6 @@ packet_id_close_to_wrapping(const struct packet_id_send *p)
     return p->id >= PACKET_ID_WRAP_TRIGGER;
 }
 
-static inline bool
-check_timestamp_delta(time_t remote, unsigned int max_delta)
-{
-    unsigned int abs;
-    const time_t local_now = now;
-
-    if (local_now >= remote)
-    {
-        abs = local_now - remote;
-    }
-    else
-    {
-        abs = remote - local_now;
-    }
-    return abs <= max_delta;
-}
-
 static inline void
 packet_id_reap_test(struct packet_id_rec *p)
 {

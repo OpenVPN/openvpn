@@ -69,11 +69,6 @@ print_link_socket_actual(const struct link_socket_actual *act, struct gc_arena *
     return "dummy print_link_socket_actual from unit test";
 }
 
-struct test_pkt_context {
-    struct tls_auth_standalone tas_tls_auth;
-    struct tls_auth_standalone tas_crypt;
-};
-
 const char static_key[] = "<tls-auth>\n"
                           "-----BEGIN OpenVPN Static key V1-----\n"
                           "37268ea8f95d7f71f9fb8fc03770c460\n"

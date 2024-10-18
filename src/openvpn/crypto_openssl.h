@@ -93,7 +93,6 @@ typedef int crypto_operation_t;
 /** Cipher should decrypt */
 #define OPENVPN_OP_DECRYPT      0
 
-#define DES_KEY_LENGTH 8
 #define MD4_DIGEST_LENGTH       16
 
 /**

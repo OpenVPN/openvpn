@@ -816,8 +816,6 @@ init_port_share(struct context *c)
 bool
 init_static(void)
 {
-    /* configure_path (); */
-
 #if defined(DMALLOC)
     crypto_init_dmalloc();
 #endif

@@ -362,16 +362,6 @@ const char *print_sockaddr_ex(const struct sockaddr *addr,
 
 static inline
 const char *
-print_openvpn_sockaddr_ex(const struct openvpn_sockaddr *addr,
-                          const char *separator,
-                          const unsigned int flags,
-                          struct gc_arena *gc)
-{
-    return print_sockaddr_ex(&addr->addr.sa, separator, flags, gc);
-}
-
-static inline
-const char *
 print_openvpn_sockaddr(const struct openvpn_sockaddr *addr,
                        struct gc_arena *gc)
 {
@@ -770,22 +760,6 @@ addrlist_match(const struct openvpn_sockaddr *a1, const struct addrinfo *addrlis
     }
     return false;
 }
-
-static inline in_addr_t
-addr_host(const struct openvpn_sockaddr *addr)
-{
-    /*
-     * "public" addr returned is checked against ifconfig for
-     * possible clash: non sense for now given
-     * that we do ifconfig only IPv4
-     */
-    if (addr->addr.sa.sa_family != AF_INET)
-    {
-        return 0;
-    }
-    return ntohl(addr->addr.in4.sin_addr.s_addr);
-}
-
 
 static inline bool
 addrlist_port_match(const struct openvpn_sockaddr *a1, const struct addrinfo *a2)

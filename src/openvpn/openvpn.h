@@ -200,10 +200,6 @@ struct context_1
     /**< Hash of option strings received from the
      *   remote OpenVPN server.  Only used in
      *   client-mode. */
-
-    struct user_pass *auth_user_pass;
-    /**< Username and password for
-     *   authentication. */
 };
 
 

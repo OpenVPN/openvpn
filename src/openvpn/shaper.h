@@ -89,12 +89,6 @@ shaper_init(struct shaper *s, int bytes_per_second)
     shaper_reset_wakeup(s);
 }
 
-static inline int
-shaper_current_bandwidth(struct shaper *s)
-{
-    return s->bytes_per_second;
-}
-
 /*
  * Returns traffic shaping delay in microseconds relative to current
  * time, or 0 if no delay.

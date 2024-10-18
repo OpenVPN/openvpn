@@ -137,8 +137,6 @@ struct fragment_master {
     struct event_timeout wakeup; /**< Timeout structure used by the main
                                   *   event loop to know when to do
                                   *   fragmentation housekeeping. */
-    bool received_os_mtu_hint;  /**< Whether the operating system has
-                                 *   explicitly recommended an MTU value. */
 #define N_SEQ_ID            256
     /**< One more than the maximum fragment
      *   sequence ID, above which the IDs wrap

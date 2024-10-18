@@ -487,11 +487,6 @@ bool buffer_write_file(const char *filename, const struct buffer *buf);
 void buf_catrunc(struct buffer *buf, const char *str);
 
 /*
- * convert a multi-line output to one line
- */
-void convert_to_one_line(struct buffer *buf);
-
-/*
  * Parse a string based on a given delimiter char
  */
 bool buf_parse(struct buffer *buf, const int delim, char *line, const int size);

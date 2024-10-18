@@ -297,10 +297,6 @@ set_check_status_error_delay(unsigned int milliseconds)
 
 extern const char *x_msg_prefix;
 
-void msg_thread_init(void);
-
-void msg_thread_uninit(void);
-
 static inline void
 msg_set_prefix(const char *prefix)
 {

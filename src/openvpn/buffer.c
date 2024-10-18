@@ -296,24 +296,6 @@ buf_catrunc(struct buffer *buf, const char *str)
     }
 }
 
-/*
- * convert a multi-line output to one line
- */
-void
-convert_to_one_line(struct buffer *buf)
-{
-    uint8_t *cp = BPTR(buf);
-    int len = BLEN(buf);
-    while (len--)
-    {
-        if (*cp == '\n')
-        {
-            *cp = '|';
-        }
-        ++cp;
-    }
-}
-
 bool
 buffer_write_file(const char *filename, const struct buffer *buf)
 {

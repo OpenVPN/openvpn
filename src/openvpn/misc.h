@@ -186,9 +186,6 @@ void set_auth_token_user(struct user_pass *tk, const char *username);
  */
 const char *safe_print(const char *str, struct gc_arena *gc);
 
-
-void configure_path(void);
-
 const char *sanitize_control_message(const char *str, struct gc_arena *gc);
 
 /*

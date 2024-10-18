@@ -49,7 +49,6 @@ test_buffer_strprefix(void **state)
 #define teststr1 "one"
 #define teststr2 "two"
 #define teststr3 "three"
-#define teststr4 "four"
 
 #define assert_buf_equals_str(buf, str) \
     assert_int_equal(BLEN(buf), strlen(str)); \

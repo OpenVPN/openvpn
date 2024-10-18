@@ -390,8 +390,6 @@ int managment_android_persisttun_action(struct management *man);
 
 #endif
 
-bool management_should_daemonize(struct management *man);
-
 bool management_would_hold(struct management *man);
 
 bool management_hold(struct management *man, int holdtime);

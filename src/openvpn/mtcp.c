@@ -63,14 +63,6 @@
 
 #define MTCP_N           ((void *)16) /* upper bound on MTCP_x */
 
-struct ta_iow_flags
-{
-    unsigned int flags;
-    unsigned int ret;
-    unsigned int tun;
-    unsigned int sock;
-};
-
 #ifdef ENABLE_DEBUG
 static const char *
 pract(int action)

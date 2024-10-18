@@ -483,19 +483,6 @@ platform_sleep_milliseconds(unsigned int n)
 #endif
 }
 
-/*
- * Go to sleep indefinitely.
- */
-void
-platform_sleep_until_signal(void)
-{
-#ifdef _WIN32
-    ASSERT(0);
-#else
-    select(0, NULL, NULL, NULL, NULL);
-#endif
-}
-
 /* delete a file, return true if succeeded */
 bool
 platform_unlink(const char *filename)

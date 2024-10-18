@@ -30,8 +30,6 @@
 #include "buffer.h"
 #include "ssl.h"
 
-typedef void (*post_fork_cleanup_func_t)(void *arg);
-
 struct port_share {
     /* Foreground's socket to background process */
     socket_descriptor_t foreground_fd;

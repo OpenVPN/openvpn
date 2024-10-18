@@ -131,12 +131,8 @@ int platform_access(const char *path, int mode);
 
 void platform_sleep_milliseconds(unsigned int n);
 
-void platform_sleep_until_signal(void);
-
 /* delete a file, return true if succeeded */
 bool platform_unlink(const char *filename);
-
-int platform_putenv(char *string);
 
 FILE *platform_fopen(const char *path, const char *mode);
 

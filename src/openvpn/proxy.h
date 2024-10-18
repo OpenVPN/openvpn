@@ -61,12 +61,6 @@ struct http_proxy_options {
     bool nocache;
 };
 
-struct http_proxy_options_simple {
-    const char *server;
-    const char *port;
-    int auth_retry;
-};
-
 struct http_proxy_info {
     bool defined;
     int auth_method;

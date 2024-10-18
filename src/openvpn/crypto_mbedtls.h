@@ -75,7 +75,6 @@ typedef mbedtls_operation_t crypto_operation_t;
 #define MD5_DIGEST_LENGTH       16
 #define SHA_DIGEST_LENGTH       20
 #define SHA256_DIGEST_LENGTH    32
-#define DES_KEY_LENGTH 8
 
 /**
  * Returns a singleton instance of the mbed TLS random number generator.
