@@ -451,9 +451,9 @@ void link_socket_bad_outgoing_addr(void);
 
 void setenv_trusted(struct env_set *es, const struct link_socket_info *info);
 
-bool link_socket_update_flags(struct link_socket *ls, unsigned int sockflags);
+bool link_socket_update_flags(struct link_socket *sock, unsigned int sockflags);
 
-void link_socket_update_buffer_sizes(struct link_socket *ls, int rcvbuf, int sndbuf);
+void link_socket_update_buffer_sizes(struct link_socket *sock, int rcvbuf, int sndbuf);
 
 /*
  * Low-level functions
@@ -1199,13 +1199,13 @@ link_socket_write(struct link_socket *sock,
  * Extract TOS bits.  Assumes that ipbuf is a valid IPv4 packet.
  */
 static inline void
-link_socket_extract_tos(struct link_socket *ls, const struct buffer *ipbuf)
+link_socket_extract_tos(struct link_socket *sock, const struct buffer *ipbuf)
 {
-    if (ls && ipbuf)
+    if (sock && ipbuf)
     {
         struct openvpn_iphdr *iph = (struct openvpn_iphdr *) BPTR(ipbuf);
-        ls->ptos = iph->tos;
-        ls->ptos_defined = true;
+        sock->ptos = iph->tos;
+        sock->ptos_defined = true;
     }
 }
 
@@ -1214,11 +1214,11 @@ link_socket_extract_tos(struct link_socket *ls, const struct buffer *ipbuf)
  * from tunnel packet.
  */
 static inline void
-link_socket_set_tos(struct link_socket *ls)
+link_socket_set_tos(struct link_socket *sock)
 {
-    if (ls && ls->ptos_defined)
+    if (sock && sock->ptos_defined)
     {
-        setsockopt(ls->sd, IPPROTO_IP, IP_TOS, (const void *)&ls->ptos, sizeof(ls->ptos));
+        setsockopt(sock->sd, IPPROTO_IP, IP_TOS, (const void *)&sock->ptos, sizeof(sock->ptos));
     }
 }
 
@@ -1229,50 +1229,50 @@ link_socket_set_tos(struct link_socket *ls)
  */
 
 static inline bool
-socket_read_residual(const struct link_socket *s)
+socket_read_residual(const struct link_socket *sock)
 {
-    return s && s->stream_buf.residual_fully_formed;
+    return sock && sock->stream_buf.residual_fully_formed;
 }
 
 static inline event_t
-socket_event_handle(const struct link_socket *s)
+socket_event_handle(const struct link_socket *sock)
 {
 #ifdef _WIN32
-    return &s->rw_handle;
+    return &sock->rw_handle;
 #else
-    return s->sd;
+    return sock->sd;
 #endif
 }
 
-event_t socket_listen_event_handle(struct link_socket *s);
+event_t socket_listen_event_handle(struct link_socket *sock);
 
 unsigned int
-socket_set(struct link_socket *s,
+socket_set(struct link_socket *sock,
            struct event_set *es,
            unsigned int rwflags,
            void *arg,
            unsigned int *persistent);
 
 static inline void
-socket_set_listen_persistent(struct link_socket *s,
+socket_set_listen_persistent(struct link_socket *sock,
                              struct event_set *es,
                              void *arg)
 {
-    if (s && !s->listen_persistent_queued)
+    if (sock && !sock->listen_persistent_queued)
     {
-        event_ctl(es, socket_listen_event_handle(s), EVENT_READ, arg);
-        s->listen_persistent_queued = true;
+        event_ctl(es, socket_listen_event_handle(sock), EVENT_READ, arg);
+        sock->listen_persistent_queued = true;
     }
 }
 
 static inline void
-socket_reset_listen_persistent(struct link_socket *s)
+socket_reset_listen_persistent(struct link_socket *sock)
 {
 #ifdef _WIN32
-    reset_net_event_win32(&s->listen_handle, s->sd);
+    reset_net_event_win32(&sock->listen_handle, sock->sd);
 #endif
 }
 
-const char *socket_stat(const struct link_socket *s, unsigned int rwflags, struct gc_arena *gc);
+const char *socket_stat(const struct link_socket *sock, unsigned int rwflags, struct gc_arena *gc);
 
 #endif /* SOCKET_H */

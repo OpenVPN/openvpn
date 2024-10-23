@@ -884,9 +884,9 @@ check_timeout_random_component(struct context *c)
  */
 
 static inline void
-socks_postprocess_incoming_link(struct context *c)
+socks_postprocess_incoming_link(struct context *c, struct link_socket *sock)
 {
-    if (c->c2.link_socket->socks_proxy && c->c2.link_socket->info.proto == PROTO_UDP)
+    if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
     {
         socks_process_incoming_udp(&c->c2.buf, &c->c2.from);
     }
@@ -894,13 +894,14 @@ socks_postprocess_incoming_link(struct context *c)
 
 static inline void
 socks_preprocess_outgoing_link(struct context *c,
+                               struct link_socket *sock,
                                struct link_socket_actual **to_addr,
                                int *size_delta)
 {
-    if (c->c2.link_socket->socks_proxy && c->c2.link_socket->info.proto == PROTO_UDP)
+    if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
     {
         *size_delta += socks_process_outgoing_udp(&c->c2.to_link, c->c2.to_link_addr);
-        *to_addr = &c->c2.link_socket->socks_relay;
+        *to_addr = &sock->socks_relay;
     }
 }
 
@@ -925,7 +926,7 @@ link_socket_write_post_size_adjust(int *size,
  */
 
 void
-read_incoming_link(struct context *c)
+read_incoming_link(struct context *c, struct link_socket *sock)
 {
     /*
      * Set up for recvfrom call to read datagram
@@ -940,17 +941,17 @@ read_incoming_link(struct context *c)
     c->c2.buf = c->c2.buffers->read_link_buf;
     ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
 
-    status = link_socket_read(c->c2.link_socket,
+    status = link_socket_read(sock,
                               &c->c2.buf,
                               &c->c2.from);
 
-    if (socket_connection_reset(c->c2.link_socket, status))
+    if (socket_connection_reset(sock, status))
     {
 #if PORT_SHARE
-        if (port_share && socket_foreign_protocol_detected(c->c2.link_socket))
+        if (port_share && socket_foreign_protocol_detected(sock))
         {
-            const struct buffer *fbuf = socket_foreign_protocol_head(c->c2.link_socket);
-            const int sd = socket_foreign_protocol_sd(c->c2.link_socket);
+            const struct buffer *fbuf = socket_foreign_protocol_head(sock);
+            const int sd = socket_foreign_protocol_sd(sock);
             port_share_redirect(port_share, fbuf, sd);
             register_signal(c->sig, SIGTERM, "port-share-redirect");
         }
@@ -977,7 +978,7 @@ read_incoming_link(struct context *c)
     bool dco_win_timeout = tuntap_is_dco_win_timeout(c->c1.tuntap, status);
 
     /* check recvfrom status */
-    check_status(status, "read", c->c2.link_socket, NULL);
+    check_status(status, "read", sock, NULL);
 
     if (dco_win_timeout)
     {
@@ -985,7 +986,7 @@ read_incoming_link(struct context *c)
     }
 
     /* Remove socks header if applicable */
-    socks_postprocess_incoming_link(c);
+    socks_postprocess_incoming_link(c, sock);
 
     perf_pop();
 }
@@ -1222,11 +1223,11 @@ process_incoming_link_part2(struct context *c, struct link_socket_info *lsi, con
 }
 
 static void
-process_incoming_link(struct context *c)
+process_incoming_link(struct context *c, struct link_socket *sock)
 {
     perf_push(PERF_PROC_IN_LINK);
 
-    struct link_socket_info *lsi = get_link_socket_info(c);
+    struct link_socket_info *lsi = &sock->info;
     const uint8_t *orig_buf = c->c2.buf.data;
 
     process_incoming_link_part1(c, lsi, false);
@@ -1732,7 +1733,7 @@ process_ip_header(struct context *c, unsigned int flags, struct buffer *buf)
  */
 
 void
-process_outgoing_link(struct context *c)
+process_outgoing_link(struct context *c, struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
     int error_code = 0;
@@ -1775,7 +1776,7 @@ process_outgoing_link(struct context *c)
 
 #if PASSTOS_CAPABILITY
             /* Set TOS */
-            link_socket_set_tos(c->c2.link_socket);
+            link_socket_set_tos(sock);
 #endif
 
             /* Log packet send */
@@ -1786,7 +1787,7 @@ process_outgoing_link(struct context *c)
             }
 #endif
             msg(D_LINK_RW, "%s WRITE [%d] to %s: %s",
-                proto2ascii(c->c2.link_socket->info.proto, c->c2.link_socket->info.af, true),
+                proto2ascii(sock->info.proto, sock->info.af, true),
                 BLEN(&c->c2.to_link),
                 print_link_socket_actual(c->c2.to_link_addr, &gc),
                 PROTO_DUMP(&c->c2.to_link, &gc));
@@ -1797,10 +1798,12 @@ process_outgoing_link(struct context *c)
                 int size_delta = 0;
 
                 /* If Socks5 over UDP, prepend header */
-                socks_preprocess_outgoing_link(c, &to_addr, &size_delta);
+                socks_preprocess_outgoing_link(c, sock, &to_addr, &size_delta);
 
                 /* Send packet */
-                size = (int)link_socket_write(c->c2.link_socket, &c->c2.to_link, to_addr);
+                size = (int)link_socket_write(sock,
+                                              &c->c2.to_link,
+                                              to_addr);
 
                 /* Undo effect of prepend */
                 link_socket_write_post_size_adjust(&size, size_delta, &c->c2.to_link);
@@ -1829,7 +1832,7 @@ process_outgoing_link(struct context *c)
 
         /* Check return status */
         error_code = openvpn_errno();
-        check_status(size, "write", c->c2.link_socket, NULL);
+        check_status(size, "write", sock, NULL);
 
         if (size > 0)
         {
@@ -2272,7 +2275,7 @@ io_wait_dowork(struct context *c, const unsigned int flags)
 }
 
 void
-process_io(struct context *c)
+process_io(struct context *c, struct link_socket *sock)
 {
     const unsigned int status = c->c2.event_set_status;
 
@@ -2287,7 +2290,7 @@ process_io(struct context *c)
     /* TCP/UDP port ready to accept write */
     if (status & SOCKET_WRITE)
     {
-        process_outgoing_link(c);
+        process_outgoing_link(c, sock);
     }
     /* TUN device ready to accept write */
     else if (status & TUN_WRITE)
@@ -2297,10 +2300,10 @@ process_io(struct context *c)
     /* Incoming data on TCP/UDP port */
     else if (status & SOCKET_READ)
     {
-        read_incoming_link(c);
+        read_incoming_link(c, sock);
         if (!IS_SIG(c))
         {
-            process_incoming_link(c);
+            process_incoming_link(c, sock);
         }
     }
     /* Incoming data on TUN device */

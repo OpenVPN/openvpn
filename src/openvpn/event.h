@@ -137,6 +137,7 @@ struct event_arg
     event_arg_t type;
     union {
         struct multi_instance *mi; /* if type = EVENT_ARG_MULTI_INSTANCE */
+        struct link_socket *sock; /* if type = EVENT_ARG_LINK_SOCKET */
     } u;
 };
 

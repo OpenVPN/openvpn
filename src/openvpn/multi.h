@@ -683,7 +683,7 @@ multi_process_outgoing_link_dowork(struct multi_context *m, struct multi_instanc
 {
     bool ret = true;
     set_prefix(mi);
-    process_outgoing_link(&mi->context);
+    process_outgoing_link(&mi->context, mi->context.c2.link_socket);
     ret = multi_process_post(m, mi, mpp_flags);
     clear_prefix();
     return ret;

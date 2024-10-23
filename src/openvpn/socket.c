@@ -969,12 +969,12 @@ socket_set_flags(socket_descriptor_t sd, unsigned int sockflags)
 }
 
 bool
-link_socket_update_flags(struct link_socket *ls, unsigned int sockflags)
+link_socket_update_flags(struct link_socket *sock, unsigned int sockflags)
 {
-    if (ls && socket_defined(ls->sd))
+    if (sock && socket_defined(sock->sd))
     {
-        ls->sockflags |= sockflags;
-        return socket_set_flags(ls->sd, ls->sockflags);
+        sock->sockflags |= sockflags;
+        return socket_set_flags(sock->sd, sock->sockflags);
     }
     else
     {
@@ -983,13 +983,13 @@ link_socket_update_flags(struct link_socket *ls, unsigned int sockflags)
 }
 
 void
-link_socket_update_buffer_sizes(struct link_socket *ls, int rcvbuf, int sndbuf)
+link_socket_update_buffer_sizes(struct link_socket *sock, int rcvbuf, int sndbuf)
 {
-    if (ls && socket_defined(ls->sd))
+    if (sock && socket_defined(sock->sd))
     {
-        ls->socket_buffer_sizes.sndbuf = sndbuf;
-        ls->socket_buffer_sizes.rcvbuf = rcvbuf;
-        socket_set_buffers(ls->sd, &ls->socket_buffer_sizes, true);
+        sock->socket_buffer_sizes.sndbuf = sndbuf;
+        sock->socket_buffer_sizes.rcvbuf = rcvbuf;
+        socket_set_buffers(sock->sd, &sock->socket_buffer_sizes, true);
     }
 }
 
@@ -1831,6 +1831,7 @@ link_socket_new(void)
     sock->sd = SOCKET_UNDEFINED;
     sock->ctrl_sd = SOCKET_UNDEFINED;
     sock->ev_arg.type = EVENT_ARG_LINK_SOCKET;
+    sock->ev_arg.u.sock = sock;
 
     return sock;
 }

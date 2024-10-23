@@ -72,7 +72,8 @@ void io_wait_dowork(struct context *c, const unsigned int flags);
 
 void pre_select(struct context *c);
 
-void process_io(struct context *c);
+void process_io(struct context *c, struct link_socket *sock);
+
 
 /**********************************************************************/
 /**
@@ -128,10 +129,11 @@ int get_server_poll_remaining_time(struct event_timeout *server_poll_timeout);
  * context associated with the appropriate VPN tunnel for which data is
  * available to be read.
  *
- * @param c - The context structure which contains the external
- *     network socket from which to read incoming packets.
+ * @param c    The context structure which contains the external
+ *             network socket from which to read incoming packets.
+ * @param sock   The socket where the packet can be read from.
  */
-void read_incoming_link(struct context *c);
+void read_incoming_link(struct context *c, struct link_socket *sock);
 
 /**
  * Starts processing a packet read from the external network interface.
@@ -197,10 +199,11 @@ void process_incoming_link_part2(struct context *c, struct link_socket_info *lsi
  *
  * If an error occurs, it is logged and the packet is dropped.
  *
- * @param c - The context structure of the VPN tunnel associated with the
- *     packet.
+ * @param c   The context structure of the VPN tunnel associated with the
+ *            packet.
+ * @param sock  The socket to be used to send the packet.
  */
-void process_outgoing_link(struct context *c);
+void process_outgoing_link(struct context *c, struct link_socket *sock);
 
 
 /**************************************************************************/
