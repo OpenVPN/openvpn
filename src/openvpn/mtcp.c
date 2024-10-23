@@ -254,6 +254,7 @@ multi_tcp_wait(const struct context *c,
                struct multi_tcp *mtcp)
 {
     int status;
+    unsigned int *persistent = &mtcp->tun_rwflags;
     socket_set_listen_persistent(c->c2.link_socket, mtcp->es,
                                  &c->c2.link_socket->ev_arg);
 
@@ -271,7 +272,7 @@ multi_tcp_wait(const struct context *c,
         persistent = NULL;
     }
 #endif
-    tun_set(c->c1.tuntap, mtcp->es, EVENT_READ, MTCP_TUN, &mtcp->tun_rwflags);
+    tun_set(c->c1.tuntap, mtcp->es, EVENT_READ, MTCP_TUN, persistent);
 #if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
     dco_event_set(&c->c1.tuntap->dco, mtcp->es, MTCP_DCO);
 #endif
