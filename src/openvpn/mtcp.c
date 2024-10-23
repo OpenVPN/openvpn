@@ -60,7 +60,13 @@
 #define MTCP_FILE_CLOSE_WRITE ((void *)5)
 #define MTCP_DCO        ((void *)6)
 
-#define MTCP_N           ((void *)16) /* upper bound on MTCP_x */
+struct ta_iow_flags
+{
+    unsigned int flags;
+    unsigned int ret;
+    unsigned int tun;
+    unsigned int sock;
+};
 
 #ifdef ENABLE_DEBUG
 static const char *
@@ -686,7 +692,7 @@ multi_tcp_process_io(struct multi_context *m)
         struct event_set_return *e = &mtcp->esr[i];
 
         /* incoming data for instance or listening socket? */
-        if (e->arg >= MTCP_N)
+        if (e->arg >= MULTI_N)
         {
             struct event_arg *ev_arg = (struct event_arg *)e->arg;
             switch (ev_arg->type)
