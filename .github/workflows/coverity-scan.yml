@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Check submission cache
         id: check_submit
-        uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4
+        uses: actions/cache/restore@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
         with:
           path: |
             cov-int
@@ -25,7 +25,7 @@ jobs:
 
       - name: Checkout OpenVPN
         if: steps.check_submit.outputs.cache-hit != 'true'
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Download Coverity Build Tool
         if: steps.check_submit.outputs.cache-hit != 'true'
@@ -65,7 +65,7 @@ jobs:
 
       - name: Cache submission
         if: steps.check_submit.outputs.cache-hit != 'true'
-        uses: actions/cache/save@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4
+        uses: actions/cache/save@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4
         with:
           path: |
             cov-int
