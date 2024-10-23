@@ -178,6 +178,11 @@ struct link_socket
 {
     struct link_socket_info info;
 
+    struct event_arg ev_arg;   /**< this struct will store a pointer to either mi or
+                                * link_socket, depending on the event type, to keep
+                                * it accessible it's placed within the same struct
+                                * it points to. */
+
     socket_descriptor_t sd;
     socket_descriptor_t ctrl_sd; /* only used for UDP over Socks */
 

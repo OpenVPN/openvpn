@@ -126,6 +126,20 @@ struct event_set
     struct event_set_functions func;
 };
 
+typedef enum {
+    EVENT_ARG_MULTI_INSTANCE = 0,
+    EVENT_ARG_LINK_SOCKET,
+} event_arg_t;
+
+/* generic event argument object to pass to event_ctl() */
+struct event_arg
+{
+    event_arg_t type;
+    union {
+        struct multi_instance *mi; /* if type = EVENT_ARG_MULTI_INSTANCE */
+    } u;
+};
+
 /*
  * maxevents on input:  desired max number of event_t descriptors
  *                      simultaneously set with event_ctl

@@ -102,6 +102,12 @@ struct multi_instance {
     struct schedule_entry se;  /* this must be the first element of the structure,
                                 * We cast between this and schedule_entry so the
                                 * beginning of the struct must be identical */
+
+    struct event_arg ev_arg;   /**< this struct will store a pointer to either mi or
+                                * link_socket, depending on the event type, to keep
+                                * it accessible it's placed within the same struct
+                                * it points to. */
+
     struct gc_arena gc;
     bool halt;
     int refcount;
