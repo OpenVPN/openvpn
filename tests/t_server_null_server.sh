@@ -4,12 +4,11 @@ launch_server() {
     server_name=$1
     server_exec=$2
     server_conf=$3
-    log="${server_name}.log"
+    log="${t_server_null_logdir}/${server_name}.log"
     status="${server_name}.status"
     pid="${server_name}.pid"
 
     if [ -z "${RUN_SUDO}" ]; then
-        rm -f "${status}" "${log}" "${pid}"
         "${server_exec}" \
          $server_conf \
          --status "${status}" 1 \
@@ -17,7 +16,6 @@ launch_server() {
          --writepid "${pid}" \
          --explicit-exit-notify 3
     else
-        $RUN_SUDO rm -f "${status}" "${log}" "${pid}"
         $RUN_SUDO "${server_exec}" \
                    $server_conf \
                    --status "${status}" 1 \

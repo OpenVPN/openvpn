@@ -14,7 +14,7 @@ launch_client() {
         $client_conf \
         --writepid "${pid}" \
         --setenv pid $pid \
-        --log "${log}" &
+        --log "${t_server_null_logdir}/${log}" &
 }
 
 wait_for_results() {
@@ -44,7 +44,7 @@ get_client_test_result() {
     should_pass=$2
     log="${test_name}.log"
 
-    grep "Initialization Sequence Completed" "${log}" > /dev/null
+    grep "Initialization Sequence Completed" "${t_server_null_logdir}/${log}" > /dev/null
     exit_code=$?
 
     if [ $exit_code -eq 0 ] && [ "${should_pass}" = "yes" ]; then
