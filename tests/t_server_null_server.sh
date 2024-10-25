@@ -8,6 +8,9 @@ launch_server() {
     status="${server_name}.status"
     pid="${server_name}.pid"
 
+    # Allow reading this file even umask values are strict
+    touch "$log"
+
     if [ -z "${RUN_SUDO}" ]; then
         "${server_exec}" \
          $server_conf \
@@ -33,6 +36,9 @@ umask 022
 
 # Load local configuration, if any
 test -r ./t_server_null.rc && . ./t_server_null.rc
+
+# Remove server kill failure marker file, if any
+rm -f $SERVER_KILL_FAIL_FILE
 
 # Launch test servers
 for SUF in $TEST_SERVER_LIST
@@ -75,6 +81,7 @@ echo "All clients have disconnected from all servers"
 # Make sure that the server processes are truly dead before exiting.  If a
 # server process does not exit in 15 seconds assume it never will, move on and
 # hope for the best.
+
 echo "Waiting for servers to exit"
 for PID_FILE in $server_pid_files
 do
@@ -85,22 +92,25 @@ do
         continue
     fi
 
-    if [ -z "${RUN_SUDO}" ]; then
-        $KILL_EXEC "${SERVER_PID}"
-    else
-        $RUN_SUDO $KILL_EXEC "${SERVER_PID}"
-    fi
+    # Attempt to kill the OpenVPN server gracefully with SIGTERM
+    $RUN_SUDO $KILL_EXEC "${SERVER_PID}"
 
     count=0
     maxcount=75
     while [ $count -le $maxcount ]
     do
-        ps -p "${SERVER_PID}" > /dev/null || break
+        $RUN_SUDO kill -0 "${SERVER_PID}" 2> /dev/null || break
         count=$(( count + 1))
         sleep 0.2
     done
 
+    # If server is still up send a SIGKILL
     if [ $count -ge $maxcount ]; then
-        echo "WARNING: could not kill server with pid ${SERVER_PID}!"
+        $RUN_SUDO $KILL_EXEC -9 "${SERVER_PID}"
+        SERVER_NAME=$(basename $PID_FILE|cut -d . -f 1)
+        echo "ERROR: had to send SIGKILL to server ${SERVER_NAME} with pid ${SERVER_PID}!"
+        echo "Tail of server log:"
+        tail -n 20 "${t_server_null_logdir}/${SERVER_NAME}.log"
+        touch $SERVER_KILL_FAIL_FILE
     fi
 done

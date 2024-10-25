@@ -53,11 +53,11 @@ get_client_test_result() {
         echo "PASS ${test_name} (test failure)"
     elif [ $exit_code -eq 0 ] && [ "${should_pass}" = "no" ]; then
         echo "FAIL ${test_name} (test failure)"
-        cat "${log}"
+        cat "${t_server_null_logdir}/${log}"
         retval=1
     elif [ $exit_code -eq 1 ] && [ "${should_pass}" = "yes" ]; then
         echo "FAIL ${test_name}"
-        cat "${log}"
+        cat "${t_server_null_logdir}/${log}"
         retval=1
     fi
 }

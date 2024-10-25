@@ -20,6 +20,10 @@ SERVER_CERT="${sample_keys}/server.crt"
 SERVER_KEY="${sample_keys}/server.key"
 TA="${sample_keys}/ta.key"
 
+# Used to detect if graceful kill of any server instance failed during the test
+# run
+SERVER_KILL_FAIL_FILE=".t_server_null_server.kill_failed"
+
 # Test server configurations
 MAX_CLIENTS="10"
 CLIENT_MATCH="Test-Client"
