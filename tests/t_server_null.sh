@@ -62,6 +62,8 @@ export t_server_null_logdir=t_server_null-`hostname`-`date +%Y%m%d-%H%M%S`
 mkdir $t_server_null_logdir
 
 "${srcdir}/t_server_null_server.sh" &
+T_SERVER_NULL_SERVER_PID=$!
+
 "${srcdir}/t_server_null_client.sh"
 retval=$?
 
@@ -69,11 +71,9 @@ retval=$?
 # that this script does not exit before all --dev null servers are dead and
 # their network interfaces are gone. Otherwise t_client.sh will fail because
 # pre and post ifconfig output does not match.
-wait
+wait $T_SERVER_NULL_SERVER_PID
 
-. ./t_server_null_default.rc
-
-if [ -e $SERVER_KILL_FAIL_FILE ]; then
+if [ $? -ne 0 ]; then
     exit 1
 else
     exit $retval

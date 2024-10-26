@@ -37,8 +37,9 @@ umask 022
 # Load local configuration, if any
 test -r ./t_server_null.rc && . ./t_server_null.rc
 
-# Remove server kill failure marker file, if any
-rm -f $SERVER_KILL_FAIL_FILE
+# We can't exit immediately on the first failure as that could leave processes
+# lying around.
+retval=0
 
 # Launch test servers
 for SUF in $TEST_SERVER_LIST
@@ -81,7 +82,6 @@ echo "All clients have disconnected from all servers"
 # Make sure that the server processes are truly dead before exiting.  If a
 # server process does not exit in 15 seconds assume it never will, move on and
 # hope for the best.
-
 echo "Waiting for servers to exit"
 for PID_FILE in $server_pid_files
 do
@@ -111,6 +111,8 @@ do
         echo "ERROR: had to send SIGKILL to server ${SERVER_NAME} with pid ${SERVER_PID}!"
         echo "Tail of server log:"
         tail -n 20 "${t_server_null_logdir}/${SERVER_NAME}.log"
-        touch $SERVER_KILL_FAIL_FILE
+        retval=1
     fi
 done
+
+exit $retval
