@@ -1974,20 +1974,33 @@ write_string(struct buffer *buf, const char *str, const int maxlen)
     return true;
 }
 
-static bool
+/**
+ * Read a string that is encoded as a 2 byte header with the length from the
+ * buffer \c buf. Will return the non-negative value if reading was successful.
+ * The returned value will include the trailing 0 byte.
+ *
+ * If the message is over the capacity or could not be read
+ * it will return the negative length that was in the
+ * header and try to skip the string. If the string cannot be skipped, the
+ * buf will stay at the current position or position + 2
+ */
+static int
 read_string(struct buffer *buf, char *str, const unsigned int capacity)
 {
     const int len = buf_read_u16(buf);
     if (len < 1 || len > (int)capacity)
     {
-        return false;
+        buf_advance(buf, len);
+
+        /* will also return 0 for a no string being present */
+        return -len;
     }
     if (!buf_read(buf, str, len))
     {
-        return false;
+        return -len;
     }
     str[len-1] = '\0';
-    return true;
+    return len;
 }
 
 static char *
@@ -2357,8 +2370,6 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
 {
     struct key_state *ks = &session->key[KS_PRIMARY];      /* primary key */
 
-    bool username_status, password_status;
-
     struct gc_arena gc = gc_new();
     char *options;
     struct user_pass *up = NULL;
@@ -2392,7 +2403,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     }
 
     /* get options */
-    if (!read_string(buf, options, TLS_OPTIONS_LEN))
+    if (read_string(buf, options, TLS_OPTIONS_LEN) < 0)
     {
         msg(D_TLS_ERRORS, "TLS Error: Failed to read required OCC options string");
         goto error;
@@ -2405,8 +2416,8 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
      * peer_info data which follows behind
      */
     ALLOC_OBJ_CLEAR_GC(up, struct user_pass, &gc);
-    username_status = read_string(buf, up->username, USER_PASS_LEN);
-    password_status = read_string(buf, up->password, USER_PASS_LEN);
+    int username_len = read_string(buf, up->username, USER_PASS_LEN);
+    int password_len = read_string(buf, up->password, USER_PASS_LEN);
 
     /* get peer info from control channel */
     free(multi->peer_info);
@@ -2429,10 +2440,21 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
         multi->remote_ciphername = string_alloc("none", NULL);
     }
 
-    if (tls_session_user_pass_enabled(session))
+    if (username_len < 0 || password_len < 0)
+    {
+        msg(D_TLS_ERRORS, "TLS Error: Username (%d) or password (%d) too long",
+            abs(username_len), abs(password_len));
+        auth_set_client_reason(multi, "Username or password is too long. "
+                               "Maximum length is 128 bytes");
+
+        /* treat the same as failed username/password and do not error
+         * out (goto error) to sent an AUTH_FAILED back to the client */
+        ks->authenticated = KS_AUTH_FALSE;
+    }
+    else if (tls_session_user_pass_enabled(session))
     {
         /* Perform username/password authentication */
-        if (!username_status || !password_status)
+        if (!username_len || !password_len)
         {
             CLEAR(*up);
             if (!(session->opt->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL))
