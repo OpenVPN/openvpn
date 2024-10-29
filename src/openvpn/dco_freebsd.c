@@ -78,7 +78,7 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
              struct in_addr *remote_in4, struct in6_addr *remote_in6)
 {
     struct ifdrv drv;
-    nvlist_t *nvl;
+    nvlist_t *nvl, *local_nvl, *remote_nvl;
     int ret;
 
     nvl = nvlist_create(0);
@@ -87,12 +87,14 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
 
     if (localaddr)
     {
-        nvlist_add_nvlist(nvl, "local", sockaddr_to_nvlist(localaddr));
+        local_nvl = sockaddr_to_nvlist(localaddr);
+        nvlist_add_nvlist(nvl, "local", local_nvl);
     }
 
     if (remoteaddr)
     {
-        nvlist_add_nvlist(nvl, "remote", sockaddr_to_nvlist(remoteaddr));
+        remote_nvl = sockaddr_to_nvlist(remoteaddr);
+        nvlist_add_nvlist(nvl, "remote", remote_nvl);
     }
 
     if (remote_in4)
@@ -121,6 +123,14 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
     }
 
     free(drv.ifd_data);
+    if (localaddr)
+    {
+        nvlist_destroy(local_nvl);
+    }
+    if (remoteaddr)
+    {
+        nvlist_destroy(remote_nvl);
+    }
     nvlist_destroy(nvl);
 
     return ret;
@@ -418,7 +428,7 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid,
             const char *ciphername)
 {
     struct ifdrv drv;
-    nvlist_t *nvl;
+    nvlist_t *nvl, *encrypt_nvl, *decrypt_nvl;
     int ret;
 
     msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s",
@@ -430,10 +440,11 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid,
     nvlist_add_number(nvl, "keyid", keyid);
     nvlist_add_number(nvl, "peerid", peerid);
 
-    nvlist_add_nvlist(nvl, "encrypt",
-                      key_to_nvlist(encrypt_key, encrypt_iv, ciphername));
-    nvlist_add_nvlist(nvl, "decrypt",
-                      key_to_nvlist(decrypt_key, decrypt_iv, ciphername));
+    encrypt_nvl = key_to_nvlist(encrypt_key, encrypt_iv, ciphername);
+    decrypt_nvl = key_to_nvlist(decrypt_key, decrypt_iv, ciphername);
+
+    nvlist_add_nvlist(nvl, "encrypt", encrypt_nvl);
+    nvlist_add_nvlist(nvl, "decrypt", decrypt_nvl);
 
     CLEAR(drv);
     snprintf(drv.ifd_name, IFNAMSIZ, "%s", dco->ifname);
@@ -451,6 +462,8 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid,
     }
 
     free(drv.ifd_data);
+    nvlist_destroy(encrypt_nvl);
+    nvlist_destroy(decrypt_nvl);
     nvlist_destroy(nvl);
 
     return ret;
@@ -750,6 +763,7 @@ retry:
     if (!nvlist_exists_nvlist_array(nvl, "peers"))
     {
         /* no peers */
+        nvlist_destroy(nvl);
         return 0;
     }
 
@@ -762,6 +776,7 @@ retry:
         dco_update_peer_stat(m, peerid, nvlist_get_nvlist(peer, "bytes"));
     }
 
+    nvlist_destroy(nvl);
     return 0;
 }
 
