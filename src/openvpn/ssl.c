@@ -2010,6 +2010,10 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
             buf_printf(&out, "IV_SSL=%s\n", get_ssl_library_version() );
 #if defined(_WIN32)
             buf_printf(&out, "IV_PLAT_VER=%s\n", win32_version_string(&gc, false));
+#else
+            struct utsname u;
+            uname(&u);
+            buf_printf(&out, "IV_PLAT_VER=%s\n", u.release);
 #endif
         }
 
