@@ -347,6 +347,10 @@ typedef int MIB_TCP_STATE;
 #include <sys/mman.h>
 #endif
 
+#ifndef _WIN32
+#include <sys/utsname.h>
+#endif
+
 /*
  * Pedantic mode is meant to accomplish lint-style program checking,
  * not to build a working executable.
