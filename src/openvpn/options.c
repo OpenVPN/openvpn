@@ -5715,17 +5715,10 @@ show_compression_warning(struct compress_options *info)
 {
     if (comp_non_stub_enabled(info))
     {
-        /*
-         * Check if already displayed the strong warning and enabled full
-         * compression
-         */
-        if (!(info->flags & COMP_F_ALLOW_COMPRESS))
-        {
-            msg(M_WARN, "WARNING: Compression for receiving enabled. "
-                "Compression has been used in the past to break encryption. "
-                "Sent packets are not compressed unless \"allow-compression yes\" "
-                "is also set.");
-        }
+        msg(M_WARN, "WARNING: Compression for receiving enabled. "
+            "Compression has been used in the past to break encryption. "
+            "Compression support is deprecated and we recommend to disable "
+            "it completely.");
     }
 }
 
@@ -8435,18 +8428,14 @@ add_option(struct options *options,
         }
         else if (streq(p[1], "asym"))
         {
-            options->comp.flags &= ~COMP_F_ALLOW_COMPRESS;
             options->comp.flags |= COMP_F_ALLOW_ASYM;
         }
         else if (streq(p[1], "yes"))
         {
-            msg(M_WARN, "WARNING: Compression for sending and receiving enabled. Compression has "
-                "been used in the past to break encryption. Allowing compression allows "
-                "attacks that break encryption. Using \"--allow-compression yes\" is "
-                "strongly discouraged for common usage. See --compress in the manual "
-                "page for more information ");
+            msg(M_WARN, "DEPRECATED OPTION: \"--allow-compression yes\" has been removed. "
+                "We will use \"asym\" mode instead. See the manual page for more information.");
 
-            options->comp.flags |= COMP_F_ALLOW_COMPRESS;
+            options->comp.flags |= COMP_F_ALLOW_ASYM;
         }
         else
         {
@@ -8461,45 +8450,29 @@ add_option(struct options *options,
 
         /* All lzo variants do not use swap */
         options->comp.flags &= ~COMP_F_SWAP;
+        options->comp.alg = COMP_ALG_LZO;
 
-        if (p[1] && streq(p[1], "no"))
+        if (p[1])
         {
-            options->comp.alg = COMP_ALG_STUB;
-            options->comp.flags &= ~COMP_F_ADAPTIVE;
-        }
-        else if (p[1])
-        {
-            if (streq(p[1], "yes"))
+            if (streq(p[1], "no"))
             {
-                options->comp.alg = COMP_ALG_LZO;
-                options->comp.flags &= ~COMP_F_ADAPTIVE;
+                options->comp.alg = COMP_ALG_STUB;
             }
-            else if (streq(p[1], "adaptive"))
-            {
-                options->comp.alg = COMP_ALG_LZO;
-                options->comp.flags |= COMP_F_ADAPTIVE;
-            }
-            else
+            /* There is no actual difference anymore between these variants.
+             * We never compress. On the server side we replace this with
+             * --compress migrate later anyway.
+             */
+            else if (!(streq(p[1], "yes") || streq(p[1], "adaptive")))
             {
                 msg(msglevel, "bad comp-lzo option: %s -- must be 'yes', 'no', or 'adaptive'", p[1]);
                 goto err;
             }
         }
-        else
-        {
-            options->comp.alg = COMP_ALG_LZO;
-            options->comp.flags |= COMP_F_ADAPTIVE;
-        }
         show_compression_warning(&options->comp);
     }
     else if (streq(p[0], "comp-noadapt") && !p[1])
     {
-        /*
-         * We do not need to check here if we allow compression since
-         * it only modifies a flag if compression is enabled
-         */
-        VERIFY_PERMISSION(OPT_P_COMP);
-        options->comp.flags &= ~COMP_F_ADAPTIVE;
+        /* NO-OP since we never compress anymore */
     }
     else if (streq(p[0], "compress") && !p[2])
     {
@@ -8528,7 +8501,7 @@ add_option(struct options *options,
         else if (streq(alg, "lzo"))
         {
             options->comp.alg = COMP_ALG_LZO;
-            options->comp.flags &= ~(COMP_F_ADAPTIVE | COMP_F_SWAP);
+            options->comp.flags &= ~COMP_F_SWAP;
         }
         else if (streq(alg, "lz4"))
         {

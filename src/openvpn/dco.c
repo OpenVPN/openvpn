@@ -426,8 +426,7 @@ dco_check_option(int msglevel, const struct options *o)
 
 #if defined(USE_COMP)
     if (o->comp.alg != COMP_ALG_UNDEF
-        || o->comp.flags & COMP_F_ALLOW_ASYM
-        || o->comp.flags & COMP_F_ALLOW_COMPRESS)
+        || o->comp.flags & COMP_F_ALLOW_ASYM)
     {
         msg(msglevel, "Note: '--allow-compression' is not set to 'no', disabling data channel offload.");
 
