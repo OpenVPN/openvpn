@@ -2032,8 +2032,8 @@ show_settings(const struct options *o)
 
     SHOW_INT(tls_timeout);
 
-    SHOW_INT(renegotiate_bytes);
-    SHOW_INT(renegotiate_packets);
+    SHOW_INT64(renegotiate_bytes);
+    SHOW_INT64(renegotiate_packets);
     SHOW_INT(renegotiate_seconds);
 
     SHOW_INT(handshake_window);
@@ -9187,12 +9187,26 @@ add_option(struct options *options,
     else if (streq(p[0], "reneg-bytes") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_TLS_PARMS);
-        options->renegotiate_bytes = positive_atoi(p[1]);
+        char *end;
+        long long reneg_bytes = strtoll(p[1], &end, 10);
+        if (*end != '\0' || reneg_bytes < 0)
+        {
+            msg(msglevel, "--reneg-bytes parameter must be an integer and >= 0");
+            goto err;
+        }
+        options->renegotiate_bytes = reneg_bytes;
     }
     else if (streq(p[0], "reneg-pkts") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_TLS_PARMS);
-        options->renegotiate_packets = positive_atoi(p[1]);
+        char *end;
+        long long pkt_max = strtoll(p[1], &end, 10);
+        if (*end != '\0' || pkt_max < 0)
+        {
+            msg(msglevel, "--reneg-pkts parameter must be an integer and >= 0");
+            goto err;
+        }
+        options->renegotiate_packets = pkt_max;
     }
     else if (streq(p[0], "reneg-sec") && p[1] && !p[3])
     {

@@ -118,7 +118,7 @@ key_ctx_update_implicit_iv(struct key_ctx *ctx, uint8_t *key, size_t key_len);
  *                      May *not* be NULL.
  */
 static void
-tls_limit_reneg_bytes(const char *ciphername, int *reneg_bytes)
+tls_limit_reneg_bytes(const char *ciphername, int64_t *reneg_bytes)
 {
     if (cipher_kt_insecure(ciphername))
     {
@@ -3028,7 +3028,7 @@ tls_process(struct tls_multi *multi,
         && should_trigger_renegotiation(session, ks))
     {
         msg(D_TLS_DEBUG_LOW, "TLS: soft reset sec=%d/%d bytes=" counter_format
-            "/%d pkts=" counter_format "/%d",
+            "/%" PRIi64 " pkts=" counter_format "/%" PRIi64,
             (int) (now - ks->established), session->opt->renegotiate_seconds,
             ks->n_bytes, session->opt->renegotiate_bytes,
             ks->n_packets, session->opt->renegotiate_packets);

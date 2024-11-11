@@ -331,8 +331,8 @@ struct tls_options
     int transition_window;
     int handshake_window;
     interval_t packet_timeout;
-    int renegotiate_bytes;
-    int renegotiate_packets;
+    int64_t renegotiate_bytes;
+    int64_t renegotiate_packets;
     interval_t renegotiate_seconds;
 
     /* cert verification parms */

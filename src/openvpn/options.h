@@ -626,8 +626,8 @@ struct options
     int tls_timeout;
 
     /* Data channel key renegotiation parameters */
-    int renegotiate_bytes;
-    int renegotiate_packets;
+    int64_t renegotiate_bytes;
+    int64_t renegotiate_packets;
     int renegotiate_seconds;
     int renegotiate_seconds_min;
 
