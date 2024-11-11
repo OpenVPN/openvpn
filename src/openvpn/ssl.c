@@ -2962,8 +2962,42 @@ error:
     return true;
 }
 
+/**
+ * Determines if a renegotiation should be triggerred based on the various
+ * factors that can trigger one
+ */
+static bool
+should_trigger_renegotiation(const struct tls_session *session, const struct key_state *ks)
+{
+    /* Time limit */
+    if (session->opt->renegotiate_seconds
+        && now >= ks->established + session->opt->renegotiate_seconds)
+    {
+        return true;
+    }
 
+    /* Byte limit */
+    if (session->opt->renegotiate_bytes > 0
+        && ks->n_bytes >= session->opt->renegotiate_bytes)
+    {
+        return true;
+    }
 
+    /* Packet limit */
+    if (session->opt->renegotiate_packets
+        && ks->n_packets >= session->opt->renegotiate_packets)
+    {
+        return true;
+    }
+
+    /* Packet id approach the limit of the packet id */
+    if (packet_id_close_to_wrapping(&ks->crypto_options.packet_id.send))
+    {
+        return true;
+    }
+
+    return false;
+}
 /*
  * This is the primary routine for processing TLS stuff inside the
  * the main event loop.  When this routine exits
@@ -2991,13 +3025,7 @@ tls_process(struct tls_multi *multi,
 
     /* Should we trigger a soft reset? -- new key, keeps old key for a while */
     if (ks->state >= S_GENERATED_KEYS
-        && ((session->opt->renegotiate_seconds
-             && now >= ks->established + session->opt->renegotiate_seconds)
-            || (session->opt->renegotiate_bytes > 0
-                && ks->n_bytes >= session->opt->renegotiate_bytes)
-            || (session->opt->renegotiate_packets
-                && ks->n_packets >= session->opt->renegotiate_packets)
-            || (packet_id_close_to_wrapping(&ks->crypto_options.packet_id.send))))
+        && should_trigger_renegotiation(session, ks))
     {
         msg(D_TLS_DEBUG_LOW, "TLS: soft reset sec=%d/%d bytes=" counter_format
             "/%d pkts=" counter_format "/%d",
