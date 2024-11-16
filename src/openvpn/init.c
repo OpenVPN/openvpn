@@ -467,7 +467,14 @@ ce_management_query_remote(struct context *c)
 #endif /* ENABLE_MANAGEMENT */
 
 /*
- * Initialize and possibly randomize connection list.
+ * Initialize and randomize the connection list.
+ * 
+ * Applies the Fisher-Yates shuffle algorithm to ensure all permutations are equally probable,
+ * thereby eliminating shuffling bias in the previous method.
+ * 
+ * The algorithm randomly selects an element from the unshuffled portion and places it at position i.
+ * There's only one way to obtain each permutation through these swaps.
+ * This guarantees that each permutation occurs with equal probability in theory.
  */
 static void
 init_connection_list(struct context *c)
