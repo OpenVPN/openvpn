@@ -929,10 +929,10 @@ uninit_options(struct options *o)
 
 struct pull_filter
 {
-#define PUF_TYPE_UNDEF  0    /** undefined filter type */
-#define PUF_TYPE_ACCEPT 1    /** filter type to accept a matching option */
-#define PUF_TYPE_IGNORE 2    /** filter type to ignore a matching option */
-#define PUF_TYPE_REJECT 3    /** filter type to reject and trigger SIGUSR1 */
+#define PUF_TYPE_UNDEF  0    /**< undefined filter type */
+#define PUF_TYPE_ACCEPT 1    /**< filter type to accept a matching option */
+#define PUF_TYPE_IGNORE 2    /**< filter type to ignore a matching option */
+#define PUF_TYPE_REJECT 3    /**< filter type to reject and trigger SIGUSR1 */
     int type;
     int size;
     char *pattern;
@@ -3846,14 +3846,14 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
  *  Check file/directory sanity
  *
  */
-#ifndef ENABLE_SMALL  /** Expect people using the stripped down version to know what they do */
+#ifndef ENABLE_SMALL  /* Expect people using the stripped down version to know what they do */
 
-#define CHKACC_FILE (1<<0)       /** Check for a file/directory presence */
-#define CHKACC_DIRPATH (1<<1)    /** Check for directory presence where a file should reside */
-#define CHKACC_FILEXSTWR (1<<2)  /** If file exists, is it writable? */
-#define CHKACC_ACPTSTDIN (1<<3)  /** If filename is stdin, it's allowed and "exists" */
-#define CHKACC_PRIVATE (1<<4)    /** Warn if this (private) file is group/others accessible */
-#define CHKACC_ACCEPT_URI (1<<5) /** If filename is a URI, no check is done unless it starts with file: */
+#define CHKACC_FILE (1<<0)       /**< Check for a file/directory presence */
+#define CHKACC_DIRPATH (1<<1)    /**< Check for directory presence where a file should reside */
+#define CHKACC_FILEXSTWR (1<<2)  /**< If file exists, is it writable? */
+#define CHKACC_ACPTSTDIN (1<<3)  /**< If filename is stdin, it's allowed and "exists" */
+#define CHKACC_PRIVATE (1<<4)    /**< Warn if this (private) file is group/others accessible */
+#define CHKACC_ACCEPT_URI (1<<5) /**< Do not check URIs, unless they start with file: */
 
 static bool
 check_file_access(const int type, const char *file, const int mode, const char *opt)

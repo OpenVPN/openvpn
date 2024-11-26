@@ -59,9 +59,10 @@
  * Local constants
  */
 
-#define MSICA_ADAPTER_TICK_SIZE (16*1024) /** Amount of tick space to reserve for one TAP/TUN adapter creation/deletition. */
+/** Amount of tick space to reserve for one TAP/TUN adapter creation/deletition. */
+#define MSICA_ADAPTER_TICK_SIZE        (16 * 1024)
 
-#define FILE_NEED_REBOOT        L".ovpn_need_reboot"
+#define FILE_NEED_REBOOT               L".ovpn_need_reboot"
 
 #define OPENVPN_CONNECT_ADAPTER_SUBSTR L"OpenVPN Connect"
 
@@ -88,7 +89,9 @@ setup_sequence(
     free(szSequence);
     if (uiResult != ERROR_SUCCESS)
     {
-        SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
+        /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error
+         * code. Set last error manually. */
+        SetLastError(uiResult);
         msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szProperty);
         return uiResult;
     }

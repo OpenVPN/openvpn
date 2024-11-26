@@ -37,8 +37,8 @@
  */
 struct msica_arg
 {
-    struct msica_arg *next; /** Pointer to the next argument in the sequence */
-    TCHAR val[];            /** Zero terminated argument string */
+    struct msica_arg *next; /**< Pointer to the next argument in the sequence */
+    TCHAR val[];            /**< Zero terminated argument string */
 };
 
 
@@ -47,8 +47,8 @@ struct msica_arg
  */
 struct msica_arg_seq
 {
-    struct msica_arg *head; /** Pointer to the first argument in the sequence */
-    struct msica_arg *tail; /** Pointer to the last argument in the sequence */
+    struct msica_arg *head; /**< Pointer to the first argument in the sequence */
+    struct msica_arg *tail; /**< Pointer to the last argument in the sequence */
 };
 
 
