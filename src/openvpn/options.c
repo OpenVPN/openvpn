@@ -888,7 +888,7 @@ init_options(struct options *o, const bool init_gc)
     o->pkcs11_pin_cache_period = -1;
 #endif                  /* ENABLE_PKCS11 */
 
-/* P2MP server context features */
+    /* P2MP server context features */
     o->auth_token_generate = false;
 
     /* Set default --tmp-dir */
@@ -2969,7 +2969,7 @@ options_postprocess_verify_ce(const struct options *options,
         if (options->pkcs12_file)
         {
 #ifdef ENABLE_CRYPTO_MBEDTLS
-            msg(M_USAGE, "Parameter --pkcs12 cannot be used with the mbed TLS version version of OpenVPN.");
+            msg(M_USAGE, "Parameter --pkcs12 cannot be used with the mbed TLS version of OpenVPN.");
 #else
             if (options->ca_path)
             {
@@ -2998,7 +2998,7 @@ options_postprocess_verify_ce(const struct options *options,
 #ifdef ENABLE_CRYPTO_MBEDTLS
             if (options->ca_path)
             {
-                msg(M_USAGE, "Parameter --capath cannot be used with the mbed TLS version version of OpenVPN.");
+                msg(M_USAGE, "Parameter --capath cannot be used with the mbed TLS version of OpenVPN.");
             }
 #endif  /* ifdef ENABLE_CRYPTO_MBEDTLS */
             if (pull)

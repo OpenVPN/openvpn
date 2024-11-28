@@ -6,7 +6,7 @@ it will attempt to connect against.  But there are some configuration
 options which are related to specific ``--remote`` options.  For these
 use cases, connection profiles are the solution.
 
-By enacpulating the ``--remote`` option and related options within
+By encapsulating the ``--remote`` option and related options within
 ``<connection>`` and ``</connection>``, these options are handled as a
 group.
 
