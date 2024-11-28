@@ -1631,6 +1631,13 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu,
     {
         windows_set_mtu(tt->adapter_index, AF_INET, tun_mtu);
     }
+#elif defined(TARGET_HAIKU)
+    /* example: ifconfig tun/0 inet 1.1.1.1 255.255.255.0 mtu 1450 up */
+    argv_printf(&argv, "%s %s inet %s %s mtu %d up", IFCONFIG_PATH,
+                ifname, ifconfig_local, ifconfig_remote_netmask, tun_mtu);
+
+    argv_msg(M_INFO, &argv);
+    openvpn_execve_check(&argv, es, S_FATAL, "Haiku ifconfig failed");
 #else  /* if defined(TARGET_LINUX) */
     msg(M_FATAL, "Sorry, but I don't know how to do 'ifconfig' commands on this operating system.  You should ifconfig your TUN/TAP device manually or use an --up script.");
 #endif /* if defined(TARGET_LINUX) */
@@ -1909,10 +1916,15 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node,
         {
             for (int i = 0; i < 256; ++i)
             {
+                /* some platforms have a dedicated directory per driver */
+                char *sep = "";
+#if defined(TARGET_HAIKU)
+                sep = "/";
+#endif
                 snprintf(tunname, sizeof(tunname),
-                         "/dev/%s%d", dev, i);
+                         "/dev/%s%s%d", dev, sep, i);
                 snprintf(dynamic_name, sizeof(dynamic_name),
-                         "%s%d", dev, i);
+                         "%s%s%d", dev, sep, i);
                 if ((tt->fd = open(tunname, O_RDWR)) > 0)
                 {
                     dynamic_opened = true;

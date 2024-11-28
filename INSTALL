@@ -263,6 +263,16 @@ TUN/TAP Driver References:
 
     http://www.whiteboard.ne.jp/~admin2/tuntap/
 
+* Haiku:
+
+   Haiku can't yet dynamically create TUN/TAP devices, so you need to manually
+   create one before running openvpn:
+
+     # ifconfig tun/0 up
+
+   A standard reference the dev as "tun" in your config is all that's needed
+   to use the tunnel device.
+
 * Windows
 
   OpenVPN on Windows needs a TUN/TAP kernel driver to work. OpenVPN installers
