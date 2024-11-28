@@ -437,7 +437,7 @@ static void solaris_error_close(struct tuntap *tt, const struct env_set *es, con
 #include <stropts.h>
 #endif
 
-#if defined(TARGET_DARWIN) && HAVE_NET_IF_UTUN_H
+#if defined(TARGET_DARWIN)
 #include <sys/kern_control.h>
 #include <net/if_utun.h>
 #include <sys/sys_domain.h>
@@ -1782,7 +1782,7 @@ clear_tuntap(struct tuntap *tuntap)
 #endif
 }
 
-#if defined (TARGET_OPENBSD) || (defined(TARGET_DARWIN) && HAVE_NET_IF_UTUN_H)
+#if defined(TARGET_OPENBSD) || defined(TARGET_DARWIN)
 
 /*
  * OpenBSD and Mac OS X when using utun
@@ -1871,7 +1871,7 @@ read_tun_header(struct tuntap *tt, uint8_t *buf, int len)
         return read(tt->fd, buf, len);
     }
 }
-#endif /* if defined (TARGET_OPENBSD) || (defined(TARGET_DARWIN) && HAVE_NET_IF_UTUN_H) */
+#endif /* if defined (TARGET_OPENBSD) || defined(TARGET_DARWIN) */
 
 bool
 tun_name_is_fixed(const char *dev)
@@ -3215,14 +3215,12 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
  * (http://newosxbook.com/src.jl?tree=listings&file=17-15-utun.c)
  */
 
-#ifdef HAVE_NET_IF_UTUN_H
-
 /* Helper functions that tries to open utun device
  * return -2 on early initialization failures (utun not supported
- * at all (old OS X) and -1 on initlization failure of utun
- * device (utun works but utunX is already used */
-static
-int
+ * at all) and -1 on initlization failure of utun
+ * device (utun works but utunX is already used)
+ */
+static int
 utun_open_helper(struct ctl_info ctlInfo, int utunnum)
 {
     struct sockaddr_ctl sc;
@@ -3346,13 +3344,10 @@ open_darwin_utun(const char *dev, const char *dev_type, const char *dev_node, st
     tt->backend_driver = DRIVER_UTUN;
 }
 
-#endif /* ifdef HAVE_NET_IF_UTUN_H */
-
 void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
          openvpn_net_ctx_t *ctx)
 {
-#ifdef HAVE_NET_IF_UTUN_H
     /* If dev_node does not start start with utun assume regular tun/tap */
     if ((!dev_node && tt->type==DEV_TYPE_TUN)
         || (dev_node && !strncmp(dev_node, "utun", 4)))
@@ -3387,7 +3382,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         }
     }
     else
-#endif /* ifdef HAVE_NET_IF_UTUN_H */
     {
 
         /* Use plain dev-node tun to select /dev/tun style
@@ -3431,27 +3425,27 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-#ifdef HAVE_NET_IF_UTUN_H
     if (tt->backend_driver == DRIVER_UTUN)
     {
         return write_tun_header(tt, buf, len);
     }
     else
-#endif
-    return write(tt->fd, buf, len);
+    {
+        return write(tt->fd, buf, len);
+    }
 }
 
 int
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-#ifdef HAVE_NET_IF_UTUN_H
     if (tt->backend_driver == DRIVER_UTUN)
     {
         return read_tun_header(tt, buf, len);
     }
     else
-#endif
-    return read(tt->fd, buf, len);
+    {
+        return read(tt->fd, buf, len);
+    }
 }
 
 #elif defined(TARGET_AIX)
