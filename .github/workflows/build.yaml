@@ -8,7 +8,7 @@ jobs:
   checkuncrustify:
     name: "Check code style with Uncrustify"
     # Ubuntu 22.04 has uncrustify 0.72_f
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y uncrustify
@@ -42,7 +42,7 @@ jobs:
         arch: [x86, x64]
 
     name: "gcc-mingw - ${{ matrix.arch }} - OSSL"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
     steps:
