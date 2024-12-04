@@ -61,6 +61,9 @@ get_console_input_systemd(const char *prompt, const bool echo, char *input, cons
     int std_out;
     bool ret = false;
     struct argv argv = argv_new();
+    char credentials_directory[128] = {0};
+    char *env_credentials_directory = NULL;
+    struct env_set *es = env_set_create(NULL);
 
     argv_printf(&argv, SYSTEMD_ASK_PASSWORD_PATH);
 #ifdef SYSTEMD_NEWER_THAN_216
@@ -73,7 +76,28 @@ get_console_input_systemd(const char *prompt, const bool echo, char *input, cons
     argv_printf_cat(&argv, "--icon network-vpn");
     argv_printf_cat(&argv, "%s", prompt);
 
-    if ((std_out = openvpn_popen(&argv, NULL)) < 0)
+    /*
+     * It seems counter intuitive, but we need to get CREDENTIALS_DIRECTORY directly from getenv.
+     * This is because during a pkcs11 load, we don't have a way to pass our envp pointer to this
+     * function as the caller is in a pkcs11 callback without that context.
+     *
+     * If we don't pass CREDENTIALS_DIRECTORY down to systemd-ask-pass, it can not automatically
+     * fill the credential from the systemd-credentials. For more see:
+     *
+     * https://www.freedesktop.org/software/systemd/man/latest/systemd-ask-password.html#--credential=
+     */
+    env_credentials_directory = getenv("CREDENTIALS_DIRECTORY");
+    if (env_credentials_directory)
+    {
+        openvpn_snprintf(credentials_directory, sizeof(credentials_directory), "CREDENTIALS_DIRECTORY=%s", env_credentials_directory);
+        env_set_add(es, credentials_directory);
+    }
+
+    std_out = openvpn_popen(&argv, es);
+
+    env_set_destroy(es);
+
+    if (std_out < 0)
     {
         return false;
     }
