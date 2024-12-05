@@ -68,7 +68,13 @@ configuration.
       auth-user-pass up
 
   If ``up`` is present, it must be a file containing username/password on 2
-  lines. If the password line is missing, OpenVPN will prompt for one.
+  lines. If the password line is missing, OpenVPN will prompt for one on
+  stdin.
+
+  *NOTE*: If you use a graphical OpenVPN client such as OpenVPN GUI on Windows,
+  you should either define both the username and password in the file, or rely
+  on the GUI caching the credentials; defining just the username in the file
+  will not work.
 
   If ``up`` is omitted, username/password will be prompted from the
   console.
