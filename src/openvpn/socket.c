@@ -3489,7 +3489,7 @@ link_socket_write_udp_posix_sendmsg(struct link_socket *sock,
             cmsg->cmsg_type = IPV6_PKTINFO;
 
             pkti6 = (struct in6_pktinfo *) CMSG_DATA(cmsg);
-            pkti6->ipi6_ifindex = to->pi.in6.ipi6_ifindex;
+            pkti6->ipi6_ifindex = 0;
             pkti6->ipi6_addr = to->pi.in6.ipi6_addr;
             break;
         }
