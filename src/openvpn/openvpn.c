@@ -274,10 +274,10 @@ openvpn_main(int argc, char *argv[])
 
             /* Query passwords before becoming a daemon if we don't use the
              * management interface to get them. */
-#ifdef ENABLE_MANAGEMENT
             if (!(c.options.management_flags & MF_QUERY_PASSWORDS))
-#endif
-            init_query_passwords(&c);
+            {
+                init_query_passwords(&c);
+            }
 
             /* become a daemon if --daemon */
             if (c.first_time)

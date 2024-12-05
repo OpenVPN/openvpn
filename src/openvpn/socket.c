@@ -3389,8 +3389,10 @@ link_socket_read_udp_posix(struct link_socket *sock,
     }
     else
 #endif
-    buf->len = recvfrom(sock->sd, BPTR(buf), buf_forward_capacity(buf), 0,
-                        &from->dest.addr.sa, &fromlen);
+    {
+        buf->len = recvfrom(sock->sd, BPTR(buf), buf_forward_capacity(buf), 0,
+                            &from->dest.addr.sa, &fromlen);
+    }
     /* FIXME: won't do anything when sock->info.af == AF_UNSPEC */
     if (buf->len >= 0 && expectedlen && fromlen != expectedlen)
     {

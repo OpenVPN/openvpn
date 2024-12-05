@@ -1822,7 +1822,9 @@ man_accept(struct management *man)
     }
     else
 #endif
-    man->connection.sd_cli = socket_do_accept(man->connection.sd_top, &act, false);
+    {
+        man->connection.sd_cli = socket_do_accept(man->connection.sd_top, &act, false);
+    }
 
     if (socket_defined(man->connection.sd_cli))
     {
@@ -1971,9 +1973,11 @@ man_connect(struct management *man)
         }
         else
 #endif
-        msg(D_LINK_ERRORS | M_ERRNO,
-            "MANAGEMENT: connect to %s failed",
-            print_sockaddr(man->settings.local->ai_addr, &gc));
+        {
+            msg(D_LINK_ERRORS | M_ERRNO,
+                "MANAGEMENT: connect to %s failed",
+                print_sockaddr(man->settings.local->ai_addr, &gc));
+        }
         throw_signal_soft(SIGTERM, "management-connect-failed");
         goto done;
     }

@@ -3914,8 +3914,9 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
         }
         else
 #endif
-
-        rgi6->gateway.addr_ipv6 = gw;
+        {
+            rgi6->gateway.addr_ipv6 = gw;
+        }
         rgi6->flags |= RGI_ADDR_DEFINED;
 
         if (ifp)

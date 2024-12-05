@@ -500,7 +500,7 @@ helper_client_server(struct options *o)
             push_option(o, print_opt_route_gateway_dhcp(&o->gc), M_USAGE);
         }
     }
-    else
+
     /*
      * HELPER DIRECTIVE:
      *
@@ -511,7 +511,7 @@ helper_client_server(struct options *o)
      * pull
      * tls-client
      */
-    if (o->client)
+    else if (o->client)
     {
         o->pull = true;
         o->tls_client = true;
