@@ -429,7 +429,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
 
   ``dir`` specifies an optional directory where a temporary file with name
   N containing content C will be dynamically generated for each proxy
-  connection, where N is the source IP:port of the client connection and C
+  connection, where C is the source IP:port of the client connection and N
   is the source IP:port of the connection to the proxy receiver. This
   directory can be used as a dictionary by the proxy receiver to determine
   the origin of the connection. Each generated file will be automatically
