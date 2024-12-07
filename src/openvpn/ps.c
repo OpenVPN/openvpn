@@ -344,8 +344,8 @@ journal_add(const char *journal_dir, struct proxy_connection *pc, struct proxy_c
     char *jfn;
     int fd;
 
-    slen = sizeof(from.addr.sa);
-    dlen = sizeof(to.addr.sa);
+    slen = sizeof(from.addr);
+    dlen = sizeof(to.addr);
     if (!getpeername(pc->sd, (struct sockaddr *) &from.addr.sa, &slen)
         && !getsockname(cp->sd, (struct sockaddr *) &to.addr.sa, &dlen))
     {
