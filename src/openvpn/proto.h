@@ -103,6 +103,12 @@ struct openvpn_arp {
     in_addr_t ip_dest;
 };
 
+/** Version of IN6_ARE_ADDR_EQUAL that is guaranteed to work for
+ *  unaligned access. E.g. Linux uses 32bit compares which are
+ *  not safe if the struct is unaligned. */
+#define OPENVPN_IN6_ARE_ADDR_EQUAL(a, b) \
+    (memcmp(a, b, sizeof(struct in6_addr)) == 0)
+
 struct openvpn_iphdr {
 #define OPENVPN_IPH_GET_VER(v) (((v) >> 4) & 0x0F)
 #define OPENVPN_IPH_GET_LEN(v) (((v) & 0x0F) << 2)

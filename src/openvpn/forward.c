@@ -1379,8 +1379,6 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
 
     if (proto_ver == 4)
     {
-        const struct openvpn_iphdr *pip;
-
         /* make sure we got whole IP header */
         if (BLEN(buf) < ((int) sizeof(struct openvpn_iphdr) + ip_hdr_offset))
         {
@@ -1393,18 +1391,16 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
             return;
         }
 
-        pip = (struct openvpn_iphdr *) (BPTR(buf) + ip_hdr_offset);
+        struct openvpn_iphdr *pip = (struct openvpn_iphdr *) (BPTR(buf) + ip_hdr_offset);
 
         /* drop packets with same dest addr as gateway */
-        if (tun_sa.addr.in4.sin_addr.s_addr == pip->daddr)
+        if (memcmp(&tun_sa.addr.in4.sin_addr.s_addr, &pip->daddr, sizeof(pip->daddr)) == 0)
         {
             drop = true;
         }
     }
     else if (proto_ver == 6)
     {
-        const struct openvpn_ipv6hdr *pip6;
-
         /* make sure we got whole IPv6 header */
         if (BLEN(buf) < ((int) sizeof(struct openvpn_ipv6hdr) + ip_hdr_offset))
         {
@@ -1417,9 +1413,10 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
             return;
         }
 
+        struct openvpn_ipv6hdr *pip6 = (struct openvpn_ipv6hdr *) (BPTR(buf) + ip_hdr_offset);
+
         /* drop packets with same dest addr as gateway */
-        pip6 = (struct openvpn_ipv6hdr *) (BPTR(buf) + ip_hdr_offset);
-        if (IN6_ARE_ADDR_EQUAL(&tun_sa.addr.in6.sin6_addr, &pip6->daddr))
+        if (OPENVPN_IN6_ARE_ADDR_EQUAL(&tun_sa.addr.in6.sin6_addr, &pip6->daddr))
         {
             drop = true;
         }
