@@ -284,18 +284,15 @@ init_implicit_iv(struct crypto_options *co)
 
     if (cipher_ctx_mode_aead(cipher))
     {
-        size_t impl_iv_len = cipher_ctx_iv_length(cipher) - sizeof(packet_id_type);
         ASSERT(cipher_ctx_iv_length(cipher) <= OPENVPN_MAX_IV_LENGTH);
         ASSERT(cipher_ctx_iv_length(cipher) >= OPENVPN_AEAD_MIN_IV_LEN);
 
         /* Generate dummy implicit IV */
         ASSERT(rand_bytes(co->key_ctx_bi.encrypt.implicit_iv,
                           OPENVPN_MAX_IV_LENGTH));
-        co->key_ctx_bi.encrypt.implicit_iv_len = impl_iv_len;
 
         memcpy(co->key_ctx_bi.decrypt.implicit_iv,
                co->key_ctx_bi.encrypt.implicit_iv, OPENVPN_MAX_IV_LENGTH);
-        co->key_ctx_bi.decrypt.implicit_iv_len = impl_iv_len;
     }
 }
 

@@ -94,12 +94,16 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work,
             goto err;
         }
 
-        /* Remainder of IV consists of implicit part (unique per session) */
-        ASSERT(buf_write(&iv_buffer, ctx->implicit_iv, ctx->implicit_iv_len));
-        ASSERT(iv_buffer.len == iv_len);
+        /* Write packet id part of IV to work buffer */
+        ASSERT(buf_write(&work, iv, packet_id_size(false)));
 
-        /* Write explicit part of IV to work buffer */
-        ASSERT(buf_write(&work, iv, iv_len - ctx->implicit_iv_len));
+        /* This generates the IV by XORing the implicit part of the IV
+         * with the packet id already written to the iv buffer */
+        for (int i = 0; i < iv_len; i++)
+        {
+            iv[i] = iv[i] ^ ctx->implicit_iv[i];
+        }
+
         dmsg(D_PACKET_CONTENT, "ENCRYPT IV: %s", format_hex(iv, iv_len, 0, &gc));
 
         /* Init cipher_ctx with IV.  key & keylen are already initialized */
@@ -390,16 +394,21 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
     {
         uint8_t iv[OPENVPN_MAX_IV_LENGTH] = { 0 };
         const int iv_len = cipher_ctx_iv_length(ctx->cipher);
-        const size_t packet_iv_len = iv_len - ctx->implicit_iv_len;
+        const size_t packet_iv_len = packet_id_size(false);
 
-        ASSERT(ctx->implicit_iv_len <= iv_len);
-        if (buf->len + ctx->implicit_iv_len < iv_len)
+        if (buf->len < packet_iv_len)
         {
             CRYPT_ERROR("missing IV info");
         }
 
         memcpy(iv, BPTR(buf), packet_iv_len);
-        memcpy(iv + packet_iv_len, ctx->implicit_iv, ctx->implicit_iv_len);
+
+        /* This generates the IV by XORing the implicit part of the IV
+         * with the packet id already written to the iv buffer */
+        for (int i = 0; i < iv_len; i++)
+        {
+            iv[i] = iv[i] ^ ctx->implicit_iv[i];
+        }
 
         dmsg(D_PACKET_CONTENT, "DECRYPT IV: %s", format_hex(iv, iv_len, 0, &gc));
 
@@ -920,7 +929,6 @@ free_key_ctx(struct key_ctx *ctx)
         hmac_ctx_free(ctx->hmac);
         ctx->hmac = NULL;
     }
-    ctx->implicit_iv_len = 0;
 }
 
 void
@@ -1036,18 +1044,15 @@ test_crypto(struct crypto_options *co, struct frame *frame)
         cipher_ctx_t *cipher = co->key_ctx_bi.encrypt.cipher;
         if (cipher_ctx_mode_aead(cipher))
         {
-            size_t impl_iv_len = cipher_ctx_iv_length(cipher) - sizeof(packet_id_type);
             ASSERT(cipher_ctx_iv_length(cipher) <= OPENVPN_MAX_IV_LENGTH);
             ASSERT(cipher_ctx_iv_length(cipher) >= OPENVPN_AEAD_MIN_IV_LEN);
 
             /* Generate dummy implicit IV */
             ASSERT(rand_bytes(co->key_ctx_bi.encrypt.implicit_iv,
                               OPENVPN_MAX_IV_LENGTH));
-            co->key_ctx_bi.encrypt.implicit_iv_len = impl_iv_len;
 
             memcpy(co->key_ctx_bi.decrypt.implicit_iv,
                    co->key_ctx_bi.encrypt.implicit_iv, OPENVPN_MAX_IV_LENGTH);
-            co->key_ctx_bi.decrypt.implicit_iv_len = impl_iv_len;
         }
     }
 
