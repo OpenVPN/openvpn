@@ -340,7 +340,7 @@ jobs:
           path: libressl
           # versioning=semver-coerced
           repository: libressl/portable
-          ref: v3.8.3
+          ref: v4.0.0
       - name: "libressl: autogen.sh"
         run: ./autogen.sh
         working-directory: libressl
