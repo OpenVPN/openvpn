@@ -129,7 +129,8 @@ bool dns_options_verify(int msglevel, const struct dns_options *o);
  * @param   gc          Pointer to the gc_arena to use for the clone
  * @return              The dns_options clone
  */
-struct dns_options clone_dns_options(const struct dns_options o, struct gc_arena *gc);
+struct dns_options clone_dns_options(const struct dns_options *o,
+                                     struct gc_arena *gc);
 
 /**
  * Saves and resets the server options, so that pulled ones don't mix in.

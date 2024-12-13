@@ -248,13 +248,15 @@ clone_dns_servers(const struct dns_server *server, struct gc_arena *gc)
 }
 
 struct dns_options
-clone_dns_options(const struct dns_options o, struct gc_arena *gc)
+clone_dns_options(const struct dns_options *o, struct gc_arena *gc)
 {
     struct dns_options clone;
+
     memset(&clone, 0, sizeof(clone));
-    clone.search_domains = clone_dns_domains(o.search_domains, gc);
-    clone.servers = clone_dns_servers(o.servers, gc);
-    clone.servers_prepull = clone_dns_servers(o.servers_prepull, gc);
+    clone.search_domains = clone_dns_domains(o->search_domains, gc);
+    clone.servers = clone_dns_servers(o->servers, gc);
+    clone.servers_prepull = clone_dns_servers(o->servers_prepull, gc);
+
     return clone;
 }
 

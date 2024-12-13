@@ -3311,7 +3311,7 @@ pre_connect_save(struct options *o)
     o->pre_connect->route_default_gateway = o->route_default_gateway;
     o->pre_connect->route_ipv6_default_gateway = o->route_ipv6_default_gateway;
 
-    o->pre_connect->dns_options = clone_dns_options(o->dns_options, &o->gc);
+    o->pre_connect->dns_options = clone_dns_options(&o->dns_options, &o->gc);
 
     /* NCP related options that can be overwritten by a push */
     o->pre_connect->ciphername = o->ciphername;
@@ -3364,7 +3364,7 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
         /* Free DNS options and reset them to pre-pull state */
         gc_free(&o->dns_options.gc);
         struct gc_arena dns_gc = gc_new();
-        o->dns_options = clone_dns_options(pp->dns_options, &dns_gc);
+        o->dns_options = clone_dns_options(&pp->dns_options, &dns_gc);
         o->dns_options.gc = dns_gc;
 
         if (pp->client_nat_defined)
