@@ -121,7 +121,7 @@ dns_server_addr_parse(struct dns_server *server, const char *addr)
     if (ai->ai_family == AF_INET)
     {
         struct sockaddr_in *sin = (struct sockaddr_in *)ai->ai_addr;
-        server->addr[server->addr_count].in.a4.s_addr = ntohl(sin->sin_addr.s_addr);
+        server->addr[server->addr_count].in.a4.s_addr = sin->sin_addr.s_addr;
     }
     else
     {
@@ -384,7 +384,7 @@ setenv_dns_options(const struct dns_options *o, struct env_set *es)
             if (s->addr[j].family == AF_INET)
             {
                 setenv_dns_option(es, "dns_server_%d_address_%d", i, j + 1,
-                                  print_in_addr_t(s->addr[j].in.a4.s_addr, 0, &gc));
+                                  print_in_addr_t(s->addr[j].in.a4.s_addr, IA_NET_ORDER, &gc));
             }
             else
             {
@@ -443,7 +443,7 @@ show_dns_options(const struct dns_options *o)
             const char *fmt_port;
             if (server->addr[j].family == AF_INET)
             {
-                addr = print_in_addr_t(server->addr[j].in.a4.s_addr, 0, &gc);
+                addr = print_in_addr_t(server->addr[j].in.a4.s_addr, IA_NET_ORDER, &gc);
                 fmt_port = "    address = %s:%s";
             }
             else
