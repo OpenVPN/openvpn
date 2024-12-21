@@ -247,17 +247,16 @@ MsgToEventLog(DWORD flags, LPCTSTR format, ...)
     return error;
 }
 
-/* Convert a utf8 string to utf16. Caller should free the result */
 wchar_t *
-utf8to16(const char *utf8)
+utf8to16_size(const char *utf8, int size)
 {
-    int n = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
+    int n = MultiByteToWideChar(CP_UTF8, 0, utf8, size, NULL, 0);
     wchar_t *utf16 = malloc(n * sizeof(wchar_t));
     if (!utf16)
     {
         return NULL;
     }
-    MultiByteToWideChar(CP_UTF8, 0, utf8, -1, utf16, n);
+    MultiByteToWideChar(CP_UTF8, 0, utf8, size, utf16, n);
     return utf16;
 }
 
