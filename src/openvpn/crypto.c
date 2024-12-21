@@ -938,8 +938,8 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
 }
 
 void
-init_key_ctx_bi(struct key_ctx_bi *ctx, const struct key2 *key2,
-                int key_direction, const struct key_type *kt, const char *name)
+init_key_bi_ctx_send(struct key_ctx *ctx, const struct key2 *key2,
+                     int key_direction, const struct key_type *kt, const char *name)
 {
     char log_prefix[128] = { 0 };
     struct key_direction_state kds;
@@ -947,13 +947,32 @@ init_key_ctx_bi(struct key_ctx_bi *ctx, const struct key2 *key2,
     key_direction_state_init(&kds, key_direction);
 
     snprintf(log_prefix, sizeof(log_prefix), "Outgoing %s", name);
-    init_key_ctx(&ctx->encrypt, &key2->keys[kds.out_key], kt,
+    init_key_ctx(ctx, &key2->keys[kds.out_key], kt,
                  OPENVPN_OP_ENCRYPT, log_prefix);
 
+}
+
+void
+init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key2 *key2,
+                     int key_direction, const struct key_type *kt, const char *name)
+{
+    char log_prefix[128] = { 0 };
+    struct key_direction_state kds;
+
+    key_direction_state_init(&kds, key_direction);
+
     snprintf(log_prefix, sizeof(log_prefix), "Incoming %s", name);
-    init_key_ctx(&ctx->decrypt, &key2->keys[kds.in_key], kt,
+    init_key_ctx(ctx, &key2->keys[kds.in_key], kt,
                  OPENVPN_OP_DECRYPT, log_prefix);
 
+}
+
+void
+init_key_ctx_bi(struct key_ctx_bi *ctx, const struct key2 *key2,
+                int key_direction, const struct key_type *kt, const char *name)
+{
+    init_key_bi_ctx_send(&ctx->encrypt, key2, key_direction, kt, name);
+    init_key_bi_ctx_recv(&ctx->decrypt, key2, key_direction, kt, name);
     ctx->initialized = true;
 }
 
@@ -971,6 +990,8 @@ free_key_ctx(struct key_ctx *ctx)
         hmac_ctx_free(ctx->hmac);
         ctx->hmac = NULL;
     }
+    CLEAR(ctx->implicit_iv);
+    ctx->plaintext_blocks = 0;
 }
 
 void

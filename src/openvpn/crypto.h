@@ -196,7 +196,9 @@ struct key2
     int n;                      /**< The number of \c key objects stored
                                  *   in the \c key2.keys array. */
     struct key keys[2];         /**< Two unidirectional sets of %key
-                                 *   material. */
+                                 *   material. The first key is the client
+                                 *   (encrypts) to server (decrypts), the
+                                 *   second the server to client key. */
 };
 
 /**
@@ -348,6 +350,16 @@ void init_key_type(struct key_type *kt, const char *ciphername,
 void init_key_ctx(struct key_ctx *ctx, const struct key *key,
                   const struct key_type *kt, int enc,
                   const char *prefix);
+
+void
+init_key_bi_ctx_send(struct key_ctx *ctx, const struct key2 *key2,
+                     int key_direction, const struct key_type *kt,
+                     const char *name);
+
+void
+init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key2 *key2,
+                     int key_direction, const struct key_type *kt,
+                     const char *name);
 
 void free_key_ctx(struct key_ctx *ctx);
 
