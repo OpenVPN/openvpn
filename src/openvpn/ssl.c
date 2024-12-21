@@ -131,6 +131,26 @@ tls_limit_reneg_bytes(const char *ciphername, int64_t *reneg_bytes)
     }
 }
 
+static uint64_t
+tls_get_limit_aead(const char *ciphername)
+{
+    uint64_t limit = cipher_get_aead_limits(ciphername);
+
+    if (limit == 0)
+    {
+        return 0;
+    }
+
+    /* set limit to 7/8 of the limit so the renegotiation can succeed before
+     * we go over the limit */
+    limit = limit/8 * 7;
+
+    msg(D_SHOW_KEYS, "Note: AEAD cipher %s will trigger a renegotiation"
+        " at a sum of %" PRIi64 " blocks and packets.",
+        ciphername, limit);
+    return limit;
+}
+
 void
 tls_init_control_channel_frame_parameters(struct frame *frame, int tls_mtu)
 {
@@ -1579,6 +1599,8 @@ tls_session_generate_data_channel_keys(struct tls_multi *multi,
     tls_limit_reneg_bytes(session->opt->key_type.cipher,
                           &session->opt->renegotiate_bytes);
 
+    session->opt->aead_usage_limit = tls_get_limit_aead(session->opt->key_type.cipher);
+
     /* set the state of the keys for the session to generated */
     ks->state = S_GENERATED_KEYS;
 
@@ -2999,6 +3021,27 @@ should_trigger_renegotiation(const struct tls_session *session, const struct key
         return true;
     }
 
+    /* Check the AEAD usage limit of cleartext blocks + packets.
+     *
+     *  Contrary to when epoch data mode is active, where only the sender side
+     *  checks the limit, here we check both receive and send limit since
+     *  we assume that only one side is aware of the limit.
+     *
+     *  Since if both sides were aware, then both sides will probably also
+     *  switch to use epoch data channel instead, so this code is not
+     *  in effect then.
+     */
+    const struct key_ctx_bi *key_ctx_bi = &ks->crypto_options.key_ctx_bi;
+    const uint64_t usage_limit = session->opt->aead_usage_limit;
+
+    if (aead_usage_limit_reached(usage_limit, &key_ctx_bi->encrypt,
+                                 ks->crypto_options.packet_id.send.id)
+        || aead_usage_limit_reached(usage_limit, &key_ctx_bi->decrypt,
+                                    ks->crypto_options.packet_id.rec.id))
+    {
+        return true;
+    }
+
     return false;
 }
 /*
@@ -3031,10 +3074,17 @@ tls_process(struct tls_multi *multi,
         && should_trigger_renegotiation(session, ks))
     {
         msg(D_TLS_DEBUG_LOW, "TLS: soft reset sec=%d/%d bytes=" counter_format
-            "/%" PRIi64 " pkts=" counter_format "/%" PRIi64,
+            "/%" PRIi64 " pkts=" counter_format "/%" PRIi64
+            " aead_limit_send=%" PRIu64 "/%" PRIu64
+            " aead_limit_recv=%" PRIu64 "/%" PRIu64,
             (int) (now - ks->established), session->opt->renegotiate_seconds,
             ks->n_bytes, session->opt->renegotiate_bytes,
-            ks->n_packets, session->opt->renegotiate_packets);
+            ks->n_packets, session->opt->renegotiate_packets,
+            ks->crypto_options.key_ctx_bi.encrypt.plaintext_blocks + ks->n_packets,
+            session->opt->aead_usage_limit,
+            ks->crypto_options.key_ctx_bi.decrypt.plaintext_blocks + ks->n_packets,
+            session->opt->aead_usage_limit
+            );
         key_state_soft_reset(session);
     }
 

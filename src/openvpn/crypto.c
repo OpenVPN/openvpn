@@ -138,6 +138,11 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work,
     ASSERT(cipher_ctx_update(ctx->cipher, BEND(&work), &outlen, BPTR(buf), BLEN(buf)));
     ASSERT(buf_inc_len(&work, outlen));
 
+    /* update number of plaintext blocks encrypted. Use the (x + (n-1))/n trick
+     * to round up the result to the number of blocks used */
+    const int blocksize = AEAD_LIMIT_BLOCKSIZE;
+    opt->key_ctx_bi.encrypt.plaintext_blocks += (outlen + (blocksize - 1))/blocksize;
+
     /* Flush the encryption buffer */
     ASSERT(cipher_ctx_final(ctx->cipher, BEND(&work), &outlen));
     ASSERT(buf_inc_len(&work, outlen));
@@ -325,6 +330,37 @@ openvpn_encrypt(struct buffer *buf, struct buffer work,
     }
 }
 
+uint64_t
+cipher_get_aead_limits(const char *ciphername)
+{
+    if (!cipher_kt_mode_aead(ciphername))
+    {
+        return 0;
+    }
+
+    if (cipher_kt_name(ciphername) == cipher_kt_name("CHACHA20-POLY1305"))
+    {
+        return 0;
+    }
+
+    /* Assume all other ciphers require the limit */
+
+    /* We focus here on the equation
+     *
+     *       q + s <= p^(1/2) * 2^(129/2) - 1
+     *
+     * as is the one that is limiting us.
+     *
+     *  With p = 2^-57 this becomes
+     *
+     *      q + s <= (2^36 - 1)
+     *
+     */
+    uint64_t rs = (1ull << 36) - 1;
+
+    return rs;
+}
+
 bool
 crypto_check_replay(struct crypto_options *opt,
                     const struct packet_id_net *pin, const char *error_prefix,
@@ -486,6 +522,12 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
     {
         goto error_exit;
     }
+
+
+    /* update number of plaintext blocks decrypted. Use the (x + (n-1))/n trick
+     * to round up the result to the number of blocks used. */
+    const int blocksize = AEAD_LIMIT_BLOCKSIZE;
+    opt->key_ctx_bi.decrypt.plaintext_blocks += (outlen + (blocksize - 1))/blocksize;
 
     *buf = work;
 

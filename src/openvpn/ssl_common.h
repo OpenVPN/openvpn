@@ -333,6 +333,9 @@ struct tls_options
     interval_t packet_timeout;
     int64_t renegotiate_bytes;
     int64_t renegotiate_packets;
+    /** limit for AEAD cipher, this is the sum of packets + blocks
+     * that are allowed to be used */
+    uint64_t aead_usage_limit;
     interval_t renegotiate_seconds;
 
     /* cert verification parms */
