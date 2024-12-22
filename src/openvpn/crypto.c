@@ -891,6 +891,33 @@ init_key_type(struct key_type *kt, const char *ciphername,
     }
 }
 
+/**
+ * Update the implicit IV for a key_ctx_bi based on TLS session ids and cipher
+ * used.
+ *
+ * Note that the implicit IV is based on the HMAC key, but only in AEAD modes
+ * where the HMAC key is not used for an actual HMAC.
+ *
+ * @param ctx                   Encrypt/decrypt key context
+ * @param key                   key, hmac part used to calculate implicit IV
+ */
+static void
+key_ctx_update_implicit_iv(struct key_ctx *ctx, const struct key *key)
+{
+    /* Only use implicit IV in AEAD cipher mode, where HMAC key is not used */
+    if (cipher_ctx_mode_aead(ctx->cipher))
+    {
+        size_t impl_iv_len = 0;
+        ASSERT(cipher_ctx_iv_length(ctx->cipher) >= OPENVPN_AEAD_MIN_IV_LEN);
+        impl_iv_len = cipher_ctx_iv_length(ctx->cipher) - sizeof(packet_id_type);
+        ASSERT(impl_iv_len + sizeof(packet_id_type) <= OPENVPN_MAX_IV_LENGTH);
+        ASSERT(impl_iv_len <= MAX_HMAC_KEY_LENGTH);
+        CLEAR(ctx->implicit_iv);
+        /* The first bytes of the IV are filled with the packet id */
+        memcpy(ctx->implicit_iv + sizeof(packet_id_type), key->hmac, impl_iv_len);
+    }
+}
+
 /* given a key and key_type, build a key_ctx */
 void
 init_key_ctx(struct key_ctx *ctx, const struct key *key,
@@ -949,7 +976,7 @@ init_key_bi_ctx_send(struct key_ctx *ctx, const struct key2 *key2,
     snprintf(log_prefix, sizeof(log_prefix), "Outgoing %s", name);
     init_key_ctx(ctx, &key2->keys[kds.out_key], kt,
                  OPENVPN_OP_ENCRYPT, log_prefix);
-
+    key_ctx_update_implicit_iv(ctx, &key2->keys[kds.out_key]);
 }
 
 void
@@ -964,7 +991,7 @@ init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key2 *key2,
     snprintf(log_prefix, sizeof(log_prefix), "Incoming %s", name);
     init_key_ctx(ctx, &key2->keys[kds.in_key], kt,
                  OPENVPN_OP_DECRYPT, log_prefix);
-
+    key_ctx_update_implicit_iv(ctx, &key2->keys[kds.in_key]);
 }
 
 void
@@ -999,6 +1026,7 @@ free_key_ctx_bi(struct key_ctx_bi *ctx)
 {
     free_key_ctx(&ctx->encrypt);
     free_key_ctx(&ctx->decrypt);
+    ctx->initialized = false;
 }
 
 static bool

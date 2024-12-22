@@ -277,24 +277,6 @@ test_load_certificate_and_key_uri(void **state)
 #endif /* HAVE_OPENSSL_STORE */
 }
 
-static void
-init_implicit_iv(struct crypto_options *co)
-{
-    cipher_ctx_t *cipher = co->key_ctx_bi.encrypt.cipher;
-
-    if (cipher_ctx_mode_aead(cipher))
-    {
-        ASSERT(cipher_ctx_iv_length(cipher) <= OPENVPN_MAX_IV_LENGTH);
-        ASSERT(cipher_ctx_iv_length(cipher) >= OPENVPN_AEAD_MIN_IV_LEN);
-
-        /* Generate dummy implicit IV */
-        ASSERT(rand_bytes(co->key_ctx_bi.encrypt.implicit_iv,
-                          OPENVPN_MAX_IV_LENGTH));
-
-        memcpy(co->key_ctx_bi.decrypt.implicit_iv,
-               co->key_ctx_bi.encrypt.implicit_iv, OPENVPN_MAX_IV_LENGTH);
-    }
-}
 
 static void
 init_frame_parameters(struct frame *frame)
@@ -346,7 +328,6 @@ do_data_channel_round_trip(struct crypto_options *co)
     /* init work */
     ASSERT(buf_init(&work, frame.buf.headroom));
 
-    init_implicit_iv(co);
     update_time();
 
     /* Test encryption, decryption for all packet sizes */

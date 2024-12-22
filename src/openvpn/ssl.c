@@ -96,21 +96,6 @@ show_tls_performance_stats(void)
 #endif /* ifdef MEASURE_TLS_HANDSHAKE_STATS */
 
 /**
- * Update the implicit IV for a key_ctx_bi based on TLS session ids and cipher
- * used.
- *
- * Note that the implicit IV is based on the HMAC key, but only in AEAD modes
- * where the HMAC key is not used for an actual HMAC.
- *
- * @param ctx                   Encrypt/decrypt key context
- * @param key                   HMAC key, used to calculate implicit IV
- * @param key_len               HMAC key length
- */
-static void
-key_ctx_update_implicit_iv(struct key_ctx *ctx, uint8_t *key, size_t key_len);
-
-
-/**
  * Limit the reneg_bytes value when using a small-block (<128 bytes) cipher.
  *
  * @param cipher        The current cipher (may be NULL).
@@ -1411,12 +1396,6 @@ init_key_contexts(struct key_state *ks,
     else
     {
         init_key_ctx_bi(key, key2, key_direction, key_type, "Data Channel");
-        /* Initialize implicit IVs */
-        key_ctx_update_implicit_iv(&key->encrypt, key2->keys[(int)server].hmac,
-                                   MAX_HMAC_KEY_LENGTH);
-        key_ctx_update_implicit_iv(&key->decrypt,
-                                   key2->keys[1 - (int)server].hmac,
-                                   MAX_HMAC_KEY_LENGTH);
     }
 }
 
@@ -1551,23 +1530,6 @@ exit:
     secure_memzero(&key2, sizeof(key2));
 
     return ret;
-}
-
-static void
-key_ctx_update_implicit_iv(struct key_ctx *ctx, uint8_t *key, size_t key_len)
-{
-    /* Only use implicit IV in AEAD cipher mode, where HMAC key is not used */
-    if (cipher_ctx_mode_aead(ctx->cipher))
-    {
-        size_t impl_iv_len = 0;
-        ASSERT(cipher_ctx_iv_length(ctx->cipher) >= OPENVPN_AEAD_MIN_IV_LEN);
-        impl_iv_len = cipher_ctx_iv_length(ctx->cipher) - sizeof(packet_id_type);
-        ASSERT(impl_iv_len + sizeof(packet_id_type) <= OPENVPN_MAX_IV_LENGTH);
-        ASSERT(impl_iv_len <= key_len);
-        CLEAR(ctx->implicit_iv);
-        /* The first bytes of the IV are filled with the packet id */
-        memcpy(ctx->implicit_iv + sizeof(packet_id_type), key, impl_iv_len);
-    }
 }
 
 /**
