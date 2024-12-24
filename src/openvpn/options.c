@@ -1390,7 +1390,7 @@ tuntap_options_copy_dns(struct options *o)
                         overflow = true;
                         continue;
                     }
-                    tt->dns[tt->dns_len++] = server->addr[i].in.a4.s_addr;
+                    tt->dns[tt->dns_len++] = ntohl(server->addr[i].in.a4.s_addr);
                 }
                 else
                 {
