@@ -35,11 +35,13 @@
 #include "error.h"
 #include "otime.h"
 
-#if 1
 /*
- * These are the types that members of
- * a struct packet_id_net are converted
- * to for network transmission.
+ * These are the types that members of a struct packet_id_net are converted
+ * to for network transmission and for saving to a persistent file.
+ *
+ * Note: data epoch data uses a 64 bit packet ID
+ * compromised of 16 bit epoch and 48 bit per-epoch packet counter.
+ * These are ephemeral and are never saved to a file.
  */
 typedef uint32_t packet_id_type;
 #define PACKET_ID_MAX UINT32_MAX
@@ -64,31 +66,12 @@ typedef uint32_t net_time_t;
 /* convert a net_time_t in network order to a time_t in host order */
 #define ntohtime(x) ((time_t)ntohl(x))
 
-#else  /* if 1 */
-
-/*
- * DEBUGGING ONLY.
- * Make packet_id_type and net_time_t small
- * to test wraparound logic and corner cases.
- */
-
-typedef uint8_t packet_id_type;
-typedef uint16_t net_time_t;
-
-#define PACKET_ID_WRAP_TRIGGER 0x80
-
-#define htonpid(x) (x)
-#define ntohpid(x) (x)
-#define htontime(x) htons((net_time_t)x)
-#define ntohtime(x) ((time_t)ntohs(x))
-
-#endif /* if 1 */
 
 /*
  * Printf formats for special types
  */
-#define packet_id_format "%u"
-typedef unsigned int packet_id_print_type;
+#define packet_id_format "%" PRIu64
+typedef uint64_t packet_id_print_type;
 
 /*
  * Maximum allowed backtrack in
@@ -128,10 +111,10 @@ struct packet_id_rec
 {
     time_t last_reap;         /* last call of packet_id_reap */
     time_t time;              /* highest time stamp received */
-    packet_id_type id;        /* highest sequence number received */
-    int seq_backtrack;        /* set from --replay-window */
+    uint64_t id;              /* highest sequence number received */
+    uint64_t seq_backtrack;   /* set from --replay-window */
     int time_backtrack;       /* set from --replay-window */
-    int max_backtrack_stat;   /* maximum backtrack seen so far */
+    uint64_t max_backtrack_stat;   /* maximum backtrack seen so far */
     bool initialized;         /* true if packet_id_init was called */
     struct seq_list *seq_list; /* packet-id "memory" */
     const char *name;
@@ -164,7 +147,7 @@ struct packet_id_persist_file_image
  */
 struct packet_id_send
 {
-    packet_id_type id;
+    uint64_t id;
     time_t time;
 };
 
@@ -174,8 +157,12 @@ struct packet_id_send
  * sequence number.  A long packet-id
  * includes a timestamp as well.
  *
+ * An epoch packet-id is a 16 bit epoch
+ * counter plus a 48 per-epoch packet-id
+ *
  * Long packet-ids are used as IVs for
- * CFB/OFB ciphers.
+ * CFB/OFB ciphers and for control channel
+ * messages.
  *
  * This data structure is always sent
  * over the net in network byte order,
@@ -191,9 +178,16 @@ struct packet_id_send
  * 64 bit platforms use a
  * 64 bit time_t.
  */
+
+/**
+ * Data structure for describing the packet id that is received/send to the
+ * network. This struct does not match the on wire format.
+ */
 struct packet_id_net
 {
-    packet_id_type id;
+    /* converted to packet_id_type on non-epoch data ids, does not contain
+     * the epoch but is a flat id */
+    uint64_t id;
     time_t time; /* converted to net_time_t before transmission */
 };
 

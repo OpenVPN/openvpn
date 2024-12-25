@@ -36,6 +36,8 @@
 
 #include "syshead.h"
 
+#include <stddef.h>
+
 #include "packet_id.h"
 #include "misc.h"
 #include "integer.h"
@@ -56,7 +58,7 @@ static void packet_id_debug_print(int msglevel,
                                   const struct packet_id_rec *p,
                                   const struct packet_id_net *pin,
                                   const char *message,
-                                  int value);
+                                  packet_id_print_type value);
 
 #endif /* ENABLE_DEBUG */
 
@@ -65,7 +67,7 @@ packet_id_debug(int msglevel,
                 const struct packet_id_rec *p,
                 const struct packet_id_net *pin,
                 const char *message,
-                int value)
+                uint64_t value)
 {
 #ifdef ENABLE_DEBUG
     if (unlikely(check_debug_level(msglevel)))
@@ -115,22 +117,21 @@ packet_id_add(struct packet_id_rec *p, const struct packet_id_net *pin)
     const time_t local_now = now;
     if (p->seq_list)
     {
-        packet_id_type diff;
+        int64_t diff;
 
         /*
-         * If time value increases, start a new
-         * sequence number sequence.
+         * If time value increases, start a new sequence number sequence.
          */
         if (!CIRC_LIST_SIZE(p->seq_list)
             || pin->time > p->time
-            || (pin->id >= (packet_id_type)p->seq_backtrack
-                && pin->id - (packet_id_type)p->seq_backtrack > p->id))
+            || (pin->id >= p->seq_backtrack
+                && pin->id - p->seq_backtrack > p->id))
         {
             p->time = pin->time;
             p->id = 0;
-            if (pin->id > (packet_id_type)p->seq_backtrack)
+            if (pin->id > p->seq_backtrack)
             {
-                p->id = pin->id - (packet_id_type)p->seq_backtrack;
+                p->id = pin->id - p->seq_backtrack;
             }
             CIRC_LIST_RESET(p->seq_list);
         }
@@ -146,7 +147,7 @@ packet_id_add(struct packet_id_rec *p, const struct packet_id_net *pin)
         }
 
         diff = p->id - pin->id;
-        if (diff < (packet_id_type) CIRC_LIST_SIZE(p->seq_list)
+        if (diff < CIRC_LIST_SIZE(p->seq_list)
             && local_now > SEQ_EXPIRED)
         {
             CIRC_LIST_ITEM(p->seq_list, diff) = local_now;
@@ -170,9 +171,8 @@ packet_id_reap(struct packet_id_rec *p)
     const time_t local_now = now;
     if (p->time_backtrack)
     {
-        int i;
         bool expire = false;
-        for (i = 0; i < CIRC_LIST_SIZE(p->seq_list); ++i)
+        for (int i = 0; i < CIRC_LIST_SIZE(p->seq_list); ++i)
         {
             const time_t t = CIRC_LIST_ITEM(p->seq_list, i);
             if (t == SEQ_EXPIRED)
@@ -200,7 +200,7 @@ bool
 packet_id_test(struct packet_id_rec *p,
                const struct packet_id_net *pin)
 {
-    packet_id_type diff;
+    uint64_t diff;
 
     packet_id_debug(D_PID_DEBUG, p, pin, "PID_TEST", 0);
 
@@ -231,9 +231,9 @@ packet_id_test(struct packet_id_rec *p,
             diff = p->id - pin->id;
 
             /* keep track of maximum backtrack seen for debugging purposes */
-            if ((int)diff > p->max_backtrack_stat)
+            if (diff > p->max_backtrack_stat)
             {
-                p->max_backtrack_stat = (int)diff;
+                p->max_backtrack_stat = diff;
                 packet_id_debug(D_PID_DEBUG_LOW, p, pin, "PID_ERR replay-window backtrack occurred", p->max_backtrack_stat);
             }
 
@@ -557,7 +557,7 @@ packet_id_debug_print(int msglevel,
                       const struct packet_id_rec *p,
                       const struct packet_id_net *pin,
                       const char *message,
-                      int value)
+                      packet_id_print_type value)
 {
     struct gc_arena gc = gc_new();
     struct buffer out = alloc_buf_gc(256, &gc);
@@ -569,7 +569,7 @@ packet_id_debug_print(int msglevel,
     CLEAR(tv);
     gettimeofday(&tv, NULL);
 
-    buf_printf(&out, "%s [%d]", message, value);
+    buf_printf(&out, "%s [" packet_id_format "]", message, value);
     buf_printf(&out, " [%s-%d] [", p->name, p->unit);
     for (i = 0; sl != NULL && i < sl->x_size; ++i)
     {
@@ -604,17 +604,17 @@ packet_id_debug_print(int msglevel,
         }
         buf_printf(&out, "%c", c);
     }
-    buf_printf(&out, "] %" PRIi64 ":" packet_id_format, (int64_t)p->time, (packet_id_print_type)p->id);
+    buf_printf(&out, "] %" PRIi64 ":" packet_id_format, (int64_t)p->time, p->id);
     if (pin)
     {
-        buf_printf(&out, " %" PRIi64 ":" packet_id_format, (int64_t)pin->time, (packet_id_print_type)pin->id);
+        buf_printf(&out, " %" PRIi64 ":" packet_id_format, (int64_t)pin->time, pin->id);
     }
 
     buf_printf(&out, " t=%" PRIi64 "[%d]",
                (int64_t)prev_now,
                (int)(prev_now - tv.tv_sec));
 
-    buf_printf(&out, " r=[%d,%d,%d,%d,%d]",
+    buf_printf(&out, " r=[%d,%" PRIu64 ",%d,%" PRIu64 ",%d]",
                (int)(p->last_reap - tv.tv_sec),
                p->seq_backtrack,
                p->time_backtrack,
