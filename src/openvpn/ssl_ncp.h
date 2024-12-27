@@ -157,4 +157,23 @@ get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info,
 bool
 check_session_cipher(struct tls_session *session, struct options *options);
 
+/**
+ * Checks for availability of Chacha20-Poly1305 and sets
+ * the ncp_cipher to either AES-256-GCM:AES-128-GCM or
+ * AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305 if not set.
+ *
+ * If DEFAULT is in the ncp_cipher string, it will be replaced
+ * by the default cipher string as defined above.
+ */
+void
+options_postprocess_setdefault_ncpciphers(struct options *o);
+
+/** returns the o->ncp_ciphers in brackets, e.g.
+ *  (AES-256-GCM:CHACHA20-POLY1305) if o->ncp_ciphers_conf
+ *  and o->ncp_ciphers differ, otherwise an empty string
+ *
+ *  The returned string will be allocated in the passed \c gc
+ */
+const char *
+ncp_expanded_ciphers(struct options *o, struct gc_arena *gc);
 #endif /* ifndef OPENVPN_SSL_NCP_H */

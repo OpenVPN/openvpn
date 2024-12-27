@@ -30,6 +30,12 @@ Enforcement of AES-GCM usage limit
 
     https://datatracker.ietf.org/doc/draft-irtf-cfrg-aead-limits/
 
+Default ciphers in ``--data-ciphers``
+    Ciphers in ``--data-ciphers`` can contain the string DEFAULT that is
+    replaced by the default ciphers used by OpenVPN, making it easier to
+    add an allowed cipher without having to spell out the default ciphers.
+
+
 Deprecated features
 -------------------
 ``secret`` support has been removed by default.

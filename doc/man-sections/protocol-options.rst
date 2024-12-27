@@ -178,6 +178,12 @@ configured in a compatible way between both the local and remote side.
   Chacha20-Poly1305 if the underlying SSL library (and its configuration)
   supports it.
 
+  Starting with OpenVPN 2.7 the special keyword :code:`DEFAULT` can be used
+  in the string and is replaced by the default ciphers.  This can be used to
+  add an additional allowed cipher to the allowed ciphers, e.g.
+  :code:`DEFAULT:AES-192-CBC` to use the default ciphers but also allow
+  :code:`AES-192-CBC`.
+
   Cipher negotiation is enabled in client-server mode only. I.e. if
   ``--mode`` is set to `server` (server-side, implied by setting
   ``--server`` ), or if ``--pull`` is specified (client-side, implied by

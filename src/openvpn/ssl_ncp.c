@@ -40,6 +40,8 @@
 #include "config.h"
 #endif
 
+#include <string.h>
+
 #include "syshead.h"
 #include "win32.h"
 
@@ -223,7 +225,6 @@ tls_item_in_cipher_list(const char *item, const char *list)
 
     return token != NULL;
 }
-
 const char *
 tls_peer_ncp_list(const char *peer_info, struct gc_arena *gc)
 {
@@ -335,15 +336,16 @@ check_pull_client_ncp(struct context *c, const int found)
         return true;
     }
 
-    /* We failed negotiation, give appropiate error message */
+    /* We failed negotiation, give appropriate error message */
     if (c->c2.tls_multi->remote_ciphername)
     {
         msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to negotiate "
             "cipher with server.  Add the server's "
-            "cipher ('%s') to --data-ciphers (currently '%s') if "
-            "you want to connect to this server.",
+            "cipher ('%s') to --data-ciphers (currently '%s'), e.g."
+            "--data-ciphers %s:%s if you want to connect to this server.",
             c->c2.tls_multi->remote_ciphername,
-            c->options.ncp_ciphers);
+            c->options.ncp_ciphers_conf, c->options.ncp_ciphers_conf,
+            c->c2.tls_multi->remote_ciphername);
         return false;
 
     }
@@ -517,14 +519,114 @@ check_session_cipher(struct tls_session *session, struct options *options)
     if (!session->opt->server && !cipher_allowed_as_fallback
         && !tls_item_in_cipher_list(options->ciphername, options->ncp_ciphers))
     {
-        msg(D_TLS_ERRORS, "Error: negotiated cipher not allowed - %s not in %s",
-            options->ciphername, options->ncp_ciphers);
+        struct gc_arena gc = gc_new();
+        msg(D_TLS_ERRORS, "Error: negotiated cipher not allowed - %s not in %s%s",
+            options->ciphername, options->ncp_ciphers_conf,
+            ncp_expanded_ciphers(options, &gc));
         /* undo cipher push, abort connection setup */
         options->ciphername = session->opt->config_ciphername;
+        gc_free(&gc);
         return false;
     }
     else
     {
         return true;
     }
+}
+
+/**
+ * Replaces the string DEFAULT with the string \c replace.
+ *
+ * @param o         Options struct to modify and to use the gc from
+ * @param replace   string used to replace the DEFAULT string
+ */
+static void
+replace_default_in_ncp_ciphers_option(struct options *o, const char *replace)
+{
+    const char *search = "DEFAULT";
+    const int ncp_ciphers_len = strlen(o->ncp_ciphers) + strlen(replace) - strlen(search) + 1;
+
+    uint8_t *ncp_ciphers = gc_malloc(ncp_ciphers_len, true, &o->gc);
+
+    struct buffer ncp_ciphers_buf;
+    buf_set_write(&ncp_ciphers_buf, ncp_ciphers, ncp_ciphers_len);
+
+    const char *def = strstr(o->ncp_ciphers, search);
+
+    /* Copy everything before the DEFAULT string */
+    buf_write(&ncp_ciphers_buf, o->ncp_ciphers, def - o->ncp_ciphers);
+
+    /* copy the default string. */
+    buf_write(&ncp_ciphers_buf, replace, strlen(replace));
+
+    /* copy the rest of the ncp cipher string */
+    const char *after_default = def + strlen(search);
+    buf_write(&ncp_ciphers_buf, after_default, strlen(after_default));
+
+    o->ncp_ciphers = (char *) ncp_ciphers;
+}
+
+/**
+ * Checks for availibility of Chacha20-Poly1305 and sets
+ * the ncp_cipher to either AES-256-GCM:AES-128-GCM or
+ * AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305.
+ */
+void
+options_postprocess_setdefault_ncpciphers(struct options *o)
+{
+    bool default_in_cipher_list = o->ncp_ciphers
+                                  && tls_item_in_cipher_list("DEFAULT", o->ncp_ciphers);
+
+    /* preserve the values that the user put into the configuration */
+    o->ncp_ciphers_conf = o->ncp_ciphers;
+
+    /* check if crypto library supports chacha */
+    bool can_do_chacha = cipher_valid("CHACHA20-POLY1305");
+
+    if (can_do_chacha && dco_enabled(o))
+    {
+        /* also make sure that dco supports chacha */
+        can_do_chacha = tls_item_in_cipher_list("CHACHA20-POLY1305", dco_get_supported_ciphers());
+    }
+
+    const char *default_ciphers = "AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305";
+
+    if (!can_do_chacha)
+    {
+        default_ciphers = "AES-256-GCM:AES-128-GCM";
+    }
+
+    /* want to rather print DEFAULT instead of a manually set default list */
+    if (!o->ncp_ciphers_conf || !strcmp(default_ciphers, o->ncp_ciphers_conf))
+    {
+        o->ncp_ciphers = default_ciphers;
+        o->ncp_ciphers_conf = "DEFAULT";
+    }
+    else if (!default_in_cipher_list)
+    {
+        /* custom cipher list without DEFAULT string in it,
+         * nothing to replace/mutate */
+        return;
+    }
+    else
+    {
+        replace_default_in_ncp_ciphers_option(o, default_ciphers);
+    }
+}
+
+const char *
+ncp_expanded_ciphers(struct options *o, struct gc_arena *gc)
+{
+    if (!strcmp(o->ncp_ciphers, o->ncp_ciphers_conf))
+    {
+        /* expanded ciphers and user set ciphers are identical, no need to
+         * add an expanded version */
+        return "";
+    }
+
+    /* two extra brackets, one space, NUL byte */
+    struct buffer expanded_ciphers_buf = alloc_buf_gc(strlen(o->ncp_ciphers) + 4, gc);
+
+    buf_printf(&expanded_ciphers_buf, " (%s)", o->ncp_ciphers);
+    return BSTR(&expanded_ciphers_buf);
 }

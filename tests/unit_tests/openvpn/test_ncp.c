@@ -54,6 +54,17 @@ key_state_export_keying_material(struct tls_session *session,
     ASSERT(0);
 }
 
+
+/* Define a dummy dco cipher option to avoid linking against all the DCO
+ * units */
+#if defined(ENABLE_DCO)
+const char *
+dco_get_supported_ciphers(void)
+{
+    return "AES-192-GCM:AES-128-CBC:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305";
+}
+#endif
+
 static void
 test_check_ncp_ciphers_list(void **state)
 {
@@ -260,13 +271,135 @@ test_ncp_best(void **state)
     gc_free(&gc);
 }
 
+static void
+test_ncp_default(void **state)
+{
+    bool have_chacha = cipher_valid("CHACHA20-POLY1305");
+
+    struct options o = { 0 };
+
+    o.gc = gc_new();
+
+    /* no user specified string */
+    o.ncp_ciphers = NULL;
+    options_postprocess_setdefault_ncpciphers(&o);
+
+    if (have_chacha)
+    {
+        assert_string_equal(o.ncp_ciphers, "AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305");
+    }
+    else
+    {
+        assert_string_equal(o.ncp_ciphers, "AES-256-GCM:AES-128-GCM");
+    }
+    assert_string_equal(o.ncp_ciphers_conf, "DEFAULT");
+
+    /* check that a default string is replaced with DEFAULT */
+    if (have_chacha)
+    {
+        o.ncp_ciphers = "AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305";
+    }
+    else
+    {
+        o.ncp_ciphers = "AES-256-GCM:AES-128-GCM";
+    }
+
+    options_postprocess_setdefault_ncpciphers(&o);
+    assert_string_equal(o.ncp_ciphers_conf, "DEFAULT");
+
+    /* test default in the middle of the string */
+    o.ncp_ciphers = "BF-CBC:DEFAULT:AES-128-CBC:AES-256-CBC";
+    options_postprocess_setdefault_ncpciphers(&o);
+
+    if (have_chacha)
+    {
+        assert_string_equal(o.ncp_ciphers, "BF-CBC:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305:AES-128-CBC:AES-256-CBC");
+    }
+    else
+    {
+        assert_string_equal(o.ncp_ciphers, "BF-CBC:AES-256-GCM:AES-128-GCM:AES-128-CBC:AES-256-CBC");
+    }
+    assert_string_equal(o.ncp_ciphers_conf, "BF-CBC:DEFAULT:AES-128-CBC:AES-256-CBC");
+
+    /* string at the beginning */
+    o.ncp_ciphers = "DEFAULT:AES-128-CBC:AES-192-CBC";
+    options_postprocess_setdefault_ncpciphers(&o);
+
+    if (have_chacha)
+    {
+        assert_string_equal(o.ncp_ciphers, "AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305:AES-128-CBC:AES-192-CBC");
+    }
+    else
+    {
+        assert_string_equal(o.ncp_ciphers, "AES-256-GCM:AES-128-GCM:AES-128-CBC:AES-192-CBC");
+    }
+    assert_string_equal(o.ncp_ciphers_conf, "DEFAULT:AES-128-CBC:AES-192-CBC");
+
+    /* DEFAULT at the end */
+    o.ncp_ciphers = "AES-192-GCM:AES-128-CBC:DEFAULT";
+    options_postprocess_setdefault_ncpciphers(&o);
+
+    if (have_chacha)
+    {
+        assert_string_equal(o.ncp_ciphers, "AES-192-GCM:AES-128-CBC:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305");
+    }
+    else
+    {
+        assert_string_equal(o.ncp_ciphers, "AES-192-GCM:AES-128-CBC:AES-256-GCM:AES-128-GCM");
+    }
+    assert_string_equal(o.ncp_ciphers_conf, "AES-192-GCM:AES-128-CBC:DEFAULT");
+
+    gc_free(&o.gc);
+}
+
+static void
+test_ncp_expand(void **state)
+{
+    bool have_chacha = cipher_valid("CHACHA20-POLY1305");
+    struct options o = {0};
+
+    o.gc = gc_new();
+    struct gc_arena gc = gc_new();
+
+    /* no user specified string */
+    o.ncp_ciphers = NULL;
+    options_postprocess_setdefault_ncpciphers(&o);
+
+    const char *expanded = ncp_expanded_ciphers(&o, &gc);
+
+    /* user specificed string with DEFAULT in it */
+    o.ncp_ciphers = "AES-192-GCM:DEFAULT";
+    options_postprocess_setdefault_ncpciphers(&o);
+    const char *expanded2 = ncp_expanded_ciphers(&o, &gc);
+
+    if (have_chacha)
+    {
+        assert_string_equal(expanded, " (AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305)");
+        assert_string_equal(expanded2, " (AES-192-GCM:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305)");
+    }
+    else
+    {
+        assert_string_equal(expanded, " (AES-256-GCM:AES-128-GCM)");
+        assert_string_equal(expanded2, " (AES-192-GCM:AES-256-GCM:AES-128-GCM)");
+    }
+
+    o.ncp_ciphers = "AES-192-GCM:BF-CBC";
+    options_postprocess_setdefault_ncpciphers(&o);
+
+    assert_string_equal(ncp_expanded_ciphers(&o, &gc), "");
+
+    gc_free(&o.gc);
+    gc_free(&gc);
+}
 
 
 const struct CMUnitTest ncp_tests[] = {
     cmocka_unit_test(test_check_ncp_ciphers_list),
     cmocka_unit_test(test_extract_client_ciphers),
     cmocka_unit_test(test_poor_man),
-    cmocka_unit_test(test_ncp_best)
+    cmocka_unit_test(test_ncp_best),
+    cmocka_unit_test(test_ncp_default),
+    cmocka_unit_test(test_ncp_expand),
 };
 
 
