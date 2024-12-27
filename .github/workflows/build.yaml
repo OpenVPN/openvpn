@@ -259,7 +259,7 @@ jobs:
       strategy:
         fail-fast: false
         matrix:
-          arch: [amd64, x86, arm64]
+          arch: [amd64, x86, arm64, amd64-clang, x86-clang]
 
       name: "msbuild - ${{ matrix.arch }} - openssl"
       env:

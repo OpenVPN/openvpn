@@ -389,8 +389,9 @@ test_snprintf(void **state)
 
     /* Instead of trying to trick the compiler here, disable the warnings
      * for this unit test. We know that the results will be truncated
-     * and we want to test that */
-#if defined(__GNUC__)
+     * and we want to test that. Not we need the clang as clang-cl (msvc) does
+     * not define __GNUC__ like it does under UNIX(-like) platforms */
+#if defined(__GNUC__) || defined(__clang__)
 /* some clang version do not understand -Wformat-truncation, so ignore the
  * warning to avoid warnings/errors (-Werror) about unknown pragma/option */
 #if defined(__clang__)
@@ -418,7 +419,7 @@ test_snprintf(void **state)
     assert_int_equal(ret, 10);
     assert_int_equal(buf[9], '\0');
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
 #if defined(__clang__)
 #pragma clang diagnostic pop

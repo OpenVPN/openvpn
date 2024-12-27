@@ -627,7 +627,8 @@ if (BUILD_TESTING)
         check_linker_flag(C -Wl,--wrap=parse_line LD_SUPPORTS_WRAP)
     endif()
 
-    if (${LD_SUPPORTS_WRAP})
+    # Clang-cl (which is also MSVC) is wrongly detected to support wrap
+    if (NOT MSVC AND "${LD_SUPPORTS_WRAP}")
         list(APPEND unit_tests
             "test_argv"
             "test_tls_crypt"

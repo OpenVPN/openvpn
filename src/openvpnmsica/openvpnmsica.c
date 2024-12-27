@@ -303,7 +303,7 @@ cleanup_pAdapterList:
 UINT __stdcall
 FindSystemInfo(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
 
@@ -340,7 +340,7 @@ FindSystemInfo(_In_ MSIHANDLE hInstall)
 UINT __stdcall
 CloseOpenVPNGUI(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
     UNREFERENCED_PARAMETER(hInstall); /* This CA is does not interact with MSI session (report errors, access properties, tables, etc.). */
@@ -363,7 +363,7 @@ CloseOpenVPNGUI(_In_ MSIHANDLE hInstall)
 UINT __stdcall
 StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
 
@@ -636,7 +636,7 @@ schedule_adapter_delete(
 UINT __stdcall
 EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
 
@@ -789,7 +789,7 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
                 {
                     goto cleanup_szDisplayName;
                 }
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__clang__)
 /*
  * warning: enumeration value ‘MSICONDITION_TRUE’ not handled in switch
  * warning: enumeration value ‘MSICONDITION_NONE’ not handled in switch
@@ -809,7 +809,7 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
                         free(szValue);
                         goto cleanup_szDisplayName;
                 }
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
                 free(szValue);
@@ -965,7 +965,7 @@ CreateRebootFile(_In_z_ LPCWSTR szTmpDir)
 UINT __stdcall
 ProcessDeferredAction(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
 
@@ -1165,7 +1165,7 @@ cleanup_CoInitialize:
 UINT __stdcall
 CheckAndScheduleReboot(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
 
