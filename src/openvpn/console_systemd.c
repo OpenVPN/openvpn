@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Alternative method to query for user input, using systemd
+ * @file
+ * Alternative method to query for user input, using systemd
  *
  */
 

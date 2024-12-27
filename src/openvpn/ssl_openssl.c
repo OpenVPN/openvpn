@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Control Channel OpenSSL Backend
+ * @file
+ * Control Channel OpenSSL Backend
  */
 
 #ifdef HAVE_CONFIG_H

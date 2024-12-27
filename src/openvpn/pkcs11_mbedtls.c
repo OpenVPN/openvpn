@@ -23,7 +23,8 @@
  */
 
 /**
- * @file PKCS #11 mbed TLS backend
+ * @file
+ * PKCS #11 mbed TLS backend
  */
 
 #ifdef HAVE_CONFIG_H

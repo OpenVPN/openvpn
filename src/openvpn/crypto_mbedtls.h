@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Data Channel Cryptography mbed TLS-specific backend interface
+ * @file
+ * Data Channel Cryptography mbed TLS-specific backend interface
  */
 
 #ifndef CRYPTO_MBEDTLS_H_

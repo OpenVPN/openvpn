@@ -167,8 +167,8 @@ bool tls_crypt_unwrap(const struct buffer *src, struct buffer *dst,
 /**
  * Initialize a tls-crypt-v2 server key (used to encrypt/decrypt client keys).
  *
- * @param key           Key structure to be initialized.  Must be non-NULL.
- * @parem encrypt       If true, initialize the key structure for encryption,
+ * @param key_ctx       Key structure to be initialized.  Must be non-NULL.
+ * @param encrypt       If true, initialize the key structure for encryption,
  *                      otherwise for decryption.
  * @param key_file      File path of the key file to load or the key itself if
  *                      key_inline is true.

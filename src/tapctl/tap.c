@@ -632,7 +632,7 @@ get_net_adapter_guid(
  * @param dwProperty     Specifies the property to be retrieved. See
  *                       https://msdn.microsoft.com/en-us/library/windows/hardware/ff551967.aspx
  *
- * @pdwPropertyRegDataType  A pointer to a variable that receives the data type of the
+ * @param pdwPropertyRegDataType  A pointer to a variable that receives the data type of the
  *                       property that is being retrieved. This is one of the standard
  *                       registry data types. This parameter is optional and can be NULL.
  *

@@ -24,7 +24,8 @@
  */
 
 /**
- * @file Control Channel SSL/Data dynamic negotiation Module
+ * @file
+ * Control Channel SSL/Data dynamic negotiation Module
  * This file is split from ssl.c to be able to unit test it.
  */
 

@@ -1240,6 +1240,7 @@ man_load_stats(struct management *man)
  * Checks if the correct number of arguments to a management command are present
  * and otherwise prints an error and returns false.
  *
+ * @param man       The management interface struct
  * @param p         pointer to the parameter array
  * @param n         number of arguments required
  * @param flags     if MN_AT_LEAST require at least n parameters and not exactly n

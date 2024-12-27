@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Control Channel Verification Module mbed TLS backend
+ * @file
+ * Control Channel Verification Module mbed TLS backend
  */
 
 #ifdef HAVE_CONFIG_H

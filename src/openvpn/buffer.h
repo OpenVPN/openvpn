@@ -1218,7 +1218,7 @@ struct buffer_list *buffer_list_file(const char *fn, int max_line_len);
 /**
  * buffer_read_from_file - copy the content of a file into a buffer
  *
- * @param file      path to the file to read
+ * @param filename  path to the file to read
  * @param gc        the garbage collector to use when allocating the buffer. It
  *                  is passed to alloc_buf_gc() and therefore can be NULL.
  *

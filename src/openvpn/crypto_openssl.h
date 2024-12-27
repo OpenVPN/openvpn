@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Data Channel Cryptography OpenSSL-specific backend interface
+ * @file
+ * Data Channel Cryptography OpenSSL-specific backend interface
  */
 
 #ifndef CRYPTO_OPENSSL_H_
@@ -110,8 +111,7 @@ void crypto_print_openssl_errors(const unsigned int flags);
  * This is just a convenience wrapper for often occurring situations.
  *
  * @param flags         Flags to indicate error type and priority.
- * @param format        Format string to print.
- * @param format args   (optional) arguments for the format string.
+ * @param ...           Format string and optional format arguments
  */
 #define crypto_msg(flags, ...) \
     do { \

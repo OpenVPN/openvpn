@@ -22,7 +22,8 @@
  */
 
 /**
- * @file Data Channel Compression module function definitions.
+ * @file
+ * Data Channel Compression module function definitions.
  */
 
 #ifdef HAVE_CONFIG_H

@@ -23,7 +23,8 @@
  */
 
 /**
- * @file OpenSSL compatibility stub
+ * @file
+ * OpenSSL compatibility stub
  *
  * This file provide compatibility stubs for the OpenSSL libraries
  * prior to version 1.1. This version introduces many changes in the

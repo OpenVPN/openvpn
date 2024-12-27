@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Control Channel Common Data Structures
+ * @file
+ * Control Channel Common Data Structures
  */
 
 #ifndef SSL_COMMON_H_

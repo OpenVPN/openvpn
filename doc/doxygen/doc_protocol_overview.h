@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Network protocol overview documentation file.
+ * @file
+ * Network protocol overview documentation file.
  */
 
 /**

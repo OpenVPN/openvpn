@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Control Channel SSL/Data dynamic negotiation Module
+ * @file
+ * Control Channel SSL/Data dynamic negotiation Module
  * This file is split from ssl.h to be able to unit test it.
  */
 
@@ -90,7 +91,7 @@ tls_peer_ncp_list(const char *peer_info, struct gc_arena *gc);
  * Check whether the ciphers in the supplied list are supported.
  *
  * @param list          Colon-separated list of ciphers
- * @parms gc            gc_arena to allocate the returned string
+ * @param gc            gc_arena to allocate the returned string
  *
  * @returns             colon separated string of normalised (via
  *                      translate_cipher_name_from_openvpn) and

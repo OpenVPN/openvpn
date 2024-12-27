@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Control Channel Verification Module OpenSSL backend
+ * @file
+ * Control Channel Verification Module OpenSSL backend
  */
 
 

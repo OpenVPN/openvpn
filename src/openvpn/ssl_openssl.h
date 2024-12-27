@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Control Channel OpenSSL Backend
+ * @file
+ * Control Channel OpenSSL Backend
  */
 
 #ifndef SSL_OPENSSL_H_

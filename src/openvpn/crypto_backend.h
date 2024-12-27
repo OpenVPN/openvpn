@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Data Channel Cryptography SSL library-specific backend interface
+ * @file
+ * Data Channel Cryptography SSL library-specific backend interface
  */
 
 #ifndef CRYPTO_BACKEND_H_
@@ -339,7 +340,7 @@ void cipher_ctx_free(cipher_ctx_t *ctx);
  *                      \c OPENVPN_OP_ENCRYPT or \c OPENVPN_OP_DECRYPT).
  */
 void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key,
-                     const char *cipername, crypto_operation_t enc);
+                     const char *ciphername, crypto_operation_t enc);
 
 /**
  * Returns the size of the IV used by the cipher, in bytes, or 0 if no IV is
@@ -357,7 +358,7 @@ int cipher_ctx_iv_length(const cipher_ctx_t *ctx);
  *
  * @param ctx           The cipher's context
  * @param tag           The buffer to write computed tag in.
- * @param tag_size      The tag buffer size, in bytes.
+ * @param tag_len       The tag buffer size, in bytes.
  */
 int cipher_ctx_get_tag(cipher_ctx_t *ctx, uint8_t *tag, int tag_len);
 

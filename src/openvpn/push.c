@@ -604,7 +604,7 @@ prepare_auth_token_push_reply(struct tls_multi *tls_multi, struct gc_arena *gc,
 /**
  * Prepare push options, based on local options
  *
- * @param context       context structure storing data for VPN tunnel
+ * @param c             context structure storing data for VPN tunnel
  * @param gc            gc arena for allocating push options
  * @param push_list     push list to where options are added
  *

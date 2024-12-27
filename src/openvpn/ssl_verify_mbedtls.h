@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Control Channel Verification Module mbed TLS backend
+ * @file
+ * Control Channel Verification Module mbed TLS backend
  */
 
 #ifndef SSL_VERIFY_MBEDTLS_H_

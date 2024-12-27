@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Control Channel Verification Module library-specific backend interface
+ * @file
+ * Control Channel Verification Module library-specific backend interface
  */
 
 #ifndef SSL_VERIFY_BACKEND_H_

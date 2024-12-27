@@ -22,7 +22,8 @@
  */
 
 /**
- * @file Header file for server-mode related structures and functions.
+ * @file
+ * Header file for server-mode related structures and functions.
  */
 
 #ifndef MULTI_H

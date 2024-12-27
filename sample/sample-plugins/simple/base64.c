@@ -44,7 +44,7 @@ plugin_base64_decode_t ovpn_base64_decode = NULL;  /**< Pointer to the openvpn_b
  * returns, any returned pointers are invalid.
  *
  * @param name  String containing the env.var name to search for
- * @param envp  String array pointer to the environment variable
+ * @param envp  String array pointer to the environment variables
  *
  * @return Returns a pointer to the value in the environment variable
  *         table on successful match.  Otherwise NULL is returned
@@ -138,10 +138,11 @@ openvpn_plugin_open_v3(const int v3structver,
  * For the arguments, see the include/openvpn-plugin.h file
  * for details on the function parameters
  *
- * @param args        Pointer to a struct with details about the plug-in
- *                    call from the main OpenVPN process.
- * @param returndata  Pointer to a struct where the plug-in can provide
- *                    information back to OpenVPN to be processed
+ * @param handle   Pointer to the plug-in global context buffer, which
+ *                 need to be released by this function
+ * @param type     Type of the hook
+ * @param argv     String array pointer to arguments for the hook
+ * @param envp     String array pointer to current environment variables
  *
  * @return  Must return OPENVPN_PLUGIN_FUNC_SUCCESS or
  *          OPENVPN_PLUGIN_FUNC_DEFERRED on success.  Otherwise it

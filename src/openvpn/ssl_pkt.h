@@ -22,9 +22,10 @@
  */
 
 /**
- * @file SSL control channel wrap/unwrap and decode functions. This file
- *        (and its .c file) is designed to to be included in units/etc without
- *        pulling in a lot of dependencies
+ * @file
+ * SSL control channel wrap/unwrap and decode functions.
+ * This file (and its .c file) is designed to to be included in units/etc without
+ * pulling in a lot of dependencies.
  */
 
 #ifndef SSL_PKT_H
@@ -182,7 +183,7 @@ calculate_session_id_hmac(struct session_id client_sid,
 /**
  * Checks if a control packet has a correct HMAC server session id
  *
- * @param client_sid    session id of the client
+ * @param state         session information
  * @param from          link_socket from the client
  * @param hmac          the hmac context to use for the calculation
  * @param handwindow    the quantisation of the current time

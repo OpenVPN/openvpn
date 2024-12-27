@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Data Channel Cryptography OpenSSL-specific backend interface
+ * @file
+ * Data Channel Cryptography OpenSSL-specific backend interface
  */
 
 #ifdef HAVE_CONFIG_H

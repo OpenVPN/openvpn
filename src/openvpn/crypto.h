@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Data Channel Cryptography Module
+ * @file
+ * Data Channel Cryptography Module
  *
  * @addtogroup data_crypto Data Channel Crypto module
  *
@@ -491,7 +492,7 @@ bool crypto_check_replay(struct crypto_options *opt,
  * this and add it themselves.
  *
  * @param kt            Struct with the crypto algorithm to use
- * @param packet_id_size Size of the packet id
+ * @param pkt_id_size   Size of the packet id
  * @param occ           if true calculates the overhead for crypto in the same
  *                      incorrect way as all previous OpenVPN versions did, to
  *                      end up with identical numbers for OCC compatibility
@@ -509,7 +510,7 @@ unsigned int crypto_max_overhead(void);
  * and write to file.
  *
  * @param filename          Filename of the server key file to create.
- * @param pem_name          The name to use in the PEM header/footer.
+ * @param key_name          The name to use in the PEM header/footer.
  */
 void
 write_pem_key_file(const char *filename, const char *key_name);

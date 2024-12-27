@@ -24,7 +24,8 @@
  */
 
 /**
- * @file Control Channel mbed TLS Backend
+ * @file
+ * Control Channel mbed TLS Backend
  */
 
 #ifdef HAVE_CONFIG_H

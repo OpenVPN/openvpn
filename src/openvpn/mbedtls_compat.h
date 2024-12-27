@@ -22,8 +22,8 @@
  */
 
 /**
- * @file mbedtls compatibility stub
- *
+ * @file
+ * mbedtls compatibility stub.
  * This file provide compatibility stubs for the mbedtls libraries
  * prior to version 3. This version made most fields in structs private
  * and requires accessor functions to be used. For earlier versions, we

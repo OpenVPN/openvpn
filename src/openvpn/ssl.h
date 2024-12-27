@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Control Channel SSL/Data channel negotiation module
+ * @file
+ * Control Channel SSL/Data channel negotiation module
  */
 
 #ifndef OPENVPN_SSL_H

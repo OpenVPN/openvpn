@@ -23,7 +23,8 @@
  */
 
 /**
- * @file PKCS #11 SSL library-specific backend
+ * @file
+ * PKCS #11 SSL library-specific backend
  */
 
 #ifndef PKCS11_BACKEND_H_

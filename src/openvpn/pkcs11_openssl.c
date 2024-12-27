@@ -23,7 +23,8 @@
  */
 
 /**
- * @file PKCS #11 OpenSSL backend
+ * @file
+ * PKCS #11 OpenSSL backend
  */
 
 #ifdef HAVE_CONFIG_H

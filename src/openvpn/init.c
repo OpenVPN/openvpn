@@ -294,8 +294,8 @@ ce_management_query_proxy(struct context *c)
  *
  * This will write the control message
  *
- *  command parm1,parm2,..
- *  .
+ *  command parm1,parm2,...
+ *
  * to the control channel.
  *
  * @param arg           The context struct
@@ -2278,7 +2278,7 @@ add_delim_if_non_empty(struct buffer *buf, const char *header)
 
 /**
  * Prints the results of options imported for the data channel
- * @param o
+ * @param c
  */
 static void
 tls_print_deferred_options_results(struct context *c)

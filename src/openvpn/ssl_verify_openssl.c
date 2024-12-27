@@ -23,7 +23,8 @@
  */
 
 /**
- * @file Control Channel Verification Module OpenSSL implementation
+ * @file
+ * Control Channel Verification Module OpenSSL implementation
  */
 
 #ifdef HAVE_CONFIG_H
