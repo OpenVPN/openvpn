@@ -892,17 +892,18 @@ init_key_type(struct key_type *kt, const char *ciphername,
 }
 
 /**
- * Update the implicit IV for a key_ctx_bi based on TLS session ids and cipher
+ * Update the implicit IV for a key_ctx based on TLS session ids and cipher
  * used.
  *
- * Note that the implicit IV is based on the HMAC key, but only in AEAD modes
- * where the HMAC key is not used for an actual HMAC.
+ * Note that the implicit IV is based on the HMAC key of the \c key parameter,
+ * but only in AEAD modes where the HMAC key is not used for an actual HMAC.
  *
  * @param ctx                   Encrypt/decrypt key context
- * @param key                   key, hmac part used to calculate implicit IV
+ * @param key                   key parameters holding the key and hmac/
+ *                              implicit iv used to calculate implicit IV
  */
 static void
-key_ctx_update_implicit_iv(struct key_ctx *ctx, const struct key *key)
+key_ctx_update_implicit_iv(struct key_ctx *ctx, const struct key_parameters *key)
 {
     /* Only use implicit IV in AEAD cipher mode, where HMAC key is not used */
     if (cipher_ctx_mode_aead(ctx->cipher))
@@ -912,6 +913,7 @@ key_ctx_update_implicit_iv(struct key_ctx *ctx, const struct key *key)
         impl_iv_len = cipher_ctx_iv_length(ctx->cipher) - sizeof(packet_id_type);
         ASSERT(impl_iv_len + sizeof(packet_id_type) <= OPENVPN_MAX_IV_LENGTH);
         ASSERT(impl_iv_len <= MAX_HMAC_KEY_LENGTH);
+        ASSERT(impl_iv_len <= key->hmac_size);
         CLEAR(ctx->implicit_iv);
         /* The first bytes of the IV are filled with the packet id */
         memcpy(ctx->implicit_iv + sizeof(packet_id_type), key->hmac, impl_iv_len);
@@ -920,7 +922,7 @@ key_ctx_update_implicit_iv(struct key_ctx *ctx, const struct key *key)
 
 /* given a key and key_type, build a key_ctx */
 void
-init_key_ctx(struct key_ctx *ctx, const struct key *key,
+init_key_ctx(struct key_ctx *ctx, const struct key_parameters *key,
              const struct key_type *kt, int enc,
              const char *prefix)
 {
@@ -928,7 +930,7 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
     CLEAR(*ctx);
     if (cipher_defined(kt->cipher))
     {
-
+        ASSERT(key->cipher_size >= cipher_kt_key_size(kt->cipher));
         ctx->cipher = cipher_ctx_new();
         cipher_ctx_init(ctx->cipher, key->cipher, kt->cipher, enc);
 
@@ -943,8 +945,10 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
              cipher_kt_iv_size(kt->cipher));
         warn_insecure_key_type(ciphername);
     }
+
     if (md_defined(kt->digest))
     {
+        ASSERT(key->hmac_size >= md_kt_size(kt->digest));
         ctx->hmac = hmac_ctx_new();
         hmac_ctx_init(ctx->hmac, key->hmac, kt->digest);
 
@@ -965,41 +969,43 @@ init_key_ctx(struct key_ctx *ctx, const struct key *key,
 }
 
 void
-init_key_bi_ctx_send(struct key_ctx *ctx, const struct key2 *key2,
-                     int key_direction, const struct key_type *kt, const char *name)
+init_key_bi_ctx_send(struct key_ctx *ctx, const struct key_parameters *key_params,
+                     const struct key_type *kt, const char *name)
 {
     char log_prefix[128] = { 0 };
-    struct key_direction_state kds;
-
-    key_direction_state_init(&kds, key_direction);
 
     snprintf(log_prefix, sizeof(log_prefix), "Outgoing %s", name);
-    init_key_ctx(ctx, &key2->keys[kds.out_key], kt,
-                 OPENVPN_OP_ENCRYPT, log_prefix);
-    key_ctx_update_implicit_iv(ctx, &key2->keys[kds.out_key]);
+    init_key_ctx(ctx, key_params, kt, OPENVPN_OP_ENCRYPT, log_prefix);
+    key_ctx_update_implicit_iv(ctx, key_params);
 }
 
 void
-init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key2 *key2,
-                     int key_direction, const struct key_type *kt, const char *name)
+init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key_parameters *key_params,
+                     const struct key_type *kt, const char *name)
 {
     char log_prefix[128] = { 0 };
-    struct key_direction_state kds;
-
-    key_direction_state_init(&kds, key_direction);
 
     snprintf(log_prefix, sizeof(log_prefix), "Incoming %s", name);
-    init_key_ctx(ctx, &key2->keys[kds.in_key], kt,
-                 OPENVPN_OP_DECRYPT, log_prefix);
-    key_ctx_update_implicit_iv(ctx, &key2->keys[kds.in_key]);
+    init_key_ctx(ctx, key_params, kt, OPENVPN_OP_DECRYPT, log_prefix);
+    key_ctx_update_implicit_iv(ctx, key_params);
 }
 
 void
 init_key_ctx_bi(struct key_ctx_bi *ctx, const struct key2 *key2,
                 int key_direction, const struct key_type *kt, const char *name)
 {
-    init_key_bi_ctx_send(&ctx->encrypt, key2, key_direction, kt, name);
-    init_key_bi_ctx_recv(&ctx->decrypt, key2, key_direction, kt, name);
+    struct key_direction_state kds;
+
+    key_direction_state_init(&kds, key_direction);
+
+    struct key_parameters send_key;
+    struct key_parameters recv_key;
+
+    key_parameters_from_key(&send_key, &key2->keys[kds.out_key]);
+    key_parameters_from_key(&recv_key, &key2->keys[kds.in_key]);
+
+    init_key_bi_ctx_send(&ctx->encrypt, &send_key, kt, name);
+    init_key_bi_ctx_recv(&ctx->decrypt, &recv_key, kt, name);
     ctx->initialized = true;
 }
 
@@ -1113,6 +1119,16 @@ key2_print(const struct key2 *k,
     ASSERT(k->n == 2);
     key_print(&k->keys[0], kt, prefix0);
     key_print(&k->keys[1], kt, prefix1);
+}
+
+void
+key_parameters_from_key(struct key_parameters *key_params, const struct key *key)
+{
+    CLEAR(*key_params);
+    memcpy(key_params->cipher, key->cipher, MAX_CIPHER_KEY_LENGTH);
+    key_params->cipher_size = MAX_CIPHER_KEY_LENGTH;
+    memcpy(key_params->hmac, key->hmac, MAX_HMAC_KEY_LENGTH);
+    key_params->hmac_size = MAX_HMAC_KEY_LENGTH;
 }
 
 void

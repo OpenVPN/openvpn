@@ -152,7 +152,10 @@ auth_token_init_secret(struct key_ctx *key_ctx, const char *key_file,
     {
         msg(M_FATAL, "ERROR: not enough data in auth-token secret");
     }
-    init_key_ctx(key_ctx, &key, &kt, false, "auth-token secret");
+
+    struct key_parameters key_params;
+    key_parameters_from_key(&key_params, &key);
+    init_key_ctx(key_ctx, &key_params, &kt, false, "auth-token secret");
 
     free_buf(&server_secret_key);
 }

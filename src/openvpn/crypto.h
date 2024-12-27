@@ -144,7 +144,8 @@ struct key_type
 
 /**
  * Container for unidirectional cipher and HMAC %key material.
- * @ingroup control_processor
+ * @ingroup control_processor. This is used as a wire format/file format
+ * key, so it cannot be changed to add fields or change the length of fields
  */
 struct key
 {
@@ -154,6 +155,32 @@ struct key
     /**< %Key material for HMAC operations. */
 };
 
+/** internal structure similar to struct key that holds key information
+ * but is not represented on wire and can be changed/extended
+ */
+struct key_parameters {
+    /** %Key material for cipher operations. */
+    uint8_t cipher[MAX_CIPHER_KEY_LENGTH];
+
+    /** Number of bytes set in the cipher key material */
+    int cipher_size;
+
+    /** %Key material for HMAC operations. */
+    uint8_t hmac[MAX_HMAC_KEY_LENGTH];
+
+    /** Number of bytes set in the HMac key material */
+    int hmac_size;
+};
+
+/**
+ * Converts a struct key representation into a struct key_parameters
+ * representation.
+ *
+ * @param key_params    destination for the converted struct
+ * @param key           source of the conversion
+ */
+void
+key_parameters_from_key(struct key_parameters *key_params, const struct key *key);
 
 /**
  * Container for one set of cipher and/or HMAC contexts.
@@ -347,19 +374,17 @@ void init_key_type(struct key_type *kt, const char *ciphername,
  * Key context functions
  */
 
-void init_key_ctx(struct key_ctx *ctx, const struct key *key,
+void init_key_ctx(struct key_ctx *ctx, const struct key_parameters *key,
                   const struct key_type *kt, int enc,
                   const char *prefix);
 
 void
-init_key_bi_ctx_send(struct key_ctx *ctx, const struct key2 *key2,
-                     int key_direction, const struct key_type *kt,
-                     const char *name);
+init_key_bi_ctx_send(struct key_ctx *ctx, const struct key_parameters *key,
+                     const struct key_type *kt, const char *name);
 
 void
-init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key2 *key2,
-                     int key_direction, const struct key_type *kt,
-                     const char *name);
+init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key_parameters *key,
+                     const struct key_type *kt, const char *name);
 
 void free_key_ctx(struct key_ctx *ctx);
 

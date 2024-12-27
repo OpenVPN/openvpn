@@ -87,7 +87,8 @@ setup(void **state)
     struct test_context *ctx = calloc(1, sizeof(*ctx));
     *state = ctx;
 
-    struct key key = { 0 };
+    struct key_parameters key = { 0 };
+    key.hmac_size = MAX_HMAC_KEY_LENGTH;     /* 64 byte of 0 */
 
     ctx->kt = auth_token_kt();
     if (!ctx->kt.digest)
@@ -148,15 +149,17 @@ auth_token_fail_invalid_key(void **state)
                      AUTH_TOKEN_HMAC_OK);
 
     /* Change auth-token key */
-    struct key key;
-    memset(&key, '1', sizeof(key));
+    struct key_parameters key;
+    memset(key.hmac, '1', sizeof(key.hmac));
+    key.hmac_size = MAX_HMAC_KEY_LENGTH;
+
     free_key_ctx(&ctx->multi.opt.auth_token_key);
     init_key_ctx(&ctx->multi.opt.auth_token_key, &key, &ctx->kt, false, "TEST");
 
     assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session), 0);
 
     /* Load original test key again */
-    memset(&key, 0, sizeof(key));
+    memset(&key.hmac, 0, sizeof(key.hmac));
     free_key_ctx(&ctx->multi.opt.auth_token_key);
     init_key_ctx(&ctx->multi.opt.auth_token_key, &key, &ctx->kt, false, "TEST");
     assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session),

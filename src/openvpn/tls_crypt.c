@@ -377,7 +377,11 @@ tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
     {
         msg(M_FATAL, "ERROR: --tls-crypt-v2 not supported");
     }
-    init_key_ctx(key_ctx, &srv_key, &kt, encrypt, "tls-crypt-v2 server key");
+    struct key_parameters srv_key_params;
+
+    key_parameters_from_key(&srv_key_params, &srv_key);
+
+    init_key_ctx(key_ctx, &srv_key_params, &kt, encrypt, "tls-crypt-v2 server key");
     secure_memzero(&srv_key, sizeof(srv_key));
 }
 
