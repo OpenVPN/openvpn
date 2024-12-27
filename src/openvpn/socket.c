@@ -467,9 +467,8 @@ openvpn_getaddrinfo(unsigned int flags,
         sig_info = &sigrec;
     }
 
-    /* try numeric ipv6 addr first */
+    /* try numeric ip addr first */
     CLEAR(hints);
-    hints.ai_family = ai_family;
     hints.ai_flags = AI_NUMERICHOST;
 
     if (flags & GETADDR_PASSIVE)
@@ -486,6 +485,13 @@ openvpn_getaddrinfo(unsigned int flags,
         hints.ai_socktype = SOCK_STREAM;
     }
 
+    /* if hostname is not set, we want to bind to 'ANY', with
+     * the correct address family - v4-only or v6/v6-dual-stack */
+    if (!hostname)
+    {
+        hints.ai_family = ai_family;
+    }
+
     status = getaddrinfo(hostname, servname, &hints, res);
 
     if (status != 0) /* parse as numeric address failed? */
@@ -496,6 +502,10 @@ openvpn_getaddrinfo(unsigned int flags,
                               ((resolve_retry_seconds + 4)/ fail_wait_interval);
         const char *fmt;
         int level = 0;
+
+        /* this is not a numeric IP, therefore force resolution using the
+         * provided ai_family */
+        hints.ai_family = ai_family;
 
         if (hostname && (flags & GETADDR_RANDOMIZE))
         {
@@ -1690,6 +1700,10 @@ resolve_bind_local(struct link_socket *sock, const sa_family_t af)
                 sock->local_host, sock->local_port,
                 gai_strerror(status));
         }
+
+        /* the resolved 'local entry' might have a different family than what
+         * was globally configured */
+        sock->info.af = sock->info.lsa->bind_local->ai_family;
     }
 
     gc_free(&gc);
