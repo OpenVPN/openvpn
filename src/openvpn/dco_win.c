@@ -523,4 +523,11 @@ dco_get_supported_ciphers()
     }
 }
 
+bool
+dco_win_supports_multipeer(void)
+{
+    OVPN_VERSION ver = { 0 };
+    return dco_get_version(&ver) && ver.Major >= 2;
+}
+
 #endif /* defined(_WIN32) */

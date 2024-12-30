@@ -43,6 +43,10 @@
 #include "tun.h"
 #include "tun_afunix.h"
 
+#if defined(_WIN32)
+#include "dco_win.h"
+#endif
+
 #ifdef HAVE_LIBCAPNG
 #include <cap-ng.h>
 #endif
@@ -235,7 +239,7 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
 }
 
 static bool
-dco_check_option_ce(const struct connection_entry *ce, int msglevel)
+dco_check_option_ce(const struct connection_entry *ce, int msglevel, int mode)
 {
     if (ce->fragment)
     {
@@ -264,9 +268,15 @@ dco_check_option_ce(const struct connection_entry *ce, int msglevel)
 #endif
 
 #if defined(_WIN32)
-    if (!ce->remote)
+    if (!proto_is_udp(ce->proto) && mode == MODE_SERVER)
     {
-        msg(msglevel, "NOTE: --remote is not defined, disabling data channel offload.");
+        msg(msglevel, "NOTE: TCP transport disables data channel offload on Windows in server mode.");
+        return false;
+    }
+
+    if (!ce->remote && !dco_win_supports_multipeer())
+    {
+        msg(msglevel, "NOTE: --remote is not defined. This DCO version doesn't support multipeer. Disabling Data Channel Offload");
         return false;
     }
 #endif
@@ -316,7 +326,7 @@ dco_check_startup_option(int msglevel, const struct options *o)
         const struct connection_list *l = o->connection_list;
         for (int i = 0; i < l->len; ++i)
         {
-            if (!dco_check_option_ce(l->array[i], msglevel))
+            if (!dco_check_option_ce(l->array[i], msglevel, o->mode))
             {
                 return false;
             }
@@ -324,16 +334,16 @@ dco_check_startup_option(int msglevel, const struct options *o)
     }
     else
     {
-        if (!dco_check_option_ce(&o->ce, msglevel))
+        if (!dco_check_option_ce(&o->ce, msglevel, o->mode))
         {
             return false;
         }
     }
 
 #if defined(_WIN32)
-    if (o->mode == MODE_SERVER)
+    if ((o->mode == MODE_SERVER) && !dco_win_supports_multipeer())
     {
-        msg(msglevel, "--mode server is set. Disabling Data Channel Offload");
+        msg(msglevel, "--mode server is set. This DCO version doesn't support multipeer. Disabling Data Channel Offload");
         return false;
     }
 

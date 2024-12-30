@@ -48,6 +48,9 @@ dco_create_socket(HANDLE handle, struct addrinfo *remoteaddr, bool bind_local,
 void
 dco_start_tun(struct tuntap *tt);
 
+bool
+dco_win_supports_multipeer(void);
+
 #else /* if defined(ENABLE_DCO) && defined(_WIN32) */
 
 static inline void
