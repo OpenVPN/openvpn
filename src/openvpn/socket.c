@@ -42,6 +42,21 @@
 
 #include "memdbg.h"
 
+bool
+sockets_read_residual(const struct context *c)
+{
+    int i;
+
+    for (i = 0; i < c->c1.link_sockets_num; i++)
+    {
+        if (c->c2.link_sockets[i]->stream_buf.residual_fully_formed)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 /*
  * Convert sockflags/getaddr_flags into getaddr_flags
  */
@@ -1454,7 +1469,6 @@ openvpn_connect(socket_descriptor_t sd,
 #ifdef TARGET_ANDROID
     protect_fd_nonlocal(sd, remote);
 #endif
-
     set_nonblock(sd);
     status = connect(sd, remote, af_addr_size(remote->sa_family));
     if (status)
@@ -1851,9 +1865,9 @@ link_socket_new(void)
 }
 
 void
-link_socket_init_phase1(struct context *c, int mode)
+link_socket_init_phase1(struct context *c, int sock_index, int mode)
 {
-    struct link_socket *sock = c->c2.link_socket;
+    struct link_socket *sock = c->c2.link_sockets[sock_index];
     struct options *o = &c->options;
     ASSERT(sock);
 
@@ -1879,19 +1893,20 @@ link_socket_init_phase1(struct context *c, int mode)
     sock->socket_buffer_sizes.sndbuf = o->sndbuf;
 
     sock->sockflags = o->sockflags;
+
 #if PORT_SHARE
     if (o->port_share_host && o->port_share_port)
     {
         sock->sockflags |= SF_PORT_SHARE;
     }
 #endif
+
     sock->mark = o->mark;
     sock->bind_dev = o->bind_dev;
-
     sock->info.proto = o->ce.proto;
     sock->info.af = o->ce.af;
     sock->info.remote_float = o->ce.remote_float;
-    sock->info.lsa = &c->c1.link_socket_addr;
+    sock->info.lsa = &c->c1.link_socket_addrs[sock_index];
     sock->info.bind_ipv6_only = o->ce.bind_ipv6_only;
     sock->info.ipchange_command = o->ipchange;
     sock->info.plugins = c->plugins;
@@ -2186,9 +2201,9 @@ create_socket_dco_win(struct context *c, struct link_socket *sock,
 
 /* finalize socket initialization */
 void
-link_socket_init_phase2(struct context *c)
+link_socket_init_phase2(struct context *c,
+                        struct link_socket *sock)
 {
-    struct link_socket *sock = c->c2.link_socket;
     const struct frame *frame = &c->c2.frame;
     struct signal_info *sig_info = c->sig;
 
@@ -2234,7 +2249,6 @@ link_socket_init_phase2(struct context *c)
         {
             create_socket(sock, sock->info.lsa->current_remote);
         }
-
     }
 
     /* If socket has not already been created create it now */
@@ -2253,7 +2267,6 @@ link_socket_init_phase2(struct context *c)
                     addr_family_name(sock->info.lsa->bind_local->ai_family));
                 sock->info.af = sock->info.lsa->bind_local->ai_family;
             }
-
             create_socket(sock, sock->info.lsa->bind_local);
         }
     }

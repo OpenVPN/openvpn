@@ -231,10 +231,12 @@ void read_incoming_tun(struct context *c);
  *
  * If an error occurs, it is logged and the packet is dropped.
  *
- * @param c - The context structure of the VPN tunnel associated with the
- *     packet.
+ * @param c       The context structure of the VPN tunnel associated with
+ *                the packet.
+ * @param out_sock  Socket that will be used to send out the packet.
+ *
  */
-void process_incoming_tun(struct context *c);
+void process_incoming_tun(struct context *c, struct link_socket *out_sock);
 
 
 /**
@@ -246,10 +248,11 @@ void process_incoming_tun(struct context *c);
  *
  * If an error occurs, it is logged and the packet is dropped.
  *
- * @param c - The context structure of the VPN tunnel associated with
- *     the packet.
+ * @param c      The context structure of the VPN tunnel associated
+ *               with the packet.
+ * @param in_sock  Socket where the packet was received.
  */
-void process_outgoing_tun(struct context *c);
+void process_outgoing_tun(struct context *c, struct link_socket *in_sock);
 
 
 /**************************************************************************/
@@ -304,20 +307,21 @@ void reschedule_multi_process(struct context *c);
 #define PIPV6_ICMP_NOHOST_SERVER        (1<<6)
 
 
-void process_ip_header(struct context *c, unsigned int flags, struct buffer *buf);
+void process_ip_header(struct context *c, unsigned int flags, struct buffer *buf,
+                       struct link_socket *sock);
 
 bool schedule_exit(struct context *c);
 
 static inline struct link_socket_info *
 get_link_socket_info(struct context *c)
 {
-    if (c->c2.link_socket_info)
+    if (c->c2.link_socket_infos)
     {
-        return c->c2.link_socket_info;
+        return c->c2.link_socket_infos[0];
     }
     else
     {
-        return &c->c2.link_socket->info;
+        return &c->c2.link_sockets[0]->info;
     }
 }
 

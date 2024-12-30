@@ -357,7 +357,7 @@ frame_adjust_path_mtu(struct context *c)
     struct link_socket_info *lsi = get_link_socket_info(c);
     struct options *o = &c->options;
 
-    int pmtu = c->c2.link_socket->mtu;
+    int pmtu = c->c2.link_sockets[0]->mtu;
     sa_family_t af = lsi->lsa->actual.dest.addr.sa.sa_family;
     int proto = lsi->proto;
 

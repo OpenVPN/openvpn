@@ -55,12 +55,14 @@ void tunnel_server_udp(struct context *top);
  * it.  If no entry exists, this function handles its creation, and if
  * successful, returns the newly created instance.
  *
- * @param m            - The single multi_context structure.
+ * @param m           - The single multi_context structure.
+ * @param ls          - Listening socket where this instance is connecting to
  *
  * @return A pointer to a multi_instance if one already existed for the
  *     packet's source address or if one was a newly created successfully.
  *      NULL if one did not yet exist and a new one was not created.
  */
-struct multi_instance *multi_get_create_instance_udp(struct multi_context *m, bool *floated);
+struct multi_instance *multi_get_create_instance_udp(struct multi_context *m, bool *floated,
+                                                     struct link_socket *ls);
 
 #endif /* ifndef MUDP_H */

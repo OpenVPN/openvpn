@@ -344,9 +344,13 @@ int openvpn_connect(socket_descriptor_t sd,
 /*
  * Initialize link_socket object.
  */
-void link_socket_init_phase1(struct context *c, int mode);
+void
+link_socket_init_phase1(struct context *c,
+                        int sock_index,
+                        int mode);
 
-void link_socket_init_phase2(struct context *c);
+void link_socket_init_phase2(struct context *c,
+                             struct link_socket *sock);
 
 void do_preresolve(struct context *c);
 
@@ -1228,11 +1232,12 @@ link_socket_set_tos(struct link_socket *sock)
  * Socket I/O wait functions
  */
 
-static inline bool
-socket_read_residual(const struct link_socket *sock)
-{
-    return sock && sock->stream_buf.residual_fully_formed;
-}
+/*
+ * Extends the pre-existing read residual logic
+ * to all initialized sockets, ensuring the complete
+ * packet is read.
+ */
+bool sockets_read_residual(const struct context *c);
 
 static inline event_t
 socket_event_handle(const struct link_socket *sock)

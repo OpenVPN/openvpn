@@ -750,7 +750,8 @@ multi_uninit(struct multi_context *m)
  * Create a client instance object for a newly connected client.
  */
 struct multi_instance *
-multi_create_instance(struct multi_context *m, const struct mroute_addr *real)
+multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
+                      struct link_socket *ls)
 {
     struct gc_arena gc = gc_new();
     struct multi_instance *mi;
@@ -773,7 +774,7 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real)
         generate_prefix(mi);
     }
 
-    inherit_context_child(&mi->context, &m->top);
+    inherit_context_child(&mi->context, &m->top, ls);
     if (IS_SIG(&mi->context))
     {
         goto err;
@@ -3124,7 +3125,8 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
 }
 
 void
-multi_process_float(struct multi_context *m, struct multi_instance *mi)
+multi_process_float(struct multi_context *m, struct multi_instance *mi,
+                    struct link_socket *ls)
 {
     struct mroute_addr real = {0};
     struct hash *hash = m->hash;
@@ -3180,8 +3182,8 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi)
     mi->context.c2.to_link_addr = &mi->context.c2.from;
 
     /* inherit parent link_socket and link_socket_info */
-    mi->context.c2.link_socket = m->top.c2.link_socket;
-    mi->context.c2.link_socket_info->lsa->actual = m->top.c2.from;
+    mi->context.c2.link_sockets[0] = ls;
+    mi->context.c2.link_socket_infos[0]->lsa->actual = m->top.c2.from;
 
     tls_update_remote_addr(mi->context.c2.tls_multi, &mi->context.c2.from);
 
@@ -3329,7 +3331,8 @@ multi_process_incoming_dco(struct multi_context *m)
  * i.e. client -> server direction.
  */
 bool
-multi_process_incoming_link(struct multi_context *m, struct multi_instance *instance, const unsigned int mpp_flags)
+multi_process_incoming_link(struct multi_context *m, struct multi_instance *instance,
+                            const unsigned int mpp_flags, struct link_socket *ls)
 {
     struct gc_arena gc = gc_new();
 
@@ -3350,7 +3353,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
 #ifdef MULTI_DEBUG_EVENT_LOOP
         printf("TCP/UDP -> TUN [%d]\n", BLEN(&m->top.c2.buf));
 #endif
-        multi_set_pending(m, multi_get_create_instance_udp(m, &floated));
+        multi_set_pending(m, multi_get_create_instance_udp(m, &floated, ls));
     }
     else
     {
@@ -3391,7 +3394,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                 /* nonzero length means that we have a valid, decrypted packed */
                 if (floated && c->c2.buf.len > 0)
                 {
-                    multi_process_float(m, m->pending);
+                    multi_process_float(m, m->pending, ls);
                 }
 
                 process_incoming_link_part2(c, lsi, orig_buf);
@@ -3610,7 +3613,7 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
                     }
 
                     /* encrypt in instance context */
-                    process_incoming_tun(c);
+                    process_incoming_tun(c, c->c2.link_sockets[0]);
 
                     /* postprocess and set wakeup */
                     ret = multi_process_post(m, m->pending, mpp_flags);
@@ -3642,7 +3645,8 @@ multi_get_queue(struct mbuf_set *ms)
         {
             pip_flags |= PIP_MSSFIX;
         }
-        process_ip_header(&item.instance->context, pip_flags, &item.instance->context.c2.buf);
+        process_ip_header(&item.instance->context, pip_flags, &item.instance->context.c2.buf,
+                          item.instance->context.c2.link_sockets[0]);
         encrypt_sign(&item.instance->context, true);
         mbuf_free_buf(item.buffer);
 

@@ -478,11 +478,11 @@ dco_p2p_add_new_peer(struct context *c)
         return 0;
     }
 
-    struct link_socket *ls = c->c2.link_socket;
+    struct link_socket *sock = c->c2.link_sockets[0];
 
-    ASSERT(ls->info.connection_established);
+    ASSERT(sock->info.connection_established);
 
-    struct sockaddr *remoteaddr = &ls->info.lsa->actual.dest.addr.sa;
+    struct sockaddr *remoteaddr = &sock->info.lsa->actual.dest.addr.sa;
     struct tls_multi *multi = c->c2.tls_multi;
 #ifdef TARGET_FREEBSD
     /* In Linux in P2P mode the kernel automatically removes an existing peer
@@ -494,7 +494,7 @@ dco_p2p_add_new_peer(struct context *c)
     }
 #endif
     int ret = dco_new_peer(&c->c1.tuntap->dco, multi->peer_id,
-                           c->c2.link_socket->sd, NULL, remoteaddr, NULL, NULL);
+                           c->c2.link_sockets[0]->sd, NULL, remoteaddr, NULL, NULL);
     if (ret < 0)
     {
         return ret;
@@ -527,12 +527,12 @@ dco_multi_get_localaddr(struct multi_context *m, struct multi_instance *mi,
 #if ENABLE_IP_PKTINFO
     struct context *c = &mi->context;
 
-    if (!proto_is_udp(c->c2.link_socket->info.proto) || !(c->options.sockflags & SF_USE_IP_PKTINFO))
+    if (!proto_is_udp(c->c2.link_sockets[0]->info.proto) || !(c->options.sockflags & SF_USE_IP_PKTINFO))
     {
         return false;
     }
 
-    struct link_socket_actual *actual = &c->c2.link_socket_info->lsa->actual;
+    struct link_socket_actual *actual = &c->c2.link_socket_infos[0]->lsa->actual;
 
     switch (actual->dest.addr.sa.sa_family)
     {
@@ -577,7 +577,7 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
     int peer_id = c->c2.tls_multi->peer_id;
     struct sockaddr *remoteaddr, *localaddr = NULL;
     struct sockaddr_storage local = { 0 };
-    int sd = c->c2.link_socket->sd;
+    int sd = c->c2.link_sockets[0]->sd;
 
 
     if (c->mode == CM_CHILD_TCP)
@@ -587,8 +587,8 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
     }
     else
     {
-        ASSERT(c->c2.link_socket_info->connection_established);
-        remoteaddr = &c->c2.link_socket_info->lsa->actual.dest.addr.sa;
+        ASSERT(c->c2.link_socket_infos[0]->connection_established);
+        remoteaddr = &c->c2.link_socket_infos[0]->lsa->actual.dest.addr.sa;
     }
 
     /* In server mode we need to fetch the remote addresses from the push config */

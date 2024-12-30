@@ -154,7 +154,8 @@ struct context_0
  */
 struct context_1
 {
-    struct link_socket_addr link_socket_addr;
+    int link_sockets_num;
+    struct link_socket_addr *link_socket_addrs;
     /**< Local and remote addresses on the
      *   external network. */
 
@@ -233,11 +234,11 @@ struct context_2
     /* bitmask for event status. Check event.h for possible values */
     unsigned int event_set_status;
 
-    struct link_socket *link_socket;     /* socket used for TCP/UDP connection to remote */
+    struct link_socket **link_sockets;
+    struct link_socket_info **link_socket_infos;
+
     bool link_socket_owned;
 
-    /** This variable is used instead link_socket->info for P2MP UDP childs */
-    struct link_socket_info *link_socket_info;
     const struct link_socket *accept_from; /* possibly do accept() on a parent link_socket */
 
     struct link_socket_actual *to_link_addr;    /* IP address of remote */

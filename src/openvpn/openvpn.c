@@ -91,7 +91,7 @@ tunnel_point_to_point(struct context *c)
         }
 
         /* process the I/O which triggered select */
-        process_io(c, c->c2.link_socket);
+        process_io(c, c->c2.link_sockets[0]);
         P2P_CHECK_SIG();
 
         perf_pop();

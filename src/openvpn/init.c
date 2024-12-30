@@ -536,12 +536,12 @@ next_connection_entry(struct context *c)
         {
             /* Check if there is another resolved address to try for
              * the current connection */
-            if (c->c1.link_socket_addr.current_remote
-                && c->c1.link_socket_addr.current_remote->ai_next
+            if (c->c1.link_socket_addrs[0].current_remote
+                && c->c1.link_socket_addrs[0].current_remote->ai_next
                 && !c->options.advance_next_remote)
             {
-                c->c1.link_socket_addr.current_remote =
-                    c->c1.link_socket_addr.current_remote->ai_next;
+                c->c1.link_socket_addrs[0].current_remote =
+                    c->c1.link_socket_addrs[0].current_remote->ai_next;
             }
             else
             {
@@ -557,20 +557,20 @@ next_connection_entry(struct context *c)
                      * skipped by management on the previous loop.
                      * If so, clear the addrinfo objects as close_instance does
                      */
-                    if (c->c1.link_socket_addr.remote_list)
+                    if (c->c1.link_socket_addrs[0].remote_list)
                     {
-                        clear_remote_addrlist(&c->c1.link_socket_addr,
+                        clear_remote_addrlist(&c->c1.link_socket_addrs[0],
                                               !c->options.resolve_in_advance);
                     }
 
                     /* close_instance should have cleared the addrinfo objects */
-                    ASSERT(c->c1.link_socket_addr.current_remote == NULL);
-                    ASSERT(c->c1.link_socket_addr.remote_list == NULL);
+                    ASSERT(c->c1.link_socket_addrs[0].current_remote == NULL);
+                    ASSERT(c->c1.link_socket_addrs[0].remote_list == NULL);
                 }
                 else
                 {
-                    c->c1.link_socket_addr.current_remote =
-                        c->c1.link_socket_addr.remote_list;
+                    c->c1.link_socket_addrs[0].current_remote =
+                        c->c1.link_socket_addrs[0].remote_list;
                 }
 
                 int advance_count = 1;
@@ -735,6 +735,13 @@ uninit_proxy(struct context *c)
     uninit_proxy_dowork(c);
 }
 
+static void
+do_link_socket_addr_new(struct context *c)
+{
+    ALLOC_ARRAY_CLEAR_GC(c->c1.link_socket_addrs, struct link_socket_addr,
+                         c->c1.link_sockets_num, &c->gc);
+}
+
 void
 context_init_1(struct context *c)
 {
@@ -743,6 +750,10 @@ context_init_1(struct context *c)
     packet_id_persist_init(&c->c1.pid_persist);
 
     init_connection_list(c);
+
+    c->c1.link_sockets_num = 1;
+
+    do_link_socket_addr_new(c);
 
 #if defined(ENABLE_PKCS11)
     if (c->first_time)
@@ -1644,7 +1655,7 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
         CLEAR(local);
         actual = &get_link_socket_info(c)->lsa->actual;
         remote = actual->dest;
-        getsockname(c->c2.link_socket->sd, &local.addr.sa, &sa_len);
+        getsockname(c->c2.link_sockets[0]->sd, &local.addr.sa, &sa_len);
 #if ENABLE_IP_PKTINFO
         if (!addr_defined(&local))
         {
@@ -1770,8 +1781,8 @@ do_init_tun(struct context *c)
                             c->options.ifconfig_ipv6_local,
                             c->options.ifconfig_ipv6_netbits,
                             c->options.ifconfig_ipv6_remote,
-                            c->c1.link_socket_addr.bind_local,
-                            c->c1.link_socket_addr.remote_list,
+                            c->c1.link_socket_addrs[0].bind_local,
+                            c->c1.link_socket_addrs[0].remote_list,
                             !c->options.ifconfig_nowarn,
                             c->c2.es,
                             &c->net_ctx,
@@ -1954,17 +1965,16 @@ do_open_tun(struct context *c, int *error_flags)
         do_alloc_route_list(c);
 
         /* parse and resolve the route option list */
-        ASSERT(c->c2.link_socket);
+        ASSERT(c->c2.link_sockets[0]);
         if (c->options.routes && c->c1.route_list)
         {
             do_init_route_list(&c->options, c->c1.route_list,
-                               &c->c2.link_socket->info, c->c2.es, &c->net_ctx);
+                               &c->c2.link_sockets[0]->info, c->c2.es, &c->net_ctx);
         }
         if (c->options.routes_ipv6 && c->c1.route_ipv6_list)
         {
             do_init_route_ipv6_list(&c->options, c->c1.route_ipv6_list,
-                                    &c->c2.link_socket->info, c->c2.es,
-                                    &c->net_ctx);
+                                    &c->c2.link_sockets[0]->info, c->c2.es, &c->net_ctx);
         }
 
         /* do ifconfig */
@@ -1977,8 +1987,7 @@ do_open_tun(struct context *c, int *error_flags)
                                                  c->options.dev_type,
                                                  c->options.dev_node,
                                                  &gc);
-            do_ifconfig(c->c1.tuntap, guess, c->c2.frame.tun_mtu, c->c2.es,
-                        &c->net_ctx);
+            do_ifconfig(c->c1.tuntap, guess, c->c2.frame.tun_mtu, c->c2.es, &c->net_ctx);
         }
 
         /* possibly add routes */
@@ -1993,6 +2002,7 @@ do_open_tun(struct context *c, int *error_flags)
         /* Store the old fd inside the fd so open_tun can use it */
         c->c1.tuntap->fd = oldtunfd;
 #endif
+
         if (dco_enabled(&c->options))
         {
             ovpn_dco_init(c->mode, &c->c1.tuntap->dco);
@@ -2004,8 +2014,7 @@ do_open_tun(struct context *c, int *error_flags)
         /* set the hardware address */
         if (c->options.lladdr)
         {
-            set_lladdr(&c->net_ctx, c->c1.tuntap->actual_name, c->options.lladdr,
-                       c->c2.es);
+            set_lladdr(&c->net_ctx, c->c1.tuntap->actual_name, c->options.lladdr, c->c2.es);
         }
 
         /* do ifconfig */
@@ -2486,7 +2495,7 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
                 {
                     msg(M_NONFATAL, "dco-win doesn't yet support reopening TUN device");
                     /* prevent link_socket_close() from closing handle with WinSock API */
-                    c->c2.link_socket->sd = SOCKET_UNDEFINED;
+                    c->c2.link_sockets[0]->sd = SOCKET_UNDEFINED;
                     return false;
                 }
                 else
@@ -2709,13 +2718,23 @@ do_deferred_options(struct context *c, const unsigned int found)
     if (found & OPT_P_SOCKBUF)
     {
         msg(D_PUSH, "OPTIONS IMPORT: --sndbuf/--rcvbuf options modified");
-        link_socket_update_buffer_sizes(c->c2.link_socket, c->options.rcvbuf, c->options.sndbuf);
+
+        for (int i = 0; i < c->c1.link_sockets_num; i++)
+        {
+            link_socket_update_buffer_sizes(c->c2.link_sockets[i],
+                                            c->options.rcvbuf,
+                                            c->options.sndbuf);
+        }
     }
 
     if (found & OPT_P_SOCKFLAGS)
     {
         msg(D_PUSH, "OPTIONS IMPORT: --socket-flags option modified");
-        link_socket_update_flags(c->c2.link_socket, c->options.sockflags);
+        for (int i = 0; i < c->c1.link_sockets_num; i++)
+        {
+            link_socket_update_flags(c->c2.link_sockets[i],
+                                     c->options.sockflags);
+        }
     }
 
     if (found & OPT_P_PERSIST)
@@ -3791,9 +3810,60 @@ do_init_fragment(struct context *c)
 static void
 do_link_socket_new(struct context *c)
 {
-    ASSERT(!c->c2.link_socket);
-    c->c2.link_socket = link_socket_new();
+    ASSERT(!c->c2.link_sockets);
+
+    ALLOC_ARRAY_GC(c->c2.link_sockets, struct link_socket *,
+                   c->c1.link_sockets_num, &c->c2.gc);
+
+    for (int i = 0; i < c->c1.link_sockets_num; i++)
+    {
+        c->c2.link_sockets[i] = link_socket_new();
+    }
     c->c2.link_socket_owned = true;
+}
+
+/*
+ * bind TCP/UDP sockets
+ */
+static void
+do_init_socket_phase1(struct context *c)
+{
+    for (int i = 0; i < c->c1.link_sockets_num; i++)
+    {
+        int mode = LS_MODE_DEFAULT;
+
+        /* mode allows CM_CHILD_TCP
+         * instances to inherit acceptable fds
+         * from a top-level parent */
+        if (c->options.mode == MODE_SERVER)
+        {
+            /* initializing listening socket */
+            if (c->mode == CM_TOP)
+            {
+                mode = LS_MODE_TCP_LISTEN;
+            }
+            /* initializing socket to client */
+            else if (c->mode == CM_CHILD_TCP)
+            {
+                mode = LS_MODE_TCP_ACCEPT_FROM;
+            }
+        }
+
+        /* init each socket with its specific args */
+        link_socket_init_phase1(c, i, mode);
+    }
+}
+
+/*
+ * finalize TCP/UDP sockets
+ */
+static void
+do_init_socket_phase2(struct context *c)
+{
+    for (int i = 0; i < c->c1.link_sockets_num; i++)
+    {
+        link_socket_init_phase2(c, c->c2.link_sockets[i]);
+    }
 }
 
 /*
@@ -3951,15 +4021,21 @@ do_close_link_socket(struct context *c)
     /* in dco-win case, link socket is a tun handle which is
      * closed in do_close_tun(). Set it to UNDEFINED so
      * we won't use WinSock API to close it. */
-    if (tuntap_is_dco_win(c->c1.tuntap) && c->c2.link_socket)
+    if (tuntap_is_dco_win(c->c1.tuntap) && c->c2.link_sockets)
     {
-        c->c2.link_socket->sd = SOCKET_UNDEFINED;
+        for (int i = 0; i < c->c1.link_sockets_num; i++)
+        {
+            c->c2.link_sockets[i]->sd = SOCKET_UNDEFINED;
+        }
     }
 
-    if (c->c2.link_socket && c->c2.link_socket_owned)
+    if (c->c2.link_sockets && c->c2.link_socket_owned)
     {
-        link_socket_close(c->c2.link_socket);
-        c->c2.link_socket = NULL;
+        for (int i = 0; i < c->c1.link_sockets_num; i++)
+        {
+            link_socket_close(c->c2.link_sockets[i]);
+        }
+        c->c2.link_sockets = NULL;
     }
 
 
@@ -3970,28 +4046,36 @@ do_close_link_socket(struct context *c)
           && ( (c->options.persist_remote_ip)
                ||
                ( c->sig->source != SIG_SOURCE_HARD
-                 && ((c->c1.link_socket_addr.current_remote
-                      && c->c1.link_socket_addr.current_remote->ai_next)
+                 && ((c->c1.link_socket_addrs[0].current_remote
+                      && c->c1.link_socket_addrs[0].current_remote->ai_next)
                      || c->options.no_advance))
                )))
     {
-        clear_remote_addrlist(&c->c1.link_socket_addr, !c->options.resolve_in_advance);
+        clear_remote_addrlist(&c->c1.link_socket_addrs[0],
+                              !c->options.resolve_in_advance);
     }
 
     /* Clear the remote actual address when persist_remote_ip is not in use */
     if (!(c->sig->signal_received == SIGUSR1 && c->options.persist_remote_ip))
     {
-        CLEAR(c->c1.link_socket_addr.actual);
+        for (int i = 0; i < c->c1.link_sockets_num; i++)
+        {
+            CLEAR(c->c1.link_socket_addrs[i].actual);
+        }
     }
 
     if (!(c->sig->signal_received == SIGUSR1 && c->options.persist_local_ip))
     {
-        if (c->c1.link_socket_addr.bind_local && !c->options.resolve_in_advance)
+        for (int i = 0; i < c->c1.link_sockets_num; i++)
         {
-            freeaddrinfo(c->c1.link_socket_addr.bind_local);
-        }
+            if (c->c1.link_socket_addrs[i].bind_local
+                && !c->options.resolve_in_advance)
+            {
+                freeaddrinfo(c->c1.link_socket_addrs[i].bind_local);
+            }
 
-        c->c1.link_socket_addr.bind_local = NULL;
+            c->c1.link_socket_addrs[i].bind_local = NULL;
+        }
     }
 }
 
@@ -4474,7 +4558,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
 {
     const struct options *options = &c->options;
     const bool child = (c->mode == CM_CHILD_TCP || c->mode == CM_CHILD_UDP);
-    int link_socket_mode = LS_MODE_DEFAULT;
 
     /* init garbage collection level */
     gc_init(&c->c2.gc);
@@ -4514,21 +4597,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
 
     /* map in current connection entry */
     next_connection_entry(c);
-
-    /* link_socket_mode allows CM_CHILD_TCP
-     * instances to inherit acceptable fds
-     * from a top-level parent */
-    if (c->options.ce.proto == PROTO_TCP_SERVER)
-    {
-        if (c->mode == CM_TOP)
-        {
-            link_socket_mode = LS_MODE_TCP_LISTEN;
-        }
-        else if (c->mode == CM_CHILD_TCP)
-        {
-            link_socket_mode = LS_MODE_TCP_ACCEPT_FROM;
-        }
-    }
 
     /* should we disable paging? */
     if (c->first_time && options->mlock)
@@ -4672,7 +4740,7 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     /* bind the TCP/UDP socket */
     if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
     {
-        link_socket_init_phase1(c, link_socket_mode);
+        do_init_socket_phase1(c);
     }
 
     /* initialize tun/tap device object,
@@ -4715,15 +4783,18 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     /* finalize the TCP/UDP socket */
     if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
     {
-        link_socket_init_phase2(c);
+        do_init_socket_phase2(c);
 
 
         /* Update dynamic frame calculation as exact transport socket information
          * (IP vs IPv6) may be only available after socket phase2 has finished.
          * This is only needed for --static or no crypto, NCP will recalculate this
          * in tls_session_update_crypto_params (P2MP) */
-        frame_calculate_dynamic(&c->c2.frame, &c->c1.ks.key_type, &c->options,
-                                get_link_socket_info(c));
+        for (int i = 0; i < c->c1.link_sockets_num; i++)
+        {
+            frame_calculate_dynamic(&c->c2.frame, &c->c1.ks.key_type, &c->options,
+                                    &c->c2.link_sockets[i]->info);
+        }
     }
 
     /*
@@ -4851,7 +4922,8 @@ close_instance(struct context *c)
 
 void
 inherit_context_child(struct context *dest,
-                      const struct context *src)
+                      const struct context *src,
+                      struct link_socket *ls)
 {
     CLEAR(*dest);
 
@@ -4864,6 +4936,8 @@ inherit_context_child(struct context *dest,
 
     /* c1 init */
     packet_id_persist_init(&dest->c1.pid_persist);
+    dest->c1.link_sockets_num = 1;
+    do_link_socket_addr_new(dest);
 
     dest->c1.ks.key_type = src->c1.ks.key_type;
     /* inherit SSL context */
@@ -4888,7 +4962,7 @@ inherit_context_child(struct context *dest,
          * The CM_TOP context does the socket listen(),
          * and the CM_CHILD_TCP context does the accept().
          */
-        dest->c2.accept_from = src->c2.link_socket;
+        dest->c2.accept_from = ls;
     }
 
 #ifdef ENABLE_PLUGIN
@@ -4903,27 +4977,32 @@ inherit_context_child(struct context *dest,
      */
     dest->c1.tuntap = src->c1.tuntap;
 
+    /* UDP inherits some extra things which TCP does not */
+    if (dest->mode == CM_CHILD_UDP)
+    {
+        ASSERT(!dest->c2.link_sockets);
+
+        /* inherit buffers */
+        dest->c2.buffers = src->c2.buffers;
+
+        ALLOC_ARRAY_GC(dest->c2.link_sockets, struct link_socket *, 1, &dest->gc);
+
+        /* inherit parent link_socket and tuntap */
+        dest->c2.link_sockets[0] = ls;
+
+        ALLOC_ARRAY_GC(dest->c2.link_socket_infos, struct link_socket_info *, 1, &dest->gc);
+        ALLOC_OBJ_GC(dest->c2.link_socket_infos[0], struct link_socket_info, &dest->gc);
+        *dest->c2.link_socket_infos[0] = ls->info;
+
+        /* locally override some link_socket_info fields */
+        dest->c2.link_socket_infos[0]->lsa = &dest->c1.link_socket_addrs[0];
+        dest->c2.link_socket_infos[0]->connection_established = false;
+    }
+
     init_instance(dest, src->c2.es, CC_NO_CLOSE | CC_USR1_TO_HUP);
     if (IS_SIG(dest))
     {
         return;
-    }
-
-    /* UDP inherits some extra things which TCP does not */
-    if (dest->mode == CM_CHILD_UDP)
-    {
-        /* inherit buffers */
-        dest->c2.buffers = src->c2.buffers;
-
-        /* inherit parent link_socket and tuntap */
-        dest->c2.link_socket = src->c2.link_socket;
-
-        ALLOC_OBJ_GC(dest->c2.link_socket_info, struct link_socket_info, &dest->gc);
-        *dest->c2.link_socket_info = src->c2.link_socket->info;
-
-        /* locally override some link_socket_info fields */
-        dest->c2.link_socket_info->lsa = &dest->c1.link_socket_addr;
-        dest->c2.link_socket_info->connection_established = false;
     }
 }
 
