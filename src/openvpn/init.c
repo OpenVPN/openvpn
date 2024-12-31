@@ -4018,21 +4018,18 @@ do_close_free_key_schedule(struct context *c, bool free_ssl_ctx)
 static void
 do_close_link_socket(struct context *c)
 {
-    /* in dco-win case, link socket is a tun handle which is
-     * closed in do_close_tun(). Set it to UNDEFINED so
-     * we won't use WinSock API to close it. */
-    if (tuntap_is_dco_win(c->c1.tuntap) && c->c2.link_sockets)
-    {
-        for (int i = 0; i < c->c1.link_sockets_num; i++)
-        {
-            c->c2.link_sockets[i]->sd = SOCKET_UNDEFINED;
-        }
-    }
-
     if (c->c2.link_sockets && c->c2.link_socket_owned)
     {
         for (int i = 0; i < c->c1.link_sockets_num; i++)
         {
+            /* in dco-win case, link socket is a tun handle which is
+             * closed in do_close_tun(). Set it to UNDEFINED so
+             * we won't use WinSock API to close it. */
+            if (tuntap_is_dco_win(c->c1.tuntap))
+            {
+                c->c2.link_sockets[i]->sd = SOCKET_UNDEFINED;
+            }
+
             link_socket_close(c->c2.link_sockets[i]);
         }
         c->c2.link_sockets = NULL;
