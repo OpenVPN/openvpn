@@ -404,7 +404,7 @@ static void
 run_data_channel_with_cipher_end(const char *cipher)
 {
     struct crypto_options co = init_crypto_options(cipher, "none");
-    co.flags |= CO_AEAD_TAG_AT_THE_END;
+    co.flags |= CO_EPOCH_DATA_KEY_FORMAT;
     do_data_channel_round_trip(&co);
     uninit_crypto_options(&co);
 }

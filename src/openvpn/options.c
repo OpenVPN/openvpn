@@ -8659,9 +8659,9 @@ add_option(struct options *options,
                 options->imported_protocol_flags |= CO_USE_DYNAMIC_TLS_CRYPT;
             }
 #endif
-            else if (streq(p[j], "aead-tag-end"))
+            else if (streq(p[j], "aead-epoch"))
             {
-                options->imported_protocol_flags |= CO_AEAD_TAG_AT_THE_END;
+                options->imported_protocol_flags |= CO_EPOCH_DATA_KEY_FORMAT;
             }
             else
             {

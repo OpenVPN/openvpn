@@ -689,9 +689,9 @@ prepare_push_reply(struct context *c, struct gc_arena *gc,
         buf_printf(&proto_flags, " dyn-tls-crypt");
     }
 
-    if (o->imported_protocol_flags & CO_AEAD_TAG_AT_THE_END)
+    if (o->imported_protocol_flags & CO_EPOCH_DATA_KEY_FORMAT)
     {
-        buf_printf(&proto_flags, " aead-tag-end");
+        buf_printf(&proto_flags, " aead-epoch");
     }
 
     if (buf_len(&proto_flags) > 0)

@@ -127,7 +127,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work,
     dmsg(D_PACKET_CONTENT, "ENCRYPT AD: %s",
          format_hex(BPTR(&work), BLEN(&work), 0, &gc));
 
-    if (!(opt->flags & CO_AEAD_TAG_AT_THE_END))
+    if (!(opt->flags & CO_EPOCH_DATA_KEY_FORMAT))
     {
         /* Reserve space for authentication tag */
         mac_out = buf_write_alloc(&work, mac_len);
@@ -148,7 +148,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work,
     ASSERT(buf_inc_len(&work, outlen));
 
     /* if the tag is at end the end, allocate it now */
-    if (opt->flags & CO_AEAD_TAG_AT_THE_END)
+    if (opt->flags & CO_EPOCH_DATA_KEY_FORMAT)
     {
         /* Reserve space for authentication tag */
         mac_out = buf_write_alloc(&work, mac_len);
@@ -479,7 +479,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
     uint8_t *tag_ptr = NULL;
     int data_len = 0;
 
-    if (opt->flags & CO_AEAD_TAG_AT_THE_END)
+    if (opt->flags & CO_EPOCH_DATA_KEY_FORMAT)
     {
         data_len = BLEN(buf) - tag_size;
         tag_ptr = BPTR(buf) + data_len;
