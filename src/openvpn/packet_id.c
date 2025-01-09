@@ -120,7 +120,8 @@ packet_id_add(struct packet_id_rec *p, const struct packet_id_net *pin)
         int64_t diff;
 
         /*
-         * If time value increases, start a new sequence number sequence.
+         * If time value increases, start a new sequence list of number
+         * sequence for the new time point.
          */
         if (!CIRC_LIST_SIZE(p->seq_list)
             || pin->time > p->time
@@ -338,6 +339,21 @@ packet_id_send_update(struct packet_id_send *p, bool long_form)
         }
         p->time = now;
         p->id = 0;
+    }
+    p->id++;
+    return true;
+}
+
+static bool
+packet_id_send_update_epoch(struct packet_id_send *p)
+{
+    if (!p->time)
+    {
+        p->time = now;
+    }
+    if (p->id == PACKET_ID_EPOCH_MAX)
+    {
+        return false;
     }
     p->id++;
     return true;
@@ -633,5 +649,45 @@ packet_id_debug_print(int msglevel,
     msg(msglevel, "%s", BSTR(&out));
     gc_free(&gc);
 }
+
+uint16_t
+packet_id_read_epoch(struct packet_id_net *pin, struct buffer *buf)
+{
+    uint64_t packet_id;
+
+
+    if (!buf_read(buf, &packet_id, sizeof(packet_id)))
+    {
+        return 0;
+    }
+
+    uint64_t id = ntohll(packet_id);
+    /* top most 16 bits */
+    uint16_t epoch = id >> 48;
+
+    pin->id = id & PACKET_ID_MASK;
+    return epoch;
+}
+
+bool
+packet_id_write_epoch(struct packet_id_send *p, uint16_t epoch, struct buffer *buf)
+{
+    if (!packet_id_send_update_epoch(p))
+    {
+        return false;
+    }
+
+    /* Highest 16 bits of packet id is the epoch.
+     *
+     * The lower 48 bits are the per-epoch packet id counter. */
+    uint64_t net_id = ((uint64_t) epoch) << 48 | p->id;
+
+    /* convert to network order. This ensures that the highest bytes
+     * also become the first ones on the wire*/
+    net_id = htonll(net_id);
+
+    return buf_write(buf, &net_id, sizeof(net_id));
+}
+
 
 #endif /* ifdef ENABLE_DEBUG */
