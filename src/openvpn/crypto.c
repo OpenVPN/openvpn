@@ -916,14 +916,27 @@ key_ctx_update_implicit_iv(struct key_ctx *ctx, const struct key_parameters *key
     if (cipher_ctx_mode_aead(ctx->cipher))
     {
         size_t impl_iv_len = 0;
+        size_t impl_iv_offset = 0;
         ASSERT(cipher_ctx_iv_length(ctx->cipher) >= OPENVPN_AEAD_MIN_IV_LEN);
-        impl_iv_len = cipher_ctx_iv_length(ctx->cipher) - sizeof(packet_id_type);
-        ASSERT(impl_iv_len + sizeof(packet_id_type) <= OPENVPN_MAX_IV_LENGTH);
+
+        /* Epoch keys use XOR of full IV length with the packet id to generate
+         * IVs. Old data format uses concatenation instead (XOR with 0 for the
+         * first 4 bytes (sizeof(packet_id_type) */
+        if (key->epoch)
+        {
+            impl_iv_len = cipher_ctx_iv_length(ctx->cipher);
+            impl_iv_offset = 0;
+        }
+        else
+        {
+            impl_iv_len = cipher_ctx_iv_length(ctx->cipher) - sizeof(packet_id_type);
+            impl_iv_offset = sizeof(packet_id_type);
+        }
+        ASSERT(impl_iv_offset + impl_iv_len <= OPENVPN_MAX_IV_LENGTH);
         ASSERT(impl_iv_len <= MAX_HMAC_KEY_LENGTH);
         ASSERT(impl_iv_len <= key->hmac_size);
         CLEAR(ctx->implicit_iv);
-        /* The first bytes of the IV are filled with the packet id */
-        memcpy(ctx->implicit_iv + sizeof(packet_id_type), key->hmac, impl_iv_len);
+        memcpy(ctx->implicit_iv + impl_iv_offset, key->hmac, impl_iv_len);
     }
 }
 
@@ -972,6 +985,7 @@ init_key_ctx(struct key_ctx *ctx, const struct key_parameters *key,
              hmac_ctx_size(ctx->hmac));
 
     }
+    ctx->epoch = key->epoch;
     gc_free(&gc);
 }
 
@@ -984,6 +998,7 @@ init_key_bi_ctx_send(struct key_ctx *ctx, const struct key_parameters *key_param
     snprintf(log_prefix, sizeof(log_prefix), "Outgoing %s", name);
     init_key_ctx(ctx, key_params, kt, OPENVPN_OP_ENCRYPT, log_prefix);
     key_ctx_update_implicit_iv(ctx, key_params);
+    ctx->epoch = key_params->epoch;
 }
 
 void
@@ -995,6 +1010,7 @@ init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key_parameters *key_param
     snprintf(log_prefix, sizeof(log_prefix), "Incoming %s", name);
     init_key_ctx(ctx, key_params, kt, OPENVPN_OP_DECRYPT, log_prefix);
     key_ctx_update_implicit_iv(ctx, key_params);
+    ctx->epoch = key_params->epoch;
 }
 
 void
@@ -1032,6 +1048,7 @@ free_key_ctx(struct key_ctx *ctx)
     }
     CLEAR(ctx->implicit_iv);
     ctx->plaintext_blocks = 0;
+    ctx->epoch = 0;
 }
 
 void

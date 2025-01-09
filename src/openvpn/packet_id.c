@@ -77,6 +77,21 @@ packet_id_debug(int msglevel,
 #endif
 }
 
+static void
+packet_id_init_recv(struct packet_id_rec *rec, int seq_backtrack, int time_backtrack, const char *name, int unit)
+{
+    rec->name = name;
+    rec->unit = unit;
+    if (seq_backtrack)
+    {
+        ASSERT(MIN_SEQ_BACKTRACK <= seq_backtrack && seq_backtrack <= MAX_SEQ_BACKTRACK);
+        ASSERT(MIN_TIME_BACKTRACK <= time_backtrack && time_backtrack <= MAX_TIME_BACKTRACK);
+        CIRC_LIST_ALLOC(rec->seq_list, struct seq_list, seq_backtrack);
+        rec->seq_backtrack = seq_backtrack;
+        rec->time_backtrack = time_backtrack;
+    }
+    rec->initialized = true;
+}
 void
 packet_id_init(struct packet_id *p, int seq_backtrack, int time_backtrack, const char *name, int unit)
 {
@@ -87,17 +102,25 @@ packet_id_init(struct packet_id *p, int seq_backtrack, int time_backtrack, const
     ASSERT(p);
     CLEAR(*p);
 
-    p->rec.name = name;
-    p->rec.unit = unit;
-    if (seq_backtrack)
-    {
-        ASSERT(MIN_SEQ_BACKTRACK <= seq_backtrack && seq_backtrack <= MAX_SEQ_BACKTRACK);
-        ASSERT(MIN_TIME_BACKTRACK <= time_backtrack && time_backtrack <= MAX_TIME_BACKTRACK);
-        CIRC_LIST_ALLOC(p->rec.seq_list, struct seq_list, seq_backtrack);
-        p->rec.seq_backtrack = seq_backtrack;
-        p->rec.time_backtrack = time_backtrack;
-    }
-    p->rec.initialized = true;
+    packet_id_init_recv(&p->rec, seq_backtrack, time_backtrack, name, unit);
+}
+
+void
+packet_id_move_recv(struct packet_id_rec *dest, struct packet_id_rec *src)
+{
+    ASSERT(src);
+    ASSERT(dest);
+    /* clear free any old data in rec list */
+    free(dest->seq_list);
+    CLEAR(*dest);
+
+    /* Copy data to dest */
+    *dest = *src;
+
+    /* Reinitalise the source */
+    CLEAR(*src);
+    packet_id_init_recv(src, dest->seq_backtrack, dest->time_backtrack,
+                        dest->name, dest->unit);
 }
 
 void

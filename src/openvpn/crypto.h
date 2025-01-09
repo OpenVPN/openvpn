@@ -171,6 +171,11 @@ struct key_parameters {
 
     /** Number of bytes set in the HMac key material */
     int hmac_size;
+
+    /** the epoch of the key. Only defined/non zero if key parameters
+     * represent a data channel epoch key parameters.
+     * Other uses of this struct leave this zero. */
+    uint16_t epoch;
 };
 
 /**
@@ -182,6 +187,11 @@ struct key_parameters {
  */
 void
 key_parameters_from_key(struct key_parameters *key_params, const struct key *key);
+
+struct epoch_key {
+    uint8_t epoch_key[SHA256_DIGEST_LENGTH];
+    uint16_t epoch;
+};
 
 /**
  * Container for one set of cipher and/or HMAC contexts.
@@ -211,6 +221,10 @@ struct key_ctx
     uint64_t plaintext_blocks;
     /** number of failed verification using this cipher */
     uint64_t failed_verifications;
+    /** OpenVPN data channel epoch, this variable holds the
+     *  epoch number this key belongs to. Note that epoch 0 is not used
+     *  and epoch is always non-zero for epoch key contexts */
+    uint16_t epoch;
 };
 
 #define KEY_DIRECTION_BIDIRECTIONAL 0 /* same keys for both directions */
@@ -280,6 +294,39 @@ struct crypto_options
     /**< OpenSSL cipher and HMAC contexts for
      *   both sending and receiving
      *   directions. */
+
+    /** last epoch_key used for generation of the current send data keys.
+     * As invariant, the epoch of epoch_key_send is always kept >= the epoch of
+     * epoch_key_recv */
+    struct epoch_key epoch_key_send;
+
+    /** epoch_key used for the highest receive epoch keys */
+    struct epoch_key epoch_key_recv;
+
+    /** the key_type that is used to generate the epoch keys */
+    struct key_type epoch_key_type;
+
+    /** The limit for AEAD cipher, this is the sum of packets + blocks
+     * that are allowed to be used. Will switch to a new epoch if this
+     * limit is reached*/
+    uint64_t aead_usage_limit;
+
+    /** Keeps the future epoch data keys for decryption. The current one
+     * that is expected to be used is stored in key_ctx_bi.
+     *
+     * for encryption keys this is not needed as we only need the current
+     * and move to another key by iteration and we never need to go back
+     * to an older key.
+     */
+    struct key_ctx *epoch_data_keys_future;
+
+    /** number of keys stored in \c epoch_data_keys_future */
+    uint16_t epoch_data_keys_future_count;
+
+    /** The old key before the sender switched to a new epoch data key */
+    struct key_ctx epoch_retiring_data_receive_key;
+    struct packet_id_rec epoch_retiring_key_pid_recv;
+
     struct packet_id packet_id; /**< Current packet ID state for both
                                  *   sending and receiving directions.
                                  *
@@ -288,7 +335,7 @@ struct crypto_options
                                  *
                                  *   The packet id also used as the IV
                                  *   for AEAD/OFB/CFG ciphers.
-                                 *   */
+                                 */
     struct packet_id_persist *pid_persist;
     /**< Persistent packet ID state for
      *   keeping state between successive
@@ -482,7 +529,8 @@ bool openvpn_decrypt(struct buffer *buf, struct buffer work,
  * @return true if packet ID is validated to be not a replay, false otherwise.
  */
 bool crypto_check_replay(struct crypto_options *opt,
-                         const struct packet_id_net *pin, const char *error_prefix,
+                         const struct packet_id_net *pin,
+                         const char *error_prefix,
                          struct gc_arena *gc);
 
 
