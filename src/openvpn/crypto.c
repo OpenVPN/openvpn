@@ -405,7 +405,13 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
 {
     static const char error_prefix[] = "AEAD Decrypt error";
     struct packet_id_net pin = { 0 };
-    const struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
+    struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
+
+    if (cipher_decrypt_verify_fail_exceeded(ctx))
+    {
+        CRYPT_DROP("Decryption failed verification limit reached.");
+    }
+
     int outlen;
     struct gc_arena gc;
 
@@ -511,6 +517,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work,
     if (!cipher_ctx_final_check_tag(ctx->cipher, BPTR(&work) + outlen,
                                     &outlen, tag_ptr, tag_size))
     {
+        ctx->failed_verifications++;
         CRYPT_DROP("packet tag authentication failed");
     }
     ASSERT(buf_inc_len(&work, outlen));
