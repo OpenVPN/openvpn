@@ -18,7 +18,7 @@ Server setup
 2. Generate a self-signed certificate for the server:
    ::
 
-    openssl req -x509 -newkey ec:<(openssl ecparam -name secp384r1) -keyout server.key -out server.crt -nodes -sha256 -days 3650 -subj '/CN=server'
+    openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout server.key -out server.crt -nodes -sha256 -days 3650 -subj '/CN=server'
 
 3. Generate SHA256 fingerprint of the server certificate
 
@@ -28,7 +28,7 @@ Server setup
 
     openssl x509 -fingerprint -sha256 -in server.crt -noout
 
-   This output something similar to:
+   This outputs something similar to:
    ::
 
      SHA256 Fingerprint=00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff
@@ -64,6 +64,12 @@ Server setup
     # Ping every 60s, restart if no data received for 5 minutes
     keepalive 60 300
 
+    # Uncomment the line below if you want to have persistent IP addresses
+    # ifconfig-pool-persist  /etc/openvpn/server/ipp.txt
+
+    # Uncomment the line below to push a DNS server to clients
+    # push "dhcp-option DNS 1.1.1.1"
+
 5. Add at least one client as described in the client section.
 
 6. Start the server.
@@ -85,7 +91,7 @@ Adding a client
    different name for each client.
    ::
 
-      openssl req -x509 -newkey ec:<(openssl ecparam -name secp384r1) -nodes -sha256 -days 3650 -subj '/CN=alice'
+      openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout - -nodes -sha256 -days 3650 -subj '/CN=alice'
 
    This generate a certificate and a key for the client. The output of the command will look
    something like this:
@@ -162,7 +168,7 @@ Adding a client
       <peer-fingerprint>
       ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00:ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00
       99:88:77:66:55:44:33:22:11:00:ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00:88:77:66:55:44:33
-      </peer-fingperint>
+      </peer-fingerprint>
 
 6. (optional) if the client is an older client that does not support the
    :code:`peer-fingerprint` (e.g. OpenVPN 2.5 and older, OpenVPN Connect 3.3
