@@ -669,7 +669,7 @@ warn_on_use_of_common_subnets(openvpn_net_ctx_t *ctx)
 {
     struct gc_arena gc = gc_new();
     struct route_gateway_info rgi;
-    const int needed = (RGI_ADDR_DEFINED|RGI_NETMASK_DEFINED);
+    const unsigned int needed = (RGI_ADDR_DEFINED|RGI_NETMASK_DEFINED);
 
     get_default_gateway(&rgi, ctx);
     if ((rgi.flags & needed) == needed)

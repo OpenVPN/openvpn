@@ -3132,8 +3132,7 @@ static const struct proto_names proto_names[] = {
 int
 ascii2proto(const char *proto_name)
 {
-    int i;
-    for (i = 0; i < SIZE(proto_names); ++i)
+    for (size_t i = 0; i < SIZE(proto_names); ++i)
     {
         if (!strcmp(proto_name, proto_names[i].short_form))
         {
@@ -3146,8 +3145,7 @@ ascii2proto(const char *proto_name)
 sa_family_t
 ascii2af(const char *proto_name)
 {
-    int i;
-    for (i = 0; i < SIZE(proto_names); ++i)
+    for (size_t i = 0; i < SIZE(proto_names); ++i)
     {
         if (!strcmp(proto_name, proto_names[i].short_form))
         {
@@ -3160,8 +3158,7 @@ ascii2af(const char *proto_name)
 const char *
 proto2ascii(int proto, sa_family_t af, bool display_form)
 {
-    unsigned int i;
-    for (i = 0; i < SIZE(proto_names); ++i)
+    for (size_t i = 0; i < SIZE(proto_names); ++i)
     {
         if (proto_names[i].proto_af == af && proto_names[i].proto == proto)
         {
@@ -3183,9 +3180,8 @@ const char *
 proto2ascii_all(struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(256, gc);
-    int i;
 
-    for (i = 0; i < SIZE(proto_names); ++i)
+    for (size_t i = 0; i < SIZE(proto_names); ++i)
     {
         if (i)
         {

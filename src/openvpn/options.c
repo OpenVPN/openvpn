@@ -1448,7 +1448,7 @@ foreign_options_copy_dns(struct options *o, struct env_set *es)
 
     while (server)
     {
-        for (int i = 0; i < server->addr_count; ++i)
+        for (size_t i = 0; i < server->addr_count; ++i)
         {
             if (server->addr[i].family == AF_INET)
             {
