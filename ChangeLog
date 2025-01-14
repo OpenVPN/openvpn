@@ -1,5 +1,47 @@
 OpenVPN ChangeLog
-Copyright (C) 2002-2024 OpenVPN Inc <sales@openvpn.net>
+Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
+
+2025.01.15 -- Version 2.6.13
+
+Arne Schwabe (2):
+      Refuse clients if username or password is longer than USER_PASS_LEN
+      Improve peer fingerprint documentation
+
+Ben Boeckel (1):
+      console_systemd: remove the timeout when using 'systemd-ask-password'
+
+Frank Lichtenheld (5):
+      Fix missing spaces in various messages
+      GHA: Update macOS runners
+      GHA: Simplify macOS builds
+      Various typo fixes
+      forward: Fix potential unaligned access in drop_if_recursive_routing
+
+Gert Doering (2):
+      send uname() release as IV_PLAT_VER= on non-windows versions
+      preparing release 2.6.13
+
+Gianmarco De Gregori (1):
+      Route: remove incorrect routes on exit
+
+Lev Stipakov (1):
+      Use a more robust way to get dco-win version
+
+Ralf Lici (1):
+      Fix check_addr_clash argument order
+
+Rémi Farault (1):
+      Add calls to nvlist_destroy to avoid leaks
+
+Selva Nair (3):
+      proxy.c: Clear sensitive data after use
+      Protect cached username, password and token on client
+      Fix more of uninitialized struct user_pass local vars
+
+corubba (2):
+      Fix IPv6 in port-share journal
+      Fix port-share journal doc
+
 
 2024.07.17 -- Version 2.6.12
 

@@ -1,3 +1,70 @@
+Overview of changes in 2.6.13
+=============================
+New features
+------------
+- on non-windows clients (MacOS, Linux, Unix) send "release" string from
+  uname() call as IV_PLAT_VER= to server - while highly OS specific this
+  is still helpful to keep track of OS versions used on the client side
+  (GH #637)
+
+- Windows: protect cached username, password and token in client memory
+  (using the CryptProtectMemory() windows API
+
+- Windows: use new API to get dco-win driver version from driver
+  (newly introduced non-exclusive control device)  (GH: ovpn-dco-win #76)
+
+- Linux: pass --timeout=0 argument to systemd-ask-password, to avoid
+  default timeout of 90 seconds ("console prompting also has no timeout")
+  (GH #649)
+
+
+Bug fixes
+---------
+- fix potentially unaligned access in drop_if_recursive_routing on
+  Linux (ASAN)
+
+- correct documentation for port-share journal
+
+- fix logging of IPv6 addresses in port-share journal
+
+- fix various typos in messages, documentation, comments and examples
+  (GH #442, GH #644)
+
+- FreeBSD DCO: fix memory leaks in nvlist handling (GH #636)
+
+- route handling: correctly handle case of "route installation fails"
+  in the face of an already-existing route - previously, OpenVPN would
+  remove the "other" route on exit, incorrectly changing system state.
+
+- fix generation of warning messages for overlapping --local/--remote
+  and --ifconfig addresses
+
+- purge proxy authentication credentials from memory after use
+  (if --auth-nocache is in use)
+
+- fix missing space in various (long and wrapped) msg() calls
+
+
+Code maintenance
+----------------
+- improve documentation/examples for <peer-fingerprint> feature
+
+- simplify Github Action macOS build setup
+
+- update Github Action macOS runners (remove macOS 12, add macOS 15)
+
+- fix a number of uninitialized "struct user_pass" local variables
+  (no impact beyond "compiler warning", but future-proofing the code)
+
+
+Security fixes
+--------------
+- improve server-side handling of clients sending usernames or passwords
+  longer than USER_PASS_LEN - this would not result in a crash, buffer
+  overflow or other security issues, but the server would then misparse
+  incoming IV_* variables and produce misleading error messages.
+
+
 Overview of changes in 2.6.12
 =============================
 Bug fixes
