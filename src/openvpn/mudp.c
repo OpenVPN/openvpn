@@ -54,7 +54,9 @@ send_hmac_reset_packet(struct multi_context *m,
 
     struct context *c = &m->top;
 
-    buf_reset_len(&c->c2.buffers->aux_buf);
+    /* dco-win server requires prepend with sockaddr, so preserve offset */
+    ASSERT(buf_init(&c->c2.buffers->aux_buf, buf.offset));
+
     buf_copy(&c->c2.buffers->aux_buf, &buf);
     m->hmac_reply = c->c2.buffers->aux_buf;
     m->hmac_reply_dest = &m->top.c2.from;
