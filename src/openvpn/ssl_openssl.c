@@ -1669,7 +1669,11 @@ tls_ctx_use_external_ec_key(struct tls_root_ctx *ctx, EVP_PKEY *pkey)
 
     /* Among init methods, we only need the finish method */
     EC_KEY_METHOD_set_init(ec_method, NULL, openvpn_extkey_ec_finish, NULL, NULL, NULL, NULL);
+#ifdef OPENSSL_IS_AWSLC
+    EC_KEY_METHOD_set_sign(ec_method, ecdsa_sign, NULL, ecdsa_sign_sig);
+#else
     EC_KEY_METHOD_set_sign(ec_method, ecdsa_sign, ecdsa_sign_setup, ecdsa_sign_sig);
+#endif
 
     ec = EC_KEY_dup(EVP_PKEY_get0_EC_KEY(pkey));
     if (!ec)
@@ -1895,9 +1899,11 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file,
             }
             sk_X509_INFO_pop_free(info_stack, X509_INFO_free);
         }
-
+        
+        int cnum;
         if (tls_server)
         {
+            cnum = sk_X509_NAME_num(cert_names);
             SSL_CTX_set_client_CA_list(ctx->ctx, cert_names);
         }
 
@@ -1910,7 +1916,6 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file,
 
         if (tls_server)
         {
-            int cnum = sk_X509_NAME_num(cert_names);
             if (cnum != added)
             {
                 crypto_msg(M_FATAL, "Cannot load CA certificate file %s (only %d "
@@ -2558,7 +2563,7 @@ show_available_tls_ciphers_list(const char *cipher_list,
         crypto_msg(M_FATAL, "Cannot create SSL object");
     }
 
-#if OPENSSL_VERSION_NUMBER < 0x1010000fL
+#if OPENSSL_VERSION_NUMBER < 0x1010000fL || defined(OPENSSL_IS_AWSLC)
     STACK_OF(SSL_CIPHER) *sk = SSL_get_ciphers(ssl);
 #else
     STACK_OF(SSL_CIPHER) *sk = SSL_get1_supported_ciphers(ssl);
