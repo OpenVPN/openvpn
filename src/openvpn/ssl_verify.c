@@ -153,11 +153,11 @@ tls_lock_username(struct tls_multi *multi, const char *username)
 {
     if (multi->locked_username)
     {
-        if (!username || strcmp(username, multi->locked_username))
+        if (strcmp(username, multi->locked_username) != 0)
         {
             msg(D_TLS_ERRORS, "TLS Auth Error: username attempted to change from '%s' to '%s' -- tunnel disabled",
                 multi->locked_username,
-                np(username));
+                username);
 
             /* disable the tunnel */
             tls_deauthenticate(multi);
@@ -166,10 +166,7 @@ tls_lock_username(struct tls_multi *multi, const char *username)
     }
     else
     {
-        if (username)
-        {
-            multi->locked_username = string_alloc(username, NULL);
-        }
+        multi->locked_username = string_alloc(username, NULL);
     }
     return true;
 }
