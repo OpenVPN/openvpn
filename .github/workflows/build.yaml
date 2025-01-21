@@ -424,3 +424,61 @@ jobs:
         run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
       - name: make check
         run: make -j3 check VERBOSE=1
+
+  aws-lc:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04]
+        ssllib: [ awslc ]
+        build: [ normal, asan ]
+        include:
+          - build: asan
+            cflags: "-fsanitize=address -fno-sanitize-recover=all  -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
+            ldflags: -fsanitize=address -fno-sanitize-recover=all
+            cc: clang
+          - build: normal
+            cflags: "-O2 -g"
+            ldflags: ""
+            cc: gcc
+
+    name: "${{matrix.cc}} ${{matrix.build}} - ${{matrix.os}} - ${{matrix.ssllib}}"
+    runs-on: ${{matrix.os}}
+    env:
+      CFLAGS: ${{ matrix.cflags }}
+      LDFLAGS: ${{ matrix.ldflags }}
+      CC: ${{matrix.cc}}
+      UBSAN_OPTIONS: print_stacktrace=1
+      AWS_LC_INSTALL: ${{ github.workspace }}/aws-lc/aws-lc-install
+
+    steps:
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y cmake gcc ninja-build golang make liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html clang libcmocka-dev python3-docutils python3-jinja2 python3-jsonschema libtool automake autoconf pkg-config libcap-ng-dev libnl-genl-3-dev
+      - name: "AWS-LC: checkout"
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: aws-lc
+          repository: aws/aws-lc
+          ref: v1.42.0
+      - name: "AWS-LC: build"
+        run: |
+          mkdir build
+          cd build
+          cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${{ env.AWS_LC_INSTALL }}" -DBUILD_SHARED_LIBS=1 ../
+          ninja install
+        working-directory: aws-lc
+      - name: Checkout OpenVPN
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: autoconf
+        run: autoreconf -fvi
+      - name: configure with AWS-LC
+        run: |
+        OPENSSL_CFLAGS="-I/${{ env.AWS_LC_INSTALL }}/include" \
+        OPENSSL_LIBS="-L/${{ env.AWS_LC_INSTALL }}/lib -lssl -lcrypto" \
+        ./configure --with-crypto-library=openssl
+      - name: make all
+        run: make -j3
+      - name: configure checks
+        run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
+      - name: make check
+        run: LD_LIBRARY_PATH="${{ env.AWS_LC_INSTALL }}/lib" make -j3 check VERBOSE=1
