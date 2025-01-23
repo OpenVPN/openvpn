@@ -473,9 +473,9 @@ jobs:
         run: autoreconf -fvi
       - name: configure with AWS-LC
         run: |
-        OPENSSL_CFLAGS="-I/${{ env.AWS_LC_INSTALL }}/include" \
-        OPENSSL_LIBS="-L/${{ env.AWS_LC_INSTALL }}/lib -lssl -lcrypto" \
-        ./configure --with-crypto-library=openssl
+          OPENSSL_CFLAGS="-I/${{ env.AWS_LC_INSTALL }}/include" \
+          OPENSSL_LIBS="-L/${{ env.AWS_LC_INSTALL }}/lib -lssl -lcrypto" \
+          ./configure --with-crypto-library=openssl
       - name: make all
         run: make -j3
       - name: configure checks
