@@ -342,7 +342,6 @@ do_preresolve_host(struct context *c,
 void
 do_preresolve(struct context *c)
 {
-    int i;
     struct connection_list *l = c->options.connection_list;
     const unsigned int preresolve_flags = GETADDR_RESOLVE
                                           |GETADDR_UPDATE_MANAGEMENT_STATE
@@ -350,13 +349,13 @@ do_preresolve(struct context *c)
                                           |GETADDR_FATAL;
 
 
-    for (i = 0; i < l->len; ++i)
+    for (int i = 0; i < l->len; ++i)
     {
         int status;
         const char *remote;
         int flags = preresolve_flags;
 
-        struct connection_entry *ce = c->options.connection_list->array[i];
+        struct connection_entry *ce = l->array[i];
 
         if (proto_is_dgram(ce->proto))
         {
@@ -420,13 +419,23 @@ do_preresolve(struct context *c)
         {
             flags |= GETADDR_PASSIVE;
             flags &= ~GETADDR_RANDOMIZE;
-            status = do_preresolve_host(c, ce->local, ce->local_port,
-                                        ce->af, flags);
-            if (status != 0)
-            {
-                goto err;
-            }
 
+            for (int j = 0; j < ce->local_list->len; j++)
+            {
+                struct local_entry *le = ce->local_list->array[j];
+
+                if (!le->local)
+                {
+                    continue;
+                }
+
+                status = do_preresolve_host(c, le->local, le->port, ce->af, flags);
+                if (status != 0)
+                {
+                    goto err;
+                }
+
+            }
         }
 
     }
@@ -1874,8 +1883,8 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
     const char *remote_host = o->ce.remote;
     const char *remote_port = o->ce.remote_port;
 
-    sock->local_host = o->ce.local;
-    sock->local_port = o->ce.local_port;
+    sock->local_host = o->ce.local_list->array[sock_index]->local;
+    sock->local_port = o->ce.local_list->array[sock_index]->port;
     sock->remote_host = remote_host;
     sock->remote_port = remote_port;
     sock->dns_cache = c->c1.dns_cache;

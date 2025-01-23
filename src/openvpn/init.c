@@ -751,7 +751,7 @@ context_init_1(struct context *c)
 
     init_connection_list(c);
 
-    c->c1.link_sockets_num = 1;
+    c->c1.link_sockets_num = c->options.ce.local_list->len;
 
     do_link_socket_addr_new(c);
 
@@ -4978,6 +4978,7 @@ inherit_context_child(struct context *dest,
     if (dest->mode == CM_CHILD_UDP)
     {
         ASSERT(!dest->c2.link_sockets);
+        ASSERT(dest->options.ce.local_list);
 
         /* inherit buffers */
         dest->c2.buffers = src->c2.buffers;
