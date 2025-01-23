@@ -1899,7 +1899,6 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file,
             }
             sk_X509_INFO_pop_free(info_stack, X509_INFO_free);
         }
-        
         int cnum;
         if (tls_server)
         {
