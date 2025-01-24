@@ -440,7 +440,7 @@ multi_init(struct multi_context *m, struct context *t, bool tcp_mode)
      */
     if (tcp_mode)
     {
-        m->mtcp = multi_tcp_init(t->options.max_clients, &m->max_clients);
+        m->multi_io = multi_io_init(t->options.max_clients, &m->max_clients);
     }
     m->tcp_queue_limit = t->options.tcp_queue_limit;
 
@@ -665,9 +665,9 @@ multi_close_instance(struct multi_context *m,
             mi->did_iroutes = false;
         }
 
-        if (m->mtcp)
+        if (m->multi_io)
         {
-            multi_tcp_dereference_instance(m->mtcp, mi);
+            multi_tcp_dereference_instance(m->multi_io, mi);
         }
 
         mbuf_dereference_instance(m->mbuf, mi);
@@ -742,7 +742,7 @@ multi_uninit(struct multi_context *m)
         initial_rate_limit_free(m->initial_rate_limiter);
         multi_reap_free(m->reaper);
         mroute_helper_free(m->route_helper);
-        multi_tcp_free(m->mtcp);
+        multi_io_free(m->multi_io);
     }
 }
 
@@ -3975,9 +3975,9 @@ static void
 management_delete_event(void *arg, event_t event)
 {
     struct multi_context *m = (struct multi_context *) arg;
-    if (m->mtcp)
+    if (m->multi_io)
     {
-        multi_tcp_delete_event(m->mtcp, event);
+        multi_tcp_delete_event(m->multi_io, event);
     }
 }
 
