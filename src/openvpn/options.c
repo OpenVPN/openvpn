@@ -3323,12 +3323,12 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
 }
 
 static void
-options_postprocess_mutate_le(struct connection_entry ce, struct local_entry *le)
+options_postprocess_mutate_le(struct connection_entry *ce, struct local_entry *le)
 {
     /* use the global port if none is specified */
     if (!le->port)
     {
-        le->port = ce.local_port;
+        le->port = ce->local_port;
     }
 }
 
@@ -3777,7 +3777,7 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     {
         for (i = 0; i < o->ce.local_list->len; i++)
         {
-            options_postprocess_mutate_le(o->ce, o->ce.local_list->array[i]);
+            options_postprocess_mutate_le(&o->ce, o->ce.local_list->array[i]);
         }
     }
     else
