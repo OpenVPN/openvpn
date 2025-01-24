@@ -437,10 +437,12 @@ jobs:
             cflags: "-fsanitize=address -fno-sanitize-recover=all  -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
             ldflags: -fsanitize=address -fno-sanitize-recover=all
             cc: clang
+            cxx: clang++
           - build: normal
             cflags: "-O2 -g"
             ldflags: ""
             cc: gcc
+            cxx: c++
 
     name: "${{matrix.cc}} ${{matrix.build}} - ${{matrix.os}} - ${{matrix.ssllib}}"
     runs-on: ${{matrix.os}}
@@ -448,6 +450,7 @@ jobs:
       CFLAGS: ${{ matrix.cflags }}
       LDFLAGS: ${{ matrix.ldflags }}
       CC: ${{matrix.cc}}
+      CXX: ${{matrix.cxx}}
       UBSAN_OPTIONS: print_stacktrace=1
       AWS_LC_INSTALL: ${{ github.workspace }}/aws-lc/aws-lc-install
 
