@@ -454,6 +454,7 @@ mroute_addr_print_ex(const struct mroute_addr *ma,
                 buf_printf(&out, "UNKNOWN");
                 break;
         }
+        buf_printf(&out, "|%d", maddr.proto);
         return BSTR(&out);
     }
     else

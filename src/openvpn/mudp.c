@@ -192,6 +192,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated,
     struct mroute_addr real = {0};
     struct multi_instance *mi = NULL;
     struct hash *hash = m->hash;
+    real.proto = ls->info.proto;
 
     if (mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true)
         && m->top.c2.buf.len > 0)

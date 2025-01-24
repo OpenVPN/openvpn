@@ -794,6 +794,7 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
         {
             goto err;
         }
+        mi->real.proto = ls->info.proto;
         generate_prefix(mi);
     }
 
@@ -1243,6 +1244,7 @@ multi_learn_in_addr_t(struct multi_context *m,
     CLEAR(remote_si);
     remote_si.addr.in4.sin_family = AF_INET;
     remote_si.addr.in4.sin_addr.s_addr = htonl(a);
+    addr.proto = 0;
     ASSERT(mroute_extract_openvpn_sockaddr(&addr, &remote_si, false));
 
     if (netbits >= 0)
@@ -3547,7 +3549,6 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
         struct mroute_addr src = {0}, dest = {0};
         const int dev_type = TUNNEL_TYPE(m->top.c1.tuntap);
         int16_t vid = 0;
-
 
 #ifdef MULTI_DEBUG_EVENT_LOOP
         printf("TUN -> TCP/UDP [%d]\n", BLEN(&m->top.c2.buf));

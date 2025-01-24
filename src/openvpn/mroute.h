@@ -74,7 +74,7 @@
 
 struct mroute_addr {
     uint8_t len;    /* length of address */
-    uint8_t unused;
+    uint8_t proto;
     uint8_t type;   /* MR_ADDR/MR_WITH flags */
     uint8_t netbits; /* number of bits in network part of address,
                       * valid if MR_WITH_NETBITS is set */
@@ -183,6 +183,15 @@ mroute_extract_addr_from_packet(struct mroute_addr *src,
 {
     unsigned int ret = 0;
     verify_align_4(buf);
+
+    /*
+     * Since we don't really need the protocol on vaddresses for internal VPN
+     * payload packets, make sure we have the same value to avoid hashing insert
+     * and search issues.
+     */
+    src->proto = 0;
+    dest->proto = src->proto;
+
     if (tunnel_type == DEV_TYPE_TUN)
     {
         ret = mroute_extract_addr_ip(src, dest, buf);
@@ -201,6 +210,10 @@ mroute_addr_equal(const struct mroute_addr *a1, const struct mroute_addr *a2)
     {
         return false;
     }
+    if (a1->proto != a2->proto)
+    {
+        return false;
+    }
     if (a1->netbits != a2->netbits)
     {
         return false;
@@ -216,13 +229,13 @@ static inline const uint8_t *
 mroute_addr_hash_ptr(const struct mroute_addr *a)
 {
     /* NOTE: depends on ordering of struct mroute_addr */
-    return (uint8_t *) &a->type;
+    return (uint8_t *) &a->proto;
 }
 
 static inline uint32_t
 mroute_addr_hash_len(const struct mroute_addr *a)
 {
-    return (uint32_t) a->len + 2;
+    return (uint32_t) a->len + 3;
 }
 
 static inline void
