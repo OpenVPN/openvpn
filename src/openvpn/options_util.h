@@ -30,4 +30,24 @@
 const char *
 parse_auth_failed_temp(struct options *o, const char *reason);
 
-#endif
+
+/** Checks if the string is a valid integer by checking if it can be
+ *  converted to an integer */
+bool
+valid_integer(const char *str, bool positive);
+
+/**
+ * Converts a str to a positive number if the string represents a postive
+ * integer number. Otherwise print a warning with msglevel and return 0
+ */
+int
+positive_atoi(const char *str, int msglevel);
+
+/**
+ * Converts a str to an integer if the string can be represented as an
+ * integer number. Otherwise print a warning with msglevel and return 0
+ */
+int
+atoi_warn(const char *str, int msglevel);
+
+#endif /* ifndef OPTIONS_UTIL_H_ */

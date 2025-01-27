@@ -98,3 +98,50 @@ parse_auth_failed_temp(struct options *o, const char *reason)
     gc_free(&gc);
     return message;
 }
+
+bool
+valid_integer(const char *str, bool positive)
+{
+    char *endptr;
+    long long i = strtoll(str, &endptr, 10);
+
+    if (i < INT_MIN || (positive && i < 0) || *endptr != '\0' || i > INT_MAX)
+    {
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+int
+positive_atoi(const char *str, int msglevel)
+{
+    char *endptr;
+    long long i = strtoll(str, &endptr, 10);
+
+    if (i < 0 || *endptr != '\0' || i > INT_MAX)
+    {
+        msg(msglevel, "Cannot parse argument '%s' as non-negative integer",
+            str);
+        i = 0;
+    }
+
+    return (int) i;
+}
+
+int
+atoi_warn(const char *str, int msglevel)
+{
+    char *endptr;
+    long long i = strtoll(str, &endptr, 10);
+
+    if (i < INT_MIN || *endptr != '\0' || i > INT_MAX)
+    {
+        msg(msglevel, "Cannot parse argument '%s' as integer", str);
+        i = 0;
+    }
+
+    return (int) i;
+}
