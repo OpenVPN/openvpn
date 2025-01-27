@@ -37,9 +37,10 @@
 #include <windows.h>
 #include <stdlib.h>
 #include <tchar.h>
+#include "../tapctl/basic.h"
 
-#define APPNAME  TEXT(PACKAGE "serv")
-#define SERVICE_DEPENDENCIES  TAP_WIN_COMPONENT_ID "\0Dhcp\0\0"
+#define APPNAME  TEXT(PACKAGE) TEXT("serv")
+#define SERVICE_DEPENDENCIES  TEXT(TAP_WIN_COMPONENT_ID) TEXT("\0Dhcp\0\0")
 
 /*
  * Message handling

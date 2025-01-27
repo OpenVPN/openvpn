@@ -17,6 +17,7 @@ target_sources(openvpnserv PRIVATE
     interactive.c
     service.c service.h
     validate.c validate.h
+    ../tapctl/basic.h
     ../openvpn/wfp_block.c ../openvpn/wfp_block.h
     openvpnserv_resources.rc
     ../openvpn/ring_buffer.h

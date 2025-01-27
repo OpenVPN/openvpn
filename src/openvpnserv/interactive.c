@@ -60,9 +60,9 @@ static HANDLE rdns_semaphore = NULL;
 
 openvpn_service_t interactive_service = {
     interactive,
-    TEXT(PACKAGE_NAME "ServiceInteractive"),
-    TEXT(PACKAGE_NAME " Interactive Service"),
-    TEXT(SERVICE_DEPENDENCIES),
+    TEXT(PACKAGE_NAME) TEXT("ServiceInteractive"),
+    TEXT(PACKAGE_NAME) TEXT(" Interactive Service"),
+    SERVICE_DEPENDENCIES,
     SERVICE_AUTO_START
 };
 
@@ -1973,7 +1973,7 @@ RunOpenvpn(LPVOID p)
     }
 
     swprintf(ovpn_pipe_name, _countof(ovpn_pipe_name),
-             TEXT("\\\\.\\pipe\\" PACKAGE "%ls\\service_%lu"), service_instance, GetCurrentThreadId());
+             TEXT("\\\\.\\pipe\\") TEXT(PACKAGE) TEXT("%ls\\service_%lu"), service_instance, GetCurrentThreadId());
     ovpn_pipe = CreateNamedPipe(ovpn_pipe_name,
                                 PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE | FILE_FLAG_OVERLAPPED,
                                 PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 128, 128, 0, NULL);
@@ -2173,7 +2173,7 @@ CreateClientPipeInstance(VOID)
     }
 
     TCHAR pipe_name[256]; /* The entire pipe name string can be up to 256 characters long according to MSDN. */
-    swprintf(pipe_name, _countof(pipe_name), TEXT("\\\\.\\pipe\\" PACKAGE "%ls\\service"), service_instance);
+    swprintf(pipe_name, _countof(pipe_name), TEXT("\\\\.\\pipe\\") TEXT(PACKAGE) TEXT("%ls\\service"), service_instance);
     HANDLE pipe = CreateNamedPipe(pipe_name, flags,
                                   PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_REJECT_REMOTE_CLIENTS,
                                   PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0, &sa);
