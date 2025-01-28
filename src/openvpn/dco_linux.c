@@ -291,6 +291,25 @@ ovpn_nl_cb_finish(struct nl_msg (*msg) __attribute__ ((unused)), void *arg)
     return NL_SKIP;
 }
 
+/* The following enum members exist in netlink.h since linux-6.1.
+ * However, some distro we support still ship an old header, thus
+ * failing the OpenVPN compilation.
+ *
+ * For the time being we add the needed defines manually.
+ * We will drop this definition once we stop supporting those old
+ * distros.
+ *
+ * @NLMSGERR_ATTR_MISS_TYPE: type of a missing required attribute,
+ *  %NLMSGERR_ATTR_MISS_NEST will not be present if the attribute was
+ *  missing at the message level
+ * @NLMSGERR_ATTR_MISS_NEST: offset of the nest where attribute was missing
+ */
+enum ovpn_nlmsgerr_attrs {
+    OVPN_NLMSGERR_ATTR_MISS_TYPE = 5,
+    OVPN_NLMSGERR_ATTR_MISS_NEST = 6,
+    OVPN_NLMSGERR_ATTR_MAX = 6,
+};
+
 /* This function is used as error callback on the netlink socket.
  * When something goes wrong and the kernel returns an error, this function is
  * invoked.
@@ -304,7 +323,7 @@ ovpn_nl_cb_error(struct sockaddr_nl (*nla) __attribute__ ((unused)),
                  struct nlmsgerr *err, void *arg)
 {
     struct nlmsghdr *nlh = (struct nlmsghdr *)err - 1;
-    struct nlattr *tb_msg[NLMSGERR_ATTR_MAX + 1];
+    struct nlattr *tb_msg[OVPN_NLMSGERR_ATTR_MAX + 1];
     int len = nlh->nlmsg_len;
     struct nlattr *attrs;
     int *ret = arg;
@@ -330,13 +349,25 @@ ovpn_nl_cb_error(struct sockaddr_nl (*nla) __attribute__ ((unused)),
     attrs = (void *)((unsigned char *)nlh + ack_len);
     len -= ack_len;
 
-    nla_parse(tb_msg, NLMSGERR_ATTR_MAX, attrs, len, NULL);
+    nla_parse(tb_msg, OVPN_NLMSGERR_ATTR_MAX, attrs, len, NULL);
     if (tb_msg[NLMSGERR_ATTR_MSG])
     {
         len = strnlen((char *)nla_data(tb_msg[NLMSGERR_ATTR_MSG]),
                       nla_len(tb_msg[NLMSGERR_ATTR_MSG]));
         msg(M_WARN, "kernel error: %*s\n", len,
             (char *)nla_data(tb_msg[NLMSGERR_ATTR_MSG]));
+    }
+
+    if (tb_msg[OVPN_NLMSGERR_ATTR_MISS_NEST])
+    {
+        msg(M_WARN, "kernel error: missing required nesting type %u\n",
+            nla_get_u32(tb_msg[OVPN_NLMSGERR_ATTR_MISS_NEST]));
+    }
+
+    if (tb_msg[OVPN_NLMSGERR_ATTR_MISS_TYPE])
+    {
+        msg(M_WARN, "kernel error: missing required attribute type %u\n",
+            nla_get_u32(tb_msg[OVPN_NLMSGERR_ATTR_MISS_TYPE]));
     }
 
     return NL_STOP;
