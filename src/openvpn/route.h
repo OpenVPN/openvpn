@@ -155,6 +155,8 @@ struct route_gateway_info {
     /* gateway interface */
 #ifdef _WIN32
     DWORD adapter_index; /* interface or ~0 if undefined */
+#elif defined(TARGET_HAIKU)
+    char iface[PATH_MAX]; /* iface names are full /dev path with driver name */
 #else
     char iface[16]; /* interface name (null terminated), may be empty */
 #endif
@@ -186,7 +188,12 @@ struct route_ipv6_gateway_info {
 #else
     /* non linux platform don't have this constant defined */
 #ifndef IFNAMSIZ
+#if defined(TARGET_HAIKU)
+/* iface names are full /dev path with driver name */
+#define IFNAMSIZ PATH_MAX
+#else
 #define IFNAMSIZ 16
+#endif
 #endif
     char iface[IFNAMSIZ]; /* interface name (null terminated), may be empty */
 #endif
