@@ -8,15 +8,10 @@ To build and install OpenVPN with AWS-LC:
 
     OPENSSL_CFLAGS="-I/${AWS_LC_INSTALL_FOLDER}/include" \
     OPENSSL_LIBS="-L/${AWS_LC_INSTALL_FOLDER}/lib -lssl -lcrypto" \
+    LDFLAGS="-Wl,-rpath=${AWS_LC_INSTALL_FOLDER}/lib" \
     ./configure --with-crypto-library=openssl
     make 
     make install
-
-    export LD_LIBRARY_PATH="${AWS_LC_INSTALL_FOLDER}/lib"
-
-When running tests, LD_LIBRARY_PATH must be passed in again: 
-
-    LD_LIBRARY_PATH="${AWS_LC_INSTALL_FOLDER}/lib" make check
 
 *************************************************************************
 Due to limitations in AWS-LC, the following features are missing
