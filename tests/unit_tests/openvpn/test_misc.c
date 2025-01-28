@@ -38,6 +38,7 @@
 #include "options_util.h"
 #include "test_common.h"
 #include "list.h"
+#include "mock_msg.h"
 
 static void
 test_compat_lzo_string(void **state)
@@ -311,13 +312,80 @@ test_list(void **state)
     gc_free(&gc);
 }
 
+static void
+test_atoi_variants(void **state)
+{
+    assert_true(valid_integer("1234", true));
+    assert_true(valid_integer("1234", false));
+    assert_true(valid_integer("0", false));
+    assert_true(valid_integer("0", true));
+    assert_true(valid_integer("-777", false));
+    assert_false(valid_integer("-777", true));
+
+    assert_false(valid_integer("-777foo", false));
+    assert_false(valid_integer("-777foo", true));
+
+    assert_false(valid_integer("foo777", true));
+    assert_false(valid_integer("foo777", false));
+
+    /* 2**31 + 5 , just outside of signed int range */
+    assert_false(valid_integer("2147483653", true));
+    assert_false(valid_integer("2147483653", false));
+    assert_false(valid_integer("-2147483653", true));
+    assert_false(valid_integer("-2147483653", false));
+
+
+    int msglevel = D_LOW;
+    int saved_log_level = mock_get_debug_level();
+    mock_set_debug_level(D_LOW);
+
+    /* check happy path */
+    assert_int_equal(positive_atoi("1234", msglevel), 1234);
+    assert_int_equal(positive_atoi("0", msglevel), 0);
+
+    assert_int_equal(atoi_warn("1234", msglevel), 1234);
+    assert_int_equal(atoi_warn("0", msglevel), 0);
+    assert_int_equal(atoi_warn("-1194", msglevel), -1194);
+
+    CLEAR(mock_msg_buf);
+    assert_int_equal(positive_atoi("-1234", msglevel), 0);
+    assert_string_equal(mock_msg_buf, "Cannot parse argument '-1234' as non-negative integer");
+
+    /* 2**31 + 5 , just outside of signed int range */
+    CLEAR(mock_msg_buf);
+    assert_int_equal(positive_atoi("2147483653", msglevel), 0);
+    assert_string_equal(mock_msg_buf, "Cannot parse argument '2147483653' as non-negative integer");
+
+    CLEAR(mock_msg_buf);
+    assert_int_equal(atoi_warn("2147483653", msglevel), 0);
+    assert_string_equal(mock_msg_buf, "Cannot parse argument '2147483653' as integer");
+
+    CLEAR(mock_msg_buf);
+    assert_int_equal(positive_atoi("foo77", msglevel), 0);
+    assert_string_equal(mock_msg_buf, "Cannot parse argument 'foo77' as non-negative integer");
+
+    CLEAR(mock_msg_buf);
+    assert_int_equal(positive_atoi("77foo", msglevel), 0);
+    assert_string_equal(mock_msg_buf, "Cannot parse argument '77foo' as non-negative integer");
+
+    CLEAR(mock_msg_buf);
+    assert_int_equal(atoi_warn("foo77", msglevel), 0);
+    assert_string_equal(mock_msg_buf, "Cannot parse argument 'foo77' as integer");
+
+    CLEAR(mock_msg_buf);
+    assert_int_equal(atoi_warn("77foo", msglevel), 0);
+    assert_string_equal(mock_msg_buf, "Cannot parse argument '77foo' as integer");
+
+    mock_set_debug_level(saved_log_level);
+}
 
 const struct CMUnitTest misc_tests[] = {
     cmocka_unit_test(test_compat_lzo_string),
     cmocka_unit_test(test_auth_fail_temp_no_flags),
     cmocka_unit_test(test_auth_fail_temp_flags),
     cmocka_unit_test(test_auth_fail_temp_flags_msg),
-    cmocka_unit_test(test_list)
+    cmocka_unit_test(test_list),
+    cmocka_unit_test(test_atoi_variants)
 };
 
 int
