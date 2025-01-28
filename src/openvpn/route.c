@@ -2359,8 +2359,8 @@ delete_route(struct route_ipv4 *r,
 
 #elif defined(TARGET_HAIKU)
 
-    /* ex: route del /dev/net/ipro1000/0 inet 192.168.0.0 gw 192.168.1.1 netmask 255.255.0.0 */
-    argv_printf(&argv, "%s del %s inet %s gw %s netmask %s",
+    /* ex: route delete /dev/net/ipro1000/0 inet 192.168.0.0 gw 192.168.1.1 netmask 255.255.0.0 */
+    argv_printf(&argv, "%s delete %s inet %s gw %s netmask %s",
                 ROUTE_PATH,
                 rgi->iface,
                 network,
@@ -2551,8 +2551,8 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
         "on connect only and will clean up automatically.");
 #elif defined(TARGET_HAIKU)
 
-    /* ex: route del /dev/net/ipro1000/0 inet6 :: gw beef::cafe prefixlen 64 */
-    argv_printf(&argv, "%s del %s inet6 %s gw %s prefixlen %d",
+    /* ex: route delete /dev/net/ipro1000/0 inet6 :: gw beef::cafe prefixlen 64 */
+    argv_printf(&argv, "%s delete %s inet6 %s gw %s prefixlen %d",
                 ROUTE_PATH,
                 r6->iface,
                 network,
