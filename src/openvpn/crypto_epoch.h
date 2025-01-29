@@ -71,7 +71,7 @@ ovpn_expand_label(const uint8_t *secret, size_t secret_len,
  * Generate a data channel key pair from the epoch key
  * @param key           Destination for the generated data key
  * @param epoch_key     Epoch key to be used
- * @parm kt             Cipher information to generate the data channel key for
+ * @param kt            Cipher information to generate the data channel key for
  */
 void
 epoch_data_key_derive(struct key_parameters *key,
@@ -100,6 +100,7 @@ epoch_generate_future_receive_keys(struct crypto_options *co);
  * - recv key matches the epoch index provided
  * - send key epoch is equal or higher than recv_key epoch
  *
+ * @param co        crypto_options to update
  * @param new_epoch the new epoch to use for the receive key
  */
 void
