@@ -478,10 +478,11 @@ jobs:
         run: |
           OPENSSL_CFLAGS="-I/${{ env.AWS_LC_INSTALL }}/include" \
           OPENSSL_LIBS="-L/${{ env.AWS_LC_INSTALL }}/lib -lssl -lcrypto" \
+          LDFLAGS="-Wl, -rpath=/${{ env.AWS_LC_INSTALL }}/lib" \
           ./configure --with-crypto-library=openssl
       - name: make all
         run: make -j3
       - name: configure checks
         run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
       - name: make check
-        run: LD_LIBRARY_PATH="${{ env.AWS_LC_INSTALL }}/lib" make -j3 check VERBOSE=1
+        run: make -j3 check VERBOSE=1
