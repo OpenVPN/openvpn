@@ -317,6 +317,9 @@ User-visible Changes
   settings will contradict the setting of allow-compression as this almost
   always results in a non-working connection.
 
+- The "kill" by addr management command now requires also the protocol
+  as string e.g. "udp", "tcp".
+
 Common errors with OpenSSL 3.0 and OpenVPN 2.6
 ----------------------------------------------
 Both OpenVPN 2.6 and OpenSSL 3.0 tighten the security considerable, so some

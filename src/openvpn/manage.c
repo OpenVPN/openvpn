@@ -544,45 +544,52 @@ man_kill(struct management *man, const char *victim)
         struct buffer buf;
         char p1[128];
         char p2[128];
+        char p3[128];
         int n_killed;
 
         buf_set_read(&buf, (uint8_t *) victim, strlen(victim) + 1);
         buf_parse(&buf, ':', p1, sizeof(p1));
         buf_parse(&buf, ':', p2, sizeof(p2));
+        buf_parse(&buf, ':', p3, sizeof(p3));
 
-        if (strlen(p1) && strlen(p2))
+        if (strlen(p1) && strlen(p2) && strlen(p3))
         {
             /* IP:port specified */
             bool status;
-            const in_addr_t addr = getaddr(GETADDR_HOST_ORDER|GETADDR_MSG_VIRT_OUT, p1, 0, &status, NULL);
+            const in_addr_t addr = getaddr(GETADDR_HOST_ORDER|GETADDR_MSG_VIRT_OUT, p2, 0, &status, NULL);
             if (status)
             {
-                const int port = atoi(p2);
-                if (port > 0 && port < 65536)
+                const int port = atoi(p3);
+                const int proto = (streq(p1, "tcp")) ? PROTO_TCP_SERVER :
+                                  (streq(p1, "udp")) ? PROTO_UDP : PROTO_NONE;
+
+                if ((port > 0 && port < 65536) && (proto != PROTO_NONE))
                 {
-                    n_killed = (*man->persist.callback.kill_by_addr)(man->persist.callback.arg, addr, port);
+                    n_killed = (*man->persist.callback.kill_by_addr)(man->persist.callback.arg, addr, port, proto);
                     if (n_killed > 0)
                     {
-                        msg(M_CLIENT, "SUCCESS: %d client(s) at address %s:%d killed",
+                        msg(M_CLIENT, "SUCCESS: %d client(s) at address %s:%s:%d killed",
                             n_killed,
+                            proto2ascii(proto, AF_UNSPEC, false),
                             print_in_addr_t(addr, 0, &gc),
                             port);
                     }
                     else
                     {
-                        msg(M_CLIENT, "ERROR: client at address %s:%d not found",
+                        msg(M_CLIENT, "ERROR: client at address %s:%s:%d not found",
+                            proto2ascii(proto, AF_UNSPEC, false),
                             print_in_addr_t(addr, 0, &gc),
                             port);
                     }
                 }
                 else
                 {
-                    msg(M_CLIENT, "ERROR: port number is out of range: %s", p2);
+                    msg(M_CLIENT, "ERROR: port number or protocol out of range: %s %s", p3, p1);
                 }
             }
             else
             {
-                msg(M_CLIENT, "ERROR: error parsing IP address: %s", p1);
+                msg(M_CLIENT, "ERROR: error parsing IP address: %s", p2);
             }
         }
         else if (strlen(p1))

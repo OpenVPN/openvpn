@@ -794,7 +794,6 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
         {
             goto err;
         }
-        mi->real.proto = ls->info.proto;
         generate_prefix(mi);
     }
 
@@ -3942,7 +3941,8 @@ management_callback_kill_by_cn(void *arg, const char *del_cn)
 }
 
 static int
-management_callback_kill_by_addr(void *arg, const in_addr_t addr, const int port)
+management_callback_kill_by_addr(void *arg, const in_addr_t addr,
+                                 const int port, const int proto)
 {
     struct multi_context *m = (struct multi_context *) arg;
     struct hash_iterator hi;
@@ -3957,6 +3957,7 @@ management_callback_kill_by_addr(void *arg, const in_addr_t addr, const int port
     saddr.addr.in4.sin_port = htons(port);
     if (mroute_extract_openvpn_sockaddr(&maddr, &saddr, true))
     {
+        maddr.proto = proto;
         hash_iterator_init(m->iter, &hi);
         while ((he = hash_iterator_next(&hi)))
         {
