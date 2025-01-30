@@ -478,7 +478,7 @@ jobs:
         run: |
           OPENSSL_CFLAGS="-I/${{ env.AWS_LC_INSTALL }}/include" \
           OPENSSL_LIBS="-L/${{ env.AWS_LC_INSTALL }}/lib -lssl -lcrypto" \
-          LDFLAGS="-Wl, -rpath=/${{ env.AWS_LC_INSTALL }}/lib" \
+          LDFLAGS="-Wl,-rpath=/${{ env.AWS_LC_INSTALL }}/lib" \
           ./configure --with-crypto-library=openssl
       - name: make all
         run: make -j3
