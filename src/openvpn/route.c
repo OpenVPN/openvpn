@@ -3332,8 +3332,8 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
     CLEAR(*rgi);
     CLEAR(best_name);
 
-    /* get default gateway IP addr */
-    if (net_route_v4_best_gw(ctx, NULL, &rgi->gateway.addr, best_name) == 0)
+    /* find best route to 'dest', get gateway IP addr + interface */
+    if (net_route_v4_best_gw(ctx, &dest, &rgi->gateway.addr, best_name) == 0)
     {
         rgi->flags |= RGI_ADDR_DEFINED;
         if (!rgi->gateway.addr && best_name[0])
