@@ -394,61 +394,13 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
     return ret;
 }
 
-int
-net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
-                     in_addr_t *best_gw, char *best_iface)
-{
-    best_iface[0] = '\0';
-
-    FILE *fp = fopen("/proc/net/route", "r");
-    if (!fp)
-    {
-        return -1;
-    }
-
-    char line[256];
-    int count = 0;
-    unsigned int lowest_metric = UINT_MAX;
-    while (fgets(line, sizeof(line), fp) != NULL)
-    {
-        if (count)
-        {
-            unsigned int net_x = 0;
-            unsigned int mask_x = 0;
-            unsigned int gw_x = 0;
-            unsigned int metric = 0;
-            unsigned int flags = 0;
-            char name[16];
-            name[0] = '\0';
-
-            const int np = sscanf(line, "%15s\t%x\t%x\t%x\t%*s\t%*s\t%d\t%x",
-                                  name, &net_x, &gw_x, &flags, &metric,
-                                  &mask_x);
-
-            if (np == 6 && (flags & IFF_UP))
-            {
-                const in_addr_t net = ntohl(net_x);
-                const in_addr_t mask = ntohl(mask_x);
-                const in_addr_t gw = ntohl(gw_x);
-
-                if (!net && !mask && metric < lowest_metric)
-                {
-                    *best_gw = gw;
-                    strcpy(best_iface, name);
-                    lowest_metric = metric;
-                }
-            }
-        }
-        ++count;
-    }
-    fclose(fp);
-
-    return 0;
-}
-
 /*
- * The following function is not implemented in the iproute backend as it
+ * The following functions are not implemented in the iproute backend as it
  * uses the sitnl implementation from networking_sitnl.c.
+ *
+ * int
+ * net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+ *                     in_addr_t *best_gw, char *best_iface)
  *
  * int
  * net_route_v6_best_gw(const struct in6_addr *dst,

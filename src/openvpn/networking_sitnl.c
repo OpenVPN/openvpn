@@ -619,8 +619,7 @@ net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
 
 }
 
-#ifdef ENABLE_SITNL
-
+/* used by iproute2 implementation too */
 int
 net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
                      in_addr_t *best_gw, char *best_iface)
@@ -651,6 +650,8 @@ net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
 
     return ret;
 }
+
+#ifdef ENABLE_SITNL
 
 int
 net_iface_up(openvpn_net_ctx_t *ctx, const char *iface, bool up)
