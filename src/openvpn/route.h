@@ -334,6 +334,13 @@ void setenv_routes_ipv6(struct env_set *es, const struct route_ipv6_list *rl6);
 
 bool is_special_addr(const char *addr_str);
 
+/**
+ * @brief Retrieves the best gateway for a given destination based on the routing table.
+ *
+ * @param rgi  Pointer to a struct to store the gateway information.
+ * @param dest Destination IP address in host byte order.
+ * @param ctx  Pointer to a platform-specific network context struct.
+ */
 void get_default_gateway(struct route_gateway_info *rgi,
                          in_addr_t dest,
                          openvpn_net_ctx_t *ctx);

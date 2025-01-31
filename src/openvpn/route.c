@@ -2732,40 +2732,105 @@ get_default_gateway_row(const MIB_IPFORWARDTABLE *routes)
     return ret;
 }
 
+/**
+ * @brief Determines the best route to a destination for both IPv4 and IPv6.
+ *
+ * Uses `GetBestInterfaceEx` and `GetBestRoute2` to find the optimal route
+ * and network interface for the specified destination address.
+ *
+ * @param gc Pointer to struct gc_arena for internal string allocation.
+ * @param dest The destination IP address (IPv4 or IPv6).
+ * @param best_route Pointer to a `MIB_IPFORWARD_ROW2` structure to store the best route.
+ * @return DWORD `NO_ERROR` on success, or an error code.
+ */
+static DWORD
+get_best_route(struct gc_arena *gc, SOCKADDR_INET *dest, MIB_IPFORWARD_ROW2 *best_route)
+{
+    DWORD best_if_index;
+    DWORD status;
+
+    CLEAR(*best_route);
+
+    /* get the best interface index to reach dest */
+    status = GetBestInterfaceEx((struct sockaddr *)dest, &best_if_index);
+    if (status != NO_ERROR)
+    {
+        msg(D_ROUTE, "NOTE: GetBestInterfaceEx returned error: %s (code=%u)",
+            strerror_win32(status, gc),
+            (unsigned int)status);
+        goto done;
+    }
+
+    msg(D_ROUTE_DEBUG, "GetBestInterfaceEx() returned if=%d", (int)best_if_index);
+
+    /* get the routing information (such as NextHop) for the destination and interface */
+    NET_LUID luid;
+    CLEAR(luid);
+    SOCKADDR_INET best_src;
+    CLEAR(best_src);
+    status = GetBestRoute2(&luid, best_if_index, NULL,
+                           dest, 0, best_route, &best_src);
+    if (status != NO_ERROR)
+    {
+        msg(D_ROUTE, "NOTE: GetIpForwardEntry2 returned error: %s (code=%u)",
+            strerror_win32(status, gc),
+            (unsigned int)status);
+        goto done;
+    }
+
+done:
+    return status;
+}
+
 void
 get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_ctx_t *ctx)
 {
-    struct gc_arena gc = gc_new();
-
-    const IP_ADAPTER_INFO *adapters = get_adapter_info_list(&gc);
-    const MIB_IPFORWARDTABLE *routes = get_windows_routing_table(&gc);
-    const MIB_IPFORWARDROW *row = get_default_gateway_row(routes);
-    DWORD a_index;
-    const IP_ADAPTER_INFO *ai;
-
     CLEAR(*rgi);
 
-    if (row)
+    struct gc_arena gc = gc_new();
+
+    /* convert in_addr_t into SOCKADDR_INET */
+    SOCKADDR_INET sa;
+    CLEAR(sa);
+    sa.si_family = AF_INET;
+    sa.Ipv4.sin_addr.s_addr = htonl(dest);
+
+    /* get the best route to the destination */
+    MIB_IPFORWARD_ROW2 best_route;
+    CLEAR(best_route);
+    DWORD status = get_best_route(&gc, &sa, &best_route);
+    if (status != NO_ERROR)
     {
-        rgi->gateway.addr = ntohl(row->dwForwardNextHop);
-        if (rgi->gateway.addr)
+        goto done;
+    }
+
+    rgi->flags = RGI_ADDR_DEFINED | RGI_IFACE_DEFINED;
+    rgi->gateway.addr = ntohl(best_route.NextHop.Ipv4.sin_addr.S_un.S_addr);
+    rgi->adapter_index = best_route.InterfaceIndex;
+
+    if (rgi->gateway.addr == INADDR_ANY)
+    {
+        rgi->flags |= RGI_ON_LINK;
+    }
+
+    /* get netmask and MAC address */
+    const IP_ADAPTER_INFO *adapters = get_adapter_info_list(&gc);
+    const IP_ADAPTER_INFO *ai = get_adapter(adapters, rgi->adapter_index);
+    if (ai)
+    {
+        memcpy(rgi->hwaddr, ai->Address, 6);
+        rgi->flags |= RGI_HWADDR_DEFINED;
+
+        /* get netmask for non-onlink routes */
+        in_addr_t nm = inet_addr(ai->IpAddressList.IpMask.String);
+        if (!(rgi->flags & RGI_ON_LINK) && (nm != INADDR_NONE))
         {
-            rgi->flags |= RGI_ADDR_DEFINED;
-            a_index = adapter_index_of_ip(adapters, rgi->gateway.addr, NULL, &rgi->gateway.netmask);
-            if (a_index != TUN_ADAPTER_INDEX_INVALID)
-            {
-                rgi->adapter_index = a_index;
-                rgi->flags |= (RGI_IFACE_DEFINED|RGI_NETMASK_DEFINED);
-                ai = get_adapter(adapters, a_index);
-                if (ai)
-                {
-                    memcpy(rgi->hwaddr, ai->Address, 6);
-                    rgi->flags |= RGI_HWADDR_DEFINED;
-                }
-            }
+            rgi->gateway.netmask = ntohl(nm);
+            rgi->flags |= RGI_NETMASK_DEFINED;
         }
     }
 
+done:
     gc_free(&gc);
 }
 
@@ -2823,43 +2888,22 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6,
                          const struct in6_addr *dest, openvpn_net_ctx_t *ctx)
 {
     struct gc_arena gc = gc_new();
-    MIB_IPFORWARD_ROW2 BestRoute;
-    SOCKADDR_INET DestinationAddress, BestSourceAddress;
-    DWORD BestIfIndex;
-    DWORD status;
-    NET_LUID InterfaceLuid;
-
     CLEAR(*rgi6);
-    CLEAR(InterfaceLuid);               /* cleared = not used for lookup */
-    CLEAR(DestinationAddress);
 
+    SOCKADDR_INET DestinationAddress;
+    CLEAR(DestinationAddress);
     DestinationAddress.si_family = AF_INET6;
     if (dest)
     {
         DestinationAddress.Ipv6.sin6_addr = *dest;
     }
 
-    status = GetBestInterfaceEx( (struct sockaddr *)&DestinationAddress, &BestIfIndex );
+    MIB_IPFORWARD_ROW2 BestRoute;
+    CLEAR(BestRoute);
+    DWORD status = get_best_route(&gc, &DestinationAddress, &BestRoute);
 
     if (status != NO_ERROR)
     {
-        msg(D_ROUTE, "NOTE: GetBestInterfaceEx returned error: %s (code=%u)",
-            strerror_win32(status, &gc),
-            (unsigned int)status);
-        goto done;
-    }
-
-    msg( D_ROUTE, "GetBestInterfaceEx() returned if=%d", (int) BestIfIndex );
-
-    status = GetBestRoute2( &InterfaceLuid, BestIfIndex, NULL,
-                            &DestinationAddress, 0,
-                            &BestRoute, &BestSourceAddress );
-
-    if (status != NO_ERROR)
-    {
-        msg(D_ROUTE, "NOTE: GetIpForwardEntry2 returned error: %s (code=%u)",
-            strerror_win32(status, &gc),
-            (unsigned int)status);
         goto done;
     }
 
