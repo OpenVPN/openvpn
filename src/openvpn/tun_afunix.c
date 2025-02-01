@@ -47,9 +47,12 @@
 #include <signal.h>
 #include <stdlib.h>
 
+
+
 static void
 tun_afunix_exec_child(const char *dev_node, struct tuntap *tt, struct env_set *env)
 {
+    const char *msgprefix = "ERROR: failure executing process for tun:";
     struct argv argv = argv_new();
 
     /* since we know that dev-node starts with unix: we can just skip that
@@ -58,10 +61,12 @@ tun_afunix_exec_child(const char *dev_node, struct tuntap *tt, struct env_set *e
 
     argv_printf(&argv, "%s", program);
 
-    argv_msg(M_INFO, &argv);
     tt->afunix.childprocess = openvpn_execve_check(&argv, env, S_NOWAITPID,
-                                                   "ERROR: failure executing "
-                                                   "process for tun");
+                                                   msgprefix);
+    if (!openvpn_waitpid_check(tt->afunix.childprocess, msgprefix, M_WARN))
+    {
+        tt->afunix.childprocess = 0;
+    }
     argv_free(&argv);
 }
 
@@ -138,20 +143,27 @@ close_tun_afunix(struct tuntap *tt)
 ssize_t
 write_tun_afunix(struct tuntap *tt, uint8_t *buf, int len)
 {
-    int ret;
-    pid_t pidret = waitpid(tt->afunix.childprocess, &ret, WNOHANG);
-    if (pidret == tt->afunix.childprocess)
+    const char *msg = "ERROR: failure during write to AF_UNIX socket: ";
+    if (!openvpn_waitpid_check(tt->afunix.childprocess, msg, M_WARN))
     {
-        msg(M_INFO, "Child process PID %d for afunix dead? Return code: %d",
-            tt->afunix.childprocess, ret);
+        tt->afunix.childprocess = 0;
         return -ENXIO;
     }
+
     return write(tt->fd, buf, len);
 }
 
 ssize_t
 read_tun_afunix(struct tuntap *tt, uint8_t *buf, int len)
 {
+    const char *msg = "ERROR: failure during read from AF_UNIX socket: ";
+    if (!openvpn_waitpid_check(tt->afunix.childprocess, msg, M_WARN))
+    {
+        tt->afunix.childprocess = 0;
+    }
+    /* do an actual read on the file descriptor even in the error case since
+     * we otherwise loop on this on this from select and spam the console
+     * with error messages */
     return read(tt->fd, buf, len);
 }
 #else  /* ifndef WIN32 */
