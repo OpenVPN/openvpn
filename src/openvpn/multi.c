@@ -2442,6 +2442,35 @@ multi_client_connect_late_setup(struct multi_context *m,
             ifconfig_constraint_network, ifconfig_constraint_netmask);
     }
 
+    /* set our client's VPN endpoint for status reporting purposes */
+    mi->reporting_addr = mi->context.c2.push_ifconfig_local;
+    mi->reporting_addr_ipv6 = mi->context.c2.push_ifconfig_ipv6_local;
+
+    /* set context-level authentication flag */
+    mi->context.c2.tls_multi->multi_state = CAS_CONNECT_DONE;
+
+    /* Since dco-win maintains iroute routing table (subnet -> peer),
+     * peer must be added before iroutes. For other platforms it doesn't matter. */
+
+    /* authentication complete, calculate dynamic client specific options */
+    if (!multi_client_set_protocol_options(&mi->context))
+    {
+        mi->context.c2.tls_multi->multi_state = CAS_FAILED;
+    }
+    /* only continue if setting protocol options worked */
+    else if (!multi_client_setup_dco_initial(m, mi, &gc))
+    {
+        mi->context.c2.tls_multi->multi_state = CAS_FAILED;
+    }
+    /* Generate data channel keys only if setting protocol options
+     * and DCO initial setup has not failed */
+    else if (!multi_client_generate_tls_keys(&mi->context))
+    {
+        mi->context.c2.tls_multi->multi_state = CAS_FAILED;
+    }
+
+    /* dco peer has been added, it is now safe for Windows to add iroutes */
+
     /*
      * For routed tunnels, set up internal route to endpoint
      * plus add all iroute routes.
@@ -2487,30 +2516,6 @@ multi_client_connect_late_setup(struct multi_context *m,
         msg(D_MULTI_ERRORS, "MULTI: --iroute options rejected for %s -- iroute "
             "only works with tun-style tunnels",
             multi_instance_string(mi, false, &gc));
-    }
-
-    /* set our client's VPN endpoint for status reporting purposes */
-    mi->reporting_addr = mi->context.c2.push_ifconfig_local;
-    mi->reporting_addr_ipv6 = mi->context.c2.push_ifconfig_ipv6_local;
-
-    /* set context-level authentication flag */
-    mi->context.c2.tls_multi->multi_state = CAS_CONNECT_DONE;
-
-    /* authentication complete, calculate dynamic client specific options */
-    if (!multi_client_set_protocol_options(&mi->context))
-    {
-        mi->context.c2.tls_multi->multi_state = CAS_FAILED;
-    }
-    /* only continue if setting protocol options worked */
-    else if (!multi_client_setup_dco_initial(m, mi, &gc))
-    {
-        mi->context.c2.tls_multi->multi_state = CAS_FAILED;
-    }
-    /* Generate data channel keys only if setting protocol options
-     * and DCO initial setup has not failed */
-    else if (!multi_client_generate_tls_keys(&mi->context))
-    {
-        mi->context.c2.tls_multi->multi_state = CAS_FAILED;
     }
 
     /* send push reply if ready */
