@@ -505,7 +505,7 @@ close_syslog(void)
 static int orig_stderr;
 
 int
-get_orig_stderr()
+get_orig_stderr(void)
 {
     return orig_stderr ? orig_stderr : _fileno(stderr);
 }

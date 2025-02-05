@@ -502,7 +502,7 @@ dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
 }
 
 const char *
-dco_get_supported_ciphers()
+dco_get_supported_ciphers(void)
 {
     /*
      * this API can be called either from user mode or kernel mode,
