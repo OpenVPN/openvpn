@@ -279,6 +279,12 @@ dco_check_option_ce(const struct connection_entry *ce, int msglevel, int mode)
         msg(msglevel, "NOTE: --remote is not defined. This DCO version doesn't support multipeer. Disabling Data Channel Offload");
         return false;
     }
+
+    if ((mode == MODE_SERVER) && (ce->local_list->len > 1))
+    {
+        msg(msglevel, "NOTE: multiple --local options defined, disabling data channel offload");
+        return false;
+    }
 #endif
 
     return true;
@@ -352,6 +358,12 @@ dco_check_startup_option(int msglevel, const struct options *o)
     {
         msg(msglevel, "--windows-driver is set to '%s'. Disabling Data Channel Offload",
             print_tun_backend_driver(o->windows_driver));
+        return false;
+    }
+
+    if ((o->mode == MODE_SERVER) && o->ce.local_list->len > 1)
+    {
+        msg(msglevel, "multiple --local options defined, disabling data channel offload");
         return false;
     }
 
