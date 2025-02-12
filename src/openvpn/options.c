@@ -8316,7 +8316,7 @@ add_option(struct options *options,
 #if defined(TARGET_ANDROID)
         else if (streq(p[1], "PROXY_HTTP") && p[3] && !p[4])
         {
-            o->http_proxy_port = positiove_atoi(p[3], msglevel);
+            o->http_proxy_port = positive_atoi(p[3], msglevel);
             o->http_proxy = p[2];
         }
 #endif
