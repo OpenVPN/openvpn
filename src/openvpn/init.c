@@ -4381,16 +4381,16 @@ management_callback_network_change(void *arg, bool samenetwork)
 
     int socketfd = -1;
     struct context *c = (struct context *) arg;
-    if (!c->c2.link_socket)
+    if (!c->c2.link_sockets || !c->c2.link_sockets[0])
     {
         return -1;
     }
-    if (c->c2.link_socket->sd == SOCKET_UNDEFINED)
+    if (c->c2.link_sockets[0]->sd == SOCKET_UNDEFINED)
     {
         return -1;
     }
 
-    socketfd = c->c2.link_socket->sd;
+    socketfd = c->c2.link_sockets[0]->sd;
     if (!c->options.pull || c->c2.tls_multi->use_peer_id || samenetwork)
     {
         return socketfd;
