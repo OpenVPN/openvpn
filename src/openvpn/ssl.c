@@ -55,6 +55,7 @@
 #include "route.h"
 #include "tls_crypt.h"
 
+#include "crypto_epoch.h"
 #include "ssl.h"
 #include "ssl_verify.h"
 #include "ssl_backend.h"
@@ -915,6 +916,7 @@ key_state_free(struct key_state *ks, bool clear)
     key_state_ssl_free(&ks->ks_ssl);
 
     free_key_ctx_bi(&ks->crypto_options.key_ctx_bi);
+    free_epoch_key_ctx(&ks->crypto_options);
     free_buf(&ks->plaintext_read_buf);
     free_buf(&ks->plaintext_write_buf);
     free_buf(&ks->ack_write_buf);
@@ -1362,6 +1364,48 @@ openvpn_PRF(const uint8_t *secret,
 }
 
 static void
+init_epoch_keys(struct key_state *ks,
+                struct tls_multi *multi,
+                const struct key_type *key_type,
+                bool server,
+                struct key2 *key2)
+{
+    /* For now we hardcode this to be 16 for the software based data channel
+     * DCO based implementations/HW implementation might adjust this number
+     * based on their expected speed */
+    const int future_key_count = 16;
+
+    int key_direction = server ? KEY_DIRECTION_INVERSE : KEY_DIRECTION_NORMAL;
+    struct key_direction_state kds;
+    key_direction_state_init(&kds, key_direction);
+
+    struct crypto_options *co = &ks->crypto_options;
+
+    /* For the epoch key we use the first 32 bytes of key2 cipher keys
+     * for the  initial secret */
+    struct epoch_key e1_send = { 0 };
+    e1_send.epoch = 1;
+    memcpy(&e1_send.epoch_key, key2->keys[kds.out_key].cipher, sizeof(e1_send.epoch_key));
+
+    struct epoch_key e1_recv = { 0 };
+    e1_recv.epoch = 1;
+    memcpy(&e1_recv.epoch_key, key2->keys[kds.in_key].cipher, sizeof(e1_recv.epoch_key));
+
+    /* DCO implementations have two choices at this point.
+     *
+     * a) (more likely) they probably to pass E1 directly to kernel
+     * space at this point and do all the other key derivation in kernel
+     *
+     * b) They let userspace do the key derivation and pass all the individual
+     * keys to the DCO layer.
+     * */
+    epoch_init_key_ctx(co, key_type, &e1_send, &e1_recv,  future_key_count);
+
+    secure_memzero(&e1_send, sizeof(e1_send));
+    secure_memzero(&e1_recv, sizeof(e1_recv));
+}
+
+static void
 init_key_contexts(struct key_state *ks,
                   struct tls_multi *multi,
                   const struct key_type *key_type,
@@ -1393,6 +1437,16 @@ init_key_contexts(struct key_state *ks,
         CLEAR(key->encrypt);
         CLEAR(key->decrypt);
         key->initialized = true;
+    }
+    else if (multi->opt.crypto_flags & CO_EPOCH_DATA_KEY_FORMAT)
+    {
+        if (!cipher_kt_mode_aead(key_type->cipher))
+        {
+            msg(M_FATAL, "AEAD cipher (currently %s) "
+                "required for epoch data format.",
+                cipher_kt_name(key_type->cipher));
+        }
+        init_epoch_keys(ks, multi, key_type, server, key2);
     }
     else
     {
@@ -1967,6 +2021,11 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
         {
             /* We are not using pull or p2mp server, instead do P2P NCP */
             iv_proto |= IV_PROTO_NCP_P2P;
+        }
+
+        if (session->opt->data_epoch_supported)
+        {
+            iv_proto |= IV_PROTO_DATA_EPOCH;
         }
 
         buf_printf(&out, "IV_CIPHERS=%s\n", session->opt->config_ncp_ciphers);
@@ -2978,6 +3037,22 @@ should_trigger_renegotiation(const struct tls_session *session, const struct key
         return true;
     }
 
+    /* epoch key id approaching the 16 bit limit */
+    if (ks->crypto_options.flags & CO_EPOCH_DATA_KEY_FORMAT)
+    {
+        /* We only need to check the send key as we always keep send
+         * key epoch >= recv key epoch in \c epoch_replace_update_recv_key */
+        if (ks->crypto_options.epoch_key_send.epoch >= 0xF000)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+
     /* Packet id approach the limit of the packet id */
     if (packet_id_close_to_wrapping(&ks->crypto_options.packet_id.send))
     {
@@ -2993,7 +3068,9 @@ should_trigger_renegotiation(const struct tls_session *session, const struct key
      *  Since if both sides were aware, then both sides will probably also
      *  switch to use epoch data channel instead, so this code is not
      *  in effect then.
-     */
+     *
+     * When epoch are in use the crypto layer will handle this internally
+     * with new epochs instead of triggering a renegotiation */
     const struct key_ctx_bi *key_ctx_bi = &ks->crypto_options.key_ctx_bi;
     const uint64_t usage_limit = session->opt->aead_usage_limit;
 

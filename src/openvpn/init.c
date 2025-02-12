@@ -2788,6 +2788,19 @@ do_deferred_options(struct context *c, const unsigned int found)
         }
     }
 
+    /* Ensure that for epoch data format is only enabled if also data v2
+     * is enabled */
+    bool epoch_data = (c->options.imported_protocol_flags & CO_EPOCH_DATA_KEY_FORMAT);
+    bool datav2_enabled = (c->options.peer_id >= 0 && c->options.peer_id < MAX_PEER_ID);
+
+    if (epoch_data && !datav2_enabled)
+    {
+        msg(D_PUSH_ERRORS, "OPTIONS ERROR: Epoch key data format tag requires "
+            "data v2 (peer-id) to be enabled.");
+        return false;
+    }
+
+
     if (found & OPT_P_PUSH_MTU)
     {
         /* MTU has changed, check that the pushed MTU is small enough to
@@ -3384,6 +3397,15 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         to.push_peer_info_detail = 1;
     }
 
+    /* Check if the DCO drivers support the epoch data format */
+    if (dco_enabled(options))
+    {
+        to.data_epoch_supported = dco_supports_epoch_data(c);
+    }
+    else
+    {
+        to.data_epoch_supported = true;
+    }
 
     /* should we not xmit any packets until we get an initial
      * response from client? */

@@ -35,6 +35,19 @@ Default ciphers in ``--data-ciphers``
     replaced by the default ciphers used by OpenVPN, making it easier to
     add an allowed cipher without having to spell out the default ciphers.
 
+Epoch data keys and packet format
+    This introduces the epoch data format for AEAD data channel
+    ciphers in TLS mode ciphers. This new data format has a number of
+    improvements over the standard "DATA_V2" format.
+
+    - AEAD tag at the end of packet which is more hardware implementation
+      friendly
+    - Automatic key switchover when cipher usage limits are hit, similar to
+      the epoch data keys in (D)TLS 1.3
+    - 64 bit instead of 32 bit packet ids to allow the data channel to be
+      ready for 10 GBit/s without having frequent renegotiation
+    - IV constructed with XOR instead of concatenation to not have (parts) of
+      the real IV on the wire
 
 Deprecated features
 -------------------

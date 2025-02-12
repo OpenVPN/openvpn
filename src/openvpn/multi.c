@@ -1878,9 +1878,15 @@ multi_client_set_protocol_options(struct context *c)
     char *push_cipher = ncp_get_best_cipher(o->ncp_ciphers, peer_info,
                                             tls_multi->remote_ciphername,
                                             &o->gc);
-
     if (push_cipher)
     {
+        /* Enable epoch data key format if supported and AEAD cipher in use */
+        if (tls_multi->session[TM_ACTIVE].opt->data_epoch_supported
+            && (proto & IV_PROTO_DATA_EPOCH) && cipher_kt_mode_aead(push_cipher))
+        {
+            o->imported_protocol_flags |= CO_EPOCH_DATA_KEY_FORMAT;
+        }
+
         o->ciphername = push_cipher;
         return true;
     }

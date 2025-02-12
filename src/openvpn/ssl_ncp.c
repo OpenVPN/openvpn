@@ -411,7 +411,8 @@ get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info,
 }
 
 static void
-p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session)
+p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session,
+                    const char *common_cipher)
 {
     /* will return 0 if peer_info is null */
     const unsigned int iv_proto_peer = extract_iv_proto(multi->peer_info);
@@ -431,6 +432,18 @@ p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session)
     if (iv_proto_peer & IV_PROTO_CC_EXIT_NOTIFY)
     {
         session->opt->crypto_flags |= CO_USE_CC_EXIT_NOTIFY;
+    }
+
+    if (session->opt->data_epoch_supported && (iv_proto_peer & IV_PROTO_DATA_EPOCH)
+        && common_cipher && cipher_kt_mode_aead(common_cipher))
+    {
+        session->opt->crypto_flags |= CO_EPOCH_DATA_KEY_FORMAT;
+    }
+    else
+    {
+        /* The peer might have changed its ciphers options during reconnect,
+         * ensure we clear the flag if we previously had it enabled */
+        session->opt->crypto_flags &= ~CO_EPOCH_DATA_KEY_FORMAT;
     }
 
 #if defined(HAVE_EXPORT_KEYING_MATERIAL)
@@ -472,14 +485,14 @@ p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session)
 void
 p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session)
 {
-    /* Set the common options */
-    p2p_ncp_set_options(multi, session);
-
     struct gc_arena gc = gc_new();
 
     /* Query the common cipher here to log it as part of our message.
      * We postpone switching the cipher to do_up */
     const char *common_cipher = get_p2p_ncp_cipher(session, multi->peer_info, &gc);
+
+    /* Set the common options */
+    p2p_ncp_set_options(multi, session, common_cipher);
 
     if (!common_cipher)
     {
@@ -502,9 +515,12 @@ p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session)
     }
 
     msg(D_TLS_DEBUG_LOW, "P2P mode NCP negotiation result: "
-        "TLS_export=%d, DATA_v2=%d, peer-id %d, cipher=%s",
+        "TLS_export=%d, DATA_v2=%d, peer-id %d, epoch=%d, cipher=%s",
         (bool)(session->opt->crypto_flags & CO_USE_TLS_KEY_MATERIAL_EXPORT),
-        multi->use_peer_id, multi->peer_id, common_cipher);
+        multi->use_peer_id,
+        multi->peer_id,
+        (bool)(session->opt->crypto_flags & CO_EPOCH_DATA_KEY_FORMAT),
+        common_cipher);
 
     gc_free(&gc);
 }

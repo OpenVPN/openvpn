@@ -315,7 +315,6 @@ struct tls_options
 
     /* from command line */
     bool single_session;
-    bool disable_occ;
     int mode;
     bool pull;
     /**
@@ -367,6 +366,12 @@ struct tls_options
 
     const char *config_ciphername;
     const char *config_ncp_ciphers;
+
+    /** whether our underlying data channel supports new data channel
+     * features (epoch keys with AEAD tag at the end). This is always true
+     * for the internal implementation but can be false for DCO
+     * implementations */
+    bool data_epoch_supported;
 
     bool tls_crypt_v2;
     const char *tls_crypt_v2_verify_script;
@@ -496,8 +501,6 @@ struct tls_session
      * to 1.  This way you know that if key_id is 0, it is the first key.
      */
     int key_id;
-
-    int limit_next;             /* used for traffic shaping on the control channel */
 
     int verify_maxlevel;
 

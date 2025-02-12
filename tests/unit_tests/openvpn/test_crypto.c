@@ -874,17 +874,17 @@ crypto_test_epoch_key_overflow(void **state)
     struct crypto_options *co = &data->co;
 
     /* Modify the receive epoch and keys to have a very high epoch to test
-     * the end of array. Iterating through all 16k keys takes a 2-3s, so we
+     * the end of array. Iterating through all 65k keys takes a 2-3s, so we
      * avoid this for the unit test */
-    co->key_ctx_bi.decrypt.epoch = 16000;
-    co->key_ctx_bi.encrypt.epoch = 16000;
+    co->key_ctx_bi.decrypt.epoch = 65500;
+    co->key_ctx_bi.encrypt.epoch = 65500;
 
-    co->epoch_key_send.epoch = 16000;
-    co->epoch_key_recv.epoch = 16000 + co->epoch_data_keys_future_count;
+    co->epoch_key_send.epoch = 65500;
+    co->epoch_key_recv.epoch = 65500 + co->epoch_data_keys_future_count;
 
     for (uint16_t i = 0; i < co->epoch_data_keys_future_count; i++)
     {
-        co->epoch_data_keys_future[i].epoch = 16001 + i;
+        co->epoch_data_keys_future[i].epoch = 65501 + i;
     }
 
     /* Move the last few keys until we are close to the limit */

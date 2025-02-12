@@ -39,7 +39,7 @@
 #include "basic.h"
 #include "buffer.h"
 
-/* TLS uses a tag of 128 bytes, let's do the same for OpenVPN */
+/* TLS uses a tag of 128 bits, let's do the same for OpenVPN */
 #define OPENVPN_AEAD_TAG_LENGTH 16
 
 /* Maximum cipher block size (bytes) */
