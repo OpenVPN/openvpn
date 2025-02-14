@@ -39,6 +39,7 @@ option(ENABLE_LZ4 "BUILD with lz4" ON)
 option(ENABLE_LZO "BUILD with lzo" ON)
 option(ENABLE_PKCS11 "BUILD with pkcs11-helper" ON)
 option(USE_WERROR "Treat compiler warnings as errors (-Werror)" ON)
+option(FAKE_ANDROID "Target Android but do not use actual cross compile/Android cmake to build for simple compile checks on Linux")
 
 set(PLUGIN_DIR /usr/local/lib/openvpn/plugins CACHE FILEPATH "Location of the plugin directory")
 
@@ -122,7 +123,14 @@ set(OPENVPN_VERSION_RESOURCE ${PRODUCT_VERSION_RESOURCE})
 set(CMAKE_C_STANDARD 11)
 
 # Set the various defines for config.h.cmake.in
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Android" OR ${FAKE_ANDROID})
+    set(TARGET_ANDROID YES)
+    set(ENABLE_ASYNC_PUSH YES)
+    set(ENABLE_SITNL YES)
+    set(HAVE_LINUX_TYPES_H 1)
+    # Wacky workaround as OpenSSL package detection is otherwise broken (https://stackoverflow.com/questions/45958214/android-cmake-could-not-find-openssl)
+    list(APPEND CMAKE_FIND_ROOT_PATH ${OPENSSL_ROOT_DIR})
+elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(TARGET_LINUX YES)
     set(ENABLE_ASYNC_PUSH YES)
     set(ENABLE_LINUXDCO YES)

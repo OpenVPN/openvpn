@@ -432,6 +432,9 @@ don't. */
 /* Are we running WIN32? */
 #cmakedefine TARGET_WIN32
 
+/* Are we targeting Android? */
+#cmakedefine TARGET_ANDROID
+
 #define TARGET_ALIAS "@CMAKE_SYSTEM_NAME@"
 
 /* Enable GNU extensions on systems that have them.  */
