@@ -4412,6 +4412,15 @@ management_callback_network_change(void *arg, bool samenetwork)
         return -1;
     }
 
+    /* On some newer Android handsets, changing to a different network
+     * often does not trigger a TCP reset but continue using the old
+     * connection (e.g. using mobile connection when WiFi becomes available */
+    struct link_socket_info *lsi = get_link_socket_info(c);
+    if (lsi && proto_is_tcp(lsi->proto) && !samenetwork)
+    {
+        return -2;
+    }
+
     socketfd = c->c2.link_sockets[0]->sd;
     if (!c->options.pull || c->c2.tls_multi->use_peer_id || samenetwork)
     {
