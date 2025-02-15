@@ -744,11 +744,13 @@ If the option is inlined, ``algo`` is always :code:`SHA256`.
   ::
 
      x509-username-field emailAddress
+     x509-username-field 1.2.840.113549.1.9.1
      x509-username-field ext:subjectAltName
      x509-username-field CN serialNumber
 
-  The first example uses the value of the :code:`emailAddress` attribute
-  in the certificate's Subject field as the username. The second example
+  The first two examples use the value of the :code:`emailAddress` attribute
+  in the certificate's Subject field as the username, where the first example
+  uses the name while the second example uses the oid. The third example
   uses the :code:`ext:` prefix to signify that the X.509 extension
   ``fieldname`` :code:`subjectAltName` be searched for an rfc822Name
   (email) field to be used as the username. In cases where there are
