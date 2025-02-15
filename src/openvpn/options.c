@@ -9395,37 +9395,12 @@ add_option(struct options *options,
 #ifdef ENABLE_X509ALTUSERNAME
     else if (streq(p[0], "x509-username-field") && p[1])
     {
-        /* This option used to automatically upcase the fieldnames passed as the
-         * option arguments, e.g., "ou" became "OU". Now, this "helpfulness" is
-         * fine-tuned by only upcasing Subject field attribute names which consist
-         * of all lower-case characters. Mixed-case attributes such as
-         * "emailAddress" are left as-is. An option parameter having the "ext:"
-         * prefix for matching X.509v3 extended fields will also remain unchanged.
-         */
         VERIFY_PERMISSION(OPT_P_GENERAL);
         for (size_t j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
         {
             char *s = p[j];
 
-            if (strncmp("ext:", s, 4) != 0)
-            {
-                size_t i = 0;
-                while (s[i] && !isupper(s[i]))
-                {
-                    i++;
-                }
-                if (strlen(s) == i)
-                {
-                    while ((*s = toupper(*s)) != '\0')
-                    {
-                        s++;
-                    }
-                    msg(M_WARN, "DEPRECATED FEATURE: automatically upcased the "
-                        "--x509-username-field parameter to '%s'; please update your "
-                        "configuration", p[j]);
-                }
-            }
-            else if (!x509_username_field_ext_supported(s+4))
+            if (strncmp("ext:", s, 4) == 0 && !x509_username_field_ext_supported(s+4))
             {
                 msg(msglevel, "Unsupported x509-username-field extension: %s", s);
             }

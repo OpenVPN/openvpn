@@ -765,12 +765,6 @@ If the option is inlined, ``algo`` is always :code:`SHA256`.
   Only the :code:`subjectAltName` and :code:`issuerAltName` X.509
   extensions and :code:`serialNumber` X.509 attribute are supported.
 
-  **Please note:** This option has a feature which will convert an
-  all-lowercase ``fieldname`` to uppercase characters, e.g.,
-  :code:`ou` -> :code:`OU`. A mixed-case ``fieldname`` or one having the
-  :code:`ext:` prefix will be left as-is. This automatic upcasing feature is
-  deprecated and will be removed in a future release.
-
   Non-compliant symbols are being replaced with the :code:`_` symbol, same as
   the field separator, so concatenating multiple fields with such or :code:`_`
   symbols can potentially lead to username collisions.
