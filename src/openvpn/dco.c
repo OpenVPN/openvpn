@@ -346,6 +346,12 @@ dco_check_startup_option(int msglevel, const struct options *o)
         }
     }
 
+    if (o->bind_dev)
+    {
+        msg(msglevel, "Note: bind-dev not supported with DCO, disabling data channel offload");
+        return false;
+    }
+
 #if defined(_WIN32)
     if ((o->mode == MODE_SERVER) && !dco_win_supports_multipeer())
     {
