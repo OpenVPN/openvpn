@@ -181,7 +181,7 @@ out:
 
 
 LPCTSTR
-GetLastErrorText()
+GetLastErrorText(void)
 {
     DWORD error;
     static TCHAR buf[256];

@@ -86,7 +86,7 @@ DWORD GetOpenvpnSettings(settings_t *s);
 
 BOOL ReportStatusToSCMgr(SERVICE_STATUS_HANDLE service, SERVICE_STATUS *status);
 
-LPCTSTR GetLastErrorText();
+LPCTSTR GetLastErrorText(void);
 
 DWORD MsgToEventLog(DWORD flags, LPCTSTR lpszMsg, ...);
 

@@ -103,7 +103,7 @@ static char *win_sys_path = NULL; /* GLOBAL */
  * Set OpenSSL environment variables to a safe directory
  */
 static void
-set_openssl_env_vars();
+set_openssl_env_vars(void);
 
 void
 init_win32(void)
@@ -1518,7 +1518,7 @@ get_openvpn_reg_value(const WCHAR *key, WCHAR *value, DWORD size)
 }
 
 static void
-set_openssl_env_vars()
+set_openssl_env_vars(void)
 {
     const WCHAR *ssl_fallback_dir = L"C:\\Windows\\System32";
 
