@@ -31,19 +31,25 @@
 typedef OVPN_KEY_SLOT dco_key_slot_t;
 typedef OVPN_CIPHER_ALG dco_cipher_t;
 
+typedef enum {
+    DCO_MODE_UNINIT,
+    DCO_MODE_P2P,
+    DCO_MODE_MP
+} dco_mode_type;
+
 struct dco_context {
     struct tuntap *tt;
+    dco_mode_type ifmode;
+
 };
 
 typedef struct dco_context dco_context_t;
 
-struct tuntap
-create_dco_handle(const char *devname, struct gc_arena *gc);
+void
+dco_mp_start_vpn(HANDLE handle, struct link_socket *sock);
 
 void
-dco_create_socket(HANDLE handle, struct addrinfo *remoteaddr, bool bind_local,
-                  struct addrinfo *bind, int timeout,
-                  struct signal_info *sig_info);
+dco_p2p_new_peer(HANDLE handle, struct link_socket *sock, struct signal_info *sig_info);
 
 void
 dco_start_tun(struct tuntap *tt);

@@ -2177,12 +2177,22 @@ static void
 create_socket_dco_win(struct context *c, struct link_socket *sock,
                       struct signal_info *sig_info)
 {
+    /* in P2P mode we must have remote resolved at this point */
+    struct addrinfo *remoteaddr = sock->info.lsa->current_remote;
+    if ((c->options.mode == MODE_POINT_TO_POINT) && (!remoteaddr))
+    {
+        return;
+    }
+
     if (!c->c1.tuntap)
     {
         struct tuntap *tt;
-        ALLOC_OBJ(tt, struct tuntap);
+        ALLOC_OBJ_CLEAR(tt, struct tuntap);
 
-        *tt = create_dco_handle(c->options.dev_node, &c->gc);
+        tt->backend_driver = DRIVER_DCO;
+
+        const char *device_guid = NULL; /* not used */
+        tun_open_device(tt, c->options.dev_node, &device_guid, &c->gc);
 
         /* Ensure we can "safely" cast the handle to a socket */
         static_assert(sizeof(sock->sd) == sizeof(tt->hand), "HANDLE and SOCKET size differs");
@@ -2190,12 +2200,14 @@ create_socket_dco_win(struct context *c, struct link_socket *sock,
         c->c1.tuntap = tt;
     }
 
-    dco_create_socket(c->c1.tuntap->hand,
-                      sock->info.lsa->current_remote,
-                      sock->bind_local, sock->info.lsa->bind_local,
-                      get_server_poll_remaining_time(sock->server_poll_timeout),
-                      sig_info);
-
+    if (c->options.mode == MODE_SERVER)
+    {
+        dco_mp_start_vpn(c->c1.tuntap->hand, sock);
+    }
+    else
+    {
+        dco_p2p_new_peer(c->c1.tuntap->hand, sock, sig_info);
+    }
     sock->sockflags |= SF_DCO_WIN;
 
     if (sig_info->signal_received)
@@ -2245,19 +2257,16 @@ link_socket_init_phase2(struct context *c,
     resolve_remote(sock, 2, &remote_dynamic,  sig_info);
 
     /* If a valid remote has been found, create the socket with its addrinfo */
+#if defined(_WIN32)
+    if (dco_enabled(&c->options))
+    {
+        create_socket_dco_win(c, sock, sig_info);
+        goto done;
+    }
+#endif
     if (sock->info.lsa->current_remote)
     {
-#if defined(_WIN32)
-        if (dco_enabled(&c->options))
-        {
-            create_socket_dco_win(c, sock, sig_info);
-            goto done;
-        }
-        else
-#endif
-        {
-            create_socket(sock, sock->info.lsa->current_remote);
-        }
+        create_socket(sock, sock->info.lsa->current_remote);
     }
 
     /* If socket has not already been created create it now */
@@ -3787,6 +3796,91 @@ socket_send_queue(struct link_socket *sock, struct buffer *buf, const struct lin
     return sock->writes.iostate;
 }
 
+void
+read_sockaddr_from_overlapped(struct overlapped_io *io, struct sockaddr *dst, int overlapped_ret)
+{
+    if (overlapped_ret >= 0 && io->addr_defined)
+    {
+        /* TODO(jjo): streamline this mess */
+        /* in this func we don't have relevant info about the PF_ of this
+         * endpoint, as link_socket_actual will be zero for the 1st received packet
+         *
+         * Test for inets PF_ possible sizes
+         */
+        switch (io->addrlen)
+        {
+            case sizeof(struct sockaddr_in):
+            case sizeof(struct sockaddr_in6):
+            /* TODO(jjo): for some reason (?) I'm getting 24,28 for AF_INET6
+             * under _WIN32*/
+            case sizeof(struct sockaddr_in6) - 4:
+                break;
+
+            default:
+                bad_address_length(io->addrlen, af_addr_size(io->addr.sin_family));
+        }
+
+        switch (io->addr.sin_family)
+        {
+            case AF_INET:
+                memcpy(dst, &io->addr, sizeof(struct sockaddr_in));
+                break;
+
+            case AF_INET6:
+                memcpy(dst, &io->addr6, sizeof(struct sockaddr_in6));
+                break;
+        }
+    }
+    else
+    {
+        CLEAR(*dst);
+    }
+}
+
+/**
+ * @brief Extracts a sockaddr from a packet payload.
+ *
+ * Reads a sockaddr structure from the start of the packet buffer and writes it to `dst`.
+ *
+ * @param[in] buf Packet buffer containing the payload.
+ * @param[out] dst Destination buffer for the extracted sockaddr.
+ * @return Length of the extracted sockaddr
+ */
+static int
+read_sockaddr_from_packet(struct buffer *buf, struct sockaddr *dst)
+{
+    int sa_len = 0;
+
+    const struct sockaddr *sa = (const struct sockaddr *)BPTR(buf);
+    switch (sa->sa_family)
+    {
+        case AF_INET:
+            sa_len = sizeof(struct sockaddr_in);
+            if (buf_len(buf) < sa_len)
+            {
+                msg(M_FATAL, "ERROR: received incoming packet with too short length of %d -- must be at least %d.", buf_len(buf), sa_len);
+            }
+            memcpy(dst, sa, sa_len);
+            buf_advance(buf, sa_len);
+            break;
+
+        case AF_INET6:
+            sa_len = sizeof(struct sockaddr_in6);
+            if (buf_len(buf) < sa_len)
+            {
+                msg(M_FATAL, "ERROR: received incoming packet with too short length of %d -- must be at least %d.", buf_len(buf), sa_len);
+            }
+            memcpy(dst, sa, sa_len);
+            buf_advance(buf, sa_len);
+            break;
+
+        default:
+            msg(M_FATAL, "ERROR: received incoming packet with invalid address family %d.", sa->sa_family);
+    }
+
+    return sa_len;
+}
+
 /* Returns the number of bytes successfully read */
 int
 sockethandle_finalize(sockethandle_t sh,
@@ -3860,45 +3954,14 @@ sockethandle_finalize(sockethandle_t sh,
             ASSERT(0);
     }
 
-    /* return from address if requested */
+    if (from && ret > 0 && sh.is_handle && sh.prepend_sa)
+    {
+        ret -= read_sockaddr_from_packet(buf, &from->dest.addr.sa);
+    }
+
     if (!sh.is_handle && from)
     {
-        if (ret >= 0 && io->addr_defined)
-        {
-            /* TODO(jjo): streamline this mess */
-            /* in this func we don't have relevant info about the PF_ of this
-             * endpoint, as link_socket_actual will be zero for the 1st received packet
-             *
-             * Test for inets PF_ possible sizes
-             */
-            switch (io->addrlen)
-            {
-                case sizeof(struct sockaddr_in):
-                case sizeof(struct sockaddr_in6):
-                /* TODO(jjo): for some reason (?) I'm getting 24,28 for AF_INET6
-                 * under _WIN32*/
-                case sizeof(struct sockaddr_in6)-4:
-                    break;
-
-                default:
-                    bad_address_length(io->addrlen, af_addr_size(io->addr.sin_family));
-            }
-
-            switch (io->addr.sin_family)
-            {
-                case AF_INET:
-                    from->dest.addr.in4 = io->addr;
-                    break;
-
-                case AF_INET6:
-                    from->dest.addr.in6 = io->addr6;
-                    break;
-            }
-        }
-        else
-        {
-            CLEAR(from->dest.addr);
-        }
+        read_sockaddr_from_overlapped(io, &from->dest.addr.sa, ret);
     }
 
     if (buf)

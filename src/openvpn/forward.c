@@ -1323,7 +1323,10 @@ read_incoming_tun(struct context *c)
     }
     else
     {
-        sockethandle_t sh = { .is_handle = true, .h = c->c1.tuntap->hand };
+        /* we cannot end up here when using dco */
+        ASSERT(!dco_enabled(&c->options));
+
+        sockethandle_t sh = { .is_handle = true, .h = c->c1.tuntap->hand, .prepend_sa = false };
         sockethandle_finalize(sh, &c->c1.tuntap->reads, &c->c2.buf, NULL);
     }
 #else  /* ifdef _WIN32 */

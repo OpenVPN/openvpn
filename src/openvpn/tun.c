@@ -992,7 +992,7 @@ init_tun_post(struct tuntap *tt,
 #ifdef _WIN32
     if (tt->backend_driver == DRIVER_DCO)
     {
-        dco_start_tun(tt);
+        tt->dco.tt = tt;
         return;
     }
 
