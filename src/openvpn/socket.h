@@ -1125,15 +1125,11 @@ link_socket_write_win32(struct link_socket *sock,
     {
         if (to->dest.addr.sa.sa_family == AF_INET)
         {
-            struct sockaddr_in sa;
-            memcpy(&sa, &to->dest.addr.in4, sizeof(sa));
-            buf_write_prepend(buf, &sa, sizeof(sa));
+            buf_write_prepend(buf, &to->dest.addr.in4, sizeof(struct sockaddr_in));
         }
         else
         {
-            struct sockaddr_in6 sa;
-            memcpy(&sa, &to->dest.addr.in6, sizeof(sa));
-            buf_write_prepend(buf, &sa, sizeof(sa));
+            buf_write_prepend(buf, &to->dest.addr.in6, sizeof(struct sockaddr_in6));
         }
     }
 
