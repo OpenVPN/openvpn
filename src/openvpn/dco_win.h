@@ -24,6 +24,8 @@
 
 #if defined(ENABLE_DCO) && defined(_WIN32)
 
+#include <in6addr.h>
+
 #include "buffer.h"
 #include "ovpn_dco_win.h"
 #include "sig.h"
@@ -68,6 +70,18 @@ dco_start_tun(struct tuntap *tt);
 
 bool
 dco_win_supports_multipeer(void);
+
+void
+dco_win_add_iroute_ipv4(dco_context_t *dco, in_addr_t dst, unsigned int netbits, unsigned int peer_id);
+
+void
+dco_win_add_iroute_ipv6(dco_context_t *dco, struct in6_addr dst, unsigned int netbits, unsigned int peer_id);
+
+void
+dco_win_del_iroute_ipv4(dco_context_t *dco, in_addr_t dst, unsigned int netbits);
+
+void
+dco_win_del_iroute_ipv6(dco_context_t *dco, struct in6_addr dst, unsigned int netbits);
 
 #else /* if defined(ENABLE_DCO) && defined(_WIN32) */
 
