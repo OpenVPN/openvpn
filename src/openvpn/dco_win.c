@@ -126,6 +126,17 @@ ovpn_dco_init_mp(dco_context_t *dco, const char *dev_node)
     ASSERT(dco->ifmode == DCO_MODE_UNINIT);
     dco->ifmode = DCO_MODE_MP;
 
+    /* Use manual reset event so it remains signalled until
+     * explicitly reset. This way we won't lose notifications
+     */
+    dco->ov.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if (dco->ov.hEvent == NULL)
+    {
+        msg(M_ERR, "Error: ovpn_dco_init: CreateEvent failed");
+    }
+
+    dco->rwhandle.read = dco->ov.hEvent;
+
     /* open DCO device */
     struct gc_arena gc = gc_new();
     const char *device_guid;
@@ -629,11 +640,74 @@ dco_version_string(struct gc_arena *gc)
     }
 }
 
+/**
+ * @brief Handles successful completion of overlapped operation.
+ *
+ * We use overlapped I/O (Windows term for asynchronous I/O) to get
+ * notifications from kernel to userspace. This gets the result of overlapped
+ * operation and, in case of success, copies data from kernel-filled buffer
+ * into userspace-provided dco context.
+ *
+ * @param dco Pointer to the dco context
+ * @param queued true if operation was queued, false if it has completed immediately
+ */
+static void
+dco_handle_overlapped_success(dco_context_t *dco, bool queued)
+{
+    DWORD bytes_read = 0;
+    BOOL res = GetOverlappedResult(dco->tt->hand, &dco->ov, &bytes_read, FALSE);
+    if (res)
+    {
+        msg(D_DCO_DEBUG, "%s: completion%s success [%ld]", __func__, queued ? "" : " non-queued", bytes_read);
+
+        dco->dco_message_peer_id = dco->notif_buf.PeerId;
+        dco->dco_message_type = dco->notif_buf.Cmd;
+        dco->dco_del_peer_reason = dco->notif_buf.DelPeerReason;
+    }
+    else
+    {
+        msg(D_DCO_DEBUG | M_ERRNO, "%s: completion%s error", __func__, queued ? "" : " non-queued");
+    }
+}
+
 int
 dco_do_read(dco_context_t *dco)
 {
-    /* no-op on windows */
-    ASSERT(0);
+    if (dco->ifmode != DCO_MODE_MP)
+    {
+        ASSERT(false);
+    }
+
+    dco->dco_message_peer_id = -1;
+    dco->dco_message_type = 0;
+
+    switch (dco->iostate)
+    {
+        case IOSTATE_QUEUED:
+            dco_handle_overlapped_success(dco, true);
+
+            ASSERT(ResetEvent(dco->ov.hEvent));
+            dco->iostate = IOSTATE_INITIAL;
+
+            break;
+
+        case IOSTATE_IMMEDIATE_RETURN:
+            dco->iostate = IOSTATE_INITIAL;
+            ASSERT(ResetEvent(dco->ov.hEvent));
+
+            if (dco->ov_ret == ERROR_SUCCESS)
+            {
+                dco_handle_overlapped_success(dco, false);
+            }
+            else
+            {
+                SetLastError(dco->ov_ret);
+                msg(D_DCO_DEBUG | M_ERRNO, "%s: completion non-queued error", __func__);
+            }
+
+            break;
+    }
+
     return 0;
 }
 
@@ -676,8 +750,48 @@ dco_get_peer_stats(struct context *c)
 void
 dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
 {
-    /* no-op on windows */
-    ASSERT(0);
+    if (dco->ifmode != DCO_MODE_MP)
+    {
+        /* mp only */
+        return;
+    }
+
+    event_ctl(es, &dco->rwhandle, EVENT_READ, arg);
+
+    if (dco->iostate == IOSTATE_INITIAL)
+    {
+        /* the overlapped IOCTL will signal this event on I/O completion */
+        ASSERT(ResetEvent(dco->ov.hEvent));
+
+        if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_NOTIFY_EVENT, NULL, 0, &dco->notif_buf, sizeof(dco->notif_buf), NULL, &dco->ov))
+        {
+            DWORD err = GetLastError();
+            if (err == ERROR_IO_PENDING) /* operation queued? */
+            {
+                dco->iostate = IOSTATE_QUEUED;
+                dco->ov_ret = ERROR_SUCCESS;
+
+                msg(D_DCO_DEBUG, "%s: notify ioctl queued", __func__);
+            }
+            else
+            {
+                /* error occured */
+                ASSERT(SetEvent(dco->ov.hEvent));
+                dco->iostate = IOSTATE_IMMEDIATE_RETURN;
+                dco->ov_ret = err;
+
+                msg(D_DCO_DEBUG | M_ERRNO, "%s: notify ioctl error", __func__);
+            }
+        }
+        else
+        {
+            ASSERT(SetEvent(dco->ov.hEvent));
+            dco->iostate = IOSTATE_IMMEDIATE_RETURN;
+            dco->ov_ret = ERROR_SUCCESS;
+
+            msg(D_DCO_DEBUG, "%s: notify ioctl immediate return", __func__);
+        }
+    }
 }
 
 const char *

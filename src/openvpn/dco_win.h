@@ -41,6 +41,18 @@ struct dco_context {
     struct tuntap *tt;
     dco_mode_type ifmode;
 
+    OVPN_NOTIFY_EVENT notif_buf; /**< Buffer for incoming notifications. */
+    OVERLAPPED ov; /**< Used by overlapped I/O for async IOCTL. */
+    int iostate; /**< State of overlapped I/O; see definitions in win32.h. */
+    struct rw_handle rwhandle; /**< Used to hook async I/O to the OpenVPN event loop. */
+    int ov_ret; /**< Win32 error code for overlapped operation, 0 for success */
+
+    int dco_message_peer_id;
+    int dco_message_type;
+    int dco_del_peer_reason;
+
+    uint64_t dco_read_bytes;
+    uint64_t dco_write_bytes;
 };
 
 typedef struct dco_context dco_context_t;

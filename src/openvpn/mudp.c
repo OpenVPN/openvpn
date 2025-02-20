@@ -406,7 +406,8 @@ multi_process_io_udp(struct multi_context *m, struct link_socket *sock)
         multi_process_file_closed(m, mpp_flags);
     }
 #endif
-#if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD))
+#if defined(ENABLE_DCO) \
+    && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(TARGET_WIN32))
     else if (status & DCO_READ)
     {
         if (!IS_SIG(&m->top))

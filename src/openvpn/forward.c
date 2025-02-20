@@ -2083,8 +2083,8 @@ io_wait_dowork(struct context *c, const unsigned int flags)
 #ifdef ENABLE_ASYNC_PUSH
     static uintptr_t file_shift = FILE_SHIFT;
 #endif
-#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
-    static uintptr_t dco_shift = DCO_SHIFT;    /* Event from DCO linux kernel module */
+#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(TARGET_WIN32)
+    static uintptr_t dco_shift = DCO_SHIFT;    /* Event from DCO kernel module */
 #endif
 
     /*
@@ -2197,7 +2197,7 @@ io_wait_dowork(struct context *c, const unsigned int flags)
                    &c->c2.link_sockets[i]->ev_arg, NULL);
     }
     tun_set(c->c1.tuntap, c->c2.event_set, tuntap, (void *)tun_shift, NULL);
-#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
+#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(TARGET_WIN32)
     if (socket & EVENT_READ && c->c2.did_open_tun)
     {
         dco_event_set(&c->c1.tuntap->dco, c->c2.event_set, (void *)dco_shift);
