@@ -528,7 +528,7 @@ dco_multi_get_localaddr(struct multi_context *m, struct multi_instance *mi,
         {
             struct sockaddr_in *sock_in4 = (struct sockaddr_in *)local;
 #if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
-            sock_in4->sin_addr = actual->pi.in4.ipi_addr;
+            sock_in4->sin_addr = actual->pi.in4.ipi_spec_dst;
 #elif defined(IP_RECVDSTADDR)
             sock_in4->sin_addr = actual->pi.in4;
 #else
