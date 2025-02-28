@@ -437,34 +437,44 @@ hash_func(const uint8_t *k, uint32_t length, uint32_t initval)
     {
         case 11:
             c += ((uint32_t) k[10] << 24);
+        /* Intentional [[fallthrough]]; */
 
         case 10:
             c += ((uint32_t) k[9] << 16);
+        /* Intentional [[fallthrough]]; */
 
         case 9:
             c += ((uint32_t) k[8] << 8);
+        /* Intentional [[fallthrough]]; */
 
         /* the first byte of c is reserved for the length */
         case 8:
             b += ((uint32_t) k[7] << 24);
+        /* Intentional [[fallthrough]]; */
 
         case 7:
             b += ((uint32_t) k[6] << 16);
+        /* Intentional [[fallthrough]]; */
 
         case 6:
             b += ((uint32_t) k[5] << 8);
+        /* Intentional [[fallthrough]]; */
 
         case 5:
             b += k[4];
+        /* Intentional [[fallthrough]]; */
 
         case 4:
             a += ((uint32_t) k[3] << 24);
+        /* Intentional [[fallthrough]]; */
 
         case 3:
             a += ((uint32_t) k[2] << 16);
+        /* Intentional [[fallthrough]]; */
 
         case 2:
             a += ((uint32_t) k[1] << 8);
+        /* Intentional [[fallthrough]]; */
 
         case 1:
             a += k[0];

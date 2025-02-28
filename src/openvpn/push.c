@@ -98,6 +98,7 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
 
             case AR_INTERACT:
                 ssl_purge_auth(false);
+            /* Intentional [[fallthrough]]; */
 
             case AR_NOINTERACT:
                 /* SOFT-SIGTUSR1 -- Auth failure error */
