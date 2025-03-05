@@ -4146,8 +4146,13 @@ management_check_bytecount(struct context *c, struct management *man, struct tim
         counter_type dco_read_bytes = 0;
         counter_type dco_write_bytes = 0;
 
-        if (dco_enabled(&c->options) && (dco_get_peer_stats(c) == 0))
+        if (dco_enabled(&c->options))
         {
+            if (dco_get_peer_stats(c, true) < 0)
+            {
+                return;
+            }
+
             dco_read_bytes = c->c2.dco_read_bytes;
             dco_write_bytes = c->c2.dco_write_bytes;
         }
@@ -4166,7 +4171,8 @@ management_check_bytecount(struct context *c, struct management *man, struct tim
 void
 man_persist_client_stats(struct management *man, struct context *c)
 {
-    if (dco_enabled(&c->options) && (dco_get_peer_stats(c) == 0))
+    /* no need to raise SIGUSR1 since we are already closing the instance */
+    if (dco_enabled(&c->options) && (dco_get_peer_stats(c, false) == 0))
     {
         management_bytes_client(man, c->c2.dco_read_bytes, c->c2.dco_write_bytes);
     }

@@ -489,7 +489,10 @@ print_status(struct context *c, struct status_output *so)
 
     if (dco_enabled(&c->options))
     {
-        dco_get_peer_stats(c);
+        if (dco_get_peer_stats(c, true) < 0)
+        {
+            return;
+        }
     }
 
     status_printf(so, "OpenVPN STATISTICS");

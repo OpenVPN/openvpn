@@ -488,7 +488,7 @@ check_add_routes(struct context *c)
 static void
 check_inactivity_timeout(struct context *c)
 {
-    if (dco_enabled(&c->options) && dco_get_peer_stats(c) == 0)
+    if (dco_enabled(&c->options) && dco_get_peer_stats(c, true) == 0)
     {
         int64_t tot_bytes = c->c2.tun_read_bytes + c->c2.tun_write_bytes;
         int64_t new_bytes = tot_bytes - c->c2.inactivity_bytes;
@@ -497,7 +497,6 @@ check_inactivity_timeout(struct context *c)
         {
             c->c2.inactivity_bytes = tot_bytes;
             event_timeout_reset(&c->c2.inactivity_interval);
-
             return;
         }
     }

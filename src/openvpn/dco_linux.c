@@ -952,7 +952,8 @@ dco_parse_peer_multi(struct nl_msg *msg, void *arg)
 }
 
 int
-dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
+dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m,
+                         const bool raise_sigusr1_on_err)
 {
     msg(D_DCO_DEBUG, "%s", __func__);
 
@@ -963,6 +964,14 @@ dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
     int ret = ovpn_nl_msg_send(dco, nl_msg, dco_parse_peer_multi, m, __func__);
 
     nlmsg_free(nl_msg);
+
+    if (raise_sigusr1_on_err && ret < 0)
+    {
+        msg(M_WARN, "Error retrieving DCO peer stats: the underlying DCO peer"
+            "may have been deleted from the kernel without notifying "
+            "userspace. Restarting the session");
+        register_signal(m->top.sig, SIGUSR1, "dco peer stats error");
+    }
     return ret;
 }
 
@@ -1008,9 +1017,14 @@ dco_parse_peer(struct nl_msg *msg, void *arg)
 }
 
 int
-dco_get_peer_stats(struct context *c)
+dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
 {
-    uint32_t peer_id = c->c2.tls_multi->dco_peer_id;
+    int peer_id = c->c2.tls_multi->dco_peer_id;
+    if (peer_id == -1)
+    {
+        return 0;
+    }
+
     msg(D_DCO_DEBUG, "%s: peer-id %d", __func__, peer_id);
 
     if (!c->c1.tuntap)
@@ -1030,6 +1044,14 @@ dco_get_peer_stats(struct context *c)
 
 nla_put_failure:
     nlmsg_free(nl_msg);
+
+    if (raise_sigusr1_on_err && ret < 0)
+    {
+        msg(M_WARN, "Error retrieving DCO peer stats: the underlying DCO peer"
+            "may have been deleted from the kernel without notifying "
+            "userspace. Restarting the session");
+        register_signal(c->sig, SIGUSR1, "dco peer stats error");
+    }
     return ret;
 }
 

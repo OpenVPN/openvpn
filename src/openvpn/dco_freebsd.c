@@ -713,7 +713,8 @@ dco_update_peer_stat(struct multi_context *m, uint32_t peerid, const nvlist_t *n
 }
 
 int
-dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
+dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m,
+                         const bool raise_sigusr1_on_err)
 {
 
     struct ifdrv drv;
@@ -781,7 +782,7 @@ retry:
 }
 
 int
-dco_get_peer_stats(struct context *c)
+dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
 {
     /* Not implemented. */
     return 0;

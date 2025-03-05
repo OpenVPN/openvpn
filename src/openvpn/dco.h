@@ -231,17 +231,20 @@ void dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi);
 /**
  * Update traffic statistics for all peers
  *
- * @param dco   DCO device context
- * @param m     the server context
+ * @param dco                   DCO device context
+ * @param m                     the server context
+ * @param raise_sigusr1_on_err  whether to raise SIGUSR1 on error
  **/
-int dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m);
+int dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m,
+                             const bool raise_sigusr1_on_err);
 
 /**
  * Update traffic statistics for single peer
  *
- * @param c   instance context of the peer
+ * @param c                     instance context of the peer
+ * @param raise_sigusr1_on_err  whether to raise SIGUSR1 on error
  **/
-int dco_get_peer_stats(struct context *c);
+int dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err);
 
 /**
  * Retrieve the list of ciphers supported by the current platform
@@ -373,13 +376,14 @@ dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
 }
 
 static inline int
-dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
+dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m,
+                         const bool raise_sigusr1_on_err)
 {
     return 0;
 }
 
 static inline int
-dco_get_peer_stats(struct context *c)
+dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
 {
     return 0;
 }

@@ -548,7 +548,10 @@ setenv_stats(struct multi_context *m, struct context *c)
 {
     if (dco_enabled(&m->top.options))
     {
-        dco_get_peer_stats_multi(&m->top.c1.tuntap->dco, m);
+        if (dco_get_peer_stats_multi(&m->top.c1.tuntap->dco, m, false) < 0)
+        {
+            return;
+        }
     }
 
     setenv_counter(c->c2.es, "bytes_received", c->c2.link_read_bytes + c->c2.dco_read_bytes);
@@ -856,7 +859,10 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 
         if (dco_enabled(&m->top.options))
         {
-            dco_get_peer_stats_multi(&m->top.c1.tuntap->dco, m);
+            if (dco_get_peer_stats_multi(&m->top.c1.tuntap->dco, m, true) < 0)
+            {
+                return;
+            }
         }
 
         if (version == 1)
