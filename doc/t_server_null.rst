@@ -16,7 +16,7 @@ The main features of the test suite:
 
 * Parallelized for fairly high performance
 * Mostly operating-system agnostic
-* Tested on Fedora Linux 38/39/40 and FreeBSD 14
+* Tested on Fedora Linux 38/39/40, FreeBSD 14, NetBSD 10.0 and OpenBSD 7.5
 * POSIX-compliant
 * Tested and known to work with Bash, Dash, Ksh, Yash and FreeBSD's default /bin/sh
 * Uses the sample certificates and keys
@@ -31,6 +31,7 @@ The main features of the test suite:
 * Test cases (client configurations) and server setups (server configurations) are stored in a configuration file, i.e. data and code have been separated
 * Configuration file format is nearly identical to t_client.rc configuration
 * Supports a set of default tests, overriding default test settings and adding local tests
+* Supports client ping tests if ovpnlwip is available
 
 Prerequisites
 -------------
@@ -60,8 +61,9 @@ A normal test run looks like this:
 #. Server instances start
 #. Brief wait
 #. Client instances start
-#. Tests run
+#. ovpnlwip ping tests run
 #. Client instances stop
+#. Test results are collected
 #. Brief wait
 #. Server instances stop
 
@@ -77,7 +79,8 @@ The tests suite is launched via "make check":
 
     * t_server_null_client.sh
 
-      * Waits until servers have launched. Then launch all clients, wait for them to exit and then check test results by parsing the client log files. Each client kills itself after some delay using an "--up" script.
+      * Waits until servers have launched. Then launch all clients, run ovpnlwip ping tests (if any), wait for clients to exit and then check test results by parsing the client log files. Each client kills itself after some delay using an "--up" script.
+
 
 Configuration
 -------------
@@ -115,6 +118,19 @@ determines that this particular test is supposed to succeed and not fail.  To
 enable this client instance add it to the test list::
 
   TEST_RUN_LIST="1 2 5 9"
+
+Client ping tests that use ovpnlwip can be added similarly:
+
+  TEST_NAME_9L="t_server_null_client.sh-openvpn_current_udp_custom_lwip"
+  SHOULD_PASS_9L="yes"
+  CLIENT_EXEC_9L="${CLIENT_EXEC}"
+  CLIENT_CONF_9L="${CLIENT_CONF_BASE_LWIP} --remote 127.0.0.1 1194 udp --proto udp"
+
+Note that all ovpnlwip test names need to include a "_lwip" suffix: without it
+ping tests won't get activated. Also note that the *tests* directory needs to
+have the lwipovpn executable or ovpnlwip tests will get skipped. The ovpnlwip
+ping tests get the IP addresses to ping from the \*.ips files created by the
+lwip_client_up.sh script --up script.
 
 Stress-testing the --dev null test suite
 ----------------------------------------

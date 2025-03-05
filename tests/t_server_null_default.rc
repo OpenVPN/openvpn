@@ -20,6 +20,15 @@ SERVER_CERT="${sample_keys}/server.crt"
 SERVER_KEY="${sample_keys}/server.key"
 TA="${sample_keys}/ta.key"
 
+# This parameter can't be overridden in t_server_null.rc because that gets
+# loaded too late. However, you can use
+#
+# LWIPOVPN_PATH=/some/path/to/lwipovpn make check
+#
+# to run the tests using lwipovpn in a custom location
+#
+LWIPOVPN_PATH="${LWIPOVPN_PATH:-lwipovpn}"
+
 # Used to detect if graceful kill of any server instance failed during the test
 # run
 SERVER_KILL_FAIL_FILE=".t_server_null_server.kill_failed"
@@ -28,7 +37,7 @@ SERVER_KILL_FAIL_FILE=".t_server_null_server.kill_failed"
 MAX_CLIENTS="10"
 CLIENT_MATCH="Test-Client"
 SERVER_EXEC="${top_builddir}/src/openvpn/openvpn"
-SERVER_BASE_OPTS="--daemon --local 127.0.0.1 --dev tun --topology subnet --max-clients $MAX_CLIENTS --persist-tun --verb 3"
+SERVER_BASE_OPTS="--daemon --local 127.0.0.1 --dev tun --topology subnet --max-clients $MAX_CLIENTS --persist-tun --verb 3 --duplicate-cn"
 SERVER_CIPHER_OPTS=""
 SERVER_CERT_OPTS="--ca ${CA} --dh ${DH} --cert ${SERVER_CERT} --key ${SERVER_KEY} --tls-auth ${TA} 0"
 SERVER_CONF_BASE="${SERVER_BASE_OPTS} ${SERVER_CIPHER_OPTS} ${SERVER_CERT_OPTS}"
@@ -49,22 +58,36 @@ SERVER_CONF_2="${SERVER_CONF_BASE} ${SERVER_SERVER_2} --lport 1195 --proto tcp -
 
 # Test client configurations
 CLIENT_EXEC="${top_builddir}/src/openvpn/openvpn"
-CLIENT_BASE_OPTS="--client --dev null --ifconfig-noexec --nobind --remote-cert-tls server --persist-tun --verb 3 --resolv-retry infinite --connect-retry-max 3 --server-poll-timeout 5 --explicit-exit-notify 3 --script-security 2 --up ${srcdir}/null_client_up.sh"
+CLIENT_BASE_OPTS="--client --nobind --remote-cert-tls server --persist-tun --verb 3 --resolv-retry infinite --connect-retry-max 3 --server-poll-timeout 5 --explicit-exit-notify 3 --script-security 2"
+CLIENT_NULL_OPTS="--dev null --ifconfig-noexec --up ${srcdir}/null_client_up.sh"
+CLIENT_LWIP_OPTS="--dev null --dev-node unix:${LWIPOVPN_PATH} --up ${srcdir}/lwip_client_up.sh"
+
 CLIENT_CIPHER_OPTS=""
 CLIENT_CERT_OPTS="--ca ${CA} --cert ${CLIENT_CERT} --key ${CLIENT_KEY} --tls-auth ${TA} 1"
 
-TEST_RUN_LIST="1 2 3"
-CLIENT_CONF_BASE="${CLIENT_BASE_OPTS} ${CLIENT_CIPHER_OPTS} ${CLIENT_CERT_OPTS}"
+TEST_RUN_LIST="1 1L 2 2L 3"
+CLIENT_CONF_BASE="${CLIENT_NULL_OPTS} ${CLIENT_BASE_OPTS} ${CLIENT_CIPHER_OPTS} ${CLIENT_CERT_OPTS}"
+CLIENT_CONF_BASE_LWIP="${CLIENT_LWIP_OPTS} ${CLIENT_BASE_OPTS} ${CLIENT_CIPHER_OPTS} ${CLIENT_CERT_OPTS}"
 
 TEST_NAME_1="t_server_null_client.sh-openvpn_current_udp"
 SHOULD_PASS_1="yes"
 CLIENT_EXEC_1="${CLIENT_EXEC}"
 CLIENT_CONF_1="${CLIENT_CONF_BASE} --remote 127.0.0.1 1194 udp --proto udp"
 
+TEST_NAME_1L="t_server_null_client.sh-openvpn_current_udp_lwip"
+SHOULD_PASS_1L="yes"
+CLIENT_EXEC_1L="${CLIENT_EXEC}"
+CLIENT_CONF_1L="${CLIENT_CONF_BASE_LWIP} --remote 127.0.0.1 1194 udp --proto udp"
+
 TEST_NAME_2="t_server_null_client.sh-openvpn_current_tcp"
 SHOULD_PASS_2="yes"
 CLIENT_EXEC_2="${CLIENT_EXEC}"
 CLIENT_CONF_2="${CLIENT_CONF_BASE} --remote 127.0.0.1 1195 tcp --proto tcp"
+
+TEST_NAME_2L="t_server_null_client.sh-openvpn_current_tcp_lwip"
+SHOULD_PASS_2L="yes"
+CLIENT_EXEC_2L="${CLIENT_EXEC}"
+CLIENT_CONF_2L="${CLIENT_CONF_BASE_LWIP} --remote 127.0.0.1 1195 tcp --proto tcp"
 
 TEST_NAME_3="t_server_null_client.sh-openvpn_current_udp_fail"
 SHOULD_PASS_3="no"
