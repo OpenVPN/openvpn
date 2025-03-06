@@ -33,7 +33,7 @@ struct multi_context;
 
 unsigned int p2mp_iow_flags(const struct multi_context *m);
 
-void multi_process_io_udp(struct multi_context *m, struct link_socket *ls);
+void multi_process_io_udp(struct multi_context *m, struct link_socket *sock);
 /**************************************************************************/
 /**
  * Get, and if necessary create, the multi_instance associated with a
@@ -47,13 +47,13 @@ void multi_process_io_udp(struct multi_context *m, struct link_socket *ls);
  * successful, returns the newly created instance.
  *
  * @param m           - The single multi_context structure.
- * @param ls          - Listening socket where this instance is connecting to
+ * @param sock        - Listening socket where this instance is connecting to
  *
  * @return A pointer to a multi_instance if one already existed for the
  *     packet's source address or if one was a newly created successfully.
  *      NULL if one did not yet exist and a new one was not created.
  */
 struct multi_instance *multi_get_create_instance_udp(struct multi_context *m, bool *floated,
-                                                     struct link_socket *ls);
+                                                     struct link_socket *sock);
 
 #endif /* ifndef MUDP_H */

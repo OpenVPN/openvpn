@@ -4946,12 +4946,12 @@ close_instance(struct context *c)
 void
 inherit_context_child(struct context *dest,
                       const struct context *src,
-                      struct link_socket *ls)
+                      struct link_socket *sock)
 {
     CLEAR(*dest);
 
     /* proto_is_dgram will ASSERT(0) if proto is invalid */
-    dest->mode = proto_is_dgram(ls->info.proto) ? CM_CHILD_UDP : CM_CHILD_TCP;
+    dest->mode = proto_is_dgram(sock->info.proto) ? CM_CHILD_UDP : CM_CHILD_TCP;
 
     dest->gc = gc_new();
 
@@ -4977,7 +4977,7 @@ inherit_context_child(struct context *dest,
 
     /* options */
     dest->options = src->options;
-    dest->options.ce.proto = ls->info.proto;
+    dest->options.ce.proto = sock->info.proto;
     options_detach(&dest->options);
 
     dest->c2.event_set = src->c2.event_set;
@@ -4988,7 +4988,7 @@ inherit_context_child(struct context *dest,
          * The CM_TOP context does the socket listen(),
          * and the CM_CHILD_TCP context does the accept().
          */
-        dest->c2.accept_from = ls;
+        dest->c2.accept_from = sock;
     }
 
 #ifdef ENABLE_PLUGIN
@@ -5015,11 +5015,11 @@ inherit_context_child(struct context *dest,
         ALLOC_ARRAY_GC(dest->c2.link_sockets, struct link_socket *, 1, &dest->gc);
 
         /* inherit parent link_socket and tuntap */
-        dest->c2.link_sockets[0] = ls;
+        dest->c2.link_sockets[0] = sock;
 
         ALLOC_ARRAY_GC(dest->c2.link_socket_infos, struct link_socket_info *, 1, &dest->gc);
         ALLOC_OBJ_GC(dest->c2.link_socket_infos[0], struct link_socket_info, &dest->gc);
-        *dest->c2.link_socket_infos[0] = ls->info;
+        *dest->c2.link_socket_infos[0] = sock->info;
 
         /* locally override some link_socket_info fields */
         dest->c2.link_socket_infos[0]->lsa = &dest->c1.link_socket_addrs[0];

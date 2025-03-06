@@ -188,14 +188,14 @@ do_pre_decrypt_check(struct multi_context *m,
 
 struct multi_instance *
 multi_get_create_instance_udp(struct multi_context *m, bool *floated,
-                              struct link_socket *ls)
+                              struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
     struct mroute_addr real = {0};
     struct multi_instance *mi = NULL;
     struct hash *hash = m->hash;
-    real.proto = ls->info.proto;
-    m->hmac_reply_ls = ls;
+    real.proto = sock->info.proto;
+    m->hmac_reply_ls = sock;
 
     if (mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true)
         && m->top.c2.buf.len > 0)
@@ -261,7 +261,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated,
                      * connect-freq but not against connect-freq-initial */
                     reflect_filter_rate_limit_decrease(m->initial_rate_limiter);
 
-                    mi = multi_create_instance(m, &real, ls);
+                    mi = multi_create_instance(m, &real, sock);
                     if (mi)
                     {
                         hash_add_fast(hash, bucket, &mi->real, hv, mi);

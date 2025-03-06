@@ -96,7 +96,7 @@ bool do_deferred_options(struct context *c, const unsigned int found);
 
 void inherit_context_child(struct context *dest,
                            const struct context *src,
-                           struct link_socket *ls);
+                           struct link_socket *sock);
 
 void inherit_context_top(struct context *dest,
                          const struct context *src);

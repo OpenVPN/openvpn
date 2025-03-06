@@ -44,7 +44,7 @@ bool multi_tcp_process_outgoing_link(struct multi_context *m, bool defer, const 
 
 bool multi_tcp_process_outgoing_link_ready(struct multi_context *m, struct multi_instance *mi, const unsigned int mpp_flags);
 
-struct multi_instance *multi_create_instance_tcp(struct multi_context *m, struct link_socket *ls);
+struct multi_instance *multi_create_instance_tcp(struct multi_context *m, struct link_socket *sock);
 
 void multi_tcp_link_out_deferred(struct multi_context *m, struct multi_instance *mi);
 
