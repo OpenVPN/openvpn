@@ -70,6 +70,8 @@ int multi_io_wait(struct multi_context *m);
 
 void multi_io_process_io(struct multi_context *m);
 
+void multi_io_set_global_rw_flags(struct multi_context *m, struct multi_instance *mi);
+
 void multi_io_action(struct multi_context *m, struct multi_instance *mi, int action, bool poll);
 
 void multi_io_delete_event(struct multi_io *multi_io, event_t event);

@@ -362,7 +362,6 @@ struct tls_options
 
     int replay_window;                 /* --replay-window parm */
     int replay_time;                   /* --replay-window parm */
-    bool tcp_mode;
 
     const char *config_ciphername;
     const char *config_ncp_ciphers;

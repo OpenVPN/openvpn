@@ -106,7 +106,7 @@ the local and the remote host.
   is not reliable. It is recommended to set tun-mtu with enough headroom
   instead.
 
---local host|* [port]
+--local host|* [port] [protocol]
   Local host name or IP address and port for bind. If specified, OpenVPN will bind
   to this address. If unspecified, OpenVPN will bind to all interfaces.
   '*' can be used as hostname and means 'any host' (OpenVPN will listen on what

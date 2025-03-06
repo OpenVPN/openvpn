@@ -612,6 +612,7 @@ next_connection_entry(struct context *c)
         }
 
         c->options.ce = *ce;
+
 #ifdef ENABLE_MANAGEMENT
         if (ce_defined && management && management_query_remote_enabled(management))
         {
@@ -2681,7 +2682,9 @@ do_deferred_options(struct context *c, const unsigned int found)
 
     if (found & OPT_P_EXPLICIT_NOTIFY)
     {
-        if (!proto_is_udp(c->options.ce.proto) && c->options.ce.explicit_exit_notification)
+        /* Client side, so just check the first link_socket */
+        if (!proto_is_udp(c->c2.link_sockets[0]->info.proto)
+            && c->options.ce.explicit_exit_notification)
         {
             msg(D_PUSH, "OPTIONS IMPORT: --explicit-exit-notify can only be used with --proto udp");
             c->options.ce.explicit_exit_notification = 0;
@@ -2850,14 +2853,14 @@ socket_restart_pause(struct context *c)
     int sec = 2;
     int backoff = 0;
 
-    switch (c->options.ce.proto)
+    switch (c->mode)
     {
-        case PROTO_TCP_SERVER:
+        case CM_TOP:
             sec = 1;
             break;
 
-        case PROTO_UDP:
-        case PROTO_TCP_CLIENT:
+        case CM_CHILD_UDP:
+        case CM_CHILD_TCP:
             sec = c->options.ce.connect_retry_seconds;
             break;
     }
@@ -2875,7 +2878,7 @@ socket_restart_pause(struct context *c)
     }
 
     /* Slow down reconnection after 5 retries per remote -- for TCP client or UDP tls-client only */
-    if (c->options.ce.proto == PROTO_TCP_CLIENT
+    if (c->mode == CM_CHILD_TCP
         || (c->options.ce.proto == PROTO_UDP && c->options.tls_client))
     {
         backoff = (c->options.unsuccessful_attempts / c->options.connection_list->len) - 4;
@@ -3355,7 +3358,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.server = options->tls_server;
     to.replay_window = options->replay_window;
     to.replay_time = options->replay_time;
-    to.tcp_mode = link_socket_proto_connection_oriented(options->ce.proto);
     to.config_ciphername = c->options.ciphername;
     to.config_ncp_ciphers = c->options.ncp_ciphers;
     to.transition_window = options->transition_window;
@@ -3409,7 +3411,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
 
     /* should we not xmit any packets until we get an initial
      * response from client? */
-    if (to.server && options->ce.proto == PROTO_TCP_SERVER)
+    if (to.server && c->mode == CM_CHILD_TCP)
     {
         to.xmit_hold = true;
     }
@@ -4260,20 +4262,13 @@ do_setup_fast_io(struct context *c)
 #ifdef _WIN32
         msg(M_INFO, "NOTE: --fast-io is disabled since we are running on Windows");
 #else
-        if (!proto_is_udp(c->options.ce.proto))
+        if (c->options.shaper)
         {
-            msg(M_INFO, "NOTE: --fast-io is disabled since we are not using UDP");
+            msg(M_INFO, "NOTE: --fast-io is disabled since we are using --shaper");
         }
         else
         {
-            if (c->options.shaper)
-            {
-                msg(M_INFO, "NOTE: --fast-io is disabled since we are using --shaper");
-            }
-            else
-            {
-                c->c2.fast_io = true;
-            }
+            c->c2.fast_io = true;
         }
 #endif
     }
@@ -4689,7 +4684,7 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     }
 
     /* our wait-for-i/o objects, different for posix vs. win32 */
-    if (c->mode == CM_P2P)
+    if (c->mode == CM_P2P || c->mode == CM_TOP)
     {
         do_event_set_init(c, SHAPER_DEFINED(&c->options));
     }
@@ -4956,7 +4951,7 @@ inherit_context_child(struct context *dest,
     CLEAR(*dest);
 
     /* proto_is_dgram will ASSERT(0) if proto is invalid */
-    dest->mode = proto_is_dgram(src->options.ce.proto) ? CM_CHILD_UDP : CM_CHILD_TCP;
+    dest->mode = proto_is_dgram(ls->info.proto) ? CM_CHILD_UDP : CM_CHILD_TCP;
 
     dest->gc = gc_new();
 
@@ -4982,7 +4977,10 @@ inherit_context_child(struct context *dest,
 
     /* options */
     dest->options = src->options;
+    dest->options.ce.proto = ls->info.proto;
     options_detach(&dest->options);
+
+    dest->c2.event_set = src->c2.event_set;
 
     if (dest->mode == CM_CHILD_TCP)
     {
@@ -5075,10 +5073,7 @@ inherit_context_top(struct context *dest,
     dest->c2.es_owned = false;
 
     dest->c2.event_set = NULL;
-    if (proto_is_dgram(src->options.ce.proto))
-    {
-        do_event_set_init(dest, false);
-    }
+    do_event_set_init(dest, false);
 
 #ifdef USE_COMP
     dest->c2.comp_context = NULL;

@@ -69,6 +69,10 @@ extern counter_type link_read_bytes_global;
 
 extern counter_type link_write_bytes_global;
 
+void get_io_flags_dowork_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags);
+
+void get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags);
+
 void io_wait_dowork(struct context *c, const unsigned int flags);
 
 void pre_select(struct context *c);
@@ -367,12 +371,13 @@ p2p_iow_flags(const struct context *c)
 
 /*
  * This is the core I/O wait function, used for all I/O waits except
- * for TCP in server mode.
+ * for the top-level server sockets.
  */
 static inline void
 io_wait(struct context *c, const unsigned int flags)
 {
-    if (c->c2.fast_io && (flags & (IOW_TO_TUN|IOW_TO_LINK|IOW_MBUF)))
+    if (proto_is_dgram(c->c2.link_sockets[0]->info.proto)
+        && c->c2.fast_io && (flags & (IOW_TO_TUN|IOW_TO_LINK|IOW_MBUF)))
     {
         /* fast path -- only for TUN/TAP/UDP writes */
         unsigned int ret = 0;

@@ -1880,11 +1880,31 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
     struct options *o = &c->options;
     ASSERT(sock);
 
+    const char *host = o->ce.local_list->array[sock_index]->local;
+    const char *port = o->ce.local_list->array[sock_index]->port;
+    int proto = o->ce.local_list->array[sock_index]->proto;
     const char *remote_host = o->ce.remote;
     const char *remote_port = o->ce.remote_port;
 
-    sock->local_host = o->ce.local_list->array[sock_index]->local;
-    sock->local_port = o->ce.local_list->array[sock_index]->port;
+    if (c->mode == CM_CHILD_TCP || c->mode == CM_CHILD_UDP)
+    {
+        struct link_socket *tmp_sock = NULL;
+        if (c->mode == CM_CHILD_TCP)
+        {
+            tmp_sock = (struct link_socket *)c->c2.accept_from;
+        }
+        else if (c->mode == CM_CHILD_UDP)
+        {
+            tmp_sock = c->c2.link_sockets[0];
+        }
+
+        host = tmp_sock->local_host;
+        port = tmp_sock->local_port;
+        proto = tmp_sock->info.proto;
+    }
+
+    sock->local_host = host;
+    sock->local_port = port;
     sock->remote_host = remote_host;
     sock->remote_port = remote_port;
     sock->dns_cache = c->c1.dns_cache;
@@ -1912,7 +1932,7 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
 
     sock->mark = o->mark;
     sock->bind_dev = o->bind_dev;
-    sock->info.proto = o->ce.proto;
+    sock->info.proto = proto;
     sock->info.af = o->ce.af;
     sock->info.remote_float = o->ce.remote_float;
     sock->info.lsa = &c->c1.link_socket_addrs[sock_index];

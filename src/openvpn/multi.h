@@ -204,6 +204,7 @@ struct multi_context {
 
     struct buffer hmac_reply;
     struct link_socket_actual *hmac_reply_dest;
+    struct link_socket *hmac_reply_ls;
 
     /*
      * Timer object for stale route check
@@ -251,11 +252,6 @@ struct multi_route
  * Main event loop for OpenVPN in server mode.
  * @ingroup eventloop
  *
- * This function calls the appropriate main event loop function depending
- * on the transport protocol used:
- *  - \c tunnel_server_udp()
- *  - \c tunnel_server_tcp()
- *
  * @param top          - Top-level context structure.
  */
 void tunnel_server(struct context *top);
@@ -267,7 +263,7 @@ const char *multi_instance_string(const struct multi_instance *mi, bool null, st
  * Called by mtcp.c, mudp.c, or other (to be written) protocol drivers
  */
 
-void multi_init(struct multi_context *m, struct context *t, bool tcp_mode);
+void multi_init(struct multi_context *m, struct context *t);
 
 void multi_uninit(struct multi_context *m);
 
