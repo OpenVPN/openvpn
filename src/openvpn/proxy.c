@@ -573,8 +573,7 @@ http_proxy_close(struct http_proxy_info *hp)
 static bool
 add_proxy_headers(struct http_proxy_info *p,
                   socket_descriptor_t sd, /* already open to proxy */
-                  const char *host,       /* openvpn server remote */
-                  const char *port        /* openvpn server port */
+                  const char *host        /* openvpn server remote */
                   )
 {
     char buf[512];
@@ -694,7 +693,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
             goto error;
         }
 
-        if (!add_proxy_headers(p, sd, host, port))
+        if (!add_proxy_headers(p, sd, host))
         {
             goto error;
         }
@@ -833,7 +832,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
             }
 
             /* send HOST etc, */
-            if (!add_proxy_headers(p, sd, host, port))
+            if (!add_proxy_headers(p, sd, host))
             {
                 goto error;
             }
@@ -959,7 +958,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 }
 
                 /* send HOST etc, */
-                if (!add_proxy_headers(p, sd, host, port))
+                if (!add_proxy_headers(p, sd, host))
                 {
                     goto error;
                 }

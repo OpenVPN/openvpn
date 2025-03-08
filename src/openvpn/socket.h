@@ -1172,8 +1172,7 @@ link_socket_write_udp_posix(struct link_socket *sock,
 
 static inline ssize_t
 link_socket_write_tcp_posix(struct link_socket *sock,
-                            struct buffer *buf,
-                            struct link_socket_actual *to)
+                            struct buffer *buf)
 {
     return send(sock->sd, BPTR(buf), BLEN(buf), MSG_NOSIGNAL);
 }

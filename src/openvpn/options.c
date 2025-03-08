@@ -2137,7 +2137,6 @@ static struct http_proxy_options *
 parse_http_proxy_override(const char *server,
                           const char *port,
                           const char *flags,
-                          const int msglevel,
                           struct gc_arena *gc)
 {
     if (server && port)
@@ -2307,7 +2306,7 @@ alloc_pull_filter_list(struct options *o)
 }
 
 static struct pull_filter *
-alloc_pull_filter(struct options *o, const int msglevel)
+alloc_pull_filter(struct options *o)
 {
     struct pull_filter_list *l = alloc_pull_filter_list(o);
     struct pull_filter *f;
@@ -6345,7 +6344,7 @@ add_option(struct options *options,
     else if (streq(p[0], "http-proxy-override") && p[1] && p[2] && !p[4])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->http_proxy_override = parse_http_proxy_override(p[1], p[2], p[3], msglevel, &options->gc);
+        options->http_proxy_override = parse_http_proxy_override(p[1], p[2], p[3], &options->gc);
         if (!options->http_proxy_override)
         {
             goto err;
@@ -7259,7 +7258,7 @@ add_option(struct options *options,
     {
         struct pull_filter *f;
         VERIFY_PERMISSION(OPT_P_GENERAL)
-        f = alloc_pull_filter(options, msglevel);
+        f = alloc_pull_filter(options);
 
         if (strcmp("accept", p[1]) == 0)
         {

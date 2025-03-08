@@ -401,7 +401,7 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert,
  */
 static void
 verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert_depth,
-                    const char *subject, const char *common_name,
+                    const char *subject,
                     const struct x509_track *x509_track)
 {
     char envname[64];
@@ -421,12 +421,6 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
     /* export subject name string as environmental variable */
     snprintf(envname, sizeof(envname), "tls_id_%d", cert_depth);
     setenv_str(es, envname, subject);
-
-#if 0
-    /* export common name string as environmental variable */
-    snprintf(envname, sizeof(envname), "tls_common_name_%d", cert_depth);
-    setenv_str(es, envname, common_name);
-#endif
 
     /* export X509 cert fingerprints */
     {
@@ -518,7 +512,7 @@ verify_cert_call_plugin(const struct plugin_list *plugins, struct env_set *es,
  */
 static result_t
 verify_cert_call_command(const char *verify_command, struct env_set *es,
-                         int cert_depth, openvpn_x509_cert_t *cert, char *subject)
+                         int cert_depth, char *subject)
 {
     int ret;
     struct gc_arena gc = gc_new();
@@ -744,8 +738,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
         }
     }
     /* export certificate values to the environment */
-    verify_cert_set_env(opt->es, cert, cert_depth, subject, common_name,
-                        opt->x509_track);
+    verify_cert_set_env(opt->es, cert, cert_depth, subject, opt->x509_track);
 
     /* export current untrusted IP */
     setenv_untrusted(session);
@@ -764,7 +757,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
 
     /* run --tls-verify script */
     if (opt->verify_command && SUCCESS != verify_cert_call_command(opt->verify_command,
-                                                                   opt->es, cert_depth, cert, subject))
+                                                                   opt->es, cert_depth, subject))
     {
         goto cleanup;
     }
@@ -1017,7 +1010,6 @@ key_state_gen_auth_control_files(struct auth_deferred_status *ads,
  */
 static char *
 key_state_check_auth_failed_message_file(const struct auth_deferred_status *ads,
-                                         struct tls_multi *multi,
                                          struct gc_arena *gc)
 {
     char *ret = NULL;
@@ -1201,8 +1193,8 @@ tls_authentication_status(struct tls_multi *multi)
     {
         struct gc_arena gc = gc_new();
         const struct key_state *ks = get_primary_key(multi);
-        const char *plugin_message = key_state_check_auth_failed_message_file(&ks->plugin_auth, multi, &gc);
-        const char *script_message = key_state_check_auth_failed_message_file(&ks->script_auth, multi, &gc);
+        const char *plugin_message = key_state_check_auth_failed_message_file(&ks->plugin_auth, &gc);
+        const char *script_message = key_state_check_auth_failed_message_file(&ks->script_auth, &gc);
 
         if (plugin_message)
         {
@@ -1286,7 +1278,7 @@ check_for_client_reason(struct tls_multi *multi,
                         struct auth_deferred_status *status)
 {
     struct gc_arena gc = gc_new();
-    const char *msg = key_state_check_auth_failed_message_file(status, multi, &gc);
+    const char *msg = key_state_check_auth_failed_message_file(status, &gc);
     if (msg)
     {
         auth_set_client_reason(multi, msg);
@@ -1529,7 +1521,6 @@ verify_user_pass_plugin(struct tls_session *session, struct tls_multi *multi,
 
 static int
 verify_user_pass_management(struct tls_session *session,
-                            struct tls_multi *multi,
                             const struct user_pass *up)
 {
     int retval = KMDA_ERROR;
@@ -1675,7 +1666,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi,
 #ifdef ENABLE_MANAGEMENT
         if (man_def_auth == KMDA_DEF)
         {
-            man_def_auth = verify_user_pass_management(session, multi, up);
+            man_def_auth = verify_user_pass_management(session, up);
         }
 #endif
         if (plugin_defined(session->opt->plugins, OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY))

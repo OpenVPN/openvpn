@@ -1769,8 +1769,7 @@ multi_client_connect_mda(struct multi_context *m,
 }
 
 static void
-multi_client_connect_setenv(struct multi_context *m,
-                            struct multi_instance *mi)
+multi_client_connect_setenv(struct multi_instance *mi)
 {
     struct gc_arena gc = gc_new();
 
@@ -2565,7 +2564,7 @@ multi_client_connect_early_setup(struct multi_context *m,
     /* do --client-connect setenvs */
     multi_select_virtual_addr(m, mi);
 
-    multi_client_connect_setenv(m, mi);
+    multi_client_connect_setenv(mi);
 }
 
 /**
@@ -2658,7 +2657,7 @@ multi_client_connect_source_ccd(struct multi_context *m,
              */
             multi_select_virtual_addr(m, mi);
 
-            multi_client_connect_setenv(m, mi);
+            multi_client_connect_setenv(mi);
 
             ret = CC_RET_SUCCEEDED;
         }
@@ -2930,7 +2929,6 @@ static void
 multi_bcast(struct multi_context *m,
             const struct buffer *buf,
             const struct multi_instance *sender_instance,
-            const struct mroute_addr *sender_addr,
             uint16_t vid)
 {
     struct hash_iterator hi;
@@ -3458,7 +3456,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                     if (mroute_flags & MROUTE_EXTRACT_MCAST)
                     {
                         /* for now, treat multicast as broadcast */
-                        multi_bcast(m, &c->c2.to_tun, m->pending, NULL, 0);
+                        multi_bcast(m, &c->c2.to_tun, m->pending, 0);
                     }
                     else /* possible client to client routing */
                     {
@@ -3510,8 +3508,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                         {
                             if (mroute_flags & (MROUTE_EXTRACT_BCAST|MROUTE_EXTRACT_MCAST))
                             {
-                                multi_bcast(m, &c->c2.to_tun, m->pending, NULL,
-                                            vid);
+                                multi_bcast(m, &c->c2.to_tun, m->pending, vid);
                             }
                             else /* try client-to-client routing */
                             {
@@ -3604,7 +3601,7 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
             if (mroute_flags & (MROUTE_EXTRACT_BCAST|MROUTE_EXTRACT_MCAST))
             {
                 /* for now, treat multicast as broadcast */
-                multi_bcast(m, &m->top.c2.buf, NULL, NULL, vid);
+                multi_bcast(m, &m->top.c2.buf, NULL, vid);
             }
             else
             {
@@ -3776,7 +3773,7 @@ gremlin_flood_clients(struct multi_context *m)
 
         for (i = 0; i < parm.n_packets; ++i)
         {
-            multi_bcast(m, &buf, NULL, NULL, 0);
+            multi_bcast(m, &buf, NULL, 0);
         }
 
         gc_free(&gc);

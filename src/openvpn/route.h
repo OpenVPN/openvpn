@@ -280,7 +280,7 @@ void route_ipv6_clear_host_bits( struct route_ipv6 *r6 );
 
 bool add_route_ipv6(struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es, openvpn_net_ctx_t *ctx);
 
-void delete_route_ipv6(const struct route_ipv6 *r, const struct tuntap *tt, unsigned int flags, const struct env_set *es, openvpn_net_ctx_t *ctx);
+void delete_route_ipv6(const struct route_ipv6 *r, const struct tuntap *tt, const struct env_set *es, openvpn_net_ctx_t *ctx);
 
 bool add_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
                const struct route_gateway_info *rgi, const struct env_set *es,

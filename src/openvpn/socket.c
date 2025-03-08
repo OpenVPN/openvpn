@@ -2168,7 +2168,6 @@ phase2_socks_client(struct link_socket *sock, struct signal_info *sig_info)
 
     establish_socks_proxy_udpassoc(sock->socks_proxy,
                                    sock->ctrl_sd,
-                                   sock->sd,
                                    &sock->socks_relay.dest,
                                    sock->server_poll_timeout,
                                    sig_info);
@@ -3481,7 +3480,7 @@ link_socket_write_tcp(struct link_socket *sock,
 #ifdef _WIN32
     return link_socket_write_win32(sock, buf, to);
 #else
-    return link_socket_write_tcp_posix(sock, buf, to);
+    return link_socket_write_tcp_posix(sock, buf);
 #endif
 }
 

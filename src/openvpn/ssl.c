@@ -1676,7 +1676,7 @@ tls_session_update_crypto_params_do_work(struct tls_multi *multi,
         /* If dynamic tls-crypt has been negotiated, and we are on the
          * first session (key_id = 0), generate a tls-crypt key for the
          * following renegotiations */
-        if (!tls_session_generate_dynamic_tls_crypt_key(multi, session))
+        if (!tls_session_generate_dynamic_tls_crypt_key(session))
         {
             return false;
         }
@@ -2241,8 +2241,7 @@ error:
 }
 
 static void
-export_user_keying_material(struct key_state_ssl *ssl,
-                            struct tls_session *session)
+export_user_keying_material(struct tls_session *session)
 {
     if (session->opt->ekm_size > 0)
     {
@@ -2430,7 +2429,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     if ((ks->authenticated > KS_AUTH_FALSE)
         && plugin_defined(session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL))
     {
-        export_user_keying_material(&ks->ks_ssl, session);
+        export_user_keying_material(session);
 
         if (plugin_call(session->opt->plugins, OPENVPN_PLUGIN_TLS_FINAL, NULL, NULL, session->opt->es) != OPENVPN_PLUGIN_FUNC_SUCCESS)
         {

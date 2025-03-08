@@ -95,8 +95,7 @@ xor_key2(struct key2 *key, const struct key2 *other)
 }
 
 bool
-tls_session_generate_dynamic_tls_crypt_key(struct tls_multi *multi,
-                                           struct tls_session *session)
+tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session)
 {
     session->tls_wrap_reneg.opt = session->tls_wrap.opt;
     session->tls_wrap_reneg.mode = TLS_WRAP_CRYPT;

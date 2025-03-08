@@ -226,8 +226,7 @@ receive_exit_message(struct context *c)
 
 
 void
-server_pushed_info(struct context *c, const struct buffer *buffer,
-                   const int adv)
+server_pushed_info(const struct buffer *buffer, const int adv)
 {
     const char *m = "";
     struct buffer buf = *buffer;
@@ -259,7 +258,7 @@ server_pushed_info(struct context *c, const struct buffer *buffer,
 
         gc_free(&gc);
     }
-    #endif
+#endif
     msg(D_PUSH, "Info command was pushed by server ('%s')", m);
 }
 
