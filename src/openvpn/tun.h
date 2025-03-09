@@ -355,10 +355,6 @@ const char *ifconfig_options_string(const struct tuntap *tt, bool remote, bool d
 
 bool is_tun_p2p(const struct tuntap *tt);
 
-void check_subnet_conflict(const in_addr_t ip,
-                           const in_addr_t netmask,
-                           const char *prefix);
-
 void warn_on_use_of_common_subnets(openvpn_net_ctx_t *ctx);
 
 /**

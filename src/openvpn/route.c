@@ -1218,7 +1218,6 @@ add_routes(struct route_list *rl, struct route_ipv6_list *rl6,
 
         for (r = rl->routes; r; r = r->next)
         {
-            check_subnet_conflict(r->network, r->netmask, "route");
             if (flags & ROUTE_DELETE_FIRST)
             {
                 delete_route(r, tt, flags, &rl->rgi, es, ctx);
