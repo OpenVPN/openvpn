@@ -1262,6 +1262,7 @@ tls_multi_free(struct tls_multi *multi, bool clear)
     free(multi->peer_info);
     free(multi->locked_cn);
     free(multi->locked_username);
+    free(multi->locked_original_username);
 
     cert_hash_free(multi->locked_cert_hash_set);
 

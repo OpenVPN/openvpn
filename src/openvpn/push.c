@@ -595,9 +595,19 @@ prepare_auth_token_push_reply(struct tls_multi *tls_multi, struct gc_arena *gc,
      */
     if (tls_multi->auth_token)
     {
-        push_option_fmt(gc, push_list, M_USAGE,
-                        "auth-token %s",
+        push_option_fmt(gc, push_list, M_USAGE, "auth-token %s",
                         tls_multi->auth_token);
+
+        char *base64user = NULL;
+        int ret = openvpn_base64_encode(tls_multi->locked_username,
+                                        (int)strlen(tls_multi->locked_username),
+                                        &base64user);
+        if (ret < USER_PASS_LEN && ret > 0)
+        {
+            push_option_fmt(gc, push_list, M_USAGE, "auth-token-user %s",
+                            base64user);
+        }
+        free(base64user);
     }
 }
 

@@ -51,6 +51,9 @@
 /** Maximum certificate depth we will allow */
 #define MAX_CERT_DEPTH 16
 
+/** Maximum length of common name */
+#define TLS_USERNAME_LEN 64
+
 /** Structure containing the hash for a single certificate */
 struct cert_hash {
     unsigned char sha256_hash[256/8];
@@ -145,6 +148,16 @@ void tls_lock_common_name(struct tls_multi *multi);
  * @param null  Whether null may be returned. If not, "UNDEF" will be returned.
  */
 const char *tls_common_name(const struct tls_multi *multi, const bool null);
+
+
+/**
+ * Sets the common name field for the given tunnel
+ *
+ * @param multi         The tunnel to set the common name for
+ * @param common_name   The name to set the common name to
+ */
+void
+set_common_name(struct tls_session *session, const char *common_name);
 
 /**
  * Returns the username field for the given tunnel

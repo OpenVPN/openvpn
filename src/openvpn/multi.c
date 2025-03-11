@@ -42,7 +42,9 @@
 #include "ssl_verify.h"
 #include "ssl_ncp.h"
 #include "vlan.h"
+#include "auth_token.h"
 #include <inttypes.h>
+#include <string.h>
 
 #include "memdbg.h"
 
@@ -2680,6 +2682,60 @@ static const multi_client_connect_handler client_connect_handlers[] = {
     NULL,
 };
 
+/**
+ * Overrides the locked username with the username of --override-username
+ * @param mi the multi instance that should be modified.
+ */
+static bool
+override_locked_username(struct multi_instance *mi)
+{
+    struct tls_multi *multi = mi->context.c2.tls_multi;
+    struct options *options = &mi->context.options;
+    struct tls_session *session = &multi->session[TM_ACTIVE];
+
+    if (!multi->locked_username)
+    {
+        msg(D_MULTI_ERRORS, "MULTI: Ignoring override-username as no "
+            "user/password method is enabled. Enable "
+            "--management-client-auth, --auth-user-pass-verify, or a "
+            "plugin with user/password verify capability.");
+        return false;
+    }
+
+    if (!multi->locked_original_username
+        && strcmp(multi->locked_username, options->override_username) != 0)
+    {
+        multi->locked_original_username = multi->locked_username;
+        multi->locked_username = strdup(options->override_username);
+
+        /* Override also the common name if username should be set as common
+         * name */
+        if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME))
+        {
+            set_common_name(session, multi->locked_username);
+            free(multi->locked_cn);
+            multi->locked_cn = NULL;
+            tls_lock_common_name(multi);
+        }
+
+        /* Regenerate the auth-token if enabled */
+        if (multi->auth_token_initial)
+        {
+            struct user_pass up;
+            CLEAR(up);
+            strncpynt(up.username, multi->locked_username,
+                      sizeof(up.username));
+
+            generate_auth_token(&up, multi);
+        }
+
+        msg(D_MULTI_LOW, "MULTI: Note, override-username changes username "
+            "from '%s' to '%s'",
+            multi->locked_original_username,
+            multi->locked_username);
+    }
+    return true;
+}
 /*
  * Called as soon as the SSL/TLS connection is authenticated.
  *
@@ -2781,6 +2837,14 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
         }
 
         (*cur_handler_index)++;
+    }
+
+    if (mi->context.options.override_username)
+    {
+        if (!override_locked_username(mi))
+        {
+            cc_succeeded = false;
+        }
     }
 
     /* Check if we have forbidding options in the current mode */

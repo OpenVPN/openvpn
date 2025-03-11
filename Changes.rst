@@ -49,6 +49,12 @@ Epoch data keys and packet format
     - IV constructed with XOR instead of concatenation to not have (parts) of
       the real IV on the wire
 
+Allow overriding username with ``--override-username``
+    This is intended to allow using auth-gen-token in scenarios where the
+    clients use certificates and multi-factor authentication.  This will
+    also generate a 'push "auth-token-user newusername"' directives in
+    push replies.
+
 Deprecated features
 -------------------
 ``secret`` support has been removed by default.

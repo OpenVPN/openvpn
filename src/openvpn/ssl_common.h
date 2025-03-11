@@ -627,7 +627,16 @@ struct tls_multi
      * Our locked common name, username, and cert hashes (cannot change during the life of this tls_multi object)
      */
     char *locked_cn;
+
+    /** The locked username is the username we assume the client is using.
+     * Normally the username used for initial authentication unless
+     * overridden by --override-username */
     char *locked_username;
+
+    /** The username that client initially used before being overridden
+     * by --override-user */
+    char *locked_original_username;
+
     struct cert_hash_set *locked_cert_hash_set;
 
     /** Time of last when we updated the cached state of
