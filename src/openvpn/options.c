@@ -8370,7 +8370,7 @@ add_option(struct options *options,
                 msg(msglevel, "--dhcp-option %s: maximum of %d search entries can be specified",
                     p[1], N_SEARCH_LIST_LEN);
             }
-            o->dhcp_options |= DHCP_OPTIONS_DHCP_REQUIRED;
+            o->dhcp_options |= DHCP_OPTIONS_DHCP_OPTIONAL;
         }
         else if (streq(p[1], "DISABLE-NBT") && !p[2])
         {

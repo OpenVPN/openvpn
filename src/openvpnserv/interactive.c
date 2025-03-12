@@ -88,7 +88,7 @@ typedef enum {
     wfp_block,
     undo_dns4,
     undo_dns6,
-    undo_domain,
+    undo_domains,
     undo_ring_buffer,
     undo_wins,
     _undo_type_max
@@ -101,6 +101,11 @@ typedef struct {
     int metric_v4;
     int metric_v6;
 } wfp_block_data_t;
+
+typedef struct {
+    char itf_name[256];
+    PWSTR domains;
+} dns_domains_undo_data_t;
 
 typedef struct {
     struct tun_ring *send_ring;
@@ -563,24 +568,6 @@ InterfaceLuid(const char *iface_name, PNET_LUID luid)
         status = ERROR_OUTOFMEMORY;
     }
     return status;
-}
-
-static DWORD
-ConvertInterfaceNameToIndex(const wchar_t *ifname, NET_IFINDEX *index)
-{
-    NET_LUID luid;
-    DWORD err;
-
-    err = ConvertInterfaceAliasToLuid(ifname, &luid);
-    if (err == ERROR_SUCCESS)
-    {
-        err = ConvertInterfaceLuidToIndex(&luid, index);
-    }
-    if (err != ERROR_SUCCESS)
-    {
-        MsgToEventLog(M_ERR, L"Failed to find interface index for <%ls>", ifname);
-    }
-    return err;
 }
 
 static BOOL
@@ -1152,52 +1139,6 @@ out:
     return err;
 }
 
-/**
- * Run command: wmic nicconfig (InterfaceIndex=$if_index) call $action ($data)
- * @param  if_index    "index of interface"
- * @param  action      e.g., "SetDNSDomain"
- * @param  data        data if required for action
- *                     - a single word for SetDNSDomain, empty or NULL to delete
- *                     - comma separated values for a list
- */
-static DWORD
-wmic_nicconfig_cmd(const wchar_t *action, const NET_IFINDEX if_index,
-                   const wchar_t *data)
-{
-    DWORD err = 0;
-    wchar_t argv0[MAX_PATH];
-    wchar_t *cmdline = NULL;
-    int timeout = 10000; /* in msec */
-
-    swprintf(argv0, _countof(argv0), L"%ls\\%ls", get_win_sys_path(), L"wbem\\wmic.exe");
-
-    const wchar_t *fmt;
-    /* comma separated list must be enclosed in parenthesis */
-    if (data && wcschr(data, L','))
-    {
-        fmt = L"wmic nicconfig where (InterfaceIndex=%ld) call %ls (%ls)";
-    }
-    else
-    {
-        fmt = L"wmic nicconfig where (InterfaceIndex=%ld) call %ls \"%ls\"";
-    }
-
-    size_t ncmdline = wcslen(fmt) + 20 + wcslen(action) /* max 20 for ifindex */
-                      + (data ? wcslen(data) + 1 : 1);
-    cmdline = malloc(ncmdline*sizeof(wchar_t));
-    if (!cmdline)
-    {
-        return ERROR_OUTOFMEMORY;
-    }
-
-    swprintf(cmdline, ncmdline, fmt, if_index, action,
-             data ? data : L"");
-    err = ExecCommand(argv0, cmdline, timeout);
-
-    free(cmdline);
-    return err;
-}
-
 /* Delete all IPv4 or IPv6 dns servers for an interface */
 static DWORD
 DeleteDNS(short family, wchar_t *if_name)
@@ -1221,50 +1162,660 @@ CmpWString(LPVOID item, LPVOID str)
 }
 
 /**
- * Set interface specific DNS domain suffix
- * @param  if_name    name of the interface
- * @param  domain     a single domain name
- * @param  lists      pointer to the undo lists. If NULL
- *                    undo lists are not altered.
- * Will delete the currently set value if domain is empty.
+ * Signal the DNS resolver (and others potentially) to reload the
+ * group policy (DNS) settings on 32 bit Windows systems
+ *
+ * @return BOOL to indicate if the reload was initiated
+ */
+static BOOL
+ApplyGpolSettings32(void)
+{
+    typedef NTSTATUS (__stdcall *publish_fn_t)(
+        DWORD StateNameLo,
+        DWORD StateNameHi,
+        DWORD TypeId,
+        DWORD Buffer,
+        DWORD Length,
+        DWORD ExplicitScope);
+    publish_fn_t RtlPublishWnfStateData;
+    const DWORD WNF_GPOL_SYSTEM_CHANGES_HI = 0x0D891E2A;
+    const DWORD WNF_GPOL_SYSTEM_CHANGES_LO = 0xA3BC0875;
+
+    HMODULE ntdll = LoadLibraryA("ntdll.dll");
+    if (ntdll == NULL)
+    {
+        return FALSE;
+    }
+
+    RtlPublishWnfStateData = (publish_fn_t) GetProcAddress(ntdll, "RtlPublishWnfStateData");
+    if (RtlPublishWnfStateData == NULL)
+    {
+        return FALSE;
+    }
+
+    if (RtlPublishWnfStateData(WNF_GPOL_SYSTEM_CHANGES_LO, WNF_GPOL_SYSTEM_CHANGES_HI, 0, 0, 0, 0) != ERROR_SUCCESS)
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * Signal the DNS resolver (and others potentially) to reload the
+ * group policy (DNS) settings on 64 bit Windows systems
+ *
+ * @return BOOL to indicate if the reload was initiated
+ */
+static BOOL
+ApplyGpolSettings64(void)
+{
+    typedef NTSTATUS (*publish_fn_t)(
+        INT64 StateName,
+        INT64 TypeId,
+        INT64 Buffer,
+        unsigned int Length,
+        INT64 ExplicitScope);
+    publish_fn_t RtlPublishWnfStateData;
+    const INT64 WNF_GPOL_SYSTEM_CHANGES = 0x0D891E2AA3BC0875;
+
+    HMODULE ntdll = LoadLibraryA("ntdll.dll");
+    if (ntdll == NULL)
+    {
+        return FALSE;
+    }
+
+    RtlPublishWnfStateData = (publish_fn_t) GetProcAddress(ntdll, "RtlPublishWnfStateData");
+    if (RtlPublishWnfStateData == NULL)
+    {
+        return FALSE;
+    }
+
+    if (RtlPublishWnfStateData(WNF_GPOL_SYSTEM_CHANGES, 0, 0, 0, 0) != ERROR_SUCCESS)
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * Signal the DNS resolver (and others potentially) to reload the group policy (DNS) settings
+ *
+ * @return BOOL to indicate if the reload was initiated
+ */
+static BOOL
+ApplyGpolSettings(void)
+{
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
+    const BOOL win_32bit = si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_INTEL;
+    return win_32bit ? ApplyGpolSettings32() : ApplyGpolSettings64();
+}
+
+/**
+ * Signal the DNS resolver to reload its settings
+ *
+ * @param apply_gpol    BOOL reload setting from group policy hives as well
+ *
+ * @return BOOL to indicate if the reload was initiated
+ */
+static BOOL
+ApplyDnsSettings(BOOL apply_gpol)
+{
+    BOOL res = FALSE;
+    SC_HANDLE scm = NULL;
+    SC_HANDLE dnssvc = NULL;
+
+    if (apply_gpol && ApplyGpolSettings() == FALSE)
+    {
+        MsgToEventLog(M_ERR, TEXT("ApplyDnsSettings: sending GPOL notification failed"));
+    }
+
+    scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+    if (scm == NULL)
+    {
+        MsgToEventLog(M_ERR, TEXT("ApplyDnsSettings: "
+                                  "OpenSCManager call failed (%lu)"), GetLastError());
+        goto out;
+    }
+
+    dnssvc = OpenServiceA(scm, "Dnscache", SERVICE_PAUSE_CONTINUE);
+    if (dnssvc == NULL)
+    {
+        MsgToEventLog(M_ERR, TEXT("ApplyDnsSettings: "
+                                  "OpenService call failed (%lu)"), GetLastError());
+        goto out;
+    }
+
+    SERVICE_STATUS status;
+    if (ControlService(dnssvc, SERVICE_CONTROL_PARAMCHANGE, &status) == 0)
+    {
+        MsgToEventLog(M_ERR, TEXT("ApplyDnsSettings: "
+                                  "ControlService call failed (%lu)"), GetLastError());
+        goto out;
+    }
+
+    res = TRUE;
+
+out:
+    if (dnssvc)
+    {
+        CloseServiceHandle(dnssvc);
+    }
+    if (scm)
+    {
+        CloseServiceHandle(scm);
+    }
+    return res;
+}
+
+/**
+ * Get the string interface UUID (with braces) for an interface alias name
+ *
+ * @param  itf_name   the interface alias name
+ * @param  str        pointer to the buffer the wide UUID is returned in
+ * @param  len        size of the str buffer in characters
+ *
+ * @return NO_ERROR on success, or the Windows error code for the failure
  */
 static DWORD
-SetDNSDomain(const wchar_t *if_name, const char *domain, undo_lists_t *lists)
+InterfaceIdString(PCSTR itf_name, PWSTR str, size_t len)
 {
-    NET_IFINDEX if_index;
+    DWORD err;
+    GUID guid;
+    NET_LUID luid;
+    PWSTR iid_str = NULL;
 
-    DWORD err  = ConvertInterfaceNameToIndex(if_name, &if_index);
-    if (err != ERROR_SUCCESS)
+    err = InterfaceLuid(itf_name, &luid);
+    if (err)
     {
-        return err;
+        MsgToEventLog(M_ERR, TEXT("InterfaceIdString: "
+                                  "failed to convert itf alias '%s'"), itf_name);
+        goto out;
+    }
+    err = ConvertInterfaceLuidToGuid(&luid, &guid);
+    if (err)
+    {
+        MsgToEventLog(M_ERR, TEXT("InterfaceIdString: "
+                                  "Failed to convert itf '%s' LUID"), itf_name);
+        goto out;
     }
 
-    wchar_t *wdomain = utf8to16(domain); /* utf8 to wide-char */
-    if (!wdomain)
+    if (StringFromIID(&guid, &iid_str) != S_OK)
     {
-        return ERROR_OUTOFMEMORY;
+        MsgToEventLog(M_ERR, TEXT("InterfaceIdString: "
+                                  "Failed to convert itf '%s' IID"), itf_name);
+        err = ERROR_OUTOFMEMORY;
+        goto out;
+    }
+    if (wcslen(iid_str) + 1 > len)
+    {
+        err = ERROR_INVALID_PARAMETER;
+        goto out;
     }
 
-    /* free undo list if previously set */
-    if (lists)
+    wcsncpy(str, iid_str, len);
+
+out:
+    if (iid_str)
     {
-        free(RemoveListItem(&(*lists)[undo_domain], CmpWString, (void *)if_name));
+        CoTaskMemFree(iid_str);
     }
+    return err;
+}
 
-    err = wmic_nicconfig_cmd(L"SetDNSDomain", if_index, wdomain);
-
-    /* Add to undo list if domain is non-empty */
-    if (err == 0 && wdomain[0] && lists)
+/**
+ * Check for a valid search list in a certain key of the registry
+ *
+ * Valid means that a string value "SearchList" exists and that it
+ * contains one or more domains. We only check if the string contains
+ * a valid domain name character, but the main point is to prevent letting
+ * pass whitespace-only lists, so that check is good enough for that
+ * purpose.
+ *
+ * @param  key  HKEY in which to check for a valid search list
+ *
+ * @return BOOL to indicate if a valid search list has been found
+ */
+static BOOL
+HasValidSearchList(HKEY key)
+{
+    char data[64];
+    DWORD size = sizeof(data);
+    LSTATUS err = RegGetValueA(key, NULL, "SearchList", RRF_RT_REG_SZ, NULL, (PBYTE)data, &size);
+    if (!err || err == ERROR_MORE_DATA)
     {
-        wchar_t *tmp_name = _wcsdup(if_name);
-        if (!tmp_name || AddListItem(&(*lists)[undo_domain], tmp_name))
+        data[sizeof(data) - 1] = '\0';
+        for (int i = 0; i < strlen(data); ++i)
         {
-            free(tmp_name);
-            err = ERROR_OUTOFMEMORY;
+            if (isalnum(data[i]) || data[i] == '-' || data[i] == '.')
+            {
+                return TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
+
+/**
+ * Find the registry key for storing the DNS domains for the VPN interface
+ *
+ * @param  itf_name PCSTR that contains the alias name of the interface the domains
+ *                  are related to. If this is NULL the interface probing is skipped.
+ * @param  gpol     PBOOL to indicate if the key returned is the group policy hive
+ * @param  key      PHKEY in which the found registry key is returned in
+ *
+ * @return BOOL to indicate if a search list is already present at the location.
+ *         If the key returned is INVALID_HANDLE_VALUE, this indicates an
+ *         unrecoverable error.
+ *
+ * The correct location to add them is where a non-empty "SearchList" value exists,
+ * or in the interface configuration itself. However, the system-wide and then the
+ * group policy search lists overrule the previous one respectively, so we need to
+ * probe to find the effective list.
+ */
+static BOOL
+GetDnsSearchListKey(PCSTR itf_name, PBOOL gpol, PHKEY key)
+{
+    LSTATUS err;
+
+    *gpol = FALSE;
+
+    /* Try the group policy search list */
+    err = RegOpenKeyExA(HKEY_LOCAL_MACHINE,
+                        "SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient",
+                        0, KEY_ALL_ACCESS, key);
+    if (!err)
+    {
+        if (HasValidSearchList(*key))
+        {
+            *gpol = TRUE;
+            return TRUE;
+        }
+        RegCloseKey(*key);
+    }
+
+    /* Try the system-wide search list */
+    err = RegOpenKeyExA(HKEY_LOCAL_MACHINE,
+                        "System\\CurrentControlSet\\Services\\TCPIP\\Parameters",
+                        0, KEY_ALL_ACCESS, key);
+    if (!err)
+    {
+        if (HasValidSearchList(*key))
+        {
+            return TRUE;
+        }
+        RegCloseKey(*key);
+    }
+
+    if (itf_name)
+    {
+        /* Always return the VPN interface key (if it exists) */
+        WCHAR iid[64];
+        DWORD iid_err = InterfaceIdString(itf_name, iid, _countof(iid));
+        if (!iid_err)
+        {
+            HKEY itfs;
+            err = RegOpenKeyExA(HKEY_LOCAL_MACHINE,
+                                "System\\CurrentControlSet\\Services\\TCPIP\\Parameters\\Interfaces",
+                                0, KEY_ALL_ACCESS, &itfs);
+            if (!err)
+            {
+                err = RegOpenKeyExW(itfs, iid, 0, KEY_ALL_ACCESS, key);
+                RegCloseKey(itfs);
+                if (!err)
+                {
+                    return FALSE; /* No need to preserve the VPN itf search list */
+                }
+            }
         }
     }
 
-    free(wdomain);
+    *key = INVALID_HANDLE_VALUE;
+    return FALSE;
+}
+
+/**
+ * Check if a initial list had already been created
+ *
+ * @param  key      HKEY of the registry subkey to search in
+ *
+ * @return BOOL to indicate if the initial list is already present under key
+ */
+static BOOL
+InitialSearchListExists(HKEY key)
+{
+    LSTATUS err;
+
+    err = RegGetValueA(key, NULL, "InitialSearchList", RRF_RT_REG_SZ, NULL, NULL, NULL);
+    if (err)
+    {
+        if (err == ERROR_FILE_NOT_FOUND)
+        {
+            return FALSE;
+        }
+        MsgToEventLog(M_ERR, TEXT("InitialSearchListExists: "
+                                  "failed to get InitialSearchList (%lu)"), err);
+    }
+
+    return TRUE;
+}
+
+/**
+ * Prepare DNS domain "SearchList" registry value, so additional
+ * VPN domains can be added and its original state can be restored
+ * in case the system cannot clean up regularly.
+ *
+ * @param  key      registry subkey to store the list in
+ * @param  list     string of comma separated domains to use as the list
+ *
+ * @return boolean to indicate whether the list was stored successfully
+ */
+static BOOL
+StoreInitialDnsSearchList(HKEY key, PCWSTR list)
+{
+    if (!list || wcslen(list) == 0)
+    {
+        MsgToEventLog(M_ERR, TEXT("StoreInitialDnsSearchList: empty search list"));
+        return FALSE;
+    }
+
+    if (InitialSearchListExists(key))
+    {
+        /* Initial list had already been stored */
+        return TRUE;
+    }
+
+    DWORD size = (wcslen(list) + 1) * sizeof(*list);
+    LSTATUS err = RegSetValueExW(key, L"InitialSearchList", 0, REG_SZ, (PBYTE)list, size);
+    if (err)
+    {
+        MsgToEventLog(M_ERR, TEXT("StoreInitialDnsSearchList: "
+                                  "failed to set InitialSearchList value (%lu)"), err);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * Append domain suffixes to an existing search list
+ *
+ * @param  key          HKEY the list is stored at
+ * @param  have_list    BOOL to indicate if a search list already exists
+ * @param  domains      domain suffixes as comma separated string
+ *
+ * @return BOOL to indicate success or failure
+ */
+static BOOL
+AddDnsSearchDomains(HKEY key, BOOL have_list, PCWSTR domains)
+{
+    LSTATUS err;
+    WCHAR list[2048] = {0};
+    DWORD size = sizeof(list);
+
+    if (have_list)
+    {
+        err = RegGetValueW(key, NULL, L"SearchList", RRF_RT_REG_SZ, NULL, list, &size);
+        if (err)
+        {
+            MsgToEventLog(M_SYSERR, TEXT("AddDnsSearchDomains: "
+                                         "could not get SearchList from registry (%lu)"), err);
+            return FALSE;
+        }
+
+        if (!StoreInitialDnsSearchList(key, list))
+        {
+            return FALSE;
+        }
+
+        size_t listlen = (size / sizeof(list[0])) - 1; /* returned size is in bytes */
+        size_t domlen = wcslen(domains);
+        if (listlen + domlen + 2 > _countof(list))
+        {
+            MsgToEventLog(M_SYSERR, TEXT("AddDnsSearchDomains: "
+                                         "not enough space in list for search domains (len=%lu)"),
+                          domlen);
+            return FALSE;
+        }
+
+        /* Append to end of the search list */
+        PWSTR pos = list + listlen;
+        *pos = ',';
+        wcsncpy(pos + 1, domains, domlen + 1);
+    }
+    else
+    {
+        wcsncpy(list, domains, wcslen(domains) + 1);
+    }
+
+    size = (wcslen(list) + 1) * sizeof(list[0]);
+    err = RegSetValueExW(key, L"SearchList", 0, REG_SZ, (PBYTE)list, size);
+    if (err)
+    {
+        MsgToEventLog(M_SYSERR, TEXT("AddDnsSearchDomains: "
+                                     "could not set SearchList to registry (%lu)"), err);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * Reset the DNS search list to its original value
+ *
+ * Looks for a "InitialSearchList" value as the one to reset to.
+ * If it doesn't exist, doesn't reset anything, as there was no
+ * SearchList in the first place.
+ *
+ * @param  key  HKEY of the location in the registry to reset
+ *
+ * @return BOOL to indicate if something was reset
+ */
+static BOOL
+ResetDnsSearchDomains(HKEY key)
+{
+    LSTATUS err;
+    BOOL ret = FALSE;
+    WCHAR list[2048];
+    DWORD size = sizeof(list);
+
+    err = RegGetValueW(key, NULL, L"InitialSearchList", RRF_RT_REG_SZ, NULL, list, &size);
+    if (err)
+    {
+        if (err != ERROR_FILE_NOT_FOUND)
+        {
+            MsgToEventLog(M_SYSERR, TEXT("ResetDnsSearchDomains: "
+                                         "could not get InitialSearchList from registry (%lu)"), err);
+        }
+        goto out;
+    }
+
+    size = (wcslen(list) + 1) * sizeof(list[0]);
+    err = RegSetValueExW(key, L"SearchList", 0, REG_SZ, (PBYTE)list, size);
+    if (err)
+    {
+        MsgToEventLog(M_SYSERR, TEXT("ResetDnsSearchDomains: "
+                                     "could not set SearchList in registry (%lu)"), err);
+        goto out;
+    }
+
+    RegDeleteValueA(key, "InitialSearchList");
+    ret = TRUE;
+
+out:
+    return ret;
+}
+
+/**
+ * Remove domain suffixes from an existing search list
+ *
+ * @param  key      HKEY the list is stored at
+ * @param  domains  domain suffixes to remove as comma separated string
+ */
+static void
+RemoveDnsSearchDomains(HKEY key, PCWSTR domains)
+{
+    LSTATUS err;
+    WCHAR list[2048];
+    DWORD size = sizeof(list);
+
+    err = RegGetValueW(key, NULL, L"SearchList", RRF_RT_REG_SZ, NULL, list, &size);
+    if (err)
+    {
+        MsgToEventLog(M_SYSERR, TEXT("RemoveDnsSearchDomains: "
+                                     "could not get SearchList from registry (%lu)"), err);
+        return;
+    }
+
+    PWSTR dst = wcsstr(list, domains);
+    if (!dst)
+    {
+        MsgToEventLog(M_ERR, TEXT("RemoveDnsSearchDomains: "
+                                  "could not find domains in search list"));
+        return;
+    }
+
+    /* Cut out domains from list */
+    size_t domlen = wcslen(domains);
+    PCWSTR src = dst + domlen;
+    /* Also remove the leading comma, if there is one */
+    dst = dst > list ? dst - 1 : dst;
+    wmemmove(dst, src, domlen);
+
+    size_t list_len = wcslen(list);
+    if (list_len)
+    {
+        /* Now check if the shortened list equals the initial search list */
+        WCHAR initial[2048];
+        size = sizeof(initial);
+        err = RegGetValueW(key, NULL, L"InitialSearchList", RRF_RT_REG_SZ, NULL, initial, &size);
+        if (err)
+        {
+            MsgToEventLog(M_SYSERR, TEXT("RemoveDnsSearchDomains: "
+                                         "could not get InitialSearchList from registry (%lu)"), err);
+            return;
+        }
+
+        /* If the search list is back to its initial state reset it */
+        if (wcsncmp(list, initial, wcslen(list)) == 0)
+        {
+            ResetDnsSearchDomains(key);
+            return;
+        }
+    }
+
+    size = (list_len + 1) * sizeof(list[0]);
+    err = RegSetValueExW(key, L"SearchList", 0, REG_SZ, (PBYTE)list, size);
+    if (err)
+    {
+        MsgToEventLog(M_SYSERR, TEXT("RemoveDnsSearchDomains: "
+                                     "could not set SearchList in registry (%lu)"), err);
+    }
+}
+
+/**
+ * Removes DNS domains from a search list they were previously added to
+ *
+ * @param undo_data     pointer to dns_domains_undo_data_t
+ */
+static void
+UndoDnsSearchDomains(dns_domains_undo_data_t *undo_data)
+{
+    BOOL gpol;
+    HKEY dns_searchlist_key;
+    GetDnsSearchListKey(undo_data->itf_name, &gpol, &dns_searchlist_key);
+    if (dns_searchlist_key != INVALID_HANDLE_VALUE)
+    {
+        RemoveDnsSearchDomains(dns_searchlist_key, undo_data->domains);
+        RegCloseKey(dns_searchlist_key);
+        ApplyDnsSettings(gpol);
+
+        free(undo_data->domains);
+        undo_data->domains = NULL;
+    }
+}
+
+/**
+ * Add or remove DNS search domains
+ *
+ * @param  itf_name   alias name of the interface the domains are set for
+ * @param  domains    a comma separated list of domain name suffixes
+ * @param  gpol       PBOOL to indicate if group policy values were modified
+ * @param  lists      pointer to the undo lists
+ *
+ * @return NO_ERROR on success, an error status code otherwise
+ *
+ * If a SearchList is present in the registry already, the domains are added
+ * to that list. Otherwise the domains are added to the VPN interface specific list.
+ * A group policy search list takes precedence over a system-wide list, and that one
+ * itself takes precedence over interface specific ones.
+ *
+ * This function will remove previously set domains if the domains parameter
+ * is NULL or empty.
+ *
+ * The gpol value is only valid if the function returns no error. In the error
+ * case nothing is changed.
+ */
+static DWORD
+SetDnsSearchDomains(PCSTR itf_name, PCSTR domains, PBOOL gpol, undo_lists_t *lists)
+{
+    DWORD err = ERROR_OUTOFMEMORY;
+
+    HKEY list_key;
+    BOOL have_list = GetDnsSearchListKey(itf_name, gpol, &list_key);
+    if (list_key == INVALID_HANDLE_VALUE)
+    {
+        MsgToEventLog(M_SYSERR, TEXT("SetDnsSearchDomains: "
+                                     "could not get search list registry key"));
+        return ERROR_FILE_NOT_FOUND;
+    }
+
+    /* Remove previously installed search domains */
+    dns_domains_undo_data_t *undo_data = RemoveListItem(&(*lists)[undo_domains], CmpAny, NULL);
+    if (undo_data)
+    {
+        RemoveDnsSearchDomains(list_key, undo_data->domains);
+        free(undo_data->domains);
+        free(undo_data);
+        undo_data = NULL;
+    }
+
+    /* If there are search domains, add them */
+    if (domains && *domains)
+    {
+        wchar_t *wide_domains = utf8to16(domains); /* utf8 to wide-char */
+        if (!wide_domains)
+        {
+            goto out;
+        }
+
+        undo_data = malloc(sizeof(*undo_data));
+        if (!undo_data)
+        {
+            free(wide_domains);
+            wide_domains = NULL;
+            goto out;
+        }
+        strncpy(undo_data->itf_name, itf_name, sizeof(undo_data->itf_name));
+        undo_data->domains = wide_domains;
+
+        if (AddDnsSearchDomains(list_key, have_list, wide_domains) == FALSE
+            || AddListItem(&(*lists)[undo_domains], undo_data) != NO_ERROR)
+        {
+            RemoveDnsSearchDomains(list_key, wide_domains);
+            free(wide_domains);
+            free(undo_data);
+            undo_data = NULL;
+            goto out;
+        }
+    }
+
+    err = NO_ERROR;
+
+out:
+    RegCloseKey(list_key);
     return err;
 }
 
@@ -1315,11 +1866,13 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
 
     if (msg->header.type == msg_del_dns_cfg)
     {
+        BOOL gpol = FALSE;
         if (msg->domains[0])
         {
-            /* setting an empty domain removes any previous value */
-            err = SetDNSDomain(wide_name, "", lists);
+            /* setting an empty domain list removes any previous value */
+            err = SetDnsSearchDomains(msg->iface.name, NULL, &gpol, lists);
         }
+        ApplyDnsSettings(gpol);
         goto out;  /* job done */
     }
 
@@ -1357,10 +1910,12 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
         }
     }
 
+    BOOL gpol = FALSE;
     if (msg->domains[0])
     {
-        err = SetDNSDomain(wide_name, msg->domains, lists);
+        err = SetDnsSearchDomains(msg->iface.name, msg->domains, &gpol, lists);
     }
+    ApplyDnsSettings(gpol);
 
 out:
     free(wide_name);
@@ -1751,12 +2306,12 @@ Undo(undo_lists_t *lists)
                     DeleteDNS(AF_INET6, item->data);
                     break;
 
-                case undo_wins:
-                    netsh_wins_cmd(L"delete", item->data, NULL);
+                case undo_domains:
+                    UndoDnsSearchDomains(item->data);
                     break;
 
-                case undo_domain:
-                    SetDNSDomain(item->data, "", NULL);
+                case undo_wins:
+                    netsh_wins_cmd(L"delete", item->data, NULL);
                     break;
 
                 case wfp_block:
@@ -2260,6 +2815,34 @@ ServiceStartInteractiveOwn(DWORD dwArgc, LPTSTR *lpszArgv)
     ServiceStartInteractive(dwArgc, lpszArgv);
 }
 
+/**
+ * Clean up remains of previous sessions in registry. These remains can
+ * happen with unclean shutdowns or crashes and would interfere with
+ * normal operation of the system with and without active tunnels.
+ */
+static void
+CleanupRegistry(void)
+{
+    HKEY key;
+    DWORD changed = 0;
+
+    /* Clean up leftover DNS search list fragments */
+    BOOL gpol_list;
+    GetDnsSearchListKey(NULL, &gpol_list, &key);
+    if (key != INVALID_HANDLE_VALUE)
+    {
+        if (ResetDnsSearchDomains(key))
+        {
+            changed++;
+        }
+        RegCloseKey(key);
+    }
+
+    if (changed)
+    {
+        ApplyDnsSettings(gpol_list);
+    }
+}
 
 VOID WINAPI
 ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
@@ -2282,6 +2865,9 @@ ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
     status.dwWin32ExitCode = NO_ERROR;
     status.dwWaitHint = 3000;
     ReportStatusToSCMgr(service, &status);
+
+    /* Clean up potentially left over registry values */
+    CleanupRegistry();
 
     /* Read info from registry in key HKLM\SOFTWARE\OpenVPN */
     error = GetOpenvpnSettings(&settings);

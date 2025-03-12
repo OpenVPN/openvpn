@@ -183,9 +183,10 @@ do_dns_domain_service(bool add, const struct tuntap *tt)
 {
     ack_message_t ack;
     struct gc_arena gc = gc_new();
-    HANDLE pipe = tt->options.msg_channel;
+    const struct tuntap_options *o = &tt->options;
 
-    if (!tt->options.domain) /* no  domain to add or delete */
+    /* no domains to add or delete */
+    if (!o->domain && !o->domain_search_list[0])
     {
         goto out;
     }
@@ -203,28 +204,49 @@ do_dns_domain_service(bool add, const struct tuntap *tt)
         .addr_len = 0       /* add/delete only the domain, not DNS servers */
     };
 
+    /* interface name is required */
     strncpynt(dns.iface.name, tt->actual_name, sizeof(dns.iface.name));
-    strncpynt(dns.domains, tt->options.domain, sizeof(dns.domains));
-    /* truncation of domain name is not checked as it can't happen
-     * with 512 bytes room in dns.domains.
-     */
 
-    msg(D_LOW, "%s dns domain on '%s' (if_index = %d) using service",
+    /* only use domain when there are no search domains */
+    if (o->domain && !o->domain_search_list[0])
+    {
+        strncpynt(dns.domains, o->domain, sizeof(dns.domains));
+    }
+
+    /* Create a comma separated list of search domains */
+    for (int i = 0; i < N_SEARCH_LIST_LEN && o->domain_search_list[i]; ++i)
+    {
+        size_t dstlen = strlen(dns.domains);
+        size_t srclen = strlen(o->domain_search_list[i]);
+        size_t extra = dstlen ? 2 : 1; /* space for comma and NUL */
+        if (dstlen + srclen + extra > sizeof(dns.domains))
+        {
+            msg(M_WARN, "DNS search domains sent to service truncated to %d", i);
+            break;
+        }
+        if (dstlen)
+        {
+            dns.domains[dstlen++] = ',';
+        }
+        strncpy(dns.domains + dstlen, o->domain_search_list[i], srclen + 1);
+    }
+
+    msg(D_LOW, "%s DNS domains on '%s' (if_index = %d) using service",
         (add ? "Setting" : "Deleting"), dns.iface.name, dns.iface.index);
-    if (!send_msg_iservice(pipe, &dns, sizeof(dns), &ack, "TUN"))
+    if (!send_msg_iservice(o->msg_channel, &dns, sizeof(dns), &ack, "TUN"))
     {
         goto out;
     }
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_WARN, "TUN: %s dns domain failed using service: %s [status=%u if_name=%s]",
+        msg(M_WARN, "TUN: %s DNS domains failed using service: %s [status=%u if_name=%s]",
             (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc),
             ack.error_number, dns.iface.name);
         goto out;
     }
 
-    msg(M_INFO, "DNS domain %s using service", (add ? "set" : "deleted"));
+    msg(M_INFO, "DNS domains %s using service", (add ? "set" : "deleted"));
 
 out:
     gc_free(&gc);
