@@ -23,10 +23,10 @@
 #define BASIC_H
 
 #ifdef _UNICODE
-#define PRIsLPTSTR      "ls"
+#define PRIsLPWSTR      "ls"
 #define PRIsLPOLESTR    "ls"
 #else
-#define PRIsLPTSTR      "s"
+#define PRIsLPWSTR      "s"
 #define PRIsLPOLESTR    "ls"
 #endif
 #define PRIXGUID        "{%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX}"

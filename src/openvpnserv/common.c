@@ -24,11 +24,11 @@
 #include "service.h"
 #include "validate.h"
 
-LPCTSTR service_instance = TEXT("");
+LPCWSTR service_instance = L"";
 static wchar_t win_sys_path[MAX_PATH];
 
 static DWORD
-GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size, LPCTSTR default_value)
+GetRegString(HKEY key, LPCWSTR value, LPWSTR data, DWORD size, LPCWSTR default_value)
 {
     LONG status = RegGetValue(key, NULL, value, RRF_RT_REG_SZ,
                               NULL, (LPBYTE) data, &size);
@@ -45,7 +45,7 @@ GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size, LPCTSTR default_v
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        return MsgToEventLog(M_SYSERR, TEXT("Error querying registry value: HKLM\\SOFTWARE\\") TEXT(PACKAGE_NAME) TEXT("%ls\\%ls"), service_instance, value);
+        return MsgToEventLog(M_SYSERR, L"Error querying registry value: HKLM\\SOFTWARE\\" _L(PACKAGE_NAME) L"%ls\\%ls", service_instance, value);
     }
 
     return ERROR_SUCCESS;
@@ -55,21 +55,21 @@ GetRegString(HKEY key, LPCTSTR value, LPTSTR data, DWORD size, LPCTSTR default_v
 DWORD
 GetOpenvpnSettings(settings_t *s)
 {
-    TCHAR reg_path[256];
-    TCHAR priority[64];
-    TCHAR append[2];
+    WCHAR reg_path[256];
+    WCHAR priority[64];
+    WCHAR append[2];
     DWORD error;
     HKEY key;
-    TCHAR install_path[MAX_PATH];
-    TCHAR default_value[MAX_PATH];
+    WCHAR install_path[MAX_PATH];
+    WCHAR default_value[MAX_PATH];
 
-    swprintf(reg_path, _countof(reg_path), TEXT("SOFTWARE\\") TEXT(PACKAGE_NAME) TEXT("%ls"), service_instance);
+    swprintf(reg_path, _countof(reg_path), L"SOFTWARE\\" _L(PACKAGE_NAME) L"%ls", service_instance);
 
     LONG status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, reg_path, 0, KEY_READ, &key);
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        return MsgToEventLog(M_SYSERR, TEXT("Could not open Registry key HKLM\\%ls not found"), reg_path);
+        return MsgToEventLog(M_SYSERR, L"Could not open Registry key HKLM\\%ls not found", reg_path);
     }
 
     /* The default value of REG_KEY is the install path */
@@ -80,97 +80,97 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
 
-    swprintf(default_value, _countof(default_value), TEXT("%ls\\bin\\openvpn.exe"),
+    swprintf(default_value, _countof(default_value), L"%ls\\bin\\openvpn.exe",
              install_path);
-    error = GetRegString(key, TEXT("exe_path"), s->exe_path, sizeof(s->exe_path), default_value);
+    error = GetRegString(key, L"exe_path", s->exe_path, sizeof(s->exe_path), default_value);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    swprintf(default_value, _countof(default_value), TEXT("%ls\\config"), install_path);
-    error = GetRegString(key, TEXT("config_dir"), s->config_dir, sizeof(s->config_dir),
+    swprintf(default_value, _countof(default_value), L"%ls\\config", install_path);
+    error = GetRegString(key, L"config_dir", s->config_dir, sizeof(s->config_dir),
                          default_value);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("config_ext"), s->ext_string, sizeof(s->ext_string),
-                         TEXT(".ovpn"));
+    error = GetRegString(key, L"config_ext", s->ext_string, sizeof(s->ext_string),
+                         L".ovpn");
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    swprintf(default_value, _countof(default_value), TEXT("%ls\\log"), install_path);
-    error = GetRegString(key, TEXT("log_dir"), s->log_dir, sizeof(s->log_dir), default_value);
+    swprintf(default_value, _countof(default_value), L"%ls\\log", install_path);
+    error = GetRegString(key, L"log_dir", s->log_dir, sizeof(s->log_dir), default_value);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("priority"), priority, sizeof(priority),
-                         TEXT("NORMAL_PRIORITY_CLASS"));
+    error = GetRegString(key, L"priority", priority, sizeof(priority),
+                         L"NORMAL_PRIORITY_CLASS");
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
-    error = GetRegString(key, TEXT("log_append"), append, sizeof(append), TEXT("0"));
+    error = GetRegString(key, L"log_append", append, sizeof(append), L"0");
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
 
     /* read if present, else use default */
-    error = GetRegString(key, TEXT("ovpn_admin_group"), s->ovpn_admin_group,
+    error = GetRegString(key, L"ovpn_admin_group", s->ovpn_admin_group,
                          sizeof(s->ovpn_admin_group), OVPN_ADMIN_GROUP);
     if (error != ERROR_SUCCESS)
     {
         goto out;
     }
     /* set process priority */
-    if (!_wcsicmp(priority, TEXT("IDLE_PRIORITY_CLASS")))
+    if (!_wcsicmp(priority, L"IDLE_PRIORITY_CLASS"))
     {
         s->priority = IDLE_PRIORITY_CLASS;
     }
-    else if (!_wcsicmp(priority, TEXT("BELOW_NORMAL_PRIORITY_CLASS")))
+    else if (!_wcsicmp(priority, L"BELOW_NORMAL_PRIORITY_CLASS"))
     {
         s->priority = BELOW_NORMAL_PRIORITY_CLASS;
     }
-    else if (!_wcsicmp(priority, TEXT("NORMAL_PRIORITY_CLASS")))
+    else if (!_wcsicmp(priority, L"NORMAL_PRIORITY_CLASS"))
     {
         s->priority = NORMAL_PRIORITY_CLASS;
     }
-    else if (!_wcsicmp(priority, TEXT("ABOVE_NORMAL_PRIORITY_CLASS")))
+    else if (!_wcsicmp(priority, L"ABOVE_NORMAL_PRIORITY_CLASS"))
     {
         s->priority = ABOVE_NORMAL_PRIORITY_CLASS;
     }
-    else if (!_wcsicmp(priority, TEXT("HIGH_PRIORITY_CLASS")))
+    else if (!_wcsicmp(priority, L"HIGH_PRIORITY_CLASS"))
     {
         s->priority = HIGH_PRIORITY_CLASS;
     }
     else
     {
         SetLastError(ERROR_INVALID_DATA);
-        error = MsgToEventLog(M_SYSERR, TEXT("Unknown priority name: %ls"), priority);
+        error = MsgToEventLog(M_SYSERR, L"Unknown priority name: %ls", priority);
         goto out;
     }
 
     /* set log file append/truncate flag */
-    if (append[0] == TEXT('0'))
+    if (append[0] == L'0')
     {
         s->append = FALSE;
     }
-    else if (append[0] == TEXT('1'))
+    else if (append[0] == L'1')
     {
         s->append = TRUE;
     }
     else
     {
         SetLastError(ERROR_INVALID_DATA);
-        error = MsgToEventLog(M_ERR, TEXT("Log file append flag (given as '%ls') must be '0' or '1'"), append);
+        error = MsgToEventLog(M_ERR, L"Log file append flag (given as '%ls') must be '0' or '1'", append);
         goto out;
     }
 
@@ -180,13 +180,13 @@ out:
 }
 
 
-LPCTSTR
+LPCWSTR
 GetLastErrorText(void)
 {
     DWORD error;
-    static TCHAR buf[256];
+    static WCHAR buf[256];
     DWORD len;
-    LPTSTR tmp = NULL;
+    LPWSTR tmp = NULL;
 
     error = GetLastError();
     len = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY,
@@ -194,12 +194,12 @@ GetLastErrorText(void)
 
     if (len == 0 || (long) _countof(buf) < (long) len + 14)
     {
-        buf[0] = TEXT('\0');
+        buf[0] = L'\0';
     }
     else
     {
-        tmp[wcslen(tmp) - 2] = TEXT('\0'); /* remove CR/LF characters */
-        swprintf(buf, _countof(buf), TEXT("%ls (0x%x)"), tmp, error);
+        tmp[wcslen(tmp) - 2] = L'\0'; /* remove CR/LF characters */
+        swprintf(buf, _countof(buf), L"%ls (0x%x)", tmp, error);
     }
 
     if (tmp)
@@ -212,12 +212,12 @@ GetLastErrorText(void)
 
 
 DWORD
-MsgToEventLog(DWORD flags, LPCTSTR format, ...)
+MsgToEventLog(DWORD flags, LPCWSTR format, ...)
 {
     HANDLE hEventSource;
-    TCHAR msg[2][256];
+    WCHAR msg[2][256];
     DWORD error = 0;
-    LPCTSTR err_msg = TEXT("");
+    LPCWSTR err_msg = L"";
     va_list arglist;
 
     if (flags & MSG_FLAGS_SYS_CODE)
@@ -230,14 +230,14 @@ MsgToEventLog(DWORD flags, LPCTSTR format, ...)
     if (hEventSource != NULL)
     {
         swprintf(msg[0], _countof(msg[0]),
-                 TEXT("%ls%ls%ls: %ls"), APPNAME, service_instance,
-                 (flags & MSG_FLAGS_ERROR) ? TEXT(" error") : TEXT(""), err_msg);
+                 L"%ls%ls%ls: %ls", APPNAME, service_instance,
+                 (flags & MSG_FLAGS_ERROR) ? L" error" : L"", err_msg);
 
         va_start(arglist, format);
         vswprintf(msg[1], _countof(msg[1]), format, arglist);
         va_end(arglist);
 
-        const TCHAR *mesg[] = { msg[0], msg[1] };
+        const WCHAR *mesg[] = { msg[0], msg[1] };
         ReportEvent(hEventSource, flags & MSG_FLAGS_ERROR ?
                     EVENTLOG_ERROR_TYPE : EVENTLOG_INFORMATION_TYPE,
                     0, 0, NULL, 2, 0, mesg, NULL);

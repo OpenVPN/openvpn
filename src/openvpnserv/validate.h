@@ -28,8 +28,8 @@
 #include "service.h"
 
 /* Authorized groups who can use any options and config locations */
-#define SYSTEM_ADMIN_GROUP TEXT("Administrators")
-#define OVPN_ADMIN_GROUP TEXT("OpenVPN Administrators")
+#define SYSTEM_ADMIN_GROUP L"Administrators"
+#define OVPN_ADMIN_GROUP L"OpenVPN Administrators"
 /* The last one may be reset in registry: HKLM\Software\OpenVPN\ovpn_admin_group */
 
 BOOL

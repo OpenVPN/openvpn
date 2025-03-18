@@ -60,8 +60,8 @@ static HANDLE rdns_semaphore = NULL;
 
 openvpn_service_t interactive_service = {
     interactive,
-    TEXT(PACKAGE_NAME) TEXT("ServiceInteractive"),
-    TEXT(PACKAGE_NAME) TEXT(" Interactive Service"),
+    _L(PACKAGE_NAME) L"ServiceInteractive",
+    _L(PACKAGE_NAME) L" Interactive Service",
     SERVICE_DEPENDENCIES,
     SERVICE_AUTO_START
 };
@@ -462,7 +462,7 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     bytes = PeekNamedPipeAsync(pipe, 1, &exit_event);
     if (bytes == 0)
     {
-        MsgToEventLog(M_SYSERR, TEXT("PeekNamedPipeAsync failed"));
+        MsgToEventLog(M_SYSERR, L"PeekNamedPipeAsync failed");
         ReturnLastError(pipe, L"PeekNamedPipeAsync");
         goto err;
     }
@@ -470,7 +470,7 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     size = bytes / sizeof(*data);
     if (size == 0)
     {
-        MsgToEventLog(M_SYSERR, TEXT("malformed startup data: 1 byte received"));
+        MsgToEventLog(M_SYSERR, L"malformed startup data: 1 byte received");
         ReturnError(pipe, ERROR_STARTUP_DATA, L"GetStartupData", 1, &exit_event);
         goto err;
     }
@@ -478,7 +478,7 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     data = malloc(bytes);
     if (data == NULL)
     {
-        MsgToEventLog(M_SYSERR, TEXT("malloc failed"));
+        MsgToEventLog(M_SYSERR, L"malloc failed");
         ReturnLastError(pipe, L"malloc");
         goto err;
     }
@@ -486,14 +486,14 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     read = ReadPipeAsync(pipe, data, bytes, 1, &exit_event);
     if (bytes != read)
     {
-        MsgToEventLog(M_SYSERR, TEXT("ReadPipeAsync failed"));
+        MsgToEventLog(M_SYSERR, L"ReadPipeAsync failed");
         ReturnLastError(pipe, L"ReadPipeAsync");
         goto err;
     }
 
     if (data[size - 1] != 0)
     {
-        MsgToEventLog(M_ERR, TEXT("Startup data is not NULL terminated"));
+        MsgToEventLog(M_ERR, L"Startup data is not NULL terminated");
         ReturnError(pipe, ERROR_STARTUP_DATA, L"GetStartupData", 1, &exit_event);
         goto err;
     }
@@ -503,7 +503,7 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     size -= len;
     if (size <= 0)
     {
-        MsgToEventLog(M_ERR, TEXT("Startup data ends at working directory"));
+        MsgToEventLog(M_ERR, L"Startup data ends at working directory");
         ReturnError(pipe, ERROR_STARTUP_DATA, L"GetStartupData", 1, &exit_event);
         goto err;
     }
@@ -513,7 +513,7 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     size -= len;
     if (size <= 0)
     {
-        MsgToEventLog(M_ERR, TEXT("Startup data ends at command line options"));
+        MsgToEventLog(M_ERR, L"Startup data ends at command line options");
         ReturnError(pipe, ERROR_STARTUP_DATA, L"GetStartupData", 1, &exit_event);
         goto err;
     }
@@ -746,15 +746,15 @@ HandleFlushNeighborsMessage(flush_neighbors_message_t *msg)
 static void
 BlockDNSErrHandler(DWORD err, const char *msg)
 {
-    TCHAR buf[256];
-    LPCTSTR err_str;
+    WCHAR buf[256];
+    LPCWSTR err_str;
 
     if (!err)
     {
         return;
     }
 
-    err_str = TEXT("Unknown Win32 Error");
+    err_str = L"Unknown Win32 Error";
 
     if (FormatMessage(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM
                       | FORMAT_MESSAGE_ARGUMENT_ARRAY,
@@ -796,7 +796,7 @@ DeleteWfpBlock(const wfp_block_message_t *msg, undo_lists_t *lists)
     }
     else
     {
-        MsgToEventLog(M_ERR, TEXT("No previous block filters to delete"));
+        MsgToEventLog(M_ERR, L"No previous block filters to delete");
     }
 
     return err;
@@ -913,7 +913,7 @@ ExecCommand(const WCHAR *argv0, const WCHAR *cmdline, DWORD timeout)
         WaitForSingleObject(pi.hProcess, timeout ? timeout : INFINITE);
         if (!GetExitCodeProcess(pi.hProcess, &exit_code))
         {
-            MsgToEventLog(M_SYSERR, TEXT("ExecCommand: Error getting exit_code:"));
+            MsgToEventLog(M_SYSERR, L"ExecCommand: Error getting exit_code:");
             exit_code = GetLastError();
         }
         else if (exit_code == STILL_ACTIVE)
@@ -922,17 +922,17 @@ ExecCommand(const WCHAR *argv0, const WCHAR *cmdline, DWORD timeout)
 
             /* kill without impunity */
             TerminateProcess(pi.hProcess, exit_code);
-            MsgToEventLog(M_ERR, TEXT("ExecCommand: \"%ls %ls\" killed after timeout"),
+            MsgToEventLog(M_ERR, L"ExecCommand: \"%ls %ls\" killed after timeout",
                           argv0, cmdline);
         }
         else if (exit_code)
         {
-            MsgToEventLog(M_ERR, TEXT("ExecCommand: \"%ls %ls\" exited with status = %lu"),
+            MsgToEventLog(M_ERR, L"ExecCommand: \"%ls %ls\" exited with status = %lu",
                           argv0, cmdline, exit_code);
         }
         else
         {
-            MsgToEventLog(M_INFO, TEXT("ExecCommand: \"%ls %ls\" completed"), argv0, cmdline);
+            MsgToEventLog(M_INFO, L"ExecCommand: \"%ls %ls\" completed", argv0, cmdline);
         }
 
         CloseHandle(pi.hProcess);
@@ -941,7 +941,7 @@ ExecCommand(const WCHAR *argv0, const WCHAR *cmdline, DWORD timeout)
     else
     {
         exit_code = GetLastError();
-        MsgToEventLog(M_SYSERR, TEXT("ExecCommand: could not run \"%ls %ls\" :"),
+        MsgToEventLog(M_SYSERR, L"ExecCommand: could not run \"%ls %ls\" :",
                       argv0, cmdline);
     }
 
@@ -986,12 +986,12 @@ RegisterDNS(LPVOID unused)
         err = 0;
         if (!ReleaseSemaphore(rdns_semaphore, 1, NULL) )
         {
-            err = MsgToEventLog(M_SYSERR, TEXT("RegisterDNS: Failed to release regsiter-dns semaphore:"));
+            err = MsgToEventLog(M_SYSERR, L"RegisterDNS: Failed to release regsiter-dns semaphore:");
         }
     }
     else
     {
-        MsgToEventLog(M_ERR, TEXT("RegisterDNS: Failed to lock register-dns semaphore"));
+        MsgToEventLog(M_ERR, L"RegisterDNS: Failed to lock register-dns semaphore");
         err = ERROR_SEM_TIMEOUT; /* Windows error code 0x79 */
     }
     return err;
@@ -1194,7 +1194,7 @@ ApplyDnsSettings(BOOL apply_gpol)
 
     if (apply_gpol && ApplyGpolSettings() == FALSE)
     {
-        MsgToEventLog(M_ERR, TEXT("ApplyDnsSettings: sending GPOL notification failed"));
+        MsgToEventLog(M_ERR, L"ApplyDnsSettings: sending GPOL notification failed");
     }
 
     scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
@@ -1442,7 +1442,7 @@ StoreInitialDnsSearchList(HKEY key, PCWSTR list)
 {
     if (!list || wcslen(list) == 0)
     {
-        MsgToEventLog(M_ERR, TEXT("StoreInitialDnsSearchList: empty search list"));
+        MsgToEventLog(M_ERR, L"StoreInitialDnsSearchList: empty search list");
         return FALSE;
     }
 
@@ -2079,7 +2079,7 @@ OvpnDuplicateHandle(HANDLE ovpn_proc, HANDLE orig_handle, HANDLE *new_handle)
     if (!DuplicateHandle(ovpn_proc, orig_handle, GetCurrentProcess(), new_handle, 0, FALSE, DUPLICATE_SAME_ACCESS))
     {
         err = GetLastError();
-        MsgToEventLog(M_SYSERR, TEXT("Could not duplicate handle"));
+        MsgToEventLog(M_SYSERR, L"Could not duplicate handle");
         return err;
     }
 
@@ -2103,7 +2103,7 @@ DuplicateAndMapRing(HANDLE ovpn_proc, HANDLE orig_handle, struct tun_ring **ring
     if (*ring == NULL)
     {
         err = GetLastError();
-        MsgToEventLog(M_SYSERR, TEXT("Could not map shared memory"));
+        MsgToEventLog(M_SYSERR, L"Could not map shared memory");
         return err;
     }
 
@@ -2166,7 +2166,7 @@ HandleRegisterRingBuffers(const register_ring_buffers_message_t *rrb, HANDLE ovp
                                send_tail_moved, receive_tail_moved))
     {
         err = GetLastError();
-        MsgToEventLog(M_SYSERR, TEXT("Could not register ring buffers"));
+        MsgToEventLog(M_SYSERR, L"Could not register ring buffers");
         goto out;
     }
 
@@ -2299,7 +2299,7 @@ HandleMessage(HANDLE pipe, HANDLE ovpn_proc,
 
         default:
             ack.error_number = ERROR_MESSAGE_TYPE;
-            MsgToEventLog(MSG_FLAGS_ERROR, TEXT("Unknown message type %d"), msg.header.type);
+            MsgToEventLog(MSG_FLAGS_ERROR, L"Unknown message type %d", msg.header.type);
             break;
     }
 
@@ -2391,7 +2391,7 @@ RunOpenvpn(LPVOID p)
     STARTUPINFOW startup_info;
     PROCESS_INFORMATION proc_info;
     LPVOID user_env = NULL;
-    TCHAR ovpn_pipe_name[256]; /* The entire pipe name string can be up to 256 characters long according to MSDN. */
+    WCHAR ovpn_pipe_name[256]; /* The entire pipe name string can be up to 256 characters long according to MSDN. */
     LPCWSTR exe_path;
     WCHAR *cmdline = NULL;
     size_t cmdline_size;
@@ -2509,14 +2509,14 @@ RunOpenvpn(LPVOID p)
     ea[0].grfInheritance = NO_INHERITANCE;
     ea[0].Trustee.TrusteeForm = TRUSTEE_IS_SID;
     ea[0].Trustee.TrusteeType = TRUSTEE_IS_UNKNOWN;
-    ea[0].Trustee.ptstrName = (LPTSTR) svc_user->User.Sid;
+    ea[0].Trustee.ptstrName = (LPWSTR) svc_user->User.Sid;
     ea[1].grfAccessPermissions = READ_CONTROL | SYNCHRONIZE | PROCESS_VM_READ
                                  |SYNCHRONIZE | PROCESS_TERMINATE | PROCESS_QUERY_INFORMATION;
     ea[1].grfAccessMode = SET_ACCESS;
     ea[1].grfInheritance = NO_INHERITANCE;
     ea[1].Trustee.TrusteeForm = TRUSTEE_IS_SID;
     ea[1].Trustee.TrusteeType = TRUSTEE_IS_UNKNOWN;
-    ea[1].Trustee.ptstrName = (LPTSTR) ovpn_user->User.Sid;
+    ea[1].Trustee.ptstrName = (LPWSTR) ovpn_user->User.Sid;
 
     /* Set owner and DACL of OpenVPN security descriptor */
     if (!SetSecurityDescriptorOwner(&ovpn_sd, svc_user->User.Sid, FALSE))
@@ -2543,7 +2543,7 @@ RunOpenvpn(LPVOID p)
     }
 
     /* use /dev/null for stdout of openvpn (client should use --log for output) */
-    stdout_write = CreateFile(_T("NUL"), GENERIC_WRITE, FILE_SHARE_WRITE,
+    stdout_write = CreateFile(_L("NUL"), GENERIC_WRITE, FILE_SHARE_WRITE,
                               &inheritable, OPEN_EXISTING, 0, NULL);
     if (stdout_write == INVALID_HANDLE_VALUE)
     {
@@ -2559,7 +2559,7 @@ RunOpenvpn(LPVOID p)
     }
 
     swprintf(ovpn_pipe_name, _countof(ovpn_pipe_name),
-             TEXT("\\\\.\\pipe\\") TEXT(PACKAGE) TEXT("%ls\\service_%lu"), service_instance, GetCurrentThreadId());
+             L"\\\\.\\pipe\\" _L(PACKAGE) L"%ls\\service_%lu", service_instance, GetCurrentThreadId());
     ovpn_pipe = CreateNamedPipe(ovpn_pipe_name,
                                 PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE | FILE_FLAG_OVERLAPPED,
                                 PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, 1, 128, 128, 0, NULL);
@@ -2654,7 +2654,7 @@ RunOpenvpn(LPVOID p)
         if (bytes > sizeof(pipe_message_t))
         {
             /* process at the other side of the pipe is misbehaving, shut it down */
-            MsgToEventLog(MSG_FLAGS_ERROR, TEXT("OpenVPN process sent too large payload length to the pipe (%lu bytes), it will be terminated"), bytes);
+            MsgToEventLog(MSG_FLAGS_ERROR, L"OpenVPN process sent too large payload length to the pipe (%lu bytes), it will be terminated", bytes);
             break;
         }
 
@@ -2734,12 +2734,12 @@ CreateClientPipeInstance(VOID)
      * allow read/write for authenticated users
      * deny all access to anonymous
      */
-    const TCHAR *sddlString = TEXT("D:(A;OICI;GA;;;S-1-5-18)(D;OICI;0x4;;;S-1-1-0)(A;OICI;GRGW;;;S-1-5-11)(D;;GA;;;S-1-5-7)");
+    const WCHAR *sddlString = L"D:(A;OICI;GA;;;S-1-5-18)(D;OICI;0x4;;;S-1-1-0)(A;OICI;GRGW;;;S-1-5-11)(D;;GA;;;S-1-5-7)";
 
     PSECURITY_DESCRIPTOR sd = NULL;
     if (!ConvertStringSecurityDescriptorToSecurityDescriptor(sddlString, SDDL_REVISION_1, &sd, NULL))
     {
-        MsgToEventLog(M_SYSERR, TEXT("ConvertStringSecurityDescriptorToSecurityDescriptor failed."));
+        MsgToEventLog(M_SYSERR, L"ConvertStringSecurityDescriptorToSecurityDescriptor failed.");
         return INVALID_HANDLE_VALUE;
     }
 
@@ -2758,8 +2758,8 @@ CreateClientPipeInstance(VOID)
         first = FALSE;
     }
 
-    TCHAR pipe_name[256]; /* The entire pipe name string can be up to 256 characters long according to MSDN. */
-    swprintf(pipe_name, _countof(pipe_name), TEXT("\\\\.\\pipe\\") TEXT(PACKAGE) TEXT("%ls\\service"), service_instance);
+    WCHAR pipe_name[256]; /* The entire pipe name string can be up to 256 characters long according to MSDN. */
+    swprintf(pipe_name, _countof(pipe_name), L"\\\\.\\pipe\\" _L(PACKAGE) L"%ls\\service", service_instance);
     HANDLE pipe = CreateNamedPipe(pipe_name, flags,
                                   PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_REJECT_REMOTE_CLIENTS,
                                   PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0, &sa);
@@ -2768,7 +2768,7 @@ CreateClientPipeInstance(VOID)
 
     if (pipe == INVALID_HANDLE_VALUE)
     {
-        MsgToEventLog(M_SYSERR, TEXT("Could not create named pipe"));
+        MsgToEventLog(M_SYSERR, L"Could not create named pipe");
         return INVALID_HANDLE_VALUE;
     }
 
@@ -2840,7 +2840,7 @@ CmpHandle(LPVOID item, LPVOID hnd)
 
 
 VOID WINAPI
-ServiceStartInteractiveOwn(DWORD dwArgc, LPTSTR *lpszArgv)
+ServiceStartInteractiveOwn(DWORD dwArgc, LPWSTR *lpszArgv)
 {
     status.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
     ServiceStartInteractive(dwArgc, lpszArgv);
@@ -2876,7 +2876,7 @@ CleanupRegistry(void)
 }
 
 VOID WINAPI
-ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
+ServiceStartInteractive(DWORD dwArgc, LPWSTR *lpszArgv)
 {
     HANDLE pipe, io_event = NULL;
     OVERLAPPED overlapped;
@@ -2911,14 +2911,14 @@ ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
     exit_event = CreateEvent(NULL, TRUE, FALSE, NULL);
     if (!exit_event || !io_event)
     {
-        error = MsgToEventLog(M_SYSERR, TEXT("Could not create event"));
+        error = MsgToEventLog(M_SYSERR, L"Could not create event");
         goto out;
     }
 
     rdns_semaphore = CreateSemaphoreW(NULL, 1, 1, NULL);
     if (!rdns_semaphore)
     {
-        error = MsgToEventLog(M_SYSERR, TEXT("Could not create semaphore for register-dns"));
+        error = MsgToEventLog(M_SYSERR, L"Could not create semaphore for register-dns");
         goto out;
     }
 
@@ -2944,7 +2944,7 @@ ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
             && GetLastError() != ERROR_PIPE_CONNECTED
             && GetLastError() != ERROR_IO_PENDING)
         {
-            MsgToEventLog(M_SYSERR, TEXT("Could not connect pipe"));
+            MsgToEventLog(M_SYSERR, L"Could not connect pipe");
             break;
         }
 
@@ -2989,7 +2989,7 @@ ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
             CancelIo(pipe);
             if (error == WAIT_FAILED)
             {
-                MsgToEventLog(M_SYSERR, TEXT("WaitForMultipleObjects failed"));
+                MsgToEventLog(M_SYSERR, L"WaitForMultipleObjects failed");
                 SetEvent(exit_event);
                 /* Give some time for worker threads to exit and then terminate */
                 Sleep(1000);

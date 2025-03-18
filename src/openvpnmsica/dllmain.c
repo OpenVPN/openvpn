@@ -32,7 +32,7 @@
 #pragma comment(lib, "msi.lib")
 #endif
 #include <stdio.h>
-#include <tchar.h>
+#include <wchar.h>
 
 
 DWORD openvpnmsica_thread_data_idx = TLS_OUT_OF_INDEXES;
@@ -160,13 +160,13 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         MsiRecordSetInteger(hRecordProg, 3, dwResult);
 
         /* Field 4: The Windows error description. */
-        LPTSTR szErrMessage = NULL;
+        LPWSTR szErrMessage = NULL;
         if (FormatMessage(
                 FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
                 0,
                 dwResult,
                 0,
-                (LPTSTR)&szErrMessage,
+                (LPWSTR)&szErrMessage,
                 0,
                 NULL) && szErrMessage)
         {
@@ -175,7 +175,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
             {
                 if (szErrMessage[i])
                 {
-                    if (!_istspace(szErrMessage[i]))
+                    if (!iswspace(szErrMessage[i]))
                     {
                         i_last = i + 1;
                     }

@@ -52,8 +52,8 @@
 DWORD
 tap_create_adapter(
     _In_opt_ HWND hwndParent,
-    _In_opt_ LPCTSTR szDeviceDescription,
-    _In_ LPCTSTR szHwId,
+    _In_opt_ LPCWSTR szDeviceDescription,
+    _In_ LPCWSTR szHwId,
     _Inout_ LPBOOL pbRebootRequired,
     _Out_ LPGUID pguidAdapter);
 
@@ -126,7 +126,7 @@ tap_enable_adapter(
 DWORD
 tap_set_adapter_name(
     _In_ LPCGUID pguidAdapter,
-    _In_ LPCTSTR szName,
+    _In_ LPCWSTR szName,
     _In_ BOOL bSilent);
 
 
@@ -136,8 +136,8 @@ tap_set_adapter_name(
 struct tap_adapter_node
 {
     GUID guid;             /**< Adapter GUID */
-    LPTSTR szzHardwareIDs; /**< Device hardware ID(s) */
-    LPTSTR szName;         /**< Adapter name */
+    LPWSTR szzHardwareIDs; /**< Device hardware ID(s) */
+    LPWSTR szName;         /**< Adapter name */
 
     struct tap_adapter_node *pNext; /**< Pointer to next adapter */
 };
@@ -165,7 +165,7 @@ struct tap_adapter_node
 DWORD
 tap_list_adapters(
     _In_opt_ HWND hwndParent,
-    _In_opt_ LPCTSTR szzHwIDs,
+    _In_opt_ LPCWSTR szzHwIDs,
     _Out_ struct tap_adapter_node **ppAdapterList);
 
 

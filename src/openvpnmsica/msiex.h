@@ -41,8 +41,8 @@
 UINT
 msi_get_string(
     _In_ MSIHANDLE hInstall,
-    _In_z_ LPCTSTR szName,
-    _Out_ LPTSTR *pszValue);
+    _In_z_ LPCWSTR szName,
+    _Out_ LPWSTR *pszValue);
 
 
 /**
@@ -61,7 +61,7 @@ UINT
 msi_get_record_string(
     _In_ MSIHANDLE hRecord,
     _In_ unsigned int iField,
-    _Out_ LPTSTR *pszValue);
+    _Out_ LPWSTR *pszValue);
 
 
 /**
@@ -83,7 +83,7 @@ UINT
 msi_format_record(
     _In_ MSIHANDLE hInstall,
     _In_ MSIHANDLE hRecord,
-    _Out_ LPTSTR *pszValue);
+    _Out_ LPWSTR *pszValue);
 
 
 /**
@@ -107,6 +107,6 @@ msi_format_field(
     _In_ MSIHANDLE hInstall,
     _In_ MSIHANDLE hRecord,
     _In_ unsigned int iField,
-    _Out_ LPTSTR *pszValue);
+    _Out_ LPWSTR *pszValue);
 
 #endif /* ifndef MSIHLP_H */

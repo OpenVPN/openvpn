@@ -22,7 +22,7 @@
 #define MSICA_ARG_H
 
 #include <windows.h>
-#include <tchar.h>
+#include <wchar.h>
 #include "../tapctl/basic.h"
 
 
@@ -38,7 +38,7 @@
 struct msica_arg
 {
     struct msica_arg *next; /**< Pointer to the next argument in the sequence */
-    TCHAR val[];            /**< Zero terminated argument string */
+    WCHAR val[];            /**< Zero terminated argument string */
 };
 
 
@@ -80,7 +80,7 @@ msica_arg_seq_free(_Inout_ struct msica_arg_seq *seq);
 void
 msica_arg_seq_add_head(
     _Inout_ struct msica_arg_seq *seq,
-    _In_z_ LPCTSTR argument);
+    _In_z_ LPCWSTR argument);
 
 
 /**
@@ -93,7 +93,7 @@ msica_arg_seq_add_head(
 void
 msica_arg_seq_add_tail(
     _Inout_ struct msica_arg_seq *seq,
-    _Inout_ LPCTSTR argument);
+    _Inout_ LPCWSTR argument);
 
 /**
  * Join arguments of the argument sequence into a space delimited string
@@ -102,7 +102,7 @@ msica_arg_seq_add_tail(
  *
  * @return Joined argument string. Must be released with free() after use.
  */
-LPTSTR
+LPWSTR
 msica_arg_seq_join(_In_ const struct msica_arg_seq *seq);
 
 #ifdef _MSC_VER
