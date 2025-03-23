@@ -2752,8 +2752,8 @@ options_postprocess_verify_ce(const struct options *options,
 
         }
         if (!options->auth_user_pass_verify_script
-            || PLUGIN_OPTION_LIST(options)
-            || MAN_CLIENT_AUTH_ENABLED(options))
+            && !PLUGIN_OPTION_LIST(options)
+            && !MAN_CLIENT_AUTH_ENABLED(options))
         {
             const char *use_err = "--%s must be used with --management-client-auth, an --auth-user-pass-verify script, or plugin";
 
