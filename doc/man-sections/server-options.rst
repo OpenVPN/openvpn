@@ -432,7 +432,12 @@ fast hardware. SSL/TLS authentication must be used in this mode.
 
   The changed username will be picked up by the status output and also by
   the ``--auth-gen-token`` option. It will also be pushed to the client
-  using ``--auth-token-user``.
+  using ``--auth-token-user`` if ``--auth-gen-token`` is enabled.
+
+  Internally on all subsequent renegotiations the client provided username
+  will be replaced by the username provided by ``--override-username``.
+  If the client changes to a username that is different from both the initial
+  and the overridden username, the client will be rejected.
 
   Special care should be taken that both the initial username of the client
   and the overridden username are handled correctly when using
@@ -443,6 +448,10 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   multi factor authentication and therefore do not provide a username that
   can be used for ``--auth-gen-token`` to allow providing a username in
   these scenarios.
+
+  If the ``--auth-token`` directive is pushed by another script/plugin or
+  management interface, consider also generating and pushing
+  ``--auth-token-user``.
 
 --port-share args
   Share OpenVPN TCP with another service
