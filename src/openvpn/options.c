@@ -6710,7 +6710,12 @@ add_option(struct options *options,
     else if (streq(p[0], "lport") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL|OPT_P_CONNECTION);
-        options->ce.local_port_defined = true;
+
+        /* only trigger bind() if port is not 0 (or --local is used) */
+        if (!streq(p[1], "0"))
+        {
+            options->ce.local_port_defined = true;
+        }
         options->ce.local_port = p[1];
     }
     else if (streq(p[0], "rport") && p[1] && !p[2])

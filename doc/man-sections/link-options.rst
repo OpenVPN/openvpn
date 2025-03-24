@@ -122,7 +122,9 @@ the local and the remote host.
 
 --lport port
   Set default TCP/UDP port number. Cannot be used together with
-  ``--nobind`` option.
+  ``--nobind`` option.  A port number of ``0`` is only honoured to
+  achieve "bind() to a random assigned port number" if a bind-to IP
+  address is specified with ``--local``.
 
 --mark value
   Mark encrypted packets being sent with ``value``. The mark value can be
