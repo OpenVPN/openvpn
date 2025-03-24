@@ -1848,9 +1848,10 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
     int addr_len = msg->addr_len;
 
     /* sanity check */
-    if (addr_len > _countof(msg->addr))
+    const size_t max_addrs = _countof(msg->addr);
+    if (addr_len > max_addrs)
     {
-        addr_len = _countof(msg->addr);
+        addr_len = max_addrs;
     }
 
     if (!msg->iface.name[0]) /* interface name is required */
@@ -1900,7 +1901,7 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
     if (msg->addr_len > 0)
     {
         /* prepare the comma separated address list */
-        CHAR addrs[256]; /* large enough to hold four IPv4 / IPv6 address strings */
+        CHAR addrs[max_addrs * 64]; /* 64 is enough for one IPv4/6 address */
         size_t offset = 0;
         for (int i = 0; i < addr_len; ++i)
         {
