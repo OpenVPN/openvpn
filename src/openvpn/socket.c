@@ -1903,6 +1903,11 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
     const char *remote_host = o->ce.remote;
     const char *remote_port = o->ce.remote_port;
 
+    if (remote_host)
+    {
+        proto = o->ce.proto;
+    }
+
     if (c->mode == CM_CHILD_TCP || c->mode == CM_CHILD_UDP)
     {
         struct link_socket *tmp_sock = NULL;
