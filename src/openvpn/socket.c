@@ -1741,9 +1741,19 @@ resolve_bind_local(struct link_socket *sock, const sa_family_t af)
                 gai_strerror(status));
         }
 
-        /* the resolved 'local entry' might have a different family than what
-         * was globally configured */
-        sock->info.af = sock->info.lsa->bind_local->ai_family;
+        /* the address family returned by openvpn_getaddrinfo() should be
+         * taken into consideration only if we really passed an hostname
+         * to resolve. Otherwise its value is not useful to us and may
+         * actually break our socket, i.e. when it returns AF_INET
+         * but our remote is v6 only.
+         */
+        if (sock->local_host)
+        {
+            /* the resolved 'local entry' might have a different family than
+             * what was globally configured
+             */
+            sock->info.af = sock->info.lsa->bind_local->ai_family;
+        }
     }
 
     gc_free(&gc);
