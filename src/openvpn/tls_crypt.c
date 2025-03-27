@@ -97,6 +97,15 @@ xor_key2(struct key2 *key, const struct key2 *other)
 bool
 tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session)
 {
+    struct key2 rengokeys;
+    if (!key_state_export_keying_material(session, EXPORT_DYNAMIC_TLS_CRYPT_LABEL,
+                                          strlen(EXPORT_DYNAMIC_TLS_CRYPT_LABEL),
+                                          rengokeys.keys, sizeof(rengokeys.keys)))
+    {
+        return false;
+    }
+    rengokeys.n = 2;
+
     session->tls_wrap_reneg.opt = session->tls_wrap.opt;
     session->tls_wrap_reneg.mode = TLS_WRAP_CRYPT;
     session->tls_wrap_reneg.cleanup_key_ctx = true;
@@ -107,16 +116,6 @@ tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session)
                    session->opt->replay_window,
                    session->opt->replay_time,
                    "TLS_WRAP_RENEG", session->key_id);
-
-
-    struct key2 rengokeys;
-    if (!key_state_export_keying_material(session, EXPORT_DYNAMIC_TLS_CRYPT_LABEL,
-                                          strlen(EXPORT_DYNAMIC_TLS_CRYPT_LABEL),
-                                          rengokeys.keys, sizeof(rengokeys.keys)))
-    {
-        return false;
-    }
-    rengokeys.n = 2;
 
     if (session->tls_wrap.mode == TLS_WRAP_CRYPT
         || session->tls_wrap.mode == TLS_WRAP_AUTH)
