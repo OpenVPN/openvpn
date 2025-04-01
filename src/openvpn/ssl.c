@@ -697,6 +697,9 @@ state_name(int state)
         case S_INITIAL:
             return "S_INITIAL";
 
+        case S_PRE_START_SKIP:
+            return "S_PRE_START_SKIP";
+
         case S_PRE_START:
             return "S_PRE_START";
 
@@ -2506,7 +2509,7 @@ session_move_pre_start(const struct tls_session *session,
     }
     INCR_GENERATED;
 
-    ks->state = S_PRE_START;
+    ks->state = skip_initial_send ? S_PRE_START_SKIP : S_PRE_START;
 
     struct gc_arena gc = gc_new();
     dmsg(D_TLS_DEBUG, "TLS: Initial Handshake, sid=%s",
@@ -3825,7 +3828,7 @@ tls_pre_decrypt(struct tls_multi *multi,
         }
 
         if (!read_control_auth(buf, tls_session_get_tls_wrap(session, key_id), from,
-                               session->opt))
+                               session->opt, true))
         {
             goto error;
         }
@@ -3895,7 +3898,7 @@ tls_pre_decrypt(struct tls_multi *multi,
         if (op == P_CONTROL_SOFT_RESET_V1 && ks->state >= S_GENERATED_KEYS)
         {
             if (!read_control_auth(buf, tls_session_get_tls_wrap(session, key_id),
-                                   from, session->opt))
+                                   from, session->opt, false))
             {
                 goto error;
             }
@@ -3908,6 +3911,15 @@ tls_pre_decrypt(struct tls_multi *multi,
         }
         else
         {
+            bool initial_packet = false;
+            if (ks->state == S_PRE_START_SKIP)
+            {
+                /* When we are coming from the session_skip_to_pre_start
+                 * method, we allow this initial packet to setup the
+                 * tls-crypt-v2 peer specific key */
+                initial_packet = true;
+                ks->state = S_PRE_START;
+            }
             /*
              * Remote responding to our key renegotiation request?
              */
@@ -3917,8 +3929,14 @@ tls_pre_decrypt(struct tls_multi *multi,
             }
 
             if (!read_control_auth(buf, tls_session_get_tls_wrap(session, key_id),
-                                   from, session->opt))
+                                   from, session->opt, initial_packet))
             {
+                /* if an initial packet in read_control_auth, we rather
+                 * error out than anything else */
+                if (initial_packet)
+                {
+                    multi->n_hard_errors++;
+                }
                 goto error;
             }
 
