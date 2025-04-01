@@ -612,7 +612,8 @@ cleanup:
 bool
 tls_crypt_v2_extract_client_key(struct buffer *buf,
                                 struct tls_wrap_ctx *ctx,
-                                const struct tls_options *opt)
+                                const struct tls_options *opt,
+                                bool initial_packet)
 {
     if (!ctx->tls_crypt_v2_server_key.cipher)
     {
@@ -639,6 +640,27 @@ tls_crypt_v2_extract_client_key(struct buffer *buf,
     {
         msg(D_TLS_ERRORS, "Can not locate tls-crypt-v2 client key");
         return false;
+    }
+
+    if (!initial_packet)
+    {
+        /* This might be a harmless resend of the packet but it is better to
+         * just ignore the WKC part than trying to setup tls-crypt keys again.
+         *
+         * A CONTROL_WKC_V1 packets has a normal packet part and an appended
+         * wrapped control key. These are authenticated individually. We already
+         * set up tls-crypt with the wrapped key, so we are ignoring this part
+         * of the message but we return the normal packet part as the normal
+         * part of the message might have been corrupted earlier and discarded
+         * and this is resend. So return the normal part of the packet,
+         * basically transforming the CONTROL_WKC_V1 into a normal CONTROL_V1
+         * packet*/
+        msg(D_TLS_ERRORS, "control channel security already setup ignoring "
+            "wrapped key part of packet.");
+
+        /* Remove client key from buffer so tls-crypt code can unwrap message */
+        ASSERT(buf_inc_len(buf, -(BLEN(&wrapped_client_key))));
+        return true;
     }
 
     ctx->tls_crypt_v2_metadata = alloc_buf(TLS_CRYPT_V2_MAX_METADATA_LEN);

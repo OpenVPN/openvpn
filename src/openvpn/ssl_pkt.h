@@ -207,14 +207,22 @@ write_control_auth(struct tls_session *session,
                    bool prepend_ack);
 
 
-/*
+
+/**
  * Read a control channel authentication record.
+ * @param buf               buffer that holds the incoming packet
+ * @param ctx               control channel security context
+ * @param from              incoming link socket address
+ * @param opt               tls options struct for the session
+ * @param initial_packet    whether this is the initial packet for the connection
+ * @return                  if the packet was successfully processed
  */
 bool
 read_control_auth(struct buffer *buf,
                   struct tls_wrap_ctx *ctx,
                   const struct link_socket_actual *from,
-                  const struct tls_options *opt);
+                  const struct tls_options *opt,
+                  bool initial_packet);
 
 
 /**

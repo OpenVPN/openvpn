@@ -80,22 +80,25 @@
 #define S_INITIAL         1     /**< Initial \c key_state state after
                                  *   initialization by \c key_state_init()
                                  *   before start of three-way handshake. */
-#define S_PRE_START       2     /**< Waiting for the remote OpenVPN peer
+#define S_PRE_START_SKIP  2     /**< Waiting for the remote OpenVPN peer
                                  *   to acknowledge during the initial
                                  *   three-way handshake. */
-#define S_START           3     /**< Three-way handshake is complete,
+#define S_PRE_START       3     /**< Waiting for the remote OpenVPN peer
+                                 *   to acknowledge during the initial
+                                 *   three-way handshake. */
+#define S_START           4     /**< Three-way handshake is complete,
                                  *   start of key exchange. */
-#define S_SENT_KEY        4     /**< Local OpenVPN process has sent its
+#define S_SENT_KEY        5     /**< Local OpenVPN process has sent its
                                  *   part of the key material. */
-#define S_GOT_KEY         5     /**< Local OpenVPN process has received
+#define S_GOT_KEY         6     /**< Local OpenVPN process has received
                                  *   the remote's part of the key
                                  *   material. */
-#define S_ACTIVE          6     /**< Operational \c key_state state
+#define S_ACTIVE          7     /**< Operational \c key_state state
                                  *   immediately after negotiation has
                                  *   completed while still within the
                                  *   handshake window.  Deferred auth and
                                  *   client connect can still be pending. */
-#define S_GENERATED_KEYS  7     /**< The data channel keys have been generated
+#define S_GENERATED_KEYS  8     /**< The data channel keys have been generated
                                  *  The TLS session is fully authenticated
                                  *  when reaching this state. */
 
