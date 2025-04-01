@@ -63,7 +63,7 @@ void
 dco_mp_start_vpn(HANDLE handle, struct link_socket *sock);
 
 void
-dco_p2p_new_peer(HANDLE handle, struct link_socket *sock, struct signal_info *sig_info);
+dco_p2p_new_peer(HANDLE handle, OVERLAPPED *ov, struct link_socket *sock, struct signal_info *sig_info);
 
 void
 dco_start_tun(struct tuntap *tt);

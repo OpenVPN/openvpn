@@ -2247,7 +2247,7 @@ create_socket_dco_win(struct context *c, struct link_socket *sock,
     }
     else
     {
-        dco_p2p_new_peer(c->c1.tuntap->hand, sock, sig_info);
+        dco_p2p_new_peer(c->c1.tuntap->hand, &c->c1.tuntap->dco_new_peer_ov, sock, sig_info);
     }
     sock->sockflags |= SF_DCO_WIN;
 

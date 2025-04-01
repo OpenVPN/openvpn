@@ -321,7 +321,7 @@ dco_mp_start_vpn(HANDLE handle, struct link_socket *sock)
 }
 
 void
-dco_p2p_new_peer(HANDLE handle, struct link_socket *sock, struct signal_info *sig_info)
+dco_p2p_new_peer(HANDLE handle, OVERLAPPED *ov, struct link_socket *sock, struct signal_info *sig_info)
 {
     msg(D_DCO_DEBUG, "%s", __func__);
 
@@ -395,8 +395,8 @@ dco_p2p_new_peer(HANDLE handle, struct link_socket *sock, struct signal_info *si
         ASSERT(0);
     }
 
-    OVERLAPPED ov = { 0 };
-    if (!DeviceIoControl(handle, OVPN_IOCTL_NEW_PEER, &peer, sizeof(peer), NULL, 0, NULL, &ov))
+    CLEAR(*ov);
+    if (!DeviceIoControl(handle, OVPN_IOCTL_NEW_PEER, &peer, sizeof(peer), NULL, 0, NULL, ov))
     {
         DWORD err = GetLastError();
         if (err != ERROR_IO_PENDING)
@@ -405,7 +405,7 @@ dco_p2p_new_peer(HANDLE handle, struct link_socket *sock, struct signal_info *si
         }
         else
         {
-            dco_connect_wait(handle, &ov, get_server_poll_remaining_time(sock->server_poll_timeout), sig_info);
+            dco_connect_wait(handle, ov, get_server_poll_remaining_time(sock->server_poll_timeout), sig_info);
         }
     }
 }
