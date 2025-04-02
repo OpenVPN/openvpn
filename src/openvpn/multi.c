@@ -2705,6 +2705,12 @@ override_locked_username(struct multi_instance *mi)
     if (!multi->locked_original_username
         && strcmp(multi->locked_username, options->override_username) != 0)
     {
+        /* Check if the username length is acceptable */
+        if (!ssl_verify_username_length(session, options->override_username))
+        {
+            return false;
+        }
+
         multi->locked_original_username = multi->locked_username;
         multi->locked_username = strdup(options->override_username);
 

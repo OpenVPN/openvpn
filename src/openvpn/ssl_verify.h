@@ -192,6 +192,20 @@ void verify_user_pass(struct user_pass *up, struct tls_multi *multi,
                       struct tls_session *session);
 
 
+/**
+ * Checks if the username length is valid to use.  This checks when
+ * username-as-common-name is active if the username is shorter than
+ * the maximum TLS common name length (64).
+ *
+ * It will also display an error message if the name is too long
+ *
+ * @param session       current TLS session
+ * @param username      username to check
+ * @return              true if name is under limit or username-as-common-name
+ *                      is not active
+ */
+bool ssl_verify_username_length(struct tls_session *session,
+                                const char *username);
 
 /**
  * Runs the --client-crresponse script if one is defined.

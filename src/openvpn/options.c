@@ -7880,10 +7880,10 @@ add_option(struct options *options,
     else if (streq(p[0], "override-username") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_INSTANCE);
-        if (strlen(p[1]) > TLS_USERNAME_LEN)
+        if (strlen(p[1]) > USER_PASS_LEN)
         {
             msg(msglevel, "override-username exceeds the maximum length of %d "
-                "characters", TLS_USERNAME_LEN);
+                "characters", USER_PASS_LEN);
 
             /* disable the connection since ignoring the request to
              * set another username might cause serious problems */
