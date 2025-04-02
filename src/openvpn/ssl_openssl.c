@@ -2454,20 +2454,17 @@ get_sigtype(int nid)
 static void
 print_peer_signature(SSL *ssl, char *buf, size_t buflen)
 {
-    int peer_sig_nid = NID_undef, peer_sig_type_nid = NID_undef;
-    const char *peer_sig = "unknown";
+    int peer_sig_type_nid = NID_undef;
+    const char *peer_sig_unknown = "unknown";
+    const char *peer_sig = peer_sig_unknown;
     const char *peer_sig_type = "unknown type";
 
-    /* Even though these methods use the deprecated NIDs instead of using
-     * string as new OpenSSL APIs do, there seem to be no API that replaces
-     * it yet */
-#if !defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER > 0x3050400fL
-    if (SSL_get_peer_signature_nid(ssl, &peer_sig_nid)
-        && peer_sig_nid != NID_undef)
+    const char *signame = NULL;
+    SSL_get0_peer_signature_name(ssl, &signame);
+    if (signame)
     {
-        peer_sig = OBJ_nid2sn(peer_sig_nid);
+        peer_sig = signame;
     }
-#endif
 
 #if !defined(LIBRESSL_VERSION_NUMBER) \
     || (defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER >= 0x3090000fL)
@@ -2480,7 +2477,7 @@ print_peer_signature(SSL *ssl, char *buf, size_t buflen)
     }
 #endif
 
-    if (peer_sig_nid == NID_undef && peer_sig_type_nid == NID_undef)
+    if (peer_sig == peer_sig_unknown && peer_sig_type_nid == NID_undef)
     {
         return;
     }
