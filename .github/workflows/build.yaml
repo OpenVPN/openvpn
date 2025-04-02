@@ -469,6 +469,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           path: aws-lc
+          # versioning=semver-coerced
           repository: aws/aws-lc
           ref: v1.42.0
       - uses: lukka/get-cmake@56d043d188c3612951d8755da8f4b709ec951ad6 # v3.31.6
