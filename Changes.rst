@@ -1,3 +1,40 @@
+Overview of changes in 2.6.14
+=============================
+Security fixes
+--------------
+- CVE-2025-2704 fix possible ASSERT() on OpenVPN servers using --tls-crypt-v2
+
+  Security scope: OpenVPN servers between 2.6.1 and 2.6.13 using
+  --tls-crypt-v2 can be made to abort with an ASSERT() message by
+  sending a particular combination of authenticated and malformed packets.
+
+  To trigger the bug, a valid tls-crypt-v2 client key is needed, or
+  network observation of a handshake with a valid tls-crypt-v2 client key
+
+  No crypto integrity is violated, no data is leaked, and no remote
+  code execution is possible.
+
+  This bug does not affect OpenVPN clients.
+
+  (Bug found by internal QA at OpenVPN Inc)
+
+
+Code maintenance
+----------------
+- fix compatibility with mbedTLS 2.28.10+ and 3.6.3+: security "hardening"
+  on the mbedTLS side (adding verification of the server certificate
+  *hostname* inside mbedTLS) broke OpenVPN, as OpenVPN does not use
+  hostname-based verification.  Disable mbedTLS "feature".
+
+- fix compilation warnings for mbedTLS builds related to "enc"
+  enum/integer mismatch.
+
+- Github Action builds: drop Ubuntu 20.04 builds, upgrade various packages
+
+Bug fixes
+---------
+- Linux DCO: repair source IP selection for --multihome (Qingfang Deng)
+
 Overview of changes in 2.6.13
 =============================
 New features
