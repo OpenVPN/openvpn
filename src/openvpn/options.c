@@ -9577,20 +9577,3 @@ has_udp_in_local_list(const struct options *options)
 
     return false;
 }
-
-bool
-has_tcp_in_local_list(const struct options *options)
-{
-    if (options->ce.local_list)
-    {
-        for (int i = 0; i < options->ce.local_list->len; i++)
-        {
-            if (!proto_is_dgram(options->ce.local_list->array[i]->proto))
-            {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}

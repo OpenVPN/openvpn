@@ -260,10 +260,16 @@ dco_check_option_ce(const struct connection_entry *ce, int msglevel, int mode)
     }
 
 #if defined(TARGET_FREEBSD)
-    if (!proto_is_udp(ce->proto))
+    if (ce->local_list)
     {
-        msg(msglevel, "NOTE: TCP transport disables data channel offload on FreeBSD.");
-        return false;
+        for (int i = 0; i < ce->local_list->len; i++)
+        {
+            if (!proto_is_dgram(ce->local_list->array[i]->proto))
+            {
+                msg(msglevel, "NOTE: TCP transport disables data channel offload on FreeBSD.");
+                return false;
+            }
+        }
     }
 #endif
 

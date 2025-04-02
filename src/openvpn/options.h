@@ -921,8 +921,6 @@ bool key_is_external(const struct options *options);
 
 bool has_udp_in_local_list(const struct options *options);
 
-bool has_tcp_in_local_list(const struct options *options);
-
 /**
  * Returns whether the current configuration has dco enabled.
  */
