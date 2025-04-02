@@ -41,7 +41,8 @@ struct tuntap
 create_dco_handle(const char *devname, struct gc_arena *gc);
 
 void
-dco_create_socket(HANDLE handle, struct addrinfo *remoteaddr, bool bind_local,
+dco_create_socket(HANDLE handle, OVERLAPPED *ov,
+                  struct addrinfo *remoteaddr, bool bind_local,
                   struct addrinfo *bind, int timeout,
                   struct signal_info *sig_info);
 
