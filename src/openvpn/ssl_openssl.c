@@ -2486,7 +2486,21 @@ print_peer_signature(SSL *ssl, char *buf, size_t buflen)
              peer_sig, peer_sig_type);
 }
 
-
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+void
+print_tls_key_agreement_group(SSL *ssl, char *buf, size_t buflen)
+{
+    const char *groupname = SSL_get0_group_name(ssl);
+    if (!groupname)
+    {
+        snprintf(buf, buflen, ", key agreement: (error fetching group)");
+    }
+    else
+    {
+        snprintf(buf, buflen, ", key agreement: %s", groupname);
+    }
+}
+#endif
 
 /* **************************************
  *
@@ -2503,8 +2517,9 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
     char s2[256];
     char s3[256];
     char s4[256];
+    char s5[256];
 
-    s1[0] = s2[0] = s3[0] = s4[0] = 0;
+    s1[0] = s2[0] = s3[0] = s4[0] = s5[0] = 0;
     ciph = SSL_get_current_cipher(ks_ssl->ssl);
     snprintf(s1, sizeof(s1), "%s %s, cipher %s %s",
              prefix,
@@ -2520,8 +2535,11 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
     }
     print_server_tempkey(ks_ssl->ssl, s3, sizeof(s3));
     print_peer_signature(ks_ssl->ssl, s4, sizeof(s4));
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    print_tls_key_agreement_group(ks_ssl->ssl, s5, sizeof(s5));
+#endif
 
-    msg(D_HANDSHAKE, "%s%s%s%s", s1, s2, s3, s4);
+    msg(D_HANDSHAKE, "%s%s%s%s%s", s1, s2, s3, s4, s5);
 }
 
 void
