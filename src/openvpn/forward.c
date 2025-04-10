@@ -2072,7 +2072,7 @@ multi_io_process_flags(struct context *c, struct event_set *es,
     /*
      * Calculate the flags based on the provided 'flags' argument.
      */
-    if (flags & IOW_WAIT_SIGNAL)
+    if ((c->options.mode != MODE_SERVER) && (flags & IOW_WAIT_SIGNAL))
     {
         wait_signal(es, (void *)err_shift);
     }

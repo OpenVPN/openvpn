@@ -176,10 +176,13 @@ multi_io_wait(struct multi_context *m)
     int status, i;
     unsigned int *persistent = &m->multi_io->tun_rwflags;
 
-    for (i = 0; i < m->top.c1.link_sockets_num; i++)
+    if (!tuntap_is_dco_win(m->top.c1.tuntap))
     {
-        socket_set_listen_persistent(m->top.c2.link_sockets[i], m->multi_io->es,
-                                     &m->top.c2.link_sockets[i]->ev_arg);
+        for (i = 0; i < m->top.c1.link_sockets_num; i++)
+        {
+            socket_set_listen_persistent(m->top.c2.link_sockets[i], m->multi_io->es,
+                                         &m->top.c2.link_sockets[i]->ev_arg);
+        }
     }
 
     if (has_udp_in_local_list(&m->top.options))
@@ -202,7 +205,8 @@ multi_io_wait(struct multi_context *m)
     }
 #endif
     tun_set(m->top.c1.tuntap, m->multi_io->es, EVENT_READ, MULTI_IO_TUN, persistent);
-#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
+#if defined(ENABLE_DCO) \
+    && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(TARGET_WIN32))
     dco_event_set(&m->top.c1.tuntap->dco, m->multi_io->es, MULTI_IO_DCO);
 #endif
 
@@ -535,7 +539,8 @@ multi_io_process_io(struct multi_context *m)
                     multi_io_action(m, mi, TA_INITIAL, false);
                 }
             }
-#if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD))
+#if defined(ENABLE_DCO) \
+            && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(TARGET_WIN32))
             /* incoming data on DCO? */
             else if (e->arg == MULTI_IO_DCO)
             {
