@@ -276,6 +276,45 @@ backend_x509_get_username(char *common_name, size_t cn_len, char *x509_username_
         snprintf(common_name, cn_len, "0x%s", serial);
         gc_free(&gc);
     }
+    else if (strcmp("issuer", x509_username_field) == 0)
+    {
+        struct gc_arena gc;
+        BIO *issuer_bio = BIO_new(BIO_s_mem());
+        BUF_MEM *issuer_mem;
+        char *issuer = NULL;
+
+        if (!issuer_bio)
+        {
+            return FAILURE;
+        }
+
+        gc = gc_new();
+        X509_NAME_print_ex(out, X509_get_issuer_name(peer_cert), 0, XN_FLAG_ONELINE);
+
+        if (BIO_eof(issuer_bio))
+        {
+            BIO_free(issuer_bio);
+            gc_free(&gc);
+            return FAILURE;
+        }
+
+        BIO_get_mem_ptr(issuer_bio, &issuer_mem);
+        issuer = gc_malloc(issuer_mem->length + 1, false, gc);
+        memcpy(issuer, issuer_mem->data, issuer_mem->length);
+        issuer[issuer_mem->length] = '\0';
+
+        if (!issuer || cn_len <= strlen(issuer)+2)
+        {
+            BIO_free(issuer_bio);
+            gc_free(&gc);
+            return FAILURE;
+        }
+
+        snprintf(common_name, cn_len, "%s", issuer);
+
+        BIO_free(issuer_bio);
+        gc_free(&gc);
+    }
     else
 #endif /* ifdef ENABLE_X509ALTUSERNAME */
         if (FAILURE
