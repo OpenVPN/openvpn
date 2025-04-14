@@ -29,6 +29,12 @@
 
 #include "dns.h"
 #include "socket.h"
+#include "options.h"
+
+#ifdef _WIN32
+#include "win32.h"
+#include "openvpn-msg.h"
+#endif
 
 /**
  * Parses a string as port and stores it
@@ -428,6 +434,122 @@ setenv_dns_options(const struct dns_options *o, struct env_set *es)
     gc_free(&gc);
 }
 
+#ifdef _WIN32
+
+static void
+make_domain_list(const char *what, const struct dns_domain *src,
+                 bool nrpt_domains, char *dst, size_t dst_size)
+{
+    /* NRPT domains need two \0 at the end for REG_MULTI_SZ
+     * and a leading '.' added in front of the domain name */
+    size_t term_size = nrpt_domains ? 2 : 1;
+    size_t leading_dot = nrpt_domains ? 1 : 0;
+    size_t offset = 0;
+
+    memset(dst, 0, dst_size);
+
+    while (src)
+    {
+        size_t len = strlen(src->name);
+        if (offset + leading_dot + len + term_size > dst_size)
+        {
+            msg(M_WARN, "WARNING: %s truncated", what);
+            if (offset)
+            {
+                /* Remove trailing comma */
+                *(dst + offset - 1) = '\0';
+            }
+            break;
+        }
+
+        if (leading_dot)
+        {
+            *(dst + offset++) = '.';
+        }
+        strncpy(dst + offset, src->name, len);
+        offset += len;
+
+        src = src->next;
+        if (src)
+        {
+            *(dst + offset++) = ',';
+        }
+    }
+}
+
+static void
+run_up_down_service(bool add, const struct options *o, const struct tuntap *tt)
+{
+    const struct dns_server *server = o->dns_options.servers;
+    const struct dns_domain *search_domains = o->dns_options.search_domains;
+
+    while (true)
+    {
+        if (!server)
+        {
+            if (add)
+            {
+                msg(M_WARN, "WARNING: setting DNS failed, no compatible server profile");
+            }
+            return;
+        }
+
+        bool only_standard_server_ports = true;
+        for (size_t i = 0; i < NRPT_ADDR_NUM; ++i)
+        {
+            if (server->addr[i].port && server->addr[i].port != 53)
+            {
+                only_standard_server_ports = false;
+                break;
+            }
+        }
+        if ((server->transport == DNS_TRANSPORT_UNSET || server->transport == DNS_TRANSPORT_PLAIN)
+            && only_standard_server_ports)
+        {
+            break; /* found compatible server */
+        }
+
+        server = server->next;
+    }
+
+    ack_message_t ack;
+    nrpt_dns_cfg_message_t nrpt = {
+        .header = {
+            (add ? msg_add_nrpt_cfg : msg_del_nrpt_cfg),
+            sizeof(nrpt_dns_cfg_message_t),
+            0
+        },
+        .iface = { .index = tt->adapter_index, .name = "" },
+        .flags = server->dnssec == DNS_SECURITY_NO ? 0 : nrpt_dnssec,
+    };
+    strncpynt(nrpt.iface.name, tt->actual_name, sizeof(nrpt.iface.name));
+
+    for (size_t i = 0; i < NRPT_ADDR_NUM; ++i)
+    {
+        if (server->addr[i].family == AF_UNSPEC)
+        {
+            /* No more addresses */
+            break;
+        }
+
+        if (inet_ntop(server->addr[i].family, &server->addr[i].in,
+                      nrpt.addresses[i], NRPT_ADDR_SIZE) == NULL)
+        {
+            msg(M_WARN, "WARNING: could not convert dns server address");
+        }
+    }
+
+    make_domain_list("dns server resolve domains", server->domains, true,
+                     nrpt.resolve_domains, sizeof(nrpt.resolve_domains));
+
+    make_domain_list("dns search domains", search_domains, false,
+                     nrpt.search_domains, sizeof(nrpt.search_domains));
+
+    send_msg_iservice(o->msg_channel, &nrpt, sizeof(nrpt), &ack, "DNS");
+}
+
+#endif /* _WIN32 */
+
 void
 show_dns_options(const struct dns_options *o)
 {
@@ -505,4 +627,44 @@ show_dns_options(const struct dns_options *o)
     }
 
     gc_free(&gc);
+}
+
+void
+run_dns_up_down(bool up, struct options *o, const struct tuntap *tt)
+{
+    if (!o->dns_options.servers)
+    {
+        return;
+    }
+
+    /* Warn about adding servers of unsupported AF */
+    const struct dns_server *s = o->dns_options.servers;
+    while (up && s)
+    {
+        size_t bad_count = 0;
+        for (size_t i = 0; i < s->addr_count; ++i)
+        {
+            if ((s->addr[i].family == AF_INET6 && !tt->did_ifconfig_ipv6_setup)
+                || (s->addr[i].family == AF_INET && !tt->did_ifconfig_setup))
+            {
+                ++bad_count;
+            }
+        }
+        if (bad_count == s->addr_count)
+        {
+            msg(M_WARN, "DNS server %ld only has address(es) from a family "
+                "the tunnel is not configured for - it will not be reachable",
+                s->priority);
+        }
+        else if (bad_count)
+        {
+            msg(M_WARN, "DNS server %ld has address(es) from a family "
+                "the tunnel is not configured for", s->priority);
+        }
+        s = s->next;
+    }
+
+#ifdef _WIN32
+    run_up_down_service(up, o, tt);
+#endif /* ifdef _WIN32 */
 }

@@ -26,6 +26,7 @@
 
 #include "buffer.h"
 #include "env_set.h"
+#include "tun.h"
 
 enum dns_security {
     DNS_SECURITY_UNSET,
@@ -145,6 +146,14 @@ void dns_options_preprocess_pull(struct dns_options *o);
  * @param   o           Pointer to the DNS options to modify
  */
 void dns_options_postprocess_pull(struct dns_options *o);
+
+/**
+ * Invokes the action associated with bringing DNS up or down
+ * @param   up          Boolean to set this call to "up" when true
+ * @param   o           Pointer to the program options
+ * @param   tt          Pointer to the connection's tuntap struct
+ */
+void run_dns_up_down(bool up, struct options *o, const struct tuntap *tt);
 
 /**
  * Puts the DNS options into an environment set.

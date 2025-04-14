@@ -2026,6 +2026,8 @@ do_open_tun(struct context *c, int *error_flags)
                         c->c2.frame.tun_mtu, c->c2.es, &c->net_ctx);
         }
 
+        run_dns_up_down(true, &c->options, c->c1.tuntap);
+
         /* run the up script */
         run_up_down(c->options.up_script,
                     c->plugins,
@@ -2063,6 +2065,8 @@ do_open_tun(struct context *c, int *error_flags)
 
         /* explicitly set the ifconfig_* env vars */
         do_ifconfig_setenv(c->c1.tuntap, c->c2.es);
+
+        run_dns_up_down(true, &c->options, c->c1.tuntap);
 
         /* run the up script if user specified --up-restart */
         if (c->options.up_restart)
@@ -2151,6 +2155,8 @@ do_close_tun(struct context *c, bool force)
 #ifdef _WIN32
     adapter_index = c->c1.tuntap->adapter_index;
 #endif
+
+    run_dns_up_down(false, &c->options, c->c1.tuntap);
 
     if (force || !(c->sig->signal_received == SIGUSR1 && c->options.persist_tun))
     {
