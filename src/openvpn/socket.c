@@ -3036,10 +3036,6 @@ print_in_port_t(in_port_t port, struct gc_arena *gc)
     return BSTR(&buffer);
 }
 
-#ifndef UINT8_MAX
-#define UINT8_MAX 0xff
-#endif
-
 /* add some offset to an ipv6 address
  * (add in steps of 8 bits, taking overflow into next round)
  */
