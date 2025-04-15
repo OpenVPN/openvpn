@@ -140,12 +140,8 @@ GetBuiltinAdminGroupName(WCHAR *name, DWORD nlen)
     return b;
 }
 
-/*
- * Check whether user is a member of Administrators group or
- * the group specified in ovpn_admin_group
- */
 BOOL
-IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group)
+IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group, const WCHAR *ovpn_service_user)
 {
     const WCHAR *admin_group[2];
     WCHAR username[MAX_NAME];
@@ -162,6 +158,12 @@ IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group)
         /* not fatal as this is now used only for logging */
         username[0] = '\0';
         domain[0] = '\0';
+    }
+
+    /* is this service account? */
+    if ((wcscmp(username, ovpn_service_user) == 0) && (wcscmp(domain, L"NT SERVICE") == 0))
+    {
+        return TRUE;
     }
 
     if (GetBuiltinAdminGroupName(sysadmin_group, _countof(sysadmin_group)))

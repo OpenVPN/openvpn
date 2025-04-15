@@ -130,6 +130,14 @@ GetOpenvpnSettings(settings_t *s)
     {
         goto out;
     }
+
+    error = GetRegString(key, L"ovpn_service_user", s->ovpn_service_user,
+                         sizeof(s->ovpn_service_user), OVPN_SERVICE_USER);
+    if (error != ERROR_SUCCESS)
+    {
+        goto out;
+    }
+
     /* set process priority */
     if (!_wcsicmp(priority, L"IDLE_PRIORITY_CLASS"))
     {

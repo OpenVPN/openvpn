@@ -29,11 +29,16 @@
 
 /* Authorized groups who can use any options and config locations */
 #define SYSTEM_ADMIN_GROUP L"Administrators"
-#define OVPN_ADMIN_GROUP L"OpenVPN Administrators"
-/* The last one may be reset in registry: HKLM\Software\OpenVPN\ovpn_admin_group */
+#define OVPN_ADMIN_GROUP L"OpenVPN Administrators" /* may be set in HKLM\Software\OpenVPN\ovpn_admin_group */
+#define OVPN_SERVICE_USER L"OpenVPNService" /* may be set in HKLM\Software\OpenVPN\ovpn_service_user */
 
+/*
+ * Check whether user is a member of Administrators group or
+ * the group specified in ovpn_admin_group or
+ * OpenVPN Virtual Service Account user
+ */
 BOOL
-IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group);
+IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group, const WCHAR *ovpn_service_user);
 
 BOOL
 CheckOption(const WCHAR *workdir, int narg, WCHAR *argv[], const settings_t *s);
