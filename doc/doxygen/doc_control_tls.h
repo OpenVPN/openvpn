@@ -49,7 +49,7 @@
  *
  * @par
  * The former role is described below.  The latter is described in the
- * documentation for the \c verify_callback() function.
+ * documentation for the verify_callback() function.
  *
  * @par
  * In other words, this module takes care of the confidentiality and
@@ -61,7 +61,7 @@
  * Because of the one-to-one relationship between control channel TLS
  * state and \c key_state structures, the initialization and cleanup of an
  * instance of the Control Channel TLS module's state happens within the
- * \c key_state_init() and \c key_state_free() functions.  In other words,
+ * key_state_init() and key_state_free() functions.  In other words,
  * each \c key_state object contains exactly one OpenSSL SSL-BIO object,
  * which is initialized and cleaned up together with the rest of the \c
  * key_state object.
@@ -69,26 +69,26 @@
  * @par Packet processing functions
  * This object behaves somewhat like a black box with a ciphertext and a
  * plaintext I/O port. Its interaction with OpenVPN's control channel
- * during operation takes place within the \c tls_process() function of
+ * during operation takes place within the tls_process() function of
  * the \link control_processor Control Channel Processor\endlink.  The
  * following functions are available for processing packets:
  * - If ciphertext received from the remote peer is available in the \link
  *   reliable Reliability Layer\endlink:
  *   - Insert it into the ciphertext-side of the SSL-BIO.
- *   - Use function: \c key_state_write_ciphertext()
+ *   - Use function: key_state_write_ciphertext()
  * - If ciphertext can be extracted from the ciphertext-side of the
  *   SSL-BIO:
  *   - Pass it to the \link reliable Reliability Layer\endlink for sending
  *     to the remote peer.
- *   - Use function: \c key_state_read_ciphertext()
+ *   - Use function: key_state_read_ciphertext()
  * - If plaintext can be extracted from the plaintext-side of the SSL-BIO:
  *   - Pass it on to the \link control_processor Control Channel
  *     Processor\endlink for local processing.
- *   - Use function: \c key_state_read_plaintext()
+ *   - Use function: key_state_read_plaintext()
  * - If plaintext from the \link control_processor Control Channel
  *   Processor\endlink is available to be sent to the remote peer:
  *   - Insert it into the plaintext-side of the SSL-BIO.
- *   - Use function: \c key_state_write_plaintext() or \c
+ *   - Use function: key_state_write_plaintext() or
  *     key_state_write_plaintext_const()
  *
  * @par Transport Layer Security protocol implementation
@@ -98,7 +98,7 @@
  * @par
  * For more information on the OpenSSL library's BIO objects, please see:
  *  - OpenSSL's generic BIO objects:
- *    http://www.openssl.org/docs/crypto/bio.html
+ *    https://docs.openssl.org/master/man7/bio/#bio
  *  - OpenSSL's SSL-BIO object:
- *    http://www.openssl.org/docs/crypto/BIO_f_ssl.html
+ *    https://docs.openssl.org/master/man3/BIO_f_ssl/#bio_f_ssl
  */

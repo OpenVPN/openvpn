@@ -22,11 +22,11 @@
  */
 
 /**
- * @defgroup tls_crypt Control channel encryption (--tls-crypt, --tls-crypt-v2)
+ * @defgroup tls_crypt Control channel encryption (tls-crypt, tls-crypt-v2)
  * @ingroup control_tls
  * @{
  *
- * Control channel encryption uses a pre-shared static key (like the --tls-auth
+ * Control channel encryption uses a pre-shared static key (like the @c --tls-auth
  * key) to encrypt control channel packets.
  *
  * Encrypting control channel packets has three main advantages:
@@ -36,8 +36,8 @@
  *  - It provides "poor-man's" post-quantum security, against attackers who
  *    will never know the pre-shared key (i.e. no forward secrecy).
  *
- * --tls-crypt uses a tls-auth-style group key, where all servers and clients
- * share the same group key. --tls-crypt-v2 adds support for client-specific
+ * @c --tls-crypt uses a tls-auth-style group key, where all servers and clients
+ * share the same group key. @c --tls-crypt-v2 adds support for client-specific
  * keys, where all servers share the same client-key encryption key, and each
  * clients receives a unique client key, both in plaintext and in encrypted
  * form.  When connecting to a server, the client sends the encrypted key to
@@ -103,7 +103,7 @@
                                                     + sizeof(uint16_t)))
 
 /**
- * Initialize a key_ctx_bi structure for use with --tls-crypt.
+ * Initialize a key_ctx_bi structure for use with @c --tls-crypt.
  *
  * @param key           The key context to initialize
  * @param key_file      The file to read the key from or the key itself if
@@ -141,7 +141,7 @@ int tls_crypt_buf_overhead(void);
  * @param dst   Any data present in this buffer is first authenticated, then
  *              the wrapped packet id and data from the src buffer are appended.
  *              Must have at least tls_crypt_buf_overhead()+BLEN(src) headroom.
- * @param opt   The crypto state for this --tls-crypt instance.
+ * @param opt   The crypto state for this @c --tls-crypt instance.
  *
  * @returns true iff wrapping succeeded.
  */
@@ -154,7 +154,7 @@ bool tls_crypt_wrap(const struct buffer *src, struct buffer *dst,
  *
  * @param src   Data to decrypt and authenticate.
  * @param dst   Returns the decrypted data, if unwrapping was successful.
- * @param opt   The crypto state for this --tls-crypt instance.
+ * @param opt   The crypto state for this @c --tls-crypt instance.
  *
  * @returns true iff unwrapping succeeded (data authenticated correctly and was
  * no replay).
