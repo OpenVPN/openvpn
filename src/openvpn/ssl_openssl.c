@@ -1152,6 +1152,7 @@ tls_ctx_load_cert_uri(struct tls_root_ctx *tls_ctx, const char *uri)
         goto end;
     }
     OSSL_STORE_INFO_free(info);
+    info = NULL;
 
     /* iterate through the store and add extra certificates if any to the chain */
     while (!OSSL_STORE_eof(store_ctx))
@@ -1170,6 +1171,7 @@ tls_ctx_load_cert_uri(struct tls_root_ctx *tls_ctx, const char *uri)
             break;
         }
         OSSL_STORE_INFO_free(info);
+        info = NULL;
     }
 
 end:
