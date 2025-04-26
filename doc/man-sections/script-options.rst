@@ -87,11 +87,9 @@ SCRIPT HOOKS
   and password to the first two lines of a temporary file. The filename
   will be passed as an argument to ``cmd``, and the file will be
   automatically deleted by OpenVPN after the script returns. The location
-  of the temporary file is controlled by the ``--tmp-dir`` option, and
-  will default to the current directory if unspecified. For security,
-  consider setting ``--tmp-dir`` to a volatile storage medium such as
-  :code:`/dev/shm` (if available) to prevent the username/password file
-  from touching the hard drive.
+  of the temporary file is controlled by the ``--tmp-dir`` option. For security,
+  consider setting it to a volatile storage medium such as :code:`/dev/shm` (if
+  available) to prevent the username/password file from touching the hard drive.
 
   The script should examine the username and password, returning a success
   exit code (:code:`0`) if the client's authentication request is to be

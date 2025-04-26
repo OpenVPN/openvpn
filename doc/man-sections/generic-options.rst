@@ -465,12 +465,11 @@ which mode OpenVPN is configured as.
   independently of network and tunnel issues.
 
 --tmp-dir dir
-  Specify a directory ``dir`` for temporary files. This directory will be
-  used by openvpn processes and script to communicate temporary data with
-  openvpn main process. Note that the directory must be writable by the
-  OpenVPN process after it has dropped it's root privileges.
+  Specify a directory ``dir`` for temporary files instead of the default
+  :code:`TMPDIR` (or "/tmp" if unset). Note that it must be writable by the main
+  process after it has dropped root privileges.
 
-  This directory will be used by in the following cases:
+  This directory will be used to communicate with scripts and plugins:
 
   * ``--client-connect`` scripts and :code:`OPENVPN_PLUGIN_CLIENT_CONNECT`
     plug-in hook to dynamically generate client-specific configuration
@@ -480,7 +479,7 @@ which mode OpenVPN is configured as.
 
   * :code:`OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY` plug-in hooks returns
     success/failure via :code:`auth_control_file` when using deferred auth
-    method and pending authentication via :code:`pending_auth_file`.
+    method and pending authentication via :code:`auth_pending_file`.
 
 --use-prediction-resistance
   Enable prediction resistance on mbed TLS's RNG.
