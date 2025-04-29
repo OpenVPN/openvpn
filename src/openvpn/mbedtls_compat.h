@@ -40,6 +40,7 @@
 #include <mbedtls/cipher.h>
 #include <mbedtls/ctr_drbg.h>
 #include <mbedtls/dhm.h>
+#include <mbedtls/ecp.h>
 #include <mbedtls/md.h>
 #include <mbedtls/pem.h>
 #include <mbedtls/pk.h>
@@ -49,6 +50,12 @@
 
 #if HAVE_MBEDTLS_PSA_CRYPTO_H
     #include <psa/crypto.h>
+#endif
+
+#if MBEDTLS_VERSION_NUMBER >= 0x03000000
+typedef uint16_t mbedtls_compat_group_id;
+#else
+typedef mbedtls_ecp_group_id mbedtls_compat_group_id;
 #endif
 
 static inline void
@@ -62,6 +69,16 @@ mbedtls_compat_psa_crypto_init(void)
 #else
     return;
 #endif /* HAVE_MBEDTLS_PSA_CRYPTO_H && defined(MBEDTLS_PSA_CRYPTO_C) */
+}
+
+static inline mbedtls_compat_group_id
+mbedtls_compat_get_group_id(const mbedtls_ecp_curve_info *curve_info)
+{
+#if MBEDTLS_VERSION_NUMBER >= 0x03000000
+    return curve_info->tls_id;
+#else
+    return curve_info->grp_id;
+#endif
 }
 
 /*
@@ -124,6 +141,36 @@ mbedtls_compat_pk_parse_keyfile(mbedtls_pk_context *ctx,
 }
 
 #if MBEDTLS_VERSION_NUMBER < 0x03020100
+typedef enum {
+    MBEDTLS_SSL_VERSION_UNKNOWN, /*!< Context not in use or version not yet negotiated. */
+    MBEDTLS_SSL_VERSION_TLS1_0 = 0x0301, /*!< (D)TLS 1.0 */
+    MBEDTLS_SSL_VERSION_TLS1_1 = 0x0302, /*!< (D)TLS 1.1 */
+    MBEDTLS_SSL_VERSION_TLS1_2 = 0x0303, /*!< (D)TLS 1.2 */
+    MBEDTLS_SSL_VERSION_TLS1_3 = 0x0304, /*!< (D)TLS 1.3 */
+} mbedtls_ssl_protocol_version;
+
+static inline void
+mbedtls_ssl_conf_min_tls_version(mbedtls_ssl_config *conf, mbedtls_ssl_protocol_version tls_version)
+{
+    int major = (tls_version >> 8) & 0xff;
+    int minor = tls_version & 0xff;
+    mbedtls_ssl_conf_min_version(conf, major, minor);
+}
+
+static inline void
+mbedtls_ssl_conf_max_tls_version(mbedtls_ssl_config *conf, mbedtls_ssl_protocol_version tls_version)
+{
+    int major = (tls_version >> 8) & 0xff;
+    int minor = tls_version & 0xff;
+    mbedtls_ssl_conf_max_version(conf, major, minor);
+}
+
+static inline void
+mbedtls_ssl_conf_groups(mbedtls_ssl_config *conf, mbedtls_compat_group_id *groups)
+{
+    mbedtls_ssl_conf_curves(conf, groups);
+}
+
 static inline size_t
 mbedtls_cipher_info_get_block_size(const mbedtls_cipher_info_t *cipher)
 {

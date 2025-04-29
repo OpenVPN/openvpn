@@ -39,6 +39,8 @@
 #include <pkcs11-helper-1.0/pkcs11h-certificate.h>
 #endif
 
+#include "mbedtls_compat.h"
+
 typedef struct _buffer_entry buffer_entry;
 
 struct _buffer_entry {
@@ -118,7 +120,7 @@ struct tls_root_ctx {
 #endif
     struct external_context external_key; /**< External key context */
     int *allowed_ciphers;       /**< List of allowed ciphers for this connection */
-    mbedtls_ecp_group_id *groups;     /**< List of allowed groups for this connection */
+    mbedtls_compat_group_id *groups;     /**< List of allowed groups for this connection */
     mbedtls_x509_crt_profile cert_profile; /**< Allowed certificate types */
 };
 

@@ -401,7 +401,7 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
 
     /* Get number of groups and allocate an array in ctx */
     int groups_count = get_num_elements(groups, ':');
-    ALLOC_ARRAY_CLEAR(ctx->groups, mbedtls_ecp_group_id, groups_count + 1)
+    ALLOC_ARRAY_CLEAR(ctx->groups, mbedtls_compat_group_id, groups_count + 1)
 
     /* Parse allowed ciphers, getting IDs */
     int i = 0;
@@ -418,11 +418,15 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
         }
         else
         {
-            ctx->groups[i] = ci->grp_id;
+            ctx->groups[i] = mbedtls_compat_get_group_id(ci);
             i++;
         }
     }
-    ctx->groups[i] = MBEDTLS_ECP_DP_NONE;
+
+    /* Recent mbedtls versions state that the list of groups must be terminated
+     * with 0. Older versions state that it must be terminated with MBEDTLS_ECP_DP_NONE
+     * which is also 0, so this works either way. */
+    ctx->groups[i] = 0;
 
     gc_free(&gc);
 }
@@ -1049,47 +1053,40 @@ tls_version_max(void)
 }
 
 /**
- * Convert an OpenVPN tls-version variable to mbed TLS format (i.e. a major and
- * minor ssl version number).
+ * Convert an OpenVPN tls-version variable to mbed TLS format
  *
  * @param tls_ver       The tls-version variable to convert.
- * @param major         Returns the TLS major version in mbed TLS format.
- *                      Must be a valid pointer.
- * @param minor         Returns the TLS minor version in mbed TLS format.
- *                      Must be a valid pointer.
+ *
+ * @return Translated mbedTLS SSL version from OpenVPN TLS version.
  */
-static void
-tls_version_to_major_minor(int tls_ver, int *major, int *minor)
+static mbedtls_ssl_protocol_version
+tls_version_to_ssl_version(int tls_ver)
 {
-    ASSERT(major);
-    ASSERT(minor);
-
     switch (tls_ver)
     {
 #if defined(MBEDTLS_SSL_PROTO_TLS1)
         case TLS_VER_1_0:
-            *major = MBEDTLS_SSL_MAJOR_VERSION_3;
-            *minor = MBEDTLS_SSL_MINOR_VERSION_1;
-            break;
+            return MBEDTLS_SSL_VERSION_TLS1_0;
 #endif
 
 #if defined(MBEDTLS_SSL_PROTO_TLS1_1)
         case TLS_VER_1_1:
-            *major = MBEDTLS_SSL_MAJOR_VERSION_3;
-            *minor = MBEDTLS_SSL_MINOR_VERSION_2;
-            break;
+            return MBEDTLS_SSL_VERSION_TLS1_1;
 #endif
 
 #if defined(MBEDTLS_SSL_PROTO_TLS1_2)
         case TLS_VER_1_2:
-            *major = MBEDTLS_SSL_MAJOR_VERSION_3;
-            *minor = MBEDTLS_SSL_MINOR_VERSION_3;
-            break;
+            return MBEDTLS_SSL_VERSION_TLS1_2;
+#endif
+
+#if defined(MBEDTLS_SSL_PROTO_TLS1_3)
+        case TLS_VER_1_3:
+            return MBEDTLS_SSL_VERSION_TLS1_3;
 #endif
 
         default:
             msg(M_FATAL, "%s: invalid or unsupported TLS version %d", __func__, tls_ver);
-            break;
+            return MBEDTLS_SSL_VERSION_UNKNOWN;
     }
 }
 
@@ -1170,7 +1167,7 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
 
     if (ssl_ctx->groups)
     {
-        mbedtls_ssl_conf_curves(ks_ssl->ssl_config, ssl_ctx->groups);
+        mbedtls_ssl_conf_groups(ks_ssl->ssl_config, ssl_ctx->groups);
     }
 
     /* Disable TLS renegotiations if the mbedtls library supports that feature.
@@ -1220,15 +1217,14 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
             &SSLF_TLS_VERSION_MIN_MASK;
 
         /* default to TLS 1.2 */
-        int major = MBEDTLS_SSL_MAJOR_VERSION_3;
-        int minor = MBEDTLS_SSL_MINOR_VERSION_3;
+        mbedtls_ssl_protocol_version version = MBEDTLS_SSL_VERSION_TLS1_2;
 
         if (configured_tls_version_min > TLS_VER_UNSPEC)
         {
-            tls_version_to_major_minor(configured_tls_version_min, &major, &minor);
+            version = tls_version_to_ssl_version(configured_tls_version_min);
         }
 
-        mbedtls_ssl_conf_min_version(ks_ssl->ssl_config, major, minor);
+        mbedtls_ssl_conf_min_tls_version(ks_ssl->ssl_config, version);
     }
 
     /* Initialize maximum TLS version */
@@ -1237,20 +1233,19 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
             (session->opt->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT)
             &SSLF_TLS_VERSION_MAX_MASK;
 
-        int major = 0;
-        int minor = 0;
+        mbedtls_ssl_protocol_version version = MBEDTLS_SSL_VERSION_UNKNOWN;
 
         if (configured_tls_version_max > TLS_VER_UNSPEC)
         {
-            tls_version_to_major_minor(configured_tls_version_max, &major, &minor);
+            version = tls_version_to_ssl_version(configured_tls_version_max);
         }
         else
         {
             /* Default to tls_version_max(). */
-            tls_version_to_major_minor(tls_version_max(), &major, &minor);
+            version = tls_version_to_ssl_version(tls_version_max());
         }
 
-        mbedtls_ssl_conf_max_version(ks_ssl->ssl_config, major, minor);
+        mbedtls_ssl_conf_max_tls_version(ks_ssl->ssl_config, version);
     }
 
 #if HAVE_MBEDTLS_SSL_CONF_EXPORT_KEYS_EXT_CB
