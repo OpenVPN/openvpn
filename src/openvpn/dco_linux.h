@@ -31,9 +31,27 @@
 #include <netlink/socket.h>
 #include <netlink/netlink.h>
 
+/* Defines to avoid mismatching with other platforms */
+#define OVPN_CMD_DEL_PEER OVPN_CMD_PEER_DEL_NTF
+#define OVPN_CMD_SWAP_KEYS OVPN_CMD_KEY_SWAP_NTF
+
 typedef enum ovpn_key_slot dco_key_slot_t;
 typedef enum ovpn_cipher_alg dco_cipher_t;
 
+/* OVPN section */
+
+enum ovpn_mode {
+    OVPN_MODE_P2P,
+    OVPN_MODE_MP,
+};
+
+enum ovpn_ifla_attrs {
+    IFLA_OVPN_UNSPEC = 0,
+    IFLA_OVPN_MODE,
+
+    __IFLA_OVPN_AFTER_LAST,
+    IFLA_OVPN_MAX = __IFLA_OVPN_AFTER_LAST - 1,
+};
 
 typedef struct
 {
@@ -50,6 +68,7 @@ typedef struct
 
     int dco_message_type;
     int dco_message_peer_id;
+    int dco_message_key_id;
     int dco_del_peer_reason;
     uint64_t dco_read_bytes;
     uint64_t dco_write_bytes;
