@@ -31,10 +31,14 @@
 #define PLUGIN_NAME "base64.c"
 
 /* Exported plug-in v3 API functions */
-plugin_log_t ovpn_log = NULL;                      /**< Pointer to the OpenVPN log function.  See plugin_log() */
-plugin_vlog_t ovpn_vlog = NULL;                    /**< Pointer to the OpenVPN vlog function. See plugin_vlog() */
-plugin_base64_encode_t ovpn_base64_encode = NULL;  /**< Pointer to the openvpn_base64_encode () function */
-plugin_base64_decode_t ovpn_base64_decode = NULL;  /**< Pointer to the openvpn_base64_decode () function */
+/** Pointer to the OpenVPN log function.  See plugin_log() */
+plugin_log_t ovpn_log = NULL;
+/** Pointer to the OpenVPN vlog function. See plugin_vlog() */
+plugin_vlog_t ovpn_vlog = NULL;
+/** Pointer to the openvpn_base64_encode () function */
+plugin_base64_encode_t ovpn_base64_encode = NULL;
+/** Pointer to the openvpn_base64_decode () function */
+plugin_base64_decode_t ovpn_base64_decode = NULL;
 
 /**
  * Search the environment pointer for a specific env var name

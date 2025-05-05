@@ -36,20 +36,27 @@
  #define COMP_F_ADAPTIVE             (1<<0) / * COMP_ALG_LZO only * /
  #define COMP_F_ALLOW_COMPRESS       (1<<1) / * not only incoming is compressed but also outgoing * /
  */
-#define COMP_F_SWAP                 (1<<2) /* initial command byte is swapped with last byte in buffer to preserve payload alignment */
-#define COMP_F_ADVERTISE_STUBS_ONLY (1<<3) /* tell server that we only support compression stubs */
-#define COMP_F_ALLOW_STUB_ONLY      (1<<4) /* Only accept stub compression, even with COMP_F_ADVERTISE_STUBS_ONLY
-                                            * we still accept other compressions to be pushed */
-#define COMP_F_MIGRATE              (1<<5) /* push stub-v2 or comp-lzo no when we see a client with comp-lzo in occ */
-#define COMP_F_ALLOW_ASYM           (1<<6) /* Compression was explicitly set to allow asymetric compression */
-#define COMP_F_ALLOW_NOCOMP_ONLY    (1<<7) /* Do not allow compression framing (breaks DCO) */
+/** initial command byte is swapped with last byte in buffer to preserve payload alignment */
+#define COMP_F_SWAP                 (1<<2)
+/** tell server that we only support compression stubs */
+#define COMP_F_ADVERTISE_STUBS_ONLY (1<<3)
+/** Only accept stub compression, even with COMP_F_ADVERTISE_STUBS_ONLY
+ * we still accept other compressions to be pushed */
+#define COMP_F_ALLOW_STUB_ONLY      (1<<4)
+/** push stub-v2 or comp-lzo no when we see a client with comp-lzo in occ */
+#define COMP_F_MIGRATE              (1<<5)
+/** Compression was explicitly set to allow asymetric compression */
+#define COMP_F_ALLOW_ASYM           (1<<6)
+/** Do not allow compression framing (breaks DCO) */
+#define COMP_F_ALLOW_NOCOMP_ONLY    (1<<7)
 
 /* algorithms */
 #define COMP_ALG_UNDEF  0
-#define COMP_ALG_STUB   1 /* support compression command byte and framing without actual compression */
-#define COMP_ALG_LZO    2 /* LZO algorithm */
-#define COMP_ALG_SNAPPY 3 /* Snappy algorithm (no longer supported) */
-#define COMP_ALG_LZ4    4 /* LZ4 algorithm */
+/** support compression command byte and framing without actual compression */
+#define COMP_ALG_STUB   1
+#define COMP_ALG_LZO    2 /**< LZO algorithm */
+#define COMP_ALG_SNAPPY 3 /**< Snappy algorithm (no longer supported) */
+#define COMP_ALG_LZ4    4 /**< LZ4 algorithm */
 
 
 /* algorithm v2 */
@@ -106,7 +113,8 @@ check_compression_settings_valid(struct compress_options *info, int msglevel);
 #define LZO_COMPRESS_BYTE 0x66
 #define LZ4_COMPRESS_BYTE 0x69
 #define NO_COMPRESS_BYTE      0xFA
-#define NO_COMPRESS_BYTE_SWAP 0xFB /* to maintain payload alignment, replace this byte with last byte of packet */
+/** to maintain payload alignment, replace this byte with last byte of packet */
+#define NO_COMPRESS_BYTE_SWAP 0xFB
 
 /* V2 on wire code */
 #define COMP_ALGV2_INDICATOR_BYTE       0x50

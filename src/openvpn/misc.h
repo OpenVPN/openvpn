@@ -114,12 +114,14 @@ struct static_challenge_info {};
 #define GET_USER_PASS_NEED_STR      (1<<5)
 #define GET_USER_PASS_PREVIOUS_CREDS_FAILED (1<<6)
 
-#define GET_USER_PASS_DYNAMIC_CHALLENGE      (1<<7) /* CRV1 protocol  -- dynamic challenge */
-#define GET_USER_PASS_STATIC_CHALLENGE       (1<<8) /* SCRV1 protocol -- static challenge */
-#define GET_USER_PASS_STATIC_CHALLENGE_ECHO  (1<<9) /* SCRV1 protocol -- echo response */
+#define GET_USER_PASS_DYNAMIC_CHALLENGE      (1<<7) /**< CRV1 protocol  -- dynamic challenge */
+#define GET_USER_PASS_STATIC_CHALLENGE       (1<<8) /**< SCRV1 protocol -- static challenge */
+#define GET_USER_PASS_STATIC_CHALLENGE_ECHO  (1<<9) /**< SCRV1 protocol -- echo response */
 
-#define GET_USER_PASS_INLINE_CREDS (1<<10)  /* indicates that auth_file is actually inline creds */
-#define GET_USER_PASS_STATIC_CHALLENGE_CONCAT (1<<11)  /* indicates password and response should be concatenated */
+/** indicates that auth_file is actually inline creds */
+#define GET_USER_PASS_INLINE_CREDS (1<<10)
+/** indicates password and response should be concatenated */
+#define GET_USER_PASS_STATIC_CHALLENGE_CONCAT (1<<11)
 
 /**
  * Retrieves the user credentials from various sources depending on the flags.

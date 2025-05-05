@@ -853,7 +853,8 @@ init_options(struct options *o, const bool init_gc)
     o->tuntap_options.ip_win32_type = IPW32_SET_DHCP_MASQ;
 #endif
     o->tuntap_options.dhcp_lease_time = 31536000; /* one year */
-    o->tuntap_options.dhcp_masq_offset = 0;     /* use network address as internal DHCP server address */
+    /* use network address as internal DHCP server address */
+    o->tuntap_options.dhcp_masq_offset = 0;
     o->route_method = ROUTE_METHOD_ADAPTIVE;
     o->block_outside_dns = false;
     o->windows_driver = WINDOWS_DRIVER_UNSPECIFIED;

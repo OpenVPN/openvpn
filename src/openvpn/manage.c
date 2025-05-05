@@ -3447,7 +3447,8 @@ management_event_loop_n_seconds(struct management *man, int sec)
         const bool standalone_disabled_save = man->persist.standalone_disabled;
         time_t expire = 0;
 
-        man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
+        /* This is so M_CLIENT messages will be correctly passed through msg() */
+        man->persist.standalone_disabled = false;
 
         /* set expire time */
         update_time();
@@ -3510,7 +3511,8 @@ management_query_user_pass(struct management *man,
         unsigned int up_query_mode = 0;
         const char *sc = NULL;
         ret = true;
-        man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
+        /* This is so M_CLIENT messages will be correctly passed through msg() */
+        man->persist.standalone_disabled = false;
         man->persist.special_state_msg = NULL;
 
         CLEAR(man->connection.up_query);
@@ -3634,7 +3636,8 @@ management_query_multiline(struct management *man,
 
     if (man_standalone_ok(man))
     {
-        man->persist.standalone_disabled = false; /* This is so M_CLIENT messages will be correctly passed through msg() */
+        /* This is so M_CLIENT messages will be correctly passed through msg() */
+        man->persist.standalone_disabled = false;
         man->persist.special_state_msg = NULL;
 
         *state = EKS_SOLICIT;

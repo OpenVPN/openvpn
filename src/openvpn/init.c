@@ -983,7 +983,8 @@ init_options_dev(struct options *options)
 {
     if (!options->dev && options->dev_node)
     {
-        char *dev_node = string_alloc(options->dev_node, NULL); /* POSIX basename() implementations may modify its arguments */
+        /* POSIX basename() implementations may modify its arguments */
+        char *dev_node = string_alloc(options->dev_node, NULL);
         options->dev = basename(dev_node);
     }
 }
@@ -2572,12 +2573,14 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
             }
             else
             {
-                initialization_sequence_completed(c, error_flags); /* client/p2p --route-delay undefined */
+                /* client/p2p --route-delay undefined */
+                initialization_sequence_completed(c, error_flags);
             }
         }
         else if (c->options.mode == MODE_POINT_TO_POINT)
         {
-            initialization_sequence_completed(c, error_flags); /* client/p2p restart with --persist-tun */
+            /* client/p2p restart with --persist-tun */
+            initialization_sequence_completed(c, error_flags);
         }
 
         tls_print_deferred_options_results(c);
