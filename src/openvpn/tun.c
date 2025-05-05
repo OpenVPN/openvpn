@@ -5428,11 +5428,8 @@ netsh_set_dns6_servers(const struct in6_addr *addr_list,
                     NETSH_PATH_SUFFIX, adapter_index,
                     print_in6_addr(addr_list[i], 0, &gc));
 
-        /* disable slow address validation on Windows 7 and higher */
-        if (win32_version_info() >= WIN_7)
-        {
-            argv_printf_cat(&argv, "%s", "validate=no");
-        }
+        /* disable slow address validation */
+        argv_printf_cat(&argv, "%s", "validate=no");
 
         /* Treat errors while adding as non-fatal as we do not check for duplicates */
         netsh_command(&argv, 1, (i==0) ? M_FATAL : M_NONFATAL);
@@ -5498,9 +5495,8 @@ netsh_ifconfig_options(const char *type,
                             adapter_index,
                             print_in_addr_t(addr_list[i], 0, &gc));
 
-                /* disable slow address validation on Windows 7 and higher */
-                /* only for DNS */
-                if (is_dns && win32_version_info() >= WIN_7)
+                /* disable slow address validation for DNS */
+                if (is_dns)
                 {
                     argv_printf_cat(&argv, "%s", "validate=no");
                 }

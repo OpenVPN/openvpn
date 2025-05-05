@@ -1283,42 +1283,6 @@ win_wfp_uninit(const NET_IFINDEX index, const HANDLE msg_channel)
     return true;
 }
 
-int
-win32_version_info(void)
-{
-    if (!IsWindowsXPOrGreater())
-    {
-        msg(M_FATAL, "Error: Windows version must be XP or greater.");
-    }
-
-    if (!IsWindowsVistaOrGreater())
-    {
-        return WIN_XP;
-    }
-
-    if (!IsWindows7OrGreater())
-    {
-        return WIN_VISTA;
-    }
-
-    if (!IsWindows8OrGreater())
-    {
-        return WIN_7;
-    }
-
-    if (!IsWindows8Point1OrGreater())
-    {
-        return WIN_8;
-    }
-
-    if (!IsWindows10OrGreater())
-    {
-        return WIN_8_1;
-    }
-
-    return WIN_10;
-}
-
 typedef enum {
     ARCH_X86,
     ARCH_AMD64,
@@ -1420,51 +1384,39 @@ win32_print_arch(arch_t arch, struct buffer *out)
     }
 }
 
+typedef LONG (WINAPI *RtlGetVersionPtr)(PRTL_OSVERSIONINFOW);
+
 const char *
-win32_version_string(struct gc_arena *gc, bool add_name)
+win32_version_string(struct gc_arena *gc)
 {
-    int version = win32_version_info();
-    struct buffer out = alloc_buf_gc(256, gc);
-
-    switch (version)
+    HMODULE hMod = GetModuleHandleW(L"ntdll.dll");
+    if (!hMod)
     {
-        case WIN_XP:
-            buf_printf(&out, "5.1%s", add_name ? " (Windows XP)" : "");
-            break;
-
-        case WIN_VISTA:
-            buf_printf(&out, "6.0%s", add_name ? " (Windows Vista)" : "");
-            break;
-
-        case WIN_7:
-            buf_printf(&out, "6.1%s", add_name ? " (Windows 7)" : "");
-            break;
-
-        case WIN_8:
-            buf_printf(&out, "6.2%s", add_name ? " (Windows 8)" : "");
-            break;
-
-        case WIN_8_1:
-            buf_printf(&out, "6.3%s", add_name ? " (Windows 8.1)" : "");
-            break;
-
-        case WIN_10:
-            buf_printf(&out, "10.0%s", add_name ? " (Windows 10 or greater)" : "");
-            break;
-
-        default:
-            msg(M_NONFATAL, "Unknown Windows version: %d", version);
-            buf_printf(&out, "0.0%s", add_name ? " (unknown)" : "");
-            break;
+        return "N/A";
     }
 
-    buf_printf(&out, ", ");
+    RtlGetVersionPtr fn = (RtlGetVersionPtr)GetProcAddress(hMod, "RtlGetVersion");
+    if (!fn)
+    {
+        return "N/A";
+    }
+
+    RTL_OSVERSIONINFOW rovi = { 0 };
+    rovi.dwOSVersionInfoSize = sizeof(rovi);
+    if (fn(&rovi) != 0)
+    {
+        return "N/A";
+    }
+
+    struct buffer out = alloc_buf_gc(256, gc);
+
+    buf_printf(&out, "%lu.%lu.%lu", rovi.dwMajorVersion, rovi.dwMinorVersion, rovi.dwBuildNumber);
+
+    buf_printf(&out, ",");
 
     arch_t process_arch, host_arch;
     win32_get_arch(&process_arch, &host_arch);
     win32_print_arch(process_arch, &out);
-
-    buf_printf(&out, " executable");
 
     if (host_arch != ARCH_NATIVE)
     {

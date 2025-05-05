@@ -4847,7 +4847,7 @@ void
 show_windows_version(const unsigned int flags)
 {
     struct gc_arena gc = gc_new();
-    msg(flags, "Windows version %s", win32_version_string(&gc, true));
+    msg(flags, "Windows version: %s", win32_version_string(&gc));
     gc_free(&gc);
 }
 #endif

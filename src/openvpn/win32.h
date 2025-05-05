@@ -292,20 +292,13 @@ bool win_wfp_block(const NET_IFINDEX index, const HANDLE msg_channel, BOOL dns_o
 
 bool win_wfp_uninit(const NET_IFINDEX index, const HANDLE msg_channel);
 
-#define WIN_XP    0
-#define WIN_VISTA 1
-#define WIN_7     2
-#define WIN_8     3
-#define WIN_8_1   4
-#define WIN_10    5
-
-int win32_version_info(void);
-
-/*
- * String representation of Windows version number and name, see
- * https://msdn.microsoft.com/en-us/library/windows/desktop/ms724832(v=vs.85).aspx
+/**
+ * @brief Get Windows version string with architecture info.
+ *
+ * @param gc gc arena to allocate string.
+ * @return Version string, or "N/A" on failure.
  */
-const char *win32_version_string(struct gc_arena *gc, bool add_name);
+const char *win32_version_string(struct gc_arena *gc);
 
 /*
  * Send the |size| bytes in buffer |data| to the interactive service |pipe|
