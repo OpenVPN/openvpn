@@ -693,6 +693,7 @@ static const char usage_message[] =
     "                                  cache until token is removed.\n"
     "--pkcs11-id-management          : Acquire identity from management interface.\n"
     "--pkcs11-id serialized-id 'id'  : Identity to use, get using standalone --show-pkcs11-ids\n"
+    "--pkcs11-pin file               : File containing the PIN for the PKCS#11 token.\n"
 #endif                  /* ENABLE_PKCS11 */
     "\n"
     "SSL Library information:\n"
@@ -4152,6 +4153,14 @@ options_postprocess_filechecks(struct options *options)
                                      R_OK|X_OK, "--client-config-dir");
     errs |= check_file_access_chroot(options->chroot_dir, CHKACC_FILE, options->tmp_dir,
                                      R_OK|W_OK|X_OK, "Temporary directory (--tmp-dir)");
+
+#ifdef ENABLE_PKCS11
+    if (options->pkcs11_pin_file)
+    {
+        errs |= check_file_access(CHKACC_FILE|CHKACC_ACPTSTDIN|CHKACC_PRIVATE,
+                                  options->pkcs11_pin_file, R_OK, "--pkcs11-pin");
+    }
+#endif
 
     if (errs)
     {
@@ -9443,6 +9452,18 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->pkcs11_id_management = true;
+    }
+    else if (streq(p[0], "pkcs11-pin") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        if (p[1])
+        {
+            options->pkcs11_pin_file = p[1];
+        }
+        else
+        {
+            options->pkcs11_pin_file = NULL;
+        }
     }
 #endif /* ifdef ENABLE_PKCS11 */
     else if (streq(p[0], "rmtun") && !p[1])
