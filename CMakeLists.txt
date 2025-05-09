@@ -66,6 +66,13 @@ set(CMAKE_CXX_FLAGS_ASAN
     CACHE STRING "Flags used by the C++ compiler during AddressSanitizer builds."
     FORCE)
 
+function(check_and_add_compiler_flag flag variable)
+    check_c_compiler_flag(${flag} ${variable})
+    if (${variable})
+        add_compile_options(${flag})
+    endif()
+endfunction()
+
 if (MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE -D_WINSOCK_DEPRECATED_NO_WARNINGS)
     if (USE_WERROR)
@@ -96,11 +103,9 @@ if (MSVC)
     endif()
 else ()
     add_compile_options(-Wall -Wuninitialized)
-    check_c_compiler_flag(-Wno-stringop-truncation NoStringOpTruncation)
-
-    if (${NoStringOpTruncation})
-        add_compile_options(-Wno-stringop-truncation)
-    endif()
+    check_and_add_compiler_flag(-Wno-stringop-truncation NoStringOpTruncation)
+    check_and_add_compiler_flag(-Wstrict-prototypes StrictPrototypes)
+    check_and_add_compiler_flag(-Wold-style-definition OldStyleDefinition)
     # We are not ready for this
     #add_compile_options(-Wconversion -Wno-sign-conversion -Wsign-compare)
     if (USE_WERROR)
