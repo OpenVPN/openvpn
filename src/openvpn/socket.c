@@ -2231,6 +2231,7 @@ create_socket_dco_win(struct context *c, struct link_socket *sock,
         ALLOC_OBJ_CLEAR(tt, struct tuntap);
 
         tt->backend_driver = DRIVER_DCO;
+        tt->options.msg_channel = c->options.msg_channel;
 
         const char *device_guid = NULL; /* not used */
         tun_open_device(tt, c->options.dev_node, &device_guid, &c->gc);

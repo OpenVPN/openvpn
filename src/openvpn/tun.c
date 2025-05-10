@@ -451,6 +451,71 @@ do_dns_domain_wmic(bool add, const struct tuntap *tt)
     argv_free(&argv);
 }
 
+/**
+ * Requests the interactive service to create a VPN adapter of the specified type.
+ *
+ * @param msg_channel Handle to the interactive service communication pipe.
+ * @param driver_type Adapter type to create (e.g., TAP, Wintun, DCO).
+ *
+ * @return true on success, false on failure.
+ */
+static bool
+do_create_adapter_service(HANDLE msg_channel, enum tun_driver_type driver_type)
+{
+    bool ret = false;
+    ack_message_t ack;
+    struct gc_arena gc = gc_new();
+
+    adapter_type_t t;
+    switch (driver_type)
+    {
+        case WINDOWS_DRIVER_TAP_WINDOWS6:
+            t = ADAPTER_TYPE_TAP;
+            break;
+
+        case WINDOWS_DRIVER_WINTUN:
+            t = ADAPTER_TYPE_WINTUN;
+            break;
+
+        case DRIVER_DCO:
+            t = ADAPTER_TYPE_DCO;
+            break;
+
+        default:
+            msg(M_NONFATAL, "Invalid backend driver %s", print_tun_backend_driver(driver_type));
+            goto out;
+    }
+
+    create_adapter_message_t msg = {
+        .header = {
+            msg_create_adapter,
+            sizeof(create_adapter_message_t),
+            0
+        },
+        .adapter_type = t
+    };
+
+    if (!send_msg_iservice(msg_channel, &msg, sizeof(msg), &ack, "create_adapter"))
+    {
+        goto out;
+    }
+
+    if (ack.error_number != NO_ERROR)
+    {
+        msg(M_NONFATAL, "TUN: creating %s adapter using service failed: %s [status=%u]",
+            print_tun_backend_driver(driver_type), strerror_win32(ack.error_number, &gc), ack.error_number);
+    }
+    else
+    {
+        msg(M_INFO, "%s adapter created using service", print_tun_backend_driver(driver_type));
+        ret = true;
+    }
+
+out:
+    gc_free(&gc);
+    return ret;
+}
+
 #endif /* ifdef _WIN32 */
 
 #ifdef TARGET_SOLARIS
@@ -6585,9 +6650,8 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
     const struct tap_reg *tap_reg = get_tap_reg(gc);
     const struct panel_reg *panel_reg = get_panel_reg(gc);
     const struct device_instance_id_interface *device_instance_id_interface = get_device_instance_id_interface(gc);
-    uint8_t actual_buffer[256];
 
-    at_least_one_tap_win(tap_reg);
+    uint8_t actual_buffer[256];
 
     /*
      * Lookup the device name in the registry, using the --dev-node high level name.
@@ -6618,6 +6682,7 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
     else
     {
         int device_number = 0;
+        int adapters_created = 0;
 
         /* Try opening all TAP devices until we find one available */
         while (true)
@@ -6633,7 +6698,22 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
 
             if (!*device_guid)
             {
-                msg(M_FATAL, "All %s adapters on this system are currently in use or disabled.", print_tun_backend_driver(tt->backend_driver));
+                /* try to create an adapter a few times if we have a service pipe handle */
+                if ((++adapters_created > 10) || !do_create_adapter_service(tt->options.msg_channel, tt->backend_driver))
+                {
+                    msg(M_FATAL, "All %s adapters on this system are currently in use or disabled.", print_tun_backend_driver(tt->backend_driver));
+                }
+                else
+                {
+                    /* we have created a new adapter so we must reinitialize adapters structs */
+                    tap_reg = get_tap_reg(gc);
+                    panel_reg = get_panel_reg(gc);
+                    device_instance_id_interface = get_device_instance_id_interface(gc);
+
+                    device_number = 0;
+
+                    continue;
+                }
             }
 
             if (tt->backend_driver != windows_driver)

@@ -47,7 +47,8 @@ typedef enum {
     msg_register_ring_buffers,
     msg_set_mtu,
     msg_add_wins_cfg,
-    msg_del_wins_cfg
+    msg_del_wins_cfg,
+    msg_create_adapter
 } message_type_t;
 
 typedef struct {
@@ -171,5 +172,16 @@ typedef struct {
     short family;
     int mtu;
 } set_mtu_message_t;
+
+typedef enum {
+    ADAPTER_TYPE_DCO,
+    ADAPTER_TYPE_TAP,
+    ADAPTER_TYPE_WINTUN
+} adapter_type_t;
+
+typedef struct {
+    message_header_t header;
+    adapter_type_t adapter_type;
+} create_adapter_message_t;
 
 #endif /* ifndef OPENVPN_MSG_H_ */

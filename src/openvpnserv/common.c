@@ -96,6 +96,14 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
 
+    swprintf(default_value, _countof(default_value), L"%ls\\bin", install_path);
+    error = GetRegString(key, L"bin_dir", s->bin_dir, sizeof(s->bin_dir),
+                         default_value);
+    if (error != ERROR_SUCCESS)
+    {
+        goto out;
+    }
+
     error = GetRegString(key, L"config_ext", s->ext_string, sizeof(s->ext_string),
                          L".ovpn");
     if (error != ERROR_SUCCESS)
