@@ -63,9 +63,6 @@ print_tun_backend_driver(enum tun_driver_type driver)
         case WINDOWS_DRIVER_TAP_WINDOWS6:
             return "tap-windows6";
 
-        case WINDOWS_DRIVER_WINTUN:
-            return "wintun";
-
         case DRIVER_GENERIC_TUNTAP:
             return "tun/tap";
 
@@ -471,10 +468,6 @@ do_create_adapter_service(HANDLE msg_channel, enum tun_driver_type driver_type)
     {
         case WINDOWS_DRIVER_TAP_WINDOWS6:
             t = ADAPTER_TYPE_TAP;
-            break;
-
-        case WINDOWS_DRIVER_WINTUN:
-            t = ADAPTER_TYPE_WINTUN;
             break;
 
         case DRIVER_DCO:
@@ -1040,37 +1033,8 @@ init_tun_post(struct tuntap *tt,
     overlapped_io_init(&tt->writes, frame, TRUE);
     tt->adapter_index = TUN_ADAPTER_INDEX_INVALID;
 
-    if (tt->backend_driver == WINDOWS_DRIVER_WINTUN)
-    {
-        tt->wintun_send_ring_handle = CreateFileMapping(INVALID_HANDLE_VALUE, NULL,
-                                                        PAGE_READWRITE,
-                                                        0,
-                                                        sizeof(struct tun_ring),
-                                                        NULL);
-        tt->wintun_receive_ring_handle = CreateFileMapping(INVALID_HANDLE_VALUE,
-                                                           NULL,
-                                                           PAGE_READWRITE,
-                                                           0,
-                                                           sizeof(struct tun_ring),
-                                                           NULL);
-        if ((tt->wintun_send_ring_handle == NULL) || (tt->wintun_receive_ring_handle == NULL))
-        {
-            msg(M_FATAL, "Cannot allocate memory for ring buffer");
-        }
-
-        tt->rw_handle.read = CreateEvent(NULL, FALSE, FALSE, NULL);
-        tt->rw_handle.write = CreateEvent(NULL, FALSE, FALSE, NULL);
-
-        if ((tt->rw_handle.read == NULL) || (tt->rw_handle.write == NULL))
-        {
-            msg(M_FATAL, "Cannot create events for ring buffer");
-        }
-    }
-    else
-    {
-        tt->rw_handle.read = tt->reads.overlapped.hEvent;
-        tt->rw_handle.write = tt->writes.overlapped.hEvent;
-    }
+    tt->rw_handle.read = tt->reads.overlapped.hEvent;
+    tt->rw_handle.write = tt->writes.overlapped.hEvent;
 #endif /* ifdef _WIN32 */
 }
 
@@ -4010,10 +3974,6 @@ get_tap_reg(struct gc_arena *gc)
                     {
                         windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
                     }
-                    else if (strcasecmp(component_id, WINTUN_COMPONENT_ID) == 0)
-                    {
-                        windows_driver = WINDOWS_DRIVER_WINTUN;
-                    }
                     else if (strcasecmp(component_id, "ovpn-dco") == 0)
                     {
                         windows_driver = DRIVER_DCO;
@@ -4320,7 +4280,7 @@ show_tap_win_adapters(int msglev, int warnlev)
 }
 
 /*
- * Lookup a TAP-Windows or Wintun adapter by GUID.
+ * Lookup an adapter by GUID.
  */
 static const struct tap_reg *
 get_adapter_by_guid(const char *guid, const struct tap_reg *tap_reg)
@@ -4375,7 +4335,7 @@ at_least_one_tap_win(const struct tap_reg *tap_reg)
 {
     if (!tap_reg)
     {
-        msg(M_FATAL, "There are no TAP-Windows, Wintun or ovpn-dco adapters "
+        msg(M_FATAL, "There are no TAP-Windows or ovpn-dco adapters "
             "on this system.  You should be able to create an adapter "
             "by using tapctl.exe utility.");
     }
@@ -6086,46 +6046,6 @@ register_dns_service(const struct tuntap *tt)
     gc_free(&gc);
 }
 
-static bool
-service_register_ring_buffers(const struct tuntap *tt)
-{
-    HANDLE msg_channel = tt->options.msg_channel;
-    ack_message_t ack;
-    bool ret = true;
-    struct gc_arena gc = gc_new();
-
-    register_ring_buffers_message_t msg = {
-        .header = {
-            msg_register_ring_buffers,
-            sizeof(register_ring_buffers_message_t),
-            0
-        },
-        .device = tt->hand,
-        .send_ring_handle = tt->wintun_send_ring_handle,
-        .receive_ring_handle = tt->wintun_receive_ring_handle,
-        .send_tail_moved = tt->rw_handle.read,
-        .receive_tail_moved = tt->rw_handle.write
-    };
-
-    if (!send_msg_iservice(msg_channel, &msg, sizeof(msg), &ack, "Register ring buffers"))
-    {
-        ret = false;
-    }
-    else if (ack.error_number != NO_ERROR)
-    {
-        msg(M_NONFATAL, "Register ring buffers failed using service: %s [status=0x%x]",
-            strerror_win32(ack.error_number, &gc), ack.error_number);
-        ret = false;
-    }
-    else
-    {
-        msg(M_INFO, "Ring buffers registered via service");
-    }
-
-    gc_free(&gc);
-    return ret;
-}
-
 void
 fork_register_dns_action(struct tuntap *tt)
 {
@@ -6363,58 +6283,6 @@ tuntap_set_ip_addr(struct tuntap *tt,
     gc_free(&gc);
 }
 
-static bool
-wintun_register_ring_buffer(struct tuntap *tt, const char *device_guid)
-{
-    bool ret = true;
-
-    tt->wintun_send_ring = (struct tun_ring *)MapViewOfFile(tt->wintun_send_ring_handle,
-                                                            FILE_MAP_ALL_ACCESS,
-                                                            0,
-                                                            0,
-                                                            sizeof(struct tun_ring));
-
-    tt->wintun_receive_ring = (struct tun_ring *)MapViewOfFile(tt->wintun_receive_ring_handle,
-                                                               FILE_MAP_ALL_ACCESS,
-                                                               0,
-                                                               0,
-                                                               sizeof(struct tun_ring));
-
-    if (tt->options.msg_channel)
-    {
-        ret = service_register_ring_buffers(tt);
-    }
-    else
-    {
-        if (!register_ring_buffers(tt->hand,
-                                   tt->wintun_send_ring,
-                                   tt->wintun_receive_ring,
-                                   tt->rw_handle.read,
-                                   tt->rw_handle.write))
-        {
-            switch (GetLastError())
-            {
-                case ERROR_ACCESS_DENIED:
-                    msg(M_FATAL, "ERROR:  Wintun requires SYSTEM privileges and therefore "
-                        "should be used with interactive service. If you want to "
-                        "use openvpn from command line, you need to do SYSTEM "
-                        "elevation yourself (for example with psexec).");
-                    break;
-
-                case ERROR_ALREADY_INITIALIZED:
-                    msg(M_NONFATAL, "Adapter %s is already in use", device_guid);
-                    break;
-
-                default:
-                    msg(M_NONFATAL | M_ERRNO, "Failed to register ring buffers");
-            }
-            ret = false;
-        }
-
-    }
-    return ret;
-}
-
 static void
 tuntap_set_connected(const struct tuntap *tt)
 {
@@ -6574,8 +6442,7 @@ tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct dev
     const char *path = NULL;
     char tuntap_device_path[256];
 
-    if (tt->backend_driver == WINDOWS_DRIVER_WINTUN
-        || tt->backend_driver == DRIVER_DCO)
+    if (tt->backend_driver == DRIVER_DCO)
     {
         const struct device_instance_id_interface *dev_if;
 
@@ -6627,18 +6494,6 @@ tun_try_open_device(struct tuntap *tt, const char *device_guid, const struct dev
     {
         msg(D_TUNTAP_INFO | M_ERRNO, "CreateFile failed on %s device: %s", print_tun_backend_driver(tt->backend_driver), path);
         return false;
-    }
-
-    if (tt->backend_driver == WINDOWS_DRIVER_WINTUN)
-    {
-        /* Wintun adapter may be considered "open" after ring buffers are successfuly registered. */
-        if (!wintun_register_ring_buffer(tt, device_guid))
-        {
-            msg(D_TUNTAP_INFO, "Failed to register %s adapter ring buffers", device_guid);
-            CloseHandle(tt->hand);
-            tt->hand = NULL;
-            return false;
-        }
     }
 
     return true;
@@ -6987,16 +6842,6 @@ close_tun_handle(struct tuntap *tt)
             msg(M_WARN | M_ERRNO, "Warning: CloseHandle failed on %s adapter", adaptertype);
         }
         tt->hand = NULL;
-    }
-
-    if (tt->backend_driver == WINDOWS_DRIVER_WINTUN)
-    {
-        CloseHandle(tt->rw_handle.read);
-        CloseHandle(tt->rw_handle.write);
-        UnmapViewOfFile(tt->wintun_send_ring);
-        UnmapViewOfFile(tt->wintun_receive_ring);
-        CloseHandle(tt->wintun_send_ring_handle);
-        CloseHandle(tt->wintun_receive_ring_handle);
     }
 }
 

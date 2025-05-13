@@ -40,7 +40,6 @@
 #include "openvpn-msg.h"
 #include "validate.h"
 #include "wfp_block.h"
-#include "ring_buffer.h"
 
 #define IO_TIMEOUT  2000 /*ms*/
 
@@ -90,7 +89,6 @@ typedef enum {
     undo_dns6,
     undo_nrpt,
     undo_domains,
-    undo_ring_buffer,
     undo_wins,
     _undo_type_max
 } undo_type_t;
@@ -108,11 +106,6 @@ typedef struct {
     PWSTR domains;
 } dns_domains_undo_data_t;
 
-typedef struct {
-    struct tun_ring *send_ring;
-    struct tun_ring *receive_ring;
-} ring_buffer_maps_t;
-
 typedef union {
     message_header_t header;
     address_message_t address;
@@ -122,7 +115,6 @@ typedef union {
     dns_cfg_message_t dns;
     nrpt_dns_cfg_message_t nrpt_dns;
     enable_dhcp_message_t dhcp;
-    register_ring_buffers_message_t rrb;
     set_mtu_message_t mtu;
     wins_cfg_message_t wins;
     create_adapter_message_t create_adapter;
@@ -188,23 +180,6 @@ CloseHandleEx(LPHANDLE handle)
     return INVALID_HANDLE_VALUE;
 }
 
-static void
-OvpnUnmapViewOfFile(struct tun_ring **ring)
-{
-    if (ring && *ring)
-    {
-        UnmapViewOfFile(*ring);
-        *ring = NULL;
-    }
-}
-
-static void
-UnmapRingBuffer(ring_buffer_maps_t *ring_buffer_maps)
-{
-    OvpnUnmapViewOfFile(&ring_buffer_maps->send_ring);
-    OvpnUnmapViewOfFile(&ring_buffer_maps->receive_ring);
-}
-
 static HANDLE
 InitOverlapped(LPOVERLAPPED overlapped)
 {
@@ -212,7 +187,6 @@ InitOverlapped(LPOVERLAPPED overlapped)
     overlapped->hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     return overlapped->hEvent;
 }
-
 
 static BOOL
 ResetOverlapped(LPOVERLAPPED overlapped)
@@ -2973,119 +2947,6 @@ HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)
 }
 
 static DWORD
-OvpnDuplicateHandle(HANDLE ovpn_proc, HANDLE orig_handle, HANDLE *new_handle)
-{
-    DWORD err = ERROR_SUCCESS;
-
-    if (!DuplicateHandle(ovpn_proc, orig_handle, GetCurrentProcess(), new_handle, 0, FALSE, DUPLICATE_SAME_ACCESS))
-    {
-        err = GetLastError();
-        MsgToEventLog(M_SYSERR, L"Could not duplicate handle");
-        return err;
-    }
-
-    return err;
-}
-
-static DWORD
-DuplicateAndMapRing(HANDLE ovpn_proc, HANDLE orig_handle, struct tun_ring **ring)
-{
-    DWORD err = ERROR_SUCCESS;
-
-    HANDLE dup_handle = NULL;
-
-    err = OvpnDuplicateHandle(ovpn_proc, orig_handle, &dup_handle);
-    if (err != ERROR_SUCCESS)
-    {
-        return err;
-    }
-    *ring = (struct tun_ring *)MapViewOfFile(dup_handle, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(struct tun_ring));
-    CloseHandleEx(&dup_handle);
-    if (*ring == NULL)
-    {
-        err = GetLastError();
-        MsgToEventLog(M_SYSERR, L"Could not map shared memory");
-        return err;
-    }
-
-    return err;
-}
-
-static DWORD
-HandleRegisterRingBuffers(const register_ring_buffers_message_t *rrb, HANDLE ovpn_proc,
-                          undo_lists_t *lists)
-{
-    DWORD err = 0;
-
-    ring_buffer_maps_t *ring_buffer_maps = RemoveListItem(&(*lists)[undo_ring_buffer], CmpAny, NULL);
-
-    if (ring_buffer_maps)
-    {
-        UnmapRingBuffer(ring_buffer_maps);
-    }
-    else if ((ring_buffer_maps = calloc(1, sizeof(*ring_buffer_maps))) == NULL)
-    {
-        return ERROR_OUTOFMEMORY;
-    }
-
-    HANDLE device = NULL;
-    HANDLE send_tail_moved = NULL;
-    HANDLE receive_tail_moved = NULL;
-
-    err = OvpnDuplicateHandle(ovpn_proc, rrb->device, &device);
-    if (err != ERROR_SUCCESS)
-    {
-        goto out;
-    }
-
-    err = DuplicateAndMapRing(ovpn_proc, rrb->send_ring_handle, &ring_buffer_maps->send_ring);
-    if (err != ERROR_SUCCESS)
-    {
-        goto out;
-    }
-
-    err = DuplicateAndMapRing(ovpn_proc, rrb->receive_ring_handle, &ring_buffer_maps->receive_ring);
-    if (err != ERROR_SUCCESS)
-    {
-        goto out;
-    }
-
-    err = OvpnDuplicateHandle(ovpn_proc, rrb->send_tail_moved, &send_tail_moved);
-    if (err != ERROR_SUCCESS)
-    {
-        goto out;
-    }
-
-    err = OvpnDuplicateHandle(ovpn_proc, rrb->receive_tail_moved, &receive_tail_moved);
-    if (err != ERROR_SUCCESS)
-    {
-        goto out;
-    }
-
-    if (!register_ring_buffers(device, ring_buffer_maps->send_ring,
-                               ring_buffer_maps->receive_ring,
-                               send_tail_moved, receive_tail_moved))
-    {
-        err = GetLastError();
-        MsgToEventLog(M_SYSERR, L"Could not register ring buffers");
-        goto out;
-    }
-
-    err = AddListItem(&(*lists)[undo_ring_buffer], ring_buffer_maps);
-
-out:
-    if (err != ERROR_SUCCESS && ring_buffer_maps)
-    {
-        UnmapRingBuffer(ring_buffer_maps);
-        free(ring_buffer_maps);
-    }
-    CloseHandleEx(&device);
-    CloseHandleEx(&send_tail_moved);
-    CloseHandleEx(&receive_tail_moved);
-    return err;
-}
-
-static DWORD
 HandleMTUMessage(const set_mtu_message_t *mtu)
 {
     DWORD err = 0;
@@ -3128,10 +2989,6 @@ HandleCreateAdapterMessage(const create_adapter_message_t *msg)
 
         case ADAPTER_TYPE_TAP:
             hwid = L"root\\tap0901";
-            break;
-
-        case ADAPTER_TYPE_WINTUN:
-            hwid = L"wintun";
             break;
 
         default:
@@ -3238,14 +3095,6 @@ HandleMessage(HANDLE pipe, PPROCESS_INFORMATION proc_info,
             }
             break;
 
-        case msg_register_ring_buffers:
-            if (msg.header.size == sizeof(msg.rrb))
-            {
-                HANDLE ovpn_hnd = proc_info->hProcess;
-                ack.error_number = HandleRegisterRingBuffers(&msg.rrb, ovpn_hnd, lists);
-            }
-            break;
-
         case msg_set_mtu:
             if (msg.header.size == sizeof(msg.mtu))
             {
@@ -3325,10 +3174,6 @@ Undo(undo_lists_t *lists)
                         set_interface_metric(interface_data->index, AF_INET6,
                                              interface_data->metric_v6);
                     }
-                    break;
-
-                case undo_ring_buffer:
-                    UnmapRingBuffer(item->data);
                     break;
 
                 case _undo_type_max:

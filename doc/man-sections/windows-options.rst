@@ -252,9 +252,3 @@ Windows-Specific Options
   otherwise it defaulted to :code:`C:\\WINDOWS`. It is not needed to use
   the ``env`` keyword any more, and it will just be ignored. A warning is
   logged when this is found in the configuration file.
-
---windows-driver drv
-  Specifies which tun driver to use. Values are :code:`ovpn-dco` (default),
-  :code:`tap-windows6` and :code:`wintun`. :code:`ovpn-dco` and :code:`wintun`
-  require ``--dev tun``. :code:`wintun` also requires OpenVPN process to run
-  elevated, or be invoked using the Interactive Service.

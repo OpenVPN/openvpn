@@ -20,7 +20,6 @@ target_sources(openvpnserv PRIVATE
     ../tapctl/basic.h
     ../openvpn/wfp_block.c ../openvpn/wfp_block.h
     openvpnserv_resources.rc
-    ../openvpn/ring_buffer.h
     )
 target_compile_options(openvpnserv PRIVATE
     -D_UNICODE

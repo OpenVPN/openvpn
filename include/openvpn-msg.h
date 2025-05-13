@@ -44,7 +44,7 @@ typedef enum {
     msg_del_wfp_block,
     msg_register_dns,
     msg_enable_dhcp,
-    msg_register_ring_buffers,
+    deprecated_msg_register_ring_buffers,
     msg_set_mtu,
     msg_add_wins_cfg,
     msg_del_wins_cfg,
@@ -159,15 +159,6 @@ typedef struct {
 
 typedef struct {
     message_header_t header;
-    HANDLE device;
-    HANDLE send_ring_handle;
-    HANDLE receive_ring_handle;
-    HANDLE send_tail_moved;
-    HANDLE receive_tail_moved;
-} register_ring_buffers_message_t;
-
-typedef struct {
-    message_header_t header;
     interface_t iface;
     short family;
     int mtu;
@@ -176,7 +167,6 @@ typedef struct {
 typedef enum {
     ADAPTER_TYPE_DCO,
     ADAPTER_TYPE_TAP,
-    ADAPTER_TYPE_WINTUN
 } adapter_type_t;
 
 typedef struct {

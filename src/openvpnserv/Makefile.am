@@ -36,5 +36,4 @@ openvpnserv_SOURCES = \
 	service.c service.h \
 	validate.c validate.h \
 	$(top_srcdir)/src/openvpn/wfp_block.c $(top_srcdir)/src/openvpn/wfp_block.h \
-	openvpnserv_resources.rc \
-	$(top_srcdir)/src/openvpn/ring_buffer.h
+	openvpnserv_resources.rc

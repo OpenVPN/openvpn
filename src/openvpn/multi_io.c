@@ -190,20 +190,6 @@ multi_io_wait(struct multi_context *m)
         get_io_flags_udp(&m->top, m->multi_io, p2mp_iow_flags(m));
     }
 
-#ifdef _WIN32
-    if (tuntap_is_wintun(m->top.c1.tuntap))
-    {
-        if (!tuntap_ring_empty(m->top.c1.tuntap))
-        {
-            /* there is data in wintun ring buffer, read it immediately */
-            m->multi_io->esr[0].arg = MULTI_IO_TUN;
-            m->multi_io->esr[0].rwflags = EVENT_READ;
-            m->multi_io->n_esr = 1;
-            return 1;
-        }
-        persistent = NULL;
-    }
-#endif
     tun_set(m->top.c1.tuntap, m->multi_io->es, EVENT_READ, MULTI_IO_TUN, persistent);
 #if defined(ENABLE_DCO) \
     && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(TARGET_WIN32))

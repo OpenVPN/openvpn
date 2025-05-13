@@ -38,7 +38,7 @@
  *                      description of the device. This pointer is optional and can be NULL.
  *
  * @param szHwId        A pointer to a NULL-terminated string that supplies the hardware id
- *                      of the device (e.g. "root\\tap0901", "Wintun").
+ *                      of the device (e.g. "root\\tap0901").
  *
  * @param pbRebootRequired  A pointer to a BOOL flag. If the device requires a system restart,
  *                      this flag is set to TRUE. Otherwise, the flag is left unmodified. This

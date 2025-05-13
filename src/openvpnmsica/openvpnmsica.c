@@ -320,11 +320,6 @@ FindSystemInfo(_In_ MSIHANDLE hInstall)
         L"ACTIVETAPWINDOWS6ADAPTERS");
     find_adapters(
         hInstall,
-        L"Wintun" L"\0",
-        L"WINTUNADAPTERS",
-        L"ACTIVEWINTUNADAPTERS");
-    find_adapters(
-        hInstall,
         L"ovpn-dco" L"\0",
         L"OVPNDCOADAPTERS",
         L"ACTIVEOVPNDCOADAPTERS");

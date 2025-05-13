@@ -137,8 +137,7 @@ routing.
   Set additional network parameters on supported platforms. May be specified
   on the client or pushed from the server. On Windows these options are
   handled by the ``tap-windows6`` driver by default or directly by OpenVPN
-  if dhcp is disabled or the ``wintun`` driver is in use. The
-  ``OpenVPN for Android`` client also handles them internally.
+  if dhcp is disabled. The ``OpenVPN for Android`` client also handles them internally.
 
   On all other platforms these options are only saved in the client's
   environment under the name :code:`foreign_option_{n}` before the

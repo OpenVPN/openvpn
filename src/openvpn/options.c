@@ -750,10 +750,6 @@ static const char usage_message[] =
     "                       optional parameter controls the initial state of ex.\n"
     "--show-net-up   : Show " PACKAGE_NAME "'s view of routing table and net adapter list\n"
     "                  after TAP adapter is up and routes have been added.\n"
-    "--windows-driver   : Which tun driver to use?\n"
-    "                     ovpn-dco (default)\n"
-    "                     tap-windows6\n"
-    "                     wintun\n"
     "--block-outside-dns   : Block DNS on other network adapters to prevent DNS leaks\n"
     "Windows Standalone Options:\n"
     "\n"
@@ -2592,11 +2588,6 @@ options_postprocess_verify_ce(const struct options *options,
                 prefix);
         }
     }
-
-    if (options->windows_driver == WINDOWS_DRIVER_WINTUN && dev != DEV_TYPE_TUN)
-    {
-        msg(M_USAGE, "--windows-driver wintun requires --dev tun");
-    }
 #endif /* ifdef _WIN32 */
 
     /*
@@ -3371,9 +3362,8 @@ options_postprocess_mutate_invariant(struct options *options)
 #ifdef _WIN32
     const int dev = dev_type_enum(options->dev, options->dev_type);
 
-    /* when using wintun/ovpn-dco, kernel doesn't send DHCP requests, so don't use it */
-    if ((options->windows_driver == WINDOWS_DRIVER_WINTUN
-         || options->windows_driver == DRIVER_DCO)
+    /* when using ovpn-dco, kernel doesn't send DHCP requests, so don't use it */
+    if ((options->windows_driver == DRIVER_DCO)
         && (options->tuntap_options.ip_win32_type == IPW32_SET_DHCP_MASQ
             || options->tuntap_options.ip_win32_type == IPW32_SET_ADAPTIVE))
     {
@@ -4664,39 +4654,6 @@ options_string_extract_option(const char *options_string, const char *opt_name,
     }
     return ret;
 }
-
-#ifdef _WIN32
-/**
- * Parses --windows-driver config option
- *
- * @param str       value of --windows-driver option
- * @param msglevel  msglevel to report parsing error
- * @return enum tun_driver_type  driver type, WINDOWS_DRIVER_UNSPECIFIED on unknown --windows-driver value
- */
-static enum tun_driver_type
-parse_windows_driver(const char *str, const int msglevel)
-{
-    if (streq(str, "tap-windows6"))
-    {
-        return WINDOWS_DRIVER_TAP_WINDOWS6;
-    }
-    else if (streq(str, "wintun"))
-    {
-        return WINDOWS_DRIVER_WINTUN;
-    }
-
-    else if (streq(str, "ovpn-dco"))
-    {
-        return DRIVER_DCO;
-    }
-    else
-    {
-        msg(msglevel, "--windows-driver must be tap-windows6, wintun "
-            "or ovpn-dco");
-        return WINDOWS_DRIVER_UNSPECIFIED;
-    }
-}
-#endif /* ifdef _WIN32 */
 
 /*
  * parse/print topology coding
@@ -6012,7 +5969,8 @@ add_option(struct options *options,
     else if (streq(p[0], "windows-driver") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->windows_driver = parse_windows_driver(p[1], M_FATAL);
+        msg(M_WARN, "DEPRECATED OPTION: windows-driver: In OpenVPN 2.7, the default Windows driver is ovpn-dco. "
+            "If incompatible options are used, OpenVPN will fall back to tap-windows6. Wintun support has been removed.");
     }
 #endif
     else if (streq(p[0], "disable-dco"))

@@ -88,10 +88,6 @@ extern "C" {
  *   ACTIVETAPWINDOWS6ADAPTERS properties with semicolon delimited list of all installed adapter
  *   GUIDs and active adapter GUIDs respectively.
  *
- * - Finds existing Wintun adapters and set WINTUNADAPTERS and ACTIVEWINTUNADAPTERS properties
- *   with semicolon delimited list of all installed adapter GUIDs and active adapter GUIDs
- *   respectively.
- *
  * - Finds existing ovpn-dco adapters and set OVPNDCOADAPTERS and ACTIVEOVPNDCOADAPTERS properties
  *   with semicolon delimited list of all installed adapter GUIDs and active adapter GUIDs
  *   respectively.
