@@ -6,14 +6,24 @@
 #             packet compression.
 #
 #  Copyright (C) 2002-2024 OpenVPN Inc <sales@openvpn.net>
-#  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 
 MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
-SUBDIRS = systemd
+EXTRA_DIST = \
+	systemd-dns-updown.sh \
+	openresolv-dns-updown.sh \
+	haikuos_file-dns-updown.sh \
+	resolvconf_file-dns-updown.sh
 
-if ENABLE_DNS_UPDOWN
-SUBDIRS += dns-scripts
-endif
+script_SCRIPTS = \
+	dns-updown
+
+CLEANFILES = $(script_SCRIPTS)
+
+dns-updown: @DNS_UPDOWN_TYPE@-dns-updown.sh
+	cp ${srcdir}/@DNS_UPDOWN_TYPE@-dns-updown.sh $@
+	chmod +x $@
+
+all: $(script_SCRIPTS)

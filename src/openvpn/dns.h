@@ -73,6 +73,8 @@ struct dns_options {
     struct dns_server *servers_prepull;
     struct dns_server *servers;
     struct gc_arena gc;
+    const char *updown;
+    bool user_set_updown;
 };
 
 /**

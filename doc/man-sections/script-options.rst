@@ -8,9 +8,13 @@ the OpenVPN process.
 Script Order of Execution
 -------------------------
 
+#. ``--dns-updown``
+
+   Executed after TCP/UDP socket bind and TUN/TAP open, before ``--up``.
+
 #. ``--up``
 
-   Executed after TCP/UDP socket bind and TUN/TAP open.
+   Executed after TCP/UDP socket bind and TUN/TAP open, after ``--dns-updown``.
 
 #. ``--tls-verify``
 
@@ -38,9 +42,13 @@ Script Order of Execution
 
    Executed in ``--mode server`` mode on client instance shutdown.
 
+#. ``--dns-updown``
+
+   Executed before TCP/UDP and TUN/TAP close, before ``--down``.
+
 #. ``--down``
 
-   Executed after TCP/UDP and TUN/TAP close.
+   Executed after TCP/UDP and TUN/TAP close, after ``--dns-updown``.
 
 #. ``--learn-address``
 
@@ -171,7 +179,7 @@ SCRIPT HOOKS
         client-crresponse cmd
 
   OpenVPN will write the response of the client into a temporary file.
-  The filename will be passed as an argument to ``cmd``, and the file will be
+  The filename will be passed as an argument to ``cmd``, and the file will
   automatically deleted by OpenVPN after the script returns.
 
   The response is passed as is from the client. The script needs to check
@@ -232,6 +240,31 @@ SCRIPT HOOKS
 
   The ``--client-disconnect`` command is not passed any extra arguments
   (only those arguments specified in cmd, if any).
+
+--dns-updown cmd
+  Run command ``cmd``, instead of the default DNS up/down command that comes
+  with openvpn. If ``cmd`` is ``disable`` the ``--dns-updown`` command is not run.
+
+  If you write your own command, please make sure to ignore ``--dns``
+  server profiles that cannot be applied. Port, DNSSEC and secure transport
+  settings need to be adhered to. If split DNS is not possible a full redirect
+  can be used as a fallback. If not all of the server addresses or search domains
+  can be configured, apply them in the order they are listed in.
+
+  Note that ``--dns-updown`` is not supported on all platforms. On Windows DNS
+  will always be set by the service. On Android DNS will be passed via management
+  interface.
+
+  Note that DNS-related ``--dhcp-option``\ s might be converted so that they are
+  available to this hook if no ``--dns`` options exist. If any ``--dns server``
+  option is present, DNS-related ``--dhcp-option``\ s will always be ignored.
+  If an ``--up`` script is defined, foreign_option env vars will be generated
+  from ``--dns`` options and passed to the script. The default ``--dns-updown``
+  command is not run if an ``--up`` script is defined. Both is done for backward
+  compatibility. In case you want to run the ``--dns-updown`` command even if
+  there is an ``--up`` defined, you can define a custom command or use ``force``
+  as ``cmd`` to run the default command. No DNS env vars will be passed to ``--up``
+  in this case.
 
 --down cmd
   Run command ``cmd`` after TUN/TAP device close (post ``--user`` UID
@@ -659,7 +692,7 @@ instances.
     names). Set prior to ``--up`` or ``--down`` script execution.
 
 :code:`dns_*`
-    The ``--dns`` configuration options will be made available to script
+    The ``--dns`` configuration options will be made available to ``--dns-updown``
     execution through this set of environment variables. Variables appear
     only if the corresponding option has a value assigned. For the semantics
     of each individual variable, please refer to the documentation for ``--dns``.

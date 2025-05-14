@@ -30,6 +30,7 @@
 #include "dns.h"
 #include "socket.h"
 #include "options.h"
+#include "run_command.h"
 
 #ifdef _WIN32
 #include "win32.h"
@@ -262,6 +263,8 @@ clone_dns_options(const struct dns_options *o, struct gc_arena *gc)
     clone.search_domains = clone_dns_domains(o->search_domains, gc);
     clone.servers = clone_dns_servers(o->servers, gc);
     clone.servers_prepull = clone_dns_servers(o->servers_prepull, gc);
+    clone.updown = o->updown;
+    clone.user_set_updown = o->user_set_updown;
 
     return clone;
 }
@@ -548,6 +551,54 @@ run_up_down_service(bool add, const struct options *o, const struct tuntap *tt)
     send_msg_iservice(o->msg_channel, &nrpt, sizeof(nrpt), &ack, "DNS");
 }
 
+#else /* ifdef _WIN32 */
+
+static void
+updown_env_set(bool up, const struct dns_options *o, const struct tuntap *tt, struct env_set *es)
+{
+    setenv_str(es, "dev", tt->actual_name);
+    setenv_str(es, "script_type", up ? "dns-up" : "dns-down");
+    setenv_dns_options(o, es);
+}
+
+static int
+do_run_up_down_command(bool up, const struct dns_options *o, const struct tuntap *tt)
+{
+    struct gc_arena gc = gc_new();
+    struct argv argv = argv_new();
+    struct env_set *es = env_set_create(&gc);
+
+    updown_env_set(up, o, tt, es);
+
+    argv_printf(&argv, "%s", o->updown);
+    argv_msg(M_INFO, &argv);
+    int res;
+    if (o->user_set_updown)
+    {
+        res = openvpn_run_script(&argv, es, S_EXITCODE, "dns updown");
+    }
+    else
+    {
+        res = openvpn_execve_check(&argv, es, S_EXITCODE, "WARNING: Failed running dns updown");
+    }
+    argv_free(&argv);
+    gc_free(&gc);
+    return res;
+}
+
+static void
+run_up_down_command(bool up, struct options *o, const struct tuntap *tt)
+{
+    if (!o->dns_options.updown)
+    {
+        return;
+    }
+
+    int status;
+    status = do_run_up_down_command(up, &o->dns_options, tt);
+    msg(M_INFO, "dns %s command exited with status %d", up ? "up" : "down", status);
+}
+
 #endif /* _WIN32 */
 
 void
@@ -666,5 +717,7 @@ run_dns_up_down(bool up, struct options *o, const struct tuntap *tt)
 
 #ifdef _WIN32
     run_up_down_service(up, o, tt);
+#else
+    run_up_down_command(up, o, tt);
 #endif /* ifdef _WIN32 */
 }

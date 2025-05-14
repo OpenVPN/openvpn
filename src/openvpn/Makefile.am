@@ -30,7 +30,8 @@ AM_CFLAGS = \
 	$(OPTIONAL_LZ4_CFLAGS) \
 	$(OPTIONAL_PKCS11_HELPER_CFLAGS) \
 	$(OPTIONAL_INOTIFY_CFLAGS) \
-	-DPLUGIN_LIBDIR=\"${plugindir}\"
+	-DPLUGIN_LIBDIR=\"${plugindir}\" \
+	-DDEFAULT_DNS_UPDOWN=\"${scriptdir}/dns-updown\"
 
 if WIN32
 # we want unicode entry point but not the macro
