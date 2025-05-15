@@ -633,6 +633,7 @@ struct options
     int pkcs11_pin_cache_period;
     const char *pkcs11_id;
     bool pkcs11_id_management;
+    const char *pkcs11_pin_file;
 #endif
 
 #ifdef ENABLE_CRYPTOAPI
