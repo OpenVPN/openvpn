@@ -1117,10 +1117,77 @@ dco_available(int msglevel)
     return true;
 }
 
+/**
+ * There's no version indicator in the ovpn in-tree module, so we return a
+ * string containing info about the kernel version and release.
+ */
+static const char *
+dco_version_string_in_tree(struct gc_arena *gc)
+{
+    struct buffer buf = alloc_buf_gc(256, gc);
+    struct utsname system;
+
+    if (uname(&system))
+    {
+        return "ERR";
+    }
+
+    buf_puts(&buf, system.release);
+    buf_puts(&buf, " ");
+    buf_puts(&buf, system.version);
+    return BSTR(&buf);
+}
+
+/**
+ * When the module is loaded, the backports version of ovpn has a version file
+ * in sysfs. Read it and return the string.
+ *
+ * The caller is responsible for closing the file pointer.
+ */
+static const char *
+dco_version_string_backports(FILE *fp, struct gc_arena *gc)
+{
+    char *str = gc_malloc(PATH_MAX, false, gc);
+
+    if (!fgets(str, PATH_MAX, fp))
+    {
+        return "ERR";
+    }
+
+    /* remove potential newline at the end of the string */
+    char *nl = strchr(str, '\n');
+    if (nl)
+    {
+        *nl = '\0';
+    }
+
+    return str;
+}
+
 const char *
 dco_version_string(struct gc_arena *gc)
 {
-    return "Unknown";
+    const char *version;
+    struct stat sb;
+    FILE *fp;
+
+    if (stat("/sys/module/ovpn", &sb) != 0 || !S_ISDIR(sb.st_mode))
+    {
+        return "N/A";
+    }
+
+    /* now that we know for sure that the module is loaded, if there's no
+     * version file it means we're dealing with the in-tree version, otherwise
+     * it's backports */
+    fp = fopen("/sys/module/ovpn/version", "r");
+    if (!fp)
+    {
+        return dco_version_string_in_tree(gc);
+    }
+    version = dco_version_string_backports(fp, gc);
+
+    fclose(fp);
+    return version;
 }
 
 void
