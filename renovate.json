@@ -23,8 +23,12 @@
     "customManagers": [
         {
             "customType": "regex",
-            "fileMatch": ["^\\.github/workflows/.+\\.ya?ml$"],
-            "matchStrings": ["vcpkgGitCommitId:\\s*(?<currentDigest>.*?)\\n"],
+            "managerFilePatterns": [
+                "/^\\.github/workflows/.+\\.ya?ml$/"
+            ],
+            "matchStrings": [
+                "vcpkgGitCommitId:\\s*(?<currentDigest>.*?)\\n"
+            ],
             "currentValueTemplate": "master",
             "depNameTemplate": "vcpkg",
             "packageNameTemplate": "https://github.com/microsoft/vcpkg",
@@ -32,8 +36,12 @@
         },
         {
             "customType": "regex",
-            "fileMatch": ["^\\.github/workflows/.+\\.ya?ml$"],
-            "matchStrings": ["versioning=(?<versioning>.*?)\\n\\s*repository:\\s*(?<depName>.*?)\\n\\s*ref:\\s*(?<currentValue>.*?)\\n"],
+            "managerFilePatterns": [
+                "/^\\.github/workflows/.+\\.ya?ml$/"
+            ],
+            "matchStrings": [
+                "versioning=(?<versioning>.*?)\\n\\s*repository:\\s*(?<depName>.*?)\\n\\s*ref:\\s*(?<currentValue>.*?)\\n"
+            ],
             "datasourceTemplate": "github-tags"
         }
     ]
