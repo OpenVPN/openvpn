@@ -37,7 +37,7 @@ conly_standard_server_ports() {
     done
 }
 
-onf=/boot/system/settings/network/resolv.conf
+conf=/boot/system/settings/network/resolv.conf
 test -e "$conf" || exit 1
 case "${script_type}" in
 dns-up)
