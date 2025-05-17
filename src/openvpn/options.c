@@ -1059,11 +1059,6 @@ setenv_settings(struct env_set *es, const struct options *o)
             setenv_local_entry(es, o->ce.local_list->array[i], i+1);
         }
     }
-
-    if (!o->pull)
-    {
-        setenv_dns_options(&o->dns_options, es);
-    }
 }
 
 #ifndef _WIN32
@@ -4182,7 +4177,6 @@ options_postprocess_pull(struct options *o, struct env_set *es)
     if (success)
     {
         dns_options_postprocess_pull(&o->dns_options);
-        setenv_dns_options(&o->dns_options, es);
 #if defined(_WIN32) || defined(TARGET_ANDROID)
         tuntap_options_copy_dns(o);
 #else

@@ -168,14 +168,6 @@ void run_dns_up_down(bool up, struct options *o, const struct tuntap *tt,
                      struct dns_updown_runner_info *duri);
 
 /**
- * Puts the DNS options into an environment set.
- *
- * @param   o           Pointer to the DNS options to set
- * @param   es          Pointer to the env_set to set the options into
- */
-void setenv_dns_options(const struct dns_options *o, struct env_set *es);
-
-/**
  * Prints configured DNS options.
  *
  * @param   o           Pointer to the DNS options to print
