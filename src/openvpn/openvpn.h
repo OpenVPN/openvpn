@@ -45,6 +45,7 @@
 #include "pool.h"
 #include "plugin.h"
 #include "manage.h"
+#include "dns.h"
 
 /*
  * Our global key schedules, packaged thusly
@@ -120,6 +121,7 @@ struct context_buffers
 struct context_persist
 {
     int restart_sleep_seconds;
+    struct dns_updown_runner_info duri;
 };
 
 

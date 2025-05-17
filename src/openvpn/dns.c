@@ -562,13 +562,20 @@ updown_env_set(bool up, const struct dns_options *o, const struct tuntap *tt, st
 }
 
 static int
-do_run_up_down_command(bool up, const struct dns_options *o, const struct tuntap *tt)
+do_run_up_down_command(bool up, const char *vars_file, const struct dns_options *o, const struct tuntap *tt)
 {
     struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
     struct env_set *es = env_set_create(&gc);
 
-    updown_env_set(up, o, tt, es);
+    if (vars_file)
+    {
+        setenv_str(es, "dns_vars_file", vars_file);
+    }
+    else
+    {
+        updown_env_set(up, o, tt, es);
+    }
 
     argv_printf(&argv, "%s", o->updown);
     argv_msg(M_INFO, &argv);
@@ -586,8 +593,115 @@ do_run_up_down_command(bool up, const struct dns_options *o, const struct tuntap
     return res;
 }
 
+static bool
+run_updown_runner(bool up, struct options *o, const struct tuntap *tt, struct dns_updown_runner_info *updown_runner)
+{
+    int dns_pipe_fd[2];
+    int ack_pipe_fd[2];
+    if (pipe(dns_pipe_fd) != 0
+        || pipe(ack_pipe_fd) != 0)
+    {
+        msg(M_ERR | M_ERRNO, "run_dns_up_down: unable to create pipes");
+        return false;
+    }
+    updown_runner->pid = fork();
+    if (updown_runner->pid == -1)
+    {
+        msg(M_ERR | M_ERRNO, "run_dns_up_down: unable to fork");
+        close(dns_pipe_fd[0]);
+        close(dns_pipe_fd[1]);
+        close(ack_pipe_fd[0]);
+        close(ack_pipe_fd[1]);
+        return false;
+    }
+    else if (updown_runner->pid > 0)
+    {
+        /* Parent process */
+        close(dns_pipe_fd[0]);
+        close(ack_pipe_fd[1]);
+        updown_runner->fds[0] = ack_pipe_fd[0];
+        updown_runner->fds[1] = dns_pipe_fd[1];
+    }
+    else
+    {
+        /* Script runner process, close unused FDs */
+        for (int fd = 3; fd < 100; ++fd)
+        {
+            if (fd != dns_pipe_fd[0]
+                && fd != ack_pipe_fd[1])
+            {
+                close(fd);
+            }
+        }
+
+        /* Ignore signals */
+        signal(SIGINT, SIG_IGN);
+        signal(SIGHUP, SIG_IGN);
+        signal(SIGTERM, SIG_IGN);
+        signal(SIGUSR1, SIG_IGN);
+        signal(SIGUSR2, SIG_IGN);
+        signal(SIGPIPE, SIG_IGN);
+
+        while (1)
+        {
+            ssize_t rlen, wlen;
+            char path[PATH_MAX];
+
+            /* Block here until parent sends a path */
+            rlen = read(dns_pipe_fd[0], &path, sizeof(path));
+            if (rlen < 1)
+            {
+                if (rlen == -1 && errno == EINTR)
+                {
+                    continue;
+                }
+                close(dns_pipe_fd[0]);
+                close(ack_pipe_fd[1]);
+                exit(0);
+            }
+
+            path[sizeof(path) - 1] = '\0';
+            int res = do_run_up_down_command(up, path, &o->dns_options, tt);
+            platform_unlink(path);
+
+            /* Unblock parent process */
+            while (1)
+            {
+                wlen = write(ack_pipe_fd[1], &res, sizeof(res));
+                if ((wlen == -1 && errno != EINTR) || wlen < sizeof(res))
+                {
+                    /* Not much we can do about errors but exit */
+                    close(dns_pipe_fd[0]);
+                    close(ack_pipe_fd[1]);
+                    exit(0);
+                }
+                else if (wlen == sizeof(res))
+                {
+                    break;
+                }
+            }
+
+            up = !up; /* do the opposite next time */
+        }
+    }
+
+    return true;
+}
+
+static const char *
+write_dns_vars_file(bool up, const struct options *o, const struct tuntap *tt, struct gc_arena *gc)
+{
+    struct env_set *es = env_set_create(gc);
+    const char *dvf = platform_create_temp_file(o->tmp_dir, "dvf", gc);
+
+    updown_env_set(up, &o->dns_options, tt, es);
+    env_set_write_file(dvf, es);
+
+    return dvf;
+}
+
 static void
-run_up_down_command(bool up, struct options *o, const struct tuntap *tt)
+run_up_down_command(bool up, struct options *o, const struct tuntap *tt, struct dns_updown_runner_info *updown_runner)
 {
     if (!o->dns_options.updown)
     {
@@ -595,7 +709,60 @@ run_up_down_command(bool up, struct options *o, const struct tuntap *tt)
     }
 
     int status;
-    status = do_run_up_down_command(up, &o->dns_options, tt);
+
+    if (!updown_runner->required)
+    {
+        /* Run dns updown directly */
+        status = do_run_up_down_command(up, NULL, &o->dns_options, tt);
+    }
+    else
+    {
+        if (updown_runner->pid < 1)
+        {
+            /* Need to set up privilege preserving child first */
+            if (!run_updown_runner(up, o, tt, updown_runner))
+            {
+                return;
+            }
+        }
+
+        struct gc_arena gc = gc_new();
+        int rfd = updown_runner->fds[0];
+        int wfd = updown_runner->fds[1];
+        const char *dvf = write_dns_vars_file(up, o, tt, &gc);
+        size_t dvf_size = strlen(dvf) + 1;
+
+        while (1)
+        {
+            ssize_t len = write(wfd, dvf, dvf_size);
+            if (len < dvf_size)
+            {
+                if (len == -1 && errno == EINTR)
+                {
+                    continue;
+                }
+                msg(M_ERR | M_ERRNO, "could not send dns vars filename");
+            }
+            break;
+        }
+
+        while (1)
+        {
+            ssize_t len = read(rfd, &status, sizeof(status));
+            if (len < sizeof(status))
+            {
+                if (len == -1 && errno == EINTR)
+                {
+                    continue;
+                }
+                msg(M_ERR | M_ERRNO, "could not receive dns updown status");
+            }
+            break;
+        }
+
+        gc_free(&gc);
+    }
+
     msg(M_INFO, "dns %s command exited with status %d", up ? "up" : "down", status);
 }
 
@@ -681,7 +848,7 @@ show_dns_options(const struct dns_options *o)
 }
 
 void
-run_dns_up_down(bool up, struct options *o, const struct tuntap *tt)
+run_dns_up_down(bool up, struct options *o, const struct tuntap *tt, struct dns_updown_runner_info *duri)
 {
     if (!o->dns_options.servers)
     {
@@ -718,6 +885,6 @@ run_dns_up_down(bool up, struct options *o, const struct tuntap *tt)
 #ifdef _WIN32
     run_up_down_service(up, o, tt);
 #else
-    run_up_down_command(up, o, tt);
+    run_up_down_command(up, o, tt, duri);
 #endif /* ifdef _WIN32 */
 }

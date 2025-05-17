@@ -2027,7 +2027,7 @@ do_open_tun(struct context *c, int *error_flags)
                         c->c2.frame.tun_mtu, c->c2.es, &c->net_ctx);
         }
 
-        run_dns_up_down(true, &c->options, c->c1.tuntap);
+        run_dns_up_down(true, &c->options, c->c1.tuntap, &c->persist.duri);
 
         /* run the up script */
         run_up_down(c->options.up_script,
@@ -2067,7 +2067,7 @@ do_open_tun(struct context *c, int *error_flags)
         /* explicitly set the ifconfig_* env vars */
         do_ifconfig_setenv(c->c1.tuntap, c->c2.es);
 
-        run_dns_up_down(true, &c->options, c->c1.tuntap);
+        run_dns_up_down(true, &c->options, c->c1.tuntap, &c->persist.duri);
 
         /* run the up script if user specified --up-restart */
         if (c->options.up_restart)
@@ -2157,7 +2157,7 @@ do_close_tun(struct context *c, bool force)
     adapter_index = c->c1.tuntap->adapter_index;
 #endif
 
-    run_dns_up_down(false, &c->options, c->c1.tuntap);
+    run_dns_up_down(false, &c->options, c->c1.tuntap, &c->persist.duri);
 
     if (force || !(c->sig->signal_received == SIGUSR1 && c->options.persist_tun))
     {
@@ -3970,6 +3970,9 @@ do_init_first_time(struct context *c)
                                               &c0->platform_state_user);
 
         c0->uid_gid_specified = user_defined || group_defined;
+
+        /* fork the dns script runner to preserve root? */
+        c->persist.duri.required = user_defined;
 
         /* perform postponed chdir if --daemon */
         if (c->did_we_daemonize && c->options.cd_dir == NULL)

@@ -91,6 +91,14 @@ const char *env_set_get(const struct env_set *es, const char *name);
 
 void env_set_print(int msglevel, const struct env_set *es);
 
+/**
+ * Write a struct env_set to a file. Each item on one line.
+ *
+ * @param path  The filepath to write to.
+ * @param es    Pointer to the env_set to write.
+ */
+void env_set_write_file(const char *path, const struct env_set *es);
+
 void env_set_inherit(struct env_set *es, const struct env_set *src);
 
 /* returns true if environmental variable name starts with 'password' */

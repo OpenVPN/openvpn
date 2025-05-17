@@ -15,6 +15,10 @@
 #
 # Example env from openvpn (not all are always applied):
 #
+#   dns_vars_file /tmp/openvpn_dvf_58b95c0c97b2db43afb5d745f986c53c.tmp
+#
+#      or
+#
 #   dev tun0
 #   script_type dns-up
 #   dns_search_domain_1 mycorp.in
@@ -29,6 +33,8 @@
 #   dns_server_1_transport DoH
 #   dns_server_1_sni dns.mycorp.in
 #
+
+[ -z "${dns_vars_file}" ] || . "${dns_vars_file}"
 
 function do_resolved_servers {
     local sni=""

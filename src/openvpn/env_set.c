@@ -33,6 +33,7 @@
 #include "env_set.h"
 
 #include "run_command.h"
+#include "platform.h"
 
 /*
  * Set environmental variable (int or string).
@@ -232,6 +233,30 @@ env_set_print(int msglevel, const struct env_set *es)
             }
         }
     }
+}
+
+void
+env_set_write_file(const char *path, const struct env_set *es)
+{
+    FILE *fp = platform_fopen(path, "w");
+    if (!fp)
+    {
+        msg(M_ERR, "could not write env set to '%s'", path);
+        return;
+    }
+
+    if (es)
+    {
+        const struct env_item *item =  es->list;
+        while (item)
+        {
+            fputs(item->string, fp);
+            fputc('\n', fp);
+            item = item->next;
+        }
+    }
+
+    fclose(fp);
 }
 
 void
