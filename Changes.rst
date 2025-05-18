@@ -103,6 +103,11 @@ User-visible Changes
 - ``--x509-username-field`` will no longer automatically convert fieldnames to
   uppercase. This is deprecated since OpenVPN 2.4, and has now been removed.
 
+- ``--dh none`` is now the default if ``--dh`` is not specified. Modern TLS
+  implementations will prefer ECDH and other more modern algorithms anyway.
+  And finite field Diffie Hellman is in the proces of being deprecated
+  (see draft-ietf-tls-deprecate-obsolete-kex)
+
 Overview of changes in 2.6
 ==========================
 
