@@ -443,10 +443,11 @@ void fragment_wakeup(struct fragment_master *f, struct frame *frame);
  * packets which have not yet been reassembled completely but are already
  * older than their time-to-live.
  *
- * @param f            - The \c fragment_master structure for this VPN
- *                       tunnel.
- * @param frame        - The packet geometry parameters for this VPN
- *                       tunnel.
+ * @param[in] f        The \c fragment_master structure for this VPN
+ *                     tunnel.
+ * @param[in] frame    The packet geometry parameters for this VPN
+ *                     tunnel.
+ * @param[out] tv      Will be set to time for next housekeeping.
  */
 static inline void
 fragment_housekeeping(struct fragment_master *f, struct frame *frame, struct timeval *tv)

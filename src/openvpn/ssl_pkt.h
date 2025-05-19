@@ -109,10 +109,6 @@ struct tls_pre_decrypt_state {
     struct session_id server_session_id;
 };
 
-/**
- *
- * @param state
- */
 void free_tls_pre_decrypt_state(struct tls_pre_decrypt_state *state);
 
 /**
@@ -137,10 +133,11 @@ void free_tls_pre_decrypt_state(struct tls_pre_decrypt_state *state);
  *
  * This function is only used in the UDP p2mp server code path
  *
- * @param tas - The standalone TLS authentication setting structure for
+ * @param[in] tas    The standalone TLS authentication setting structure for
  *     this process.
- * @param from - The source address of the packet.
- * @param buf - A buffer structure containing the incoming packet.
+ * @param[out] state The state struct to store information in.
+ * @param[in] from   The source address of the packet.
+ * @param[in] buf    buffer structure containing the incoming packet.
  *
  * @return
  * @li True if the packet is valid and a new VPN tunnel should be created

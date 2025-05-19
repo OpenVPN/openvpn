@@ -204,6 +204,7 @@ void tls_crypt_v2_init_client_key(struct key_ctx_bi *key,
  * @param buf   Buffer containing a received P_CONTROL_HARD_RESET_CLIENT_V3
  *              message.
  * @param ctx   tls-wrap context to be initialized with the client key.
+ * @param opt   TLS options, used for \c tls-crypt-v2-verify script.
  *
  * @param initial_packet    whether this is the initial packet of the
  *                          connection. Only in these scenarios unwrapping

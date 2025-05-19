@@ -1508,10 +1508,10 @@ process_incoming_tun(struct context *c, struct link_socket *out_sock)
  * IPv6 packet in buf and sends it directly back to the client via the tun
  * device when used on a client and via the link if used on the server.
  *
- * @param buf       - The buf containing the packet for which the icmp6
- *                    unreachable should be constructed.
- *
- * @param client    - determines whether to the send packet back via tun or link
+ * @param c         Tunnel context
+ * @param buf       The buf containing the packet for which the icmp6
+ *                  unreachable should be constructed.
+ * @param client    Determines whether to the send packet back via tun or link
  */
 void
 ipv6_send_icmp_unreachable(struct context *c, struct buffer *buf, bool client)

@@ -66,7 +66,10 @@ check_pull_client_ncp(struct context *c, int found);
  * Make sure to call tls_session_update_crypto_params() after calling this
  * function.
  *
- * @param gc   gc arena that is ONLY used to allocate the returned string
+ * @param server_list   Our own cipher list
+ * @param peer_info     Peer information
+ * @param remote_cipher Fallback cipher, ignored if peer sent \c IV_CIPHERS
+ * @param gc            gc arena that is used to allocate the returned string
  *
  * @returns NULL if no common cipher is available, otherwise the best common
  * cipher

@@ -153,7 +153,7 @@ const char *tls_common_name(const struct tls_multi *multi, const bool null);
 /**
  * Sets the common name field for the given tunnel
  *
- * @param multi         The tunnel to set the common name for
+ * @param session       The session to set the common name for
  * @param common_name   The name to set the common name to
  */
 void

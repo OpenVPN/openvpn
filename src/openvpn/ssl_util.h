@@ -39,6 +39,7 @@
  *
  * @param peer_info     The peer's peer_info
  * @param var           The variable *including* =, e.g. IV_CIPHERS=
+ * @param gc            GC arena to allocate return value in
  *
  * @return  The content of the variable as NULL terminated string or NULL if the
  *          variable cannot be found.

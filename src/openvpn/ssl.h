@@ -281,13 +281,14 @@ int tls_multi_process(struct tls_multi *multi,
  * packet is inserted into the Reliability Layer and will be handled
  * later.
  *
- * @param multi - The TLS multi structure associated with the VPN tunnel
+ * @param[in]  multi    The TLS multi structure associated with the VPN tunnel
  *     of this packet.
- * @param from - The source address of the packet.
- * @param buf - A buffer structure containing the incoming packet.
- * @param opt - Returns a crypto options structure with the appropriate security
- *     parameters to handle the packet if it is a data channel packet.
- * @param ad_start - Returns a pointer to the start of the authenticated data of
+ * @param[in]  from     The source address of the packet.
+ * @param[in]  buf      buffer structure containing the incoming packet.
+ * @param[out] opt      Returns a crypto options structure with the appropriate
+ *     security parameters to handle the packet if it is a data channel packet.
+ * @param[in] floated   Set whether the peer is allowed to have floated.
+ * @param[out] ad_start Returns a pointer to the start of the authenticated data
  *     of this packet
  *
  * @return

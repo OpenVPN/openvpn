@@ -241,6 +241,8 @@ void tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
  *                              a string containing the information in the case
  *                              of inline files.
  * @param pkcs12_file_inline    True if pkcs12_file is an inline file.
+ * @param load_ca_file          True if CAs from the file should be added to
+ *                              the cert store and be trusted.
  *
  * @return                      1 if an error occurred, 0 if parsing was
  *                              successful.
@@ -313,6 +315,9 @@ int tls_ctx_use_management_external_key(struct tls_root_ctx *ctx);
  *                              inline files.
  * @param ca_file_inline        True if ca_file is an inline file
  * @param ca_path               The path to load the CAs from
+ * @param tls_server            True if we are the server side of the TLS
+ *                              connection and should use the CA for verifying
+ *                              client certificates
  */
 void tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file,
                      bool ca_file_inline, const char *ca_path, bool tls_server);

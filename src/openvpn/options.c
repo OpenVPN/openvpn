@@ -3500,6 +3500,7 @@ options_postprocess_cipher(struct options *o)
  * altered to guarantee compatibility with the version specified by the
  * user via --compat-mode.
  *
+ * @param o         Options state
  * @param version   need compatibility with openvpn versions before the
  *                  one specified (20401 = before 2.4.1)
  * @return          whether compatibility should be enabled

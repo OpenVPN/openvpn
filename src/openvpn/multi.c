@@ -4247,7 +4247,7 @@ multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
  * Main event loop for OpenVPN in point-to-multipoint server mode.
  * @ingroup eventloop
  *
- * @param top - Top-level context structure.
+ * @param multi context structure
  */
 static void
 tunnel_server_loop(struct multi_context *multi)

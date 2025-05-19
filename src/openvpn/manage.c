@@ -1059,8 +1059,9 @@ parse_uint(const char *str, const char *what, unsigned int *uint)
  * @param man           The management interface struct
  * @param cid_str       The CID in string form
  * @param kid_str       The key ID in string form
- * @param extra         The string to be send to the client containing
+ * @param extra         The string to be sent to the client containing
  *                      the information of the additional steps
+ * @param timeout_str   The timeout value in string form
  */
 static void
 man_client_pending_auth(struct management *man, const char *cid_str,

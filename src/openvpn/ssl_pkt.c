@@ -296,8 +296,8 @@ free_tls_pre_decrypt_state(struct tls_pre_decrypt_state *state)
 /*
  * This function is similar to tls_pre_decrypt, except it is called
  * when we are in server mode and receive an initial incoming
- * packet.  Note that we don't modify
- * any state in our parameter objects.  The purpose is solely to
+ * packet.  Note that we don't modify any state in our parameter
+ * objects except state.  The purpose is solely to
  * determine whether we should generate a client instance
  * object, in which case true is returned.
  *
