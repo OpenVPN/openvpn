@@ -688,18 +688,6 @@ run_updown_runner(bool up, struct options *o, const struct tuntap *tt, struct dn
     return true;
 }
 
-static const char *
-write_dns_vars_file(bool up, const struct options *o, const struct tuntap *tt, struct gc_arena *gc)
-{
-    struct env_set *es = env_set_create(gc);
-    const char *dvf = platform_create_temp_file(o->tmp_dir, "dvf", gc);
-
-    updown_env_set(up, &o->dns_options, tt, es);
-    env_set_write_file(dvf, es);
-
-    return dvf;
-}
-
 static void
 run_up_down_command(bool up, struct options *o, const struct tuntap *tt, struct dns_updown_runner_info *updown_runner)
 {
@@ -708,7 +696,7 @@ run_up_down_command(bool up, struct options *o, const struct tuntap *tt, struct 
         return;
     }
 
-    int status;
+    int status = -1;
 
     if (!updown_runner->required)
     {
@@ -727,11 +715,19 @@ run_up_down_command(bool up, struct options *o, const struct tuntap *tt, struct 
         }
 
         struct gc_arena gc = gc_new();
-        int rfd = updown_runner->fds[0];
-        int wfd = updown_runner->fds[1];
-        const char *dvf = write_dns_vars_file(up, o, tt, &gc);
-        size_t dvf_size = strlen(dvf) + 1;
+        const char *dvf = platform_create_temp_file(o->tmp_dir, "dvf", &gc);
+        if (!dvf)
+        {
+            msg(M_ERR, "could not create dns vars file");
+            goto out_free;
+        }
 
+        struct env_set *es = env_set_create(&gc);
+        updown_env_set(up, &o->dns_options, tt, es);
+        env_set_write_file(dvf, es);
+
+        int wfd = updown_runner->fds[1];
+        size_t dvf_size = strlen(dvf) + 1;
         while (1)
         {
             ssize_t len = write(wfd, dvf, dvf_size);
@@ -746,6 +742,7 @@ run_up_down_command(bool up, struct options *o, const struct tuntap *tt, struct 
             break;
         }
 
+        int rfd = updown_runner->fds[0];
         while (1)
         {
             ssize_t len = read(rfd, &status, sizeof(status));
@@ -760,6 +757,7 @@ run_up_down_command(bool up, struct options *o, const struct tuntap *tt, struct 
             break;
         }
 
+out_free:
         gc_free(&gc);
     }
 
