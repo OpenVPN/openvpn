@@ -2226,7 +2226,7 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
                     {
                         /* This was the last domain */
                         *pos = '\0';
-                        *size += 1;
+                        *size += one_glyph;
                         return wcslen(domains) ? NO_ERROR : ERROR_FILE_NOT_FOUND;
                     }
                 }
@@ -2248,13 +2248,13 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
                 memmove(pos + 1, pos, buf_size - converted_size - one_glyph);
                 domains[buf_len - 1] = '\0';
                 *pos = '.';
-                *size += 1;
+                *size += one_glyph;
 
                 if (!comma)
                 {
                     /* Conversion is done */
                     *(pos + domain_len) = '\0';
-                    *size += 1;
+                    *size += one_glyph;
                     return NO_ERROR;
                 }
 
@@ -2409,10 +2409,10 @@ GetNrptExcludeData(PCWSTR search_domains, nrpt_exclude_data_t *data, size_t data
 
         if (v4_addrs_size || v6_addrs_size)
         {
-            /* Replace comma-delimters with semicolons, as required by NRPT */
+            /* Replace delimiters with semicolons, as required by NRPT */
             for (int j = 0; j < sizeof(data[0].addresses) && data[i].addresses[j]; j++)
             {
-                if (data[i].addresses[j] == ',')
+                if (data[i].addresses[j] == ',' || data[i].addresses[j] == ' ')
                 {
                     data[i].addresses[j] = ';';
                 }
