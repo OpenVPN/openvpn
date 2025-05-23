@@ -1251,6 +1251,12 @@ process_incoming_dco(struct context *c)
 
     dco_do_read(dco);
 
+    /* no message for us to handle - platform specific code has logged details */
+    if (dco->dco_message_type == 0)
+    {
+        return;
+    }
+
     /* FreeBSD currently sends us removal notifcation with the old peer-id in
      * p2p mode with the ping timeout reason, so ignore that one to not shoot
      * ourselves in the foot and removing the just established session */
