@@ -1,7 +1,759 @@
 OpenVPN ChangeLog
-Copyright (C) 2002-2024 OpenVPN Inc <sales@openvpn.net>
+Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
-This file is not maintained in this branch of the OpenVPN git repository.
+2025.05.28 -- Version 2.7_alpha1
 
-Release branches (release/2.5, release/2.4, etc) have individual ChangeLog
-files with all changes relevant for these releases.
+5andr0 (1):
+      Implement server_poll_timeout for socks
+
+Alexander von Gluck (4):
+      Haiku: Introduce basic platform / tun support
+      Haiku: Add calls to manage routing table
+      Haiku: change del to delete in route command. del is undocumented
+      Haiku: Fix short interface path length
+
+Antonio Quartulli (32):
+      disable DCO if --secret is specified
+      dco: properly re-initialize dco_del_peer_reason
+      dco: bail out when no peer-specific message is delivered
+      dco: improve comment about hidden debug message
+      dco: print proper message in case of transport disconnection
+      dco_linux: update license for ovpn_dco_linux.h
+      Update issue templates
+      Avoid warning about missing braces when initialising key struct
+      dco: don't use NetLink to exchange control packets
+      dco: print version to log if available
+      dco-linux: remove M_ERRNO flag when printing netlink error message
+      multi: don't call DCO APIs if DCO is disabled
+      dco-freebsd: use m->instances[] instead of m->hash
+      dco-linux: implement dco_get_peer_stats{, multi} API
+      configure.ac: fix typ0 in LIBCAPNG_CFALGS
+      dco: fix crash when --multihome is used with --proto tcp
+      dco: mark peer as deleted from kernel after receiving CMD_DEL_PEER notification
+      event/multi: add event_arg object to make event handling more generic
+      pass link_socket object to i/o functions
+      io_work: convert shift argument to uintptr_t
+      io_work: pass event_arg object to event handler in case of socket event
+      sitnl: replace NLMSG_TAIL macro with noinline function
+      override ai_family if 'local' numeric address was specified
+      Adapt socket handling to support listening on multiple sockets
+      allow user to specify 'local' multiple times in config files
+      dco_linux: extend netlink error cb with extra info
+      man: extend --persist-tun section
+      dco: pass remoteaddr only for UDP peers
+      socket: use remote proto when creating client sockets
+      dco_linux: fix peer stats parsing with new ovpn kernel module
+      socket: don't transfer bind family to socket in case of ANY address
+      dco_linux: avoid bogus text when netlink message is not parsed
+
+Aquila Macedo (1):
+      doc: Correct typos in multiple documentation files
+
+Arne Schwabe (190):
+      Fix connection cookie not including address and fix endianness in test
+      Fix unit test of test_pkt on little endian Linux
+      Disable DCO when TLS mode is not used
+      Ignore connection attempts while server is shutting down
+      Improve debug logging of DCO swap key message and Linux dco_new_peer
+      Trigger a USR1 if dco_update_keys fails
+      Set DCO_NOT_INSTALLED also for keys not in the get_key_scan range
+      Ensure that argument to parse_line has always space for final sentinel
+      Improve documentation on user/password requirement and unicodize function
+      Eliminate or comment empty blocks and switch fallthrough
+      Remove unused gc_arena
+      Fix corner case that might lead to leaked file descriptor
+      Deprecate NTLMv1 proxy auth method.
+      Use include "buffer.h" instead of include <buffer.h>
+      Ensure that dco keepalive and mssfix options are also set in pure p2p mode
+      Make management password check constant time
+      Rename TM_UNTRUSTED to TM_INITIAL, always start session in TM_INITIAL rather than TM_ACTIVE or TM_INITIAL
+      Move dco_installed back to link_socket from link_socket.info.actual
+      Do not set nl socket buffer size
+      Also drop incoming dco packet content when dropping the packet
+      Improve logging when seeing a message for an unkown peer
+      Ignore OVPN_DEL_PEER_REASON_USERSPACE to avoid race conditions
+      Replace custom min macro and use more C99 style in man_remote_entry_get
+      Replace realloc with new gc_realloc function
+      Add connect-freq-initial option to limit initial connection responses
+      Log peer-id if loglevel is D_DCO_DEBUG and dco is enabled
+      Deprecate OCC checking
+      Workaround: make ovpn-dco more reliable
+      Fix unaligned access in auth-token
+      Update LibreSSL to 3.7.0 in Github actions
+      Add printing USAN stack trace on github actions
+      Fix LibreSSL not building in Github Actions
+      Add missing stdint.h includes in unit tests files
+      Combine extra_tun/frame parameter of frame_calculate_payload_overhead
+      Update the last sections in the man page to a be a bit less outdated
+      Add building unit tests with mingw to github actions
+      Revise the cipher negotiation info about OpenVPN3 in the man page
+      Exit if a proper message instead of segfault on Android without management
+      Use proper print format/casting when converting msg_channel handle
+      Reduce initialisation spam from verb <= 3 and print summary instead
+      Dynamic tls-crypt for secure soft_reset/session renegotiation
+      Set netlink socket to be non-blocking
+      Ensure n = 2 is set in key2 struct in tls_crypt_v2_unwrap_client_key
+      Fix memory leaks in open_tun_dco()
+      Fix memory leaks in HMAC initial packet generation
+      Use key_state instead of multi for tls_send_payload parameter
+      Make sending plain text control message session aware
+      Only update frame calculation if we have a valid link sockets
+      Improve description of compat-mode
+      Simplify --compress parsing in options.c
+      Refuse connection if server pushes an option contradicting allow-compress
+      Add 'allow-compression stub-only' internally for DCO
+      Parse compression options and bail out when compression is disabled
+      Remove unused variable line
+      Add Apache2 linking with for new commits
+      Fix compile error on TARGET_ANDROID
+      Fix use-after-free with EVP_CIPHER_free
+      Remove key_type argument from generate_key_random
+      add basic CMake based build
+      Avoid unused function warning/error on FreeBSD (and potientially others)
+      Do not blindly assume python3 is also the interpreter that runs rst2html
+      Only add -Wno-stringop-truncation on supported compilers
+      fix warning with gcc 12.2.0 (compiler bug?)
+      Fix CR_RESPONSE mangaement message using wrong key_id
+      Print a more user-friendly error when tls-crypt-v2 client auth fails
+      Ignore Ipv6 route delete request on Android and set ipv4 verbosity to 7
+      Mock openvpn_exece on win32 also for test_tls_crypt
+      Check if the -wrap argument is actually supported by the platform's ld
+      Revert commit 423ced962d
+      Implement using --peer-fingerprint without CA certificates
+      show extra info for OpenSSL errors
+      Remove ability to use configurations without TLS by default
+      Add warning for the --show-groups command that some groups are missing
+      Print peer temporary key details
+      Add warning if a p2p NCP client connects to a p2mp server
+      Remove openssl engine method for loading the key
+      Add undefined and abort on error to clang sanitize builds
+      Add --enable-werror to all platforms in Github Actions
+      Remove saving initial frame code
+      Double check that we do not use a freed buffer when freeing a session
+      Fix using to_link buffer after freed
+      Remove CMake custom compiler flags for RELEASE and DEBUG build
+      Do not check key_state buffers that are in S_UNDEF state
+      Remove unused function prototype crypto_adjust_frame_parameters
+      Introduce report_command_status helper function
+      Log SSL alerts more prominently
+      Remove unused/unneeded/add missing defines from configure/cmake
+      Document tls-exit option mainly as test option
+      Remove dead remains of extract_x509_field_test
+      Replace character_class_debug with proper unit test
+      Remove TEST_GET_DEFAULT_GATEWAY as it duplicates --show-gateway
+      Fix check_session_buf_not_used using wrong index
+      Add missing check for nl_socket_alloc failure
+      Add check for nice in cmake config
+      Minimal Solaris/OpenIndiana support to Cmake and clean up -Werror
+      Remove compat versionhelpers.h and remove cmake/configure check for it
+      Rename state_change to continue_tls_process
+      Move tls_get_cipher_name_pair and get_num_elements to ssl_utils.c
+      Fix building mbed TLS with CMake and allow specifying custom directories
+      Extend the error message when TLS 1.0 PRF fails
+      Fix unaligned access in macOS, FreeBSD, Solaris hwaddr
+      Check PRF availability on initialisation and add --force-tls-key-material-export
+      Make it more explicit and visible when pkg-config is not found
+      Clarify that the tls-crypt-v2-verify has a very limited env set
+      Move get_tmp_dir to win32-util.c and error out on failure
+      Implement the --tls-export-cert feature
+      Use mingw compile definition also to unit tests
+      Add test_ssl unit test and test export of PEM to file
+      Remove conditional text for Apache2 linking exception
+      Fix ssl unit tests on OpenSSL 1.0.2
+      Ensure that all unit tests use unbuffered stdout and stderr
+      Allow unit tests to fall back to hard coded location
+      Add unit test for encrypting/decrypting data channel
+      Print SSL peer signature information in handshake debug details
+      Implement generating TLS 1.0 PRF using new OpenSSL 3.0 APIs
+      Turn dead list test code into unit test
+      Use snprintf instead of sprintf for get_ssl_library_version
+      Fix snprintf/swnprintf related compiler warnings
+      Add bracket in fingerprint message and do not warn about missing verification
+      Match ifdef for get_sigtype function with if ifdef of caller
+      Remove/combine redundant call of EVP_CipherInit before EVP_CipherInit_Ex
+      Add missing EVP_KDF_CTX_free in ssl_tls1_PRF
+      Replace macos11 with macos14 in github runners
+      Remove openvpn_snprintf and similar functions
+      Repeat the unknown command in errors from management interface
+      Only run coverity scan in OpenVPN/OpenVPN repository
+      Support OpenBSD with cmake
+      Workaround issue in LibreSSL crashing when enumerating digests/ciphers
+      Remove OpenSSL 1.0.2 support
+      Remove custom TLS 1.0 PRF implementation only used by LibreSSL/wolfSSL
+      Allow the TLS session to send out TLS alerts
+      Properly handle null bytes and invalid characters in control messages
+      Allow trailing \r and \n in control channel message
+      Add Ubuntu 24.04 runner to Github Actions
+      Implement support for AEAD tag at the end
+      Remove check for anonymous unions from configure and cmake config
+      Make read/write_tun_header static
+      Avoid SIGUSR1 to SIGHUP remapping when the configuration is read from stdin
+      Move to common backend_driver type in struct tuntap
+      Introduce DRIVER_AFUNIX backend for use with lwipovpn
+      Change dev null to be a driver type instead of a special mode of tun/tap
+      Use print_tun_backend_driver instead of custom code to print type
+      Automatically enable ifconfig-exec/route-exec behaviour for afunix tun/tap
+      Ensure that the AF_UNIX socket pair has at least 65k of buffer space
+      Fix check for CMake not detecting struct cmsg
+      Remove null check after checking for checking for did_open_tun
+      Remove a large number of unused structs and functions
+      Remove unused methods write_key/read_key
+      Refuse clients if username or password is longer than USER_PASS_LEN
+      Move should_trigger_renegotiation into its own function
+      Change --reneg-bytes and --reneg-packets to 64 bit counters
+      Use XOR instead of concatenation for calculation of IV from implicit IV
+      Trigger renegotiation of data key if getting close to the AEAD usage limit
+      Implement HKDF expand function based on RFC 8446
+      Split init_key_ctx_bi into send/recv init
+      Move initialisation of implicit IVs to init_key_ctx_bi methods
+      Change internal id of packet id to uint64
+      Add small unit test for buf_chomp
+      Add building/testing with msbuild and the clang compiler
+      Ensure that Python3 is available
+      Change API of init_key_ctx to use struct key_parameters
+      Allow DEFAULT in data-ciphers and report both expanded and user set option
+      Do not attempt to decrypt packets anymore after 2**36 failed decryptions
+      Add methods to read/write packet ids for epoch data
+      Implement methods to generate and manage OpenVPN Epoch keys
+      Rename aead-tag-at-end to aead-epoch
+      Improve peer fingerprint documentation
+      Remove comparing username to NULL in tls_lock_username
+      Print warnings/errors when numerical parameters cannot be parsed
+      Add unit tests for atoi parsing options helper
+      Improve error reporting from AF_UNIX tun/tap support
+      Fix typo in positive_atoi
+      Fix oversight of link socket code change in Android code path
+      Implement epoch key data format
+      Extend the unit test for data channel packets with aead limit tests
+      Add (fake) Android cmake building
+      Add android build to Github Actions
+      Reconnect when TCP is on use on network-change management command
+      Implement override-username
+      Fix incorrect condition for checking password related check
+      Directly use _countof in array initialisation
+      Improve documentation for override-username
+      Mention address if not unspecific on DNS failure
+      Do not leave half-initialised key wrap struct when dynamic tls-crypt fails
+      Allow tls-crypt-v2 to be setup only on initial packet of a session
+      Use SSL_get0_peer_signature_name instead of SSL_get_peer_signature_nid
+      Use USER_PASS_LEN instead of TLS_USERNAME_LEN for override-username
+      Also print key agreement when printing negotiated details
+      Fix mbed TLS key exporter functionality in 3.6.x and cmake
+      Make --dh none behaviour default if not specified
+
+Ben Boeckel (1):
+      console_systemd: remove the timeout when using 'systemd-ask-password'
+
+Christoph Schug (1):
+      Update documentation references in systemd unit files
+
+Corubba Smith (3):
+      Support IPv6 towards port-share proxy receiver
+      Document x509-username-fields oid usage
+      Remove x509-username-fields uppercasing
+
+David Sommerseth (4):
+      ssl_verify: Fix memleak if creating deferred auth control files fails
+      ntlm: Clarify details on NTLM phase 3 decoding
+      Remove --tls-export-cert
+      Remove superfluous x509_write_pem()
+
+Franco Fichtner (1):
+      Allow to set ifmode for existing DCO interfaces in FreeBSD
+
+Frank Lichtenheld (174):
+      options.c: fix format security error when compiling without optimization
+      options.c: update usage description of --cipher
+      Update copyright year to 2023
+      xkey_pkcs11h_sign: fix dangling pointer
+      options: Always define options->management_flags
+      check_engine_keys: make pass with OpenSSL 3
+      documentation: update 'unsupported options' section
+      Changes.rst: document removal of --keysize
+      Windows: fix unused function setenv_foreign_option
+      Windows: fix unused variables in delete_route_ipv6
+      Windows: fix wrong printf format in x_check_status
+      Windows: fix unused variable in win32_get_arch
+      configure: enable DCO by default on FreeBSD/Linux
+      Windows: fix signedness errors with recv/send
+      configure: fix formatting of --disable-lz4 and --enable-comp-stub
+      tests/unit_tests: Fix 'make distcheck' with subdir-objects enabled
+      GHA: remove Ubuntu 18.04 builds
+      vcpkg: request "tools" feature of openssl for MSVC build
+      Do not include net/in_systm.h
+      version.sh: remove
+      doc: run rst2* with --strict to catch warnings
+      man page: Remove cruft from --topology documentation
+      tests: do not include t_client.sh in dist
+      vcpkg-ports/pkcs11-helper: Make compatible with mingw build
+      vcpkg-ports/pkcs11-helper: Convert CONTROL to vcpkg.json
+      vcpkg-ports/pkcs11-helper: reference upstream PRs in patches
+      dco_linux: properly close dco version file
+      DCO: fix memory leak in dco_get_peer_stats_multi for Linux
+      Fix two unused assignments
+      sample-plugins: Fix memleak in client-connect example plugin
+      tests: Allow to override openvpn binary used
+      test_buffer: add tests for buf_catrunc and its caller format_hex_ex
+      buffer: use memcpy in buf_catrunc
+      options: remove --key-method from usage message
+      msvc-generate: include version.m4.in in tarball
+      dist: add more missing files only used in the MSVC build
+      vcpkg-ports/pkcs11-helper: rename patches to make file names shorter
+      unit_tests: Add missing cert_data.h to source list for unit tests
+      dist: Include all documentation in distribution
+      CMake: Add complete MinGW and MSVC build
+      Remove all traces of the previous MSVC build system
+      CMake: Add /Brepro to MSVC link options
+      GHA: update to run-vcpkg@v11
+      test_tls_crypt: Improve mock() usage to be more portable
+      CMake: Throw a clear error when config.h in top-level source directory
+      CMake: Support doc builds on Windows machines that do not have .py file association
+      Remove old Travis CI related files
+      README.cmake.md: Add new documentation for CMake buildsystem
+      GHA: refactor mingw UTs and add missing tls_crypt
+      GHA: Add macos-13
+      options: Do not hide variables from parent scope
+      pkcs11_openssl: Disable unused code
+      route: Fix overriding return value of add_route3
+      CMake: various small non-functional improvements
+      GHA: do not trigger builds in openvpn-build anymore
+      Remove --no-replay option
+      GHA: new workflow to submit scan to Coverity Scan service
+      doc: fix argument name in --route-delay documentation
+      Change type of frame.mss_fix to uint16_t
+      Remove last uses of inet_ntoa
+      mss/mtu: make all size calculations use size_t
+      dev-tools/gerrit-send-mail.py: tool to send Gerrit patchsets to Patchwork
+      gerrit-send-mail.py: Add patch version to subject
+      Add mbedtls3 GHA build
+      platform.c: Do not depend Windows build on HAVE_CHDIR
+      sample-keys: renew for the next 10 years
+      GHA: clean up libressl builds with newer libressl
+      configure.ac: Remove unused AC_TYPE_SIGNAL macro
+      documentation: remove reference to removed option --show-proxy-settings
+      unit_tests: remove includes for mock_msg.h
+      buffer: add documentation for string_mod and extend related UT
+      tests: disable automake serial_tests
+      documentation: improve documentation of --x509-track
+      configure: allow to disable NTLM
+      configure: enable silent rules by default
+      misc: make get_auth_challenge static
+      Remove support for NTLM v1 proxy authentication
+      GHA: increase verbosity for make check
+      NTLM: add length check to add_security_buffer
+      NTLM: increase size of phase 2 response we can handle
+      Fix various 'Uninitialized scalar variable' warnings from Coverity
+      proxy-options.rst: Add proper documentation for --http-proxy-user-pass
+      NTLM: when NTLMv1 is requested, try NTLMv2 instead
+      buf_string_match_head_str: Fix Coverity issue 'Unsigned compared against 0'
+      --http-proxy-user-pass: allow to specify in either order with --http-proxy
+      test_user_pass: new UT for get_user_pass
+      test_user_pass: Add UTs for character filtering
+      gerrit-send-mail: Make output consistent across systems
+      README.cmake.md: Document minimum required CMake version for --preset
+      documentation: Update and fix documentation for --push-peer-info
+      documentation: Fixes for previous fixes to --push-peer-info
+      test_user_pass: add basic tests for static/dynamic challenges
+      Fix typo --data-cipher-fallback
+      samples: Remove tls-*.conf
+      check_compression_settings_valid: Do not test for LZ4 in LZO check
+      t_client.sh: Allow to skip tests
+      gerrit-send-mail: add missing Signed-off-by
+      Update Copyright statements to 2024
+      GHA: general update March 2024
+      samples: Update sample configurations
+      documentation: make section levels consistent
+      phase2_tcp_server: fix Coverity issue 'Dereference after null check'
+      script-options.rst: Update ifconfig_* variables
+      crypto_backend: fix type of enc parameter
+      tests: fork default automake test-driver
+      forked-test-driver: Show test output always
+      Change default of "topology" to "subnet"
+      Use topology default of "subnet" only for server mode
+      Fix 'binary or' vs 'boolean or' related to server_bridge_proxy_dhcp
+      configure: update old copy of pkg.m4
+      LZO: do not use lzoutils.h macros
+      test_user_pass: Fix building with --enable-systemd
+      Remove "experimental" denotation for --fast-io
+      t_server_null.sh: Fix failure case
+      configure: Add -Wstrict-prototypes and -Wold-style-definition
+      configure: Try to detect LZO with pkg-config
+      configure: Switch to C11 by default
+      Fix missing spaces in various messages
+      console_systemd: rename query_user_exec to query_user_systemd
+      configure: Allow to detect git checkout if .git is not a directory
+      GHA: Configure Renovate
+      configure: Try to use pkg-config to detect mbedTLS
+      tun: use is_tun_p2p more consistently
+      Various fixes for -Wconversion errors
+      generate_auth_token: simplify code
+      GHA: Update dependency Mbed-TLS/mbedtls to v3.6.1
+      GHA: Enable t_server_null tests
+      configure: Handle libnl-genl and libcap-ng consistent with other libs
+      configure: Review use of standard AC macros
+      socket: Change return types of link_socket_write* to ssize_t
+      GHA: Pin dependencies
+      GHA: Update macOS runners
+      GHA: Simplify macOS builds
+      Remove support for compression on send
+      Fix wrong doxygen comments
+      Various typo fixes
+      macOS: Assume that net/if_utun.h is always present
+      Fix some formatting related to if/else and macros
+      Fix memory leak in ntlm_support
+      forward: Fix potential unaligned access in drop_if_recursive_routing
+      GHA: General update December 2024
+      Review doxygen warnings
+      Regenerate doxygen config file with doxygen -u
+      Fix 'uninitialized pointer read' in openvpn_decrypt_aead
+      ssl_openssl: Clean up unused functions and add missing "static"
+      Fix some trivial sign-compare compiler warnings
+      tls_crypt_v2_write_client_key_file: Fix missing-field-initializers compiler warning
+      openvpnserv: Fix some inconsistent usages of TEXT()
+      Fix doxygen warnings in crypto_epoch.h
+      GHA: Drop Ubuntu 20.04 and other maintenance
+      GHA: Publish Doxygen documentation to Github Pages
+      Add more 'intentional fallthrough' comments
+      Remove various unused function parameters
+      Remove unused function check_subnet_conflict
+      options: Cleanup and simplify options_postprocess_verify_ce
+      Apply text-removal.sh script to Windows codebase
+      openvpnserv: Clean up use of TEXT() from DNS patches
+      Post tchar.h removal cleanup
+      Fix compatibility with mbedTLS 2.28.10+ and 3.6.3+
+      t_server_null_default.rc: Add some tests with --data-ciphers
+      GHA: Pin version of CMake for all builds
+      GHA: Dependency and Actions update April 2025
+      GHA: Make sure renovate notifies us about AWS LC releases
+      Doxygen: Fix obsolete links to OpenSSL documentation
+      GHA: Use CMake 4.0 and apply required fixes
+      Doxygen: Clean up tls-crypt documentation
+      Doxygen: Remove useless Python information
+      Manually reformat some long trailing comments
+      CMake: Make sure to treat UNIT_TEST_SOURCEDIR as path
+      CMake: Sync list of compiler flags with configure.ac
+      CMake: Reorganize header and symbol tests
+      GHA: Dependency and Actions update May 2025
+      Doxygen: Fix missing parameter warnings
+      Changes.rst: Collect, fix, and improve entries for 2.7 release
+
+George Pchelkin (1):
+      fix typo: dhcp-options to dhcp-option in vpn-network-options.rst
+
+Gert Doering (21):
+      Change version.m4 to 2.7_git
+      bandaid fix for TCP multipoint server crash with Linux-DCO
+      Undo FreeBSD 12.x workaround on IPv6 ifconfig for 12.4 and up
+      Reduce logspam about 'dco_update_keys: peer_id=-1' in p2p server mode
+      Fix OVPN_DEL_PEER_REASON_TRANSPORT_DISCONNECT breakage on FreeBSD+DCO
+      Repair special-casing of EEXIST for Linux/SITNL route install
+      Get rid of unused 'bool tuntap_buffer' arguments.
+      FreeBSD 12.x workaround for IPv6 ifconfig is needed on 12.4 as well
+      Make received OCC exit messages more visible in log.
+      OpenBSD: repair --show-gateway
+      get_default_gateway() HWADDR overhaul
+      make t_server_null 'server alive?' check more robust
+      t_client.sh: conditionally skip ifconfig+route check
+      send uname() release as IV_PLAT_VER= on non-windows versions
+      options: add IPv4 support to '--show-gateway <arg>'
+      get_default_gateway(): implement platform support for Linux/SITNL
+      get_default_gateway(): implement platform support for Linux/IPROUTE2
+      add missing (void) to win32 function declarations
+      add more (void) to windows specific function prototypes and declarations
+      Make 'lport 0' no longer sufficient to do '--bind'.
+      Add information-gathering about DNS resolvers configured to t_client.sh(.in)
+
+Gianmarco De Gregori (17):
+      Persist-key: enable persist-key option by default
+      Minor fix to process_ip_header
+      Http-proxy: fix bug preventing proxy credentials caching
+      Ensures all params are ready before invoking dco_set_peer()
+      Route: remove incorrect routes on exit
+      Fix for msbuild/mingw GHA failures
+      multiproto: move generic event handling code in dedicated files
+      Fix PASS_BY_VALUE issue in options_postprocess_mutate_le()
+      mroute: adapt to new protocol handling and hashing improvements
+      mroute/management: repair mgmt client-kill for mroute with proto
+      Add support for simultaneous use of UDP and TCP sockets
+      Rename occurences of 'struct link_socket' from 'ls' to 'sock'
+      Fix FreeBSD-DCO and Multisocket interaction
+      manpage: fix HTML format for --local
+      Fix dco_win and multisocket interaction
+      dco_linux: Introduce new uAPIs
+      Explicit-exit-notify and multisocket interaction
+
+Heiko Hund (21):
+      dns option: allow up to eight addresses per server
+      work around false positive warning with mingw 12
+      dns option: remove support for exclude-domains
+      cmake: create and link compile_commands.json file
+      cmake: symlink whole build dir not just .json file
+      Windows: enforce 'block-local' with WFP filters
+      add and send IV_PROTO_DNS_OPTION_V2 flag
+      dns: store IPv4 addresses in network byte order
+      dns: clone options via pointer instead of copy
+      service: add utf8to16 function that takes a size
+      dns: support multiple domains without DHCP
+      dns: do not use netsh to set name server addresses
+      win: calculate address string buffer size
+      win: implement --dns option support with NRPT
+      dns: apply settings via script on unixoid systems
+      fix typo in haikuos dns-updown script
+      dns: support running up/down command with privsep
+      dns: don't publish env vars to non-dns scripts
+      dns: fix potential NULL pointer dereference
+      win: match search domains when creating exclude rules
+      win: fix collecting DNS exclude data
+
+Heiko Wundram (1):
+      Implement Windows CA template match for Crypto-API selector
+
+Ilia Shipitsin (3):
+      src/openvpn/init.c: handle strdup failures
+      sample/sample-plugins/defer/multi-auth.c: handle strdup errors
+      tests/unit_tests/openvpn/test_auth_token.c: handle strdup errors
+
+Ilya Shipitsin (1):
+      src/openvpn/dco_freebsd.c: handle malloc failure
+
+Juliusz Sosinowicz (1):
+      Change include order for tests
+
+Klemens Nanni (1):
+      Fix tmp-dir documentation
+
+Kristof Provost (10):
+      Read DCO traffic stats from the kernel
+      dco: Update counters when a client disconnects
+      Read the peer deletion reason from the kernel
+      dco: cleanup FreeBSD dco_do_read()
+      options.c: enforce a minimal fragment size
+      configure: improve FreeBSD DCO check
+      dco: define OVPN_DEL_PEER_REASON_TRANSPORT_DISCONNECT on FreeBSD
+      dco: print FreeBSD version
+      DCO: support key rotation notifications
+      dco-freebsd: dynamically re-allocate buffer if it's too small
+
+Lev Stipakov (63):
+      Rename dco_get_peer_stats to dco_get_peer_stats_multi
+      management: add timer to output BYTECOUNT
+      Introduce dco_get_peer_stats API and Windows implementation
+      git-version.py: proper support for tags
+      msvc: upgrade to Visual Studio 2022
+      tun: move print_windows_driver() out of tun.h
+      openvpnmsica: remove dco installer custom actions
+      openvpnmsica: remove unused declarations
+      openvpnmsica: fix adapters discovery logic for DCO
+      Allow certain DHCP options to be used without DHCP server
+      dco-win: use proper calling convention on x86
+      Improve format specifier for socket handle in Windows
+      Disable DCO if proxy is set via management
+      Add logging for windows driver selection process
+      Avoid management log loop with verb >= 6
+      Support --inactive option for DCO
+      Fix '--inactive <time> 0' behavior for DCO
+      Print DCO client stats on SIGUSR2
+      Don't overwrite socket flags when using DCO on Windows
+      Support of DNS domain for DHCP-less drivers
+      dco-win: support for --dev-node
+      tapctl: generate driver-specific adapter names
+      openvpnmsica: link C runtime statically
+      tun.c: enclose DNS domain in single quotes in WMIC call
+      manage.c: document missing KID parameter
+      Set WINS servers via interactice service
+      CMake: fix broken daemonization and syslog functionality
+      Warn user if INFO control command is too long
+      CMake: fix HAVE_DAEMON detection on Linux
+      dco-win: get driver version
+      dco: warn if DATA_V1 packets are sent to userspace
+      config.h: fix incorrect defines for _wopen()
+      Make --dns options apply for tap-windows6 driver
+      Warn if pushed options require DHCP
+      tun.c: don't attempt to delete DNS and WINS servers if they're not set
+      win32: Enforce loading of plugins from a trusted directory
+      interactive.c: disable remote access to the service pipe
+      interactive.c: Fix potential stack overflow issue
+      Disable DCO if proxy is set via management
+      misc.c: remove unused code
+      interactive.c: Improve access control for gui<->service pipe
+      Use a more robust way to get dco-win version
+      dco: better naming for function parameters
+      repair DNS address option
+      dco-win: factor out getting dco version
+      dco-win: enable mode server on supported configuration
+      dco-win: simplify do_close_link_socket()
+      route.c: change the signature of get_default_gateway()
+      route.c: improve get_default_gateway() logic on Windows
+      mudp.c: keep offset value when resetting buffer
+      multi.c: add iroutes after dco peer is added
+      dco-win: disable dco in server mode if multiple --local options defined
+      dco-win: multipeer support
+      dco-win: simplify control packets prepend code
+      dco-win: kernel notifications
+      dco-win: support for iroutes
+      dco-win: Fix crash when cancelling pending operation
+      Remove UINT8_MAX definition
+      win: allow OpenVPN service account to use any command-line options
+      ssl_openssl.c: Prevent potential double-free
+      win: refactor get_windows_version()
+      win: create adapter on demand
+      win: remove Wintun support
+
+Marc Becker (5):
+      unify code path for adding PKCS#11 providers
+      use new pkcs11-helper interface to add providers
+      special handling for PKCS11 providers on win32
+      vcpkg-ports/pkcs11-helper: support loader flags
+      vcpkg-ports/pkcs11-helper: bump to version 1.30
+
+Marco Baffo (3):
+      tun: removed unnecessary route installations
+      IPv6 MADDR LOG: Wrap IPv6 addresses in square brackets and print port when the port is specified
+      get_default_gateway(): Prevent passing IPV4_INVALID_ADDR as a destination
+
+Martin Rys (1):
+      openvpn-[client|server].service: Remove syslog.target
+
+Matthias Andree (1):
+      make dist: Ship ovpn_dco_freebsd.h, too
+
+Max Fillinger (10):
+      Correct tls-crypt-v2 metadata length in man page
+      Fix message for too long tls-crypt-v2 metadata
+      Add support for mbedtls 3.X.Y
+      Update README.mbedtls
+      Disable TLS 1.3 support with mbed TLS
+      Enable key export with mbed TLS 3.x.y
+      Remove license warning from README.mbedtls
+      mbedtls: Remove support for old TLS versions
+      mbedtls: Warn if --tls-version-min is too low
+      Remove HAVE_EXPORT_KEYING_MATERIAL macro
+
+Michael Baentsch (1):
+      using OpenSSL3 API for EVP PKEY type name reporting
+
+Michael Nix (1):
+      fix typo in help text: --ignore-unknown-option
+
+Qingfang Deng (1):
+      dco: fix source IP selection when multihome
+
+Ralf Lici (3):
+      Fix check_addr_clash argument order
+      Handle missing DCO peer by restarting the session
+      Implement ovpn version detection
+
+Reynir Björnsson (2):
+      protocol_dump: tls-crypt support
+      Only schedule_exit() once
+
+Rémi Farault (1):
+      Add calls to nvlist_destroy to avoid leaks
+
+Samuli Seppänen (6):
+      Add t_server_null test suite
+      t_server_null: multiple improvements and fixes
+      t_server_null: persist test log files
+      t_server_null: forcibly kill misbehaving servers
+      t_server_null: use wait instead of marker files
+      Add lwip support to t_server_null
+
+Selva Nair (63):
+      Reduce default restart pause to 1 second
+      Do not include auth-token in pulled option digest
+      Persist DCO client data channel traffic stats on restart
+      Add remote-count and remote-entry query via management
+      Permit unlimited connection entries and remotes
+      Use a template for 'unsupported management commands' error
+      Allow skipping multple remotes via management interface
+      Properly unmap ring buffer file-map in interactive service
+      Use undo_lists for saving ring-buffer handles in interactive service
+      Cleanup: Close duplicated handles in interactive service
+      Preparing for better signal handling: some code refactoring
+      Refactor signal handling in openvpn_getaddrinfo
+      Use IPAPI for setting ipv6 routes when iservice not available
+      Fix signal handling on Windows
+      Assign and honour signal priority order
+      Distinguish route addition errors from route already exists
+      Propagate route error to initialization_completed()
+      Include CE_DISABLED status of remote in "remote-entry-get" response
+      Define and use macros for route addition status code
+      Warn when pkcs11-id or pkcs11-id-management options are ignored
+      Cleanup route error and debug logging on Windows
+      Fix one more 'existing route may get deleted' case
+      block-dns using iservice: fix a potential double free
+      Conditionally add subdir-objects option to automake
+      Build unit tests in mingw Windows build
+      cyryptapi.c: log the selected certificate's name
+      cryptoapi.c: remove pre OpenSSL-3.01 support
+      cryptoapi.c: simplify parsing of thumbprint hex string
+      Option --cryptoapicert: support issuer name as a selector
+      Add a unit test for functions in cryptoapi.c
+      Do not save pointer to 'struct passwd' returned by getpwnam etc.
+      Bugfix: Convert ECDSA signature form pkcs11-helper to DER encoded form
+      Import some sample certificates into Windows store for testing
+      Add tests for finding certificates in Windows cert store
+      Refactor SSL_CTX_use_CryptoAPI_certificate()
+      Add a test for signing with certificates in Windows store
+      Unit tests: add test for SSL_CTX_use_Cryptoapi_certificate()
+      Improve error message on short read from socks proxy
+      Make error in setting metric for IPv6 interface non-fatal
+      Bug-fix: segfault in dco_get_peer_stats()
+      Move digest_sign_verify out of test_cryptoapi.c
+      Unit tests: Test for PKCS#11 using a softhsm2 token
+      Enable pkcs11 an dtest_pkcs11 in github actions
+      Make cert_data.h and test_cryptoapi/pkcs11.c MSVC compliant
+      Format Windows error message in Unicode
+      Bugfix: dangling pointer passed to pkcs11-helper
+      Correctly handle Unicode names for exit event
+      Interactive service: do not force a target desktop for openvpn.exe
+      Improve signal handling using POSIX sigaction
+      signal_reset(): combine check and reset operations
+      Log OpenSSL errors on failure to set certificate
+      Document that auth-user-pass may be inlined
+      test_pkcs11.c: set file offset to 0 after ftruncate
+      proxy.c: Clear sensitive data after use
+      Protect cached username, password and token on client
+      Interpret --key and --cert option argument as URI
+      Add a test for loading certificate and key to ssl context
+      Add a test for loading certificate and key using file: URI
+      Initialize before use struct user_pass in ui_reader()
+      Static-challenge concatenation option
+      Add test for static-challenge concatenation option
+      Fix more of uninitialized struct user_pass local vars
+      Do not stop reading from file/uri when OPENSSL_STORE_load() returns error
+
+Sergey Korolev (1):
+      dco-linux: fix counter print format
+
+Shubham Mittal (2):
+      Add compatibility to build OpenVPN with AWS-LC.
+      Adding AWS-LC to the OpenVPN CI
+
+Shuji Furukawa (1):
+      Improve shuffling algorithm of connection list
+
+Steffan Karger (2):
+      Fix IPv6 route add/delete message log level
+      Improve data channel crypto error messages
+
+Timo Rothenpieler (1):
+      Don't clear capability bounding set on capng_change_id
+
+corubba (2):
+      Fix IPv6 in port-share journal
+      Fix port-share journal doc
+
+orbea (1):
+      configure: disable engines if OPENSSL_NO_ENGINE is defined
+
+rein.vanbaaren (1):
+      Fix MBEDTLS_DEPRECATED_REMOVED build errors
+
+wellweek (1):
+      remove repetitive words in documentation and comments
+
+yatta (1):
+      fix(ssl): init peer_id when init tls_multi
+
+

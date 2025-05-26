@@ -2,25 +2,58 @@ Overview of changes in 2.7
 ==========================
 New features
 ------------
-TLS alerts
-    OpenVPN 2.7 will send out TLS alerts to peers informing them if the TLS
-    session shuts down or when the TLS implementation informs the peer about
-    an error in the TLS session (e.g. mismatching TLS versions). This improves
-    the user experience as the client shows an error instead of running into
-    a timeout when the server just stops responding completely.
+Multi-socket support for servers
+    OpenVPN servers now can listen on multiple sockets at the same time.
+    Multiple ``--local`` statements in the configuration can be used to
+    configure this. This way the same server can e.g. listen for UDP
+    and TCP connections at the same time, or listen on multiple addresses
+    and/or ports.
 
-Support for tun/tap via unix domain socket and lwipovpn support
-    To allow better testing and emulating a full client with a full
-    network stack OpenVPN now allows a program executed to provide
-    a tun/tap device instead of opening a device.
+Client implementations for DNS options sent by server for Linux/BSD
+    Linux and BSD versions of OpenVPN now ship with a default ``dns-updown``
+    script that implements proper handling of DNS configuration sent
+    by the server. The scripts should work on systems that use
+    ``systemd`` or ``resolveconf`` to manage the DNS setup, as well as
+    raw ``/etc/resolv.conf`` files. However, the exact features supported
+    will depend on the configuration method. On Linux this should usually
+    mean that split-DNS configurations are supported out-of-the-box now.
 
-    The co-developed lwipovpn program based on lwIP stack allows to
-    simulate full IP stack and an OpenVPN client using
-    ``--dev-node unix:/path/to/lwipovpn`` can emulate a full client that
-    can be pinged, can serve a website and more without requiring any
-    elevated permission. This can make testing OpenVPN much easier.
+    Note that this new script will not be used by default if a ``--up``
+    script is already in use to reduce problems with
+    backwards compatibility.
 
-    For more details see [lwipovpn on Gihtub](https://github.com/OpenVPN/lwipovpn).
+    See documentation for ``--dns-updown`` and ``--dns`` for more details.
+
+New client implementation for DNS options sent by server for Windows
+    The Windows client now uses NRPT (Name Resolution Policy Table) to
+    handle DNS configurations. This adds support for split-DNS and DNSSEC
+    and improves the compatbility with local DNS resolvers. Requires the
+    interactive service.
+
+On Windows the ``block-local`` flag is now enforced with WFP filters.
+    The ``block-local`` flag to ``--redirect-gateway`` and
+    ``--redirect-private`` is now also enforced via the Windows Firewall,
+    making sure packets can't be sent to the local network.
+    This provides stronger protection against TunnelCrack-style attacks.
+
+Windows network adapters are now generated on demand
+    This means that on systems that run multiple OpenVPN connections at
+    the same time the users don't need to manually create enough network
+    adapters anymore (in addition to the ones created by the installer).
+
+Windows automatic service now runs as an unpriviledged user
+    All tasks that need privileges are now delegated to the interactive
+    service.
+
+Support for new version of Linux DCO module
+    OpenVPN DCO module is moving upstream and being merged into the
+    main Linux kernel. For this process some API changes were required.
+    OpenVPN 2.7 will only support the new API. The new module is called
+    ``ovpn``. Out-of-tree builds for older kernels are available. Please
+    see the release announcements for futher information.
+
+Support for server mode in win-dco driver
+    On Windows the win-dco driver can now be used in server setups.
 
 Enforcement of AES-GCM usage limit
     OpenVPN will now enforce the usage limits on AES-GCM with the same
@@ -29,11 +62,6 @@ Enforcement of AES-GCM usage limit
     size. More details about usage limit of AES-GCM can be found here:
 
     https://datatracker.ietf.org/doc/draft-irtf-cfrg-aead-limits/
-
-Default ciphers in ``--data-ciphers``
-    Ciphers in ``--data-ciphers`` can contain the string DEFAULT that is
-    replaced by the default ciphers used by OpenVPN, making it easier to
-    add an allowed cipher without having to spell out the default ciphers.
 
 Epoch data keys and packet format
     This introduces the epoch data format for AEAD data channel
@@ -49,15 +77,46 @@ Epoch data keys and packet format
     - IV constructed with XOR instead of concatenation to not have (parts) of
       the real IV on the wire
 
+Default ciphers in ``--data-ciphers``
+    Ciphers in ``--data-ciphers`` can contain the string DEFAULT that is
+    replaced by the default ciphers used by OpenVPN, making it easier to
+    add an allowed cipher without having to spell out the default ciphers.
+
+TLS alerts
+    OpenVPN 2.7 will send out TLS alerts to peers informing them if the TLS
+    session shuts down or when the TLS implementation informs the peer about
+    an error in the TLS session (e.g. mismatching TLS versions). This improves
+    the user experience as the client shows an error instead of running into
+    a timeout when the server just stops responding completely.
+
+Support for tun/tap via unix domain socket and lwipovpn support
+    To allow better testing and emulating a full client with a full
+    network stack OpenVPN now allows a program executed to provide
+    a tun/tap device instead of opening a device.
+
+    The co-developed lwipovpn program based on lwIP stack allows to
+    simulate full IP stack. An OpenVPN client using
+    ``--dev-node unix:/path/to/lwipovpn`` can emulate a full client that
+    can be pinged, can serve a website and more without requiring any
+    elevated permission. This can make testing OpenVPN much easier.
+
+    For more details see [lwipovpn on Gihtub](https://github.com/OpenVPN/lwipovpn).
+
 Allow overriding username with ``--override-username``
     This is intended to allow using auth-gen-token in scenarios where the
     clients use certificates and multi-factor authentication.  This will
     also generate a 'push "auth-token-user newusername"' directives in
     push replies.
 
+``--port-share`` now properly supports IPv6
+    Issues with logging of IPv6 addresses were fixed. The feature now allows
+    IPv6 connections towards the proxy receiver.
+
+Support for Haiku OS
+
 Deprecated features
 -------------------
-``secret`` support has been removed by default.
+``secret`` support has been removed (by default).
     static key mode (non-TLS) is no longer considered "good and secure enough"
     for today's requirements.  Use TLS mode instead.  If deploying a PKI CA
     is considered "too complicated", using ``--peer-fingerprint`` makes
@@ -66,6 +125,14 @@ Deprecated features
     This mode can still be enabled by using
     ``--allow-deprecated-insecure-static-crypto`` but will be removed in
     OpenVPN 2.8.
+
+Support for wintun Windows driver has been removed.
+    OpenVPN 2.6 added support for the new dco-win driver, so it supported
+    three different device drivers: dco-win, wintun, and tap-windows6.
+    OpenVPN 2.7 now drops the support for wintun driver. By default
+    all modern configs should be supported by dco-win driver. In all
+    other cases OpenVPN will fall back automatically to tap-windows6
+    driver.
 
 NTLMv1 authentication support for HTTP proxies has been removed.
     This is considered an insecure method of authentication that uses
@@ -78,28 +145,34 @@ NTLMv1 authentication support for HTTP proxies has been removed.
 ``persist-key`` option has been enabled by default.
     All the keys will be kept in memory across restart.
 
-Default for ``--topology`` changed to ``subnet`` for ``--mode server``
-    Previous releases always used ``net30`` as default. This only affects
-    configs with ``--mode server`` or ``--server`` (the latter implies the
-    former), and ``--dev tun``, and only if IPv4 is enabled.
-    Note that this changes the semantics of ``--ifconfig``, so if you have
-    manual settings for that in your config but not set ``--topology``
-    your config might fail to parse with the new version. Just adding
-    ``--topology net30`` to the config should fix the problem.
-    By default ``--topology`` is pushed from server to client.
-
-OpenSSL 1.0.2 support
+OpenSSL 1.0.2 support has been removed.
     Support for building with OpenSSL 1.0.2 has been removed. The minimum
     supported OpenSSL version is now 1.1.0.
 
-Compression on send
+Support for mbedTLS older than 2.18.0 has been removed.
+    We now require all SSL libraries to have support for exporting
+    keying material. The only previously supported library versions
+    this affects are older mbedTLS releases.
+
+Compression on send has been removed.
     OpenVPN 2.7 will never compress data before sending. Decompression of
     received data is still supported.
     ``--allow-compression yes`` is now an alias for
     ``--allow-compression asym``.
 
+
 User-visible Changes
 --------------------
+- Default for ``--topology`` changed to ``subnet`` for ``--mode server``.
+  Previous releases always used ``net30`` as default. This only affects
+  configs with ``--mode server`` or ``--server`` (the latter implies the
+  former), and ``--dev tun``, and only if IPv4 is enabled.
+  Note that this changes the semantics of ``--ifconfig``, so if you have
+  manual settings for that in your config but not set ``--topology``
+  your config might fail to parse with the new version. Just adding
+  ``--topology net30`` to the config should fix the problem.
+  By default ``--topology`` is pushed from server to client.
+
 - ``--x509-username-field`` will no longer automatically convert fieldnames to
   uppercase. This is deprecated since OpenVPN 2.4, and has now been removed.
 
@@ -107,6 +180,38 @@ User-visible Changes
   implementations will prefer ECDH and other more modern algorithms anyway.
   And finite field Diffie Hellman is in the proces of being deprecated
   (see draft-ietf-tls-deprecate-obsolete-kex)
+
+- ``--lport 0`` does not imply ``--bind`` anymore.
+
+- ``--redirect--gateway`` now works correctly if the VPN remote is not
+  reachable by the default gateway.
+
+- ``--show-gateway`` now supports querying the gateway for IPv4 addresses.
+
+- ``--static-challenge`` option now has a third parameter ``format`` that
+  can change how password and challenge response should be combined.
+
+- ``--key`` and ``--cert`` now accept URIs implemented in OpenSSL 3 as well as
+  optional OpenSSL 3 providers loaded using ``--providers`` option.
+
+- ``--cryptoapicert`` now supports issuer name as well as Windows CA template
+  name or OID as selector string.
+
+- TLS handshake debugging information contains much more details  now when
+  using recent versions of OpenSSL.
+
+- The ``IV_PLAT_VER`` variable sent by Windows clients now contains the
+  full Windows build version to make it possible to determine the
+  Windows 10 or Windows 11 version used.
+
+- The ``--windows-driver`` option to select between various windows
+  drivers will no longer do anything - it's kept so existing configs
+  will not become invalid, but it is ignored with a warning.  The default
+  is now ``ovpn-dco`` if all options used are compatible with DCO, with
+  a fallback to ``tap-windows6``.  To force TAP (for example because a
+  server pushes DCO incompatible options), use the ``--disable-dco``
+  option.
+
 
 Overview of changes in 2.6
 ==========================
