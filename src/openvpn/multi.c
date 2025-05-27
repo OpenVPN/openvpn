@@ -1837,7 +1837,6 @@ multi_client_set_protocol_options(struct context *c)
         c->c2.push_request_received = true;
     }
 
-#ifdef HAVE_EXPORT_KEYING_MATERIAL
     if (proto & IV_PROTO_TLS_KEY_EXPORT)
     {
         o->imported_protocol_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
@@ -1856,7 +1855,6 @@ multi_client_set_protocol_options(struct context *c)
     {
         o->imported_protocol_flags |= CO_USE_DYNAMIC_TLS_CRYPT;
     }
-#endif
 
     if (proto & IV_PROTO_CC_EXIT_NOTIFY)
     {

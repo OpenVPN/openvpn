@@ -2034,10 +2034,8 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
 
         buf_printf(&out, "IV_CIPHERS=%s\n", session->opt->config_ncp_ciphers);
 
-#ifdef HAVE_EXPORT_KEYING_MATERIAL
         iv_proto |= IV_PROTO_TLS_KEY_EXPORT;
         iv_proto |= IV_PROTO_DYN_TLS_CRYPT;
-#endif
 
         buf_printf(&out, "IV_PROTO=%d\n", iv_proto);
 

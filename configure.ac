@@ -988,10 +988,6 @@ if test "${with_crypto_library}" = "openssl"; then
 		[AC_MSG_ERROR([OpenSSL check for AES-256-GCM support failed])]
 	)
 
-	# All supported OpenSSL versions (>= 1.1.0)
-	# have this feature
-	have_export_keying_material="yes"
-
 	CFLAGS="${saved_CFLAGS}"
 	LIBS="${saved_LIBS}"
 
@@ -1064,7 +1060,6 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 		[AC_DEFINE([HAVE_MBEDTLS_SSL_TLS_PRF], [0], [no])]
 	)
 
-	have_export_keying_material="yes"
 	AC_CHECK_FUNC(
 		[mbedtls_ssl_conf_export_keys_ext_cb],
 		[AC_DEFINE([HAVE_MBEDTLS_SSL_CONF_EXPORT_KEYS_EXT_CB], [1], [yes])],
@@ -1077,7 +1072,7 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 			[AC_DEFINE([HAVE_MBEDTLS_SSL_SET_EXPORT_KEYS_CB], [0], [no])]
 		)
 		if test "x$ac_cv_func_mbedtls_ssl_set_export_keys_cb" != xyes; then
-			have_export_keying_material="no"
+			AC_MSG_ERROR(This version of mbed TLS has no support for exporting key material.)
 		fi
 	fi
 
@@ -1132,16 +1127,11 @@ elif test "${with_crypto_library}" = "wolfssl"; then
 	)
 	AC_CHECK_HEADER([wolfssl/options.h],,[AC_MSG_ERROR([wolfSSL header wolfssl/options.h not found!])])
 
-	# wolfSSL signal EKM support
-	have_export_keying_material="yes"
-
 	if test "${enable_wolfssl_options_h}" = "yes"; then
 		AC_DEFINE([EXTERNAL_OPTS_OPENVPN], [1], [Include options.h from wolfSSL library])
 	else
 		AC_DEFINE([WOLFSSL_USER_SETTINGS], [1], [Use custom user_settings.h file for wolfSSL library])
 	fi
-
-	have_export_keying_material="yes"
 
 	CFLAGS="${saved_CFLAGS}"
 	LIBS="${saved_LIBS}"
@@ -1346,12 +1336,6 @@ test "${enable_port_share}" = "yes" && AC_DEFINE([ENABLE_PORT_SHARE], [1], [Enab
 test "${enable_dns_updown_by_default}" = "yes" && AC_DEFINE([ENABLE_DNS_UPDOWN_BY_DEFAULT], [1], [Enable dns-updown hook by default])
 test "${enable_ntlm}" = "yes" && AC_DEFINE([ENABLE_NTLM], [1], [Enable NTLMv2 proxy support])
 test "${enable_crypto_ofb_cfb}" = "yes" && AC_DEFINE([ENABLE_OFB_CFB_MODE], [1], [Enable OFB and CFB cipher modes])
-if test "${have_export_keying_material}" = "yes"; then
-	AC_DEFINE(
-		[HAVE_EXPORT_KEYING_MATERIAL], [1],
-		[Crypto library supports keying material exporter]
-	)
-fi
 OPTIONAL_CRYPTO_CFLAGS="${OPTIONAL_CRYPTO_CFLAGS} ${CRYPTO_CFLAGS}"
 OPTIONAL_CRYPTO_LIBS="${OPTIONAL_CRYPTO_LIBS} ${CRYPTO_LIBS}"
 

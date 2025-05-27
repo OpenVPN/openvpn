@@ -446,7 +446,6 @@ p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session,
         session->opt->crypto_flags &= ~CO_EPOCH_DATA_KEY_FORMAT;
     }
 
-#if defined(HAVE_EXPORT_KEYING_MATERIAL)
     if (iv_proto_peer & IV_PROTO_TLS_KEY_EXPORT)
     {
         session->opt->crypto_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
@@ -479,7 +478,6 @@ p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session,
     {
         session->opt->crypto_flags |= CO_USE_DYNAMIC_TLS_CRYPT;
     }
-#endif /* if defined(HAVE_EXPORT_KEYING_MATERIAL) */
 }
 
 void

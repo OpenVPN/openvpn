@@ -701,11 +701,9 @@ struct options
     bool use_peer_id;
     uint32_t peer_id;
 
-#ifdef HAVE_EXPORT_KEYING_MATERIAL
     /* Keying Material Exporters [RFC 5705] */
     const char *keying_material_exporter_label;
     int keying_material_exporter_length;
-#endif
     /* force using TLS key material export for data channel key generation */
     bool force_key_material_export;
 

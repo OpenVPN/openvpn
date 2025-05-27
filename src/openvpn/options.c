@@ -664,10 +664,8 @@ static const char usage_message[] =
 #endif
     "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
     "                  plugins and management interface.\n"
-#ifdef HAVE_EXPORT_KEYING_MATERIAL
     "--keying-material-exporter label len : Save Exported Keying Material (RFC5705)\n"
     "                  of len bytes (min. 16 bytes) using label in environment for use by plugins.\n"
-#endif
     "--remote-cert-ku v ... : Require that the peer certificate was signed with\n"
     "                  explicit key usage, you can specify more than one value.\n"
     "                  value should be given in hex format.\n"
@@ -3595,10 +3593,6 @@ options_process_mutate_prf(struct options *o)
             "calculation anymore or your security policy (e.g. FIPS 140-2) "
             "forbids it. Connections will only work with peers running "
             "OpenVPN 2.6.0 or higher)");
-#ifndef HAVE_EXPORT_KEYING_MATERIAL
-        msg(M_FATAL, "Keying Material Exporters (RFC 5705) not available either. "
-            "No way to generate data channel keys left.");
-#endif
         if (o->mode == MODE_SERVER)
         {
             msg(M_WARN, "Automatically enabling option "
@@ -8664,13 +8658,11 @@ add_option(struct options *options,
         /* NCP only option that is pushed by the server to enable EKM,
          * should not be used by normal users in config files*/
         VERIFY_PERMISSION(OPT_P_NCP)
-#ifdef HAVE_EXPORT_KEYING_MATERIAL
         if (streq(p[1], "tls-ekm"))
         {
             options->imported_protocol_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
         }
         else
-#endif
         {
             msg(msglevel, "Unknown key-derivation method %s", p[1]);
         }
@@ -8687,7 +8679,6 @@ add_option(struct options *options,
             {
                 options->imported_protocol_flags |= CO_USE_CC_EXIT_NOTIFY;
             }
-#ifdef HAVE_EXPORT_KEYING_MATERIAL
             else if (streq(p[j], "tls-ekm"))
             {
                 options->imported_protocol_flags |= CO_USE_TLS_KEY_MATERIAL_EXPORT;
@@ -8696,7 +8687,6 @@ add_option(struct options *options,
             {
                 options->imported_protocol_flags |= CO_USE_DYNAMIC_TLS_CRYPT;
             }
-#endif
             else if (streq(p[j], "aead-epoch"))
             {
                 options->imported_protocol_flags |= CO_EPOCH_DATA_KEY_FORMAT;
@@ -9453,7 +9443,6 @@ add_option(struct options *options,
         options->use_peer_id = true;
         options->peer_id = atoi_warn(p[1], msglevel);
     }
-#ifdef HAVE_EXPORT_KEYING_MATERIAL
     else if (streq(p[0], "keying-material-exporter") && p[1] && p[2])
     {
         int ekm_length = positive_atoi(p[2], msglevel);
@@ -9480,7 +9469,6 @@ add_option(struct options *options,
         options->keying_material_exporter_label = p[1];
         options->keying_material_exporter_length = ekm_length;
     }
-#endif /* HAVE_EXPORT_KEYING_MATERIAL */
     else if (streq(p[0], "allow-recursive-routing") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);

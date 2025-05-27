@@ -120,9 +120,6 @@ don't. */
 /* Define to 1 if you have the <err.h> header file. */
 #cmakedefine HAVE_ERR_H
 
-/* Crypto library supports keying material exporter */
-#define HAVE_EXPORT_KEYING_MATERIAL 1
-
 /* Define to 1 if you have the <fcntl.h> header file. */
 #cmakedefine HAVE_FCNTL_H
 
