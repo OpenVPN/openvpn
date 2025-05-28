@@ -83,3 +83,15 @@ PKCS#11 / SmartCard options
 
   ``--verb`` option can be used BEFORE this option to produce debugging
   information.
+
+--pkcs11-pin pin
+  Specify the file with the PIN for the PKCS#11 token.
+
+  Valid syntax:
+  ::
+
+     pkcs11-pin file.txt
+
+  If the PIN is specified from file, the file should contain only the PIN,
+  without any additional characters.
+  When ``--pkcs11-pin`` is not specified, the user will be prompted to enter the PIN.
