@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2023-2024 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2023-2024 Arne Schwabe <arne@rfc2549.org>
+ *  Copyright (C) 2023-2025 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2023-2025 Arne Schwabe <arne@rfc2549.org>
  *
  *
  *  This program is free software; you can redistribute it and/or modify

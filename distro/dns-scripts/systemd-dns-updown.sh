@@ -2,7 +2,7 @@
 #
 # dns-updown - add/remove openvpn provided DNS information
 #
-# Copyright (C) 2024 OpenVPN Inc <sales@openvpn.net>
+# Copyright (C) 2024-2025 OpenVPN Inc <sales@openvpn.net>
 #
 # SPDX-License-Identifier: GPL-2.0
 #
