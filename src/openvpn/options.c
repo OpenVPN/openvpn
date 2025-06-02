@@ -3698,7 +3698,7 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
 
     if (o->tls_server)
     {
-        if (streq(o->dh_file, "none"))
+        if (o->dh_file && streq(o->dh_file, "none"))
         {
             o->dh_file = NULL;
         }
