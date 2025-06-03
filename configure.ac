@@ -1072,7 +1072,10 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 			[AC_DEFINE([HAVE_MBEDTLS_SSL_SET_EXPORT_KEYS_CB], [0], [no])]
 		)
 		if test "x$ac_cv_func_mbedtls_ssl_set_export_keys_cb" != xyes; then
-			AC_MSG_ERROR(This version of mbed TLS has no support for exporting key material.)
+			AC_CHECK_FUNC([mbedtls_ssl_export_keying_material])
+			if test "x$ac_cv_func_mbedtls_ssl_export_keying_material" != xyes; then
+				AC_MSG_ERROR(This version of mbed TLS has no support for exporting key material.)
+			fi
 		fi
 	fi
 

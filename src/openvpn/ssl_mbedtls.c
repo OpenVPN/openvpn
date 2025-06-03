@@ -251,8 +251,8 @@ mbedtls_ssl_export_keys_cb(void *p_expkey,
     memcpy(cache->master_secret, secret, sizeof(cache->master_secret));
     cache->tls_prf_type = tls_prf_type;
 }
-#else  /* if HAVE_MBEDTLS_SSL_CONF_EXPORT_KEYS_EXT_CB */
-#error either mbedtls_ssl_conf_export_keys_ext_cb or mbedtls_ssl_set_export_keys_cb must be available in mbed TLS
+#elif !defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT)
+#error mbedtls_ssl_conf_export_keys_ext_cb, mbedtls_ssl_set_export_keys_cb or mbedtls_ssl_export_keying_material must be available in mbed TLS
 #endif /* HAVE_MBEDTLS_SSL_CONF_EXPORT_KEYS_EXT_CB */
 
 bool
@@ -262,6 +262,20 @@ key_state_export_keying_material(struct tls_session *session,
 {
     ASSERT(strlen(label) == label_size);
 
+#if defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT)
+    /* Our version of mbed TLS has a built-in TLS-Exporter. */
+
+    mbedtls_ssl_context *ctx = session->key[KS_PRIMARY].ks_ssl.ctx;
+    if (mbed_ok(mbedtls_ssl_export_keying_material(ctx, ekm, ekm_size, label, label_size, NULL, 0, 0)))
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+
+#else  /* defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT) */
     struct tls_key_cache *cache = &session->key[KS_PRIMARY].ks_ssl.tls_key_cache;
 
     /* If the type is NONE, we either have no cached secrets or
@@ -286,6 +300,7 @@ key_state_export_keying_material(struct tls_session *session,
         secure_memzero(ekm, session->opt->ekm_size);
         return false;
     }
+#endif  /* defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT) */
 }
 
 bool
@@ -1226,7 +1241,7 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
         mbedtls_ssl_conf_max_tls_version(ks_ssl->ssl_config, version);
     }
 
-#if HAVE_MBEDTLS_SSL_CONF_EXPORT_KEYS_EXT_CB
+#if HAVE_MBEDTLS_SSL_CONF_EXPORT_KEYS_EXT_CB && !defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT)
     /* Initialize keying material exporter, old style. */
     mbedtls_ssl_conf_export_keys_ext_cb(ks_ssl->ssl_config,
                                         mbedtls_ssl_export_keys_cb, session);
@@ -1241,7 +1256,7 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl,
      * verification. */
     ASSERT(mbed_ok(mbedtls_ssl_set_hostname(ks_ssl->ctx, NULL)));
 
-#if HAVE_MBEDTLS_SSL_SET_EXPORT_KEYS_CB
+#if HAVE_MBEDTLS_SSL_SET_EXPORT_KEYS_CB && !defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT)
     /* Initialize keying material exporter, new style. */
     mbedtls_ssl_set_export_keys_cb(ks_ssl->ctx, mbedtls_ssl_export_keys_cb, session);
 #endif
