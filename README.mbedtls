@@ -26,5 +26,9 @@ Plugin/Script features:
 
 *************************************************************************
 
-Mbed TLS 3 has implemented (parts of) the TLS 1.3 protocol, but we have disabled
-support in OpenVPN because the TLS-Exporter function is not yet implemented.
+Mbed TLS 3 has implemented TLS 1.3, but support in OpenVPN requires the
+function mbedtls_ssl_export_keying_material() which is currently not in
+any released version. It is available when building mbed TLS from source
+(mbedtls-3.6 or development branch).
+
+Without this function, only TLS 1.2 is available.

@@ -1048,11 +1048,14 @@ tls_ctx_personalise_random(struct tls_root_ctx *ctx)
 int
 tls_version_max(void)
 {
-#if defined(MBEDTLS_SSL_PROTO_TLS1_2)
+    /* We need mbedtls_ssl_export_keying_material() to support TLS 1.3. */
+#if defined(MBEDTLS_SSL_PROTO_TLS1_3) && defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT)
+    return TLS_VER_1_3;
+#elif defined(MBEDTLS_SSL_PROTO_TLS1_2)
     return TLS_VER_1_2;
-#else /* defined(MBEDTLS_SSL_PROTO_TLS1_2) */
-    #error "mbedtls is compiled without support for TLS 1.2."
-#endif /* defined(MBEDTLS_SSL_PROTO_TLS1_2) */
+#else
+    #error mbedtls is compiled without support for TLS 1.2 or 1.3
+#endif
 }
 
 /**
