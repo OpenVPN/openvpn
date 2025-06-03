@@ -302,7 +302,7 @@ int net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
                      int metric);
 
 /**
- * Delete a route for an IPv4 address/network
+ * Delete a route for an IPv6 address/network
  *
  * @param ctx       the implementation specific context
  * @param dst       the destination of the route

@@ -44,8 +44,10 @@ time_t now_usec = 0;       /* GLOBAL */
 void
 update_now(const time_t system_time)
 {
-    const int forward_threshold = 86400; /* threshold at which to dampen forward jumps */
-    const int backward_trigger  = 10;  /* backward jump must be >= this many seconds before we adjust */
+    /* threshold at which to dampen forward jumps */
+    const int forward_threshold = 86400;
+    /* backward jump must be >= this many seconds before we adjust */
+    const int backward_trigger = 10;
     time_t real_time = system_time + now_adj;
 
     if (real_time > now)

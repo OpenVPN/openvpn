@@ -246,7 +246,8 @@ tv_delta(struct timeval *dest, const struct timeval *t1, const struct timeval *t
 static inline bool
 tv_within_sigma(const struct timeval *t1, const struct timeval *t2, unsigned int sigma)
 {
-    const int delta = tv_subtract(t1, t2, TV_WITHIN_SIGMA_MAX_SEC); /* sigma should be less than 10 minutes */
+    /* sigma should be less than 10 minutes */
+    const int delta = tv_subtract(t1, t2, TV_WITHIN_SIGMA_MAX_SEC);
     return -(int)sigma <= delta && delta <= (int)sigma;
 }
 
