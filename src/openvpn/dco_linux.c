@@ -367,19 +367,19 @@ ovpn_nl_cb_error(struct sockaddr_nl (*nla) __attribute__ ((unused)),
     {
         len = strnlen((char *)nla_data(tb_msg[NLMSGERR_ATTR_MSG]),
                       nla_len(tb_msg[NLMSGERR_ATTR_MSG]));
-        msg(M_WARN, "kernel error: %*s\n", len,
+        msg(M_WARN, "kernel error: %*s", len,
             (char *)nla_data(tb_msg[NLMSGERR_ATTR_MSG]));
     }
 
     if (tb_msg[OVPN_NLMSGERR_ATTR_MISS_NEST])
     {
-        msg(M_WARN, "kernel error: missing required nesting type %u\n",
+        msg(M_WARN, "kernel error: missing required nesting type %u",
             nla_get_u32(tb_msg[OVPN_NLMSGERR_ATTR_MISS_NEST]));
     }
 
     if (tb_msg[OVPN_NLMSGERR_ATTR_MISS_TYPE])
     {
-        msg(M_WARN, "kernel error: missing required attribute type %u\n",
+        msg(M_WARN, "kernel error: missing required attribute type %u",
             nla_get_u32(tb_msg[OVPN_NLMSGERR_ATTR_MISS_TYPE]));
     }
 
@@ -404,6 +404,11 @@ ovpn_dco_init_netlink(dco_context_t *dco)
         msg(M_ERR, "Cannot connect to generic netlink: %s",
             nl_geterror(ret));
     }
+
+    /* enable Extended ACK for detailed error reporting */
+    ret = 1;
+    setsockopt(nl_socket_get_fd(dco->nl_sock), SOL_NETLINK, NETLINK_EXT_ACK,
+               &ret, sizeof(ret));
 
     /* set close on exec and non-block on the netlink socket */
     set_cloexec(nl_socket_get_fd(dco->nl_sock));
