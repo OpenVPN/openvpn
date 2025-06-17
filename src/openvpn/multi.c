@@ -3217,6 +3217,12 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi,
     struct hash *hash = m->hash;
     struct gc_arena gc = gc_new();
 
+    if (mi->real.type & MR_WITH_PROTO)
+    {
+        real.type |= MR_WITH_PROTO;
+        real.proto = sock->info.proto;
+    }
+
     if (!mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true))
     {
         goto done;
