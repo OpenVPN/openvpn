@@ -11,20 +11,18 @@ launch_server() {
     # Allow reading this file even umask values are strict
     touch "$log"
 
-    if [ -z "${RUN_SUDO}" ]; then
-        "${server_exec}" \
-         $server_conf \
-         --status "${status}" 1 \
-         --log "${log}" \
-         --writepid "${pid}" \
-         --explicit-exit-notify 3
-    else
-        $RUN_SUDO "${server_exec}" \
-                   $server_conf \
-                   --status "${status}" 1 \
-                   --log "${log}" \
-                   --writepid "${pid}" \
-                   --explicit-exit-notify 3
+    # Try to launch the server
+    $RUN_SUDO "${server_exec}" \
+               $server_conf \
+               --status "${status}" 1 \
+               --writepid "${pid}" \
+               --explicit-exit-notify 3 > "$log" 2>&1 &
+
+    sleep 1
+
+    if ! [ -r "$pid" ] || [ -z "$pid" ]; then
+        echo "ERROR: failed to start server $server_name"
+        tail -n 20 "$log"
     fi
 }
 
