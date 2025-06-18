@@ -691,7 +691,8 @@ run_updown_runner(bool up, struct options *o, const struct tuntap *tt, struct dn
 static void
 run_up_down_command(bool up, struct options *o, const struct tuntap *tt, struct dns_updown_runner_info *updown_runner)
 {
-    if (!o->dns_options.updown)
+    struct dns_options *dns = &o->dns_options;
+    if (!dns->updown || (o->up_script && !dns->user_set_updown))
     {
         return;
     }
@@ -701,7 +702,7 @@ run_up_down_command(bool up, struct options *o, const struct tuntap *tt, struct 
     if (!updown_runner->required)
     {
         /* Run dns updown directly */
-        status = do_run_up_down_command(up, NULL, &o->dns_options, tt);
+        status = do_run_up_down_command(up, NULL, dns, tt);
     }
     else
     {
@@ -852,6 +853,14 @@ run_dns_up_down(bool up, struct options *o, const struct tuntap *tt, struct dns_
     {
         return;
     }
+#ifdef _WIN32
+    /* Don't use iservice in DHCP mode */
+    struct tuntap_options *tto = &o->tuntap_options;
+    if (tto->ip_win32_type == IPW32_SET_DHCP_MASQ || tto->ip_win32_type == IPW32_SET_ADAPTIVE)
+    {
+        return;
+    }
+#endif
 
     /* Warn about adding servers of unsupported AF */
     const struct dns_server *s = o->dns_options.servers;

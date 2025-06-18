@@ -76,7 +76,28 @@ struct dns_updown_runner_info {
 #endif
 };
 
+#ifndef N_DHCP_ADDR
+#define N_DHCP_ADDR 4
+#endif
+
+#ifndef N_SEARCH_LIST_LEN
+#define N_SEARCH_LIST_LEN 10
+#endif
+
+struct dhcp_options {
+    in_addr_t dns[N_DHCP_ADDR];
+    int dns_len;
+
+    struct in6_addr dns6[N_DHCP_ADDR];
+    int dns6_len;
+
+    const char *domain;
+    const char *domain_search_list[N_SEARCH_LIST_LEN];
+    int domain_search_list_len;
+};
+
 struct dns_options {
+    struct dhcp_options from_dhcp;
     struct dns_domain *search_domains;
     struct dns_server *servers_prepull;
     struct dns_server *servers;
