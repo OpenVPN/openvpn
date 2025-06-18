@@ -114,6 +114,9 @@ Allow overriding username with ``--override-username``
 
 Support for Haiku OS
 
+TLS1.3 support with mbedTLS (very recent mbedTLS development versions only)
+
+
 Deprecated features
 -------------------
 ``secret`` support has been removed (by default).

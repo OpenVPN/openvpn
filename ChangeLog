@@ -1,6 +1,43 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.06.18 -- Version 2.7_alpha2
+
+Antonio Quartulli (1):
+      dco_linux: enable extended netlink error reporting
+
+Arne Schwabe (1):
+      Add missing header in unit tests Makefile.am
+
+Frank Lichtenheld (6):
+      Remove contrib/pull-resolv-conf
+      Update copyright statements to 2025
+      Do not segfault on missing --dh in server config
+      Delete old sample-windows file and obsolete Windows sample handling
+      t_server_null: Test different permutations of --dh
+      Fix various badly placed comments in preparation for reformat
+
+Gert Doering (1):
+      OpenVPN Release 2.7_alpha2
+
+Gianmarco De Gregori (1):
+      Multi-socket: local_list clean-up
+
+Heiko Hund (2):
+      fix typo in haikuos dns-updown script
+      dns: deal with --dhcp-options when --dns is active
+
+Max Fillinger (2):
+      Use mbedtls_ssl_export_keying_material()
+      mbedtls: Allow TLS 1.3 if available
+
+Ralf Lici (1):
+      Preserve socket protocol during float processing
+
+Samuli Seppänen (1):
+      t_server_null: print error when server startup fails
+
+
 2025.05.28 -- Version 2.7_alpha1
 
 5andr0 (1):
