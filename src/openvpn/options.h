@@ -188,8 +188,9 @@ struct remote_entry
 
 struct local_list
 {
+    int capacity;
     int len;
-    struct local_entry *array[CONNECTION_LIST_SIZE];
+    struct local_entry **array;
 };
 
 struct connection_list

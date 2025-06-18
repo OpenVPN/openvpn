@@ -2067,12 +2067,20 @@ alloc_local_entry(struct connection_entry *ce, const int msglevel,
     struct local_list *l = alloc_local_list_if_undef(ce, gc);
     struct local_entry *e;
 
-    if (l->len >= CONNECTION_LIST_SIZE)
+    if (l->len >= l->capacity)
     {
-        msg(msglevel, "Maximum number of 'local' options (%d) exceeded",
-            CONNECTION_LIST_SIZE);
+        const int new_cap = l->capacity + 1;
+        const size_t elem_size = sizeof(*l->array);
 
-        return NULL;
+        struct local_entry **new_array = gc_realloc(l->array, new_cap * elem_size, gc);
+        if (!new_array)
+        {
+            msg(msglevel, "Unable to process more local options: out of memory. Number of entries = %d", l->len);
+            return NULL;
+        }
+
+        l->array = new_array;
+        l->capacity = new_cap;
     }
 
     ALLOC_OBJ_CLEAR_GC(e, struct local_entry, gc);
