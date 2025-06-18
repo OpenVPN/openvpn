@@ -28,7 +28,7 @@
 
 set -e +u
 
-conly_standard_server_ports() {
+only_standard_server_ports() {
     i=1
     while true; do
         eval addr=\"\$dns_server_${n}_address_${i}\"
