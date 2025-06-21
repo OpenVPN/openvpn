@@ -12,6 +12,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/Makefile.in
 
 EXTRA_DIST = \
+	macos-dns-updown.sh \
 	systemd-dns-updown.sh \
 	openresolv-dns-updown.sh \
 	haikuos_file-dns-updown.sh \

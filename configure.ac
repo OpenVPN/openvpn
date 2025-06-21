@@ -364,8 +364,7 @@ case "$host" in
 	*-*-darwin*)
 		AC_DEFINE([TARGET_DARWIN], [1], [Are we running on Mac OS X?])
 		AC_DEFINE_UNQUOTED([TARGET_PREFIX], ["M"], [Target prefix])
-		AM_CONDITIONAL([ENABLE_DNS_UPDOWN], [false])
-		AC_SUBST([DNS_UPDOWN_TYPE], ["resolvconf_file"])
+		AC_SUBST([DNS_UPDOWN_TYPE], ["macos"])
 		have_tap_header="yes"
 		ac_cv_type_struct_in_pktinfo=no
 		;;
