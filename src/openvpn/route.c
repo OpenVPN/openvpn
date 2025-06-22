@@ -330,12 +330,10 @@ init_route(struct route_ipv4 *r,
     r->option = ro;
 
     /* network */
-
     if (!is_route_parm_defined(ro->network))
     {
         goto fail;
     }
-
 
     /* get_special_addr replaces specialaddr with a special ip addr
      * like gw. getaddrinfo is called to convert a a addrinfo struct */
@@ -442,6 +440,9 @@ init_route(struct route_ipv4 *r,
 
     r->flags |= RT_DEFINED;
 
+    /* routing table id */
+    r->table_id = ro->table_id;
+
     return true;
 
 fail:
@@ -498,6 +499,9 @@ init_route_ipv6(struct route_ipv6 *r6,
 
     r6->flags |= RT_DEFINED;
 
+    /* routing table id */
+    r6->table_id = r6o->table_id;
+
     return true;
 
 fail:
@@ -511,7 +515,8 @@ add_route_to_option_list(struct route_option_list *l,
                          const char *network,
                          const char *netmask,
                          const char *gateway,
-                         const char *metric)
+                         const char *metric,
+                         int table_id)
 {
     struct route_option *ro;
     ALLOC_OBJ_GC(ro, struct route_option, l->gc);
@@ -519,6 +524,7 @@ add_route_to_option_list(struct route_option_list *l,
     ro->netmask = netmask;
     ro->gateway = gateway;
     ro->metric = metric;
+    ro->table_id = table_id;
     ro->next = l->routes;
     l->routes = ro;
 
@@ -528,13 +534,15 @@ void
 add_route_ipv6_to_option_list(struct route_ipv6_option_list *l,
                               const char *prefix,
                               const char *gateway,
-                              const char *metric)
+                              const char *metric,
+                              int table_id)
 {
     struct route_ipv6_option *ro;
     ALLOC_OBJ_GC(ro, struct route_ipv6_option, l->gc);
     ro->prefix = prefix;
     ro->gateway = gateway;
     ro->metric = metric;
+    ro->table_id = table_id;
     ro->next = l->routes_ipv6;
     l->routes_ipv6 = ro;
 }
@@ -1610,9 +1618,10 @@ add_route(struct route_ipv4 *r,
         metric = r->metric;
     }
 
+
     status = RTA_SUCCESS;
     int ret = net_route_v4_add(ctx, &r->network, netmask_to_netbits2(r->netmask),
-                               &r->gateway, iface, 0, metric);
+                               &r->gateway, iface, r->table_id, metric);
     if (ret == -EEXIST)
     {
         msg(D_ROUTE, "NOTE: Linux route add command failed because route exists");
@@ -2007,7 +2016,7 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt,
     status = RTA_SUCCESS;
     int ret = net_route_v6_add(ctx, &r6->network, r6->netbits,
                                gateway_needed ? &r6->gateway : NULL,
-                               device, 0, metric);
+                               device, r6->table_id, metric);
     if (ret == -EEXIST)
     {
         msg(D_ROUTE, "NOTE: Linux route add command failed because route exists");
@@ -2227,7 +2236,7 @@ delete_route(struct route_ipv4 *r,
     }
 
     if (net_route_v4_del(ctx, &r->network, netmask_to_netbits2(r->netmask),
-                         &r->gateway, NULL, 0, metric) < 0)
+                         &r->gateway, NULL, r->table_id, metric) < 0)
     {
         msg(M_WARN, "ERROR: Linux route delete command failed");
     }
@@ -2452,7 +2461,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     }
 
     if (net_route_v6_del(ctx, &r6->network, r6->netbits,
-                         gateway_needed ? &r6->gateway : NULL, device, 0,
+                         gateway_needed ? &r6->gateway : NULL, device, r6->table_id,
                          metric) < 0)
     {
         msg(M_WARN, "ERROR: Linux route v6 delete command failed");

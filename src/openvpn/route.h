@@ -69,6 +69,7 @@ struct route_special_addr
     in_addr_t remote_host;
     int remote_host_local; /* TLA_x value */
     struct route_bypass bypass;
+    int table_id;
     int default_metric;
 };
 
@@ -77,6 +78,7 @@ struct route_option {
     const char *network;
     const char *netmask;
     const char *gateway;
+    int table_id;
     const char *metric;
 };
 
@@ -101,6 +103,7 @@ struct route_ipv6_option {
     const char *prefix;         /* e.g. "2001:db8:1::/64" */
     const char *gateway;        /* e.g. "2001:db8:0::2" */
     const char *metric;         /* e.g. "5" */
+    int table_id;
 };
 
 struct route_ipv6_option_list {
@@ -119,6 +122,7 @@ struct route_ipv4 {
     in_addr_t network;
     in_addr_t netmask;
     in_addr_t gateway;
+    int table_id;
     int metric;
 };
 
@@ -129,6 +133,7 @@ struct route_ipv6 {
     unsigned int netbits;
     struct in6_addr gateway;
     int metric;
+    int table_id;
     /* gateway interface */
 #ifdef _WIN32
     DWORD adapter_index;        /* interface or ~0 if undefined */
@@ -290,12 +295,14 @@ void add_route_to_option_list(struct route_option_list *l,
                               const char *network,
                               const char *netmask,
                               const char *gateway,
-                              const char *metric);
+                              const char *metric,
+                              int table_id);
 
 void add_route_ipv6_to_option_list(struct route_ipv6_option_list *l,
                                    const char *prefix,
                                    const char *gateway,
-                                   const char *metric);
+                                   const char *metric,
+                                   int table_id);
 
 bool init_route_list(struct route_list *rl,
                      const struct route_option_list *opt,

@@ -1566,7 +1566,7 @@ do_init_route_ipv6_list(const struct options *options,
         {
             add_route_ipv6_to_option_list( options->routes_ipv6,
                                            string_alloc(opt_list[i], options->routes_ipv6->gc),
-                                           NULL, NULL );
+                                           NULL, NULL, options->route_default_table_id);
         }
     }
 
