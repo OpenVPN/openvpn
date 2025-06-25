@@ -265,13 +265,11 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
         {
             NLA_PUT(nl_msg, OVPN_A_PEER_LOCAL_IPV4, sizeof(struct in_addr),
                     &((struct sockaddr_in *)localaddr)->sin_addr);
-            NLA_PUT_U16(nl_msg, OVPN_A_PEER_LOCAL_PORT, ((struct sockaddr_in *)localaddr)->sin_port);
         }
         else if (localaddr->sa_family == AF_INET6)
         {
             NLA_PUT(nl_msg, OVPN_A_PEER_LOCAL_IPV6, sizeof(struct in6_addr),
                     &((struct sockaddr_in6 *)localaddr)->sin6_addr);
-            NLA_PUT_U16(nl_msg, OVPN_A_PEER_LOCAL_PORT, ((struct sockaddr_in6 *)localaddr)->sin6_port);
         }
     }
 
