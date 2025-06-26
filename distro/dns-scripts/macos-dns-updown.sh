@@ -30,6 +30,7 @@
 
 itf_dns_key="State:/Network/Service/openvpn-${dev}/DNS"
 dns_backup_key="State:/Network/Service/openvpn-${dev}/DnsBackup"
+dns_backup_key_pattern="State:/Network/Service/openvpn-.*/DnsBackup"
 
 function primary_dns_key {
     local uuid=$(echo "show State:/Network/Global/IPv4" | /usr/sbin/scutil | grep "PrimaryService" | cut -d: -f2 | xargs)
@@ -166,6 +167,11 @@ function set_dns {
         echo -e "${cmds}" | /usr/sbin/scutil
         set_search_domains "$search_domains"
     else
+        echo list ${dns_backup_key_pattern} | /usr/sbin/scutil | grep -q 'no key' || {
+            echo "setting DNS failed, already redirecting to another tunnel"
+            exit 1
+        }
+
         local cmds=""
         cmds+="get $(primary_dns_key)\n"
         cmds+="set ${dns_backup_key}\n"
@@ -200,6 +206,9 @@ function unset_dns {
         echo "remove ${itf_dns_key}" | /usr/sbin/scutil
         unset_search_domains "$search_domains"
     else
+        # Do not unset if this tunnel did not set/backup DNS before
+        echo list ${dns_backup_key} | /usr/sbin/scutil | grep -qv 'no key' || return
+
         local cmds=""
         cmds+="get ${dns_backup_key}\n"
         cmds+="set $(primary_dns_key)\n"
