@@ -42,13 +42,18 @@ enum dns_server_transport {
     DNS_TRANSPORT_TLS
 };
 
+enum dns_updown_flags {
+    DNS_UPDOWN_NO_FLAGS,
+    DNS_UPDOWN_USER_SET,
+    DNS_UPDOWN_FORCED
+};
+
 struct dns_domain {
     struct dns_domain *next;
     const char *name;
 };
 
-struct dns_server_addr
-{
+struct dns_server_addr {
     union {
         struct in_addr a4;
         struct in6_addr a6;
@@ -103,7 +108,7 @@ struct dns_options {
     struct dns_server *servers;
     struct gc_arena gc;
     const char *updown;
-    bool user_set_updown;
+    enum dns_updown_flags updown_flags;
 };
 
 /**
@@ -194,5 +199,27 @@ void run_dns_up_down(bool up, struct options *o, const struct tuntap *tt,
  * @param   o           Pointer to the DNS options to print
  */
 void show_dns_options(const struct dns_options *o);
+
+/**
+ * Returns whether dns-updown is user defined
+ *
+ * @param   o           Pointer to the DNS options struct
+ */
+static inline bool
+dns_updown_user_set(const struct dns_options *o)
+{
+    return o->updown_flags == DNS_UPDOWN_USER_SET;
+}
+
+/**
+ * Returns whether dns-updown is forced to run
+ *
+ * @param   o           Pointer to the DNS options struct
+ */
+static inline bool
+dns_updown_forced(const struct dns_options *o)
+{
+    return o->updown_flags == DNS_UPDOWN_FORCED;
+}
 
 #endif /* ifndef DNS_H */

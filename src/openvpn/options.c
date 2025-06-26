@@ -3593,7 +3593,7 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
     struct gc_arena gc = gc_new();
     struct dns_options *dns = &o->dns_options;
 
-    if (dns->servers || dns->user_set_updown)
+    if (dns->servers || dns_updown_user_set(dns) || dns_updown_forced(dns))
     {
         /* Clean up env from --dhcp-option DNS config */
         struct buffer name = alloc_buf_gc(OPTION_PARM_SIZE, &gc);
@@ -3667,7 +3667,7 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
             }
         }
     }
-    else if (o->up_script && !dns->user_set_updown)
+    else if (o->up_script && !dns_updown_user_set(dns) && !dns_updown_forced(dns))
     {
         /* Set foreign option env vars from --dns config */
         const char *p[] = { "dhcp-option", NULL, NULL };
@@ -8182,15 +8182,15 @@ add_option(struct options *options,
         if (streq(p[1], "disable"))
         {
             dns->updown = NULL;
-            dns->user_set_updown = false;
+            dns->updown_flags = DNS_UPDOWN_NO_FLAGS;
         }
         else if (streq(p[1], "force"))
         {
             /* force dns-updown run, even if a --up script is defined */
-            if (dns->user_set_updown == false)
+            if (!dns_updown_user_set(dns))
             {
                 dns->updown = DEFAULT_DNS_UPDOWN;
-                dns->user_set_updown = true;
+                dns->updown_flags = DNS_UPDOWN_FORCED;
             }
         }
         else
@@ -8201,7 +8201,7 @@ add_option(struct options *options,
                 dns->updown = NULL;
             }
             set_user_script(options, &dns->updown, p[1], p[0], false);
-            dns->user_set_updown = true;
+            dns->updown_flags = DNS_UPDOWN_USER_SET;
         }
     }
     else if (streq(p[0], "dns") && p[1])

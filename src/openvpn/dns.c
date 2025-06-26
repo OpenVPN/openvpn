@@ -264,7 +264,7 @@ clone_dns_options(const struct dns_options *o, struct gc_arena *gc)
     clone.servers = clone_dns_servers(o->servers, gc);
     clone.servers_prepull = clone_dns_servers(o->servers_prepull, gc);
     clone.updown = o->updown;
-    clone.user_set_updown = o->user_set_updown;
+    clone.updown_flags = o->updown_flags;
 
     return clone;
 }
@@ -580,7 +580,7 @@ do_run_up_down_command(bool up, const char *vars_file, const struct dns_options 
     argv_printf(&argv, "%s", o->updown);
     argv_msg(M_INFO, &argv);
     int res;
-    if (o->user_set_updown)
+    if (dns_updown_user_set(o))
     {
         res = openvpn_run_script(&argv, es, S_EXITCODE, "dns updown");
     }
@@ -692,7 +692,7 @@ static void
 run_up_down_command(bool up, struct options *o, const struct tuntap *tt, struct dns_updown_runner_info *updown_runner)
 {
     struct dns_options *dns = &o->dns_options;
-    if (!dns->updown || (o->up_script && !dns->user_set_updown))
+    if (!dns->updown || (o->up_script && !dns_updown_user_set(dns) && !dns_updown_forced(dns)))
     {
         return;
     }
