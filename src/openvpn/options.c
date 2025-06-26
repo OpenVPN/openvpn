@@ -3238,18 +3238,6 @@ options_postprocess_mutate_invariant(struct options *options)
         options->tuntap_options.ip_win32_type = IPW32_SET_NETSH;
     }
 
-    if ((dev == DEV_TYPE_TUN || dev == DEV_TYPE_TAP) && !options->route_delay_defined)
-    {
-        /* delay may only be necessary when we perform DHCP handshake */
-        const bool dhcp = (options->tuntap_options.ip_win32_type == IPW32_SET_DHCP_MASQ)
-                          || (options->tuntap_options.ip_win32_type == IPW32_SET_ADAPTIVE);
-        if ((options->mode == MODE_POINT_TO_POINT) && dhcp && (win32_version_info() <= WIN_VISTA))
-        {
-            options->route_delay_defined = true;
-            options->route_delay = 5; /* Vista sometimes has a race without this */
-        }
-    }
-
     if (options->ifconfig_noexec)
     {
         options->tuntap_options.ip_win32_type = IPW32_SET_MANUAL;
