@@ -259,6 +259,21 @@ close_fds_except(int keep)
             close(i);
         }
     }
+
+#if defined(HAVE_DUP) && defined(HAVE_DUP2)
+    int fd;
+    if ((fd = open ("/dev/null", O_RDWR, 0)) != -1)
+    {
+        dup2 (fd, 0);
+        dup2 (fd, 1);
+        dup2 (fd, 2);
+        if (fd > 2)
+        {
+            close (fd);
+        }
+    }
+#endif
+
 }
 
 /*
