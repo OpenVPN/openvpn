@@ -2662,7 +2662,7 @@ OpenNrptBaseKey(PHKEY key, PBOOL gpol)
     if (err == ERROR_FILE_NOT_FOUND)
     {
         *gpol = FALSE;
-        err = RegOpenKeyExA(HKEY_LOCAL_MACHINE, sys_key, 0, KEY_ALL_ACCESS, &nrpt);
+        err = RegCreateKeyExA(HKEY_LOCAL_MACHINE, sys_key, 0, NULL, 0, KEY_ALL_ACCESS, NULL, &nrpt, NULL);
         if (err)
         {
             nrpt = INVALID_HANDLE_VALUE;
