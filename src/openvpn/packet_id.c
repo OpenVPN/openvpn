@@ -673,6 +673,8 @@ packet_id_debug_print(int msglevel,
     gc_free(&gc);
 }
 
+#endif /* ifdef ENABLE_DEBUG */
+
 uint16_t
 packet_id_read_epoch(struct packet_id_net *pin, struct buffer *buf)
 {
@@ -711,6 +713,3 @@ packet_id_write_epoch(struct packet_id_send *p, uint16_t epoch, struct buffer *b
 
     return buf_write(buf, &net_id, sizeof(net_id));
 }
-
-
-#endif /* ifdef ENABLE_DEBUG */
