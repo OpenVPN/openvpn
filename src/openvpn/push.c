@@ -582,8 +582,6 @@ send_push_request(struct context *c)
  * @param tls_multi     tls multi context of VPN tunnel
  * @param gc            gc arena for allocating push options
  * @param push_list     push list to where options are added
- *
- * @return true on success, false on failure.
  */
 void
 prepare_auth_token_push_reply(struct tls_multi *tls_multi, struct gc_arena *gc,
