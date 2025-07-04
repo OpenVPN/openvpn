@@ -42,17 +42,17 @@ def measure_time(method):
 def load_crl(filename, format):
 
     def try_openssl_module(filename, format):
-        from OpenSSL import crypto
-        types = {
-            FILETYPE_PEM: crypto.FILETYPE_PEM,
-            FILETYPE_DER: crypto.FILETYPE_ASN1
+        from cryptography import x509
+        load_crl_functions = {
+            FILETYPE_PEM: x509.load_pem_x509_crl,
+            FILETYPE_DER: x509.load_der_x509_crl
         }
         if filename == '-':
-            crl = crypto.load_crl(types[format], sys.stdin.buffer.read())
+            crl = load_crl_functions[format](sys.stdin.buffer.read())
         else:
             with open(filename, 'rb') as f:
-                crl = crypto.load_crl(types[format], f.read())
-        return set(int(r.get_serial(), 16) for r in crl.get_revoked())
+                crl = load_crl_functions[format](f.read())
+        return set(r.serial_number for r in crl)
 
     def try_openssl_exec(filename, format):
         args = ['openssl', 'crl', '-inform', format, '-text']
