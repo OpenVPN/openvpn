@@ -66,7 +66,11 @@ struct user_pass
 #ifdef ENABLE_PKCS11
 #define USER_PASS_LEN 4096
 #else
-#define USER_PASS_LEN 128
+/*
+ * Increase the username and password length size to 65KB, in order
+ * to support long passwords under the dynamic challenge/response protocol.
+ */
+#define USER_PASS_LEN 65536
 #endif
     /* Note that username and password are expected to be null-terminated */
     char username[USER_PASS_LEN];
