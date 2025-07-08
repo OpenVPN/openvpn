@@ -61,6 +61,7 @@
 #include "xkey_common.h"
 #include "dco.h"
 #include "options_util.h"
+#include "tun_afunix.h"
 
 #include <ctype.h>
 
@@ -3592,6 +3593,13 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
 {
     struct gc_arena gc = gc_new();
     struct dns_options *dns = &o->dns_options;
+
+    if (is_tun_afunix(o->dev_node))
+    {
+        /* Disable running  dns-updown script with lwipovpn */
+        dns->updown_flags = DNS_UPDOWN_NO_FLAGS;
+        dns->updown = NULL;
+    }
 
     if (dns->servers || dns_updown_user_set(dns) || dns_updown_forced(dns))
     {
