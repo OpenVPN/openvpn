@@ -649,6 +649,7 @@ reliable_can_send(const struct reliable *rel)
             }
         }
     }
+    (void)n_active; /* dmsg might not generate code */
     dmsg(D_REL_DEBUG, "ACK reliable_can_send active=%d current=%d : %s",
          n_active,
          n_current,
