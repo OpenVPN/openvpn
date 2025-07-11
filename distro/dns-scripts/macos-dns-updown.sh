@@ -26,6 +26,23 @@
 #   dns_server_1_sni dns.mycorp.in
 #
 
+lockdir=/var/lock
+if [ ! -d "${lockdir}" ]; then
+    /bin/mkdir "${lockdir}"
+    /bin/chmod 1777 "${lockdir}"
+fi
+
+i=1
+lockfile="${lockdir}/openvpn-dns-updown.lock"
+while ! /usr/bin/shlock -f $lockfile -p $$; do
+    if [ $((++i)) -gt 10 ]; then
+        echo "dns-updown failed, could not acquire lock"
+        exit 1
+    fi
+    sleep 0.2
+done
+trap "/bin/rm -f ${lockfile}" EXIT
+
 [ -z "${dns_vars_file}" ] || . "${dns_vars_file}"
 
 itf_dns_key="State:/Network/Service/openvpn-${dev}/DNS"
