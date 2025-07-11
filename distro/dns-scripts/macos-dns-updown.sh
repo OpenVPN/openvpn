@@ -111,6 +111,10 @@ function get_search_domains {
     property_value State:/Network/Global/DNS SearchDomains
 }
 
+function get_server_addresses {
+    property_value "$(primary_dns_key)" ServerAddresses
+}
+
 function set_search_domains {
     [ -n "$1" ] || return
     local dns_key=$(primary_dns_key)
@@ -239,11 +243,10 @@ function set_dns {
 
 function unset_dns {
     local n="$(find_compat_profile)"
-    local addresses="$(addresses_string $n)"
-    local search_domains="$(search_domains_string $n)"
     local match_domains="$(match_domains_string $n)"
 
     if [ -n "$match_domains" ]; then
+        local search_domains="$(search_domains_string $n)"
         echo "remove ${itf_dns_key}" | /usr/sbin/scutil
         unset_search_domains "$search_domains"
     else
@@ -252,8 +255,15 @@ function unset_dns {
         [[ "${dns_backup_key}" =~ ${dev}/ ]] || return
 
         local cmds=""
-        cmds+="get ${dns_backup_key}\n"
-        cmds+="set $(primary_dns_key)\n"
+        local servers="$(get_server_addresses)"
+        local addresses="$(addresses_string $n)"
+        # Only restore backup if the server addresses match
+        if [ "${servers}" = "${addresses}" ]; then
+            cmds+="get ${dns_backup_key}\n"
+            cmds+="set $(primary_dns_key)\n"
+        else
+            echo "not restoring global DNS configuration, server addresses have changed"
+        fi
         cmds+="remove ${dns_backup_key}\n"
         echo -e "${cmds}" | /usr/sbin/scutil
     fi
