@@ -104,7 +104,7 @@ function find_compat_profile {
 
         n=$((n+1))
     done
-    return $n
+    echo $n
 }
 
 function get_search_domains {
@@ -157,41 +157,23 @@ function unset_search_domains {
     echo -e "${cmds}" | /usr/sbin/scutil
 }
 
-function set_dns {
-    find_compat_profile
-    local n=$?
-
+function addresses_string {
+    local n=$1
     local i=1
-    local addrs=""
+    local addresses=""
     while :; do
         local addr_var=dns_server_${n}_address_${i}
         local addr="${!addr_var}"
         [ -n "$addr" ] || break
-
-        local port_var=dns_server_${n}_port_${i}
-        if [ -n "${!port_var}" ]; then
-            if [[ "$addr" =~ : ]]; then
-                addr="[$addr]"
-            fi
-            addrs+="${addr}:${!port_var}${sni} "
-        else
-            addrs+="${addr}${sni} "
-        fi
+        addresses+="${addr} "
         i=$((i+1))
     done
+    echo "$addresses"
+}
 
-    i=1
-    local match_domains=""
-    while :; do
-        domain_var=dns_server_${n}_resolve_domain_${i}
-        [ -n "${!domain_var}" ] || break
-        # Add as match domain, if it doesn't already exist
-        [[ "$match_domains" =~ (^| )${!domain_var}( |$) ]] \
-            || match_domains+="${!domain_var} "
-        i=$((i+1))
-    done
-
-    i=1
+function search_domains_string {
+    local n=$1
+    local i=1
     local search_domains=""
     while :; do
         domain_var=dns_search_domain_${i}
@@ -201,11 +183,34 @@ function set_dns {
             || search_domains+="${!domain_var} "
         i=$((i+1))
     done
+    echo "$search_domains"
+}
+
+function match_domains_string {
+    local n=$1
+    local i=1
+    local match_domains=""
+    while :; do
+        domain_var=dns_server_${n}_resolve_domain_${i}
+        [ -n "${!domain_var}" ] || break
+        # Add as match domain, if it doesn't already exist
+        [[ "$match_domains" =~ (^| )${!domain_var}( |$) ]] \
+            || match_domains+="${!domain_var} "
+        i=$((i+1))
+    done
+    echo "$match_domains"
+}
+
+function set_dns {
+    local n="$(find_compat_profile)"
+    local addresses="$(addresses_string $n)"
+    local search_domains="$(search_domains_string $n)"
+    local match_domains="$(match_domains_string $n)"
 
     if [ -n "$match_domains" ]; then
         local cmds=""
         cmds+="d.init\n"
-        cmds+="d.add ServerAddresses * ${addrs}\n"
+        cmds+="d.add ServerAddresses * ${addresses}\n"
         cmds+="d.add SupplementalMatchDomains * ${match_domains}\n"
         cmds+="d.add SupplementalMatchDomainsNoSearch # 1\n"
         cmds+="add ${itf_dns_key}\n"
@@ -222,7 +227,7 @@ function set_dns {
         cmds+="get $(primary_dns_key)\n"
         cmds+="set ${dns_backup_key}\n"
         cmds+="d.init\n"
-        cmds+="d.add ServerAddresses * ${addrs}\n"
+        cmds+="d.add ServerAddresses * ${addresses}\n"
         cmds+="d.add SearchDomains * ${search_domains}\n"
         cmds+="d.add SearchOrder # 5000\n"
         cmds+="set $(primary_dns_key)\n"
@@ -233,22 +238,12 @@ function set_dns {
 }
 
 function unset_dns {
-    find_compat_profile
-    local n=$?
+    local n="$(find_compat_profile)"
+    local addresses="$(addresses_string $n)"
+    local search_domains="$(search_domains_string $n)"
+    local match_domains="$(match_domains_string $n)"
 
-    local i=1
-    local search_domains=""
-    while :; do
-        domain_var=dns_search_domain_${i}
-        [ -n "${!domain_var}" ] || break
-        # Add as search domain, if it doesn't already exist
-        [[ "$search_domains" =~ (^| )${!domain_var}( |$) ]] \
-            || search_domains+="${!domain_var} "
-        i=$((i+1))
-    done
-
-    domain_var=dns_server_${n}_resolve_domain_1
-    if [ -n "${!domain_var}" ]; then
+    if [ -n "$match_domains" ]; then
         echo "remove ${itf_dns_key}" | /usr/sbin/scutil
         unset_search_domains "$search_domains"
     else
