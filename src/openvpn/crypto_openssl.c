@@ -821,15 +821,16 @@ cipher_kt_mode_aead(const char *ciphername)
     evp_cipher_type *cipher = cipher_get(ciphername);
     if (cipher)
     {
-        if (EVP_CIPHER_mode(cipher) == OPENVPN_MODE_GCM)
+        int flags = EVP_CIPHER_flags(cipher);
+        if (flags & EVP_CIPH_FLAG_AEAD_CIPHER)
         {
             isaead = true;
         }
 
-#ifdef NID_chacha20_poly1305
+#if defined(NID_chacha20_poly1305) && OPENSSL_VERSION_NUMBER < 0x30000000L
         if (EVP_CIPHER_nid(cipher) == NID_chacha20_poly1305)
         {
-            isaead =  true;
+            isaead = true;
         }
 #endif
     }
