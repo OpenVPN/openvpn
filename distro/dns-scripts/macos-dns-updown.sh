@@ -29,12 +29,47 @@
 [ -z "${dns_vars_file}" ] || . "${dns_vars_file}"
 
 itf_dns_key="State:/Network/Service/openvpn-${dev}/DNS"
-dns_backup_key="State:/Network/Service/openvpn-${dev}/DnsBackup"
-dns_backup_key_pattern="State:/Network/Service/openvpn-.*/DnsBackup"
 
 function primary_dns_key {
     local uuid=$(echo "show State:/Network/Global/IPv4" | /usr/sbin/scutil | grep "PrimaryService" | cut -d: -f2 | xargs)
     echo "Setup:/Network/Service/${uuid}/DNS"
+}
+
+function dns_backup_key {
+    local key="$(echo "list State:/Network/Service/openvpn-.*/DnsBackup" | /usr/sbin/scutil | cut -d= -f2 | xargs)"
+    if [[ "${key}" =~ no\ key ]]; then
+        echo "State:/Network/Service/openvpn-${dev}/DnsBackup"
+    else
+        echo "${key}"
+    fi
+}
+
+function property_value {
+    local key="$1"
+    local prop="$2"
+
+    [ -n "${key}" -a -n "${prop}" ] || return
+
+    local match_prop="${prop} : (.*)"
+    local match_array_start="${prop} : <array>"
+    local match_array_elem="[0-9]* : (.*)"
+    local match_array_end="}"
+    local in_array=false
+    local values=""
+
+    echo "show ${key}" | /usr/sbin/scutil | while read line; do
+        if [ "${in_array}" = false ] && [[ "${line}" =~ "${match_array_start}" ]]; then
+            in_array=true
+        elif [ "${in_array}" = true ] && [[ "${line}" =~ ${match_array_elem} ]]; then
+            values+="${BASH_REMATCH[1]} "
+        elif [ "${in_array}" = true ] && [[ "${line}" =~ "${match_array_end}" ]]; then
+            echo "${values}"
+            break
+        elif [[ "${line}" =~ ${match_prop} ]]; then
+            echo "${BASH_REMATCH[1]}"
+            break
+        fi
+    done
 }
 
 function only_standard_server_ports {
@@ -73,42 +108,52 @@ function find_compat_profile {
 }
 
 function get_search_domains {
-    local search_domains=""
-    local resolver=0
-    /usr/sbin/scutil --dns | while read line; do
-        if [[ "$line" =~ resolver.# ]]; then
-            resolver=$((resolver+1))
-        elif [ "$resolver" = 1 ] && [[ "$line" =~ search.domain ]]; then
-            search_domains+="$(echo $line | cut -d: -f2 | xargs) "
-        elif [ "$resolver" -gt 1 ]; then
-            echo "$search_domains"
-            break
-        fi
-    done
+    property_value State:/Network/Global/DNS SearchDomains
 }
 
 function set_search_domains {
     [ -n "$1" ] || return
-    dns_key=$(primary_dns_key)
-    search_domains="${1}$(get_search_domains)"
+    local dns_key=$(primary_dns_key)
+    local dns_backup_key="$(dns_backup_key)"
+    local search_domains="${1}$(get_search_domains)"
 
     local cmds=""
     cmds+="get ${dns_key}\n"
     cmds+="d.add SearchDomains * ${search_domains}\n"
     cmds+="set ${dns_key}\n"
+
+    if ! [[ "${dns_backup_key}" =~ ${dev}/ ]]; then
+        # Add the domains to the backup in case the default goes down
+        local existing="$(property_value ${dns_backup_key} SearchDomains)"
+        cmds+="get ${dns_backup_key}\n"
+        cmds+="d.add SearchDomains * ${search_domains} ${existing}\n"
+        cmds+="set ${dns_backup_key}\n"
+    fi
+
     echo -e "${cmds}" | /usr/sbin/scutil
 }
 
 function unset_search_domains {
     [ -n "$1" ] || return
-    dns_key=$(primary_dns_key)
-    search_domains="$(get_search_domains)"
+    local dns_key=$(primary_dns_key)
+    local dns_backup_key="$(dns_backup_key)"
+    local search_domains="$(get_search_domains)"
     search_domains=$(echo $search_domains | sed -e "s/$1//")
 
     local cmds=""
     cmds+="get ${dns_key}\n"
     cmds+="d.add SearchDomains * ${search_domains}\n"
     cmds+="set ${dns_key}\n"
+
+    if ! [[ "${dns_backup_key}" =~ ${dev}/ ]]; then
+        # Remove the domains from the backup for when the default goes down
+        search_domains="$(property_value ${dns_backup_key} SearchDomains)"
+        search_domains=$(echo $search_domains | sed -e "s/$1//")
+        cmds+="get ${dns_backup_key}\n"
+        cmds+="d.add SearchDomains * ${search_domains}\n"
+        cmds+="set ${dns_backup_key}\n"
+    fi
+
     echo -e "${cmds}" | /usr/sbin/scutil
 }
 
@@ -167,7 +212,8 @@ function set_dns {
         echo -e "${cmds}" | /usr/sbin/scutil
         set_search_domains "$search_domains"
     else
-        echo list ${dns_backup_key_pattern} | /usr/sbin/scutil | grep -q 'no key' || {
+        local dns_backup_key="$(dns_backup_key)"
+        [[ "${dns_backup_key}" =~ ${dev}/ ]] || {
             echo "setting DNS failed, already redirecting to another tunnel"
             exit 1
         }
@@ -207,7 +253,8 @@ function unset_dns {
         unset_search_domains "$search_domains"
     else
         # Do not unset if this tunnel did not set/backup DNS before
-        echo list ${dns_backup_key} | /usr/sbin/scutil | grep -qv 'no key' || return
+        local dns_backup_key="$(dns_backup_key)"
+        [[ "${dns_backup_key}" =~ ${dev}/ ]] || return
 
         local cmds=""
         cmds+="get ${dns_backup_key}\n"
