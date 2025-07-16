@@ -798,14 +798,6 @@ case "${with_mem_check}" in
 		;;
 esac
 
-PKG_CHECK_MODULES(
-	[PKCS11_HELPER],
-	[libpkcs11-helper-1 >= 1.11],
-	[have_pkcs11_helper="yes"],
-	[]
-)
-
-
 if test "$enable_dco" != "no"; then
 	enable_dco_arg="$enable_dco"
 	if test "${enable_iproute2}" = "yes"; then
@@ -1014,13 +1006,12 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 				[mbedtls_ssl_init],
 				[MBEDTLS_LIBS="-lmbedtls -lmbedx509 -lmbedcrypto"],
 				[AC_MSG_ERROR([Could not find mbed TLS.])],
-				[${PKCS11_HELPER_LIBS}]
 			)
 		fi
 	fi
 
-	CFLAGS="${MBEDTLS_CFLAGS} ${PKCS11_HELPER_CFLAGS} ${CFLAGS}"
-	LIBS="${MBEDTLS_LIBS} ${PKCS11_HELPER_LIBS} ${LIBS}"
+	CFLAGS="${MBEDTLS_CFLAGS} ${CFLAGS}"
+	LIBS="${MBEDTLS_LIBS} ${LIBS}"
 
 	AC_MSG_CHECKING([mbedtls version])
 	AC_COMPILE_IFELSE(
@@ -1359,7 +1350,12 @@ fi
 
 AM_CONDITIONAL([HAVE_SOFTHSM2], [false])
 if test "${enable_pkcs11}" = "yes"; then
-	test "${have_pkcs11_helper}" != "yes" && AC_MSG_ERROR([PKCS11 enabled but libpkcs11-helper is missing])
+	PKG_CHECK_MODULES(
+		[PKCS11_HELPER],
+		[libpkcs11-helper-1 >= 1.11],
+		[have_pkcs11_helper="yes"],
+		[AC_MSG_ERROR([PKCS11 enabled but libpkcs11-helper is missing])]
+	)
 	OPTIONAL_PKCS11_HELPER_CFLAGS="${PKCS11_HELPER_CFLAGS}"
 	OPTIONAL_PKCS11_HELPER_LIBS="${PKCS11_HELPER_LIBS}"
 	AC_DEFINE([ENABLE_PKCS11], [1], [Enable PKCS11])
