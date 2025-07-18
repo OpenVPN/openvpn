@@ -3263,7 +3263,11 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi,
                 mroute_addr_print(&mi->real, &gc));
             goto done;
         }
-        msg(D_MULTI_MEDIUM, "closing instance %s", multi_instance_string(ex_mi, false, &gc));
+
+        msg(D_MULTI_LOW, "closing instance %s due to float collision with %s "
+            "using the same certificate",
+            multi_instance_string(ex_mi, false, &gc),
+            multi_instance_string(mi, false, &gc));
         multi_close_instance(m, ex_mi, false);
     }
 
