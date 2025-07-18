@@ -322,7 +322,7 @@ bool multi_process_post(struct multi_context *m, struct multi_instance *mi, cons
 /**
  * Process an incoming DCO message (from kernel space).
  *
- * @param m            - The single \c multi_context structur.e
+ * @param m            - The single \c multi_context structure.
  *
  * @return
  *  - True, if the message was received correctly.

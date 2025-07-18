@@ -149,7 +149,8 @@ typedef struct _OVPN_MP_START_VPN {
 
 typedef enum {
     OVPN_CMD_DEL_PEER,
-    OVPN_CMD_SWAP_KEYS
+    OVPN_CMD_SWAP_KEYS,
+    OVPN_CMD_FLOAT_PEER
 } OVPN_NOTIFY_CMD;
 
 typedef enum {
@@ -164,6 +165,7 @@ typedef struct _OVPN_NOTIFY_EVENT {
     OVPN_NOTIFY_CMD Cmd;
     int PeerId;
     OVPN_DEL_PEER_REASON DelPeerReason;
+    struct sockaddr_storage FloatAddress;
 } OVPN_NOTIFY_EVENT, * POVPN_NOTIFY_EVENT;
 
 typedef struct _OVPN_MP_DEL_PEER {
