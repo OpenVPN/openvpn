@@ -216,16 +216,20 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated,
 
             if (!peer_id_disabled && (peer_id < m->max_clients) && (m->instances[peer_id]))
             {
-                mi = m->instances[peer_id];
-
-                *floated = !link_socket_actual_match(&mi->context.c2.from, &m->top.c2.from);
-
-                if (*floated)
+                /* Floating on TCP will never be possible, so ensure we only process
+                 * UDP clients */
+                if (m->instances[peer_id]->context.c2.link_sockets[0]->info.proto == sock->info.proto)
                 {
-                    /* reset prefix, since here we are not sure peer is the one it claims to be */
-                    ungenerate_prefix(mi);
-                    msg(D_MULTI_MEDIUM, "Float requested for peer %" PRIu32 " to %s", peer_id,
-                        mroute_addr_print(&real, &gc));
+                    mi = m->instances[peer_id];
+                    *floated = !link_socket_actual_match(&mi->context.c2.from, &m->top.c2.from);
+
+                    if (*floated)
+                    {
+                        /* reset prefix, since here we are not sure peer is the one it claims to be */
+                        ungenerate_prefix(mi);
+                        msg(D_MULTI_MEDIUM, "Float requested for peer %" PRIu32 " to %s", peer_id,
+                            mroute_addr_print(&real, &gc));
+                    }
                 }
             }
         }
