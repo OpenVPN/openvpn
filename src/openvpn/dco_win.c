@@ -188,9 +188,11 @@ dco_p2p_start_vpn(struct tuntap *tt)
  * state. The server socket should be initialized later by dco_mp_start_vpn().
  */
 bool
-ovpn_dco_init(int mode, dco_context_t *dco, const char *dev_node)
+ovpn_dco_init(struct context *c)
 {
-    switch (mode)
+    dco_context_t *dco = &c->c1.tuntap->dco;
+
+    switch (c->mode)
     {
         case MODE_POINT_TO_POINT:
             dco->ifmode = DCO_MODE_P2P;
@@ -198,7 +200,7 @@ ovpn_dco_init(int mode, dco_context_t *dco, const char *dev_node)
             break;
 
         case MODE_SERVER:
-            ovpn_dco_init_mp(dco, dev_node);
+            ovpn_dco_init_mp(dco, c->options.dev_node);
             break;
 
         default:
