@@ -114,7 +114,7 @@ ovpn_dco_nlmsg_create(dco_context_t *dco, int cmd)
     struct nl_msg *nl_msg = nlmsg_alloc();
     if (!nl_msg)
     {
-        msg(M_ERR, "cannot allocate netlink message");
+        msg(M_FATAL, "cannot allocate netlink message");
         return NULL;
     }
 
@@ -140,7 +140,7 @@ ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
             break;
 
         case -NLE_NOMEM:
-            msg(M_ERR, "%s: netlink out of memory error", prefix);
+            msg(M_FATAL, "%s: netlink out of memory error", prefix);
             break;
 
         case -NLE_AGAIN:
@@ -148,7 +148,7 @@ ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
             break;
 
         case -NLE_NODEV:
-            msg(M_ERR, "%s: netlink reports device not found:", prefix);
+            msg(M_FATAL, "%s: netlink reports device not found:", prefix);
             break;
 
         case -NLE_OBJ_NOTFOUND:
@@ -387,19 +387,19 @@ ovpn_nl_cb_error(struct sockaddr_nl (*nla) __attribute__ ((unused)),
 static void
 ovpn_dco_init_netlink(dco_context_t *dco)
 {
-    dco->ovpn_dco_id = resolve_ovpn_netlink_id(M_ERR);
+    dco->ovpn_dco_id = resolve_ovpn_netlink_id(M_FATAL);
 
     dco->nl_sock = nl_socket_alloc();
 
     if (!dco->nl_sock)
     {
-        msg(M_ERR, "Cannot create netlink socket");
+        msg(M_FATAL, "Cannot create netlink socket");
     }
 
     int ret = genl_connect(dco->nl_sock);
     if (ret)
     {
-        msg(M_ERR, "Cannot connect to generic netlink: %s",
+        msg(M_FATAL, "Cannot connect to generic netlink: %s",
             nl_geterror(ret));
     }
 
@@ -415,7 +415,7 @@ ovpn_dco_init_netlink(dco_context_t *dco)
     dco->nl_cb = nl_cb_alloc(NL_CB_DEFAULT);
     if (!dco->nl_cb)
     {
-        msg(M_ERR, "failed to allocate netlink callback");
+        msg(M_FATAL, "failed to allocate netlink callback");
     }
 
     nl_socket_set_cb(dco->nl_sock, dco->nl_cb);
@@ -478,7 +478,7 @@ ovpn_dco_register(dco_context_t *dco)
 
     if (dco->ovpn_dco_mcast_id < 0)
     {
-        msg(M_ERR, "cannot get mcast group: %s",  nl_geterror(dco->ovpn_dco_mcast_id));
+        msg(M_FATAL, "cannot get mcast group: %s",  nl_geterror(dco->ovpn_dco_mcast_id));
     }
 
     /* Register for ovpn-dco specific multicast messages that the kernel may
@@ -487,7 +487,7 @@ ovpn_dco_register(dco_context_t *dco)
     int ret = nl_socket_add_membership(dco->nl_sock, dco->ovpn_dco_mcast_id);
     if (ret)
     {
-        msg(M_ERR, "%s: failed to join groups: %d", __func__, ret);
+        msg(M_FATAL, "%s: failed to join groups: %d", __func__, ret);
     }
 }
 
