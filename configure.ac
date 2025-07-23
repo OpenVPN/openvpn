@@ -848,6 +848,15 @@ if test "$enable_dco" != "no"; then
 				else
 					AC_MSG_ERROR([DCO support can't be enabled])
 				fi
+			else
+				AC_CHECK_DECLS(
+					[OVPN_NOTIF_FLOAT],
+					[AC_DEFINE([ENABLE_DCO_FLOAT_FREEBSD], [1], [We have DCO float notifications on FreeBSD])],
+					,
+					[[
+						#include <net/if_ovpn.h>
+					]]
+				)
 			fi
 			;;
 		*-mingw*)
