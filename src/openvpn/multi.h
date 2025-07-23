@@ -263,14 +263,6 @@ const char *multi_instance_string(const struct multi_instance *mi, bool null, st
  * Called by mtcp.c, mudp.c, or other (to be written) protocol drivers
  */
 
-void multi_init(struct multi_context *m, struct context *t);
-
-void multi_uninit(struct multi_context *m);
-
-void multi_top_init(struct multi_context *m, struct context *top);
-
-void multi_top_free(struct multi_context *m);
-
 struct multi_instance *multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
                                              struct link_socket *sock);
 

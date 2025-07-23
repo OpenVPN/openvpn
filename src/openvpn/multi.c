@@ -290,9 +290,10 @@ int_compare_function(const void *key1, const void *key2)
 /*
  * Main initialization function, init multi_context object.
  */
-void
-multi_init(struct multi_context *m, struct context *t)
+static void
+multi_init(struct context *t)
 {
+    struct multi_context *m = t->multi;
     int dev = DEV_TYPE_UNDEF;
 
     msg(D_MULTI_LOW, "MULTI: multi_init called, r=%d v=%d",
@@ -706,7 +707,7 @@ multi_close_instance(struct multi_context *m,
 /*
  * Called on shutdown or restart.
  */
-void
+static void
 multi_uninit(struct multi_context *m)
 {
     if (m->hash)
@@ -3922,14 +3923,14 @@ multi_process_per_second_timers_dowork(struct multi_context *m)
     }
 }
 
-void
-multi_top_init(struct multi_context *m, struct context *top)
+static void
+multi_top_init(struct context *top)
 {
-    inherit_context_top(&m->top, top);
-    m->top.c2.buffers = init_context_buffers(&top->c2.frame);
+    inherit_context_top(&top->multi->top, top);
+    top->multi->top.c2.buffers = init_context_buffers(&top->c2.frame);
 }
 
-void
+static void
 multi_top_free(struct multi_context *m)
 {
     close_context(&m->top, -1, CC_GC_FREE);
@@ -4324,6 +4325,7 @@ tunnel_server(struct context *top)
     struct multi_context multi;
 
     top->mode = CM_TOP;
+    top->multi = &multi;
     context_clear_2(top);
 
     /* initialize top-tunnel instance */
@@ -4334,10 +4336,10 @@ tunnel_server(struct context *top)
     }
 
     /* initialize global multi_context object */
-    multi_init(&multi, top);
+    multi_init(top);
 
     /* initialize our cloned top object */
-    multi_top_init(&multi, top);
+    multi_top_init(top);
 
     /* initialize management interface */
     init_management_callback_multi(&multi);
