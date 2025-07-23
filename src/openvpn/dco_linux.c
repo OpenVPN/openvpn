@@ -143,7 +143,7 @@ ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
             msg(M_ERR, "%s: netlink out of memory error", prefix);
             break;
 
-        case -M_ERR:
+        case -NLE_AGAIN:
             msg(M_WARN, "%s: netlink reports blocking read - aborting wait", prefix);
             break;
 
