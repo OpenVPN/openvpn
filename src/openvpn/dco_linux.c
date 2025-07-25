@@ -877,53 +877,8 @@ dco_update_peer_stat(struct context_2 *c2, struct nlattr *tb[], uint32_t id)
 }
 
 static int
-ovpn_handle_peer_multi(dco_context_t *dco, struct nlattr *attrs[])
-{
-    msg(D_DCO_DEBUG, "%s: parsing message...", __func__);
-
-    /* this function assumes openvpn is running in multipeer mode as
-     * it accesses c->multi
-     */
-    if (dco->ifmode != OVPN_MODE_MP)
-    {
-        msg(M_WARN, "%s: can't parse 'multi-peer' message on P2P instance", __func__);
-        return NL_SKIP;
-    }
-
-    if (!attrs[OVPN_A_PEER])
-    {
-        return NL_SKIP;
-    }
-
-    struct nlattr *tb_peer[OVPN_A_PEER_MAX + 1];
-    nla_parse_nested(tb_peer, OVPN_A_PEER_MAX, attrs[OVPN_A_PEER], NULL);
-
-    if (!tb_peer[OVPN_A_PEER_ID])
-    {
-        msg(M_WARN, "ovpn-dco: no peer-id provided in (MULTI) PEER_GET reply");
-        return NL_SKIP;
-    }
-
-    struct multi_context *m = dco->c->multi;
-    uint32_t peer_id = nla_get_u32(tb_peer[OVPN_A_PEER_ID]);
-
-    if (peer_id >= m->max_clients || !m->instances[peer_id])
-    {
-        msg(M_WARN, "%s: cannot store DCO stats for peer %u", __func__,
-            peer_id);
-        return NL_SKIP;
-    }
-
-    dco_update_peer_stat(&m->instances[peer_id]->context.c2, tb_peer, peer_id);
-
-    return NL_OK;
-}
-
-static int
 ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
 {
-    msg(D_DCO_DEBUG, "%s: parsing message...", __func__);
-
     if (!attrs[OVPN_A_PEER])
     {
         msg(D_DCO_DEBUG, "%s: malformed reply", __func__);
@@ -942,12 +897,25 @@ ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
     uint32_t peer_id = nla_get_u32(tb_peer[OVPN_A_PEER_ID]);
     struct context_2 *c2;
 
+    msg(D_DCO_DEBUG, "%s: parsing message for peer %u...", __func__, peer_id);
+
     if (dco->ifmode == OVPN_MODE_P2P)
     {
         c2 = &dco->c->c2;
+        if (c2->tls_multi->dco_peer_id != peer_id)
+        {
+            return NL_SKIP;
+        }
     }
     else
     {
+        if (peer_id >= dco->c->multi->max_clients)
+        {
+            msg(M_WARN, "%s: received out of bound peer_id %u (max=%u)", __func__, peer_id,
+                dco->c->multi->max_clients);
+            return NL_SKIP;
+        }
+
         struct multi_instance *mi = dco->c->multi->instances[peer_id];
         if (!mi)
         {
@@ -956,14 +924,6 @@ ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
         }
 
         c2 = &mi->context.c2;
-    }
-
-    /* at this point this check should never fail for MP mode,
-     * but it's still fully valid for P2P mode
-     */
-    if (c2->tls_multi->dco_peer_id != peer_id)
-    {
-        return NL_SKIP;
     }
 
     dco_update_peer_stat(c2, tb_peer, peer_id);
@@ -1176,17 +1136,7 @@ ovpn_handle_msg(struct nl_msg *msg, void *arg)
     {
         case OVPN_CMD_PEER_GET:
         {
-            /* this message is part of a peer list dump, hence triggered
-             * by a MP/server instance
-             */
-            if (nlh->nlmsg_flags & NLM_F_MULTI)
-            {
-                return ovpn_handle_peer_multi(dco, attrs);
-            }
-            else
-            {
-                return ovpn_handle_peer(dco, attrs);
-            }
+            return ovpn_handle_peer(dco, attrs);
         }
 
         case OVPN_CMD_PEER_DEL_NTF:
@@ -1221,52 +1171,32 @@ dco_do_read(dco_context_t *dco)
     return ovpn_nl_recvmsgs(dco, __func__);
 }
 
-int
-dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m,
-                         const bool raise_sigusr1_on_err)
+static int
+dco_get_peer(dco_context_t *dco, int peer_id, const bool raise_sigusr1_on_err)
 {
-    msg(D_DCO_DEBUG, "%s", __func__);
-
-    struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_PEER_GET);
-
-    nlmsg_hdr(nl_msg)->nlmsg_flags |= NLM_F_DUMP;
-
-    int ret = ovpn_nl_msg_send(dco, nl_msg, __func__);
-
-    nlmsg_free(nl_msg);
-
-    if (raise_sigusr1_on_err && ret < 0)
-    {
-        msg(M_WARN, "Error retrieving DCO peer stats: the underlying DCO peer"
-            "may have been deleted from the kernel without notifying "
-            "userspace. Restarting the session");
-        register_signal(m->top.sig, SIGUSR1, "dco peer stats error");
-    }
-    return ret;
-}
-
-int
-dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
-{
-    int peer_id = c->c2.tls_multi->dco_peer_id;
-    if (peer_id == -1)
+    /* peer_id == -1 means "dump all peers", but this is allowed in MP mode only.
+     * If it happens in P2P mode it means that the DCO peer was deleted and we
+     * can simply bail out
+     */
+    if (peer_id == -1 && dco->ifmode == OVPN_MODE_P2P)
     {
         return 0;
     }
 
     msg(D_DCO_DEBUG, "%s: peer-id %d", __func__, peer_id);
 
-    if (!c->c1.tuntap)
-    {
-        return 0;
-    }
-
-    dco_context_t *dco = &c->c1.tuntap->dco;
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_PEER_GET);
     struct nlattr *attr = nla_nest_start(nl_msg, OVPN_A_PEER);
     int ret = -EMSGSIZE;
 
-    NLA_PUT_U32(nl_msg, OVPN_A_PEER_ID, peer_id);
+    if (peer_id != -1)
+    {
+        NLA_PUT_U32(nl_msg, OVPN_A_PEER_ID, peer_id);
+    }
+    else
+    {
+        nlmsg_hdr(nl_msg)->nlmsg_flags |= NLM_F_DUMP;
+    }
     nla_nest_end(nl_msg, attr);
 
     ret = ovpn_nl_msg_send(dco, nl_msg, __func__);
@@ -1279,9 +1209,21 @@ nla_put_failure:
         msg(M_WARN, "Error retrieving DCO peer stats: the underlying DCO peer"
             "may have been deleted from the kernel without notifying "
             "userspace. Restarting the session");
-        register_signal(c->sig, SIGUSR1, "dco peer stats error");
+        register_signal(dco->c->sig, SIGUSR1, "dco peer stats error");
     }
     return ret;
+}
+
+int
+dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
+{
+    return dco_get_peer(&c->c1.tuntap->dco, c->c2.tls_multi->dco_peer_id, raise_sigusr1_on_err);
+}
+
+int
+dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
+{
+    return dco_get_peer(dco, -1, raise_sigusr1_on_err);
 }
 
 bool

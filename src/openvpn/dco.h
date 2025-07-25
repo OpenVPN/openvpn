@@ -230,11 +230,9 @@ void dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi);
  * Update traffic statistics for all peers
  *
  * @param dco                   DCO device context
- * @param m                     the server context
  * @param raise_sigusr1_on_err  whether to raise SIGUSR1 on error
  **/
-int dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m,
-                             const bool raise_sigusr1_on_err);
+int dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err);
 
 /**
  * Update traffic statistics for single peer
@@ -374,8 +372,7 @@ dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
 }
 
 static inline int
-dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m,
-                         const bool raise_sigusr1_on_err)
+dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
 {
     return 0;
 }

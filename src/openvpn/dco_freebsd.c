@@ -713,8 +713,7 @@ dco_update_peer_stat(struct multi_context *m, uint32_t peerid, const nvlist_t *n
 }
 
 int
-dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m,
-                         const bool raise_sigusr1_on_err)
+dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
 {
 
     struct ifdrv drv;
@@ -774,7 +773,7 @@ retry:
         const nvlist_t *peer = nvpeers[i];
         uint32_t peerid = nvlist_get_number(peer, "peerid");
 
-        dco_update_peer_stat(m, peerid, nvlist_get_nvlist(peer, "bytes"));
+        dco_update_peer_stat(dco->c->multi, peerid, nvlist_get_nvlist(peer, "bytes"));
     }
 
     nvlist_destroy(nvl);
