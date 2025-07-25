@@ -3275,8 +3275,8 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi,
     msg(D_MULTI_MEDIUM, "peer %" PRIu32 " (%s) floated from %s to %s",
         mi->context.c2.tls_multi->peer_id,
         tls_common_name(mi->context.c2.tls_multi, false),
-        mroute_addr_print(&mi->real, &gc),
-        print_link_socket_actual(&m->top.c2.from, &gc));
+        mroute_addr_print_ex(&mi->real, MAPF_SHOW_FAMILY, &gc),
+        mroute_addr_print_ex(&real, MAPF_SHOW_FAMILY, &gc));
 
     /* remove old address from hash table before changing address */
     ASSERT(hash_remove(m->hash, &mi->real));

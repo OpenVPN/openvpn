@@ -150,6 +150,7 @@ const char *mroute_addr_print(const struct mroute_addr *ma,
 #define MAPF_SUBNET            (1<<0)
 #define MAPF_IA_EMPTY_IF_UNDEF (1<<1)
 #define MAPF_SHOW_ARP          (1<<2)
+#define MAPF_SHOW_FAMILY       (1<<3)
 const char *mroute_addr_print_ex(const struct mroute_addr *ma,
                                  const unsigned int flags,
                                  struct gc_arena *gc);

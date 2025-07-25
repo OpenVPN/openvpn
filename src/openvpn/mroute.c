@@ -415,6 +415,10 @@ mroute_addr_print_ex(const struct mroute_addr *ma,
                 {
                     buf_printf(&out, "%s:", proto2ascii(maddr.proto, AF_INET, false));
                 }
+                if (flags & MAPF_SHOW_FAMILY)
+                {
+                    buf_printf(&out, "[AF_INET]");
+                }
                 buf_printf(&out, "%s", print_in_addr_t(ntohl(maddr.v4.addr),
                                                        (flags & MAPF_IA_EMPTY_IF_UNDEF) ? IA_EMPTY_IF_UNDEF : 0, gc));
                 if (maddr.type & MR_WITH_NETBITS)
@@ -441,6 +445,10 @@ mroute_addr_print_ex(const struct mroute_addr *ma,
                 if (maddr.type & MR_WITH_PROTO)
                 {
                     buf_printf(&out, "%s:", proto2ascii(maddr.proto, AF_INET6, false));
+                }
+                if (flags & MAPF_SHOW_FAMILY)
+                {
+                    buf_printf(&out, "[AF_INET6]");
                 }
                 if (IN6_IS_ADDR_V4MAPPED( &maddr.v6.addr ) )
                 {
