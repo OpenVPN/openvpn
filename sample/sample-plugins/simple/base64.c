@@ -59,9 +59,8 @@ get_env(const char *name, const char *envp[])
 {
     if (envp)
     {
-        int i;
-        const int namelen = strlen(name);
-        for (i = 0; envp[i]; ++i)
+        const size_t namelen = strlen(name);
+        for (int i = 0; envp[i]; ++i)
         {
             if (!strncmp(envp[i], name, namelen))
             {
@@ -175,7 +174,7 @@ openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const cha
 
     /* test the BASE64 encode function */
     char *buf = NULL;
-    int r = ovpn_base64_encode(clcert_cn, strlen(clcert_cn), &buf);
+    int r = ovpn_base64_encode(clcert_cn, (int)strlen(clcert_cn), &buf);
     ovpn_log(PLOG_NOTE, PLUGIN_NAME, "BASE64 encoded '%s' (return value %i):  '%s'",
              clcert_cn, r, buf);
 

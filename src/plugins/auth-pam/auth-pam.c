@@ -165,31 +165,30 @@ send_control(int fd, int code)
     }
 }
 
-static int
-recv_string(int fd, char *buffer, int len)
+static ssize_t
+recv_string(int fd, char *buffer, size_t len)
 {
     if (len > 0)
     {
-        ssize_t size;
         memset(buffer, 0, len);
-        size = read(fd, buffer, len);
+        ssize_t size = read(fd, buffer, len);
         buffer[len-1] = 0;
         if (size >= 1)
         {
-            return (int)size;
+            return size;
         }
     }
     return -1;
 }
 
-static int
+static ssize_t
 send_string(int fd, const char *string)
 {
-    const int len = strlen(string) + 1;
+    const size_t len = strlen(string) + 1;
     const ssize_t size = write(fd, string, len);
     if (size == len)
     {
-        return (int) size;
+        return size;
     }
     else
     {
@@ -645,27 +644,26 @@ openvpn_plugin_abort_v1(openvpn_plugin_handle_t handle)
  * PAM conversation function
  */
 static int
-my_conv(int n, const struct pam_message **msg_array,
+my_conv(int num_msg, const struct pam_message **msg_array,
         struct pam_response **response_array, void *appdata_ptr)
 {
     const struct user_pass *up = ( const struct user_pass *) appdata_ptr;
     struct pam_response *aresp;
-    int i;
     int ret = PAM_SUCCESS;
 
     *response_array = NULL;
 
-    if (n <= 0 || n > PAM_MAX_NUM_MSG)
+    if (num_msg <= 0 || num_msg > PAM_MAX_NUM_MSG)
     {
         return (PAM_CONV_ERR);
     }
-    if ((aresp = calloc(n, sizeof *aresp)) == NULL)
+    if ((aresp = calloc((size_t)num_msg, sizeof *aresp)) == NULL)
     {
         return (PAM_BUF_ERR);
     }
 
     /* loop through each PAM-module query */
-    for (i = 0; i < n; ++i)
+    for (int i = 0; i < num_msg; ++i)
     {
         const struct pam_message *msg = msg_array[i];
         aresp[i].resp_retcode = 0;
@@ -683,9 +681,9 @@ my_conv(int n, const struct pam_message **msg_array,
         {
             /* use name/value list match method */
             const struct name_value_list *list = up->name_value_list;
-            int j;
 
             /* loop through name/value pairs */
+            int j; /* checked after loop */
             for (j = 0; j < list->len; ++j)
             {
                 const char *match_name = list->data[j].name;

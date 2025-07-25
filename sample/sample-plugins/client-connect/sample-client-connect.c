@@ -86,9 +86,8 @@ get_env(const char *name, const char *envp[])
 {
     if (envp)
     {
-        int i;
-        const int namelen = strlen(name);
-        for (i = 0; envp[i]; ++i)
+        const size_t namelen = strlen(name);
+        for (int i = 0; envp[i]; ++i)
         {
             if (!strncmp(envp[i], name, namelen))
             {
@@ -309,7 +308,7 @@ cc_handle_deferred_v1(int seconds, const char *name, const char **envp)
 
     /* do mighty complicated work that will really take time here... */
     plugin_log(PLOG_NOTE, MODULE, "in async/deferred handler, sleep(%d)", seconds);
-    sleep(seconds);
+    sleep((unsigned int)seconds);
 
     /* write config options to openvpn */
     int ret = write_cc_options_file(name, envp);

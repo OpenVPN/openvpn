@@ -88,9 +88,8 @@ get_env(const char *name, const char *envp[])
 {
     if (envp)
     {
-        int i;
-        const int namelen = strlen(name);
-        for (i = 0; envp[i]; ++i)
+        const size_t namelen = strlen(name);
+        for (int i = 0; envp[i]; ++i)
         {
             if (!strncmp(envp[i], name, namelen))
             {
@@ -108,10 +107,10 @@ get_env(const char *name, const char *envp[])
 /*
  * Return the length of a string array
  */
-static int
+static size_t
 string_array_len(const char *array[])
 {
-    int i = 0;
+    size_t i = 0;
     if (array)
     {
         while (array[i])
@@ -141,14 +140,14 @@ recv_control(int fd)
     }
 }
 
-static int
+static ssize_t
 send_control(int fd, int code)
 {
     unsigned char c = (unsigned char) code;
     const ssize_t size = write(fd, &c, sizeof(c));
     if (size == sizeof(c))
     {
-        return (int) size;
+        return size;
     }
     else
     {
@@ -281,7 +280,6 @@ OPENVPN_EXPORT openvpn_plugin_handle_t
 openvpn_plugin_open_v1(unsigned int *type_mask, const char *argv[], const char *envp[])
 {
     struct down_root_context *context;
-    int i = 0;
 
     /*
      * Allocate our context
@@ -320,7 +318,7 @@ openvpn_plugin_open_v1(unsigned int *type_mask, const char *argv[], const char *
     }
 
     /* Ignore argv[0], as it contains just the plug-in file name */
-    for (i = 1; i < string_array_len(argv); i++)
+    for (int i = 1; i < string_array_len(argv); i++)
     {
         context->command[i-1] = (char *) argv[i];
     }

@@ -124,9 +124,8 @@ get_env(const char *name, const char *envp[])
 {
     if (envp)
     {
-        int i;
-        const int namelen = strlen(name);
-        for (i = 0; envp[i]; ++i)
+        const size_t namelen = strlen(name);
+        for (int i = 0; envp[i]; ++i)
         {
             if (!strncmp(envp[i], name, namelen))
             {
@@ -170,7 +169,7 @@ atoi_null0(const char *str)
 
 /* Require a minimum OpenVPN Plugin API */
 OPENVPN_EXPORT int
-openvpn_plugin_min_version_required_v1()
+openvpn_plugin_min_version_required_v1(void)
 {
     return OPENVPN_PLUGIN_VERSION_MIN;
 }
@@ -349,9 +348,9 @@ auth_user_pass_verify(struct plugin_context *context,
      */
 
     /* do mighty complicated work that will really take time here... */
-    plog(context, PLOG_NOTE, "in async/deferred handler, usleep(%d)",
-         context->test_deferred_auth*1000);
-    usleep(context->test_deferred_auth*1000);
+    useconds_t wait_time = (useconds_t)context->test_deferred_auth*1000;
+    plog(context, PLOG_NOTE, "in async/deferred handler, usleep(%u)", wait_time);
+    usleep(wait_time);
 
     /* now signal success state to openvpn */
     int fd = open(auth_control_file, O_WRONLY);

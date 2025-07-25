@@ -79,7 +79,7 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
 
     while (scratch)
     {
-        strncat(temp, searching, scratch-searching);
+        strncat(temp, searching, (size_t)(scratch-searching));
         strcat(temp, replacewith);
 
         searching = scratch+strlen(searchfor);
@@ -93,9 +93,8 @@ get_env(const char *name, const char *envp[])
 {
     if (envp)
     {
-        int i;
-        const int namelen = strlen(name);
-        for (i = 0; envp[i]; ++i)
+        const size_t namelen = strlen(name);
+        for (int i = 0; envp[i]; ++i)
         {
             if (!strncmp(envp[i], name, namelen))
             {
