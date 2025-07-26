@@ -849,7 +849,7 @@ err:
  * If status file is defined, write to file.
  * If status file is NULL, write to syslog.
  */
-void
+static void
 multi_print_status(struct multi_context *m, struct status_output *so, const int version)
 {
     if (m->hash)
@@ -3210,7 +3210,15 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
     return ret;
 }
 
-void
+/**
+ * Handles peer floating.
+ *
+ * If peer is floated to a taken address, either drops packet
+ * (if peer that owns address has different CN) or disconnects
+ * existing peer. Updates multi_instance with new address,
+ * updates hashtables in multi_context.
+ */
+static void
 multi_process_float(struct multi_context *m, struct multi_instance *mi,
                     struct link_socket *sock)
 {

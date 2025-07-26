@@ -270,17 +270,6 @@ void multi_close_instance(struct multi_context *m, struct multi_instance *mi, bo
 
 bool multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags);
 
-/**
- * Handles peer floating.
- *
- * If peer is floated to a taken address, either drops packet
- * (if peer that owns address has different CN) or disconnects
- * existing peer. Updates multi_instance with new address,
- * updates hashtables in multi_context.
- */
-void multi_process_float(struct multi_context *m, struct multi_instance *mi,
-                         struct link_socket *sock);
-
 #define MPP_PRE_SELECT             (1<<0)
 #define MPP_CONDITIONAL_PRE_SELECT (1<<1)
 #define MPP_CLOSE_ON_SIGNAL        (1<<2)
@@ -369,8 +358,6 @@ bool multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_
 
 
 void multi_process_drop_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags);
-
-void multi_print_status(struct multi_context *m, struct status_output *so, const int version);
 
 struct multi_instance *multi_get_queue(struct mbuf_set *ms);
 
