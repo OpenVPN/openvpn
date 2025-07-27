@@ -715,8 +715,7 @@ dco_do_read(dco_context_t *dco)
 }
 
 int
-dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m,
-                         const bool raise_sigusr1_on_err)
+dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
 {
     /* Not implemented. */
     return 0;

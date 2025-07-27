@@ -57,6 +57,8 @@ typedef struct dco_context {
     int dco_del_peer_reason;
     uint64_t dco_read_bytes;
     uint64_t dco_write_bytes;
+
+    struct context *c;
 } dco_context_t;
 
 #endif /* defined(ENABLE_DCO) && defined(TARGET_FREEBSD) */
