@@ -1,5 +1,5 @@
 [Unit]
-Description=OpenVPN service for %I
+Description=OpenVPN service for %i
 After=network-online.target
 Wants=network-online.target
 Documentation=man:openvpn(8)
