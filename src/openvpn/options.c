@@ -1067,41 +1067,32 @@ setenv_settings(struct env_set *es, const struct options *o)
 
 #ifndef _WIN32
 static void
-setenv_foreign_option(struct options *o, const char *argv[], int len, struct env_set *es)
+setenv_foreign_option(struct options *o, const char *option, const char *value, struct env_set *es)
 {
-    if (len > 0)
-    {
-        struct gc_arena gc = gc_new();
-        struct buffer name = alloc_buf_gc(OPTION_PARM_SIZE, &gc);
-        struct buffer value = alloc_buf_gc(OPTION_PARM_SIZE, &gc);
-        int i;
-        bool first = true;
-        bool good = true;
+    struct gc_arena gc = gc_new();
+    struct buffer env_name = alloc_buf_gc(OPTION_PARM_SIZE, &gc);
+    struct buffer env_value = alloc_buf_gc(OPTION_PARM_SIZE, &gc);
+    bool good = true;
 
-        good &= buf_printf(&name, "foreign_option_%d", o->foreign_option_index + 1);
-        ++o->foreign_option_index;
-        for (i = 0; i < len; ++i)
-        {
-            if (argv[i])
-            {
-                if (!first)
-                {
-                    good &= buf_printf(&value, " ");
-                }
-                good &= buf_printf(&value, "%s", argv[i]);
-                first = false;
-            }
-        }
-        if (good)
-        {
-            setenv_str(es, BSTR(&name), BSTR(&value));
-        }
-        else
-        {
-            msg(M_WARN, "foreign_option: name/value overflow");
-        }
-        gc_free(&gc);
+    good &= buf_printf(&env_name, "foreign_option_%d", o->foreign_option_index + 1);
+    if (value)
+    {
+        good &= buf_printf(&env_value, "dhcp-option %s %s", option, value);
     }
+    else
+    {
+        good &= buf_printf(&env_value, "dhcp-option %s", option);
+    }
+    if (good)
+    {
+        setenv_str(es, BSTR(&env_name), BSTR(&env_value));
+        ++o->foreign_option_index;
+    }
+    else
+    {
+        msg(M_WARN, "foreign_option: name/value overflow");
+    }
+    gc_free(&gc);
 }
 #endif /* ifndef _WIN32 */
 
@@ -3678,15 +3669,10 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
     else if (o->up_script && !dns_updown_user_set(dns) && !dns_updown_forced(dns))
     {
         /* Set foreign option env vars from --dns config */
-        const char *p[] = { "dhcp-option", NULL, NULL };
-        size_t p_len = sizeof(p) / sizeof(p[0]);
-
-        p[1] = "DOMAIN";
         const struct dns_domain *d = dns->search_domains;
         while (d)
         {
-            p[2] = d->name;
-            setenv_foreign_option(o, (const char **)p, p_len, es);
+            setenv_foreign_option(o, "DOMAIN", d->name, es);
             d = d->next;
         }
 
@@ -3713,17 +3699,19 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
             {
                 for (int i = 0; i < s->addr_count; ++i)
                 {
+                    const char *option;
+                    const char *value;
                     if (s->addr[i].family == AF_INET)
                     {
-                        p[1] = "DNS";
-                        p[2] = print_in_addr_t(s->addr[i].in.a4.s_addr, IA_NET_ORDER, &gc);
+                        option = "DNS";
+                        value = print_in_addr_t(s->addr[i].in.a4.s_addr, IA_NET_ORDER, &gc);
                     }
                     else
                     {
-                        p[1] = "DNS6";
-                        p[2] = print_in6_addr(s->addr[i].in.a6, 0, &gc);
+                        option = "DNS6";
+                        value = print_in6_addr(s->addr[i].in.a6, 0, &gc);
                     }
-                    setenv_foreign_option(o, (const char **)p, p_len, es);
+                    setenv_foreign_option(o, option, value, es);
                 }
                 break;
             }
@@ -8388,7 +8376,7 @@ add_option(struct options *options,
             goto err;
         }
 #else /* if defined(_WIN32) || defined(TARGET_ANDROID) */
-        setenv_foreign_option(options, (const char **)p, 3, es);
+        setenv_foreign_option(options, p[1], p[2], es);
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
     }
 #ifdef _WIN32
@@ -8530,7 +8518,7 @@ add_option(struct options *options,
     else if (streq(p[0], "dhcp-option") && p[1] && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        setenv_foreign_option(options, (const char **)p, 3, es);
+        setenv_foreign_option(options, p[1], p[2], es);
     }
     else if (streq(p[0], "route-method") && p[1] && !p[2])
     {
