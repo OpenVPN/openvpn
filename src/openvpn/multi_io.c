@@ -191,8 +191,7 @@ multi_io_wait(struct multi_context *m)
     }
 
     tun_set(m->top.c1.tuntap, m->multi_io->es, EVENT_READ, MULTI_IO_TUN, persistent);
-#if defined(ENABLE_DCO) \
-    && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(TARGET_WIN32))
+#if defined(ENABLE_DCO)
     dco_event_set(&m->top.c1.tuntap->dco, m->multi_io->es, MULTI_IO_DCO);
 #endif
 
@@ -526,8 +525,7 @@ multi_io_process_io(struct multi_context *m)
                     multi_io_action(m, mi, TA_INITIAL, false);
                 }
             }
-#if defined(ENABLE_DCO) \
-            && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(TARGET_WIN32))
+#if defined(ENABLE_DCO)
             /* incoming data on DCO? */
             else if (e->arg == MULTI_IO_DCO)
             {

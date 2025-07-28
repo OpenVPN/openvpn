@@ -3337,8 +3337,7 @@ multi_signal_instance(struct multi_context *m, struct multi_instance *mi, const 
 }
 #endif
 
-#if defined(ENABLE_DCO) \
-    && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(TARGET_WIN32))
+#if defined(ENABLE_DCO)
 static void
 process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi,
                           dco_context_t *dco)
@@ -3409,7 +3408,6 @@ multi_process_incoming_dco(struct multi_context *m)
         {
             process_incoming_del_peer(m, mi, dco);
         }
-#if defined(TARGET_LINUX) || defined(TARGET_WIN32) || defined(TARGET_FREEBSD)
         else if (dco->dco_message_type == OVPN_CMD_FLOAT_PEER)
         {
             ASSERT(mi->context.c2.link_sockets[0]);
@@ -3419,7 +3417,6 @@ multi_process_incoming_dco(struct multi_context *m)
             multi_process_float(m, mi, mi->context.c2.link_sockets[0]);
             CLEAR(dco->dco_float_peer_ss);
         }
-#endif /* if defined(TARGET_LINUX) || defined(TARGET_WIN32) */
         else if (dco->dco_message_type == OVPN_CMD_SWAP_KEYS)
         {
             tls_session_soft_reset(mi->context.c2.tls_multi);
@@ -3452,7 +3449,7 @@ multi_process_incoming_dco(struct multi_context *m)
     dco->dco_write_bytes = 0;
     return ret > 0;
 }
-#endif /* if defined(ENABLE_DCO) && defined(TARGET_LINUX) */
+#endif /* if defined(ENABLE_DCO) */
 
 /*
  * Process packets in the TCP/UDP socket -> TUN/TAP interface direction,
