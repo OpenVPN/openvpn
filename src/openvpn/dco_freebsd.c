@@ -72,7 +72,6 @@ sockaddr_to_nvlist(const struct sockaddr *sa)
     return (nvl);
 }
 
-#ifdef ENABLE_DCO_FLOAT_FREEBSD
 static bool
 nvlist_to_sockaddr(const nvlist_t *nvl, struct sockaddr_storage *ss)
 {
@@ -127,7 +126,6 @@ nvlist_to_sockaddr(const nvlist_t *nvl, struct sockaddr_storage *ss)
 
     return (true);
 }
-#endif /* ifdef ENABLE_DCO_FLOAT_FREEBSD */
 
 int
 dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
@@ -630,7 +628,6 @@ dco_do_read(dco_context_t *dco)
             dco->dco_message_type = OVPN_CMD_SWAP_KEYS;
             break;
 
-#ifdef ENABLE_DCO_FLOAT_FREEBSD
         case OVPN_NOTIF_FLOAT: {
             const nvlist_t *address;
 
@@ -649,7 +646,6 @@ dco_do_read(dco_context_t *dco)
             dco->dco_message_type = OVPN_CMD_FLOAT_PEER;
             break;
         }
-#endif
 
         default:
             msg(M_WARN, "Unknown kernel notification %d", type);
