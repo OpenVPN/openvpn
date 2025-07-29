@@ -33,8 +33,41 @@
 #define PUSH_MSG_AUTH_FAILURE     4
 #define PUSH_MSG_CONTINUATION     5
 #define PUSH_MSG_ALREADY_REPLIED  6
+#define PUSH_MSG_UPDATE           7
+
+#define push_reply_cmd "PUSH_REPLY"
+#define push_update_cmd "PUSH_UPDATE"
+
+/* Push-update options flags */
+#define PUSH_OPT_TO_REMOVE (1<<0)
+#define PUSH_OPT_OPTIONAL (1<<1)
 
 int process_incoming_push_request(struct context *c);
+
+/**
+ * @brief Handles the receiving of a push-update message and applies updates to the specified options.
+ *
+ * This function processes a push-update message, validating its content and applying updates
+ * to the options specified in the message. It also handles split messages if the complete
+ * message has not yet been received.
+ *
+ * @param c The context for the operation.
+ * @param permission_mask The permission mask specifying which options are allowed to be pulled.
+ * @param option_types_found A pointer to a variable that will be filled with the types of options
+ *                           found in the message.
+ * @param buf A buffer containing the received message.
+ *
+ * @return
+ * - `PUSH_MSG_UPDATE`: The message was processed successfully, and the updates were applied.
+ * - `PUSH_MSG_CONTINUATION`: The message is a fragment of a larger message, and the program is
+ *                            waiting for the final part.
+ * - `PUSH_MSG_ERROR`: An error occurred during message processing, or the message is invalid.
+ */
+
+int process_incoming_push_update(struct context *c,
+                                 unsigned int permission_mask,
+                                 unsigned int *option_types_found,
+                                 struct buffer *buf);
 
 int process_incoming_push_msg(struct context *c,
                               const struct buffer *buffer,

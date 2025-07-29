@@ -39,8 +39,6 @@
 #include "ssl_util.h"
 #include "options_util.h"
 
-static char push_reply_cmd[] = "PUSH_REPLY";
-
 /*
  * Auth username/password
  *
@@ -519,21 +517,31 @@ incoming_push_message(struct context *c, const struct buffer *buffer)
     {
         msg(D_PUSH_ERRORS, "WARNING: Received bad push/pull message: %s", sanitize_control_message(BSTR(buffer), &gc));
     }
-    else if (status == PUSH_MSG_REPLY || status == PUSH_MSG_CONTINUATION)
+    else if (status == PUSH_MSG_REPLY || status == PUSH_MSG_UPDATE || status == PUSH_MSG_CONTINUATION)
     {
         c->options.push_option_types_found |= option_types_found;
 
         /* delay bringing tun/tap up until --push parms received from remote */
-        if (status == PUSH_MSG_REPLY)
+        if (status == PUSH_MSG_REPLY || status == PUSH_MSG_UPDATE)
         {
             if (!options_postprocess_pull(&c->options, c->c2.es))
             {
                 goto error;
             }
-            if (!do_up(c, true, c->options.push_option_types_found))
+            if (status == PUSH_MSG_REPLY)
             {
-                msg(D_PUSH_ERRORS, "Failed to open tun/tap interface");
-                goto error;
+                if (!do_up(c, true, c->options.push_option_types_found))
+                {
+                    msg(D_PUSH_ERRORS, "Failed to open tun/tap interface");
+                    goto error;
+                }
+            }
+            else
+            {
+                if (!option_types_found)
+                {
+                    msg(M_WARN, "No updatable options found in incoming PUSH_UPDATE message");
+                }
             }
         }
         event_timeout_clear(&c->c2.push_request_interval);
@@ -1056,11 +1064,13 @@ process_incoming_push_reply(struct context *c,
             md_ctx_init(c->c2.pulled_options_state, "SHA256");
             c->c2.pulled_options_digest_init_done = true;
         }
-        if (apply_push_options(&c->options,
+        if (apply_push_options(c,
+                               &c->options,
                                buf,
                                permission_mask,
                                option_types_found,
-                               c->c2.es))
+                               c->c2.es,
+                               false))
         {
             push_update_digest(c->c2.pulled_options_state, &buf_orig,
                                &c->options);
@@ -1110,6 +1120,12 @@ process_incoming_push_msg(struct context *c,
     {
         return process_incoming_push_reply(c, permission_mask,
                                            option_types_found, &buf);
+    }
+    else if (honor_received_options
+             && buf_string_compare_advance(&buf, push_update_cmd))
+    {
+        return process_incoming_push_update(c, permission_mask,
+                                            option_types_found, &buf);
     }
     else
     {

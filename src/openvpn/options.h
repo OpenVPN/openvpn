@@ -794,6 +794,33 @@ struct options
 #define MAN_CLIENT_AUTH_ENABLED(opt) (false)
 #endif
 
+/*
+ * some PUSH_UPDATE options
+ */
+#define OPT_P_U_ROUTE           (1<<0)
+#define OPT_P_U_ROUTE6          (1<<1)
+#define OPT_P_U_DNS             (1<<2)
+#define OPT_P_U_DHCP            (1<<3)
+#define OPT_P_U_REDIR_GATEWAY   (1<<4)
+
+struct pull_filter
+{
+#define PUF_TYPE_UNDEF  0    /**< undefined filter type */
+#define PUF_TYPE_ACCEPT 1    /**< filter type to accept a matching option */
+#define PUF_TYPE_IGNORE 2    /**< filter type to ignore a matching option */
+#define PUF_TYPE_REJECT 3    /**< filter type to reject and trigger SIGUSR1 */
+    int type;
+    int size;
+    char *pattern;
+    struct pull_filter *next;
+};
+
+struct pull_filter_list
+{
+    struct pull_filter *head;
+    struct pull_filter *tail;
+};
+
 void parse_argv(struct options *options,
                 const int argc,
                 char *argv[],
@@ -862,11 +889,13 @@ bool options_postprocess_pull(struct options *o, struct env_set *es);
 
 void pre_connect_restore(struct options *o, struct gc_arena *gc);
 
-bool apply_push_options(struct options *options,
+bool apply_push_options(struct context *c,
+                        struct options *options,
                         struct buffer *buf,
                         unsigned int permission_mask,
                         unsigned int *option_types_found,
-                        struct env_set *es);
+                        struct env_set *es,
+                        bool is_update);
 
 void options_detach(struct options *o);
 

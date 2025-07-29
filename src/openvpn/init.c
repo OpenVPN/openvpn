@@ -2051,8 +2051,8 @@ do_open_tun(struct context *c, int *error_flags)
         /* possibly add routes */
         if ((route_order(c->c1.tuntap) == ROUTE_AFTER_TUN) && (!c->options.route_delay_defined))
         {
-            int status = do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
-                                  c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
+            bool status = do_route(&c->options, c->c1.route_list, c->c1.route_ipv6_list,
+                                   c->c1.tuntap, c->plugins, c->c2.es, &c->net_ctx);
             *error_flags |= (status ? 0 : ISC_ROUTE_ERRORS);
         }
 

@@ -66,6 +66,7 @@
 #include <ctype.h>
 
 #include "memdbg.h"
+#include "options_util.h"
 
 const char title_string[] =
     PACKAGE_STRING
@@ -947,24 +948,6 @@ uninit_options(struct options *o)
         gc_free(&o->dns_options.gc);
     }
 }
-
-struct pull_filter
-{
-#define PUF_TYPE_UNDEF  0    /**< undefined filter type */
-#define PUF_TYPE_ACCEPT 1    /**< filter type to accept a matching option */
-#define PUF_TYPE_IGNORE 2    /**< filter type to ignore a matching option */
-#define PUF_TYPE_REJECT 3    /**< filter type to reject and trigger SIGUSR1 */
-    int type;
-    int size;
-    char *pattern;
-    struct pull_filter *next;
-};
-
-struct pull_filter_list
-{
-    struct pull_filter *head;
-    struct pull_filter *tail;
-};
 
 #ifndef ENABLE_SMALL
 
@@ -5503,60 +5486,14 @@ parse_argv(struct options *options,
     }
 }
 
-/**
- * Filter an option line by all pull filters.
- *
- * If a match is found, the line is modified depending on
- * the filter type, and returns true. If the filter type is
- * reject, SIGUSR1 is triggered and the return value is false.
- * In that case the caller must end the push processing.
- */
-static bool
-apply_pull_filter(const struct options *o, char *line)
-{
-    struct pull_filter *f;
-
-    if (!o->pull_filter_list)
-    {
-        return true;
-    }
-
-    /* skip leading spaces matching the behaviour of parse_line */
-    while (isspace(*line))
-    {
-        line++;
-    }
-
-    for (f = o->pull_filter_list->head; f; f = f->next)
-    {
-        if (f->type == PUF_TYPE_ACCEPT && strncmp(line, f->pattern, f->size) == 0)
-        {
-            msg(D_LOW, "Pushed option accepted by filter: '%s'", line);
-            return true;
-        }
-        else if (f->type == PUF_TYPE_IGNORE && strncmp(line, f->pattern, f->size) == 0)
-        {
-            msg(D_PUSH, "Pushed option removed by filter: '%s'", line);
-            *line = '\0';
-            return true;
-        }
-        else if (f->type == PUF_TYPE_REJECT && strncmp(line, f->pattern, f->size) == 0)
-        {
-            msg(M_WARN, "Pushed option rejected by filter: '%s'. Restarting.", line);
-            *line = '\0';
-            throw_signal_soft(SIGUSR1, "Offending option received from server");
-            return false;
-        }
-    }
-    return true;
-}
-
 bool
-apply_push_options(struct options *options,
+apply_push_options(struct context *c,
+                   struct options *options,
                    struct buffer *buf,
                    unsigned int permission_mask,
                    unsigned int *option_types_found,
-                   struct env_set *es)
+                   struct env_set *es,
+                   bool is_update)
 {
     char line[OPTION_PARM_SIZE];
     int line_num = 0;
@@ -5568,14 +5505,40 @@ apply_push_options(struct options *options,
         char *p[MAX_PARMS+1];
         CLEAR(p);
         ++line_num;
-        if (!apply_pull_filter(options, line))
+        unsigned int push_update_option_flags = 0;
+        int i = 0;
+
+        /* skip leading spaces matching the behaviour of parse_line */
+        while (isspace(line[i]))
         {
+            i++;
+        }
+
+        /* If we are not in a 'PUSH_UPDATE' we just check `apply_pull_filter()`
+         * otherwise we must call `check_push_update_option_flags()` first
+         */
+        if ((is_update && !check_push_update_option_flags(line, &i, &push_update_option_flags))
+            || !apply_pull_filter(options, &line[i]))
+        {
+            /* In case we are in a `PUSH_UPDATE` and `check_push_update_option_flags()`
+             * or `apply_pull_filter()` fail but the option is flagged by `PUSH_OPT_OPTIONAL`,
+             * instead of restarting, we just ignore the option and we process the next one
+             */
+            if (push_update_option_flags & PUSH_OPT_OPTIONAL)
+            {
+                continue; /* Ignoring this option */
+            }
+            throw_signal_soft(SIGUSR1, "Offending option received from server");
             return false; /* Cause push/pull error and stop push processing */
         }
-        if (parse_line(line, p, SIZE(p)-1, file, line_num, msglevel, &options->gc))
+
+        if (parse_line(&line[i], p, SIZE(p)-1, file, line_num, msglevel, &options->gc))
         {
-            add_option(options, p, false, file, line_num, 0, msglevel,
-                       permission_mask, option_types_found, es);
+            if (!is_update)
+            {
+                add_option(options, p, false, file, line_num, 0, msglevel,
+                           permission_mask, option_types_found, es);
+            }
         }
     }
     return true;

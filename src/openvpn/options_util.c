@@ -30,6 +30,8 @@
 
 #include "options_util.h"
 
+#include "push.h"
+
 const char *
 parse_auth_failed_temp(struct options *o, const char *reason)
 {
@@ -144,4 +146,117 @@ atoi_warn(const char *str, int msglevel)
     }
 
     return (int) i;
+}
+
+static const char *updatable_options[] = {
+    "block-ipv6",
+    "block-outside-dns",
+    "dhcp-option",
+    "dns",
+    "ifconfig",
+    "ifconfig-ipv6",
+    "push-continuation",
+    "redirect-gateway",
+    "redirect-private",
+    "route",
+    "route-gateway",
+    "route-ipv6",
+    "route-metric",
+    "topology",
+    "tun-mtu",
+    "keepalive"
+};
+
+bool
+check_push_update_option_flags(char *line, int *i, unsigned int *flags)
+{
+    *flags = 0;
+    bool opt_is_updatable = false;
+    char c = line[*i];
+
+    /* We check for '?' and '-' and
+     * if they are present we skip them.
+     */
+    if (c == '-')
+    {
+        if (!(line)[*i + 1])
+        {
+            return false;
+        }
+        *flags |= PUSH_OPT_TO_REMOVE;
+        c = (line)[++(*i)];
+    }
+    if (c == '?')
+    {
+        if (!(line)[*i + 1] || (line)[*i + 1] == '-')
+        {
+            return false;
+        }
+        *flags |= PUSH_OPT_OPTIONAL;
+        c = (line)[++(*i)];
+    }
+
+    size_t len = strlen(&line[*i]);
+    int count = sizeof(updatable_options)/sizeof(char *);
+    for (int j = 0; j < count; ++j)
+    {
+        size_t opt_len = strlen(updatable_options[j]);
+        if (len < opt_len)
+        {
+            continue;
+        }
+        if (!strncmp(&line[*i], updatable_options[j], opt_len)
+            && (!line[*i + opt_len] || line[*i + opt_len] == ' '))
+        {
+            opt_is_updatable = true;
+            break;
+        }
+    }
+
+    if (!opt_is_updatable)
+    {
+        if (*flags & PUSH_OPT_OPTIONAL)
+        {
+            msg(D_PUSH, "Pushed option is not updatable: '%s'. Ignoring.", line);
+        }
+        else
+        {
+            msg(M_WARN, "Pushed option is not updatable: '%s'. Restarting.", line);
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool
+apply_pull_filter(const struct options *o, char *line)
+{
+    if (!o->pull_filter_list)
+    {
+        return true;
+    }
+
+    struct pull_filter *f;
+
+    for (f = o->pull_filter_list->head; f; f = f->next)
+    {
+        if (f->type == PUF_TYPE_ACCEPT && strncmp(line, f->pattern, f->size) == 0)
+        {
+            msg(D_LOW, "Pushed option accepted by filter: '%s'", line);
+            return true;
+        }
+        else if (f->type == PUF_TYPE_IGNORE && strncmp(line, f->pattern, f->size) == 0)
+        {
+            msg(D_PUSH, "Pushed option removed by filter: '%s'", line);
+            *line = '\0';
+            return true;
+        }
+        else if (f->type == PUF_TYPE_REJECT && strncmp(line, f->pattern, f->size) == 0)
+        {
+            msg(M_WARN, "Pushed option rejected by filter: '%s'.", line);
+            return false;
+        }
+    }
+    return true;
 }
