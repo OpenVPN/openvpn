@@ -542,6 +542,11 @@ incoming_push_message(struct context *c, const struct buffer *buffer)
                 {
                     msg(M_WARN, "No updatable options found in incoming PUSH_UPDATE message");
                 }
+                else if (!do_update(c, option_types_found))
+                {
+                    msg(D_PUSH_ERRORS, "Failed to update options");
+                    goto error;
+                }
             }
         }
         event_timeout_clear(&c->c2.push_request_interval);

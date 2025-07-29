@@ -2424,7 +2424,7 @@ multi_client_connect_late_setup(struct multi_context *m,
     /*
      * Process sourced options.
      */
-    do_deferred_options(&mi->context, option_types_found);
+    do_deferred_options(&mi->context, option_types_found, false);
 
     /*
      * make sure we got ifconfig settings from somewhere

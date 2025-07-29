@@ -86,13 +86,29 @@ bool do_up(struct context *c,
            bool pulled_options,
            unsigned int option_types_found);
 
+/**
+ * @brief A simplified version of the do_up() function. This function is called
+ *        after receiving a successful PUSH_UPDATE message. It closes and reopens
+ *        the TUN device to apply the updated options.
+ *
+ * @param c The context structure.
+ * @param option_types_found The options found in the PUSH_UPDATE message.
+ * @return true on success.
+ * @return false on error.
+ */
+bool do_update(struct context *c, unsigned int option_types_found);
+
 unsigned int pull_permission_mask(const struct context *c);
 
 const char *format_common_name(struct context *c, struct gc_arena *gc);
 
 void reset_coarse_timers(struct context *c);
 
-bool do_deferred_options(struct context *c, const unsigned int found);
+/*
+ * Handle non-tun-related pulled options.
+ * Set `is_update` param to true to skip NCP check.
+ */
+bool do_deferred_options(struct context *c, const unsigned int found, const bool is_update);
 
 void inherit_context_child(struct context *dest,
                            const struct context *src,

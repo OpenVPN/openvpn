@@ -335,6 +335,16 @@ void delete_routes(struct route_list *rl,
                    const struct env_set *es,
                    openvpn_net_ctx_t *ctx);
 
+void
+delete_routes_v4(struct route_list *rl, const struct tuntap *tt,
+                 unsigned int flags, const struct env_set *es,
+                 openvpn_net_ctx_t *ctx);
+
+void
+delete_routes_v6(struct route_ipv6_list *rl6, const struct tuntap *tt,
+                 unsigned int flags, const struct env_set *es,
+                 openvpn_net_ctx_t *ctx);
+
 void setenv_routes(struct env_set *es, const struct route_list *rl);
 
 void setenv_routes_ipv6(struct env_set *es, const struct route_ipv6_list *rl6);

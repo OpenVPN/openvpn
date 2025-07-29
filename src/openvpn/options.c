@@ -1077,6 +1077,40 @@ setenv_foreign_option(struct options *o, const char *option, const char *value, 
     }
     gc_free(&gc);
 }
+
+static void
+delete_all_dhcp_fo(struct options *o, struct env_item **list)
+{
+    struct env_item *current, *prev;
+
+    ASSERT(list);
+
+    for (current = *list, prev = NULL; current != NULL; current = current->next)
+    {
+        char *tmp_value = NULL;
+        if (!strncmp(current->string, "foreign_option_", sizeof("foreign_option_")-1))
+        {
+            tmp_value = strchr(current->string, '=');
+            if (tmp_value && ++tmp_value)
+            {
+                if (!strncmp(tmp_value, "dhcp-option ", sizeof("dhcp-option ")-1))
+                {
+                    if (prev)
+                    {
+                        prev->next = current->next;
+                    }
+                    else
+                    {
+                        *list = current->next;
+                    }
+                    o->foreign_option_index--;
+                }
+            }
+        }
+        prev = current;
+    }
+}
+
 #endif /* ifndef _WIN32 */
 
 static in_addr_t
@@ -3082,7 +3116,7 @@ remap_redirect_gateway_flags(struct options *opt)
         opt->routes->flags |= RG_DEF1;
     }
 }
-#endif
+#endif /* ifdef _WIN32 */
 
 /*
  * Save/Restore certain option defaults before --pull is applied.
@@ -5314,6 +5348,18 @@ add_option(struct options *options,
            struct env_set *es);
 
 static void
+remove_option(struct context *c,
+              struct options *options,
+              char *p[],
+              bool is_inline,
+              const char *file,
+              int line,
+              const int msglevel,
+              const unsigned int permission_mask,
+              unsigned int *option_types_found,
+              struct env_set *es);
+
+static void
 read_config_file(struct options *options,
                  const char *file,
                  int level,
@@ -5539,6 +5585,11 @@ apply_push_options(struct context *c,
                 add_option(options, p, false, file, line_num, 0, msglevel,
                            permission_mask, option_types_found, es);
             }
+            else if (push_update_option_flags & PUSH_OPT_TO_REMOVE)
+            {
+                remove_option(c, options, p, false, file, line_num, msglevel,
+                              permission_mask, option_types_found, es);
+            }
         }
     }
     return true;
@@ -5675,6 +5726,199 @@ static inline int
 msglevel_forward_compatible(struct options *options, const int msglevel)
 {
     return options->forward_compatible ? M_WARN : msglevel;
+}
+
+/**
+ * @brief Resets options found in the PUSH_UPDATE message that are preceded by the `-` flag.
+ *        This function is used in push-updates to reset specified options.
+ *        The number of parameters `p` must always be 1. If the permission is verified,
+ *        all related options are erased or reset to their default values.
+ *        Upon successful permission verification (by VERIFY_PERMISSION()),
+ *        `option_types_found` is filled with the flag corresponding to the option.
+ *
+ * @param c The context structure.
+ * @param options A pointer to the options structure.
+ * @param p An array of strings containing the options and their parameters.
+ * @param is_inline A boolean indicating if the option is inline.
+ * @param file The file where the function is called.
+ * @param line The line number where the function is called.
+ * @param msglevel The message level.
+ * @param permission_mask The permission mask used by VERIFY_PERMISSION().
+ * @param option_types_found A pointer to the variable where the flags corresponding to the options found are stored.
+ * @param es The environment set structure.
+ */
+static void
+remove_option(struct context *c,
+              struct options *options,
+              char *p[],
+              bool is_inline,
+              const char *file,
+              int line,
+              const int msglevel,
+              const unsigned int permission_mask,
+              unsigned int *option_types_found,
+              struct env_set *es)
+{
+    int msglevel_fc = msglevel_forward_compatible(options, msglevel);
+
+    if (streq(p[0], "ifconfig") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_UP);
+        options->ifconfig_local = NULL;
+        options->ifconfig_remote_netmask = NULL;
+    }
+    else if (streq(p[0], "ifconfig-ipv6") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_UP);
+        options->ifconfig_ipv6_local = NULL;
+        options->ifconfig_ipv6_netbits = 0;
+        options->ifconfig_ipv6_remote = NULL;
+    }
+    else if (streq(p[0], "route") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_ROUTE);
+        if (c->c1.route_list)
+        {
+            delete_routes_v4(c->c1.route_list, c->c1.tuntap,
+                             ROUTE_OPTION_FLAGS(&c->options),
+                             es, &c->net_ctx);
+            if (options->routes)
+            {
+                options->routes->routes = NULL;
+                options->routes->flags = 0;
+            }
+        }
+    }
+    else if (streq(p[0], "route-ipv6") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_ROUTE);
+        if (c->c1.route_ipv6_list)
+        {
+            delete_routes_v6(c->c1.route_ipv6_list, c->c1.tuntap,
+                             ROUTE_OPTION_FLAGS(&c->options),
+                             es, &c->net_ctx);
+            if (options->routes_ipv6)
+            {
+                options->routes_ipv6->routes_ipv6 = NULL;
+                options->routes_ipv6->flags = 0;
+            }
+        }
+    }
+    else if (streq(p[0], "route-gateway") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_ROUTE_EXTRAS);
+        options->route_gateway_via_dhcp = false;
+        options->route_default_gateway = NULL;
+    }
+    else if (streq(p[0], "route-metric") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_ROUTE);
+        options->route_default_metric = 0;
+    }
+    else if (streq(p[0], "push-continuation") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_PULL_MODE);
+        options->push_continuation = 0;
+    }
+    else if ((streq(p[0], "redirect-gateway") || streq(p[0], "redirect-private")) && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_ROUTE);
+        if (options->routes)
+        {
+            options->routes->flags = 0;
+        }
+        if (options->routes_ipv6)
+        {
+            options->routes_ipv6->flags = 0;
+        }
+    }
+    else if (streq(p[0], "dns") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
+        gc_free(&options->dns_options.gc);
+        CLEAR(options->dns_options);
+    }
+    else if (streq(p[0], "topology") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_UP);
+        options->topology = TOP_UNDEF;
+        helper_setdefault_topology(options);
+    }
+    else if (streq(p[0], "tun-mtu") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_PUSH_MTU|OPT_P_CONNECTION);
+        options->ce.tun_mtu = TUN_MTU_DEFAULT;
+        options->ce.tun_mtu_defined = false;
+        options->ce.occ_mtu = 0;
+    }
+    else if (streq(p[0], "block-ipv6") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_ROUTE);
+        options->block_ipv6 = false;
+    }
+#if defined(_WIN32) || defined(TARGET_ANDROID)
+    else if (streq(p[0], "dhcp-option") && !p[1])
+    {
+        struct tuntap_options *o = &options->tuntap_options;
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
+
+        o->domain = NULL;
+        o->netbios_scope = NULL;
+        o->netbios_node_type = 0;
+        o->dns6_len = 0;
+        memset(o->dns6, 0, sizeof(o->dns6));
+        o->dns_len = 0;
+        memset(o->dns, 0, sizeof(o->dns));
+        o->wins_len = 0;
+        memset(o->wins, 0, sizeof(o->wins));
+        o->ntp_len = 0;
+        memset(o->ntp, 0, sizeof(o->ntp));
+        o->nbdd_len = 0;
+        memset(o->nbdd, 0, sizeof(o->nbdd));
+        while (o->domain_search_list_len-- > 0)
+        {
+            o->domain_search_list[o->domain_search_list_len] = NULL;
+        }
+        o->disable_nbt = 0;
+        o->dhcp_options = 0;
+#if defined(TARGET_ANDROID)
+        o->http_proxy_port = 0;
+        o->http_proxy = NULL;
+#endif
+    }
+#endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+#ifdef _WIN32
+    else if (streq(p[0], "block-outside-dns") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
+        options->block_outside_dns = false;
+    }
+#else /* ifdef _WIN32 */
+    else if (streq(p[0], "dhcp-option") && !p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_DHCPDNS);
+        delete_all_dhcp_fo(options, &es->list);
+    }
+#endif
+    else
+    {
+        int i;
+        int msglevel_unknown = msglevel_fc;
+        /* Check if an option is in --ignore-unknown-option and
+         * set warning level to non fatal */
+        for (i = 0; options->ignore_unknown_option && options->ignore_unknown_option[i]; i++)
+        {
+            if (streq(p[0], options->ignore_unknown_option[i]))
+            {
+                msglevel_unknown = M_WARN;
+                break;
+            }
+        }
+        msg(msglevel_unknown, "Unrecognized option or missing or extra parameter(s) in %s:%d: -%s (%s)", file, line, p[0], PACKAGE_VERSION);
+    }
+    return;
+err:
+    msg(msglevel, "Error occurred trying to remove %s option", p[0]);
 }
 
 static void
