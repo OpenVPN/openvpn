@@ -62,6 +62,7 @@ sockaddr_to_nvlist(const struct sockaddr *sa)
             const struct sockaddr_in6 *in6 = (const struct sockaddr_in6 *)sa;
             nvlist_add_binary(nvl, "address", &in6->sin6_addr, sizeof(in6->sin6_addr));
             nvlist_add_number(nvl, "port", in6->sin6_port);
+            nvlist_add_number(nvl, "scopeid", in6->sin6_scope_id);
             break;
         }
 
@@ -117,6 +118,11 @@ nvlist_to_sockaddr(const nvlist_t *nvl, struct sockaddr_storage *ss)
             assert(len == sizeof(in6->sin6_addr));
             memcpy(&in6->sin6_addr, data, sizeof(in6->sin6_addr));
             in6->sin6_port = nvlist_get_number(nvl, "port");
+
+            if (nvlist_exists_number(nvl, "scopeid"))
+            {
+                in6->sin6_scope_id = nvlist_get_number(nvl, "scopeid");
+            }
             break;
         }
 
