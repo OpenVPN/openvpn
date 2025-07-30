@@ -8712,9 +8712,12 @@ add_option(struct options *options,
 #endif
         VERIFY_PERMISSION(OPT_P_DHCPDNS);
 
+        bool dhcp_optional = false;
+
         if ((streq(p[1], "DOMAIN") || streq(p[1], "ADAPTER_DOMAIN_SUFFIX")) && p[2] && !p[3])
         {
             dhcp->domain = p[2];
+            dhcp_optional = true;
         }
         else if (streq(p[1], "DOMAIN-SEARCH") && p[2] && !p[3])
         {
@@ -8727,6 +8730,7 @@ add_option(struct options *options,
                 msg(msglevel, "--dhcp-option %s: maximum of %d search entries can be specified",
                     p[1], N_SEARCH_LIST_LEN);
             }
+            dhcp_optional = true;
         }
         else if ((streq(p[1], "DNS") || streq(p[1], "DNS6")) && p[2] && !p[3]
                  && (!strstr(p[2], ":") || ipv6_addr_safe(p[2])))
@@ -8738,6 +8742,7 @@ add_option(struct options *options,
             else
             {
                 dhcp_option_address_parse("DNS", p[2], dhcp->dns, &dhcp->dns_len, msglevel);
+                dhcp_optional = true;
             }
         }
 #if defined(_WIN32) || defined(TARGET_ANDROID)
@@ -8761,6 +8766,7 @@ add_option(struct options *options,
         else if (streq(p[1], "WINS") && p[2] && !p[3])
         {
             dhcp_option_address_parse("WINS", p[2], o->wins, &o->wins_len, msglevel);
+            o->dhcp_options |= DHCP_OPTIONS_DHCP_OPTIONAL;
         }
         else if (streq(p[1], "NTP") && p[2] && !p[3])
         {
@@ -8792,6 +8798,13 @@ add_option(struct options *options,
 #else /* if defined(_WIN32) || defined(TARGET_ANDROID) */
         setenv_foreign_option(options, p[1], p[2], es);
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+
+        if (dhcp_optional)
+        {
+#if defined(_WIN32) || defined(TARGET_ANDROID)
+            o->dhcp_options |= DHCP_OPTIONS_DHCP_OPTIONAL;
+#endif
+        }
     }
 #ifdef _WIN32
     else if (streq(p[0], "show-adapters") && !p[1])
