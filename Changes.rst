@@ -9,14 +9,15 @@ Multi-socket support for servers
     and TCP connections at the same time, or listen on multiple addresses
     and/or ports.
 
-Client implementations for DNS options sent by server for Linux/BSD
-    Linux and BSD versions of OpenVPN now ship with a default ``dns-updown``
-    script that implements proper handling of DNS configuration sent
-    by the server. The scripts should work on systems that use
-    ``systemd`` or ``resolveconf`` to manage the DNS setup, as well as
-    raw ``/etc/resolv.conf`` files. However, the exact features supported
-    will depend on the configuration method. On Linux this should usually
-    mean that split-DNS configurations are supported out-of-the-box now.
+Client implementations for DNS options sent by server for Linux/BSD/macOS
+    Linux, BSD and macOS versions of OpenVPN now ship with a per-platform
+    default ``--dns-updown`` script that implements proper handling of
+    DNS configuration sent by the server.  The scripts should work on
+    systems that use ``systemd`` or ``resolveconf`` to manage the DNS
+    setup, as well as raw ``/etc/resolv.conf`` files. However, the exact
+    features supported will depend on the configuration method.
+    On Linux and MacOS this should usually make split-DNS configurations
+    supported out-of-the-box now.
 
     Note that this new script will not be used by default if a ``--up``
     script is already in use to reduce problems with
@@ -54,6 +55,12 @@ Support for new version of Linux DCO module
 
 Support for server mode in win-dco driver
     On Windows the win-dco driver can now be used in server setups.
+
+Support for TLS client floating in DCO implementations
+    The kernel modules will detect clients floating to a new IP address
+    and notify userland so both data packets (kernel) and TLS packets
+    (sent by userland) can reach the new client IP.
+    (Actual support depends on recent-enough kernel implementation)
 
 Enforcement of AES-GCM usage limit
     OpenVPN will now enforce the usage limits on AES-GCM with the same
@@ -115,6 +122,19 @@ Allow overriding username with ``--override-username``
 Support for Haiku OS
 
 TLS1.3 support with mbedTLS (very recent mbedTLS development versions only)
+
+PUSH_UPDATE client support
+    It is now possible to update parts of the client-side configuration
+    (IP address, routes, MTU, DNS) by sending a new server-to-client
+    control message, PUSH_UPDATE,<options>.  Server-side support is
+    currently only supported by OpenVPN Inc commercial offerings, the
+    implementation for OpenVPN 2.x is still under development.
+    See also: https://openvpn.github.io/openvpn-rfc/openvpn-wire-protocol.html
+
+Support for user-defined routing tables on Linux
+    see the ``--route-table`` option in the manpage
+
+PQE support for WolfSSL
 
 
 Deprecated features

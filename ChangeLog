@@ -1,6 +1,90 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.07.31 -- Version 2.7_alpha3
+
+Antonio Quartulli (10):
+      README.dco: update Linux instructions
+      dco_linux: fix case statement by using proper error value
+      dco_linux: use M_FATAL instead of M_ERR in netlink error code paths
+      dco_linux: rearrange functions
+      multi: store multi_context address inside top instance
+      dco: only pass struct context to init function
+      dco_linux: factor out netlink notification code
+      dco_linux: fix async message reception
+      multi: make some multi_*() functions static
+      dco_linux: clean up PEER_GET trigger and parser
+
+Arne Schwabe (1):
+      Cleanup/simplify mbed TLS related define from autoconf
+
+Christian Schürmann (1):
+      Replace deprecated OpenSSL.crypto.load_crl
+
+Frank Lichtenheld (8):
+      packet_id: Fix build with --disable-debug
+      Fix new doxygen warnings about using @return in void functions
+      Fix compiler warning in reliable.c with --disable-debug
+      reliable: Review and fix gc_arena usage
+      configure.ac: Remove use of PKCS11_HELPER_LIBS in mbedTLS checks
+      GHA: Dependency updates July 2025
+      plugins: Clean up -Wconversion warnings
+      options: Simplify function setenv_foreign_option
+
+Gert Doering (3):
+      mudp.c, multi.c, multi_io.c: get rid of 'all three DCO platforms' #ifdefs
+      unit_tests/plugins/auth-pam: fix stdint.h related build error on fedora 42
+      OpenVPN Release 2.7_alpha3
+
+Gianmarco De Gregori (2):
+      Route: add support for user defined routing table
+      Multi-socket: Fix assert triggered by stale peer-id reuse
+
+Heiko Hund (9):
+      dns: add updown script for macOS
+      fix macOS dns-updown handling of parallel full redirects
+      run forced --dns-updown without --script-security
+      dns: create NRPT registry key if it doesn't exist
+      dns: do not run updown scripts with lwipovpn
+      prevent search domain races with macOS dns-updown
+      move macOS dns-updown common code into functions
+      mac dns: compare servers before restoring backup
+      mac dns: do not run dns-updown in parallel
+
+Kristof Provost (3):
+      dco: support float notifications on FreeBSD
+      dco-freebsd: always enable float notification support
+      dco-freebsd: pass address scope to the kernel
+
+Lev Stipakov (4):
+      Fix broken DHCP options
+      Fix --dns options for TAP adapter
+      Fix DNS options duplication on PUSH_UPDATE
+      Fix wrong byte order of --dns server
+
+Marco Baffo (3):
+      PUSH_UPDATE: Allow OpenVPN in client mode to receive and handle PUSH UPDATE control messages to allow options updating at runtime.
+      PUSH_UPDATE: Added remove_option() and do_update().
+      PUSH_UPDATE: Added update_option() function.
+
+Ralf Lici (5):
+      dco linux: avoid redefining ovpn enums
+      dco linux: avoid sending local port to ovpn
+      dco: Add support for float notifications
+      improve float collision logging
+      add flag to print addresses in a consistent format during float
+
+Samuli Seppänen (2):
+      t_server_null: add multi-socket testing
+      t_server_null: match test numbers with server numbers
+
+Terrance (1):
+      Update systemd service name param to match command
+
+rein.vanbaaren (1):
+      Added PQE to WolfSSL
+
+
 2025.06.18 -- Version 2.7_alpha2
 
 Antonio Quartulli (1):
