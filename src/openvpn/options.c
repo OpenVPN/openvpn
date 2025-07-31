@@ -3527,7 +3527,13 @@ tuntap_options_postprocess_dns(struct options *o)
 #endif /* if defined(_WIN32) */
 
     /* Copy --dns options to tuntap_options */
+
     const struct dns_domain *d = dns->search_domains;
+    if (d)
+    {
+        tt->domain_search_list_len = 0;
+    }
+
     while (d && tt->domain_search_list_len + 1 < N_SEARCH_LIST_LEN)
     {
         tt->domain_search_list[tt->domain_search_list_len++] = d->name;
@@ -3537,6 +3543,9 @@ tuntap_options_postprocess_dns(struct options *o)
     {
         msg(M_WARN, "WARNING: couldn't copy all --dns search-domains to TUN/TAP");
     }
+
+    tt->dns_len = 0;
+    tt->dns6_len = 0;
 
     const struct dns_server *s = dns->servers;
     while (s)
@@ -6212,6 +6221,8 @@ update_option(struct context *c,
             }
             o->disable_nbt = 0;
             o->dhcp_options = 0;
+
+            CLEAR(options->dns_options.from_dhcp);
 #if defined(TARGET_ANDROID)
             o->http_proxy_port = 0;
             o->http_proxy = NULL;
