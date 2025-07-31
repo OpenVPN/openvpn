@@ -3579,6 +3579,7 @@ tuntap_options_postprocess_dns(struct options *o)
             {
                 msg(M_WARN, "WARNING: couldn't copy all --dns server addresses to TUN/TAP");
             }
+            tt->dhcp_options |= DHCP_OPTIONS_DHCP_OPTIONAL;
             return;
         }
     }
