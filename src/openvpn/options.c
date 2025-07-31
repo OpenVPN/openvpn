@@ -3573,7 +3573,7 @@ tuntap_options_postprocess_dns(struct options *o)
             {
                 if (s->addr[i].family == AF_INET && tt->dns_len + 1 < N_DHCP_ADDR)
                 {
-                    tt->dns[tt->dns_len++] = s->addr[i].in.a4.s_addr;
+                    tt->dns[tt->dns_len++] = ntohl(s->addr[i].in.a4.s_addr);
                 }
                 else if (tt->dns6_len + 1 < N_DHCP_ADDR)
                 {
