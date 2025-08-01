@@ -26,10 +26,12 @@
 
 #include "event.h"
 
-#include "ovpn_dco_linux.h"
-
 #include <netlink/socket.h>
 #include <netlink/netlink.h>
+
+/* include last since we need to behave differently if the kernel headers
+ * are from 6.16+ */
+#include "ovpn_dco_linux.h"
 
 typedef enum ovpn_key_slot dco_key_slot_t;
 typedef enum ovpn_cipher_alg dco_cipher_t;
