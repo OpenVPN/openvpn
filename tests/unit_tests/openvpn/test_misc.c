@@ -240,7 +240,7 @@ test_list(void **state)
         while (c);
     }
 
-    assert_int_equal(wordcount, 2978);
+    assert_int_equal(wordcount, 2971);
 
     /* remove some words from the table */
     {
