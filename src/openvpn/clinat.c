@@ -197,7 +197,7 @@ client_nat_transform(const struct client_nat_option_list *list,
     struct ip_tcp_udp_hdr *h = (struct ip_tcp_udp_hdr *) BPTR(ipbuf);
     int i;
     uint32_t addr, *addr_ptr;
-    const uint32_t *from, *to;
+    uint32_t from, to;
     int accumulate = 0;
     unsigned int amask;
     unsigned int alog = 0;
@@ -212,38 +212,40 @@ client_nat_transform(const struct client_nat_option_list *list,
         const struct client_nat_entry *e = &list->entries[i]; /* current NAT rule */
         if (e->type ^ direction)
         {
-            addr = *(addr_ptr = &h->ip.daddr);
+            addr_ptr = &h->ip.daddr;
+            memcpy( &addr,  addr_ptr, sizeof( addr )); ;
             amask = 2;
         }
         else
         {
-            addr = *(addr_ptr = &h->ip.saddr);
+            addr_ptr = &h->ip.saddr;
+            memcpy( &addr,  addr_ptr, sizeof( addr )); ;
             amask = 1;
         }
         if (direction)
         {
-            from = &e->foreign_network;
-            to = &e->network;
+            from = e->foreign_network;
+            to = e->network;
         }
         else
         {
-            from = &e->network;
-            to = &e->foreign_network;
+            from = e->network;
+            to = e->foreign_network;
         }
 
-        if (((addr & e->netmask) == *from) && !(amask & alog))
+        if (((addr & e->netmask) == from) && !(amask & alog))
         {
             /* pre-adjust IP checksum */
             ADD_CHECKSUM_32(accumulate, addr);
 
             /* do NAT transform */
-            addr = (addr & ~e->netmask) | *to;
+            addr = (addr & ~e->netmask) | to;
 
             /* post-adjust IP checksum */
             SUB_CHECKSUM_32(accumulate, addr);
 
             /* write the modified address to packet */
-            *addr_ptr = addr;
+            memcpy( addr_ptr, &addr , sizeof( addr ));
 
             /* mark as modified */
             alog |= amask;
