@@ -52,10 +52,13 @@
 #define MAX_PARMS 16
 
 /*
- * Max size of options line and parameter.
+ * Max size of options line and parameter. Note these
+ * must be able to accomodate large (>50Kb) values in
+ * order to support long passwords under the dynamic challenge-response
+ * protocol.
  */
-#define OPTION_PARM_SIZE 256
-#define OPTION_LINE_SIZE 256
+#define OPTION_PARM_SIZE USER_PASS_LEN
+#define OPTION_LINE_SIZE OPTION_PARM_SIZE
 
 extern const char title_string[];
 
