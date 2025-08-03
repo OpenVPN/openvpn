@@ -460,6 +460,11 @@ run_up_down_service(bool add, const struct options *o, const struct tuntap *tt)
     make_domain_list("dns search domains", search_domains, false,
                      nrpt.search_domains, sizeof(nrpt.search_domains));
 
+    msg(D_LOW, "%s NRPT DNS%s%s on '%s' (if_index = %d) using service",
+        (add ? "Setting" : "Deleting"), nrpt.resolve_domains[0] != 0 ? ", resolve domains" : "",
+        nrpt.search_domains[0] != 0 ? ", search domains" : "",
+        nrpt.iface.name, nrpt.iface.index);
+
     send_msg_iservice(o->msg_channel, &nrpt, sizeof(nrpt), &ack, "DNS");
 }
 
