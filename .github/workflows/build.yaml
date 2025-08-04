@@ -116,7 +116,7 @@ jobs:
         arch: [x86, x64]
         test: [argv, auth_token, buffer, cryptoapi, crypto, misc, ncp, packet_id, pkt, provider, ssl, tls_crypt, user_pass]
 
-    runs-on: windows-latest
+    runs-on: windows-2025
     name: "mingw unittest ${{ matrix.test }} - ${{ matrix.arch }} - OSSL"
     steps:
       - name: Checkout OpenVPN
@@ -264,7 +264,7 @@ jobs:
       env:
         BUILD_CONFIGURATION: Release
 
-      runs-on: windows-latest
+      runs-on: windows-2025
       steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: lukka/get-cmake@6b3e96a9bc9976b8b546346fdd102effedae0ca8 # v4.0.3

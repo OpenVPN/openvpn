@@ -44,7 +44,7 @@
 #define srandom  srand
 #endif
 
-#ifdef _MSC_VER /* Visual Studio */
+#if defined(_MSC_VER) && !defined(__clang__) /* Microsoft compiler */
 #define __func__ __FUNCTION__
 #define __attribute__(x)
 #endif
