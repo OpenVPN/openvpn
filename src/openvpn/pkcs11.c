@@ -39,6 +39,15 @@
 #include "console.h"
 #include "pkcs11_backend.h"
 
+
+struct pkcs11_context {
+    int nPINCachePeriod;
+    struct user_pass token_pass;
+    const char *pin_file;
+};
+
+static struct pkcs11_context pkcs11_ctx; /* GLOBAL */
+
 static
 time_t
 __mytime(void)
@@ -182,6 +191,43 @@ _pkcs11_openvpn_log(
 
 static
 PKCS11H_BOOL
+pkcs11_password_setup(
+    const char *pkcs11_pin_file,
+    struct user_pass *token_pass
+    )
+{
+    if (!token_pass)
+    {
+        return false;
+    }
+    if (pkcs11_pin_file)
+    {
+        msg(M_INFO, "pkcs11_password_setup - pkcs11_pin_file='%s'", pkcs11_pin_file);
+    }
+    else
+    {
+        /* If pin file is not provided, clear the token_pass and continue */
+        CLEAR(token_pass);
+        return true;
+    }
+    token_pass->defined = false;
+    token_pass->nocache = true;
+
+    if (!strlen(token_pass->password))
+    {
+        get_user_pass(
+            token_pass,
+            pkcs11_pin_file,
+            UP_TYPE_PRIVATE_KEY,
+            GET_USER_PASS_MANAGEMENT|GET_USER_PASS_PASSWORD_ONLY
+            );
+    }
+
+    return true;
+}
+
+static
+PKCS11H_BOOL
 _pkcs11_openvpn_token_prompt(
     void *const global_data,
     void *const user_data,
@@ -235,11 +281,15 @@ _pkcs11_openvpn_pin_prompt(
     const size_t pin_max
     )
 {
-    struct user_pass token_pass;
     char prompt[1024];
-    CLEAR(token_pass);
+    struct pkcs11_context *ctx = NULL;
 
-    (void)global_data;
+    if (!global_data)
+    {
+        return false;
+    }
+    ctx = (struct pkcs11_context *)global_data;
+
     (void)user_data;
     (void)retry;
 
@@ -247,12 +297,13 @@ _pkcs11_openvpn_pin_prompt(
 
     snprintf(prompt, sizeof(prompt), "%s token", token->label);
 
-    token_pass.defined = false;
-    token_pass.nocache = true;
+    ctx->token_pass.defined = false;
+    ctx->token_pass.nocache = true;
 
     if (
-        !get_user_pass(
-            &token_pass,
+        !strlen(ctx->token_pass.password)
+        && !get_user_pass(
+            &ctx->token_pass,
             NULL,
             prompt,
             GET_USER_PASS_MANAGEMENT|GET_USER_PASS_PASSWORD_ONLY|GET_USER_PASS_NOFATAL
@@ -263,8 +314,8 @@ _pkcs11_openvpn_pin_prompt(
     }
     else
     {
-        strncpynt(pin, token_pass.password, pin_max);
-        purge_user_pass(&token_pass, true);
+        strncpynt(pin, ctx->token_pass.password, pin_max);
+        purge_user_pass(&ctx->token_pass, true);
 
         if (strlen(pin) == 0)
         {
@@ -280,15 +331,23 @@ _pkcs11_openvpn_pin_prompt(
 bool
 pkcs11_initialize(
     const bool protected_auth,
-    const int nPINCachePeriod
+    const int nPINCachePeriod,
+    const char *pin_file
     )
 {
     CK_RV rv = CKR_FUNCTION_FAILED;
+    pkcs11_ctx.nPINCachePeriod = nPINCachePeriod;
 
     dmsg(
         D_PKCS11_DEBUG,
         "PKCS#11: pkcs11_initialize - entered"
         );
+
+    if (!pkcs11_password_setup(pin_file, &pkcs11_ctx.token_pass))
+    {
+        msg(M_FATAL, "PKCS#11: Cannot initialize pkcs11 password");
+        return false;
+    }
 
     if ((rv = pkcs11h_engine_setSystem(&s_pkcs11h_sys_engine)) != CKR_OK)
     {
@@ -316,13 +375,13 @@ pkcs11_initialize(
         goto cleanup;
     }
 
-    if ((rv = pkcs11h_setTokenPromptHook(_pkcs11_openvpn_token_prompt, NULL)) != CKR_OK)
+    if ((rv = pkcs11h_setTokenPromptHook(_pkcs11_openvpn_token_prompt, &pkcs11_ctx)) != CKR_OK)
     {
         msg(M_FATAL, "PKCS#11: Cannot set hooks %ld-'%s'", rv, pkcs11h_getMessage(rv));
         goto cleanup;
     }
 
-    if ((rv = pkcs11h_setPINPromptHook(_pkcs11_openvpn_pin_prompt, NULL)) != CKR_OK)
+    if ((rv = pkcs11h_setPINPromptHook(_pkcs11_openvpn_pin_prompt, &pkcs11_ctx)) != CKR_OK)
     {
         msg(M_FATAL, "PKCS#11: Cannot set hooks %ld-'%s'", rv, pkcs11h_getMessage(rv));
         goto cleanup;

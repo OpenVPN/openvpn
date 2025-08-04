@@ -30,7 +30,8 @@
 bool
 pkcs11_initialize(
     const bool fProtectedAuthentication,
-    const int nPINCachePeriod
+    const int nPINCachePeriod,
+    const char *pin_file
     );
 
 void

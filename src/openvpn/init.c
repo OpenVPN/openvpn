@@ -759,7 +759,7 @@ context_init_1(struct context *c)
     if (c->first_time)
     {
         int i;
-        pkcs11_initialize(true, c->options.pkcs11_pin_cache_period);
+        pkcs11_initialize(true, c->options.pkcs11_pin_cache_period, c->options.pkcs11_pin_file);
         for (i = 0; i<MAX_PARMS && c->options.pkcs11_providers[i] != NULL; i++)
         {
             pkcs11_addProvider(c->options.pkcs11_providers[i], c->options.pkcs11_protected_authentication[i],
