@@ -2,7 +2,7 @@
  *  openvpnmsica -- Custom Action DLL to provide OpenVPN-specific support to MSI packages
  *                  https://community.openvpn.net/openvpn/wiki/OpenVPNMSICA
  *
- *  Copyright (C) 2018-2021 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2025 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -14,14 +14,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
-#elif defined(_MSC_VER)
-#include <config-msvc.h>
 #endif
 
 #include "msica_arg.h"
@@ -56,9 +53,9 @@ msica_arg_seq_free(_Inout_ struct msica_arg_seq *seq)
 void
 msica_arg_seq_add_head(
     _Inout_ struct msica_arg_seq *seq,
-    _In_z_ LPCTSTR argument)
+    _In_z_ LPCWSTR argument)
 {
-    size_t argument_size = (_tcslen(argument) + 1) * sizeof(TCHAR);
+    size_t argument_size = (wcslen(argument) + 1) * sizeof(WCHAR);
     struct msica_arg *p = malloc(sizeof(struct msica_arg) + argument_size);
     if (p == NULL)
     {
@@ -77,9 +74,9 @@ msica_arg_seq_add_head(
 void
 msica_arg_seq_add_tail(
     _Inout_ struct msica_arg_seq *seq,
-    _Inout_ LPCTSTR argument)
+    _Inout_ LPCWSTR argument)
 {
-    size_t argument_size = (_tcslen(argument) + 1) * sizeof(TCHAR);
+    size_t argument_size = (wcslen(argument) + 1) * sizeof(WCHAR);
     struct msica_arg *p = malloc(sizeof(struct msica_arg) + argument_size);
     if (p == NULL)
     {
@@ -92,19 +89,19 @@ msica_arg_seq_add_tail(
 }
 
 
-LPTSTR
+LPWSTR
 msica_arg_seq_join(_In_ const struct msica_arg_seq *seq)
 {
     /* Count required space. */
     size_t size = 2 /*x + zero-terminator*/;
     for (struct msica_arg *p = seq->head; p != NULL; p = p->next)
     {
-        size += _tcslen(p->val) + 1 /*space delimiter|zero-terminator*/;
+        size += wcslen(p->val) + 1 /*space delimiter|zero-terminator*/;
     }
-    size *= sizeof(TCHAR);
+    size *= sizeof(WCHAR);
 
     /* Allocate. */
-    LPTSTR str = malloc(size);
+    LPWSTR str = malloc(size);
     if (str == NULL)
     {
         msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, size);
@@ -117,18 +114,18 @@ msica_arg_seq_join(_In_ const struct msica_arg_seq *seq)
 #endif
 
     /* Dummy argv[0] (i.e. executable name), for CommandLineToArgvW to work correctly when parsing this string. */
-    _tcscpy(str, TEXT("x"));
+    wcscpy(str, L"x");
 
     /* Join. */
-    LPTSTR s = str + 1 /*x*/;
+    LPWSTR s = str + 1 /*x*/;
     for (struct msica_arg *p = seq->head; p != NULL; p = p->next)
     {
         /* Convert zero-terminator into space delimiter. */
-        s[0] = TEXT(' ');
+        s[0] = L' ';
         s++;
         /* Append argument. */
-        _tcscpy(s, p->val);
-        s += _tcslen(p->val);
+        wcscpy(s, p->val);
+        s += wcslen(p->val);
     }
 
 #ifdef _MSC_VER

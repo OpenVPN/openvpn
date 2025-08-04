@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -18,18 +18,16 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /**
- * @file Control Channel Verification Module mbed TLS backend
+ * @file
+ * Control Channel Verification Module mbed TLS backend
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -37,6 +35,7 @@
 #if defined(ENABLE_CRYPTO_MBEDTLS)
 
 #include "crypto_mbedtls.h"
+#include "mbedtls_compat.h"
 #include "ssl_verify.h"
 #include <mbedtls/asn1.h>
 #include <mbedtls/error.h>
@@ -87,8 +86,8 @@ verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth,
         char *serial = backend_x509_get_serial(cert, &gc);
 
         ret = mbedtls_x509_crt_verify_info(errstr, sizeof(errstr)-1, "", *flags);
-        if (ret <= 0 && !openvpn_snprintf(errstr, sizeof(errstr),
-                                          "Could not retrieve error string, flags=%" PRIx32, *flags))
+        if (ret <= 0 && !snprintf(errstr, sizeof(errstr),
+                                  "Could not retrieve error string, flags=%" PRIx32, *flags))
         {
             errstr[0] = '\0';
         }
@@ -219,6 +218,41 @@ backend_x509_get_serial_hex(mbedtls_x509_crt *cert, struct gc_arena *gc)
     return buf;
 }
 
+result_t
+backend_x509_write_pem(openvpn_x509_cert_t *cert, const char *filename)
+{
+    /* mbed TLS does not make it easy to write a certificate in PEM format.
+     * The only way is to directly access the DER encoded raw certificate
+     * and PEM encode it ourselves */
+
+    struct gc_arena gc = gc_new();
+    /* just do a very loose upper bound for the base64 based PEM encoding
+     * using 3 times the space for the base64 and 100 bytes for the
+     * headers and footer */
+    struct buffer pem = alloc_buf_gc(cert->raw.len * 3 + 100, &gc);
+
+    struct buffer der = {};
+    buf_set_read(&der, cert->raw.p, cert->raw.len);
+
+    if (!crypto_pem_encode("CERTIFICATE", &pem,  &der, &gc))
+    {
+        goto err;
+    }
+
+    if (!buffer_write_file(filename, &pem))
+    {
+        goto err;
+    }
+
+    gc_free(&gc);
+    return SUCCESS;
+err:
+    msg(D_TLS_DEBUG_LOW, "Error writing X509 certificate to file %s",
+        filename);
+    gc_free(&gc);
+    return FAILURE;
+}
+
 static struct buffer
 x509_get_fingerprint(const mbedtls_md_info_t *md_info, mbedtls_x509_crt *cert,
                      struct gc_arena *gc)
@@ -273,7 +307,7 @@ do_setenv_x509(struct env_set *es, const char *name, char *value, int depth)
     name_expand_size = 64 + strlen(name);
     name_expand = (char *) malloc(name_expand_size);
     check_malloc_return(name_expand);
-    openvpn_snprintf(name_expand, name_expand_size, "X509_%d_%s", depth, name);
+    snprintf(name_expand, name_expand_size, "X509_%d_%s", depth, name);
     setenv_str(es, name_expand, value);
     free(name_expand);
 }
@@ -397,13 +431,13 @@ x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
 
         if (0 == mbedtls_oid_get_attr_short_name(&name->oid, &shortname) )
         {
-            openvpn_snprintf(name_expand, sizeof(name_expand), "X509_%d_%s",
-                             cert_depth, shortname);
+            snprintf(name_expand, sizeof(name_expand), "X509_%d_%s",
+                     cert_depth, shortname);
         }
         else
         {
-            openvpn_snprintf(name_expand, sizeof(name_expand), "X509_%d_\?\?",
-                             cert_depth);
+            snprintf(name_expand, sizeof(name_expand), "X509_%d_\?\?",
+                     cert_depth);
         }
 
         for (i = 0; i < name->val.len; i++)
@@ -434,24 +468,14 @@ x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
     }
 }
 
+/* Dummy function because Netscape certificate types are not supported in OpenVPN with mbedtls.
+ * Returns SUCCESS if usage is NS_CERT_CHECK_NONE, FAILURE otherwise. */
 result_t
 x509_verify_ns_cert_type(mbedtls_x509_crt *cert, const int usage)
 {
     if (usage == NS_CERT_CHECK_NONE)
     {
         return SUCCESS;
-    }
-    if (usage == NS_CERT_CHECK_CLIENT)
-    {
-        return ((cert->ext_types & MBEDTLS_X509_EXT_NS_CERT_TYPE)
-                && (cert->ns_cert_type & MBEDTLS_X509_NS_CERT_TYPE_SSL_CLIENT)) ?
-               SUCCESS : FAILURE;
-    }
-    if (usage == NS_CERT_CHECK_SERVER)
-    {
-        return ((cert->ext_types & MBEDTLS_X509_EXT_NS_CERT_TYPE)
-                && (cert->ns_cert_type & MBEDTLS_X509_NS_CERT_TYPE_SSL_SERVER)) ?
-               SUCCESS : FAILURE;
     }
 
     return FAILURE;
@@ -463,7 +487,7 @@ x509_verify_cert_ku(mbedtls_x509_crt *cert, const unsigned *const expected_ku,
 {
     msg(D_HANDSHAKE, "Validating certificate key usage");
 
-    if (!(cert->ext_types & MBEDTLS_X509_EXT_KEY_USAGE))
+    if (!mbedtls_x509_crt_has_ext_type(cert, MBEDTLS_X509_EXT_KEY_USAGE))
     {
         msg(D_TLS_ERRORS,
             "ERROR: Certificate does not have key usage extension");
@@ -488,9 +512,7 @@ x509_verify_cert_ku(mbedtls_x509_crt *cert, const unsigned *const expected_ku,
 
     if (fFound != SUCCESS)
     {
-        msg(D_TLS_ERRORS,
-            "ERROR: Certificate has key usage %04x, expected one of:",
-            cert->key_usage);
+        msg(D_TLS_ERRORS, "ERROR: Certificate has invalid key usage, expected one of:");
         for (size_t i = 0; i < expected_len && expected_ku[i]; i++)
         {
             msg(D_TLS_ERRORS, " * %04x", expected_ku[i]);
@@ -505,7 +527,7 @@ x509_verify_cert_eku(mbedtls_x509_crt *cert, const char *const expected_oid)
 {
     result_t fFound = FAILURE;
 
-    if (!(cert->ext_types & MBEDTLS_X509_EXT_EXTENDED_KEY_USAGE))
+    if (!mbedtls_x509_crt_has_ext_type(cert, MBEDTLS_X509_EXT_EXTENDED_KEY_USAGE))
     {
         msg(D_HANDSHAKE, "Certificate does not have extended key usage extension");
     }
@@ -547,13 +569,6 @@ x509_verify_cert_eku(mbedtls_x509_crt *cert, const char *const expected_oid)
     }
 
     return fFound;
-}
-
-result_t
-x509_write_pem(FILE *peercert_file, mbedtls_x509_crt *peercert)
-{
-    msg(M_WARN, "mbed TLS does not support writing peer certificate in PEM format");
-    return FAILURE;
 }
 
 bool

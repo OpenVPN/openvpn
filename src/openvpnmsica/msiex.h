@@ -2,7 +2,7 @@
  *  openvpnmsica -- Custom Action DLL to provide OpenVPN-specific support to MSI packages
  *                  https://community.openvpn.net/openvpn/wiki/OpenVPNMSICA
  *
- *  Copyright (C) 2018-2021 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2025 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -14,8 +14,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef MSIHLP_H
@@ -41,8 +40,8 @@
 UINT
 msi_get_string(
     _In_ MSIHANDLE hInstall,
-    _In_z_ LPCTSTR szName,
-    _Out_ LPTSTR *pszValue);
+    _In_z_ LPCWSTR szName,
+    _Out_ LPWSTR *pszValue);
 
 
 /**
@@ -61,7 +60,7 @@ UINT
 msi_get_record_string(
     _In_ MSIHANDLE hRecord,
     _In_ unsigned int iField,
-    _Out_ LPTSTR *pszValue);
+    _Out_ LPWSTR *pszValue);
 
 
 /**
@@ -83,7 +82,7 @@ UINT
 msi_format_record(
     _In_ MSIHANDLE hInstall,
     _In_ MSIHANDLE hRecord,
-    _Out_ LPTSTR *pszValue);
+    _Out_ LPWSTR *pszValue);
 
 
 /**
@@ -107,6 +106,6 @@ msi_format_field(
     _In_ MSIHANDLE hInstall,
     _In_ MSIHANDLE hRecord,
     _In_ unsigned int iField,
-    _Out_ LPTSTR *pszValue);
+    _Out_ LPWSTR *pszValue);
 
 #endif /* ifndef MSIHLP_H */

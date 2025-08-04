@@ -18,12 +18,12 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /**
- * @file Alternative method to query for user input, using systemd
+ * @file
+ * Alternative method to query for user input, using systemd
  *
  */
 
@@ -71,6 +71,7 @@ get_console_input_systemd(const char *prompt, const bool echo, char *input, cons
     }
 #endif
     argv_printf_cat(&argv, "--icon network-vpn");
+    argv_printf_cat(&argv, "--timeout=0");
     argv_printf_cat(&argv, "%s", prompt);
 
     if ((std_out = openvpn_popen(&argv, NULL)) < 0)
@@ -96,7 +97,7 @@ get_console_input_systemd(const char *prompt, const bool echo, char *input, cons
  *
  */
 bool
-query_user_exec(void)
+query_user_exec_systemd(void)
 {
     bool ret = true;  /* Presume everything goes okay */
     int i;

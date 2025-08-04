@@ -157,6 +157,50 @@ When setting up the openvpn connection:
    messages.
 
 
+HMAC Cookie support
+-------------------
+To avoid exhaustion attack and keeping state for connections that fail to
+complete the three-way handshake, the OpenVPN server will use its own session
+id as challenge that the client must repeat in the third packet of the
+handshake. This introduces a problem. If the server does not keep the wrapped
+client key from the initial packet, the server cannot decode the third packet.
+Therefore, tls-crypt-v2 in 2.6 allows resending the wrapped key in the third
+packet of the handshake with the P_CONTROL_WKC_V1 message. The modified
+handshake is as follows (the rest of the handshake is unmodified):
+
+1. The client creates the P_CONTROL_HARD_RESET_CLIENT_V3 message as before
+   but indicates that it supports resending the wrapped key. This is done
+   by setting the packet id of the replay id to 0x0f000000. The first byte
+   indicates the early negotiation support and the next byte the flags.
+   All tls-crypt-v2 implementations that support early negotiation, must
+   also support resending the wrapped key. The flags byte is therefore
+   empty.
+
+2. The server responds with a P_CONTROL_HARD_RESET_V2 message. Instead of having
+   an empty payload like normally, the payload consists of TLV (type (uint16),
+   length (uint16), value) packets. TLV was chosen
+   to allow extensibility in the future. Currently only the following TLV is
+   defined:
+
+   flags - type 0x01, length 2.
+
+   Bit 1 indicates that the client needs to resend the WKc in the third packet.
+
+3. Instead of normal P_ACK_V1 or P_CONTROL_V1 packet, the client will send a
+   P_CONTROL_WKC_V1 packet. The P_CONTROL_WKC_V1 is identical to a normal
+   P_CONTROL_V1 packet but with the WKc appended.
+
+   Normally the first message of the client is either P_ACK_V1, directly
+   followed by a P_CONTROL_V1 message that contains the TLS Client Hello or
+   just a P_CONTROL_V1 message. Instead of a P_ACK_V1 message the client should
+   send a P_CONTROL_WKC_V1 message with an empty payload. This message must
+   also include an ACK for the P_CONTROL_HARD_RESET_V2 message.
+
+   When directly sending the TLS Client Hello message in the P_CONTROL_WKC_V1
+   message, the client must ensure that the resulting P_CONTROL_WKC_V1 message
+   with the appended WKc does not extend the control message length.
+
+
 Considerations
 --------------
 

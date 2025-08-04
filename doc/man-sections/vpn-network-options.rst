@@ -69,15 +69,34 @@ routing.
      dev tap4
      dev ovpn
 
-  When the device name starts with :code:`tun` or :code:`tap`, the device
-  type is extracted automatically.  Otherwise the ``--dev-type`` option
-  needs to be added as well.
+  What happens if the device name is not :code:`tun` or :code:`tap` is
+  platform dependent.
+
+  On most platforms, :code:`tunN` (e.g. tun2, tun30) and :code:`tapN`
+  (e.g. tap3) will create a numbered tun/tap interface with the number
+  specified - this is useful if multiple OpenVPN instances are active,
+  and the instance-to-device mapping needs to be known.  Some platforms
+  do not support "numbered tap", so trying ``--dev tap3`` will fail.
+
+  Arbitrary device names (e.g. ``--dev tun-home``) will only work on
+  FreeBSD (with the DCO kernel driver for ``tun`` devices) and Linux
+  (for both ``tun`` and ``tap`` devices, DCO and tun/tap driver).
+
+  If such a device name starts with ``tun`` or ``tap`` (e.g. ``tun-home``),
+  OpenVPN will choose the right device type automatically.  Otherwise the
+  desired device type needs to be specified with ``--dev-type tun`` or
+  ``--dev-type tap``.
+
+  On Windows, only the names :code:`tun` and :code:`tap` are supported.
+  Selection among multiple installed drivers or driver instances is done
+  with ``--dev-node`` and ``--windows-driver``.
 
 --dev-node node
-  Explicitly set the device node rather than using :code:`/dev/net/tun`,
-  :code:`/dev/tun`, :code:`/dev/tap`, etc. If OpenVPN cannot figure out
-  whether ``node`` is a TUN or TAP device based on the name, you should
-  also specify ``--dev-type tun`` or ``--dev-type tap``.
+  This is a highly system dependent option to influence tun/tap driver
+  selection.
+
+  On Linux, tun/tap devices are created by accessing :code:`/dev/net/tun`,
+  and this device name can be changed using ``--dev-node ...``.
 
   Under Mac OS X this option can be used to specify the default tun
   implementation. Using ``--dev-node utun`` forces usage of the native
@@ -93,6 +112,21 @@ routing.
   both the network connections control panel name and the GUID for each
   TAP-Win32 adapter.
 
+  On other platforms, ``--dev-node node`` will influence the naming of the
+  created tun/tap device, if supported on that platform.  If OpenVPN cannot
+  figure out whether ``node`` is a TUN or TAP device based on the name,
+  you should also specify ``--dev-type tun`` or ``--dev-type tap``.
+
+  If ``node`` starts with the string ``unix:`` openvpn will treat the rest
+  of the argument as a program.
+  OpenVPN will start the program and create a temporary unix domain socket that
+  will be passed to the program together with the tun configuration as
+  environment variables.  The temporary unix domain socket  will be be passed
+  in the environment variable :code:`TUNTAP_SOCKET_FD`.
+
+  This ``unix:`` mode is designed mainly to use with the lwipovpn network
+  emulator (https://github.com/OpenVPN/lwipovpn).
+
 --dev-type device-type
   Which device type are we using? ``device-type`` should be :code:`tun`
   (OSI Layer 3) or :code:`tap` (OSI Layer 2). Use this option only if
@@ -103,11 +137,10 @@ routing.
   Set additional network parameters on supported platforms. May be specified
   on the client or pushed from the server. On Windows these options are
   handled by the ``tap-windows6`` driver by default or directly by OpenVPN
-  if dhcp is disabled or the ``wintun`` driver is in use. The
-  ``OpenVPN for Android`` client also handles them internally.
+  if dhcp is disabled. The ``OpenVPN for Android`` client also handles them internally.
 
   On all other platforms these options are only saved in the client's
-  environment under the name :code:`foreign_options_{n}` before the
+  environment under the name :code:`foreign_option_{n}` before the
   ``--up`` script is called. A plugin or an ``--up`` script must be used to
   pick up and interpret these as required. Many Linux distributions include
   such scripts and some third-party user interfaces such as tunnelblick also
@@ -116,7 +149,7 @@ routing.
   Valid syntax:
   ::
 
-     dhcp-options type [parm]
+     dhcp-option type [parm]
 
   :code:`DOMAIN` ``name``
         Set Connection-specific DNS Suffix to :code:`name`.
@@ -211,7 +244,7 @@ routing.
   address and subnet mask just as a physical ethernet adapter would be
   similarly configured. If you are attempting to connect to a remote
   ethernet bridge, the IP address and subnet should be set to values which
-  would be valid on the the bridged ethernet segment (note also that DHCP
+  would be valid on the bridged ethernet segment (note also that DHCP
   can be used for the same purpose).
 
   This option, while primarily a proxy for the ``ifconfig``\(8) command,
@@ -278,6 +311,15 @@ routing.
   :code:`SIGUSR1` is a restart signal similar to :code:`SIGHUP`, but which
   offers finer-grained control over reset options.
 
+  On Linux, this option can be useful when OpenVPN is not executed as
+  root and the CAP_NET_ADMIN has not been granted, because the process
+  would otherwise not be allowed to bring the interface down and back up.
+
+  Alongside the above, using ``--persist-tun`` allows the tunnel interface
+  to retain all IP/route settings, thus allowing the user to implement
+  any advanced traffic leaking protection (please note that for full
+  protection, extra route/firewall rules must be in place).
+
 --redirect-gateway flags
   Automatically execute routing commands to cause all outgoing IP traffic
   to be redirected over the VPN. This is a client-side option.
@@ -328,6 +370,10 @@ routing.
       Block access to local LAN when the tunnel is active, except for
       the LAN gateway itself. This is accomplished by routing the local
       LAN (except for the LAN gateway address) into the tunnel.
+      On Windows WFP filters are added in addition to the routes which
+      block access to resources not routed through the VPN adapter.
+      Push this flag to protect against TunnelCrack type of attacks
+      (see: https://tunnelcrack.mathyvanhoef.com/).
 
   :code:`ipv6`
       Redirect IPv6 routing into the tunnel. This works similar to
@@ -342,6 +388,14 @@ routing.
 --redirect-private flags
   Like ``--redirect-gateway``, but omit actually changing the default gateway.
   Useful when pushing private subnets.
+
+--route-table id
+  Specify a default table id for use with --route.
+  By default, OpenVPN installs routes in the main routing
+  table of the operating system, but with this option,
+  a user defined routing table can be used instead.
+
+  (Supported on Linux only, on other platforms this is a no-op).
 
 --route args
   Add route to routing table after connection is established. Multiple
@@ -396,7 +450,7 @@ routing.
 
        route-delay
        route-delay n
-       route-delay n m
+       route-delay n w
 
   Delay ``n`` seconds (default :code:`0`) after connection establishment,
   before adding routes. If ``n`` is :code:`0`, routes will be added
@@ -410,21 +464,27 @@ routing.
   to complete before routes are added.
 
   On Windows, ``--route-delay`` tries to be more intelligent by waiting
-  ``w`` seconds (default :code:`30` by default) for the TAP-Win32 adapter
+  ``w`` seconds (default :code:`30`) for the TAP-Win32 adapter
   to come up before adding routes.
 
 --route-ipv6 args
   Setup IPv6 routing in the system to send the specified IPv6 network into
   OpenVPN's *tun*.
 
-  Valid syntax:
+  Valid syntaxes:
   ::
 
-     route-ipv6 ipv6addr/bits [gateway] [metric]
+     route-ipv6 ipv6addr/bits
+     route-ipv6 ipv6addr/bits gateway
+     route-ipv6 ipv6addr/bits gateway metric
 
-  The gateway parameter is only used for IPv6 routes across *tap* devices,
-  and if missing, the ``ipv6remote`` field from ``--ifconfig-ipv6`` or
-  ``--route-ipv6-gateway`` is used.
+  ``gateway``
+        Only used for IPv6 routes across *tap* devices,
+        and if missing, the ``ipv6remote`` field from ``--ifconfig-ipv6`` or
+        ``--route-ipv6-gateway`` is used.
+
+  ``metric``
+        default taken from ``--route-metric`` if set, otherwise :code:`0`.
 
 --route-gateway arg
   Specify a default *gateway* for use with ``--route``.
@@ -471,11 +531,17 @@ routing.
 
   ``mode`` can be one of:
 
+  :code:`subnet`
+    Use a subnet rather than a point-to-point topology by
+    configuring the tun interface with a local IP address and subnet mask,
+    similar to the topology used in ``--dev tap`` and ethernet bridging
+    mode. This mode allocates a single IP address per connecting client and
+    works on Windows as well. This is the default.
+
   :code:`net30`
     Use a point-to-point topology, by allocating one /30 subnet
     per client. This is designed to allow point-to-point semantics when some
-    or all of the connecting clients might be Windows systems. This is the
-    default on OpenVPN 2.0.
+    or all of the connecting clients might be Windows systems.
 
   :code:`p2p`
     Use a point-to-point topology where the remote endpoint of
@@ -484,26 +550,27 @@ routing.
     connecting client. Only use when none of the connecting clients are
     Windows systems.
 
-  :code:`subnet`
-    Use a subnet rather than a point-to-point topology by
-    configuring the tun interface with a local IP address and subnet mask,
-    similar to the topology used in ``--dev tap`` and ethernet bridging
-    mode. This mode allocates a single IP address per connecting client and
-    works on Windows as well. Only available when server and clients are
-    OpenVPN 2.1 or higher, or OpenVPN 2.0.x which has been manually patched
-    with the ``--topology`` directive code. When used on Windows, requires
-    version 8.2 or higher of the TAP-Win32 driver. When used on \*nix,
-    requires that the tun driver supports an ``ifconfig``\(8) command which
-    sets a subnet instead of a remote endpoint IP address.
-
   *Note:* Using ``--topology subnet`` changes the interpretation of the
-  arguments of ``--ifconfig`` to mean "address netmask", no longer "local
+  arguments of ``--ifconfig`` to mean "address netmask", and not "local
   remote".
 
---tun-mtu n
-  Take the TUN device MTU to be **n** and derive the link MTU from it
-  (default :code:`1500`). In most cases, you will probably want to leave
-  this parameter set to its default value.
+--tun-mtu args
+
+  Valid syntaxes:
+  ::
+
+      tun-mtu tun-mtu
+      tun-mtu tun-mtu occ-mtu
+
+  Take the TUN device MTU to be ``tun-mtu`` and derive the link MTU from it.
+  In most cases, you will probably want to leave this parameter set to
+  its default value.
+
+  The default for :code:`tun-mtu` is 1500.
+
+  The OCC MTU can be used to avoid warnings about mismatched MTU from
+  clients. If :code:`occ-mtu` is not specified, it will to default to the
+  tun-mtu.
 
   The MTU (Maximum Transmission Units) is the maximum datagram size in
   bytes that can be sent unfragmented over a particular network path.
@@ -515,6 +582,16 @@ routing.
 
   It's best to use the ``--fragment`` and/or ``--mssfix`` options to deal
   with MTU sizing issues.
+
+  Note: Depending on the platform, the operating system allows one to receive
+  packets larger than ``tun-mtu`` (e.g. Linux and FreeBSD) but other platforms
+  (like macOS) limit received packets to the same size as the MTU.
+
+--tun-max-mtu maxmtu
+  This configures the maximum MTU size that a server can push to ``maxmtu``,
+  by configuring the internal buffers to allow at least this packet size.
+  The default for ``maxmtu`` is 1600. Currently, only increasing beyond 1600
+  is possible, and attempting to reduce max-mtu below 1600 will be ignored.
 
 --tun-mtu-extra n
   Assume that the TUN/TAP device might return as many as ``n`` bytes more
@@ -542,7 +619,7 @@ These two standalone operations will require ``--dev`` and optionally
   One of the advantages of persistent tunnels is that they eliminate the
   need for separate ``--up`` and ``--down`` scripts to run the appropriate
   ``ifconfig``\(8) and ``route``\(8) commands. These commands can be
-  placed in the the same shell script which starts or terminates an
+  placed in the same shell script which starts or terminates an
   OpenVPN session.
 
   Another advantage is that open connections through the TUN/TAP-based

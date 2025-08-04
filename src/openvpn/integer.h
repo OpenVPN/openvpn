@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef INTEGER_H
@@ -28,13 +27,20 @@
 
 #ifndef htonll
 #define htonll(x) ((1==htonl(1)) ? (x) : \
-                   ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
+                   ((uint64_t)htonl((uint32_t)((x) & 0xFFFFFFFF)) << 32) | htonl((uint32_t)((x) >> 32)))
 #endif
 
 #ifndef ntohll
 #define ntohll(x) ((1==ntohl(1)) ? (x) : \
-                   ((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
+                   ((uint64_t)ntohl((uint32_t)((x) & 0xFFFFFFFF)) << 32) | ntohl((uint32_t)((x) >> 32)))
 #endif
+
+static inline int
+clamp_size_to_int(size_t size)
+{
+    ASSERT(size <= INT_MAX);
+    return (int)size;
+}
 
 /*
  * min/max functions
@@ -54,6 +60,19 @@ max_uint(unsigned int x, unsigned int y)
 
 static inline unsigned int
 min_uint(unsigned int x, unsigned int y)
+{
+    if (x < y)
+    {
+        return x;
+    }
+    else
+    {
+        return y;
+    }
+}
+
+static inline size_t
+min_size(size_t x, size_t y)
 {
     if (x < y)
     {
@@ -183,6 +202,15 @@ index_verify(int index, int size, const char *file, int line)
             line);
     }
     return index;
+}
+
+/**
+ * Rounds down num to the nearest multiple of multiple
+ */
+static inline size_t
+round_down_size(size_t num, size_t multiple)
+{
+    return (num / multiple) * multiple;
 }
 
 #endif /* ifndef INTEGER_H */

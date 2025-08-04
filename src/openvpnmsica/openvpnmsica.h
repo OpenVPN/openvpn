@@ -2,7 +2,7 @@
  *  openvpnmsica -- Custom Action DLL to provide OpenVPN-specific support to MSI packages
  *                  https://community.openvpn.net/openvpn/wiki/OpenVPNMSICA
  *
- *  Copyright (C) 2018-2021 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2025 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -14,8 +14,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef MSICA_H
@@ -38,7 +37,7 @@
  */
 struct openvpnmsica_thread_data
 {
-    MSIHANDLE hInstall; /** Handle to the installation session. */
+    MSIHANDLE hInstall; /**< Handle to the installation session. */
 };
 
 
@@ -52,10 +51,10 @@ extern DWORD openvpnmsica_thread_data_idx;
  * Set MSI session handle in thread local storage.
  */
 #define OPENVPNMSICA_SAVE_MSI_SESSION(hInstall) \
-{ \
-    struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)TlsGetValue(openvpnmsica_thread_data_idx); \
-    s->hInstall = (hInstall); \
-}
+    { \
+        struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)TlsGetValue(openvpnmsica_thread_data_idx); \
+        s->hInstall = (hInstall); \
+    }
 
 
 /*
@@ -66,7 +65,11 @@ extern DWORD openvpnmsica_thread_data_idx;
 extern "C" {
 #endif
 
-#ifdef __GNUC__
+/* Ensure that clang-cl, which does not understand the cl specific
+ * preprocessor defines like #pragma comment(linker, DLLEXP_EXPORT)
+ * is handled the same way as mingw and uses the alternative instead
+ * and does not define DLLEXP_EXPORT */
+#if defined(__GNUC__) || defined(__clang__)
 #define DLLEXP_DECL __declspec(dllexport)
 #else
 #define DLLEXP_DECL
@@ -84,7 +87,7 @@ extern "C" {
  *   ACTIVETAPWINDOWS6ADAPTERS properties with semicolon delimited list of all installed adapter
  *   GUIDs and active adapter GUIDs respectively.
  *
- * - Finds existing Wintun adapters and set WINTUNADAPTERS and ACTIVEWINTUNADAPTERS properties
+ * - Finds existing ovpn-dco adapters and set OVPNDCOADAPTERS and ACTIVEOVPNDCOADAPTERS properties
  *   with semicolon delimited list of all installed adapter GUIDs and active adapter GUIDs
  *   respectively.
  *

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef PROTO_H
@@ -33,7 +32,6 @@
  * Tunnel types
  */
 #define DEV_TYPE_UNDEF 0
-#define DEV_TYPE_NULL  1
 #define DEV_TYPE_TUN   2    /* point-to-point IP tunnel */
 #define DEV_TYPE_TAP   3    /* ethernet (802.3) tunnel */
 
@@ -84,24 +82,11 @@ struct openvpn_8021qhdr
 #define SIZE_ETH_TO_8021Q_HDR (sizeof(struct openvpn_8021qhdr) \
                                - sizeof(struct openvpn_ethhdr))
 
-
-struct openvpn_arp {
-#define ARP_MAC_ADDR_TYPE 0x0001
-    uint16_t mac_addr_type;     /* 0x0001 */
-
-    uint16_t proto_addr_type;   /* 0x0800 */
-    uint8_t mac_addr_size;      /* 0x06 */
-    uint8_t proto_addr_size;    /* 0x04 */
-
-#define ARP_REQUEST 0x0001
-#define ARP_REPLY   0x0002
-    uint16_t arp_command;       /* 0x0001 for ARP request, 0x0002 for ARP reply */
-
-    uint8_t mac_src[OPENVPN_ETH_ALEN];
-    in_addr_t ip_src;
-    uint8_t mac_dest[OPENVPN_ETH_ALEN];
-    in_addr_t ip_dest;
-};
+/** Version of IN6_ARE_ADDR_EQUAL that is guaranteed to work for
+ *  unaligned access. E.g. Linux uses 32bit compares which are
+ *  not safe if the struct is unaligned. */
+#define OPENVPN_IN6_ARE_ADDR_EQUAL(a, b) \
+    (memcmp(a, b, sizeof(struct in6_addr)) == 0)
 
 struct openvpn_iphdr {
 #define OPENVPN_IPH_GET_VER(v) (((v) >> 4) & 0x0F)
@@ -248,21 +233,10 @@ struct ip_tcp_udp_hdr {
 }
 
 /*
- * We are in a "liberal" position with respect to MSS,
- * i.e. we assume that MSS can be calculated from MTU
- * by subtracting out only the IP and TCP header sizes
- * without options.
- *
- * (RFC 879, section 7).
- */
-#define MTU_TO_MSS(mtu) (mtu - sizeof(struct openvpn_iphdr) \
-                         - sizeof(struct openvpn_tcphdr))
-
-/*
  * This returns an ip protocol version of packet inside tun
  * and offset of IP header (via parameter).
  */
-inline static int
+static inline int
 get_tun_ip_ver(int tunnel_type, struct buffer *buf, int *ip_hdr_offset)
 {
     int ip_ver = -1;

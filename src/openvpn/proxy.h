@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef PROXY_H
@@ -31,7 +30,7 @@
 #define HTTP_AUTH_NONE   0
 #define HTTP_AUTH_BASIC  1
 #define HTTP_AUTH_DIGEST 2
-#define HTTP_AUTH_NTLM   3
+/* #define HTTP_AUTH_NTLM   3 removed in OpenVPN 2.7 */
 #define HTTP_AUTH_NTLM2  4
 #define HTTP_AUTH_N      5 /* number of HTTP_AUTH methods */
 
@@ -52,16 +51,13 @@ struct http_proxy_options {
 
     const char *auth_method_string;
     const char *auth_file;
+    const char *auth_file_up; /* specified with --http-proxy-user-pass */
     const char *http_version;
     const char *user_agent;
     struct http_custom_header custom_headers[MAX_CUSTOM_HTTP_HEADER];
-    bool inline_creds;
-};
-
-struct http_proxy_options_simple {
-    const char *server;
-    const char *port;
-    int auth_retry;
+    bool inline_creds; /* auth_file_up is inline credentials */
+    bool first_time; /* indicates if we need to wipe user creds at the first iteration of the main loop */
+    bool nocache;
 };
 
 struct http_proxy_info {
@@ -86,7 +82,7 @@ bool establish_http_proxy_passthru(struct http_proxy_info *p,
                                    const char *port,          /* openvpn server port */
                                    struct event_timeout *server_poll_timeout,
                                    struct buffer *lookahead,
-                                   volatile int *signal_received);
+                                   struct signal_info *sig_info);
 
 uint8_t *make_base64_string2(const uint8_t *str, int str_len, struct gc_arena *gc);
 

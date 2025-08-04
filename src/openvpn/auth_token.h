@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 #ifndef AUTH_TOKEN_H
 #define AUTH_TOKEN_H
@@ -43,14 +42,14 @@
  *
  * The second timestamp is the time the token was renewed/regenerated and is used
  * to determine if this token has been renewed in the acceptable time range
- * (2 * renogiation timeout)
+ * (2 * renegotiation timeout)
  *
  * The session id is a random string of 12 byte (or 16 in base64) that is not
- * used by OpenVPN itself but kept intact so that external logging/managment
- * can track the session multiple reconnects/servers. It is delibrately chosen
+ * used by OpenVPN itself but kept intact so that external logging/management
+ * can track the session multiple reconnects/servers. It is deliberately chosen
  * be a multiple of 3 bytes to have a base64 encoding without padding.
  *
- * The hmac is calculated over the username contactinated with the
+ * The hmac is calculated over the username concatenated with the
  * raw auth-token bytes to include authentication of the username in the token
  *
  * We encode the auth-token with base64 and then prepend "SESS_ID_" before
@@ -137,5 +136,13 @@ is_auth_token(const char *password)
  */
 void
 resend_auth_token_renegotiation(struct tls_multi *multi, struct tls_session *session);
+
+
+/**
+ * Checks if the timer to resend the auth-token has expired and if a new
+ * auth-token should be send to the client and triggers the resending
+ */
+void
+check_send_auth_token(struct context *c);
 
 #endif /* AUTH_TOKEN_H */

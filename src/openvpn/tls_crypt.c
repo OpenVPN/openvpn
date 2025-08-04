@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -50,25 +47,7 @@ static const uint8_t TLS_CRYPT_METADATA_TYPE_TIMESTAMP      = 0x01;
 static struct key_type
 tls_crypt_kt(void)
 {
-    struct key_type kt;
-    kt.cipher = cipher_kt_get("AES-256-CTR");
-    kt.digest = md_kt_get("SHA256");
-
-    if (!kt.cipher)
-    {
-        msg(M_WARN, "ERROR: --tls-crypt requires AES-256-CTR support.");
-        return (struct key_type) { 0 };
-    }
-    if (!kt.digest)
-    {
-        msg(M_WARN, "ERROR: --tls-crypt requires HMAC-SHA-256 support.");
-        return (struct key_type) { 0 };
-    }
-
-    kt.cipher_length = cipher_kt_key_size(kt.cipher);
-    kt.hmac_length = md_kt_size(kt.digest);
-
-    return kt;
+    return create_kt("AES-256-CTR", "SHA256", "tls-crypt");
 }
 
 int
@@ -78,8 +57,8 @@ tls_crypt_buf_overhead(void)
 }
 
 void
-tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
-                   bool key_inline, bool tls_server)
+tls_crypt_init_key(struct key_ctx_bi *key, struct key2 *keydata,
+                   const char *key_file, bool key_inline, bool tls_server)
 {
     const int key_direction = tls_server ?
                               KEY_DIRECTION_NORMAL : KEY_DIRECTION_INVERSE;
@@ -89,16 +68,73 @@ tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
         msg(M_FATAL, "ERROR: --tls-crypt not supported");
     }
     crypto_read_openvpn_key(&kt, key, key_file, key_inline, key_direction,
-                            "Control Channel Encryption", "tls-crypt");
+                            "Control Channel Encryption", "tls-crypt", keydata);
 }
 
-void
-tls_crypt_adjust_frame_parameters(struct frame *frame)
+/**
+ * Will produce key = key XOR other
+ */
+static void
+xor_key2(struct key2 *key, const struct key2 *other)
 {
-    frame_add_to_extra_frame(frame, tls_crypt_buf_overhead());
+    ASSERT(key->n == 2 && other->n == 2);
+    for (int k = 0; k < 2; k++)
+    {
+        for (int j = 0; j < MAX_CIPHER_KEY_LENGTH; j++)
+        {
+            key->keys[k].cipher[j] = key->keys[k].cipher[j] ^ other->keys[k].cipher[j];
+        }
 
-    msg(D_MTU_DEBUG, "%s: Adjusting frame parameters for tls-crypt by %i bytes",
-        __func__, tls_crypt_buf_overhead());
+        for (int j = 0; j < MAX_HMAC_KEY_LENGTH; j++)
+        {
+            key->keys[k].hmac[j] = key->keys[k].hmac[j] ^ other->keys[k].hmac[j];
+        }
+
+    }
+}
+
+bool
+tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session)
+{
+    struct key2 rengokeys;
+    if (!key_state_export_keying_material(session, EXPORT_DYNAMIC_TLS_CRYPT_LABEL,
+                                          strlen(EXPORT_DYNAMIC_TLS_CRYPT_LABEL),
+                                          rengokeys.keys, sizeof(rengokeys.keys)))
+    {
+        return false;
+    }
+    rengokeys.n = 2;
+
+    session->tls_wrap_reneg.opt = session->tls_wrap.opt;
+    session->tls_wrap_reneg.mode = TLS_WRAP_CRYPT;
+    session->tls_wrap_reneg.cleanup_key_ctx = true;
+    session->tls_wrap_reneg.work = alloc_buf(BUF_SIZE(&session->opt->frame));
+    session->tls_wrap_reneg.opt.pid_persist = NULL;
+
+    packet_id_init(&session->tls_wrap_reneg.opt.packet_id,
+                   session->opt->replay_window,
+                   session->opt->replay_time,
+                   "TLS_WRAP_RENEG", session->key_id);
+
+    if (session->tls_wrap.mode == TLS_WRAP_CRYPT
+        || session->tls_wrap.mode == TLS_WRAP_AUTH)
+    {
+        xor_key2(&rengokeys, &session->tls_wrap.original_wrap_keydata);
+    }
+
+    const int key_direction = session->opt->server ?
+                              KEY_DIRECTION_NORMAL : KEY_DIRECTION_INVERSE;
+
+    struct key_direction_state kds;
+    key_direction_state_init(&kds, key_direction);
+
+    struct key_type kt = tls_crypt_kt();
+
+    init_key_ctx_bi(&session->tls_wrap_reneg.opt.key_ctx_bi, &rengokeys, key_direction,
+                    &kt, "dynamic tls-crypt");
+    secure_memzero(&rengokeys, sizeof(rengokeys));
+
+    return true;
 }
 
 
@@ -262,7 +298,7 @@ tls_crypt_unwrap(const struct buffer *src, struct buffer *dst,
         struct buffer tmp = *src;
         ASSERT(buf_advance(&tmp, TLS_CRYPT_OFF_PID));
         ASSERT(packet_id_read(&pin, &tmp, true));
-        if (!crypto_check_replay(opt, &pin, error_prefix, &gc))
+        if (!crypto_check_replay(opt, &pin, 0, error_prefix, &gc))
         {
             CRYPT_ERROR("packet replay");
         }
@@ -294,8 +330,9 @@ tls_crypt_v2_load_client_key(struct key_ctx_bi *key, const struct key2 *key2,
 }
 
 void
-tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct buffer *wkc_buf,
-                             const char *key_file, bool key_inline)
+tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct key2 *original_key,
+                             struct buffer *wkc_buf, const char *key_file,
+                             bool key_inline)
 {
     struct buffer client_key = alloc_buf(TLS_CRYPT_V2_CLIENT_KEY_LEN
                                          + TLS_CRYPT_V2_MAX_WKC_LEN);
@@ -306,14 +343,14 @@ tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct buffer *wkc_buf,
         msg(M_FATAL, "ERROR: invalid tls-crypt-v2 client key format");
     }
 
-    struct key2 key2;
+    struct key2 key2 = { .n = 2 };
     if (!buf_read(&client_key, &key2.keys, sizeof(key2.keys)))
     {
         msg(M_FATAL, "ERROR: not enough data in tls-crypt-v2 client key");
     }
 
     tls_crypt_v2_load_client_key(key, &key2, false);
-    secure_memzero(&key2, sizeof(key2));
+    *original_key = key2;
 
     *wkc_buf = client_key;
 }
@@ -337,7 +374,11 @@ tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
     {
         msg(M_FATAL, "ERROR: --tls-crypt-v2 not supported");
     }
-    init_key_ctx(key_ctx, &srv_key, &kt, encrypt, "tls-crypt-v2 server key");
+    struct key_parameters srv_key_params;
+
+    key_parameters_from_key(&srv_key_params, &srv_key);
+
+    init_key_ctx(key_ctx, &srv_key_params, &kt, encrypt, "tls-crypt-v2 server key");
     secure_memzero(&srv_key, sizeof(srv_key));
 }
 
@@ -482,6 +523,8 @@ tls_crypt_v2_unwrap_client_key(struct key2 *client_key, struct buffer *metadata,
         dmsg(D_CRYPTO_DEBUG, "tag_check: %s",
              format_hex(tag_check, sizeof(tag_check), 0, &gc));
         CRYPT_ERROR("client key authentication error");
+        msg(D_TLS_DEBUG_LOW, "This might be a client-key that was generated for "
+            "a different tls-crypt-v2 server key)");
     }
 
     if (buf_len(&plaintext) < sizeof(client_key->keys))
@@ -490,6 +533,7 @@ tls_crypt_v2_unwrap_client_key(struct key2 *client_key, struct buffer *metadata,
     }
     memcpy(&client_key->keys, BPTR(&plaintext), sizeof(client_key->keys));
     ASSERT(buf_advance(&plaintext, sizeof(client_key->keys)));
+    client_key->n = 2;
 
     if (!buf_copy(metadata, &plaintext))
     {
@@ -531,8 +575,8 @@ tls_crypt_v2_verify_metadata(const struct tls_wrap_ctx *ctx,
     }
 
     char metadata_type_str[4] = { 0 }; /* Max value: 255 */
-    openvpn_snprintf(metadata_type_str, sizeof(metadata_type_str),
-                     "%i", metadata_type);
+    snprintf(metadata_type_str, sizeof(metadata_type_str),
+             "%i", (uint8_t) metadata_type);
     struct env_set *es = env_set_create(NULL);
     setenv_str(es, "script_type", "tls-crypt-v2-verify");
     setenv_str(es, "metadata_type", metadata_type_str);
@@ -569,7 +613,8 @@ cleanup:
 bool
 tls_crypt_v2_extract_client_key(struct buffer *buf,
                                 struct tls_wrap_ctx *ctx,
-                                const struct tls_options *opt)
+                                const struct tls_options *opt,
+                                bool initial_packet)
 {
     if (!ctx->tls_crypt_v2_server_key.cipher)
     {
@@ -585,27 +630,48 @@ tls_crypt_v2_extract_client_key(struct buffer *buf,
 
     if (BLEN(&wrapped_client_key) < sizeof(net_len))
     {
-        msg(D_TLS_ERRORS, "failed to read length");
+        msg(D_TLS_ERRORS, "Can not read tls-crypt-v2 client key length");
+        return false;
     }
     memcpy(&net_len, BEND(&wrapped_client_key) - sizeof(net_len),
            sizeof(net_len));
 
-    size_t wkc_len = ntohs(net_len);
+    uint16_t wkc_len = ntohs(net_len);
     if (!buf_advance(&wrapped_client_key, BLEN(&wrapped_client_key) - wkc_len))
     {
         msg(D_TLS_ERRORS, "Can not locate tls-crypt-v2 client key");
         return false;
     }
 
-    struct key2 client_key = { 0 };
+    if (!initial_packet)
+    {
+        /* This might be a harmless resend of the packet but it is better to
+         * just ignore the WKC part than trying to setup tls-crypt keys again.
+         *
+         * A CONTROL_WKC_V1 packets has a normal packet part and an appended
+         * wrapped control key. These are authenticated individually. We already
+         * set up tls-crypt with the wrapped key, so we are ignoring this part
+         * of the message but we return the normal packet part as the normal
+         * part of the message might have been corrupted earlier and discarded
+         * and this is resend. So return the normal part of the packet,
+         * basically transforming the CONTROL_WKC_V1 into a normal CONTROL_V1
+         * packet*/
+        msg(D_TLS_ERRORS, "control channel security already setup ignoring "
+            "wrapped key part of packet.");
+
+        /* Remove client key from buffer so tls-crypt code can unwrap message */
+        ASSERT(buf_inc_len(buf, -(BLEN(&wrapped_client_key))));
+        return true;
+    }
+
     ctx->tls_crypt_v2_metadata = alloc_buf(TLS_CRYPT_V2_MAX_METADATA_LEN);
-    if (!tls_crypt_v2_unwrap_client_key(&client_key,
+    if (!tls_crypt_v2_unwrap_client_key(&ctx->original_wrap_keydata,
                                         &ctx->tls_crypt_v2_metadata,
                                         wrapped_client_key,
                                         &ctx->tls_crypt_v2_server_key))
     {
         msg(D_TLS_ERRORS, "Can not unwrap tls-crypt-v2 client key");
-        secure_memzero(&client_key, sizeof(client_key));
+        secure_memzero(&ctx->original_wrap_keydata, sizeof(ctx->original_wrap_keydata));
         return false;
     }
 
@@ -614,8 +680,8 @@ tls_crypt_v2_extract_client_key(struct buffer *buf,
     ctx->cleanup_key_ctx = true;
     ctx->opt.flags |= CO_PACKET_ID_LONG_FORM;
     memset(&ctx->opt.key_ctx_bi, 0, sizeof(ctx->opt.key_ctx_bi));
-    tls_crypt_v2_load_client_key(&ctx->opt.key_ctx_bi, &client_key, true);
-    secure_memzero(&client_key, sizeof(client_key));
+    tls_crypt_v2_load_client_key(&ctx->opt.key_ctx_bi,
+                                 &ctx->original_wrap_keydata, true);
 
     /* Remove client key from buffer so tls-crypt code can unwrap message */
     ASSERT(buf_inc_len(buf, -(BLEN(&wrapped_client_key))));
@@ -645,7 +711,7 @@ tls_crypt_v2_write_client_key_file(const char *filename,
     struct buffer client_key_pem = { 0 };
     struct buffer dst = alloc_buf_gc(TLS_CRYPT_V2_CLIENT_KEY_LEN
                                      + TLS_CRYPT_V2_MAX_WKC_LEN, &gc);
-    struct key2 client_key = { 2 };
+    struct key2 client_key = { .n = 2 };
 
     if (!rand_bytes((void *)client_key.keys, sizeof(client_key.keys)))
     {
@@ -654,15 +720,11 @@ tls_crypt_v2_write_client_key_file(const char *filename,
     }
     ASSERT(buf_write(&dst, client_key.keys, sizeof(client_key.keys)));
 
-    struct buffer metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN, &gc);
+    struct buffer metadata;
     if (b64_metadata)
     {
-        if (TLS_CRYPT_V2_MAX_B64_METADATA_LEN < strlen(b64_metadata))
-        {
-            msg(M_FATAL,
-                "ERROR: metadata too long (%d bytes, max %u bytes)",
-                (int)strlen(b64_metadata), TLS_CRYPT_V2_MAX_B64_METADATA_LEN);
-        }
+        size_t b64_length = strlen(b64_metadata);
+        metadata = alloc_buf_gc(OPENVPN_BASE64_DECODED_LENGTH(b64_length) + 1, &gc);
         ASSERT(buf_write(&metadata, &TLS_CRYPT_METADATA_TYPE_USER, 1));
         int decoded_len = openvpn_base64_decode(b64_metadata, BEND(&metadata),
                                                 BCAP(&metadata));
@@ -671,10 +733,18 @@ tls_crypt_v2_write_client_key_file(const char *filename,
             msg(M_FATAL, "ERROR: failed to base64 decode provided metadata");
             goto cleanup;
         }
+        if (decoded_len > TLS_CRYPT_V2_MAX_METADATA_LEN - 1)
+        {
+            msg(M_FATAL,
+                "ERROR: metadata too long (%d bytes, max %u bytes)",
+                decoded_len, TLS_CRYPT_V2_MAX_METADATA_LEN - 1);
+            goto cleanup;
+        }
         ASSERT(buf_inc_len(&metadata, decoded_len));
     }
     else
     {
+        metadata = alloc_buf_gc(1 + sizeof(int64_t), &gc);
         int64_t timestamp = htonll((uint64_t)now);
         ASSERT(buf_write(&metadata, &TLS_CRYPT_METADATA_TYPE_TIMESTAMP, 1));
         ASSERT(buf_write(&metadata, &timestamp, sizeof(timestamp)));
@@ -715,8 +785,9 @@ tls_crypt_v2_write_client_key_file(const char *filename,
     /* Sanity check: load client key (as "client") */
     struct key_ctx_bi test_client_key;
     struct buffer test_wrapped_client_key;
+    struct key2 keydata;
     msg(D_GENKEY, "Testing client-side key loading...");
-    tls_crypt_v2_init_client_key(&test_client_key, &test_wrapped_client_key,
+    tls_crypt_v2_init_client_key(&test_client_key, &keydata, &test_wrapped_client_key,
                                  client_file, client_inline);
     free_key_ctx_bi(&test_client_key);
 

@@ -1,5 +1,5 @@
 PKCS#11 / SmartCard options
----------------------------
+```````````````````````````
 
 --pkcs11-cert-private args
   Set if access to certificate object should be performed after login.
@@ -13,7 +13,8 @@ PKCS#11 / SmartCard options
 
 --pkcs11-id name
   Specify the serialized certificate id to be used. The id can be gotten
-  by the standalone ``--show-pkcs11-ids`` option.
+  by the standalone ``--show-pkcs11-ids`` option. See also the description
+  of ``--pkcs11-providers`` option.
 
 --pkcs11-id-management
   Acquire PKCS#11 id from management interface. In this case a
@@ -21,6 +22,7 @@ PKCS#11 / SmartCard options
   application may use pkcs11-id-count command to retrieve available number of
   certificates, and pkcs11-id-get command to retrieve certificate id and
   certificate body.
+  See also the description of ``--pkcs11-providers`` option.
 
 --pkcs11-pin-cache seconds
   Specify how many seconds the PIN can be cached, the default is until the
@@ -51,15 +53,18 @@ PKCS#11 / SmartCard options
      pkcs11-protected-authentication 0
      pkcs11-protected-authentication 1
 
---pkcs11-providers provider
+--pkcs11-providers providers
   Specify an RSA Security Inc. PKCS #11 Cryptographic Token Interface
-  (Cryptoki) providers to load. This option can be used instead of
-  ``--cert``, ``--key`` and ``--pkcs12``.
+  (Cryptoki) providers to load. A space-separated list of one or more
+  provider library names may be specified. This option along with ``--pkcs11-id``
+  or ``pkcs11-id-management`` can be used instead of
+  ``--cert`` and ``--key`` or ``--pkcs12``.
 
-  If p11-kit is present on the system, its :code:`p11-kit-proxy.so` module
-  will be loaded by default if either the ``--pkcs11-id`` or
-  ``--pkcs11-id-management`` options are specified without
-  ``--pkcs11-provider`` being given.
+  If p11-kit is present on the system and was enabled during build, its
+  :code:`p11-kit-proxy.so` module will be loaded by default if either
+  the ``--pkcs11-id`` or ``--pkcs11-id-management`` options is present without
+  ``--pkcs11-providers``. If default loading is not enabled in the build and
+  no providers are specified, the former options will be ignored.
 
 --show-pkcs11-ids args
   (Standalone) Show PKCS#11 token object list.

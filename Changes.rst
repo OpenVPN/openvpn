@@ -1,9 +1,260 @@
+Overview of changes in 2.7
+==========================
+New features
+------------
+Multi-socket support for servers
+    OpenVPN servers now can listen on multiple sockets at the same time.
+    Multiple ``--local`` statements in the configuration can be used to
+    configure this. This way the same server can e.g. listen for UDP
+    and TCP connections at the same time, or listen on multiple addresses
+    and/or ports.
+
+Client implementations for DNS options sent by server for Linux/BSD/macOS
+    Linux, BSD and macOS versions of OpenVPN now ship with a per-platform
+    default ``--dns-updown`` script that implements proper handling of
+    DNS configuration sent by the server.  The scripts should work on
+    systems that use ``systemd`` or ``resolveconf`` to manage the DNS
+    setup, as well as raw ``/etc/resolv.conf`` files. However, the exact
+    features supported will depend on the configuration method.
+    On Linux and MacOS this should usually make split-DNS configurations
+    supported out-of-the-box now.
+
+    Note that this new script will not be used by default if a ``--up``
+    script is already in use to reduce problems with
+    backwards compatibility.
+
+    See documentation for ``--dns-updown`` and ``--dns`` for more details.
+
+New client implementation for DNS options sent by server for Windows
+    The Windows client now uses NRPT (Name Resolution Policy Table) to
+    handle DNS configurations. This adds support for split-DNS and DNSSEC
+    and improves the compatbility with local DNS resolvers. Requires the
+    interactive service.
+
+On Windows the ``block-local`` flag is now enforced with WFP filters.
+    The ``block-local`` flag to ``--redirect-gateway`` and
+    ``--redirect-private`` is now also enforced via the Windows Firewall,
+    making sure packets can't be sent to the local network.
+    This provides stronger protection against TunnelCrack-style attacks.
+
+Windows network adapters are now generated on demand
+    This means that on systems that run multiple OpenVPN connections at
+    the same time the users don't need to manually create enough network
+    adapters anymore (in addition to the ones created by the installer).
+
+Windows automatic service now runs as an unpriviledged user
+    All tasks that need privileges are now delegated to the interactive
+    service.
+
+Support for new version of Linux DCO module
+    OpenVPN DCO module is moving upstream and being merged into the
+    main Linux kernel. For this process some API changes were required.
+    OpenVPN 2.7 will only support the new API. The new module is called
+    ``ovpn``. Out-of-tree builds for older kernels are available. Please
+    see the release announcements for futher information.
+
+Support for server mode in win-dco driver
+    On Windows the win-dco driver can now be used in server setups.
+
+Support for TLS client floating in DCO implementations
+    The kernel modules will detect clients floating to a new IP address
+    and notify userland so both data packets (kernel) and TLS packets
+    (sent by userland) can reach the new client IP.
+    (Actual support depends on recent-enough kernel implementation)
+
+Enforcement of AES-GCM usage limit
+    OpenVPN will now enforce the usage limits on AES-GCM with the same
+    confidentiality margin as TLS 1.3 does. This mean that renegotiation will
+    be triggered after roughly 2^28 to 2^31 packets depending of the packet
+    size. More details about usage limit of AES-GCM can be found here:
+
+    https://datatracker.ietf.org/doc/draft-irtf-cfrg-aead-limits/
+
+Epoch data keys and packet format
+    This introduces the epoch data format for AEAD data channel
+    ciphers in TLS mode ciphers. This new data format has a number of
+    improvements over the standard "DATA_V2" format.
+
+    - AEAD tag at the end of packet which is more hardware implementation
+      friendly
+    - Automatic key switchover when cipher usage limits are hit, similar to
+      the epoch data keys in (D)TLS 1.3
+    - 64 bit instead of 32 bit packet ids to allow the data channel to be
+      ready for 10 GBit/s without having frequent renegotiation
+    - IV constructed with XOR instead of concatenation to not have (parts) of
+      the real IV on the wire
+
+Default ciphers in ``--data-ciphers``
+    Ciphers in ``--data-ciphers`` can contain the string DEFAULT that is
+    replaced by the default ciphers used by OpenVPN, making it easier to
+    add an allowed cipher without having to spell out the default ciphers.
+
+TLS alerts
+    OpenVPN 2.7 will send out TLS alerts to peers informing them if the TLS
+    session shuts down or when the TLS implementation informs the peer about
+    an error in the TLS session (e.g. mismatching TLS versions). This improves
+    the user experience as the client shows an error instead of running into
+    a timeout when the server just stops responding completely.
+
+Support for tun/tap via unix domain socket and lwipovpn support
+    To allow better testing and emulating a full client with a full
+    network stack OpenVPN now allows a program executed to provide
+    a tun/tap device instead of opening a device.
+
+    The co-developed lwipovpn program based on lwIP stack allows to
+    simulate full IP stack. An OpenVPN client using
+    ``--dev-node unix:/path/to/lwipovpn`` can emulate a full client that
+    can be pinged, can serve a website and more without requiring any
+    elevated permission. This can make testing OpenVPN much easier.
+
+    For more details see [lwipovpn on Gihtub](https://github.com/OpenVPN/lwipovpn).
+
+Allow overriding username with ``--override-username``
+    This is intended to allow using auth-gen-token in scenarios where the
+    clients use certificates and multi-factor authentication.  This will
+    also generate a 'push "auth-token-user newusername"' directives in
+    push replies.
+
+``--port-share`` now properly supports IPv6
+    Issues with logging of IPv6 addresses were fixed. The feature now allows
+    IPv6 connections towards the proxy receiver.
+
+Support for Haiku OS
+
+TLS1.3 support with mbedTLS (very recent mbedTLS development versions only)
+
+PUSH_UPDATE client support
+    It is now possible to update parts of the client-side configuration
+    (IP address, routes, MTU, DNS) by sending a new server-to-client
+    control message, PUSH_UPDATE,<options>.  Server-side support is
+    currently only supported by OpenVPN Inc commercial offerings, the
+    implementation for OpenVPN 2.x is still under development.
+    See also: https://openvpn.github.io/openvpn-rfc/openvpn-wire-protocol.html
+
+Support for user-defined routing tables on Linux
+    see the ``--route-table`` option in the manpage
+
+PQE support for WolfSSL
+
+
+Deprecated features
+-------------------
+``secret`` support has been removed (by default).
+    static key mode (non-TLS) is no longer considered "good and secure enough"
+    for today's requirements.  Use TLS mode instead.  If deploying a PKI CA
+    is considered "too complicated", using ``--peer-fingerprint`` makes
+    TLS mode about as easy as using ``--secret``.
+
+    This mode can still be enabled by using
+    ``--allow-deprecated-insecure-static-crypto`` but will be removed in
+    OpenVPN 2.8.
+
+Support for wintun Windows driver has been removed.
+    OpenVPN 2.6 added support for the new dco-win driver, so it supported
+    three different device drivers: dco-win, wintun, and tap-windows6.
+    OpenVPN 2.7 now drops the support for wintun driver. By default
+    all modern configs should be supported by dco-win driver. In all
+    other cases OpenVPN will fall back automatically to tap-windows6
+    driver.
+
+NTLMv1 authentication support for HTTP proxies has been removed.
+    This is considered an insecure method of authentication that uses
+    obsolete crypto algorithms.
+    NTLMv2 support is still available, but will be removed in a future
+    release.
+    When configured to authenticate with NTLMv1 (``ntlm`` keyword in
+    ``--http-proxy``) OpenVPN will try NTLMv2 instead.
+
+``persist-key`` option has been enabled by default.
+    All the keys will be kept in memory across restart.
+
+OpenSSL 1.0.2 support has been removed.
+    Support for building with OpenSSL 1.0.2 has been removed. The minimum
+    supported OpenSSL version is now 1.1.0.
+
+Support for mbedTLS older than 2.18.0 has been removed.
+    We now require all SSL libraries to have support for exporting
+    keying material. The only previously supported library versions
+    this affects are older mbedTLS releases.
+
+Compression on send has been removed.
+    OpenVPN 2.7 will never compress data before sending. Decompression of
+    received data is still supported.
+    ``--allow-compression yes`` is now an alias for
+    ``--allow-compression asym``.
+
+
+User-visible Changes
+--------------------
+- Default for ``--topology`` changed to ``subnet`` for ``--mode server``.
+  Previous releases always used ``net30`` as default. This only affects
+  configs with ``--mode server`` or ``--server`` (the latter implies the
+  former), and ``--dev tun``, and only if IPv4 is enabled.
+  Note that this changes the semantics of ``--ifconfig``, so if you have
+  manual settings for that in your config but not set ``--topology``
+  your config might fail to parse with the new version. Just adding
+  ``--topology net30`` to the config should fix the problem.
+  By default ``--topology`` is pushed from server to client.
+
+- ``--x509-username-field`` will no longer automatically convert fieldnames to
+  uppercase. This is deprecated since OpenVPN 2.4, and has now been removed.
+
+- ``--dh none`` is now the default if ``--dh`` is not specified. Modern TLS
+  implementations will prefer ECDH and other more modern algorithms anyway.
+  And finite field Diffie Hellman is in the proces of being deprecated
+  (see draft-ietf-tls-deprecate-obsolete-kex)
+
+- ``--lport 0`` does not imply ``--bind`` anymore.
+
+- ``--redirect--gateway`` now works correctly if the VPN remote is not
+  reachable by the default gateway.
+
+- ``--show-gateway`` now supports querying the gateway for IPv4 addresses.
+
+- ``--static-challenge`` option now has a third parameter ``format`` that
+  can change how password and challenge response should be combined.
+
+- ``--key`` and ``--cert`` now accept URIs implemented in OpenSSL 3 as well as
+  optional OpenSSL 3 providers loaded using ``--providers`` option.
+
+- ``--cryptoapicert`` now supports issuer name as well as Windows CA template
+  name or OID as selector string.
+
+- TLS handshake debugging information contains much more details  now when
+  using recent versions of OpenSSL.
+
+- The ``IV_PLAT_VER`` variable sent by Windows clients now contains the
+  full Windows build version to make it possible to determine the
+  Windows 10 or Windows 11 version used.
+
+- The ``--windows-driver`` option to select between various windows
+  drivers will no longer do anything - it's kept so existing configs
+  will not become invalid, but it is ignored with a warning.  The default
+  is now ``ovpn-dco`` if all options used are compatible with DCO, with
+  a fallback to ``tap-windows6``.  To force TAP (for example because a
+  server pushes DCO incompatible options), use the ``--disable-dco``
+  option.
+
+
 Overview of changes in 2.6
 ==========================
 
+Project changes
+---------------
+
+We want to deprecate our old Trac bug tracking system.
+Please report any issues with this release in GitHub
+instead: https://github.com/OpenVPN/openvpn/issues
 
 New features
 ------------
+Support unlimited number of connection entries and remote entries
+
+New management commands to enumerate and list remote entries
+    Use ``remote-entry-count`` and ``remote-entry-get``
+    commands from the management interface to get the number of
+    remote entries and the entries themselves.
+
 Keying Material Exporters (RFC 5705) based key generation
     As part of the cipher negotiation OpenVPN will automatically prefer
     the RFC5705 based key material generation to the current custom
@@ -45,6 +296,83 @@ Pending auth support for plugins and scripts
 
     See ``sample/sample-scripts/totpauth.py`` for an example.
 
+Compatibility mode (``--compat-mode``)
+    The modernisation of defaults can impact the compatibility of OpenVPN 2.6.0
+    with older peers. The options ``--compat-mode`` allows UIs to provide users
+    with an easy way to still connect to older servers.
+
+OpenSSL 3.0 support
+    OpenSSL 3.0 has been added. Most of OpenSSL 3.0 changes are not user visible but
+    improve general compatibility with OpenSSL 3.0. ``--tls-cert-profile insecure``
+    has been added to allow selecting the lowest OpenSSL security level (not
+    recommended, use only if you must). OpenSSL 3.0 no longer supports the Blowfish
+    (and other deprecated) algorithm by default and the new option ``--providers``
+    allows loading the legacy provider to renable these algorithms.
+
+Optional ciphers in ``--data-ciphers``
+    Ciphers in ``--data-ciphers`` can now be prefixed with a ``?`` to mark
+    those as optional and only use them if the SSL library supports them.
+
+
+Improved ``--mssfix`` and ``--fragment`` calculation
+    The ``--mssfix`` and ``--fragment`` options now allow an optional :code:`mtu`
+    parameter to specify that different overhead for IPv4/IPv6 should taken into
+    account and the resulting size is specified as the total size of the VPN packets
+    including IP and UDP headers.
+
+Cookie based handshake for UDP server
+    Instead of allocating a connection for each client on the initial packet
+    OpenVPN server will now use an HMAC based cookie as its session id. This
+    way the server can verify it on completing the handshake without keeping
+    state. This eliminates the amplification and resource exhaustion attacks.
+    For tls-crypt-v2 clients, this requires OpenVPN 2.6 clients or later
+    because the client needs to resend its client key on completing the hand
+    shake. The tls-crypt-v2 option allows controlling if older clients are
+    accepted.
+
+    By default the rate of initial packet responses is limited to 100 per 10s
+    interval to avoid OpenVPN servers being abused in reflection attacks
+    (see ``--connect-freq-initial``).
+
+Data channel offloading with ovpn-dco
+    2.6.0+ implements support for data-channel offloading where the data packets
+    are directly processed and forwarded in kernel space thanks to the ovpn-dco
+    kernel module. The userspace openvpn program acts purely as a control plane
+    application. Note that DCO will use DATA_V2 packets in P2P mode, therefore,
+    this implies that peers must be running 2.6.0+ in order to have P2P-NCP
+    which brings DATA_V2 packet support.
+
+Session timeout
+    It is now possible to terminate a session (or all) after a specified amount
+    of seconds has passed session commencement. This behaviour can be configured
+    using ``--session-timeout``. This option can be configured on the server, on
+    the client or can also be pushed.
+
+Inline auth username and password
+    Username and password can now be specified inline in the configuration file
+    within the <auth-user-pass></auth-user-pass> tags. If the password is
+    missing OpenVPN will prompt for input via stdin. This applies to inline'd
+    http-proxy-user-pass too.
+
+Tun MTU can be pushed
+    The  client can now also dynamically configure its MTU and the server
+    will try to push the client MTU when the client supports it. The
+    directive ``--tun-mtu-max`` has been introduced to increase the maximum
+    pushable MTU size (defaults to 1600).
+
+Dynamic TLS Crypt
+    When both peers are OpenVPN 2.6.1+, OpenVPN will dynamically create
+    a tls-crypt key that is used for renegotiation. This ensure that only the
+    previously authenticated peer can do trigger renegotiation and complete
+    renegotiations.
+
+Improved control channel packet size control (``max-packet-size``)
+    The size of control channel is no longer tied to
+    ``--link-mtu``/``--tun-mtu`` and can be set using ``--max-packet-size``.
+    Sending large control channel frames is also optimised by allowing 6
+    outstanding packets instead of just 4. ``max-packet-size`` will also set
+    ``mssfix`` to try to limit data-channel packets as well.
+
 Deprecated features
 -------------------
 ``inetd`` has been removed
@@ -64,6 +392,180 @@ Deprecated features
 ``ncp-disable`` has been removed
     This option mainly served a role as debug option when NCP was first
     introduced. It should now no longer be necessary.
+
+TLS 1.0 and 1.1 are deprecated
+    ``tls-version-min`` is set to 1.2 by default.  OpenVPN 2.6.0 defaults
+    to a minimum TLS version of 1.2 as TLS 1.0 and 1.1 should be generally
+    avoided. Note that OpenVPN versions older than 2.3.7 use TLS 1.0 only.
+
+``--cipher`` argument is no longer appended to ``--data-ciphers``
+    by default. Data cipher negotiation has been introduced in 2.4.0
+    and been significantly improved in 2.5.0. The implicit fallback
+    to the cipher specified in ``--cipher`` has been removed.
+    Effectively, ``--cipher`` is a no-op in TLS mode now, and will
+    only have an effect in pre-shared-key mode (``--secret``).
+    From now on ``--cipher`` should not be used in new configurations
+    for TLS mode.
+    Should backwards compatibility with older OpenVPN peers be
+    required, please see the ``--compat-mode`` instead.
+
+``--prng`` has beeen removed
+    OpenVPN used to implement its own PRNG based on a hash. However implementing
+    a PRNG is better left to a crypto library. So we use the PRNG
+    mbed TLS or OpenSSL now.
+
+``--keysize`` has been removed
+    The ``--keysize`` option was only useful to change the key length when using the
+    BF, CAST6 or RC2 ciphers. For all other ciphers the key size is fixed with the
+    chosen cipher. As OpenVPN v2.6 no longer supports any of these variable length
+    ciphers, this option was removed as well to avoid confusion.
+
+Compression no longer enabled by default
+    Unless an explicit compression option is specified in the configuration,
+    ``--allow-compression`` defaults to ``no`` in OpeNVPN 2.6.0.
+    By default, OpenVPN 2.5 still allowed a server to enable compression by
+    pushing compression related options.
+
+PF (Packet Filtering) support has been removed
+   The built-in PF functionality has been removed from the code base. This
+   feature wasn't really easy to use and was long unmaintained.
+   This implies that also ``--management-client-pf`` and any other compile
+   time or run time related option do not exist any longer.
+
+Option conflict checking is being deprecated and phased out
+    The static option checking (OCC) is no longer useful in typical setups
+    that negotiate most connection parameters. The ``--opt-verify`` and
+    ``--occ-disable`` options are deprecated, and the configure option
+    ``--enable-strict-options`` has been removed. Logging of mismatched
+    options has been moved to debug logging (verb 7).
+
+User-visible Changes
+--------------------
+- CHACHA20-POLY1305 is included in the default of ``--data-ciphers`` when available.
+- Option ``--prng`` is ignored as we rely on the SSL library random number generator.
+- Option ``--nobind`` is default when ``--client`` or ``--pull`` is used in the configuration
+- :code:`link_mtu` parameter is removed from environment or replaced with 0 when scripts are
+  called with parameters. This parameter is unreliable and no longer internally calculated.
+
+- control channel packet maximum size is no longer influenced by
+  ``--link-mtu``/``--tun-mtu`` and must be set by ``--max-packet-size`` now.
+  The default is 1250 for the control channel size.
+
+- In point-to-point OpenVPN setups (no ``--server``), using
+  ``--explict-exit-notiy`` on one end would terminate the other side at
+  session end.  This is considered a no longer useful default and has
+  been changed to "restart on reception of explicit-exit-notify message".
+  If the old behaviour is still desired, ``--remap-usr1 SIGTERM`` can be used.
+
+- FreeBSD tun interfaces with ``--topology subnet`` are now put into real
+  subnet mode (IFF_BROADCAST instead of IFF_POINTOPOINT) - this might upset
+  software that enumerates interfaces, looking for "broadcast capable?" and
+  expecting certain results.  Normal uses should not see any difference.
+
+- The default configurations will no longer allow connections to OpenVPN 2.3.x
+  peer or earlier, use the new ``--compat-mode`` option if you need
+  compatibility with older versions. See the manual page on the
+  ``--compat-mode`` for details.
+
+- The ``client-pending-auth`` management command now requires also the
+  key id. The management version has been changed to 5 to indicate this change.
+
+- (OpenVPN 2.6.2) A client will now refuse a connection if pushed compression
+  settings will contradict the setting of allow-compression as this almost
+  always results in a non-working connection.
+
+- The "kill" by addr management command now requires also the protocol
+  as string e.g. "udp", "tcp".
+
+Common errors with OpenSSL 3.0 and OpenVPN 2.6
+----------------------------------------------
+Both OpenVPN 2.6 and OpenSSL 3.0 tighten the security considerable, so some
+configuration will no longer work. This section will cover the most common
+causes and error message we have seen and explain their reason and temporary
+workarounds. You should fix the underlying problems as soon as possible since
+these workaround are not secure and will eventually stop working in a future
+update.
+
+- weak SHA1 or MD5 signature on certificates
+
+  This will happen on either loading of certificates or on connection
+  to a server::
+
+      OpenSSL: error:0A00018E:SSL routines::ca md too weak
+      Cannot load certificate file cert.crt
+      Exiting due to fatal error
+
+  OpenSSL 3.0 no longer allows weak signatures on certificates. You can
+  downgrade your security to allow them by using ``--tls-cert-profile insecure``
+  but should replace/regenerate these certificates as soon as possible.
+
+
+- 1024 bit RSA certificates, 1024 bit DH parameters, other weak keys
+
+  This happens if you use private keys or other cryptographic material that
+  does not meet today's cryptographic standards anymore. Messages are similar
+  to::
+
+      OpenSSL: error:0A00018F:SSL routines::ee key too small
+      OpenSSL: error:1408518A:SSL routines:ssl3_ctx_ctrl:dh key too small
+
+  DH parameters (``--dh``) can be regenerated with ``openssl dhparam 2048``.
+  For other cryptographic keys, these keys and certificates need to be
+  regenerated. TLS Security level can be temporarily lowered with
+  ``--tls-cert-profile legacy`` or even ``--tls-cert-profile insecure``.
+
+- Connecting to a OpenVPN 2.3.x server or allowing OpenVPN 2.3.x or earlier
+  clients
+
+  This will normally result in messages like::
+
+     OPTIONS ERROR: failed to negotiate cipher with server.  Add the server's cipher ('AES-128-CBC') to --data-ciphers (currently 'AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305') if you want to connect to this server.
+
+     or
+
+     client/127.0.0.1:49954 SENT CONTROL [client]: 'AUTH_FAILED,Data channel cipher negotiation failed (no shared cipher)' (status=1)
+
+  You can manually add the missing cipher to the ``--data-ciphers``. The
+  standard ciphers should be included as well, e.g.
+  ``--data-ciphers AES-256-GCM:AES-128-GCM:?Chacha20-Poly1305:?AES-128-CBC``.
+  You can also use the ``--compat-mode`` option. Note that these message may
+  also indicate other cipher configuration problems. See the data channel
+  cipher negotiation manual section for more details. (Available online under
+  https://github.com/OpenVPN/openvpn/blob/master/doc/man-sections/cipher-negotiation.rst)
+
+- Use of a legacy or deprecated cipher (e.g. 64bit block ciphers)
+
+  OpenSSL 3.0 no longer supports a number of insecure and outdated ciphers in
+  its default configuration. Some of these ciphers are known to be vulnerable (SWEET32 attack).
+
+  This will typically manifest itself in messages like::
+
+      OpenSSL: error:0308010C:digital envelope routines::unsupported
+      Cipher algorithm 'BF-CBC' not found
+      Unsupported cipher in --data-ciphers: BF-CBC
+
+  If your OpenSSL distribution comes with the legacy provider (see
+  also ``man OSSL_PROVIDER-legacy``), you can load it with
+  ``--providers legacy default``.  This will re-enable the old algorithms.
+
+- OpenVPN version not supporting TLS 1.2 or later
+
+  The default in OpenVPN 2.6 and also in many distributions is now TLS 1.2 or
+  later. Connecting to a peer that does not support this will results in
+  messages like::
+
+    TLS error: Unsupported protocol. This typically indicates that client and
+    server have no common TLS version enabled. This can be caused by mismatched
+    tls-version-min and tls-version-max options on client and server. If your
+    OpenVPN client is between v2.3.6 and v2.3.2 try adding tls-version-min 1.0
+    to the client configuration to use TLS 1.0+ instead of TLS 1.0 only
+    OpenSSL: error:0A000102:SSL routines::unsupported protocol
+
+  This can be an OpenVPN 2.3.6 or earlier version. ``compat-version 2.3.0`` will
+  enable TLS 1.0 support if supported by the OpenSSL distribution. Note that
+  on some Linux distributions enabling TLS 1.1 or 1.0 is not possible.
+
+
 
 Overview of changes in 2.5
 ==========================
@@ -508,7 +1010,7 @@ Control channel encryption (``--tls-crypt``)
 Asynchronous push reply
     Plug-ins providing support for deferred authentication can benefit from a more
     responsive authentication where the server sends PUSH_REPLY immediately once
-    the authentication result is ready, instead of waiting for the the client to
+    the authentication result is ready, instead of waiting for the client to
     to send PUSH_REQUEST once more.  This requires OpenVPN to be built with
     ``./configure --enable-async-push``.  This is a compile-time only switch.
 

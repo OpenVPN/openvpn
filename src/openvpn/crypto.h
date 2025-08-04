@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -18,12 +18,12 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /**
- * @file Data Channel Cryptography Module
+ * @file
+ * Data Channel Cryptography Module
  *
  * @addtogroup data_crypto Data Channel Crypto module
  *
@@ -40,7 +40,7 @@
  *    HMAC at all.
  *  - \b Ciphertext \b IV. The IV size depends on the \c \-\-cipher option.
  *  - \b Packet \b ID, a 32-bit incrementing packet counter that provides replay
- *    protection (if not disabled by \c \-\-no-replay).
+ *    protection.
  *  - \b Timestamp, a 32-bit timestamp of the current time.
  *  - \b Payload, the plain text network packet to be encrypted (unless
  *    encryption is disabled by using \c \-\-cipher \c none). The payload might
@@ -138,15 +138,14 @@ struct sha256_digest {
  */
 struct key_type
 {
-    uint8_t cipher_length;      /**< Cipher length, in bytes */
-    uint8_t hmac_length;        /**< HMAC length, in bytes */
-    const cipher_kt_t *cipher;  /**< Cipher static parameters */
-    const md_kt_t *digest;      /**< Message digest static parameters */
+    const char *cipher;         /**< const name of the cipher */
+    const char *digest;         /**< Message digest static parameters */
 };
 
 /**
  * Container for unidirectional cipher and HMAC %key material.
- * @ingroup control_processor
+ * @ingroup control_processor. This is used as a wire format/file format
+ * key, so it cannot be changed to add fields or change the length of fields
  */
 struct key
 {
@@ -156,6 +155,42 @@ struct key
     /**< %Key material for HMAC operations. */
 };
 
+/** internal structure similar to struct key that holds key information
+ * but is not represented on wire and can be changed/extended
+ */
+struct key_parameters {
+    /** %Key material for cipher operations. */
+    uint8_t cipher[MAX_CIPHER_KEY_LENGTH];
+
+    /** Number of bytes set in the cipher key material */
+    int cipher_size;
+
+    /** %Key material for HMAC operations. */
+    uint8_t hmac[MAX_HMAC_KEY_LENGTH];
+
+    /** Number of bytes set in the HMac key material */
+    int hmac_size;
+
+    /** the epoch of the key. Only defined/non zero if key parameters
+     * represent a data channel epoch key parameters.
+     * Other uses of this struct leave this zero. */
+    uint16_t epoch;
+};
+
+/**
+ * Converts a struct key representation into a struct key_parameters
+ * representation.
+ *
+ * @param key_params    destination for the converted struct
+ * @param key           source of the conversion
+ */
+void
+key_parameters_from_key(struct key_parameters *key_params, const struct key *key);
+
+struct epoch_key {
+    uint8_t epoch_key[SHA256_DIGEST_LENGTH];
+    uint16_t epoch;
+};
 
 /**
  * Container for one set of cipher and/or HMAC contexts.
@@ -165,9 +200,30 @@ struct key_ctx
 {
     cipher_ctx_t *cipher;       /**< Generic cipher %context. */
     hmac_ctx_t *hmac;           /**< Generic HMAC %context. */
+    /**
+     * This implicit IV will be always XORed with the packet id that is sent on
+     * the wire to get the IV. For the common AEAD ciphers of AES-GCM and
+     * Chacha20-Poly1305, the length of the IV is 12 bytes (96 bits).
+     *
+     * For non-epoch 32bit packet id AEAD format we set the first 32
+     * bits of implicit_iv to 0.
+     * Xor with the packet id in this case works as concatenation:
+     * after xor the lower 32 bit of the IV are the packet id and
+     * the rest of the IV is from the implicit IV.
+     */
     uint8_t implicit_iv[OPENVPN_MAX_IV_LENGTH];
     /**< The implicit part of the IV */
     size_t implicit_iv_len;     /**< The length of implicit_iv */
+    /** Counter for the number of plaintext block encrypted using this cipher
+     * with the current key in number of 128 bit blocks (only used for
+     * AEAD ciphers) */
+    uint64_t plaintext_blocks;
+    /** number of failed verification using this cipher */
+    uint64_t failed_verifications;
+    /** OpenVPN data channel epoch, this variable holds the
+     *  epoch number this key belongs to. Note that epoch 0 is not used
+     *  and epoch is always non-zero for epoch key contexts */
+    uint16_t epoch;
 };
 
 #define KEY_DIRECTION_BIDIRECTIONAL 0 /* same keys for both directions */
@@ -183,7 +239,9 @@ struct key2
     int n;                      /**< The number of \c key objects stored
                                  *   in the \c key2.keys array. */
     struct key keys[2];         /**< Two unidirectional sets of %key
-                                 *   material. */
+                                 *   material. The first key is the client
+                                 *   (encrypts) to server (decrypts), the
+                                 *   second the server to client key. */
 };
 
 /**
@@ -235,8 +293,48 @@ struct crypto_options
     /**< OpenSSL cipher and HMAC contexts for
      *   both sending and receiving
      *   directions. */
+
+    /** last epoch_key used for generation of the current send data keys.
+     * As invariant, the epoch of epoch_key_send is always kept >= the epoch of
+     * epoch_key_recv */
+    struct epoch_key epoch_key_send;
+
+    /** epoch_key used for the highest receive epoch keys */
+    struct epoch_key epoch_key_recv;
+
+    /** the key_type that is used to generate the epoch keys */
+    struct key_type epoch_key_type;
+
+    /** The limit for AEAD cipher, this is the sum of packets + blocks
+     * that are allowed to be used. Will switch to a new epoch if this
+     * limit is reached*/
+    uint64_t aead_usage_limit;
+
+    /** Keeps the future epoch data keys for decryption. The current one
+     * that is expected to be used is stored in key_ctx_bi.
+     *
+     * for encryption keys this is not needed as we only need the current
+     * and move to another key by iteration and we never need to go back
+     * to an older key.
+     */
+    struct key_ctx *epoch_data_keys_future;
+
+    /** number of keys stored in \c epoch_data_keys_future */
+    uint16_t epoch_data_keys_future_count;
+
+    /** The old key before the sender switched to a new epoch data key */
+    struct key_ctx epoch_retiring_data_receive_key;
+    struct packet_id_rec epoch_retiring_key_pid_recv;
+
     struct packet_id packet_id; /**< Current packet ID state for both
-                                 *   sending and receiving directions. */
+                                 *   sending and receiving directions.
+                                 *
+                                 *   This contains the packet id that is
+                                 *   used for replay protection.
+                                 *
+                                 *   The packet id also used as the IV
+                                 *   for AEAD/OFB/CFG ciphers.
+                                 */
     struct packet_id_persist *pid_persist;
     /**< Persistent packet ID state for
      *   keeping state between successive
@@ -258,12 +356,38 @@ struct crypto_options
     /**< Bit-flag indicating that data channel key derivation
      * is done using TLS keying material export [RFC5705]
      */
+#define CO_RESEND_WKC (1<<4)
+    /**< Bit-flag indicating that the client is expected to
+     * resend the wrapped client key with the 2nd packet (packet-id 1)
+     * like with the HARD_RESET_CLIENT_V3 packet */
+#define CO_FORCE_TLSCRYPTV2_COOKIE  (1<<5)
+    /**< Bit-flag indicating that we do not allow clients that do
+     * not support resending the wrapped client key (WKc) with the
+     * third packet of the three-way handshake */
+#define CO_USE_CC_EXIT_NOTIFY       (1<<6)
+    /**< Bit-flag indicating that explicit exit notifies should be
+     * sent via the control channel instead of using an OCC message
+     */
+#define CO_USE_DYNAMIC_TLS_CRYPT   (1<<7)
+    /**< Bit-flag indicating that renegotiations are using tls-crypt
+     *   with a TLS-EKM derived key.
+     */
+#define CO_EPOCH_DATA_KEY_FORMAT  (1<<8)
+    /**< Bit-flag indicating the epoch the data format. This format
+     * has the AEAD tag at the end of the packet and is using a longer
+     * 64-bit packet id that is split into a 16 bit epoch and 48 bit
+     * epoch counter
+     */
+
     unsigned int flags;         /**< Bit-flags determining behavior of
                                  *   security operation functions. */
 };
 
-#define CRYPT_ERROR(format) \
-    do { msg(D_CRYPT_ERRORS, "%s: " format, error_prefix); goto error_exit; } while (false)
+#define CRYPT_ERROR_EXIT(flags, format) \
+    do { msg(flags, "%s: " format, error_prefix); goto error_exit; } while (false)
+
+#define CRYPT_ERROR(format) CRYPT_ERROR_EXIT(D_CRYPT_ERRORS, format)
+#define CRYPT_DROP(format) CRYPT_ERROR_EXIT(D_MULTI_DROPPED, format)
 
 /**
  * Minimal IV length for AEAD mode ciphers (in bytes):
@@ -282,18 +406,7 @@ void read_key_file(struct key2 *key2, const char *file, const unsigned int flags
  */
 int write_key_file(const int nkeys, const char *filename);
 
-void generate_key_random(struct key *key, const struct key_type *kt);
-
-void check_replay_consistency(const struct key_type *kt, bool packet_id);
-
 bool check_key(struct key *key, const struct key_type *kt);
-
-void fixup_key(struct key *key, const struct key_type *kt);
-
-bool write_key(const struct key *key, const struct key_type *kt,
-               struct buffer *buf);
-
-int read_key(struct key *key, const struct key_type *kt, struct buffer *buf);
 
 /**
  * Initialize a key_type structure with.
@@ -312,9 +425,17 @@ void init_key_type(struct key_type *kt, const char *ciphername,
  * Key context functions
  */
 
-void init_key_ctx(struct key_ctx *ctx, const struct key *key,
+void init_key_ctx(struct key_ctx *ctx, const struct key_parameters *key,
                   const struct key_type *kt, int enc,
                   const char *prefix);
+
+void
+init_key_bi_ctx_send(struct key_ctx *ctx, const struct key_parameters *key,
+                     const struct key_type *kt, const char *name);
+
+void
+init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key_parameters *key,
+                     const struct key_type *kt, const char *name);
 
 void free_key_ctx(struct key_ctx *ctx);
 
@@ -345,12 +466,12 @@ void free_key_ctx_bi(struct key_ctx_bi *ctx);
  * If an error occurs during processing, then the \a buf %buffer is set to
  * empty.
  *
- * @param buf          - The %buffer containing the packet on which to
+ * @param[in,out] buf  - The %buffer containing the packet on which to
  *                       perform security operations.
  * @param work         - An initialized working %buffer.
  * @param opt          - The security parameter state for this VPN tunnel.
  *
- * @return This function returns void.\n On return, the \a buf argument
+ * @note On return, the \a buf argument
  *     will point to the resulting %buffer.  This %buffer will either
  *     contain the processed packet ready for sending, or be empty if an
  *     error occurred.
@@ -403,21 +524,36 @@ bool openvpn_decrypt(struct buffer *buf, struct buffer work,
  *
  * @param opt   Crypto options for this packet, contains replay state.
  * @param pin   Packet ID read from packet.
+ * @param epoch Epoch read from packet or 0 when epoch is not used.
  * @param error_prefix  Prefix to use when printing error messages.
  * @param gc    Garbage collector to use.
  *
  * @return true if packet ID is validated to be not a replay, false otherwise.
  */
 bool crypto_check_replay(struct crypto_options *opt,
-                         const struct packet_id_net *pin, const char *error_prefix,
+                         const struct packet_id_net *pin,
+                         uint16_t epoch,
+                         const char *error_prefix,
                          struct gc_arena *gc);
 
 
-/** Calculate crypto overhead and adjust frame to account for that */
-void crypto_adjust_frame_parameters(struct frame *frame,
-                                    const struct key_type *kt,
-                                    bool packet_id,
-                                    bool packet_id_long_form);
+/** Calculate the maximum overhead that our encryption has
+ * on a packet. This does not include needed additional buffer size
+ *
+ * This does NOT include the padding and rounding of CBC size
+ * as the users (mssfix/fragment) of this function need to adjust for
+ * this and add it themselves.
+ *
+ * @param kt            Struct with the crypto algorithm to use
+ * @param pkt_id_size   Size of the packet id
+ * @param occ           if true calculates the overhead for crypto in the same
+ *                      incorrect way as all previous OpenVPN versions did, to
+ *                      end up with identical numbers for OCC compatibility
+ */
+unsigned int
+calculate_crypto_overhead(const struct key_type *kt,
+                          unsigned int pkt_id_size,
+                          bool occ);
 
 /** Return the worst-case OpenVPN crypto overhead (in bytes) */
 unsigned int crypto_max_overhead(void);
@@ -427,7 +563,7 @@ unsigned int crypto_max_overhead(void);
  * and write to file.
  *
  * @param filename          Filename of the server key file to create.
- * @param pem_name          The name to use in the PEM header/footer.
+ * @param key_name          The name to use in the PEM header/footer.
  */
 void
 write_pem_key_file(const char *filename, const char *key_name);
@@ -456,24 +592,6 @@ bool
 read_pem_key_file(struct buffer *key, const char *pem_name,
                   const char *key_file, bool key_inline);
 
-/* Minimum length of the nonce used by the PRNG */
-#define NONCE_SECRET_LEN_MIN 16
-
-/* Maximum length of the nonce used by the PRNG */
-#define NONCE_SECRET_LEN_MAX 64
-
-/** Number of bytes of random to allow before resetting the nonce */
-#define PRNG_NONCE_RESET_BYTES 1024
-
-/**
- * Pseudo-random number generator initialisation.
- * (see \c prng_rand_bytes())
- *
- * @param md_name                       Name of the message digest to use
- * @param nonce_secret_len_param        Length of the nonce to use
- */
-void prng_init(const char *md_name, const int nonce_secret_len_parm);
-
 /*
  * Message digest-based pseudo random number generator.
  *
@@ -491,13 +609,11 @@ void prng_init(const char *md_name, const int nonce_secret_len_parm);
  */
 void prng_bytes(uint8_t *output, int len);
 
-void prng_uninit(void);
-
 /* an analogue to the random() function, but use prng_bytes */
 long int get_random(void);
 
 /** Print a cipher list entry */
-void print_cipher(const cipher_kt_t *cipher);
+void print_cipher(const char *cipher);
 
 void test_crypto(struct crypto_options *co, struct frame *f);
 
@@ -523,7 +639,8 @@ void key2_print(const struct key2 *k,
 void crypto_read_openvpn_key(const struct key_type *key_type,
                              struct key_ctx_bi *ctx, const char *key_file,
                              bool key_inline, const int key_direction,
-                             const char *key_name, const char *opt_name);
+                             const char *key_name, const char *opt_name,
+                             struct key2 *keydata);
 
 /*
  * Inline functions
@@ -552,5 +669,105 @@ key_ctx_bi_defined(const struct key_ctx_bi *key)
  * @param is_inline true when str contains an inline data of some sort
  */
 const char *print_key_filename(const char *str, bool is_inline);
+
+/**
+ * Creates and validates an instance of struct key_type with the provided
+ * algs.
+ *
+ * @param cipher    the cipher algorithm to use (must be a string literal)
+ * @param md        the digest algorithm to use (must be a string literal)
+ * @param optname   the name of the option requiring the key_type object
+ *
+ * @return          the initialized key_type instance
+ */
+static inline struct key_type
+create_kt(const char *cipher, const char *md, const char *optname)
+{
+    struct key_type kt;
+    kt.cipher = cipher;
+    kt.digest = md;
+
+    if (cipher_defined(kt.cipher) && !cipher_valid(kt.cipher))
+    {
+        msg(M_WARN, "ERROR: --%s requires %s support.", optname, kt.cipher);
+        return (struct key_type) { 0 };
+    }
+    if (md_defined(kt.digest) && !md_valid(kt.digest))
+    {
+        msg(M_WARN, "ERROR: --%s requires %s support.", optname, kt.digest);
+        return (struct key_type) { 0 };
+    }
+
+    return kt;
+}
+
+/**
+ * Check if the cipher is an AEAD cipher and needs to be limited to a certain
+ * number of number of blocks + packets. Return 0 if ciphername is not an AEAD
+ * cipher or no limit (e.g. Chacha20-Poly1305) is needed. (Or the limit is
+ * larger than 2^64)
+ *
+ * For reference see the OpenVPN RFC draft and
+ * https://www.ietf.org/archive/id/draft-irtf-cfrg-aead-limits-08.html
+ */
+uint64_t
+cipher_get_aead_limits(const char *ciphername);
+
+/**
+ * Check if the number of failed decryption is over the acceptable limit.
+ */
+static inline bool
+cipher_decrypt_verify_fail_exceeded(const struct key_ctx *ctx)
+{
+    /* Use 2**36, same as DTLS 1.3. Strictly speaking this only guarantees
+     * the security margin for packets up to 2^10 blocks (16384 bytes)
+     * but we accept slightly lower security bound for the edge
+     * of Chacha20-Poly1305 and packets over 16k as MTUs over 16k are
+     * extremely rarely used */
+    return ctx->failed_verifications >  (1ull << 36);
+}
+
+/**
+ * Check if the number of failed decryption is approaching the limit and we
+ * should try to move to a new key
+ */
+static inline bool
+cipher_decrypt_verify_fail_warn(const struct key_ctx *ctx)
+{
+    /* Use 2**35, half the amount after which we refuse to decrypt */
+    return ctx->failed_verifications >  (1ull << 35);
+}
+
+
+/**
+ * Blocksize used for the AEAD limit caluclation
+ *
+ * Since cipher_ctx_block_size() is not reliable and will return 1 in many
+ * cases use a hardcoded blocksize instead */
+#define     AEAD_LIMIT_BLOCKSIZE    16
+
+/**
+ * Checks if the current TLS library supports the TLS 1.0 PRF with MD5+SHA1
+ * that OpenVPN uses when TLS Keying Material Export is not available.
+ *
+ * @return  true if supported, false otherwise.
+ */
+bool check_tls_prf_working(void);
+
+/**
+ * Checks if the usage limit for an AEAD cipher is reached
+ *
+ * This method abstracts the calculation to make the calling function easier
+ * to read.
+ */
+static inline bool
+aead_usage_limit_reached(const uint64_t limit, const struct key_ctx *key_ctx,
+                         int64_t higest_pid)
+{
+    /* This is the  q + s <=  p^(1/2) * 2^(129/2) - 1 calculation where
+     * q is the number of protected messages (highest_pid)
+     * s Total plaintext length in all messages (in blocks) */
+    return (limit > 0 && key_ctx->plaintext_blocks + (uint64_t) higest_pid > limit);
+}
 
 #endif /* CRYPTO_H */

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -273,62 +270,13 @@ buf_puts(struct buffer *buf, const char *str)
     int cap = buf_forward_capacity(buf);
     if (cap > 0)
     {
-        strncpynt((char *)ptr,str, cap);
+        strncpynt((char *)ptr, str, cap);
         *(buf->data + buf->capacity - 1) = 0; /* windows vsnprintf needs this */
         buf->len += (int) strlen((char *)ptr);
         ret = true;
     }
     return ret;
 }
-
-
-/*
- * This is necessary due to certain buggy implementations of snprintf,
- * that don't guarantee null termination for size > 0.
- *
- * Return false on overflow.
- *
- * This functionality is duplicated in src/openvpnserv/common.c
- * Any modifications here should be done to the other place as well.
- */
-
-bool
-openvpn_snprintf(char *str, size_t size, const char *format, ...)
-{
-    va_list arglist;
-    int len = -1;
-    if (size > 0)
-    {
-        va_start(arglist, format);
-        len = vsnprintf(str, size, format, arglist);
-        va_end(arglist);
-        str[size - 1] = 0;
-    }
-    return (len >= 0 && len < size);
-}
-
-/*
- * openvpn_swprintf() is currently only used by Windows code paths
- * and when enabled for all platforms it will currently break older
- * OpenBSD versions lacking vswprintf(3) support in their libc.
- */
-
-#ifdef _WIN32
-bool
-openvpn_swprintf(wchar_t *const str, const size_t size, const wchar_t *const format, ...)
-{
-    va_list arglist;
-    int len = -1;
-    if (size > 0)
-    {
-        va_start(arglist, format);
-        len = vswprintf(str, size, format, arglist);
-        va_end(arglist);
-        str[size - 1] = L'\0';
-    }
-    return (len >= 0 && len < size);
-}
-#endif
 
 /*
  * write a string to the end of a buffer that was
@@ -339,29 +287,11 @@ buf_catrunc(struct buffer *buf, const char *str)
 {
     if (buf_forward_capacity(buf) <= 1)
     {
-        int len = (int) strlen(str) + 1;
+        size_t len = strlen(str) + 1;
         if (len < buf_forward_capacity_total(buf))
         {
-            strncpynt((char *)(buf->data + buf->capacity - len), str, len);
+            memcpy(buf->data + buf->capacity - len, str, len);
         }
-    }
-}
-
-/*
- * convert a multi-line output to one line
- */
-void
-convert_to_one_line(struct buffer *buf)
-{
-    uint8_t *cp = BPTR(buf);
-    int len = BLEN(buf);
-    while (len--)
-    {
-        if (*cp == '\n')
-        {
-            *cp = '|';
-        }
-        ++cp;
     }
 }
 
@@ -377,7 +307,7 @@ buffer_write_file(const char *filename, const struct buffer *buf)
         return false;
     }
 
-    const int size = write(fd, BPTR(buf), BLEN(buf));
+    const ssize_t size = write(fd, BPTR(buf), BLEN(buf));
     if (size != BLEN(buf))
     {
         msg(M_ERRNO, "Write error on file '%s'", filename);
@@ -432,6 +362,39 @@ gc_malloc(size_t size, bool clear, struct gc_arena *a)
     if (clear)
 #endif
     memset(ret, 0, size);
+    return ret;
+}
+
+void *
+gc_realloc(void *ptr, size_t size, struct gc_arena *a)
+{
+    void *ret = realloc(ptr, size);
+    check_malloc_return(ret);
+    if (a)
+    {
+        if (ptr && ptr != ret)
+        {
+            /* find the old entry and modify it if realloc changed
+             * the pointer */
+            struct gc_entry_special *e = NULL;
+            for (e = a->list_special; e != NULL; e = e->next)
+            {
+                if (e->addr == ptr)
+                {
+                    break;
+                }
+            }
+            ASSERT(e);
+            ASSERT(e->addr == ptr);
+            e->addr = ret;
+        }
+        else if (!ptr)
+        {
+            /* sets e->addr to newptr */
+            gc_addspecial(ret, free, a);
+        }
+    }
+
     return ret;
 }
 
@@ -814,7 +777,7 @@ bool
 buf_string_match_head_str(const struct buffer *src, const char *match)
 {
     const size_t size = strlen(match);
-    if (size < 0 || size > src->len)
+    if (size > src->len)
     {
         return false;
     }
@@ -881,7 +844,7 @@ buf_parse(struct buffer *buf, const int delim, char *line, const int size)
         {
             break;
         }
-        line[n++] = c;
+        line[n++] = (char)c;
     }
     while (c);
 
@@ -946,7 +909,8 @@ char_class(const unsigned char c, const unsigned int flags)
     {
         return true;
     }
-    if ((flags & CC_PRINT) && (c >= 32 && c != 127)) /* allow ascii non-control and UTF-8, consider DEL to be a control */
+    /* allow ascii non-control and UTF-8, consider DEL to be a control */
+    if ((flags & CC_PRINT) && (c >= 32 && c != 127))
     {
         return true;
     }
@@ -1105,6 +1069,23 @@ string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive
     return ret;
 }
 
+bool
+string_check_buf(struct buffer *buf, const unsigned int inclusive, const unsigned int exclusive)
+{
+    ASSERT(buf);
+
+    for (int i = 0; i < BLEN(buf); i++)
+    {
+        char c = BSTR(buf)[i];
+
+        if (!char_inc_exc(c, inclusive, exclusive))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 const char *
 string_mod_const(const char *str,
                  const unsigned int inclusive,
@@ -1142,26 +1123,6 @@ string_replace_leading(char *str, const char match, const char replace)
     }
 }
 
-#ifdef CHARACTER_CLASS_DEBUG
-
-#define CC_INCLUDE    (CC_PRINT)
-#define CC_EXCLUDE    (0)
-#define CC_REPLACE    ('.')
-
-void
-character_class_debug(void)
-{
-    char buf[256];
-
-    while (fgets(buf, sizeof(buf), stdin) != NULL)
-    {
-        string_mod(buf, CC_INCLUDE, CC_EXCLUDE, CC_REPLACE);
-        printf("%s", buf);
-    }
-}
-
-#endif
-
 #ifdef VERIFY_ALIGNMENT
 void
 valign4(const struct buffer *buf, const char *file, const int line)
@@ -1194,11 +1155,10 @@ valign4(const struct buffer *buf, const char *file, const int line)
  * struct buffer_list
  */
 struct buffer_list *
-buffer_list_new(const int max_size)
+buffer_list_new(void)
 {
     struct buffer_list *ret;
     ALLOC_OBJ_CLEAR(ret, struct buffer_list);
-    ret->max_size = max_size;
     ret->size = 0;
     return ret;
 }
@@ -1252,7 +1212,7 @@ struct buffer_entry *
 buffer_list_push_data(struct buffer_list *ol, const void *data, size_t size)
 {
     struct buffer_entry *e = NULL;
-    if (data && (!ol->max_size || ol->size < ol->max_size))
+    if (data)
     {
         ALLOC_OBJ_CLEAR(e, struct buffer_entry);
 
@@ -1382,7 +1342,7 @@ buffer_list_file(const char *fn, int max_line_len)
         char *line = (char *) malloc(max_line_len);
         if (line)
         {
-            bl = buffer_list_new(0);
+            bl = buffer_list_new();
             while (fgets(line, max_line_len, fp) != NULL)
             {
                 buffer_list_push(bl, line);

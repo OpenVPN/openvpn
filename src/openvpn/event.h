@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef EVENT_H
@@ -72,12 +71,21 @@
 #define MANAGEMENT_WRITE    (1 << (MANAGEMENT_SHIFT + WRITE_SHIFT))
 #define FILE_SHIFT          8
 #define FILE_CLOSED         (1 << (FILE_SHIFT + READ_SHIFT))
+#define DCO_SHIFT           10
+#define DCO_READ            (1 << (DCO_SHIFT + READ_SHIFT))
+#define DCO_WRITE           (1 << (DCO_SHIFT + WRITE_SHIFT))
 
 /*
  * Initialization flags passed to event_set_init
  */
 #define EVENT_METHOD_US_TIMEOUT   (1<<0)
 #define EVENT_METHOD_FAST         (1<<1)
+
+/*
+ * The following constant is used as boundary between integer value
+ * and real addresses when passing arguments to event handlers as (void *)
+ */
+#define MULTI_N           ((void *)16) /* upper bound on MTCP_x */
 
 #ifdef _WIN32
 
@@ -121,6 +129,21 @@ struct event_set_return
 struct event_set
 {
     struct event_set_functions func;
+};
+
+typedef enum {
+    EVENT_ARG_MULTI_INSTANCE = 0,
+    EVENT_ARG_LINK_SOCKET,
+} event_arg_t;
+
+/* generic event argument object to pass to event_ctl() */
+struct event_arg
+{
+    event_arg_t type;
+    union {
+        struct multi_instance *mi; /* if type = EVENT_ARG_MULTI_INSTANCE */
+        struct link_socket *sock; /* if type = EVENT_ARG_LINK_SOCKET */
+    } u;
 };
 
 /*

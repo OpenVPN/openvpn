@@ -7,7 +7,7 @@
 # OCSP server using the -port option to "openssl ocsp".
 
 # Full documentation and examples:
-# http://www.openssl.org/docs/apps/ocsp.html
+# https://docs.openssl.org/master/man1/openssl-ocsp/#openssl-ocsp
 
 
 # Edit the following values to suit your needs
@@ -89,7 +89,7 @@ if [ $check_depth -eq -1 ] || [ $cur_depth -eq $check_depth ]; then
     #
     # NOTE: It is needed to check the exit code of OpenSSL explicitly.  OpenSSL
     #       can in some circumstances give a "good" result if it could not
-    #       reach the the OSCP server.  In this case, the exit code will indicate
+    #       reach the OSCP server.  In this case, the exit code will indicate
     #       if OpenSSL itself failed or not.  If OpenSSL's exit code is not 0,
     #       don't trust the OpenSSL status.
 

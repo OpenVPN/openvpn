@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -126,7 +123,7 @@ recv_line(socket_descriptor_t sd,
         }
 
         /* read single char */
-        size = recv(sd, &c, 1, MSG_NOSIGNAL);
+        size = recv(sd, (void *)&c, 1, MSG_NOSIGNAL);
 
         /* error? */
         if (size != 1)
@@ -249,7 +246,9 @@ username_password_as_base64(const struct http_proxy_info *p,
     struct buffer out = alloc_buf_gc(strlen(p->up.username) + strlen(p->up.password) + 2, gc);
     ASSERT(strlen(p->up.username) > 0);
     buf_printf(&out, "%s:%s", p->up.username, p->up.password);
-    return (const char *)make_base64_string((const uint8_t *)BSTR(&out), gc);
+    char *ret = (char *)make_base64_string((const uint8_t *)BSTR(&out), gc);
+    secure_memzero(BSTR(&out), out.len);
+    return ret;
 }
 
 static void
@@ -273,7 +272,12 @@ get_user_pass_http(struct http_proxy_info *p, const bool force)
     if (!static_proxy_user_pass.defined)
     {
         unsigned int flags = GET_USER_PASS_MANAGEMENT;
-        if (p->queried_creds)
+        const char *auth_file = p->options.auth_file;
+        if (p->options.auth_file_up)
+        {
+            auth_file = p->options.auth_file_up;
+        }
+        if (p->queried_creds && !static_proxy_user_pass.nocache)
         {
             flags |= GET_USER_PASS_PREVIOUS_CREDS_FAILED;
         }
@@ -282,12 +286,18 @@ get_user_pass_http(struct http_proxy_info *p, const bool force)
             flags |= GET_USER_PASS_INLINE_CREDS;
         }
         get_user_pass(&static_proxy_user_pass,
-                      p->options.auth_file,
+                      auth_file,
                       UP_TYPE_PROXY,
                       flags);
-        p->queried_creds = true;
-        p->up = static_proxy_user_pass;
+        static_proxy_user_pass.nocache = p->options.nocache;
+        protect_user_pass(&static_proxy_user_pass);
     }
+
+    /*
+     * Using cached credentials
+     */
+    p->queried_creds = true;
+    p->up = static_proxy_user_pass; /* this is a copy of protected memory */
 }
 
 #if 0
@@ -356,7 +366,7 @@ get_proxy_authenticate(socket_descriptor_t sd,
             {
                 msg(D_PROXY, "PROXY AUTH NTLM: '%s'", buf);
                 *data = NULL;
-                ret = HTTP_AUTH_NTLM;
+                ret = HTTP_AUTH_NTLM2;
             }
 #endif
         }
@@ -499,7 +509,7 @@ http_proxy_new(const struct http_proxy_options *o)
         msg(M_FATAL, "HTTP_PROXY: server not specified");
     }
 
-    ASSERT( o->port);
+    ASSERT(o->port);
 
     ALLOC_OBJ_CLEAR(p, struct http_proxy_info);
     p->options = *o;
@@ -519,7 +529,8 @@ http_proxy_new(const struct http_proxy_options *o)
 #if NTLM
         else if (!strcmp(o->auth_method_string, "ntlm"))
         {
-            p->auth_method = HTTP_AUTH_NTLM;
+            msg(M_WARN, "NTLM v1 authentication has been removed in OpenVPN 2.7. Will try to use NTLM v2 authentication.");
+            p->auth_method = HTTP_AUTH_NTLM2;
         }
         else if (!strcmp(o->auth_method_string, "ntlm2"))
         {
@@ -533,14 +544,16 @@ http_proxy_new(const struct http_proxy_options *o)
         }
     }
 
-    /* only basic and NTLM/NTLMv2 authentication supported so far */
-    if (p->auth_method == HTTP_AUTH_BASIC || p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2)
+    /* When basic or NTLMv2 authentication is requested, get credentials now.
+     * In case of "auto" negotiation credentials will be retrieved later once
+     * we know whether we need any. */
+    if (p->auth_method == HTTP_AUTH_BASIC || p->auth_method == HTTP_AUTH_NTLM2)
     {
-        get_user_pass_http(p, true);
+        get_user_pass_http(p, p->options.first_time);
     }
 
 #if !NTLM
-    if (p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2)
+    if (p->auth_method == HTTP_AUTH_NTLM2)
     {
         msg(M_FATAL, "Sorry, this version of " PACKAGE_NAME " was built without NTLM Proxy support.");
     }
@@ -559,8 +572,7 @@ http_proxy_close(struct http_proxy_info *hp)
 static bool
 add_proxy_headers(struct http_proxy_info *p,
                   socket_descriptor_t sd, /* already open to proxy */
-                  const char *host,       /* openvpn server remote */
-                  const char *port        /* openvpn server port */
+                  const char *host        /* openvpn server remote */
                   )
 {
     char buf[512];
@@ -576,9 +588,9 @@ add_proxy_headers(struct http_proxy_info *p,
     {
         if (p->options.custom_headers[i].content)
         {
-            openvpn_snprintf(buf, sizeof(buf), "%s: %s",
-                             p->options.custom_headers[i].name,
-                             p->options.custom_headers[i].content);
+            snprintf(buf, sizeof(buf), "%s: %s",
+                     p->options.custom_headers[i].name,
+                     p->options.custom_headers[i].content);
             if (!strcasecmp(p->options.custom_headers[i].name, "Host"))
             {
                 host_header_sent = true;
@@ -586,8 +598,8 @@ add_proxy_headers(struct http_proxy_info *p,
         }
         else
         {
-            openvpn_snprintf(buf, sizeof(buf), "%s",
-                             p->options.custom_headers[i].name);
+            snprintf(buf, sizeof(buf), "%s",
+                     p->options.custom_headers[i].name);
             if (!strncasecmp(p->options.custom_headers[i].name, "Host:", 5))
             {
                 host_header_sent = true;
@@ -603,7 +615,7 @@ add_proxy_headers(struct http_proxy_info *p,
 
     if (!host_header_sent)
     {
-        openvpn_snprintf(buf, sizeof(buf), "Host: %s", host);
+        snprintf(buf, sizeof(buf), "Host: %s", host);
         msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
         if (!send_line_crlf(sd, buf))
         {
@@ -614,8 +626,8 @@ add_proxy_headers(struct http_proxy_info *p,
     /* send User-Agent string if provided */
     if (p->options.user_agent)
     {
-        openvpn_snprintf(buf, sizeof(buf), "User-Agent: %s",
-                         p->options.user_agent);
+        snprintf(buf, sizeof(buf), "User-Agent: %s",
+                 p->options.user_agent);
         msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
         if (!send_line_crlf(sd, buf))
         {
@@ -634,23 +646,28 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                               const char *port,          /* openvpn server port */
                               struct event_timeout *server_poll_timeout,
                               struct buffer *lookahead,
-                              volatile int *signal_received)
+                              struct signal_info *sig_info)
 {
     struct gc_arena gc = gc_new();
     char buf[512];
-    char buf2[129];
-    char get[80];
     int status;
     int nparms;
     bool ret = false;
     bool processed = false;
+    volatile int *signal_received = &sig_info->signal_received;
 
     /* get user/pass if not previously given */
     if (p->auth_method == HTTP_AUTH_BASIC
         || p->auth_method == HTTP_AUTH_DIGEST
-        || p->auth_method == HTTP_AUTH_NTLM)
+        || p->auth_method == HTTP_AUTH_NTLM2)
     {
         get_user_pass_http(p, false);
+
+        if (p->up.nocache)
+        {
+            clear_user_pass_http();
+        }
+        unprotect_user_pass(&p->up);
     }
 
     /* are we being called again after getting the digest server nonce in the previous transaction? */
@@ -662,10 +679,10 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
     else
     {
         /* format HTTP CONNECT message */
-        openvpn_snprintf(buf, sizeof(buf), "CONNECT %s:%s HTTP/%s",
-                         host,
-                         port,
-                         p->options.http_version);
+        snprintf(buf, sizeof(buf), "CONNECT %s:%s HTTP/%s",
+                 host,
+                 port,
+                 p->options.http_version);
 
         msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
 
@@ -675,7 +692,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
             goto error;
         }
 
-        if (!add_proxy_headers(p, sd, host, port))
+        if (!add_proxy_headers(p, sd, host))
         {
             goto error;
         }
@@ -687,8 +704,8 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 break;
 
             case HTTP_AUTH_BASIC:
-                openvpn_snprintf(buf, sizeof(buf), "Proxy-Authorization: Basic %s",
-                                 username_password_as_base64(p, &gc));
+                snprintf(buf, sizeof(buf), "Proxy-Authorization: Basic %s",
+                         username_password_as_base64(p, &gc));
                 msg(D_PROXY, "Attempting Basic Proxy-Authorization");
                 dmsg(D_SHOW_KEYS, "Send to HTTP proxy: '%s'", buf);
                 if (!send_line_crlf(sd, buf))
@@ -698,17 +715,16 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 break;
 
 #if NTLM
-            case HTTP_AUTH_NTLM:
             case HTTP_AUTH_NTLM2:
                 /* keep-alive connection */
-                openvpn_snprintf(buf, sizeof(buf), "Proxy-Connection: Keep-Alive");
+                snprintf(buf, sizeof(buf), "Proxy-Connection: Keep-Alive");
                 if (!send_line_crlf(sd, buf))
                 {
                     goto error;
                 }
 
-                openvpn_snprintf(buf, sizeof(buf), "Proxy-Authorization: NTLM %s",
-                                 ntlm_phase_1(p, &gc));
+                snprintf(buf, sizeof(buf), "Proxy-Authorization: NTLM %s",
+                         ntlm_phase_1(p, &gc));
                 msg(D_PROXY, "Attempting NTLM Proxy-Authorization phase 1");
                 dmsg(D_SHOW_KEYS, "Send to HTTP proxy: '%s'", buf);
                 if (!send_line_crlf(sd, buf))
@@ -721,6 +737,9 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
             default:
                 ASSERT(0);
         }
+
+        /* clear any sensitive content in buf */
+        secure_memzero(buf, sizeof(buf));
 
         /* send empty CR, LF */
         if (!send_crlf(sd))
@@ -753,11 +772,11 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
         {
             processed = true;
         }
-        else if ((p->auth_method == HTTP_AUTH_NTLM || p->auth_method == HTTP_AUTH_NTLM2) && !processed) /* check for NTLM */
+        else if (p->auth_method == HTTP_AUTH_NTLM2 && !processed) /* check for NTLM */
         {
 #if NTLM
             /* look for the phase 2 response */
-
+            char buf2[512];
             while (true)
             {
                 if (!recv_line(sd, buf, sizeof(buf), get_server_poll_remaining_time(server_poll_timeout), true, NULL, signal_received))
@@ -767,9 +786,10 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 chomp(buf);
                 msg(D_PROXY, "HTTP proxy returned: '%s'", buf);
 
-                openvpn_snprintf(get, sizeof get, "%%*s NTLM %%%ds", (int) sizeof(buf2) - 1);
+                char get[80];
+                CLEAR(buf2);
+                snprintf(get, sizeof(get), "%%*s NTLM %%%zus", sizeof(buf2) - 1);
                 nparms = sscanf(buf, get, buf2);
-                buf2[128] = 0; /* we only need the beginning - ensure it's null terminated. */
 
                 /* check for "Proxy-Authenticate: NTLM TlRM..." */
                 if (nparms == 1)
@@ -790,10 +810,10 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
             /* now send the phase 3 reply */
 
             /* format HTTP CONNECT message */
-            openvpn_snprintf(buf, sizeof(buf), "CONNECT %s:%s HTTP/%s",
-                             host,
-                             port,
-                             p->options.http_version);
+            snprintf(buf, sizeof(buf), "CONNECT %s:%s HTTP/%s",
+                     host,
+                     port,
+                     p->options.http_version);
 
             msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
 
@@ -804,14 +824,14 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
             }
 
             /* keep-alive connection */
-            openvpn_snprintf(buf, sizeof(buf), "Proxy-Connection: Keep-Alive");
+            snprintf(buf, sizeof(buf), "Proxy-Connection: Keep-Alive");
             if (!send_line_crlf(sd, buf))
             {
                 goto error;
             }
 
             /* send HOST etc, */
-            if (!add_proxy_headers(p, sd, host, port))
+            if (!add_proxy_headers(p, sd, host))
             {
                 goto error;
             }
@@ -824,7 +844,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                     msg(D_PROXY, "NTLM Proxy-Authorization phase 3 failed: received corrupted data from proxy server");
                     goto error;
                 }
-                openvpn_snprintf(buf, sizeof(buf), "Proxy-Authorization: NTLM %s", np3);
+                snprintf(buf, sizeof(buf), "Proxy-Authorization: NTLM %s", np3);
             }
 
             msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
@@ -894,15 +914,15 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
 
 
                 /* build the digest response */
-                openvpn_snprintf(uri, sizeof(uri), "%s:%s",
-                                 host,
-                                 port);
+                snprintf(uri, sizeof(uri), "%s:%s",
+                         host,
+                         port);
 
                 if (opaque)
                 {
                     const int len = strlen(opaque)+16;
                     opaque_kv = gc_malloc(len, false, &gc);
-                    openvpn_snprintf(opaque_kv, len, ", opaque=\"%s\"", opaque);
+                    snprintf(opaque_kv, len, ", opaque=\"%s\"", opaque);
                 }
 
                 DigestCalcHA1(algor,
@@ -923,10 +943,10 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                                    response);
 
                 /* format HTTP CONNECT message */
-                openvpn_snprintf(buf, sizeof(buf), "%s %s HTTP/%s",
-                                 http_method,
-                                 uri,
-                                 p->options.http_version);
+                snprintf(buf, sizeof(buf), "%s %s HTTP/%s",
+                         http_method,
+                         uri,
+                         p->options.http_version);
 
                 msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
 
@@ -937,23 +957,28 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 }
 
                 /* send HOST etc, */
-                if (!add_proxy_headers(p, sd, host, port))
+                if (!add_proxy_headers(p, sd, host))
                 {
                     goto error;
                 }
 
                 /* send digest response */
-                openvpn_snprintf(buf, sizeof(buf), "Proxy-Authorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", qop=%s, nc=%s, cnonce=\"%s\", response=\"%s\"%s",
-                                 username,
-                                 realm,
-                                 nonce,
-                                 uri,
-                                 qop,
-                                 nonce_count,
-                                 cnonce,
-                                 response,
-                                 opaque_kv
-                                 );
+                int sret = snprintf(buf, sizeof(buf), "Proxy-Authorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", qop=%s, nc=%s, cnonce=\"%s\", response=\"%s\"%s",
+                                    username,
+                                    realm,
+                                    nonce,
+                                    uri,
+                                    qop,
+                                    nonce_count,
+                                    cnonce,
+                                    response,
+                                    opaque_kv
+                                    );
+                if (sret >= sizeof(buf))
+                {
+                    goto error;
+                }
+
                 msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
                 if (!send_line_crlf(sd, buf))
                 {
@@ -963,6 +988,8 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 {
                     goto error;
                 }
+                /* clear any sensitive content in buf */
+                secure_memzero(buf, sizeof(buf));
 
                 /* receive reply from proxy */
                 if (!recv_line(sd, buf, sizeof(buf), get_server_poll_remaining_time(server_poll_timeout), true, NULL, signal_received))
@@ -1026,13 +1053,6 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
             }
             goto error;
         }
-
-        /* clear state */
-        if (p->options.auth_retry)
-        {
-            clear_user_pass_http();
-        }
-        store_proxy_authenticate(p, NULL);
     }
 
     /* check return code, success = 200 */
@@ -1073,14 +1093,13 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
 #endif
 
 done:
+    purge_user_pass(&p->up, true);
     gc_free(&gc);
     return ret;
 
 error:
-    if (!*signal_received)
-    {
-        *signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- HTTP proxy error */
-    }
+    purge_user_pass(&p->up, true);
+    register_signal(sig_info, SIGUSR1, "HTTP proxy error"); /* SOFT-SIGUSR1 -- HTTP proxy error */
     gc_free(&gc);
     return ret;
 }

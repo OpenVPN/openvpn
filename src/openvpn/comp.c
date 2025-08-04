@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,22 +17,20 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
 
-#ifdef USE_COMP
-
 #include "comp.h"
 #include "error.h"
+
+#ifdef USE_COMP
+
 #include "otime.h"
 
 #include "memdbg.h"
@@ -117,21 +115,6 @@ comp_uninit(struct compress_context *compctx)
 }
 
 void
-comp_add_to_extra_frame(struct frame *frame)
-{
-    /* Leave room for our one-byte compressed/didn't-compress prefix byte. */
-    frame_add_to_extra_frame(frame, COMP_PREFIX_LEN);
-}
-
-void
-comp_add_to_extra_buffer(struct frame *frame)
-{
-    /* Leave room for compression buffer to expand in worst case scenario
-     * where data is totally incompressible */
-    frame_add_to_extra_buffer(frame, COMP_EXTRA_BUFFER(EXPANDED_SIZE(frame)));
-}
-
-void
 comp_print_stats(const struct compress_context *compctx, struct status_output *so)
 {
     if (compctx)
@@ -149,28 +132,74 @@ comp_print_stats(const struct compress_context *compctx, struct status_output *s
 void
 comp_generate_peer_info_string(const struct compress_options *opt, struct buffer *out)
 {
-    if (opt)
+    if (!opt || opt->flags & COMP_F_ALLOW_NOCOMP_ONLY)
     {
-        bool lzo_avail = false;
-        if (!(opt->flags & COMP_F_ADVERTISE_STUBS_ONLY))
-        {
+        return;
+    }
+
+    bool lzo_avail = false;
+    if (!(opt->flags & COMP_F_ADVERTISE_STUBS_ONLY))
+    {
 #if defined(ENABLE_LZ4)
-            buf_printf(out, "IV_LZ4=1\n");
-            buf_printf(out, "IV_LZ4v2=1\n");
+        buf_printf(out, "IV_LZ4=1\n");
+        buf_printf(out, "IV_LZ4v2=1\n");
 #endif
 #if defined(ENABLE_LZO)
-            buf_printf(out, "IV_LZO=1\n");
-            lzo_avail = true;
+        buf_printf(out, "IV_LZO=1\n");
+        lzo_avail = true;
 #endif
-        }
-        if (!lzo_avail)
-        {
-            buf_printf(out, "IV_LZO_STUB=1\n");
-        }
-        buf_printf(out, "IV_COMP_STUB=1\n");
-        buf_printf(out, "IV_COMP_STUBv2=1\n");
-        buf_printf(out, "IV_TCPNL=1\n");
     }
+    if (!lzo_avail)
+    {
+        buf_printf(out, "IV_LZO_STUB=1\n");
+    }
+    buf_printf(out, "IV_COMP_STUB=1\n");
+    buf_printf(out, "IV_COMP_STUBv2=1\n");
 }
-
 #endif /* USE_COMP */
+
+bool
+check_compression_settings_valid(struct compress_options *info, int msglevel)
+{
+    /*
+     * We also allow comp-stub-v2 here as it technically allows escaping of
+     * weird mac address and IPv5 protocol but practically always is used
+     * as an way to disable all framing.
+     */
+    if (info->alg != COMP_ALGV2_UNCOMPRESSED && info->alg != COMP_ALG_UNDEF
+        && (info->flags & COMP_F_ALLOW_NOCOMP_ONLY))
+    {
+#ifdef USE_COMP
+        msg(msglevel, "Compression or compression stub framing is not allowed "
+            "since data-channel offloading is enabled.");
+#else
+        msg(msglevel, "Compression or compression stub framing is not allowed "
+            "since OpenVPN was built without compression support.");
+#endif
+        return false;
+    }
+
+    if ((info->flags & COMP_F_ALLOW_STUB_ONLY) && comp_non_stub_enabled(info))
+    {
+        msg(msglevel, "Compression is not allowed since allow-compression is "
+            "set to 'stub-only'");
+        return false;
+    }
+#ifndef ENABLE_LZ4
+    if (info->alg == COMP_ALGV2_LZ4 || info->alg == COMP_ALG_LZ4)
+    {
+        msg(msglevel, "OpenVPN is compiled without LZ4 support. Requested "
+            "compression cannot be enabled.");
+        return false;
+    }
+#endif
+#ifndef ENABLE_LZO
+    if (info->alg == COMP_ALG_LZO)
+    {
+        msg(msglevel, "OpenVPN is compiled without LZO support. Requested "
+            "compression cannot be enabled.");
+        return false;
+    }
+#endif
+    return true;
+}

@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include <stdarg.h>
@@ -32,19 +29,45 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
+#include <stdint.h>
+#ifndef NO_CMOCKA
 #include <cmocka.h>
-
+#endif
 
 #include "errlevel.h"
 #include "error.h"
+#include "mock_msg.h"
 
 unsigned int x_debug_level = 0; /* Default to (almost) no debugging output */
+unsigned int print_x_debug_level = 0;
+
 bool fatal_error_triggered = false;
+
+char mock_msg_buf[MOCK_MSG_BUF];
+
 
 void
 mock_set_debug_level(int level)
 {
     x_debug_level = level;
+}
+
+int
+mock_get_debug_level(void)
+{
+    return x_debug_level;
+}
+
+void
+mock_set_print_debug_level(int level)
+{
+    print_x_debug_level = level;
+}
+
+int
+get_debug_level(void)
+{
+    return x_debug_level;
 }
 
 void
@@ -56,8 +79,14 @@ x_msg_va(const unsigned int flags, const char *format,
         fatal_error_triggered = true;
         printf("FATAL ERROR:");
     }
-    vprintf(format, arglist);
-    printf("\n");
+    CLEAR(mock_msg_buf);
+    vsnprintf(mock_msg_buf, sizeof(mock_msg_buf), format, arglist);
+
+    if ((flags & M_DEBUG_LEVEL) <= print_x_debug_level)
+    {
+        printf("%s", mock_msg_buf);
+        printf("\n");
+    }
 }
 
 void
@@ -69,6 +98,8 @@ x_msg(const unsigned int flags, const char *format, ...)
     va_end(arglist);
 }
 
+/* Allow to use mock_msg.c outside of UT */
+#ifndef NO_CMOCKA
 void
 assert_failed(const char *filename, int line, const char *condition)
 {
@@ -76,6 +107,15 @@ assert_failed(const char *filename, int line, const char *condition)
     /* Keep compiler happy.  Should not happen, mock_assert() does not return */
     exit(1);
 }
+#else  /* ifndef NO_CMOCKA */
+void
+assert_failed(const char *filename, int line, const char *condition)
+{
+    msg(M_FATAL, "Assertion failed at %s:%d (%s)", filename, line, condition ? condition : "");
+    _exit(1);
+}
+#endif
+
 
 /*
  * Fail memory allocation.  Don't use msg() because it tries

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Technologies, Inc. <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Technologies, Inc. <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -18,8 +18,7 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program (see the file COPYING included with this
- *  distribution); if not, write to the Free Software Foundation, Inc.,
- *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  distribution); if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef ENV_SET_H
@@ -90,6 +89,14 @@ void env_set_add(struct env_set *es, const char *str);
 const char *env_set_get(const struct env_set *es, const char *name);
 
 void env_set_print(int msglevel, const struct env_set *es);
+
+/**
+ * Write a struct env_set to a file. Each item on one line.
+ *
+ * @param path  The filepath to write to.
+ * @param es    Pointer to the env_set to write.
+ */
+void env_set_write_file(const char *path, const struct env_set *es);
 
 void env_set_inherit(struct env_set *es, const struct env_set *src);
 

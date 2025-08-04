@@ -1,13 +1,13 @@
-This version of OpenVPN has mbed TLS support. To enable follow the following
-instructions:
+This version of OpenVPN has mbed TLS support. To enable, follow the
+instructions below:
 
-To Build and Install,
+To build and install,
 
 	./configure --with-crypto-library=mbedtls
 	make
 	make install
 
-This version depends on mbed TLS 2.0 (and requires at least 2.0.0).
+This version requires mbed TLS version >= 2.0.0 or >= 3.2.1.
 
 *************************************************************************
 
@@ -22,5 +22,13 @@ in the mbed TLS version of OpenVPN:
 Plugin/Script features:
 
  * X.509 subject line has a different format than the OpenSSL subject line
- * X.509 certificate export does not work
  * X.509 certificate tracking
+
+*************************************************************************
+
+Mbed TLS 3 has implemented TLS 1.3, but support in OpenVPN requires the
+function mbedtls_ssl_export_keying_material() which is currently not in
+any released version. It is available when building mbed TLS from source
+(mbedtls-3.6 or development branch).
+
+Without this function, only TLS 1.2 is available.

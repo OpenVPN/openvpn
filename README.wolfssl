@@ -28,3 +28,33 @@ following features are missing
  * blowfish support (BF-CBC), you must use something like
    cipher AES-128-CBC to avoid trying to use BF-CBC
  * Windows CryptoAPI support
+
+*************************************************************************
+To build WolfSSL with post-quantum KEMs built in, the following command is used:
+
+./configure --enable-openvpn --enable-kyber=all --enable-curve25519
+
+WolfSSL supports the following post-quantum KEMs and post-quantum hybrid KEMs which must be specified
+using the tls-groups option in an OpenVPN config. Unlike OpenSSL, which includes X25519MLKEM768
+in the default config, WolfSSL requires explicit configuration of tls-groups to include
+at least one post-quantum KEM.
+
+ML_KEM_512
+ML_KEM_768
+ML_KEM_1024
+
+P256_ML_KEM_512
+X25519_ML_KEM_512
+
+P384_ML_KEM_768
+P256_ML_KEM_768
+X448_ML_KEM_768
+X25519_ML_KEM_768
+
+P384_ML_KEM_1024
+P521_ML_KEM_1024
+
+The naming conventions of algorithms differ between WolfSSL and OpenSSL. An example is that
+OpenSSL omits underscores for their naming notation whereas WolfSSL expects them. Additionally,
+OpenSSL does not accept the P curve notation and instead uses the equivalent secp notation.
+A specific example is that WolfSSL expects P384_ML_KEM_1024, while OpenSSL expects secp384r1MLKEM1024.

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -29,6 +28,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <stdlib.h>
 
 #include "openvpn-plugin.h"
@@ -54,7 +54,7 @@ struct plugin {
 
 struct session {
     char user[48];
-    char key [48];
+    char key[48];
 };
 
 /*
@@ -68,9 +68,8 @@ get_env(const char *name, const char *envp[])
 {
     if (envp)
     {
-        int i;
-        const int namelen = strlen(name);
-        for (i = 0; envp[i]; ++i)
+        const size_t namelen = strlen(name);
+        for (int i = 0; envp[i]; ++i)
         {
             if (!strncmp(envp[i], name, namelen))
             {
@@ -104,7 +103,7 @@ openvpn_plugin_open_v3(const int version,
     plugin->mask  = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_FINAL);
     plugin->mask |= OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_VERIFY);
 
-    ovpn_note("vpn endpoint type=%s",plugin->type == CLIENT ? "client" : "server");
+    ovpn_note("vpn endpoint type=%s", plugin->type == CLIENT ? "client" : "server");
 
     rv->type_mask = plugin->mask;
     rv->handle = (void *)plugin;
@@ -154,7 +153,7 @@ session_user_set(struct session *sess, X509 *x509)
 
         if (!strncasecmp(objbuf, "CN", 2))
         {
-            snprintf(sess->user, sizeof(sess->user) - 1, (char *)buf);
+            strncpy(sess->user, (char *)buf, sizeof(sess->user) - 1);
         }
 
         OPENSSL_free(buf);
@@ -233,7 +232,7 @@ tls_final(struct openvpn_plugin_args_func_in const *args,
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
-    snprintf(sess->key, sizeof(sess->key) - 1, "%s", key);
+    strncpy(sess->key, key, sizeof(sess->key) - 1);
     ovpn_note("app session key:  %s", sess->key);
 
     switch (plugin->type)

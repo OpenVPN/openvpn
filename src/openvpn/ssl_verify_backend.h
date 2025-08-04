@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -18,12 +18,12 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /**
- * @file Control Channel Verification Module library-specific backend interface
+ * @file
+ * Control Channel Verification Module library-specific backend interface
  */
 
 #ifndef SSL_VERIFY_BACKEND_H_
@@ -161,6 +161,17 @@ char *backend_x509_get_serial_hex(openvpn_x509_cert_t *cert,
                                   struct gc_arena *gc);
 
 /*
+ * Write the certificate to the file in PEM format.
+ *
+ *
+ * @param cert          Certificate to serialise.
+ *
+ * @return              \c FAILURE, \c or SUCCESS
+ */
+result_t backend_x509_write_pem(openvpn_x509_cert_t *cert,
+                                const char *filename);
+
+/*
  * Save X509 fields to environment, using the naming convention:
  *
  * X509_{cert_depth}_{name}={value}
@@ -248,17 +259,6 @@ result_t x509_verify_cert_ku(openvpn_x509_cert_t *x509, const unsigned *const ex
  *                      usage is not enabled, or the values do not match.
  */
 result_t x509_verify_cert_eku(openvpn_x509_cert_t *x509, const char *const expected_oid);
-
-/*
- * Store the given certificate in pem format in a temporary file in tmp_dir
- *
- * @param cert          Certificate to store
- * @param tmp_dir       Temporary directory to store the directory
- * @param gc            gc_arena to store temporary objects in
- *
- *
- */
-result_t x509_write_pem(FILE *peercert_file, openvpn_x509_cert_t *peercert);
 
 /**
  * Return true iff a CRL is configured, but is not loaded.  This can be caused

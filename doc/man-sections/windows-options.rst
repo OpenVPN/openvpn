@@ -41,13 +41,29 @@ Windows-Specific Options
 
      cryptoapicert "SUBJ:Peter Runestig"
 
-  To select a certificate, based on certificate's thumbprint:
+  To select a certificate, based on certificate's thumbprint (SHA1 hash):
   ::
 
      cryptoapicert "THUMB:f6 49 24 41 01 b4 ..."
 
   The thumbprint hex string can easily be copy-and-pasted from the Windows
-  Certificate Store GUI.
+  Certificate Store GUI. The embedded spaces in the hex string are optional.
+
+  To select a certificate based on a substring in certificate's
+  issuer name:
+  ::
+
+     cryptoapicert "ISSUER:Sample CA"
+
+  To select a certificate based on a certificate's template name or
+  OID of the template:
+  ::
+
+     cryptoapicert "TMPL:Name of Template"
+     cryptoapicert "TMPL:1.3.6.1.4..."
+
+  The first non-expired certificate found in the user's store or the
+  machine store that matches the select-string is used.
 
 --dhcp-release
   Ask Windows to release the TAP adapter lease on shutdown. This option
@@ -93,7 +109,7 @@ Windows-Specific Options
         server to masquerade as if it were coming from the remote endpoint.
 
         The optional offset parameter is an integer which is > :code:`-256`
-        and < :code:`256` and which defaults to -1. If offset is positive,
+        and < :code:`256` and which defaults to 0. If offset is positive,
         the DHCP server will masquerade as the IP address at network
         address + offset. If offset is negative, the DHCP server will
         masquerade as the IP address at broadcast address + offset.
@@ -236,9 +252,3 @@ Windows-Specific Options
   otherwise it defaulted to :code:`C:\\WINDOWS`. It is not needed to use
   the ``env`` keyword any more, and it will just be ignored. A warning is
   logged when this is found in the configuration file.
-
---windows-driver drv
-  Specifies which tun driver to use. Values are :code:`tap-windows6`
-  (default) and :code:`wintun`.  This is a Windows-only option.
-  :code:`wintun`" requires ``--dev tun`` and the OpenVPN process to run
-  elevated, or be invoked using the Interactive Service.

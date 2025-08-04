@@ -1,7 +1,5 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -33,22 +31,8 @@ const char *auth_token_pem_name = "OpenVPN auth-token server key";
 static struct key_type
 auth_token_kt(void)
 {
-    struct key_type kt = { 0 };
-    /* We do not encrypt our session tokens */
-    kt.cipher = NULL;
-    kt.digest = md_kt_get("SHA256");
-
-    if (!kt.digest)
-    {
-        msg(M_WARN, "ERROR: --tls-crypt requires HMAC-SHA-256 support.");
-        return (struct key_type) { 0 };
-    }
-
-    kt.hmac_length = md_kt_size(kt.digest);
-
-    return kt;
+    return create_kt("none", "SHA256", "auth-gen-token");
 }
-
 
 void
 add_session_token_env(struct tls_session *session, struct tls_multi *multi,
@@ -168,7 +152,10 @@ auth_token_init_secret(struct key_ctx *key_ctx, const char *key_file,
     {
         msg(M_FATAL, "ERROR: not enough data in auth-token secret");
     }
-    init_key_ctx(key_ctx, &key, &kt, false, "auth-token secret");
+
+    struct key_parameters key_params;
+    key_parameters_from_key(&key_params, &key);
+    init_key_ctx(key_ctx, &key_params, &kt, false, "auth-token secret");
 
     free_buf(&server_secret_key);
 }
@@ -188,7 +175,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
 
     if (multi->auth_token_initial)
     {
-        /* Just enough space to fit 8 bytes+ 1 extra to decode a non padded
+        /* Just enough space to fit 8 bytes+ 1 extra to decode a non-padded
          * base64 string (multiple of 3 bytes). 9 bytes => 12 bytes base64
          * bytes
          */
@@ -198,24 +185,18 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
         char *initial_token_copy = string_alloc(multi->auth_token_initial, &gc);
 
         char *old_sessid = initial_token_copy + strlen(SESSION_ID_PREFIX);
-        char *old_tsamp_initial = old_sessid + AUTH_TOKEN_SESSION_ID_LEN*8/6;
+        char *old_tstamp_initial = old_sessid + AUTH_TOKEN_SESSION_ID_LEN*8/6;
 
         /*
          * We null terminate the old token just after the session ID to let
          * our base64 decode function only decode the session ID
          */
-        old_tsamp_initial[12] = '\0';
-        ASSERT(openvpn_base64_decode(old_tsamp_initial, old_tstamp_decode, 9) == 9);
+        old_tstamp_initial[12] = '\0';
+        ASSERT(openvpn_base64_decode(old_tstamp_initial, old_tstamp_decode, 9) == 9);
 
-        /*
-         * Avoid old gcc (4.8.x) complaining about strict aliasing
-         * by using a temporary variable instead of doing it in one
-         * line
-         */
-        uint64_t *tstamp_ptr = (uint64_t *) old_tstamp_decode;
-        initial_timestamp = *tstamp_ptr;
+        memcpy(&initial_timestamp, &old_tstamp_decode, sizeof(initial_timestamp));
 
-        old_tsamp_initial[0] = '\0';
+        old_tstamp_initial[0] = '\0';
         ASSERT(openvpn_base64_decode(old_sessid, sessid, AUTH_TOKEN_SESSION_ID_LEN) == AUTH_TOKEN_SESSION_ID_LEN);
     }
     else if (!rand_bytes(sessid, AUTH_TOKEN_SESSION_ID_LEN))
@@ -261,7 +242,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
     ASSERT(buf_write(&token, &timestamp, sizeof(timestamp)));
     ASSERT(buf_write(&token, hmac_output, sizeof(hmac_output)));
 
-    char *b64output;
+    char *b64output = NULL;
     openvpn_base64_encode(BPTR(&token), BLEN(&token), &b64output);
 
     struct buffer session_token = alloc_buf_gc(
@@ -317,6 +298,7 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
      * Base64 is <= input and input is < USER_PASS_LEN, so using USER_PASS_LEN
      * is safe here but a bit overkill
      */
+    ASSERT(up && !up->protected);
     uint8_t b64decoded[USER_PASS_LEN];
     int decoded_len = openvpn_base64_decode(up->password + strlen(SESSION_ID_PREFIX),
                                             b64decoded, USER_PASS_LEN);
@@ -338,8 +320,14 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
     const uint8_t *tstamp_initial = sessid + AUTH_TOKEN_SESSION_ID_LEN;
     const uint8_t *tstamp = tstamp_initial + sizeof(int64_t);
 
-    uint64_t timestamp = ntohll(*((uint64_t *) (tstamp)));
-    uint64_t timestamp_initial = ntohll(*((uint64_t *) (tstamp_initial)));
+    /* tstamp, tstamp_initial might not be aligned to an uint64, use memcpy
+     * to avoid unaligned access */
+    uint64_t timestamp = 0, timestamp_initial = 0;
+    memcpy(&timestamp, tstamp, sizeof(uint64_t));
+    timestamp = ntohll(timestamp);
+
+    memcpy(&timestamp_initial, tstamp_initial, sizeof(uint64_t));
+    timestamp_initial = ntohll(timestamp_initial);
 
     hmac_ctx_t *ctx = multi->opt.auth_token_key.hmac;
     if (check_hmac_token(ctx, b64decoded, up->username))
@@ -360,20 +348,22 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
         return 0;
     }
 
-    /* Accept session tokens that not expired are in the acceptable range
-     * for renogiations */
+    /* Accept session tokens only if their timestamp is in the acceptable range
+     * for renegotiations */
     bool in_renegotiation_time = now >= timestamp
-                                 && now < timestamp + 2 * session->opt->renegotiate_seconds;
+                                 && now < timestamp + 2 * session->opt->auth_token_renewal;
 
     if (!in_renegotiation_time)
     {
+        msg(M_WARN, "Timestamp (%" PRIu64 ") of auth-token is out of the renewal window",
+            timestamp);
         ret |= AUTH_TOKEN_EXPIRED;
     }
 
     /* Sanity check the initial timestamp */
     if (timestamp < timestamp_initial)
     {
-        msg(M_WARN, "Initial timestamp (%" PRIu64 " in token from client earlier than "
+        msg(M_WARN, "Initial timestamp (%" PRIu64 ") in token from client earlier than "
             "current timestamp %" PRIu64 ". Broken/unsynchronised clock?",
             timestamp_initial, timestamp);
         ret |= AUTH_TOKEN_EXPIRED;
@@ -401,7 +391,7 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi,
                                 strlen(SESSION_ID_PREFIX) + AUTH_TOKEN_SESSION_ID_BASE64_LEN))
     {
         msg(M_WARN, "--auth-gen-token: session id in token changed (Rejecting "
-                    "token.");
+            "token.");
         ret = 0;
     }
     return ret;
@@ -429,6 +419,45 @@ wipe_auth_token(struct tls_multi *multi)
 }
 
 void
+check_send_auth_token(struct context *c)
+{
+    struct tls_multi *multi = c->c2.tls_multi;
+    struct tls_session *session = &multi->session[TM_ACTIVE];
+
+    if (get_primary_key(multi)->state < S_GENERATED_KEYS
+        || get_primary_key(multi)->authenticated != KS_AUTH_TRUE)
+    {
+        /* the currently active session is still in renegotiation or another
+         * not fully authorized state. We are either very close to a
+         * renegotiation or have deauthorized the client. In both cases
+         * we just ignore the request to send another token
+         */
+        return;
+    }
+
+    if (!multi->auth_token_initial)
+    {
+        msg(D_SHOW_KEYS, "initial auth-token not generated yet, skipping "
+            "auth-token renewal.");
+        return;
+    }
+
+    if (!multi->locked_username)
+    {
+        msg(D_SHOW_KEYS, "username not locked, skipping auth-token renewal.");
+        return;
+    }
+
+    struct user_pass up;
+    CLEAR(up);
+    strncpynt(up.username, multi->locked_username, sizeof(up.username));
+
+    generate_auth_token(&up, multi);
+
+    resend_auth_token_renegotiation(multi, session);
+}
+
+void
 resend_auth_token_renegotiation(struct tls_multi *multi, struct tls_session *session)
 {
     /*
@@ -436,12 +465,10 @@ resend_auth_token_renegotiation(struct tls_multi *multi, struct tls_session *ses
      * The initial auth-token is sent as part of the push message, for this
      * update we need to schedule an extra push message.
      *
-     * Otherwise the auth-token get pushed out as part of the "normal"
+     * Otherwise, the auth-token get pushed out as part of the "normal"
      * push-reply
      */
-    bool is_renegotiation = session->key[KS_PRIMARY].key_id != 0;
-
-    if (multi->auth_token_initial && is_renegotiation)
+    if (multi->auth_token_initial)
     {
         /*
          * We do not explicitly reschedule the sending of the

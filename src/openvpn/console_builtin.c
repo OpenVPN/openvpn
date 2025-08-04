@@ -5,9 +5,9 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *  Copyright (C) 2014-2015  David Sommerseth <davids@redhat.com>
- *  Copyright (C) 2016-2021 David Sommerseth <davids@openvpn.net>
+ *  Copyright (C) 2016-2025 David Sommerseth <davids@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -19,8 +19,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -30,8 +29,6 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -69,7 +66,7 @@ get_console_input_win32(const char *prompt, const bool echo, char *input, const 
     input[0] = '\0';
 
     HANDLE in = GetStdHandle(STD_INPUT_HANDLE);
-    int orig_stderr = get_orig_stderr(); // guaranteed to be always valid
+    int orig_stderr = get_orig_stderr(); /* guaranteed to be always valid */
     if ((in == INVALID_HANDLE_VALUE)
         || win32_service_interrupt(&win32_signal)
         || (_write(orig_stderr, prompt, strlen(prompt)) == -1))
@@ -168,7 +165,7 @@ open_tty(const bool write)
 /**
  * Closes the TTY FILE pointer, but only if it is not a stdin/stderr FILE object.
  *
- * @params fp     FILE pointer to close
+ * @param fp     FILE pointer to close
  *
  */
 static void
@@ -186,10 +183,10 @@ close_tty(FILE *fp)
 /**
  *  Core function for getting input from console
  *
- *  @params prompt    The prompt to present to the user
- *  @params echo      Should the user see what is being typed
- *  @params input     Pointer to the buffer used to save the user input
- *  @params capacity  Size of the input buffer
+ *  @param prompt    The prompt to present to the user
+ *  @param echo      Should the user see what is being typed
+ *  @param input     Pointer to the buffer used to save the user input
+ *  @param capacity  Size of the input buffer
  *
  *  @returns Returns True if user input was gathered
  */

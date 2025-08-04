@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef MROUTE_H
@@ -72,9 +71,12 @@
 /* Indicates than IPv4 addr was extracted from ARP packet */
 #define MR_ARP                   16
 
+/* Address type mask indicating that proto # is part of address */
+#define MR_WITH_PROTO            32
+
 struct mroute_addr {
     uint8_t len;    /* length of address */
-    uint8_t unused;
+    uint8_t proto;
     uint8_t type;   /* MR_ADDR/MR_WITH flags */
     uint8_t netbits; /* number of bits in network part of address,
                       * valid if MR_WITH_NETBITS is set */
@@ -96,17 +98,7 @@ struct mroute_addr {
             uint8_t prefix[12];
             in_addr_t addr;     /* _network order_ IPv4 address */
         } v4mappedv6;
-    }
-#ifndef HAVE_ANONYMOUS_UNION_SUPPORT
-/* Wrappers to support compilers that do not grok anonymous unions */
-        mroute_union
-#define raw_addr mroute_union.raw_addr
-#define ether mroute_union.ether
-#define v4 mroute_union.v4
-#define v6 mroute_union.v6
-#define v4mappedv6 mroute_union.v4mappedv6
-#endif
-    ;
+    };
 };
 
 /* Double-check that struct packing works as expected */
@@ -157,6 +149,7 @@ const char *mroute_addr_print(const struct mroute_addr *ma,
 #define MAPF_SUBNET            (1<<0)
 #define MAPF_IA_EMPTY_IF_UNDEF (1<<1)
 #define MAPF_SHOW_ARP          (1<<2)
+#define MAPF_SHOW_FAMILY       (1<<3)
 const char *mroute_addr_print_ex(const struct mroute_addr *ma,
                                  const unsigned int flags,
                                  struct gc_arena *gc);
@@ -177,8 +170,6 @@ unsigned int mroute_extract_addr_ip(struct mroute_addr *src,
 
 unsigned int mroute_extract_addr_ether(struct mroute_addr *src,
                                        struct mroute_addr *dest,
-                                       struct mroute_addr *esrc,
-                                       struct mroute_addr *edest,
                                        uint16_t vid,
                                        const struct buffer *buf);
 
@@ -189,21 +180,28 @@ unsigned int mroute_extract_addr_ether(struct mroute_addr *src,
 static inline unsigned int
 mroute_extract_addr_from_packet(struct mroute_addr *src,
                                 struct mroute_addr *dest,
-                                struct mroute_addr *esrc,
-                                struct mroute_addr *edest,
                                 uint16_t vid,
                                 const struct buffer *buf,
                                 int tunnel_type)
 {
     unsigned int ret = 0;
     verify_align_4(buf);
+
+    /*
+     * Since we don't really need the protocol on vaddresses for internal VPN
+     * payload packets, make sure we have the same value to avoid hashing insert
+     * and search issues.
+     */
+    src->proto = 0;
+    dest->proto = src->proto;
+
     if (tunnel_type == DEV_TYPE_TUN)
     {
         ret = mroute_extract_addr_ip(src, dest, buf);
     }
     else if (tunnel_type == DEV_TYPE_TAP)
     {
-        ret = mroute_extract_addr_ether(src, dest, esrc, edest, vid, buf);
+        ret = mroute_extract_addr_ether(src, dest, vid, buf);
     }
     return ret;
 }
@@ -212,6 +210,10 @@ static inline bool
 mroute_addr_equal(const struct mroute_addr *a1, const struct mroute_addr *a2)
 {
     if (a1->type != a2->type)
+    {
+        return false;
+    }
+    if (a1->proto != a2->proto)
     {
         return false;
     }
@@ -230,13 +232,13 @@ static inline const uint8_t *
 mroute_addr_hash_ptr(const struct mroute_addr *a)
 {
     /* NOTE: depends on ordering of struct mroute_addr */
-    return (uint8_t *) &a->type;
+    return (uint8_t *) &a->proto;
 }
 
 static inline uint32_t
 mroute_addr_hash_len(const struct mroute_addr *a)
 {
-    return (uint32_t) a->len + 2;
+    return (uint32_t) a->len + 3;
 }
 
 static inline void

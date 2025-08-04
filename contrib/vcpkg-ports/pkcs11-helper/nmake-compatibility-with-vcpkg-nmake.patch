@@ -1,0 +1,38 @@
+From 2d3a2c05383f653544b9c7194dd1349c6d5f3067 Mon Sep 17 00:00:00 2001
+From: Lev Stipakov <lev@openvpn.net>
+Date: Tue, 11 Jan 2022 13:24:51 +0200
+Subject: [PATCH] nmake: compatibility with vcpkg nmake
+
+Remove options which contradict or already set
+by vcpkg nmake scripts.
+
+Signed-off-by: Lev Stipakov <lev@openvpn.net>
+---
+ lib/Makefile.w32-vc | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
+
+diff --git a/lib/Makefile.w32-vc b/lib/Makefile.w32-vc
+index 96f1f89..be68a00 100644
+--- a/lib/Makefile.w32-vc
++++ b/lib/Makefile.w32-vc
+@@ -75,15 +75,11 @@ OPENSSL_LIBS=-LIBPATH:$(OPENSSL_LIB) user32.lib advapi32.lib $(OPENSSL_STATIC)
+ CFLAGS = -I../include $(OPENSSL_CFLAGS) -DWIN32 -DWIN32_LEAN_AND_MEAN -D_MBCS -D_CRT_SECURE_NO_DEPRECATE -D_WIN32_WINNT=0x0400
+ CC=cl.exe
+ RC=rc.exe
+-CCPARAMS=/nologo /W3 /O2 /FD /c
+-
+-CCPARAMS=$(CCPARAMS) /MD
+-CFLAGS=$(CFLAGS) -DNDEBUG
++CCPARAMS=/c
+ 
+ LINK32=link.exe
+ LIB32=lib.exe
+-LINK32_FLAGS=/nologo /subsystem:windows /dll /incremental:no /release
+-LIB32_FLAGS=/nologo
++LINK32_FLAGS=/dll
+ 
+ HEADERS = \
+ 	config.h \
+-- 
+2.23.0.windows.1
+

@@ -1,4 +1,5 @@
 E:doc/doxygen/doc_key_generation.h     # @verbatim section gets mistreated, exclude it
 E:src/compat/compat-lz4.c              # Preserve LZ4 upstream formatting
 E:src/compat/compat-lz4.h              # Preserve LZ4 upstream formatting
-P:include/openvpn-plugin.h.in          # uncrustify segfaults, patch it before+after
+E:src/openvpn/ovpn_dco_linux.h         # Preserve ovpn-dco upstream formatting
+E:src/openvpn/ovpn_dco_win.h           # Preserve ovpn-dco-win upstream formatting

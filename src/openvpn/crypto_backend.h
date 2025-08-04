@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -18,12 +18,12 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /**
- * @file Data Channel Cryptography SSL library-specific backend interface
+ * @file
+ * Data Channel Cryptography SSL library-specific backend interface
  */
 
 #ifndef CRYPTO_BACKEND_H_
@@ -38,7 +38,7 @@
 #include "basic.h"
 #include "buffer.h"
 
-/* TLS uses a tag of 128 bytes, let's do the same for OpenVPN */
+/* TLS uses a tag of 128 bits, let's do the same for OpenVPN */
 #define OPENVPN_AEAD_TAG_LENGTH 16
 
 /* Maximum cipher block size (bytes) */
@@ -77,6 +77,21 @@ void crypto_clear_error(void);
  * Initialise the given named crypto engine.
  */
 void crypto_init_lib_engine(const char *engine_name);
+
+
+/**
+ * Load the given (OpenSSL) providers
+ * @param provider name of providers to load
+ * @return reference to the loaded provider
+ */
+provider_t *crypto_load_provider(const char *provider);
+
+/**
+ * Unloads the given (OpenSSL) provider
+ * @param provname  name of the provider to unload
+ * @param provider  pointer to the provider to unload
+ */
+void crypto_unload_provider(const char *provname, provider_t *provider);
 
 #ifdef DMALLOC
 /*
@@ -144,54 +159,6 @@ int rand_bytes(uint8_t *output, int len);
 
 /*
  *
- * Key functions, allow manipulation of keys.
- *
- */
-
-
-/**
- * Return number of DES cblocks (1 cblock = length of a single-DES key) for the
- * current key type or 0 if not a DES cipher.
- *
- * @param kt            Type of key
- *
- * @return              Number of DES cblocks that the key consists of, or 0.
- */
-int key_des_num_cblocks(const cipher_kt_t *kt);
-
-/*
- * Check the given DES key. Checks the given key's length, weakness and parity.
- *
- * @param key           Key to check
- * @param key_len       Length of the key, in bytes
- * @param ndc           Number of DES cblocks that the key is made up of.
- *
- * @return              \c true if the key is valid, \c false otherwise.
- */
-bool key_des_check(uint8_t *key, int key_len, int ndc);
-
-/*
- * Fix the given DES key, setting its parity to odd.
- *
- * @param key           Key to check
- * @param key_len       Length of the key, in bytes
- * @param ndc           Number of DES cblocks that the key is made up of.
- */
-void key_des_fixup(uint8_t *key, int key_len, int ndc);
-
-/**
- * Encrypt the given block, using DES ECB mode
- *
- * @param key           DES key to use.
- * @param src           Buffer containing the 8-byte source.
- * @param dst           Buffer containing the 8-byte destination
- */
-void cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
-                            unsigned char src[DES_KEY_LENGTH],
-                            unsigned char dst[DES_KEY_LENGTH]);
-
-/*
- *
  * Generic cipher key type functions
  *
  */
@@ -210,114 +177,136 @@ void cipher_des_encrypt_ecb(const unsigned char key[DES_KEY_LENGTH],
 #define MAX_CIPHER_KEY_LENGTH 64
 
 /**
- * Return cipher parameters, based on the given cipher name. The
- * contents of these parameters are library-specific, and can be used to
- * initialise encryption/decryption.
+ * Returns if the cipher is valid, based on the given cipher name and provides a
+ * reason if invalid.
  *
- * @param ciphername    Name of the cipher to retrieve parameters for (e.g.
+ * @param ciphername    Name of the cipher to check for validity (e.g.
+ *                      \c AES-128-CBC). Will be translated to the library name
+ *                      from the openvpn config name if needed.
+ * @param reason        Pointer where a static string indicating the reason
+ *                      for rejecting the cipher should be stored. It is set to
+ *                      NULL if the cipher is valid.
+ *
+ * @return              if the cipher is valid
+ */
+bool cipher_valid_reason(const char *ciphername, const char **reason);
+
+/**
+ * Returns if the cipher is valid, based on the given cipher name.
+ *
+ * @param ciphername    Name of the cipher to check for validity (e.g.
  *                      \c AES-128-CBC). Will be translated to the library name
  *                      from the openvpn config name if needed.
  *
- * @return              A statically allocated structure containing parameters
- *                      for the given cipher, or NULL if no matching parameters
- *                      were found.
+ * @return              if the cipher is valid
  */
-const cipher_kt_t *cipher_kt_get(const char *ciphername);
+static inline bool
+cipher_valid(const char *ciphername)
+{
+    const char *reason;
+    return cipher_valid_reason(ciphername, &reason);
+}
 
 /**
- * Retrieve a string describing the cipher (e.g. \c AES-128-CBC).
+ * Checks if the cipher is defined and is not the null (none) cipher
+ *
+ * @param ciphername    Name of the cipher to check if it is defined, may not
+ *                      be NULL
+ * @return              The cipher is defined and not the null (none) cipher
+ */
+static inline bool
+cipher_defined(const char *ciphername)
+{
+    ASSERT(ciphername);
+    return strcmp(ciphername, "none") != 0;
+}
+
+/**
+ * Retrieve a normalised string describing the cipher (e.g. \c AES-128-CBC).
  * The returned name is normalised to the OpenVPN config name in case the
  * name differs from the name used by the crypto library.
  *
- * Returns [null-cipher] in case the cipher_kt is NULL.
+ * Returns [null-cipher] in case the ciphername is none. NULL if the cipher
+ * is not valid.
  *
- * @param cipher_kt     Static cipher parameters
+ * @param ciphername     Name of the cipher
  *
  * @return a statically allocated string describing the cipher.
  */
-const char *cipher_kt_name(const cipher_kt_t *cipher_kt);
+const char *cipher_kt_name(const char *ciphername);
 
 /**
  * Returns the size of keys used by the cipher, in bytes. If the cipher has a
  * variable key size, return the default key size.
  *
- * @param cipher_kt     Static cipher parameters
+ * @param ciphername    Cipher name to lookup
  *
  * @return              (Default) size of keys used by the cipher, in bytes.
  */
-int cipher_kt_key_size(const cipher_kt_t *cipher_kt);
+int cipher_kt_key_size(const char *ciphername);
 
 /**
  * Returns the size of the IV used by the cipher, in bytes, or 0 if no IV is
  * used.
  *
- * @param cipher_kt     Static cipher parameters
+ * @param ciphername    cipher name to lookup
  *
  * @return              Size of the IV, in bytes, or 0 if the cipher does not
  *                      use an IV.
  */
-int cipher_kt_iv_size(const cipher_kt_t *cipher_kt);
+int cipher_kt_iv_size(const char *ciphername);
 
 /**
  * Returns the block size of the cipher, in bytes.
  *
- * @param cipher_kt     Static cipher parameters
+ * @param ciphername    cipher name
  *
  * @return              Block size, in bytes.
  */
-int cipher_kt_block_size(const cipher_kt_t *cipher_kt);
+int cipher_kt_block_size(const char *ciphername);
 
 /**
  * Returns the MAC tag size of the cipher, in bytes.
  *
- * @param ctx           Static cipher parameters.
+ * @param ciphername    Name of the cipher
  *
  * @return              Tag size in bytes, or 0 if the tag size could not be
  *                      determined.
  */
-int cipher_kt_tag_size(const cipher_kt_t *cipher_kt);
+int cipher_kt_tag_size(const char *ciphername);
 
 /**
  * Returns true if we consider this cipher to be insecure.
  */
-bool cipher_kt_insecure(const cipher_kt_t *cipher);
+bool cipher_kt_insecure(const char *ciphername);
 
-/**
- * Returns the mode that the cipher runs in.
- *
- * @param cipher_kt     Static cipher parameters. May not be NULL.
- *
- * @return              Cipher mode, either \c OPENVPN_MODE_CBC, \c
- *                      OPENVPN_MODE_OFB or \c OPENVPN_MODE_CFB
- */
-int cipher_kt_mode(const cipher_kt_t *cipher_kt);
 
 /**
  * Check if the supplied cipher is a supported CBC mode cipher.
  *
- * @param cipher        Static cipher parameters.
+ * @param ciphername    cipher name
  *
  * @return              true iff the cipher is a CBC mode cipher.
  */
-bool cipher_kt_mode_cbc(const cipher_kt_t *cipher);
+bool cipher_kt_mode_cbc(const char *ciphername);
 
 /**
  * Check if the supplied cipher is a supported OFB or CFB mode cipher.
  *
- * @param cipher        Static cipher parameters.
+ * @param ciphername    cipher name
  *
  * @return              true iff the cipher is a OFB or CFB mode cipher.
  */
-bool cipher_kt_mode_ofb_cfb(const cipher_kt_t *cipher);
+bool cipher_kt_mode_ofb_cfb(const char *ciphername);
 
 /**
  * Check if the supplied cipher is a supported AEAD mode cipher.
  *
- * @param cipher        Static cipher parameters.
+ * @param ciphername    name of the cipher
  *
  * @return              true iff the cipher is a AEAD mode cipher.
  */
-bool cipher_kt_mode_aead(const cipher_kt_t *cipher);
+bool cipher_kt_mode_aead(const char *ciphername);
 
 
 /**
@@ -345,13 +334,12 @@ void cipher_ctx_free(cipher_ctx_t *ctx);
  *
  * @param ctx           Cipher context. May not be NULL
  * @param key           Buffer containing the key to use
- * @param key_len       Length of the key, in bytes
- * @param kt            Static cipher parameters to use
+ * @param ciphername    Ciphername of the cipher to use
  * @param enc           Whether to encrypt or decrypt (either
- *                      \c MBEDTLS_OP_ENCRYPT or \c MBEDTLS_OP_DECRYPT).
+ *                      \c OPENVPN_OP_ENCRYPT or \c OPENVPN_OP_DECRYPT).
  */
-void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key, int key_len,
-                     const cipher_kt_t *kt, int enc);
+void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key,
+                     const char *ciphername, crypto_operation_t enc);
 
 /**
  * Returns the size of the IV used by the cipher, in bytes, or 0 if no IV is
@@ -360,7 +348,7 @@ void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key, int key_len,
  * @param ctx           The cipher's context
  *
  * @return              Size of the IV, in bytes, or \c 0 if the cipher does not
- *                      use an IV or ctx was NULL.
+ *                      use an IV.
  */
 int cipher_ctx_iv_length(const cipher_ctx_t *ctx);
 
@@ -369,7 +357,7 @@ int cipher_ctx_iv_length(const cipher_ctx_t *ctx);
  *
  * @param ctx           The cipher's context
  * @param tag           The buffer to write computed tag in.
- * @param tag_size      The tag buffer size, in bytes.
+ * @param tag_len       The tag buffer size, in bytes.
  */
 int cipher_ctx_get_tag(cipher_ctx_t *ctx, uint8_t *tag, int tag_len);
 
@@ -393,14 +381,31 @@ int cipher_ctx_block_size(const cipher_ctx_t *ctx);
 int cipher_ctx_mode(const cipher_ctx_t *ctx);
 
 /**
- * Returns the static cipher parameters for this context.
+ * Check if the supplied cipher is a supported CBC mode cipher.
  *
- * @param ctx           Cipher's context.
+ * @param ctx           Cipher's context. May not be NULL.
  *
- * @return              Static cipher parameters for the supplied context, or
- *                      NULL if unable to determine cipher parameters.
+ * @return              true iff the cipher is a CBC mode cipher.
  */
-const cipher_kt_t *cipher_ctx_get_cipher_kt(const cipher_ctx_t *ctx);
+bool cipher_ctx_mode_cbc(const cipher_ctx_t *ctx);
+
+/**
+ * Check if the supplied cipher is a supported OFB or CFB mode cipher.
+ *
+ * @param ctx           Cipher's context. May not be NULL.
+ *
+ * @return              true iff the cipher is a OFB or CFB mode cipher.
+ */
+bool cipher_ctx_mode_ofb_cfb(const cipher_ctx_t *ctx);
+
+/**
+ * Check if the supplied cipher is a supported AEAD mode cipher.
+ *
+ * @param ctx           Cipher's context. May not be NULL.
+ *
+ * @return              true iff the cipher is a AEAD mode cipher.
+ */
+bool cipher_ctx_mode_aead(const cipher_ctx_t *ctx);
 
 /**
  * Resets the given cipher context, setting the IV to the specified value.
@@ -490,36 +495,45 @@ int cipher_ctx_final_check_tag(cipher_ctx_t *ctx, uint8_t *dst, int *dst_len,
 #define MAX_HMAC_KEY_LENGTH 64
 
 /**
- * Return message digest parameters, based on the given digest name. The
- * contents of these parameters are library-specific, and can be used to
- * initialise HMAC or message digest operations.
+ * Checks if the cipher is defined and is not the null (none) cipher
  *
- * @param digest        Name of the digest to retrieve parameters for (e.g.
- *                      \c MD5).
- *
- * @return              A statically allocated structure containing parameters
- *                      for the given message digest.
+ * @param mdname    Name of the digest
+ * @return
  */
-const md_kt_t *md_kt_get(const char *digest);
+static inline bool
+md_defined(const char *mdname)
+{
+    return strcmp(mdname, "none") != 0;
+}
+
+
+/**
+ * Return if a message digest parameters is valid given the name of the digest.
+ *
+ * @param digest        Name of the digest to verify, e.g. \c MD5).
+ *
+ * @return              Whether a digest of the given name is available
+ */
+bool md_valid(const char *digest);
 
 /**
  * Retrieve a string describing the digest digest (e.g. \c SHA1).
  *
- * @param kt            Static message digest parameters
+ * @param mdname        Message digest name
  *
  * @return              Statically allocated string describing the message
  *                      digest.
  */
-const char *md_kt_name(const md_kt_t *kt);
+const char *md_kt_name(const char *mdname);
 
 /**
  * Returns the size of the message digest, in bytes.
  *
- * @param kt            Static message digest parameters
+ * @param mdname        Message digest name
  *
  * @return              Message digest size, in bytes, or 0 if ctx was NULL.
  */
-unsigned char md_kt_size(const md_kt_t *kt);
+unsigned char md_kt_size(const char *mdname);
 
 
 /*
@@ -528,17 +542,17 @@ unsigned char md_kt_size(const md_kt_t *kt);
  *
  */
 
-/*
+/**
  * Calculates the message digest for the given buffer.
  *
- * @param kt            Static message digest parameters
+ * @param mdname        message digest name
  * @param src           Buffer to digest. May not be NULL.
  * @param src_len       The length of the incoming buffer.
  * @param dst           Buffer to write the message digest to. May not be NULL.
  *
  * @return              \c 1 on success, \c 0 on failure
  */
-int md_full(const md_kt_t *kt, const uint8_t *src, int src_len, uint8_t *dst);
+int md_full(const char *mdname, const uint8_t *src, int src_len, uint8_t *dst);
 
 /*
  * Allocate a new message digest context
@@ -554,13 +568,13 @@ md_ctx_t *md_ctx_new(void);
  */
 void md_ctx_free(md_ctx_t *ctx);
 
-/*
+/**
  * Initialises the given message digest context.
  *
  * @param ctx           Message digest context
- * @param kt            Static message digest parameters
+ * @param mdname        Message digest name
  */
-void md_ctx_init(md_ctx_t *ctx, const md_kt_t *kt);
+void md_ctx_init(md_ctx_t *ctx, const char *mdname);
 
 /*
  * Free the given message digest context.
@@ -622,12 +636,11 @@ void hmac_ctx_free(hmac_ctx_t *ctx);
  *
  * @param ctx           HMAC context to initialise
  * @param key           The key to use for the HMAC
- * @param key_len       The key length to use
- * @param kt            Static message digest parameters
+ * @param mdname        message digest name
  *
  */
-void hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, int key_length,
-                   const md_kt_t *kt);
+void hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const char *mdname);
+
 
 /*
  * Free the given HMAC context.
@@ -643,7 +656,7 @@ void hmac_ctx_cleanup(hmac_ctx_t *ctx);
  *
  * @return              Size of the HMAC, or \0 if ctx is NULL.
  */
-int hmac_ctx_size(const hmac_ctx_t *ctx);
+int hmac_ctx_size(hmac_ctx_t *ctx);
 
 /*
  * Resets the given HMAC context, preserving the associated key information

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -203,7 +200,7 @@ _pkcs11_openvpn_token_prompt(
     CLEAR(token_resp);
     token_resp.defined = false;
     token_resp.nocache = true;
-    openvpn_snprintf(
+    snprintf(
         token_resp.username,
         sizeof(token_resp.username),
         "Please insert %s token",
@@ -240,6 +237,7 @@ _pkcs11_openvpn_pin_prompt(
 {
     struct user_pass token_pass;
     char prompt[1024];
+    CLEAR(token_pass);
 
     (void)global_data;
     (void)user_data;
@@ -247,7 +245,7 @@ _pkcs11_openvpn_pin_prompt(
 
     ASSERT(token!=NULL);
 
-    openvpn_snprintf(prompt, sizeof(prompt), "%s token", token->label);
+    snprintf(prompt, sizeof(prompt), "%s token", token->label);
 
     token_pass.defined = false;
     token_pass.nocache = true;
@@ -396,6 +394,45 @@ pkcs11_addProvider(
         provider
         );
 
+#if PKCS11H_VERSION >= ((1<<16) | (28<<8) | (0<<0))
+    if ((rv = pkcs11h_registerProvider(provider)) != CKR_OK)
+    {
+        msg(M_WARN, "PKCS#11: Cannot register provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage(rv));
+    }
+    else
+    {
+        PKCS11H_BOOL allow_protected_auth = protected_auth;
+        PKCS11H_BOOL cert_is_private = cert_private;
+
+        rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_LOCATION, provider, strlen(provider) + 1);
+
+        if (rv == CKR_OK)
+        {
+            rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_ALLOW_PROTECTED_AUTH, &allow_protected_auth, sizeof(allow_protected_auth));
+        }
+        if (rv == CKR_OK)
+        {
+            rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_MASK_PRIVATE_MODE, &private_mode, sizeof(private_mode));
+        }
+        if (rv == CKR_OK)
+        {
+            rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_CERT_IS_PRIVATE, &cert_is_private, sizeof(cert_is_private));
+        }
+#if defined(WIN32) && defined(PKCS11H_PROVIDER_PROPERTY_LOADER_FLAGS)
+        if (rv == CKR_OK && platform_absolute_pathname(provider))
+        {
+            unsigned loader_flags = LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR;
+            rv = pkcs11h_setProviderProperty(provider, PKCS11H_PROVIDER_PROPERTY_LOADER_FLAGS, &loader_flags, sizeof(loader_flags));
+        }
+#endif
+
+        if (rv != CKR_OK || (rv = pkcs11h_initializeProvider(provider)) != CKR_OK)
+        {
+            msg(M_WARN, "PKCS#11: Cannot initialize provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage(rv));
+            pkcs11h_removeProvider(provider);
+        }
+    }
+#else  /* if PKCS11H_VERSION >= ((1<<16) | (28<<8) | (0<<0)) */
     if (
         (rv = pkcs11h_addProvider(
              provider,
@@ -410,6 +447,7 @@ pkcs11_addProvider(
     {
         msg(M_WARN, "PKCS#11: Cannot initialize provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage(rv));
     }
+#endif /* if PKCS11H_VERSION >= ((1<<16) | (28<<8) | (0<<0)) */
 
     dmsg(
         D_PKCS11_DEBUG,
@@ -681,7 +719,7 @@ tls_ctx_use_pkcs11(
 
         id_resp.defined = false;
         id_resp.nocache = true;
-        openvpn_snprintf(
+        snprintf(
             id_resp.username,
             sizeof(id_resp.username),
             "Please specify PKCS#11 id to use"
@@ -853,19 +891,9 @@ show_pkcs11_ids(
         goto cleanup;
     }
 
-    if (
-        (rv = pkcs11h_addProvider(
-             provider,
-             provider,
-             TRUE,
-             0,
-             FALSE,
-             0,
-             cert_private ? TRUE : FALSE
-             )) != CKR_OK
-        )
+    if (!pkcs11_addProvider(provider, TRUE, 0, cert_private ? TRUE : FALSE))
     {
-        msg(M_FATAL, "PKCS#11: Cannot add provider '%s' %ld-'%s'", provider, rv, pkcs11h_getMessage(rv));
+        msg(M_FATAL, "Failed to add PKCS#11 provider '%s", provider);
         goto cleanup;
     }
 

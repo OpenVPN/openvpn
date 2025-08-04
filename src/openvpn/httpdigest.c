@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -81,9 +78,8 @@ DigestCalcHA1(
 {
     HASH HA1;
     md_ctx_t *md5_ctx = md_ctx_new();
-    const md_kt_t *md5_kt = md_kt_get("MD5");
 
-    md_ctx_init(md5_ctx, md5_kt);
+    md_ctx_init(md5_ctx, "MD5");
     md_ctx_update(md5_ctx, (const uint8_t *) pszUserName, strlen(pszUserName));
     md_ctx_update(md5_ctx, (const uint8_t *) ":", 1);
     md_ctx_update(md5_ctx, (const uint8_t *) pszRealm, strlen(pszRealm));
@@ -92,7 +88,7 @@ DigestCalcHA1(
     md_ctx_final(md5_ctx, HA1);
     if (pszAlg && strcasecmp(pszAlg, "md5-sess") == 0)
     {
-        md_ctx_init(md5_ctx, md5_kt);
+        md_ctx_init(md5_ctx, "MD5");
         md_ctx_update(md5_ctx, HA1, HASHLEN);
         md_ctx_update(md5_ctx, (const uint8_t *) ":", 1);
         md_ctx_update(md5_ctx, (const uint8_t *) pszNonce, strlen(pszNonce));
@@ -124,10 +120,9 @@ DigestCalcResponse(
     HASHHEX HA2Hex;
 
     md_ctx_t *md5_ctx = md_ctx_new();
-    const md_kt_t *md5_kt = md_kt_get("MD5");
 
     /* calculate H(A2) */
-    md_ctx_init(md5_ctx, md5_kt);
+    md_ctx_init(md5_ctx, "MD5");
     md_ctx_update(md5_ctx, (const uint8_t *) pszMethod, strlen(pszMethod));
     md_ctx_update(md5_ctx, (const uint8_t *) ":", 1);
     md_ctx_update(md5_ctx, (const uint8_t *) pszDigestUri, strlen(pszDigestUri));
@@ -140,7 +135,7 @@ DigestCalcResponse(
     CvtHex(HA2, HA2Hex);
 
     /* calculate response */
-    md_ctx_init(md5_ctx, md5_kt);
+    md_ctx_init(md5_ctx, "MD5");
     md_ctx_update(md5_ctx, HA1, HASHHEXLEN);
     md_ctx_update(md5_ctx, (const uint8_t *) ":", 1);
     md_ctx_update(md5_ctx, (const uint8_t *) pszNonce, strlen(pszNonce));

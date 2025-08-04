@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -31,18 +30,9 @@
 struct context;
 struct multi_context;
 
+unsigned int p2mp_iow_flags(const struct multi_context *m);
 
-/**
- * Main event loop for OpenVPN in UDP server mode.
- * @ingroup eventloop
- *
- * This function implements OpenVPN's main event loop for UDP server mode.
- *
- * @param top - Top-level context structure.
- */
-void tunnel_server_udp(struct context *top);
-
-
+void multi_process_io_udp(struct multi_context *m, struct link_socket *sock);
 /**************************************************************************/
 /**
  * Get, and if necessary create, the multi_instance associated with a
@@ -55,12 +45,15 @@ void tunnel_server_udp(struct context *top);
  * it.  If no entry exists, this function handles its creation, and if
  * successful, returns the newly created instance.
  *
- * @param m            - The single multi_context structure.
+ * @param m            The single multi_context structure.
+ * @param[out] floated Returns whether the client has floated.
+ * @param sock         Listening socket where this instance is connecting to
  *
  * @return A pointer to a multi_instance if one already existed for the
  *     packet's source address or if one was a newly created successfully.
- *      NULL if one did not yet exist and a new one was not created.
+ *     NULL if one did not yet exist and a new one was not created.
  */
-struct multi_instance *multi_get_create_instance_udp(struct multi_context *m, bool *floated);
+struct multi_instance *multi_get_create_instance_udp(struct multi_context *m, bool *floated,
+                                                     struct link_socket *sock);
 
 #endif /* ifndef MUDP_H */

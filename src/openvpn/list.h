@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef LIST_H
@@ -33,8 +32,6 @@
  * client instances over various key spaces.
  */
 
-/* define this to enable special list test mode */
-/*#define LIST_TEST*/
 
 #include "basic.h"
 #include "buffer.h"
@@ -113,11 +110,6 @@ void hash_iterator_delete_element(struct hash_iterator *hi);
 void hash_iterator_free(struct hash_iterator *hi);
 
 uint32_t hash_func(const uint8_t *k, uint32_t length, uint32_t initval);
-
-#ifdef LIST_TEST
-void list_test(void);
-
-#endif
 
 static inline uint32_t
 hash_value(const struct hash *hash, const void *key)

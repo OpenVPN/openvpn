@@ -39,3 +39,12 @@ f57431cdc88f22fa4d7962946f0d3187fe058539
 
 # The Great Reformatting - first phase
 81d882d5302b8b647202a6893b57dfdc61fd6df2
+
+# Fix trailing-whitespace errors in last patch.
+3282632d9325267c850072db7545a884a1637f51
+
+# The Great Reformatting of 2022
+abe49856d81f51136d543539202a0bf8fb946474
+
+# Reformat for sp_after_comma=add
+e51d9a73693ee742b36e19fb1718e5e27167831d

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -32,11 +31,11 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
+
+#include <stddef.h>
 
 #include "packet_id.h"
 #include "misc.h"
@@ -53,18 +52,21 @@
 #define SEQ_UNSEEN  ((time_t)0)
 #define SEQ_EXPIRED ((time_t)1)
 
+#ifdef ENABLE_DEBUG
 static void packet_id_debug_print(int msglevel,
                                   const struct packet_id_rec *p,
                                   const struct packet_id_net *pin,
                                   const char *message,
-                                  int value);
+                                  packet_id_print_type value);
+
+#endif /* ENABLE_DEBUG */
 
 static inline void
 packet_id_debug(int msglevel,
                 const struct packet_id_rec *p,
                 const struct packet_id_net *pin,
                 const char *message,
-                int value)
+                uint64_t value)
 {
 #ifdef ENABLE_DEBUG
     if (unlikely(check_debug_level(msglevel)))
@@ -74,6 +76,21 @@ packet_id_debug(int msglevel,
 #endif
 }
 
+static void
+packet_id_init_recv(struct packet_id_rec *rec, int seq_backtrack, int time_backtrack, const char *name, int unit)
+{
+    rec->name = name;
+    rec->unit = unit;
+    if (seq_backtrack)
+    {
+        ASSERT(MIN_SEQ_BACKTRACK <= seq_backtrack && seq_backtrack <= MAX_SEQ_BACKTRACK);
+        ASSERT(MIN_TIME_BACKTRACK <= time_backtrack && time_backtrack <= MAX_TIME_BACKTRACK);
+        CIRC_LIST_ALLOC(rec->seq_list, struct seq_list, seq_backtrack);
+        rec->seq_backtrack = seq_backtrack;
+        rec->time_backtrack = time_backtrack;
+    }
+    rec->initialized = true;
+}
 void
 packet_id_init(struct packet_id *p, int seq_backtrack, int time_backtrack, const char *name, int unit)
 {
@@ -84,17 +101,25 @@ packet_id_init(struct packet_id *p, int seq_backtrack, int time_backtrack, const
     ASSERT(p);
     CLEAR(*p);
 
-    p->rec.name = name;
-    p->rec.unit = unit;
-    if (seq_backtrack)
-    {
-        ASSERT(MIN_SEQ_BACKTRACK <= seq_backtrack && seq_backtrack <= MAX_SEQ_BACKTRACK);
-        ASSERT(MIN_TIME_BACKTRACK <= time_backtrack && time_backtrack <= MAX_TIME_BACKTRACK);
-        CIRC_LIST_ALLOC(p->rec.seq_list, struct seq_list, seq_backtrack);
-        p->rec.seq_backtrack = seq_backtrack;
-        p->rec.time_backtrack = time_backtrack;
-    }
-    p->rec.initialized = true;
+    packet_id_init_recv(&p->rec, seq_backtrack, time_backtrack, name, unit);
+}
+
+void
+packet_id_move_recv(struct packet_id_rec *dest, struct packet_id_rec *src)
+{
+    ASSERT(src);
+    ASSERT(dest);
+    /* clear free any old data in rec list */
+    free(dest->seq_list);
+    CLEAR(*dest);
+
+    /* Copy data to dest */
+    *dest = *src;
+
+    /* Reinitalise the source */
+    CLEAR(*src);
+    packet_id_init_recv(src, dest->seq_backtrack, dest->time_backtrack,
+                        dest->name, dest->unit);
 }
 
 void
@@ -114,22 +139,22 @@ packet_id_add(struct packet_id_rec *p, const struct packet_id_net *pin)
     const time_t local_now = now;
     if (p->seq_list)
     {
-        packet_id_type diff;
+        int64_t diff;
 
         /*
-         * If time value increases, start a new
-         * sequence number sequence.
+         * If time value increases, start a new sequence list of number
+         * sequence for the new time point.
          */
         if (!CIRC_LIST_SIZE(p->seq_list)
             || pin->time > p->time
-            || (pin->id >= (packet_id_type)p->seq_backtrack
-                && pin->id - (packet_id_type)p->seq_backtrack > p->id))
+            || (pin->id >= p->seq_backtrack
+                && pin->id - p->seq_backtrack > p->id))
         {
             p->time = pin->time;
             p->id = 0;
-            if (pin->id > (packet_id_type)p->seq_backtrack)
+            if (pin->id > p->seq_backtrack)
             {
-                p->id = pin->id - (packet_id_type)p->seq_backtrack;
+                p->id = pin->id - p->seq_backtrack;
             }
             CIRC_LIST_RESET(p->seq_list);
         }
@@ -145,7 +170,7 @@ packet_id_add(struct packet_id_rec *p, const struct packet_id_net *pin)
         }
 
         diff = p->id - pin->id;
-        if (diff < (packet_id_type) CIRC_LIST_SIZE(p->seq_list)
+        if (diff < CIRC_LIST_SIZE(p->seq_list)
             && local_now > SEQ_EXPIRED)
         {
             CIRC_LIST_ITEM(p->seq_list, diff) = local_now;
@@ -169,9 +194,8 @@ packet_id_reap(struct packet_id_rec *p)
     const time_t local_now = now;
     if (p->time_backtrack)
     {
-        int i;
         bool expire = false;
-        for (i = 0; i < CIRC_LIST_SIZE(p->seq_list); ++i)
+        for (int i = 0; i < CIRC_LIST_SIZE(p->seq_list); ++i)
         {
             const time_t t = CIRC_LIST_ITEM(p->seq_list, i);
             if (t == SEQ_EXPIRED)
@@ -199,7 +223,7 @@ bool
 packet_id_test(struct packet_id_rec *p,
                const struct packet_id_net *pin)
 {
-    packet_id_type diff;
+    uint64_t diff;
 
     packet_id_debug(D_PID_DEBUG, p, pin, "PID_TEST", 0);
 
@@ -230,9 +254,9 @@ packet_id_test(struct packet_id_rec *p,
             diff = p->id - pin->id;
 
             /* keep track of maximum backtrack seen for debugging purposes */
-            if ((int)diff > p->max_backtrack_stat)
+            if (diff > p->max_backtrack_stat)
             {
-                p->max_backtrack_stat = (int)diff;
+                p->max_backtrack_stat = diff;
                 packet_id_debug(D_PID_DEBUG_LOW, p, pin, "PID_ERR replay-window backtrack occurred", p->max_backtrack_stat);
             }
 
@@ -337,6 +361,21 @@ packet_id_send_update(struct packet_id_send *p, bool long_form)
         }
         p->time = now;
         p->id = 0;
+    }
+    p->id++;
+    return true;
+}
+
+static bool
+packet_id_send_update_epoch(struct packet_id_send *p)
+{
+    if (!p->time)
+    {
+        p->time = now;
+    }
+    if (p->id == PACKET_ID_EPOCH_MAX)
+    {
+        return false;
     }
     p->id++;
     return true;
@@ -556,7 +595,7 @@ packet_id_debug_print(int msglevel,
                       const struct packet_id_rec *p,
                       const struct packet_id_net *pin,
                       const char *message,
-                      int value)
+                      packet_id_print_type value)
 {
     struct gc_arena gc = gc_new();
     struct buffer out = alloc_buf_gc(256, &gc);
@@ -568,7 +607,7 @@ packet_id_debug_print(int msglevel,
     CLEAR(tv);
     gettimeofday(&tv, NULL);
 
-    buf_printf(&out, "%s [%d]", message, value);
+    buf_printf(&out, "%s [" packet_id_format "]", message, value);
     buf_printf(&out, " [%s-%d] [", p->name, p->unit);
     for (i = 0; sl != NULL && i < sl->x_size; ++i)
     {
@@ -587,14 +626,14 @@ packet_id_debug_print(int msglevel,
         }
         else
         {
-            diff = (int) prev_now - v;
+            diff = (int)(prev_now - v);
             if (diff < 0)
             {
                 c = 'N';
             }
             else if (diff < 10)
             {
-                c = '0' + diff;
+                c = (char)('0' + diff);
             }
             else
             {
@@ -603,17 +642,17 @@ packet_id_debug_print(int msglevel,
         }
         buf_printf(&out, "%c", c);
     }
-    buf_printf(&out, "] %" PRIi64 ":" packet_id_format, (int64_t)p->time, (packet_id_print_type)p->id);
+    buf_printf(&out, "] %" PRIi64 ":" packet_id_format, (int64_t)p->time, p->id);
     if (pin)
     {
-        buf_printf(&out, " %" PRIi64 ":" packet_id_format, (int64_t)pin->time, (packet_id_print_type)pin->id);
+        buf_printf(&out, " %" PRIi64 ":" packet_id_format, (int64_t)pin->time, pin->id);
     }
 
     buf_printf(&out, " t=%" PRIi64 "[%d]",
                (int64_t)prev_now,
                (int)(prev_now - tv.tv_sec));
 
-    buf_printf(&out, " r=[%d,%d,%d,%d,%d]",
+    buf_printf(&out, " r=[%d,%" PRIu64 ",%d,%" PRIu64 ",%d]",
                (int)(p->last_reap - tv.tv_sec),
                p->seq_backtrack,
                p->time_backtrack,
@@ -635,58 +674,41 @@ packet_id_debug_print(int msglevel,
 
 #endif /* ifdef ENABLE_DEBUG */
 
-#ifdef PID_TEST
-
-void
-packet_id_interactive_test(void)
+uint16_t
+packet_id_read_epoch(struct packet_id_net *pin, struct buffer *buf)
 {
-    struct packet_id pid;
-    struct packet_id_net pin;
-    bool long_form;
-    bool count = 0;
-    bool test;
+    uint64_t packet_id;
 
-    const int seq_backtrack = 10;
-    const int time_backtrack = 10;
 
-    packet_id_init(&pid, seq_backtrack, time_backtrack);
-
-    while (true)
+    if (!buf_read(buf, &packet_id, sizeof(packet_id)))
     {
-        char buf[80];
-        if (!fgets(buf, sizeof(buf), stdin))
-        {
-            break;
-        }
-        update_time();
-        if (sscanf(buf, "%lu,%u", &pin.time, &pin.id) == 2)
-        {
-            packet_id_reap_test(&pid.rec);
-            test = packet_id_test(&pid.rec, &pin);
-            printf("packet_id_test (%" PRIi64 ", " packet_id_format ") returned %d\n",
-                   (int64_t)pin.time,
-                   (packet_id_print_type)pin.id,
-                   test);
-            if (test)
-            {
-                packet_id_add(&pid.rec, &pin);
-            }
-        }
-        else
-        {
-            long_form = (count < 20);
-            packet_id_alloc_outgoing(&pid.send, &pin, long_form);
-            printf("(%" PRIi64 "(" packet_id_format "), %d)\n",
-                   (int64_t)pin.time,
-                   (packet_id_print_type)pin.id,
-                   long_form);
-            if (pid.send.id == 10)
-            {
-                pid.send.id = 0xFFFFFFF8;
-            }
-            ++count;
-        }
+        return 0;
     }
-    packet_id_free(&pid);
+
+    uint64_t id = ntohll(packet_id);
+    /* top most 16 bits */
+    uint16_t epoch = id >> 48;
+
+    pin->id = id & PACKET_ID_MASK;
+    return epoch;
 }
-#endif /* ifdef PID_TEST */
+
+bool
+packet_id_write_epoch(struct packet_id_send *p, uint16_t epoch, struct buffer *buf)
+{
+    if (!packet_id_send_update_epoch(p))
+    {
+        return false;
+    }
+
+    /* Highest 16 bits of packet id is the epoch.
+     *
+     * The lower 48 bits are the per-epoch packet id counter. */
+    uint64_t net_id = ((uint64_t) epoch) << 48 | p->id;
+
+    /* convert to network order. This ensures that the highest bytes
+     * also become the first ones on the wire*/
+    net_id = htonll(net_id);
+
+    return buf_write(buf, &net_id, sizeof(net_id));
+}

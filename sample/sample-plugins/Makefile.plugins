@@ -1,13 +1,13 @@
 #  SPDX-License-Identifier: GPL-2.0-only
 #
-#  Copyright (C) 2020-2021 OpenVPN Inc <sales@openvpn.net>
+#  Copyright (C) 2020-2025 OpenVPN Inc <sales@openvpn.net>
 #
 
 #
 # Plug-ins to build - listed entries should not carry any extensions
 #
 PLUGINS = \
-	defer/simple \
+	defer/multi-auth \
 	keying-material-exporter-demo/keyingmaterialexporter \
 	log/log log/log_v3 \
 	simple/base64 \

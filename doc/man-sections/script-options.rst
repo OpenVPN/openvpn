@@ -8,9 +8,13 @@ the OpenVPN process.
 Script Order of Execution
 -------------------------
 
+#. ``--dns-updown``
+
+   Executed after TCP/UDP socket bind and TUN/TAP open, before ``--up``.
+
 #. ``--up``
 
-   Executed after TCP/UDP socket bind and TUN/TAP open.
+   Executed after TCP/UDP socket bind and TUN/TAP open, after ``--dns-updown``.
 
 #. ``--tls-verify``
 
@@ -38,9 +42,13 @@ Script Order of Execution
 
    Executed in ``--mode server`` mode on client instance shutdown.
 
+#. ``--dns-updown``
+
+   Executed before TCP/UDP and TUN/TAP close, before ``--down``.
+
 #. ``--down``
 
-   Executed after TCP/UDP and TUN/TAP close.
+   Executed after TCP/UDP and TUN/TAP close, after ``--dns-updown``.
 
 #. ``--learn-address``
 
@@ -51,6 +59,11 @@ Script Order of Execution
 
    Executed in ``--mode server`` mode on new client connections, when the
    client is still untrusted.
+
+#. ``--client-crresponse``
+
+    Execute in ``--mode server`` whenever a client sends a
+    :code:`CR_RESPONSE` message
 
 SCRIPT HOOKS
 ------------
@@ -72,7 +85,7 @@ SCRIPT HOOKS
   double-quoted and/or escaped using a backslash, and should be separated
   by one or more spaces.
 
-  If ``method`` is set to :code:`via-env`, OpenVPN will call ``script``
+  If ``method`` is set to :code:`via-env`, OpenVPN will call ``cmd``
   with the environmental variables :code:`username` and :code:`password`
   set to the username/password strings provided by the client. *Beware*
   that this method is insecure on some platforms which make the environment
@@ -80,13 +93,11 @@ SCRIPT HOOKS
 
   If ``method`` is set to :code:`via-file`, OpenVPN will write the username
   and password to the first two lines of a temporary file. The filename
-  will be passed as an argument to ``script``, and the file will be
+  will be passed as an argument to ``cmd``, and the file will be
   automatically deleted by OpenVPN after the script returns. The location
-  of the temporary file is controlled by the ``--tmp-dir`` option, and
-  will default to the current directory if unspecified. For security,
-  consider setting ``--tmp-dir`` to a volatile storage medium such as
-  :code:`/dev/shm` (if available) to prevent the username/password file
-  from touching the hard drive.
+  of the temporary file is controlled by the ``--tmp-dir`` option. For security,
+  consider setting it to a volatile storage medium such as :code:`/dev/shm` (if
+  available) to prevent the username/password file from touching the hard drive.
 
   The script should examine the username and password, returning a success
   exit code (:code:`0`) if the client's authentication request is to be
@@ -96,6 +107,42 @@ SCRIPT HOOKS
   operation to continue the authentication in the background. When finshing
   the authentication, a :code:`1` or :code:`0` must be written to the
   file specified by the :code:`auth_control_file`.
+
+  If the file specified by :code:`auth_failed_reason_file` exists and has
+  non-empty content, the content of this file will be used as AUTH_FAILED
+  message. To avoid race conditions, this file should be written before
+  :code:`auth_control_file`.
+
+  This auth fail reason can be something simple like "User has been permanently
+  disabled" but there are also some special auth failed messages.
+
+  The ``TEMP`` message indicates that the authentication
+  temporarily failed and that the client should continue to retry to connect.
+  The server can optionally give a user readable message and hint the client a
+  behavior how to proceed. The keywords of the ``AUTH_FAILED,TEMP`` message
+  are comma separated keys/values and provide a hint to the client how to
+  proceed. Currently defined keywords are:
+
+  ``backoff`` :code:`s`
+        instructs the client to wait at least :code:`s` seconds before the next
+        connection attempt. If the client already uses a higher delay for
+        reconnection attempt, the delay will not be shortened.
+
+  ``advance addr``
+        Instructs the client to reconnect to the next (IP) address of the
+        current server.
+
+  ``advance remote``
+        Instructs the client to skip the remaining IP addresses of the current
+        server and instead connect to the next server specified in the
+        configuration file.
+
+  ``advance no``
+        Instructs the client to retry connecting to the same server again.
+
+  For example, the message ``TEMP[backoff 42,advance no]: No free IP addresses``
+  indicates that the VPN connection can currently not succeed and instructs
+  the client to retry in 42 seconds again.
 
   When deferred authentication is in use, the script can also request
   pending authentication by writing to the file specified by the
@@ -122,6 +169,28 @@ SCRIPT HOOKS
 
   For a sample script that performs PAM authentication, see
   :code:`sample-scripts/auth-pam.pl` in the OpenVPN source distribution.
+
+--client-crresponse
+    Executed when the client sends a text based challenge response.
+
+    Valid syntax:
+    ::
+
+        client-crresponse cmd
+
+  OpenVPN will write the response of the client into a temporary file.
+  The filename will be passed as an argument to ``cmd``, and the file will
+  automatically deleted by OpenVPN after the script returns.
+
+  The response is passed as is from the client. The script needs to check
+  itself if the input is valid, e.g. if the input is valid base64 encoding.
+
+  The script can either directly write the result of the verification to
+  :code:`auth_control_file or further defer it. See ``--auth-user-pass-verify``
+  for details.
+
+  For a sample script that implement TOTP (RFC 6238) based two-factor
+  authentication, see :code:`sample-scripts/totpauth.py`.
 
 --client-connect cmd
   Run command ``cmd`` on client connection.
@@ -171,6 +240,31 @@ SCRIPT HOOKS
 
   The ``--client-disconnect`` command is not passed any extra arguments
   (only those arguments specified in cmd, if any).
+
+--dns-updown cmd
+  Run command ``cmd``, instead of the default DNS up/down command that comes
+  with openvpn. If ``cmd`` is ``disable`` the ``--dns-updown`` command is not run.
+
+  If you write your own command, please make sure to ignore ``--dns``
+  server profiles that cannot be applied. Port, DNSSEC and secure transport
+  settings need to be adhered to. If split DNS is not possible a full redirect
+  can be used as a fallback. If not all of the server addresses or search domains
+  can be configured, apply them in the order they are listed in.
+
+  Note that ``--dns-updown`` is not supported on all platforms. On Windows DNS
+  will always be set by the service. On Android DNS will be passed via management
+  interface.
+
+  Note that DNS-related ``--dhcp-option``\ s might be converted so that they are
+  available to this hook if no ``--dns`` options exist. If any ``--dns server``
+  option is present, DNS-related ``--dhcp-option``\ s will always be ignored.
+  If an ``--up`` script is defined, foreign_option env vars will be generated
+  from ``--dns`` options and passed to the script. The default ``--dns-updown``
+  command is not run if an ``--up`` script is defined. Both is done for backward
+  compatibility. In case you want to run the ``--dns-updown`` command even if
+  there is an ``--up`` defined, you can define a custom command or use ``force``
+  as ``cmd`` to run the default command. No DNS env vars will be passed to ``--up``
+  in this case.
 
 --down cmd
   Run command ``cmd`` after TUN/TAP device close (post ``--user`` UID
@@ -360,6 +454,14 @@ SCRIPT HOOKS
   See the `Environmental Variables`_ section below for additional
   parameters passed as environmental variables.
 
+--tls-export-cert dir
+  Adds an environment variable ``peer_cert`` when calling the
+  ``--tls-verify`` script or executing the OPENVPN_PLUGIN_TLS_VERIFY plugin
+  hook to verify the certificate.
+
+  The environment variable contains the path to a PEM encoded certificate
+  of the current peer certificate in the directory ``dir``.
+
 --up cmd
   Run command ``cmd`` after successful TUN/TAP device open (pre ``--user``
   UID change).
@@ -376,15 +478,17 @@ SCRIPT HOOKS
   For ``--dev tun`` execute as:
   ::
 
-      cmd tun_dev tun_mtu link_mtu ifconfig_local_ip ifconfig_remote_ip [init | restart]
+      cmd tun_dev tun_mtu 0 ifconfig_local_ip ifconfig_remote_ip [init | restart]
 
   For ``--dev tap`` execute as:
   ::
 
-       cmd tap_dev tap_mtu link_mtu ifconfig_local_ip ifconfig_netmask [init | restart]
+       cmd tap_dev tap_mtu 0 ifconfig_local_ip ifconfig_netmask [init | restart]
 
   See the `Environmental Variables`_ section below for additional
-  parameters passed as environmental variables.
+  parameters passed as environmental variables.  The ``0`` argument
+  used to be ``link_mtu`` which is no longer passed to scripts - to
+  keep the argument order, it was replaced with ``0``.
 
   Note that if ``cmd`` includes arguments, all OpenVPN-generated arguments
   will be appended to them to build an argument list with which the
@@ -568,6 +672,7 @@ instances.
     Name of first ``--config`` file. Set on program initiation and reset on
     SIGHUP.
 
+
 :code:`daemon`
     Set to "1" if the ``--daemon`` directive is specified, or "0" otherwise.
     Set on program initiation and reset on SIGHUP.
@@ -586,18 +691,27 @@ instances.
     netsh.exe calls which sometimes just do not work right with interface
     names). Set prior to ``--up`` or ``--down`` script execution.
 
+:code:`dns_*`
+    The ``--dns`` configuration options will be made available to ``--dns-updown``
+    execution through this set of environment variables. Variables appear
+    only if the corresponding option has a value assigned. For the semantics
+    of each individual variable, please refer to the documentation for ``--dns``.
+
+    ::
+
+       dns_search_domain_{n}
+       dns_server_{n}_address_{m}
+       dns_server_{n}_port_{m}
+       dns_server_{n}_resolve_domain_{m}
+       dns_server_{n}_dnssec
+       dns_server_{n}_transport
+       dns_server_{n}_sni
+
 :code:`foreign_option_{n}`
     An option pushed via ``--push`` to a client which does not natively
     support it, such as ``--dhcp-option`` on a non-Windows system, will be
     recorded to this environmental variable sequence prior to ``--up``
     script execution.
-
-:code:`ifconfig_broadcast`
-    The broadcast address for the virtual ethernet segment which is derived
-    from the ``--ifconfig`` option when ``--dev tap`` is used. Set prior to
-    OpenVPN calling the :code:`ifconfig` or :code:`netsh` (windows version
-    of ifconfig) commands which normally occurs prior to ``--up`` script
-    execution.
 
 :code:`ifconfig_ipv6_local`
     The local VPN endpoint IPv6 address specified in the
@@ -641,32 +755,55 @@ instances.
     occurs prior to ``--up`` script execution.
 
 :code:`ifconfig_pool_local_ip`
-    The local virtual IP address for the TUN/TAP tunnel taken from an
+    The local virtual IPv4 address for the TUN/TAP tunnel taken from an
     ``--ifconfig-push`` directive if specified, or otherwise from the
     ifconfig pool (controlled by the ``--ifconfig-pool`` config file
     directive). Only set for ``--dev tun`` tunnels. This option is set on
     the server prior to execution of the ``--client-connect`` and
     ``--client-disconnect`` scripts.
 
+:code:`ifconfig_pool_local_ip6`
+    The local virtual IPv6 address for the TUN/TAP tunnel taken from an
+    ``--ifconfig-ipv6-push`` directive if specified, or otherwise from the
+    ifconfig pool (controlled by the ``--ifconfig-ipv6-pool`` config file
+    directive). Only set for ``--dev tun`` tunnels. This option is set on
+    the server prior to execution of the ``--client-connect`` and
+    ``--client-disconnect`` scripts.
+
 :code:`ifconfig_pool_netmask`
-    The virtual IP netmask for the TUN/TAP tunnel taken from an
+    The virtual IPv4 netmask for the TUN/TAP tunnel taken from an
     ``--ifconfig-push`` directive if specified, or otherwise from the
     ifconfig pool (controlled by the ``--ifconfig-pool`` config file
     directive). Only set for ``--dev tap`` tunnels. This option is set on
     the server prior to execution of the ``--client-connect`` and
     ``--client-disconnect`` scripts.
 
+:code:`ifconfig_pool_ip6_netbits`
+    The virtual IPv6 prefix length for the TUN/TAP tunnel taken from an
+    ``--ifconfig-ipv6-push`` directive if specified, or otherwise from the
+    ifconfig pool (controlled by the ``--ifconfig-ipv6-pool`` config file
+    directive). Only set for ``--dev tap`` tunnels. This option is set on
+    the server prior to execution of the ``--client-connect`` and
+    ``--client-disconnect`` scripts.
+
 :code:`ifconfig_pool_remote_ip`
-    The remote virtual IP address for the TUN/TAP tunnel taken from an
+    The remote virtual IPv4 address for the TUN/TAP tunnel taken from an
     ``--ifconfig-push`` directive if specified, or otherwise from the
     ifconfig pool (controlled by the ``--ifconfig-pool`` config file
     directive). This option is set on the server prior to execution of the
     ``--client-connect`` and ``--client-disconnect`` scripts.
 
+:code:`ifconfig_pool_remote_ip6`
+    The remote virtual IPv6 address for the TUN/TAP tunnel taken from an
+    ``--ifconfig-ipv6-push`` directive if specified, or otherwise from the
+    ifconfig pool (controlled by the ``--ifconfig-ipv6-pool`` config file
+    directive). This option is set on the server prior to execution of the
+    ``--client-connect`` and ``--client-disconnect`` scripts.
+
 :code:`link_mtu`
-    The maximum packet size (not including the IP header) of tunnel data in
-    UDP tunnel transport mode. Set prior to ``--up`` or ``--down`` script
-    execution.
+    *REMOVED* No longer passed to scripts since OpenVPN 2.6.0.  Used to be the
+    maximum packet size (not including the IP header) of tunnel data in
+    UDP tunnel transport mode.
 
 :code:`local`
     The ``--local`` parameter. Set on program initiation and reset on
@@ -681,6 +818,11 @@ instances.
     ``--auth-user-pass-verify`` script execution only when the ``via-env``
     modifier is specified, and deleted from the environment after the script
     returns.
+
+:code:`peer_cert`
+    If the option ``--tls-export-cert`` is enabled, this option contains
+    the path to the current peer certificate to be verified in PEM format.
+    See also the argument certificate_depth to the ``--tls-verify`` command.
 
 :code:`proto`
     The ``--proto`` parameter. Set on program initiation and reset on
@@ -731,10 +873,6 @@ instances.
     If the network or gateway are resolvable DNS names, their IP address
     translations will be recorded rather than their names as denoted on the
     command line or configuration file.
-
-:code:`peer_cert`
-    Temporary file name containing the client certificate upon connection.
-    Useful in conjunction with ``--tls-verify``.
 
 :code:`script_context`
     Set to "init" or "restart" prior to up/down script execution. For more
@@ -838,6 +976,9 @@ instances.
     client certificate in sample-keys (client.crt). Note that the
     verification level is 0 for the client certificate and 1 for the CA
     certificate.
+
+    You can use the ``--x509-track`` option to export more or less information
+    from the certificates.
 
     ::
 

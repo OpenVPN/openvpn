@@ -1,0 +1,14 @@
+# Uncomment to run tests with sudo
+#RUN_SUDO="sudo -E"
+
+TEST_RUN_LIST="1 2 3 10 11"
+
+TEST_NAME_10="t_server_null_client.sh-openvpn_2_6_8_udp"
+SHOULD_PASS_10="yes"
+CLIENT_EXEC_10="/usr/sbin/openvpn"
+CLIENT_CONF_10="${CLIENT_CONF_BASE} --remote 127.0.0.1 1194 udp --proto udp"
+
+TEST_NAME_11="t_server_null_client.sh-openvpn_2_6_8_tcp"
+SHOULD_PASS_11="yes"
+CLIENT_EXEC_11="/usr/sbin/openvpn"
+CLIENT_CONF_11="${CLIENT_CONF_BASE} --remote 127.0.0.1 1195 tcp --proto tcp"

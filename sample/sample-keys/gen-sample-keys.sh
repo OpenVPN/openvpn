@@ -3,7 +3,7 @@
 # Run this script to set up a test CA, and test key-certificate pair for a
 # server, and various clients.
 #
-# Copyright (C) 2014-2021 Steffan Karger <steffan@karger.me>
+# Copyright (C) 2014-2025 Steffan Karger <steffan@karger.me>
 set -eu
 
 command -v openssl >/dev/null 2>&1 || { echo >&2 "Unable to find openssl. Please make sure openssl is installed and in your path."; exit 1; }
@@ -15,7 +15,8 @@ then
 fi
 
 # Generate static key for tls-auth (or static key mode)
-$(dirname ${0})/../../src/openvpn/openvpn --genkey tls-auth ta.key
+top_builddir="${top_builddir:-$(dirname ${0})/../..}"
+${top_builddir}/src/openvpn/openvpn --genkey tls-auth ta.key
 
 # Create required directories and files
 mkdir -p sample-ca

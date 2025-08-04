@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -55,15 +52,13 @@ trigger_ping_timeout_signal(struct context *c)
         case PING_EXIT:
             msg(M_INFO, "%sInactivity timeout (--ping-exit), exiting",
                 format_common_name(c, &gc));
-            c->sig->signal_received = SIGTERM;
-            c->sig->signal_text = "ping-exit";
+            register_signal(c->sig, SIGTERM, "ping-exit");
             break;
 
         case PING_RESTART:
             msg(M_INFO, "%sInactivity timeout (--ping-restart), restarting",
                 format_common_name(c, &gc));
-            c->sig->signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- Ping Restart */
-            c->sig->signal_text = "ping-restart";
+            register_signal(c->sig, SIGUSR1, "ping-restart");
             break;
 
         default:
@@ -79,8 +74,8 @@ void
 check_ping_send_dowork(struct context *c)
 {
     c->c2.buf = c->c2.buffers->aux_buf;
-    ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
-    ASSERT(buf_safe(&c->c2.buf, MAX_RW_SIZE_TUN(&c->c2.frame)));
+    ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
+    ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
     ASSERT(buf_write(&c->c2.buf, ping_string, sizeof(ping_string)));
 
     /*

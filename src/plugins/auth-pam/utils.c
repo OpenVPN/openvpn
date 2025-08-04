@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -71,7 +70,7 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
     char temp[templen+1];
     temp[0] = 0;
 
-    scratch = strstr(searching,searchfor);
+    scratch = strstr(searching, searchfor);
     if (!scratch)
     {
         return strdup(tosearch);
@@ -79,11 +78,11 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
 
     while (scratch)
     {
-        strncat(temp,searching,scratch-searching);
-        strcat(temp,replacewith);
+        strncat(temp, searching, (size_t)(scratch-searching));
+        strcat(temp, replacewith);
 
         searching = scratch+strlen(searchfor);
-        scratch = strstr(searching,searchfor);
+        scratch = strstr(searching, searchfor);
     }
     return strdup(temp);
 }
@@ -93,9 +92,8 @@ get_env(const char *name, const char *envp[])
 {
     if (envp)
     {
-        int i;
-        const int namelen = strlen(name);
-        for (i = 0; envp[i]; ++i)
+        const size_t namelen = strlen(name);
+        for (int i = 0; envp[i]; ++i)
         {
             if (!strncmp(envp[i], name, namelen))
             {

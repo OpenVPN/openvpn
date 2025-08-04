@@ -6,7 +6,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2016-2021 Selva Nair <selva.nair@gmail.com>
+ *  Copyright (C) 2016-2025 Selva Nair <selva.nair@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -18,8 +18,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef VALIDATE_H
@@ -28,12 +27,17 @@
 #include "service.h"
 
 /* Authorized groups who can use any options and config locations */
-#define SYSTEM_ADMIN_GROUP TEXT("Administrators")
-#define OVPN_ADMIN_GROUP TEXT("OpenVPN Administrators")
-/* The last one may be reset in registry: HKLM\Software\OpenVPN\ovpn_admin_group */
+#define SYSTEM_ADMIN_GROUP L"Administrators"
+#define OVPN_ADMIN_GROUP L"OpenVPN Administrators" /* may be set in HKLM\Software\OpenVPN\ovpn_admin_group */
+#define OVPN_SERVICE_USER L"OpenVPNService" /* may be set in HKLM\Software\OpenVPN\ovpn_service_user */
 
+/*
+ * Check whether user is a member of Administrators group or
+ * the group specified in ovpn_admin_group or
+ * OpenVPN Virtual Service Account user
+ */
 BOOL
-IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group);
+IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group, const WCHAR *ovpn_service_user);
 
 BOOL
 CheckOption(const WCHAR *workdir, int narg, WCHAR *argv[], const settings_t *s);

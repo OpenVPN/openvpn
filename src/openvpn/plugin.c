@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 #ifdef HAVE_CONFIG_VERSION_H
 #include "config-version.h"
@@ -102,7 +99,7 @@ plugin_type_name(const int type)
             return "PLUGIN_CLIENT_CONNECT";
 
         case OPENVPN_PLUGIN_CLIENT_CONNECT_V2:
-            return "PLUGIN_CLIENT_CONNECT";
+            return "PLUGIN_CLIENT_CONNECT_V2";
 
         case OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER:
             return "PLUGIN_CLIENT_CONNECT_DEFER";
@@ -119,11 +116,11 @@ plugin_type_name(const int type)
         case OPENVPN_PLUGIN_TLS_FINAL:
             return "PLUGIN_TLS_FINAL";
 
-        case OPENVPN_PLUGIN_ENABLE_PF:
-            return "PLUGIN_ENABLE_PF";
-
         case OPENVPN_PLUGIN_ROUTE_PREDOWN:
             return "PLUGIN_ROUTE_PREDOWN";
+
+        case OPENVPN_PLUGIN_CLIENT_CRRESPONSE:
+            return "PLUGIN_CRRESPONSE";
 
         default:
             return "PLUGIN_???";
@@ -262,7 +259,7 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
     {
         char full[PATH_MAX];
 
-        openvpn_snprintf(full, sizeof(full), "%s/%s", PLUGIN_LIBDIR, p->so_pathname);
+        snprintf(full, sizeof(full), "%s/%s", PLUGIN_LIBDIR, p->so_pathname);
         p->handle = dlopen(full, RTLD_NOW);
     }
     else
@@ -279,11 +276,23 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
 
 #else  /* ifndef _WIN32 */
 
-    rel = !platform_absolute_pathname(p->so_pathname);
-    p->module = LoadLibraryW(wide_string(p->so_pathname, &gc));
+    WCHAR *wpath = wide_string(p->so_pathname, &gc);
+    WCHAR normalized_plugin_path[MAX_PATH] = {0};
+    /* Normalize the plugin path, converting any relative paths to absolute paths. */
+    if (!GetFullPathNameW(wpath, MAX_PATH, normalized_plugin_path, NULL))
+    {
+        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls. Failed to normalize plugin path.", wpath);
+    }
+
+    if (!plugin_in_trusted_dir(normalized_plugin_path))
+    {
+        msg(M_FATAL, "PLUGIN_INIT: could not load plugin DLL: %ls. The DLL is not in a trusted directory.", normalized_plugin_path);
+    }
+
+    p->module = LoadLibraryW(normalized_plugin_path);
     if (!p->module)
     {
-        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %s", p->so_pathname);
+        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls", normalized_plugin_path);
     }
 
 #define PLUGIN_SYM(var, name, flags) dll_resolve_symbol(p->module, (void *)&p->var, name, p->so_pathname, flags)
@@ -399,7 +408,7 @@ plugin_vlog(openvpn_plugin_log_flags_t flags, const char *name, const char *form
 
         gc_init(&gc);
         msg_fmt = gc_malloc(ERR_BUF_SIZE, false, &gc);
-        openvpn_snprintf(msg_fmt, ERR_BUF_SIZE, "PLUGIN %s: %s", name, format);
+        snprintf(msg_fmt, ERR_BUF_SIZE, "PLUGIN %s: %s", name, format);
         x_msg_va(msg_flags, msg_fmt, arglist);
 
         gc_free(&gc);
@@ -804,9 +813,8 @@ plugin_call_ssl(const struct plugin_list *pl,
         int i;
         const char **envp;
         const int n = plugin_n(pl);
-        bool success = false;
         bool error = false;
-        bool deferred = false;
+        bool deferred_auth_done = false;
 
         setenv_del(es, "script_type");
         envp = make_env_array(es, false, &gc);
@@ -825,11 +833,37 @@ plugin_call_ssl(const struct plugin_list *pl,
             switch (status)
             {
                 case OPENVPN_PLUGIN_FUNC_SUCCESS:
-                    success = true;
                     break;
 
                 case OPENVPN_PLUGIN_FUNC_DEFERRED:
-                    deferred = true;
+                    if ((type == OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY)
+                        && deferred_auth_done)
+                    {
+                        /*
+                         * Do not allow deferred auth if a deferred auth has
+                         * already been started.  This should allow a single
+                         * deferred auth call to happen, with one or more
+                         * auth calls with an instant authentication result.
+                         *
+                         * The plug-in API is not designed for multiple
+                         * deferred authentications to happen, as the
+                         * auth_control_file file will be shared across all
+                         * the plug-ins.
+                         *
+                         * Since this is considered a critical configuration
+                         * error, we bail out and exit the OpenVPN process.
+                         */
+                        error = true;
+                        msg(M_FATAL,
+                            "Exiting due to multiple authentication plug-ins "
+                            "performing deferred authentication.  Only one "
+                            "authentication plug-in doing deferred auth is "
+                            "allowed.  Ignoring the result and stopping now, "
+                            "the current authentication result is not to be "
+                            "trusted.");
+                        break;
+                    }
+                    deferred_auth_done = true;
                     break;
 
                 default:
@@ -845,15 +879,11 @@ plugin_call_ssl(const struct plugin_list *pl,
 
         gc_free(&gc);
 
-        if (type == OPENVPN_PLUGIN_ENABLE_PF && success)
-        {
-            return OPENVPN_PLUGIN_FUNC_SUCCESS;
-        }
-        else if (error)
+        if (error)
         {
             return OPENVPN_PLUGIN_FUNC_ERROR;
         }
-        else if (deferred)
+        else if (deferred_auth_done)
         {
             return OPENVPN_PLUGIN_FUNC_DEFERRED;
         }

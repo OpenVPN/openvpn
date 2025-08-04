@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #include <stdarg.h>
@@ -26,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
+#include <stdint.h>
 #include <cmocka.h>
 
 unsigned long
@@ -33,4 +33,13 @@ get_random(void)
 {
     /* rand() is not very random, but it's C99 and this is just for testing */
     return rand();
+}
+
+void
+prng_bytes(uint8_t *output, int len)
+{
+    for (int i = 0; i < len; i++)
+    {
+        output[i] = (uint8_t)rand();
+    }
 }

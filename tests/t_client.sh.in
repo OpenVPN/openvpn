@@ -9,11 +9,16 @@
 # - writable current directory to create subdir for logs
 # - t_client.rc in current directory OR source dir that specifies tests
 # - for "ping4" checks: fping binary in $PATH
-# - for "ping6" checks: fping6 binary in $PATH
+# - for "ping6" checks: fping (4.0+) or fping6 binary in $PATH
 #
+
+# by changing this to 1 we can force automated builds to fail
+# that are expected to have all the prerequisites
+TCLIENT_SKIP_RC="${TCLIENT_SKIP_RC:-77}"
 
 srcdir="${srcdir:-.}"
 top_builddir="${top_builddir:-..}"
+openvpn="${openvpn:-${top_builddir}/src/openvpn/openvpn}"
 if [ -r "${top_builddir}"/t_client.rc ] ; then
     . "${top_builddir}"/t_client.rc
 elif [ -r "${srcdir}"/t_client.rc ] ; then
@@ -21,28 +26,31 @@ elif [ -r "${srcdir}"/t_client.rc ] ; then
 else
     echo "$0: cannot find 't_client.rc' in build dir ('${top_builddir}')" >&2
     echo "$0: or source directory ('${srcdir}'). SKIPPING TEST." >&2
-    exit 77
+    exit "${TCLIENT_SKIP_RC}"
 fi
 
 # Check for external dependencies
+FPING="fping"
+FPING6="fping6"
 which fping > /dev/null
 if [ $? -ne 0 ]; then
     echo "$0: fping is not available in \$PATH" >&2
-    exit 77
+    exit "${TCLIENT_SKIP_RC}"
 fi
 which fping6 > /dev/null
 if [ $? -ne 0 ]; then
-    echo "$0: fping6 is not available in \$PATH" >&2
-    exit 77
+    echo "$0: fping6 is not available in \$PATH, assuming fping 4.0 or later" >&2
+    FPING="fping -4"
+    FPING6="fping -6"
 fi
 
 KILL_EXEC=`which kill`
 if [ $? -ne 0 ]; then
     echo "$0: kill not found in \$PATH" >&2
-    exit 77
+    exit "${TCLIENT_SKIP_RC}"
 fi
 
-if [ ! -x "${top_builddir}/src/openvpn/openvpn" ]
+if [ ! -x "${openvpn}" ]
 then
     echo "no (executable) openvpn binary in current build tree. FAIL." >&2
     exit 1
@@ -56,12 +64,12 @@ fi
 
 if [ -z "$CA_CERT" ] ; then
     echo "CA_CERT not defined in 't_client.rc'. SKIP test." >&2
-    exit 77
+    exit "${TCLIENT_SKIP_RC}"
 fi
 
 if [ -z "$TEST_RUN_LIST" ] ; then
     echo "TEST_RUN_LIST empty, no tests defined.  SKIP test." >&2
-    exit 77
+    exit "${TCLIENT_SKIP_RC}"
 fi
 
 # Ensure PREFER_KSU is in a known state
@@ -91,7 +99,7 @@ else
     then
         echo "$0: this test must run be as root, or RUN_SUDO=... " >&2
         echo "      must be set correctly in 't_client.rc'. SKIP." >&2
-        exit 77
+        exit "${TCLIENT_SKIP_RC}"
     else
         # We have to use sudo. Make sure that we (hopefully) do not have
         # to ask the users password during the test. This is done to
@@ -101,7 +109,7 @@ else
 	    echo "$0: $RUN_SUDO $KILL_EXEC -0 succeeded, good."
 	else
 	    echo "$0: $RUN_SUDO $KILL_EXEC -0 failed, cannot go on. SKIP." >&2
-	    exit 77
+	    exit "${TCLIENT_SKIP_RC}"
 	fi
     fi
 fi
@@ -114,17 +122,43 @@ else
     exit 1
 fi
 
+# verbosity, defaults to "1"
+V="${V:-1}"
+
 exit_code=0
 
 # ----------------------------------------------------------
 # helper functions
 # ----------------------------------------------------------
 
+# output progress information
+#  depending on verbosity level, collect & print only on failure
+output_start()
+{
+    case $V in
+	0) outbuf="" ;;			# no per-test output at all
+	1) echo -e "$@"			# compact, details only on failure
+           outbuf="\n" ;;
+	*) echo -e "\n$@\n" ;;		# print all, with a bit formatting
+    esac
+}
+
+output()
+{
+    NO_NL=''; if [ "X$1" = "X-n" ] ; then NO_NL=$1 ; shift ; fi
+    case $V in
+	0) ;;				# no per-test output at all
+	1) outbuf="$outbuf$@" 		# print details only on failure
+	   test -z "$NO_NL" && outbuf="$outbuf\n"
+           ;;
+	*) echo -e $NO_NL "$@" ;;	# print everything
+    esac
+}
+
 # print failure message, increase FAIL counter
 fail()
 {
-    echo ""
-    echo "FAIL: $@" >&2
+    output "FAIL: $@\n"
     fail_count=$(( $fail_count + 1 ))
 }
 
@@ -132,53 +166,71 @@ fail()
 # this is higly system dependent...
 get_ifconfig_route()
 {
-    # linux / iproute2? (-> if configure got a path)
-    if [ -n "@IPROUTE@" ]
-    then
-	echo "-- linux iproute2 --"
-	@IPROUTE@ addr show     | grep -v valid_lft
-	@IPROUTE@ route show
-	@IPROUTE@ -o -6 route show | grep -v ' cache' | sed -E -e 's/ expires [0-9]*sec//' -e 's/ (mtu|hoplimit|cwnd|ssthresh) [0-9]+//g' -e 's/ (rtt|rttvar) [0-9]+ms//g'
-	return
-    fi
-
-    # try uname
-    case `uname -s` in
+    UNAME=`uname -s`
+    case $UNAME in
 	Linux)
-	   echo "-- linux / ifconfig --"
-	   LANG=C @IFCONFIG@ -a |egrep  "( addr:|encap:)"
-	   LANG=C @NETSTAT@ -rn -4 -6
-	   return
-	   ;;
+            # linux / iproute2? (-> if configure got a path)
+            if [ -n "@IPROUTE@" ]
+            then
+                echo "-- linux iproute2 --"
+                @IPROUTE@ addr show     | grep -v valid_lft
+                @IPROUTE@ route show
+                @IPROUTE@ -o -6 route show | grep -v ' cache' | sed -E -e 's/ expires [0-9]*sec//' -e 's/ (mtu|hoplimit|cwnd|ssthresh) [0-9]+//g' -e 's/ (rtt|rttvar) [0-9]+ms//g'
+            else
+	        echo "-- linux / ifconfig --"
+	        LANG=C @IFCONFIG@ -a |egrep  "( addr:|encap:)"
+	        LANG=C @NETSTAT@ -rn -4 -6
+            fi
+            ;;
 	FreeBSD|NetBSD|Darwin)
 	   echo "-- FreeBSD/NetBSD/Darwin [MacOS X] --"
 	   @IFCONFIG@ -a | egrep "(flags=|inet)"
 	   @NETSTAT@ -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$NF }'
-	   return
 	   ;;
 	OpenBSD)
 	   echo "-- OpenBSD --"
 	   @IFCONFIG@ -a | egrep "(flags=|inet)" | \
 		sed -e 's/pltime [0-9]*//' -e 's/vltime [0-9]*//'
 	   @NETSTAT@ -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$NF }'
-	   return
 	   ;;
 	SunOS)
 	   echo "-- Solaris --"
 	   @IFCONFIG@ -a | egrep "(flags=|inet)"
 	   @NETSTAT@ -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$6 }'
-	   return
 	   ;;
 	AIX)
 	   echo "-- AIX --"
 	   @IFCONFIG@ -a | egrep "(flags=|inet)"
 	   @NETSTAT@ -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$6 }'
-	   return
 	   ;;
+        *)
+           echo "get_ifconfig_route(): no idea how to get info on your OS (`uname -s`).  FAIL." >&2
+           exit 20
+           ;;
     esac
 
-    echo "get_ifconfig_route(): no idea how to get info on your OS.  FAIL." >&2
-    exit 20
+    # another round of per-platform information gathering, for DNS info
+    # for most of the platforms "cat /etc/resolv.conf" is good enough
+    # except Linux and MacOS
+    case $UNAME in
+	Linux)
+            if [ -x /usr/bin/resolvectl ] ; then
+                echo "-- linux resolvectl --"
+                resolvectl status
+            else
+                echo "-- linux resolv.conf --"
+                cat /etc/resolv.conf
+            fi
+            ;;
+	Darwin)
+            echo "-- MacOS scutil --dns"
+            scutil --dns
+            ;;
+        *)
+            echo "-- resolv.conf --"
+            cat /etc/resolv.conf
+            ;;
+    esac
 }
 
 # ----------------------------------------------------------
@@ -191,6 +243,7 @@ check_ifconfig()
     expect_list="$@"
 
     if [ -z "$expect_list" ] ; then return ; fi
+    if [ "$expect_list" = "-" ] ; then return ; fi
 
     for expect in $expect_list
     do
@@ -216,8 +269,8 @@ run_ping_tests()
     if [ -z "$targetlist" ] ; then return ; fi
 
     case $proto in
-	4) cmd=fping ;;
-	6) cmd=fping6 ;;
+	4) cmd="$FPING" ;;
+	6) cmd="$FPING6" ;;
 	*) echo "internal error in run_ping_tests arg 1: '$proto'" >&2
 	   exit 1 ;;
     esac
@@ -229,10 +282,10 @@ run_ping_tests()
 
     for bytes in $sizes_list
     do
-	echo "run IPv$proto ping tests ($want), $bytes byte packets..."
+	output "run IPv$proto ping tests ($want), $bytes byte packets..."
 
-	echo "$cmd -b $bytes -C 20 -p 250 -q $FPING_EXTRA_ARGS $targetlist" >>$LOGDIR/$SUF:fping.out
-	$cmd -b $bytes -C 20 -p 250 -q $FPING_EXTRA_ARGS $targetlist >>$LOGDIR/$SUF:fping.out 2>&1
+	echo "$cmd -b $bytes -C 20 -p 250 -q $fping_args $targetlist" >>$LOGDIR/$SUF:fping.out
+	$cmd -b $bytes -C 20 -p 250 -q $fping_args $targetlist >>$LOGDIR/$SUF:fping.out 2>&1
 
 	# while OpenVPN is running, pings must succeed (want='want_ok')
 	# before OpenVPN is up, pings must NOT succeed (want='want_fail')
@@ -257,12 +310,14 @@ run_ping_tests()
 # main test loop
 # ----------------------------------------------------------
 SUMMARY_OK=
+SUMMARY_SKIP=
 SUMMARY_FAIL=
 
 for SUF in $TEST_RUN_LIST
 do
     # get config variables
     eval test_prep=\"\$PREPARE_$SUF\"
+    eval test_check_skip=\"\$CHECK_SKIP_$SUF\"
     eval test_postinit=\"\$POSTINIT_CMD_$SUF\"
     eval test_cleanup=\"\$CLEANUP_$SUF\"
     eval test_run_title=\"\$RUN_TITLE_$SUF\"
@@ -271,6 +326,7 @@ do
     eval expect_ifconfig6=\"\$EXPECT_IFCONFIG6_$SUF\"
     eval ping4_hosts=\"\$PING4_HOSTS_$SUF\"
     eval ping6_hosts=\"\$PING6_HOSTS_$SUF\"
+    eval fping_args=\"\$FPING_EXTRA_ARGS \$FPING_ARGS_$SUF\"
 
     # If EXCEPT_IFCONFIG* variables for this test are missing, run an --up
     # script to generate them dynamically.
@@ -280,35 +336,45 @@ do
         up=""
     fi
 
-    echo -e "\n### test run $SUF: '$test_run_title' ###\n"
+    output_start "### test run $SUF: '$test_run_title' ###"
     fail_count=0
 
+    if [ -n "$test_check_skip" ]; then
+        output "check whether we need to skip: '$test_check_skip'"
+        if eval $test_check_skip; then :
+        else
+            output "skip check failed, SKIP test $SUF."
+	    SUMMARY_SKIP="$SUMMARY_SKIP $SUF"
+	    echo -e "$outbuf" ; continue
+        fi
+    fi
+
     if [ -n "$test_prep" ]; then
-        echo -e "running preparation: '$test_prep'"
+        output "running preparation: '$test_prep'"
         eval $test_prep
     fi
 
-    echo "save pre-openvpn ifconfig + route"
+    output "save pre-openvpn ifconfig + route"
     get_ifconfig_route >$LOGDIR/$SUF:ifconfig_route_pre.txt
 
-    echo -e "\nrun pre-openvpn ping tests - targets must not be reachable..."
+    output "\nrun pre-openvpn ping tests - targets must not be reachable..."
     run_ping_tests 4 want_fail "$ping4_hosts"
     run_ping_tests 6 want_fail "$ping6_hosts"
     if [ "$fail_count" = 0 ] ; then
-        echo -e "OK.\n"
+        output "OK.\n"
     else
-	echo -e "FAIL: make sure that ping hosts are ONLY reachable via VPN, SKIP test $SUF".
+	fail "make sure that ping hosts are ONLY reachable via VPN, SKIP test $SUF."
 	SUMMARY_FAIL="$SUMMARY_FAIL $SUF"
 	exit_code=31
-	continue
+	echo -e "$outbuf" ; continue
     fi
 
     pidfile="${top_builddir}/tests/$LOGDIR/openvpn-$SUF.pid"
     openvpn_conf="$openvpn_conf --writepid $pidfile $up"
-    echo " run openvpn $openvpn_conf"
-    echo "# src/openvpn/openvpn $openvpn_conf" >$LOGDIR/$SUF:openvpn.log
+    output " run openvpn $openvpn_conf"
+    echo "# ${openvpn} $openvpn_conf" >$LOGDIR/$SUF:openvpn.log
     umask 022
-    $RUN_SUDO "${top_builddir}/src/openvpn/openvpn" $openvpn_conf >>$LOGDIR/$SUF:openvpn.log &
+    $RUN_SUDO "${openvpn}" $openvpn_conf >>$LOGDIR/$SUF:openvpn.log &
     sudopid=$!
 
     # Check if OpenVPN has initialized before continuing.  It will check every 3rd second up
@@ -328,25 +394,25 @@ do
 
     opid=`cat $pidfile`
     if [ -n "$opid" ]; then
-        echo "  OpenVPN running with PID $opid"
+        output "  OpenVPN running with PID $opid"
     else
-        echo "  Could not read OpenVPN PID file" >&2
+        output "  Could not read OpenVPN PID file"
     fi
 
     # If OpenVPN did not start
     if [ $ovpn_init_success -ne 1 -o -z "$opid" ]; then
-        echo "$0:  OpenVPN did not initialize in a reasonable time" >&2
+        output "$0:  OpenVPN did not initialize in a reasonable time"
         if [ -n "$opid" ]; then
            $RUN_SUDO $KILL_EXEC $opid
         fi
         $RUN_SUDO $KILL_EXEC $sudopid
-	echo "tail -5 $SUF:openvpn.log" >&2
-	tail -5 $LOGDIR/$SUF:openvpn.log >&2
-	echo -e "\nFAIL. skip rest of sub-tests for test run $SUF.\n" >&2
+	output "tail -5 $SUF:openvpn.log"
+	output "`tail -5 $LOGDIR/$SUF:openvpn.log`"
+	fail "skip rest of sub-tests for test run $SUF."
 	trap - 0 1 2 3 15
 	SUMMARY_FAIL="$SUMMARY_FAIL $SUF"
 	exit_code=30
-	continue
+	echo -e "$outbuf" ; continue
     fi
 
     # make sure openvpn client is terminated in case shell exits
@@ -354,21 +420,25 @@ do
     trap "$RUN_SUDO $KILL_EXEC $opid ; trap - 0 ; exit 1" 1 2 3 15
 
     # compare whether anything changed in ifconfig/route setup?
-    echo "save ifconfig+route"
+    output "save ifconfig+route"
     get_ifconfig_route >$LOGDIR/$SUF:ifconfig_route.txt
 
-    echo -n "compare pre-openvpn ifconfig+route with current values..."
-    if diff $LOGDIR/$SUF:ifconfig_route_pre.txt \
-	    $LOGDIR/$SUF:ifconfig_route.txt >/dev/null
-    then
-	fail "no differences between ifconfig/route before OpenVPN start and now."
+    if [ "$expect_ifconfig4" = "-" ] ; then
+        output "skip ifconfig+route check"
     else
-	echo -e " OK!\n"
+	output -n "compare pre-openvpn ifconfig+route with current values..."
+	if diff $LOGDIR/$SUF:ifconfig_route_pre.txt \
+		$LOGDIR/$SUF:ifconfig_route.txt >/dev/null
+	then
+	    fail "no differences between ifconfig/route before OpenVPN start and now."
+	else
+	    output " OK!\n"
+	fi
     fi
 
     # post init script needed?
     if [ -n "$test_postinit" ]; then
-        echo -e "running post-init cmd: '$test_postinit'"
+        output "running post-init cmd: '$test_postinit'"
         eval $test_postinit
     fi
 
@@ -378,9 +448,9 @@ do
 
     run_ping_tests 4 want_ok "$ping4_hosts"
     run_ping_tests 6 want_ok "$ping6_hosts"
-    echo -e "ping tests done.\n"
+    output "ping tests done.\n"
 
-    echo "stopping OpenVPN"
+    output "stopping OpenVPN"
     $RUN_SUDO $KILL_EXEC $opid
     wait $!
     rc=$?
@@ -388,23 +458,26 @@ do
 	fail "OpenVPN return code $rc, expect 0"
     fi
 
-    echo -e "\nsave post-openvpn ifconfig + route..."
+    output "\nsave post-openvpn ifconfig + route..."
     get_ifconfig_route >$LOGDIR/$SUF:ifconfig_route_post.txt
 
-    echo -n "compare pre- and post-openvpn ifconfig + route..."
+    output -n "compare pre- and post-openvpn ifconfig + route..."
     if diff $LOGDIR/$SUF:ifconfig_route_pre.txt \
 	    $LOGDIR/$SUF:ifconfig_route_post.txt >$LOGDIR/$SUF:ifconfig_route_diff.txt
     then
-	echo -e " OK.\n"
+	output " OK.\n"
     else
-	cat $LOGDIR/$SUF:ifconfig_route_diff.txt >&2
-	fail "differences between pre- and post-ifconfig/route"
+	output "\n\n" "`cat $LOGDIR/$SUF:ifconfig_route_diff.txt`" "\n"
+	fail "differences between pre- and post-ifconfig/route."
     fi
     if [ "$fail_count" = 0 ] ; then
-        echo -e "test run $SUF: all tests OK.\n"
+        output "test run $SUF: all tests OK.\n"
 	SUMMARY_OK="$SUMMARY_OK $SUF"
     else
-	echo -e "test run $SUF: $fail_count test failures. FAIL.\n";
+	if [ "$V" -gt 0 ] ; then
+	    echo -e -n "$outbuf"
+	    echo -e "test run $SUF: $fail_count test failures. FAIL.\n"
+        fi
 	SUMMARY_FAIL="$SUMMARY_FAIL $SUF"
 	exit_code=30
     fi
@@ -417,8 +490,10 @@ do
 done
 
 if [ -z "$SUMMARY_OK" ] ; then SUMMARY_OK=" none"; fi
+if [ -z "$SUMMARY_SKIP" ] ; then SUMMARY_SKIP=" none"; fi
 if [ -z "$SUMMARY_FAIL" ] ; then SUMMARY_FAIL=" none"; fi
 echo "Test sets succeeded:$SUMMARY_OK."
+echo "Test sets skipped:$SUMMARY_SKIP."
 echo "Test sets failed:$SUMMARY_FAIL."
 
 # remove trap handler

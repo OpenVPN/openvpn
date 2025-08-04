@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #ifndef HAVE_DAEMON
@@ -72,7 +69,10 @@ daemon(int nochdir, int noclose)
 
     if (!nochdir)
     {
-        chdir("/");
+        if (chdir("/") == -1)
+        {
+            return (-1);
+        }
     }
 
     if (!noclose)
@@ -102,4 +102,3 @@ daemon(int nochdir, int noclose)
 }
 
 #endif /* ifndef HAVE_DAEMON */
-

@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -36,9 +33,20 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#include "test_common.h"
 #include "tls_crypt.c"
 
-#include "mock_msg.h"
+/* Define this function here as dummy since including the ssl_*.c files
+ * leads to having to include even more unrelated code */
+bool
+key_state_export_keying_material(struct tls_session *session,
+                                 const char *label, size_t label_size,
+                                 void *ekm, size_t ekm_size)
+{
+    memset(ekm, 0xba, ekm_size);
+    return true;
+}
+
 
 #define TESTBUF_SIZE            128
 
@@ -106,7 +114,7 @@ __wrap_buffer_write_file(const char *filename, const struct buffer *buf)
     check_expected(filename);
     check_expected(pem);
 
-    return mock();
+    return mock_type(bool);
 }
 
 struct buffer
@@ -114,7 +122,7 @@ __wrap_buffer_read_from_file(const char *filename, struct gc_arena *gc)
 {
     check_expected(filename);
 
-    const char *pem_str = (const char *) mock();
+    const char *pem_str = mock_ptr_type(const char *);
     struct buffer ret = alloc_buf_gc(strlen(pem_str) + 1, gc);
     buf_write(&ret, pem_str, strlen(pem_str) + 1);
 
@@ -128,7 +136,7 @@ __wrap_rand_bytes(uint8_t *output, int len)
 {
     for (int i = 0; i < len; i++)
     {
-        output[i] = i;
+        output[i] = (uint8_t)i;
     }
     return true;
 }
@@ -141,13 +149,15 @@ struct test_tls_crypt_context {
     struct buffer unwrapped;
 };
 
+
 static int
 test_tls_crypt_setup(void **state)
 {
     struct test_tls_crypt_context *ctx = calloc(1, sizeof(*ctx));
     *state = ctx;
 
-    struct key key = { 0 };
+    struct key_parameters key = { .cipher = { 0 }, .hmac = { 0 },
+                                  .hmac_size = MAX_HMAC_KEY_LENGTH, .cipher_size = MAX_CIPHER_KEY_LENGTH };
 
     ctx->kt = tls_crypt_kt();
     if (!ctx->kt.cipher || !ctx->kt.digest)
@@ -216,6 +226,74 @@ tls_crypt_loopback(void **state)
     assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
     assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped),
                         BLEN(&ctx->source));
+}
+
+
+/**
+ * Test generating dynamic tls-crypt key
+ */
+static void
+test_tls_crypt_secure_reneg_key(void **state)
+{
+    struct test_tls_crypt_context *ctx =
+        (struct test_tls_crypt_context *)*state;
+
+    struct gc_arena gc = gc_new();
+
+    struct tls_session session = { 0 };
+
+    struct tls_options tls_opt = { 0 };
+    tls_opt.replay_window = 32;
+    tls_opt.replay_time = 60;
+    tls_opt.frame.buf.payload_size = 512;
+    session.opt = &tls_opt;
+
+    tls_session_generate_dynamic_tls_crypt_key(&session);
+
+    struct tls_wrap_ctx *rctx = &session.tls_wrap_reneg;
+
+    tls_crypt_wrap(&ctx->source, &rctx->work, &rctx->opt);
+    assert_int_equal(buf_len(&ctx->source) + 40, buf_len(&rctx->work));
+
+    uint8_t expected_ciphertext[] = {
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0xe3, 0x19, 0x27, 0x7f, 0x1c, 0x8d, 0x6e, 0x6a,
+        0x77, 0x96, 0xa8, 0x55, 0x33, 0x7b, 0x9c, 0xfb, 0x56, 0xe1, 0xf1, 0x3a, 0x87, 0x0e, 0x66, 0x47,
+        0xdf, 0xa1, 0x95, 0xc9, 0x2c, 0x17, 0xa0, 0x15, 0xba, 0x49, 0x67, 0xa1, 0x1d, 0x55, 0xea, 0x1a,
+        0x06, 0xa7
+    };
+    assert_memory_equal(BPTR(&rctx->work), expected_ciphertext, buf_len(&rctx->work));
+    tls_wrap_free(&session.tls_wrap_reneg);
+
+    /* Use previous tls-crypt key as 0x00, with xor we should have the same key
+     * and expect the same result */
+    session.tls_wrap.mode = TLS_WRAP_CRYPT;
+    memset(&session.tls_wrap.original_wrap_keydata.keys, 0x00, sizeof(session.tls_wrap.original_wrap_keydata.keys));
+    session.tls_wrap.original_wrap_keydata.n = 2;
+
+    tls_session_generate_dynamic_tls_crypt_key(&session);
+    tls_crypt_wrap(&ctx->source, &rctx->work, &rctx->opt);
+    assert_int_equal(buf_len(&ctx->source) + 40, buf_len(&rctx->work));
+
+    assert_memory_equal(BPTR(&rctx->work), expected_ciphertext, buf_len(&rctx->work));
+    tls_wrap_free(&session.tls_wrap_reneg);
+
+    /* XOR should not force a different key */
+    memset(&session.tls_wrap.original_wrap_keydata.keys, 0x42, sizeof(session.tls_wrap.original_wrap_keydata.keys));
+    tls_session_generate_dynamic_tls_crypt_key(&session);
+
+    tls_crypt_wrap(&ctx->source, &rctx->work, &rctx->opt);
+    assert_int_equal(buf_len(&ctx->source) + 40, buf_len(&rctx->work));
+
+    /* packet id at the start should be equal */
+    assert_memory_equal(BPTR(&rctx->work), expected_ciphertext, 8);
+
+    /* Skip packet id */
+    buf_advance(&rctx->work, 8);
+    assert_memory_not_equal(BPTR(&rctx->work), expected_ciphertext, buf_len(&rctx->work));
+    tls_wrap_free(&session.tls_wrap_reneg);
+
+
+    gc_free(&gc);
 }
 
 /**
@@ -288,7 +366,8 @@ tls_crypt_fail_invalid_key(void **state)
     skip_if_tls_crypt_not_supported(ctx);
 
     /* Change decrypt key */
-    struct key key = { { 1 } };
+    struct key_parameters key = { .cipher = { 1 }, .hmac = { 1 },
+                                  .cipher_size = MAX_CIPHER_KEY_LENGTH, .hmac_size = MAX_HMAC_KEY_LENGTH };
     free_key_ctx(&ctx->co.key_ctx_bi.decrypt);
     init_key_ctx(&ctx->co.key_ctx_bi.decrypt, &key, &ctx->kt, false, "TEST");
 
@@ -455,7 +534,7 @@ tls_crypt_v2_wrap_unwrap_max_metadata(void **state)
         .mode = TLS_WRAP_CRYPT,
         .tls_crypt_v2_server_key = ctx->server_keys.encrypt,
     };
-    assert_true(tls_crypt_v2_extract_client_key(&ctx->wkc, &wrap_ctx, NULL));
+    assert_true(tls_crypt_v2_extract_client_key(&ctx->wkc, &wrap_ctx, NULL, true));
     tls_wrap_free(&wrap_ctx);
 }
 
@@ -581,7 +660,7 @@ test_tls_crypt_v2_write_client_key_file_metadata(void **state)
     /* Test writing the client key */
     expect_string(__wrap_buffer_write_file, filename, filename);
     expect_memory(__wrap_buffer_write_file, pem, test_client_key_metadata,
-                strlen(test_client_key_metadata));
+                  strlen(test_client_key_metadata));
     will_return(__wrap_buffer_write_file, true);
 
     /* Key generation re-reads the created file as a sanity check */
@@ -595,6 +674,7 @@ test_tls_crypt_v2_write_client_key_file_metadata(void **state)
 int
 main(void)
 {
+    openvpn_unit_test_setup();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(tls_crypt_loopback,
                                         test_tls_crypt_setup,
@@ -632,6 +712,9 @@ main(void)
         cmocka_unit_test_setup_teardown(tls_crypt_v2_wrap_unwrap_dst_too_small,
                                         test_tls_crypt_v2_setup,
                                         test_tls_crypt_v2_teardown),
+        cmocka_unit_test_setup_teardown(test_tls_crypt_secure_reneg_key,
+                                        test_tls_crypt_setup,
+                                        test_tls_crypt_teardown),
         cmocka_unit_test(test_tls_crypt_v2_write_server_key_file),
         cmocka_unit_test(test_tls_crypt_v2_write_client_key_file),
         cmocka_unit_test(test_tls_crypt_v2_write_client_key_file_metadata),

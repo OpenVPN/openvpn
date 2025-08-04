@@ -1,7 +1,7 @@
 /*
  *  Networking API implementation for iproute2
  *
- *  Copyright (C) 2018-2021 Antonio Quartulli <a@unstable.cc>
+ *  Copyright (C) 2018-2025 Antonio Quartulli <a@unstable.cc>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -14,14 +14,11 @@
  *
  *  You should have received a copy of the GNU General Public License
  *  along with this program (see the file COPYING included with this
- *  distribution); if not, write to the Free Software Foundation, Inc.,
- *  59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *  distribution); if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #if defined(TARGET_LINUX) && defined(ENABLE_IPROUTE)
@@ -64,6 +61,43 @@ net_ctx_free(openvpn_net_ctx_t *ctx)
 }
 
 int
+net_iface_new(openvpn_net_ctx_t *ctx, const char *iface, const char *type,
+              void *arg)
+{
+    struct argv argv = argv_new();
+
+    argv_printf(&argv, "%s link add %s type %s", iproute_path, iface, type);
+    argv_msg(M_INFO, &argv);
+    openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip link add failed");
+
+    argv_free(&argv);
+
+    return 0;
+}
+
+int
+net_iface_type(openvpn_net_ctx_t *ctx, const char *iface,
+               char type[IFACE_TYPE_LEN_MAX])
+{
+    /* not supported by iproute2 */
+    msg(M_WARN, "%s: operation not supported by iproute2 backend", __func__);
+    return -1;
+}
+
+int
+net_iface_del(openvpn_net_ctx_t *ctx, const char *iface)
+{
+    struct argv argv = argv_new();
+
+    argv_printf(&argv, "%s link del %s", iproute_path, iface);
+    openvpn_execve_check(&argv, ctx->es, 0, "Linux ip link del failed");
+
+    argv_free(&argv);
+
+    return 0;
+}
+
+int
 net_iface_up(openvpn_net_ctx_t *ctx, const char *iface, bool up)
 {
     struct argv argv = argv_new();
@@ -91,6 +125,29 @@ net_iface_mtu_set(openvpn_net_ctx_t *ctx, const char *iface, uint32_t mtu)
     argv_free(&argv);
 
     return 0;
+}
+
+int
+net_addr_ll_set(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface,
+                uint8_t *addr)
+{
+    struct argv argv = argv_new();
+    int ret = 0;
+
+    argv_printf(&argv,
+                "%s link set addr " MAC_FMT " dev %s",
+                iproute_path, MAC_PRINT_ARG(addr), iface);
+
+    argv_msg(M_INFO, &argv);
+    if (!openvpn_execve_check(&argv, ctx->es, 0,
+                              "Linux ip link set addr failed"))
+    {
+        ret = -1;
+    }
+
+    argv_free(&argv);
+
+    return ret;
 }
 
 int
@@ -207,6 +264,7 @@ net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
 {
     struct argv argv = argv_new();
     const char *dst_str = print_in_addr_t(*dst, 0, &ctx->gc);
+    int ret = 0;
 
     argv_printf(&argv, "%s route add %s/%d", iproute_path, dst_str, prefixlen);
 
@@ -228,11 +286,14 @@ net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
     }
 
     argv_msg(D_ROUTE, &argv);
-    openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route add command failed");
+    if (!openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route add command failed"))
+    {
+        ret = -1;
+    }
 
     argv_free(&argv);
 
-    return 0;
+    return ret;
 }
 
 int
@@ -242,6 +303,7 @@ net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
 {
     struct argv argv = argv_new();
     char *dst_str = (char *)print_in6_addr(*dst, 0, &ctx->gc);
+    int ret = 0;
 
     argv_printf(&argv, "%s -6 route add %s/%d dev %s", iproute_path, dst_str,
                 prefixlen, iface);
@@ -259,11 +321,14 @@ net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
     }
 
     argv_msg(D_ROUTE, &argv);
-    openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route -6 add command failed");
+    if (!openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route -6 add command failed"))
+    {
+        ret = -1;
+    }
 
     argv_free(&argv);
 
-    return 0;
+    return ret;
 }
 
 int
@@ -273,6 +338,7 @@ net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
 {
     struct argv argv = argv_new();
     const char *dst_str = print_in_addr_t(*dst, 0, &ctx->gc);
+    int ret = 0;
 
     argv_printf(&argv, "%s route del %s/%d", iproute_path, dst_str, prefixlen);
 
@@ -282,11 +348,14 @@ net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
     }
 
     argv_msg(D_ROUTE, &argv);
-    openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route delete command failed");
+    if (!openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route delete command failed"))
+    {
+        ret = -1;
+    }
 
     argv_free(&argv);
 
-    return 0;
+    return ret;
 }
 
 int
@@ -296,6 +365,7 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
 {
     struct argv argv = argv_new();
     char *dst_str = (char *)print_in6_addr(*dst, 0, &ctx->gc);
+    int ret = 0;
 
     argv_printf(&argv, "%s -6 route del %s/%d dev %s", iproute_path, dst_str,
                 prefixlen, iface);
@@ -313,68 +383,23 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst,
     }
 
     argv_msg(D_ROUTE, &argv);
-    openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route -6 del command failed");
+    if (!openvpn_execve_check(&argv, ctx->es, 0, "ERROR: Linux route -6 del command failed"))
+    {
+        ret = -1;
+    }
 
     argv_free(&argv);
 
-    return 0;
-}
-
-int
-net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
-                     in_addr_t *best_gw, char *best_iface)
-{
-    best_iface[0] = '\0';
-
-    FILE *fp = fopen("/proc/net/route", "r");
-    if (!fp)
-    {
-        return -1;
-    }
-
-    char line[256];
-    int count = 0;
-    unsigned int lowest_metric = UINT_MAX;
-    while (fgets(line, sizeof(line), fp) != NULL)
-    {
-        if (count)
-        {
-            unsigned int net_x = 0;
-            unsigned int mask_x = 0;
-            unsigned int gw_x = 0;
-            unsigned int metric = 0;
-            unsigned int flags = 0;
-            char name[16];
-            name[0] = '\0';
-
-            const int np = sscanf(line, "%15s\t%x\t%x\t%x\t%*s\t%*s\t%d\t%x",
-                                  name, &net_x, &gw_x, &flags, &metric,
-                                  &mask_x);
-
-            if (np == 6 && (flags & IFF_UP))
-            {
-                const in_addr_t net = ntohl(net_x);
-                const in_addr_t mask = ntohl(mask_x);
-                const in_addr_t gw = ntohl(gw_x);
-
-                if (!net && !mask && metric < lowest_metric)
-                {
-                    *best_gw = gw;
-                    strcpy(best_iface, name);
-                    lowest_metric = metric;
-                }
-            }
-        }
-        ++count;
-    }
-    fclose(fp);
-
-    return 0;
+    return ret;
 }
 
 /*
- * The following function is not implemented in the iproute backend as it
+ * The following functions are not implemented in the iproute backend as it
  * uses the sitnl implementation from networking_sitnl.c.
+ *
+ * int
+ * net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst,
+ *                     in_addr_t *best_gw, char *best_iface)
  *
  * int
  * net_route_v6_best_gw(const struct in6_addr *dst,

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -31,8 +30,6 @@
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -44,19 +41,11 @@
 #include "fdmisc.h"
 #include "misc.h"
 #include "proxy.h"
+#include "forward.h"
 
 #include "memdbg.h"
 
 #define UP_TYPE_SOCKS           "SOCKS Proxy"
-
-void
-socks_adjust_frame_parameters(struct frame *frame, int proto)
-{
-    if (proto == PROTO_UDP)
-    {
-        frame_add_to_extra_link(frame, 10);
-    }
-}
 
 struct socks_proxy_info *
 socks_proxy_new(const char *server,
@@ -96,17 +85,17 @@ socks_proxy_close(struct socks_proxy_info *sp)
 static bool
 socks_username_password_auth(struct socks_proxy_info *p,
                              socket_descriptor_t sd,
+                             struct event_timeout *server_poll_timeout,
                              volatile int *signal_received)
 {
     char to_send[516];
     char buf[2];
     int len = 0;
-    const int timeout_sec = 5;
     struct user_pass creds;
     ssize_t size;
     bool ret = false;
 
-    creds.defined = 0;
+    CLEAR(creds);
     if (!get_user_pass(&creds, p->authfile, UP_TYPE_SOCKS, GET_USER_PASS_MANAGEMENT))
     {
         msg(M_NONFATAL, "SOCKS failed to get username/password.");
@@ -120,8 +109,12 @@ socks_username_password_auth(struct socks_proxy_info *p,
             "Authentication not possible.");
         goto cleanup;
     }
-    openvpn_snprintf(to_send, sizeof(to_send), "\x01%c%s%c%s", (int) strlen(creds.username),
-                     creds.username, (int) strlen(creds.password), creds.password);
+
+    int sret = snprintf(to_send, sizeof(to_send), "\x01%c%s%c%s",
+                        (int) strlen(creds.username), creds.username,
+                        (int) strlen(creds.password), creds.password);
+    ASSERT(sret <= sizeof(to_send));
+
     size = send(sd, to_send, strlen(to_send), MSG_NOSIGNAL);
 
     if (size != strlen(to_send))
@@ -140,7 +133,7 @@ socks_username_password_auth(struct socks_proxy_info *p,
 
         FD_ZERO(&reads);
         openvpn_fd_set(sd, &reads);
-        tv.tv_sec = timeout_sec;
+        tv.tv_sec = get_server_poll_remaining_time(server_poll_timeout);
         tv.tv_usec = 0;
 
         status = select(sd + 1, &reads, NULL, NULL, &tv);
@@ -196,11 +189,11 @@ cleanup:
 static bool
 socks_handshake(struct socks_proxy_info *p,
                 socket_descriptor_t sd,
+                struct event_timeout *server_poll_timeout,
                 volatile int *signal_received)
 {
     char buf[2];
     int len = 0;
-    const int timeout_sec = 5;
     ssize_t size;
 
     /* VER = 5, NMETHODS = 1, METHODS = [0 (no auth)] */
@@ -227,7 +220,7 @@ socks_handshake(struct socks_proxy_info *p,
 
         FD_ZERO(&reads);
         openvpn_fd_set(sd, &reads);
-        tv.tv_sec = timeout_sec;
+        tv.tv_sec = get_server_poll_remaining_time(server_poll_timeout);
         tv.tv_usec = 0;
 
         status = select(sd + 1, &reads, NULL, NULL, &tv);
@@ -294,7 +287,7 @@ socks_handshake(struct socks_proxy_info *p,
                 return false;
             }
 
-            if (!socks_username_password_auth(p, sd, signal_received))
+            if (!socks_username_password_auth(p, sd, server_poll_timeout, signal_received))
             {
                 return false;
             }
@@ -312,13 +305,13 @@ socks_handshake(struct socks_proxy_info *p,
 static bool
 recv_socks_reply(socket_descriptor_t sd,
                  struct openvpn_sockaddr *addr,
+                 struct event_timeout *server_poll_timeout,
                  volatile int *signal_received)
 {
     char atyp = '\0';
     int alen = 0;
     int len = 0;
-    char buf[270];		/* 4 + alen(max 256) + 2 */
-    const int timeout_sec = 5;
+    char buf[270];              /* 4 + alen(max 256) + 2 */
 
     if (addr != NULL)
     {
@@ -337,7 +330,7 @@ recv_socks_reply(socket_descriptor_t sd,
 
         FD_ZERO(&reads);
         openvpn_fd_set(sd, &reads);
-        tv.tv_sec = timeout_sec;
+        tv.tv_sec = get_server_poll_remaining_time(server_poll_timeout);
         tv.tv_usec = 0;
 
         status = select(sd + 1, &reads, NULL, NULL, &tv);
@@ -366,9 +359,14 @@ recv_socks_reply(socket_descriptor_t sd,
         size = recv(sd, &c, 1, MSG_NOSIGNAL);
 
         /* error? */
-        if (size != 1)
+        if (size < 0)
         {
             msg(D_LINK_ERRORS | M_ERRNO, "recv_socks_reply: TCP port read failed on recv()");
+            return false;
+        }
+        else if (size == 0)
+        {
+            msg(D_LINK_ERRORS, "ERROR: recv_socks_reply: empty response from socks server");
             return false;
         }
 
@@ -457,12 +455,13 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
                                socket_descriptor_t sd,  /* already open to proxy */
                                const char *host,        /* openvpn server remote */
                                const char *servname,    /* openvpn server port */
-                               volatile int *signal_received)
+                               struct event_timeout *server_poll_timeout,
+                               struct signal_info *sig_info)
 {
     char buf[270];
     size_t len;
 
-    if (!socks_handshake(p, sd, signal_received))
+    if (!socks_handshake(p, sd, server_poll_timeout, &sig_info->signal_received))
     {
         goto error;
     }
@@ -500,7 +499,7 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
 
 
     /* receive reply from Socks proxy and discard */
-    if (!recv_socks_reply(sd, NULL, signal_received))
+    if (!recv_socks_reply(sd, NULL, server_poll_timeout, &sig_info->signal_received))
     {
         goto error;
     }
@@ -508,21 +507,19 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
     return;
 
 error:
-    if (!*signal_received)
-    {
-        *signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- socks error */
-    }
+    /* SOFT-SIGUSR1 -- socks error */
+    register_signal(sig_info, SIGUSR1, "socks-error");
     return;
 }
 
 void
 establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
                                socket_descriptor_t ctrl_sd,  /* already open to proxy */
-                               socket_descriptor_t udp_sd,
                                struct openvpn_sockaddr *relay_addr,
-                               volatile int *signal_received)
+                               struct event_timeout *server_poll_timeout,
+                               struct signal_info *sig_info)
 {
-    if (!socks_handshake(p, ctrl_sd, signal_received))
+    if (!socks_handshake(p, ctrl_sd, server_poll_timeout, &sig_info->signal_received))
     {
         goto error;
     }
@@ -543,7 +540,7 @@ establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
 
     /* receive reply from Socks proxy */
     CLEAR(*relay_addr);
-    if (!recv_socks_reply(ctrl_sd, relay_addr, signal_received))
+    if (!recv_socks_reply(ctrl_sd, relay_addr, server_poll_timeout, &sig_info->signal_received))
     {
         goto error;
     }
@@ -551,10 +548,8 @@ establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
     return;
 
 error:
-    if (!*signal_received)
-    {
-        *signal_received = SIGUSR1; /* SOFT-SIGUSR1 -- socks error */
-    }
+    /* SOFT-SIGUSR1 -- socks error */
+    register_signal(sig_info, SIGUSR1, "socks-error");
     return;
 }
 
@@ -610,7 +605,7 @@ socks_process_outgoing_udp(struct buffer *buf,
     /*
      * Get a 10 byte subset buffer prepended to buf --
      * we expect these bytes will be here because
-     * we allocated frame space in socks_adjust_frame_parameters.
+     * we always allocate space for these bytes
      */
     struct buffer head = buf_sub(buf, 10, true);
 

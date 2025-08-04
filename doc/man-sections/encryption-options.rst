@@ -1,8 +1,8 @@
 Encryption Options
-==================
+------------------
 
 SSL Library information
------------------------
+```````````````````````
 
 --show-ciphers
   (Standalone) Show all cipher algorithms to use with the ``--cipher``
@@ -32,7 +32,7 @@ SSL Library information
   ``--ecdh-curve`` and ``tls-groups`` options.
 
 Generating key material
------------------------
+```````````````````````
 
 --genkey args
   (Standalone) Generate a key to be used of the type keytype. if keyfile
@@ -69,20 +69,20 @@ Generating key material
      $ openvpn --tls-crypt-v2 v2crypt-server.key --genkey tls-crypt-v2-client v2crypt-client-1.key
 
   * Generating *Shared Secret Keys*
-    Generate a shared secret, for use with the ``--secret``, ``--tls-auth``
+    Generate a shared secret, for use with the ``--tls-auth``
     or ``--tls-crypt`` options.
 
     Syntax:
     ::
 
-       $ openvpn --genkey secret|tls-crypt|tls-auth keyfile
+       $ openvpn --genkey tls-crypt|tls-auth keyfile
 
-    The key is saved in ``keyfile``. All three variants (``--secret``,
-    ``tls-crypt`` and ``tls-auth``) generate the same type of key. The
-    aliases are added for convenience.
+    The key is saved in ``keyfile``. Both variants (``tls-crypt`` and
+    ``tls-auth``) generate the same type of key. The aliases are added for
+    convenience.
 
-    If using this for ``--secret``, this file must be shared with the peer
-    over a pre-existing secure channel such as ``scp``\(1).
+    This file must be shared with the peer over a pre-existing secure
+    channel such as ``scp``\(1).
 
   * Generating *TLS Crypt v2 Server key*
     Generate a ``--tls-crypt-v2`` key to be used by an OpenVPN server.
@@ -104,7 +104,8 @@ Generating key material
 
     If supplied, include the supplied ``metadata`` in the wrapped client
     key. This metadata must be supplied in base64-encoded form. The
-    metadata must be at most 735 bytes long (980 bytes in base64).
+    metadata must be at most 733 bytes long (980 characters in base64, though
+    note that 980 base64 characters can encode more than 733 bytes).
 
     If no metadata is supplied, OpenVPN will use a 64-bit unix timestamp
     representing the current time in UTC, encoded in network order, as

@@ -65,11 +65,6 @@ server and client mode operations.
   When the management interface is listening on a unix domain socket, only
   allow connections from group ``g``.
 
---management-client-pf
-  Management interface clients must specify a packet filter file for each
-  connecting client. See :code:`management-notes.txt` in OpenVPN
-  distribution for detailed notes.
-
 --management-client-user u
   When the management interface is listening on a unix domain socket, only
   allow connections from user ``u``.
@@ -90,9 +85,15 @@ server and client mode operations.
      management-external-key
      management-external-key nopadding
      management-external-key pkcs1
-     management-external-key nopadding pkcs1
+     management-external-key pss
 
-  The optional parameters :code:`nopadding` and :code:`pkcs1` signal
+  or any combination like:
+  ::
+
+     management-external-key nopadding pkcs1
+     management-external-key pkcs1 pss
+
+  The optional parameters :code:`nopadding` :code:`pkcs1` and :code:`pss` signal
   support for different padding algorithms. See
   :code:`doc/mangement-notes.txt` for a complete description of this
   feature.

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -18,23 +18,21 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /**
- * @file Data Channel Cryptography mbed TLS-specific backend interface
+ * @file
+ * Data Channel Cryptography mbed TLS-specific backend interface
  */
 
 #ifndef CRYPTO_MBEDTLS_H_
 #define CRYPTO_MBEDTLS_H_
 
+#include <stdbool.h>
 #include <mbedtls/cipher.h>
 #include <mbedtls/md.h>
 #include <mbedtls/ctr_drbg.h>
-
-/** Generic cipher key type %context. */
-typedef mbedtls_cipher_info_t cipher_kt_t;
 
 /** Generic message digest key type %context. */
 typedef mbedtls_md_info_t md_kt_t;
@@ -47,6 +45,9 @@ typedef mbedtls_md_context_t md_ctx_t;
 
 /** Generic HMAC %context. */
 typedef mbedtls_md_context_t hmac_ctx_t;
+
+/* Use a dummy type for the provider */
+typedef void provider_t;
 
 /** Maximum length of an IV */
 #define OPENVPN_MAX_IV_LENGTH   MBEDTLS_MAX_IV_LENGTH
@@ -63,6 +64,8 @@ typedef mbedtls_md_context_t hmac_ctx_t;
 /** Cipher is in GCM mode */
 #define OPENVPN_MODE_GCM        MBEDTLS_MODE_GCM
 
+typedef mbedtls_operation_t crypto_operation_t;
+
 /** Cipher should encrypt */
 #define OPENVPN_OP_ENCRYPT      MBEDTLS_ENCRYPT
 
@@ -73,7 +76,6 @@ typedef mbedtls_md_context_t hmac_ctx_t;
 #define MD5_DIGEST_LENGTH       16
 #define SHA_DIGEST_LENGTH       20
 #define SHA256_DIGEST_LENGTH    32
-#define DES_KEY_LENGTH 8
 
 /**
  * Returns a singleton instance of the mbed TLS random number generator.
@@ -145,11 +147,5 @@ mbed_log_func_line_lite(unsigned int flags, int errval,
  */
 #define mbed_ok(errval) \
     mbed_log_func_line_lite(D_CRYPT_ERRORS, errval, __func__, __LINE__)
-
-static inline bool
-cipher_kt_var_key_size(const cipher_kt_t *cipher)
-{
-    return cipher->flags & MBEDTLS_CIPHER_VARIABLE_KEY_LEN;
-}
 
 #endif /* CRYPTO_MBEDTLS_H_ */

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2016-2021 Selva Nair <selva.nair@gmail.com>
+ *  Copyright (C) 2016-2025 Selva Nair <selva.nair@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #include "validate.h"
@@ -68,7 +67,7 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
     /* convert fname to full path */
     if (PathIsRelativeW(fname) )
     {
-        openvpn_swprintf(tmp, _countof(tmp), L"%ls\\%ls", workdir, fname);
+        swprintf(tmp, _countof(tmp), L"%ls\\%ls", workdir, fname);
         config_file = tmp;
     }
     else
@@ -140,12 +139,8 @@ GetBuiltinAdminGroupName(WCHAR *name, DWORD nlen)
     return b;
 }
 
-/*
- * Check whether user is a member of Administrators group or
- * the group specified in ovpn_admin_group
- */
 BOOL
-IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group)
+IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group, const WCHAR *ovpn_service_user)
 {
     const WCHAR *admin_group[2];
     WCHAR username[MAX_NAME];
@@ -158,10 +153,16 @@ IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group)
     /* Get username */
     if (!LookupAccountSidW(NULL, sid, username, &len, domain, &len, &sid_type))
     {
-        MsgToEventLog(M_SYSERR, TEXT("LookupAccountSid"));
+        MsgToEventLog(M_SYSERR, L"LookupAccountSid");
         /* not fatal as this is now used only for logging */
         username[0] = '\0';
         domain[0] = '\0';
+    }
+
+    /* is this service account? */
+    if ((wcscmp(username, ovpn_service_user) == 0) && (wcscmp(domain, L"NT SERVICE") == 0))
+    {
+        return TRUE;
     }
 
     if (GetBuiltinAdminGroupName(sysadmin_group, _countof(sysadmin_group)))
@@ -170,7 +171,7 @@ IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group)
     }
     else
     {
-        MsgToEventLog(M_SYSERR, TEXT("Failed to get the name of Administrators group. Using the default."));
+        MsgToEventLog(M_SYSERR, L"Failed to get the name of Administrators group. Using the default.");
         /* use the default value */
         admin_group[0] = SYSTEM_ADMIN_GROUP;
     }
@@ -182,7 +183,7 @@ IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group)
         ret = IsUserInGroup(sid, token_groups, admin_group[i]);
         if (ret)
         {
-            MsgToEventLog(M_INFO, TEXT("Authorizing user '%ls@%ls' by virtue of membership in group '%ls'"),
+            MsgToEventLog(M_INFO, L"Authorizing user '%ls@%ls' by virtue of membership in group '%ls'",
                           username, domain, admin_group[i]);
             goto out;
         }
@@ -302,7 +303,7 @@ IsUserInGroup(PSID sid, const PTOKEN_GROUPS token_groups, const WCHAR *group_nam
     if (err != NERR_Success && err != NERR_GroupNotFound)
     {
         SetLastError(err);
-        MsgToEventLog(M_SYSERR, TEXT("In NetLocalGroupGetMembers for group '%ls'"), group_name);
+        MsgToEventLog(M_SYSERR, L"In NetLocalGroupGetMembers for group '%ls'", group_name);
     }
 
     return ret;

@@ -1,3 +1,5 @@
+upstream PR: https://github.com/OpenSC/pkcs11-helper/pull/4
+
 commit 90590b02085edc3830bdfe0942a46c4e7bf3f1ab (HEAD -> master)
 Author: David Woodhouse <David.Woodhouse@intel.com>
 Date:   Thu Apr 30 14:58:24 2015 +0100

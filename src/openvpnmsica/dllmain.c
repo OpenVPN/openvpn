@@ -2,7 +2,7 @@
  *  openvpnmsica -- Custom Action DLL to provide OpenVPN-specific support to MSI packages
  *                  https://community.openvpn.net/openvpn/wiki/OpenVPNMSICA
  *
- *  Copyright (C) 2018-2021 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2025 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -14,14 +14,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
-#elif defined(_MSC_VER)
-#include <config-msvc.h>
 #endif
 
 #include "openvpnmsica.h"
@@ -34,7 +31,7 @@
 #pragma comment(lib, "msi.lib")
 #endif
 #include <stdio.h>
-#include <tchar.h>
+#include <wchar.h>
 
 
 DWORD openvpnmsica_thread_data_idx = TLS_OUT_OF_INDEXES;
@@ -162,13 +159,13 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         MsiRecordSetInteger(hRecordProg, 3, dwResult);
 
         /* Field 4: The Windows error description. */
-        LPTSTR szErrMessage = NULL;
+        LPWSTR szErrMessage = NULL;
         if (FormatMessage(
                 FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
                 0,
                 dwResult,
                 0,
-                (LPTSTR)&szErrMessage,
+                (LPWSTR)&szErrMessage,
                 0,
                 NULL) && szErrMessage)
         {
@@ -177,7 +174,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
             {
                 if (szErrMessage[i])
                 {
-                    if (!_istspace(szErrMessage[i]))
+                    if (!iswspace(szErrMessage[i]))
                     {
                         i_last = i + 1;
                     }

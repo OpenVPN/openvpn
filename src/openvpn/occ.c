@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -199,8 +196,11 @@ check_send_occ_load_test_dowork(struct context *c)
         if (entry->op >= 0)
         {
             c->c2.occ_op = entry->op;
-            c->c2.occ_mtu_load_size =
-                EXPANDED_SIZE(&c->c2.frame) + entry->delta;
+            size_t payload_size = frame_calculate_payload_size(&c->c2.frame,
+                                                               &c->options, &c->c1.ks.key_type);
+            size_t header_size = frame_calculate_protocol_header_size(&c->c1.ks.key_type, &c->options, false);
+
+            c->c2.occ_mtu_load_size = payload_size + header_size;
         }
         else
         {
@@ -218,8 +218,8 @@ check_send_occ_msg_dowork(struct context *c)
     bool doit = false;
 
     c->c2.buf = c->c2.buffers->aux_buf;
-    ASSERT(buf_init(&c->c2.buf, FRAME_HEADROOM(&c->c2.frame)));
-    ASSERT(buf_safe(&c->c2.buf, MAX_RW_SIZE_TUN(&c->c2.frame)));
+    ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
+    ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
     ASSERT(buf_write(&c->c2.buf, occ_magic, OCC_STRING_SIZE));
 
     switch (c->c2.occ_op)
@@ -298,10 +298,20 @@ check_send_occ_msg_dowork(struct context *c)
             {
                 break;
             }
-            need_to_add = min_int(c->c2.occ_mtu_load_size, EXPANDED_SIZE(&c->c2.frame))
+            size_t proto_hdr, payload_hdr;
+            const struct key_type *kt = &c->c1.ks.key_type;
+
+            /* OCC message have comp/fragment headers but not ethernet headers */
+            payload_hdr = frame_calculate_payload_overhead(0, &c->options, kt);
+
+            /* Since we do not know the payload size we just pass 0 as size here */
+            proto_hdr = frame_calculate_protocol_header_size(kt, &c->options, false);
+
+            need_to_add = min_int(c->c2.occ_mtu_load_size, c->c2.frame.buf.payload_size)
                           - OCC_STRING_SIZE
-                          - sizeof(uint8_t)
-                          - EXTRA_FRAME(&c->c2.frame);
+                          - sizeof(uint8_t)     /* occ opcode */
+                          - payload_hdr
+                          - proto_hdr;
 
             while (need_to_add > 0)
             {
@@ -314,12 +324,13 @@ check_send_occ_msg_dowork(struct context *c)
                 }
                 --need_to_add;
             }
-            dmsg(D_PACKET_CONTENT, "SENT OCC_MTU_LOAD min_int(%d-%d-%d-%d,%d) size=%d",
+            dmsg(D_PACKET_CONTENT, "SENT OCC_MTU_LOAD min_int(%d,%d)-%d-%d-%d-%d) size=%d",
                  c->c2.occ_mtu_load_size,
+                 c->c2.frame.buf.payload_size,
                  OCC_STRING_SIZE,
                  (int) sizeof(uint8_t),
-                 EXTRA_FRAME(&c->c2.frame),
-                 MAX_RW_SIZE_TUN(&c->c2.frame),
+                 (int) payload_hdr,
+                 (int) proto_hdr,
                  BLEN(&c->c2.buf));
             doit = true;
         }
@@ -415,9 +426,8 @@ process_received_occ_msg(struct context *c)
             break;
 
         case OCC_EXIT:
-            dmsg(D_PACKET_CONTENT, "RECEIVED OCC_EXIT");
-            c->sig->signal_received = SIGTERM;
-            c->sig->signal_text = "remote-exit";
+            dmsg(D_STREAM_ERRORS, "OCC exit message received by peer");
+            register_signal(c->sig, SIGUSR1, "remote-exit");
             break;
     }
     c->c2.buf.len = 0; /* don't pass packet on */

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -46,8 +43,10 @@ time_t now_usec = 0;       /* GLOBAL */
 void
 update_now(const time_t system_time)
 {
-    const int forward_threshold = 86400; /* threshold at which to dampen forward jumps */
-    const int backward_trigger  = 10;  /* backward jump must be >= this many seconds before we adjust */
+    /* threshold at which to dampen forward jumps */
+    const int forward_threshold = 86400;
+    /* backward jump must be >= this many seconds before we adjust */
+    const int backward_trigger = 10;
     time_t real_time = system_time + now_adj;
 
     if (real_time > now)
@@ -107,7 +106,7 @@ tv_string_abs(const struct timeval *tv, struct gc_arena *gc)
 /* format a time_t as ascii, or use current time if 0 */
 
 const char *
-time_string(time_t t, int usec, bool show_usec, struct gc_arena *gc)
+time_string(time_t t, long usec, bool show_usec, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(64, gc);
     struct timeval tv;

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 
@@ -41,14 +40,12 @@
  *  @{ */
 
 
-#define EXPONENTIAL_BACKOFF
-
 #define RELIABLE_ACK_SIZE 8     /**< The maximum number of packet IDs
                                  *   waiting to be acknowledged which can
                                  *   be stored in one \c reliable_ack
                                  *   structure. */
 
-#define RELIABLE_CAPACITY 8     /**< The maximum number of packets that
+#define RELIABLE_CAPACITY 12    /**< The maximum number of packets that
                                  *   the reliability layer for one VPN
                                  *   tunnel in one direction can store. */
 
@@ -65,6 +62,9 @@ struct reliable_ack
     int len;
     packet_id_type packet_id[RELIABLE_ACK_SIZE];
 };
+
+/* The size of the ACK header */
+#define ACK_SIZE(n) (sizeof(uint8_t) + ((n) ? SID_SIZE : 0) + sizeof(packet_id_type) * (n))
 
 /**
  * The structure in which the reliability layer stores a single incoming
@@ -92,7 +92,7 @@ struct reliable
     int size;
     interval_t initial_timeout;
     packet_id_type packet_id;
-    int offset;
+    int offset; /**< Offset of the bufs in the reliable_entry array */
     bool hold; /* don't xmit until reliable_schedule_now is called */
     struct reliable_entry array[RELIABLE_CAPACITY];
 };
@@ -122,6 +122,28 @@ struct reliable
  */
 bool reliable_ack_read(struct reliable_ack *ack,
                        struct buffer *buf, const struct session_id *sid);
+
+
+/**
+ * Parse an acknowledgment record from a received packet.
+ *
+ * This function parses the packet ID acknowledgment record from the packet
+ * contained in \a buf.  If the record contains acknowledgments, these are
+ * stored in \a ack.  This function also extracts packet's session ID
+ * and returns it in \a session_id_remote
+ *
+ * @param ack The acknowledgment structure in which received
+ *     acknowledgments are to be stored.
+ * @param buf The buffer containing the packet.
+ * @param session_id_remote The parsed remote session id. This field is
+ *                          is only filled if ack->len >= 1
+ * @return
+ * @li True, if processing was successful.
+ * @li False, if an error occurs during processing.
+ */
+bool
+reliable_ack_parse(struct buffer *buf, struct reliable_ack *ack,
+                   struct session_id *session_id_remote);
 
 /**
  * Remove acknowledged packets from a reliable structure.
@@ -156,10 +178,27 @@ reliable_ack_empty(struct reliable_ack *ack)
 }
 
 /**
+ * Returns the number of packets that need to be acked.
+ *
+ * @param ack The acknowledgment structure to check.
+ *
+ * @returns the number of outstanding acks
+ */
+static inline int
+reliable_ack_outstanding(struct reliable_ack *ack)
+{
+    return ack->len;
+}
+
+
+/**
  * Write a packet ID acknowledgment record to a buffer.
  *
  * @param ack The acknowledgment structure containing packet IDs to be
  *     acknowledged.
+ * @param ack_mru List of packets we have acknowledged before. Packets from
+ *                \c ack will be moved here and if there is space in our
+ *                ack structure we will fill it with packets from this
  * @param buf The buffer into which the acknowledgment record will be
  *     written.
  * @param sid The session ID of the VPN tunnel associated with the
@@ -174,6 +213,7 @@ reliable_ack_empty(struct reliable_ack *ack)
  * @li False, if an error occurs during processing.
  */
 bool reliable_ack_write(struct reliable_ack *ack,
+                        struct reliable_ack *ack_mru,
                         struct buffer *buf,
                         const struct session_id *sid, int max, bool prepend);
 
@@ -206,9 +246,6 @@ void reliable_init(struct reliable *rel, int buf_size, int offset, int array_siz
  * @param rel The reliable structured to clean up.
  */
 void reliable_free(struct reliable *rel);
-
-/* add to extra_frame the maximum number of bytes we will need for reliable_ack_write */
-void reliable_ack_adjust_frame_parameters(struct frame *frame, int max);
 
 /** @} name Functions for initialization and cleanup */
 
@@ -331,21 +368,31 @@ bool reliable_ack_acknowledge_packet_id(struct reliable_ack *ack, packet_id_type
  * @param rel The reliable structure from which to retrieve the
  *     buffer.
  *
- * @return A pointer to the buffer of the entry with the next
- *     sequential key ID.  If no such entry is present, this function
- *     returns NULL.
+ * @return A pointer to the entry with the next sequential key ID.
+ *     If no such entry is present, this function  returns NULL.
  */
-struct buffer *reliable_get_buf_sequenced(struct reliable *rel);
+struct reliable_entry *reliable_get_entry_sequenced(struct reliable *rel);
+
+
+
+/**
+ * Copies the first n acks from \c ack to \c ack_mru
+ *
+ * @param ack The reliable structure to copy the acks from
+ * @param ack_mru The reliable structure to insert the acks into
+ * @param n The number of ACKS to copy
+ */
+void
+copy_acks_to_mru(struct reliable_ack *ack, struct reliable_ack *ack_mru, int n);
+
 
 /**
  * Remove an entry from a reliable structure.
  *
  * @param rel The reliable structure associated with the given buffer.
  * @param buf The buffer of the reliable entry which is to be removed.
- * @param inc_pid If true, the reliable structure's packet ID counter
- *     will be incremented.
  */
-void reliable_mark_deleted(struct reliable *rel, struct buffer *buf, bool inc_pid);
+void reliable_mark_deleted(struct reliable *rel, struct buffer *buf);
 
 /** @} name Functions for extracting incoming packets */
 
@@ -367,6 +414,20 @@ void reliable_mark_deleted(struct reliable *rel, struct buffer *buf, bool inc_pi
  *     broken, this function also returns NULL.
  */
 struct buffer *reliable_get_buf_output_sequenced(struct reliable *rel);
+
+
+/**
+ * Counts the number of free buffers in output that can be potentially used
+ * for sending
+ *
+ *  @param rel The reliable structure in which to search for a free
+ *     entry.
+ *
+ *  @return the number of buffer that are available for sending without
+ *             breaking ack sequence
+ * */
+int
+reliable_get_num_output_sequenced_available(struct reliable *rel);
 
 /**
  * Mark the reliable entry associated with the given buffer as

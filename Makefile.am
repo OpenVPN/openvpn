@@ -5,8 +5,8 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
-#  Copyright (C) 2010-2021 David Sommerseth <dazo@eurephia.org>
+#  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
+#  Copyright (C) 2010-2025 David Sommerseth <dazo@eurephia.org>
 #  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 #  This program is free software; you can redistribute it and/or modify
@@ -19,8 +19,7 @@
 #  GNU General Public License for more details.
 #
 #  You should have received a copy of the GNU General Public License along
-#  with this program; if not, write to the Free Software Foundation, Inc.,
-#  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#  with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 
 ACLOCAL_AMFLAGS = -I m4
@@ -41,7 +40,12 @@ CLEANFILES = \
 
 EXTRA_DIST = \
 	contrib \
-	debug
+	debug \
+	ltrc.inc \
+	CMakeLists.txt \
+	CMakePresets.json \
+	config.h.cmake.in \
+	forked-test-driver
 
 .PHONY: config-version.h doxygen
 
@@ -50,11 +54,10 @@ BUILT_SOURCES = \
 	config-version.h
 endif
 
-SUBDIRS = build distro include src sample doc tests
+SUBDIRS = distro include src sample doc tests
 
 dist_doc_DATA = \
 	README \
-	README.IPv6 \
 	README.mbedtls \
 	Changes.rst \
 	COPYRIGHT.GPL \
@@ -63,27 +66,17 @@ dist_doc_DATA = \
 dist_noinst_DATA = \
 	.gitignore \
 	.gitattributes \
+	CONTRIBUTING.rst \
 	PORTS \
-	README.IPv6 TODO.IPv6 \
-	README.mbedtls \
-	openvpn.sln \
-	msvc-env.bat \
-	msvc-dev.bat \
-	msvc-build.bat
-
-dist_noinst_HEADERS = \
-	config-msvc.h \
-	config-msvc-version.h.in
-
-if WIN32
-rootdir=$(prefix)
-root_DATA = version.sh
-endif
+	README.cmake.md \
+	README.dco.md \
+	README.ec \
+	README.wolfssl
 
 config-version.h:
-	@CONFIGURE_GIT_CHFILES="`GIT_DIR=\"$(top_srcdir)/.git\" $(GIT) diff-files --name-status -r --ignore-submodules --quiet -- || echo \"+\"`"; \
-	CONFIGURE_GIT_UNCOMMITTED="`GIT_DIR=\"$(top_srcdir)/.git\" $(GIT) diff-index --cached  --quiet --ignore-submodules HEAD || echo \"*\"`"; \
-	CONFIGURE_GIT_REVISION="`GIT_DIR=\"$(top_srcdir)/.git\" $(GIT) rev-parse --symbolic-full-name HEAD | cut -d/ -f3-`/`GIT_DIR=\"$(top_srcdir)/.git\" $(GIT) rev-parse --short=16 HEAD`"; \
+	@CONFIGURE_GIT_CHFILES="`$(GIT) -C \"$(top_srcdir)\" diff-files --name-status -r --ignore-submodules --quiet -- || echo \"+\"`"; \
+	CONFIGURE_GIT_UNCOMMITTED="`$(GIT) -C \"$(top_srcdir)\" diff-index --cached  --quiet --ignore-submodules HEAD || echo \"*\"`"; \
+	CONFIGURE_GIT_REVISION="`$(GIT) -C \"$(top_srcdir)\" rev-parse --symbolic-full-name HEAD | cut -d/ -f3-`/`$(GIT) -C \"$(top_srcdir)\" rev-parse --short=16 HEAD`"; \
 	echo "#define CONFIGURE_GIT_REVISION \"$${CONFIGURE_GIT_REVISION}\"" > config-version.h.tmp; \
 	echo "#define CONFIGURE_GIT_FLAGS \"$${CONFIGURE_GIT_CHFILES}$${CONFIGURE_GIT_UNCOMMITTED}\"" >> config-version.h.tmp
 

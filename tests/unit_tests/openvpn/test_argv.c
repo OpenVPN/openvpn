@@ -12,6 +12,7 @@
 
 #include "argv.h"
 #include "buffer.h"
+#include "test_common.h"
 
 /* Defines for use in the tests and the mock parse_line() */
 #define PATH1       "/s p a c e"
@@ -252,6 +253,7 @@ argv_insert_head__non_empty_argv__head_added(void **state)
 int
 main(void)
 {
+    openvpn_unit_test_setup();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(argv_printf__multiple_spaces_in_format__parsed_as_one),
         cmocka_unit_test(argv_printf_cat__multiple_spaces_in_format__parsed_as_one),
@@ -266,6 +268,7 @@ main(void)
         cmocka_unit_test(argv_str__empty_argv__empty_output),
         cmocka_unit_test(argv_str__multiple_argv__correct_output),
         cmocka_unit_test(argv_insert_head__non_empty_argv__head_added),
+        cmocka_unit_test(argv_insert_head__empty_argv__head_only),
     };
 
     return cmocka_run_group_tests_name("argv", tests, NULL, NULL);

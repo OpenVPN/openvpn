@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef BUFFER_H
@@ -187,6 +186,19 @@ struct buffer string_alloc_buf(const char *str, struct gc_arena *gc);
 
 void gc_addspecial(void *addr, void (*free_function)(void *), struct gc_arena *a);
 
+/**
+ * allows to realloc a pointer previously allocated by gc_malloc or gc_realloc
+ *
+ * @note only use this function on pointers returned by gc_malloc or re_alloc
+ *       with the same gc_arena
+ *
+ * @param ptr   Pointer of the previously allocated memory
+ * @param size  New size
+ * @param a     gc_arena to use
+ * @return      new pointer
+ */
+void *
+gc_realloc(void *ptr, size_t size, struct gc_arena *a);
 
 #ifdef BUF_INIT_TRACKING
 #define buf_init(buf, offset) buf_init_debug(buf, offset, __FILE__, __LINE__)
@@ -198,7 +210,7 @@ bool buf_init_debug(struct buffer *buf, int offset, const char *file, int line);
 
 
 /* inline functions */
-inline static void
+static inline void
 gc_freeaddrinfo_callback(void *addr)
 {
     freeaddrinfo((struct addrinfo *) addr);
@@ -356,9 +368,9 @@ strncpynt(char *dest, const char *src, size_t maxlen)
 
 /* return true if string contains at least one numerical digit */
 static inline bool
-has_digit(const unsigned char *src)
+has_digit(const char *src)
 {
-    unsigned char c;
+    char c;
     while ((c = *src++))
     {
         if (isdigit(c))
@@ -435,35 +447,6 @@ __attribute__ ((format(__printf__, 2, 3)))
  */
 bool buf_puts(struct buffer *buf, const char *str);
 
-/*
- * Like snprintf but guarantees null termination for size > 0
- */
-bool openvpn_snprintf(char *str, size_t size, const char *format, ...)
-#ifdef __GNUC__
-#if __USE_MINGW_ANSI_STDIO
-__attribute__ ((format(gnu_printf, 3, 4)))
-#else
-__attribute__ ((format(__printf__, 3, 4)))
-#endif
-#endif
-;
-
-
-#ifdef _WIN32
-/*
- * Like swprintf but guarantees null termination for size > 0
- *
- * This is under #ifdef because only Windows-specific code in tun.c
- * uses this function and its implementation breaks OpenBSD <= 4.9
- */
-bool
-openvpn_swprintf(wchar_t *const str, const size_t size, const wchar_t *const format, ...);
-
-/*
- * Unlike in openvpn_snprintf, we cannot use format attributes since
- * GCC doesn't support wprintf as archetype.
- */
-#endif
 
 /*
  * remove/add trailing characters
@@ -501,11 +484,6 @@ bool buffer_write_file(const char *filename, const struct buffer *buf);
  * truncated by buf_printf
  */
 void buf_catrunc(struct buffer *buf, const char *str);
-
-/*
- * convert a multi-line output to one line
- */
-void convert_to_one_line(struct buffer *buf);
 
 /*
  * Parse a string based on a given delimiter char
@@ -710,23 +688,22 @@ buf_write_prepend(struct buffer *dest, const void *src, int size)
 }
 
 static inline bool
-buf_write_u8(struct buffer *dest, int data)
+buf_write_u8(struct buffer *dest, uint8_t data)
 {
-    uint8_t u8 = (uint8_t) data;
-    return buf_write(dest, &u8, sizeof(uint8_t));
+    return buf_write(dest, &data, sizeof(uint8_t));
 }
 
 static inline bool
-buf_write_u16(struct buffer *dest, int data)
+buf_write_u16(struct buffer *dest, uint16_t data)
 {
-    uint16_t u16 = htons((uint16_t) data);
+    uint16_t u16 = htons(data);
     return buf_write(dest, &u16, sizeof(uint16_t));
 }
 
 static inline bool
-buf_write_u32(struct buffer *dest, int data)
+buf_write_u32(struct buffer *dest, uint32_t data)
 {
-    uint32_t u32 = htonl((uint32_t) data);
+    uint32_t u32 = htonl(data);
     return buf_write(dest, &u32, sizeof(uint32_t));
 }
 
@@ -900,55 +877,92 @@ int buf_substring_len(const struct buffer *buf, int delim);
  */
 const char *np(const char *str);
 
-/*#define CHARACTER_CLASS_DEBUG*/
-
 /* character classes */
 
-#define CC_ANY                (1<<0)
-#define CC_NULL               (1<<1)
+#define CC_ANY                (1<<0) /**< any character */
+#define CC_NULL               (1<<1) /**< null character \0 */
 
-#define CC_ALNUM              (1<<2)
-#define CC_ALPHA              (1<<3)
-#define CC_ASCII              (1<<4)
-#define CC_CNTRL              (1<<5)
-#define CC_DIGIT              (1<<6)
-#define CC_PRINT              (1<<7)
-#define CC_PUNCT              (1<<8)
-#define CC_SPACE              (1<<9)
-#define CC_XDIGIT             (1<<10)
+#define CC_ALNUM              (1<<2) /**< alphanumeric isalnum() */
+#define CC_ALPHA              (1<<3) /**< alphabetic isalpha() */
+#define CC_ASCII              (1<<4) /**< ASCII character */
+#define CC_CNTRL              (1<<5) /**< control character iscntrl() */
+#define CC_DIGIT              (1<<6) /**< digit isdigit() */
+#define CC_PRINT              (1<<7) /**< printable (>= 32, != 127) */
+#define CC_PUNCT              (1<<8) /**< punctuation ispunct() */
+#define CC_SPACE              (1<<9) /**< whitespace isspace() */
+#define CC_XDIGIT             (1<<10) /**< hex digit isxdigit() */
 
-#define CC_BLANK              (1<<11)
-#define CC_NEWLINE            (1<<12)
-#define CC_CR                 (1<<13)
+#define CC_BLANK              (1<<11) /**< space or tab */
+#define CC_NEWLINE            (1<<12) /**< newline */
+#define CC_CR                 (1<<13) /**< carriage return */
 
-#define CC_BACKSLASH          (1<<14)
-#define CC_UNDERBAR           (1<<15)
-#define CC_DASH               (1<<16)
-#define CC_DOT                (1<<17)
-#define CC_COMMA              (1<<18)
-#define CC_COLON              (1<<19)
-#define CC_SLASH              (1<<20)
-#define CC_SINGLE_QUOTE       (1<<21)
-#define CC_DOUBLE_QUOTE       (1<<22)
-#define CC_REVERSE_QUOTE      (1<<23)
-#define CC_AT                 (1<<24)
-#define CC_EQUAL              (1<<25)
-#define CC_LESS_THAN          (1<<26)
-#define CC_GREATER_THAN       (1<<27)
-#define CC_PIPE               (1<<28)
-#define CC_QUESTION_MARK      (1<<29)
-#define CC_ASTERISK           (1<<30)
+#define CC_BACKSLASH          (1<<14) /**< backslash */
+#define CC_UNDERBAR           (1<<15) /**< underscore */
+#define CC_DASH               (1<<16) /**< dash */
+#define CC_DOT                (1<<17) /**< dot */
+#define CC_COMMA              (1<<18) /**< comma */
+#define CC_COLON              (1<<19) /**< colon */
+#define CC_SLASH              (1<<20) /**< slash */
+#define CC_SINGLE_QUOTE       (1<<21) /**< single quote */
+#define CC_DOUBLE_QUOTE       (1<<22) /**< double quote */
+#define CC_REVERSE_QUOTE      (1<<23) /**< reverse quote */
+#define CC_AT                 (1<<24) /**< at sign */
+#define CC_EQUAL              (1<<25) /**< equal sign */
+#define CC_LESS_THAN          (1<<26) /**< less than sign */
+#define CC_GREATER_THAN       (1<<27) /**< greater than sign */
+#define CC_PIPE               (1<<28) /**< pipe */
+#define CC_QUESTION_MARK      (1<<29) /**< question mark */
+#define CC_ASTERISK           (1<<30) /**< asterisk */
 
 /* macro classes */
-#define CC_NAME               (CC_ALNUM|CC_UNDERBAR)
-#define CC_CRLF               (CC_CR|CC_NEWLINE)
+#define CC_NAME               (CC_ALNUM|CC_UNDERBAR) /**< alphanumeric plus underscore */
+#define CC_CRLF               (CC_CR|CC_NEWLINE) /**< carriage return or newline */
 
 bool char_class(const unsigned char c, const unsigned int flags);
 
 bool string_class(const char *str, const unsigned int inclusive, const unsigned int exclusive);
 
+/**
+ * Modifies a string in place by replacing certain classes of characters of it with a specified
+ * character.
+ *
+ * Guaranteed to not increase the length of the string.
+ * If replace is 0, characters are skipped instead of replaced.
+ *
+ * @param str The string to be modified.
+ * @param inclusive The character classes not to be replaced.
+ * @param exclusive Character classes to be replaced even if they are also in inclusive.
+ * @param replace The character to replace the specified character classes with.
+ * @return True if the string was not modified, false otherwise.
+ */
 bool string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive, const char replace);
 
+
+/**
+ * Check a buffer if it only consists of allowed characters.
+ *
+ * @param buf The buffer to be checked.
+ * @param inclusive The character classes that are allowed.
+ * @param exclusive Character classes that are not allowed even if they are also in inclusive.
+ * @return True if the string consists only of allowed characters, false otherwise.
+ */
+bool
+string_check_buf(struct buffer *buf, const unsigned int inclusive, const unsigned int exclusive);
+
+/**
+ * Returns a copy of a string with certain classes of characters of it replaced with a specified
+ * character.
+ *
+ * If replace is 0, characters are skipped instead of replaced.
+ *
+ * @param str       The input string to be modified.
+ * @param inclusive Character classes not to be replaced.
+ * @param exclusive Character classes to be replaced even if they are also in inclusive.
+ * @param replace   The character to replace the specified character classes with.
+ * @param gc        The garbage collector arena to allocate memory from.
+ *
+ * @return The modified string with characters replaced within the specified range.
+ */
 const char *string_mod_const(const char *str,
                              const unsigned int inclusive,
                              const unsigned int exclusive,
@@ -964,11 +978,6 @@ strprefix(const char *str, const char *prefix)
     return 0 == strncmp(str, prefix, strlen(prefix));
 }
 
-
-#ifdef CHARACTER_CLASS_DEBUG
-void character_class_debug(void);
-
-#endif
 
 /*
  * Verify that a pointer is correctly aligned
@@ -1090,7 +1099,7 @@ gc_reset(struct gc_arena *a)
     }
 
 static inline void
-check_malloc_return(const void *p)
+check_malloc_return(void *p)
 {
     if (!p)
     {
@@ -1118,11 +1127,9 @@ struct buffer_list
 /**
  * Allocate an empty buffer list of capacity \c max_size.
  *
- * @param max_size  the capacity of the list to allocate
- *
  * @return the new list
  */
-struct buffer_list *buffer_list_new(const int max_size);
+struct buffer_list *buffer_list_new(void);
 
 /**
  * Frees a buffer list and all the buffers in it.
@@ -1210,7 +1217,7 @@ struct buffer_list *buffer_list_file(const char *fn, int max_line_len);
 /**
  * buffer_read_from_file - copy the content of a file into a buffer
  *
- * @param file      path to the file to read
+ * @param filename  path to the file to read
  * @param gc        the garbage collector to use when allocating the buffer. It
  *                  is passed to alloc_buf_gc() and therefore can be NULL.
  *

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -148,38 +145,6 @@ mroute_is_mcast_ipv6(const struct in6_addr addr)
     return (addr.s6_addr[0] == 0xff);
 }
 
-#ifdef ENABLE_PF
-
-static unsigned int
-mroute_extract_addr_arp(struct mroute_addr *src,
-                        struct mroute_addr *dest,
-                        const struct buffer *buf)
-{
-    unsigned int ret = 0;
-    if (BLEN(buf) >= (int) sizeof(struct openvpn_arp))
-    {
-        const struct openvpn_arp *arp = (const struct openvpn_arp *) BPTR(buf);
-        if (arp->mac_addr_type == htons(0x0001)
-            && arp->proto_addr_type == htons(0x0800)
-            && arp->mac_addr_size == 0x06
-            && arp->proto_addr_size == 0x04)
-        {
-            mroute_get_in_addr_t(src, arp->ip_src, MR_ARP);
-            mroute_get_in_addr_t(dest, arp->ip_dest, MR_ARP);
-
-            /* multicast packet? */
-            if (mroute_is_mcast(arp->ip_dest))
-            {
-                ret |= MROUTE_EXTRACT_MCAST;
-            }
-
-            ret |= MROUTE_EXTRACT_SUCCEEDED;
-        }
-    }
-    return ret;
-}
-
-#endif /* ifdef ENABLE_PF */
 
 unsigned int
 mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
@@ -262,8 +227,6 @@ mroute_copy_ether_to_addr(struct mroute_addr *maddr,
 unsigned int
 mroute_extract_addr_ether(struct mroute_addr *src,
                           struct mroute_addr *dest,
-                          struct mroute_addr *esrc,
-                          struct mroute_addr *edest,
                           uint16_t vid,
                           const struct buffer *buf)
 {
@@ -288,42 +251,6 @@ mroute_extract_addr_ether(struct mroute_addr *src,
 
         ret |= MROUTE_EXTRACT_SUCCEEDED;
 
-#ifdef ENABLE_PF
-        if (esrc || edest)
-        {
-            struct buffer b = *buf;
-            if (!buf_advance(&b, sizeof(struct openvpn_ethhdr)))
-            {
-                return 0;
-            }
-
-            uint16_t proto = eth->proto;
-            if (proto == htons(OPENVPN_ETH_P_8021Q))
-            {
-                if (!buf_advance(&b, SIZE_ETH_TO_8021Q_HDR))
-                {
-                    /* It's an 802.1Q packet, but doesn't have a full header,
-                     * so something went wrong */
-                    return 0;
-                }
-
-                const struct openvpn_8021qhdr *tag;
-                tag = (const struct openvpn_8021qhdr *)BPTR(buf);
-                proto = tag->proto;
-            }
-
-            switch (ntohs(proto))
-            {
-                case OPENVPN_ETH_P_IPV4:
-                    ret |= (mroute_extract_addr_ip(esrc, edest, &b) << MROUTE_SEC_SHIFT);
-                    break;
-
-                case OPENVPN_ETH_P_ARP:
-                    ret |= (mroute_extract_addr_arp(esrc, edest, &b) << MROUTE_SEC_SHIFT);
-                    break;
-            }
-        }
-#endif /* ifdef ENABLE_PF */
     }
     return ret;
 }
@@ -348,6 +275,10 @@ mroute_extract_openvpn_sockaddr(struct mroute_addr *addr,
                 addr->len = 6;
                 addr->v4.addr = osaddr->addr.in4.sin_addr.s_addr;
                 addr->v4.port = osaddr->addr.in4.sin_port;
+                if (addr->proto != PROTO_NONE)
+                {
+                    addr->type |= MR_WITH_PROTO;
+                }
             }
             else
             {
@@ -367,6 +298,10 @@ mroute_extract_openvpn_sockaddr(struct mroute_addr *addr,
                 addr->len = 18;
                 addr->v6.addr = osaddr->addr.in6.sin6_addr;
                 addr->v6.port = osaddr->addr.in6.sin6_port;
+                if (addr->proto != PROTO_NONE)
+                {
+                    addr->type |= MR_WITH_PROTO;
+                }
             }
             else
             {
@@ -475,6 +410,14 @@ mroute_addr_print_ex(const struct mroute_addr *ma,
                 {
                     buf_printf(&out, "ARP/");
                 }
+                if (maddr.type & MR_WITH_PROTO)
+                {
+                    buf_printf(&out, "%s:", proto2ascii(maddr.proto, AF_INET, false));
+                }
+                if (flags & MAPF_SHOW_FAMILY)
+                {
+                    buf_printf(&out, "[AF_INET]");
+                }
                 buf_printf(&out, "%s", print_in_addr_t(ntohl(maddr.v4.addr),
                                                        (flags & MAPF_IA_EMPTY_IF_UNDEF) ? IA_EMPTY_IF_UNDEF : 0, gc));
                 if (maddr.type & MR_WITH_NETBITS)
@@ -498,21 +441,30 @@ mroute_addr_print_ex(const struct mroute_addr *ma,
 
             case MR_ADDR_IPV6:
             {
+                if (maddr.type & MR_WITH_PROTO)
+                {
+                    buf_printf(&out, "%s:", proto2ascii(maddr.proto, AF_INET6, false));
+                }
+                if (flags & MAPF_SHOW_FAMILY)
+                {
+                    buf_printf(&out, "[AF_INET6]");
+                }
                 if (IN6_IS_ADDR_V4MAPPED( &maddr.v6.addr ) )
                 {
                     buf_printf(&out, "%s", print_in_addr_t(maddr.v4mappedv6.addr,
                                                            IA_NET_ORDER, gc));
-                    /* we only print port numbers for v4mapped v6 as of
-                     * today, because "v6addr:port" is too ambiguous
-                     */
-                    if (maddr.type & MR_WITH_PORT)
-                    {
-                        buf_printf(&out, ":%d", ntohs(maddr.v6.port));
-                    }
+                }
+                else if (maddr.type & MR_WITH_PORT)
+                {
+                    buf_printf(&out, "[%s]", print_in6_addr(maddr.v6.addr, 0, gc));
                 }
                 else
                 {
                     buf_printf(&out, "%s", print_in6_addr(maddr.v6.addr, 0, gc));
+                }
+                if (maddr.type & MR_WITH_PORT)
+                {
+                    buf_printf(&out, ":%d", ntohs(maddr.v6.port));
                 }
                 if (maddr.type & MR_WITH_NETBITS)
                 {

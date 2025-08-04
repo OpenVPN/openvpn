@@ -2,7 +2,7 @@
  *  tapctl -- Utility to manipulate TUN/TAP adapters on Windows
  *            https://community.openvpn.net/openvpn/wiki/Tapctl
  *
- *  Copyright (C) 2018-2021 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2025 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -14,14 +14,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
-#elif defined(_MSC_VER)
-#include <config-msvc.h>
 #endif
 
 #include "tap.h"
@@ -32,7 +29,7 @@
 #include <objbase.h>
 #include <setupapi.h>
 #include <stdio.h>
-#include <tchar.h>
+#include <wchar.h>
 #include <newdev.h>
 
 #ifdef _MSC_VER
@@ -45,8 +42,8 @@
 
 const static GUID GUID_DEVCLASS_NET = { 0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 
-const static TCHAR szAdapterRegKeyPathTemplate[] = TEXT("SYSTEM\\CurrentControlSet\\Control\\Network\\%") TEXT(PRIsLPOLESTR) TEXT("\\%") TEXT(PRIsLPOLESTR) TEXT("\\Connection");
-#define ADAPTER_REGKEY_PATH_MAX (_countof(TEXT("SYSTEM\\CurrentControlSet\\Control\\Network\\")) - 1 + 38 + _countof(TEXT("\\")) - 1 + 38 + _countof(TEXT("\\Connection")))
+const static WCHAR szAdapterRegKeyPathTemplate[] = L"SYSTEM\\CurrentControlSet\\Control\\Network\\%ls\\%ls\\Connection";
+#define ADAPTER_REGKEY_PATH_MAX (_countof(L"SYSTEM\\CurrentControlSet\\Control\\Network\\") - 1 + 38 + _countof(L"\\") - 1 + 38 + _countof(L"\\Connection"))
 
 /**
  * Dynamically load a library and find a function in it
@@ -70,15 +67,15 @@ find_function(const WCHAR *libname, const char *funcname, HMODULE *m)
     /* Make sure the dll is loaded from the system32 folder */
     if (!GetSystemDirectoryW(libpath, _countof(libpath)))
     {
-       return NULL;
+        return NULL;
     }
 
     /* +1 for the path seperator '\' */
     const size_t path_length = wcslen(libpath) + 1 + wcslen(libname);
     if (path_length >= _countof(libpath))
     {
-       SetLastError(ERROR_INSUFFICIENT_BUFFER);
-       return NULL;
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return NULL;
     }
     wcscat_s(libpath, _countof(libpath), L"\\");
     wcscat_s(libpath, _countof(libpath), libname);
@@ -86,14 +83,14 @@ find_function(const WCHAR *libname, const char *funcname, HMODULE *m)
     *m = LoadLibraryW(libpath);
     if (*m == NULL)
     {
-       return NULL;
+        return NULL;
     }
     fptr = GetProcAddress(*m, funcname);
     if (!fptr)
     {
-       FreeLibrary(*m);
-       *m = NULL;
-       return NULL;
+        FreeLibrary(*m);
+        *m = NULL;
+        return NULL;
     }
     return fptr;
 }
@@ -106,10 +103,10 @@ find_function(const WCHAR *libname, const char *funcname, HMODULE *m)
  * @return Number of characters not counting the final zero terminator
  **/
 static inline size_t
-_tcszlen(_In_z_ LPCTSTR szz)
+wcszlen(_In_z_ LPCWSTR szz)
 {
-    LPCTSTR s;
-    for (s = szz; s[0]; s += _tcslen(s) + 1)
+    LPCWSTR s;
+    for (s = szz; s[0]; s += wcslen(s) + 1)
     {
     }
     return s - szz;
@@ -126,12 +123,12 @@ _tcszlen(_In_z_ LPCTSTR szz)
  *
  * @return Pointer to the string in szzHay that matches szNeedle is found; NULL otherwise
  */
-static LPCTSTR
-_tcszistr(_In_z_ LPCTSTR szzHay, _In_z_ LPCTSTR szNeedle)
+static LPCWSTR
+wcszistr(_In_z_ LPCWSTR szzHay, _In_z_ LPCWSTR szNeedle)
 {
-    for (LPCTSTR s = szzHay; s[0]; s += _tcslen(s) + 1)
+    for (LPCWSTR s = szzHay; s[0]; s += wcslen(s) + 1)
     {
-        if (_tcsicmp(s, szNeedle) == 0)
+        if (wcsicmp(s, szNeedle) == 0)
         {
             return s;
         }
@@ -407,8 +404,8 @@ disable_device(
 static DWORD
 get_reg_string(
     _In_ HKEY hKey,
-    _In_ LPCTSTR szName,
-    _Out_ LPTSTR *pszValue)
+    _In_ LPCWSTR szName,
+    _Out_ LPWSTR *pszValue)
 {
     if (pszValue == NULL)
     {
@@ -426,7 +423,7 @@ get_reg_string(
     if (dwResult != ERROR_SUCCESS)
     {
         SetLastError(dwResult); /* MSDN does not mention RegQueryValueEx() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: enumerating \"%" PRIsLPTSTR "\" registry value failed", __FUNCTION__, szName);
+        msg(M_NONFATAL | M_ERRNO, "%s: enumerating \"%ls\" registry value failed", __FUNCTION__, szName);
         return dwResult;
     }
 
@@ -436,7 +433,7 @@ get_reg_string(
         case REG_EXPAND_SZ:
         {
             /* Read value. */
-            LPTSTR szValue = (LPTSTR)malloc(dwSize);
+            LPWSTR szValue = (LPWSTR)malloc(dwSize);
             if (szValue == NULL)
             {
                 msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwSize);
@@ -453,7 +450,7 @@ get_reg_string(
             if (dwResult != ERROR_SUCCESS)
             {
                 SetLastError(dwResult); /* MSDN does not mention RegQueryValueEx() to set GetLastError(). But we do have an error code. Set last error manually. */
-                msg(M_NONFATAL | M_ERRNO, "%s: reading \"%" PRIsLPTSTR "\" registry value failed", __FUNCTION__, szName);
+                msg(M_NONFATAL | M_ERRNO, "%s: reading \"%ls\" registry value failed", __FUNCTION__, szName);
                 free(szValue);
                 return dwResult;
             }
@@ -465,11 +462,11 @@ get_reg_string(
                     dwSizeExp = dwSize * 2,
                     dwCountExp =
 #ifdef UNICODE
-                    dwSizeExp / sizeof(TCHAR);
+                    dwSizeExp / sizeof(WCHAR);
 #else
-                    dwSizeExp / sizeof(TCHAR) - 1;     /* Note: ANSI version requires one extra char. */
+                    dwSizeExp / sizeof(WCHAR) - 1;     /* Note: ANSI version requires one extra char. */
 #endif
-                LPTSTR szValueExp = (LPTSTR)malloc(dwSizeExp);
+                LPWSTR szValueExp = (LPWSTR)malloc(dwSizeExp);
                 if (szValueExp == NULL)
                 {
                     free(szValue);
@@ -483,7 +480,7 @@ get_reg_string(
                     );
                 if (dwCountExpResult == 0)
                 {
-                    msg(M_NONFATAL | M_ERRNO, "%s: expanding \"%" PRIsLPTSTR "\" registry value failed", __FUNCTION__, szName);
+                    msg(M_NONFATAL | M_ERRNO, "%s: expanding \"%ls\" registry value failed", __FUNCTION__, szName);
                     free(szValueExp);
                     free(szValue);
                     return dwResult;
@@ -500,13 +497,13 @@ get_reg_string(
                     /* Retry with a bigger buffer. */
                     free(szValueExp);
 #ifdef UNICODE
-                    dwSizeExp = dwCountExpResult * sizeof(TCHAR);
+                    dwSizeExp = dwCountExpResult * sizeof(WCHAR);
 #else
                     /* Note: ANSI version requires one extra char. */
-                    dwSizeExp = (dwCountExpResult + 1) * sizeof(TCHAR);
+                    dwSizeExp = (dwCountExpResult + 1) * sizeof(WCHAR);
 #endif
                     dwCountExp = dwCountExpResult;
-                    szValueExp = (LPTSTR)malloc(dwSizeExp);
+                    szValueExp = (LPWSTR)malloc(dwSizeExp);
                     if (szValueExp == NULL)
                     {
                         free(szValue);
@@ -530,7 +527,7 @@ get_reg_string(
         }
 
         default:
-            msg(M_NONFATAL, "%s: \"%" PRIsLPTSTR "\" registry value is not string (type %u)", __FUNCTION__, dwValueType);
+            msg(M_NONFATAL, "%s: \"%ls\" registry value is not string (type %u)", __FUNCTION__, dwValueType);
             return ERROR_UNSUPPORTED_TYPE;
     }
 }
@@ -586,8 +583,8 @@ get_net_adapter_guid(
     while (iNumAttempts > 0)
     {
         /* Query the NetCfgInstanceId value. Using get_reg_string() right on might clutter the output with error messages while the registry is still being populated. */
-        LPTSTR szCfgGuidString = NULL;
-        dwResult = RegQueryValueEx(hKey, TEXT("NetCfgInstanceId"), NULL, NULL, NULL, NULL);
+        LPWSTR szCfgGuidString = NULL;
+        dwResult = RegQueryValueEx(hKey, L"NetCfgInstanceId", NULL, NULL, NULL, NULL);
         if (dwResult != ERROR_SUCCESS)
         {
             if (dwResult == ERROR_FILE_NOT_FOUND && --iNumAttempts > 0)
@@ -605,7 +602,7 @@ get_net_adapter_guid(
         /* Read the NetCfgInstanceId value now. */
         dwResult = get_reg_string(
             hKey,
-            TEXT("NetCfgInstanceId"),
+            L"NetCfgInstanceId",
             &szCfgGuidString);
         if (dwResult != ERROR_SUCCESS)
         {
@@ -634,7 +631,7 @@ get_net_adapter_guid(
  * @param dwProperty     Specifies the property to be retrieved. See
  *                       https://msdn.microsoft.com/en-us/library/windows/hardware/ff551967.aspx
  *
- * @pdwPropertyRegDataType  A pointer to a variable that receives the data type of the
+ * @param pdwPropertyRegDataType  A pointer to a variable that receives the data type of the
  *                       property that is being retrieved. This is one of the standard
  *                       registry data types. This parameter is optional and can be NULL.
  *
@@ -724,8 +721,8 @@ get_device_reg_property(
 DWORD
 tap_create_adapter(
     _In_opt_ HWND hwndParent,
-    _In_opt_ LPCTSTR szDeviceDescription,
-    _In_ LPCTSTR szHwId,
+    _In_opt_ LPCWSTR szDeviceDescription,
+    _In_ LPCWSTR szHwId,
     _Inout_ LPBOOL pbRebootRequired,
     _Out_ LPGUID pguidAdapter)
 {
@@ -749,7 +746,7 @@ tap_create_adapter(
     }
 
     /* Get the device class name from GUID. */
-    TCHAR szClassName[MAX_CLASS_NAME_LEN];
+    WCHAR szClassName[MAX_CLASS_NAME_LEN];
     if (!SetupDiClassNameFromGuid(
             &GUID_DEVCLASS_NET,
             szClassName,
@@ -792,7 +789,7 @@ tap_create_adapter(
             hDevInfoList,
             &devinfo_data,
             SPDRP_HARDWAREID,
-            (const BYTE *)szHwId, (DWORD)((_tcslen(szHwId) + 1) * sizeof(TCHAR))))
+            (const BYTE *)szHwId, (DWORD)((wcslen(szHwId) + 1) * sizeof(WCHAR))))
     {
         dwResult = GetLastError();
         msg(M_NONFATAL, "%s: SetupDiSetDeviceRegistryProperty failed", __FUNCTION__);
@@ -819,10 +816,10 @@ tap_create_adapter(
     if (!DiInstallDevice(hwndParent, hDevInfoList, &devinfo_data, NULL, 0, pbRebootRequired))
 #else
     /* mingw does not resolve DiInstallDevice, so load it at run time. */
-    typedef BOOL (WINAPI *DiInstallDeviceFn) (HWND, HDEVINFO, SP_DEVINFO_DATA *,
-                                                  SP_DRVINFO_DATA *, DWORD, BOOL *);
+    typedef BOOL (WINAPI *DiInstallDeviceFn)(HWND, HDEVINFO, SP_DEVINFO_DATA *,
+                                             SP_DRVINFO_DATA *, DWORD, BOOL *);
     DiInstallDeviceFn installfn
-           = find_function (L"newdev.dll", "DiInstallDevice", &libnewdev);
+        = find_function(L"newdev.dll", "DiInstallDevice", &libnewdev);
 
     if (!installfn)
     {
@@ -967,7 +964,7 @@ execute_on_first_adapter(
             {
                 LPOLESTR szAdapterId = NULL;
                 StringFromIID((REFIID)pguidAdapter, &szAdapterId);
-                msg(M_NONFATAL, "%s: Adapter %" PRIsLPOLESTR " not found", __FUNCTION__, szAdapterId);
+                msg(M_NONFATAL, "%s: Adapter %ls not found", __FUNCTION__, szAdapterId);
                 CoTaskMemFree(szAdapterId);
                 dwResult = ERROR_FILE_NOT_FOUND;
                 goto cleanup_hDevInfoList;
@@ -1025,13 +1022,13 @@ tap_enable_adapter(
 
 /* stripped version of ExecCommand in interactive.c */
 static DWORD
-ExecCommand(const WCHAR* cmdline)
+ExecCommand(const WCHAR *cmdline)
 {
     DWORD exit_code;
     STARTUPINFOW si;
     PROCESS_INFORMATION pi;
     DWORD proc_flags = CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT;
-    WCHAR* cmdline_dup = NULL;
+    WCHAR *cmdline_dup = NULL;
 
     ZeroMemory(&si, sizeof(si));
     ZeroMemory(&pi, sizeof(pi));
@@ -1041,7 +1038,7 @@ ExecCommand(const WCHAR* cmdline)
     /* CreateProcess needs a modifiable cmdline: make a copy */
     cmdline_dup = _wcsdup(cmdline);
     if (cmdline_dup && CreateProcessW(NULL, cmdline_dup, NULL, NULL, FALSE,
-        proc_flags, NULL, NULL, &si, &pi))
+                                      proc_flags, NULL, NULL, &si, &pi))
     {
         WaitForSingleObject(pi.hProcess, INFINITE);
         if (!GetExitCodeProcess(pi.hProcess, &exit_code))
@@ -1064,7 +1061,7 @@ ExecCommand(const WCHAR* cmdline)
 DWORD
 tap_set_adapter_name(
     _In_ LPCGUID pguidAdapter,
-    _In_ LPCTSTR szName,
+    _In_ LPCWSTR szName,
     _In_ BOOL bSilent)
 {
     DWORD dwResult;
@@ -1085,8 +1082,8 @@ tap_set_adapter_name(
     StringFromIID((REFIID)pguidAdapter, &szAdapterId);
 
     /* Render registry key path. */
-    TCHAR szRegKey[ADAPTER_REGKEY_PATH_MAX];
-    _stprintf_s(
+    WCHAR szRegKey[ADAPTER_REGKEY_PATH_MAX];
+    swprintf_s(
         szRegKey, _countof(szRegKey),
         szAdapterRegKeyPathTemplate,
         szDevClassNetId,
@@ -1103,12 +1100,12 @@ tap_set_adapter_name(
     if (dwResult != ERROR_SUCCESS)
     {
         SetLastError(dwResult); /* MSDN does not mention RegOpenKeyEx() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(msg_flag, "%s: RegOpenKeyEx(HKLM, \"%" PRIsLPTSTR "\") failed", __FUNCTION__, szRegKey);
+        msg(msg_flag, "%s: RegOpenKeyEx(HKLM, \"%ls\") failed", __FUNCTION__, szRegKey);
         goto cleanup_szAdapterId;
     }
 
-    LPTSTR szOldName = NULL;
-    dwResult = get_reg_string(hKey, TEXT("Name"), &szOldName);
+    LPWSTR szOldName = NULL;
+    dwResult = get_reg_string(hKey, L"Name", &szOldName);
     if (dwResult != ERROR_SUCCESS)
     {
         SetLastError(dwResult);
@@ -1117,11 +1114,11 @@ tap_set_adapter_name(
     }
 
     /* rename adapter via netsh call */
-    const TCHAR* szFmt = TEXT("netsh interface set interface name=\"%")
-                         TEXT(PRIsLPTSTR) TEXT("\" newname=\"%") TEXT(PRIsLPTSTR) TEXT("\"");
-    size_t ncmdline = _tcslen(szFmt) + _tcslen(szOldName) + _tcslen(szName) + 1;
-    WCHAR* szCmdLine = malloc(ncmdline * sizeof(TCHAR));
-    _stprintf_s(szCmdLine, ncmdline, szFmt, szOldName, szName);
+    const WCHAR *szFmt = L"netsh interface set interface name=\"%"
+                         L"ls\" newname=\"%ls\"";
+    size_t ncmdline = wcslen(szFmt) + wcslen(szOldName) + wcslen(szName) + 1;
+    WCHAR *szCmdLine = malloc(ncmdline * sizeof(WCHAR));
+    swprintf_s(szCmdLine, ncmdline, szFmt, szOldName, szName);
 
     free(szOldName);
 
@@ -1147,7 +1144,7 @@ cleanup_szAdapterId:
 DWORD
 tap_list_adapters(
     _In_opt_ HWND hwndParent,
-    _In_opt_ LPCTSTR szzHwIDs,
+    _In_opt_ LPCWSTR szzHwIDs,
     _Out_ struct tap_adapter_node **ppAdapter)
 {
     DWORD dwResult;
@@ -1212,7 +1209,7 @@ tap_list_adapters(
 
         /* Get device hardware ID(s). */
         DWORD dwDataType = REG_NONE;
-        LPTSTR szzDeviceHardwareIDs = NULL;
+        LPWSTR szzDeviceHardwareIDs = NULL;
         dwResult = get_device_reg_property(
             hDevInfoList,
             &devinfo_data,
@@ -1228,7 +1225,7 @@ tap_list_adapters(
         /* Check that hardware ID is REG_SZ/REG_MULTI_SZ, and optionally if it matches ours. */
         if (dwDataType == REG_SZ)
         {
-            if (szzHwIDs && !_tcszistr(szzHwIDs, szzDeviceHardwareIDs))
+            if (szzHwIDs && !wcszistr(szzHwIDs, szzDeviceHardwareIDs))
             {
                 /* This is not our device. Skip it. */
                 goto cleanup_szzDeviceHardwareIDs;
@@ -1238,14 +1235,14 @@ tap_list_adapters(
         {
             if (szzHwIDs)
             {
-                for (LPTSTR s = szzDeviceHardwareIDs;; s += _tcslen(s) + 1)
+                for (LPWSTR s = szzDeviceHardwareIDs;; s += wcslen(s) + 1)
                 {
                     if (s[0] == 0)
                     {
                         /* This is not our device. Skip it. */
                         goto cleanup_szzDeviceHardwareIDs;
                     }
-                    else if (_tcszistr(szzHwIDs, s))
+                    else if (wcszistr(szzHwIDs, s))
                     {
                         /* This is our device. */
                         break;
@@ -1273,8 +1270,8 @@ tap_list_adapters(
         StringFromIID((REFIID)&guidAdapter, &szAdapterId);
 
         /* Render registry key path. */
-        TCHAR szRegKey[ADAPTER_REGKEY_PATH_MAX];
-        _stprintf_s(
+        WCHAR szRegKey[ADAPTER_REGKEY_PATH_MAX];
+        swprintf_s(
             szRegKey, _countof(szRegKey),
             szAdapterRegKeyPathTemplate,
             szDevClassNetId,
@@ -1291,26 +1288,26 @@ tap_list_adapters(
         if (dwResult != ERROR_SUCCESS)
         {
             SetLastError(dwResult); /* MSDN does not mention RegOpenKeyEx() to set GetLastError(). But we do have an error code. Set last error manually. */
-            msg(M_WARN | M_ERRNO, "%s: RegOpenKeyEx(HKLM, \"%" PRIsLPTSTR "\") failed", __FUNCTION__, szRegKey);
+            msg(M_WARN | M_ERRNO, "%s: RegOpenKeyEx(HKLM, \"%ls\") failed", __FUNCTION__, szRegKey);
             goto cleanup_szAdapterId;
         }
 
         /* Read adapter name. */
-        LPTSTR szName = NULL;
+        LPWSTR szName = NULL;
         dwResult = get_reg_string(
             hKey,
-            TEXT("Name"),
+            L"Name",
             &szName);
         if (dwResult != ERROR_SUCCESS)
         {
             SetLastError(dwResult);
-            msg(M_WARN | M_ERRNO, "%s: Cannot determine %" PRIsLPOLESTR " adapter name", __FUNCTION__, szAdapterId);
+            msg(M_WARN | M_ERRNO, "%s: Cannot determine %ls adapter name", __FUNCTION__, szAdapterId);
             goto cleanup_hKey;
         }
 
         /* Append to the list. */
-        size_t hwid_size = (_tcszlen(szzDeviceHardwareIDs) + 1) * sizeof(TCHAR);
-        size_t name_size = (_tcslen(szName) + 1) * sizeof(TCHAR);
+        size_t hwid_size = (wcszlen(szzDeviceHardwareIDs) + 1) * sizeof(WCHAR);
+        size_t name_size = (wcslen(szName) + 1) * sizeof(WCHAR);
         struct tap_adapter_node *node = (struct tap_adapter_node *)malloc(sizeof(struct tap_adapter_node) + hwid_size + name_size);
         if (node == NULL)
         {
@@ -1319,9 +1316,9 @@ tap_list_adapters(
         }
 
         memcpy(&node->guid, &guidAdapter, sizeof(GUID));
-        node->szzHardwareIDs = (LPTSTR)(node + 1);
+        node->szzHardwareIDs = (LPWSTR)(node + 1);
         memcpy(node->szzHardwareIDs, szzDeviceHardwareIDs, hwid_size);
-        node->szName = (LPTSTR)((LPBYTE)node->szzHardwareIDs + hwid_size);
+        node->szName = (LPWSTR)((LPBYTE)node->szzHardwareIDs + hwid_size);
         memcpy(node->szName, szName, name_size);
         node->pNext = NULL;
         if (pAdapterTail)

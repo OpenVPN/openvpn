@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
- *  Copyright (C) 2016-2021 Selva Nair <selva.nair@gmail.com>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2016-2025 Selva Nair <selva.nair@gmail.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -18,8 +18,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -47,8 +46,9 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <syslog.h>
+#include <limits.h>
 #include "utils.h"
-
+#include <arpa/inet.h>
 #include <openvpn-plugin.h>
 
 #define DEBUG(verb) ((verb) >= 4)
@@ -120,6 +120,7 @@ struct user_pass {
     char password[128];
     char common_name[128];
     char response[128];
+    char remote[INET6_ADDRSTRLEN];
 
     const struct name_value_list *name_value_list;
 };
@@ -163,31 +164,30 @@ send_control(int fd, int code)
     }
 }
 
-static int
-recv_string(int fd, char *buffer, int len)
+static ssize_t
+recv_string(int fd, char *buffer, size_t len)
 {
     if (len > 0)
     {
-        ssize_t size;
         memset(buffer, 0, len);
-        size = read(fd, buffer, len);
+        ssize_t size = read(fd, buffer, len);
         buffer[len-1] = 0;
         if (size >= 1)
         {
-            return (int)size;
+            return size;
         }
     }
     return -1;
 }
 
-static int
+static ssize_t
 send_string(int fd, const char *string)
 {
-    const int len = strlen(string) + 1;
+    const size_t len = strlen(string) + 1;
     const ssize_t size = write(fd, string, len);
     if (size == len)
     {
-        return (int) size;
+        return size;
     }
     else
     {
@@ -214,10 +214,17 @@ daemonize(const char *envp[])
         {
             fd = dup(2);
         }
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
         if (daemon(0, 0) < 0)
         {
             plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "daemonization failed");
         }
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic pop
+#endif
         else if (fd >= 3)
         {
             dup2(fd, 2);
@@ -521,6 +528,17 @@ openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const cha
         const char *username = get_env("username", envp);
         const char *password = get_env("password", envp);
         const char *common_name = get_env("common_name", envp) ? get_env("common_name", envp) : "";
+        const char *remote = get_env("untrusted_ip6", envp);
+
+        if (remote == NULL)
+        {
+            remote = get_env("untrusted_ip", envp);
+        }
+
+        if (remote == NULL)
+        {
+            remote = "";
+        }
 
         /* should we do deferred auth?
          *  yes, if there is "auth_control_file" and "deferred_auth_pam" env
@@ -546,7 +564,8 @@ openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const cha
                 || send_string(context->foreground_fd, username) == -1
                 || send_string(context->foreground_fd, password) == -1
                 || send_string(context->foreground_fd, common_name) == -1
-                || send_string(context->foreground_fd, auth_control_file) == -1)
+                || send_string(context->foreground_fd, auth_control_file) == -1
+                || send_string(context->foreground_fd, remote) == -1)
             {
                 plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "Error sending auth info to background process");
             }
@@ -624,27 +643,26 @@ openvpn_plugin_abort_v1(openvpn_plugin_handle_t handle)
  * PAM conversation function
  */
 static int
-my_conv(int n, const struct pam_message **msg_array,
+my_conv(int num_msg, const struct pam_message **msg_array,
         struct pam_response **response_array, void *appdata_ptr)
 {
     const struct user_pass *up = ( const struct user_pass *) appdata_ptr;
     struct pam_response *aresp;
-    int i;
     int ret = PAM_SUCCESS;
 
     *response_array = NULL;
 
-    if (n <= 0 || n > PAM_MAX_NUM_MSG)
+    if (num_msg <= 0 || num_msg > PAM_MAX_NUM_MSG)
     {
         return (PAM_CONV_ERR);
     }
-    if ((aresp = calloc(n, sizeof *aresp)) == NULL)
+    if ((aresp = calloc((size_t)num_msg, sizeof *aresp)) == NULL)
     {
         return (PAM_BUF_ERR);
     }
 
     /* loop through each PAM-module query */
-    for (i = 0; i < n; ++i)
+    for (int i = 0; i < num_msg; ++i)
     {
         const struct pam_message *msg = msg_array[i];
         aresp[i].resp_retcode = 0;
@@ -653,18 +671,18 @@ my_conv(int n, const struct pam_message **msg_array,
         if (DEBUG(up->verb))
         {
             plugin_log(PLOG_NOTE, MODULE, "BACKGROUND: my_conv[%d] query='%s' style=%d",
-                    i,
-                    msg->msg ? msg->msg : "NULL",
-                    msg->msg_style);
+                       i,
+                       msg->msg ? msg->msg : "NULL",
+                       msg->msg_style);
         }
 
         if (up->name_value_list && up->name_value_list->len > 0)
         {
             /* use name/value list match method */
             const struct name_value_list *list = up->name_value_list;
-            int j;
 
             /* loop through name/value pairs */
+            int j; /* checked after loop */
             for (j = 0; j < list->len; ++j)
             {
                 const char *match_name = list->data[j].name;
@@ -678,9 +696,9 @@ my_conv(int n, const struct pam_message **msg_array,
                     if (DEBUG(up->verb))
                     {
                         plugin_log(PLOG_NOTE, MODULE, "BACKGROUND: name match found, query/match-string ['%s', '%s'] = '%s'",
-                                msg->msg,
-                                match_name,
-                                match_value);
+                                   msg->msg,
+                                   match_name,
+                                   match_value);
                     }
 
                     if (strstr(match_value, "USERNAME"))
@@ -781,8 +799,16 @@ pam_auth(const char *service, const struct user_pass *up)
     status = pam_start(service, name_value_list_provided ? NULL : up->username, &conv, &pamh);
     if (status == PAM_SUCCESS)
     {
+        /* Set PAM_RHOST environment variable */
+        if (*(up->remote))
+        {
+            status = pam_set_item(pamh, PAM_RHOST, up->remote);
+        }
         /* Call PAM to verify username/password */
-        status = pam_authenticate(pamh, 0);
+        if (status == PAM_SUCCESS)
+        {
+            status = pam_authenticate(pamh, 0);
+        }
         if (status == PAM_SUCCESS)
         {
             status = pam_acct_mgmt(pamh, 0);
@@ -796,8 +822,8 @@ pam_auth(const char *service, const struct user_pass *up)
         if (!ret)
         {
             plugin_log(PLOG_ERR, MODULE, "BACKGROUND: user '%s' failed to authenticate: %s",
-                    up->username,
-                    pam_strerror(pamh, status));
+                       up->username,
+                       pam_strerror(pamh, status));
         }
 
         /* Close PAM */
@@ -948,10 +974,11 @@ pam_server(int fd, const char *service, int verb, const struct name_value_list *
                 if (recv_string(fd, up.username, sizeof(up.username)) == -1
                     || recv_string(fd, up.password, sizeof(up.password)) == -1
                     || recv_string(fd, up.common_name, sizeof(up.common_name)) == -1
-                    || recv_string(fd, ac_file_name, sizeof(ac_file_name)) == -1)
+                    || recv_string(fd, ac_file_name, sizeof(ac_file_name)) == -1
+                    || recv_string(fd, up.remote, sizeof(up.remote)) == -1)
                 {
                     plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "BACKGROUND: read error on command channel: code=%d, exiting",
-                            command);
+                               command);
                     goto done;
                 }
 
@@ -959,9 +986,10 @@ pam_server(int fd, const char *service, int verb, const struct name_value_list *
                 {
 #if 0
                     plugin_log(PLOG_NOTE, MODULE, "BACKGROUND: USER/PASS: %s/%s",
-                            up.username, up.password);
+                               up.username, up.password);
 #else
                     plugin_log(PLOG_NOTE, MODULE, "BACKGROUND: USER: %s", up.username);
+                    plugin_log(PLOG_NOTE, MODULE, "BACKGROUND: REMOTE: %s", up.remote);
 #endif
                 }
 
@@ -1008,7 +1036,7 @@ pam_server(int fd, const char *service, int verb, const struct name_value_list *
 
             default:
                 plugin_log(PLOG_ERR, MODULE, "BACKGROUND: unknown command code: code=%d, exiting",
-                        command);
+                           command);
                 goto done;
         }
         plugin_secure_memzero(up.response, sizeof(up.response));

@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifndef OPENVPN_LZO_H
@@ -37,15 +36,15 @@
  * @addtogroup compression
  * @{
  */
-
-#if defined(HAVE_LZO_LZOUTIL_H)
-#include <lzo/lzoutil.h>
-#elif defined(HAVE_LZOUTIL_H)
-#include <lzoutil.h>
-#endif
 #if defined(HAVE_LZO_LZO1X_H)
 #include <lzo/lzo1x.h>
 #elif defined(HAVE_LZO1X_H)
+/* The lzo.h magic gets confused and still wants
+ * to include lzo/lzoconf.h even if our include paths
+ * are setup to include the paths without lzo/
+ */
+#include <lzodefs.h>
+#include <lzoconf.h>
 #include <lzo1x.h>
 #endif
 

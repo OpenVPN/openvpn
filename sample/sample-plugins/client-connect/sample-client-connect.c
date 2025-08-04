@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,8 +17,7 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /*
@@ -86,9 +85,8 @@ get_env(const char *name, const char *envp[])
 {
     if (envp)
     {
-        int i;
-        const int namelen = strlen(name);
-        for (i = 0; envp[i]; ++i)
+        const size_t namelen = strlen(name);
+        for (int i = 0; envp[i]; ++i)
         {
             if (!strncmp(envp[i], name, namelen))
             {
@@ -210,7 +208,7 @@ write_cc_options_file(const char *name, const char **envp)
         return OPENVPN_PLUGIN_FUNC_SUCCESS;
     }
 
-    FILE *fp = fopen(name,"w");
+    FILE *fp = fopen(name, "w");
     if (!fp)
     {
         plugin_log(PLOG_ERR, MODULE, "fopen('%s') failed", name);
@@ -309,7 +307,7 @@ cc_handle_deferred_v1(int seconds, const char *name, const char **envp)
 
     /* do mighty complicated work that will really take time here... */
     plugin_log(PLOG_NOTE, MODULE, "in async/deferred handler, sleep(%d)", seconds);
-    sleep(seconds);
+    sleep((unsigned int)seconds);
 
     /* write config options to openvpn */
     int ret = write_cc_options_file(name, envp);
@@ -454,6 +452,9 @@ openvpn_plugin_client_connect_v2(struct plugin_context *context,
     if (!rl->name || !rl->value)
     {
         plugin_log(PLOG_ERR, MODULE, "malloc(return_list->xx) failed");
+        free(rl->name);
+        free(rl->value);
+        free(rl);
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
@@ -509,6 +510,9 @@ openvpn_plugin_client_connect_defer_v2(struct plugin_context *context,
     if (!rl->name || !rl->value)
     {
         plugin_log(PLOG_ERR, MODULE, "malloc(return_list->xx) failed");
+        free(rl->name);
+        free(rl->value);
+        free(rl);
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 

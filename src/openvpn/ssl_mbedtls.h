@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -18,12 +18,12 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /**
- * @file Control Channel mbed TLS Backend
+ * @file
+ * Control Channel mbed TLS Backend
  */
 
 #ifndef SSL_MBEDTLS_H_
@@ -38,6 +38,8 @@
 #if defined(ENABLE_PKCS11)
 #include <pkcs11-helper-1.0/pkcs11h-certificate.h>
 #endif
+
+#include "mbedtls_compat.h"
 
 typedef struct _buffer_entry buffer_entry;
 
@@ -65,9 +67,9 @@ typedef struct {
  *
  * @param sign_ctx  The context for the signing function.
  * @param src       The data to be signed,
- * @param src_len   The length of src, in bytes.
+ * @param src_size  The length of src, in bytes.
  * @param dst       The destination buffer for the signature.
- * @param dst_len   The length of the destination buffer.
+ * @param dst_size  The length of the destination buffer.
  *
  * @return true if signing succeeded, false otherwise.
  */
@@ -82,16 +84,19 @@ struct external_context {
     void *sign_ctx;
 };
 
-#ifdef HAVE_EXPORT_KEYING_MATERIAL
-/** struct to cache TLS secrets for keying material exporter (RFC 5705).
- * The constants (64 and 48) are inherent to TLS version and
- * the whole keying material export will likely change when they change */
+#if !defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT)
+/**
+ * struct to cache TLS secrets for keying material exporter (RFC 5705).
+ * Not needed if the library itself implements the keying material exporter.
+ *
+ * The constants 64 and 48 are inherent to TLS 1.2. For TLS 1.3, it is not
+ * possible to obtain the exporter master secret from mbed TLS. */
 struct tls_key_cache {
     unsigned char client_server_random[64];
     mbedtls_tls_prf_types tls_prf_type;
     unsigned char master_secret[48];
 };
-#else
+#else  /* !defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT) */
 struct tls_key_cache { };
 #endif
 
@@ -118,7 +123,7 @@ struct tls_root_ctx {
 #endif
     struct external_context external_key; /**< External key context */
     int *allowed_ciphers;       /**< List of allowed ciphers for this connection */
-    mbedtls_ecp_group_id *groups;     /**< List of allowed groups for this connection */
+    mbedtls_compat_group_id *groups;     /**< List of allowed groups for this connection */
     mbedtls_x509_crt_profile cert_profile; /**< Allowed certificate types */
 };
 
@@ -144,4 +149,8 @@ int tls_ctx_use_external_signing_func(struct tls_root_ctx *ctx,
                                       external_sign_func sign_func,
                                       void *sign_ctx);
 
+static inline void
+tls_clear_error(void)
+{
+}
 #endif /* SSL_MBEDTLS_H_ */

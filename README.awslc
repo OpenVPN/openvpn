@@ -1,0 +1,18 @@
+This version of OpenVPN supports AWS-LC (AWS Libcrypto), AWS's open-source cryptographic library.
+
+If you encounter bugs in OpenVPN while using AWS-LC:
+1. Try compiling OpenVPN with OpenSSL to determine if the issue is specific to AWS-LC
+2. For AWS-LC-specific issues, please report them at: https://github.com/aws/aws-lc
+
+To build and install OpenVPN with AWS-LC:
+
+    OPENSSL_CFLAGS="-I/${AWS_LC_INSTALL_FOLDER}/include" \
+    OPENSSL_LIBS="-L/${AWS_LC_INSTALL_FOLDER}/lib -lssl -lcrypto" \
+    LDFLAGS="-Wl,-rpath=${AWS_LC_INSTALL_FOLDER}/lib" \
+    ./configure --with-crypto-library=openssl
+    make
+    make install
+
+*************************************************************************
+Due to limitations in AWS-LC, the following features are missing
+* Windows CryptoAPI support

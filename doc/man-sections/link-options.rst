@@ -24,13 +24,25 @@ the local and the remote host.
   from any address, not only the address which was specified in the
   ``--remote`` option.
 
---fragment max
+--fragment args
+
+  Valid syntax:
+  ::
+
+     fragment max
+     fragment max mtu
+
   Enable internal datagram fragmentation so that no UDP datagrams are sent
   which are larger than ``max`` bytes.
 
-  The ``max`` parameter is interpreted in the same way as the
-  ``--link-mtu`` parameter, i.e. the UDP packet size after encapsulation
-  overhead has been added in, but not including the UDP header itself.
+  If the :code:`mtu` parameter is present the ``max`` parameter is
+  interpreted to include IP and UDP encapsulation overhead. The
+  :code:`mtu` parameter is introduced in OpenVPN version 2.6.0.
+
+  If the :code:`mtu` parameter is absent, the ``max`` parameter is
+  interpreted in the same way as the ``--link-mtu`` parameter, i.e.
+  the UDP packet size after encapsulation overhead has been added in,
+  but not including the UDP header itself.
 
   The ``--fragment`` option only makes sense when you are using the UDP
   protocol (``--proto udp``).
@@ -59,6 +71,9 @@ the local and the remote host.
 
      keepalive interval timeout
 
+  Send ping once every ``interval`` seconds, restart if ping is not received
+  for ``timeout`` seconds.
+
   This option can be used on both client and server side, but it is enough
   to add this on the server side as it will push appropriate ``--ping``
   and ``--ping-restart`` options to the client. If used on both server and
@@ -82,21 +97,43 @@ the local and the remote host.
          ping-restart 60            # Argument: timeout
 
 --link-mtu n
-  Sets an upper bound on the size of UDP packets which are sent between
+  **DEPRECATED** Sets an upper bound on the size of UDP packets which are sent between
   OpenVPN peers. *It's best not to set this parameter unless you know what
   you're doing.*
 
---local host
-  Local host name or IP address for bind. If specified, OpenVPN will bind
-  to this address only. If unspecified, OpenVPN will bind to all
-  interfaces.
+  Due to variable header size of IP header (20 bytes for IPv4 and 40 bytes
+  for IPv6) and dynamically negotiated data channel cipher, this option
+  is not reliable. It is recommended to set tun-mtu with enough headroom
+  instead.
+
+--local args
+
+  Valid syntax:
+  ::
+
+     local host|* [port] [protocol]
+
+  Local host name or IP address and port for bind. If specified, OpenVPN will bind
+  to this address. If unspecified, OpenVPN will bind to all interfaces.
+  '*' can be used as hostname and means 'any host' (OpenVPN will listen on what
+  is returned by the OS).
+  On a client, or in point-to-point mode, this can only be specified once (1 socket).
+
+  On an OpenVPN setup running as ``--server``, this can be specified multiple times
+  to open multiple listening sockets on different addresses and/or different ports.
+  In order to specify multiple listen ports without specifying an address, use '*'
+  to signal "use what the operating system gives you as default", for
+  "all IPv4 addresses" use "0.0.0.0", for "all IPv6 addresses" use '::'.
+  ``--local`` implies ``--bind``.
 
 --lport port
-  Set local TCP/UDP port number or name. Cannot be used together with
-  ``--nobind`` option.
+  Set default TCP/UDP port number. Cannot be used together with
+  ``--nobind`` option.  A port number of ``0`` is only honoured to
+  achieve "bind() to a random assigned port number" if a bind-to IP
+  address is specified with ``--local``.
 
 --mark value
-  Mark encrypted packets being sent with value. The mark value can be
+  Mark encrypted packets being sent with ``value``. The mark value can be
   matched in policy routing and packetfilter rules. This option is only
   supported in Linux and does nothing on other operating systems.
 
@@ -105,19 +142,44 @@ the local and the remote host.
   (:code:`p2p`). OpenVPN 2.0 introduces a new mode (:code:`server`) which
   implements a multi-client server capability.
 
---mssfix max
+--mssfix args
+
+  Valid syntax:
+  ::
+
+     mssfix max [mtu]
+
+     mssfix max [fixed]
+
+     mssfix
+
   Announce to TCP sessions running over the tunnel that they should limit
   their send packet sizes such that after OpenVPN has encapsulated them,
   the resulting UDP packet size that OpenVPN sends to its peer will not
-  exceed ``max`` bytes. The default value is :code:`1450`.
+  exceed ``max`` bytes. The default value is :code:`1492 mtu`. Use :code:`0`
+  as max to disable mssfix.
 
-  The ``max`` parameter is interpreted in the same way as the
-  ``--link-mtu`` parameter, i.e. the UDP packet size after encapsulation
-  overhead has been added in, but not including the UDP header itself.
-  Resulting packet would be at most 28 bytes larger for IPv4 and 48 bytes
-  for IPv6 (20/40 bytes for IP header and 8 bytes for UDP header). Default
-  value of 1450 allows IPv4 packets to be transmitted over a link with MTU
-  1473 or higher without IP level fragmentation.
+  If the :code:`mtu` parameter is specified the ``max`` value is interpreted
+  as the resulting packet size of VPN packets including the IP and UDP header.
+  Support for the :code:`mtu` parameter was added with OpenVPN version 2.6.0.
+
+  If the :code:`mtu` parameter is not specified, the ``max`` parameter
+  is interpreted in the same way as the ``--link-mtu`` parameter, i.e.
+  the UDP packet size after encapsulation overhead has been added in, but
+  not including the UDP header itself. Resulting packet would be at most 28
+  bytes larger for IPv4 and 48 bytes for IPv6 (20/40 bytes for IP header and
+  8 bytes for UDP header). Default value of 1450 allows OpenVPN packets to be
+  transmitted over IPv4 on a link with MTU 1478 or higher without IP level
+  fragmentation (and 1498 for IPv6).
+
+  If the :code:`fixed` parameter is specified, OpenVPN will make no attempt
+  to calculate the VPN encapsulation overhead but instead will set the MSS to
+  limit the size of the payload IP packets to the specified number. IPv4 packets
+  will have the MSS value lowered to mssfix - 40 and IPv6 packets to mssfix - 60.
+
+  if ``--mssfix`` is specified is specified without any parameter it
+  inherits the parameters of ``--fragment`` if specified or uses the
+  default for ``--mssfix`` otherwise.
 
   The ``--mssfix`` option only makes sense when you are using the UDP
   protocol for OpenVPN peer-to-peer communication, i.e. ``--proto udp``.
@@ -127,9 +189,9 @@ the local and the remote host.
   the first place, and if big packets come through anyhow (from protocols
   other than TCP), ``--fragment`` will internally fragment them.
 
-  Both ``--fragment`` and ``--mssfix`` are designed to work around cases
-  where Path MTU discovery is broken on the network path between OpenVPN
-  peers.
+  ``--max-packet-size``, ``--fragment``, and ``--mssfix`` are designed to
+  work around cases where Path MTU discovery is broken on the network path
+  between OpenVPN peers.
 
   The usual symptom of such a breakdown is an OpenVPN connection which
   successfully starts, but then stalls during active usage.
@@ -143,6 +205,10 @@ the local and the remote host.
   ::
 
      --tun-mtu 1500 --fragment 1300 --mssfix
+
+  If the ``max-packet-size size`` option is used in the configuration
+  it will also act as if ``mssfix size mtu`` was specified in the
+  configuration.
 
 --mtu-disc type
   Should we do Path MTU discovery on TCP/UDP channel? Only supported on
@@ -167,7 +233,7 @@ the local and the remote host.
   Do not bind to local address and port. The IP stack will allocate a
   dynamic port for returning packets. Since the value of the dynamic port
   could not be known in advance by a peer, this option is only suitable
-  for peers which will be initiating connections by using the --remote
+  for peers which will be initiating connections by using the ``--remote``
   option.
 
 --passtos
@@ -177,10 +243,7 @@ the local and the remote host.
   Ping remote over the TCP/UDP control channel if no packets have been
   sent for at least ``n`` seconds (specify ``--ping`` on both peers to
   cause ping packets to be sent in both directions since OpenVPN ping
-  packets are not echoed like IP ping packets). When used in one of
-  OpenVPN's secure modes (where ``--secret``, ``--tls-server`` or
-  ``--tls-client`` is specified), the ping packet will be
-  cryptographically secure.
+  packets are not echoed like IP ping packets).
 
   This option has two intended uses:
 
@@ -190,6 +253,8 @@ the local and the remote host.
 
   (2)  To provide a basis for the remote to test the existence of its peer
        using the ``--ping-exit`` option.
+
+  When using OpenVPN in server mode see also ``--keepalive``.
 
 --ping-exit n
   Causes OpenVPN to exit after ``n`` seconds pass without reception of a
@@ -213,7 +278,7 @@ the local and the remote host.
 
   This option is useful in cases where the remote peer has a dynamic IP
   address and a low-TTL DNS name is used to track the IP address using a
-  service such as http://dyndns.org/ + a dynamic DNS client such as
+  service such as https://www.nsupdate.info/ + a dynamic DNS client such as
   ``ddclient``.
 
   If the peer cannot be reached, a restart will be triggered, causing the
@@ -235,7 +300,7 @@ the local and the remote host.
   See the signals section below for more information on :code:`SIGUSR1`.
 
   Note that the behavior of ``SIGUSR1`` can be modified by the
-  ``--persist-tun``, ``--persist-key``, ``--persist-local-ip`` and
+  ``--persist-tun``, ``--persist-local-ip`` and
   ``--persist-remote-ip`` options.
 
   Also note that ``--ping-exit`` and ``--ping-restart`` are mutually
@@ -249,7 +314,10 @@ the local and the remote host.
 
 --proto p
   Use protocol ``p`` for communicating with remote host. ``p`` can be
-  :code:`udp`, :code:`tcp-client`, or :code:`tcp-server`.
+  :code:`udp`, :code:`tcp-client`, or :code:`tcp-server`. You can also
+  limit OpenVPN to use only IPv4 or only IPv6 by specifying ``p`` as
+  :code:`udp4`, :code:`tcp4-client`, :code:`tcp4-server` or :code:`udp6`,
+  :code:`tcp6-client`, :code:`tcp6-server`, respectively.
 
   The default protocol is :code:`udp` when ``--proto`` is not specified.
 
@@ -291,18 +359,19 @@ the local and the remote host.
 --replay-window args
   Modify the replay protection sliding-window size and time window.
 
-  Valid syntax:
-  ::
+  Valid syntaxes::
 
-     replay-window n [t]
+     replay-window n
+     replay-window n t
 
-  Use a replay protection sliding-window of size **n** and a time window
-  of **t** seconds.
+  Use a replay protection sliding-window of size ``n`` and a time window
+  of ``t`` seconds.
 
-  By default **n** is 64 (the IPSec default) and **t** is 15 seconds.
+  By default ``n`` is :code:`64` (the IPSec default) and ``t`` is
+  :code:`15` seconds.
 
-  This option is only relevant in UDP mode, i.e. when either **--proto
-  udp** is specified, or no **--proto** option is specified.
+  This option is only relevant in UDP mode, i.e. when either ``--proto
+  udp`` is specified, or no ``--proto`` option is specified.
 
   When OpenVPN tunnels IP packets over UDP, there is the possibility that
   packets might be dropped or delivered out of order. Because OpenVPN,
@@ -311,8 +380,7 @@ the local and the remote host.
   order they were received to the TCP/IP protocol stack, provided they
   satisfy several constraints.
 
-  (a)   The packet cannot be a replay (unless ``--no-replay`` is
-        specified, which disables replay protection altogether).
+  (a)   The packet cannot be a replay.
 
   (b)   If a packet arrives out of order, it will only be accepted if
         the difference between its sequence number and the highest sequence
@@ -327,7 +395,7 @@ the local and the remote host.
   value for ``n``. Satellite links in particular often require this.
 
   If you run OpenVPN at ``--verb 4``, you will see the message
-  "Replay-window backtrack occurred [x]" every time the maximum sequence
+  "PID_ERR replay-window backtrack occurred [x]" every time the maximum sequence
   number backtrack seen thus far increases. This can be used to calibrate
   ``n``.
 
@@ -373,8 +441,18 @@ the local and the remote host.
   received by the prior session.
 
   This option only makes sense when replay protection is enabled (the
-  default) and you are using either ``--secret`` (shared-secret key mode)
-  or TLS mode with ``--tls-auth``.
+  default) and you are using TLS mode with ``--tls-auth``.
+
+--session-timeout n
+  Raises :code:`SIGTERM` for the client instance after ``n`` seconds since
+  the beginning of the session, forcing OpenVPN to disconnect.
+  In client mode, OpenVPN will disconnect and exit, while in server mode
+  all client sessions are terminated.
+
+  This option can also be specified in a client instance config file
+  using ``--client-config-dir`` or dynamically generated using a
+  ``--client-connect`` script. In these cases, only the related client
+  session is terminated.
 
 --socket-flags flags
   Apply the given flags to the OpenVPN transport socket. Currently, only
@@ -403,3 +481,27 @@ the local and the remote host.
      if mode server:
          socket-flags TCP_NODELAY
          push "socket-flags TCP_NODELAY"
+
+--max-packet-size size
+  This option will instruct OpenVPN to try to limit the maximum on-write packet
+  size by restricting the control channel packet size and setting ``--mssfix``.
+
+  OpenVPN will try to keep its control channel messages below this size but
+  due to some constraints in the protocol this is not always possible. If the
+  option is not set, the control packet maximum size defaults to 1250.
+  The control channel packet size will be restricted to values between
+  154 and 2048. The maximum packet size includes encapsulation overhead like
+  UDP and IP.
+
+  In terms of ``--mssfix`` it will expand to:
+  ::
+
+      mssfix size mtu
+
+  If you need to set ``--mssfix`` for data channel and control channel maximum
+  packet size independently, use ``--max-packet-size`` first, followed by a
+  ``--mssfix`` in the configuration.
+
+  In general the default size of 1250 should work almost universally apart
+  from specific corner cases, especially since IPv6 requires a MTU of 1280
+  or larger.

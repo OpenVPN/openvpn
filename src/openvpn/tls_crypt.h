@@ -17,16 +17,15 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 /**
- * @defgroup tls_crypt Control channel encryption (--tls-crypt, --tls-crypt-v2)
+ * @defgroup tls_crypt Control channel encryption (tls-crypt, tls-crypt-v2)
  * @ingroup control_tls
  * @{
  *
- * Control channel encryption uses a pre-shared static key (like the --tls-auth
+ * Control channel encryption uses a pre-shared static key (like the @c --tls-auth
  * key) to encrypt control channel packets.
  *
  * Encrypting control channel packets has three main advantages:
@@ -36,8 +35,8 @@
  *  - It provides "poor-man's" post-quantum security, against attackers who
  *    will never know the pre-shared key (i.e. no forward secrecy).
  *
- * --tls-crypt uses a tls-auth-style group key, where all servers and clients
- * share the same group key. --tls-crypt-v2 adds support for client-specific
+ * @c --tls-crypt uses a tls-auth-style group key, where all servers and clients
+ * share the same group key. @c --tls-crypt-v2 adds support for client-specific
  * keys, where all servers share the same client-key encryption key, and each
  * clients receives a unique client key, both in plaintext and in encrypted
  * form.  When connecting to a server, the client sends the encrypted key to
@@ -101,21 +100,32 @@
 #define TLS_CRYPT_V2_MAX_METADATA_LEN (unsigned)(TLS_CRYPT_V2_MAX_WKC_LEN \
                                                  - (TLS_CRYPT_V2_CLIENT_KEY_LEN + TLS_CRYPT_V2_TAG_SIZE \
                                                     + sizeof(uint16_t)))
-#define TLS_CRYPT_V2_MAX_B64_METADATA_LEN \
-    OPENVPN_BASE64_LENGTH(TLS_CRYPT_V2_MAX_METADATA_LEN - 1)
 
 /**
- * Initialize a key_ctx_bi structure for use with --tls-crypt.
+ * Initialize a key_ctx_bi structure for use with @c --tls-crypt.
  *
  * @param key           The key context to initialize
  * @param key_file      The file to read the key from or the key itself if
  *                      key_inline is true.
+ * @param keydata       The keydata used to create key will be written here.
  * @param key_inline    True if key_file contains an inline key, False
  *                      otherwise.
  * @param tls_server    Must be set to true is this is a TLS server instance.
  */
-void tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
-                        bool key_inline, bool tls_server);
+void tls_crypt_init_key(struct key_ctx_bi *key, struct key2 *keydata,
+                        const char *key_file, bool key_inline, bool tls_server);
+
+/**
+ * Generates a TLS-Crypt key to be used with dynamic tls-crypt using the
+ * TLS EKM exporter function.
+ *
+ * All renegotiations of a session use the same generated dynamic key.
+ *
+ * @param session   session that will be used for the TLS EKM exporter
+ * @return          true iff generating the key was successful
+ */
+bool
+tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session);
 
 /**
  * Returns the maximum overhead (in bytes) added to the destination buffer by
@@ -124,18 +134,13 @@ void tls_crypt_init_key(struct key_ctx_bi *key, const char *key_file,
 int tls_crypt_buf_overhead(void);
 
 /**
- * Adjust frame parameters for --tls-crypt overhead.
- */
-void tls_crypt_adjust_frame_parameters(struct frame *frame);
-
-/**
  * Wrap a control channel packet (both authenticates and encrypts the data).
  *
  * @param src   Data to authenticate and encrypt.
  * @param dst   Any data present in this buffer is first authenticated, then
  *              the wrapped packet id and data from the src buffer are appended.
  *              Must have at least tls_crypt_buf_overhead()+BLEN(src) headroom.
- * @param opt   The crypto state for this --tls-crypt instance.
+ * @param opt   The crypto state for this @c --tls-crypt instance.
  *
  * @returns true iff wrapping succeeded.
  */
@@ -148,7 +153,7 @@ bool tls_crypt_wrap(const struct buffer *src, struct buffer *dst,
  *
  * @param src   Data to decrypt and authenticate.
  * @param dst   Returns the decrypted data, if unwrapping was successful.
- * @param opt   The crypto state for this --tls-crypt instance.
+ * @param opt   The crypto state for this @c --tls-crypt instance.
  *
  * @returns true iff unwrapping succeeded (data authenticated correctly and was
  * no replay).
@@ -159,8 +164,8 @@ bool tls_crypt_unwrap(const struct buffer *src, struct buffer *dst,
 /**
  * Initialize a tls-crypt-v2 server key (used to encrypt/decrypt client keys).
  *
- * @param key           Key structure to be initialized.  Must be non-NULL.
- * @parem encrypt       If true, initialize the key structure for encryption,
+ * @param key_ctx       Key structure to be initialized.  Must be non-NULL.
+ * @param encrypt       If true, initialize the key structure for encryption,
  *                      otherwise for decryption.
  * @param key_file      File path of the key file to load or the key itself if
  *                      key_inline is true.
@@ -176,6 +181,8 @@ void tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
  *
  * @param key               Key structure to be initialized with the client
  *                          key.
+ * @param original_key      contains the key data that has been used to
+ *                          initialise the key parameter
  * @param wrapped_key_buf   Returns buffer containing the wrapped key that will
  *                          be sent to the server when connecting.  Caller must
  *                          free this buffer when no longer needed.
@@ -185,6 +192,7 @@ void tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
  *                          otherwise.
  */
 void tls_crypt_v2_init_client_key(struct key_ctx_bi *key,
+                                  struct key2 *original_key,
                                   struct buffer *wrapped_key_buf,
                                   const char *key_file, bool key_inline);
 
@@ -195,12 +203,18 @@ void tls_crypt_v2_init_client_key(struct key_ctx_bi *key,
  * @param buf   Buffer containing a received P_CONTROL_HARD_RESET_CLIENT_V3
  *              message.
  * @param ctx   tls-wrap context to be initialized with the client key.
+ * @param opt   TLS options, used for \c tls-crypt-v2-verify script.
+ *
+ * @param initial_packet    whether this is the initial packet of the
+ *                          connection. Only in these scenarios unwrapping
+ *                          of a tls-crypt-v2 key is allowed
  *
  * @returns true if a key was successfully extracted.
  */
 bool tls_crypt_v2_extract_client_key(struct buffer *buf,
                                      struct tls_wrap_ctx *ctx,
-                                     const struct tls_options *opt);
+                                     const struct tls_options *opt,
+                                     bool initial_packet);
 
 /**
  * Generate a tls-crypt-v2 server key, and write to file.

@@ -1,5 +1,5 @@
 TLS Mode Options
-----------------
+````````````````
 
 TLS mode is the most powerful crypto mode of OpenVPN in both security
 and flexibility. TLS mode works by establishing control and data
@@ -85,10 +85,17 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   OpenVPN will log the usual warning in the logs if the relevant CRL is
   missing, but the connection will be allowed.
 
---cert file
-  Local peer's signed certificate in .pem format -- must be signed by a
-  certificate authority whose certificate is in ``--ca file``. Each peer
-  in an OpenVPN link running in TLS mode should have its own certificate
+--cert file|uri
+  Local peer's signed certificate in .pem format or as a URI -- must be
+  signed by a certificate authority whose certificate is in ``--ca file``
+  in the peer configuration. URI is supported only when built with
+  OpenSSL 3.0 or later and any required providers are loaded. Types
+  of URIs supported and their syntax depends on providers. OpenSSL has
+  internal support for "file:/absolute/path" URI in which case the scheme
+  "file:" is optional, and any file format recognized by OpenSSL (e.g., PEM,
+  PKCS12) is supported. PKCS#11 URI (RFC 7512) is supported by pkcs11-provider.
+
+  Each peer in an OpenVPN link running in TLS mode should have its own certificate
   and private key file. In addition, each certificate should have been
   signed by the key of a certificate authority whose public key resides in
   the ``--ca`` certificate authority file. You can easily make your own
@@ -164,16 +171,22 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
 
 
 --dh file
-  File containing Diffie Hellman parameters in .pem format (required for
-  ``--tls-server`` only).
+  File containing finite field Diffie Hellman parameters in .pem format (used
+  by ``--tls-server`` only).
 
-  Set ``file`` to :code:`none` to disable Diffie Hellman key exchange (and
-  use ECDH only). Note that this requires peers to be using an SSL library
-  that supports ECDH TLS cipher suites (e.g. OpenSSL 1.0.1+, or
-  mbed TLS 2.0+).
+  Set ``file`` to :code:`none` to disable fine field Diffie Hellman
+  key exchange (and to only use ECDH or newer hybrid key agreement algorithms
+  like X25519MLKEM768 instead).
+  Note that this requires peers to be using an SSL library that supports
+  ECDH TLS cipher suites (e.g. OpenSSL 1.0.1+, or mbed TLS 2.0+). Starting
+  with 2.7.0, this is the same as not specifying ``--dh`` at all.
 
-  Use ``openssl dhparam -out dh2048.pem 2048`` to generate 2048-bit DH
-  parameters. Diffie Hellman parameters may be considered public.
+  Diffie Hellman parameters can be generated using
+  ``openssl dhparam -out dh2048.pem 2048`` but it is recommended to
+  use ``none`` as finite field Diffie Hellman have been replaced
+  by more modern variants like ECDH.
+
+  Diffie Hellman parameters may be considered public.
 
 --ecdh-curve name
   Specify the curve to use for elliptic curve Diffie Hellman. Available
@@ -203,10 +216,11 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   The ``--hand-window`` parameter also controls the amount of time that
   the OpenVPN client repeats the pull request until it times out.
 
---key file
-  Local peer's private key in .pem format. Use the private key which was
-  generated when you built your peer's certificate (see ``--cert file``
-  above).
+--key file|uri
+  Local peer's private key in .pem format or a URI. Use the private key
+  which was generated when you built your peer's certificate (see
+  ``--cert file`` above). URI is supported only when built with OpenSSL 3.0
+  or later and any required providers are loaded. (See `--cert` for more details).
 
 --pkcs12 file
   Specify a PKCS #12 file containing local private key, local certificate,
@@ -295,8 +309,24 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   Older versions (up to OpenVPN 2.3) supported a freeform passphrase file.
   This is no longer supported in newer versions (v2.4+).
 
-  See the ``--secret`` option for more information on the optional
-  ``direction`` parameter.
+  The optional ``direction`` parameter enables the use of 2 distinct keys
+  (HMAC-send, HMAC-receive), so that each
+  data flow direction has a different HMAC key. This has a number of desirable
+  security properties including eliminating certain kinds of DoS and message
+  replay attacks.
+
+  When the ``direction`` parameter is omitted, the same key is used
+  bidirectionally.
+
+  The ``direction`` parameter should always be complementary on either
+  side of the connection, i.e. one side should use :code:`0` and the other
+  should use :code:`1`, or both sides should omit it altogether.
+
+  The ``direction`` parameter requires that ``file`` contains a 2048 bit
+  key. While pre-1.5 versions of OpenVPN generate 1024 bit key files, any
+  version of OpenVPN which supports the ``direction`` parameter, will also
+  support 2048 bit key file generation using the ``--genkey`` option.
+
 
   ``--tls-auth`` is recommended when you are running OpenVPN in a mode
   where it is listening for packets from any IP address, such as when
@@ -373,6 +403,9 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
 
   The following profiles are supported:
 
+  :code:`insecure`
+      Identical for mbed TLS to `legacy`
+
   :code:`legacy` (default)
       SHA1 and newer, RSA 2048-bit+, any elliptic curve.
 
@@ -384,6 +417,9 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
 
   This option is only fully supported for mbed TLS builds. OpenSSL builds
   use the following approximation:
+
+  :code:`insecure`
+      sets "security level 0"
 
   :code:`legacy` (default)
       sets "security level 1"
@@ -480,6 +516,13 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   8000 years'.
 
 --tls-crypt-v2 keyfile
+
+  Valid syntax::
+
+     tls-crypt-v2 keyfile
+     tls-crypt-v2 keyfile force-cookie
+     tls-crypt-v2 keyfile allow-noncookie
+
   Use client-specific tls-crypt keys.
 
   For clients, ``keyfile`` is a client-specific tls-crypt key. Such a key
@@ -495,6 +538,13 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   client is using client-specific keys, and automatically select the right
   mode.
 
+  The optional parameters :code:`force-cookie` allows only tls-crypt-v2
+  clients that support a cookie based stateless three way handshake that
+  avoids replay attacks and state exhaustion on the server side (OpenVPN
+  2.6 and later). The option :code:`allow-noncookie` explicitly allows
+  older tls-crypt-v2 clients. The default is (currently)
+  :code:`allow-noncookie`.
+
 --tls-crypt-v2-verify cmd
   Run command ``cmd`` to verify the metadata of the client-specific
   tls-crypt-v2 key of a connecting client. This allows server
@@ -502,7 +552,9 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   stack (including the notoriously dangerous X.509 and ASN.1 stacks) to
   the connecting client.
 
-  OpenVPN supplies the following environment variables to the command:
+  OpenVPN supplies the following environment variables to the command (and
+  only these variables. The normal environment variables available for
+  other scripts are NOT present):
 
   * :code:`script_type` is set to :code:`tls-crypt-v2-verify`
 
@@ -517,14 +569,9 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   code.
 
 --tls-exit
-  Exit on TLS negotiation failure.
-
---tls-export-cert directory
-  Store the certificates the clients use upon connection to this
-  directory. This will be done before ``--tls-verify`` is called. The
-  certificates will use a temporary name and will be deleted when the
-  tls-verify script returns. The file name used for the certificate is
-  available via the ``peer_cert`` environment variable.
+  Exit on TLS negotiation failure. This option can be useful when you only
+  want to make one attempt at connecting, e.g. in a test or monitoring script.
+  (OpenVPN's own test suite uses it this way.)
 
 --tls-server
   Enable TLS and assume server role during TLS handshake. Note that
@@ -545,8 +592,8 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   them.
 
 --tls-version-min args
-  Sets the minimum TLS version we will accept from the peer (default is
-  "1.0").
+  Sets the minimum TLS version we will accept from the peer (default in
+  2.6.0 and later is "1.2").
 
   Valid syntax:
   ::
@@ -664,9 +711,28 @@ If the option is inlined, ``algo`` is always :code:`SHA256`.
 --x509-track attribute
   Save peer X509 **attribute** value in environment for use by plugins and
   management interface. Prepend a :code:`+` to ``attribute`` to save values
-  from full cert chain. Values will be encoded as
-  :code:`X509_<depth>_<attribute>=<value>`. Multiple ``--x509-track``
+  from full cert chain. Otherwise the attribute will only be exported for
+  the leaf cert (i.e. depth :code:`0` of the cert chain). Values will be
+  encoded as :code:`X509_<depth>_<attribute>=<value>`. Multiple ``--x509-track``
   options can be defined to track multiple attributes.
+
+  ``attribute`` can be any part of the X509 Subject field or any X509v3
+  extension (RFC 3280). X509v3 extensions might not be supported when
+  not using the default TLS backend library (OpenSSL). You can also
+  request the ``SHA1`` and ``SHA256`` fingerprints of the cert,
+  but that is always exported as :code:`tls_digest_{n}` and
+  :code:`tls_digest_sha256_{n}` anyway.
+
+  Note that by default **all** parts of the X509 Subject field are exported in
+  the environment for the whole cert chain. If you use ``--x509-track`` at least
+  once **only** the attributes specified by these options are exported.
+
+  Examples::
+
+    x509-track CN               # exports only X509_0_CN
+    x509-track +CN              # exports X509_{n}_CN for chain
+    x509-track basicConstraints # exports value of "X509v3 Basic Constraints"
+    x509-track SHA256           # exports SHA256 fingerprint
 
 --x509-username-field args
   Fields in the X.509 certificate subject to be used as the username
@@ -684,11 +750,13 @@ If the option is inlined, ``algo`` is always :code:`SHA256`.
   ::
 
      x509-username-field emailAddress
+     x509-username-field 1.2.840.113549.1.9.1
      x509-username-field ext:subjectAltName
      x509-username-field CN serialNumber
 
-  The first example uses the value of the :code:`emailAddress` attribute
-  in the certificate's Subject field as the username. The second example
+  The first two examples use the value of the :code:`emailAddress` attribute
+  in the certificate's Subject field as the username, where the first example
+  uses the name while the second example uses the oid. The third example
   uses the :code:`ext:` prefix to signify that the X.509 extension
   ``fieldname`` :code:`subjectAltName` be searched for an rfc822Name
   (email) field to be used as the username. In cases where there are
@@ -702,12 +770,6 @@ If the option is inlined, ``algo`` is always :code:`SHA256`.
 
   Only the :code:`subjectAltName` and :code:`issuerAltName` X.509
   extensions and :code:`serialNumber` X.509 attribute are supported.
-
-  **Please note:** This option has a feature which will convert an
-  all-lowercase ``fieldname`` to uppercase characters, e.g.,
-  :code:`ou` -> :code:`OU`. A mixed-case ``fieldname`` or one having the
-  :code:`ext:` prefix will be left as-is. This automatic upcasing feature is
-  deprecated and will be removed in a future release.
 
   Non-compliant symbols are being replaced with the :code:`_` symbol, same as
   the field separator, so concatenating multiple fields with such or :code:`_`

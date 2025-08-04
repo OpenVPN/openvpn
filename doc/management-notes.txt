@@ -205,8 +205,12 @@ Command examples:
 
   kill Test-Client -- kill the client instance having a
                       common name of "Test-Client".
-  kill 1.2.3.4:4000 -- kill the client instance having a
-                       source address and port of 1.2.3.4:4000
+  kill tcp:1.2.3.4:4000 -- kill the client instance having a
+                           source address, port and proto of
+                           tcp:1.2.3.4:4000
+
+  Note that kill by address won't work for IPv6-connected
+  clients yet, so rely on kill by CN or CID instead.
 
 Use the "status" command to see which clients are connected.
 
@@ -613,10 +617,10 @@ COMMAND -- client-pending-auth  (OpenVPN 2.5 or higher)
 
 Instruct OpenVPN server to send AUTH_PENDING and INFO_PRE message
 to signal a pending authenticating to the client. A pending auth means
-that the connecting requires extra authentication like a one time
+that connecting requires extra authentication like a one time
 password or doing a single sign on via web.
 
-    client-pending-auth {CID} {EXTRA} {TIMEOUT}
+    client-pending-auth {CID} {KID} {EXTRA} {TIMEOUT}
 
 The server will send AUTH_PENDING and INFO_PRE,{EXTRA} to the client. If the
 client supports accepting keywords to AUTH_PENDING (announced via IV_PROTO),
@@ -639,11 +643,16 @@ Both client and server limit the maximum timeout to the smaller value of half th
 
 For the format of {EXTRA} see below. For OpenVPN server this is a stateless
 operation and needs to be followed by a client-deny/client-auth[-nt] command
-(that is the result of the out of band authentication).
+(that is the result of the out-of-band authentication).
+
+Note that the {KID} argument has been added in management version 5
+to specify the pending client key the authentication belongs to.
+This ensures that the pending auth message is tied strictly to the
+authentication session.
 
 Before issuing a client-pending-auth to a client instead of a
 client-auth/client-deny, the server should check the IV_SSO
-environment variable for whether the method is supported. Currently
+environment variable for whether the method is supported. Currently,
 defined methods are crtext for challenge/response using text
 (e.g., TOTP), openurl (deprecated) and webauth for opening a URL in
 the client to continue authentication. A client supporting webauth and
@@ -785,117 +794,68 @@ Immediately kill a client instance by CID.
 CID -- client ID.  See documentation for ">CLIENT:" notification for more
 info.
 
-COMMAND -- client-pf  (OpenVPN 2.1 or higher)
----------------------------------------------
+COMMAND -- remote-entry-count (OpenVPN 2.6+ management version > 3)
+-------------------------------------------------------------------
 
-Push a packet filter file to a specific client.
+Retrieve available number of remote host/port entries
 
-The OpenVPN server should have been started with the
---management-client-pf directive so that it will require that
-VPN tunnel packets sent or received by client instances must
-conform to that client's packet filter configuration.
+Example:
 
-  client-pf {CID}
-  line_1
-  line_2
-  ...
-  line_n
+  Management interface client sends:
+
+    remote-entry-count
+
+  OpenVPN daemon responds with
+
+  5
   END
 
-CID -- client ID.  See documentation for ">CLIENT:" notification for
-more info.
+COMMAND -- remote-entry-get (OpenVPN 2.6+ management version > 3)
+------------------------------------------------------------------
 
-line_1 to line_n -- the packet filter configuration file for this
-client.
+  remote-entry-get <start> [<end>]
 
-Packet filter file grammar:
+Retrieve remote entry (host, port, protocol, and status) for index
+<start> or indices from <start> to <end>-1. Alternatively
+<start> = "all" retrieves all remote entries. The index is 0-based.
+If the entry is disabled due to protocol or proxy restrictions
+(i.e., ce->flag & CE_DISABLED == 1), the status is returned as "disabled",
+otherwise it reads "enabled" without quotes.
 
- [CLIENTS DROP|ACCEPT]
- {+|-}common_name1
- {+|-}common_name2
- . . .
- [SUBNETS DROP|ACCEPT]
- {+|-}subnet1
- {+|-}subnet2
- . . .
- [END]
+Example 1:
 
- Subnet: IP-ADDRESS | IP-ADDRESS/NUM_NETWORK_BITS | "unknown"
+  Management interface client sends:
 
- CLIENTS refers to the set of clients (by their common-name) which
- this instance is allowed ('+') to connect to, or is excluded ('-')
- from connecting to.  Note that in the case of client-to-client
- connections, such communication must be allowed by the packet filter
- configuration files of both clients AND the --client-to-client
- directive must have been specified in the OpenVPN server config.
+    remote-entry-get 1
 
- SUBNETS refers to IP addresses or IP address subnets which this
- client instance may connect to ('+') or is excluded ('-') from
- connecting to, and applies to IPv4 and ARP packets.  The special
- "unknown" tag refers to packets of unknown type, i.e. a packet that
- is not IPv4 or ARP.
+  OpenVPN daemon responds with
 
- DROP or ACCEPT defines default policy when there is no explicit match
- for a common-name or subnet.  The [END] tag must exist.
+    1,vpn.example.com,1194,udp,enabled
+    END
 
- Notes:
+Example 2:
 
- * The SUBNETS section currently only supports IPv4 addresses and
-   subnets.
+  Management interface client sends:
 
- * A given client or subnet rule applies to both incoming and
-   outgoing packets.
+    remote-entry-get 1 3
 
- * The CLIENTS list is order-invariant.  Because the list is stored
-   as a hash-table, the order of the list does not affect its function.
+  OpenVPN daemon responds with
 
- * The SUBNETS table is scanned sequentially, and the first item to
-   match is chosen.  Therefore the SUBNETS table is NOT order-invariant.
+    1,vpn.example.com,1194,udp,enabled
+    2,vpn.example.net,443,tcp-client,disabled
+    END
 
- * No client-to-client communication is allowed unless the
-   --client-to-client configuration directive is enabled AND
-   the CLIENTS list of BOTH clients allows the communication.
+Example 3:
+  Management interface client sends:
 
-Example packet filter spec, as transmitted to the management interface:
+    remote-entry-get all
 
- client-pf 42
- [CLIENTS ACCEPT]
- -accounting
- -enigma
- [SUBNETS DROP]
- -10.46.79.9
- +10.0.0.0/8
- [END]
- END
+  OpenVPN daemon with 3 connection entries responds with
 
-The above example sets the packet filter policy for the client
-identified by CID=42.  This client may connect to all other clients
-except those having a common name of "accounting" or "enigma".
-The client may only interact with external IP addresses in the
-10.0.0.0/8 subnet, however access to 10.46.79.9 is specifically
-excluded.
-
-Another example packet filter spec, as transmitted to the
-management interface:
-
- client-pf 99
- [CLIENTS DENY]
- +public
- [SUBNETS ACCEPT]
- +10.10.0.1
- -10.0.0.0/8
- -unknown
- [END]
- END
-
-The above example sets the packet filter policy for the client
-identified by CID=99.  This client may not connect to any other
-clients except those having a common name of "public".  It may
-interact with any external IP address except those in the
-10.0.0.0/8 netblock.  However interaction with one address in
-the 10.0.0.0/8 netblock is allowed: 10.10.0.1.  Also, the client
-may not interact with external IP addresses using an "unknown"
-protocol (i.e. one that is not IPv4 or ARP).
+    0,vpn.example.com,1194,udp,enabled
+    1,vpn.example.com,443,tcp-client,enabled
+    2,vpn.example.net,443,udp,enabled
+    END
 
 COMMAND -- remote  (OpenVPN AS 2.1.5/OpenVPN 2.3 or higher)
 --------------------------------------------
@@ -928,6 +888,13 @@ To skip the current connection entry and advance to the next one,
 use this command:
 
   remote SKIP
+
+Starting OpenVPN version 2.6 (management version > 3), skip
+multiple remotes using:
+
+  remote SKIP n
+
+where n > 0 is the number of remotes to skip.
 
 COMMAND -- proxy  (OpenVPN 2.3 or higher)
 --------------------------------------------
@@ -1019,10 +986,24 @@ can be indicated in the signing request only if the client version is > 2"
 
 The currently defined padding algorithms are:
 
- - RSA_PKCS1_PADDING  -  PKCS1 padding and RSA signature
- - RSA_NO_PADDING     -  No padding may be added for the signature
- - ECDSA              -  EC signature.
+ - RSA_PKCS1_PADDING            -  PKCS1 padding and RSA signature
+ - RSA_NO_PADDING               -  No padding may be added for the signature
+ - ECDSA                        -  EC signature.
+ - RSA_PKCS1_PSS_PADDING,params -  RSA signature with PSS padding
 
+   The params for PSS are specified as 'hashalg=name,saltlen=[max|digest]'.
+
+   The hashalg names are short common names such as SHA256, SHA224, etc.
+   PSS saltlen="digest" means use the same size as the hash to sign, while
+   "max" indicates maximum possible saltlen which is
+   '(nbits-1)/8 - hlen - 2'. Here 'nbits' is the number of bits in the
+   key modulus and 'hlen' the size in octets of the hash.
+   (See: RFC 8017 sec 8.1.1 and 9.1.1)
+
+   In the case of PKCS1_PADDING, when the hash algorithm is not legacy
+   MD5-SHA1, the hash is encoded with DigestInfo header before presenting
+   to the management interface. This is identical to CKM_RSA_PKCS in Cryptoki
+   as well as what RSA_private_encrypt() in OpenSSL expects.
 
 COMMAND -- certificate (OpenVPN 2.4 or higher)
 ----------------------------------------------
@@ -1343,14 +1324,20 @@ request.
 
 OpenVPN's --static-challenge option is used to provide the
 challenge text to OpenVPN and indicate whether or not the response
-should be echoed.
+should be echoed and how the response should be combined with the
+password.
 
 When credentials are needed and the --static-challenge option is
 used, the management interface will send:
 
-  >PASSWORD:Need 'Auth' username/password SC:<ECHO>,<TEXT>
+  >PASSWORD:Need 'Auth' username/password SC:<flag>,<TEXT>
 
-  ECHO: "1" if response should be echoed, "0" to not echo
+  flag: an integer whose least significant bit is the ECHO flag and
+        the next significant bit is the FORMAT flag.
+        ECHO = (flag & 0x1) is 1 if response should be echoed, 0 to not echo
+        FORMAT = (flag & 0x2) is 1 if response should be concatenated with
+        password as plain text, 0 if response and password should be encoded
+        as described below. Thus flag could take values 0, 1, 2, or 3.
   TEXT: challenge text that should be shown to the user to
       facilitate their response
 
@@ -1365,8 +1352,9 @@ should be echoed.
 
 The management interface client in this case should add the static
 challenge text to the auth dialog followed by a field for the user to
-enter a response.  Then the management interface client should pack the
-password and response together into an encoded password and send:
+enter a response. If flag = 0 or 1 (i.e., FORMAT=0), the management
+interface client should pack the password and response together into
+an encoded password and send:
 
   username "Auth" <username>
   password "Auth" "SCRV1:<password_base64>:<response_base64>"
@@ -1377,6 +1365,12 @@ is the base 64 encoding of the password entered by the user, and
 the user. The <password_base64> and/or the <response_base64> can be
 empty strings.
 
+If flag = 2 or 3 (i.e., FORMAT=1), the client should simply concatenate
+password and response with no separator and send:
+
+  username "Auth" <username>
+  password "Auth" "<password><response>"
+
 (As in all username/password responses described in the "COMMAND --
 password and username" section above, the username can be in quotes,
 and special characters such as double quotes or backslashes must be
@@ -1384,10 +1378,15 @@ escaped. See the "Command Parsing" section above for more info.)
 
 For example, if user "foo" entered "bar" as the password and 8675309
 as the PIN, the following management interface commands should be
-issued:
+issued if flag = 0 or 1 (i.e., FORMAT = 0):
 
   username "Auth" foo
   password "Auth" "SCRV1:YmFy:ODY3NTMwOQ=="
 
   ("YmFy" is the base 64 encoding of "bar" and "ODY3NTMwOQ==" is the
    base 64 encoding of "8675309".)
+
+or, if flag = 2 or 3 (i.e., FORMAT = 1):
+
+  username "Auth" foo
+  password "Auth" "bar8675309"

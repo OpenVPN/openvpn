@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2002-2021 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -17,14 +17,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
-#elif defined(_MSC_VER)
-#include "config-msvc.h"
 #endif
 
 #include "syshead.h"
@@ -328,185 +325,6 @@ hash_iterator_delete_element(struct hash_iterator *hi)
 }
 
 
-#ifdef LIST_TEST
-
-/*
- * Test the hash code by implementing a simple
- * word frequency algorithm.
- */
-
-struct word
-{
-    const char *word;
-    int n;
-};
-
-static uint32_t
-word_hash_function(const void *key, uint32_t iv)
-{
-    const char *str = (const char *) key;
-    const int len = strlen(str);
-    return hash_func((const uint8_t *)str, len, iv);
-}
-
-static bool
-word_compare_function(const void *key1, const void *key2)
-{
-    return strcmp((const char *)key1, (const char *)key2) == 0;
-}
-
-static void
-print_nhash(struct hash *hash)
-{
-    struct hash_iterator hi;
-    struct hash_element *he;
-    int count = 0;
-
-    hash_iterator_init(hash, &hi, true);
-
-    while ((he = hash_iterator_next(&hi)))
-    {
-        printf("%d ", (int) he->value);
-        ++count;
-    }
-    printf("\n");
-
-    hash_iterator_free(&hi);
-    ASSERT(count == hash_n_elements(hash));
-}
-
-static void
-rmhash(struct hash *hash, const char *word)
-{
-    hash_remove(hash, word);
-}
-
-void
-list_test(void)
-{
-    openvpn_thread_init();
-
-    {
-        struct gc_arena gc = gc_new();
-        struct hash *hash = hash_init(10000, get_random(), word_hash_function, word_compare_function);
-        struct hash *nhash = hash_init(256, get_random(), word_hash_function, word_compare_function);
-
-        printf("hash_init n_buckets=%d mask=0x%08x\n", hash->n_buckets, hash->mask);
-
-        /* parse words from stdin */
-        while (true)
-        {
-            char buf[256];
-            char wordbuf[256];
-            int wbi;
-            int bi;
-            char c;
-
-            if (!fgets(buf, sizeof(buf), stdin))
-            {
-                break;
-            }
-
-            bi = wbi = 0;
-            do
-            {
-                c = buf[bi++];
-                if (isalnum(c) || c == '_')
-                {
-                    ASSERT(wbi < (int) sizeof(wordbuf));
-                    wordbuf[wbi++] = c;
-                }
-                else
-                {
-                    if (wbi)
-                    {
-                        struct word *w;
-                        ASSERT(wbi < (int) sizeof(wordbuf));
-                        wordbuf[wbi++] = '\0';
-
-                        /* word is parsed from stdin */
-
-                        /* does it already exist in table? */
-                        w = (struct word *) hash_lookup(hash, wordbuf);
-
-                        if (w)
-                        {
-                            /* yes, increment count */
-                            ++w->n;
-                        }
-                        else
-                        {
-                            /* no, make a new object */
-                            ALLOC_OBJ_GC(w, struct word, &gc);
-                            w->word = string_alloc(wordbuf, &gc);
-                            w->n = 1;
-                            ASSERT(hash_add(hash, w->word, w, false));
-                            ASSERT(hash_add(nhash, w->word, (void *) ((random() & 0x0F) + 1), false));
-                        }
-                    }
-                    wbi = 0;
-                }
-            } while (c);
-        }
-
-#if 1
-        /* remove some words from the table */
-        {
-            rmhash(hash, "true");
-            rmhash(hash, "false");
-        }
-#endif
-
-        /* output contents of hash table */
-        {
-            int base;
-            int inc = 0;
-            int count = 0;
-
-            for (base = 0; base < hash_n_buckets(hash); base += inc)
-            {
-                struct hash_iterator hi;
-                struct hash_element *he;
-                inc = (get_random() % 3) + 1;
-                hash_iterator_init_range(hash, &hi, true, base, base + inc);
-
-                while ((he = hash_iterator_next(&hi)))
-                {
-                    struct word *w = (struct word *) he->value;
-                    printf("%6d '%s'\n", w->n, w->word);
-                    ++count;
-                }
-
-                hash_iterator_free(&hi);
-            }
-            ASSERT(count == hash_n_elements(hash));
-        }
-
-#if 1
-        /* test hash_remove_by_value function */
-        {
-            int i;
-            for (i = 1; i <= 16; ++i)
-            {
-                printf("[%d] ***********************************\n", i);
-                print_nhash(nhash);
-                hash_remove_by_value(nhash, (void *) i, true);
-            }
-            printf("FINAL **************************\n");
-            print_nhash(nhash);
-        }
-#endif
-
-        hash_free(hash);
-        hash_free(nhash);
-        gc_free(&gc);
-    }
-
-    openvpn_thread_cleanup();
-}
-
-#endif /* ifdef LIST_TEST */
-
 /*
  * --------------------------------------------------------------------
  * hash() -- hash a variable-length key into a 32-bit value
@@ -572,7 +390,7 @@ list_test(void)
  * --------------------------------------------------------------------
  */
 
-#define mix(a,b,c)               \
+#define mix(a, b, c)               \
     {                                \
         a -= b; a -= c; a ^= (c>>13);  \
         b -= c; b -= a; b ^= (a<<8);   \
@@ -618,34 +436,44 @@ hash_func(const uint8_t *k, uint32_t length, uint32_t initval)
     {
         case 11:
             c += ((uint32_t) k[10] << 24);
+        /* Intentional [[fallthrough]]; */
 
         case 10:
             c += ((uint32_t) k[9] << 16);
+        /* Intentional [[fallthrough]]; */
 
         case 9:
             c += ((uint32_t) k[8] << 8);
+        /* Intentional [[fallthrough]]; */
 
         /* the first byte of c is reserved for the length */
         case 8:
             b += ((uint32_t) k[7] << 24);
+        /* Intentional [[fallthrough]]; */
 
         case 7:
             b += ((uint32_t) k[6] << 16);
+        /* Intentional [[fallthrough]]; */
 
         case 6:
             b += ((uint32_t) k[5] << 8);
+        /* Intentional [[fallthrough]]; */
 
         case 5:
             b += k[4];
+        /* Intentional [[fallthrough]]; */
 
         case 4:
             a += ((uint32_t) k[3] << 24);
+        /* Intentional [[fallthrough]]; */
 
         case 3:
             a += ((uint32_t) k[2] << 16);
+        /* Intentional [[fallthrough]]; */
 
         case 2:
             a += ((uint32_t) k[1] << 8);
+        /* Intentional [[fallthrough]]; */
 
         case 1:
             a += k[0];

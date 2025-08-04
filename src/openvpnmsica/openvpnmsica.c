@@ -2,7 +2,7 @@
  *  openvpnmsica -- Custom Action DLL to provide OpenVPN-specific support to MSI packages
  *                  https://community.openvpn.net/openvpn/wiki/OpenVPNMSICA
  *
- *  Copyright (C) 2018-2021 Simon Rozman <simon@rozman.si>
+ *  Copyright (C) 2018-2025 Simon Rozman <simon@rozman.si>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2
@@ -14,14 +14,11 @@
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
-#elif defined(_MSC_VER)
-#include <config-msvc.h>
 #endif
 #include <winsock2.h> /* Must be included _before_ <windows.h> */
 
@@ -42,7 +39,11 @@
 #include <shlwapi.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <tchar.h>
+#include <wchar.h>
+#include <setupapi.h>
+#include <newdev.h>
+#include <initguid.h>
+#include <devguid.h>
 
 #ifdef _MSC_VER
 #pragma comment(lib, "advapi32.lib")
@@ -57,9 +58,12 @@
  * Local constants
  */
 
-#define MSICA_ADAPTER_TICK_SIZE (16*1024) /** Amount of tick space to reserve for one TAP/TUN adapter creation/deletition. */
+/** Amount of tick space to reserve for one TAP/TUN adapter creation/deletition. */
+#define MSICA_ADAPTER_TICK_SIZE        (16 * 1024)
 
-#define FILE_NEED_REBOOT        L".ovpn_need_reboot"
+#define FILE_NEED_REBOOT               L".ovpn_need_reboot"
+
+#define OPENVPN_CONNECT_ADAPTER_SUBSTR L"OpenVPN Connect"
 
 /**
  * Joins an argument sequence and sets it to the MSI property.
@@ -75,17 +79,19 @@
 static UINT
 setup_sequence(
     _In_ MSIHANDLE hInstall,
-    _In_z_ LPCTSTR szProperty,
+    _In_z_ LPCWSTR szProperty,
     _In_ struct msica_arg_seq *seq)
 {
     UINT uiResult;
-    LPTSTR szSequence = msica_arg_seq_join(seq);
+    LPWSTR szSequence = msica_arg_seq_join(seq);
     uiResult = MsiSetProperty(hInstall, szProperty, szSequence);
     free(szSequence);
     if (uiResult != ERROR_SUCCESS)
     {
-        SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szProperty);
+        /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error
+         * code. Set last error manually. */
+        SetLastError(uiResult);
+        msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%ls\") failed", __FUNCTION__, szProperty);
         return uiResult;
     }
     return ERROR_SUCCESS;
@@ -104,27 +110,27 @@ setup_sequence(
 static void
 _debug_popup(_In_z_ LPCSTR szFunctionName)
 {
-    TCHAR szTitle[0x100], szMessage[0x100+MAX_PATH], szProcessPath[MAX_PATH];
+    WCHAR szTitle[0x100], szMessage[0x100+MAX_PATH], szProcessPath[MAX_PATH];
 
     /* Compose pop-up title. The dialog title will contain function name to ease the process
      * locating. Mind that Visual Studio displays window titles on the process list. */
-    _stprintf_s(szTitle, _countof(szTitle), TEXT("%hs v%") TEXT(PRIsLPTSTR),
-                szFunctionName, TEXT(PACKAGE_VERSION));
+    swprintf_s(szTitle, _countof(szTitle), L"%hs v%ls",
+               szFunctionName, _L(PACKAGE_VERSION));
 
     /* Get process name. */
     GetModuleFileName(NULL, szProcessPath, _countof(szProcessPath));
-    LPCTSTR szProcessName = _tcsrchr(szProcessPath, TEXT('\\'));
+    LPCWSTR szProcessName = wcsrchr(szProcessPath, L'\\');
     szProcessName = szProcessName ? szProcessName + 1 : szProcessPath;
 
     /* Compose the pop-up message. */
-    _stprintf_s(
+    swprintf_s(
         szMessage, _countof(szMessage),
-        TEXT("The %") TEXT(PRIsLPTSTR) TEXT(" process (PID: %u) has started to execute the %hs")
-        TEXT(" custom action.\r\n")
-        TEXT("\r\n")
-        TEXT("If you would like to debug the custom action, attach a debugger to this process and set breakpoints before dismissing this dialog.\r\n")
-        TEXT("\r\n")
-        TEXT("If you are not debugging this custom action, you can safely ignore this message."),
+        L"The %ls process (PID: %u) has started to execute the %hs"
+        L" custom action.\r\n"
+        L"\r\n"
+        L"If you would like to debug the custom action, attach a debugger to this process and set breakpoints before dismissing this dialog.\r\n"
+        L"\r\n"
+        L"If you are not debugging this custom action, you can safely ignore this message.",
         szProcessName,
         GetCurrentProcessId(),
         szFunctionName);
@@ -137,126 +143,12 @@ _debug_popup(_In_z_ LPCSTR szFunctionName)
 #define debug_popup(f)
 #endif /* ifdef _DEBUG */
 
-
-/**
- * Detects if the OpenVPNService service is in use (running or paused) and sets
- * OPENVPNSERVICE to the service process PID, or its path if it is set to
- * auto-start, but not running.
- *
- * @param hInstall      Handle to the installation provided to the DLL custom action
- *
- * @return ERROR_SUCCESS on success; An error code otherwise
- *         See: https://msdn.microsoft.com/en-us/library/windows/desktop/aa368072.aspx
- */
-static UINT
-set_openvpnserv_state(_In_ MSIHANDLE hInstall)
-{
-    UINT uiResult;
-
-    /* Get Service Control Manager handle. */
-    SC_HANDLE hSCManager = OpenSCManager(NULL, SERVICES_ACTIVE_DATABASE, SC_MANAGER_CONNECT);
-    if (hSCManager == NULL)
-    {
-        uiResult = GetLastError();
-        msg(M_NONFATAL | M_ERRNO, "%s: OpenSCManager() failed", __FUNCTION__);
-        return uiResult;
-    }
-
-    /* Get OpenVPNService service handle. */
-    SC_HANDLE hService = OpenService(hSCManager, TEXT("OpenVPNService"), SERVICE_QUERY_STATUS | SERVICE_QUERY_CONFIG);
-    if (hService == NULL)
-    {
-        uiResult = GetLastError();
-        if (uiResult == ERROR_SERVICE_DOES_NOT_EXIST)
-        {
-            /* This is not actually an error. */
-            goto cleanup_OpenSCManager;
-        }
-        msg(M_NONFATAL | M_ERRNO, "%s: OpenService(\"OpenVPNService\") failed", __FUNCTION__);
-        goto cleanup_OpenSCManager;
-    }
-
-    /* Query service status. */
-    SERVICE_STATUS_PROCESS ssp;
-    DWORD dwBufSize;
-    if (QueryServiceStatusEx(hService, SC_STATUS_PROCESS_INFO, (LPBYTE)&ssp, sizeof(ssp), &dwBufSize))
-    {
-        switch (ssp.dwCurrentState)
-        {
-            case SERVICE_START_PENDING:
-            case SERVICE_RUNNING:
-            case SERVICE_STOP_PENDING:
-            case SERVICE_PAUSE_PENDING:
-            case SERVICE_PAUSED:
-            case SERVICE_CONTINUE_PENDING:
-            {
-                /* Service is started (kind of). Set OPENVPNSERVICE property to service PID. */
-                TCHAR szPID[10 /*MAXDWORD in decimal*/ + 1 /*terminator*/];
-                _stprintf_s(
-                    szPID, _countof(szPID),
-                    TEXT("%u"),
-                    ssp.dwProcessId);
-
-                uiResult = MsiSetProperty(hInstall, TEXT("OPENVPNSERVICE"), szPID);
-                if (uiResult != ERROR_SUCCESS)
-                {
-                    SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-                    msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"OPENVPNSERVICE\") failed", __FUNCTION__);
-                }
-
-                /* We know user is using the service. Skip auto-start setting check. */
-                goto cleanup_OpenService;
-            }
-            break;
-        }
-    }
-    else
-    {
-        uiResult = GetLastError();
-        msg(M_NONFATAL | M_ERRNO, "%s: QueryServiceStatusEx(\"OpenVPNService\") failed", __FUNCTION__);
-    }
-
-    /* Service is not started. Is it set to auto-start? */
-    /* MSDN describes the maximum buffer size for QueryServiceConfig() to be 8kB. */
-    /* This is small enough to fit on stack. */
-    BYTE _buffer_8k[8192];
-    LPQUERY_SERVICE_CONFIG pQsc = (LPQUERY_SERVICE_CONFIG)_buffer_8k;
-    dwBufSize = sizeof(_buffer_8k);
-    if (!QueryServiceConfig(hService, pQsc, dwBufSize, &dwBufSize))
-    {
-        uiResult = GetLastError();
-        msg(M_NONFATAL | M_ERRNO, "%s: QueryServiceStatusEx(\"QueryServiceConfig\") failed", __FUNCTION__);
-        goto cleanup_OpenService;
-    }
-
-    if (pQsc->dwStartType <= SERVICE_AUTO_START)
-    {
-        /* Service is set to auto-start. Set OPENVPNSERVICE property to its path. */
-        uiResult = MsiSetProperty(hInstall, TEXT("OPENVPNSERVICE"), pQsc->lpBinaryPathName);
-        if (uiResult != ERROR_SUCCESS)
-        {
-            SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But we do have an error code. Set last error manually. */
-            msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"OPENVPNSERVICE\") failed", __FUNCTION__);
-            goto cleanup_OpenService;
-        }
-    }
-
-    uiResult = ERROR_SUCCESS;
-
-cleanup_OpenService:
-    CloseServiceHandle(hService);
-cleanup_OpenSCManager:
-    CloseServiceHandle(hSCManager);
-    return uiResult;
-}
-
-
 static void
 find_adapters(
     _In_ MSIHANDLE hInstall,
-    _In_z_ LPCTSTR szzHardwareIDs,
-    _In_z_ LPCTSTR szAdaptersPropertyName,
-    _In_z_ LPCTSTR szActiveAdaptersPropertyName)
+    _In_z_ LPCWSTR szzHardwareIDs,
+    _In_z_ LPCWSTR szAdaptersPropertyName,
+    _In_z_ LPCWSTR szActiveAdaptersPropertyName)
 {
     UINT uiResult;
 
@@ -314,26 +206,33 @@ find_adapters(
     }
 
     /* Prepare semicolon delimited list of TAP adapter ID(s) and active TAP adapter ID(s). */
-    LPTSTR
-        szAdapters     = (LPTSTR)malloc(adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
+    LPWSTR
+        szAdapters     = (LPWSTR)malloc(adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(WCHAR)),
         szAdaptersTail = szAdapters;
     if (szAdapters == NULL)
     {
-        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
+        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(WCHAR));
         uiResult = ERROR_OUTOFMEMORY; goto cleanup_pAdapterAdresses;
     }
 
-    LPTSTR
-        szAdaptersActive     = (LPTSTR)malloc(adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR)),
+    LPWSTR
+        szAdaptersActive     = (LPWSTR)malloc(adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(WCHAR)),
         szAdaptersActiveTail = szAdaptersActive;
     if (szAdaptersActive == NULL)
     {
-        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(TCHAR));
+        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(WCHAR));
         uiResult = ERROR_OUTOFMEMORY; goto cleanup_szAdapters;
     }
 
     for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
     {
+        /* exclude adapters created by OpenVPN Connect, since they're removed on Connect uninstallation */
+        if (wcsstr(pAdapter->szName, OPENVPN_CONNECT_ADAPTER_SUBSTR))
+        {
+            msg(M_WARN, "%s: skip OpenVPN Connect adapter '%ls'", __FUNCTION__, pAdapter->szName);
+            continue;
+        }
+
         /* Convert adapter GUID to UTF-16 string. (LPOLESTR defaults to LPWSTR) */
         LPOLESTR szAdapterId = NULL;
         StringFromIID((REFIID)&pAdapter->guid, &szAdapterId);
@@ -341,9 +240,9 @@ find_adapters(
         /* Append to the list of TAP adapter ID(s). */
         if (szAdapters < szAdaptersTail)
         {
-            *(szAdaptersTail++) = TEXT(';');
+            *(szAdaptersTail++) = L';';
         }
-        memcpy(szAdaptersTail, szAdapterId, 38 * sizeof(TCHAR));
+        memcpy(szAdaptersTail, szAdapterId, 38 * sizeof(WCHAR));
         szAdaptersTail += 38;
 
         /* If this adapter is active (connected), add it to the list of active TAP adapter ID(s). */
@@ -360,9 +259,9 @@ find_adapters(
                     /* This TAP adapter is active (connected). */
                     if (szAdaptersActive < szAdaptersActiveTail)
                     {
-                        *(szAdaptersActiveTail++) = TEXT(';');
+                        *(szAdaptersActiveTail++) = L';';
                     }
-                    memcpy(szAdaptersActiveTail, szAdapterId, 38 * sizeof(TCHAR));
+                    memcpy(szAdaptersActiveTail, szAdapterId, 38 * sizeof(WCHAR));
                     szAdaptersActiveTail += 38;
                 }
                 break;
@@ -403,7 +302,7 @@ cleanup_pAdapterList:
 UINT __stdcall
 FindSystemInfo(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
 
@@ -413,17 +312,16 @@ FindSystemInfo(_In_ MSIHANDLE hInstall)
 
     OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
-    set_openvpnserv_state(hInstall);
     find_adapters(
         hInstall,
-        TEXT("root\\") TEXT(TAP_WIN_COMPONENT_ID) TEXT("\0") TEXT(TAP_WIN_COMPONENT_ID) TEXT("\0"),
-        TEXT("TAPWINDOWS6ADAPTERS"),
-        TEXT("ACTIVETAPWINDOWS6ADAPTERS"));
+        L"root\\" _L(TAP_WIN_COMPONENT_ID) L"\0" _L(TAP_WIN_COMPONENT_ID) L"\0",
+        L"TAPWINDOWS6ADAPTERS",
+        L"ACTIVETAPWINDOWS6ADAPTERS");
     find_adapters(
         hInstall,
-        TEXT("Wintun") TEXT("\0"),
-        TEXT("WINTUNADAPTERS"),
-        TEXT("ACTIVEWINTUNADAPTERS"));
+        L"ovpn-dco" L"\0",
+        L"OVPNDCOADAPTERS",
+        L"ACTIVEOVPNDCOADAPTERS");
 
     if (bIsCoInitialized)
     {
@@ -436,7 +334,7 @@ FindSystemInfo(_In_ MSIHANDLE hInstall)
 UINT __stdcall
 CloseOpenVPNGUI(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
     UNREFERENCED_PARAMETER(hInstall); /* This CA is does not interact with MSI session (report errors, access properties, tables, etc.). */
@@ -444,7 +342,7 @@ CloseOpenVPNGUI(_In_ MSIHANDLE hInstall)
     debug_popup(__FUNCTION__);
 
     /* Find OpenVPN GUI window. */
-    HWND hWnd = FindWindow(TEXT("OpenVPN-GUI"), NULL);
+    HWND hWnd = FindWindow(L"OpenVPN-GUI", NULL);
     if (hWnd)
     {
         /* Ask it to close and wait for 100ms. Unfortunately, this will succeed only for recent OpenVPN GUI that do not run elevated. */
@@ -459,7 +357,7 @@ CloseOpenVPNGUI(_In_ MSIHANDLE hInstall)
 UINT __stdcall
 StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
 
@@ -478,7 +376,7 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
         msg(M_NONFATAL, "%s: MsiCreateRecord failed", __FUNCTION__);
         goto cleanup_CoInitialize;
     }
-    uiResult = MsiRecordSetString(hRecord, 0, TEXT("\"[#bin.openvpn_gui.exe]\""));
+    uiResult = MsiRecordSetString(hRecord, 0, L"\"[#bin.openvpn_gui.exe]\"");
     if (uiResult != ERROR_SUCCESS)
     {
         SetLastError(uiResult); /* MSDN does not mention MsiRecordSetString() to set GetLastError(). But we do have an error code. Set last error manually. */
@@ -487,17 +385,17 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
     }
 
     /* Format string. */
-    TCHAR szStackBuf[MAX_PATH];
+    WCHAR szStackBuf[MAX_PATH];
     DWORD dwPathSize = _countof(szStackBuf);
-    LPTSTR szPath = szStackBuf;
+    LPWSTR szPath = szStackBuf;
     uiResult = MsiFormatRecord(hInstall, hRecord, szPath, &dwPathSize);
     if (uiResult == ERROR_MORE_DATA)
     {
         /* Allocate buffer on heap (+1 for terminator), and retry. */
-        szPath = (LPTSTR)malloc((++dwPathSize) * sizeof(TCHAR));
+        szPath = (LPWSTR)malloc((++dwPathSize) * sizeof(WCHAR));
         if (szPath == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwPathSize * sizeof(TCHAR));
+            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwPathSize * sizeof(WCHAR));
             uiResult = ERROR_OUTOFMEMORY; goto cleanup_MsiCreateRecord;
         }
 
@@ -566,8 +464,8 @@ static DWORD
 schedule_adapter_create(
     _Inout_ struct msica_arg_seq *seq,
     _Inout_opt_ struct msica_arg_seq *seqRollback,
-    _In_z_ LPCTSTR szDisplayName,
-    _In_z_ LPCTSTR szHardwareId,
+    _In_z_ LPCWSTR szDisplayName,
+    _In_z_ LPCWSTR szHardwareId,
     _Inout_ int *iTicks)
 {
     /* Get existing network adapters. */
@@ -584,12 +482,12 @@ schedule_adapter_create(
         if (pAdapterOther == NULL)
         {
             /* No adapter with a same name found. */
-            TCHAR szArgument[10 /*create=""|deleteN=""*/ + MAX_PATH /*szDisplayName*/ + 1 /*|*/ + MAX_PATH /*szHardwareId*/ + 1 /*terminator*/];
+            WCHAR szArgument[10 /*create=""|deleteN=""*/ + MAX_PATH /*szDisplayName*/ + 1 /*|*/ + MAX_PATH /*szHardwareId*/ + 1 /*terminator*/];
 
             /* InstallTUNTAPAdapters will create the adapter. */
-            _stprintf_s(
+            swprintf_s(
                 szArgument, _countof(szArgument),
-                TEXT("create=\"%.*s|%.*s\""),
+                L"create=\"%.*s|%.*s\"",
                 MAX_PATH, szDisplayName,
                 MAX_PATH, szHardwareId);
             msica_arg_seq_add_tail(seq, szArgument);
@@ -597,9 +495,9 @@ schedule_adapter_create(
             if (seqRollback)
             {
                 /* InstallTUNTAPAdaptersRollback will delete the adapter. */
-                _stprintf_s(
+                swprintf_s(
                     szArgument, _countof(szArgument),
-                    TEXT("deleteN=\"%.*s\""),
+                    L"deleteN=\"%.*s\"",
                     MAX_PATH, szDisplayName);
                 msica_arg_seq_add_head(seqRollback, szArgument);
             }
@@ -607,19 +505,19 @@ schedule_adapter_create(
             *iTicks += MSICA_ADAPTER_TICK_SIZE;
             break;
         }
-        else if (_tcsicmp(szDisplayName, pAdapterOther->szName) == 0)
+        else if (wcsicmp(szDisplayName, pAdapterOther->szName) == 0)
         {
             /* Adapter with a same name found. */
-            for (LPCTSTR hwid = pAdapterOther->szzHardwareIDs;; hwid += _tcslen(hwid) + 1)
+            for (LPCWSTR hwid = pAdapterOther->szzHardwareIDs;; hwid += wcslen(hwid) + 1)
             {
                 if (hwid[0] == 0)
                 {
                     /* This adapter has a different hardware ID. */
-                    msg(M_NONFATAL, "%s: Adapter with name \"%" PRIsLPTSTR "\" already exists", __FUNCTION__, pAdapterOther->szName);
+                    msg(M_NONFATAL, "%s: Adapter with name \"%ls\" already exists", __FUNCTION__, pAdapterOther->szName);
                     dwResult = ERROR_ALREADY_EXISTS;
                     goto cleanup_pAdapterList;
                 }
-                else if (_tcsicmp(hwid, szHardwareId) == 0)
+                else if (wcsicmp(hwid, szHardwareId) == 0)
                 {
                     /* This is an adapter with the requested hardware ID. We already have what we want! */
                     break;
@@ -667,8 +565,8 @@ schedule_adapter_delete(
     _Inout_ struct msica_arg_seq *seq,
     _Inout_opt_ struct msica_arg_seq *seqCommit,
     _Inout_opt_ struct msica_arg_seq *seqRollback,
-    _In_z_ LPCTSTR szDisplayName,
-    _In_z_ LPCTSTR szzHardwareIDs,
+    _In_z_ LPCWSTR szDisplayName,
+    _In_z_ LPCWSTR szzHardwareIDs,
     _Inout_ int *iTicks)
 {
     /* Get adapters with given hardware ID. */
@@ -682,39 +580,39 @@ schedule_adapter_delete(
     /* Does adapter exist? */
     for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter != NULL; pAdapter = pAdapter->pNext)
     {
-        if (_tcsicmp(szDisplayName, pAdapter->szName) == 0)
+        if (wcsicmp(szDisplayName, pAdapter->szName) == 0)
         {
             /* Adapter found. */
-            TCHAR szArgument[8 /*disable=|enable=|delete=*/ + 38 /*{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}*/ + 1 /*terminator*/];
+            WCHAR szArgument[8 /*disable=|enable=|delete=*/ + 38 /*{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}*/ + 1 /*terminator*/];
             if (seqCommit && seqRollback)
             {
                 /* UninstallTUNTAPAdapters will disable the adapter. */
-                _stprintf_s(
+                swprintf_s(
                     szArgument, _countof(szArgument),
-                    TEXT("disable=") TEXT(PRIXGUID),
+                    L"disable=" _L(PRIXGUID),
                     PRIGUID_PARAM(pAdapter->guid));
                 msica_arg_seq_add_tail(seq, szArgument);
 
                 /* UninstallTUNTAPAdaptersRollback will re-enable the adapter. */
-                _stprintf_s(
+                swprintf_s(
                     szArgument, _countof(szArgument),
-                    TEXT("enable=") TEXT(PRIXGUID),
+                    L"enable=" _L(PRIXGUID),
                     PRIGUID_PARAM(pAdapter->guid));
                 msica_arg_seq_add_head(seqRollback, szArgument);
 
                 /* UninstallTUNTAPAdaptersCommit will delete the adapter. */
-                _stprintf_s(
+                swprintf_s(
                     szArgument, _countof(szArgument),
-                    TEXT("delete=") TEXT(PRIXGUID),
+                    L"delete=" _L(PRIXGUID),
                     PRIGUID_PARAM(pAdapter->guid));
                 msica_arg_seq_add_tail(seqCommit, szArgument);
             }
             else
             {
                 /* UninstallTUNTAPAdapters will delete the adapter. */
-                _stprintf_s(
+                swprintf_s(
                     szArgument, _countof(szArgument),
-                    TEXT("delete=") TEXT(PRIXGUID),
+                    L"delete=" _L(PRIXGUID),
                     PRIGUID_PARAM(pAdapter->guid));
                 msica_arg_seq_add_tail(seq, szArgument);
             }
@@ -732,7 +630,7 @@ schedule_adapter_delete(
 UINT __stdcall
 EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
 
@@ -758,7 +656,7 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
     msica_arg_seq_init(&seqUninstallRollback);
 
     /* Check rollback state. */
-    bool bRollbackEnabled = MsiEvaluateCondition(hInstall, TEXT("RollbackDisabled")) != MSICONDITION_TRUE;
+    bool bRollbackEnabled = MsiEvaluateCondition(hInstall, L"RollbackDisabled") != MSICONDITION_TRUE;
 
     /* Open MSI database. */
     MSIHANDLE hDatabase = MsiGetActiveDatabase(hInstall);
@@ -770,7 +668,7 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
     }
 
     /* Check if TUNTAPAdapter table exists. If it doesn't exist, there's nothing to do. */
-    switch (MsiDatabaseIsTablePersistent(hDatabase, TEXT("TUNTAPAdapter")))
+    switch (MsiDatabaseIsTablePersistent(hDatabase, L"TUNTAPAdapter"))
     {
         case MSICONDITION_FALSE:
         case MSICONDITION_TRUE: break;
@@ -782,12 +680,12 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
 
     /* Prepare a query to get a list/view of adapters. */
     MSIHANDLE hViewST = 0;
-    LPCTSTR szQuery = TEXT("SELECT `Adapter`,`DisplayName`,`Condition`,`Component_`,`HardwareId` FROM `TUNTAPAdapter`");
+    LPCWSTR szQuery = L"SELECT `Adapter`,`DisplayName`,`Condition`,`Component_`,`HardwareId` FROM `TUNTAPAdapter`";
     uiResult = MsiDatabaseOpenView(hDatabase, szQuery, &hViewST);
     if (uiResult != ERROR_SUCCESS)
     {
         SetLastError(uiResult); /* MSDN does not mention MsiDatabaseOpenView() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: MsiDatabaseOpenView(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szQuery);
+        msg(M_NONFATAL | M_ERRNO, "%s: MsiDatabaseOpenView(\"%ls\") failed", __FUNCTION__, szQuery);
         goto cleanup_hDatabase;
     }
 
@@ -796,7 +694,7 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
     if (uiResult != ERROR_SUCCESS)
     {
         SetLastError(uiResult); /* MSDN does not mention MsiViewExecute() to set GetLastError(). But we do have an error code. Set last error manually. */
-        msg(M_NONFATAL | M_ERRNO, "%s: MsiViewExecute(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szQuery);
+        msg(M_NONFATAL | M_ERRNO, "%s: MsiViewExecute(\"%ls\") failed", __FUNCTION__, szQuery);
         goto cleanup_hViewST;
     }
 
@@ -829,7 +727,7 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
         INSTALLSTATE iInstalled, iAction;
         {
             /* Read adapter component ID (`Component_` is field #4). */
-            LPTSTR szValue = NULL;
+            LPWSTR szValue = NULL;
             uiResult = msi_get_record_string(hRecord, 4, &szValue);
             if (uiResult != ERROR_SUCCESS)
             {
@@ -841,7 +739,7 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
             if (uiResult != ERROR_SUCCESS)
             {
                 SetLastError(uiResult); /* MSDN does not mention MsiGetComponentState() to set GetLastError(). But we do have an error code. Set last error manually. */
-                msg(M_NONFATAL | M_ERRNO, "%s: MsiGetComponentState(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szValue);
+                msg(M_NONFATAL | M_ERRNO, "%s: MsiGetComponentState(\"%ls\") failed", __FUNCTION__, szValue);
                 free(szValue);
                 goto cleanup_hRecord;
             }
@@ -849,26 +747,26 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
         }
 
         /* Get adapter display name (`DisplayName` is field #2). */
-        LPTSTR szDisplayName = NULL;
+        LPWSTR szDisplayName = NULL;
         uiResult = msi_format_field(hInstall, hRecord, 2, &szDisplayName);
         if (uiResult != ERROR_SUCCESS)
         {
             goto cleanup_hRecord;
         }
         /* `DisplayName` field type is [Filename](https://docs.microsoft.com/en-us/windows/win32/msi/filename), which is either "8.3|long name" or "8.3". */
-        LPTSTR szDisplayNameEx = _tcschr(szDisplayName, TEXT('|'));
+        LPWSTR szDisplayNameEx = wcschr(szDisplayName, L'|');
         szDisplayNameEx = szDisplayNameEx != NULL ? szDisplayNameEx + 1 : szDisplayName;
 
         /* Get adapter hardware ID (`HardwareId` is field #5). */
-        TCHAR szzHardwareIDs[0x100] = { 0 };
+        WCHAR szzHardwareIDs[0x100] = { 0 };
         {
-            LPTSTR szHwId = NULL;
+            LPWSTR szHwId = NULL;
             uiResult = msi_get_record_string(hRecord, 5, &szHwId);
             if (uiResult != ERROR_SUCCESS)
             {
                 goto cleanup_szDisplayName;
             }
-            memcpy_s(szzHardwareIDs, sizeof(szzHardwareIDs) - 2*sizeof(TCHAR) /*requires double zero termination*/, szHwId, _tcslen(szHwId)*sizeof(TCHAR));
+            memcpy_s(szzHardwareIDs, sizeof(szzHardwareIDs) - 2*sizeof(WCHAR) /*requires double zero termination*/, szHwId, wcslen(szHwId)*sizeof(WCHAR));
             free(szHwId);
         }
 
@@ -879,13 +777,13 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
             if (iAction >= INSTALLSTATE_LOCAL)
             {
                 /* Read and evaluate adapter condition (`Condition` is field #3). */
-                LPTSTR szValue = NULL;
+                LPWSTR szValue = NULL;
                 uiResult = msi_get_record_string(hRecord, 3, &szValue);
                 if (uiResult != ERROR_SUCCESS)
                 {
                     goto cleanup_szDisplayName;
                 }
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__clang__)
 /*
  * warning: enumeration value ‘MSICONDITION_TRUE’ not handled in switch
  * warning: enumeration value ‘MSICONDITION_NONE’ not handled in switch
@@ -901,11 +799,11 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
 
                     case MSICONDITION_ERROR:
                         uiResult = ERROR_INVALID_FIELD;
-                        msg(M_NONFATAL | M_ERRNO, "%s: MsiEvaluateCondition(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, szValue);
+                        msg(M_NONFATAL | M_ERRNO, "%s: MsiEvaluateCondition(\"%ls\") failed", __FUNCTION__, szValue);
                         free(szValue);
                         goto cleanup_szDisplayName;
                 }
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
                 free(szValue);
@@ -960,11 +858,11 @@ cleanup_hRecord:
     }
 
     /* save path to user's temp dir to be used later by deferred actions */
-    TCHAR tmpDir[MAX_PATH];
+    WCHAR tmpDir[MAX_PATH];
     GetTempPath(MAX_PATH, tmpDir);
 
-    TCHAR str[MAX_PATH + 7];
-    _stprintf_s(str, _countof(str), TEXT("tmpdir=%") TEXT(PRIsLPTSTR), tmpDir);
+    WCHAR str[MAX_PATH + 7];
+    swprintf_s(str, _countof(str), L"tmpdir=%ls", tmpDir);
     msica_arg_seq_add_tail(&seqInstall, str);
     msica_arg_seq_add_tail(&seqInstallCommit, str);
     msica_arg_seq_add_tail(&seqInstallRollback, str);
@@ -973,12 +871,12 @@ cleanup_hRecord:
     msica_arg_seq_add_tail(&seqUninstallRollback, str);
 
     /* Store deferred custom action parameters. */
-    if ((uiResult = setup_sequence(hInstall, TEXT("InstallTUNTAPAdapters"          ), &seqInstall          )) != ERROR_SUCCESS
-        || (uiResult = setup_sequence(hInstall, TEXT("InstallTUNTAPAdaptersCommit"    ), &seqInstallCommit    )) != ERROR_SUCCESS
-        || (uiResult = setup_sequence(hInstall, TEXT("InstallTUNTAPAdaptersRollback"  ), &seqInstallRollback  )) != ERROR_SUCCESS
-        || (uiResult = setup_sequence(hInstall, TEXT("UninstallTUNTAPAdapters"        ), &seqUninstall        )) != ERROR_SUCCESS
-        || (uiResult = setup_sequence(hInstall, TEXT("UninstallTUNTAPAdaptersCommit"  ), &seqUninstallCommit  )) != ERROR_SUCCESS
-        || (uiResult = setup_sequence(hInstall, TEXT("UninstallTUNTAPAdaptersRollback"), &seqUninstallRollback)) != ERROR_SUCCESS)
+    if ((uiResult = setup_sequence(hInstall, L"InstallTUNTAPAdapters", &seqInstall          )) != ERROR_SUCCESS
+        || (uiResult = setup_sequence(hInstall, L"InstallTUNTAPAdaptersCommit", &seqInstallCommit    )) != ERROR_SUCCESS
+        || (uiResult = setup_sequence(hInstall, L"InstallTUNTAPAdaptersRollback", &seqInstallRollback  )) != ERROR_SUCCESS
+        || (uiResult = setup_sequence(hInstall, L"UninstallTUNTAPAdapters", &seqUninstall        )) != ERROR_SUCCESS
+        || (uiResult = setup_sequence(hInstall, L"UninstallTUNTAPAdaptersCommit", &seqUninstallCommit  )) != ERROR_SUCCESS
+        || (uiResult = setup_sequence(hInstall, L"UninstallTUNTAPAdaptersRollback", &seqUninstallRollback)) != ERROR_SUCCESS)
     {
         goto cleanup_hRecordProg;
     }
@@ -1042,15 +940,15 @@ parse_guid(
 static void
 CreateRebootFile(_In_z_ LPCWSTR szTmpDir)
 {
-    TCHAR path[MAX_PATH];
+    WCHAR path[MAX_PATH];
     swprintf_s(path, _countof(path), L"%s%s", szTmpDir, FILE_NEED_REBOOT);
 
-    msg(M_WARN, "%s: Reboot required, create reboot indication file \"%" PRIsLPTSTR "\"", __FUNCTION__, path);
+    msg(M_WARN, "%s: Reboot required, create reboot indication file \"%ls\"", __FUNCTION__, path);
 
-    HANDLE file = CreateFile(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE file = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     if (file == INVALID_HANDLE_VALUE)
     {
-        msg(M_NONFATAL | M_ERRNO, "%s: CreateFile(\"%" PRIsLPTSTR "\") failed", __FUNCTION__, path);
+        msg(M_NONFATAL | M_ERRNO, "%s: CreateFile(\"%ls\") failed", __FUNCTION__, path);
     }
     else
     {
@@ -1061,7 +959,7 @@ CreateRebootFile(_In_z_ LPCWSTR szTmpDir)
 UINT __stdcall
 ProcessDeferredAction(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
 
@@ -1123,7 +1021,7 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
             {
                 /* Report the name of the adapter to installer. */
                 MSIHANDLE hRecord = MsiCreateRecord(4);
-                MsiRecordSetString(hRecord, 1, TEXT("Creating adapter"));
+                MsiRecordSetString(hRecord, 1, L"Creating adapter");
                 MsiRecordSetString(hRecord, 2, szName);
                 MsiRecordSetString(hRecord, 3, szHardwareId);
                 int iResult = MsiProcessMessage(hInstall, INSTALLMESSAGE_ACTIONDATA, hRecord);
@@ -1140,7 +1038,7 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
             if (dwResult == ERROR_SUCCESS)
             {
                 /* Set adapter name. May fail on some machines, but that is not critical - use silent
-                   flag to mute messagebox and print error only to log */
+                 * flag to mute messagebox and print error only to log */
                 tap_set_adapter_name(&guidAdapter, szName, TRUE);
             }
         }
@@ -1152,7 +1050,7 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
             {
                 /* Report the name of the adapter to installer. */
                 MSIHANDLE hRecord = MsiCreateRecord(3);
-                MsiRecordSetString(hRecord, 1, TEXT("Deleting adapter"));
+                MsiRecordSetString(hRecord, 1, L"Deleting adapter");
                 MsiRecordSetString(hRecord, 2, szName);
                 int iResult = MsiProcessMessage(hInstall, INSTALLMESSAGE_ACTIONDATA, hRecord);
                 MsiCloseHandle(hRecord);
@@ -1171,7 +1069,7 @@ ProcessDeferredAction(_In_ MSIHANDLE hInstall)
                 /* Does the adapter exist? */
                 for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter != NULL; pAdapter = pAdapter->pNext)
                 {
-                    if (_tcsicmp(szName, pAdapter->szName) == 0)
+                    if (wcsicmp(szName, pAdapter->szName) == 0)
                     {
                         /* Adapter found. */
                         dwResult = tap_delete_adapter(NULL, &pAdapter->guid, &bRebootRequired);
@@ -1261,32 +1159,31 @@ cleanup_CoInitialize:
 UINT __stdcall
 CheckAndScheduleReboot(_In_ MSIHANDLE hInstall)
 {
-#ifdef _MSC_VER
+#ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
 #endif
 
     debug_popup(__FUNCTION__);
 
-    UINT ret = ERROR_SUCCESS;
     BOOL bIsCoInitialized = SUCCEEDED(CoInitialize(NULL));
 
     OPENVPNMSICA_SAVE_MSI_SESSION(hInstall);
 
     /* get user-specific temp path, to where we create reboot indication file */
-    TCHAR tempPath[MAX_PATH];
-    GetTempPath(MAX_PATH, tempPath);
+    WCHAR tempPath[MAX_PATH];
+    GetTempPathW(MAX_PATH, tempPath);
 
     /* check if reboot file exists */
-    TCHAR path[MAX_PATH];
-    _stprintf_s(path, _countof(path), L"%s%s", tempPath, FILE_NEED_REBOOT);
+    WCHAR path[MAX_PATH];
+    swprintf_s(path, _countof(path), L"%s%s", tempPath, FILE_NEED_REBOOT);
     WIN32_FIND_DATA data = { 0 };
-    HANDLE searchHandle = FindFirstFile(path, &data);
+    HANDLE searchHandle = FindFirstFileW(path, &data);
     if (searchHandle != INVALID_HANDLE_VALUE)
     {
         msg(M_WARN, "%s: Reboot file exists, schedule reboot", __FUNCTION__);
 
         FindClose(searchHandle);
-        DeleteFile(path);
+        DeleteFileW(path);
 
         MsiSetMode(hInstall, MSIRUNMODE_REBOOTATEND, TRUE);
     }
@@ -1295,5 +1192,5 @@ CheckAndScheduleReboot(_In_ MSIHANDLE hInstall)
     {
         CoUninitialize();
     }
-    return ret;
+    return ERROR_SUCCESS;
 }
