@@ -38,18 +38,15 @@
 #endif
 
 static void
-send_hmac_reset_packet(struct multi_context *m,
-                       struct tls_pre_decrypt_state *state,
-                       struct tls_auth_standalone *tas,
-                       struct session_id *sid,
+send_hmac_reset_packet(struct multi_context *m, struct tls_pre_decrypt_state *state,
+                       struct tls_auth_standalone *tas, struct session_id *sid,
                        bool request_resend_wkc)
 {
     reset_packet_id_send(&state->tls_wrap_tmp.opt.packet_id.send);
     state->tls_wrap_tmp.opt.packet_id.rec.initialized = true;
     uint8_t header = 0 | (P_CONTROL_HARD_RESET_SERVER_V2 << P_OPCODE_SHIFT);
     struct buffer buf = tls_reset_standalone(&state->tls_wrap_tmp, tas, sid,
-                                             &state->peer_session_id, header,
-                                             request_resend_wkc);
+                                             &state->peer_session_id, header, request_resend_wkc);
 
     struct context *c = &m->top;
 
@@ -65,8 +62,7 @@ send_hmac_reset_packet(struct multi_context *m,
 
 /* Returns true if this packet should create a new session */
 static bool
-do_pre_decrypt_check(struct multi_context *m,
-                     struct tls_pre_decrypt_state *state,
+do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *state,
                      struct mroute_addr addr)
 {
     ASSERT(m->top.c2.tls_auth_standalone);
@@ -108,8 +104,8 @@ do_pre_decrypt_check(struct multi_context *m,
         if (early_neg_support)
         {
             /* Calculate the session ID HMAC for our reply and create reset packet */
-            struct session_id sid = calculate_session_id_hmac(state->peer_session_id,
-                                                              from, hmac, handwindow, 0);
+            struct session_id sid =
+                calculate_session_id_hmac(state->peer_session_id, from, hmac, handwindow, 0);
             send_hmac_reset_packet(m, state, tas, &sid, true);
 
             return false;
@@ -124,8 +120,10 @@ do_pre_decrypt_check(struct multi_context *m,
             {
                 struct gc_arena gc = gc_new();
                 const char *peer = print_link_socket_actual(&m->top.c2.from, &gc);
-                msg(D_MULTI_DEBUG, "tls-crypt-v2 force-cookie is enabled, "
-                    "ignoring connection attempt from old client (%s)", peer);
+                msg(D_MULTI_DEBUG,
+                    "tls-crypt-v2 force-cookie is enabled, "
+                    "ignoring connection attempt from old client (%s)",
+                    peer);
                 gc_free(&gc);
                 return false;
             }
@@ -138,14 +136,13 @@ do_pre_decrypt_check(struct multi_context *m,
     else if (verdict == VERDICT_VALID_RESET_V2)
     {
         /* Calculate the session ID HMAC for our reply and create reset packet */
-        struct session_id sid = calculate_session_id_hmac(state->peer_session_id,
-                                                          from, hmac, handwindow, 0);
+        struct session_id sid =
+            calculate_session_id_hmac(state->peer_session_id, from, hmac, handwindow, 0);
 
         send_hmac_reset_packet(m, state, tas, &sid, false);
 
         /* We have a reply do not create a new session */
         return false;
-
     }
     else if (verdict == VERDICT_VALID_CONTROL_V1 || verdict == VERDICT_VALID_ACK_V1
              || verdict == VERDICT_VALID_WKC_V1)
@@ -157,7 +154,7 @@ do_pre_decrypt_check(struct multi_context *m,
         bool ret = check_session_id_hmac(state, from, hmac, handwindow);
 
         const char *peer = print_link_socket_actual(&m->top.c2.from, &gc);
-        uint8_t pkt_firstbyte = *BPTR( &m->top.c2.buf);
+        uint8_t pkt_firstbyte = *BPTR(&m->top.c2.buf);
         int op = pkt_firstbyte >> P_OPCODE_SHIFT;
 
         if (!ret)
@@ -167,8 +164,10 @@ do_pre_decrypt_check(struct multi_context *m,
         }
         else
         {
-            msg(D_MULTI_DEBUG, "Valid packet (%s) with HMAC challenge from peer (%s), "
-                "accepting new connection.", packet_opcode_name(op), peer);
+            msg(D_MULTI_DEBUG,
+                "Valid packet (%s) with HMAC challenge from peer (%s), "
+                "accepting new connection.",
+                packet_opcode_name(op), peer);
         }
         gc_free(&gc);
 
@@ -186,18 +185,16 @@ do_pre_decrypt_check(struct multi_context *m,
  */
 
 struct multi_instance *
-multi_get_create_instance_udp(struct multi_context *m, bool *floated,
-                              struct link_socket *sock)
+multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
-    struct mroute_addr real = {0};
+    struct mroute_addr real = { 0 };
     struct multi_instance *mi = NULL;
     struct hash *hash = m->hash;
     real.proto = sock->info.proto;
     m->hmac_reply_ls = sock;
 
-    if (mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true)
-        && m->top.c2.buf.len > 0)
+    if (mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true) && m->top.c2.buf.len > 0)
     {
         struct hash_element *he;
         const uint32_t hv = hash_value(hash, &real);
@@ -217,14 +214,16 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated,
             {
                 /* Floating on TCP will never be possible, so ensure we only process
                  * UDP clients */
-                if (m->instances[peer_id]->context.c2.link_sockets[0]->info.proto == sock->info.proto)
+                if (m->instances[peer_id]->context.c2.link_sockets[0]->info.proto
+                    == sock->info.proto)
                 {
                     mi = m->instances[peer_id];
                     *floated = !link_socket_actual_match(&mi->context.c2.from, &m->top.c2.from);
 
                     if (*floated)
                     {
-                        /* reset prefix, since here we are not sure peer is the one it claims to be */
+                        /* reset prefix, since here we are not sure peer is the one it claims to be
+                         */
                         ungenerate_prefix(mi);
                         msg(D_MULTI_MEDIUM, "Float requested for peer %" PRIu32 " to %s", peer_id,
                             mroute_addr_print(&real, &gc));
@@ -237,19 +236,20 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated,
             he = hash_lookup_fast(hash, bucket, &real, hv);
             if (he)
             {
-                mi = (struct multi_instance *) he->value;
+                mi = (struct multi_instance *)he->value;
             }
         }
 
         /* we have no existing multi instance for this connection */
         if (!mi)
         {
-            struct tls_pre_decrypt_state state = {0};
+            struct tls_pre_decrypt_state state = { 0 };
             if (m->deferred_shutdown_signal.signal_received)
             {
                 msg(D_MULTI_ERRORS,
                     "MULTI: Connection attempt from %s ignored while server is "
-                    "shutting down", mroute_addr_print(&real, &gc));
+                    "shutting down",
+                    mroute_addr_print(&real, &gc));
             }
             else if (do_pre_decrypt_check(m, &state, real))
             {
@@ -277,7 +277,8 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated,
                             && session_id_defined((&state.peer_session_id)))
                         {
                             mi->context.c2.tls_multi->n_sessions++;
-                            struct tls_session *session = &mi->context.c2.tls_multi->session[TM_INITIAL];
+                            struct tls_session *session =
+                                &mi->context.c2.tls_multi->session[TM_INITIAL];
                             session_skip_to_pre_start(session, &state, &m->top.c2.from);
                         }
                     }
@@ -297,9 +298,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated,
         {
             const char *status = mi ? "[ok]" : "[failed]";
 
-            dmsg(D_MULTI_DEBUG, "GET INST BY REAL: %s %s",
-                 mroute_addr_print(&real, &gc),
-                 status);
+            dmsg(D_MULTI_DEBUG, "GET INST BY REAL: %s %s", mroute_addr_print(&real, &gc), status);
         }
 #endif
     }
@@ -339,8 +338,8 @@ multi_process_io_udp(struct multi_context *m, struct link_socket *sock)
 {
     const unsigned int status = m->multi_io->udp_flags;
     const unsigned int mpp_flags = m->top.c2.fast_io
-                                   ? (MPP_CONDITIONAL_PRE_SELECT | MPP_CLOSE_ON_SIGNAL)
-                                   : (MPP_PRE_SELECT | MPP_CLOSE_ON_SIGNAL);
+                                       ? (MPP_CONDITIONAL_PRE_SELECT | MPP_CLOSE_ON_SIGNAL)
+                                       : (MPP_PRE_SELECT | MPP_CLOSE_ON_SIGNAL);
 
 #ifdef MULTI_DEBUG_EVENT_LOOP
     char buf[16];
@@ -369,7 +368,7 @@ multi_process_io_udp(struct multi_context *m, struct link_socket *sock)
 #endif /* ifdef MULTI_DEBUG_EVENT_LOOP */
 
 #ifdef ENABLE_MANAGEMENT
-    if (status & (MANAGEMENT_READ|MANAGEMENT_WRITE))
+    if (status & (MANAGEMENT_READ | MANAGEMENT_WRITE))
     {
         ASSERT(management);
         management_io(management);

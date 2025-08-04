@@ -26,8 +26,7 @@
 #include <shlwapi.h>
 #include <lm.h>
 
-static const WCHAR *white_list[] =
-{
+static const WCHAR *white_list[] = {
     L"auth-retry",
     L"config",
     L"log",
@@ -46,7 +45,7 @@ static const WCHAR *white_list[] =
     L"pull-filter",
     L"script-security",
 
-    NULL                                /* last value */
+    NULL /* last value */
 };
 
 static BOOL IsUserInGroup(PSID sid, const PTOKEN_GROUPS groups, const WCHAR *group_name);
@@ -65,7 +64,7 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
     const WCHAR *config_dir = NULL;
 
     /* convert fname to full path */
-    if (PathIsRelativeW(fname) )
+    if (PathIsRelativeW(fname))
     {
         swprintf(tmp, _countof(tmp), L"%ls\\%ls", workdir, fname);
         config_file = tmp;
@@ -128,7 +127,7 @@ GetBuiltinAdminGroupName(WCHAR *name, DWORD nlen)
         return FALSE;
     }
 
-    b = CreateWellKnownSid(WinBuiltinAdministratorsSid, NULL, admin_sid,  &sid_size);
+    b = CreateWellKnownSid(WinBuiltinAdministratorsSid, NULL, admin_sid, &sid_size);
     if (b)
     {
         b = LookupAccountSidW(NULL, admin_sid, name, &nlen, domain, &dlen, &snu);
@@ -140,7 +139,8 @@ GetBuiltinAdminGroupName(WCHAR *name, DWORD nlen)
 }
 
 BOOL
-IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group, const WCHAR *ovpn_service_user)
+IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group,
+                 const WCHAR *ovpn_service_user)
 {
     const WCHAR *admin_group[2];
     WCHAR username[MAX_NAME];
@@ -171,7 +171,8 @@ IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group, co
     }
     else
     {
-        MsgToEventLog(M_SYSERR, L"Failed to get the name of Administrators group. Using the default.");
+        MsgToEventLog(M_SYSERR,
+                      L"Failed to get the name of Administrators group. Using the default.");
         /* use the default value */
         admin_group[0] = SYSTEM_ADMIN_GROUP;
     }
@@ -183,7 +184,8 @@ IsAuthorizedUser(PSID sid, const HANDLE token, const WCHAR *ovpn_admin_group, co
         ret = IsUserInGroup(sid, token_groups, admin_group[i]);
         if (ret)
         {
-            MsgToEventLog(M_INFO, L"Authorizing user '%ls@%ls' by virtue of membership in group '%ls'",
+            MsgToEventLog(M_INFO,
+                          L"Authorizing user '%ls@%ls' by virtue of membership in group '%ls'",
                           username, domain, admin_group[i]);
             goto out;
         }
@@ -265,11 +267,11 @@ IsUserInGroup(PSID sid, const PTOKEN_GROUPS token_groups, const WCHAR *group_nam
     int nloop = 0; /* a counter used to not get stuck in the do .. while() */
 
     /* first check in the token groups */
-    if (token_groups && LookupSID(group_name, (PSID) grp_sid, _countof(grp_sid)))
+    if (token_groups && LookupSID(group_name, (PSID)grp_sid, _countof(grp_sid)))
     {
         for (DWORD i = 0; i < token_groups->GroupCount; ++i)
         {
-            if (EqualSid((PSID) grp_sid, token_groups->Groups[i].Sid))
+            if (EqualSid((PSID)grp_sid, token_groups->Groups[i].Sid))
             {
                 return TRUE;
             }
@@ -285,8 +287,8 @@ IsUserInGroup(PSID sid, const PTOKEN_GROUPS token_groups, const WCHAR *group_nam
     {
         DWORD nread, nmax;
         LOCALGROUP_MEMBERS_INFO_0 *members = NULL;
-        err = NetLocalGroupGetMembers(NULL, group_name, 0, (LPBYTE *) &members,
-                                      MAX_PREFERRED_LENGTH, &nread, &nmax, &resume);
+        err = NetLocalGroupGetMembers(NULL, group_name, 0, (LPBYTE *)&members, MAX_PREFERRED_LENGTH,
+                                      &nread, &nmax, &resume);
         if ((err != NERR_Success && err != ERROR_MORE_DATA))
         {
             break;
@@ -319,16 +321,13 @@ CheckOption(const WCHAR *workdir, int argc, WCHAR *argv[], const settings_t *s)
 {
     /* Do not modify argv or *argv -- ideally it should be const WCHAR *const *, but alas...*/
 
-    if (wcscmp(argv[0], L"--config") == 0
-        && argc > 1
-        && !CheckConfigPath(workdir, argv[1], s)
-        )
+    if (wcscmp(argv[0], L"--config") == 0 && argc > 1 && !CheckConfigPath(workdir, argv[1], s))
     {
         return FALSE;
     }
 
     /* option name starts at 2 characters from argv[i] */
-    if (OptionLookup(argv[0] + 2, white_list) == -1)   /* not found */
+    if (OptionLookup(argv[0] + 2, white_list) == -1) /* not found */
     {
         return FALSE;
     }

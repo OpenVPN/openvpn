@@ -26,26 +26,29 @@
 
 #include "ovpn_dco_freebsd.h"
 
-#define DCO_IROUTE_METRIC   100
+#define DCO_IROUTE_METRIC 100
 
 typedef enum ovpn_key_slot dco_key_slot_t;
 typedef enum ovpn_key_cipher dco_cipher_t;
 
-enum ovpn_message_type_t {
+enum ovpn_message_type_t
+{
     OVPN_CMD_DEL_PEER,
     OVPN_CMD_PACKET,
     OVPN_CMD_SWAP_KEYS,
     OVPN_CMD_FLOAT_PEER,
 };
 
-enum ovpn_del_reason_t {
+enum ovpn_del_reason_t
+{
     OVPN_DEL_PEER_REASON_EXPIRED,
     OVPN_DEL_PEER_REASON_TRANSPORT_ERROR,
     OVPN_DEL_PEER_REASON_USERSPACE,
     OVPN_DEL_PEER_REASON_TRANSPORT_DISCONNECT,
 };
 
-typedef struct dco_context {
+typedef struct dco_context
+{
     bool open;
     int fd;
     int pipefd[2];

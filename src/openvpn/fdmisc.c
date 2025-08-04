@@ -41,7 +41,7 @@ set_nonblock_action(socket_descriptor_t fd)
     {
         return false;
     }
-#else  /* ifdef _WIN32 */
+#else /* ifdef _WIN32 */
     if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
     {
         return false;

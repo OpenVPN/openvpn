@@ -31,8 +31,8 @@
 #include <netlink/netlink.h>
 
 /* Defines to avoid mismatching with other platforms */
-#define OVPN_CMD_DEL_PEER OVPN_CMD_PEER_DEL_NTF
-#define OVPN_CMD_SWAP_KEYS OVPN_CMD_KEY_SWAP_NTF
+#define OVPN_CMD_DEL_PEER   OVPN_CMD_PEER_DEL_NTF
+#define OVPN_CMD_SWAP_KEYS  OVPN_CMD_KEY_SWAP_NTF
 #define OVPN_CMD_FLOAT_PEER OVPN_CMD_PEER_FLOAT_NTF
 
 typedef enum ovpn_key_slot dco_key_slot_t;
@@ -42,12 +42,14 @@ typedef enum ovpn_cipher_alg dco_cipher_t;
 
 #ifndef IFLA_OVPN_MAX
 
-enum ovpn_mode {
+enum ovpn_mode
+{
     OVPN_MODE_P2P,
     OVPN_MODE_MP,
 };
 
-enum ovpn_ifla_attrs {
+enum ovpn_ifla_attrs
+{
     IFLA_OVPN_UNSPEC = 0,
     IFLA_OVPN_MODE,
 

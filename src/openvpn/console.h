@@ -30,16 +30,17 @@
 /**
  *  Configuration setup for declaring what kind of information to ask a user for
  */
-struct _query_user {
-    char *prompt;             /**< Prompt to present to the user */
-    size_t prompt_len;        /**< Length of the prompt string */
-    char *response;           /**< The user's response */
-    size_t response_len;      /**< Length the of the user response */
-    bool echo;                /**< True: The user should see what is being typed, otherwise mask it */
+struct _query_user
+{
+    char *prompt;        /**< Prompt to present to the user */
+    size_t prompt_len;   /**< Length of the prompt string */
+    char *response;      /**< The user's response */
+    size_t response_len; /**< Length the of the user response */
+    bool echo;           /**< True: The user should see what is being typed, otherwise mask it */
 };
 
 #define QUERY_USER_NUMSLOTS 10
-extern struct _query_user query_user[];  /**< Global variable, declared in console.c */
+extern struct _query_user query_user[]; /**< Global variable, declared in console.c */
 
 /**
  * Wipes all data put into all of the query_user structs
@@ -58,9 +59,7 @@ void query_user_clear(void);
  * @param echo       Should the user input be echoed to the user?  If False, input will be masked
  *
  */
-void query_user_add(char *prompt, size_t prompt_len,
-                    char *resp, size_t resp_len,
-                    bool echo);
+void query_user_add(char *prompt, size_t prompt_len, char *resp, size_t resp_len, bool echo);
 
 
 /**
@@ -107,7 +106,7 @@ query_user_exec(void)
 {
     return query_user_exec_builtin();
 }
-#endif  /* defined(ENABLE_SYSTEMD) */
+#endif /* defined(ENABLE_SYSTEMD) */
 
 
 /**
@@ -118,9 +117,7 @@ query_user_exec(void)
  *
  */
 static inline bool
-query_user_SINGLE(char *prompt, size_t prompt_len,
-                  char *resp, size_t resp_len,
-                  bool echo)
+query_user_SINGLE(char *prompt, size_t prompt_len, char *resp, size_t resp_len, bool echo)
 {
     query_user_clear();
     query_user_add(prompt, prompt_len, resp, resp_len, echo);

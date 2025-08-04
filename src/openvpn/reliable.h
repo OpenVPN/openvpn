@@ -40,18 +40,21 @@
  *  @{ */
 
 
-#define RELIABLE_ACK_SIZE 8     /**< The maximum number of packet IDs
-                                 *   waiting to be acknowledged which can
-                                 *   be stored in one \c reliable_ack
-                                 *   structure. */
+#define RELIABLE_ACK_SIZE                       \
+    8 /**< The maximum number of packet IDs     \
+       *   waiting to be acknowledged which can \
+       *   be stored in one \c reliable_ack     \
+       *   structure. */
 
-#define RELIABLE_CAPACITY 12    /**< The maximum number of packets that
-                                 *   the reliability layer for one VPN
-                                 *   tunnel in one direction can store. */
+#define RELIABLE_CAPACITY                      \
+    12 /**< The maximum number of packets that \
+        *   the reliability layer for one VPN  \
+        *   tunnel in one direction can store. */
 
-#define N_ACK_RETRANSMIT 3      /**< We retry sending a packet early if
-                                 *   this many later packets have been
-                                 *   ACKed. */
+#define N_ACK_RETRANSMIT                      \
+    3 /**< We retry sending a packet early if \
+       *   this many later packets have been  \
+       *   ACKed. */
 
 /**
  * The acknowledgment structure in which packet IDs are stored for later
@@ -76,9 +79,9 @@ struct reliable_entry
     interval_t timeout;
     time_t next_try;
     packet_id_type packet_id;
-    size_t n_acks;  /* Number of acks received for packets with higher PID.
-                     * Used for fast retransmission when there were at least
-                     * N_ACK_RETRANSMIT. */
+    size_t n_acks; /* Number of acks received for packets with higher PID.
+                    * Used for fast retransmission when there were at least
+                    * N_ACK_RETRANSMIT. */
     int opcode;
     struct buffer buf;
 };
@@ -93,7 +96,7 @@ struct reliable
     interval_t initial_timeout;
     packet_id_type packet_id;
     int offset; /**< Offset of the bufs in the reliable_entry array */
-    bool hold; /* don't xmit until reliable_schedule_now is called */
+    bool hold;  /* don't xmit until reliable_schedule_now is called */
     struct reliable_entry array[RELIABLE_CAPACITY];
 };
 
@@ -120,8 +123,7 @@ struct reliable
  * @li True, if processing was successful.
  * @li False, if an error occurs during processing.
  */
-bool reliable_ack_read(struct reliable_ack *ack,
-                       struct buffer *buf, const struct session_id *sid);
+bool reliable_ack_read(struct reliable_ack *ack, struct buffer *buf, const struct session_id *sid);
 
 
 /**
@@ -141,9 +143,8 @@ bool reliable_ack_read(struct reliable_ack *ack,
  * @li True, if processing was successful.
  * @li False, if an error occurs during processing.
  */
-bool
-reliable_ack_parse(struct buffer *buf, struct reliable_ack *ack,
-                   struct session_id *session_id_remote);
+bool reliable_ack_parse(struct buffer *buf, struct reliable_ack *ack,
+                        struct session_id *session_id_remote);
 
 /**
  * Remove acknowledged packets from a reliable structure.
@@ -212,9 +213,7 @@ reliable_ack_outstanding(struct reliable_ack *ack)
  * @li True, if processing was successful.
  * @li False, if an error occurs during processing.
  */
-bool reliable_ack_write(struct reliable_ack *ack,
-                        struct reliable_ack *ack_mru,
-                        struct buffer *buf,
+bool reliable_ack_write(struct reliable_ack *ack, struct reliable_ack *ack_mru, struct buffer *buf,
                         const struct session_id *sid, int max, bool prepend);
 
 /** @} name Functions for processing outgoing acknowledgments */
@@ -337,8 +336,8 @@ struct buffer *reliable_get_buf(struct reliable *rel);
  * @param pid The packet's packet ID.
  * @param opcode The packet's opcode.
  */
-void reliable_mark_active_incoming(struct reliable *rel, struct buffer *buf,
-                                   packet_id_type pid, int opcode);
+void reliable_mark_active_incoming(struct reliable *rel, struct buffer *buf, packet_id_type pid,
+                                   int opcode);
 
 /**
  * Record a packet ID for later acknowledgment.
@@ -374,7 +373,6 @@ bool reliable_ack_acknowledge_packet_id(struct reliable_ack *ack, packet_id_type
 struct reliable_entry *reliable_get_entry_sequenced(struct reliable *rel);
 
 
-
 /**
  * Copies the first n acks from \c ack to \c ack_mru
  *
@@ -382,8 +380,7 @@ struct reliable_entry *reliable_get_entry_sequenced(struct reliable *rel);
  * @param ack_mru The reliable structure to insert the acks into
  * @param n The number of ACKS to copy
  */
-void
-copy_acks_to_mru(struct reliable_ack *ack, struct reliable_ack *ack_mru, int n);
+void copy_acks_to_mru(struct reliable_ack *ack, struct reliable_ack *ack_mru, int n);
 
 
 /**
@@ -426,8 +423,7 @@ struct buffer *reliable_get_buf_output_sequenced(struct reliable *rel);
  *  @return the number of buffer that are available for sending without
  *             breaking ack sequence
  * */
-int
-reliable_get_num_output_sequenced_available(struct reliable *rel);
+int reliable_get_num_output_sequenced_available(struct reliable *rel);
 
 /**
  * Mark the reliable entry associated with the given buffer as

@@ -37,7 +37,7 @@
 #endif
 
 
-struct _query_user query_user[QUERY_USER_NUMSLOTS];  /* GLOBAL */
+struct _query_user query_user[QUERY_USER_NUMSLOTS]; /* GLOBAL */
 
 
 void
@@ -53,16 +53,14 @@ query_user_clear(void)
 
 
 void
-query_user_add(char *prompt, size_t prompt_len,
-               char *resp, size_t resp_len,
-               bool echo)
+query_user_add(char *prompt, size_t prompt_len, char *resp, size_t resp_len, bool echo)
 {
     int i;
 
     /* Ensure input is sane.  All these must be present otherwise it is
      * a programming error.
      */
-    ASSERT( prompt_len > 0 && prompt != NULL && resp_len > 0 && resp != NULL );
+    ASSERT(prompt_len > 0 && prompt != NULL && resp_len > 0 && resp != NULL);
 
     /* Seek to the last unused slot */
     for (i = 0; i < QUERY_USER_NUMSLOTS; i++)
@@ -72,7 +70,7 @@ query_user_add(char *prompt, size_t prompt_len,
             break;
         }
     }
-    ASSERT( i < QUERY_USER_NUMSLOTS );  /* Unlikely, but we want to panic if it happens */
+    ASSERT(i < QUERY_USER_NUMSLOTS); /* Unlikely, but we want to panic if it happens */
 
     /* Save the information needed for the user interaction */
     query_user[i].prompt = prompt;

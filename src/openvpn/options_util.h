@@ -26,28 +26,24 @@
 
 #include "options.h"
 
-const char *
-parse_auth_failed_temp(struct options *o, const char *reason);
+const char *parse_auth_failed_temp(struct options *o, const char *reason);
 
 
 /** Checks if the string is a valid integer by checking if it can be
  *  converted to an integer */
-bool
-valid_integer(const char *str, bool positive);
+bool valid_integer(const char *str, bool positive);
 
 /**
  * Converts a str to a positive number if the string represents a postive
  * integer number. Otherwise print a warning with msglevel and return 0
  */
-int
-positive_atoi(const char *str, int msglevel);
+int positive_atoi(const char *str, int msglevel);
 
 /**
  * Converts a str to an integer if the string can be represented as an
  * integer number. Otherwise print a warning with msglevel and return 0
  */
-int
-atoi_warn(const char *str, int msglevel);
+int atoi_warn(const char *str, int msglevel);
 
 /**
  * Filter an option line by all pull filters.
@@ -57,9 +53,7 @@ atoi_warn(const char *str, int msglevel);
  * reject, SIGUSR1 is triggered and the return value is false.
  * In that case the caller must end the push processing.
  */
-bool
-apply_pull_filter(const struct options *o,
-                  char *line);
+bool apply_pull_filter(const struct options *o, char *line);
 
 /**
  * @brief Checks the formatting and validity of options inside push-update messages.
@@ -89,7 +83,6 @@ apply_pull_filter(const struct options *o,
  *         - The `line` parameter is empty or `NULL`.
  *         - The `?` flag is absent and the option is not updatable.
  */
-bool
-check_push_update_option_flags(char *line, int *i, unsigned int *flags);
+bool check_push_update_option_flags(char *line, int *i, unsigned int *flags);
 
 #endif /* ifndef OPTIONS_UTIL_H_ */

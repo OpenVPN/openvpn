@@ -236,7 +236,7 @@ tv_delta(struct timeval *dest, const struct timeval *t1, const struct timeval *t
     dest->tv_usec = usec;
 }
 
-#define TV_WITHIN_SIGMA_MAX_SEC 600
+#define TV_WITHIN_SIGMA_MAX_SEC  600
 #define TV_WITHIN_SIGMA_MAX_USEC (TV_WITHIN_SIGMA_MAX_SEC * 1000000)
 
 /*
@@ -259,7 +259,7 @@ interval_earliest_wakeup(interval_t *wakeup, time_t at, time_t current)
 {
     if (at > current)
     {
-        const interval_t delta = (interval_t) (at - current);
+        const interval_t delta = (interval_t)(at - current);
         if (delta < *wakeup)
         {
             *wakeup = delta;

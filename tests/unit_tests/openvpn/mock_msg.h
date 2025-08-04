@@ -35,13 +35,10 @@ void mock_set_debug_level(int level);
 extern bool fatal_error_triggered;
 extern char mock_msg_buf[MOCK_MSG_BUF];
 
-void
-mock_set_debug_level(int level);
+void mock_set_debug_level(int level);
 
-int
-mock_get_debug_level(void);
+int mock_get_debug_level(void);
 
-void
-mock_set_print_debug_level(int level);
+void mock_set_print_debug_level(int level);
 
 #endif /* MOCK_MSG */

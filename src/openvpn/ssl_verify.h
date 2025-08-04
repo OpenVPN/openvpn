@@ -54,25 +54,27 @@
 #define TLS_USERNAME_LEN 64
 
 /** Structure containing the hash for a single certificate */
-struct cert_hash {
-    unsigned char sha256_hash[256/8];
+struct cert_hash
+{
+    unsigned char sha256_hash[256 / 8];
 };
 
 /** Structure containing the hashes for a full certificate chain */
-struct cert_hash_set {
+struct cert_hash_set
+{
     struct cert_hash *ch[MAX_CERT_DEPTH]; /**< Array of certificate hashes */
 };
 
-#define VERIFY_X509_NONE                0
-#define VERIFY_X509_SUBJECT_DN          1
-#define VERIFY_X509_SUBJECT_RDN         2
-#define VERIFY_X509_SUBJECT_RDN_PREFIX  3
+#define VERIFY_X509_NONE               0
+#define VERIFY_X509_SUBJECT_DN         1
+#define VERIFY_X509_SUBJECT_RDN        2
+#define VERIFY_X509_SUBJECT_RDN_PREFIX 3
 
 enum tls_auth_status
 {
-    TLS_AUTHENTICATION_SUCCEEDED=0,
-    TLS_AUTHENTICATION_FAILED=1,
-    TLS_AUTHENTICATION_DEFERRED=2
+    TLS_AUTHENTICATION_SUCCEEDED = 0,
+    TLS_AUTHENTICATION_FAILED = 1,
+    TLS_AUTHENTICATION_DEFERRED = 2
 };
 
 /**
@@ -91,8 +93,7 @@ enum tls_auth_status
  *
  * @return              Current authentication status of the tls_multi
  */
-enum tls_auth_status
-tls_authentication_status(struct tls_multi *multi);
+enum tls_auth_status tls_authentication_status(struct tls_multi *multi);
 
 /** Check whether the \a ks \c key_state has finished the key exchange part
  *  of the OpenVPN hand shake. This is that the key_method_2read/write
@@ -155,8 +156,7 @@ const char *tls_common_name(const struct tls_multi *multi, const bool null);
  * @param session       The session to set the common name for
  * @param common_name   The name to set the common name to
  */
-void
-set_common_name(struct tls_session *session, const char *common_name);
+void set_common_name(struct tls_session *session, const char *common_name);
 
 /**
  * Returns the username field for the given tunnel
@@ -187,8 +187,7 @@ bool cert_hash_compare(const struct cert_hash_set *chs1, const struct cert_hash_
  * @param session       The current TLS session
  *
  */
-void verify_user_pass(struct user_pass *up, struct tls_multi *multi,
-                      struct tls_session *session);
+void verify_user_pass(struct user_pass *up, struct tls_multi *multi, struct tls_session *session);
 
 
 /**
@@ -203,8 +202,7 @@ void verify_user_pass(struct user_pass *up, struct tls_multi *multi,
  * @return              true if name is under limit or username-as-common-name
  *                      is not active
  */
-bool ssl_verify_username_length(struct tls_session *session,
-                                const char *username);
+bool ssl_verify_username_length(struct tls_session *session, const char *username);
 
 /**
  * Runs the --client-crresponse script if one is defined.
@@ -214,8 +212,7 @@ bool ssl_verify_username_length(struct tls_session *session,
  * the files for the deferred auth like the management commands.
  *
  */
-void
-verify_crresponse_script(struct tls_multi *multi, const char *cr_response);
+void verify_crresponse_script(struct tls_multi *multi, const char *cr_response);
 
 /**
  * Call the plugin OPENVPN_PLUGIN_CLIENT_CRRESPONSE.
@@ -224,8 +221,7 @@ verify_crresponse_script(struct tls_multi *multi, const char *cr_response);
  * that it does not directly participate in the authentication but rather
  * should set the files for the deferred auth like the management commands.
  */
-void
-verify_crresponse_plugin(struct tls_multi *multi, const char *cr_response);
+void verify_crresponse_plugin(struct tls_multi *multi, const char *cr_response);
 
 /**
  * Perform final authentication checks, including locking of the cn, the allowed
@@ -242,7 +238,7 @@ struct x509_track
 {
     const struct x509_track *next;
     const char *name;
-#define XT_FULL_CHAIN (1<<0)
+#define XT_FULL_CHAIN (1 << 0)
     unsigned int flags;
     int nid;
 };
@@ -251,11 +247,11 @@ struct x509_track
  * Certificate checking for verify_nsCertType
  */
 /** Do not perform Netscape certificate type verification */
-#define NS_CERT_CHECK_NONE (0)
+#define NS_CERT_CHECK_NONE   (0)
 /** Do not perform Netscape certificate type verification */
-#define NS_CERT_CHECK_SERVER (1<<0)
+#define NS_CERT_CHECK_SERVER (1 << 0)
 /** Do not perform Netscape certificate type verification */
-#define NS_CERT_CHECK_CLIENT (1<<1)
+#define NS_CERT_CHECK_CLIENT (1 << 1)
 
 /** Require keyUsage to be present in cert (0xFFFF is an invalid KU value) */
 #define OPENVPN_KU_REQUIRED (0xFFFF)
@@ -264,7 +260,8 @@ struct x509_track
  * TODO: document
  */
 #ifdef ENABLE_MANAGEMENT
-bool tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, const bool auth, const char *client_reason);
+bool tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, const bool auth,
+                          const char *client_reason);
 
 #endif
 

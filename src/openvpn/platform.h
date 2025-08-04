@@ -59,7 +59,8 @@ struct context;
 
 /* Get/Set UID of process */
 
-struct platform_state_user {
+struct platform_state_user
+{
 #if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
     const char *username;
     uid_t uid;
@@ -70,7 +71,8 @@ struct platform_state_user {
 
 /* Get/Set GID of process */
 
-struct platform_state_group {
+struct platform_state_group
+{
 #if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
     const char *groupname;
     gid_t gid;
@@ -84,8 +86,7 @@ bool platform_user_get(const char *username, struct platform_state_user *state);
 bool platform_group_get(const char *groupname, struct platform_state_group *state);
 
 void platform_user_group_set(const struct platform_state_user *user_state,
-                             const struct platform_state_group *group_state,
-                             struct context *c);
+                             const struct platform_state_group *group_state, struct context *c);
 
 
 /*
@@ -116,7 +117,7 @@ void platform_nice(int niceval);
 
 unsigned int platform_getpid(void);
 
-void platform_mlockall(bool print_msg);  /* Disable paging */
+void platform_mlockall(bool print_msg); /* Disable paging */
 
 int platform_chdir(const char *dir);
 
@@ -152,8 +153,7 @@ const char *platform_create_temp_file(const char *directory, const char *prefix,
                                       struct gc_arena *gc);
 
 /** Put a directory and filename together. */
-const char *platform_gen_path(const char *directory, const char *filename,
-                              struct gc_arena *gc);
+const char *platform_gen_path(const char *directory, const char *filename, struct gc_arena *gc);
 
 /** Return true if pathname is absolute. */
 bool platform_absolute_pathname(const char *pathname);

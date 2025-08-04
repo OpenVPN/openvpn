@@ -30,7 +30,8 @@
 #include "basic.h"
 
 /* this struct is mapped to the file */
-struct mmap_stats {
+struct mmap_stats
+{
     counter_type link_read_bytes; /* counter_type can be assumed to be a uint64_t */
     counter_type link_write_bytes;
     int n_clients;

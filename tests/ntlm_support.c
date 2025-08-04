@@ -49,7 +49,7 @@ main(void)
     crypto_unload_provider("legacy", legacy);
     crypto_unload_provider("default", def);
 #endif
-#else  /* ifdef NTLM */
+#else /* ifdef NTLM */
     msg(M_FATAL, "NTLM support not compiled in");
 #endif
 }

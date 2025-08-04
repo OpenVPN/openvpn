@@ -47,14 +47,13 @@ mroute_addr_init(struct mroute_addr *addr)
 static inline bool
 is_mac_mcast_addr(const uint8_t *mac)
 {
-    return (bool) (mac[0] & 1);
+    return (bool)(mac[0] & 1);
 }
 
 static inline bool
 is_mac_mcast_maddr(const struct mroute_addr *addr)
 {
-    return (addr->type & MR_ADDR_MASK) == MR_ADDR_ETHER
-           && is_mac_mcast_addr(addr->ether.addr);
+    return (addr->type & MR_ADDR_MASK) == MR_ADDR_ETHER && is_mac_mcast_addr(addr->ether.addr);
 }
 
 /*
@@ -81,8 +80,7 @@ mroute_learnable_address(const struct mroute_addr *addr, struct gc_arena *gc)
     }
 
     /* only networkss shorter than 8 bits are allowed to be all 0s. */
-    if (all_zeros
-        && !((addr->type & MR_WITH_NETBITS) && (addr->netbits < 8)))
+    if (all_zeros && !((addr->type & MR_WITH_NETBITS) && (addr->netbits < 8)))
     {
         msg(D_MULTI_LOW, "Can't learn %s: network is all 0s, but netbits >= 8",
             mroute_addr_print(addr, gc));
@@ -91,8 +89,7 @@ mroute_learnable_address(const struct mroute_addr *addr, struct gc_arena *gc)
 
     if (all_ones)
     {
-        msg(D_MULTI_LOW, "Can't learn %s: network is all 1s",
-            mroute_addr_print(addr, gc));
+        msg(D_MULTI_LOW, "Can't learn %s: network is all 1s", mroute_addr_print(addr, gc));
         return false;
     }
 
@@ -147,8 +144,7 @@ mroute_is_mcast_ipv6(const struct in6_addr addr)
 
 
 unsigned int
-mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
-                       const struct buffer *buf)
+mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest, const struct buffer *buf)
 {
     unsigned int ret = 0;
     if (BLEN(buf) >= 1)
@@ -156,9 +152,9 @@ mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
         switch (OPENVPN_IPH_GET_VER(*BPTR(buf)))
         {
             case 4:
-                if (BLEN(buf) >= (int) sizeof(struct openvpn_iphdr))
+                if (BLEN(buf) >= (int)sizeof(struct openvpn_iphdr))
                 {
-                    const struct openvpn_iphdr *ip = (const struct openvpn_iphdr *) BPTR(buf);
+                    const struct openvpn_iphdr *ip = (const struct openvpn_iphdr *)BPTR(buf);
 
                     mroute_get_in_addr_t(src, ip->saddr, 0);
                     mroute_get_in_addr_t(dest, ip->daddr, 0);
@@ -180,10 +176,10 @@ mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
                 break;
 
             case 6:
-                if (BLEN(buf) >= (int) sizeof(struct openvpn_ipv6hdr))
+                if (BLEN(buf) >= (int)sizeof(struct openvpn_ipv6hdr))
                 {
-                    const struct openvpn_ipv6hdr *ipv6 = (const struct openvpn_ipv6hdr *) BPTR(buf);
-#if 0                           /* very basic debug */
+                    const struct openvpn_ipv6hdr *ipv6 = (const struct openvpn_ipv6hdr *)BPTR(buf);
+#if 0 /* very basic debug */
                     struct gc_arena gc = gc_new();
                     msg( M_INFO, "IPv6 packet! src=%s, dst=%s",
                          print_in6_addr( ipv6->saddr, 0, &gc ),
@@ -212,9 +208,7 @@ mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest,
 }
 
 static void
-mroute_copy_ether_to_addr(struct mroute_addr *maddr,
-                          const uint8_t *ether_addr,
-                          uint16_t vid)
+mroute_copy_ether_to_addr(struct mroute_addr *maddr, const uint8_t *ether_addr, uint16_t vid)
 {
     maddr->type = MR_ADDR_ETHER;
     maddr->netbits = 0;
@@ -225,15 +219,13 @@ mroute_copy_ether_to_addr(struct mroute_addr *maddr,
 }
 
 unsigned int
-mroute_extract_addr_ether(struct mroute_addr *src,
-                          struct mroute_addr *dest,
-                          uint16_t vid,
+mroute_extract_addr_ether(struct mroute_addr *src, struct mroute_addr *dest, uint16_t vid,
                           const struct buffer *buf)
 {
     unsigned int ret = 0;
-    if (BLEN(buf) >= (int) sizeof(struct openvpn_ethhdr))
+    if (BLEN(buf) >= (int)sizeof(struct openvpn_ethhdr))
     {
-        const struct openvpn_ethhdr *eth = (const struct openvpn_ethhdr *) BPTR(buf);
+        const struct openvpn_ethhdr *eth = (const struct openvpn_ethhdr *)BPTR(buf);
         if (src)
         {
             mroute_copy_ether_to_addr(src, eth->source, vid);
@@ -250,7 +242,6 @@ mroute_extract_addr_ether(struct mroute_addr *src,
         }
 
         ret |= MROUTE_EXTRACT_SUCCEEDED;
-
     }
     return ret;
 }
@@ -260,8 +251,7 @@ mroute_extract_addr_ether(struct mroute_addr *src,
  * to a struct mroute_addr (addr).
  */
 bool
-mroute_extract_openvpn_sockaddr(struct mroute_addr *addr,
-                                const struct openvpn_sockaddr *osaddr,
+mroute_extract_openvpn_sockaddr(struct mroute_addr *addr, const struct openvpn_sockaddr *osaddr,
                                 bool use_port)
 {
     switch (osaddr->addr.sa.sa_family)
@@ -335,7 +325,7 @@ mroute_addr_mask_host_bits(struct mroute_addr *ma)
     }
     else if ((ma->type & MR_ADDR_MASK) == MR_ADDR_IPV6)
     {
-        int byte = sizeof(ma->v6.addr) - 1;     /* rightmost byte in address */
+        int byte = sizeof(ma->v6.addr) - 1; /* rightmost byte in address */
         int bits_to_clear = 128 - ma->netbits;
 
         while (byte >= 0 && bits_to_clear > 0)
@@ -351,7 +341,7 @@ mroute_addr_mask_host_bits(struct mroute_addr *ma)
                 bits_to_clear = 0;
             }
         }
-        ASSERT( bits_to_clear == 0 );
+        ASSERT(bits_to_clear == 0);
     }
     else
     {
@@ -367,29 +357,24 @@ mroute_addr_mask_host_bits(struct mroute_addr *ma)
 uint32_t
 mroute_addr_hash_function(const void *key, uint32_t iv)
 {
-    return hash_func(mroute_addr_hash_ptr((const struct mroute_addr *) key),
-                     mroute_addr_hash_len((const struct mroute_addr *) key),
-                     iv);
+    return hash_func(mroute_addr_hash_ptr((const struct mroute_addr *)key),
+                     mroute_addr_hash_len((const struct mroute_addr *)key), iv);
 }
 
 bool
 mroute_addr_compare_function(const void *key1, const void *key2)
 {
-    return mroute_addr_equal((const struct mroute_addr *) key1,
-                             (const struct mroute_addr *) key2);
+    return mroute_addr_equal((const struct mroute_addr *)key1, (const struct mroute_addr *)key2);
 }
 
 const char *
-mroute_addr_print(const struct mroute_addr *ma,
-                  struct gc_arena *gc)
+mroute_addr_print(const struct mroute_addr *ma, struct gc_arena *gc)
 {
     return mroute_addr_print_ex(ma, MAPF_IA_EMPTY_IF_UNDEF, gc);
 }
 
 const char *
-mroute_addr_print_ex(const struct mroute_addr *ma,
-                     const unsigned int flags,
-                     struct gc_arena *gc)
+mroute_addr_print_ex(const struct mroute_addr *ma, const unsigned int flags, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(64, gc);
     if (ma)
@@ -399,8 +384,8 @@ mroute_addr_print_ex(const struct mroute_addr *ma,
         switch (maddr.type & MR_ADDR_MASK)
         {
             case MR_ADDR_ETHER:
-                buf_printf(&out, "%s", format_hex_ex(ma->ether.addr,
-                                                     sizeof(ma->ether.addr), 0, 1, ":", gc));
+                buf_printf(&out, "%s",
+                           format_hex_ex(ma->ether.addr, sizeof(ma->ether.addr), 0, 1, ":", gc));
                 buf_printf(&out, "@%hu", ma->ether.vid);
                 break;
 
@@ -418,8 +403,10 @@ mroute_addr_print_ex(const struct mroute_addr *ma,
                 {
                     buf_printf(&out, "[AF_INET]");
                 }
-                buf_printf(&out, "%s", print_in_addr_t(ntohl(maddr.v4.addr),
-                                                       (flags & MAPF_IA_EMPTY_IF_UNDEF) ? IA_EMPTY_IF_UNDEF : 0, gc));
+                buf_printf(&out, "%s",
+                           print_in_addr_t(ntohl(maddr.v4.addr),
+                                           (flags & MAPF_IA_EMPTY_IF_UNDEF) ? IA_EMPTY_IF_UNDEF : 0,
+                                           gc));
                 if (maddr.type & MR_WITH_NETBITS)
                 {
                     if (flags & MAPF_SUBNET)
@@ -449,10 +436,10 @@ mroute_addr_print_ex(const struct mroute_addr *ma,
                 {
                     buf_printf(&out, "[AF_INET6]");
                 }
-                if (IN6_IS_ADDR_V4MAPPED( &maddr.v6.addr ) )
+                if (IN6_IS_ADDR_V4MAPPED(&maddr.v6.addr))
                 {
-                    buf_printf(&out, "%s", print_in_addr_t(maddr.v4mappedv6.addr,
-                                                           IA_NET_ORDER, gc));
+                    buf_printf(&out, "%s",
+                               print_in_addr_t(maddr.v4mappedv6.addr, IA_NET_ORDER, gc));
                 }
                 else if (maddr.type & MR_WITH_PORT)
                 {
@@ -508,7 +495,7 @@ mroute_helper_regenerate(struct mroute_helper *mh)
     {
         if (mh->net_len_refcount[i] > 0)
         {
-            mh->net_len[j++] = (uint8_t) i;
+            mh->net_len[j++] = (uint8_t)i;
         }
     }
     mh->n_net_len = j;

@@ -35,14 +35,14 @@
 
 struct multi_instance;
 
-#define MBUF_INDEX(head, offset, size) (((head) + (offset)) & ((size)-1))
+#define MBUF_INDEX(head, offset, size) (((head) + (offset)) & ((size) - 1))
 
 struct mbuf_buffer
 {
     struct buffer buf;
     int refcount;
 
-#define MF_UNICAST (1<<0)
+#define MF_UNICAST (1 << 0)
     unsigned int flags;
 };
 
@@ -90,7 +90,7 @@ mbuf_len(const struct mbuf_set *ms)
 static inline int
 mbuf_maximum_queued(const struct mbuf_set *ms)
 {
-    return (int) ms->max_queued;
+    return (int)ms->max_queued;
 }
 
 struct multi_instance *mbuf_peek_dowork(struct mbuf_set *ms);

@@ -39,9 +39,8 @@
 #include "integer.h"
 
 void
-ovpn_hkdf_expand(const uint8_t *secret,
-                 const uint8_t *info, int info_len,
-                 uint8_t *out, int out_len)
+ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, int info_len, uint8_t *out,
+                 int out_len)
 {
     hmac_ctx_t *hmac_ctx = hmac_ctx_new();
     hmac_ctx_init(hmac_ctx, secret, "SHA256");
@@ -74,13 +73,10 @@ ovpn_hkdf_expand(const uint8_t *secret,
 }
 
 bool
-ovpn_expand_label(const uint8_t *secret, size_t secret_len,
-                  const uint8_t *label, size_t label_len,
-                  const uint8_t *context, size_t context_len,
-                  uint8_t *out, uint16_t out_len)
+ovpn_expand_label(const uint8_t *secret, size_t secret_len, const uint8_t *label, size_t label_len,
+                  const uint8_t *context, size_t context_len, uint8_t *out, uint16_t out_len)
 {
-    if (secret_len != 32 || label_len > 250 || context_len > 255
-        || label_len < 1)
+    if (secret_len != 32 || label_len > 250 || context_len > 255 || label_len < 1)
     {
         /* Our current implementation is not a general purpose one
          * and assumes that the secret size matches the size of the
@@ -92,7 +88,7 @@ ovpn_expand_label(const uint8_t *secret, size_t secret_len,
     struct gc_arena gc = gc_new();
     /* 2 byte for the outlen encoded as uint16, 5 bytes for "ovpn ",
      * 1 byte for context len byte and 1 byte for label len byte */
-    const uint8_t *label_prefix = (const uint8_t *) ("ovpn ");
+    const uint8_t *label_prefix = (const uint8_t *)("ovpn ");
     int prefix_len = 5;
 
     int hkdf_label_len = 2 + prefix_len + 1 + label_len + 1 + context_len;
@@ -111,8 +107,7 @@ ovpn_expand_label(const uint8_t *secret, size_t secret_len,
 
     ASSERT(buf_len(&hkdf_label) == hkdf_label_len);
 
-    ovpn_hkdf_expand(secret, buf_bptr(&hkdf_label),
-                     buf_len(&hkdf_label), out, out_len);
+    ovpn_hkdf_expand(secret, buf_bptr(&hkdf_label), buf_len(&hkdf_label), out, out_len);
 
     gc_free(&gc);
     return true;
@@ -133,16 +128,14 @@ epoch_key_iterate(struct epoch_key *epoch_key)
     const size_t epoch_update_label_len = sizeof(epoch_update_label) - 1;
 
     /* E_N+1 = OVPN-Expand-Label(E_N, "datakey upd", "", 32) */
-    ovpn_expand_label(epoch_key->epoch_key, sizeof(epoch_key->epoch_key),
-                      epoch_update_label, epoch_update_label_len,
-                      NULL, 0,
-                      new_epoch_key.epoch_key, sizeof(new_epoch_key.epoch_key));
+    ovpn_expand_label(epoch_key->epoch_key, sizeof(epoch_key->epoch_key), epoch_update_label,
+                      epoch_update_label_len, NULL, 0, new_epoch_key.epoch_key,
+                      sizeof(new_epoch_key.epoch_key));
     *epoch_key = new_epoch_key;
 }
 
 void
-epoch_data_key_derive(struct key_parameters *key,
-                      const struct epoch_key *epoch_key,
+epoch_data_key_derive(struct key_parameters *key, const struct epoch_key *epoch_key,
                       const struct key_type *kt)
 {
     key->hmac_size = cipher_kt_iv_size(kt->cipher);
@@ -157,19 +150,16 @@ epoch_data_key_derive(struct key_parameters *key,
     /* length of the array without extra \0 byte from the string */
     const size_t epoch_data_key_label_len = sizeof(epoch_data_key_label) - 1;
 
-    ovpn_expand_label(epoch_key->epoch_key, sizeof(epoch_key->epoch_key),
-                      epoch_data_key_label, epoch_data_key_label_len,
-                      NULL, 0,
-                      (uint8_t *)(&key->cipher), key->cipher_size);
+    ovpn_expand_label(epoch_key->epoch_key, sizeof(epoch_key->epoch_key), epoch_data_key_label,
+                      epoch_data_key_label_len, NULL, 0, (uint8_t *)(&key->cipher),
+                      key->cipher_size);
 
     const uint8_t epoch_data_iv_label[] = "data_iv";
     /* length of the array without extra \0 byte from the string */
     const size_t epoch_data_iv_label_len = sizeof(epoch_data_iv_label) - 1;
 
-    ovpn_expand_label(epoch_key->epoch_key, sizeof(epoch_key->epoch_key),
-                      epoch_data_iv_label, epoch_data_iv_label_len,
-                      NULL, 0,
-                      (uint8_t *)(&key->hmac), key->hmac_size);
+    ovpn_expand_label(epoch_key->epoch_key, sizeof(epoch_key->epoch_key), epoch_data_iv_label,
+                      epoch_data_iv_label_len, NULL, 0, (uint8_t *)(&key->hmac), key->hmac_size);
     key->epoch = epoch_key->epoch;
 }
 
@@ -187,8 +177,7 @@ epoch_init_send_key_ctx(struct crypto_options *co)
 
     epoch_data_key_derive(&send_key, &co->epoch_key_send, &co->epoch_key_type);
 
-    init_key_bi_ctx_send(&co->key_ctx_bi.encrypt, &send_key,
-                         &co->epoch_key_type, name);
+    init_key_bi_ctx_send(&co->key_ctx_bi.encrypt, &send_key, &co->epoch_key_type, name);
     reset_packet_id_send(&co->packet_id.send);
     CLEAR(send_key);
 }
@@ -219,10 +208,10 @@ epoch_generate_future_receive_keys(struct crypto_options *co)
     /* Either we have not generated any future keys yet (first initialisation)
      * or the last index is the same as our current epoch key
      * (last generated receive epoch key should match the epoch key) */
-    struct key_ctx *highest_future_key = &co->epoch_data_keys_future[co->epoch_data_keys_future_count - 1];
+    struct key_ctx *highest_future_key =
+        &co->epoch_data_keys_future[co->epoch_data_keys_future_count - 1];
 
-    ASSERT(co->epoch_key_recv.epoch == 1
-           || highest_future_key->epoch == co->epoch_key_recv.epoch);
+    ASSERT(co->epoch_key_recv.epoch == 1 || highest_future_key->epoch == co->epoch_key_recv.epoch);
 
     /* free the keys that are not used anymore */
     for (uint16_t i = 0; i < co->epoch_data_keys_future_count; i++)
@@ -250,12 +239,12 @@ epoch_generate_future_receive_keys(struct crypto_options *co)
     {
         ASSERT(co->epoch_data_keys_future[i].epoch == 0);
     }
-    memmove(co->epoch_data_keys_future,
-            co->epoch_data_keys_future + num_keys_generate,
+    memmove(co->epoch_data_keys_future, co->epoch_data_keys_future + num_keys_generate,
             (co->epoch_data_keys_future_count - num_keys_generate) * sizeof(struct key_ctx));
 
     /* Clear and regenerate the array elements at the end */
-    for (uint16_t i = co->epoch_data_keys_future_count - num_keys_generate; i < co->epoch_data_keys_future_count; i++)
+    for (uint16_t i = co->epoch_data_keys_future_count - num_keys_generate;
+         i < co->epoch_data_keys_future_count; i++)
     {
         CLEAR(co->epoch_data_keys_future[i]);
         epoch_key_iterate(&co->epoch_key_recv);
@@ -280,8 +269,7 @@ epoch_iterate_send_key(struct crypto_options *co)
 }
 
 void
-epoch_replace_update_recv_key(struct crypto_options *co,
-                              uint16_t new_epoch)
+epoch_replace_update_recv_key(struct crypto_options *co, uint16_t new_epoch)
 {
     /* Find the key of the new epoch in future keys */
     uint16_t fki;
@@ -350,8 +338,7 @@ free_epoch_key_ctx(struct crypto_options *co)
 
 void
 epoch_init_key_ctx(struct crypto_options *co, const struct key_type *key_type,
-                   const struct epoch_key *e1_send,
-                   const struct epoch_key *e1_recv,
+                   const struct epoch_key *e1_send, const struct epoch_key *e1_recv,
                    uint16_t future_key_count)
 {
     ASSERT(e1_send->epoch == 1 && e1_recv->epoch == 1);
@@ -441,11 +428,9 @@ epoch_check_send_iterate(struct crypto_options *opt)
          * decryption fail warn limit.
          * */
         else if (opt->key_ctx_bi.encrypt.epoch == opt->key_ctx_bi.decrypt.epoch
-                 && (aead_usage_limit_reached(opt->aead_usage_limit,
-                                              &opt->key_ctx_bi.decrypt,
+                 && (aead_usage_limit_reached(opt->aead_usage_limit, &opt->key_ctx_bi.decrypt,
                                               opt->packet_id.rec.id)
-                     || cipher_decrypt_verify_fail_warn(&opt->key_ctx_bi.decrypt)
-                     ))
+                     || cipher_decrypt_verify_fail_warn(&opt->key_ctx_bi.decrypt)))
         {
             /* Receive key limit reached. Increase our own send key to signal
              * that we want to use a new epoch. Peer should then also move its
@@ -458,5 +443,4 @@ epoch_check_send_iterate(struct crypto_options *opt)
     {
         epoch_iterate_send_key(opt);
     }
-
 }

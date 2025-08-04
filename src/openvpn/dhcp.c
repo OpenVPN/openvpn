@@ -35,37 +35,37 @@
 static int
 get_dhcp_message_type(const struct dhcp *dhcp, const int optlen)
 {
-    const uint8_t *p = (uint8_t *) (dhcp + 1);
+    const uint8_t *p = (uint8_t *)(dhcp + 1);
     int i;
 
     for (i = 0; i < optlen; ++i)
     {
         const uint8_t type = p[i];
         const int room = optlen - i;
-        if (type == DHCP_END)         /* didn't find what we were looking for */
+        if (type == DHCP_END) /* didn't find what we were looking for */
         {
             return -1;
         }
-        else if (type == DHCP_PAD)    /* no-operation */
+        else if (type == DHCP_PAD) /* no-operation */
         {
         }
         else if (type == DHCP_MSG_TYPE) /* what we are looking for */
         {
             if (room >= 3)
             {
-                if (p[i+1] == 1)      /* option length should be 1 */
+                if (p[i + 1] == 1)   /* option length should be 1 */
                 {
-                    return p[i+2];    /* return message type */
+                    return p[i + 2]; /* return message type */
                 }
             }
             return -1;
         }
-        else                          /* some other option */
+        else /* some other option */
         {
             if (room >= 2)
             {
-                const int len = p[i+1]; /* get option length */
-                i += (len + 1);       /* advance to next option */
+                const int len = p[i + 1]; /* get option length */
+                i += (len + 1);           /* advance to next option */
             }
         }
     }
@@ -75,11 +75,11 @@ get_dhcp_message_type(const struct dhcp *dhcp, const int optlen)
 static in_addr_t
 do_extract(struct dhcp *dhcp, int optlen)
 {
-    uint8_t *p = (uint8_t *) (dhcp + 1);
+    uint8_t *p = (uint8_t *)(dhcp + 1);
     int i;
     in_addr_t ret = 0;
 
-    for (i = 0; i < optlen; )
+    for (i = 0; i < optlen;)
     {
         const uint8_t type = p[i];
         const int room = optlen - i;
@@ -95,25 +95,25 @@ do_extract(struct dhcp *dhcp, int optlen)
         {
             if (room >= 2)
             {
-                const int len = p[i+1]; /* get option length */
-                if (len <= (room-2))
+                const int len = p[i + 1]; /* get option length */
+                if (len <= (room - 2))
                 {
                     /* get router IP address */
                     if (!ret && len >= 4 && (len & 3) == 0)
                     {
-                        memcpy(&ret, p+i+2, 4);
+                        memcpy(&ret, p + i + 2, 4);
                         ret = ntohl(ret);
                     }
                     {
                         /* delete the router option */
                         uint8_t *dest = p + i;
-                        const int owlen = len + 2;        /* len of data to overwrite */
+                        const int owlen = len + 2; /* len of data to overwrite */
                         uint8_t *src = dest + owlen;
                         uint8_t *end = p + optlen;
                         const int movlen = end - src;
                         if (movlen > 0)
                         {
-                            memmove(dest, src, movlen);   /* overwrite router option */
+                            memmove(dest, src, movlen);       /* overwrite router option */
                         }
                         memset(end - owlen, DHCP_PAD, owlen); /* pad tail */
                     }
@@ -128,12 +128,12 @@ do_extract(struct dhcp *dhcp, int optlen)
                 break;
             }
         }
-        else                            /* some other option */
+        else /* some other option */
         {
             if (room >= 2)
             {
-                const int len = p[i+1]; /* get option length */
-                i += (len + 2);         /* advance to next option */
+                const int len = p[i + 1]; /* get option length */
+                i += (len + 2);           /* advance to next option */
             }
             else
             {
@@ -147,13 +147,13 @@ do_extract(struct dhcp *dhcp, int optlen)
 in_addr_t
 dhcp_extract_router_msg(struct buffer *ipbuf)
 {
-    struct dhcp_full *df = (struct dhcp_full *) BPTR(ipbuf);
-    const int optlen = BLEN(ipbuf) - (sizeof(struct openvpn_iphdr) + sizeof(struct openvpn_udphdr) + sizeof(struct dhcp));
+    struct dhcp_full *df = (struct dhcp_full *)BPTR(ipbuf);
+    const int optlen =
+        BLEN(ipbuf)
+        - (sizeof(struct openvpn_iphdr) + sizeof(struct openvpn_udphdr) + sizeof(struct dhcp));
 
-    if (optlen >= 0
-        && df->ip.protocol == OPENVPN_IPPROTO_UDP
-        && df->udp.source == htons(BOOTPS_PORT)
-        && df->udp.dest == htons(BOOTPC_PORT)
+    if (optlen >= 0 && df->ip.protocol == OPENVPN_IPPROTO_UDP
+        && df->udp.source == htons(BOOTPS_PORT) && df->udp.dest == htons(BOOTPC_PORT)
         && df->dhcp.op == BOOTREPLY)
     {
         const int message_type = get_dhcp_message_type(&df->dhcp, optlen);
@@ -164,10 +164,10 @@ dhcp_extract_router_msg(struct buffer *ipbuf)
 
             /* recompute the UDP checksum */
             df->udp.check = 0;
-            df->udp.check = htons(ip_checksum(AF_INET, (uint8_t *)&df->udp,
-                                              sizeof(struct openvpn_udphdr) + sizeof(struct dhcp) + optlen,
-                                              (uint8_t *)&df->ip.saddr, (uint8_t *)&df->ip.daddr,
-                                              OPENVPN_IPPROTO_UDP));
+            df->udp.check = htons(ip_checksum(
+                AF_INET, (uint8_t *)&df->udp,
+                sizeof(struct openvpn_udphdr) + sizeof(struct dhcp) + optlen,
+                (uint8_t *)&df->ip.saddr, (uint8_t *)&df->ip.daddr, OPENVPN_IPPROTO_UDP));
 
             /* only return the extracted Router address if DHCPACK */
             if (message_type == DHCPACK)

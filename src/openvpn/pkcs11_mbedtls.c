@@ -46,16 +46,14 @@ pkcs11_get_x509_cert(pkcs11h_certificate_t pkcs11_cert, mbedtls_x509_crt *cert)
     size_t cert_blob_size = 0;
     bool ret = false;
 
-    if (pkcs11h_certificate_getCertificateBlob(pkcs11_cert, NULL,
-                                               &cert_blob_size) != CKR_OK)
+    if (pkcs11h_certificate_getCertificateBlob(pkcs11_cert, NULL, &cert_blob_size) != CKR_OK)
     {
         msg(M_WARN, "PKCS#11: Cannot retrieve certificate object size");
         goto cleanup;
     }
 
     check_malloc_return((cert_blob = calloc(1, cert_blob_size)));
-    if (pkcs11h_certificate_getCertificateBlob(pkcs11_cert, cert_blob,
-                                               &cert_blob_size) != CKR_OK)
+    if (pkcs11h_certificate_getCertificateBlob(pkcs11_cert, cert_blob, &cert_blob_size) != CKR_OK)
     {
         msg(M_WARN, "PKCS#11: Cannot retrieve certificate object");
         goto cleanup;
@@ -74,16 +72,14 @@ cleanup:
 }
 
 static bool
-pkcs11_sign(void *pkcs11_cert, const void *src, size_t src_len,
-            void *dst, size_t dst_len)
+pkcs11_sign(void *pkcs11_cert, const void *src, size_t src_len, void *dst, size_t dst_len)
 {
-    return CKR_OK == pkcs11h_certificate_signAny(pkcs11_cert, CKM_RSA_PKCS,
-                                                 src, src_len, dst, &dst_len);
+    return CKR_OK
+           == pkcs11h_certificate_signAny(pkcs11_cert, CKM_RSA_PKCS, src, src_len, dst, &dst_len);
 }
 
 int
-pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
-                        struct tls_root_ctx *const ssl_ctx)
+pkcs11_init_tls_session(pkcs11h_certificate_t certificate, struct tls_root_ctx *const ssl_ctx)
 {
     ASSERT(NULL != ssl_ctx);
 
@@ -130,8 +126,7 @@ cleanup:
 }
 
 int
-pkcs11_certificate_serial(pkcs11h_certificate_t cert, char *serial,
-                          size_t serial_len)
+pkcs11_certificate_serial(pkcs11h_certificate_t cert, char *serial, size_t serial_len)
 {
     int ret = 1;
     mbedtls_x509_crt mbed_crt = { 0 };

@@ -51,14 +51,13 @@
 #endif
 
 static int
-dco_install_key(struct tls_multi *multi, struct key_state *ks,
-                const uint8_t *encrypt_key, const uint8_t *encrypt_iv,
-                const uint8_t *decrypt_key, const uint8_t *decrypt_iv,
+dco_install_key(struct tls_multi *multi, struct key_state *ks, const uint8_t *encrypt_key,
+                const uint8_t *encrypt_iv, const uint8_t *decrypt_key, const uint8_t *decrypt_iv,
                 const char *ciphername)
 
 {
-    msg(D_DCO_DEBUG, "%s: peer_id=%d keyid=%d, currently %d keys installed",
-        __func__, multi->dco_peer_id, ks->key_id, multi->dco_keys_installed);
+    msg(D_DCO_DEBUG, "%s: peer_id=%d keyid=%d, currently %d keys installed", __func__,
+        multi->dco_peer_id, ks->key_id, multi->dco_keys_installed);
 
     /* Install a key in the PRIMARY slot only when no other key exist.
      * From that moment on, any new key will be installed in the SECONDARY
@@ -71,33 +70,27 @@ dco_install_key(struct tls_multi *multi, struct key_state *ks,
         slot = OVPN_KEY_SLOT_SECONDARY;
     }
 
-    int ret = dco_new_key(multi->dco, multi->dco_peer_id, ks->key_id, slot,
-                          encrypt_key, encrypt_iv,
-                          decrypt_key, decrypt_iv,
-                          ciphername);
+    int ret = dco_new_key(multi->dco, multi->dco_peer_id, ks->key_id, slot, encrypt_key, encrypt_iv,
+                          decrypt_key, decrypt_iv, ciphername);
     if ((ret == 0) && (multi->dco_keys_installed < 2))
     {
         multi->dco_keys_installed++;
-        ks->dco_status = (slot == OVPN_KEY_SLOT_PRIMARY) ? DCO_INSTALLED_PRIMARY :
-                         DCO_INSTALLED_SECONDARY;
+        ks->dco_status =
+            (slot == OVPN_KEY_SLOT_PRIMARY) ? DCO_INSTALLED_PRIMARY : DCO_INSTALLED_SECONDARY;
     }
 
     return ret;
 }
 
 int
-init_key_dco_bi(struct tls_multi *multi, struct key_state *ks,
-                const struct key2 *key2, int key_direction,
-                const char *ciphername, bool server)
+init_key_dco_bi(struct tls_multi *multi, struct key_state *ks, const struct key2 *key2,
+                int key_direction, const char *ciphername, bool server)
 {
     struct key_direction_state kds;
     key_direction_state_init(&kds, key_direction);
 
-    return dco_install_key(multi, ks,
-                           key2->keys[kds.out_key].cipher,
-                           key2->keys[(int)server].hmac,
-                           key2->keys[kds.in_key].cipher,
-                           key2->keys[1 - (int)server].hmac,
+    return dco_install_key(multi, ks, key2->keys[kds.out_key].cipher, key2->keys[(int)server].hmac,
+                           key2->keys[kds.in_key].cipher, key2->keys[1 - (int)server].hmac,
                            ciphername);
 }
 
@@ -183,13 +176,15 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
     {
         if (secondary)
         {
-            msg(D_DCO_DEBUG, "Swapping primary and secondary keys to "
+            msg(D_DCO_DEBUG,
+                "Swapping primary and secondary keys to "
                 "primary-id=%d secondary-id=%d",
                 primary->key_id, secondary->key_id);
         }
         else
         {
-            msg(D_DCO_DEBUG, "Swapping primary and secondary keys to "
+            msg(D_DCO_DEBUG,
+                "Swapping primary and secondary keys to "
                 "primary-id=%d secondary-id=(to be deleted)",
                 primary->key_id);
         }
@@ -275,13 +270,15 @@ dco_check_option_ce(const struct connection_entry *ce, int msglevel, int mode)
 #if defined(_WIN32)
     if (!proto_is_udp(ce->proto) && mode == MODE_SERVER)
     {
-        msg(msglevel, "NOTE: TCP transport disables data channel offload on Windows in server mode.");
+        msg(msglevel,
+            "NOTE: TCP transport disables data channel offload on Windows in server mode.");
         return false;
     }
 
     if (!ce->remote && !dco_win_supports_multipeer())
     {
-        msg(msglevel, "NOTE: --remote is not defined. This DCO version doesn't support multipeer. Disabling Data Channel Offload");
+        msg(msglevel,
+            "NOTE: --remote is not defined. This DCO version doesn't support multipeer. Disabling Data Channel Offload");
         return false;
     }
 
@@ -310,7 +307,7 @@ dco_check_startup_option(int msglevel, const struct options *o)
     if (!o->tls_client && !o->tls_server)
     {
         msg(msglevel, "No tls-client or tls-server option in configuration "
-            "detected. Disabling data channel offload.");
+                      "detected. Disabling data channel offload.");
         return false;
     }
 
@@ -354,7 +351,8 @@ dco_check_startup_option(int msglevel, const struct options *o)
 #if defined(_WIN32)
     if ((o->mode == MODE_SERVER) && !dco_win_supports_multipeer())
     {
-        msg(msglevel, "--mode server is set. This DCO version doesn't support multipeer. Disabling Data Channel Offload");
+        msg(msglevel,
+            "--mode server is set. This DCO version doesn't support multipeer. Disabling Data Channel Offload");
         return false;
     }
 
@@ -385,8 +383,8 @@ dco_check_startup_option(int msglevel, const struct options *o)
         }
         else if ((ret < 0) && (ret != -ENODEV))
         {
-            msg(msglevel, "Cannot retrieve type of device %s: %s (%d)", o->dev,
-                strerror(-ret), ret);
+            msg(msglevel, "Cannot retrieve type of device %s: %s (%d)", o->dev, strerror(-ret),
+                ret);
         }
     }
 #endif /* if defined(_WIN32) */
@@ -401,13 +399,13 @@ dco_check_startup_option(int msglevel, const struct options *o)
         if (!capng_have_capability(CAPNG_EFFECTIVE, CAP_SETPCAP))
         {
             msg(msglevel, "--user specified but lacking CAP_SETPCAP. "
-                "Cannot retain CAP_NET_ADMIN. Disabling data channel offload");
+                          "Cannot retain CAP_NET_ADMIN. Disabling data channel offload");
             return false;
         }
         if (!capng_have_capability(CAPNG_PERMITTED, CAP_NET_ADMIN))
         {
             msg(msglevel, "--user specified but not permitted to retain CAP_NET_ADMIN. "
-                "Disabling data channel offload");
+                          "Disabling data channel offload");
             return false;
         }
     }
@@ -438,16 +436,18 @@ dco_check_option(int msglevel, const struct options *o)
     if (o->enable_ncp_fallback
         && !tls_item_in_cipher_list(o->ciphername, dco_get_supported_ciphers()))
     {
-        msg(msglevel, "Note: --data-ciphers-fallback with cipher '%s' "
-            "disables data channel offload.", o->ciphername);
+        msg(msglevel,
+            "Note: --data-ciphers-fallback with cipher '%s' "
+            "disables data channel offload.",
+            o->ciphername);
         return false;
     }
 
 #if defined(USE_COMP)
-    if (o->comp.alg != COMP_ALG_UNDEF
-        || o->comp.flags & COMP_F_ALLOW_ASYM)
+    if (o->comp.alg != COMP_ALG_UNDEF || o->comp.flags & COMP_F_ALLOW_ASYM)
     {
-        msg(msglevel, "Note: '--allow-compression' is not set to 'no', disabling data channel offload.");
+        msg(msglevel,
+            "Note: '--allow-compression' is not set to 'no', disabling data channel offload.");
 
         if (o->mode == MODE_SERVER && !(o->comp.flags & COMP_F_MIGRATE))
         {
@@ -466,8 +466,10 @@ dco_check_option(int msglevel, const struct options *o)
     {
         if (!tls_item_in_cipher_list(token, dco_get_supported_ciphers()))
         {
-            msg(msglevel, "Note: cipher '%s' in --data-ciphers is not supported "
-                "by ovpn-dco, disabling data channel offload.", token);
+            msg(msglevel,
+                "Note: cipher '%s' in --data-ciphers is not supported "
+                "by ovpn-dco, disabling data channel offload.",
+                token);
             gc_free(&gc);
             return false;
         }
@@ -483,7 +485,7 @@ dco_check_pull_options(int msglevel, const struct options *o)
     if (!o->use_peer_id)
     {
         msg(msglevel, "OPTIONS IMPORT: Server did not request DATA_V2 packet "
-            "format required for data channel offload");
+                      "format required for data channel offload");
         return false;
     }
     return true;
@@ -513,8 +515,7 @@ dco_p2p_add_new_peer(struct context *c)
     }
 #endif
     int ret = dco_new_peer(&c->c1.tuntap->dco, multi->peer_id, sock->sd, NULL,
-                           proto_is_dgram(sock->info.proto) ? remoteaddr : NULL,
-                           NULL, NULL);
+                           proto_is_dgram(sock->info.proto) ? remoteaddr : NULL, NULL, NULL);
     if (ret < 0)
     {
         return ret;
@@ -547,7 +548,8 @@ dco_multi_get_localaddr(struct multi_context *m, struct multi_instance *mi,
 #if ENABLE_IP_PKTINFO
     struct context *c = &mi->context;
 
-    if (!proto_is_udp(c->c2.link_sockets[0]->info.proto) || !(c->options.sockflags & SF_USE_IP_PKTINFO))
+    if (!proto_is_udp(c->c2.link_sockets[0]->info.proto)
+        || !(c->options.sockflags & SF_USE_IP_PKTINFO))
     {
         return false;
     }
@@ -631,8 +633,8 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
         localaddr = (struct sockaddr *)&local;
     }
 
-    int ret = dco_new_peer(&c->c1.tuntap->dco, peer_id, sd, localaddr,
-                           remoteaddr, vpn_addr4, vpn_addr6);
+    int ret =
+        dco_new_peer(&c->c1.tuntap->dco, peer_id, sd, localaddr, remoteaddr, vpn_addr4, vpn_addr6);
     if (ret < 0)
     {
         return ret;
@@ -644,8 +646,7 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
 }
 
 void
-dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
-                   struct mroute_addr *addr)
+dco_install_iroute(struct multi_context *m, struct multi_instance *mi, struct mroute_addr *addr)
 {
 #if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(_WIN32)
     if (!dco_enabled(&m->top.options))
@@ -666,7 +667,8 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
     if (addrtype == MR_ADDR_IPV6)
     {
 #if defined(_WIN32)
-        dco_win_add_iroute_ipv6(&c->c1.tuntap->dco, addr->v6.addr, addr->netbits, c->c2.tls_multi->peer_id);
+        dco_win_add_iroute_ipv6(&c->c1.tuntap->dco, addr->v6.addr, addr->netbits,
+                                c->c2.tls_multi->peer_id);
 #else
         net_route_v6_add(&m->top.net_ctx, &addr->v6.addr, addr->netbits,
                          &mi->context.c2.push_ifconfig_ipv6_local, c->c1.tuntap->actual_name, 0,
@@ -676,12 +678,12 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
     else if (addrtype == MR_ADDR_IPV4)
     {
 #if defined(_WIN32)
-        dco_win_add_iroute_ipv4(&c->c1.tuntap->dco, addr->v4.addr, addr->netbits, c->c2.tls_multi->peer_id);
+        dco_win_add_iroute_ipv4(&c->c1.tuntap->dco, addr->v4.addr, addr->netbits,
+                                c->c2.tls_multi->peer_id);
 #else
         in_addr_t dest = htonl(addr->v4.addr);
-        net_route_v4_add(&m->top.net_ctx, &dest, addr->netbits,
-                         &mi->context.c2.push_ifconfig_local, c->c1.tuntap->actual_name, 0,
-                         DCO_IROUTE_METRIC);
+        net_route_v4_add(&m->top.net_ctx, &dest, addr->netbits, &mi->context.c2.push_ifconfig_local,
+                         c->c1.tuntap->actual_name, 0, DCO_IROUTE_METRIC);
 #endif
     }
 #endif /* if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(_WIN32) */
@@ -701,32 +703,28 @@ dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
 
     if (mi->context.c2.push_ifconfig_defined)
     {
-        for (const struct iroute *ir = c->options.iroutes;
-             ir;
-             ir = ir->next)
+        for (const struct iroute *ir = c->options.iroutes; ir; ir = ir->next)
         {
 #if defined(_WIN32)
             dco_win_del_iroute_ipv4(&c->c1.tuntap->dco, htonl(ir->network), ir->netbits);
 #else
             net_route_v4_del(&m->top.net_ctx, &ir->network, ir->netbits,
-                             &mi->context.c2.push_ifconfig_local, c->c1.tuntap->actual_name,
-                             0, DCO_IROUTE_METRIC);
+                             &mi->context.c2.push_ifconfig_local, c->c1.tuntap->actual_name, 0,
+                             DCO_IROUTE_METRIC);
 #endif
         }
     }
 
     if (mi->context.c2.push_ifconfig_ipv6_defined)
     {
-        for (const struct iroute_ipv6 *ir6 = c->options.iroutes_ipv6;
-             ir6;
-             ir6 = ir6->next)
+        for (const struct iroute_ipv6 *ir6 = c->options.iroutes_ipv6; ir6; ir6 = ir6->next)
         {
 #if defined(_WIN32)
             dco_win_del_iroute_ipv6(&c->c1.tuntap->dco, ir6->network, ir6->netbits);
 #else
             net_route_v6_del(&m->top.net_ctx, &ir6->network, ir6->netbits,
-                             &mi->context.c2.push_ifconfig_ipv6_local, c->c1.tuntap->actual_name,
-                             0, DCO_IROUTE_METRIC);
+                             &mi->context.c2.push_ifconfig_ipv6_local, c->c1.tuntap->actual_name, 0,
+                             DCO_IROUTE_METRIC);
 #endif
         }
     }

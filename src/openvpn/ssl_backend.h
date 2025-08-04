@@ -101,11 +101,11 @@ void tls_clear_error(void);
  *                      if a parse error should be flagged.
  */
 #define TLS_VER_BAD    -1
-#define TLS_VER_UNSPEC  0 /* default */
-#define TLS_VER_1_0     1
-#define TLS_VER_1_1     2
-#define TLS_VER_1_2     3
-#define TLS_VER_1_3     4
+#define TLS_VER_UNSPEC 0 /* default */
+#define TLS_VER_1_0    1
+#define TLS_VER_1_1    2
+#define TLS_VER_1_2    3
+#define TLS_VER_1_3    4
 int tls_version_parse(const char *vstr, const char *extra);
 
 /**
@@ -218,8 +218,7 @@ void tls_ctx_check_cert_time(const struct tls_root_ctx *ctx);
  *                              of inline files.
  * @param dh_file_inline        True if dh_file is an inline file.
  */
-void tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
-                            bool dh_file_inline);
+void tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file, bool dh_file_inline);
 
 /**
  * Load Elliptic Curve Parameters, and load them into the library-specific
@@ -228,8 +227,7 @@ void tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file,
  * @param ctx          TLS context to use
  * @param curve_name   The name of the elliptic curve to load.
  */
-void tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
-                              );
+void tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name);
 
 /**
  * Load PKCS #12 file for key, cert and (optionally) CA certs, and add to
@@ -246,8 +244,8 @@ void tls_ctx_load_ecdh_params(struct tls_root_ctx *ctx, const char *curve_name
  * @return                      1 if an error occurred, 0 if parsing was
  *                              successful.
  */
-int tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file,
-                        bool pkcs12_file_inline, bool load_ca_file);
+int tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file, bool pkcs12_file_inline,
+                        bool load_ca_file);
 
 /**
  * Use Windows cryptoapi for key and cert, and add to library-specific TLS
@@ -271,8 +269,7 @@ void tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert
  *                              of inline files.
  * @param cert_file_inline      True if cert_file is an inline file.
  */
-void tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file,
-                            bool cert_file_inline);
+void tls_ctx_load_cert_file(struct tls_root_ctx *ctx, const char *cert_file, bool cert_file_inline);
 
 /**
  * Load private key file into the given TLS context.
@@ -318,8 +315,8 @@ int tls_ctx_use_management_external_key(struct tls_root_ctx *ctx);
  *                              connection and should use the CA for verifying
  *                              client certificates
  */
-void tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file,
-                     bool ca_file_inline, const char *ca_path, bool tls_server);
+void tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inline,
+                     const char *ca_path, bool tls_server);
 
 /**
  * Load extra certificate authority certificates from the given file or path.
@@ -334,8 +331,7 @@ void tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file,
  * @param extra_certs_file_inline       True if extra_certs_file is an inline
  *                                      file.
  */
-void tls_ctx_load_extra_certs(struct tls_root_ctx *ctx,
-                              const char *extra_certs_file,
+void tls_ctx_load_extra_certs(struct tls_root_ctx *ctx, const char *extra_certs_file,
                               bool extra_certs_file_inline);
 
 #ifdef ENABLE_CRYPTO_MBEDTLS
@@ -364,15 +360,14 @@ void tls_ctx_personalise_random(struct tls_root_ctx *ctx);
  * @param is_server     Initialise a server?
  * @param session       The session associated with the given key_state
  */
-void key_state_ssl_init(struct key_state_ssl *ks_ssl,
-                        const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_session *session);
+void key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx,
+                        bool is_server, struct tls_session *session);
 
 /**
  * Sets a TLS session to be shutdown state, so the TLS library will generate
  * a shutdown alert.
  */
-void
-key_state_ssl_shutdown(struct key_state_ssl *ks_ssl);
+void key_state_ssl_shutdown(struct key_state_ssl *ks_ssl);
 
 /**
  * Free the SSL channel part of the given key state.
@@ -389,12 +384,12 @@ void key_state_ssl_free(struct key_state_ssl *ks_ssl);
  *                      an array containing the inline CRL.
  * @param crl_inline    True if crl_file is an inline CRL.
  */
-void backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx,
-                                const char *crl_file, bool crl_inline);
+void backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file,
+                                bool crl_inline);
 
-#define EXPORT_KEY_DATA_LABEL       "EXPORTER-OpenVPN-datakeys"
-#define EXPORT_P2P_PEERID_LABEL     "EXPORTER-OpenVPN-p2p-peerid"
-#define EXPORT_DYNAMIC_TLS_CRYPT_LABEL  "EXPORTER-OpenVPN-dynamic-tls-crypt"
+#define EXPORT_KEY_DATA_LABEL          "EXPORTER-OpenVPN-datakeys"
+#define EXPORT_P2P_PEERID_LABEL        "EXPORTER-OpenVPN-p2p-peerid"
+#define EXPORT_DYNAMIC_TLS_CRYPT_LABEL "EXPORTER-OpenVPN-dynamic-tls-crypt"
 /**
  * Keying Material Exporters [RFC 5705] allows additional keying material to be
  * derived from existing TLS channel. This exported keying material can then be
@@ -407,10 +402,8 @@ void backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx,
  * @param ekm_size     The size of ekm, in bytes
  * @returns            true if exporting succeeded, false otherwise
  */
-bool
-key_state_export_keying_material(struct tls_session *session,
-                                 const char *label, size_t label_size,
-                                 void *ekm, size_t ekm_size);
+bool key_state_export_keying_material(struct tls_session *session, const char *label,
+                                      size_t label_size, void *ekm, size_t ekm_size);
 
 /**************************************************************************/
 /** @addtogroup control_tls
@@ -453,8 +446,7 @@ int key_state_write_plaintext(struct key_state_ssl *ks_ssl, struct buffer *buf);
  *   again later to retry.
  * - \c -1: An error occurred.
  */
-int key_state_write_plaintext_const(struct key_state_ssl *ks_ssl,
-                                    const uint8_t *data, int len);
+int key_state_write_plaintext_const(struct key_state_ssl *ks_ssl, const uint8_t *data, int len);
 
 /**
  * Extract ciphertext data from the TLS module.
@@ -499,8 +491,7 @@ int key_state_read_ciphertext(struct key_state_ssl *ks_ssl, struct buffer *buf);
  *   again later to retry.
  * - \c -1: An error occurred.
  */
-int key_state_write_ciphertext(struct key_state_ssl *ks_ssl,
-                               struct buffer *buf);
+int key_state_write_ciphertext(struct key_state_ssl *ks_ssl, struct buffer *buf);
 
 /**
  * Extract plaintext data from the TLS module.
@@ -548,10 +539,8 @@ void print_details(struct key_state_ssl *ks_ssl, const char *prefix);
  * @param tls13             Select if <=TLS1.2 or TLS1.3+ ciphers
  *                          should be shown
  */
-void
-show_available_tls_ciphers_list(const char *cipher_list,
-                                const char *tls_cert_profile,
-                                bool tls13);
+void show_available_tls_ciphers_list(const char *cipher_list, const char *tls_cert_profile,
+                                     bool tls13);
 
 /**
  * Show the available elliptic curves in the crypto library

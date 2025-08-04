@@ -48,7 +48,7 @@ print_status_mode(unsigned int flags)
         case STATUS_OUTPUT_READ:
             return "READ";
 
-        case STATUS_OUTPUT_READ|STATUS_OUTPUT_WRITE:
+        case STATUS_OUTPUT_READ | STATUS_OUTPUT_WRITE:
             return "READ/WRITE";
 
         default:
@@ -57,11 +57,8 @@ print_status_mode(unsigned int flags)
 }
 
 struct status_output *
-status_open(const char *filename,
-            const int refresh_freq,
-            const int msglevel,
-            const struct virtual_output *vout,
-            const unsigned int flags)
+status_open(const char *filename, const int refresh_freq, const int msglevel,
+            const struct virtual_output *vout, const unsigned int flags)
 {
     struct status_output *so = NULL;
     if (filename || msglevel >= 0 || vout)
@@ -78,21 +75,16 @@ status_open(const char *filename,
             switch (so->flags)
             {
                 case STATUS_OUTPUT_WRITE:
-                    so->fd = platform_open(filename,
-                                           O_CREAT | O_TRUNC | O_WRONLY,
-                                           S_IRUSR | S_IWUSR);
+                    so->fd =
+                        platform_open(filename, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
                     break;
 
                 case STATUS_OUTPUT_READ:
-                    so->fd = platform_open(filename,
-                                           O_RDONLY,
-                                           S_IRUSR | S_IWUSR);
+                    so->fd = platform_open(filename, O_RDONLY, S_IRUSR | S_IWUSR);
                     break;
 
-                case STATUS_OUTPUT_READ|STATUS_OUTPUT_WRITE:
-                    so->fd = platform_open(filename,
-                                           O_CREAT | O_RDWR,
-                                           S_IRUSR | S_IWUSR);
+                case STATUS_OUTPUT_READ | STATUS_OUTPUT_WRITE:
+                    so->fd = platform_open(filename, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
                     break;
 
                 default:
@@ -167,10 +159,10 @@ status_flush(struct status_output *so)
         }
 #elif defined(HAVE_CHSIZE)
         {
-            const long off = (long) lseek(so->fd, (off_t)0, SEEK_CUR);
+            const long off = (long)lseek(so->fd, (off_t)0, SEEK_CUR);
             chsize(so->fd, off);
         }
-#else  /* if defined(HAVE_FTRUNCATE) */
+#else /* if defined(HAVE_FTRUNCATE) */
 #warning both ftruncate and chsize functions appear to be missing from this OS
 #endif
 
@@ -222,7 +214,7 @@ status_printf(struct status_output *so, const char *format, ...)
 {
     if (so && (so->flags & STATUS_OUTPUT_WRITE))
     {
-        char buf[STATUS_PRINTF_MAXLEN+2]; /* leave extra bytes for CR, LF */
+        char buf[STATUS_PRINTF_MAXLEN + 2]; /* leave extra bytes for CR, LF */
         va_list arglist;
         int stat;
 

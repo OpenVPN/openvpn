@@ -42,8 +42,7 @@ void set_std_files_to_null(bool stdin_only);
 
 const char **make_arg_array(const char *first, const char *parms, struct gc_arena *gc);
 
-const char **make_extended_arg_array(char **p, bool is_inline,
-                                     struct gc_arena *gc);
+const char **make_extended_arg_array(char **p, bool is_inline, struct gc_arena *gc);
 
 /* prepend a random prefix to hostname */
 const char *hostname_randomize(const char *hostname, struct gc_arena *gc);
@@ -76,9 +75,10 @@ struct user_pass
 /*
  * Challenge response info on client as pushed by server.
  */
-struct auth_challenge_info {
-#define CR_ECHO     (1<<0)  /* echo response when typed by user */
-#define CR_RESPONSE (1<<1)  /* response needed */
+struct auth_challenge_info
+{
+#define CR_ECHO     (1 << 0) /* echo response when typed by user */
+#define CR_RESPONSE (1 << 1) /* response needed */
     unsigned int flags;
 
     const char *user;
@@ -89,38 +89,43 @@ struct auth_challenge_info {
 /*
  * Challenge response info on client as pushed by server.
  */
-struct static_challenge_info {
-#define SC_ECHO     (1<<0)  /* echo response when typed by user */
-#define SC_CONCAT   (1<<1)  /* concatenate password and response and do not base64 encode */
+struct static_challenge_info
+{
+#define SC_ECHO   (1 << 0) /* echo response when typed by user */
+#define SC_CONCAT (1 << 1) /* concatenate password and response and do not base64 encode */
     unsigned int flags;
 
     const char *challenge_text;
 };
 
 #else  /* ifdef ENABLE_MANAGEMENT */
-struct auth_challenge_info {};
-struct static_challenge_info {};
+struct auth_challenge_info
+{
+};
+struct static_challenge_info
+{
+};
 #endif /* ifdef ENABLE_MANAGEMENT */
 
 /*
  * Flags for get_user_pass and management_query_user_pass
  */
-#define GET_USER_PASS_MANAGEMENT    (1<<0)
+#define GET_USER_PASS_MANAGEMENT            (1 << 0)
 /* GET_USER_PASS_SENSITIVE     (1<<1)  not used anymore */
-#define GET_USER_PASS_PASSWORD_ONLY (1<<2)
-#define GET_USER_PASS_NEED_OK       (1<<3)
-#define GET_USER_PASS_NOFATAL       (1<<4)
-#define GET_USER_PASS_NEED_STR      (1<<5)
-#define GET_USER_PASS_PREVIOUS_CREDS_FAILED (1<<6)
+#define GET_USER_PASS_PASSWORD_ONLY         (1 << 2)
+#define GET_USER_PASS_NEED_OK               (1 << 3)
+#define GET_USER_PASS_NOFATAL               (1 << 4)
+#define GET_USER_PASS_NEED_STR              (1 << 5)
+#define GET_USER_PASS_PREVIOUS_CREDS_FAILED (1 << 6)
 
-#define GET_USER_PASS_DYNAMIC_CHALLENGE      (1<<7) /**< CRV1 protocol  -- dynamic challenge */
-#define GET_USER_PASS_STATIC_CHALLENGE       (1<<8) /**< SCRV1 protocol -- static challenge */
-#define GET_USER_PASS_STATIC_CHALLENGE_ECHO  (1<<9) /**< SCRV1 protocol -- echo response */
+#define GET_USER_PASS_DYNAMIC_CHALLENGE     (1 << 7) /**< CRV1 protocol  -- dynamic challenge */
+#define GET_USER_PASS_STATIC_CHALLENGE      (1 << 8) /**< SCRV1 protocol -- static challenge */
+#define GET_USER_PASS_STATIC_CHALLENGE_ECHO (1 << 9) /**< SCRV1 protocol -- echo response */
 
 /** indicates that auth_file is actually inline creds */
-#define GET_USER_PASS_INLINE_CREDS (1<<10)
+#define GET_USER_PASS_INLINE_CREDS            (1 << 10)
 /** indicates password and response should be concatenated */
-#define GET_USER_PASS_STATIC_CHALLENGE_CONCAT (1<<11)
+#define GET_USER_PASS_STATIC_CHALLENGE_CONCAT (1 << 11)
 
 /**
  * Retrieves the user credentials from various sources depending on the flags.
@@ -132,11 +137,8 @@ struct static_challenge_info {};
  * @param auth_challenge The authentication challenge string.
  * @return true if the user credentials were successfully retrieved, false otherwise.
  */
-bool get_user_pass_cr(struct user_pass *up,
-                      const char *auth_file,
-                      const char *prefix,
-                      const unsigned int flags,
-                      const char *auth_challenge);
+bool get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix,
+                      const unsigned int flags, const char *auth_challenge);
 
 /**
  * Retrieves the user credentials from various sources depending on the flags.
@@ -148,9 +150,7 @@ bool get_user_pass_cr(struct user_pass *up,
  * @return true if the user credentials were successfully retrieved, false otherwise.
  */
 static inline bool
-get_user_pass(struct user_pass *up,
-              const char *auth_file,
-              const char *prefix,
+get_user_pass(struct user_pass *up, const char *auth_file, const char *prefix,
               const unsigned int flags)
 {
     return get_user_pass_cr(up, auth_file, prefix, flags, NULL);
@@ -205,29 +205,24 @@ void output_peer_info_env(struct env_set *es, const char *peer_info);
 /**
  * Prepend a directory to a path.
  */
-struct buffer
-prepend_dir(const char *dir, const char *path, struct gc_arena *gc);
+struct buffer prepend_dir(const char *dir, const char *path, struct gc_arena *gc);
 
 /**
  * Encrypt username and password buffers in user_pass
  */
-void
-protect_user_pass(struct user_pass *up);
+void protect_user_pass(struct user_pass *up);
 
 /**
  * Decrypt username and password buffers in user_pass
  */
-void
-unprotect_user_pass(struct user_pass *up);
+void unprotect_user_pass(struct user_pass *up);
 
 
-#define _STRINGIFY(S) #S
+#define _STRINGIFY(S)       #S
 /* *INDENT-OFF* - uncrustify need to ignore this macro */
-#define MAC_FMT _STRINGIFY(%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx)
+#define MAC_FMT             _STRINGIFY(%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx)
 /* *INDENT-ON* */
-#define MAC_PRINT_ARG(_mac) _mac[0], _mac[1], _mac[2],  \
-    _mac[3], _mac[4], _mac[5]
-#define MAC_SCAN_ARG(_mac) &_mac[0], &_mac[1], &_mac[2], \
-    &_mac[3], &_mac[4], &_mac[5]
+#define MAC_PRINT_ARG(_mac) _mac[0], _mac[1], _mac[2], _mac[3], _mac[4], _mac[5]
+#define MAC_SCAN_ARG(_mac)  &_mac[0], &_mac[1], &_mac[2], &_mac[3], &_mac[4], &_mac[5]
 
 #endif /* ifndef MISC_H */

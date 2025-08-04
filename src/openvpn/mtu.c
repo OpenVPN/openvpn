@@ -38,8 +38,7 @@
 
 /* allocate a buffer for socket or tun layer */
 void
-alloc_buf_sock_tun(struct buffer *buf,
-                   const struct frame *frame)
+alloc_buf_sock_tun(struct buffer *buf, const struct frame *frame)
 {
     /* allocate buffer for overlapped I/O */
     *buf = alloc_buf(BUF_SIZE(frame));
@@ -59,8 +58,7 @@ calc_packet_id_size_dc(const struct options *options, const struct key_type *kt)
 }
 
 size_t
-frame_calculate_protocol_header_size(const struct key_type *kt,
-                                     const struct options *options,
+frame_calculate_protocol_header_size(const struct key_type *kt, const struct options *options,
                                      bool occ)
 {
     /* Sum of all the overhead that reduces the usable packet size */
@@ -97,8 +95,7 @@ frame_calculate_protocol_header_size(const struct key_type *kt,
 
 
 size_t
-frame_calculate_payload_overhead(size_t extra_tun,
-                                 const struct options *options,
+frame_calculate_payload_overhead(size_t extra_tun, const struct options *options,
                                  const struct key_type *kt)
 {
     size_t overhead = 0;
@@ -138,8 +135,7 @@ frame_calculate_payload_overhead(size_t extra_tun,
 }
 
 size_t
-frame_calculate_payload_size(const struct frame *frame,
-                             const struct options *options,
+frame_calculate_payload_size(const struct frame *frame, const struct options *options,
                              const struct key_type *kt)
 {
     size_t payload_size = options->ce.tun_mtu;
@@ -174,7 +170,7 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
          * overhead */
 
         /* overhead of BF-CBC: 64 bit block size, 64 bit IV size */
-        overhead += 64/8 + 64/8;
+        overhead += 64 / 8 + 64 / 8;
         /* set ciphername to none, so its size does get added in the
          * fake_kt and the cipher is not tried to be resolved */
         ciphername = "none";
@@ -191,9 +187,7 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
 }
 
 void
-frame_print(const struct frame *frame,
-            int level,
-            const char *prefix)
+frame_print(const struct frame *frame, int level, const char *prefix)
 {
     struct gc_arena gc = gc_new();
     struct buffer out = alloc_buf_gc(256, &gc);
@@ -229,19 +223,18 @@ set_mtu_discover_type(socket_descriptor_t sd, int mtu_type, sa_family_t proto_af
         {
 #if defined(IP_MTU_DISCOVER)
             case AF_INET:
-                if (setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER,
-                               (void *) &mtu_type, sizeof(mtu_type)))
+                if (setsockopt(sd, IPPROTO_IP, IP_MTU_DISCOVER, (void *)&mtu_type,
+                               sizeof(mtu_type)))
                 {
-                    msg(M_ERR, "Error setting IP_MTU_DISCOVER type=%d on TCP/UDP socket",
-                        mtu_type);
+                    msg(M_ERR, "Error setting IP_MTU_DISCOVER type=%d on TCP/UDP socket", mtu_type);
                 }
                 break;
 
 #endif
 #if defined(IPV6_MTU_DISCOVER)
             case AF_INET6:
-                if (setsockopt(sd, IPPROTO_IPV6, IPV6_MTU_DISCOVER,
-                               (void *) &mtu_type, sizeof(mtu_type)))
+                if (setsockopt(sd, IPPROTO_IPV6, IPV6_MTU_DISCOVER, (void *)&mtu_type,
+                               sizeof(mtu_type)))
                 {
                     msg(M_ERR, "Error setting IPV6_MTU_DISCOVER type=%d on TCP6/UDP6 socket",
                         mtu_type);
@@ -272,13 +265,11 @@ translate_mtu_discover_type_name(const char *name)
     {
         return IP_PMTUDISC_DONT;
     }
-    msg(M_FATAL,
-        "invalid --mtu-disc type: '%s' -- valid types are 'yes', 'maybe', or 'no'",
-        name);
-#else  /* if defined(IP_PMTUDISC_DONT) && defined(IP_PMTUDISC_WANT) && defined(IP_PMTUDISC_DO) */
+    msg(M_FATAL, "invalid --mtu-disc type: '%s' -- valid types are 'yes', 'maybe', or 'no'", name);
+#else /* if defined(IP_PMTUDISC_DONT) && defined(IP_PMTUDISC_WANT) && defined(IP_PMTUDISC_DO) */
     msg(M_FATAL, MTUDISC_NOT_SUPPORTED_MSG);
 #endif
-    return -1;                  /* NOTREACHED */
+    return -1; /* NOTREACHED */
 }
 
 #if EXTENDED_SOCKET_ERROR_CAPABILITY
@@ -300,7 +291,7 @@ format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc)
     struct sock_extended_err *e;
     struct sockaddr_storage addr;
     struct buffer out = alloc_buf_gc(256, gc);
-    char *cbuf = (char *) gc_malloc(256, false, gc);
+    char *cbuf = (char *)gc_malloc(256, false, gc);
 
     *mtu = 0;
 
@@ -309,7 +300,7 @@ format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc)
         memset(&rcvbuf, -1, sizeof(rcvbuf));
         iov.iov_base = &rcvbuf;
         iov.iov_len = sizeof(rcvbuf);
-        msg.msg_name = (uint8_t *) &addr;
+        msg.msg_name = (uint8_t *)&addr;
         msg.msg_namelen = sizeof(addr);
         msg.msg_iov = &iov;
         msg.msg_iovlen = 1;
@@ -331,7 +322,7 @@ format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc)
             {
                 if (cmsg->cmsg_type == IP_RECVERR)
                 {
-                    e = (struct sock_extended_err *) CMSG_DATA(cmsg);
+                    e = (struct sock_extended_err *)CMSG_DATA(cmsg);
                 }
                 else
                 {
@@ -342,7 +333,7 @@ format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc)
             {
                 if (cmsg->cmsg_type == IPV6_RECVERR)
                 {
-                    e = (struct sock_extended_err *) CMSG_DATA(cmsg);
+                    e = (struct sock_extended_err *)CMSG_DATA(cmsg);
                 }
                 else
                 {
@@ -405,7 +396,7 @@ set_sock_extended_error_passing(int sd, sa_family_t proto_af)
     /* see "man 7 ip" (on Linux)
      * this works on IPv4 and IPv6(-dual-stack) sockets (v4-mapped)
      */
-    if (setsockopt(sd, SOL_IP, IP_RECVERR, (void *) &on, sizeof(on)) != 0)
+    if (setsockopt(sd, SOL_IP, IP_RECVERR, (void *)&on, sizeof(on)) != 0)
     {
         msg(M_WARN | M_ERRNO,
             "Note: enable extended error passing on TCP/UDP socket failed (IP_RECVERR)");
@@ -414,7 +405,7 @@ set_sock_extended_error_passing(int sd, sa_family_t proto_af)
      * this only works on IPv6 sockets
      */
     if (proto_af == AF_INET6
-        && setsockopt(sd, IPPROTO_IPV6, IPV6_RECVERR, (void *) &on, sizeof(on)) != 0)
+        && setsockopt(sd, IPPROTO_IPV6, IPV6_RECVERR, (void *)&on, sizeof(on)) != 0)
     {
         msg(M_WARN | M_ERRNO,
             "Note: enable extended error passing on TCP/UDP socket failed (IPV6_RECVERR)");

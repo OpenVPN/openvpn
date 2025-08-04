@@ -40,7 +40,8 @@
 #include "networking.h"
 #include "dco.h"
 
-enum tun_driver_type {
+enum tun_driver_type
+{
     WINDOWS_DRIVER_UNSPECIFIED,
     WINDOWS_DRIVER_TAP_WINDOWS6,
     DRIVER_GENERIC_TUNTAP,
@@ -67,19 +68,20 @@ enum tun_driver_type {
 #define IPW32_SET_ADAPTIVE_TRY_NETSH    20
 
 /* bit flags for DHCP options */
-#define DHCP_OPTIONS_DHCP_OPTIONAL (1<<0)
-#define DHCP_OPTIONS_DHCP_REQUIRED (1<<1)
+#define DHCP_OPTIONS_DHCP_OPTIONAL (1 << 0)
+#define DHCP_OPTIONS_DHCP_REQUIRED (1 << 1)
 
-struct tuntap_options {
+struct tuntap_options
+{
     /* --ip-win32 options */
     bool ip_win32_defined;
 
-#define IPW32_SET_MANUAL       0   /* "--ip-win32 manual" */
-#define IPW32_SET_NETSH        1   /* "--ip-win32 netsh" */
-#define IPW32_SET_IPAPI        2   /* "--ip-win32 ipapi" */
-#define IPW32_SET_DHCP_MASQ    3   /* "--ip-win32 dynamic" */
-#define IPW32_SET_ADAPTIVE     4   /* "--ip-win32 adaptive" */
-#define IPW32_SET_N            5
+#define IPW32_SET_MANUAL    0 /* "--ip-win32 manual" */
+#define IPW32_SET_NETSH     1 /* "--ip-win32 netsh" */
+#define IPW32_SET_IPAPI     2 /* "--ip-win32 ipapi" */
+#define IPW32_SET_DHCP_MASQ 3 /* "--ip-win32 dynamic" */
+#define IPW32_SET_ADAPTIVE  4 /* "--ip-win32 adaptive" */
+#define IPW32_SET_N         5
     int ip_win32_type;
 
 #ifdef _WIN32
@@ -98,14 +100,15 @@ struct tuntap_options {
 
     int dhcp_options;
 
-    const char *domain;      /* DOMAIN (15) */
+    const char *domain;        /* DOMAIN (15) */
 
     const char *netbios_scope; /* NBS (47) */
 
-    int netbios_node_type;   /* NBT 1,2,4,8 (46) */
+    int netbios_node_type;     /* NBT 1,2,4,8 (46) */
 
-#define N_DHCP_ADDR 4        /* Max # of addresses allowed for
-                              * DNS, WINS, etc. */
+#define N_DHCP_ADDR                     \
+    4 /* Max # of addresses allowed for \
+       * DNS, WINS, etc. */
 
     /* DNS (6) */
     in_addr_t dns[N_DHCP_ADDR];
@@ -147,13 +150,15 @@ struct tuntap_options {
 
 #elif defined(TARGET_LINUX)
 
-struct tuntap_options {
+struct tuntap_options
+{
     int txqueuelen;
 };
 
 #else  /* if defined(_WIN32) || defined(TARGET_ANDROID) */
 
-struct tuntap_options {
+struct tuntap_options
+{
     int dummy; /* not used */
 };
 
@@ -169,7 +174,8 @@ typedef struct afunix_context
 } afunix_context_t;
 
 #else /* ifndef WIN32 */
-typedef struct {
+typedef struct
+{
     int dummy;
 } afunix_context_t;
 #endif
@@ -195,11 +201,11 @@ struct tuntap
      * been set up. This does NOT mean ifconfig has been called */
     bool did_ifconfig_ipv6_setup;
 
-    bool persistent_if;         /* if existed before, keep on program end */
+    bool persistent_if;            /* if existed before, keep on program end */
 
     struct tuntap_options options; /* options set on command line */
 
-    char *actual_name; /* actual name of TUN/TAP dev, usually including unit number */
+    char *actual_name;             /* actual name of TUN/TAP dev, usually including unit number */
 
     /* ifconfig parameters */
     in_addr_t local;
@@ -230,7 +236,7 @@ struct tuntap
 
     int standby_iter;
 
-    #else  /* ifdef _WIN32 */
+#else  /* ifdef _WIN32 */
     int fd; /* file descriptor for TUN/TAP dev */
 #endif /* ifdef _WIN32 */
 
@@ -259,13 +265,13 @@ tuntap_defined(const struct tuntap *tt)
  * Function prototypes
  */
 
-void open_tun(const char *dev, const char *dev_type, const char *dev_node,
-              struct tuntap *tt, openvpn_net_ctx_t *ctx);
+void open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
+              openvpn_net_ctx_t *ctx);
 
 void close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx);
 
-void tun_open_device(struct tuntap *tt, const char *dev_node,
-                     const char **device_guid, struct gc_arena *gc);
+void tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_guid,
+                     struct gc_arena *gc);
 
 void close_tun_handle(struct tuntap *tt);
 
@@ -273,37 +279,29 @@ int write_tun(struct tuntap *tt, uint8_t *buf, int len);
 
 int read_tun(struct tuntap *tt, uint8_t *buf, int len);
 
-void tuncfg(const char *dev, const char *dev_type, const char *dev_node,
-            int persist_mode, const char *username,
-            const char *groupname, const struct tuntap_options *options,
+void tuncfg(const char *dev, const char *dev_type, const char *dev_node, int persist_mode,
+            const char *username, const char *groupname, const struct tuntap_options *options,
             openvpn_net_ctx_t *ctx);
 
-const char *guess_tuntap_dev(const char *dev,
-                             const char *dev_type,
-                             const char *dev_node,
+const char *guess_tuntap_dev(const char *dev, const char *dev_type, const char *dev_node,
                              struct gc_arena *gc);
 
-struct tuntap *init_tun(const char *dev,        /* --dev option */
-                        const char *dev_type,   /* --dev-type option */
-                        int topology,           /* one of the TOP_x values */
-                        const char *ifconfig_local_parm,           /* --ifconfig parm 1 */
-                        const char *ifconfig_remote_netmask_parm,  /* --ifconfig parm 2 */
-                        const char *ifconfig_ipv6_local_parm,      /* --ifconfig parm 1 / IPv6 */
-                        int ifconfig_ipv6_netbits_parm,            /* --ifconfig parm 1 / bits */
-                        const char *ifconfig_ipv6_remote_parm,     /* --ifconfig parm 2 / IPv6 */
-                        struct addrinfo *local_public,
-                        struct addrinfo *remote_public,
-                        const bool strict_warn,
-                        struct env_set *es,
-                        openvpn_net_ctx_t *ctx,
+struct tuntap *init_tun(const char *dev,                          /* --dev option */
+                        const char *dev_type,                     /* --dev-type option */
+                        int topology,                             /* one of the TOP_x values */
+                        const char *ifconfig_local_parm,          /* --ifconfig parm 1 */
+                        const char *ifconfig_remote_netmask_parm, /* --ifconfig parm 2 */
+                        const char *ifconfig_ipv6_local_parm,     /* --ifconfig parm 1 / IPv6 */
+                        int ifconfig_ipv6_netbits_parm,           /* --ifconfig parm 1 / bits */
+                        const char *ifconfig_ipv6_remote_parm,    /* --ifconfig parm 2 / IPv6 */
+                        struct addrinfo *local_public, struct addrinfo *remote_public,
+                        const bool strict_warn, struct env_set *es, openvpn_net_ctx_t *ctx,
                         struct tuntap *tt);
 
-void init_tun_post(struct tuntap *tt,
-                   const struct frame *frame,
+void init_tun_post(struct tuntap *tt, const struct frame *frame,
                    const struct tuntap_options *options);
 
-void do_ifconfig_setenv(const struct tuntap *tt,
-                        struct env_set *es);
+void do_ifconfig_setenv(const struct tuntap *tt, struct env_set *es);
 
 /**
  * do_ifconfig - configure the tunnel interface
@@ -314,8 +312,8 @@ void do_ifconfig_setenv(const struct tuntap *tt,
  * @param es        the environment to be used when executing the commands
  * @param ctx       the networking API opaque context
  */
-void do_ifconfig(struct tuntap *tt, const char *ifname, int tun_mtu,
-                 const struct env_set *es, openvpn_net_ctx_t *ctx);
+void do_ifconfig(struct tuntap *tt, const char *ifname, int tun_mtu, const struct env_set *es,
+                 openvpn_net_ctx_t *ctx);
 
 /**
  * undo_ifconfig - undo configuration of the tunnel interface
@@ -331,7 +329,8 @@ int dev_type_enum(const char *dev, const char *dev_type);
 
 const char *dev_type_string(const char *dev, const char *dev_type);
 
-const char *ifconfig_options_string(const struct tuntap *tt, bool remote, bool disable, struct gc_arena *gc);
+const char *ifconfig_options_string(const struct tuntap *tt, bool remote, bool disable,
+                                    struct gc_arena *gc);
 
 bool is_tun_p2p(const struct tuntap *tt);
 
@@ -340,8 +339,7 @@ void warn_on_use_of_common_subnets(openvpn_net_ctx_t *ctx);
 /**
  * Return a string representation of the tun backed driver type
  */
-const char *
-print_tun_backend_driver(enum tun_driver_type driver);
+const char *print_tun_backend_driver(enum tun_driver_type driver);
 
 /*
  * Should ifconfig be called before or after
@@ -351,7 +349,7 @@ print_tun_backend_driver(enum tun_driver_type driver);
 #define IFCONFIG_BEFORE_TUN_OPEN 0
 #define IFCONFIG_AFTER_TUN_OPEN  1
 
-#define IFCONFIG_DEFAULT         IFCONFIG_AFTER_TUN_OPEN
+#define IFCONFIG_DEFAULT IFCONFIG_AFTER_TUN_OPEN
 
 static inline int
 ifconfig_order(struct tuntap *tt)
@@ -374,13 +372,13 @@ ifconfig_order(struct tuntap *tt)
     return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(TARGET_ANDROID)
     return IFCONFIG_BEFORE_TUN_OPEN;
-#else  /* if defined(TARGET_LINUX) */
+#else /* if defined(TARGET_LINUX) */
     return IFCONFIG_DEFAULT;
 #endif
 }
 
-#define ROUTE_BEFORE_TUN 0
-#define ROUTE_AFTER_TUN 1
+#define ROUTE_BEFORE_TUN    0
+#define ROUTE_AFTER_TUN     1
 #define ROUTE_ORDER_DEFAULT ROUTE_AFTER_TUN
 
 static inline int
@@ -441,11 +439,10 @@ const IP_ADAPTER_INFO *get_adapter(const IP_ADAPTER_INFO *ai, DWORD index);
 
 bool is_adapter_up(const struct tuntap *tt, const IP_ADAPTER_INFO *list);
 
-bool is_ip_in_adapter_subnet(const IP_ADAPTER_INFO *ai, const in_addr_t ip, in_addr_t *highest_netmask);
+bool is_ip_in_adapter_subnet(const IP_ADAPTER_INFO *ai, const in_addr_t ip,
+                             in_addr_t *highest_netmask);
 
-DWORD adapter_index_of_ip(const IP_ADAPTER_INFO *list,
-                          const in_addr_t ip,
-                          int *count,
+DWORD adapter_index_of_ip(const IP_ADAPTER_INFO *list, const in_addr_t ip, int *count,
                           in_addr_t *netmask);
 
 void show_tap_win_adapters(int msglev, int warnlev);
@@ -599,10 +596,7 @@ tun_event_handle(const struct tuntap *tt)
 }
 
 static inline void
-tun_set(struct tuntap *tt,
-        struct event_set *es,
-        unsigned int rwflags,
-        void *arg,
+tun_set(struct tuntap *tt, struct event_set *es, unsigned int rwflags, void *arg,
         unsigned int *persistent)
 {
     if (!tuntap_defined(tt) || tuntap_is_dco_win(tt))
@@ -626,7 +620,6 @@ tun_set(struct tuntap *tt,
     }
 #endif
     tt->rwflags_debug = rwflags;
-
 }
 
 const char *tun_stat(const struct tuntap *tt, unsigned int rwflags, struct gc_arena *gc);

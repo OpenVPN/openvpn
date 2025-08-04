@@ -33,24 +33,26 @@
 #include <wchar.h>
 #include "../tapctl/basic.h"
 
-#define APPNAME  _L(PACKAGE) L"serv"
-#define SERVICE_DEPENDENCIES  _L(TAP_WIN_COMPONENT_ID) L"\0Dhcp\0\0"
+#define APPNAME              _L(PACKAGE) L"serv"
+#define SERVICE_DEPENDENCIES _L(TAP_WIN_COMPONENT_ID) L"\0Dhcp\0\0"
 
 /*
  * Message handling
  */
-#define MSG_FLAGS_ERROR     (1<<0)
-#define MSG_FLAGS_SYS_CODE  (1<<1)
-#define M_INFO    (0)                                  /* informational */
-#define M_SYSERR  (MSG_FLAGS_ERROR|MSG_FLAGS_SYS_CODE) /* error + system code */
-#define M_ERR     (MSG_FLAGS_ERROR)                    /* error */
+#define MSG_FLAGS_ERROR    (1 << 0)
+#define MSG_FLAGS_SYS_CODE (1 << 1)
+#define M_INFO             (0)                                    /* informational */
+#define M_SYSERR           (MSG_FLAGS_ERROR | MSG_FLAGS_SYS_CODE) /* error + system code */
+#define M_ERR              (MSG_FLAGS_ERROR)                      /* error */
 
-typedef enum {
+typedef enum
+{
     interactive,
     _service_max
 } openvpn_service_type;
 
-typedef struct {
+typedef struct
+{
     openvpn_service_type type;
     WCHAR *name;
     WCHAR *display_name;
@@ -59,7 +61,8 @@ typedef struct {
 } openvpn_service_t;
 
 #define MAX_NAME 256
-typedef struct {
+typedef struct
+{
     WCHAR exe_path[MAX_PATH];
     WCHAR config_dir[MAX_PATH];
     WCHAR bin_dir[MAX_PATH];

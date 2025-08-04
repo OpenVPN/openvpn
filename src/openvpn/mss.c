@@ -48,27 +48,24 @@ mss_fixup_ipv4(struct buffer *buf, uint16_t maxmss)
     const struct openvpn_iphdr *pip;
     int hlen;
 
-    if (BLEN(buf) < (int) sizeof(struct openvpn_iphdr))
+    if (BLEN(buf) < (int)sizeof(struct openvpn_iphdr))
     {
         return;
     }
 
     verify_align_4(buf);
-    pip = (struct openvpn_iphdr *) BPTR(buf);
+    pip = (struct openvpn_iphdr *)BPTR(buf);
 
     hlen = OPENVPN_IPH_GET_LEN(pip->version_len);
 
-    if (pip->protocol == OPENVPN_IPPROTO_TCP
-        && ntohs(pip->tot_len) == BLEN(buf)
-        && (ntohs(pip->frag_off) & OPENVPN_IP_OFFMASK) == 0
-        && hlen <= BLEN(buf)
-        && BLEN(buf) - hlen
-        >= (int) sizeof(struct openvpn_tcphdr))
+    if (pip->protocol == OPENVPN_IPPROTO_TCP && ntohs(pip->tot_len) == BLEN(buf)
+        && (ntohs(pip->frag_off) & OPENVPN_IP_OFFMASK) == 0 && hlen <= BLEN(buf)
+        && BLEN(buf) - hlen >= (int)sizeof(struct openvpn_tcphdr))
     {
         struct buffer newbuf = *buf;
         if (buf_advance(&newbuf, hlen))
         {
-            struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *) BPTR(&newbuf);
+            struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *)BPTR(&newbuf);
             if (tc->flags & OPENVPN_TCPH_SYN_MASK)
             {
                 mss_fixup_dowork(&newbuf, maxmss);
@@ -88,18 +85,18 @@ mss_fixup_ipv6(struct buffer *buf, uint16_t maxmss)
     const struct openvpn_ipv6hdr *pip6;
     struct buffer newbuf;
 
-    if (BLEN(buf) < (int) sizeof(struct openvpn_ipv6hdr))
+    if (BLEN(buf) < (int)sizeof(struct openvpn_ipv6hdr))
     {
         return;
     }
 
     verify_align_4(buf);
-    pip6 = (struct openvpn_ipv6hdr *) BPTR(buf);
+    pip6 = (struct openvpn_ipv6hdr *)BPTR(buf);
 
     /* do we have the full IPv6 packet?
      * "payload_len" does not include IPv6 header (+40 bytes)
      */
-    if (BLEN(buf) != (int) ntohs(pip6->payload_len)+40)
+    if (BLEN(buf) != (int)ntohs(pip6->payload_len) + 40)
     {
         return;
     }
@@ -123,13 +120,12 @@ mss_fixup_ipv6(struct buffer *buf, uint16_t maxmss)
      * verify remainder is large enough to contain a full TCP header
      */
     newbuf = *buf;
-    if (buf_advance( &newbuf, 40 )
-        && BLEN(&newbuf) >= (int) sizeof(struct openvpn_tcphdr))
+    if (buf_advance(&newbuf, 40) && BLEN(&newbuf) >= (int)sizeof(struct openvpn_tcphdr))
     {
-        struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *) BPTR(&newbuf);
+        struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *)BPTR(&newbuf);
         if (tc->flags & OPENVPN_TCPH_SYN_MASK)
         {
-            mss_fixup_dowork(&newbuf, maxmss-20);
+            mss_fixup_dowork(&newbuf, maxmss - 20);
         }
     }
 }
@@ -148,25 +144,22 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
     int accumulate;
     struct openvpn_tcphdr *tc;
 
-    if (BLEN(buf) < (int) sizeof(struct openvpn_tcphdr))
+    if (BLEN(buf) < (int)sizeof(struct openvpn_tcphdr))
     {
         return;
     }
 
     verify_align_4(buf);
-    tc = (struct openvpn_tcphdr *) BPTR(buf);
+    tc = (struct openvpn_tcphdr *)BPTR(buf);
     hlen = OPENVPN_TCPH_GET_DOFF(tc->doff_res);
 
     /* Invalid header length or header without options. */
-    if (hlen <= (int) sizeof(struct openvpn_tcphdr)
-        || hlen > BLEN(buf))
+    if (hlen <= (int)sizeof(struct openvpn_tcphdr) || hlen > BLEN(buf))
     {
         return;
     }
 
-    for (olen = hlen - (int) sizeof(struct openvpn_tcphdr),
-         opt = (uint8_t *)(tc + 1);
-         olen > 1;
+    for (olen = hlen - (int)sizeof(struct openvpn_tcphdr), opt = (uint8_t *)(tc + 1); olen > 1;
          olen -= optlen, opt += optlen)
     {
         if (*opt == OPENVPN_TCPOPT_EOL)
@@ -196,8 +189,8 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
                 {
                     dmsg(D_MSS, "MSS: %" PRIu16 " -> %" PRIu16, mssval, maxmss);
                     accumulate = htons(mssval);
-                    opt[2] = (uint8_t)((maxmss>>8)&0xff);
-                    opt[3] = (uint8_t)(maxmss&0xff);
+                    opt[2] = (uint8_t)((maxmss >> 8) & 0xff);
+                    opt[3] = (uint8_t)(maxmss & 0xff);
                     accumulate -= htons(maxmss);
                     ADJUST_CHECKSUM(accumulate, tc->check);
                 }
@@ -227,8 +220,7 @@ adjust_payload_max_cbc(const struct key_type *kt, size_t target)
 }
 
 static size_t
-get_ip_encap_overhead(const struct options *options,
-                      const struct link_socket_info *lsi)
+get_ip_encap_overhead(const struct options *options, const struct link_socket_info *lsi)
 {
     /* Add the overhead of the encapsulating IP packets */
     sa_family_t af;
@@ -252,8 +244,7 @@ get_ip_encap_overhead(const struct options *options,
 }
 
 static void
-frame_calculate_fragment(struct frame *frame, struct key_type *kt,
-                         const struct options *options,
+frame_calculate_fragment(struct frame *frame, struct key_type *kt, const struct options *options,
                          struct link_socket_info *lsi)
 {
 #if defined(ENABLE_FRAGMENT)
@@ -283,8 +274,7 @@ frame_calculate_fragment(struct frame *frame, struct key_type *kt,
 }
 
 static void
-frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
-                       const struct options *options,
+frame_calculate_mssfix(struct frame *frame, struct key_type *kt, const struct options *options,
                        struct link_socket_info *lsi)
 {
     if (options->ce.mssfix_fixed)
@@ -326,13 +316,10 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt,
     /* This is the target value our payload needs to be smaller */
     size_t target = options->ce.mssfix - overhead;
     frame->mss_fix = (uint16_t)(adjust_payload_max_cbc(kt, target) - payload_overhead);
-
-
 }
 
 void
-frame_calculate_dynamic(struct frame *frame, struct key_type *kt,
-                        const struct options *options,
+frame_calculate_dynamic(struct frame *frame, struct key_type *kt, const struct options *options,
                         struct link_socket_info *lsi)
 {
     if (options->ce.fragment > 0)
@@ -363,30 +350,29 @@ frame_adjust_path_mtu(struct context *c)
     int encap_overhead = datagram_overhead(af, proto);
 
     /* check if mssfix and fragment need to be adjusted */
-    if (pmtu < o->ce.mssfix
-        || (o->ce.mssfix_encap && pmtu < o->ce.mssfix + encap_overhead))
+    if (pmtu < o->ce.mssfix || (o->ce.mssfix_encap && pmtu < o->ce.mssfix + encap_overhead))
     {
         const char *mtustr = o->ce.mssfix_encap ? " mtu" : "";
-        msg(D_MTU_INFO, "Note adjusting 'mssfix %d%s' to 'mssfix %d mtu' "
-            "according to path MTU discovery", o->ce.mssfix,
-            mtustr, pmtu);
+        msg(D_MTU_INFO,
+            "Note adjusting 'mssfix %d%s' to 'mssfix %d mtu' "
+            "according to path MTU discovery",
+            o->ce.mssfix, mtustr, pmtu);
         o->ce.mssfix = pmtu;
         o->ce.mssfix_encap = true;
         frame_calculate_dynamic(&c->c2.frame, &c->c1.ks.key_type, o, lsi);
     }
 
 #if defined(ENABLE_FRAGMENT)
-    if (pmtu < o->ce.fragment
-        || (o->ce.fragment_encap && pmtu < o->ce.fragment + encap_overhead))
+    if (pmtu < o->ce.fragment || (o->ce.fragment_encap && pmtu < o->ce.fragment + encap_overhead))
     {
         const char *mtustr = o->ce.fragment_encap ? " mtu" : "";
-        msg(D_MTU_INFO, "Note adjusting 'fragment %d%s' to 'fragment %d mtu' "
-            "according to path MTU discovery", o->ce.fragment,
-            mtustr, pmtu);
+        msg(D_MTU_INFO,
+            "Note adjusting 'fragment %d%s' to 'fragment %d mtu' "
+            "according to path MTU discovery",
+            o->ce.fragment, mtustr, pmtu);
         o->ce.fragment = pmtu;
         o->ce.fragment_encap = true;
-        frame_calculate_dynamic(&c->c2.frame_fragment, &c->c1.ks.key_type,
-                                o, lsi);
+        frame_calculate_dynamic(&c->c2.frame_fragment, &c->c1.ks.key_type, o, lsi);
     }
 #endif
 }

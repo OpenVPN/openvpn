@@ -124,12 +124,11 @@ positive_atoi(const char *str, int msglevel)
 
     if (i < 0 || *endptr != '\0' || i > INT_MAX)
     {
-        msg(msglevel, "Cannot parse argument '%s' as non-negative integer",
-            str);
+        msg(msglevel, "Cannot parse argument '%s' as non-negative integer", str);
         i = 0;
     }
 
-    return (int) i;
+    return (int)i;
 }
 
 int
@@ -144,27 +143,17 @@ atoi_warn(const char *str, int msglevel)
         i = 0;
     }
 
-    return (int) i;
+    return (int)i;
 }
 
-static const char *updatable_options[] = {
-    "block-ipv6",
-    "block-outside-dns",
-    "dhcp-option",
-    "dns",
-    "ifconfig",
-    "ifconfig-ipv6",
-    "push-continuation",
-    "redirect-gateway",
-    "redirect-private",
-    "route",
-    "route-gateway",
-    "route-ipv6",
-    "route-metric",
-    "topology",
-    "tun-mtu",
-    "keepalive"
-};
+static const char *updatable_options[] = { "block-ipv6",        "block-outside-dns",
+                                           "dhcp-option",       "dns",
+                                           "ifconfig",          "ifconfig-ipv6",
+                                           "push-continuation", "redirect-gateway",
+                                           "redirect-private",  "route",
+                                           "route-gateway",     "route-ipv6",
+                                           "route-metric",      "topology",
+                                           "tun-mtu",           "keepalive" };
 
 bool
 check_push_update_option_flags(char *line, int *i, unsigned int *flags)
@@ -196,7 +185,7 @@ check_push_update_option_flags(char *line, int *i, unsigned int *flags)
     }
 
     size_t len = strlen(&line[*i]);
-    int count = sizeof(updatable_options)/sizeof(char *);
+    int count = sizeof(updatable_options) / sizeof(char *);
     for (int j = 0; j < count; ++j)
     {
         size_t opt_len = strlen(updatable_options[j]);

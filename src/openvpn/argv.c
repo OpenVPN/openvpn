@@ -284,8 +284,7 @@ argv_msg_prefix(const int msglev, const struct argv *a, const char *prefix)
  *           free()d to avoid memory leaks.
  */
 static char *
-argv_prep_format(const char *format, const char delim, size_t *count,
-                 struct gc_arena *gc)
+argv_prep_format(const char *format, const char delim, size_t *count, struct gc_arena *gc)
 {
     if (format == NULL)
     {
@@ -311,7 +310,7 @@ argv_prep_format(const char *format, const char delim, size_t *count,
              * the string is empty; the resulting format string
              * will never start with a delimiter.
              */
-            if (j > 0)  /* Has anything been written to the output string? */
+            if (j > 0) /* Has anything been written to the output string? */
             {
                 f[j++] = delim;
             }
@@ -347,7 +346,7 @@ argv_prep_format(const char *format, const char delim, size_t *count,
 static bool
 argv_printf_arglist(struct argv *argres, const char *format, va_list arglist)
 {
-    const char delim = 0x1D;  /* ASCII Group Separator (GS) */
+    const char delim = 0x1D; /* ASCII Group Separator (GS) */
     bool res = false;
 
     /*
@@ -484,8 +483,8 @@ argv_parse_cmd(struct argv *argres, const char *cmdstr)
     argv_reset(argres);
 
     char *parms[MAX_PARMS + 1] = { 0 };
-    int nparms = parse_line(cmdstr, parms, MAX_PARMS, "SCRIPT-ARGV", 0,
-                            D_ARGV_PARSE_CMD, &argres->gc);
+    int nparms =
+        parse_line(cmdstr, parms, MAX_PARMS, "SCRIPT-ARGV", 0, D_ARGV_PARSE_CMD, &argres->gc);
     if (nparms)
     {
         int i;

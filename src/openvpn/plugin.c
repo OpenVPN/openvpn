@@ -44,7 +44,7 @@
 #include "win32.h"
 #include "memdbg.h"
 
-#define PLUGIN_SYMBOL_REQUIRED (1<<0)
+#define PLUGIN_SYMBOL_REQUIRED (1 << 0)
 
 /* used only for program aborts */
 static struct plugin_common *static_plugin_common = NULL; /* GLOBAL */
@@ -152,7 +152,7 @@ plugin_mask_string(const unsigned int type_mask, struct gc_arena *gc)
 static inline unsigned int
 plugin_supported_types(void)
 {
-    return ((1<<OPENVPN_PLUGIN_N)-1);
+    return ((1 << OPENVPN_PLUGIN_N) - 1);
 }
 
 struct plugin_option_list *
@@ -164,8 +164,7 @@ plugin_option_list_new(struct gc_arena *gc)
 }
 
 bool
-plugin_option_list_add(struct plugin_option_list *list, char **p,
-                       struct gc_arena *gc)
+plugin_option_list_add(struct plugin_option_list *list, char **p, struct gc_arena *gc)
 {
     if (list->n < MAX_PLUGINS)
     {
@@ -193,7 +192,8 @@ plugin_option_list_print(const struct plugin_option_list *list, int msglevel)
     for (i = 0; i < list->n; ++i)
     {
         const struct plugin_option *o = &list->plugins[i];
-        msg(msglevel, "  plugin[%d] %s '%s'", i, o->so_pathname, print_argv(o->argv, &gc, PA_BRACKET));
+        msg(msglevel, "  plugin[%d] %s '%s'", i, o->so_pathname,
+            print_argv(o->argv, &gc, PA_BRACKET));
     }
 
     gc_free(&gc);
@@ -203,24 +203,28 @@ plugin_option_list_print(const struct plugin_option_list *list, int msglevel)
 #ifndef _WIN32
 
 static void
-libdl_resolve_symbol(void *handle, void **dest, const char *symbol, const char *plugin_name, const unsigned int flags)
+libdl_resolve_symbol(void *handle, void **dest, const char *symbol, const char *plugin_name,
+                     const unsigned int flags)
 {
     *dest = dlsym(handle, symbol);
     if ((flags & PLUGIN_SYMBOL_REQUIRED) && !*dest)
     {
-        msg(M_FATAL, "PLUGIN: could not find required symbol '%s' in plugin shared object %s: %s", symbol, plugin_name, dlerror());
+        msg(M_FATAL, "PLUGIN: could not find required symbol '%s' in plugin shared object %s: %s",
+            symbol, plugin_name, dlerror());
     }
 }
 
 #else  /* ifndef _WIN32 */
 
 static void
-dll_resolve_symbol(HMODULE module, void **dest, const char *symbol, const char *plugin_name, const unsigned int flags)
+dll_resolve_symbol(HMODULE module, void **dest, const char *symbol, const char *plugin_name,
+                   const unsigned int flags)
 {
     *dest = GetProcAddress(module, symbol);
     if ((flags & PLUGIN_SYMBOL_REQUIRED) && !*dest)
     {
-        msg(M_FATAL, "PLUGIN: could not find required symbol '%s' in plugin DLL %s", symbol, plugin_name);
+        msg(M_FATAL, "PLUGIN: could not find required symbol '%s' in plugin DLL %s", symbol,
+            plugin_name);
     }
 }
 
@@ -254,8 +258,7 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
      * was parsed.
      *
      */
-    if (!platform_absolute_pathname(p->so_pathname)
-        && p->so_pathname[0] != '.')
+    if (!platform_absolute_pathname(p->so_pathname) && p->so_pathname[0] != '.')
     {
         char full[PATH_MAX];
 
@@ -269,24 +272,29 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
     }
     if (!p->handle)
     {
-        msg(M_ERR, "PLUGIN_INIT: could not load plugin shared object %s: %s", p->so_pathname, dlerror());
+        msg(M_ERR, "PLUGIN_INIT: could not load plugin shared object %s: %s", p->so_pathname,
+            dlerror());
     }
 
-#define PLUGIN_SYM(var, name, flags) libdl_resolve_symbol(p->handle, (void *)&p->var, name, p->so_pathname, flags)
+#define PLUGIN_SYM(var, name, flags) \
+    libdl_resolve_symbol(p->handle, (void *)&p->var, name, p->so_pathname, flags)
 
-#else  /* ifndef _WIN32 */
+#else /* ifndef _WIN32 */
 
     WCHAR *wpath = wide_string(p->so_pathname, &gc);
-    WCHAR normalized_plugin_path[MAX_PATH] = {0};
+    WCHAR normalized_plugin_path[MAX_PATH] = { 0 };
     /* Normalize the plugin path, converting any relative paths to absolute paths. */
     if (!GetFullPathNameW(wpath, MAX_PATH, normalized_plugin_path, NULL))
     {
-        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls. Failed to normalize plugin path.", wpath);
+        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls. Failed to normalize plugin path.",
+            wpath);
     }
 
     if (!plugin_in_trusted_dir(normalized_plugin_path))
     {
-        msg(M_FATAL, "PLUGIN_INIT: could not load plugin DLL: %ls. The DLL is not in a trusted directory.", normalized_plugin_path);
+        msg(M_FATAL,
+            "PLUGIN_INIT: could not load plugin DLL: %ls. The DLL is not in a trusted directory.",
+            normalized_plugin_path);
     }
 
     p->module = LoadLibraryW(normalized_plugin_path);
@@ -295,7 +303,8 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
         msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls", normalized_plugin_path);
     }
 
-#define PLUGIN_SYM(var, name, flags) dll_resolve_symbol(p->module, (void *)&p->var, name, p->so_pathname, flags)
+#define PLUGIN_SYM(var, name, flags) \
+    dll_resolve_symbol(p->module, (void *)&p->var, name, p->so_pathname, flags)
 
 #endif /* ifndef _WIN32 */
 
@@ -314,12 +323,14 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
 
     if (!p->open1 && !p->open2 && !p->open3)
     {
-        msg(M_FATAL, "PLUGIN: symbol openvpn_plugin_open_vX is undefined in plugin: %s", p->so_pathname);
+        msg(M_FATAL, "PLUGIN: symbol openvpn_plugin_open_vX is undefined in plugin: %s",
+            p->so_pathname);
     }
 
     if (!p->func1 && !p->func2 && !p->func3)
     {
-        msg(M_FATAL, "PLUGIN: symbol openvpn_plugin_func_vX is undefined in plugin: %s", p->so_pathname);
+        msg(M_FATAL, "PLUGIN: symbol openvpn_plugin_func_vX is undefined in plugin: %s",
+            p->so_pathname);
     }
 
     /*
@@ -330,10 +341,9 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
         const int plugin_needs_version = (*p->min_version_required)();
         if (plugin_needs_version > OPENVPN_PLUGIN_VERSION)
         {
-            msg(M_FATAL, "PLUGIN_INIT: plugin needs interface version %d, but this version of OpenVPN only supports version %d: %s",
-                plugin_needs_version,
-                OPENVPN_PLUGIN_VERSION,
-                p->so_pathname);
+            msg(M_FATAL,
+                "PLUGIN_INIT: plugin needs interface version %d, but this version of OpenVPN only supports version %d: %s",
+                plugin_needs_version, OPENVPN_PLUGIN_VERSION, p->so_pathname);
         }
     }
 
@@ -348,7 +358,9 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
 
     if (rel)
     {
-        msg(M_WARN, "WARNING: plugin '%s' specified by a relative pathname -- using an absolute pathname would be more secure", p->so_pathname);
+        msg(M_WARN,
+            "WARNING: plugin '%s' specified by a relative pathname -- using an absolute pathname would be more secure",
+            p->so_pathname);
     }
 
     p->initialized = true;
@@ -427,9 +439,9 @@ plugin_log(openvpn_plugin_log_flags_t flags, const char *name, const char *forma
 static struct openvpn_plugin_callbacks callbacks = {
     plugin_log,
     plugin_vlog,
-    secure_memzero,         /* plugin_secure_memzero */
-    openvpn_base64_encode,  /* plugin_base64_encode */
-    openvpn_base64_decode,  /* plugin_base64_decode */
+    secure_memzero,        /* plugin_secure_memzero */
+    openvpn_base64_encode, /* plugin_base64_encode */
+    openvpn_base64_decode, /* plugin_base64_decode */
 };
 
 
@@ -444,10 +456,8 @@ static struct openvpn_plugin_callbacks callbacks = {
 #endif
 
 static void
-plugin_open_item(struct plugin *p,
-                 const struct plugin_option *o,
-                 struct openvpn_plugin_string_list **retlist,
-                 const char **envp,
+plugin_open_item(struct plugin *p, const struct plugin_option *o,
+                 struct openvpn_plugin_string_list **retlist, const char **envp,
                  const int init_point)
 {
     ASSERT(p->initialized);
@@ -471,19 +481,20 @@ plugin_open_item(struct plugin *p,
         if (p->open3)
         {
             struct openvpn_plugin_args_open_in args = { p->plugin_type_mask,
-                                                        (const char **const) o->argv,
-                                                        (const char **const) envp,
+                                                        (const char **const)o->argv,
+                                                        (const char **const)envp,
                                                         &callbacks,
                                                         SSLAPI,
                                                         PACKAGE_VERSION,
                                                         OPENVPN_VERSION_MAJOR,
                                                         OPENVPN_VERSION_MINOR,
-                                                        _OPENVPN_PATCH_LEVEL};
+                                                        _OPENVPN_PATCH_LEVEL };
             struct openvpn_plugin_args_open_return retargs;
 
             CLEAR(retargs);
             retargs.return_list = retlist;
-            if ((*p->open3)(OPENVPN_PLUGINv3_STRUCTVER, &args, &retargs) == OPENVPN_PLUGIN_FUNC_SUCCESS)
+            if ((*p->open3)(OPENVPN_PLUGINv3_STRUCTVER, &args, &retargs)
+                == OPENVPN_PLUGIN_FUNC_SUCCESS)
             {
                 p->plugin_type_mask = retargs.type_mask;
                 p->plugin_handle = retargs.handle;
@@ -506,24 +517,20 @@ plugin_open_item(struct plugin *p,
             ASSERT(0);
         }
 
-        msg(D_PLUGIN, "PLUGIN_INIT: POST %s '%s' intercepted=%s %s",
-            p->so_pathname,
-            print_argv(o->argv, &gc, PA_BRACKET),
-            plugin_mask_string(p->plugin_type_mask, &gc),
+        msg(D_PLUGIN, "PLUGIN_INIT: POST %s '%s' intercepted=%s %s", p->so_pathname,
+            print_argv(o->argv, &gc, PA_BRACKET), plugin_mask_string(p->plugin_type_mask, &gc),
             (retlist && *retlist) ? "[RETLIST]" : "");
 
         if ((p->plugin_type_mask | plugin_supported_types()) != plugin_supported_types())
         {
-            msg(M_FATAL, "PLUGIN_INIT: plugin %s expressed interest in unsupported plugin types: [want=0x%08x, have=0x%08x]",
-                p->so_pathname,
-                p->plugin_type_mask,
-                plugin_supported_types());
+            msg(M_FATAL,
+                "PLUGIN_INIT: plugin %s expressed interest in unsupported plugin types: [want=0x%08x, have=0x%08x]",
+                p->so_pathname, p->plugin_type_mask, plugin_supported_types());
         }
 
         if (p->plugin_handle == NULL)
         {
-            msg(M_FATAL, "PLUGIN_INIT: plugin initialization function failed: %s",
-                p->so_pathname);
+            msg(M_FATAL, "PLUGIN_INIT: plugin initialization function failed: %s", p->so_pathname);
         }
 
         gc_free(&gc);
@@ -531,15 +538,9 @@ plugin_open_item(struct plugin *p,
 }
 
 static int
-plugin_call_item(const struct plugin *p,
-                 void *per_client_context,
-                 const int type,
-                 const struct argv *av,
-                 struct openvpn_plugin_string_list **retlist,
-                 const char **envp,
-                 int certdepth,
-                 openvpn_x509_cert_t *current_cert
-                 )
+plugin_call_item(const struct plugin *p, void *per_client_context, const int type,
+                 const struct argv *av, struct openvpn_plugin_string_list **retlist,
+                 const char **envp, int certdepth, openvpn_x509_cert_t *current_cert)
 {
     int status = OPENVPN_PLUGIN_FUNC_SUCCESS;
 
@@ -563,8 +564,8 @@ plugin_call_item(const struct plugin *p,
         if (p->func3)
         {
             struct openvpn_plugin_args_func_in args = { type,
-                                                        (const char **const) a.argv,
-                                                        (const char **const) envp,
+                                                        (const char **const)a.argv,
+                                                        (const char **const)envp,
                                                         p->plugin_handle,
                                                         per_client_context,
                                                         (current_cert ? certdepth : -1),
@@ -578,7 +579,8 @@ plugin_call_item(const struct plugin *p,
         }
         else if (p->func2)
         {
-            status = (*p->func2)(p->plugin_handle, type, (const char **)a.argv, envp, per_client_context, retlist);
+            status = (*p->func2)(p->plugin_handle, type, (const char **)a.argv, envp,
+                                 per_client_context, retlist);
         }
         else if (p->func1)
         {
@@ -589,17 +591,13 @@ plugin_call_item(const struct plugin *p,
             ASSERT(0);
         }
 
-        msg(D_PLUGIN, "PLUGIN_CALL: POST %s/%s status=%d",
-            p->so_pathname,
-            plugin_type_name(type),
+        msg(D_PLUGIN, "PLUGIN_CALL: POST %s/%s status=%d", p->so_pathname, plugin_type_name(type),
             status);
 
         if (status == OPENVPN_PLUGIN_FUNC_ERROR)
         {
             msg(M_WARN, "PLUGIN_CALL: plugin function %s failed with status %d: %s",
-                plugin_type_name(type),
-                status,
-                p->so_pathname);
+                plugin_type_name(type), status, p->so_pathname);
         }
 
         argv_free(&a);
@@ -652,8 +650,7 @@ plugin_abort_item(const struct plugin *p)
 }
 
 static void
-plugin_per_client_init(const struct plugin_common *pc,
-                       struct plugin_per_client *cli,
+plugin_per_client_init(const struct plugin_common *pc, struct plugin_per_client *cli,
                        const int init_point)
 {
     const int n = pc->n;
@@ -662,8 +659,7 @@ plugin_per_client_init(const struct plugin_common *pc,
     for (i = 0; i < n; ++i)
     {
         const struct plugin *p = &pc->plugins[i];
-        if (p->plugin_handle
-            && (init_point < 0 || init_point == p->requested_initialization_point)
+        if (p->plugin_handle && (init_point < 0 || init_point == p->requested_initialization_point)
             && p->client_constructor)
         {
             cli->per_client_context[i] = (*p->client_constructor)(p->plugin_handle);
@@ -711,8 +707,7 @@ plugin_common_init(const struct plugin_option_list *list)
 
     for (i = 0; i < list->n; ++i)
     {
-        plugin_init_item(&pc->plugins[i],
-                         &list->plugins[i]);
+        plugin_init_item(&pc->plugins[i], &list->plugins[i]);
         pc->n = i + 1;
     }
 
@@ -721,11 +716,8 @@ plugin_common_init(const struct plugin_option_list *list)
 }
 
 static void
-plugin_common_open(struct plugin_common *pc,
-                   const struct plugin_option_list *list,
-                   struct plugin_return *pr,
-                   const struct env_set *es,
-                   const int init_point)
+plugin_common_open(struct plugin_common *pc, const struct plugin_option_list *list,
+                   struct plugin_return *pr, const struct env_set *es, const int init_point)
 {
     struct gc_arena gc = gc_new();
     int i;
@@ -740,10 +732,7 @@ plugin_common_open(struct plugin_common *pc,
 
     for (i = 0; i < pc->n; ++i)
     {
-        plugin_open_item(&pc->plugins[i],
-                         &list->plugins[i],
-                         pr ? &pr->list[i] : NULL,
-                         envp,
+        plugin_open_item(&pc->plugins[i], &list->plugins[i], pr ? &pr->list[i] : NULL, envp,
                          init_point);
     }
 
@@ -782,25 +771,17 @@ plugin_list_init(const struct plugin_option_list *list)
 }
 
 void
-plugin_list_open(struct plugin_list *pl,
-                 const struct plugin_option_list *list,
-                 struct plugin_return *pr,
-                 const struct env_set *es,
-                 const int init_point)
+plugin_list_open(struct plugin_list *pl, const struct plugin_option_list *list,
+                 struct plugin_return *pr, const struct env_set *es, const int init_point)
 {
     plugin_common_open(pl->common, list, pr, es, init_point);
     plugin_per_client_init(pl->common, &pl->per_client, init_point);
 }
 
 int
-plugin_call_ssl(const struct plugin_list *pl,
-                const int type,
-                const struct argv *av,
-                struct plugin_return *pr,
-                struct env_set *es,
-                int certdepth,
-                openvpn_x509_cert_t *current_cert
-                )
+plugin_call_ssl(const struct plugin_list *pl, const int type, const struct argv *av,
+                struct plugin_return *pr, struct env_set *es, int certdepth,
+                openvpn_x509_cert_t *current_cert)
 {
     if (pr)
     {
@@ -821,23 +802,16 @@ plugin_call_ssl(const struct plugin_list *pl,
 
         for (i = 0; i < n; ++i)
         {
-            const int status = plugin_call_item(&pl->common->plugins[i],
-                                                pl->per_client.per_client_context[i],
-                                                type,
-                                                av,
-                                                pr ? &pr->list[i] : NULL,
-                                                envp,
-                                                certdepth,
-                                                current_cert
-                                                );
+            const int status =
+                plugin_call_item(&pl->common->plugins[i], pl->per_client.per_client_context[i],
+                                 type, av, pr ? &pr->list[i] : NULL, envp, certdepth, current_cert);
             switch (status)
             {
                 case OPENVPN_PLUGIN_FUNC_SUCCESS:
                     break;
 
                 case OPENVPN_PLUGIN_FUNC_DEFERRED:
-                    if ((type == OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY)
-                        && deferred_auth_done)
+                    if ((type == OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY) && deferred_auth_done)
                     {
                         /*
                          * Do not allow deferred auth if a deferred auth has
@@ -854,13 +828,12 @@ plugin_call_ssl(const struct plugin_list *pl,
                          * error, we bail out and exit the OpenVPN process.
                          */
                         error = true;
-                        msg(M_FATAL,
-                            "Exiting due to multiple authentication plug-ins "
-                            "performing deferred authentication.  Only one "
-                            "authentication plug-in doing deferred auth is "
-                            "allowed.  Ignoring the result and stopping now, "
-                            "the current authentication result is not to be "
-                            "trusted.");
+                        msg(M_FATAL, "Exiting due to multiple authentication plug-ins "
+                                     "performing deferred authentication.  Only one "
+                                     "authentication plug-in doing deferred auth is "
+                                     "allowed.  Ignoring the result and stopping now, "
+                                     "the current authentication result is not to be "
+                                     "trusted.");
                         break;
                     }
                     deferred_auth_done = true;
@@ -996,8 +969,7 @@ openvpn_plugin_string_list_find(struct openvpn_plugin_string_list *l, const char
 }
 
 void
-plugin_return_get_column(const struct plugin_return *src,
-                         struct plugin_return *dest,
+plugin_return_get_column(const struct plugin_return *src, struct plugin_return *dest,
                          const char *colname)
 {
     int i;
@@ -1035,10 +1007,7 @@ plugin_return_print(const int msglevel, const char *prefix, const struct plugin_
         msg(msglevel, "PLUGIN #%d (%s)", i, prefix);
         while (l)
         {
-            msg(msglevel, "[%d] '%s' -> '%s'\n",
-                ++count,
-                l->name,
-                l->value);
+            msg(msglevel, "[%d] '%s' -> '%s'\n", ++count, l->name, l->value);
             l = l->next;
         }
     }

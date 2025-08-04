@@ -48,68 +48,33 @@
 #endif
 
 /* c38d57d1-05a7-4c33-904f-7fbceee60e82 */
-DEFINE_GUID(
-    FWPM_LAYER_ALE_AUTH_CONNECT_V4,
-    0xc38d57d1,
-    0x05a7,
-    0x4c33,
-    0x90, 0x4f, 0x7f, 0xbc, 0xee, 0xe6, 0x0e, 0x82
-    );
+DEFINE_GUID(FWPM_LAYER_ALE_AUTH_CONNECT_V4, 0xc38d57d1, 0x05a7, 0x4c33, 0x90, 0x4f, 0x7f, 0xbc,
+            0xee, 0xe6, 0x0e, 0x82);
 
 /* 4a72393b-319f-44bc-84c3-ba54dcb3b6b4 */
-DEFINE_GUID(
-    FWPM_LAYER_ALE_AUTH_CONNECT_V6,
-    0x4a72393b,
-    0x319f,
-    0x44bc,
-    0x84, 0xc3, 0xba, 0x54, 0xdc, 0xb3, 0xb6, 0xb4
-    );
+DEFINE_GUID(FWPM_LAYER_ALE_AUTH_CONNECT_V6, 0x4a72393b, 0x319f, 0x44bc, 0x84, 0xc3, 0xba, 0x54,
+            0xdc, 0xb3, 0xb6, 0xb4);
 
 /* d78e1e87-8644-4ea5-9437-d809ecefc971 */
-DEFINE_GUID(
-    FWPM_CONDITION_ALE_APP_ID,
-    0xd78e1e87,
-    0x8644,
-    0x4ea5,
-    0x94, 0x37, 0xd8, 0x09, 0xec, 0xef, 0xc9, 0x71
-    );
+DEFINE_GUID(FWPM_CONDITION_ALE_APP_ID, 0xd78e1e87, 0x8644, 0x4ea5, 0x94, 0x37, 0xd8, 0x09, 0xec,
+            0xef, 0xc9, 0x71);
 
 /* c35a604d-d22b-4e1a-91b4-68f674ee674b */
-DEFINE_GUID(
-    FWPM_CONDITION_IP_REMOTE_PORT,
-    0xc35a604d,
-    0xd22b,
-    0x4e1a,
-    0x91, 0xb4, 0x68, 0xf6, 0x74, 0xee, 0x67, 0x4b
-    );
+DEFINE_GUID(FWPM_CONDITION_IP_REMOTE_PORT, 0xc35a604d, 0xd22b, 0x4e1a, 0x91, 0xb4, 0x68, 0xf6, 0x74,
+            0xee, 0x67, 0x4b);
 
 /* 4cd62a49-59c3-4969-b7f3-bda5d32890a4 */
-DEFINE_GUID(
-    FWPM_CONDITION_IP_LOCAL_INTERFACE,
-    0x4cd62a49,
-    0x59c3,
-    0x4969,
-    0xb7, 0xf3, 0xbd, 0xa5, 0xd3, 0x28, 0x90, 0xa4
-    );
+DEFINE_GUID(FWPM_CONDITION_IP_LOCAL_INTERFACE, 0x4cd62a49, 0x59c3, 0x4969, 0xb7, 0xf3, 0xbd, 0xa5,
+            0xd3, 0x28, 0x90, 0xa4);
 
 /* 632ce23b-5167-435c-86d7-e903684aa80c */
-DEFINE_GUID(
-    FWPM_CONDITION_FLAGS,
-    0x632ce23b,
-    0x5167,
-    0x435c,
-    0x86, 0xd7, 0xe9, 0x03, 0x68, 0x4a, 0xa8, 0x0c
-    );
+DEFINE_GUID(FWPM_CONDITION_FLAGS, 0x632ce23b, 0x5167, 0x435c, 0x86, 0xd7, 0xe9, 0x03, 0x68, 0x4a,
+            0xa8, 0x0c);
 
 /* UUID of WFP sublayer used by all instances of openvpn
  * 2f660d7e-6a37-11e6-a181-001e8c6e04a2 */
-DEFINE_GUID(
-    OPENVPN_WFP_BLOCK_SUBLAYER,
-    0x2f660d7e,
-    0x6a37,
-    0x11e6,
-    0xa1, 0x81, 0x00, 0x1e, 0x8c, 0x6e, 0x04, 0xa2
-    );
+DEFINE_GUID(OPENVPN_WFP_BLOCK_SUBLAYER, 0x2f660d7e, 0x6a37, 0x11e6, 0xa1, 0x81, 0x00, 0x1e, 0x8c,
+            0x6e, 0x04, 0xa2);
 
 static WCHAR *FIREWALL_NAME = L"OpenVPN";
 
@@ -123,7 +88,11 @@ default_msg_handler(DWORD err, const char *msg)
 }
 
 #define OUT_ON_ERROR(err, msg) \
-    if (err) { msg_handler(err, msg); goto out; }
+    if (err)                   \
+    {                          \
+        msg_handler(err, msg); \
+        goto out;              \
+    }
 
 /*
  * Add a persistent sublayer with specified uuid.
@@ -181,24 +150,21 @@ out:
  */
 
 DWORD
-add_wfp_block_filters(HANDLE *engine_handle,
-                      int index,
-                      const WCHAR *exe_path,
-                      wfp_block_msg_handler_t msg_handler,
-                      BOOL dns_only)
+add_wfp_block_filters(HANDLE *engine_handle, int index, const WCHAR *exe_path,
+                      wfp_block_msg_handler_t msg_handler, BOOL dns_only)
 {
-    FWPM_SESSION0 session = {0};
+    FWPM_SESSION0 session = { 0 };
     FWPM_SUBLAYER0 *sublayer_ptr = NULL;
     NET_LUID itf_luid;
     UINT64 filterid;
     FWP_BYTE_BLOB *openvpnblob = NULL;
-    FWPM_FILTER0 Filter = {0};
+    FWPM_FILTER0 Filter = { 0 };
     FWPM_FILTER_CONDITION0 Condition[2];
-    FWPM_FILTER_CONDITION0 match_openvpn = {0};
-    FWPM_FILTER_CONDITION0 match_port_53 = {0};
-    FWPM_FILTER_CONDITION0 match_interface = {0};
-    FWPM_FILTER_CONDITION0 match_loopback = {0};
-    FWPM_FILTER_CONDITION0 match_not_loopback = {0};
+    FWPM_FILTER_CONDITION0 match_openvpn = { 0 };
+    FWPM_FILTER_CONDITION0 match_port_53 = { 0 };
+    FWPM_FILTER_CONDITION0 match_interface = { 0 };
+    FWPM_FILTER_CONDITION0 match_loopback = { 0 };
+    FWPM_FILTER_CONDITION0 match_not_loopback = { 0 };
     DWORD err = 0;
 
     if (!msg_handler)
@@ -223,8 +189,8 @@ add_wfp_block_filters(HANDLE *engine_handle,
         FwpmFreeMemory0((void **)&sublayer_ptr);
     }
     else
-    {  /* Add a new sublayer -- as another process may add it in the meantime,
-        * do not treat "already exists" as an error */
+    { /* Add a new sublayer -- as another process may add it in the meantime,
+       * do not treat "already exists" as an error */
         err = add_sublayer(OPENVPN_WFP_BLOCK_SUBLAYER);
 
         if (err == FWP_E_ALREADY_EXISTS || err == ERROR_SUCCESS)
@@ -439,8 +405,7 @@ get_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family, int *
  */
 
 DWORD
-set_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family,
-                     const ULONG metric)
+set_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family, const ULONG metric)
 {
     DWORD err = 0;
     MIB_IPINTERFACE_ROW ipiface;

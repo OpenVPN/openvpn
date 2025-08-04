@@ -89,7 +89,7 @@ dirname(char *path)
         /* The '/' is the last character, we have to look further.  */
         if (runp != path)
         {
-            last_slash = (char *) __memrchr(path, separator, runp - path);
+            last_slash = (char *)__memrchr(path, separator, runp - path);
         }
     }
 
@@ -134,7 +134,7 @@ dirname(char *path)
         /* This assignment is ill-designed but the XPG specs require to
          * return a string containing "." in any case no directory part is
          * found and so a static and constant string is required.  */
-        path = (char *) dot;
+        path = (char *)dot;
     }
 
     return path;

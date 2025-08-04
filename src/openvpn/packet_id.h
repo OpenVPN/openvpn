@@ -43,11 +43,11 @@
  * These are ephemeral and are never saved to a file.
  */
 typedef uint32_t packet_id_type;
-#define PACKET_ID_MAX        UINT32_MAX
-#define PACKET_ID_EPOCH_MAX  0x0000ffffffffffffull
+#define PACKET_ID_MAX       UINT32_MAX
+#define PACKET_ID_EPOCH_MAX 0x0000ffffffffffffull
 /** Mask of the bits that contain the 48-bit of the per-epoch packet
  * counter in the packet id*/
-#define PACKET_ID_MASK       0x0000ffffffffffffull
+#define PACKET_ID_MASK      0x0000ffffffffffffull
 typedef uint32_t net_time_t;
 
 /*
@@ -81,8 +81,8 @@ typedef uint64_t packet_id_print_type;
  * sequence number due to packets arriving
  * out of order.
  */
-#define MIN_SEQ_BACKTRACK 0
-#define MAX_SEQ_BACKTRACK 65536
+#define MIN_SEQ_BACKTRACK     0
+#define MAX_SEQ_BACKTRACK     65536
 #define DEFAULT_SEQ_BACKTRACK 64
 
 /*
@@ -90,8 +90,8 @@ typedef uint64_t packet_id_print_type;
  * seconds due to packets arriving
  * out of order.
  */
-#define MIN_TIME_BACKTRACK 0
-#define MAX_TIME_BACKTRACK 600
+#define MIN_TIME_BACKTRACK     0
+#define MAX_TIME_BACKTRACK     600
 #define DEFAULT_TIME_BACKTRACK 15
 
 /*
@@ -112,14 +112,14 @@ CIRC_LIST(seq_list, time_t);
  */
 struct packet_id_rec
 {
-    time_t last_reap;         /* last call of packet_id_reap */
-    time_t time;              /* highest time stamp received */
-    uint64_t id;              /* highest sequence number received */
-    uint64_t seq_backtrack;   /* set from --replay-window */
-    int time_backtrack;       /* set from --replay-window */
-    uint64_t max_backtrack_stat;   /* maximum backtrack seen so far */
-    bool initialized;         /* true if packet_id_init was called */
-    struct seq_list *seq_list; /* packet-id "memory" */
+    time_t last_reap;            /* last call of packet_id_reap */
+    time_t time;                 /* highest time stamp received */
+    uint64_t id;                 /* highest sequence number received */
+    uint64_t seq_backtrack;      /* set from --replay-window */
+    int time_backtrack;          /* set from --replay-window */
+    uint64_t max_backtrack_stat; /* maximum backtrack seen so far */
+    bool initialized;            /* true if packet_id_init was called */
+    struct seq_list *seq_list;   /* packet-id "memory" */
     const char *name;
     int unit;
 };
@@ -132,16 +132,16 @@ struct packet_id_persist
 {
     const char *filename;
     int fd;
-    time_t time;           /* time stamp */
-    packet_id_type id;     /* sequence number */
+    time_t time;       /* time stamp */
+    packet_id_type id; /* sequence number */
     time_t time_last_written;
     packet_id_type id_last_written;
 };
 
 struct packet_id_persist_file_image
 {
-    time_t time;           /* time stamp */
-    packet_id_type id;     /* sequence number */
+    time_t time;       /* time stamp */
+    packet_id_type id; /* sequence number */
 };
 
 /*
@@ -201,7 +201,8 @@ struct packet_id
     struct packet_id_rec rec;
 };
 
-void packet_id_init(struct packet_id *p, int seq_backtrack, int time_backtrack, const char *name, int unit);
+void packet_id_init(struct packet_id *p, int seq_backtrack, int time_backtrack, const char *name,
+                    int unit);
 
 void packet_id_free(struct packet_id *p);
 
@@ -209,16 +210,13 @@ void packet_id_free(struct packet_id *p);
  * Move the packet id recv structure from \c src to \c dest. \c src will
  * be reinitialised. \c dest will be freed before the move.
  */
-void
-packet_id_move_recv(struct packet_id_rec *dest, struct packet_id_rec *src);
+void packet_id_move_recv(struct packet_id_rec *dest, struct packet_id_rec *src);
 
 /* should we accept an incoming packet id ? */
-bool packet_id_test(struct packet_id_rec *p,
-                    const struct packet_id_net *pin);
+bool packet_id_test(struct packet_id_rec *p, const struct packet_id_net *pin);
 
 /* change our current state to reflect an accepted packet id */
-void packet_id_add(struct packet_id_rec *p,
-                   const struct packet_id_net *pin);
+void packet_id_add(struct packet_id_rec *p, const struct packet_id_net *pin);
 
 /* expire TIME_BACKTRACK sequence numbers */
 void packet_id_reap(struct packet_id_rec *p);
@@ -262,8 +260,7 @@ bool packet_id_read(struct packet_id_net *pin, struct buffer *buf, bool long_for
  *
  * @return true if successful, false otherwise.
  */
-bool packet_id_write(struct packet_id_send *p, struct buffer *buf,
-                     bool long_form, bool prepend);
+bool packet_id_write(struct packet_id_send *p, struct buffer *buf, bool long_form, bool prepend);
 
 /*
  * Inline functions.
@@ -309,7 +306,8 @@ reset_packet_id_send(struct packet_id_send *p)
     p->id = 0;
 }
 
-const char *packet_id_net_print(const struct packet_id_net *pin, bool print_timestamp, struct gc_arena *gc);
+const char *packet_id_net_print(const struct packet_id_net *pin, bool print_timestamp,
+                                struct gc_arena *gc);
 
 static inline int
 packet_id_size(bool long_form)
@@ -340,8 +338,7 @@ packet_id_reap_test(struct packet_id_rec *p)
  * @param buf       buffer to write the packet id/epoch to
  * @return          false if the packet id space is exhausted and cannot be written
  */
-bool
-packet_id_write_epoch(struct packet_id_send *p, uint16_t epoch, struct buffer *buf);
+bool packet_id_write_epoch(struct packet_id_send *p, uint16_t epoch, struct buffer *buf);
 
 /**
  * Reads the packet ID containing both the epoch and the per-epoch counter
@@ -350,7 +347,6 @@ packet_id_write_epoch(struct packet_id_send *p, uint16_t epoch, struct buffer *b
  * @param buf     buffer to read the packet id from.
  * @return        0 for an error/invalid id, epoch otherwise
  */
-uint16_t
-packet_id_read_epoch(struct packet_id_net *p, struct buffer *buf);
+uint16_t packet_id_read_epoch(struct packet_id_net *p, struct buffer *buf);
 
 #endif /* PACKET_ID_H */

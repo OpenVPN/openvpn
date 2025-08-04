@@ -41,7 +41,7 @@ basename(char *filename)
         /* If NULL, check for \ instead ... might be Windows a path */
         p = strrchr(filename, '\\');
     }
-    return p ? p + 1 : (char *) filename;
+    return p ? p + 1 : (char *)filename;
 }
 
 #endif /* HAVE_BASENAME */

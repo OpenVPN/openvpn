@@ -98,21 +98,20 @@ get_env(const char *name, const char *envp[])
  *
  */
 OPENVPN_EXPORT int
-openvpn_plugin_open_v3(const int v3structver,
-                       struct openvpn_plugin_args_open_in const *args,
+openvpn_plugin_open_v3(const int v3structver, struct openvpn_plugin_args_open_in const *args,
                        struct openvpn_plugin_args_open_return *ret)
 {
     /* Check that we are API compatible */
     if (v3structver != OPENVPN_PLUGINv3_STRUCTVER)
     {
-        printf("base64.c: ** ERROR ** Incompatible plug-in interface between this plug-in and OpenVPN\n");
+        printf(
+            "base64.c: ** ERROR ** Incompatible plug-in interface between this plug-in and OpenVPN\n");
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
     /*  Which callbacks to intercept.  */
-    ret->type_mask =
-        OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_VERIFY)
-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT_V2);
+    ret->type_mask = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_VERIFY)
+                     | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT_V2);
 
     /* we don't need a plug-in context in this example, but OpenVPN expects "something" */
     ret->handle = calloc(1, 1);
@@ -125,8 +124,8 @@ openvpn_plugin_open_v3(const int v3structver,
 
     /* Print some version information about the OpenVPN process using this plug-in */
     ovpn_log(PLOG_NOTE, PLUGIN_NAME, "OpenVPN %s  (Major: %i, Minor: %i, Patch: %s)\n",
-             args->ovpn_version, args->ovpn_version_major,
-             args->ovpn_version_minor, args->ovpn_version_patch);
+             args->ovpn_version, args->ovpn_version_major, args->ovpn_version_minor,
+             args->ovpn_version_patch);
 
     return OPENVPN_PLUGIN_FUNC_SUCCESS;
 }
@@ -154,10 +153,10 @@ openvpn_plugin_open_v3(const int v3structver,
  */
 
 OPENVPN_EXPORT int
-openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const char *argv[], const char *envp[])
+openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const char *argv[],
+                       const char *envp[])
 {
-    if (type != OPENVPN_PLUGIN_TLS_VERIFY
-        && type != OPENVPN_PLUGIN_CLIENT_CONNECT_V2)
+    if (type != OPENVPN_PLUGIN_TLS_VERIFY && type != OPENVPN_PLUGIN_CLIENT_CONNECT_V2)
     {
         ovpn_log(PLOG_ERR, PLUGIN_NAME, "Unsupported plug-in hook call attempted");
         return OPENVPN_PLUGIN_FUNC_ERROR;
@@ -174,14 +173,13 @@ openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const cha
     /* test the BASE64 encode function */
     char *buf = NULL;
     int r = ovpn_base64_encode(clcert_cn, (int)strlen(clcert_cn), &buf);
-    ovpn_log(PLOG_NOTE, PLUGIN_NAME, "BASE64 encoded '%s' (return value %i):  '%s'",
-             clcert_cn, r, buf);
+    ovpn_log(PLOG_NOTE, PLUGIN_NAME, "BASE64 encoded '%s' (return value %i):  '%s'", clcert_cn, r,
+             buf);
 
     /* test the BASE64 decode function */
-    char buf2[256] = {0};
+    char buf2[256] = { 0 };
     r = ovpn_base64_decode(buf, &buf2, 255);
-    ovpn_log(PLOG_NOTE, PLUGIN_NAME, "BASE64 decoded '%s' (return value %i):  '%s'",
-             buf, r, buf2);
+    ovpn_log(PLOG_NOTE, PLUGIN_NAME, "BASE64 decoded '%s' (return value %i):  '%s'", buf, r, buf2);
 
     /* Verify the result, and free the buffer allocated by ovpn_base64_encode() */
     r = strcmp(clcert_cn, buf2);
@@ -201,6 +199,6 @@ openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const cha
 OPENVPN_EXPORT void
 openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
 {
-    struct plugin_context *context = (struct plugin_context *) handle;
+    struct plugin_context *context = (struct plugin_context *)handle;
     free(context);
 }

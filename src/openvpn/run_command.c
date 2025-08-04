@@ -67,7 +67,7 @@ system_error_message(int stat, struct gc_arena *gc)
 #ifdef _WIN32
         case OPENVPN_EXECVE_ERROR:
             buf_printf(&out, "external program did not execute -- ");
-        /* fall through */
+            /* fall through */
 
         default:
             buf_printf(&out, "returned error code %d", stat);
@@ -126,20 +126,16 @@ openvpn_waitpid_check(pid_t pid, const char *msg_prefix, int msglevel)
 
         if (exitcode == OPENVPN_EXECVE_FAILURE)
         {
-            msg(msglevel, "%scould not execute external program (exit code 127)",
-                msg_prefix);
+            msg(msglevel, "%scould not execute external program (exit code 127)", msg_prefix);
         }
         else
         {
-            msg(msglevel, "%sexternal program exited with error status: %d",
-                msg_prefix, exitcode);
+            msg(msglevel, "%sexternal program exited with error status: %d", msg_prefix, exitcode);
         }
-
     }
     else if (WIFSIGNALED(status))
     {
-        msg(msglevel, "%sexternal program received signal %d",
-            msg_prefix, WTERMSIG(status));
+        msg(msglevel, "%sexternal program received signal %d", msg_prefix, WTERMSIG(status));
     }
 
     return false;
@@ -234,7 +230,8 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
  * Wrapper around openvpn_execve
  */
 int
-openvpn_execve_check(const struct argv *a, const struct env_set *es, const unsigned int flags, const char *error_message)
+openvpn_execve_check(const struct argv *a, const struct env_set *es, const unsigned int flags,
+                     const char *error_message)
 {
     struct gc_arena gc = gc_new();
     const int stat = openvpn_execve(a, es, flags);
@@ -260,8 +257,7 @@ openvpn_execve_check(const struct argv *a, const struct env_set *es, const unsig
     }
     if (error_message)
     {
-        msg(((flags & S_FATAL) ? M_FATAL : M_WARN), "%s: %s",
-            error_message,
+        msg(((flags & S_FATAL) ? M_FATAL : M_WARN), "%s: %s", error_message,
             system_error_message(stat, &gc));
     }
 done:
@@ -276,7 +272,7 @@ done:
  * associated with formatting and parsing a command line.
  */
 int
-openvpn_popen(const struct argv *a,  const struct env_set *es)
+openvpn_popen(const struct argv *a, const struct env_set *es)
 {
     struct gc_arena gc = gc_new();
     int ret = -1;
@@ -298,20 +294,20 @@ openvpn_popen(const struct argv *a,  const struct env_set *es)
                 pid = fork();
                 if (pid == (pid_t)0)       /* child side */
                 {
-                    close(pipe_stdout[0]);         /* Close read end */
+                    close(pipe_stdout[0]); /* Close read end */
                     dup2(pipe_stdout[1], 1);
                     execve(cmd, argv, envp);
                     exit(OPENVPN_EXECVE_FAILURE);
                 }
-                else if (pid > (pid_t)0)       /* parent side */
+                else if (pid > (pid_t)0) /* parent side */
                 {
                     int status = 0;
 
-                    close(pipe_stdout[1]);        /* Close write end */
+                    close(pipe_stdout[1]); /* Close write end */
                     waitpid(pid, &status, 0);
                     ret = pipe_stdout[0];
                 }
-                else       /* fork failed */
+                else /* fork failed */
                 {
                     close(pipe_stdout[0]);
                     close(pipe_stdout[1]);

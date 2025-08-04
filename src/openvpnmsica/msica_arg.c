@@ -51,15 +51,14 @@ msica_arg_seq_free(_Inout_ struct msica_arg_seq *seq)
 
 
 void
-msica_arg_seq_add_head(
-    _Inout_ struct msica_arg_seq *seq,
-    _In_z_ LPCWSTR argument)
+msica_arg_seq_add_head(_Inout_ struct msica_arg_seq *seq, _In_z_ LPCWSTR argument)
 {
     size_t argument_size = (wcslen(argument) + 1) * sizeof(WCHAR);
     struct msica_arg *p = malloc(sizeof(struct msica_arg) + argument_size);
     if (p == NULL)
     {
-        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, sizeof(struct msica_arg) + argument_size);
+        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__,
+            sizeof(struct msica_arg) + argument_size);
     }
     memcpy(p->val, argument, argument_size);
     p->next = seq->head;
@@ -72,15 +71,14 @@ msica_arg_seq_add_head(
 
 
 void
-msica_arg_seq_add_tail(
-    _Inout_ struct msica_arg_seq *seq,
-    _Inout_ LPCWSTR argument)
+msica_arg_seq_add_tail(_Inout_ struct msica_arg_seq *seq, _Inout_ LPCWSTR argument)
 {
     size_t argument_size = (wcslen(argument) + 1) * sizeof(WCHAR);
     struct msica_arg *p = malloc(sizeof(struct msica_arg) + argument_size);
     if (p == NULL)
     {
-        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, sizeof(struct msica_arg) + argument_size);
+        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__,
+            sizeof(struct msica_arg) + argument_size);
     }
     memcpy(p->val, argument, argument_size);
     p->next = NULL;
@@ -110,10 +108,13 @@ msica_arg_seq_join(_In_ const struct msica_arg_seq *seq)
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable: 4996) /* Using unsafe string functions: The space in s and termination of p->val has been implicitly verified at the beginning of this function. */
+#pragma warning(                                                                                   \
+    disable : 4996) /* Using unsafe string functions: The space in s and termination of p->val has \
+                       been implicitly verified at the beginning of this function. */
 #endif
 
-    /* Dummy argv[0] (i.e. executable name), for CommandLineToArgvW to work correctly when parsing this string. */
+    /* Dummy argv[0] (i.e. executable name), for CommandLineToArgvW to work correctly when parsing
+     * this string. */
     wcscpy(str, L"x");
 
     /* Join. */

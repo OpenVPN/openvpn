@@ -31,7 +31,8 @@
 
 #include "buffer.h"
 
-struct argv {
+struct argv
+{
     struct gc_arena gc;
     size_t capacity;
     size_t argc;
@@ -55,21 +56,21 @@ void argv_parse_cmd(struct argv *a, const char *s);
 bool argv_printf(struct argv *a, const char *format, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
-__attribute__ ((format(gnu_printf, 2, 3)))
+    __attribute__((format(gnu_printf, 2, 3)))
 #else
-__attribute__ ((format(__printf__, 2, 3)))
+    __attribute__((format(__printf__, 2, 3)))
 #endif
 #endif
-;
+    ;
 
 bool argv_printf_cat(struct argv *a, const char *format, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
-__attribute__ ((format(gnu_printf, 2, 3)))
+    __attribute__((format(gnu_printf, 2, 3)))
 #else
-__attribute__ ((format(__printf__, 2, 3)))
+    __attribute__((format(__printf__, 2, 3)))
 #endif
 #endif
-;
+    ;
 
 #endif /* ifndef ARGV_H */

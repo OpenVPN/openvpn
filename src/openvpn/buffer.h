@@ -58,13 +58,13 @@
  */
 struct buffer
 {
-    int capacity;               /**< Size in bytes of memory allocated by
-                                 *   \c malloc(). */
-    int offset;                 /**< Offset in bytes of the actual content
-                                 *   within the allocated memory. */
-    int len;                    /**< Length in bytes of the actual content
-                                 *   within the allocated memory. */
-    uint8_t *data;              /**< Pointer to the allocated memory. */
+    int capacity;  /**< Size in bytes of memory allocated by
+                    *   \c malloc(). */
+    int offset;    /**< Offset in bytes of the actual content
+                    *   within the allocated memory. */
+    int len;       /**< Length in bytes of the actual content
+                    *   within the allocated memory. */
+    uint8_t *data; /**< Pointer to the allocated memory. */
 
 #ifdef BUF_INIT_TRACKING
     const char *debug_file;
@@ -85,8 +85,8 @@ struct buffer
  */
 struct gc_entry
 {
-    struct gc_entry *next;      /**< Pointer to the next item in the
-                                 *   linked list. */
+    struct gc_entry *next; /**< Pointer to the next item in the
+                            *   linked list. */
 };
 
 /**
@@ -114,8 +114,8 @@ struct gc_entry_special
  */
 struct gc_arena
 {
-    struct gc_entry *list;      /**< First element of the linked list of
-                                 *   \c gc_entry structures. */
+    struct gc_entry *list; /**< First element of the linked list of
+                            *   \c gc_entry structures. */
     struct gc_entry_special *list_special;
 };
 
@@ -140,7 +140,7 @@ int string_array_len(const char **array);
 
 size_t array_mult_safe(const size_t m1, const size_t m2, const size_t extra);
 
-#define PA_BRACKET (1<<0)
+#define PA_BRACKET (1 << 0)
 char *print_argv(const char **p, struct gc_arena *gc, const unsigned int flags);
 
 void buf_size_error(const size_t size);
@@ -166,13 +166,15 @@ void *gc_malloc_debug(size_t size, bool clear, struct gc_arena *a, const char *f
 
 char *string_alloc_debug(const char *str, struct gc_arena *gc, const char *file, int line);
 
-struct buffer string_alloc_buf_debug(const char *str, struct gc_arena *gc, const char *file, int line);
+struct buffer string_alloc_buf_debug(const char *str, struct gc_arena *gc, const char *file,
+                                     int line);
 
 #else  /* ifdef DMALLOC */
 
 struct buffer alloc_buf(size_t size);
 
-struct buffer alloc_buf_gc(size_t size, struct gc_arena *gc);  /* allocate buffer with garbage collection */
+struct buffer alloc_buf_gc(size_t size,
+                           struct gc_arena *gc); /* allocate buffer with garbage collection */
 
 struct buffer clone_buf(const struct buffer *buf);
 
@@ -197,8 +199,7 @@ void gc_addspecial(void *addr, void (*free_function)(void *), struct gc_arena *a
  * @param a     gc_arena to use
  * @return      new pointer
  */
-void *
-gc_realloc(void *ptr, size_t size, struct gc_arena *a);
+void *gc_realloc(void *ptr, size_t size, struct gc_arena *a);
 
 #ifdef BUF_INIT_TRACKING
 #define buf_init(buf, offset) buf_init_debug(buf, offset, __FILE__, __LINE__)
@@ -213,14 +214,14 @@ bool buf_init_debug(struct buffer *buf, int offset, const char *file, int line);
 static inline void
 gc_freeaddrinfo_callback(void *addr)
 {
-    freeaddrinfo((struct addrinfo *) addr);
+    freeaddrinfo((struct addrinfo *)addr);
 }
 
 /** Return an empty struct buffer */
 static inline struct buffer
 clear_buf(void)
 {
-    return (struct buffer) { 0 };
+    return (struct buffer){ 0 };
 }
 
 static inline bool
@@ -361,7 +362,7 @@ strncpynt(char *dest, const char *src, size_t maxlen)
 {
     if (maxlen > 0)
     {
-        strncpy(dest, src, maxlen-1);
+        strncpy(dest, src, maxlen - 1);
         dest[maxlen - 1] = 0;
     }
 }
@@ -416,9 +417,9 @@ secure_memzero(void *data, size_t len)
     SecureZeroMemory(data, len);
 #elif defined(__GNUC__) || defined(__clang__)
     memset(data, 0, len);
-    __asm__ __volatile__ ("" : : "r" (data) : "memory");
+    __asm__ __volatile__("" : : "r"(data) : "memory");
 #else
-    volatile char *p = (volatile char *) data;
+    volatile char *p = (volatile char *)data;
     while (len--)
     {
         *p++ = 0;
@@ -435,12 +436,12 @@ secure_memzero(void *data, size_t len)
 bool buf_printf(struct buffer *buf, const char *format, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
-__attribute__ ((format(gnu_printf, 2, 3)))
+    __attribute__((format(gnu_printf, 2, 3)))
 #else
-__attribute__ ((format(__printf__, 2, 3)))
+    __attribute__((format(__printf__, 2, 3)))
 #endif
 #endif
-;
+    ;
 
 /*
  * puts append to a buffer with overflow check
@@ -493,12 +494,10 @@ bool buf_parse(struct buffer *buf, const int delim, char *line, const int size);
 /*
  * Hex dump -- Output a binary buffer to a hex string and return it.
  */
-#define FHE_SPACE_BREAK_MASK 0xFF /* space_break parameter in lower 8 bits */
-#define FHE_CAPS 0x100            /* output hex in caps */
-char *
-format_hex_ex(const uint8_t *data, int size, int maxoutput,
-              unsigned int space_break_flags, const char *separator,
-              struct gc_arena *gc);
+#define FHE_SPACE_BREAK_MASK 0xFF  /* space_break parameter in lower 8 bits */
+#define FHE_CAPS             0x100 /* output hex in caps */
+char *format_hex_ex(const uint8_t *data, int size, int maxoutput, unsigned int space_break_flags,
+                    const char *separator, struct gc_arena *gc);
 
 static inline char *
 format_hex(const uint8_t *data, int size, int maxoutput, struct gc_arena *gc)
@@ -725,16 +724,10 @@ buf_copy_n(struct buffer *dest, struct buffer *src, int n)
 }
 
 static inline bool
-buf_copy_range(struct buffer *dest,
-               int dest_index,
-               const struct buffer *src,
-               int src_index,
+buf_copy_range(struct buffer *dest, int dest_index, const struct buffer *src, int src_index,
                int src_len)
 {
-    if (src_index < 0
-        || src_len < 0
-        || src_index + src_len > src->len
-        || dest_index < 0
+    if (src_index < 0 || src_len < 0 || src_index + src_len > src->len || dest_index < 0
         || dest->offset + dest_index + src_len > dest->capacity)
     {
         return false;
@@ -749,9 +742,7 @@ buf_copy_range(struct buffer *dest,
 
 /* truncate src to len, copy excess data beyond len to dest */
 static inline bool
-buf_copy_excess(struct buffer *dest,
-                struct buffer *src,
-                int len)
+buf_copy_excess(struct buffer *dest, struct buffer *src, int len)
 {
     if (len < 0)
     {
@@ -879,44 +870,44 @@ const char *np(const char *str);
 
 /* character classes */
 
-#define CC_ANY                (1<<0) /**< any character */
-#define CC_NULL               (1<<1) /**< null character \0 */
+#define CC_ANY  (1 << 0)           /**< any character */
+#define CC_NULL (1 << 1)           /**< null character \0 */
 
-#define CC_ALNUM              (1<<2) /**< alphanumeric isalnum() */
-#define CC_ALPHA              (1<<3) /**< alphabetic isalpha() */
-#define CC_ASCII              (1<<4) /**< ASCII character */
-#define CC_CNTRL              (1<<5) /**< control character iscntrl() */
-#define CC_DIGIT              (1<<6) /**< digit isdigit() */
-#define CC_PRINT              (1<<7) /**< printable (>= 32, != 127) */
-#define CC_PUNCT              (1<<8) /**< punctuation ispunct() */
-#define CC_SPACE              (1<<9) /**< whitespace isspace() */
-#define CC_XDIGIT             (1<<10) /**< hex digit isxdigit() */
+#define CC_ALNUM  (1 << 2)         /**< alphanumeric isalnum() */
+#define CC_ALPHA  (1 << 3)         /**< alphabetic isalpha() */
+#define CC_ASCII  (1 << 4)         /**< ASCII character */
+#define CC_CNTRL  (1 << 5)         /**< control character iscntrl() */
+#define CC_DIGIT  (1 << 6)         /**< digit isdigit() */
+#define CC_PRINT  (1 << 7)         /**< printable (>= 32, != 127) */
+#define CC_PUNCT  (1 << 8)         /**< punctuation ispunct() */
+#define CC_SPACE  (1 << 9)         /**< whitespace isspace() */
+#define CC_XDIGIT (1 << 10)        /**< hex digit isxdigit() */
 
-#define CC_BLANK              (1<<11) /**< space or tab */
-#define CC_NEWLINE            (1<<12) /**< newline */
-#define CC_CR                 (1<<13) /**< carriage return */
+#define CC_BLANK   (1 << 11)       /**< space or tab */
+#define CC_NEWLINE (1 << 12)       /**< newline */
+#define CC_CR      (1 << 13)       /**< carriage return */
 
-#define CC_BACKSLASH          (1<<14) /**< backslash */
-#define CC_UNDERBAR           (1<<15) /**< underscore */
-#define CC_DASH               (1<<16) /**< dash */
-#define CC_DOT                (1<<17) /**< dot */
-#define CC_COMMA              (1<<18) /**< comma */
-#define CC_COLON              (1<<19) /**< colon */
-#define CC_SLASH              (1<<20) /**< slash */
-#define CC_SINGLE_QUOTE       (1<<21) /**< single quote */
-#define CC_DOUBLE_QUOTE       (1<<22) /**< double quote */
-#define CC_REVERSE_QUOTE      (1<<23) /**< reverse quote */
-#define CC_AT                 (1<<24) /**< at sign */
-#define CC_EQUAL              (1<<25) /**< equal sign */
-#define CC_LESS_THAN          (1<<26) /**< less than sign */
-#define CC_GREATER_THAN       (1<<27) /**< greater than sign */
-#define CC_PIPE               (1<<28) /**< pipe */
-#define CC_QUESTION_MARK      (1<<29) /**< question mark */
-#define CC_ASTERISK           (1<<30) /**< asterisk */
+#define CC_BACKSLASH     (1 << 14) /**< backslash */
+#define CC_UNDERBAR      (1 << 15) /**< underscore */
+#define CC_DASH          (1 << 16) /**< dash */
+#define CC_DOT           (1 << 17) /**< dot */
+#define CC_COMMA         (1 << 18) /**< comma */
+#define CC_COLON         (1 << 19) /**< colon */
+#define CC_SLASH         (1 << 20) /**< slash */
+#define CC_SINGLE_QUOTE  (1 << 21) /**< single quote */
+#define CC_DOUBLE_QUOTE  (1 << 22) /**< double quote */
+#define CC_REVERSE_QUOTE (1 << 23) /**< reverse quote */
+#define CC_AT            (1 << 24) /**< at sign */
+#define CC_EQUAL         (1 << 25) /**< equal sign */
+#define CC_LESS_THAN     (1 << 26) /**< less than sign */
+#define CC_GREATER_THAN  (1 << 27) /**< greater than sign */
+#define CC_PIPE          (1 << 28) /**< pipe */
+#define CC_QUESTION_MARK (1 << 29) /**< question mark */
+#define CC_ASTERISK      (1 << 30) /**< asterisk */
 
 /* macro classes */
-#define CC_NAME               (CC_ALNUM|CC_UNDERBAR) /**< alphanumeric plus underscore */
-#define CC_CRLF               (CC_CR|CC_NEWLINE) /**< carriage return or newline */
+#define CC_NAME (CC_ALNUM | CC_UNDERBAR) /**< alphanumeric plus underscore */
+#define CC_CRLF (CC_CR | CC_NEWLINE)     /**< carriage return or newline */
 
 bool char_class(const unsigned char c, const unsigned int flags);
 
@@ -935,7 +926,8 @@ bool string_class(const char *str, const unsigned int inclusive, const unsigned 
  * @param replace The character to replace the specified character classes with.
  * @return True if the string was not modified, false otherwise.
  */
-bool string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive, const char replace);
+bool string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive,
+                const char replace);
 
 
 /**
@@ -946,8 +938,8 @@ bool string_mod(char *str, const unsigned int inclusive, const unsigned int excl
  * @param exclusive Character classes that are not allowed even if they are also in inclusive.
  * @return True if the string consists only of allowed characters, false otherwise.
  */
-bool
-string_check_buf(struct buffer *buf, const unsigned int inclusive, const unsigned int exclusive);
+bool string_check_buf(struct buffer *buf, const unsigned int inclusive,
+                      const unsigned int exclusive);
 
 /**
  * Returns a copy of a string with certain classes of characters of it replaced with a specified
@@ -963,11 +955,8 @@ string_check_buf(struct buffer *buf, const unsigned int inclusive, const unsigne
  *
  * @return The modified string with characters replaced within the specified range.
  */
-const char *string_mod_const(const char *str,
-                             const unsigned int inclusive,
-                             const unsigned int exclusive,
-                             const char replace,
-                             struct gc_arena *gc);
+const char *string_mod_const(const char *str, const unsigned int inclusive,
+                             const unsigned int exclusive, const char replace, struct gc_arena *gc);
 
 void string_replace_leading(char *str, const char match, const char replace);
 
@@ -1051,51 +1040,51 @@ gc_reset(struct gc_arena *a)
  * Allocate memory to hold a structure
  */
 
-#define ALLOC_OBJ(dptr, type) \
-    { \
-        check_malloc_return((dptr) = (type *) malloc(sizeof(type))); \
+#define ALLOC_OBJ(dptr, type)                                       \
+    {                                                               \
+        check_malloc_return((dptr) = (type *)malloc(sizeof(type))); \
     }
 
-#define ALLOC_OBJ_CLEAR(dptr, type) \
-    { \
-        ALLOC_OBJ(dptr, type); \
+#define ALLOC_OBJ_CLEAR(dptr, type)      \
+    {                                    \
+        ALLOC_OBJ(dptr, type);           \
         memset((dptr), 0, sizeof(type)); \
     }
 
-#define ALLOC_ARRAY(dptr, type, n) \
-    { \
-        check_malloc_return((dptr) = (type *) malloc(array_mult_safe(sizeof(type), (n), 0))); \
+#define ALLOC_ARRAY(dptr, type, n)                                                           \
+    {                                                                                        \
+        check_malloc_return((dptr) = (type *)malloc(array_mult_safe(sizeof(type), (n), 0))); \
     }
 
-#define ALLOC_ARRAY_GC(dptr, type, n, gc) \
-    { \
-        (dptr) = (type *) gc_malloc(array_mult_safe(sizeof(type), (n), 0), false, (gc)); \
+#define ALLOC_ARRAY_GC(dptr, type, n, gc)                                               \
+    {                                                                                   \
+        (dptr) = (type *)gc_malloc(array_mult_safe(sizeof(type), (n), 0), false, (gc)); \
     }
 
-#define ALLOC_ARRAY_CLEAR(dptr, type, n) \
-    { \
-        ALLOC_ARRAY(dptr, type, n); \
+#define ALLOC_ARRAY_CLEAR(dptr, type, n)                            \
+    {                                                               \
+        ALLOC_ARRAY(dptr, type, n);                                 \
         memset((dptr), 0, (array_mult_safe(sizeof(type), (n), 0))); \
     }
 
-#define ALLOC_ARRAY_CLEAR_GC(dptr, type, n, gc) \
-    { \
-        (dptr) = (type *) gc_malloc(array_mult_safe(sizeof(type), (n), 0), true, (gc)); \
+#define ALLOC_ARRAY_CLEAR_GC(dptr, type, n, gc)                                        \
+    {                                                                                  \
+        (dptr) = (type *)gc_malloc(array_mult_safe(sizeof(type), (n), 0), true, (gc)); \
     }
 
-#define ALLOC_VAR_ARRAY_CLEAR_GC(dptr, type, atype, n, gc)      \
-    { \
-        (dptr) = (type *) gc_malloc(array_mult_safe(sizeof(atype), (n), sizeof(type)), true, (gc)); \
+#define ALLOC_VAR_ARRAY_CLEAR_GC(dptr, type, atype, n, gc)                                         \
+    {                                                                                              \
+        (dptr) = (type *)gc_malloc(array_mult_safe(sizeof(atype), (n), sizeof(type)), true, (gc)); \
     }
 
-#define ALLOC_OBJ_GC(dptr, type, gc) \
-    { \
-        (dptr) = (type *) gc_malloc(sizeof(type), false, (gc)); \
+#define ALLOC_OBJ_GC(dptr, type, gc)                           \
+    {                                                          \
+        (dptr) = (type *)gc_malloc(sizeof(type), false, (gc)); \
     }
 
-#define ALLOC_OBJ_CLEAR_GC(dptr, type, gc) \
-    { \
-        (dptr) = (type *) gc_malloc(sizeof(type), true, (gc)); \
+#define ALLOC_OBJ_CLEAR_GC(dptr, type, gc)                    \
+    {                                                         \
+        (dptr) = (type *)gc_malloc(sizeof(type), true, (gc)); \
     }
 
 static inline void
@@ -1120,8 +1109,8 @@ struct buffer_list
 {
     struct buffer_entry *head; /* next item to pop/peek */
     struct buffer_entry *tail; /* last item pushed */
-    int size;                /* current number of entries */
-    int max_size;            /* maximum size list should grow to */
+    int size;                  /* current number of entries */
+    int max_size;              /* maximum size list should grow to */
 };
 
 /**
@@ -1209,8 +1198,7 @@ void buffer_list_aggregate(struct buffer_list *bl, const size_t max);
  * @param max_len   the maximum length of the aggregated buffer
  * @param sep       the separator to put between buffers during aggregation
  */
-void buffer_list_aggregate_separator(struct buffer_list *bl,
-                                     const size_t max_len, const char *sep);
+void buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max_len, const char *sep);
 
 struct buffer_list *buffer_list_file(const char *fn, int max_line_len);
 

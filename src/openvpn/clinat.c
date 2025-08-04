@@ -32,8 +32,7 @@
 #include "memdbg.h"
 
 static bool
-add_entry(struct client_nat_option_list *dest,
-          const struct client_nat_entry *e)
+add_entry(struct client_nat_option_list *dest, const struct client_nat_entry *e)
 {
     if (dest->n >= MAX_CLIENT_NAT)
     {
@@ -59,9 +58,7 @@ print_client_nat_list(const struct client_nat_option_list *list, int msglevel)
         for (i = 0; i < list->n; ++i)
         {
             const struct client_nat_entry *e = &list->entries[i];
-            msg(msglevel, "  CNAT[%d] t=%d %s/%s/%s",
-                i,
-                e->type,
+            msg(msglevel, "  CNAT[%d] t=%d %s/%s/%s", i, e->type,
                 print_in_addr_t(e->network, IA_NET_ORDER, &gc),
                 print_in_addr_t(e->netmask, IA_NET_ORDER, &gc),
                 print_in_addr_t(e->foreign_network, IA_NET_ORDER, &gc));
@@ -102,11 +99,8 @@ copy_client_nat_option_list(struct client_nat_option_list *dest,
 }
 
 void
-add_client_nat_to_option_list(struct client_nat_option_list *dest,
-                              const char *type,
-                              const char *network,
-                              const char *netmask,
-                              const char *foreign_network,
+add_client_nat_to_option_list(struct client_nat_option_list *dest, const char *type,
+                              const char *network, const char *netmask, const char *foreign_network,
                               int msglevel)
 {
     struct client_nat_entry e;
@@ -179,9 +173,7 @@ print_pkt(struct openvpn_iphdr *iph, const char *prefix, const int direction, co
         dirstr = "IN";
     }
 
-    msg(msglevel, "** CNAT %s %s %s -> %s",
-        dirstr,
-        prefix,
+    msg(msglevel, "** CNAT %s %s %s -> %s", dirstr, prefix,
         print_in_addr_t(iph->saddr, IA_NET_ORDER, &gc),
         print_in_addr_t(iph->daddr, IA_NET_ORDER, &gc));
 
@@ -189,11 +181,10 @@ print_pkt(struct openvpn_iphdr *iph, const char *prefix, const int direction, co
 }
 
 void
-client_nat_transform(const struct client_nat_option_list *list,
-                     struct buffer *ipbuf,
+client_nat_transform(const struct client_nat_option_list *list, struct buffer *ipbuf,
                      const int direction)
 {
-    struct ip_tcp_udp_hdr *h = (struct ip_tcp_udp_hdr *) BPTR(ipbuf);
+    struct ip_tcp_udp_hdr *h = (struct ip_tcp_udp_hdr *)BPTR(ipbuf);
     int i;
     uint32_t addr, *addr_ptr;
     const uint32_t *from, *to;

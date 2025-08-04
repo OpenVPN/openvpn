@@ -171,10 +171,10 @@ check_compression_settings_valid(struct compress_options *info, int msglevel)
     {
 #ifdef USE_COMP
         msg(msglevel, "Compression or compression stub framing is not allowed "
-            "since data-channel offloading is enabled.");
+                      "since data-channel offloading is enabled.");
 #else
         msg(msglevel, "Compression or compression stub framing is not allowed "
-            "since OpenVPN was built without compression support.");
+                      "since OpenVPN was built without compression support.");
 #endif
         return false;
     }
@@ -182,14 +182,14 @@ check_compression_settings_valid(struct compress_options *info, int msglevel)
     if ((info->flags & COMP_F_ALLOW_STUB_ONLY) && comp_non_stub_enabled(info))
     {
         msg(msglevel, "Compression is not allowed since allow-compression is "
-            "set to 'stub-only'");
+                      "set to 'stub-only'");
         return false;
     }
 #ifndef ENABLE_LZ4
     if (info->alg == COMP_ALGV2_LZ4 || info->alg == COMP_ALG_LZ4)
     {
         msg(msglevel, "OpenVPN is compiled without LZ4 support. Requested "
-            "compression cannot be enabled.");
+                      "compression cannot be enabled.");
         return false;
     }
 #endif
@@ -197,7 +197,7 @@ check_compression_settings_valid(struct compress_options *info, int msglevel)
     if (info->alg == COMP_ALG_LZO)
     {
         msg(msglevel, "OpenVPN is compiled without LZO support. Requested "
-            "compression cannot be enabled.");
+                      "compression cannot be enabled.");
         return false;
     }
 #endif

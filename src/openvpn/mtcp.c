@@ -66,8 +66,9 @@ multi_create_instance_tcp(struct multi_context *m, struct link_socket *sock)
 
         if (he)
         {
-            struct multi_instance *oldmi = (struct multi_instance *) he->value;
-            msg(D_MULTI_LOW, "MULTI TCP: new incoming client address matches existing client address -- new client takes precedence");
+            struct multi_instance *oldmi = (struct multi_instance *)he->value;
+            msg(D_MULTI_LOW,
+                "MULTI TCP: new incoming client address matches existing client address -- new client takes precedence");
             oldmi->did_real_hash = false;
             multi_close_instance(m, oldmi, false);
             he->key = &mi->real;
@@ -108,12 +109,10 @@ multi_tcp_instance_specific_init(struct multi_context *m, struct multi_instance 
     ASSERT(mi->context.c2.link_sockets[0]->info.lsa);
     ASSERT(mi->context.c2.link_sockets[0]->mode == LS_MODE_TCP_ACCEPT_FROM);
     ASSERT(mi->context.c2.link_sockets[0]->info.lsa->actual.dest.addr.sa.sa_family == AF_INET
-           || mi->context.c2.link_sockets[0]->info.lsa->actual.dest.addr.sa.sa_family == AF_INET6
-           );
+           || mi->context.c2.link_sockets[0]->info.lsa->actual.dest.addr.sa.sa_family == AF_INET6);
     mi->real.proto = mi->context.c2.link_sockets[0]->info.proto;
-    if (!mroute_extract_openvpn_sockaddr(&mi->real,
-                                         &mi->context.c2.link_sockets[0]->info.lsa->actual.dest,
-                                         true))
+    if (!mroute_extract_openvpn_sockaddr(
+            &mi->real, &mi->context.c2.link_sockets[0]->info.lsa->actual.dest, true))
     {
         msg(D_MULTI_ERRORS, "MULTI TCP: TCP client address is undefined");
         return false;
@@ -149,7 +148,8 @@ multi_tcp_dereference_instance(struct multi_io *multi_io, struct multi_instance 
 }
 
 bool
-multi_tcp_process_outgoing_link_ready(struct multi_context *m, struct multi_instance *mi, const unsigned int mpp_flags)
+multi_tcp_process_outgoing_link_ready(struct multi_context *m, struct multi_instance *mi,
+                                      const unsigned int mpp_flags)
 {
     struct mbuf_item item;
     bool ret = true;

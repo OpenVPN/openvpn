@@ -15,15 +15,15 @@
 #include "test_common.h"
 
 /* Defines for use in the tests and the mock parse_line() */
-#define PATH1       "/s p a c e"
-#define PATH2       "/foo bar/baz"
-#define PARAM1      "param1"
-#define PARAM2      "param two"
-#define SCRIPT_CMD  "\"" PATH1 PATH2 "\"" PARAM1 "\"" PARAM2 "\""
+#define PATH1      "/s p a c e"
+#define PATH2      "/foo bar/baz"
+#define PARAM1     "param1"
+#define PARAM2     "param two"
+#define SCRIPT_CMD "\"" PATH1 PATH2 "\"" PARAM1 "\"" PARAM2 "\""
 
 int
-__wrap_parse_line(const char *line, char **p, const int n, const char *file,
-                  const int line_num, int msglevel, struct gc_arena *gc)
+__wrap_parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
+                  int msglevel, struct gc_arena *gc)
 {
     p[0] = PATH1 PATH2;
     p[1] = PARAM1;
@@ -201,10 +201,10 @@ argv_str__multiple_argv__correct_output(void **state)
     argv_printf_cat(&a, "%s", PARAM2);
     argv_printf_cat(&a, "%d", -1);
     argv_printf_cat(&a, "%u", -1);
-    argv_printf_cat(&a, "%lu", 1L );
+    argv_printf_cat(&a, "%lu", 1L);
     output = argv_str(&a, &gc, PA_BRACKET);
     assert_string_equal(output, "[" PATH1 PATH2 "] [" PARAM1 "] [" PARAM2 "]"
-                        " [-1] [4294967295] [1]");
+                                " [-1] [4294967295] [1]");
 
     argv_free(&a);
     gc_free(&gc);

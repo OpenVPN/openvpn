@@ -62,11 +62,12 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     return 0;
 }
 
-#else /* HAVE_XKEY_PROVIDER */
+#else  /* HAVE_XKEY_PROVIDER */
 
 static XKEY_EXTERNAL_SIGN_fn xkey_cng_sign;
 
-typedef struct _CAPI_DATA {
+typedef struct _CAPI_DATA
+{
     const CERT_CONTEXT *cert_context;
     HCRYPTPROV_OR_NCRYPT_KEY_HANDLE crypt_prov;
     EVP_PKEY *pubkey;
@@ -112,7 +113,7 @@ cng_hash_algo(int md_type)
             break;
 
         default:
-            msg(M_WARN|M_INFO, "cryptoapicert: Unknown hash type NID=0x%x", md_type);
+            msg(M_WARN | M_INFO, "cryptoapicert: Unknown hash type NID=0x%x", md_type);
             break;
     }
     return alg;
@@ -157,7 +158,7 @@ int
 parse_hexstring(const char *p, unsigned char *arr, size_t capacity)
 {
     int i = 0;
-    for ( ; *p && i < capacity; p += 2)
+    for (; *p && i < capacity; p += 2)
     {
         /* skip spaces */
         while (*p == ' ')
@@ -169,8 +170,7 @@ parse_hexstring(const char *p, unsigned char *arr, size_t capacity)
             break;
         }
 
-        if (!isxdigit(p[0]) || !isxdigit(p[1])
-            || sscanf(p, "%2hhx", &arr[i++]) != 1)
+        if (!isxdigit(p[0]) || !isxdigit(p[1]) || sscanf(p, "%2hhx", &arr[i++]) != 1)
         {
             return 0;
         }
@@ -179,21 +179,21 @@ parse_hexstring(const char *p, unsigned char *arr, size_t capacity)
 }
 
 static void *
-decode_object(struct gc_arena *gc, LPCSTR struct_type,
-              const CRYPT_OBJID_BLOB *val, DWORD flags, DWORD *cb)
+decode_object(struct gc_arena *gc, LPCSTR struct_type, const CRYPT_OBJID_BLOB *val, DWORD flags,
+              DWORD *cb)
 {
     /* get byte count for decoding */
     BYTE *buf;
-    if (!CryptDecodeObject(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, struct_type,
-                           val->pbData, val->cbData, flags, NULL, cb))
+    if (!CryptDecodeObject(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, struct_type, val->pbData,
+                           val->cbData, flags, NULL, cb))
     {
         return NULL;
     }
 
     /* do the actual decode */
     buf = gc_malloc(*cb, false, gc);
-    if (!CryptDecodeObject(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, struct_type,
-                           val->pbData, val->cbData, flags, buf, cb))
+    if (!CryptDecodeObject(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, struct_type, val->pbData,
+                           val->cbData, flags, buf, cb))
     {
         return NULL;
     }
@@ -243,8 +243,8 @@ test_certificate_template(const char *cert_prop, const CERT_CONTEXT *cert_ctx)
                 return true;
             }
 
-            const CRYPT_OID_INFO *tmpl_oid = find_oid(CRYPT_OID_INFO_NAME_KEY, tmpl_name,
-                                                      CRYPT_TEMPLATE_OID_GROUP_ID);
+            const CRYPT_OID_INFO *tmpl_oid =
+                find_oid(CRYPT_OID_INFO_NAME_KEY, tmpl_name, CRYPT_TEMPLATE_OID_GROUP_ID);
             if (tmpl_oid && !stricmp(tmpl_oid->pszOID, cte->pszObjId))
             {
                 /* found OID match in extension against resolved key */
@@ -274,7 +274,7 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
     DWORD find_type;
     const void *find_param;
     unsigned char hash[255];
-    CRYPT_HASH_BLOB blob = {.cbData = 0, .pbData = hash};
+    CRYPT_HASH_BLOB blob = { .cbData = 0, .pbData = hash };
     struct gc_arena gc = gc_new();
 
     if (!strncmp(cert_prop, "SUBJ:", 5))
@@ -296,7 +296,7 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
         blob.cbData = parse_hexstring(cert_prop + 6, hash, sizeof(hash));
         if (blob.cbData == 0)
         {
-            msg(M_WARN|M_INFO, "WARNING: cryptoapicert: error parsing <%s>.", cert_prop);
+            msg(M_WARN | M_INFO, "WARNING: cryptoapicert: error parsing <%s>.", cert_prop);
             goto out;
         }
     }
@@ -308,7 +308,8 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
     }
     else
     {
-        msg(M_NONFATAL, "Error in cryptoapicert: unsupported certificate specification <%s>", cert_prop);
+        msg(M_NONFATAL, "Error in cryptoapicert: unsupported certificate specification <%s>",
+            cert_prop);
         goto out;
     }
 
@@ -316,15 +317,14 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
     {
         int validity = 1;
         /* this frees previous rv, if not NULL */
-        rv = CertFindCertificateInStore(cert_store, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-                                        0, find_type, find_param, rv);
+        rv = CertFindCertificateInStore(cert_store, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, 0,
+                                        find_type, find_param, rv);
         if (!rv)
         {
             break;
         }
         /* if searching by template name, check now if it matches */
-        if (find_type == CERT_FIND_HAS_PRIVATE_KEY
-            && !test_certificate_template(cert_prop, rv))
+        if (find_type == CERT_FIND_HAS_PRIVATE_KEY && !test_certificate_template(cert_prop, rv))
         {
             continue;
         }
@@ -333,7 +333,7 @@ find_certificate_in_store(const char *cert_prop, HCERTSTORE cert_store)
         {
             break;
         }
-        msg(M_WARN|M_INFO, "WARNING: cryptoapicert: ignoring certificate in store %s.",
+        msg(M_WARN | M_INFO, "WARNING: cryptoapicert: ignoring certificate in store %s.",
             validity < 0 ? "not yet valid" : "that has expired");
     }
 
@@ -356,12 +356,12 @@ xkey_cng_ec_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsign
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: ECDSA signature using CNG failed.");
+        msg(M_NONFATAL | M_ERRNO, "Error in cryptoapicert: ECDSA signature using CNG failed.");
         return 0;
     }
 
     /* NCryptSignHash returns r|s -- convert to DER encoded buffer expected by OpenSSL */
-    int derlen = ecdsa_bin2der(sig, (int) len, *siglen);
+    int derlen = ecdsa_bin2der(sig, (int)len, *siglen);
     if (derlen <= 0)
     {
         return 0;
@@ -396,9 +396,9 @@ xkey_cng_rsa_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsig
     {
         msg(D_LOW, "Signing using NCryptSignHash with PKCS1 padding: hashalg <%s>", sigalg.mdname);
 
-        BCRYPT_PKCS1_PADDING_INFO padinfo = {hashalg};
-        status = NCryptSignHash(cd->crypt_prov, &padinfo, (BYTE *)tbs, (DWORD)tbslen,
-                                sig, (DWORD)*siglen, &len, BCRYPT_PAD_PKCS1);
+        BCRYPT_PKCS1_PADDING_INFO padinfo = { hashalg };
+        status = NCryptSignHash(cd->crypt_prov, &padinfo, (BYTE *)tbs, (DWORD)tbslen, sig,
+                                (DWORD)*siglen, &len, BCRYPT_PAD_PKCS1);
     }
     else if (!strcmp(sigalg.padmode, "pss"))
     {
@@ -416,9 +416,10 @@ xkey_cng_rsa_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsig
         msg(D_LOW, "Signing using NCryptSignHash with PSS padding: hashalg <%s>, saltlen <%d>",
             sigalg.mdname, saltlen);
 
-        BCRYPT_PSS_PADDING_INFO padinfo = {hashalg, (DWORD) saltlen}; /* cast is safe as saltlen >= 0 */
-        status = NCryptSignHash(cd->crypt_prov, &padinfo, (BYTE *)tbs, (DWORD) tbslen,
-                                sig, (DWORD)*siglen, &len, BCRYPT_PAD_PSS);
+        BCRYPT_PSS_PADDING_INFO padinfo = { hashalg,
+                                            (DWORD)saltlen }; /* cast is safe as saltlen >= 0 */
+        status = NCryptSignHash(cd->crypt_prov, &padinfo, (BYTE *)tbs, (DWORD)tbslen, sig,
+                                (DWORD)*siglen, &len, BCRYPT_PAD_PSS);
     }
     else
     {
@@ -429,7 +430,7 @@ xkey_cng_rsa_sign(CAPI_DATA *cd, unsigned char *sig, size_t *siglen, const unsig
     if (status != ERROR_SUCCESS)
     {
         SetLastError(status);
-        msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: RSA signature using CNG failed.");
+        msg(M_NONFATAL | M_ERRNO, "Error in cryptoapicert: RSA signature using CNG failed.");
         return 0;
     }
 
@@ -484,7 +485,7 @@ get_cert_name(const CERT_CONTEXT *cc, struct gc_arena *gc)
     char *name = NULL;
     if (len)
     {
-        wchar_t *wname = gc_malloc(len*sizeof(wchar_t), false, gc);
+        wchar_t *wname = gc_malloc(len * sizeof(wchar_t), false, gc);
         if (!wname
             || CertGetNameStringW(cc, CERT_NAME_FRIENDLY_DISPLAY_TYPE, 0, NULL, wname, len) == 0)
         {
@@ -504,7 +505,6 @@ get_cert_name(const CERT_CONTEXT *cc, struct gc_arena *gc)
 static int
 Load_CryptoAPI_certificate(const char *cert_prop, X509 **cert, EVP_PKEY **privkey)
 {
-
     HCERTSTORE cs;
     CAPI_DATA *cd = calloc(1, sizeof(*cd));
     struct gc_arena gc = gc_new();
@@ -515,29 +515,35 @@ Load_CryptoAPI_certificate(const char *cert_prop, X509 **cert, EVP_PKEY **privke
         goto err;
     }
     /* search CURRENT_USER first, then LOCAL_MACHINE */
-    cs = CertOpenStore((LPCSTR) CERT_STORE_PROV_SYSTEM, 0, 0, CERT_SYSTEM_STORE_CURRENT_USER
-                       |CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG, L"MY");
+    cs = CertOpenStore((LPCSTR)CERT_STORE_PROV_SYSTEM, 0, 0,
+                       CERT_SYSTEM_STORE_CURRENT_USER | CERT_STORE_OPEN_EXISTING_FLAG
+                           | CERT_STORE_READONLY_FLAG,
+                       L"MY");
     if (cs == NULL)
     {
-        msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: failed to open user certficate store");
+        msg(M_NONFATAL | M_ERRNO, "Error in cryptoapicert: failed to open user certficate store");
         goto err;
     }
     cd->cert_context = find_certificate_in_store(cert_prop, cs);
     CertCloseStore(cs, 0);
     if (!cd->cert_context)
     {
-        cs = CertOpenStore((LPCSTR) CERT_STORE_PROV_SYSTEM, 0, 0, CERT_SYSTEM_STORE_LOCAL_MACHINE
-                           |CERT_STORE_OPEN_EXISTING_FLAG | CERT_STORE_READONLY_FLAG, L"MY");
+        cs = CertOpenStore((LPCSTR)CERT_STORE_PROV_SYSTEM, 0, 0,
+                           CERT_SYSTEM_STORE_LOCAL_MACHINE | CERT_STORE_OPEN_EXISTING_FLAG
+                               | CERT_STORE_READONLY_FLAG,
+                           L"MY");
         if (cs == NULL)
         {
-            msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: failed to open machine certficate store");
+            msg(M_NONFATAL | M_ERRNO,
+                "Error in cryptoapicert: failed to open machine certficate store");
             goto err;
         }
         cd->cert_context = find_certificate_in_store(cert_prop, cs);
         CertCloseStore(cs, 0);
         if (cd->cert_context == NULL)
         {
-            msg(M_NONFATAL, "Error in cryptoapicert: certificate matching <%s> not found", cert_prop);
+            msg(M_NONFATAL, "Error in cryptoapicert: certificate matching <%s> not found",
+                cert_prop);
             goto err;
         }
     }
@@ -550,7 +556,7 @@ Load_CryptoAPI_certificate(const char *cert_prop, X509 **cert, EVP_PKEY **privke
     }
 
     /* cert_context->pbCertEncoded is the cert X509 DER encoded. */
-    *cert = d2i_X509(NULL, (const unsigned char **) &cd->cert_context->pbCertEncoded,
+    *cert = d2i_X509(NULL, (const unsigned char **)&cd->cert_context->pbCertEncoded,
                      cd->cert_context->cbCertEncoded);
     if (*cert == NULL)
     {
@@ -560,13 +566,13 @@ Load_CryptoAPI_certificate(const char *cert_prop, X509 **cert, EVP_PKEY **privke
 
     /* set up stuff to use the private key */
     /* We support NCRYPT key handles only */
-    DWORD flags = CRYPT_ACQUIRE_COMPARE_KEY_FLAG
-                  | CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG;
-    if (!CryptAcquireCertificatePrivateKey(cd->cert_context, flags, NULL,
-                                           &cd->crypt_prov, &cd->key_spec, &cd->free_crypt_prov))
+    DWORD flags = CRYPT_ACQUIRE_COMPARE_KEY_FLAG | CRYPT_ACQUIRE_ONLY_NCRYPT_KEY_FLAG;
+    if (!CryptAcquireCertificatePrivateKey(cd->cert_context, flags, NULL, &cd->crypt_prov,
+                                           &cd->key_spec, &cd->free_crypt_prov))
     {
         /* private key may be in a token not available, or incompatible with CNG */
-        msg(M_NONFATAL|M_ERRNO, "Error in cryptoapicert: failed to acquire key. Key not present or "
+        msg(M_NONFATAL | M_ERRNO,
+            "Error in cryptoapicert: failed to acquire key. Key not present or "
             "is in a legacy token not supported by Windows CNG API");
         X509_free(*cert);
         goto err;
@@ -576,8 +582,8 @@ Load_CryptoAPI_certificate(const char *cert_prop, X509 **cert, EVP_PKEY **privke
     EVP_PKEY *pkey = X509_get_pubkey(*cert);
     cd->pubkey = pkey; /* will be freed with cd */
 
-    *privkey = xkey_load_generic_key(tls_libctx, cd, pkey,
-                                     xkey_cng_sign, (XKEY_PRIVKEY_FREE_fn *) CAPI_DATA_free);
+    *privkey = xkey_load_generic_key(tls_libctx, cd, pkey, xkey_cng_sign,
+                                     (XKEY_PRIVKEY_FREE_fn *)CAPI_DATA_free);
     gc_free(&gc);
     return 1; /* do not free cd -- its kept by xkey provider */
 
@@ -598,8 +604,7 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     {
         return ret;
     }
-    if (SSL_CTX_use_certificate(ssl_ctx, cert)
-        && SSL_CTX_use_PrivateKey(ssl_ctx, privkey))
+    if (SSL_CTX_use_certificate(ssl_ctx, cert) && SSL_CTX_use_PrivateKey(ssl_ctx, privkey))
     {
         crypto_print_openssl_errors(M_WARN);
         ret = 1;
@@ -612,5 +617,5 @@ SSL_CTX_use_CryptoAPI_certificate(SSL_CTX *ssl_ctx, const char *cert_prop)
     return ret;
 }
 
-#endif  /* HAVE_XKEY_PROVIDER */
-#endif                          /* _WIN32 */
+#endif /* HAVE_XKEY_PROVIDER */
+#endif /* _WIN32 */

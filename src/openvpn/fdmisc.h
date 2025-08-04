@@ -45,4 +45,4 @@ openvpn_fd_set(socket_descriptor_t fd, fd_set *setp)
 }
 #undef FD_SET /* prevent direct use of FD_SET() */
 
-#endif /* FD_MISC_H */
+#endif        /* FD_MISC_H */

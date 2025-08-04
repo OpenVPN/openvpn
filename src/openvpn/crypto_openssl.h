@@ -50,7 +50,8 @@ typedef HMAC_CTX hmac_ctx_t;
 /* Use a dummy type for the provider */
 typedef void provider_t;
 #else
-typedef struct {
+typedef struct
+{
     OSSL_PARAM params[3];
     uint8_t key[EVP_MAX_KEY_LENGTH];
     EVP_MAC_CTX *ctx;
@@ -71,29 +72,29 @@ typedef EVP_MD evp_md_type;
 #endif
 
 /** Maximum length of an IV */
-#define OPENVPN_MAX_IV_LENGTH   EVP_MAX_IV_LENGTH
+#define OPENVPN_MAX_IV_LENGTH EVP_MAX_IV_LENGTH
 
 /** Cipher is in CBC mode */
-#define OPENVPN_MODE_CBC        EVP_CIPH_CBC_MODE
+#define OPENVPN_MODE_CBC EVP_CIPH_CBC_MODE
 
 /** Cipher is in OFB mode */
-#define OPENVPN_MODE_OFB        EVP_CIPH_OFB_MODE
+#define OPENVPN_MODE_OFB EVP_CIPH_OFB_MODE
 
 /** Cipher is in CFB mode */
-#define OPENVPN_MODE_CFB        EVP_CIPH_CFB_MODE
+#define OPENVPN_MODE_CFB EVP_CIPH_CFB_MODE
 
 /** Cipher is in GCM mode */
-#define OPENVPN_MODE_GCM        EVP_CIPH_GCM_MODE
+#define OPENVPN_MODE_GCM EVP_CIPH_GCM_MODE
 
 typedef int crypto_operation_t;
 
 /** Cipher should encrypt */
-#define OPENVPN_OP_ENCRYPT      1
+#define OPENVPN_OP_ENCRYPT 1
 
 /** Cipher should decrypt */
-#define OPENVPN_OP_DECRYPT      0
+#define OPENVPN_OP_DECRYPT 0
 
-#define MD4_DIGEST_LENGTH       16
+#define MD4_DIGEST_LENGTH 16
 
 /**
  * Retrieve any occurred OpenSSL errors and print those errors.
@@ -112,10 +113,11 @@ void crypto_print_openssl_errors(const unsigned int flags);
  * @param flags         Flags to indicate error type and priority.
  * @param ...           Format string and optional format arguments
  */
-#define crypto_msg(flags, ...) \
-    do { \
+#define crypto_msg(flags, ...)                        \
+    do                                                \
+    {                                                 \
         crypto_print_openssl_errors(nonfatal(flags)); \
-        msg((flags), __VA_ARGS__); \
+        msg((flags), __VA_ARGS__);                    \
     } while (false)
 
 #endif /* CRYPTO_OPENSSL_H_ */

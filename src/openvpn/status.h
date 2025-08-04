@@ -28,10 +28,11 @@
 /*
  * virtual function interface for status output
  */
-struct virtual_output {
+struct virtual_output
+{
     void *arg;
     unsigned int flags_default;
-    void (*func) (void *arg, const unsigned int flags, const char *str);
+    void (*func)(void *arg, const unsigned int flags, const char *str);
 };
 
 static inline void
@@ -46,8 +47,8 @@ virtual_output_print(const struct virtual_output *vo, const unsigned int flags, 
 
 struct status_output
 {
-#define STATUS_OUTPUT_READ  (1<<0)
-#define STATUS_OUTPUT_WRITE (1<<1)
+#define STATUS_OUTPUT_READ  (1 << 0)
+#define STATUS_OUTPUT_WRITE (1 << 1)
     unsigned int flags;
 
     char *filename;
@@ -62,11 +63,8 @@ struct status_output
     bool errors;
 };
 
-struct status_output *status_open(const char *filename,
-                                  const int refresh_freq,
-                                  const int msglevel,
-                                  const struct virtual_output *vout,
-                                  const unsigned int flags);
+struct status_output *status_open(const char *filename, const int refresh_freq, const int msglevel,
+                                  const struct virtual_output *vout, const unsigned int flags);
 
 bool status_trigger(struct status_output *so);
 
@@ -79,12 +77,12 @@ bool status_close(struct status_output *so);
 void status_printf(struct status_output *so, const char *format, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
-__attribute__ ((format(gnu_printf, 2, 3)))
+    __attribute__((format(gnu_printf, 2, 3)))
 #else
-__attribute__ ((format(__printf__, 2, 3)))
+    __attribute__((format(__printf__, 2, 3)))
 #endif
 #endif
-;
+    ;
 
 bool status_read(struct status_output *so, struct buffer *buf);
 

@@ -75,14 +75,12 @@ dco_get_version(OVPN_VERSION *version)
 
     bool res = false;
 
-    HANDLE h = CreateFile("\\\\.\\ovpn-dco-ver", GENERIC_READ,
-                          0, NULL, OPEN_EXISTING, 0, NULL);
+    HANDLE h = CreateFile("\\\\.\\ovpn-dco-ver", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 
     if (h == INVALID_HANDLE_VALUE)
     {
         /* fallback to a "normal" device, this will fail if device is already in use */
-        h = CreateFile("\\\\.\\ovpn-dco", GENERIC_READ,
-                       0, NULL, OPEN_EXISTING, 0, NULL);
+        h = CreateFile("\\\\.\\ovpn-dco", GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
     }
 
     if (h == INVALID_HANDLE_VALUE)
@@ -91,8 +89,8 @@ dco_get_version(OVPN_VERSION *version)
     }
 
     DWORD bytes_returned = 0;
-    if (!DeviceIoControl(h, OVPN_IOCTL_GET_VERSION, NULL, 0,
-                         version, sizeof(*version), &bytes_returned, NULL))
+    if (!DeviceIoControl(h, OVPN_IOCTL_GET_VERSION, NULL, 0, version, sizeof(*version),
+                         &bytes_returned, NULL))
     {
         goto done;
     }
@@ -145,7 +143,8 @@ ovpn_dco_init_mp(dco_context_t *dco, const char *dev_node)
     /* set mp mode */
     OVPN_MODE m = OVPN_MODE_MP;
     DWORD bytes_returned = 0;
-    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_SET_MODE, &m, sizeof(m), NULL, 0, &bytes_returned, NULL))
+    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_SET_MODE, &m, sizeof(m), NULL, 0,
+                         &bytes_returned, NULL))
     {
         msg(M_ERR, "DeviceIoControl(OVPN_IOCTL_SET_MODE) failed");
     }
@@ -221,7 +220,7 @@ dco_connect_wait(HANDLE handle, OVERLAPPED *ov, int timeout, struct signal_info 
 {
     volatile int *signal_received = &sig_info->signal_received;
     /* GetOverlappedResultEx is available starting from Windows 8 */
-    typedef BOOL (WINAPI *get_overlapped_result_ex_t)(HANDLE, LPOVERLAPPED, LPDWORD, DWORD, BOOL);
+    typedef BOOL(WINAPI * get_overlapped_result_ex_t)(HANDLE, LPOVERLAPPED, LPDWORD, DWORD, BOOL);
     get_overlapped_result_ex_t get_overlapped_result_ex =
         (get_overlapped_result_ex_t)GetProcAddress(GetModuleHandle("Kernel32.dll"),
                                                    "GetOverlappedResultEx");
@@ -295,8 +294,8 @@ dco_mp_start_vpn(HANDLE handle, struct link_socket *sock)
     }
     if (!cur)
     {
-        msg(M_FATAL, "%s: Socket bind failed: Addr to bind has no %s record",
-            __func__, addr_family_name(ai_family));
+        msg(M_FATAL, "%s: Socket bind failed: Addr to bind has no %s record", __func__,
+            addr_family_name(ai_family));
     }
 
     OVPN_MP_START_VPN in, out;
@@ -322,7 +321,8 @@ dco_mp_start_vpn(HANDLE handle, struct link_socket *sock)
 }
 
 void
-dco_p2p_new_peer(HANDLE handle, OVERLAPPED *ov, struct link_socket *sock, struct signal_info *sig_info)
+dco_p2p_new_peer(HANDLE handle, OVERLAPPED *ov, struct link_socket *sock,
+                 struct signal_info *sig_info)
 {
     msg(D_DCO_DEBUG, "%s", __func__);
 
@@ -333,8 +333,7 @@ dco_p2p_new_peer(HANDLE handle, OVERLAPPED *ov, struct link_socket *sock, struct
     struct sockaddr *local = NULL;
     struct sockaddr *remote = remoteaddr->ai_addr;
 
-    if (remoteaddr->ai_protocol == IPPROTO_TCP
-        || remoteaddr->ai_socktype == SOCK_STREAM)
+    if (remoteaddr->ai_protocol == IPPROTO_TCP || remoteaddr->ai_socktype == SOCK_STREAM)
     {
         peer.Proto = OVPN_PROTO_TCP;
     }
@@ -406,15 +405,15 @@ dco_p2p_new_peer(HANDLE handle, OVERLAPPED *ov, struct link_socket *sock, struct
         }
         else
         {
-            dco_connect_wait(handle, ov, get_server_poll_remaining_time(sock->server_poll_timeout), sig_info);
+            dco_connect_wait(handle, ov, get_server_poll_remaining_time(sock->server_poll_timeout),
+                             sig_info);
         }
     }
 }
 
 int
-dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
-             struct sockaddr *localaddr, struct sockaddr *remoteaddr,
-             struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6)
+dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd, struct sockaddr *localaddr,
+             struct sockaddr *remoteaddr, struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6)
 {
     msg(D_DCO_DEBUG, "%s: peer-id %d, fd %d", __func__, peerid, sd);
 
@@ -424,7 +423,7 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
         return 0;
     }
 
-    OVPN_MP_NEW_PEER newPeer = {0};
+    OVPN_MP_NEW_PEER newPeer = { 0 };
 
     if (remoteaddr)
     {
@@ -454,7 +453,8 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
     newPeer.PeerId = peerid;
 
     DWORD bytesReturned;
-    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_MP_NEW_PEER, &newPeer, sizeof(newPeer), NULL, 0, &bytesReturned, NULL))
+    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_MP_NEW_PEER, &newPeer, sizeof(newPeer), NULL, 0,
+                         &bytesReturned, NULL))
     {
         msg(M_ERR, "DeviceIoControl(OVPN_IOCTL_MP_NEW_PEER) failed");
     }
@@ -489,11 +489,11 @@ dco_del_peer(dco_context_t *dco, unsigned int peerid)
 }
 
 int
-dco_set_peer(dco_context_t *dco, unsigned int peerid,
-             int keepalive_interval, int keepalive_timeout, int mss)
+dco_set_peer(dco_context_t *dco, unsigned int peerid, int keepalive_interval, int keepalive_timeout,
+             int mss)
 {
-    msg(D_DCO_DEBUG, "%s: peer-id %d, keepalive %d/%d, mss %d", __func__,
-        peerid, keepalive_interval, keepalive_timeout, mss);
+    msg(D_DCO_DEBUG, "%s: peer-id %d, keepalive %d/%d, mss %d", __func__, peerid,
+        keepalive_interval, keepalive_timeout, mss);
 
     OVPN_MP_SET_PEER mp_peer = { peerid, keepalive_interval, keepalive_timeout, mss };
     OVPN_SET_PEER peer = { keepalive_interval, keepalive_timeout, mss };
@@ -523,14 +523,12 @@ dco_set_peer(dco_context_t *dco, unsigned int peerid,
 }
 
 int
-dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid,
-            dco_key_slot_t slot,
-            const uint8_t *encrypt_key, const uint8_t *encrypt_iv,
-            const uint8_t *decrypt_key, const uint8_t *decrypt_iv,
-            const char *ciphername)
+dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t slot,
+            const uint8_t *encrypt_key, const uint8_t *encrypt_iv, const uint8_t *decrypt_key,
+            const uint8_t *decrypt_iv, const char *ciphername)
 {
-    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s",
-        __func__, slot, keyid, peerid, ciphername);
+    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s", __func__, slot, keyid, peerid,
+        ciphername);
 
     const int nonce_len = 8;
     size_t key_len = cipher_kt_key_size(ciphername);
@@ -555,8 +553,8 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid,
 
     DWORD bytes_returned = 0;
 
-    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_NEW_KEY, &crypto_data,
-                         sizeof(crypto_data), NULL, 0, &bytes_returned, NULL))
+    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_NEW_KEY, &crypto_data, sizeof(crypto_data), NULL,
+                         0, &bytes_returned, NULL))
     {
         msg(M_ERR, "DeviceIoControl(OVPN_IOCTL_NEW_KEY) failed");
         return -1;
@@ -566,8 +564,7 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid,
 int
 dco_del_key(dco_context_t *dco, unsigned int peerid, dco_key_slot_t slot)
 {
-    msg(D_DCO, "%s: peer-id %d, slot %d called but ignored", __func__, peerid,
-        slot);
+    msg(D_DCO, "%s: peer-id %d, slot %d called but ignored", __func__, peerid, slot);
     /* FIXME: Implement in driver first */
     return 0;
 }
@@ -577,7 +574,7 @@ dco_swap_keys(dco_context_t *dco, unsigned int peer_id)
 {
     msg(D_DCO_DEBUG, "%s: peer-id %d", __func__, peer_id);
 
-    OVPN_MP_SWAP_KEYS swap = {peer_id};
+    OVPN_MP_SWAP_KEYS swap = { peer_id };
     DWORD ioctl = OVPN_IOCTL_SWAP_KEYS;
     VOID *buf = NULL;
     DWORD len = 0;
@@ -602,8 +599,8 @@ bool
 dco_available(int msglevel)
 {
     /* try to open device by symbolic name */
-    HANDLE h = CreateFile("\\\\.\\ovpn-dco", GENERIC_READ | GENERIC_WRITE,
-                          0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED, NULL);
+    HANDLE h = CreateFile("\\\\.\\ovpn-dco", GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING,
+                          FILE_ATTRIBUTE_SYSTEM | FILE_FLAG_OVERLAPPED, NULL);
 
     if (h != INVALID_HANDLE_VALUE)
     {
@@ -628,7 +625,7 @@ dco_available(int msglevel)
 const char *
 dco_version_string(struct gc_arena *gc)
 {
-    OVPN_VERSION version = {0};
+    OVPN_VERSION version = { 0 };
     if (dco_get_version(&version))
     {
         struct buffer out = alloc_buf_gc(256, gc);
@@ -659,7 +656,8 @@ dco_handle_overlapped_success(dco_context_t *dco, bool queued)
     BOOL res = GetOverlappedResult(dco->tt->hand, &dco->ov, &bytes_read, FALSE);
     if (res)
     {
-        msg(D_DCO_DEBUG, "%s: completion%s success [%ld]", __func__, queued ? "" : " non-queued", bytes_read);
+        msg(D_DCO_DEBUG, "%s: completion%s success [%ld]", __func__, queued ? "" : " non-queued",
+            bytes_read);
 
         dco->dco_message_peer_id = dco->notif_buf.PeerId;
         dco->dco_message_type = dco->notif_buf.Cmd;
@@ -734,8 +732,8 @@ dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
     ZeroMemory(&stats, sizeof(OVPN_STATS));
 
     DWORD bytes_returned = 0;
-    if (!DeviceIoControl(tt->hand, OVPN_IOCTL_GET_STATS, NULL, 0,
-                         &stats, sizeof(stats), &bytes_returned, NULL))
+    if (!DeviceIoControl(tt->hand, OVPN_IOCTL_GET_STATS, NULL, 0, &stats, sizeof(stats),
+                         &bytes_returned, NULL))
     {
         msg(M_WARN | M_ERRNO, "DeviceIoControl(OVPN_IOCTL_GET_STATS) failed");
         return -1;
@@ -765,7 +763,8 @@ dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
         /* the overlapped IOCTL will signal this event on I/O completion */
         ASSERT(ResetEvent(dco->ov.hEvent));
 
-        if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_NOTIFY_EVENT, NULL, 0, &dco->notif_buf, sizeof(dco->notif_buf), NULL, &dco->ov))
+        if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_NOTIFY_EVENT, NULL, 0, &dco->notif_buf,
+                             sizeof(dco->notif_buf), NULL, &dco->ov))
         {
             DWORD err = GetLastError();
             if (err == ERROR_IO_PENDING) /* operation queued? */
@@ -826,17 +825,21 @@ dco_win_supports_multipeer(void)
 }
 
 void
-dco_win_add_iroute_ipv4(dco_context_t *dco, in_addr_t dst, unsigned int netbits, unsigned int peer_id)
+dco_win_add_iroute_ipv4(dco_context_t *dco, in_addr_t dst, unsigned int netbits,
+                        unsigned int peer_id)
 {
     struct gc_arena gc = gc_new();
 
-    OVPN_MP_IROUTE route = {.Addr.Addr4.S_un.S_addr = dst, .Netbits = netbits, .PeerId = peer_id, .IPv6 = 0};
+    OVPN_MP_IROUTE route = {
+        .Addr.Addr4.S_un.S_addr = dst, .Netbits = netbits, .PeerId = peer_id, .IPv6 = 0
+    };
 
-    msg(D_DCO_DEBUG, "%s: %s/%d -> peer %d", __func__, print_in_addr_t(dst, IA_NET_ORDER, &gc), netbits, peer_id);
+    msg(D_DCO_DEBUG, "%s: %s/%d -> peer %d", __func__, print_in_addr_t(dst, IA_NET_ORDER, &gc),
+        netbits, peer_id);
 
     DWORD bytes_returned = 0;
-    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_MP_ADD_IROUTE, &route,
-                         sizeof(route), NULL, 0, &bytes_returned, NULL))
+    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_MP_ADD_IROUTE, &route, sizeof(route), NULL, 0,
+                         &bytes_returned, NULL))
     {
         msg(M_WARN | M_ERRNO, "DeviceIoControl(OVPN_IOCTL_MP_ADD_IROUTE) failed");
     }
@@ -845,17 +848,19 @@ dco_win_add_iroute_ipv4(dco_context_t *dco, in_addr_t dst, unsigned int netbits,
 }
 
 void
-dco_win_add_iroute_ipv6(dco_context_t *dco, struct in6_addr dst, unsigned int netbits, unsigned int peer_id)
+dco_win_add_iroute_ipv6(dco_context_t *dco, struct in6_addr dst, unsigned int netbits,
+                        unsigned int peer_id)
 {
     struct gc_arena gc = gc_new();
 
     OVPN_MP_IROUTE route = { .Addr.Addr6 = dst, .Netbits = netbits, .PeerId = peer_id, .IPv6 = 1 };
 
-    msg(D_DCO_DEBUG, "%s: %s/%d -> peer %d", __func__, print_in6_addr(dst, IA_NET_ORDER, &gc), netbits, peer_id);
+    msg(D_DCO_DEBUG, "%s: %s/%d -> peer %d", __func__, print_in6_addr(dst, IA_NET_ORDER, &gc),
+        netbits, peer_id);
 
     DWORD bytes_returned = 0;
-    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_MP_ADD_IROUTE, &route,
-                         sizeof(route), NULL, 0, &bytes_returned, NULL))
+    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_MP_ADD_IROUTE, &route, sizeof(route), NULL, 0,
+                         &bytes_returned, NULL))
     {
         msg(M_WARN | M_ERRNO, "DeviceIoControl(OVPN_IOCTL_MP_ADD_IROUTE) failed");
     }
@@ -868,13 +873,15 @@ dco_win_del_iroute_ipv4(dco_context_t *dco, in_addr_t dst, unsigned int netbits)
 {
     struct gc_arena gc = gc_new();
 
-    OVPN_MP_IROUTE route = { .Addr.Addr4.S_un.S_addr = dst, .Netbits = netbits, .PeerId = -1, .IPv6 = 0 };
+    OVPN_MP_IROUTE route = {
+        .Addr.Addr4.S_un.S_addr = dst, .Netbits = netbits, .PeerId = -1, .IPv6 = 0
+    };
 
     msg(D_DCO_DEBUG, "%s: %s/%d", __func__, print_in_addr_t(dst, IA_NET_ORDER, &gc), netbits);
 
     DWORD bytes_returned = 0;
-    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_MP_DEL_IROUTE, &route,
-                         sizeof(route), NULL, 0, &bytes_returned, NULL))
+    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_MP_DEL_IROUTE, &route, sizeof(route), NULL, 0,
+                         &bytes_returned, NULL))
     {
         msg(M_WARN | M_ERRNO, "DeviceIoControl(OVPN_IOCTL_MP_DEL_IROUTE) failed");
     }
@@ -892,8 +899,8 @@ dco_win_del_iroute_ipv6(dco_context_t *dco, struct in6_addr dst, unsigned int ne
     msg(D_DCO_DEBUG, "%s: %s/%d", __func__, print_in6_addr(dst, IA_NET_ORDER, &gc), netbits);
 
     DWORD bytes_returned = 0;
-    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_MP_DEL_IROUTE, &route,
-                         sizeof(route), NULL, 0, &bytes_returned, NULL))
+    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_MP_DEL_IROUTE, &route, sizeof(route), NULL, 0,
+                         &bytes_returned, NULL))
     {
         msg(M_WARN | M_ERRNO, "DeviceIoControl(OVPN_IOCTL_MP_DEL_IROUTE) failed");
     }

@@ -26,13 +26,17 @@
 #include "error.h"
 
 #ifndef htonll
-#define htonll(x) ((1==htonl(1)) ? (x) : \
-                   ((uint64_t)htonl((uint32_t)((x) & 0xFFFFFFFF)) << 32) | htonl((uint32_t)((x) >> 32)))
+#define htonll(x)    \
+    ((1 == htonl(1)) \
+         ? (x)       \
+         : ((uint64_t)htonl((uint32_t)((x) & 0xFFFFFFFF)) << 32) | htonl((uint32_t)((x) >> 32)))
 #endif
 
 #ifndef ntohll
-#define ntohll(x) ((1==ntohl(1)) ? (x) : \
-                   ((uint64_t)ntohl((uint32_t)((x) & 0xFFFFFFFF)) << 32) | ntohl((uint32_t)((x) >> 32)))
+#define ntohll(x)    \
+    ((1 == ntohl(1)) \
+         ? (x)       \
+         : ((uint64_t)ntohl((uint32_t)((x) & 0xFFFFFFFF)) << 32) | ntohl((uint32_t)((x) >> 32)))
 #endif
 
 static inline int
@@ -196,10 +200,7 @@ index_verify(int index, int size, const char *file, int line)
     if (index < 0 || index >= size)
     {
         msg(M_FATAL, "Assertion Failed: Array index=%d out of bounds for array size=%d in %s:%d",
-            index,
-            size,
-            file,
-            line);
+            index, size, file, line);
     }
     return index;
 }

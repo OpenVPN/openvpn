@@ -34,12 +34,13 @@
 #include "win32-util.h"
 
 /* location of executables */
-#define SYS_PATH_ENV_VAR_NAME "SystemRoot"  /* environmental variable name that normally contains the system path */
-#define NETSH_PATH_SUFFIX     "\\system32\\netsh.exe"
-#define WIN_ROUTE_PATH_SUFFIX "\\system32\\route.exe"
+#define SYS_PATH_ENV_VAR_NAME \
+    "SystemRoot" /* environmental variable name that normally contains the system path */
+#define NETSH_PATH_SUFFIX        "\\system32\\netsh.exe"
+#define WIN_ROUTE_PATH_SUFFIX    "\\system32\\route.exe"
 #define WIN_IPCONFIG_PATH_SUFFIX "\\system32\\ipconfig.exe"
-#define WIN_NET_PATH_SUFFIX "\\system32\\net.exe"
-#define WMIC_PATH_SUFFIX "\\system32\\wbem\\wmic.exe"
+#define WIN_NET_PATH_SUFFIX      "\\system32\\net.exe"
+#define WMIC_PATH_SUFFIX         "\\system32\\wbem\\wmic.exe"
 
 /*
  * Win32-specific OpenVPN code, targeted at the mingw
@@ -75,7 +76,8 @@ struct window_title
     char old_window_title[256];
 };
 
-struct rw_handle {
+struct rw_handle
+{
     HANDLE read;
     HANDLE write;
 };
@@ -84,8 +86,8 @@ struct rw_handle {
  * Event-based notification of incoming TCP connections
  */
 
-#define NE32_PERSIST_EVENT (1<<0)
-#define NE32_WRITE_EVENT   (1<<1)
+#define NE32_PERSIST_EVENT (1 << 0)
+#define NE32_WRITE_EVENT   (1 << 1)
 
 static inline bool
 defined_net_event_win32(const struct rw_handle *event)
@@ -93,7 +95,8 @@ defined_net_event_win32(const struct rw_handle *event)
     return event->read != NULL;
 }
 
-void init_net_event_win32(struct rw_handle *event, long network_events, socket_descriptor_t sd, unsigned int flags);
+void init_net_event_win32(struct rw_handle *event, long network_events, socket_descriptor_t sd,
+                          unsigned int flags);
 
 long reset_net_event_win32(struct rw_handle *event, socket_descriptor_t sd);
 
@@ -149,7 +152,8 @@ net_event_win32_clear_selected_events(struct net_event_win32 *ne, long selected_
 /*
  * Signal handling
  */
-struct win32_signal {
+struct win32_signal
+{
 #define WSO_MODE_UNDEF   0
 #define WSO_MODE_SERVICE 1
 #define WSO_MODE_CONSOLE 2
@@ -169,10 +173,8 @@ void win32_signal_clear(struct win32_signal *ws);
 #define WSO_FORCE_SERVICE 1
 #define WSO_FORCE_CONSOLE 2
 
-void win32_signal_open(struct win32_signal *ws,
-                       int force,  /* set to WSO force parm */
-                       const char *exit_event_name,
-                       bool exit_event_initial_state);
+void win32_signal_open(struct win32_signal *ws, int force, /* set to WSO force parm */
+                       const char *exit_event_name, bool exit_event_initial_state);
 
 void win32_signal_close(struct win32_signal *ws);
 
@@ -198,17 +200,19 @@ void window_title_generate(const char *title);
  * We try to do all Win32 I/O using overlapped
  * (i.e. asynchronous) I/O for a performance win.
  */
-struct overlapped_io {
+struct overlapped_io
+{
 #define IOSTATE_INITIAL          0
-#define IOSTATE_QUEUED           1  /* overlapped I/O has been queued */
-#define IOSTATE_IMMEDIATE_RETURN 2  /* I/O function returned immediately without queueing */
+#define IOSTATE_QUEUED           1 /* overlapped I/O has been queued */
+#define IOSTATE_IMMEDIATE_RETURN 2 /* I/O function returned immediately without queueing */
     int iostate;
     OVERLAPPED overlapped;
     DWORD size;
     DWORD flags;
     int status;
     bool addr_defined;
-    union {
+    union
+    {
         struct sockaddr_in addr;
         struct sockaddr_in6 addr6;
     };
@@ -217,9 +221,7 @@ struct overlapped_io {
     struct buffer buf;
 };
 
-void overlapped_io_init(struct overlapped_io *o,
-                        const struct frame *frame,
-                        BOOL event_state);
+void overlapped_io_init(struct overlapped_io *o, const struct frame *frame, BOOL event_state);
 
 void overlapped_io_close(struct overlapped_io *o);
 
@@ -304,14 +306,13 @@ const char *win32_version_string(struct gc_arena *gc);
  * and read the result in |ack|. Returns false on communication error.
  * The string in |context| is used to prefix error messages.
  */
-bool send_msg_iservice(HANDLE pipe, const void *data, size_t size,
-                       ack_message_t *ack, const char *context);
+bool send_msg_iservice(HANDLE pipe, const void *data, size_t size, ack_message_t *ack,
+                       const char *context);
 
 /*
  * Attempt to simulate fork/execve on Windows
  */
-int
-openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned int flags);
+int openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned int flags);
 
 /* Sleep that can be interrupted by signals and exit event */
 void win32_sleep(const int n);
@@ -324,8 +325,7 @@ void win32_sleep(const int n);
  * @param size Size of `value` buffer in bytes.
  * @return `true` if successful, `false` otherwise.
  */
-bool
-get_openvpn_reg_value(const WCHAR *key, WCHAR *value, DWORD size);
+bool get_openvpn_reg_value(const WCHAR *key, WCHAR *value, DWORD size);
 
 /**
  * @brief Checks if a plugin is located in a trusted directory.
@@ -340,8 +340,7 @@ get_openvpn_reg_value(const WCHAR *key, WCHAR *value, DWORD size);
  * @param plugin_path Normalized path to the plugin.
  * @return \c true if the plugin is in a trusted directory and not a UNC path; \c false otherwise.
  */
-bool
-plugin_in_trusted_dir(const WCHAR *plugin_path);
+bool plugin_in_trusted_dir(const WCHAR *plugin_path);
 
 /**
  * Encrypt a region of memory using CryptProtectMemory()
@@ -351,8 +350,7 @@ plugin_in_trusted_dir(const WCHAR *plugin_path);
  * - len   number of bytes to encrypt -- must be a multiple of
  *         CRYPTPROTECTMEMORY_BLOCK_SIZE = 16
  */
-bool
-protect_buffer_win32(char *buf, size_t len);
+bool protect_buffer_win32(char *buf, size_t len);
 
 /**
  * Decrypt a previously encrypted region of memory using CryptUnProtectMemory()
@@ -362,8 +360,7 @@ protect_buffer_win32(char *buf, size_t len);
  * - len   number of bytes to encrypt -- must be a multiple of
  *         CRYPTPROTECTMEMORY_BLOCK_SIZE = 16
  */
-bool
-unprotect_buffer_win32(char *buf, size_t len);
+bool unprotect_buffer_win32(char *buf, size_t len);
 
 #endif /* ifndef OPENVPN_WIN32_H */
 #endif /* ifdef _WIN32 */

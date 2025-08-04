@@ -54,8 +54,7 @@
  * have to explicitly do it to prevent the kernel from failing upon
  * parsing of the message
  */
-#define nla_nest_start(_msg, _type) \
-    nla_nest_start(_msg, (_type) | NLA_F_NESTED)
+#define nla_nest_start(_msg, _type) nla_nest_start(_msg, (_type) | NLA_F_NESTED)
 
 static int ovpn_get_mcast_id(dco_context_t *dco);
 
@@ -89,8 +88,7 @@ resolve_ovpn_netlink_id(int msglevel)
     ret = genl_connect(nl_sock);
     if (ret)
     {
-        msg(msglevel, "Cannot connect to generic netlink: %s",
-            nl_geterror(ret));
+        msg(msglevel, "Cannot connect to generic netlink: %s", nl_geterror(ret));
         goto err_sock;
     }
     set_cloexec(nl_socket_get_fd(nl_sock));
@@ -98,8 +96,7 @@ resolve_ovpn_netlink_id(int msglevel)
     ret = genl_ctrl_resolve(nl_sock, OVPN_FAMILY_NAME);
     if (ret < 0)
     {
-        msg(msglevel, "Cannot find ovpn_dco netlink component: %s",
-            nl_geterror(ret));
+        msg(msglevel, "Cannot find ovpn_dco netlink component: %s", nl_geterror(ret));
     }
 
 err_sock:
@@ -157,7 +154,8 @@ ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
         default:
             if (ret)
             {
-                msg(M_NONFATAL, "%s: netlink reports error (%d): %s", prefix, ret, nl_geterror(-ret));
+                msg(M_NONFATAL, "%s: netlink reports error (%d): %s", prefix, ret,
+                    nl_geterror(-ret));
             }
             break;
     }
@@ -188,8 +186,8 @@ ovpn_nl_msg_send(dco_context_t *dco, struct nl_msg *nl_msg, const char *prefix)
 
     if (dco->status < 0)
     {
-        msg(M_INFO, "%s: failed to send netlink message: %s (%d)",
-            prefix, strerror(-dco->status), dco->status);
+        msg(M_INFO, "%s: failed to send netlink message: %s (%d)", prefix, strerror(-dco->status),
+            dco->status);
     }
 
     return dco->status;
@@ -201,7 +199,6 @@ mapped_v4_to_v6(struct sockaddr *sock, struct gc_arena *gc)
     struct sockaddr_in6 *sock6 = (struct sockaddr_in6 *)sock;
     if (sock->sa_family == AF_INET6 && IN6_IS_ADDR_V4MAPPED(&sock6->sin6_addr))
     {
-
         struct sockaddr_in *sock4;
         ALLOC_OBJ_CLEAR_GC(sock4, struct sockaddr_in, gc);
         memcpy(&sock4->sin_addr, sock6->sin6_addr.s6_addr + 12, 4);
@@ -213,9 +210,8 @@ mapped_v4_to_v6(struct sockaddr *sock, struct gc_arena *gc)
 }
 
 int
-dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
-             struct sockaddr *localaddr, struct sockaddr *remoteaddr,
-             struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6)
+dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd, struct sockaddr *localaddr,
+             struct sockaddr *remoteaddr, struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6)
 {
     struct gc_arena gc = gc_new();
     const char *remotestr = "[undefined]";
@@ -223,8 +219,7 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
     {
         remotestr = print_sockaddr(remoteaddr, &gc);
     }
-    msg(D_DCO_DEBUG, "%s: peer-id %d, fd %d, remote addr: %s", __func__,
-        peerid, sd, remotestr);
+    msg(D_DCO_DEBUG, "%s: peer-id %d, fd %d, remote addr: %s", __func__, peerid, sd, remotestr);
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_PEER_NEW);
     struct nlattr *attr = nla_nest_start(nl_msg, OVPN_A_PEER);
@@ -242,14 +237,17 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
         {
             NLA_PUT(nl_msg, OVPN_A_PEER_REMOTE_IPV4, sizeof(struct in_addr),
                     &((struct sockaddr_in *)remoteaddr)->sin_addr);
-            NLA_PUT_U16(nl_msg, OVPN_A_PEER_REMOTE_PORT, ((struct sockaddr_in *)remoteaddr)->sin_port);
+            NLA_PUT_U16(nl_msg, OVPN_A_PEER_REMOTE_PORT,
+                        ((struct sockaddr_in *)remoteaddr)->sin_port);
         }
         else if (remoteaddr->sa_family == AF_INET6)
         {
             NLA_PUT(nl_msg, OVPN_A_PEER_REMOTE_IPV6, sizeof(struct in6_addr),
                     &((struct sockaddr_in6 *)remoteaddr)->sin6_addr);
-            NLA_PUT_U16(nl_msg, OVPN_A_PEER_REMOTE_PORT, ((struct sockaddr_in6 *)remoteaddr)->sin6_port);
-            NLA_PUT_U32(nl_msg, OVPN_A_PEER_REMOTE_IPV6_SCOPE_ID, ((struct sockaddr_in6 *)remoteaddr)->sin6_scope_id);
+            NLA_PUT_U16(nl_msg, OVPN_A_PEER_REMOTE_PORT,
+                        ((struct sockaddr_in6 *)remoteaddr)->sin6_port);
+            NLA_PUT_U32(nl_msg, OVPN_A_PEER_REMOTE_IPV6_SCOPE_ID,
+                        ((struct sockaddr_in6 *)remoteaddr)->sin6_scope_id);
         }
     }
 
@@ -275,8 +273,7 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
     }
     if (vpn_ipv6)
     {
-        NLA_PUT(nl_msg, OVPN_A_PEER_VPN_IPV6, sizeof(struct in6_addr),
-                vpn_ipv6);
+        NLA_PUT(nl_msg, OVPN_A_PEER_VPN_IPV6, sizeof(struct in6_addr), vpn_ipv6);
     }
     nla_nest_end(nl_msg, attr);
 
@@ -289,7 +286,7 @@ nla_put_failure:
 }
 
 static int
-ovpn_nl_cb_finish(struct nl_msg (*msg) __attribute__ ((unused)), void *arg)
+ovpn_nl_cb_finish(struct nl_msg(*msg) __attribute__((unused)), void *arg)
 {
     int *status = arg;
 
@@ -310,7 +307,8 @@ ovpn_nl_cb_finish(struct nl_msg (*msg) __attribute__ ((unused)), void *arg)
  *  missing at the message level
  * @NLMSGERR_ATTR_MISS_NEST: offset of the nest where attribute was missing
  */
-enum ovpn_nlmsgerr_attrs {
+enum ovpn_nlmsgerr_attrs
+{
     OVPN_NLMSGERR_ATTR_MISS_TYPE = 5,
     OVPN_NLMSGERR_ATTR_MISS_NEST = 6,
     OVPN_NLMSGERR_ATTR_MAX = 6,
@@ -325,8 +323,7 @@ enum ovpn_nlmsgerr_attrs {
  * reply to see if it contains a human-readable error. If found, it is printed.
  */
 static int
-ovpn_nl_cb_error(struct sockaddr_nl (*nla) __attribute__ ((unused)),
-                 struct nlmsgerr *err, void *arg)
+ovpn_nl_cb_error(struct sockaddr_nl(*nla) __attribute__((unused)), struct nlmsgerr *err, void *arg)
 {
     struct nlmsghdr *nlh = (struct nlmsghdr *)err - 1;
     struct nlattr *tb_msg[OVPN_NLMSGERR_ATTR_MAX + 1];
@@ -360,8 +357,7 @@ ovpn_nl_cb_error(struct sockaddr_nl (*nla) __attribute__ ((unused)),
     {
         len = strnlen((char *)nla_data(tb_msg[NLMSGERR_ATTR_MSG]),
                       nla_len(tb_msg[NLMSGERR_ATTR_MSG]));
-        msg(M_WARN, "kernel error: %*s", len,
-            (char *)nla_data(tb_msg[NLMSGERR_ATTR_MSG]));
+        msg(M_WARN, "kernel error: %*s", len, (char *)nla_data(tb_msg[NLMSGERR_ATTR_MSG]));
     }
 
     if (tb_msg[OVPN_NLMSGERR_ATTR_MISS_NEST])
@@ -387,7 +383,7 @@ ovpn_dco_register(dco_context_t *dco)
 
     if (dco->ovpn_dco_mcast_id < 0)
     {
-        msg(M_FATAL, "cannot get mcast group: %s",  nl_geterror(dco->ovpn_dco_mcast_id));
+        msg(M_FATAL, "cannot get mcast group: %s", nl_geterror(dco->ovpn_dco_mcast_id));
     }
 
     /* Register for ovpn-dco specific multicast messages that the kernel may
@@ -417,14 +413,12 @@ ovpn_dco_init_netlink(dco_context_t *dco)
     int ret = genl_connect(dco->nl_sock);
     if (ret)
     {
-        msg(M_FATAL, "Cannot connect to generic netlink: %s",
-            nl_geterror(ret));
+        msg(M_FATAL, "Cannot connect to generic netlink: %s", nl_geterror(ret));
     }
 
     /* enable Extended ACK for detailed error reporting */
     ret = 1;
-    setsockopt(nl_socket_get_fd(dco->nl_sock), SOL_NETLINK, NETLINK_EXT_ACK,
-               &ret, sizeof(ret));
+    setsockopt(nl_socket_get_fd(dco->nl_sock), SOL_NETLINK, NETLINK_EXT_ACK, &ret, sizeof(ret));
 
     /* set close on exec and non-block on the netlink socket */
     set_cloexec(nl_socket_get_fd(dco->nl_sock));
@@ -440,10 +434,8 @@ ovpn_dco_init_netlink(dco_context_t *dco)
 
     dco->dco_message_peer_id = -1;
     nl_cb_err(dco->nl_cb, NL_CB_CUSTOM, ovpn_nl_cb_error, &dco->status);
-    nl_cb_set(dco->nl_cb, NL_CB_FINISH, NL_CB_CUSTOM, ovpn_nl_cb_finish,
-              &dco->status);
-    nl_cb_set(dco->nl_cb, NL_CB_ACK, NL_CB_CUSTOM, ovpn_nl_cb_finish,
-              &dco->status);
+    nl_cb_set(dco->nl_cb, NL_CB_FINISH, NL_CB_CUSTOM, ovpn_nl_cb_finish, &dco->status);
+    nl_cb_set(dco->nl_cb, NL_CB_ACK, NL_CB_CUSTOM, ovpn_nl_cb_finish, &dco->status);
     nl_cb_set(dco->nl_cb, NL_CB_VALID, NL_CB_CUSTOM, ovpn_handle_msg, dco);
 
     ovpn_dco_register(dco);
@@ -456,7 +448,7 @@ ovpn_dco_init_netlink(dco_context_t *dco)
     /* nl library sets the buffer size to 32k/32k by default which is sometimes
      * overrun with very fast connecting/disconnecting clients.
      * TODO: fix this in a better and more reliable way */
-    ASSERT(!nl_socket_set_buffer_size(dco->nl_sock, 1024*1024, 1024*1024));
+    ASSERT(!nl_socket_set_buffer_size(dco->nl_sock, 1024 * 1024, 1024 * 1024));
 }
 
 bool
@@ -578,8 +570,7 @@ nla_put_failure:
 
 
 int
-dco_del_key(dco_context_t *dco, unsigned int peerid,
-            dco_key_slot_t slot)
+dco_del_key(dco_context_t *dco, unsigned int peerid, dco_key_slot_t slot)
 {
     int ret = -EMSGSIZE;
     msg(D_DCO_DEBUG, "%s: peer-id %d, slot %d", __func__, peerid, slot);
@@ -603,14 +594,12 @@ nla_put_failure:
 }
 
 int
-dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid,
-            dco_key_slot_t slot,
-            const uint8_t *encrypt_key, const uint8_t *encrypt_iv,
-            const uint8_t *decrypt_key, const uint8_t *decrypt_iv,
-            const char *ciphername)
+dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t slot,
+            const uint8_t *encrypt_key, const uint8_t *encrypt_iv, const uint8_t *decrypt_key,
+            const uint8_t *decrypt_iv, const char *ciphername)
 {
-    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s",
-        __func__, slot, keyid, peerid, ciphername);
+    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s", __func__, slot, keyid, peerid,
+        ciphername);
 
     const size_t key_len = cipher_kt_key_size(ciphername);
     const int nonce_tail_len = 8;
@@ -631,23 +620,19 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid,
     NLA_PUT_U32(nl_msg, OVPN_A_KEYCONF_KEY_ID, keyid);
     NLA_PUT_U32(nl_msg, OVPN_A_KEYCONF_CIPHER_ALG, dco_cipher);
 
-    struct nlattr *key_enc = nla_nest_start(nl_msg,
-                                            OVPN_A_KEYCONF_ENCRYPT_DIR);
+    struct nlattr *key_enc = nla_nest_start(nl_msg, OVPN_A_KEYCONF_ENCRYPT_DIR);
     if (dco_cipher != OVPN_CIPHER_ALG_NONE)
     {
         NLA_PUT(nl_msg, OVPN_A_KEYDIR_CIPHER_KEY, key_len, encrypt_key);
-        NLA_PUT(nl_msg, OVPN_A_KEYDIR_NONCE_TAIL, nonce_tail_len,
-                encrypt_iv);
+        NLA_PUT(nl_msg, OVPN_A_KEYDIR_NONCE_TAIL, nonce_tail_len, encrypt_iv);
     }
     nla_nest_end(nl_msg, key_enc);
 
-    struct nlattr *key_dec = nla_nest_start(nl_msg,
-                                            OVPN_A_KEYCONF_DECRYPT_DIR);
+    struct nlattr *key_dec = nla_nest_start(nl_msg, OVPN_A_KEYCONF_DECRYPT_DIR);
     if (dco_cipher != OVPN_CIPHER_ALG_NONE)
     {
         NLA_PUT(nl_msg, OVPN_A_KEYDIR_CIPHER_KEY, key_len, decrypt_key);
-        NLA_PUT(nl_msg, OVPN_A_KEYDIR_NONCE_TAIL, nonce_tail_len,
-                decrypt_iv);
+        NLA_PUT(nl_msg, OVPN_A_KEYDIR_NONCE_TAIL, nonce_tail_len, decrypt_iv);
     }
     nla_nest_end(nl_msg, key_dec);
 
@@ -662,11 +647,11 @@ nla_put_failure:
 }
 
 int
-dco_set_peer(dco_context_t *dco, unsigned int peerid,
-             int keepalive_interval, int keepalive_timeout, int mss)
+dco_set_peer(dco_context_t *dco, unsigned int peerid, int keepalive_interval, int keepalive_timeout,
+             int mss)
 {
-    msg(D_DCO_DEBUG, "%s: peer-id %d, keepalive %d/%d, mss %d", __func__,
-        peerid, keepalive_interval, keepalive_timeout, mss);
+    msg(D_DCO_DEBUG, "%s: peer-id %d, keepalive %d/%d, mss %d", __func__, peerid,
+        keepalive_interval, keepalive_timeout, mss);
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_PEER_SET);
     if (!nl_msg)
@@ -677,10 +662,8 @@ dco_set_peer(dco_context_t *dco, unsigned int peerid,
     struct nlattr *attr = nla_nest_start(nl_msg, OVPN_A_PEER);
     int ret = -EMSGSIZE;
     NLA_PUT_U32(nl_msg, OVPN_A_PEER_ID, peerid);
-    NLA_PUT_U32(nl_msg, OVPN_A_PEER_KEEPALIVE_INTERVAL,
-                keepalive_interval);
-    NLA_PUT_U32(nl_msg, OVPN_A_PEER_KEEPALIVE_TIMEOUT,
-                keepalive_timeout);
+    NLA_PUT_U32(nl_msg, OVPN_A_PEER_KEEPALIVE_INTERVAL, keepalive_interval);
+    NLA_PUT_U32(nl_msg, OVPN_A_PEER_KEEPALIVE_TIMEOUT, keepalive_timeout);
     nla_nest_end(nl_msg, attr);
 
     ret = ovpn_nl_msg_send(dco, nl_msg, __func__);
@@ -704,8 +687,7 @@ mcast_family_handler(struct nl_msg *msg, void *arg)
     struct nlattr *tb[CTRL_ATTR_MAX + 1];
     struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
 
-    nla_parse(tb, CTRL_ATTR_MAX, genlmsg_attrdata(gnlh, 0),
-              genlmsg_attrlen(gnlh, 0), NULL);
+    nla_parse(tb, CTRL_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0), NULL);
 
     if (!tb[CTRL_ATTR_MCAST_GROUPS])
     {
@@ -718,18 +700,16 @@ mcast_family_handler(struct nl_msg *msg, void *arg)
     {
         struct nlattr *tb_mcgrp[CTRL_ATTR_MCAST_GRP_MAX + 1];
 
-        nla_parse(tb_mcgrp, CTRL_ATTR_MCAST_GRP_MAX,
-                  nla_data(mcgrp), nla_len(mcgrp), NULL);
+        nla_parse(tb_mcgrp, CTRL_ATTR_MCAST_GRP_MAX, nla_data(mcgrp), nla_len(mcgrp), NULL);
 
-        if (!tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]
-            || !tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID])
+        if (!tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME] || !tb_mcgrp[CTRL_ATTR_MCAST_GRP_ID])
         {
             continue;
         }
 
-        if (strncmp(nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]),
-                    OVPN_MCGRP_PEERS,
-                    nla_len(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME])) != 0)
+        if (strncmp(nla_data(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]), OVPN_MCGRP_PEERS,
+                    nla_len(tb_mcgrp[CTRL_ATTR_MCAST_GRP_NAME]))
+            != 0)
         {
             continue;
         }
@@ -829,49 +809,41 @@ dco_update_peer_stat(struct context_2 *c2, struct nlattr *tb[], uint32_t id)
     if (tb[OVPN_A_PEER_LINK_RX_BYTES])
     {
         c2->dco_read_bytes = ovpn_nla_get_uint(tb[OVPN_A_PEER_LINK_RX_BYTES]);
-        msg(D_DCO_DEBUG, "%s / dco_read_bytes: " counter_format, __func__,
-            c2->dco_read_bytes);
+        msg(D_DCO_DEBUG, "%s / dco_read_bytes: " counter_format, __func__, c2->dco_read_bytes);
     }
     else
     {
-        msg(M_WARN, "%s: no link RX bytes provided in reply for peer %u",
-            __func__, id);
+        msg(M_WARN, "%s: no link RX bytes provided in reply for peer %u", __func__, id);
     }
 
     if (tb[OVPN_A_PEER_LINK_TX_BYTES])
     {
         c2->dco_write_bytes = ovpn_nla_get_uint(tb[OVPN_A_PEER_LINK_TX_BYTES]);
-        msg(D_DCO_DEBUG, "%s / dco_write_bytes: " counter_format, __func__,
-            c2->dco_write_bytes);
+        msg(D_DCO_DEBUG, "%s / dco_write_bytes: " counter_format, __func__, c2->dco_write_bytes);
     }
     else
     {
-        msg(M_WARN, "%s: no link TX bytes provided in reply for peer %u",
-            __func__, id);
+        msg(M_WARN, "%s: no link TX bytes provided in reply for peer %u", __func__, id);
     }
 
     if (tb[OVPN_A_PEER_VPN_RX_BYTES])
     {
         c2->tun_read_bytes = ovpn_nla_get_uint(tb[OVPN_A_PEER_VPN_RX_BYTES]);
-        msg(D_DCO_DEBUG, "%s / tun_read_bytes: " counter_format, __func__,
-            c2->tun_read_bytes);
+        msg(D_DCO_DEBUG, "%s / tun_read_bytes: " counter_format, __func__, c2->tun_read_bytes);
     }
     else
     {
-        msg(M_WARN, "%s: no VPN RX bytes provided in reply for peer %u",
-            __func__, id);
+        msg(M_WARN, "%s: no VPN RX bytes provided in reply for peer %u", __func__, id);
     }
 
     if (tb[OVPN_A_PEER_VPN_TX_BYTES])
     {
         c2->tun_write_bytes = ovpn_nla_get_uint(tb[OVPN_A_PEER_VPN_TX_BYTES]);
-        msg(D_DCO_DEBUG, "%s / tun_write_bytes: " counter_format, __func__,
-            c2->tun_write_bytes);
+        msg(D_DCO_DEBUG, "%s / tun_write_bytes: " counter_format, __func__, c2->tun_write_bytes);
     }
     else
     {
-        msg(M_WARN, "%s: no VPN TX bytes provided in reply for peer %u",
-            __func__, id);
+        msg(M_WARN, "%s: no VPN TX bytes provided in reply for peer %u", __func__, id);
     }
 }
 
@@ -945,8 +917,7 @@ ovpn_iface_check(dco_context_t *dco, struct nlattr *attrs[])
     uint32_t ifindex = nla_get_u32(attrs[OVPN_A_IFINDEX]);
     if (ifindex != dco->ifindex)
     {
-        msg(D_DCO_DEBUG,
-            "ovpn-dco: ignoring message for foreign ifindex %d", ifindex);
+        msg(D_DCO_DEBUG, "ovpn-dco: ignoring message for foreign ifindex %d", ifindex);
         return false;
     }
 
@@ -968,8 +939,7 @@ ovpn_handle_peer_del_ntf(dco_context_t *dco, struct nlattr *attrs[])
     }
 
     struct nlattr *dp_attrs[OVPN_A_PEER_MAX + 1];
-    if (nla_parse_nested(dp_attrs, OVPN_A_PEER_MAX, attrs[OVPN_A_PEER],
-                         NULL))
+    if (nla_parse_nested(dp_attrs, OVPN_A_PEER_MAX, attrs[OVPN_A_PEER], NULL))
     {
         msg(D_DCO, "ovpn-dco: can't parse peer in PEER_DEL_NTF messsage");
         return NL_STOP;
@@ -1013,8 +983,7 @@ ovpn_handle_peer_float_ntf(dco_context_t *dco, struct nlattr *attrs[])
     }
 
     struct nlattr *fp_attrs[OVPN_A_PEER_MAX + 1];
-    if (nla_parse_nested(fp_attrs, OVPN_A_PEER_MAX, attrs[OVPN_A_PEER],
-                         NULL))
+    if (nla_parse_nested(fp_attrs, OVPN_A_PEER_MAX, attrs[OVPN_A_PEER], NULL))
     {
         msg(D_DCO, "ovpn-dco: can't parse peer in PEER_FLOAT_NTF messsage");
         return NL_STOP;
@@ -1033,8 +1002,7 @@ ovpn_handle_peer_float_ntf(dco_context_t *dco, struct nlattr *attrs[])
     }
 
     struct gc_arena gc = gc_new();
-    msg(D_DCO_DEBUG,
-        "ovpn-dco: received CMD_PEER_FLOAT_NTF, ifindex: %u, peer-id %u, address: %s",
+    msg(D_DCO_DEBUG, "ovpn-dco: received CMD_PEER_FLOAT_NTF, ifindex: %u, peer-id %u, address: %s",
         dco->ifindex, peerid, print_sockaddr((struct sockaddr *)&dco->dco_float_peer_ss, &gc));
     dco->dco_message_peer_id = (int)peerid;
     dco->dco_message_type = OVPN_CMD_PEER_FLOAT_NTF;
@@ -1059,8 +1027,7 @@ ovpn_handle_key_swap_ntf(dco_context_t *dco, struct nlattr *attrs[])
     }
 
     struct nlattr *dp_attrs[OVPN_A_KEYCONF_MAX + 1];
-    if (nla_parse_nested(dp_attrs, OVPN_A_KEYCONF_MAX,
-                         attrs[OVPN_A_KEYCONF], NULL))
+    if (nla_parse_nested(dp_attrs, OVPN_A_KEYCONF_MAX, attrs[OVPN_A_KEYCONF], NULL))
     {
         msg(D_DCO, "ovpn-dco: can't parse keyconf in KEY_SWAP_NTF message");
         return NL_STOP;
@@ -1117,8 +1084,7 @@ ovpn_handle_msg(struct nl_msg *msg, void *arg)
         return NL_STOP;
     }
 
-    if (nla_parse(attrs, OVPN_A_MAX, genlmsg_attrdata(gnlh, 0),
-                  genlmsg_attrlen(gnlh, 0), NULL))
+    if (nla_parse(attrs, OVPN_A_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0), NULL))
     {
         msg(D_DCO, "received bogus data from ovpn-dco");
         return NL_STOP;
@@ -1206,8 +1172,8 @@ nla_put_failure:
     if (raise_sigusr1_on_err && ret < 0)
     {
         msg(M_WARN, "Error retrieving DCO peer stats: the underlying DCO peer"
-            "may have been deleted from the kernel without notifying "
-            "userspace. Restarting the session");
+                    "may have been deleted from the kernel without notifying "
+                    "userspace. Restarting the session");
         register_signal(dco->c->sig, SIGUSR1, "dco peer stats error");
     }
     return ret;
@@ -1230,8 +1196,7 @@ dco_available(int msglevel)
 {
     if (resolve_ovpn_netlink_id(D_DCO_DEBUG) < 0)
     {
-        msg(msglevel,
-            "Note: Kernel support for ovpn-dco missing, disabling data channel offload.");
+        msg(msglevel, "Note: Kernel support for ovpn-dco missing, disabling data channel offload.");
         return false;
     }
 

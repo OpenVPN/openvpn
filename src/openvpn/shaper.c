@@ -86,6 +86,5 @@ shaper_reset_wakeup(struct shaper *s)
 void
 shaper_msg(struct shaper *s)
 {
-    msg(M_INFO, "Output Traffic Shaping initialized at %d bytes per second",
-        s->bytes_per_second);
+    msg(M_INFO, "Output Traffic Shaping initialized at %d bytes per second", s->bytes_per_second);
 }

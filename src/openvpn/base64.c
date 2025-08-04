@@ -41,8 +41,7 @@
 
 #include "memdbg.h"
 
-static char base64_chars[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static char base64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 /*
  * base64 encode input data of length size to malloced
  * buffer which is returned as *str.  Returns string
@@ -60,14 +59,14 @@ openvpn_base64_encode(const void *data, int size, char **str)
     {
         return -1;
     }
-    p = s = (char *) malloc(size * 4 / 3 + 4);
+    p = s = (char *)malloc(size * 4 / 3 + 4);
     if (p == NULL)
     {
         return -1;
     }
-    q = (const unsigned char *) data;
+    q = (const unsigned char *)data;
     i = 0;
-    for (i = 0; i < size; )
+    for (i = 0; i < size;)
     {
         c = q[i++];
         c *= 256;
@@ -196,5 +195,5 @@ openvpn_base64_decode(const char *str, void *data, int size)
             *q++ = val & 0xff;
         }
     }
-    return q - (unsigned char *) data;
+    return q - (unsigned char *)data;
 }

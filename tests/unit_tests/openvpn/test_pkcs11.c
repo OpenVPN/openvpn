@@ -39,8 +39,8 @@
 #include "test_common.h"
 
 #define token_name "Test Token"
-#define PIN "12345"
-#define HASHSIZE 20
+#define PIN        "12345"
+#define HASHSIZE   20
 
 
 struct management *management; /* global */
@@ -58,8 +58,8 @@ crypto_print_openssl_errors(const unsigned int flags)
 
 /* stubs for some unused functions instead of pulling in too many dependencies */
 int
-parse_line(const char *line, char **p, const int n, const char *file,
-           const int line_num, int msglevel, struct gc_arena *gc)
+parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
+           int msglevel, struct gc_arena *gc)
 {
     assert_true(0);
     return 0;
@@ -91,45 +91,43 @@ query_user_exec_builtin(void)
 void
 query_user_add(char *prompt, size_t prompt_len, char *resp, size_t resp_len, bool echo)
 {
-    (void) prompt;
-    (void) prompt_len;
-    (void) resp;
-    (void) resp_len;
-    (void) echo;
+    (void)prompt;
+    (void)prompt_len;
+    (void)resp;
+    (void)resp_len;
+    (void)echo;
     assert_true(0);
 }
 void
 purge_user_pass(struct user_pass *up, const bool force)
 {
-    (void) force;
+    (void)force;
     secure_memzero(up, sizeof(*up));
 }
 
 char *
-management_query_pk_sig(struct management *man, const char *b64_data,
-                        const char *algorithm)
+management_query_pk_sig(struct management *man, const char *b64_data, const char *algorithm)
 {
-    (void) man;
-    (void) b64_data;
-    (void) algorithm;
+    (void)man;
+    (void)b64_data;
+    (void)algorithm;
     return NULL;
 }
 
-int
-digest_sign_verify(EVP_PKEY *privkey, EVP_PKEY *pubkey);
+int digest_sign_verify(EVP_PKEY *privkey, EVP_PKEY *pubkey);
 
 /* Test certificate database: data for cert1, cert2 .. key1, key2 etc.
  * are defined in cert_data.h
  */
 static struct test_cert
 {
-    const char *const cert;             /* certificate as PEM */
-    const char *const key;              /* key as unencrypted PEM */
-    const char *const cname;            /* common-name */
-    const char *const issuer;           /* issuer common-name */
-    const char *const friendly_name;    /* identifies certs loaded to the store -- keep unique */
-    uint8_t hash[HASHSIZE];             /* SHA1 fingerprint: computed and filled in later */
-    char *p11_id;                       /* PKCS#11 id -- filled in later */
+    const char *const cert;          /* certificate as PEM */
+    const char *const key;           /* key as unencrypted PEM */
+    const char *const cname;         /* common-name */
+    const char *const issuer;        /* issuer common-name */
+    const char *const friendly_name; /* identifies certs loaded to the store -- keep unique */
+    uint8_t hash[HASHSIZE];          /* SHA1 fingerprint: computed and filled in later */
+    char *p11_id;                    /* PKCS#11 id -- filled in later */
 } certs[5];
 
 static bool pkcs11_id_management;
@@ -144,11 +142,11 @@ void
 init_cert_data(void)
 {
     struct test_cert certs_local[] = {
-        {cert1,  key1,  cname1,  "OVPN TEST CA1",  "OVPN Test Cert 1",  {0},  NULL},
-        {cert2,  key2,  cname2,  "OVPN TEST CA2",  "OVPN Test Cert 2",  {0},  NULL},
-        {cert3,  key3,  cname3,  "OVPN TEST CA1",  "OVPN Test Cert 3",  {0},  NULL},
-        {cert4,  key4,  cname4,  "OVPN TEST CA2",  "OVPN Test Cert 4",  {0},  NULL},
-        {0}
+        { cert1, key1, cname1, "OVPN TEST CA1", "OVPN Test Cert 1", { 0 }, NULL },
+        { cert2, key2, cname2, "OVPN TEST CA2", "OVPN Test Cert 2", { 0 }, NULL },
+        { cert3, key3, cname3, "OVPN TEST CA1", "OVPN Test Cert 3", { 0 }, NULL },
+        { cert4, key4, cname4, "OVPN TEST CA2", "OVPN Test Cert 4", { 0 }, NULL },
+        { 0 }
     };
     assert(sizeof(certs_local) == sizeof(certs));
     memcpy(certs, certs_local, sizeof(certs_local));
@@ -159,9 +157,9 @@ bool
 get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix,
                  const unsigned int flags, const char *unused)
 {
-    (void) unused;
+    (void)unused;
     bool ret = true;
-    if (!strcmp(prefix, "pkcs11-id-request") && flags&GET_USER_PASS_NEED_STR)
+    if (!strcmp(prefix, "pkcs11-id-request") && flags & GET_USER_PASS_NEED_STR)
     {
         assert_true(pkcs11_id_management);
         strncpynt(up->password, pkcs11_id_current, sizeof(up->password));
@@ -195,15 +193,16 @@ OSSL_PROVIDER *prov[2];
 static int
 init(void **state)
 {
-    (void) state;
+    (void)state;
 
-    umask(0077);  /* ensure all files and directories we create get user only access */
+    umask(0077); /* ensure all files and directories we create get user only access */
     char config[256];
 
     init_cert_data();
     if (!mkdtemp(softhsm2_tokens_path))
     {
-        fail_msg("make tmpdir using template <%s> failed (error = %d)", softhsm2_tokens_path, errno);
+        fail_msg("make tmpdir using template <%s> failed (error = %d)", softhsm2_tokens_path,
+                 errno);
     }
 
     int fd = mkstemp(softhsm2_conf_path);
@@ -211,8 +210,7 @@ init(void **state)
     {
         fail_msg("make tmpfile using template <%s> failed (error = %d)", softhsm2_conf_path, errno);
     }
-    snprintf(config, sizeof(config), "directories.tokendir=%s/",
-             softhsm2_tokens_path);
+    snprintf(config, sizeof(config), "directories.tokendir=%s/", softhsm2_tokens_path);
     assert_int_equal(write(fd, config, strlen(config)), strlen(config));
     close(fd);
 
@@ -260,14 +258,16 @@ init(void **state)
         argv_free(&a);
         a = argv_new();
         /* Use numcerts+1 as a unique id of the object  -- same id for matching cert and key */
-        argv_printf(&a, "%s --provider %s --load-certificate %s --label \"%s\" --id %08x --login --write",
-                    P11TOOL_PATH, SOFTHSM2_MODULE_PATH, cert, c->friendly_name, num_certs+1);
+        argv_printf(
+            &a, "%s --provider %s --load-certificate %s --label \"%s\" --id %08x --login --write",
+            P11TOOL_PATH, SOFTHSM2_MODULE_PATH, cert, c->friendly_name, num_certs + 1);
         assert_true(openvpn_execve_check(&a, es, 0, "Failed to upload certificate into token"));
 
         argv_free(&a);
         a = argv_new();
-        argv_printf(&a, "%s --provider %s --load-privkey %s --label \"%s\" --id %08x --login --write",
-                    P11TOOL_PATH, SOFTHSM2_MODULE_PATH, key, c->friendly_name, num_certs+1);
+        argv_printf(&a,
+                    "%s --provider %s --load-privkey %s --label \"%s\" --id %08x --login --write",
+                    P11TOOL_PATH, SOFTHSM2_MODULE_PATH, key, c->friendly_name, num_certs + 1);
         assert_true(openvpn_execve_check(&a, es, 0, "Failed to upload key into token"));
 
         assert_int_equal(ftruncate(cert_fd, 0), 0);
@@ -288,7 +288,7 @@ init(void **state)
 static int
 cleanup(void **state)
 {
-    (void) state;
+    (void)state;
     struct argv a = argv_new();
 
     argv_printf(&a, "%s --delete-token --token \"%s\"", SOFTHSM2_UTIL_PATH, token_name);
@@ -410,7 +410,7 @@ test_pkcs11_ids(void **state)
 static void
 test_tls_ctx_use_pkcs11(void **state)
 {
-    (void) state;
+    (void)state;
     struct tls_root_ctx tls_ctx = {};
     uint8_t sha1[HASHSIZE];
     for (struct test_cert *c = certs; c->cert; c++)
@@ -451,7 +451,8 @@ test_tls_ctx_use_pkcs11(void **state)
 #else
         if (!SSL_CTX_check_private_key(tls_ctx.ctx))
         {
-            fail_msg("Certificate and private key in ssl_ctx do not match for <%s>", c->friendly_name);
+            fail_msg("Certificate and private key in ssl_ctx do not match for <%s>",
+                     c->friendly_name);
             return;
         }
 #endif
@@ -472,10 +473,8 @@ main(void)
 {
     openvpn_unit_test_setup();
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup_teardown(test_pkcs11_ids, setup_pkcs11,
-                                        teardown_pkcs11),
-        cmocka_unit_test_setup_teardown(test_tls_ctx_use_pkcs11, setup_pkcs11,
-                                        teardown_pkcs11),
+        cmocka_unit_test_setup_teardown(test_pkcs11_ids, setup_pkcs11, teardown_pkcs11),
+        cmocka_unit_test_setup_teardown(test_tls_ctx_use_pkcs11, setup_pkcs11, teardown_pkcs11),
         cmocka_unit_test_setup_teardown(test_tls_ctx_use_pkcs11__management, setup_pkcs11,
                                         teardown_pkcs11),
     };

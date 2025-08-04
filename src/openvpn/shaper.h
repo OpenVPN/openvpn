@@ -36,10 +36,10 @@
  * the output direction.
  */
 
-#define SHAPER_MIN 100          /* bytes per second */
+#define SHAPER_MIN 100 /* bytes per second */
 #define SHAPER_MAX 100000000
 
-#define SHAPER_MAX_TIMEOUT 10   /* seconds */
+#define SHAPER_MAX_TIMEOUT 10 /* seconds */
 
 #define SHAPER_USE_FP
 
@@ -125,11 +125,12 @@ shaper_wrote_bytes(struct shaper *s, int nbytes)
     /* compute delay in microseconds */
     tv.tv_sec = 0;
 #ifdef SHAPER_USE_FP
-    tv.tv_usec = min_int((int)((double)max_int(nbytes, 100) * s->factor), (SHAPER_MAX_TIMEOUT*1000000));
+    tv.tv_usec =
+        min_int((int)((double)max_int(nbytes, 100) * s->factor), (SHAPER_MAX_TIMEOUT * 1000000));
 #else
     tv.tv_usec = s->bytes_per_second
-                 ? min_int(max_int(nbytes, 100) * s->factor, (SHAPER_MAX_TIMEOUT*1000000))
-                 : 0;
+                     ? min_int(max_int(nbytes, 100) * s->factor, (SHAPER_MAX_TIMEOUT * 1000000))
+                     : 0;
 #endif
 
     if (tv.tv_usec)
@@ -138,11 +139,9 @@ shaper_wrote_bytes(struct shaper *s, int nbytes)
         tv_add(&s->wakeup, &tv);
 
 #ifdef SHAPER_DEBUG
-        dmsg(D_SHAPER_DEBUG, "SHAPER shaper_wrote_bytes bytes=%d delay=%ld sec=%" PRIi64 " usec=%ld",
-             nbytes,
-             (long)tv.tv_usec,
-             (int64_t)s->wakeup.tv_sec,
-             (long)s->wakeup.tv_usec);
+        dmsg(D_SHAPER_DEBUG,
+             "SHAPER shaper_wrote_bytes bytes=%d delay=%ld sec=%" PRIi64 " usec=%ld", nbytes,
+             (long)tv.tv_usec, (int64_t)s->wakeup.tv_sec, (long)s->wakeup.tv_usec);
 #endif
     }
 }

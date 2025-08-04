@@ -45,7 +45,7 @@ struct management *management; /* global */
 static int mgmt_callback_called;
 
 #ifndef _countof
-#define _countof(x) sizeof((x))/sizeof(*(x))
+#define _countof(x) sizeof((x)) / sizeof(*(x))
 #endif
 
 static OSSL_PROVIDER *prov[2];
@@ -70,7 +70,7 @@ static const char pubkey3[] = "-----BEGIN PUBLIC KEY-----\n"
                               "MCowBQYDK2VwAyEA+q5xjF5hGyyqYZidJdz/0saEQabL3N4wIZJBxNGbgJE=\n"
                               "-----END PUBLIC KEY-----";
 
-static const char *pubkeys[] = {pubkey1, pubkey2, pubkey3};
+static const char *pubkeys[] = { pubkey1, pubkey2, pubkey3 };
 
 static const char *prov_name = "ovpn.xkey";
 
@@ -84,11 +84,10 @@ static const char *test_msg_b64 =
     "bG9yZSBtYWduYSBhbGlxdWEu";
 
 /* Sha256 digest of test_msg excluding NUL terminator */
-static const uint8_t test_digest[] = {
-    0x77, 0x38, 0x65, 0x00, 0x1e, 0x96, 0x48, 0xc6, 0x57, 0x0b, 0xae,
-    0xc0, 0xb7, 0x96, 0xf9, 0x66, 0x4d, 0x5f, 0xd0, 0xb7, 0xdb, 0xf3,
-    0x3a, 0xbf, 0x02, 0xcc, 0x78, 0x61, 0x83, 0x20, 0x20, 0xee
-};
+static const uint8_t test_digest[] = { 0x77, 0x38, 0x65, 0x00, 0x1e, 0x96, 0x48, 0xc6,
+                                       0x57, 0x0b, 0xae, 0xc0, 0xb7, 0x96, 0xf9, 0x66,
+                                       0x4d, 0x5f, 0xd0, 0xb7, 0xdb, 0xf3, 0x3a, 0xbf,
+                                       0x02, 0xcc, 0x78, 0x61, 0x83, 0x20, 0x20, 0xee };
 
 static const char *test_digest_b64 = "dzhlAB6WSMZXC67At5b5Zk1f0Lfb8zq/Asx4YYMgIO4=";
 
@@ -97,10 +96,9 @@ static const char *test_digest_b64 = "dzhlAB6WSMZXC67At5b5Zk1f0Lfb8zq/Asx4YYMgIO
  * --- the smallest size of the actual signature with the above
  * keys.
  */
-static const uint8_t good_sig[] = {
-    0xd8, 0xa7, 0xd9, 0x81, 0xd8, 0xaa, 0xd8, 0xad, 0x20, 0xd9, 0x8a, 0xd8,
-    0xa7, 0x20, 0xd8, 0xb3, 0xd9, 0x85, 0xd8, 0xb3, 0xd9, 0x85, 0x0
-};
+static const uint8_t good_sig[] = { 0xd8, 0xa7, 0xd9, 0x81, 0xd8, 0xaa, 0xd8, 0xad,
+                                    0x20, 0xd9, 0x8a, 0xd8, 0xa7, 0x20, 0xd8, 0xb3,
+                                    0xd9, 0x85, 0xd8, 0xb3, 0xd9, 0x85, 0x0 };
 
 static const char *good_sig_b64 = "2KfZgdiq2K0g2YrYpyDYs9mF2LPZhQA=";
 
@@ -153,8 +151,7 @@ uninit_test(void)
  * the management client.
  */
 char *
-management_query_pk_sig(struct management *man, const char *b64_data,
-                        const char *algorithm)
+management_query_pk_sig(struct management *man, const char *b64_data, const char *algorithm)
 {
     char *out = NULL;
 
@@ -195,7 +192,7 @@ xkey_provider_test_fetch(void **state)
 {
     assert_true(OSSL_PROVIDER_available(NULL, prov_name));
 
-    const char *algs[] = {"RSA", "ECDSA"};
+    const char *algs[] = { "RSA", "ECDSA" };
 
     for (size_t i = 0; i < _countof(algs); i++)
     {
@@ -206,7 +203,7 @@ xkey_provider_test_fetch(void **state)
         EVP_SIGNATURE_free(sig);
     }
 
-    const char *names[] = {"RSA", "EC"};
+    const char *names[] = { "RSA", "EC" };
 
     for (size_t i = 0; i < _countof(names); i++)
     {
@@ -225,7 +222,7 @@ digest_sign(EVP_PKEY *pkey)
     uint8_t *sig = NULL;
     size_t siglen = 0;
 
-    OSSL_PARAM params[6] = {OSSL_PARAM_END};
+    OSSL_PARAM params[6] = { OSSL_PARAM_END };
 
     const char *mdname = "SHA256";
     const char *padmode = "pss";
@@ -233,11 +230,15 @@ digest_sign(EVP_PKEY *pkey)
 
     if (EVP_PKEY_get_id(pkey) == EVP_PKEY_RSA)
     {
-        params[0] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_DIGEST, (char *)mdname, 0);
-        params[1] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PAD_MODE, (char *)padmode, 0);
-        params[2] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PSS_SALTLEN, (char *)saltlen, 0);
+        params[0] =
+            OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_DIGEST, (char *)mdname, 0);
+        params[1] =
+            OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PAD_MODE, (char *)padmode, 0);
+        params[2] =
+            OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PSS_SALTLEN, (char *)saltlen, 0);
         /* same digest for mgf1 */
-        params[3] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_MGF1_DIGEST, (char *)saltlen, 0);
+        params[3] =
+            OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_MGF1_DIGEST, (char *)saltlen, 0);
         params[4] = OSSL_PARAM_construct_end();
     }
     else if (EVP_PKEY_get_id(pkey) == EVP_PKEY_ED25519)
@@ -250,8 +251,7 @@ digest_sign(EVP_PKEY *pkey)
     EVP_PKEY_CTX *pctx = NULL;
     EVP_MD_CTX *mctx = EVP_MD_CTX_new();
 
-    if (!mctx
-        || EVP_DigestSignInit_ex(mctx, &pctx, mdname, NULL, NULL, pkey,  params) <= 0)
+    if (!mctx || EVP_DigestSignInit_ex(mctx, &pctx, mdname, NULL, NULL, pkey, params) <= 0)
     {
         fail_msg("Failed to initialize EVP_DigestSignInit_ex()");
         goto done;
@@ -291,7 +291,7 @@ xkey_provider_test_mgmt_sign_cb(void **state)
         EVP_PKEY *privkey = xkey_load_management_key(NULL, pubkey);
         assert_true(privkey != NULL);
 
-        management->settings.flags = MF_EXTERNAL_KEY|MF_EXTERNAL_KEY_PSSPAD;
+        management->settings.flags = MF_EXTERNAL_KEY | MF_EXTERNAL_KEY_PSSPAD;
 
         /* first without digest support in management client */
 again:
@@ -328,8 +328,8 @@ xkey_free(void *handle)
 }
 
 static int
-xkey_sign(void *handle, unsigned char *sig, size_t *siglen,
-          const unsigned char *tbs, size_t tbslen, XKEY_SIGALG s)
+xkey_sign(void *handle, unsigned char *sig, size_t *siglen, const unsigned char *tbs, size_t tbslen,
+          XKEY_SIGALG s)
 {
     if (!sig)
     {
@@ -386,7 +386,8 @@ xkey_provider_test_generic_sign_cb(void **state)
         pubkey = load_pubkey(pubkeys[i]);
         assert_true(pubkey != NULL);
 
-        EVP_PKEY *privkey = xkey_load_generic_key(NULL, (void *)dummy, pubkey, xkey_sign, xkey_free);
+        EVP_PKEY *privkey =
+            xkey_load_generic_key(NULL, (void *)dummy, pubkey, xkey_sign, xkey_free);
         assert_true(privkey != NULL);
 
         xkey_sign_called = 0;

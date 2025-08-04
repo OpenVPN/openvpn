@@ -25,34 +25,26 @@
 #define HASHLEN 16
 typedef unsigned char HASH[HASHLEN];
 #define HASHHEXLEN 32
-typedef unsigned char HASHHEX[HASHHEXLEN+1];
+typedef unsigned char HASHHEX[HASHHEXLEN + 1];
 #undef IN
 #undef OUT
 #define IN const
 #define OUT
 
 /* calculate H(A1) as per HTTP Digest spec */
-void DigestCalcHA1(
-    IN char *pszAlg,
-    IN char *pszUserName,
-    IN char *pszRealm,
-    IN char *pszPassword,
-    IN char *pszNonce,
-    IN char *pszCNonce,
-    OUT HASHHEX SessionKey
-    );
+void DigestCalcHA1(IN char *pszAlg, IN char *pszUserName, IN char *pszRealm, IN char *pszPassword,
+                   IN char *pszNonce, IN char *pszCNonce, OUT HASHHEX SessionKey);
 
 /* calculate request-digest/response-digest as per HTTP Digest spec */
-void DigestCalcResponse(
-    IN HASHHEX HA1,           /* H(A1) */
-    IN char *pszNonce,        /* nonce from server */
-    IN char *pszNonceCount,   /* 8 hex digits */
-    IN char *pszCNonce,       /* client nonce */
-    IN char *pszQop,          /* qop-value: "", "auth", "auth-int" */
-    IN char *pszMethod,       /* method from the request */
-    IN char *pszDigestUri,    /* requested URL */
-    IN HASHHEX HEntity,       /* H(entity body) if qop="auth-int" */
-    OUT HASHHEX Response      /* request-digest or response-digest */
-    );
+void DigestCalcResponse(IN HASHHEX HA1,         /* H(A1) */
+                        IN char *pszNonce,      /* nonce from server */
+                        IN char *pszNonceCount, /* 8 hex digits */
+                        IN char *pszCNonce,     /* client nonce */
+                        IN char *pszQop,        /* qop-value: "", "auth", "auth-int" */
+                        IN char *pszMethod,     /* method from the request */
+                        IN char *pszDigestUri,  /* requested URL */
+                        IN HASHHEX HEntity,     /* H(entity body) if qop="auth-int" */
+                        OUT HASHHEX Response    /* request-digest or response-digest */
+);
 
 #endif /* if PROXY_DIGEST_AUTH */

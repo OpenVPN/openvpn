@@ -26,7 +26,8 @@
 
 /** struct that handles all the rate limiting logic for initial
  * responses */
-struct initial_packet_rate_limit {
+struct initial_packet_rate_limit
+{
     /** This is a hard limit for packets per seconds. */
     int64_t max_per_period;
 
@@ -50,22 +51,19 @@ struct initial_packet_rate_limit {
  * checks if the connection is still allowed to connect under the rate
  * limit. This also increases the internal counter at the same time
  */
-bool
-reflect_filter_rate_limit_check(struct initial_packet_rate_limit *irl);
+bool reflect_filter_rate_limit_check(struct initial_packet_rate_limit *irl);
 
 /**
  * decreases the counter of initial packets seen, so connections that
  * successfully completed the three-way handshake do not count against
  * the counter of initial connection attempts
  */
-void
-reflect_filter_rate_limit_decrease(struct initial_packet_rate_limit *irl);
+void reflect_filter_rate_limit_decrease(struct initial_packet_rate_limit *irl);
 
 /**
  * allocate and initialize the initial-packet rate limiter structure
  */
-struct initial_packet_rate_limit *
-initial_rate_limit_init(int max_per_period, int period_length);
+struct initial_packet_rate_limit *initial_rate_limit_init(int max_per_period, int period_length);
 
 /**
  * free the initial-packet rate limiter structure

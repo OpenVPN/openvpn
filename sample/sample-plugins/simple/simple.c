@@ -38,7 +38,8 @@
 /*
  * Our context, where we keep our state.
  */
-struct plugin_context {
+struct plugin_context
+{
     const char *username;
     const char *password;
 };
@@ -77,7 +78,7 @@ openvpn_plugin_open_v1(unsigned int *type_mask, const char *argv[], const char *
     /*
      * Allocate our context
      */
-    context = (struct plugin_context *) calloc(1, sizeof(struct plugin_context));
+    context = (struct plugin_context *)calloc(1, sizeof(struct plugin_context));
     if (context == NULL)
     {
         printf("PLUGIN: allocating memory for context failed\n");
@@ -96,21 +97,22 @@ openvpn_plugin_open_v1(unsigned int *type_mask, const char *argv[], const char *
      */
     *type_mask = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY);
 
-    return (openvpn_plugin_handle_t) context;
+    return (openvpn_plugin_handle_t)context;
 }
 
 OPENVPN_EXPORT int
-openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const char *argv[], const char *envp[])
+openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const char *argv[],
+                       const char *envp[])
 {
-    struct plugin_context *context = (struct plugin_context *) handle;
+    struct plugin_context *context = (struct plugin_context *)handle;
 
     /* get username/password from envp string array */
     const char *username = get_env("username", envp);
     const char *password = get_env("password", envp);
 
     /* check entered username/password against what we require */
-    if (username && !strcmp(username, context->username)
-        && password && !strcmp(password, context->password))
+    if (username && !strcmp(username, context->username) && password
+        && !strcmp(password, context->password))
     {
         return OPENVPN_PLUGIN_FUNC_SUCCESS;
     }
@@ -123,6 +125,6 @@ openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const cha
 OPENVPN_EXPORT void
 openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
 {
-    struct plugin_context *context = (struct plugin_context *) handle;
+    struct plugin_context *context = (struct plugin_context *)handle;
     free(context);
 }

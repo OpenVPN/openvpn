@@ -34,27 +34,27 @@
 /*
  * Metrics
  */
-#define PERF_BIO_READ_PLAINTEXT     0
-#define PERF_BIO_WRITE_PLAINTEXT    1
-#define PERF_BIO_READ_CIPHERTEXT    2
-#define PERF_BIO_WRITE_CIPHERTEXT   3
-#define PERF_TLS_MULTI_PROCESS      4
-#define PERF_IO_WAIT                5
-#define PERF_EVENT_LOOP             6
-#define PERF_MULTI_CREATE_INSTANCE  7
-#define PERF_MULTI_CLOSE_INSTANCE   8
-#define PERF_MULTI_SHOW_STATS       9
-#define PERF_MULTI_BCAST            10
-#define PERF_MULTI_MCAST            11
-#define PERF_SCRIPT                 12
-#define PERF_READ_IN_LINK           13
-#define PERF_PROC_IN_LINK           14
-#define PERF_READ_IN_TUN            15
-#define PERF_PROC_IN_TUN            16
-#define PERF_PROC_OUT_LINK          17
-#define PERF_PROC_OUT_TUN           18
-#define PERF_PROC_OUT_TUN_MTCP      19
-#define PERF_N                      20
+#define PERF_BIO_READ_PLAINTEXT    0
+#define PERF_BIO_WRITE_PLAINTEXT   1
+#define PERF_BIO_READ_CIPHERTEXT   2
+#define PERF_BIO_WRITE_CIPHERTEXT  3
+#define PERF_TLS_MULTI_PROCESS     4
+#define PERF_IO_WAIT               5
+#define PERF_EVENT_LOOP            6
+#define PERF_MULTI_CREATE_INSTANCE 7
+#define PERF_MULTI_CLOSE_INSTANCE  8
+#define PERF_MULTI_SHOW_STATS      9
+#define PERF_MULTI_BCAST           10
+#define PERF_MULTI_MCAST           11
+#define PERF_SCRIPT                12
+#define PERF_READ_IN_LINK          13
+#define PERF_PROC_IN_LINK          14
+#define PERF_READ_IN_TUN           15
+#define PERF_PROC_IN_TUN           16
+#define PERF_PROC_OUT_LINK         17
+#define PERF_PROC_OUT_TUN          18
+#define PERF_PROC_OUT_TUN_MTCP     19
+#define PERF_N                     20
 
 #ifdef ENABLE_PERFORMANCE_METRICS
 
@@ -63,7 +63,7 @@
 /*
  * Stack size
  */
-#define STACK_N               64
+#define STACK_N 64
 
 void perf_push(int type);
 

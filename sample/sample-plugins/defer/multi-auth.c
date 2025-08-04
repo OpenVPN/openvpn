@@ -62,7 +62,8 @@ static char *MODULE = "multi-auth";
  * Our context, where we keep our state.
  */
 
-struct plugin_context {
+struct plugin_context
+{
     int test_deferred_auth;
     char *authid;
     char *test_valid_user;
@@ -103,11 +104,12 @@ plog(const struct plugin_context *ctx, int flags, char *fmt, ...)
  * structver '5' here to indicate a desire for modern openvpn, rather
  * than a need for any particular feature found in structver beyond '1'.
  */
-#define OPENVPN_PLUGIN_VERSION_MIN 3
+#define OPENVPN_PLUGIN_VERSION_MIN   3
 #define OPENVPN_PLUGIN_STRUCTVER_MIN 5
 
 
-struct plugin_per_client_context {
+struct plugin_per_client_context
+{
     int n_calls;
     bool generated_pf_file;
 };
@@ -175,13 +177,13 @@ openvpn_plugin_min_version_required_v1(void)
 
 /* use v3 functions so we can use openvpn's logging and base64 etc. */
 OPENVPN_EXPORT int
-openvpn_plugin_open_v3(const int v3structver,
-                       struct openvpn_plugin_args_open_in const *args,
+openvpn_plugin_open_v3(const int v3structver, struct openvpn_plugin_args_open_in const *args,
                        struct openvpn_plugin_args_open_return *ret)
 {
     if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
     {
-        fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
+        fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n",
+                MODULE);
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
@@ -194,7 +196,7 @@ openvpn_plugin_open_v3(const int v3structver,
      * Allocate our context
      */
     struct plugin_context *context = NULL;
-    context = (struct plugin_context *) calloc(1, sizeof(struct plugin_context));
+    context = (struct plugin_context *)calloc(1, sizeof(struct plugin_context));
     if (!context)
     {
         goto error;
@@ -238,7 +240,7 @@ openvpn_plugin_open_v3(const int v3structver,
      * Which callbacks to intercept.
      */
     ret->type_mask = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY);
-    ret->handle = (openvpn_plugin_handle_t *) context;
+    ret->handle = (openvpn_plugin_handle_t *)context;
 
     plog(context, PLOG_NOTE, "initialization succeeded");
     return OPENVPN_PLUGIN_FUNC_SUCCESS;
@@ -253,29 +255,22 @@ error:
 }
 
 static bool
-do_auth_user_pass(struct plugin_context *context,
-                  const char *username, const char *password)
+do_auth_user_pass(struct plugin_context *context, const char *username, const char *password)
 {
-    plog(context, PLOG_NOTE,
-         "expect_user=%s, received_user=%s, expect_passw=%s, received_passw=%s",
-         np(context->test_valid_user),
-         np(username),
-         np(context->test_valid_pass),
-         np(password));
+    plog(context, PLOG_NOTE, "expect_user=%s, received_user=%s, expect_passw=%s, received_passw=%s",
+         np(context->test_valid_user), np(username), np(context->test_valid_pass), np(password));
 
     if (context->test_valid_user && context->test_valid_pass)
     {
         if ((strcmp(context->test_valid_user, username) != 0)
             || (strcmp(context->test_valid_pass, password) != 0))
         {
-            plog(context, PLOG_ERR,
-                 "User/Password auth result: FAIL");
+            plog(context, PLOG_ERR, "User/Password auth result: FAIL");
             return false;
         }
         else
         {
-            plog(context, PLOG_NOTE,
-                 "User/Password auth result: PASS");
+            plog(context, PLOG_NOTE, "User/Password auth result: PASS");
             return true;
         }
     }
@@ -284,8 +279,7 @@ do_auth_user_pass(struct plugin_context *context,
 
 
 static int
-auth_user_pass_verify(struct plugin_context *context,
-                      struct plugin_per_client_context *pcc,
+auth_user_pass_verify(struct plugin_context *context, struct plugin_per_client_context *pcc,
                       const char *argv[], const char *envp[])
 {
     /* get username/password from envp string array */
@@ -295,8 +289,8 @@ auth_user_pass_verify(struct plugin_context *context,
     if (!context->test_deferred_auth)
     {
         plog(context, PLOG_NOTE, "Direct authentication");
-        return do_auth_user_pass(context, username, password) ?
-               OPENVPN_PLUGIN_FUNC_SUCCESS : OPENVPN_PLUGIN_FUNC_ERROR;
+        return do_auth_user_pass(context, username, password) ? OPENVPN_PLUGIN_FUNC_SUCCESS
+                                                              : OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
     /* get auth_control_file filename from envp string array*/
@@ -317,11 +311,11 @@ auth_user_pass_verify(struct plugin_context *context,
 
     /* fork, sleep, succeed (no "real" auth done = always succeed) */
     pid_t p1 = fork();
-    if (p1 < 0)                 /* Fork failed */
+    if (p1 < 0) /* Fork failed */
     {
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
-    if (p1 > 0)                 /* parent process */
+    if (p1 > 0) /* parent process */
     {
         waitpid(p1, NULL, 0);
         return OPENVPN_PLUGIN_FUNC_DEFERRED;
@@ -331,11 +325,11 @@ auth_user_pass_verify(struct plugin_context *context,
     pid_t p2 = fork();
     if (p2 < 0)
     {
-        plog(context, PLOG_ERR|PLOG_ERRNO, "BACKGROUND: fork(2) failed");
+        plog(context, PLOG_ERR | PLOG_ERRNO, "BACKGROUND: fork(2) failed");
         exit(1);
     }
 
-    if (p2 != 0)                            /* new parent: exit right away */
+    if (p2 != 0) /* new parent: exit right away */
     {
         exit(0);
     }
@@ -347,7 +341,7 @@ auth_user_pass_verify(struct plugin_context *context,
      */
 
     /* do mighty complicated work that will really take time here... */
-    useconds_t wait_time = (useconds_t)context->test_deferred_auth*1000;
+    useconds_t wait_time = (useconds_t)context->test_deferred_auth * 1000;
     plog(context, PLOG_NOTE, "in async/deferred handler, usleep(%u)", wait_time);
     usleep(wait_time);
 
@@ -355,8 +349,7 @@ auth_user_pass_verify(struct plugin_context *context,
     int fd = open(auth_control_file, O_WRONLY);
     if (fd < 0)
     {
-        plog(context, PLOG_ERR|PLOG_ERRNO,
-             "open('%s') failed", auth_control_file);
+        plog(context, PLOG_ERR | PLOG_ERRNO, "open('%s') failed", auth_control_file);
         exit(1);
     }
 
@@ -368,7 +361,7 @@ auth_user_pass_verify(struct plugin_context *context,
 
     if (write(fd, result, 1) != 1)
     {
-        plog(context, PLOG_ERR|PLOG_ERRNO, "write to '%s' failed", auth_control_file );
+        plog(context, PLOG_ERR | PLOG_ERRNO, "write to '%s' failed", auth_control_file);
     }
     close(fd);
 
@@ -377,19 +370,20 @@ auth_user_pass_verify(struct plugin_context *context,
 
 
 OPENVPN_EXPORT int
-openvpn_plugin_func_v3(const int v3structver,
-                       struct openvpn_plugin_args_func_in const *args,
+openvpn_plugin_func_v3(const int v3structver, struct openvpn_plugin_args_func_in const *args,
                        struct openvpn_plugin_args_func_return *ret)
 {
     if (v3structver < OPENVPN_PLUGIN_STRUCTVER_MIN)
     {
-        fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n", MODULE);
+        fprintf(stderr, "%s: this plugin is incompatible with the running version of OpenVPN\n",
+                MODULE);
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
     const char **argv = args->argv;
     const char **envp = args->envp;
-    struct plugin_context *context = (struct plugin_context *) args->handle;
-    struct plugin_per_client_context *pcc = (struct plugin_per_client_context *) args->per_client_context;
+    struct plugin_context *context = (struct plugin_context *)args->handle;
+    struct plugin_per_client_context *pcc =
+        (struct plugin_per_client_context *)args->per_client_context;
     switch (args->type)
     {
         case OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY:
@@ -405,7 +399,7 @@ openvpn_plugin_func_v3(const int v3structver,
 OPENVPN_EXPORT void *
 openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
 {
-    struct plugin_context *context = (struct plugin_context *) handle;
+    struct plugin_context *context = (struct plugin_context *)handle;
     plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_client_constructor_v1");
     return calloc(1, sizeof(struct plugin_per_client_context));
 }
@@ -413,7 +407,7 @@ openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
 OPENVPN_EXPORT void
 openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *per_client_context)
 {
-    struct plugin_context *context = (struct plugin_context *) handle;
+    struct plugin_context *context = (struct plugin_context *)handle;
     plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_client_destructor_v1");
     free(per_client_context);
 }
@@ -421,7 +415,7 @@ openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *per_cl
 OPENVPN_EXPORT void
 openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
 {
-    struct plugin_context *context = (struct plugin_context *) handle;
+    struct plugin_context *context = (struct plugin_context *)handle;
     plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_close_v1");
     free(context);
 }

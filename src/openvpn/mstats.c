@@ -83,7 +83,7 @@ mstats_open(const char *fn)
     }
 
     /* mmap the file */
-    data = mmap(NULL, sizeof(struct mmap_stats), PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+    data = mmap(NULL, sizeof(struct mmap_stats), PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (data == MAP_FAILED)
     {
         msg(M_ERR, "mstats_open: write error: %s", fn);

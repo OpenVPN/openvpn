@@ -67,11 +67,10 @@ get_console_input_win32(const char *prompt, const bool echo, char *input, const 
 
     HANDLE in = GetStdHandle(STD_INPUT_HANDLE);
     int orig_stderr = get_orig_stderr(); /* guaranteed to be always valid */
-    if ((in == INVALID_HANDLE_VALUE)
-        || win32_service_interrupt(&win32_signal)
+    if ((in == INVALID_HANDLE_VALUE) || win32_service_interrupt(&win32_signal)
         || (_write(orig_stderr, prompt, strlen(prompt)) == -1))
     {
-        msg(M_WARN|M_ERRNO, "get_console_input_win32(): unexpected error");
+        msg(M_WARN | M_ERRNO, "get_console_input_win32(): unexpected error");
         return false;
     }
 
@@ -135,7 +134,7 @@ get_console_input_win32(const char *prompt, const bool echo, char *input, const 
     return false;
 }
 
-#endif   /* _WIN32 */
+#endif /* _WIN32 */
 
 
 #ifdef HAVE_TERMIOS_H
@@ -177,7 +176,7 @@ close_tty(FILE *fp)
     }
 }
 
-#endif   /* HAVE_TERMIOS_H */
+#endif /* HAVE_TERMIOS_H */
 
 
 /**
@@ -209,15 +208,17 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
      * (in which case neither stdin or stderr are connected to a tty and
      * /dev/tty can not be open()ed anymore)
      */
-    if (!isatty(0) && !isatty(2) )
+    if (!isatty(0) && !isatty(2))
     {
-        int fd = open( "/dev/tty", O_RDWR );
+        int fd = open("/dev/tty", O_RDWR);
         if (fd < 0)
         {
-            msg(M_FATAL, "neither stdin nor stderr are a tty device and you have neither a "
+            msg(M_FATAL,
+                "neither stdin nor stderr are a tty device and you have neither a "
                 "controlling tty nor systemd - can't ask for '%s'.  If you used --daemon, "
                 "you need to use --askpass to make passphrase-protected keys work, and you "
-                "can not use --auth-nocache.", prompt );
+                "can not use --auth-nocache.",
+                prompt);
         }
         close(fd);
     }
@@ -285,8 +286,8 @@ query_user_exec_builtin(void)
     /* Loop through configured query_user slots */
     for (i = 0; i < QUERY_USER_NUMSLOTS && query_user[i].response != NULL; i++)
     {
-        if (!get_console_input(query_user[i].prompt, query_user[i].echo,
-                               query_user[i].response, query_user[i].response_len) )
+        if (!get_console_input(query_user[i].prompt, query_user[i].echo, query_user[i].response,
+                               query_user[i].response_len))
         {
             /* Force the final result state to failed on failure */
             ret = false;

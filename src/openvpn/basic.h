@@ -26,7 +26,7 @@
 #define BOOL_CAST(x) ((x) ? (true) : (false))
 
 /* size of an array */
-#define SIZE(x) (sizeof(x)/sizeof(x[0]))
+#define SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 /* clear an object (may be optimized away, use secure_memzero() to erase secrets) */
 #define CLEAR(x) memset(&(x), 0, sizeof(x))

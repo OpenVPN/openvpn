@@ -129,7 +129,8 @@
 #include "mtu.h"
 
 /** Wrapper struct to pass around SHA256 digests */
-struct sha256_digest {
+struct sha256_digest
+{
     uint8_t digest[SHA256_DIGEST_LENGTH];
 };
 
@@ -138,8 +139,8 @@ struct sha256_digest {
  */
 struct key_type
 {
-    const char *cipher;         /**< const name of the cipher */
-    const char *digest;         /**< Message digest static parameters */
+    const char *cipher; /**< const name of the cipher */
+    const char *digest; /**< Message digest static parameters */
 };
 
 /**
@@ -158,7 +159,8 @@ struct key
 /** internal structure similar to struct key that holds key information
  * but is not represented on wire and can be changed/extended
  */
-struct key_parameters {
+struct key_parameters
+{
     /** %Key material for cipher operations. */
     uint8_t cipher[MAX_CIPHER_KEY_LENGTH];
 
@@ -184,10 +186,10 @@ struct key_parameters {
  * @param key_params    destination for the converted struct
  * @param key           source of the conversion
  */
-void
-key_parameters_from_key(struct key_parameters *key_params, const struct key *key);
+void key_parameters_from_key(struct key_parameters *key_params, const struct key *key);
 
-struct epoch_key {
+struct epoch_key
+{
     uint8_t epoch_key[SHA256_DIGEST_LENGTH];
     uint16_t epoch;
 };
@@ -198,8 +200,8 @@ struct epoch_key {
  */
 struct key_ctx
 {
-    cipher_ctx_t *cipher;       /**< Generic cipher %context. */
-    hmac_ctx_t *hmac;           /**< Generic HMAC %context. */
+    cipher_ctx_t *cipher; /**< Generic cipher %context. */
+    hmac_ctx_t *hmac;     /**< Generic HMAC %context. */
     /**
      * This implicit IV will be always XORed with the packet id that is sent on
      * the wire to get the IV. For the common AEAD ciphers of AES-GCM and
@@ -213,7 +215,7 @@ struct key_ctx
      */
     uint8_t implicit_iv[OPENVPN_MAX_IV_LENGTH];
     /**< The implicit part of the IV */
-    size_t implicit_iv_len;     /**< The length of implicit_iv */
+    size_t implicit_iv_len; /**< The length of implicit_iv */
     /** Counter for the number of plaintext block encrypted using this cipher
      * with the current key in number of 128 bit blocks (only used for
      * AEAD ciphers) */
@@ -236,12 +238,12 @@ struct key_ctx
  */
 struct key2
 {
-    int n;                      /**< The number of \c key objects stored
-                                 *   in the \c key2.keys array. */
-    struct key keys[2];         /**< Two unidirectional sets of %key
-                                 *   material. The first key is the client
-                                 *   (encrypts) to server (decrypts), the
-                                 *   second the server to client key. */
+    int n;              /**< The number of \c key objects stored
+                         *   in the \c key2.keys array. */
+    struct key keys[2]; /**< Two unidirectional sets of %key
+                         *   material. The first key is the client
+                         *   (encrypts) to server (decrypts), the
+                         *   second the server to client key. */
 };
 
 /**
@@ -255,18 +257,18 @@ struct key2
  */
 struct key_direction_state
 {
-    int out_key;                /**< Index into the \c key2.keys array for
-                                 *   the sending direction. */
-    int in_key;                 /**< Index into the \c key2.keys array for
-                                 *   the receiving direction. */
-    int need_keys;              /**< The number of key objects necessary
-                                 *   to support both sending and
-                                 *   receiving.
-                                 *
-                                 *   This will be 1 if the same keys are
-                                 *   used in both directions, or 2 if
-                                 *   there are two sets of unidirectional
-                                 *   keys. */
+    int out_key;   /**< Index into the \c key2.keys array for
+                    *   the sending direction. */
+    int in_key;    /**< Index into the \c key2.keys array for
+                    *   the receiving direction. */
+    int need_keys; /**< The number of key objects necessary
+                    *   to support both sending and
+                    *   receiving.
+                    *
+                    *   This will be 1 if the same keys are
+                    *   used in both directions, or 2 if
+                    *   there are two sets of unidirectional
+                    *   keys. */
 };
 
 /**
@@ -276,10 +278,10 @@ struct key_direction_state
  */
 struct key_ctx_bi
 {
-    struct key_ctx encrypt;     /**< Cipher and/or HMAC contexts for sending
-                                 *   direction. */
-    struct key_ctx decrypt;     /**< cipher and/or HMAC contexts for
-                                 *   receiving direction. */
+    struct key_ctx encrypt; /**< Cipher and/or HMAC contexts for sending
+                             *   direction. */
+    struct key_ctx decrypt; /**< cipher and/or HMAC contexts for
+                             *   receiving direction. */
     bool initialized;
 };
 
@@ -340,54 +342,58 @@ struct crypto_options
      *   keeping state between successive
      *   OpenVPN process startups. */
 
-#define CO_PACKET_ID_LONG_FORM  (1<<0)
+#define CO_PACKET_ID_LONG_FORM         (1 << 0)
     /**< Bit-flag indicating whether to use
-    *   OpenVPN's long packet ID format. */
-#define CO_IGNORE_PACKET_ID     (1<<1)
+     *   OpenVPN's long packet ID format. */
+#define CO_IGNORE_PACKET_ID            (1 << 1)
     /**< Bit-flag indicating whether to ignore
      *   the packet ID of a received packet.
      *   This flag is used during processing
      *   of the first packet received from a
      *   client. */
-#define CO_MUTE_REPLAY_WARNINGS (1<<2)
+#define CO_MUTE_REPLAY_WARNINGS        (1 << 2)
     /**< Bit-flag indicating not to display
      *   replay warnings. */
-#define CO_USE_TLS_KEY_MATERIAL_EXPORT  (1<<3)
+#define CO_USE_TLS_KEY_MATERIAL_EXPORT (1 << 3)
     /**< Bit-flag indicating that data channel key derivation
      * is done using TLS keying material export [RFC5705]
      */
-#define CO_RESEND_WKC (1<<4)
+#define CO_RESEND_WKC                  (1 << 4)
     /**< Bit-flag indicating that the client is expected to
      * resend the wrapped client key with the 2nd packet (packet-id 1)
      * like with the HARD_RESET_CLIENT_V3 packet */
-#define CO_FORCE_TLSCRYPTV2_COOKIE  (1<<5)
+#define CO_FORCE_TLSCRYPTV2_COOKIE     (1 << 5)
     /**< Bit-flag indicating that we do not allow clients that do
      * not support resending the wrapped client key (WKc) with the
      * third packet of the three-way handshake */
-#define CO_USE_CC_EXIT_NOTIFY       (1<<6)
+#define CO_USE_CC_EXIT_NOTIFY          (1 << 6)
     /**< Bit-flag indicating that explicit exit notifies should be
      * sent via the control channel instead of using an OCC message
      */
-#define CO_USE_DYNAMIC_TLS_CRYPT   (1<<7)
+#define CO_USE_DYNAMIC_TLS_CRYPT       (1 << 7)
     /**< Bit-flag indicating that renegotiations are using tls-crypt
      *   with a TLS-EKM derived key.
      */
-#define CO_EPOCH_DATA_KEY_FORMAT  (1<<8)
+#define CO_EPOCH_DATA_KEY_FORMAT       (1 << 8)
     /**< Bit-flag indicating the epoch the data format. This format
      * has the AEAD tag at the end of the packet and is using a longer
      * 64-bit packet id that is split into a 16 bit epoch and 48 bit
      * epoch counter
      */
 
-    unsigned int flags;         /**< Bit-flags determining behavior of
-                                 *   security operation functions. */
+    unsigned int flags; /**< Bit-flags determining behavior of
+                         *   security operation functions. */
 };
 
-#define CRYPT_ERROR_EXIT(flags, format) \
-    do { msg(flags, "%s: " format, error_prefix); goto error_exit; } while (false)
+#define CRYPT_ERROR_EXIT(flags, format)          \
+    do                                           \
+    {                                            \
+        msg(flags, "%s: " format, error_prefix); \
+        goto error_exit;                         \
+    } while (false)
 
 #define CRYPT_ERROR(format) CRYPT_ERROR_EXIT(D_CRYPT_ERRORS, format)
-#define CRYPT_DROP(format) CRYPT_ERROR_EXIT(D_MULTI_DROPPED, format)
+#define CRYPT_DROP(format)  CRYPT_ERROR_EXIT(D_MULTI_DROPPED, format)
 
 /**
  * Minimal IV length for AEAD mode ciphers (in bytes):
@@ -395,8 +401,8 @@ struct crypto_options
  */
 #define OPENVPN_AEAD_MIN_IV_LEN (sizeof(packet_id_type) + 8)
 
-#define RKF_MUST_SUCCEED (1<<0)
-#define RKF_INLINE       (1<<1)
+#define RKF_MUST_SUCCEED (1 << 0)
+#define RKF_INLINE       (1 << 1)
 void read_key_file(struct key2 *key2, const char *file, const unsigned int flags);
 
 /**
@@ -418,30 +424,26 @@ bool check_key(struct key *key, const struct key_type *kt);
  *                    more ciphers than static key mode.
  * @param warn        Print warnings when null cipher / auth is used.
  */
-void init_key_type(struct key_type *kt, const char *ciphername,
-                   const char *authname, bool tls_mode, bool warn);
+void init_key_type(struct key_type *kt, const char *ciphername, const char *authname, bool tls_mode,
+                   bool warn);
 
 /*
  * Key context functions
  */
 
-void init_key_ctx(struct key_ctx *ctx, const struct key_parameters *key,
-                  const struct key_type *kt, int enc,
-                  const char *prefix);
+void init_key_ctx(struct key_ctx *ctx, const struct key_parameters *key, const struct key_type *kt,
+                  int enc, const char *prefix);
 
-void
-init_key_bi_ctx_send(struct key_ctx *ctx, const struct key_parameters *key,
-                     const struct key_type *kt, const char *name);
+void init_key_bi_ctx_send(struct key_ctx *ctx, const struct key_parameters *key,
+                          const struct key_type *kt, const char *name);
 
-void
-init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key_parameters *key,
-                     const struct key_type *kt, const char *name);
+void init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key_parameters *key,
+                          const struct key_type *kt, const char *name);
 
 void free_key_ctx(struct key_ctx *ctx);
 
-void init_key_ctx_bi(struct key_ctx_bi *ctx, const struct key2 *key2,
-                     int key_direction, const struct key_type *kt,
-                     const char *name);
+void init_key_ctx_bi(struct key_ctx_bi *ctx, const struct key2 *key2, int key_direction,
+                     const struct key_type *kt, const char *name);
 
 void free_key_ctx_bi(struct key_ctx_bi *ctx);
 
@@ -476,8 +478,7 @@ void free_key_ctx_bi(struct key_ctx_bi *ctx);
  *     contain the processed packet ready for sending, or be empty if an
  *     error occurred.
  */
-void openvpn_encrypt(struct buffer *buf, struct buffer work,
-                     struct crypto_options *opt);
+void openvpn_encrypt(struct buffer *buf, struct buffer work, struct crypto_options *opt);
 
 
 /**
@@ -513,9 +514,8 @@ void openvpn_encrypt(struct buffer *buf, struct buffer work,
  *     the plaintext packet ready for further processing, or be empty if
  *     an error occurred.
  */
-bool openvpn_decrypt(struct buffer *buf, struct buffer work,
-                     struct crypto_options *opt, const struct frame *frame,
-                     const uint8_t *ad_start);
+bool openvpn_decrypt(struct buffer *buf, struct buffer work, struct crypto_options *opt,
+                     const struct frame *frame, const uint8_t *ad_start);
 
 /** @} name Functions for performing security operations on data channel packets */
 
@@ -530,11 +530,8 @@ bool openvpn_decrypt(struct buffer *buf, struct buffer work,
  *
  * @return true if packet ID is validated to be not a replay, false otherwise.
  */
-bool crypto_check_replay(struct crypto_options *opt,
-                         const struct packet_id_net *pin,
-                         uint16_t epoch,
-                         const char *error_prefix,
-                         struct gc_arena *gc);
+bool crypto_check_replay(struct crypto_options *opt, const struct packet_id_net *pin,
+                         uint16_t epoch, const char *error_prefix, struct gc_arena *gc);
 
 
 /** Calculate the maximum overhead that our encryption has
@@ -550,10 +547,8 @@ bool crypto_check_replay(struct crypto_options *opt,
  *                      incorrect way as all previous OpenVPN versions did, to
  *                      end up with identical numbers for OCC compatibility
  */
-unsigned int
-calculate_crypto_overhead(const struct key_type *kt,
-                          unsigned int pkt_id_size,
-                          bool occ);
+unsigned int calculate_crypto_overhead(const struct key_type *kt, unsigned int pkt_id_size,
+                                       bool occ);
 
 /** Return the worst-case OpenVPN crypto overhead (in bytes) */
 unsigned int crypto_max_overhead(void);
@@ -565,8 +560,7 @@ unsigned int crypto_max_overhead(void);
  * @param filename          Filename of the server key file to create.
  * @param key_name          The name to use in the PEM header/footer.
  */
-void
-write_pem_key_file(const char *filename, const char *key_name);
+void write_pem_key_file(const char *filename, const char *key_name);
 
 /**
  * Generate ephermal key material into the key structure
@@ -575,8 +569,7 @@ write_pem_key_file(const char *filename, const char *key_name);
  * @param pem_name      the name used for logging
  * @return              true if key generation was successful
  */
-bool
-generate_ephemeral_key(struct buffer *key, const char *pem_name);
+bool generate_ephemeral_key(struct buffer *key, const char *pem_name);
 
 /**
  * Read key material from a PEM encoded files into the key structure
@@ -588,9 +581,8 @@ generate_ephemeral_key(struct buffer *key, const char *pem_name);
  *                      otherwise.
  * @return              true if reading into key was successful
  */
-bool
-read_pem_key_file(struct buffer *key, const char *pem_name,
-                  const char *key_file, bool key_inline);
+bool read_pem_key_file(struct buffer *key, const char *pem_name, const char *key_file,
+                       bool key_inline);
 
 /*
  * Message digest-based pseudo random number generator.
@@ -631,16 +623,12 @@ int ascii2keydirection(int msglevel, const char *str);
 const char *keydirection2ascii(int kd, bool remote, bool humanreadable);
 
 /* print keys */
-void key2_print(const struct key2 *k,
-                const struct key_type *kt,
-                const char *prefix0,
+void key2_print(const struct key2 *k, const struct key_type *kt, const char *prefix0,
                 const char *prefix1);
 
-void crypto_read_openvpn_key(const struct key_type *key_type,
-                             struct key_ctx_bi *ctx, const char *key_file,
-                             bool key_inline, const int key_direction,
-                             const char *key_name, const char *opt_name,
-                             struct key2 *keydata);
+void crypto_read_openvpn_key(const struct key_type *key_type, struct key_ctx_bi *ctx,
+                             const char *key_file, bool key_inline, const int key_direction,
+                             const char *key_name, const char *opt_name, struct key2 *keydata);
 
 /*
  * Inline functions
@@ -690,12 +678,12 @@ create_kt(const char *cipher, const char *md, const char *optname)
     if (cipher_defined(kt.cipher) && !cipher_valid(kt.cipher))
     {
         msg(M_WARN, "ERROR: --%s requires %s support.", optname, kt.cipher);
-        return (struct key_type) { 0 };
+        return (struct key_type){ 0 };
     }
     if (md_defined(kt.digest) && !md_valid(kt.digest))
     {
         msg(M_WARN, "ERROR: --%s requires %s support.", optname, kt.digest);
-        return (struct key_type) { 0 };
+        return (struct key_type){ 0 };
     }
 
     return kt;
@@ -710,8 +698,7 @@ create_kt(const char *cipher, const char *md, const char *optname)
  * For reference see the OpenVPN RFC draft and
  * https://www.ietf.org/archive/id/draft-irtf-cfrg-aead-limits-08.html
  */
-uint64_t
-cipher_get_aead_limits(const char *ciphername);
+uint64_t cipher_get_aead_limits(const char *ciphername);
 
 /**
  * Check if the number of failed decryption is over the acceptable limit.
@@ -724,7 +711,7 @@ cipher_decrypt_verify_fail_exceeded(const struct key_ctx *ctx)
      * but we accept slightly lower security bound for the edge
      * of Chacha20-Poly1305 and packets over 16k as MTUs over 16k are
      * extremely rarely used */
-    return ctx->failed_verifications >  (1ull << 36);
+    return ctx->failed_verifications > (1ull << 36);
 }
 
 /**
@@ -735,7 +722,7 @@ static inline bool
 cipher_decrypt_verify_fail_warn(const struct key_ctx *ctx)
 {
     /* Use 2**35, half the amount after which we refuse to decrypt */
-    return ctx->failed_verifications >  (1ull << 35);
+    return ctx->failed_verifications > (1ull << 35);
 }
 
 
@@ -744,7 +731,7 @@ cipher_decrypt_verify_fail_warn(const struct key_ctx *ctx)
  *
  * Since cipher_ctx_block_size() is not reliable and will return 1 in many
  * cases use a hardcoded blocksize instead */
-#define     AEAD_LIMIT_BLOCKSIZE    16
+#define AEAD_LIMIT_BLOCKSIZE 16
 
 /**
  * Checks if the current TLS library supports the TLS 1.0 PRF with MD5+SHA1
@@ -761,13 +748,12 @@ bool check_tls_prf_working(void);
  * to read.
  */
 static inline bool
-aead_usage_limit_reached(const uint64_t limit, const struct key_ctx *key_ctx,
-                         int64_t higest_pid)
+aead_usage_limit_reached(const uint64_t limit, const struct key_ctx *key_ctx, int64_t higest_pid)
 {
     /* This is the  q + s <=  p^(1/2) * 2^(129/2) - 1 calculation where
      * q is the number of protected messages (highest_pid)
      * s Total plaintext length in all messages (in blocks) */
-    return (limit > 0 && key_ctx->plaintext_blocks + (uint64_t) higest_pid > limit);
+    return (limit > 0 && key_ctx->plaintext_blocks + (uint64_t)higest_pid > limit);
 }
 
 #endif /* CRYPTO_H */

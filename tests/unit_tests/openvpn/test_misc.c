@@ -44,14 +44,18 @@ test_compat_lzo_string(void **state)
 {
     struct gc_arena gc = gc_new();
 
-    const char *input = "V4,dev-type tun,link-mtu 1457,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server";
+    const char *input =
+        "V4,dev-type tun,link-mtu 1457,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server";
 
     const char *output = options_string_compat_lzo(input, &gc);
 
-    assert_string_equal(output, "V4,dev-type tun,link-mtu 1458,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server,comp-lzo");
+    assert_string_equal(
+        output,
+        "V4,dev-type tun,link-mtu 1458,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server,comp-lzo");
 
     /* This string is has a much too small link-mtu so we should fail on it" */
-    input = "V4,dev-type tun,link-mtu 2,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server";
+    input =
+        "V4,dev-type tun,link-mtu 2,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server";
 
     output = options_string_compat_lzo(input, &gc);
 
@@ -64,11 +68,14 @@ test_compat_lzo_string(void **state)
     assert_string_equal(input, output);
 
 
-    input = "V4,dev-type tun,link-mtu 999,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server";
+    input =
+        "V4,dev-type tun,link-mtu 999,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server";
     output = options_string_compat_lzo(input, &gc);
 
     /* 999 -> 1000, 3 to 4 chars */
-    assert_string_equal(output, "V4,dev-type tun,link-mtu 1000,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server,comp-lzo");
+    assert_string_equal(
+        output,
+        "V4,dev-type tun,link-mtu 1000,tun-mtu 1400,proto UDPv4,auth SHA1,keysize 128,key-method 2,tls-server,comp-lzo");
 
     gc_free(&gc);
 }
@@ -110,7 +117,6 @@ test_auth_fail_temp_flags_msg(void **state)
 }
 
 
-
 struct word
 {
     const char *word;
@@ -121,7 +127,7 @@ struct word
 static uint32_t
 word_hash_function(const void *key, uint32_t iv)
 {
-    const char *str = (const char *) key;
+    const char *str = (const char *)key;
     const int len = strlen(str);
     return hash_func((const uint8_t *)str, len, iv);
 }
@@ -161,11 +167,10 @@ hash_lookup_by_value(struct hash *hash, void *value)
 static void
 test_list(void **state)
 {
-
-/*
- * Test the hash code by implementing a simple
- * word frequency algorithm.
- */
+    /*
+     * Test the hash code by implementing a simple
+     * word frequency algorithm.
+     */
 
     struct gc_arena gc = gc_new();
     struct hash *hash = hash_init(10000, get_random(), word_hash_function, word_compare_function);
@@ -174,7 +179,7 @@ test_list(void **state)
     printf("hash_init n_buckets=%d mask=0x%08x\n", hash->n_buckets, hash->mask);
 
     char wordfile[PATH_MAX] = { 0 };
-    openvpn_test_get_srcdir_dir(wordfile, PATH_MAX, "/../../../COPYRIGHT.GPL" );
+    openvpn_test_get_srcdir_dir(wordfile, PATH_MAX, "/../../../COPYRIGHT.GPL");
 
     FILE *words = fopen(wordfile, "r");
     assert_non_null(words);
@@ -200,7 +205,7 @@ test_list(void **state)
             c = buf[bi++];
             if (isalnum(c) || c == '_')
             {
-                assert_true(wbi < (int) sizeof(wordbuf));
+                assert_true(wbi < (int)sizeof(wordbuf));
                 wordbuf[wbi++] = c;
             }
             else
@@ -209,13 +214,13 @@ test_list(void **state)
                 {
                     wordcount++;
 
-                    ASSERT(wbi < (int) sizeof(wordbuf));
+                    ASSERT(wbi < (int)sizeof(wordbuf));
                     wordbuf[wbi++] = '\0';
 
                     /* word is parsed from stdin */
 
                     /* does it already exist in table? */
-                    struct word *w = (struct word *) hash_lookup(hash, wordbuf);
+                    struct word *w = (struct word *)hash_lookup(hash, wordbuf);
 
                     if (w)
                     {
@@ -230,13 +235,13 @@ test_list(void **state)
                         w->word = string_alloc(wordbuf, &gc);
                         w->n = 1;
                         assert_true(hash_add(hash, w->word, w, false));
-                        assert_true(hash_add(nhash, w->word, (void *) ((ptr_type )(random() & 0x0F) + 1), false));
+                        assert_true(hash_add(nhash, w->word,
+                                             (void *)((ptr_type)(random() & 0x0F) + 1), false));
                     }
                 }
                 wbi = 0;
             }
-        }
-        while (c);
+        } while (c);
     }
 
     assert_int_equal(wordcount, 2971);
@@ -261,7 +266,7 @@ test_list(void **state)
 
             while ((he = hash_iterator_next(&hi)))
             {
-                struct word *w = (struct word *) he->value;
+                struct word *w = (struct word *)he->value;
                 /*printf("%6d '%s'\n", w->n, w->word); */
                 ++count;
                 /* check a few words to match prior results */
@@ -269,19 +274,19 @@ test_list(void **state)
                 {
                     assert_int_equal(w->n, 49);
                 }
-                else if  (!strcmp(w->word, "redistribute"))
+                else if (!strcmp(w->word, "redistribute"))
                 {
                     assert_int_equal(w->n, 5);
                 }
-                else if  (!strcmp(w->word, "circumstances"))
+                else if (!strcmp(w->word, "circumstances"))
                 {
                     assert_int_equal(w->n, 1);
                 }
-                else if  (!strcmp(w->word, "so"))
+                else if (!strcmp(w->word, "so"))
                 {
                     assert_int_equal(w->n, 8);
                 }
-                else if  (!strcmp(w->word, "BECAUSE"))
+                else if (!strcmp(w->word, "BECAUSE"))
                 {
                     assert_int_equal(w->n, 1);
                 }
@@ -296,12 +301,12 @@ test_list(void **state)
     {
         for (ptr_type i = 1; i <= 16; ++i)
         {
-            struct hash_element *item = hash_lookup_by_value(nhash, (void *) i);
-            hash_remove_by_value(nhash, (void *) i);
+            struct hash_element *item = hash_lookup_by_value(nhash, (void *)i);
+            hash_remove_by_value(nhash, (void *)i);
             /* check item got removed if it was present before */
             if (item)
             {
-                assert_null(hash_lookup_by_value(nhash, (void *) i));
+                assert_null(hash_lookup_by_value(nhash, (void *)i));
             }
         }
     }
@@ -378,14 +383,12 @@ test_atoi_variants(void **state)
     mock_set_debug_level(saved_log_level);
 }
 
-const struct CMUnitTest misc_tests[] = {
-    cmocka_unit_test(test_compat_lzo_string),
-    cmocka_unit_test(test_auth_fail_temp_no_flags),
-    cmocka_unit_test(test_auth_fail_temp_flags),
-    cmocka_unit_test(test_auth_fail_temp_flags_msg),
-    cmocka_unit_test(test_list),
-    cmocka_unit_test(test_atoi_variants)
-};
+const struct CMUnitTest misc_tests[] = { cmocka_unit_test(test_compat_lzo_string),
+                                         cmocka_unit_test(test_auth_fail_temp_no_flags),
+                                         cmocka_unit_test(test_auth_fail_temp_flags),
+                                         cmocka_unit_test(test_auth_fail_temp_flags_msg),
+                                         cmocka_unit_test(test_list),
+                                         cmocka_unit_test(test_atoi_variants) };
 
 int
 main(void)

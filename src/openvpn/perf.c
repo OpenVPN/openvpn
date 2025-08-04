@@ -35,34 +35,32 @@
 
 #include "memdbg.h"
 
-static const char *metric_names[] = {
-    "PERF_BIO_READ_PLAINTEXT",
-    "PERF_BIO_WRITE_PLAINTEXT",
-    "PERF_BIO_READ_CIPHERTEXT",
-    "PERF_BIO_WRITE_CIPHERTEXT",
-    "PERF_TLS_MULTI_PROCESS",
-    "PERF_IO_WAIT",
-    "PERF_EVENT_LOOP",
-    "PERF_MULTI_CREATE_INSTANCE",
-    "PERF_MULTI_CLOSE_INSTANCE",
-    "PERF_MULTI_SHOW_STATS",
-    "PERF_MULTI_BCAST",
-    "PERF_MULTI_MCAST",
-    "PERF_SCRIPT",
-    "PERF_READ_IN_LINK",
-    "PERF_PROC_IN_LINK",
-    "PERF_READ_IN_TUN",
-    "PERF_PROC_IN_TUN",
-    "PERF_PROC_OUT_LINK",
-    "PERF_PROC_OUT_TUN",
-    "PERF_PROC_OUT_TUN_MTCP"
-};
+static const char *metric_names[] = { "PERF_BIO_READ_PLAINTEXT",
+                                      "PERF_BIO_WRITE_PLAINTEXT",
+                                      "PERF_BIO_READ_CIPHERTEXT",
+                                      "PERF_BIO_WRITE_CIPHERTEXT",
+                                      "PERF_TLS_MULTI_PROCESS",
+                                      "PERF_IO_WAIT",
+                                      "PERF_EVENT_LOOP",
+                                      "PERF_MULTI_CREATE_INSTANCE",
+                                      "PERF_MULTI_CLOSE_INSTANCE",
+                                      "PERF_MULTI_SHOW_STATS",
+                                      "PERF_MULTI_BCAST",
+                                      "PERF_MULTI_MCAST",
+                                      "PERF_SCRIPT",
+                                      "PERF_READ_IN_LINK",
+                                      "PERF_PROC_IN_LINK",
+                                      "PERF_READ_IN_TUN",
+                                      "PERF_PROC_IN_TUN",
+                                      "PERF_PROC_OUT_LINK",
+                                      "PERF_PROC_OUT_TUN",
+                                      "PERF_PROC_OUT_TUN_MTCP" };
 
 struct perf
 {
-#define PS_INITIAL            0
-#define PS_METER_RUNNING      1
-#define PS_METER_INTERRUPTED  2
+#define PS_INITIAL           0
+#define PS_METER_RUNNING     1
+#define PS_METER_INTERRUPTED 2
     int state;
 
     struct timeval start;
@@ -138,8 +136,7 @@ push_perf_index(int pindex)
 {
     const int sindex = get_stack_index(0);
     const int newlen = get_stack_index(1);
-    if (sindex >= 0 && newlen >= 0
-        && pindex >= 0 && pindex < PERF_N)
+    if (sindex >= 0 && newlen >= 0 && pindex >= 0 && pindex < PERF_N)
     {
         int i;
         for (i = 0; i < sindex; ++i)
@@ -147,8 +144,7 @@ push_perf_index(int pindex)
             if (perf_set.stack[i] == pindex)
             {
                 perf_print_state(M_INFO);
-                msg(M_FATAL, "PERF: push_perf_index %s failed",
-                    metric_names [pindex]);
+                msg(M_FATAL, "PERF: push_perf_index %s failed", metric_names[pindex]);
             }
         }
 
@@ -180,9 +176,7 @@ state_must_be(const struct perf *p, const int wanted)
 {
     if (p->state != wanted)
     {
-        msg(M_FATAL, "PERF: bad state actual=%d wanted=%d",
-            p->state,
-            wanted);
+        msg(M_FATAL, "PERF: bad state actual=%d wanted=%d", p->state, wanted);
     }
 }
 
@@ -191,7 +185,7 @@ update_sofar(struct perf *p)
 {
     struct timeval current;
     ASSERT(!gettimeofday(&current, NULL));
-    p->sofar += (double) tv_subtract(&current, &p->start, 600) / 1000000.0;
+    p->sofar += (double)tv_subtract(&current, &p->start, 600) / 1000000.0;
     tv_clear(&p->start);
 }
 
@@ -287,7 +281,8 @@ perf_output_results(void)
         if (p->count > 0.0)
         {
             const double mean = p->sum / p->count;
-            msg(M_INFO, "%s n=%.0f mean=%.3f max=%.3f", metric_names[i], p->count, mean*1000.0, p->max*1000.0);
+            msg(M_INFO, "%s n=%.0f mean=%.3f max=%.3f", metric_names[i], p->count, mean * 1000.0,
+                p->max * 1000.0);
         }
     }
 }
@@ -303,15 +298,8 @@ perf_print_state(int lev)
     {
         const int j = perf_set.stack[i];
         const struct perf *p = &perf_set.perf[j];
-        msg(lev, "[%d] %s state=%d start=%s sofar=%f sum=%f max=%f count=%f",
-            i,
-            metric_names[j],
-            p->state,
-            tv_string(&p->start, &gc),
-            p->sofar,
-            p->sum,
-            p->max,
-            p->count);
+        msg(lev, "[%d] %s state=%d start=%s sofar=%f sum=%f max=%f count=%f", i, metric_names[j],
+            p->state, tv_string(&p->start, &gc), p->sofar, p->sum, p->max, p->count);
     }
     gc_free(&gc);
 }

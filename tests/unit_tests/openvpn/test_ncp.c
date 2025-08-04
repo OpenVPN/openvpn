@@ -46,8 +46,7 @@ const char *aes_ciphers = "AES-256-GCM:AES-128-GCM";
 /* Define this function here as dummy since including the ssl_*.c files
  * leads to having to include even more unrelated code */
 bool
-key_state_export_keying_material(struct tls_session *session,
-                                 const char *label, size_t label_size,
+key_state_export_keying_material(struct tls_session *session, const char *label, size_t label_size,
                                  void *ekm, size_t ekm_size)
 {
     ASSERT(0);
@@ -72,8 +71,7 @@ test_check_ncp_ciphers_list(void **state)
     bool have_blowfish = cipher_valid("BF-CBC");
 
     assert_string_equal(mutate_ncp_cipher_list("none", &gc), "none");
-    assert_string_equal(mutate_ncp_cipher_list("AES-256-GCM:none", &gc),
-                        "AES-256-GCM:none");
+    assert_string_equal(mutate_ncp_cipher_list("AES-256-GCM:none", &gc), "AES-256-GCM:none");
 
     assert_string_equal(mutate_ncp_cipher_list(aes_ciphers, &gc), aes_ciphers);
 
@@ -85,8 +83,7 @@ test_check_ncp_ciphers_list(void **state)
     if (have_chacha && have_blowfish)
     {
         assert_string_equal(mutate_ncp_cipher_list(bf_chacha, &gc), bf_chacha);
-        assert_string_equal(mutate_ncp_cipher_list("BF-CBC:CHACHA20-POLY1305", &gc),
-                            bf_chacha);
+        assert_string_equal(mutate_ncp_cipher_list("BF-CBC:CHACHA20-POLY1305", &gc), bf_chacha);
     }
     else
     {
@@ -98,14 +95,14 @@ test_check_ncp_ciphers_list(void **state)
                         aes_ciphers);
 
     /* Check that optional ciphers work */
-    assert_string_equal(mutate_ncp_cipher_list("?AES-256-GCM:?AES-128-GCM", &gc),
-                        aes_ciphers);
+    assert_string_equal(mutate_ncp_cipher_list("?AES-256-GCM:?AES-128-GCM", &gc), aes_ciphers);
 
     /* All unsupported should still yield an empty list */
     assert_ptr_equal(mutate_ncp_cipher_list("?kugelfisch:?grasshopper", &gc), NULL);
 
     /* If the last is optional, previous invalid ciphers should be ignored */
-    assert_ptr_equal(mutate_ncp_cipher_list("Vollbit:Littlebit:AES-256-CBC:BF-CBC:?nixbit", &gc), NULL);
+    assert_ptr_equal(mutate_ncp_cipher_list("Vollbit:Littlebit:AES-256-CBC:BF-CBC:?nixbit", &gc),
+                     NULL);
 
     /* We do not support CCM ciphers */
     assert_ptr_equal(mutate_ncp_cipher_list("AES-256-GCM:AES-128-CCM", &gc), NULL);
@@ -126,19 +123,19 @@ test_check_ncp_ciphers_list(void **state)
     assert_ptr_equal(mutate_ncp_cipher_list("AES-256-GCM:vollbit", &gc), NULL);
     assert_ptr_equal(mutate_ncp_cipher_list("", &gc), NULL);
 
-    assert_ptr_equal(mutate_ncp_cipher_list(
-                         "ChaCha20-Poly1305:ChaCha20-Poly1305:ChaCha20-Poly1305:"
-                         "ChaCha20-Poly1305:ChaCha20-Poly1305:ChaCha20-Poly1305:"
-                         "ChaCha20-Poly1305", &gc), NULL);
+    assert_ptr_equal(mutate_ncp_cipher_list("ChaCha20-Poly1305:ChaCha20-Poly1305:ChaCha20-Poly1305:"
+                                            "ChaCha20-Poly1305:ChaCha20-Poly1305:ChaCha20-Poly1305:"
+                                            "ChaCha20-Poly1305",
+                                            &gc),
+                     NULL);
 
 #ifdef ENABLE_CRYPTO_OPENSSL
-    assert_string_equal(mutate_ncp_cipher_list("id-aes128-GCM:id-aes256-GCM",
-                                               &gc), "AES-128-GCM:AES-256-GCM");
+    assert_string_equal(mutate_ncp_cipher_list("id-aes128-GCM:id-aes256-GCM", &gc),
+                        "AES-128-GCM:AES-256-GCM");
 #else
     if (have_blowfish)
     {
-        assert_string_equal(mutate_ncp_cipher_list("BLOWFISH-CBC",
-                                                   &gc), "BF-CBC");
+        assert_string_equal(mutate_ncp_cipher_list("BLOWFISH-CBC", &gc), "BF-CBC");
     }
 #endif
     gc_free(&gc);
@@ -192,37 +189,28 @@ test_poor_man(void **state)
     const char *serverlist = "CHACHA20_POLY1305:AES-128-GCM";
     const char *serverlistbfcbc = "CHACHA20_POLY1305:AES-128-GCM:BF-CBC:none";
 
-    best_cipher = ncp_get_best_cipher(serverlist,
-                                      "IV_YOLO=NO\nIV_BAR=7",
-                                      "BF-CBC", &gc);
+    best_cipher = ncp_get_best_cipher(serverlist, "IV_YOLO=NO\nIV_BAR=7", "BF-CBC", &gc);
 
     assert_ptr_equal(best_cipher, NULL);
 
 
-    best_cipher = ncp_get_best_cipher(serverlistbfcbc,
-                                      "IV_YOLO=NO\nIV_BAR=7",
-                                      "BF-CBC", &gc);
+    best_cipher = ncp_get_best_cipher(serverlistbfcbc, "IV_YOLO=NO\nIV_BAR=7", "BF-CBC", &gc);
 
     assert_string_equal(best_cipher, "BF-CBC");
 
 
-    best_cipher = ncp_get_best_cipher(serverlist,
-                                      "IV_NCP=1\nIV_BAR=7",
-                                      "AES-128-GCM", &gc);
+    best_cipher = ncp_get_best_cipher(serverlist, "IV_NCP=1\nIV_BAR=7", "AES-128-GCM", &gc);
 
     assert_string_equal(best_cipher, "AES-128-GCM");
 
-    best_cipher = ncp_get_best_cipher(serverlist, NULL,
-                                      "AES-128-GCM", &gc);
+    best_cipher = ncp_get_best_cipher(serverlist, NULL, "AES-128-GCM", &gc);
 
     assert_string_equal(best_cipher, "AES-128-GCM");
 
-    best_cipher = ncp_get_best_cipher(serverlist, NULL,
-                                      "none", &gc);
+    best_cipher = ncp_get_best_cipher(serverlist, NULL, "none", &gc);
     assert_ptr_equal(best_cipher, NULL);
 
-    best_cipher = ncp_get_best_cipher(serverlistbfcbc, NULL,
-                                      "none", &gc);
+    best_cipher = ncp_get_best_cipher(serverlistbfcbc, NULL, "none", &gc);
     assert_string_equal(best_cipher, "none");
 
     best_cipher = ncp_get_best_cipher(serverlist, NULL, NULL, &gc);
@@ -240,28 +228,23 @@ test_ncp_best(void **state)
 
     const char *serverlist = "CHACHA20_POLY1305:AES-128-GCM:AES-256-GCM";
 
-    best_cipher = ncp_get_best_cipher(serverlist,
-                                      "IV_YOLO=NO\nIV_NCP=2\nIV_BAR=7",
-                                      "BF-CBC", &gc);
+    best_cipher = ncp_get_best_cipher(serverlist, "IV_YOLO=NO\nIV_NCP=2\nIV_BAR=7", "BF-CBC", &gc);
 
     assert_string_equal(best_cipher, "AES-128-GCM");
 
     /* Best cipher is in --cipher of client */
-    best_cipher = ncp_get_best_cipher(serverlist, "IV_NCP=2\nIV_BAR=7",
-                                      "CHACHA20_POLY1305", &gc);
+    best_cipher = ncp_get_best_cipher(serverlist, "IV_NCP=2\nIV_BAR=7", "CHACHA20_POLY1305", &gc);
 
     assert_string_equal(best_cipher, "CHACHA20_POLY1305");
 
     /* Best cipher is in --cipher of client */
-    best_cipher = ncp_get_best_cipher(serverlist, "IV_CIPHERS=AES-128-GCM",
-                                      "AES-256-CBC", &gc);
+    best_cipher = ncp_get_best_cipher(serverlist, "IV_CIPHERS=AES-128-GCM", "AES-256-CBC", &gc);
 
 
     assert_string_equal(best_cipher, "AES-128-GCM");
 
     /* IV_NCP=2 should be ignored if IV_CIPHERS is sent */
-    best_cipher = ncp_get_best_cipher(serverlist,
-                                      "IV_FOO=7\nIV_CIPHERS=AES-256-GCM\nIV_NCP=2",
+    best_cipher = ncp_get_best_cipher(serverlist, "IV_FOO=7\nIV_CIPHERS=AES-256-GCM\nIV_NCP=2",
                                       "AES-256-CBC", &gc);
 
     assert_string_equal(best_cipher, "AES-256-GCM");
@@ -312,11 +295,14 @@ test_ncp_default(void **state)
 
     if (have_chacha)
     {
-        assert_string_equal(o.ncp_ciphers, "BF-CBC:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305:AES-128-CBC:AES-256-CBC");
+        assert_string_equal(
+            o.ncp_ciphers,
+            "BF-CBC:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305:AES-128-CBC:AES-256-CBC");
     }
     else
     {
-        assert_string_equal(o.ncp_ciphers, "BF-CBC:AES-256-GCM:AES-128-GCM:AES-128-CBC:AES-256-CBC");
+        assert_string_equal(o.ncp_ciphers,
+                            "BF-CBC:AES-256-GCM:AES-128-GCM:AES-128-CBC:AES-256-CBC");
     }
     assert_string_equal(o.ncp_ciphers_conf, "BF-CBC:DEFAULT:AES-128-CBC:AES-256-CBC");
 
@@ -326,7 +312,8 @@ test_ncp_default(void **state)
 
     if (have_chacha)
     {
-        assert_string_equal(o.ncp_ciphers, "AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305:AES-128-CBC:AES-192-CBC");
+        assert_string_equal(o.ncp_ciphers,
+                            "AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305:AES-128-CBC:AES-192-CBC");
     }
     else
     {
@@ -340,7 +327,8 @@ test_ncp_default(void **state)
 
     if (have_chacha)
     {
-        assert_string_equal(o.ncp_ciphers, "AES-192-GCM:AES-128-CBC:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305");
+        assert_string_equal(o.ncp_ciphers,
+                            "AES-192-GCM:AES-128-CBC:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305");
     }
     else
     {
@@ -355,7 +343,7 @@ static void
 test_ncp_expand(void **state)
 {
     bool have_chacha = cipher_valid("CHACHA20-POLY1305");
-    struct options o = {0};
+    struct options o = { 0 };
 
     o.gc = gc_new();
     struct gc_arena gc = gc_new();

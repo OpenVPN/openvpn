@@ -38,7 +38,8 @@
  * from uninitialized data, we need to untaint it before use --
  * otherwise we will get a lot of useless warnings.
  *
- *   valgrind --tool=memcheck --error-limit=no --suppressions=debug/valgrind-suppress --gen-suppressions=yes ./openvpn ...
+ *   valgrind --tool=memcheck --error-limit=no --suppressions=debug/valgrind-suppress
+ * --gen-suppressions=yes ./openvpn ...
  */
 
 #ifdef USE_VALGRIND
@@ -47,7 +48,7 @@
 
 #define VALGRIND_MAKE_READABLE(addr, len)
 
-#else  /* ifdef USE_VALGRIND */
+#else /* ifdef USE_VALGRIND */
 
 #define VALGRIND_MAKE_READABLE(addr, len)
 
@@ -85,7 +86,8 @@
 
 #include <dmalloc.h>
 
-#define openvpn_dmalloc(file, line, size) dmalloc_malloc((file), (line), (size), DMALLOC_FUNC_MALLOC, 0, 0)
+#define openvpn_dmalloc(file, line, size) \
+    dmalloc_malloc((file), (line), (size), DMALLOC_FUNC_MALLOC, 0, 0)
 
 /*
  * This #define will put the line number of the log

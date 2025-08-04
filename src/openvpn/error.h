@@ -49,10 +49,10 @@ struct gc_arena;
  * Exit status codes
  */
 
-#define OPENVPN_EXIT_STATUS_GOOD                    0
-#define OPENVPN_EXIT_STATUS_ERROR                   1
-#define OPENVPN_EXIT_STATUS_USAGE                   1
-#define OPENVPN_EXIT_STATUS_CANNOT_OPEN_DEBUG_FILE  1
+#define OPENVPN_EXIT_STATUS_GOOD                   0
+#define OPENVPN_EXIT_STATUS_ERROR                  1
+#define OPENVPN_EXIT_STATUS_USAGE                  1
+#define OPENVPN_EXIT_STATUS_CANNOT_OPEN_DEBUG_FILE 1
 
 /*
  * Special command line debugging mode.
@@ -83,27 +83,27 @@ extern int x_msg_line_num;
 
 /* msg() flags */
 
-#define M_DEBUG_LEVEL     (0x0F)         /* debug level mask */
+#define M_DEBUG_LEVEL (0x0F) /* debug level mask */
 
-#define M_FATAL           (1<<4)         /* exit program */
-#define M_NONFATAL        (1<<5)         /* non-fatal error */
-#define M_WARN            (1<<6)         /* call syslog with LOG_WARNING */
-#define M_DEBUG           (1<<7)
+#define M_FATAL    (1 << 4)  /* exit program */
+#define M_NONFATAL (1 << 5)  /* non-fatal error */
+#define M_WARN     (1 << 6)  /* call syslog with LOG_WARNING */
+#define M_DEBUG    (1 << 7)
 
-#define M_ERRNO           (1<<8)         /* show errno description */
+#define M_ERRNO (1 << 8)         /* show errno description */
 
-#define M_NOMUTE          (1<<11)        /* don't do mute processing */
-#define M_NOPREFIX        (1<<12)        /* don't show date/time prefix */
-#define M_USAGE_SMALL     (1<<13)        /* fatal options error, call usage_small */
-#define M_MSG_VIRT_OUT    (1<<14)        /* output message through msg_status_output callback */
-#define M_OPTERR          (1<<15)        /* print "Options error:" prefix */
-#define M_NOLF            (1<<16)        /* don't print new line */
-#define M_NOIPREFIX       (1<<17)        /* don't print instance prefix */
+#define M_NOMUTE       (1 << 11) /* don't do mute processing */
+#define M_NOPREFIX     (1 << 12) /* don't show date/time prefix */
+#define M_USAGE_SMALL  (1 << 13) /* fatal options error, call usage_small */
+#define M_MSG_VIRT_OUT (1 << 14) /* output message through msg_status_output callback */
+#define M_OPTERR       (1 << 15) /* print "Options error:" prefix */
+#define M_NOLF         (1 << 16) /* don't print new line */
+#define M_NOIPREFIX    (1 << 17) /* don't print instance prefix */
 
 /* flag combinations which are frequently used */
-#define M_ERR     (M_FATAL | M_ERRNO)
-#define M_USAGE   (M_USAGE_SMALL | M_NOPREFIX | M_OPTERR)
-#define M_CLIENT  (M_MSG_VIRT_OUT | M_NOMUTE | M_NOIPREFIX)
+#define M_ERR    (M_FATAL | M_ERRNO)
+#define M_USAGE  (M_USAGE_SMALL | M_NOPREFIX | M_OPTERR)
+#define M_CLIENT (M_MSG_VIRT_OUT | M_NOMUTE | M_NOIPREFIX)
 
 /*
  * Mute levels are designed to avoid large numbers of
@@ -112,10 +112,10 @@ extern int x_msg_line_num;
  * A mute level of 0 is always printed.
  */
 #define MUTE_LEVEL_SHIFT 24
-#define MUTE_LEVEL_MASK 0xFF
+#define MUTE_LEVEL_MASK  0xFF
 
 #define ENCODE_MUTE_LEVEL(mute_level) (((mute_level) & MUTE_LEVEL_MASK) << MUTE_LEVEL_SHIFT)
-#define DECODE_MUTE_LEVEL(flags) (((flags) >> MUTE_LEVEL_SHIFT) & MUTE_LEVEL_MASK)
+#define DECODE_MUTE_LEVEL(flags)      (((flags) >> MUTE_LEVEL_SHIFT) & MUTE_LEVEL_MASK)
 
 /*
  * log_level:  verbosity level n (--verb n) must be >= log_level to print.
@@ -138,11 +138,34 @@ extern int x_msg_line_num;
 bool dont_mute(unsigned int flags);
 
 /* Macro to ensure (and teach static analysis tools) we exit on fatal errors */
-#define EXIT_FATAL(flags) do { if ((flags) & M_FATAL) {_exit(1);}} while (false)
+#define EXIT_FATAL(flags)      \
+    do                         \
+    {                          \
+        if ((flags) & M_FATAL) \
+        {                      \
+            _exit(1);          \
+        }                      \
+    } while (false)
 
-#define msg(flags, ...) do { if (msg_test(flags)) {x_msg((flags), __VA_ARGS__);} EXIT_FATAL(flags); } while (false)
+#define msg(flags, ...)                  \
+    do                                   \
+    {                                    \
+        if (msg_test(flags))             \
+        {                                \
+            x_msg((flags), __VA_ARGS__); \
+        }                                \
+        EXIT_FATAL(flags);               \
+    } while (false)
 #ifdef ENABLE_DEBUG
-#define dmsg(flags, ...) do { if (msg_test(flags)) {x_msg((flags), __VA_ARGS__);} EXIT_FATAL(flags); } while (false)
+#define dmsg(flags, ...)                 \
+    do                                   \
+    {                                    \
+        if (msg_test(flags))             \
+        {                                \
+            x_msg((flags), __VA_ARGS__); \
+        }                                \
+        EXIT_FATAL(flags);               \
+    } while (false)
 #else
 #define dmsg(flags, ...)
 #endif
@@ -150,12 +173,12 @@ bool dont_mute(unsigned int flags);
 void x_msg(const unsigned int flags, const char *format, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
-__attribute__ ((format(gnu_printf, 2, 3)))
+    __attribute__((format(gnu_printf, 2, 3)))
 #else
-__attribute__ ((format(__printf__, 2, 3)))
+    __attribute__((format(__printf__, 2, 3)))
 #endif
 #endif
-;     /* should be called via msg above */
+    ; /* should be called via msg above */
 
 void x_msg_va(const unsigned int flags, const char *format, va_list arglist);
 
@@ -173,7 +196,7 @@ void set_suppress_timestamps(bool suppressed);
 void set_machine_readable_output(bool parsable);
 
 
-#define SDL_CONSTRAIN (1<<0)
+#define SDL_CONSTRAIN (1 << 0)
 bool set_debug_level(const int level, const unsigned int flags);
 
 bool set_mute_cutoff(const int cutoff);
@@ -191,26 +214,41 @@ FILE *msg_fp(const unsigned int flags);
 
 /* Fatal logic errors */
 #ifndef ENABLE_SMALL
-#define ASSERT(x) do { if (!(x)) {assert_failed(__FILE__, __LINE__, #x);}} while (false)
+#define ASSERT(x)                                  \
+    do                                             \
+    {                                              \
+        if (!(x))                                  \
+        {                                          \
+            assert_failed(__FILE__, __LINE__, #x); \
+        }                                          \
+    } while (false)
 #else
-#define ASSERT(x) do { if (!(x)) {assert_failed(__FILE__, __LINE__, NULL);}} while (false)
+#define ASSERT(x)                                    \
+    do                                               \
+    {                                                \
+        if (!(x))                                    \
+        {                                            \
+            assert_failed(__FILE__, __LINE__, NULL); \
+        }                                            \
+    } while (false)
 #endif
 
 #ifdef _MSC_VER
 __declspec(noreturn)
 #endif
-void assert_failed(const char *filename, int line, const char *condition)
+void
+assert_failed(const char *filename, int line, const char *condition)
 #ifndef _MSC_VER
-__attribute__((__noreturn__))
+    __attribute__((__noreturn__))
 #endif
-;
+    ;
 
 /* Poor-man's static_assert() for when not supplied by assert.h, taken from
  * Linux's sys/cdefs.h under GPLv2 */
 #ifndef static_assert
-#define static_assert(expr, diagnostic) \
-    extern int (*__OpenVPN_static_assert_function(void)) \
-    [!!sizeof(struct { int __error_if_negative : (expr) ? 2 : -1; })]
+#define static_assert(expr, diagnostic)            \
+    extern int (*__OpenVPN_static_assert_function( \
+        void))[!!sizeof(struct { int __error_if_negative : (expr) ? 2 : -1; })]
 #endif
 
 /* Inline functions */
@@ -267,9 +305,7 @@ void reset_check_status(void);
 
 void set_check_status(unsigned int info_level, unsigned int verbose_level);
 
-void x_check_status(int status,
-                    const char *description,
-                    struct link_socket *sock,
+void x_check_status(int status, const char *description, struct link_socket *sock,
                     struct tuntap *tt);
 
 static inline void
@@ -383,7 +419,7 @@ openvpn_errno_maybe_crt(bool *crt_error)
         *crt_error = true;
         err = errno;
     }
-#else  /* ifdef _WIN32 */
+#else /* ifdef _WIN32 */
     *crt_error = true;
     err = errno;
 #endif

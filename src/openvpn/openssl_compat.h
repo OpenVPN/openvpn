@@ -67,15 +67,16 @@ X509_OBJECT_free(X509_OBJECT *obj)
     }
 }
 
-#define EVP_CTRL_AEAD_SET_TAG                EVP_CTRL_GCM_SET_TAG
-#define EVP_CTRL_AEAD_GET_TAG                EVP_CTRL_GCM_GET_TAG
+#define EVP_CTRL_AEAD_SET_TAG EVP_CTRL_GCM_SET_TAG
+#define EVP_CTRL_AEAD_GET_TAG EVP_CTRL_GCM_GET_TAG
 #endif
 
 #if defined(LIBRESSL_VERSION_NUMBER)
-#define RSA_F_RSA_OSSL_PRIVATE_ENCRYPT       RSA_F_RSA_EAY_PRIVATE_ENCRYPT
+#define RSA_F_RSA_OSSL_PRIVATE_ENCRYPT RSA_F_RSA_EAY_PRIVATE_ENCRYPT
 #endif
 
-#if defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x3050400fL || defined(OPENSSL_IS_AWSLC)
+#if defined(LIBRESSL_VERSION_NUMBER) && LIBRESSL_VERSION_NUMBER < 0x3050400fL \
+    || defined(OPENSSL_IS_AWSLC)
 #define SSL_get_peer_tmp_key SSL_get_server_tmp_key
 #endif
 
@@ -85,10 +86,8 @@ X509_OBJECT_free(X509_OBJECT *obj)
 /* Note that this is not a perfect emulation of the new function but
  * is good enough for our case of printing certificate details during
  * handshake */
-static inline
-int
-EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz,
-                        size_t *gname_len)
+static inline int
+EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz, size_t *gname_len)
 {
     const EC_KEY *ec = EVP_PKEY_get0_EC_KEY(pkey);
     if (ec == NULL)
@@ -117,13 +116,12 @@ EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz,
 #endif /* if OPENSSL_VERSION_NUMBER < 0x30000000L && !defined(OPENSSL_NO_EC) */
 
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
-#define EVP_MD_get0_name EVP_MD_name
-#define EVP_CIPHER_get0_name EVP_CIPHER_name
+#define EVP_MD_get0_name        EVP_MD_name
+#define EVP_CIPHER_get0_name    EVP_CIPHER_name
 #define EVP_CIPHER_CTX_get_mode EVP_CIPHER_CTX_mode
 
 /** Reduce SSL_CTX_new_ex() to SSL_CTX_new() for OpenSSL < 3 */
-#define SSL_CTX_new_ex(libctx, propq, method)                \
-    SSL_CTX_new((method))
+#define SSL_CTX_new_ex(libctx, propq, method) SSL_CTX_new((method))
 
 /* Some safe typedefs to avoid too many ifdefs */
 typedef void OSSL_LIB_CTX;
@@ -160,9 +158,7 @@ EVP_MD_free(const EVP_MD *md)
 }
 
 static inline unsigned long
-ERR_get_error_all(const char **file, int *line,
-                  const char **func,
-                  const char **data, int *flags)
+ERR_get_error_all(const char **file, int *line, const char **func, const char **data, int *flags)
 {
     static const char *empty = "";
     *func = empty;
@@ -172,13 +168,13 @@ ERR_get_error_all(const char **file, int *line,
 
 #endif /* OPENSSL_VERSION_NUMBER < 0x30000000L */
 
-#if OPENSSL_VERSION_NUMBER < 0x30500000 && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER > 0x3050400fL)
+#if OPENSSL_VERSION_NUMBER < 0x30500000 \
+    && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER > 0x3050400fL)
 static inline int
 SSL_get0_peer_signature_name(SSL *ssl, const char **sigalg)
 {
     int peer_sig_nid;
-    if (SSL_get_peer_signature_nid(ssl, &peer_sig_nid)
-        && peer_sig_nid != NID_undef)
+    if (SSL_get_peer_signature_nid(ssl, &peer_sig_nid) && peer_sig_nid != NID_undef)
     {
         *sigalg = OBJ_nid2sn(peer_sig_nid);
         return 1;
@@ -194,7 +190,8 @@ SSL_get0_peer_signature_name(const SSL *ssl, const char **sigalg)
     *sigalg = NULL;
     return 0;
 }
-#endif /* if OPENSSL_VERSION_NUMBER < 0x30500000 && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER > 0x3050400fL) */
+#endif /* if OPENSSL_VERSION_NUMBER < 0x30500000 && (!defined(LIBRESSL_VERSION_NUMBER) || \
+          LIBRESSL_VERSION_NUMBER > 0x3050400fL) */
 
 #if OPENSSL_VERSION_NUMBER < 0x30200000L && OPENSSL_VERSION_NUMBER >= 0x30000000L
 static inline const char *

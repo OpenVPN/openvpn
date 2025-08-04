@@ -32,8 +32,8 @@
  * OCC (OpenVPN Configuration Control) protocol opcodes.
  */
 
-#define OCC_REQUEST   0         /* request options string from peer */
-#define OCC_REPLY     1         /* deliver options string to peer */
+#define OCC_REQUEST 0 /* request options string from peer */
+#define OCC_REPLY   1 /* deliver options string to peer */
 
 /*
  * Send an OCC_REQUEST once every OCC_INTERVAL
@@ -48,11 +48,12 @@
 /*
  * Other OCC protocol opcodes used to estimate the MTU empirically.
  */
-#define OCC_MTU_LOAD_REQUEST   2        /* Ask peer to send a big packet to us */
-#define OCC_MTU_LOAD           3        /* Send a big packet to peer */
-#define OCC_MTU_REQUEST        4        /* Ask peer to tell us the largest
-                                         * packet it has received from us so far */
-#define OCC_MTU_REPLY          5        /* Send largest packet size to peer */
+#define OCC_MTU_LOAD_REQUEST 2 /* Ask peer to send a big packet to us */
+#define OCC_MTU_LOAD         3 /* Send a big packet to peer */
+#define OCC_MTU_REQUEST                                           \
+    4                          /* Ask peer to tell us the largest \
+                                * packet it has received from us so far */
+#define OCC_MTU_REPLY 5        /* Send largest packet size to peer */
 
 /*
  * Process one command from mtu_load_test_sequence
@@ -63,7 +64,7 @@
 /*
  * Send an exit message to remote.
  */
-#define OCC_EXIT               6
+#define OCC_EXIT 6
 
 /*
  * Used to conduct a load test command sequence
@@ -71,10 +72,10 @@
  */
 struct mtu_load_test
 {
-    int op;                     /* OCC opcode to send to peer */
-    int delta;                  /* determine packet size to send by using
-                                 * this delta against currently
-                                 * configured MTU */
+    int op;    /* OCC opcode to send to peer */
+    int delta; /* determine packet size to send by using
+                * this delta against currently
+                * configured MTU */
 };
 
 extern const uint8_t occ_magic[];
@@ -110,8 +111,7 @@ static inline void
 check_send_occ_req(struct context *c)
 {
     if (event_timeout_defined(&c->c2.occ_interval)
-        && event_timeout_trigger(&c->c2.occ_interval,
-                                 &c->c2.timeval,
+        && event_timeout_trigger(&c->c2.occ_interval, &c->c2.timeval,
                                  (!TO_LINK_DEF(c) && c->c2.occ_op < 0) ? ETT_DEFAULT : 0))
     {
         check_send_occ_req_dowork(c);
@@ -125,8 +125,7 @@ static inline void
 check_send_occ_load_test(struct context *c)
 {
     if (event_timeout_defined(&c->c2.occ_mtu_load_test_interval)
-        && event_timeout_trigger(&c->c2.occ_mtu_load_test_interval,
-                                 &c->c2.timeval,
+        && event_timeout_trigger(&c->c2.occ_mtu_load_test_interval, &c->c2.timeval,
                                  (!TO_LINK_DEF(c) && c->c2.occ_op < 0) ? ETT_DEFAULT : 0))
     {
         check_send_occ_load_test_dowork(c);

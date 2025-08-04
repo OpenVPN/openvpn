@@ -56,8 +56,7 @@ char *pkcs11_certificate_dn(pkcs11h_certificate_t certificate, struct gc_arena *
  *
  * @return              1 on failure, 0 on success
  */
-int pkcs11_certificate_serial(pkcs11h_certificate_t certificate, char *serial,
-                              size_t serial_len);
+int pkcs11_certificate_serial(pkcs11h_certificate_t certificate, char *serial, size_t serial_len);
 
 /**
  * Load PKCS #11 Certificate's information into the given TLS context
@@ -67,8 +66,7 @@ int pkcs11_certificate_serial(pkcs11h_certificate_t certificate, char *serial,
  *
  * @return              1 on failure, 0 on success
  */
-int pkcs11_init_tls_session(pkcs11h_certificate_t certificate,
-                            struct tls_root_ctx *const ssl_ctx);
+int pkcs11_init_tls_session(pkcs11h_certificate_t certificate, struct tls_root_ctx *const ssl_ctx);
 
 #endif /* defined(ENABLE_PKCS11) */
 #endif /* PKCS11_BACKEND_H_ */

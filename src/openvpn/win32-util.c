@@ -161,7 +161,7 @@ win_get_tempdir(void)
     if (WideCharToMultiByte(CP_UTF8, 0, wtmpdir, -1, NULL, 0, NULL, NULL) > sizeof(tmpdir))
     {
         msg(M_WARN, "Could not get temporary directory. Path is too long."
-            "  Consider using --tmp-dir");
+                    "  Consider using --tmp-dir");
         return NULL;
     }
 

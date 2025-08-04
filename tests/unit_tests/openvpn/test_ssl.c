@@ -159,7 +159,7 @@ static struct
 static int
 init(void **state)
 {
-    (void) state;
+    (void)state;
     global_state.gc = gc_new();
     global_state.certfile = platform_create_temp_file(get_tmp_dir(), "cert", &global_state.gc);
     global_state.keyfile = platform_create_temp_file(get_tmp_dir(), "key", &global_state.gc);
@@ -180,7 +180,7 @@ init(void **state)
 static int
 cleanup(void **state)
 {
-    (void) state;
+    (void)state;
     unlink(global_state.certfile);
     unlink(global_state.keyfile);
     gc_free(&global_state.gc);
@@ -220,7 +220,7 @@ crypto_pem_encode_certificate(void **state)
 static void
 test_load_certificate_and_key(void **state)
 {
-    (void) state;
+    (void)state;
     struct tls_root_ctx ctx = { 0 };
 
     /* test loading of inlined cert and key.
@@ -242,11 +242,11 @@ test_load_certificate_and_key(void **state)
 static void
 test_load_certificate_and_key_uri(void **state)
 {
-    (void) state;
+    (void)state;
 
 #if !defined(HAVE_OPENSSL_STORE)
     skip();
-#else /* HAVE_OPENSSL_STORE */
+#else  /* HAVE_OPENSSL_STORE */
 
     struct tls_root_ctx ctx = { 0 };
     const char *certfile = global_state.certfile;
@@ -306,7 +306,6 @@ init_frame_parameters(struct frame *frame)
     frame->buf.tailroom = overhead;
 
     frame->tun_mtu = tls_mtu;
-
 }
 
 static void
@@ -333,7 +332,6 @@ do_data_channel_round_trip(struct crypto_options *co)
     /* Test encryption, decryption for all packet sizes */
     for (int i = 1; i <= frame.buf.payload_size; ++i)
     {
-
         /* msg(M_INFO, "TESTING ENCRYPT/DECRYPT of packet length=%d", i); */
 
         /*
@@ -413,7 +411,6 @@ encrypt_one_packet(struct crypto_options *co, int len)
 static void
 check_aead_limits(struct crypto_options *co, bool chachapoly)
 {
-
     /* Check that we correctly react when we have a nearing AEAD limits */
 
     /* manually increase the send counter to be past
@@ -445,9 +442,8 @@ check_aead_limits(struct crypto_options *co, bool chachapoly)
     {
         /* Check always against the GCM usage limit here to see if that
          * check works */
-        assert_true(aead_usage_limit_reached((1ull << 36),
-                                             &co->key_ctx_bi.encrypt,
-                                             co->packet_id.send.id));
+        assert_true(
+            aead_usage_limit_reached((1ull << 36), &co->key_ctx_bi.encrypt, co->packet_id.send.id));
         return;
     }
 
@@ -464,10 +460,9 @@ check_aead_limits(struct crypto_options *co, bool chachapoly)
 
 
 static struct crypto_options
-init_crypto_options(const char *cipher, const char *auth, bool epoch,
-                    struct key2 *statickey)
+init_crypto_options(const char *cipher, const char *auth, bool epoch, struct key2 *statickey)
 {
-    struct key2 key2 = { .n = 2};
+    struct key2 key2 = { .n = 2 };
 
     if (statickey)
     {
@@ -488,7 +483,7 @@ init_crypto_options(const char *cipher, const char *auth, bool epoch,
 
     if (epoch)
     {
-        struct epoch_key e1 = { .epoch = 1, .epoch_key = { 0 }};
+        struct epoch_key e1 = { .epoch = 1, .epoch_key = { 0 } };
         memcpy(e1.epoch_key, key2.keys[0].cipher, sizeof(e1.epoch_key));
         co.flags |= CO_EPOCH_DATA_KEY_FORMAT;
         epoch_init_key_ctx(&co, &kt, &e1, &e1, 5);
@@ -633,11 +628,11 @@ test_data_channel_roundtrip_bf_cbc(void **state)
 static struct key2
 create_key(void)
 {
-    struct key2 key2 = {.n = 2};
+    struct key2 key2 = { .n = 2 };
 
-    const uint8_t key[] =
-    {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', '0', '1', '2', '3', '4', '5', '6', '7', 'A', 'B', 'C', 'D', 'E', 'F',
-     'G', 'H', 'j', 'k', 'u', 'c', 'h', 'e', 'n', 'l'};
+    const uint8_t key[] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', '0', '1', '2',
+                            '3', '4', '5', '6', '7', 'A', 'B', 'C', 'D', 'E', 'F',
+                            'G', 'H', 'j', 'k', 'u', 'c', 'h', 'e', 'n', 'l' };
 
     static_assert(sizeof(key) == 32, "Size of key should be 32 bytes");
 
@@ -647,7 +642,7 @@ create_key(void)
 
     for (int i = 0; i < sizeof(key2.keys); i++)
     {
-        keydata[i] = (uint8_t) (key[i % sizeof(key)] ^ i);
+        keydata[i] = (uint8_t)(key[i % sizeof(key)] ^ i);
     }
 
     ASSERT(memcpy(key2.keys[0].cipher, keydata, sizeof(key2.keys[0].cipher)));
@@ -663,8 +658,7 @@ test_data_channel_known_vectors_run(bool epoch)
 {
     struct key2 key2 = create_key();
 
-    struct crypto_options co = init_crypto_options("AES-256-GCM", "none", epoch,
-                                                   &key2);
+    struct crypto_options co = init_crypto_options("AES-256-GCM", "none", epoch, &key2);
 
     struct gc_arena gc = gc_new();
 
@@ -716,41 +710,40 @@ test_data_channel_known_vectors_run(bool epoch)
 
     if (epoch)
     {
-        uint8_t packetid1[8] = {0, 0x04, 0, 0, 0, 0, 0, 1};
+        uint8_t packetid1[8] = { 0, 0x04, 0, 0, 0, 0, 0, 1 };
         assert_memory_equal(BPTR(&buf), packetid1, 8);
     }
     else
     {
-        uint8_t packetid1[4] = {0, 0, 0, 1};
+        uint8_t packetid1[4] = { 0, 0, 0, 1 };
         assert_memory_equal(BPTR(&buf), packetid1, 4);
     }
 
     if (epoch)
     {
         uint8_t *tag_location = BEND(&buf) - OPENVPN_AEAD_TAG_LENGTH;
-        const uint8_t exp_tag_epoch[16] =
-        {0x0f, 0xff, 0xf5, 0x91, 0x3d, 0x39, 0xd7, 0x5b,
-         0x18, 0x57, 0x3b, 0x57, 0x48, 0x58, 0x9a, 0x7d};
+        const uint8_t exp_tag_epoch[16] = { 0x0f, 0xff, 0xf5, 0x91, 0x3d, 0x39, 0xd7, 0x5b,
+                                            0x18, 0x57, 0x3b, 0x57, 0x48, 0x58, 0x9a, 0x7d };
 
         assert_memory_equal(tag_location, exp_tag_epoch, OPENVPN_AEAD_TAG_LENGTH);
     }
     else
     {
         uint8_t *tag_location = BPTR(&buf) + 4;
-        const uint8_t exp_tag_noepoch[16] =
-        {0x1f, 0xdd, 0x90, 0x8f, 0x0e, 0x9d, 0xc2, 0x5e, 0x79, 0xd8, 0x32, 0x02, 0x0d, 0x58, 0xe7, 0x3f};
+        const uint8_t exp_tag_noepoch[16] = { 0x1f, 0xdd, 0x90, 0x8f, 0x0e, 0x9d, 0xc2, 0x5e,
+                                              0x79, 0xd8, 0x32, 0x02, 0x0d, 0x58, 0xe7, 0x3f };
         assert_memory_equal(tag_location, exp_tag_noepoch, OPENVPN_AEAD_TAG_LENGTH);
     }
 
     /* Check some bytes at the beginning of the encrypted part */
     if (epoch)
     {
-        const uint8_t bytesat14[6] = {0x36, 0xaa, 0xb4, 0xd4, 0x9c, 0xe6};
+        const uint8_t bytesat14[6] = { 0x36, 0xaa, 0xb4, 0xd4, 0x9c, 0xe6 };
         assert_memory_equal(BPTR(&buf) + 14, bytesat14, sizeof(bytesat14));
     }
     else
     {
-        const uint8_t bytesat30[6] = {0xa8, 0x2e, 0x6b, 0x17, 0x06, 0xd9};
+        const uint8_t bytesat30[6] = { 0xa8, 0x2e, 0x6b, 0x17, 0x06, 0xd9 };
         assert_memory_equal(BPTR(&buf) + 30, bytesat30, sizeof(bytesat30));
     }
 

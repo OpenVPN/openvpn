@@ -50,38 +50,38 @@
 /*
  * Standard ethernet MTU
  */
-#define ETHERNET_MTU       1500
+#define ETHERNET_MTU 1500
 
 /*
  * It is a fatal error if mtu is less than
  * this value for tun device.
  */
-#define TUN_MTU_MIN        100
+#define TUN_MTU_MIN 100
 
 /*
  * Default MTU of network over which tunnel data will pass by TCP/UDP.
  */
-#define LINK_MTU_DEFAULT   1500
+#define LINK_MTU_DEFAULT 1500
 
 /*
  * Default MTU of tunnel device.
  */
-#define TUN_MTU_DEFAULT    1500
+#define TUN_MTU_DEFAULT 1500
 
 /*
  * MTU Defaults for TAP devices
  */
-#define TAP_MTU_EXTRA_DEFAULT  32
+#define TAP_MTU_EXTRA_DEFAULT 32
 
 /*
  * Default MSSFIX value, used for reducing TCP MTU size
  */
-#define MSSFIX_DEFAULT     1492
+#define MSSFIX_DEFAULT 1492
 
 /*
  * Default maximum size of control channel packets
  */
-#define TLS_MTU_DEFAULT    1250
+#define TLS_MTU_DEFAULT 1250
 
 /*
  * Alignment of payload data such as IP packet or
@@ -94,62 +94,64 @@
 /**
  * Packet geometry parameters.
  */
-struct frame {
-    struct {
+struct frame
+{
+    struct
+    {
         /* This struct holds all the information about the buffers that are
          * allocated to match this frame */
-        int payload_size;       /**< the maximum size that a payload that our
-                                 *   buffers can hold from either tun device
-                                 *   or network link.
-                                 */
+        int payload_size; /**< the maximum size that a payload that our
+                           *   buffers can hold from either tun device
+                           *   or network link.
+                           */
 
 
-        int headroom;           /**< the headroom in the buffer, this is choosen
-                                 *   to allow all potential header to be added
-                                 *   before the packet */
+        int headroom; /**< the headroom in the buffer, this is choosen
+                       *   to allow all potential header to be added
+                       *   before the packet */
 
-        int tailroom;            /**< the tailroom in the buffer. Chosen large
-                                  *  enough to also accompany any extrea header
-                                  *  or work space required by
-                                  *  decryption/encryption or compression. */
+        int tailroom; /**< the tailroom in the buffer. Chosen large
+                       *  enough to also accompany any extrea header
+                       *  or work space required by
+                       *  decryption/encryption or compression. */
     } buf;
 
-    uint16_t mss_fix;           /**< The actual MSS value that should be
-                                 *   written to the payload packets. This
-                                 *   is the value for IPv4 TCP packets. For
-                                 *   IPv6 packets another 20 bytes must
-                                 *   be subtracted */
+    uint16_t mss_fix;      /**< The actual MSS value that should be
+                            *   written to the payload packets. This
+                            *   is the value for IPv4 TCP packets. For
+                            *   IPv6 packets another 20 bytes must
+                            *   be subtracted */
 
-    int max_fragment_size;      /**< The maximum size of a fragment.
-                                 * Fragmentation is done on the unencrypted
-                                 * payload after (potential) compression. So
-                                 * this value specifies the maximum payload
-                                 * size that can be send in a single fragment
-                                 */
+    int max_fragment_size; /**< The maximum size of a fragment.
+                            * Fragmentation is done on the unencrypted
+                            * payload after (potential) compression. So
+                            * this value specifies the maximum payload
+                            * size that can be send in a single fragment
+                            */
 
-    int tun_mtu;                /**< the (user) configured tun-mtu. This is used
-                                 *   in configuring the tun interface or
-                                 *   in calculations that use the desired size
-                                 *   of the payload in the buffer.
-                                 *
-                                 *   This variable is also used in control
-                                 *   frame context to set the desired maximum
-                                 *   control frame payload (although most of
-                                 *   code ignores it)
-                                 */
-    int tun_max_mtu;            /**< the maximum tun-mtu size the buffers are
-                                 *   are sized for. This is the upper bound that
-                                 *   a server can push as MTU */
+    int tun_mtu;           /**< the (user) configured tun-mtu. This is used
+                            *   in configuring the tun interface or
+                            *   in calculations that use the desired size
+                            *   of the payload in the buffer.
+                            *
+                            *   This variable is also used in control
+                            *   frame context to set the desired maximum
+                            *   control frame payload (although most of
+                            *   code ignores it)
+                            */
+    int tun_max_mtu;       /**< the maximum tun-mtu size the buffers are
+                            *   are sized for. This is the upper bound that
+                            *   a server can push as MTU */
 
-    int extra_tun;              /**< Maximum number of bytes in excess of
-                                 *   the tun/tap MTU that might be read
-                                 *   from or written to the virtual
-                                 *   tun/tap network interface.
-                                 *
-                                 *   Only set with the option --tun-mtu-extra
-                                 *   which defaults to 0 for tun and 32
-                                 *   (\c TAP_MTU_EXTRA_DEFAULT) for tap.
-                                 *   */
+    int extra_tun;         /**< Maximum number of bytes in excess of
+                            *   the tun/tap MTU that might be read
+                            *   from or written to the virtual
+                            *   tun/tap network interface.
+                            *
+                            *   Only set with the option --tun-mtu-extra
+                            *   which defaults to 0 for tun and 32
+                            *   (\c TAP_MTU_EXTRA_DEFAULT) for tap.
+                            *   */
 };
 
 /* Forward declarations, to prevent includes */
@@ -174,9 +176,7 @@ struct options;
  * Function prototypes.
  */
 
-void frame_print(const struct frame *frame,
-                 int level,
-                 const char *prefix);
+void frame_print(const struct frame *frame, int level, const char *prefix);
 
 void set_mtu_discover_type(socket_descriptor_t sd, int mtu_type, sa_family_t proto_af);
 
@@ -194,10 +194,8 @@ struct key_type;
  *
  * *  [IP][UDP][OPENVPN PROTOCOL HEADER][ **PAYLOAD incl compression header** ]
  */
-size_t
-frame_calculate_payload_size(const struct frame *frame,
-                             const struct options *options,
-                             const struct key_type *kt);
+size_t frame_calculate_payload_size(const struct frame *frame, const struct options *options,
+                                    const struct key_type *kt);
 
 /**
  * Calculates the size of the payload overhead according to tun-mtu and
@@ -215,10 +213,8 @@ frame_calculate_payload_size(const struct frame *frame,
  *
  * *  [IP][UDP][OPENVPN PROTOCOL HEADER][ **PAYLOAD incl compression header** ]
  */
-size_t
-frame_calculate_payload_overhead(size_t extra_tun,
-                                 const struct options *options,
-                                 const struct key_type *kt);
+size_t frame_calculate_payload_overhead(size_t extra_tun, const struct options *options,
+                                        const struct key_type *kt);
 
 
 /**
@@ -236,10 +232,8 @@ frame_calculate_payload_overhead(size_t extra_tun,
  * @param occ           Use the calculation for the OCC link-mtu
  * @return              size of the overhead in bytes
  */
-size_t
-frame_calculate_protocol_header_size(const struct key_type *kt,
-                                     const struct options *options,
-                                     bool occ);
+size_t frame_calculate_protocol_header_size(const struct key_type *kt,
+                                            const struct options *options, bool occ);
 
 /**
  * Calculate the link-mtu to advertise to our peer.  The actual value is not
@@ -248,23 +242,18 @@ frame_calculate_protocol_header_size(const struct key_type *kt,
  * value they expect.  This assumes that the traditional cipher/auth directives
  * in the config match the config of the peer.
  */
-size_t
-calc_options_string_link_mtu(const struct options *options,
-                             const struct frame *frame);
+size_t calc_options_string_link_mtu(const struct options *options, const struct frame *frame);
 
 /**
  * Return the size of the packet ID size that is currently in use by cipher and
  * options for the data channel.
  */
-unsigned int
-calc_packet_id_size_dc(const struct options *options,
-                       const struct key_type *kt);
+unsigned int calc_packet_id_size_dc(const struct options *options, const struct key_type *kt);
 
 /*
  * allocate a buffer for socket or tun layer
  */
-void alloc_buf_sock_tun(struct buffer *buf,
-                        const struct frame *frame);
+void alloc_buf_sock_tun(struct buffer *buf, const struct frame *frame);
 
 /*
  * EXTENDED_SOCKET_ERROR_CAPABILITY functions -- print extra error info

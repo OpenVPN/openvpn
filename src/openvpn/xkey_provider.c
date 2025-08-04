@@ -46,15 +46,16 @@ static const char *provname = "OpenVPN External Key Provider";
 
 typedef struct
 {
-    OSSL_LIB_CTX *libctx;  /**< a child libctx for our own use */
+    OSSL_LIB_CTX *libctx; /**< a child libctx for our own use */
 } XKEY_PROVIDER_CTX;
 
 /* helper to print debug messages */
-#define xkey_dmsg(f, ...) \
-    do {                                                        \
-        dmsg(f|M_NOLF, "xkey_provider: In %s: ", __func__);    \
-        dmsg(f|M_NOPREFIX, __VA_ARGS__);                      \
-    } while(0)
+#define xkey_dmsg(f, ...)                                     \
+    do                                                        \
+    {                                                         \
+        dmsg(f | M_NOLF, "xkey_provider: In %s: ", __func__); \
+        dmsg(f | M_NOPREFIX, __VA_ARGS__);                    \
+    } while (0)
 
 typedef enum
 {
@@ -93,7 +94,7 @@ typedef struct
     /** keydata handle free function of backend */
     XKEY_PRIVKEY_FREE_fn *free;
     XKEY_PROVIDER_CTX *prov;
-    int refcount;                /**< reference count */
+    int refcount; /**< reference count */
 } XKEY_KEYDATA;
 
 static inline const char *
@@ -128,9 +129,8 @@ KEYSIZE(const XKEY_KEYDATA *key)
  * Helper sign function for native keys
  * Implemented using OpenSSL calls.
  */
-int
-xkey_native_sign(XKEY_KEYDATA *key, unsigned char *sig, size_t *siglen,
-                 const unsigned char *tbs, size_t tbslen, XKEY_SIGALG sigalg);
+int xkey_native_sign(XKEY_KEYDATA *key, unsigned char *sig, size_t *siglen,
+                     const unsigned char *tbs, size_t tbslen, XKEY_SIGALG sigalg);
 
 
 /* keymgmt provider */
@@ -150,8 +150,7 @@ static OSSL_FUNC_keymgmt_set_params_fn keymgmt_set_params;
 static OSSL_FUNC_keymgmt_query_operation_name_fn rsa_keymgmt_name;
 static OSSL_FUNC_keymgmt_query_operation_name_fn ec_keymgmt_name;
 
-static int
-keymgmt_import_helper(XKEY_KEYDATA *key, const OSSL_PARAM params[]);
+static int keymgmt_import_helper(XKEY_KEYDATA *key, const OSSL_PARAM params[]);
 
 static XKEY_KEYDATA *
 keydata_new(void)
@@ -273,9 +272,8 @@ keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[], const ch
     int selection_pub = selection & ~OSSL_KEYMGMT_SELECT_PRIVATE_KEY;
 
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_from_name(key->prov->libctx, name, NULL);
-    if (!ctx
-        || (EVP_PKEY_fromdata_init(ctx) != 1)
-        || (EVP_PKEY_fromdata(ctx, &pkey, selection_pub, (OSSL_PARAM *) params) !=1))
+    if (!ctx || (EVP_PKEY_fromdata_init(ctx) != 1)
+        || (EVP_PKEY_fromdata(ctx, &pkey, selection_pub, (OSSL_PARAM *)params) != 1))
     {
         msg(M_WARN, "Error: keymgmt_import failed for key type <%s>", name);
         if (pkey)
@@ -295,10 +293,10 @@ keymgmt_import(void *keydata, int selection, const OSSL_PARAM params[], const ch
     {
         /* create private key */
         pkey = NULL;
-        if (EVP_PKEY_fromdata(ctx, &pkey, selection, (OSSL_PARAM *) params) == 1)
+        if (EVP_PKEY_fromdata(ctx, &pkey, selection, (OSSL_PARAM *)params) == 1)
         {
             key->handle = pkey;
-            key->free = (XKEY_PRIVKEY_FREE_fn *) EVP_PKEY_free;
+            key->free = (XKEY_PRIVKEY_FREE_fn *)EVP_PKEY_free;
         }
     }
     EVP_PKEY_CTX_free(ctx);
@@ -419,12 +417,10 @@ keymgmt_gettable_params(void *provctx)
 {
     xkey_dmsg(D_XKEY, "entry");
 
-    static OSSL_PARAM gettable[] = {
-        OSSL_PARAM_int(OSSL_PKEY_PARAM_BITS, NULL),
-        OSSL_PARAM_int(OSSL_PKEY_PARAM_SECURITY_BITS, NULL),
-        OSSL_PARAM_int(OSSL_PKEY_PARAM_MAX_SIZE, NULL),
-        OSSL_PARAM_END
-    };
+    static OSSL_PARAM gettable[] = { OSSL_PARAM_int(OSSL_PKEY_PARAM_BITS, NULL),
+                                     OSSL_PARAM_int(OSSL_PKEY_PARAM_SECURITY_BITS, NULL),
+                                     OSSL_PARAM_int(OSSL_PKEY_PARAM_MAX_SIZE, NULL),
+                                     OSSL_PARAM_END };
     return gettable;
 }
 
@@ -471,14 +467,14 @@ keymgmt_import_helper(XKEY_KEYDATA *key, const OSSL_PARAM *params)
     /* only check params we understand and ignore the rest */
 
     p = OSSL_PARAM_locate_const(params, "pubkey"); /*setting pubkey on our keydata */
-    if (p && p->data_type == OSSL_PARAM_OCTET_STRING
-        && p->data_size == sizeof(pkey))
+    if (p && p->data_type == OSSL_PARAM_OCTET_STRING && p->data_size == sizeof(pkey))
     {
         pkey = *(EVP_PKEY **)p->data;
         ASSERT(pkey);
 
         int id = EVP_PKEY_get_id(pkey);
-        if (id != EVP_PKEY_RSA && id != EVP_PKEY_EC && id != EVP_PKEY_ED25519 && id != EVP_PKEY_ED448)
+        if (id != EVP_PKEY_RSA && id != EVP_PKEY_EC && id != EVP_PKEY_ED25519
+            && id != EVP_PKEY_ED448)
         {
             msg(M_WARN, "Error: xkey keymgmt_import: unknown key type (%d)", id);
             return 0;
@@ -493,8 +489,7 @@ keymgmt_import_helper(XKEY_KEYDATA *key, const OSSL_PARAM *params)
     }
 
     p = OSSL_PARAM_locate_const(params, "handle"); /*setting privkey */
-    if (p && p->data_type == OSSL_PARAM_OCTET_PTR
-        && p->data_size == sizeof(key->handle))
+    if (p && p->data_type == OSSL_PARAM_OCTET_PTR && p->data_size == sizeof(key->handle))
     {
         key->handle = *(void **)p->data;
         /* caller should keep the reference alive until we call free */
@@ -502,8 +497,7 @@ keymgmt_import_helper(XKEY_KEYDATA *key, const OSSL_PARAM *params)
     }
 
     p = OSSL_PARAM_locate_const(params, "sign_op"); /*setting sign_op */
-    if (p && p->data_type == OSSL_PARAM_OCTET_PTR
-        && p->data_size == sizeof(key->sign))
+    if (p && p->data_type == OSSL_PARAM_OCTET_PTR && p->data_size == sizeof(key->sign))
     {
         key->sign = *(void **)p->data;
         ASSERT(key->sign); /* fix your params array */
@@ -511,8 +505,7 @@ keymgmt_import_helper(XKEY_KEYDATA *key, const OSSL_PARAM *params)
 
     /* optional parameters */
     p = OSSL_PARAM_locate_const(params, "free_op"); /*setting free_op */
-    if (p && p->data_type == OSSL_PARAM_OCTET_PTR
-        && p->data_size == sizeof(key->free))
+    if (p && p->data_type == OSSL_PARAM_OCTET_PTR && p->data_size == sizeof(key->free))
     {
         key->free = *(void **)p->data;
     }
@@ -586,75 +579,80 @@ ec_keymgmt_name(int id)
 }
 
 static const OSSL_DISPATCH rsa_keymgmt_functions[] = {
-    {OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new},
-    {OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free},
-    {OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load},
-    {OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has},
-    {OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match},
-    {OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))rsa_keymgmt_import},
-    {OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types},
-    {OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},
-    {OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params},
-    {OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params},
-    {OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},   /* same as gettable */
-    {OSSL_FUNC_KEYMGMT_QUERY_OPERATION_NAME, (void (*)(void))rsa_keymgmt_name},
-    {0, NULL }
+    { OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new },
+    { OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free },
+    { OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load },
+    { OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has },
+    { OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match },
+    { OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))rsa_keymgmt_import },
+    { OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types },
+    { OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params },
+    { OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params },
+    { OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params },
+    { OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS,
+      (void (*)(void))keymgmt_gettable_params }, /* same as gettable */
+    { OSSL_FUNC_KEYMGMT_QUERY_OPERATION_NAME, (void (*)(void))rsa_keymgmt_name },
+    { 0, NULL }
 };
 
 static const OSSL_DISPATCH ec_keymgmt_functions[] = {
-    {OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new},
-    {OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free},
-    {OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load},
-    {OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has},
-    {OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match},
-    {OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))ec_keymgmt_import},
-    {OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types},
-    {OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},
-    {OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params},
-    {OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params},
-    {OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},   /* same as gettable */
-    {OSSL_FUNC_KEYMGMT_QUERY_OPERATION_NAME, (void (*)(void))ec_keymgmt_name},
-    {0, NULL }
+    { OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new },
+    { OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free },
+    { OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load },
+    { OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has },
+    { OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match },
+    { OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))ec_keymgmt_import },
+    { OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types },
+    { OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params },
+    { OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params },
+    { OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params },
+    { OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS,
+      (void (*)(void))keymgmt_gettable_params }, /* same as gettable */
+    { OSSL_FUNC_KEYMGMT_QUERY_OPERATION_NAME, (void (*)(void))ec_keymgmt_name },
+    { 0, NULL }
 };
 
 static const OSSL_DISPATCH ed448_keymgmt_functions[] = {
-    {OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new},
-    {OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free},
-    {OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load},
-    {OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has},
-    {OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match},
-    {OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))ed448_keymgmt_import},
-    {OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types},
-    {OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},
-    {OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params},
-    {OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params},
-    {OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},       /* same as gettable */
-    {0, NULL }
+    { OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new },
+    { OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free },
+    { OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load },
+    { OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has },
+    { OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match },
+    { OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))ed448_keymgmt_import },
+    { OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types },
+    { OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params },
+    { OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params },
+    { OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params },
+    { OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS,
+      (void (*)(void))keymgmt_gettable_params }, /* same as gettable */
+    { 0, NULL }
 };
 
 static const OSSL_DISPATCH ed25519_keymgmt_functions[] = {
-    {OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new},
-    {OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free},
-    {OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load},
-    {OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has},
-    {OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match},
-    {OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))ed25519_keymgmt_import},
-    {OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types},
-    {OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},
-    {OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params},
-    {OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params},
-    {OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params},       /* same as gettable */
-    {0, NULL }
+    { OSSL_FUNC_KEYMGMT_NEW, (void (*)(void))keymgmt_new },
+    { OSSL_FUNC_KEYMGMT_FREE, (void (*)(void))keymgmt_free },
+    { OSSL_FUNC_KEYMGMT_LOAD, (void (*)(void))keymgmt_load },
+    { OSSL_FUNC_KEYMGMT_HAS, (void (*)(void))keymgmt_has },
+    { OSSL_FUNC_KEYMGMT_MATCH, (void (*)(void))keymgmt_match },
+    { OSSL_FUNC_KEYMGMT_IMPORT, (void (*)(void))ed25519_keymgmt_import },
+    { OSSL_FUNC_KEYMGMT_IMPORT_TYPES, (void (*)(void))keymgmt_import_types },
+    { OSSL_FUNC_KEYMGMT_GETTABLE_PARAMS, (void (*)(void))keymgmt_gettable_params },
+    { OSSL_FUNC_KEYMGMT_GET_PARAMS, (void (*)(void))keymgmt_get_params },
+    { OSSL_FUNC_KEYMGMT_SET_PARAMS, (void (*)(void))keymgmt_set_params },
+    { OSSL_FUNC_KEYMGMT_SETTABLE_PARAMS,
+      (void (*)(void))keymgmt_gettable_params }, /* same as gettable */
+    { 0, NULL }
 };
 
 
 const OSSL_ALGORITHM keymgmts[] = {
-    {"RSA:rsaEncryption", XKEY_PROV_PROPS, rsa_keymgmt_functions, "OpenVPN xkey RSA Key Manager"},
-    {"RSA-PSS:RSASSA-PSS", XKEY_PROV_PROPS, rsa_keymgmt_functions, "OpenVPN xkey RSA-PSS Key Manager"},
-    {"EC:id-ecPublicKey", XKEY_PROV_PROPS, ec_keymgmt_functions, "OpenVPN xkey EC Key Manager"},
-    {"ED448", XKEY_PROV_PROPS, ed448_keymgmt_functions, "OpenVPN xkey ED448 Key Manager"},
-    {"ED25519", XKEY_PROV_PROPS, ed25519_keymgmt_functions, "OpenVPN xkey ED25519 Key Manager"},
-    {NULL, NULL, NULL, NULL}
+    { "RSA:rsaEncryption", XKEY_PROV_PROPS, rsa_keymgmt_functions, "OpenVPN xkey RSA Key Manager" },
+    { "RSA-PSS:RSASSA-PSS", XKEY_PROV_PROPS, rsa_keymgmt_functions,
+      "OpenVPN xkey RSA-PSS Key Manager" },
+    { "EC:id-ecPublicKey", XKEY_PROV_PROPS, ec_keymgmt_functions, "OpenVPN xkey EC Key Manager" },
+    { "ED448", XKEY_PROV_PROPS, ed448_keymgmt_functions, "OpenVPN xkey ED448 Key Manager" },
+    { "ED25519", XKEY_PROV_PROPS, ed25519_keymgmt_functions, "OpenVPN xkey ED25519 Key Manager" },
+    { NULL, NULL, NULL, NULL }
 };
 
 
@@ -681,29 +679,39 @@ typedef struct
     XKEY_SIGALG sigalg;
 } XKEY_SIGNATURE_CTX;
 
-static const XKEY_SIGALG default_sigalg = { .mdname = "MD5-SHA1", .saltlen = "digest",
-                                            .padmode = "pkcs1", .keytype = "RSA"};
+static const XKEY_SIGALG default_sigalg = {
+    .mdname = "MD5-SHA1", .saltlen = "digest", .padmode = "pkcs1", .keytype = "RSA"
+};
 
-const struct {
+const struct
+{
     int nid;
     const char *name;
-} digest_names[] = {{NID_md5_sha1, "MD5-SHA1"}, {NID_sha1, "SHA1"},
-                    {NID_sha224, "SHA224", }, {NID_sha256, "SHA256"}, {NID_sha384, "SHA384"},
-                    {NID_sha512, "SHA512"}, {0, NULL}};
+} digest_names[] = { { NID_md5_sha1, "MD5-SHA1" },
+                     { NID_sha1, "SHA1" },
+                     {
+                         NID_sha224,
+                         "SHA224",
+                     },
+                     { NID_sha256, "SHA256" },
+                     { NID_sha384, "SHA384" },
+                     { NID_sha512, "SHA512" },
+                     { 0, NULL } };
 /* Use of NIDs as opposed to EVP_MD_fetch is okay here
  * as these are only used for converting names passed in
  * by OpenSSL to const strings.
  */
 
-static struct {
+static struct
+{
     int id;
     const char *name;
-} padmode_names[] = {{RSA_PKCS1_PADDING, "pkcs1"},
-                     {RSA_PKCS1_PSS_PADDING, "pss"},
-                     {RSA_NO_PADDING, "none"},
-                     {0, NULL}};
+} padmode_names[] = { { RSA_PKCS1_PADDING, "pkcs1" },
+                      { RSA_PKCS1_PSS_PADDING, "pss" },
+                      { RSA_NO_PADDING, "none" },
+                      { 0, NULL } };
 
-static const char *saltlen_names[] = {"digest", "max", "auto", NULL};
+static const char *saltlen_names[] = { "digest", "max", "auto", NULL };
 
 /* Return a string literal for digest name - normalizes
  * alternate names like SHA2-256 to SHA256 etc.
@@ -724,7 +732,7 @@ xkey_mdname(const char *name)
     {
         i++;
     }
-    return digest_names[i].name ?  digest_names[i].name : "MD5-SHA1";
+    return digest_names[i].name ? digest_names[i].name : "MD5-SHA1";
 }
 
 static void *
@@ -732,7 +740,7 @@ signature_newctx(void *provctx, const char *propq)
 {
     xkey_dmsg(D_XKEY, "entry");
 
-    (void) propq; /* unused */
+    (void)propq; /* unused */
 
     XKEY_SIGNATURE_CTX *sctx = OPENSSL_zalloc(sizeof(*sctx));
     if (!sctx)
@@ -767,8 +775,7 @@ signature_settable_ctx_params(void *ctx, void *provctx)
     static OSSL_PARAM settable[] = {
         OSSL_PARAM_utf8_string(OSSL_SIGNATURE_PARAM_PAD_MODE, NULL, 0),
         OSSL_PARAM_utf8_string(OSSL_SIGNATURE_PARAM_DIGEST, NULL, 0),
-        OSSL_PARAM_utf8_string(OSSL_SIGNATURE_PARAM_PSS_SALTLEN, NULL, 0),
-        OSSL_PARAM_END
+        OSSL_PARAM_utf8_string(OSSL_SIGNATURE_PARAM_PSS_SALTLEN, NULL, 0), OSSL_PARAM_END
     };
 
     return settable;
@@ -784,7 +791,7 @@ signature_set_ctx_params(void *ctx, const OSSL_PARAM params[])
 
     if (params == NULL)
     {
-        return 1;  /* not an error */
+        return 1; /* not an error */
     }
     p = OSSL_PARAM_locate_const(params, OSSL_SIGNATURE_PARAM_PAD_MODE);
     if (p && p->data_type == OSSL_PARAM_UTF8_STRING)
@@ -800,8 +807,7 @@ signature_set_ctx_params(void *ctx, const OSSL_PARAM params[])
         }
         if (sctx->sigalg.padmode == NULL)
         {
-            msg(M_WARN, "xkey signature_ctx: padmode <%s>, treating as <none>",
-                (char *)p->data);
+            msg(M_WARN, "xkey signature_ctx: padmode <%s>, treating as <none>", (char *)p->data);
             sctx->sigalg.padmode = "none";
         }
         xkey_dmsg(D_XKEY, "setting padmode as %s", sctx->sigalg.padmode);
@@ -834,7 +840,7 @@ signature_set_ctx_params(void *ctx, const OSSL_PARAM params[])
     }
 
     p = OSSL_PARAM_locate_const(params, OSSL_SIGNATURE_PARAM_DIGEST);
-    if (p  &&  p->data_type == OSSL_PARAM_UTF8_STRING)
+    if (p && p->data_type == OSSL_PARAM_UTF8_STRING)
     {
         sctx->sigalg.mdname = xkey_mdname(p->data);
         xkey_dmsg(D_XKEY, "setting hashalg as %s", sctx->sigalg.mdname);
@@ -858,8 +864,7 @@ signature_set_ctx_params(void *ctx, const OSSL_PARAM params[])
         }
         if (sctx->sigalg.saltlen == NULL)
         {
-            msg(M_WARN, "xkey_signature_params: unknown saltlen <%s>",
-                (char *)p->data);
+            msg(M_WARN, "xkey_signature_params: unknown saltlen <%s>", (char *)p->data);
             sctx->sigalg.saltlen = "digest"; /* most common */
         }
         xkey_dmsg(D_XKEY, "setting saltlen to %s", sctx->sigalg.saltlen);
@@ -924,7 +929,8 @@ xkey_sign_dispatch(XKEY_SIGNATURE_CTX *sctx, unsigned char *sig, size_t *siglen,
     else if (sign)
     {
         ret = sign(sctx->keydata->handle, sig, siglen, tbs, tbslen, sctx->sigalg);
-        xkey_dmsg(D_XKEY, "xkey_provider: external sign op returned ret = %d siglen = %d", ret, (int) *siglen);
+        xkey_dmsg(D_XKEY, "xkey_provider: external sign op returned ret = %d siglen = %d", ret,
+                  (int)*siglen);
     }
     else
     {
@@ -979,8 +985,7 @@ signature_digest_verify(void *ctx, const unsigned char *sig, size_t siglen,
 }
 
 static int
-signature_digest_sign_init(void *ctx, const char *mdname,
-                           void *provkey, const OSSL_PARAM params[])
+signature_digest_sign_init(void *ctx, const char *mdname, void *provkey, const OSSL_PARAM params[])
 {
     xkey_dmsg(D_XKEY, "mdname = <%s>", mdname);
 
@@ -1022,8 +1027,8 @@ signature_digest_sign_init(void *ctx, const char *mdname,
 }
 
 static int
-signature_digest_sign(void *ctx, unsigned char *sig, size_t *siglen,
-                      size_t sigsize, const unsigned char *tbs, size_t tbslen)
+signature_digest_sign(void *ctx, unsigned char *sig, size_t *siglen, size_t sigsize,
+                      const unsigned char *tbs, size_t tbslen)
 {
     xkey_dmsg(D_XKEY, "entry");
 
@@ -1072,8 +1077,8 @@ signature_digest_sign(void *ctx, unsigned char *sig, size_t *siglen,
 /* Sign digest using native sign function -- will only work for native keys
  */
 int
-xkey_native_sign(XKEY_KEYDATA *key, unsigned char *sig, size_t *siglen,
-                 const unsigned char *tbs, size_t tbslen, XKEY_SIGALG sigalg)
+xkey_native_sign(XKEY_KEYDATA *key, unsigned char *sig, size_t *siglen, const unsigned char *tbs,
+                 size_t tbslen, XKEY_SIGALG sigalg)
 {
     xkey_dmsg(D_XKEY, "entry");
 
@@ -1100,13 +1105,17 @@ xkey_native_sign(XKEY_KEYDATA *key, unsigned char *sig, size_t *siglen,
     OSSL_PARAM params[6];
     if (EVP_PKEY_get_id(pkey) == EVP_PKEY_RSA)
     {
-        params[i++] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_DIGEST, (char *)mdname, 0);
-        params[i++] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PAD_MODE, (char *)padmode, 0);
+        params[i++] =
+            OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_DIGEST, (char *)mdname, 0);
+        params[i++] =
+            OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PAD_MODE, (char *)padmode, 0);
         if (!strcmp(sigalg.padmode, "pss"))
         {
-            params[i++] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PSS_SALTLEN, (char *) saltlen, 0);
+            params[i++] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PSS_SALTLEN,
+                                                           (char *)saltlen, 0);
             /* same digest for mgf1 */
-            params[i++] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_MGF1_DIGEST, (char *) mdname, 0);
+            params[i++] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_MGF1_DIGEST,
+                                                           (char *)mdname, 0);
         }
     }
     params[i++] = OSSL_PARAM_construct_end();
@@ -1133,27 +1142,27 @@ xkey_native_sign(XKEY_KEYDATA *key, unsigned char *sig, size_t *siglen,
 }
 
 static const OSSL_DISPATCH signature_functions[] = {
-    {OSSL_FUNC_SIGNATURE_NEWCTX, (void (*)(void))signature_newctx},
-    {OSSL_FUNC_SIGNATURE_FREECTX, (void (*)(void))signature_freectx},
-    {OSSL_FUNC_SIGNATURE_SIGN_INIT, (void (*)(void))signature_sign_init},
-    {OSSL_FUNC_SIGNATURE_SIGN, (void (*)(void))signature_sign},
-    {OSSL_FUNC_SIGNATURE_DIGEST_VERIFY_INIT, (void (*)(void))signature_digest_verify_init},
-    {OSSL_FUNC_SIGNATURE_DIGEST_VERIFY, (void (*)(void))signature_digest_verify},
-    {OSSL_FUNC_SIGNATURE_DIGEST_SIGN_INIT, (void (*)(void))signature_digest_sign_init},
-    {OSSL_FUNC_SIGNATURE_DIGEST_SIGN, (void (*)(void))signature_digest_sign},
-    {OSSL_FUNC_SIGNATURE_SET_CTX_PARAMS, (void (*)(void))signature_set_ctx_params},
-    {OSSL_FUNC_SIGNATURE_SETTABLE_CTX_PARAMS, (void (*)(void))signature_settable_ctx_params},
-    {OSSL_FUNC_SIGNATURE_GET_CTX_PARAMS, (void (*)(void))signature_get_ctx_params},
-    {OSSL_FUNC_SIGNATURE_GETTABLE_CTX_PARAMS, (void (*)(void))signature_gettable_ctx_params},
-    {0, NULL }
+    { OSSL_FUNC_SIGNATURE_NEWCTX, (void (*)(void))signature_newctx },
+    { OSSL_FUNC_SIGNATURE_FREECTX, (void (*)(void))signature_freectx },
+    { OSSL_FUNC_SIGNATURE_SIGN_INIT, (void (*)(void))signature_sign_init },
+    { OSSL_FUNC_SIGNATURE_SIGN, (void (*)(void))signature_sign },
+    { OSSL_FUNC_SIGNATURE_DIGEST_VERIFY_INIT, (void (*)(void))signature_digest_verify_init },
+    { OSSL_FUNC_SIGNATURE_DIGEST_VERIFY, (void (*)(void))signature_digest_verify },
+    { OSSL_FUNC_SIGNATURE_DIGEST_SIGN_INIT, (void (*)(void))signature_digest_sign_init },
+    { OSSL_FUNC_SIGNATURE_DIGEST_SIGN, (void (*)(void))signature_digest_sign },
+    { OSSL_FUNC_SIGNATURE_SET_CTX_PARAMS, (void (*)(void))signature_set_ctx_params },
+    { OSSL_FUNC_SIGNATURE_SETTABLE_CTX_PARAMS, (void (*)(void))signature_settable_ctx_params },
+    { OSSL_FUNC_SIGNATURE_GET_CTX_PARAMS, (void (*)(void))signature_get_ctx_params },
+    { OSSL_FUNC_SIGNATURE_GETTABLE_CTX_PARAMS, (void (*)(void))signature_gettable_ctx_params },
+    { 0, NULL }
 };
 
 const OSSL_ALGORITHM signatures[] = {
-    {"RSA:rsaEncryption", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey RSA Signature"},
-    {"ECDSA", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey ECDSA Signature"},
-    {"ED448", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey Ed448 Signature"},
-    {"ED25519", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey Ed25519 Signature"},
-    {NULL, NULL, NULL, NULL}
+    { "RSA:rsaEncryption", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey RSA Signature" },
+    { "ECDSA", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey ECDSA Signature" },
+    { "ED448", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey Ed448 Signature" },
+    { "ED25519", XKEY_PROV_PROPS, signature_functions, "OpenVPN xkey Ed25519 Signature" },
+    { NULL, NULL, NULL, NULL }
 };
 
 /* main provider interface */
@@ -1192,8 +1201,7 @@ gettable_params(void *provctx)
     xkey_dmsg(D_XKEY, "entry");
 
     static const OSSL_PARAM param_types[] = {
-        OSSL_PARAM_DEFN(OSSL_PROV_PARAM_NAME, OSSL_PARAM_UTF8_PTR, NULL, 0),
-        OSSL_PARAM_END
+        OSSL_PARAM_DEFN(OSSL_PROV_PARAM_NAME, OSSL_PARAM_UTF8_PTR, NULL, 0), OSSL_PARAM_END
     };
 
     return param_types;
@@ -1228,11 +1236,11 @@ teardown(void *provctx)
 }
 
 static const OSSL_DISPATCH dispatch_table[] = {
-    {OSSL_FUNC_PROVIDER_GETTABLE_PARAMS, (void (*)(void))gettable_params},
-    {OSSL_FUNC_PROVIDER_GET_PARAMS, (void (*)(void))get_params},
-    {OSSL_FUNC_PROVIDER_QUERY_OPERATION, (void (*)(void))query_operation},
-    {OSSL_FUNC_PROVIDER_TEARDOWN, (void (*)(void))teardown},
-    {0, NULL}
+    { OSSL_FUNC_PROVIDER_GETTABLE_PARAMS, (void (*)(void))gettable_params },
+    { OSSL_FUNC_PROVIDER_GET_PARAMS, (void (*)(void))get_params },
+    { OSSL_FUNC_PROVIDER_QUERY_OPERATION, (void (*)(void))query_operation },
+    { OSSL_FUNC_PROVIDER_TEARDOWN, (void (*)(void))teardown },
+    { 0, NULL }
 };
 
 int

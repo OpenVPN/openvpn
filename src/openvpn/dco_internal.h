@@ -59,17 +59,14 @@ dco_get_cipher(const char *cipher)
  * They are implemented by dco_linux.c
  */
 
-int dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
-                 struct sockaddr *localaddr, struct sockaddr *remoteaddr,
-                 struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6);
+int dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd, struct sockaddr *localaddr,
+                 struct sockaddr *remoteaddr, struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6);
 
 int dco_del_peer(dco_context_t *dco, unsigned int peerid);
 
-int dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid,
-                dco_key_slot_t slot,
-                const uint8_t *encrypt_key, const uint8_t *encrypt_iv,
-                const uint8_t *decrypt_key, const uint8_t *decrypt_iv,
-                const char *ciphername);
+int dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t slot,
+                const uint8_t *encrypt_key, const uint8_t *encrypt_iv, const uint8_t *decrypt_key,
+                const uint8_t *decrypt_iv, const char *ciphername);
 
 int dco_del_key(dco_context_t *dco, unsigned int peerid, dco_key_slot_t slot);
 

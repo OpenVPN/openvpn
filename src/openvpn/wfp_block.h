@@ -32,7 +32,7 @@
 /* Any value less than 5 should work fine. 3 is chosen without any real reason. */
 #define WFP_BLOCK_IFACE_METRIC 3
 
-typedef void (*wfp_block_msg_handler_t) (DWORD err, const char *msg);
+typedef void (*wfp_block_msg_handler_t)(DWORD err, const char *msg);
 
 DWORD
 delete_wfp_block_filters(HANDLE engine);
@@ -51,8 +51,7 @@ add_wfp_block_filters(HANDLE *engine, int iface_index, const WCHAR *exe_path,
  *
  * @return positive interface metric on success or -1 on error
  */
-int
-get_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family, int *is_auto);
+int get_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family, int *is_auto);
 
 /**
  * Sets interface metric value for specified interface index.
@@ -65,8 +64,7 @@ get_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family, int *
  */
 
 DWORD
-set_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family,
-                     const ULONG metric);
+set_interface_metric(const NET_IFINDEX index, const ADDRESS_FAMILY family, const ULONG metric);
 
 #endif /* ifndef WFP_BLOCK_H */
 #endif /* ifdef _WIN32 */

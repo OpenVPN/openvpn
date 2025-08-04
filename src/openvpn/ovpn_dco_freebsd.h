@@ -32,42 +32,46 @@
 #include <netinet/in.h>
 
 /* Maximum size of an ioctl request. */
-#define OVPN_MAX_REQUEST_SIZE   4096
+#define OVPN_MAX_REQUEST_SIZE 4096
 
-enum ovpn_notif_type {
+enum ovpn_notif_type
+{
     OVPN_NOTIF_DEL_PEER,
     OVPN_NOTIF_ROTATE_KEY,
     OVPN_NOTIF_FLOAT,
 };
 
-enum ovpn_del_reason {
-    OVPN_DEL_REASON_REQUESTED       = 0,
-    OVPN_DEL_REASON_TIMEOUT         = 1
+enum ovpn_del_reason
+{
+    OVPN_DEL_REASON_REQUESTED = 0,
+    OVPN_DEL_REASON_TIMEOUT = 1
 };
 
-enum ovpn_key_slot {
-    OVPN_KEY_SLOT_PRIMARY   = 0,
+enum ovpn_key_slot
+{
+    OVPN_KEY_SLOT_PRIMARY = 0,
     OVPN_KEY_SLOT_SECONDARY = 1
 };
 
-enum ovpn_key_cipher {
-    OVPN_CIPHER_ALG_NONE                    = 0,
-    OVPN_CIPHER_ALG_AES_GCM                 = 1,
-    OVPN_CIPHER_ALG_CHACHA20_POLY1305       = 2
+enum ovpn_key_cipher
+{
+    OVPN_CIPHER_ALG_NONE = 0,
+    OVPN_CIPHER_ALG_AES_GCM = 1,
+    OVPN_CIPHER_ALG_CHACHA20_POLY1305 = 2
 };
 
-#define OVPN_NEW_PEER           _IO('D', 1)
-#define OVPN_DEL_PEER           _IO('D', 2)
-#define OVPN_GET_STATS          _IO('D', 3)
-#define OVPN_NEW_KEY            _IO('D', 4)
-#define OVPN_SWAP_KEYS          _IO('D', 5)
-#define OVPN_DEL_KEY            _IO('D', 6)
-#define OVPN_SET_PEER           _IO('D', 7)
-#define OVPN_START_VPN          _IO('D', 8)
-#define OVPN_SEND_PKT           _IO('D', 9)
-#define OVPN_POLL_PKT           _IO('D', 10)
-#define OVPN_GET_PKT            _IO('D', 11)
-#define OVPN_SET_IFMODE         _IO('D', 12)
-#define OVPN_GET_PEER_STATS     _IO('D', 13)
+#define OVPN_NEW_PEER       _IO('D', 1)
+#define OVPN_DEL_PEER       _IO('D', 2)
+#define OVPN_GET_STATS      _IO('D', 3)
+#define OVPN_NEW_KEY        _IO('D', 4)
+#define OVPN_SWAP_KEYS      _IO('D', 5)
+#define OVPN_DEL_KEY        _IO('D', 6)
+#define OVPN_SET_PEER       _IO('D', 7)
+#define OVPN_START_VPN      _IO('D', 8)
+#define OVPN_SEND_PKT       _IO('D', 9)
+#define OVPN_POLL_PKT       _IO('D', 10)
+#define OVPN_GET_PKT        _IO('D', 11)
+#define OVPN_SET_IFMODE     _IO('D', 12)
+#define OVPN_GET_PEER_STATS _IO('D', 13)
 
 #endif /* ifndef _NET_IF_OVPN_H_ */

@@ -36,8 +36,10 @@
 #include "reliable.h"
 #include "test_common.h"
 
-struct test_packet_id_write_data {
-    struct {
+struct test_packet_id_write_data
+{
+    struct
+    {
         uint32_t buf_id;
         uint32_t buf_time;
     } test_buf_data;
@@ -49,15 +51,14 @@ struct test_packet_id_write_data {
 static int
 test_packet_id_write_setup(void **state)
 {
-    struct test_packet_id_write_data *data =
-        calloc(1, sizeof(struct test_packet_id_write_data));
+    struct test_packet_id_write_data *data = calloc(1, sizeof(struct test_packet_id_write_data));
 
     if (!data)
     {
         return -1;
     }
 
-    data->test_buf.data = (void *) &data->test_buf_data;
+    data->test_buf.data = (void *)&data->test_buf_data;
     data->test_buf.capacity = sizeof(data->test_buf_data);
     data->gc = gc_new();
 
@@ -162,7 +163,6 @@ test_packet_id_write_long_wrap(void **state)
 static void
 test_get_num_output_sequenced_available(void **state)
 {
-
     struct reliable *rel = malloc(sizeof(struct reliable));
     reliable_init(rel, 100, 50, 8, false);
 
@@ -180,14 +180,14 @@ test_get_num_output_sequenced_available(void **state)
     /* test ids close to int/unsigned int barrier */
 
     rel->array[5].active = true;
-    rel->array[5].packet_id = (0x80000000u -3);
+    rel->array[5].packet_id = (0x80000000u - 3);
     rel->array[6].active = false;
-    rel->packet_id = (0x80000000u -1);
+    rel->packet_id = (0x80000000u - 1);
 
     assert_int_equal(6, reliable_get_num_output_sequenced_available(rel));
 
     rel->array[5].active = true;
-    rel->array[5].packet_id = (0x80000000u -3);
+    rel->array[5].packet_id = (0x80000000u - 3);
     rel->packet_id = 0x80000001u;
 
     assert_int_equal(4, reliable_get_num_output_sequenced_available(rel));
@@ -195,7 +195,7 @@ test_get_num_output_sequenced_available(void **state)
 
     /* test wrapping */
     rel->array[5].active = true;
-    rel->array[5].packet_id = (0xffffffffu -3);
+    rel->array[5].packet_id = (0xffffffffu - 3);
     rel->array[6].active = false;
     rel->packet_id = (0xffffffffu - 1);
 
@@ -223,7 +223,7 @@ test_packet_id_write_epoch(void **state)
     assert_true(packet_id_write_epoch(&data->pis, 0x23, &buf));
 
     assert_int_equal(buf.len, 8);
-    uint8_t expected_header[8] = { 0x00, 0x23, 0, 0, 0, 0, 0, 1};
+    uint8_t expected_header[8] = { 0x00, 0x23, 0, 0, 0, 0, 0, 1 };
     assert_memory_equal(BPTR(&buf), expected_header, 8);
 
     /* too small buffer should error out */
@@ -234,7 +234,7 @@ test_packet_id_write_epoch(void **state)
     data->pis.id = 0xfa079ab9d2e8;
     struct buffer buf_48 = alloc_buf_gc(128, &data->gc);
     assert_true(packet_id_write_epoch(&data->pis, 0xfffe, &buf_48));
-    uint8_t expected_header_48[8] = { 0xff, 0xfe, 0xfa, 0x07, 0x9a, 0xb9, 0xd2, 0xe9};
+    uint8_t expected_header_48[8] = { 0xff, 0xfe, 0xfa, 0x07, 0x9a, 0xb9, 0xd2, 0xe9 };
     assert_memory_equal(BPTR(&buf_48), expected_header_48, 8);
 
     /* test writing/checking the 48 bit per epoch packet counter
@@ -242,7 +242,7 @@ test_packet_id_write_epoch(void **state)
     data->pis.id = 0xfffffffffffe;
     struct buffer buf_of = alloc_buf_gc(128, &data->gc);
     assert_true(packet_id_write_epoch(&data->pis, 0xf00f, &buf_of));
-    uint8_t expected_header_of[8] = { 0xf0, 0x0f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+    uint8_t expected_header_of[8] = { 0xf0, 0x0f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     assert_memory_equal(BPTR(&buf_of), expected_header_of, 8);
 
     /* This is go over 2^48 - 1 and should error out. */
@@ -264,9 +264,9 @@ test_packet_id_write_epoch(void **state)
 static void
 test_copy_acks_to_lru(void **state)
 {
-    struct reliable_ack ack = { .len = 4, .packet_id = {2, 1, 3, 2} };
+    struct reliable_ack ack = { .len = 4, .packet_id = { 2, 1, 3, 2 } };
 
-    struct reliable_ack mru_ack = {0 };
+    struct reliable_ack mru_ack = { 0 };
 
     /* Test copying to empty ack structure */
     copy_acks_to_mru(&ack, &mru_ack, 4);
@@ -292,7 +292,7 @@ test_copy_acks_to_lru(void **state)
 
     /* Adding just two packets shoudl ignore the 42 in array and
      * reorder the order in the MRU */
-    struct reliable_ack ack2 = { .len = 3, .packet_id = {3, 2, 42} };
+    struct reliable_ack ack2 = { .len = 3, .packet_id = { 3, 2, 42 } };
     copy_acks_to_mru(&ack2, &mru_ack2, 2);
     assert_int_equal(mru_ack2.packet_id[0], 3);
     assert_int_equal(mru_ack2.packet_id[1], 2);
@@ -313,12 +313,12 @@ test_copy_acks_to_lru(void **state)
     assert_int_equal(mru_ack.packet_id[1], 1);
     assert_int_equal(mru_ack.packet_id[2], 3);
 
-    struct reliable_ack ack3 = { .len = 7, .packet_id = {5, 6, 7, 8, 9, 10, 11}};
+    struct reliable_ack ack3 = { .len = 7, .packet_id = { 5, 6, 7, 8, 9, 10, 11 } };
 
     /* Adding multiple acks tests if the a full array is handled correctly */
     copy_acks_to_mru(&ack3, &mru_ack, 7);
 
-    struct reliable_ack expected_ack = { .len = 8, .packet_id = {5, 6, 7, 8, 9, 10, 11, 2}};
+    struct reliable_ack expected_ack = { .len = 8, .packet_id = { 5, 6, 7, 8, 9, 10, 11, 2 } };
     assert_int_equal(mru_ack.len, expected_ack.len);
 
     assert_memory_equal(mru_ack.packet_id, expected_ack.packet_id, sizeof(expected_ack.packet_id));
@@ -329,26 +329,19 @@ main(void)
 {
     openvpn_unit_test_setup();
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup_teardown(test_packet_id_write_short,
-                                        test_packet_id_write_setup,
+        cmocka_unit_test_setup_teardown(test_packet_id_write_short, test_packet_id_write_setup,
                                         test_packet_id_write_teardown),
-        cmocka_unit_test_setup_teardown(test_packet_id_write_long,
-                                        test_packet_id_write_setup,
+        cmocka_unit_test_setup_teardown(test_packet_id_write_long, test_packet_id_write_setup,
                                         test_packet_id_write_teardown),
         cmocka_unit_test_setup_teardown(test_packet_id_write_short_prepend,
-                                        test_packet_id_write_setup,
-                                        test_packet_id_write_teardown),
+                                        test_packet_id_write_setup, test_packet_id_write_teardown),
         cmocka_unit_test_setup_teardown(test_packet_id_write_long_prepend,
-                                        test_packet_id_write_setup,
+                                        test_packet_id_write_setup, test_packet_id_write_teardown),
+        cmocka_unit_test_setup_teardown(test_packet_id_write_short_wrap, test_packet_id_write_setup,
                                         test_packet_id_write_teardown),
-        cmocka_unit_test_setup_teardown(test_packet_id_write_short_wrap,
-                                        test_packet_id_write_setup,
+        cmocka_unit_test_setup_teardown(test_packet_id_write_long_wrap, test_packet_id_write_setup,
                                         test_packet_id_write_teardown),
-        cmocka_unit_test_setup_teardown(test_packet_id_write_long_wrap,
-                                        test_packet_id_write_setup,
-                                        test_packet_id_write_teardown),
-        cmocka_unit_test_setup_teardown(test_packet_id_write_epoch,
-                                        test_packet_id_write_setup,
+        cmocka_unit_test_setup_teardown(test_packet_id_write_epoch, test_packet_id_write_setup,
                                         test_packet_id_write_teardown),
 
         cmocka_unit_test(test_get_num_output_sequenced_available),

@@ -34,8 +34,7 @@
 #include "memdbg.h"
 
 struct hash *
-hash_init(const int n_buckets,
-          const uint32_t iv,
+hash_init(const int n_buckets, const uint32_t iv,
           uint32_t (*hash_function)(const void *key, uint32_t iv),
           bool (*compare_function)(const void *key1, const void *key2))
 {
@@ -44,7 +43,7 @@ hash_init(const int n_buckets,
 
     ASSERT(n_buckets > 0);
     ALLOC_OBJ_CLEAR(h, struct hash);
-    h->n_buckets = (int) adjust_power_of_2(n_buckets);
+    h->n_buckets = (int)adjust_power_of_2(n_buckets);
     h->mask = h->n_buckets - 1;
     h->hash_function = hash_function;
     h->compare_function = compare_function;
@@ -79,10 +78,7 @@ hash_free(struct hash *hash)
 }
 
 struct hash_element *
-hash_lookup_fast(struct hash *hash,
-                 struct hash_bucket *bucket,
-                 const void *key,
-                 uint32_t hv)
+hash_lookup_fast(struct hash *hash, struct hash_bucket *bucket, const void *key, uint32_t hv)
 {
     struct hash_element *he;
     struct hash_element *prev = NULL;
@@ -110,10 +106,7 @@ hash_lookup_fast(struct hash *hash,
 }
 
 bool
-hash_remove_fast(struct hash *hash,
-                 struct hash_bucket *bucket,
-                 const void *key,
-                 uint32_t hv)
+hash_remove_fast(struct hash *hash, struct hash_bucket *bucket, const void *key, uint32_t hv)
 {
     struct hash_element *he;
     struct hash_element *prev = NULL;
@@ -219,9 +212,7 @@ hash_remove_marked(struct hash *hash, struct hash_bucket *bucket)
 }
 
 void
-hash_iterator_init_range(struct hash *hash,
-                         struct hash_iterator *hi,
-                         int start_bucket,
+hash_iterator_init_range(struct hash *hash, struct hash_iterator *hi, int start_bucket,
                          int end_bucket)
 {
     if (end_bucket > hash->n_buckets)
@@ -242,8 +233,7 @@ hash_iterator_init_range(struct hash *hash,
 }
 
 void
-hash_iterator_init(struct hash *hash,
-                   struct hash_iterator *hi)
+hash_iterator_init(struct hash *hash, struct hash_iterator *hi)
 {
     hash_iterator_init_range(hash, hi, 0, hash->n_buckets);
 }
@@ -390,17 +380,35 @@ hash_iterator_delete_element(struct hash_iterator *hi)
  * --------------------------------------------------------------------
  */
 
-#define mix(a, b, c)               \
-    {                                \
-        a -= b; a -= c; a ^= (c>>13);  \
-        b -= c; b -= a; b ^= (a<<8);   \
-        c -= a; c -= b; c ^= (b>>13);  \
-        a -= b; a -= c; a ^= (c>>12);  \
-        b -= c; b -= a; b ^= (a<<16);  \
-        c -= a; c -= b; c ^= (b>>5);   \
-        a -= b; a -= c; a ^= (c>>3);   \
-        b -= c; b -= a; b ^= (a<<10);  \
-        c -= a; c -= b; c ^= (b>>15);  \
+#define mix(a, b, c)    \
+    {                   \
+        a -= b;         \
+        a -= c;         \
+        a ^= (c >> 13); \
+        b -= c;         \
+        b -= a;         \
+        b ^= (a << 8);  \
+        c -= a;         \
+        c -= b;         \
+        c ^= (b >> 13); \
+        a -= b;         \
+        a -= c;         \
+        a ^= (c >> 12); \
+        b -= c;         \
+        b -= a;         \
+        b ^= (a << 16); \
+        c -= a;         \
+        c -= b;         \
+        c ^= (b >> 5);  \
+        a -= b;         \
+        a -= c;         \
+        a ^= (c >> 3);  \
+        b -= c;         \
+        b -= a;         \
+        b ^= (a << 10); \
+        c -= a;         \
+        c -= b;         \
+        c ^= (b >> 15); \
     }
 
 uint32_t
@@ -410,21 +418,15 @@ hash_func(const uint8_t *k, uint32_t length, uint32_t initval)
 
     /* Set up the internal state */
     len = length;
-    a = b = 0x9e3779b9;      /* the golden ratio; an arbitrary value */
-    c = initval;             /* the previous hash value */
+    a = b = 0x9e3779b9; /* the golden ratio; an arbitrary value */
+    c = initval;        /* the previous hash value */
 
     /*---------------------------------------- handle most of the key */
     while (len >= 12)
     {
-        a += (k[0] + ((uint32_t) k[1] << 8)
-              + ((uint32_t) k[2] << 16)
-              + ((uint32_t) k[3] << 24));
-        b += (k[4] + ((uint32_t) k[5] << 8)
-              + ((uint32_t) k[6] << 16)
-              + ((uint32_t) k[7] << 24));
-        c += (k[8] + ((uint32_t) k[9] << 8)
-              + ((uint32_t) k[10] << 16)
-              + ((uint32_t) k[11] << 24));
+        a += (k[0] + ((uint32_t)k[1] << 8) + ((uint32_t)k[2] << 16) + ((uint32_t)k[3] << 24));
+        b += (k[4] + ((uint32_t)k[5] << 8) + ((uint32_t)k[6] << 16) + ((uint32_t)k[7] << 24));
+        c += (k[8] + ((uint32_t)k[9] << 8) + ((uint32_t)k[10] << 16) + ((uint32_t)k[11] << 24));
         mix(a, b, c);
         k += 12;
         len -= 12;
@@ -432,48 +434,48 @@ hash_func(const uint8_t *k, uint32_t length, uint32_t initval)
 
     /*------------------------------------- handle the last 11 bytes */
     c += length;
-    switch (len)            /* all the case statements fall through */
+    switch (len) /* all the case statements fall through */
     {
         case 11:
-            c += ((uint32_t) k[10] << 24);
-        /* Intentional [[fallthrough]]; */
+            c += ((uint32_t)k[10] << 24);
+            /* Intentional [[fallthrough]]; */
 
         case 10:
-            c += ((uint32_t) k[9] << 16);
-        /* Intentional [[fallthrough]]; */
+            c += ((uint32_t)k[9] << 16);
+            /* Intentional [[fallthrough]]; */
 
         case 9:
-            c += ((uint32_t) k[8] << 8);
+            c += ((uint32_t)k[8] << 8);
         /* Intentional [[fallthrough]]; */
 
         /* the first byte of c is reserved for the length */
         case 8:
-            b += ((uint32_t) k[7] << 24);
-        /* Intentional [[fallthrough]]; */
+            b += ((uint32_t)k[7] << 24);
+            /* Intentional [[fallthrough]]; */
 
         case 7:
-            b += ((uint32_t) k[6] << 16);
-        /* Intentional [[fallthrough]]; */
+            b += ((uint32_t)k[6] << 16);
+            /* Intentional [[fallthrough]]; */
 
         case 6:
-            b += ((uint32_t) k[5] << 8);
-        /* Intentional [[fallthrough]]; */
+            b += ((uint32_t)k[5] << 8);
+            /* Intentional [[fallthrough]]; */
 
         case 5:
             b += k[4];
-        /* Intentional [[fallthrough]]; */
+            /* Intentional [[fallthrough]]; */
 
         case 4:
-            a += ((uint32_t) k[3] << 24);
-        /* Intentional [[fallthrough]]; */
+            a += ((uint32_t)k[3] << 24);
+            /* Intentional [[fallthrough]]; */
 
         case 3:
-            a += ((uint32_t) k[2] << 16);
-        /* Intentional [[fallthrough]]; */
+            a += ((uint32_t)k[2] << 16);
+            /* Intentional [[fallthrough]]; */
 
         case 2:
-            a += ((uint32_t) k[1] << 8);
-        /* Intentional [[fallthrough]]; */
+            a += ((uint32_t)k[1] << 8);
+            /* Intentional [[fallthrough]]; */
 
         case 1:
             a += k[0];

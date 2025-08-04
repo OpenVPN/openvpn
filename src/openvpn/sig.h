@@ -26,8 +26,8 @@
 #include "status.h"
 #include "win32.h"
 
-#define SIG_SOURCE_SOFT 0
-#define SIG_SOURCE_HARD 1
+#define SIG_SOURCE_SOFT              0
+#define SIG_SOURCE_HARD              1
 /* CONNECTION_FAILED is also a "soft" status,
  * It is thrown if a connection attempt fails
  */

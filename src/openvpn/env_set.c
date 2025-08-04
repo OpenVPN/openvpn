@@ -246,7 +246,7 @@ env_set_write_file(const char *path, const struct env_set *es)
 
     if (es)
     {
-        const struct env_item *item =  es->list;
+        const struct env_item *item = es->list;
         while (item)
         {
             fputs(item->string, fp);
@@ -356,15 +356,10 @@ setenv_del(struct env_set *es, const char *name)
 }
 
 void
-setenv_str_ex(struct env_set *es,
-              const char *name,
-              const char *value,
-              const unsigned int name_include,
-              const unsigned int name_exclude,
-              const char name_replace,
-              const unsigned int value_include,
-              const unsigned int value_exclude,
-              const char value_replace)
+setenv_str_ex(struct env_set *es, const char *name, const char *value,
+              const unsigned int name_include, const unsigned int name_exclude,
+              const char name_replace, const unsigned int value_include,
+              const unsigned int value_exclude, const char value_replace)
 {
     struct gc_arena gc = gc_new();
     const char *name_tmp;
@@ -442,9 +437,7 @@ env_allowed(const char *str)
 /* Make arrays of strings */
 
 const char **
-make_env_array(const struct env_set *es,
-               const bool check_allowed,
-               struct gc_arena *gc)
+make_env_array(const struct env_set *es, const bool check_allowed, struct gc_arena *gc)
 {
     char **ret = NULL;
     struct env_item *e = NULL;
@@ -460,7 +453,7 @@ make_env_array(const struct env_set *es,
     }
 
     /* alloc return array */
-    ALLOC_ARRAY_CLEAR_GC(ret, char *, n+1, gc);
+    ALLOC_ARRAY_CLEAR_GC(ret, char *, n + 1, gc);
 
     /* fill return array */
     if (es)

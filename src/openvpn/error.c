@@ -51,9 +51,9 @@
 unsigned int x_debug_level; /* GLOBAL */
 
 /* Mute state */
-static int mute_cutoff;     /* GLOBAL */
-static int mute_count;      /* GLOBAL */
-static int mute_category;   /* GLOBAL */
+static int mute_cutoff;   /* GLOBAL */
+static int mute_count;    /* GLOBAL */
+static int mute_category; /* GLOBAL */
 
 /*
  * Output mode priorities are as follows:
@@ -67,28 +67,28 @@ static int mute_category;   /* GLOBAL */
 
 /* If true, indicates that stdin/stdout/stderr
  * have been redirected due to --log */
-static bool std_redir;      /* GLOBAL */
+static bool std_redir; /* GLOBAL */
 
 /* Should messages be written to the syslog? */
-static bool use_syslog;     /* GLOBAL */
+static bool use_syslog; /* GLOBAL */
 
 /* Should stdout/stderr be be parsable and always be prefixed with time
  * and message flags */
-static bool machine_readable_output;   /* GLOBAL */
+static bool machine_readable_output; /* GLOBAL */
 
 /* Should timestamps be included on messages to stdout/stderr? */
 static bool suppress_timestamps; /* GLOBAL */
 
 /* The program name passed to syslog */
 #if SYSLOG_CAPABILITY
-static char *pgmname_syslog;  /* GLOBAL */
+static char *pgmname_syslog; /* GLOBAL */
 #endif
 
 /* If non-null, messages should be written here (used for debugging only) */
-static FILE *msgfp;         /* GLOBAL */
+static FILE *msgfp; /* GLOBAL */
 
 /* If true, we forked from main OpenVPN process */
-static bool forked;         /* GLOBAL */
+static bool forked; /* GLOBAL */
 
 /* our default output targets */
 static FILE *default_out; /* GLOBAL */
@@ -175,7 +175,7 @@ error_reset(void)
     {
         openvpn_exit(OPENVPN_EXIT_STATUS_CANNOT_OPEN_DEBUG_FILE); /* exit point */
     }
-#else  /* ifdef OPENVPN_DEBUG_COMMAND_LINE */
+#else /* ifdef OPENVPN_DEBUG_COMMAND_LINE */
     msgfp = NULL;
 #endif
 }
@@ -195,7 +195,7 @@ msg_fp(const unsigned int flags)
     FILE *fp = msgfp;
     if (!fp)
     {
-        fp = (flags & (M_FATAL|M_USAGE_SMALL)) ? default_err : default_out;
+        fp = (flags & (M_FATAL | M_USAGE_SMALL)) ? default_err : default_out;
     }
     if (!fp)
     {
@@ -204,7 +204,12 @@ msg_fp(const unsigned int flags)
     return fp;
 }
 
-#define SWAP { tmp = m1; m1 = m2; m2 = tmp; }
+#define SWAP      \
+    {             \
+        tmp = m1; \
+        m1 = m2;  \
+        m2 = tmp; \
+    }
 
 int x_msg_line_num; /* GLOBAL */
 
@@ -265,16 +270,15 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
 
     gc_init(&gc);
 
-    m1 = (char *) gc_malloc(ERR_BUF_SIZE, false, &gc);
-    m2 = (char *) gc_malloc(ERR_BUF_SIZE, false, &gc);
+    m1 = (char *)gc_malloc(ERR_BUF_SIZE, false, &gc);
+    m2 = (char *)gc_malloc(ERR_BUF_SIZE, false, &gc);
 
     vsnprintf(m1, ERR_BUF_SIZE, format, arglist);
     m1[ERR_BUF_SIZE - 1] = 0; /* windows vsnprintf needs this */
 
     if ((flags & M_ERRNO) && e)
     {
-        snprintf(m2, ERR_BUF_SIZE, "%s: %s (errno=%d)",
-                 m1, openvpn_strerror(e, crt_error, &gc), e);
+        snprintf(m2, ERR_BUF_SIZE, "%s: %s (errno=%d)", m1, openvpn_strerror(e, crt_error, &gc), e);
         SWAP;
     }
 
@@ -285,7 +289,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
     }
 
 #if SYSLOG_CAPABILITY
-    if (flags & (M_FATAL|M_NONFATAL|M_USAGE_SMALL))
+    if (flags & (M_FATAL | M_NONFATAL | M_USAGE_SMALL))
     {
         level = LOG_ERR;
     }
@@ -320,10 +324,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         const struct virtual_output *vo = msg_get_virtual_output();
         if (vo)
         {
-            snprintf(m2, ERR_BUF_SIZE, "%s%s%s",
-                     prefix,
-                     prefix_sep,
-                     m1);
+            snprintf(m2, ERR_BUF_SIZE, "%s%s%s", prefix, prefix_sep, m1);
             virtual_output_print(vo, flags, m2);
         }
     }
@@ -333,10 +334,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         if (use_syslog && !std_redir && !forked)
         {
 #if SYSLOG_CAPABILITY
-            syslog(level, "%s%s%s",
-                   prefix,
-                   prefix_sep,
-                   m1);
+            syslog(level, "%s%s%s", prefix, prefix_sep, m1);
 #endif
         }
         else
@@ -349,32 +347,17 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
                 struct timeval tv;
                 gettimeofday(&tv, NULL);
 
-                fprintf(fp, "%" PRIi64 ".%06ld %x %s%s%s%s",
-                        (int64_t)tv.tv_sec,
-                        (long)tv.tv_usec,
-                        flags,
-                        prefix,
-                        prefix_sep,
-                        m1,
-                        "\n");
-
+                fprintf(fp, "%" PRIi64 ".%06ld %x %s%s%s%s", (int64_t)tv.tv_sec, (long)tv.tv_usec,
+                        flags, prefix, prefix_sep, m1, "\n");
             }
             else if ((flags & M_NOPREFIX) || suppress_timestamps)
             {
-                fprintf(fp, "%s%s%s%s",
-                        prefix,
-                        prefix_sep,
-                        m1,
-                        (flags&M_NOLF) ? "" : "\n");
+                fprintf(fp, "%s%s%s%s", prefix, prefix_sep, m1, (flags & M_NOLF) ? "" : "\n");
             }
             else
             {
-                fprintf(fp, "%s %s%s%s%s",
-                        time_string(0, 0, show_usec, &gc),
-                        prefix,
-                        prefix_sep,
-                        m1,
-                        (flags&M_NOLF) ? "" : "\n");
+                fprintf(fp, "%s %s%s%s%s", time_string(0, 0, show_usec, &gc), prefix, prefix_sep,
+                        m1, (flags & M_NOLF) ? "" : "\n");
             }
             fflush(fp);
             ++x_msg_line_num;
@@ -389,7 +372,6 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
     if (flags & M_FATAL)
     {
         openvpn_exit(OPENVPN_EXIT_STATUS_ERROR); /* exit point */
-
     }
     if (flags & M_USAGE_SMALL)
     {
@@ -426,8 +408,7 @@ dont_mute(unsigned int flags)
             if (suppressed > 0)
             {
                 msg(M_INFO | M_NOMUTE,
-                    "%d variation(s) on previous %d message(s) suppressed by --mute",
-                    suppressed,
+                    "%d variation(s) on previous %d message(s) suppressed by --mute", suppressed,
                     mute_cutoff);
             }
             mute_count = 1;
@@ -481,8 +462,9 @@ open_syslog(const char *pgmname, bool stdio_to_null)
             }
         }
     }
-#else  /* if SYSLOG_CAPABILITY */
-    msg(M_WARN, "Warning on use of --daemon: this operating system lacks daemon logging features, therefore when I become a daemon, I won't be able to log status or error messages");
+#else /* if SYSLOG_CAPABILITY */
+    msg(M_WARN,
+        "Warning on use of --daemon: this operating system lacks daemon logging features, therefore when I become a daemon, I won't be able to log status or error messages");
 #endif
 }
 
@@ -525,19 +507,14 @@ redirect_stdout_stderr(const char *file, bool append)
         saAttr.bInheritHandle = TRUE;
         saAttr.lpSecurityDescriptor = NULL;
 
-        log_handle = CreateFileW(wide_string(file, &gc),
-                                 GENERIC_WRITE,
-                                 FILE_SHARE_READ,
-                                 &saAttr,
-                                 append ? OPEN_ALWAYS : CREATE_ALWAYS,
-                                 FILE_ATTRIBUTE_NORMAL,
-                                 NULL);
+        log_handle = CreateFileW(wide_string(file, &gc), GENERIC_WRITE, FILE_SHARE_READ, &saAttr,
+                                 append ? OPEN_ALWAYS : CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
         gc_free(&gc);
 
         if (log_handle == INVALID_HANDLE_VALUE)
         {
-            msg(M_WARN|M_ERRNO, "Warning: cannot open --log file: %s", file);
+            msg(M_WARN | M_ERRNO, "Warning: cannot open --log file: %s", file);
             return;
         }
 
@@ -554,7 +531,8 @@ redirect_stdout_stderr(const char *file, bool append)
         orig_stderr = _dup(_fileno(stderr));
         if (orig_stderr == -1)
         {
-            msg(M_WARN | M_ERRNO, "Warning: cannot duplicate stderr, password prompts will appear in log file instead of console.");
+            msg(M_WARN | M_ERRNO,
+                "Warning: cannot duplicate stderr, password prompts will appear in log file instead of console.");
             orig_stderr = _fileno(stderr);
         }
 
@@ -584,13 +562,12 @@ redirect_stdout_stderr(const char *file, bool append)
 #elif defined(HAVE_DUP2)
     if (!std_redir)
     {
-        int out = open(file,
-                       O_CREAT | O_WRONLY | (append ? O_APPEND : O_TRUNC),
-                       S_IRUSR | S_IWUSR);
+        int out = open(file, O_CREAT | O_WRONLY | (append ? O_APPEND : O_TRUNC), S_IRUSR | S_IWUSR);
 
         if (out < 0)
         {
-            msg(M_WARN|M_ERRNO, "Warning: Error redirecting stdout/stderr to --log file: %s", file);
+            msg(M_WARN | M_ERRNO, "Warning: Error redirecting stdout/stderr to --log file: %s",
+                file);
             return;
         }
 
@@ -612,7 +589,8 @@ redirect_stdout_stderr(const char *file, bool append)
     }
 
 #else  /* if defined(_WIN32) */
-    msg(M_WARN, "WARNING: The --log option is not supported on this OS because it lacks the dup2 function");
+    msg(M_WARN,
+        "WARNING: The --log option is not supported on this OS because it lacks the dup2 function");
 #endif /* if defined(_WIN32) */
 }
 
@@ -648,10 +626,7 @@ set_check_status(unsigned int info_level, unsigned int verbose_level)
  * from the OS.
  */
 void
-x_check_status(int status,
-               const char *description,
-               struct link_socket *sock,
-               struct tuntap *tt)
+x_check_status(int status, const char *description, struct link_socket *sock, struct tuntap *tt)
 {
     const char *extended_msg = NULL;
 
@@ -659,9 +634,7 @@ x_check_status(int status,
     int my_errno = openvpn_errno_maybe_crt(&crt_error);
 
     msg(x_cs_verbose_level, "%s %s returned %d",
-        sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
-        description,
-        status);
+        sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "", description, status);
 
     if (status < 0)
     {
@@ -693,16 +666,14 @@ x_check_status(int status,
             if (extended_msg)
             {
                 msg(x_cs_info_level, "%s %s [%s]: %s (fd=" SOCKET_PRINTF ",code=%d)", description,
-                    sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
-                    extended_msg, openvpn_strerror(my_errno, crt_error, &gc),
-                    sock ? sock->sd : -1, my_errno);
+                    sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "", extended_msg,
+                    openvpn_strerror(my_errno, crt_error, &gc), sock ? sock->sd : -1, my_errno);
             }
             else
             {
                 msg(x_cs_info_level, "%s %s: %s (fd=" SOCKET_PRINTF ",code=%d)", description,
                     sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
-                    openvpn_strerror(my_errno, crt_error, &gc),
-                    sock ? sock->sd : -1, my_errno);
+                    openvpn_strerror(my_errno, crt_error, &gc), sock ? sock->sd : -1, my_errno);
             }
 
             if (x_cs_err_delay_ms)
@@ -970,16 +941,10 @@ strerror_win32(DWORD errnum, struct gc_arena *gc)
         wchar_t wmessage[256];
         char *message = NULL;
         struct buffer out = alloc_buf_gc(256, gc);
-        const DWORD status =  FormatMessageW(
-            FORMAT_MESSAGE_IGNORE_INSERTS
-            | FORMAT_MESSAGE_FROM_SYSTEM
-            | FORMAT_MESSAGE_ARGUMENT_ARRAY,
-            NULL,
-            errnum,
-            0,
-            wmessage,
-            SIZE(wmessage),
-            NULL);
+        const DWORD status =
+            FormatMessageW(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM
+                               | FORMAT_MESSAGE_ARGUMENT_ARRAY,
+                           NULL, errnum, 0, wmessage, SIZE(wmessage), NULL);
         if (status)
         {
             message = utf16to8(wmessage, gc);

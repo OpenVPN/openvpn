@@ -58,8 +58,9 @@ static char *MODULE = "sample-cc";
  * Our context, where we keep our state.
  */
 
-struct plugin_context {
-    int verb;                           /* logging verbosity */
+struct plugin_context
+{
+    int verb; /* logging verbosity */
 };
 
 /* this is used for the CLIENT_CONNECT_V2 async/deferred handler
@@ -68,8 +69,9 @@ struct plugin_context {
  * this, and the "CLIENT_CONNECT_DEFER_V2" handler looks at it to see
  * if it's time yet to succeed/fail
  */
-struct plugin_per_client_context {
-    time_t sleep_until;                 /* wakeup time (time() + sleep) */
+struct plugin_per_client_context
+{
+    time_t sleep_until; /* wakeup time (time() + sleep) */
     bool want_fail;
     bool want_disable;
     const char *client_config;
@@ -117,8 +119,7 @@ atoi_null0(const char *str)
 
 /* use v3 functions so we can use openvpn's logging and base64 etc. */
 OPENVPN_EXPORT int
-openvpn_plugin_open_v3(const int v3structver,
-                       struct openvpn_plugin_args_open_in const *args,
+openvpn_plugin_open_v3(const int v3structver, struct openvpn_plugin_args_open_in const *args,
                        struct openvpn_plugin_args_open_return *ret)
 {
     /* const char **argv = args->argv; */ /* command line arguments (unused) */
@@ -127,7 +128,9 @@ openvpn_plugin_open_v3(const int v3structver,
     /* Check API compatibility -- struct version 5 or higher needed */
     if (v3structver < 5)
     {
-        fprintf(stderr, "sample-client-connect: this plugin is incompatible with the running version of OpenVPN\n");
+        fprintf(
+            stderr,
+            "sample-client-connect: this plugin is incompatible with the running version of OpenVPN\n");
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
@@ -143,18 +146,17 @@ openvpn_plugin_open_v3(const int v3structver,
     /*
      * Intercept just about everything...
      */
-    ret->type_mask =
-        OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_UP)
-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_DOWN)
-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_ROUTE_UP)
-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_IPCHANGE)
-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_VERIFY)
-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT)
-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT_V2)
-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2)
-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_DISCONNECT)
-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_LEARN_ADDRESS)
-        |OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_FINAL);
+    ret->type_mask = OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_UP)
+                     | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_DOWN)
+                     | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_ROUTE_UP)
+                     | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_IPCHANGE)
+                     | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_VERIFY)
+                     | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT)
+                     | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT_V2)
+                     | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2)
+                     | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_CLIENT_DISCONNECT)
+                     | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_LEARN_ADDRESS)
+                     | OPENVPN_PLUGIN_MASK(OPENVPN_PLUGIN_TLS_FINAL);
 
     /* Save global pointers to functions exported from openvpn */
     plugin_log = args->callbacks->plugin_log;
@@ -166,7 +168,7 @@ openvpn_plugin_open_v3(const int v3structver,
      */
     context->verb = atoi_null0(get_env("verb", envp));
 
-    ret->handle = (openvpn_plugin_handle_t *) context;
+    ret->handle = (openvpn_plugin_handle_t *)context;
     plugin_log(PLOG_NOTE, MODULE, "initialization succeeded");
     return OPENVPN_PLUGIN_FUNC_SUCCESS;
 
@@ -242,8 +244,10 @@ cc_handle_deferred_v1(int seconds, const char *name, const char **envp)
     const char *ccd_file = get_env("client_connect_deferred_file", envp);
     if (!ccd_file)
     {
-        plugin_log(PLOG_NOTE, MODULE, "env has UV_WANT_CC_ASYNC=%d, but "
-                   "'client_connect_deferred_file' not set -> fail", seconds);
+        plugin_log(PLOG_NOTE, MODULE,
+                   "env has UV_WANT_CC_ASYNC=%d, but "
+                   "'client_connect_deferred_file' not set -> fail",
+                   seconds);
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
@@ -257,13 +261,13 @@ cc_handle_deferred_v1(int seconds, const char *name, const char **envp)
     int fd = open(ccd_file, O_WRONLY);
     if (fd < 0)
     {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "open('%s') failed", ccd_file);
+        plugin_log(PLOG_ERR | PLOG_ERRNO, MODULE, "open('%s') failed", ccd_file);
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
     if (write(fd, "2", 1) != 1)
     {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "write to '%s' failed", ccd_file );
+        plugin_log(PLOG_ERR | PLOG_ERRNO, MODULE, "write to '%s' failed", ccd_file);
         close(fd);
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
@@ -277,11 +281,11 @@ cc_handle_deferred_v1(int seconds, const char *name, const char **envp)
 
     /* fork, sleep, succeed/fail according to env vars */
     pid_t p1 = fork();
-    if (p1 < 0)                 /* Fork failed */
+    if (p1 < 0) /* Fork failed */
     {
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
-    if (p1 > 0)                 /* parent process */
+    if (p1 > 0) /* parent process */
     {
         waitpid(p1, NULL, 0);
         return OPENVPN_PLUGIN_FUNC_DEFERRED;
@@ -291,10 +295,10 @@ cc_handle_deferred_v1(int seconds, const char *name, const char **envp)
     pid_t p2 = fork();
     if (p2 < 0)
     {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "BACKGROUND: fork(2) failed");
+        plugin_log(PLOG_ERR | PLOG_ERRNO, MODULE, "BACKGROUND: fork(2) failed");
         exit(1);
     }
-    if (p2 > 0)                 /* new parent: exit right away */
+    if (p2 > 0) /* new parent: exit right away */
     {
         exit(0);
     }
@@ -324,16 +328,16 @@ cc_handle_deferred_v1(int seconds, const char *name, const char **envp)
     fd = open(ccd_file, O_WRONLY);
     if (fd < 0)
     {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "open('%s') failed", ccd_file);
+        plugin_log(PLOG_ERR | PLOG_ERRNO, MODULE, "open('%s') failed", ccd_file);
         exit(1);
     }
 
     plugin_log(PLOG_NOTE, MODULE, "cc_handle_deferred_v1: done, signalling %s",
-               (ret == OPENVPN_PLUGIN_FUNC_SUCCESS) ? "success" : "fail" );
+               (ret == OPENVPN_PLUGIN_FUNC_SUCCESS) ? "success" : "fail");
 
     if (write(fd, (ret == OPENVPN_PLUGIN_FUNC_SUCCESS) ? "1" : "0", 1) != 1)
     {
-        plugin_log(PLOG_ERR|PLOG_ERRNO, MODULE, "write to '%s' failed", ccd_file );
+        plugin_log(PLOG_ERR | PLOG_ERRNO, MODULE, "write to '%s' failed", ccd_file);
     }
     close(fd);
 
@@ -341,14 +345,12 @@ cc_handle_deferred_v1(int seconds, const char *name, const char **envp)
 }
 
 int
-openvpn_plugin_client_connect(struct plugin_context *context,
-                              const char **argv,
-                              const char **envp)
+openvpn_plugin_client_connect(struct plugin_context *context, const char **argv, const char **envp)
 {
     /* log environment variables handed to us by OpenVPN, but
      * only if "setenv verb" is 3 or higher (arbitrary number)
      */
-    if (context->verb>=3)
+    if (context->verb >= 3)
     {
         for (int i = 0; argv[i]; i++)
         {
@@ -389,8 +391,7 @@ openvpn_plugin_client_connect(struct plugin_context *context,
 
 int
 openvpn_plugin_client_connect_v2(struct plugin_context *context,
-                                 struct plugin_per_client_context *pcc,
-                                 const char **envp,
+                                 struct plugin_per_client_context *pcc, const char **envp,
                                  struct openvpn_plugin_string_list **return_list)
 {
     /* by setting "UV_WANT_CC2_ASYNC" we go to async/deferred mode */
@@ -420,7 +421,8 @@ openvpn_plugin_client_connect_v2(struct plugin_context *context,
         pcc->want_fail = (want_fail != NULL);
         pcc->want_disable = (want_disable != NULL);
         pcc->client_config = client_config;
-        plugin_log(PLOG_NOTE, MODULE, "env has UV_WANT_CC2_ASYNC=%s -> set up deferred handler", want_async);
+        plugin_log(PLOG_NOTE, MODULE, "env has UV_WANT_CC2_ASYNC=%s -> set up deferred handler",
+                   want_async);
         return OPENVPN_PLUGIN_FUNC_DEFERRED;
     }
 
@@ -431,8 +433,7 @@ openvpn_plugin_client_connect_v2(struct plugin_context *context,
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
-    struct openvpn_plugin_string_list *rl =
-        calloc(1, sizeof(struct openvpn_plugin_string_list));
+    struct openvpn_plugin_string_list *rl = calloc(1, sizeof(struct openvpn_plugin_string_list));
     if (!rl)
     {
         plugin_log(PLOG_ERR, MODULE, "malloc(return_list) failed");
@@ -466,12 +467,10 @@ openvpn_plugin_client_connect_v2(struct plugin_context *context,
 int
 openvpn_plugin_client_connect_defer_v2(struct plugin_context *context,
                                        struct plugin_per_client_context *pcc,
-                                       struct openvpn_plugin_string_list
-                                       **return_list)
+                                       struct openvpn_plugin_string_list **return_list)
 {
     time_t time_left = pcc->sleep_until - time(NULL);
-    plugin_log(PLOG_NOTE, MODULE, "defer_v2: seconds left=%d",
-               (int) time_left);
+    plugin_log(PLOG_NOTE, MODULE, "defer_v2: seconds left=%d", (int)time_left);
 
     /* not yet due? */
     if (time_left > 0)
@@ -482,15 +481,14 @@ openvpn_plugin_client_connect_defer_v2(struct plugin_context *context,
     /* client wants fail? */
     if (pcc->want_fail)
     {
-        plugin_log(PLOG_NOTE, MODULE, "env has UV_WANT_CC2_FAIL -> fail" );
+        plugin_log(PLOG_NOTE, MODULE, "env has UV_WANT_CC2_FAIL -> fail");
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
     /* fill in RL according to with-disable / without-disable */
 
     /* TODO: unify this with non-deferred case */
-    struct openvpn_plugin_string_list *rl =
-        calloc(1, sizeof(struct openvpn_plugin_string_list));
+    struct openvpn_plugin_string_list *rl = calloc(1, sizeof(struct openvpn_plugin_string_list));
     if (!rl)
     {
         plugin_log(PLOG_ERR, MODULE, "malloc(return_list) failed");
@@ -522,15 +520,12 @@ openvpn_plugin_client_connect_defer_v2(struct plugin_context *context,
 }
 
 OPENVPN_EXPORT int
-openvpn_plugin_func_v2(openvpn_plugin_handle_t handle,
-                       const int type,
-                       const char *argv[],
-                       const char *envp[],
-                       void *per_client_context,
+openvpn_plugin_func_v2(openvpn_plugin_handle_t handle, const int type, const char *argv[],
+                       const char *envp[], void *per_client_context,
                        struct openvpn_plugin_string_list **return_list)
 {
-    struct plugin_context *context = (struct plugin_context *) handle;
-    struct plugin_per_client_context *pcc = (struct plugin_per_client_context *) per_client_context;
+    struct plugin_context *context = (struct plugin_context *)handle;
+    struct plugin_per_client_context *pcc = (struct plugin_per_client_context *)per_client_context;
 
     /* for most functions, we just "don't do anything" but log the
      * event received (so one can follow it in the log and understand
@@ -564,13 +559,11 @@ openvpn_plugin_func_v2(openvpn_plugin_handle_t handle,
 
         case OPENVPN_PLUGIN_CLIENT_CONNECT_V2:
             plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_CLIENT_CONNECT_V2");
-            return openvpn_plugin_client_connect_v2(context, pcc, envp,
-                                                    return_list);
+            return openvpn_plugin_client_connect_v2(context, pcc, envp, return_list);
 
         case OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2:
             plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_CLIENT_CONNECT_DEFER_V2");
-            return openvpn_plugin_client_connect_defer_v2(context, pcc,
-                                                          return_list);
+            return openvpn_plugin_client_connect_defer_v2(context, pcc, return_list);
 
         case OPENVPN_PLUGIN_CLIENT_DISCONNECT:
             plugin_log(PLOG_NOTE, MODULE, "OPENVPN_PLUGIN_CLIENT_DISCONNECT");
@@ -607,7 +600,7 @@ openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *per_cl
 OPENVPN_EXPORT void
 openvpn_plugin_close_v1(openvpn_plugin_handle_t handle)
 {
-    struct plugin_context *context = (struct plugin_context *) handle;
+    struct plugin_context *context = (struct plugin_context *)handle;
     printf("FUNC: openvpn_plugin_close_v1\n");
     free(context);
 }

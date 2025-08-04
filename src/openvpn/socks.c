@@ -45,12 +45,10 @@
 
 #include "memdbg.h"
 
-#define UP_TYPE_SOCKS           "SOCKS Proxy"
+#define UP_TYPE_SOCKS "SOCKS Proxy"
 
 struct socks_proxy_info *
-socks_proxy_new(const char *server,
-                const char *port,
-                const char *authfile)
+socks_proxy_new(const char *server, const char *port, const char *authfile)
 {
     struct socks_proxy_info *p;
 
@@ -83,8 +81,7 @@ socks_proxy_close(struct socks_proxy_info *sp)
 }
 
 static bool
-socks_username_password_auth(struct socks_proxy_info *p,
-                             socket_descriptor_t sd,
+socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
                              struct event_timeout *server_poll_timeout,
                              volatile int *signal_received)
 {
@@ -102,24 +99,23 @@ socks_username_password_auth(struct socks_proxy_info *p,
         goto cleanup;
     }
 
-    if ( (strlen(creds.username) > 255) || (strlen(creds.password) > 255) )
+    if ((strlen(creds.username) > 255) || (strlen(creds.password) > 255))
     {
-        msg(M_NONFATAL,
-            "SOCKS username and/or password exceeds 255 characters.  "
-            "Authentication not possible.");
+        msg(M_NONFATAL, "SOCKS username and/or password exceeds 255 characters.  "
+                        "Authentication not possible.");
         goto cleanup;
     }
 
-    int sret = snprintf(to_send, sizeof(to_send), "\x01%c%s%c%s",
-                        (int) strlen(creds.username), creds.username,
-                        (int) strlen(creds.password), creds.password);
+    int sret = snprintf(to_send, sizeof(to_send), "\x01%c%s%c%s", (int)strlen(creds.username),
+                        creds.username, (int)strlen(creds.password), creds.password);
     ASSERT(sret <= sizeof(to_send));
 
     size = send(sd, to_send, strlen(to_send), MSG_NOSIGNAL);
 
     if (size != strlen(to_send))
     {
-        msg(D_LINK_ERRORS | M_ERRNO, "socks_username_password_auth: TCP port write failed on send()");
+        msg(D_LINK_ERRORS | M_ERRNO,
+            "socks_username_password_auth: TCP port write failed on send()");
         goto cleanup;
     }
 
@@ -147,14 +143,16 @@ socks_username_password_auth(struct socks_proxy_info *p,
         /* timeout? */
         if (status == 0)
         {
-            msg(D_LINK_ERRORS | M_ERRNO, "socks_username_password_auth: TCP port read timeout expired");
+            msg(D_LINK_ERRORS | M_ERRNO,
+                "socks_username_password_auth: TCP port read timeout expired");
             goto cleanup;
         }
 
         /* error */
         if (status < 0)
         {
-            msg(D_LINK_ERRORS | M_ERRNO, "socks_username_password_auth: TCP port read failed on select()");
+            msg(D_LINK_ERRORS | M_ERRNO,
+                "socks_username_password_auth: TCP port read failed on select()");
             goto cleanup;
         }
 
@@ -164,7 +162,8 @@ socks_username_password_auth(struct socks_proxy_info *p,
         /* error? */
         if (size != 1)
         {
-            msg(D_LINK_ERRORS | M_ERRNO, "socks_username_password_auth: TCP port read failed on recv()");
+            msg(D_LINK_ERRORS | M_ERRNO,
+                "socks_username_password_auth: TCP port read failed on recv()");
             goto cleanup;
         }
 
@@ -187,10 +186,8 @@ cleanup:
 }
 
 static bool
-socks_handshake(struct socks_proxy_info *p,
-                socket_descriptor_t sd,
-                struct event_timeout *server_poll_timeout,
-                volatile int *signal_received)
+socks_handshake(struct socks_proxy_info *p, socket_descriptor_t sd,
+                struct event_timeout *server_poll_timeout, volatile int *signal_received)
 {
     char buf[2];
     int len = 0;
@@ -201,7 +198,6 @@ socks_handshake(struct socks_proxy_info *p,
     if (p->authfile[0])
     {
         method_sel[2] = 0x02; /* METHODS = [2 (plain login)] */
-
     }
     size = send(sd, method_sel, sizeof(method_sel), MSG_NOSIGNAL);
     if (size != sizeof(method_sel))
@@ -282,7 +278,8 @@ socks_handshake(struct socks_proxy_info *p,
         case 2: /* login/password */
             if (!p->authfile[0])
             {
-                msg(D_LINK_ERRORS, "socks_handshake: server asked for username/login auth but we were "
+                msg(D_LINK_ERRORS,
+                    "socks_handshake: server asked for username/login auth but we were "
                     "not provided any credentials");
                 return false;
             }
@@ -303,15 +300,13 @@ socks_handshake(struct socks_proxy_info *p,
 }
 
 static bool
-recv_socks_reply(socket_descriptor_t sd,
-                 struct openvpn_sockaddr *addr,
-                 struct event_timeout *server_poll_timeout,
-                 volatile int *signal_received)
+recv_socks_reply(socket_descriptor_t sd, struct openvpn_sockaddr *addr,
+                 struct event_timeout *server_poll_timeout, volatile int *signal_received)
 {
     char atyp = '\0';
     int alen = 0;
     int len = 0;
-    char buf[270];              /* 4 + alen(max 256) + 2 */
+    char buf[270]; /* 4 + alen(max 256) + 2 */
 
     if (addr != NULL)
     {
@@ -379,18 +374,18 @@ recv_socks_reply(socket_descriptor_t sd,
         {
             switch (atyp)
             {
-                case '\x01':    /* IP V4 */
+                case '\x01': /* IP V4 */
                     alen = 4;
                     break;
 
-                case '\x03':    /* DOMAINNAME */
+                case '\x03': /* DOMAINNAME */
                     /* RFC 1928, section 5: 1 byte length, <n> bytes name,
                      * so the total "address length" is (length+1)
                      */
-                    alen = (unsigned char) c + 1;
+                    alen = (unsigned char)c + 1;
                     break;
 
-                case '\x04':    /* IP V6 */
+                case '\x04': /* IP V6 */
                     alen = 16;
                     break;
 
@@ -421,8 +416,7 @@ recv_socks_reply(socket_descriptor_t sd,
         memcpy(&addr->addr.in4.sin_addr, buf + 4, sizeof(addr->addr.in4.sin_addr));
         memcpy(&addr->addr.in4.sin_port, buf + 8, sizeof(addr->addr.in4.sin_port));
         struct gc_arena gc = gc_new();
-        msg(M_INFO, "SOCKS proxy wants us to send UDP to %s",
-            print_openvpn_sockaddr(addr, &gc));
+        msg(M_INFO, "SOCKS proxy wants us to send UDP to %s", print_openvpn_sockaddr(addr, &gc));
         gc_free(&gc);
     }
 
@@ -435,12 +429,12 @@ port_from_servname(const char *servname)
 {
     int port = 0;
     port = atoi(servname);
-    if (port >0 && port < 65536)
+    if (port > 0 && port < 65536)
     {
         return port;
     }
 
-    struct  servent *service;
+    struct servent *service;
     service = getservbyname(servname, NULL);
     if (service)
     {
@@ -452,9 +446,9 @@ port_from_servname(const char *servname)
 
 void
 establish_socks_proxy_passthru(struct socks_proxy_info *p,
-                               socket_descriptor_t sd,  /* already open to proxy */
-                               const char *host,        /* openvpn server remote */
-                               const char *servname,    /* openvpn server port */
+                               socket_descriptor_t sd, /* already open to proxy */
+                               const char *host,       /* openvpn server remote */
+                               const char *servname,   /* openvpn server port */
                                struct event_timeout *server_poll_timeout,
                                struct signal_info *sig_info)
 {
@@ -467,32 +461,34 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
     }
 
     /* format Socks CONNECT message */
-    buf[0] = '\x05';            /* VER = 5 */
-    buf[1] = '\x01';            /* CMD = 1 (CONNECT) */
-    buf[2] = '\x00';            /* RSV */
-    buf[3] = '\x03';            /* ATYP = 3 (DOMAINNAME) */
+    buf[0] = '\x05'; /* VER = 5 */
+    buf[1] = '\x01'; /* CMD = 1 (CONNECT) */
+    buf[2] = '\x00'; /* RSV */
+    buf[3] = '\x03'; /* ATYP = 3 (DOMAINNAME) */
 
     len = strlen(host);
     len = (5 + len + 2 > sizeof(buf)) ? (sizeof(buf) - 5 - 2) : len;
 
-    buf[4] = (char) len;
+    buf[4] = (char)len;
     memcpy(buf + 5, host, len);
 
     int port = port_from_servname(servname);
-    if (port ==0)
+    if (port == 0)
     {
-        msg(D_LINK_ERRORS, "establish_socks_proxy_passthrough: Cannot convert %s to port number", servname);
+        msg(D_LINK_ERRORS, "establish_socks_proxy_passthrough: Cannot convert %s to port number",
+            servname);
         goto error;
     }
 
-    buf[5 + len] = (char) (port >> 8);
-    buf[5 + len + 1] = (char) (port & 0xff);
+    buf[5 + len] = (char)(port >> 8);
+    buf[5 + len + 1] = (char)(port & 0xff);
 
     {
         const ssize_t size = send(sd, buf, 5 + len + 2, MSG_NOSIGNAL);
         if ((int)size != 5 + (int)len + 2)
         {
-            msg(D_LINK_ERRORS | M_ERRNO, "establish_socks_proxy_passthru: TCP port write failed on send()");
+            msg(D_LINK_ERRORS | M_ERRNO,
+                "establish_socks_proxy_passthru: TCP port write failed on send()");
             goto error;
         }
     }
@@ -514,7 +510,7 @@ error:
 
 void
 establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
-                               socket_descriptor_t ctrl_sd,  /* already open to proxy */
+                               socket_descriptor_t ctrl_sd, /* already open to proxy */
                                struct openvpn_sockaddr *relay_addr,
                                struct event_timeout *server_poll_timeout,
                                struct signal_info *sig_info)
@@ -528,12 +524,12 @@ establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
         /* send Socks UDP ASSOCIATE message */
         /* VER = 5, CMD = 3 (UDP ASSOCIATE), RSV = 0, ATYP = 1 (IP V4),
          * BND.ADDR = 0, BND.PORT = 0 */
-        const ssize_t size = send(ctrl_sd,
-                                  "\x05\x03\x00\x01\x00\x00\x00\x00\x00\x00",
-                                  10, MSG_NOSIGNAL);
+        const ssize_t size =
+            send(ctrl_sd, "\x05\x03\x00\x01\x00\x00\x00\x00\x00\x00", 10, MSG_NOSIGNAL);
         if (size != 10)
         {
-            msg(D_LINK_ERRORS | M_ERRNO, "establish_socks_proxy_passthru: TCP port write failed on send()");
+            msg(D_LINK_ERRORS | M_ERRNO,
+                "establish_socks_proxy_passthru: TCP port write failed on send()");
             goto error;
         }
     }
@@ -560,8 +556,7 @@ error:
  * Run after UDP read.
  */
 void
-socks_process_incoming_udp(struct buffer *buf,
-                           struct link_socket_actual *from)
+socks_process_incoming_udp(struct buffer *buf, struct link_socket_actual *from)
 {
     int atyp;
 
@@ -577,7 +572,7 @@ socks_process_incoming_udp(struct buffer *buf,
     }
 
     atyp = buf_read_u8(buf);
-    if (atyp != 1)              /* ATYP == 1 (IP V4) */
+    if (atyp != 1) /* ATYP == 1 (IP V4) */
     {
         goto error;
     }
@@ -599,8 +594,7 @@ error:
  * Returns the size of the header.
  */
 int
-socks_process_outgoing_udp(struct buffer *buf,
-                           const struct link_socket_actual *to)
+socks_process_outgoing_udp(struct buffer *buf, const struct link_socket_actual *to)
 {
     /*
      * Get a 10 byte subset buffer prepended to buf --
@@ -612,8 +606,8 @@ socks_process_outgoing_udp(struct buffer *buf,
     /* crash if not enough headroom in buf */
     ASSERT(buf_defined(&head));
 
-    buf_write_u16(&head, 0);    /* RSV = 0 */
-    buf_write_u8(&head, 0);     /* FRAG = 0 */
+    buf_write_u16(&head, 0);     /* RSV = 0 */
+    buf_write_u8(&head, 0);      /* FRAG = 0 */
     buf_write_u8(&head, '\x01'); /* ATYP = 1 (IP V4) */
     buf_write(&head, &to->dest.addr.in4.sin_addr, sizeof(to->dest.addr.in4.sin_addr));
     buf_write(&head, &to->dest.addr.in4.sin_port, sizeof(to->dest.addr.in4.sin_port));

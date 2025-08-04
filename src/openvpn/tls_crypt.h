@@ -85,21 +85,21 @@
 #include "session_id.h"
 #include "ssl_common.h"
 
-#define TLS_CRYPT_TAG_SIZE (256/8)
-#define TLS_CRYPT_PID_SIZE (sizeof(packet_id_type) + sizeof(net_time_t))
-#define TLS_CRYPT_BLOCK_SIZE (128/8)
+#define TLS_CRYPT_TAG_SIZE   (256 / 8)
+#define TLS_CRYPT_PID_SIZE   (sizeof(packet_id_type) + sizeof(net_time_t))
+#define TLS_CRYPT_BLOCK_SIZE (128 / 8)
 
 #define TLS_CRYPT_OFF_PID (1 + SID_SIZE)
 #define TLS_CRYPT_OFF_TAG (TLS_CRYPT_OFF_PID + TLS_CRYPT_PID_SIZE)
-#define TLS_CRYPT_OFF_CT (TLS_CRYPT_OFF_TAG + TLS_CRYPT_TAG_SIZE)
+#define TLS_CRYPT_OFF_CT  (TLS_CRYPT_OFF_TAG + TLS_CRYPT_TAG_SIZE)
 
-#define TLS_CRYPT_V2_MAX_WKC_LEN (1024)
+#define TLS_CRYPT_V2_MAX_WKC_LEN    (1024)
 #define TLS_CRYPT_V2_CLIENT_KEY_LEN (2048 / 8)
 #define TLS_CRYPT_V2_SERVER_KEY_LEN (sizeof(struct key))
-#define TLS_CRYPT_V2_TAG_SIZE (TLS_CRYPT_TAG_SIZE)
-#define TLS_CRYPT_V2_MAX_METADATA_LEN (unsigned)(TLS_CRYPT_V2_MAX_WKC_LEN \
-                                                 - (TLS_CRYPT_V2_CLIENT_KEY_LEN + TLS_CRYPT_V2_TAG_SIZE \
-                                                    + sizeof(uint16_t)))
+#define TLS_CRYPT_V2_TAG_SIZE       (TLS_CRYPT_TAG_SIZE)
+#define TLS_CRYPT_V2_MAX_METADATA_LEN   \
+    (unsigned)(TLS_CRYPT_V2_MAX_WKC_LEN \
+               - (TLS_CRYPT_V2_CLIENT_KEY_LEN + TLS_CRYPT_V2_TAG_SIZE + sizeof(uint16_t)))
 
 /**
  * Initialize a key_ctx_bi structure for use with @c --tls-crypt.
@@ -112,8 +112,8 @@
  *                      otherwise.
  * @param tls_server    Must be set to true is this is a TLS server instance.
  */
-void tls_crypt_init_key(struct key_ctx_bi *key, struct key2 *keydata,
-                        const char *key_file, bool key_inline, bool tls_server);
+void tls_crypt_init_key(struct key_ctx_bi *key, struct key2 *keydata, const char *key_file,
+                        bool key_inline, bool tls_server);
 
 /**
  * Generates a TLS-Crypt key to be used with dynamic tls-crypt using the
@@ -124,8 +124,7 @@ void tls_crypt_init_key(struct key_ctx_bi *key, struct key2 *keydata,
  * @param session   session that will be used for the TLS EKM exporter
  * @return          true iff generating the key was successful
  */
-bool
-tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session);
+bool tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session);
 
 /**
  * Returns the maximum overhead (in bytes) added to the destination buffer by
@@ -144,8 +143,7 @@ int tls_crypt_buf_overhead(void);
  *
  * @returns true iff wrapping succeeded.
  */
-bool tls_crypt_wrap(const struct buffer *src, struct buffer *dst,
-                    struct crypto_options *opt);
+bool tls_crypt_wrap(const struct buffer *src, struct buffer *dst, struct crypto_options *opt);
 
 /**
  * Unwrap a control channel packet (decrypts, authenticates and performs
@@ -158,8 +156,7 @@ bool tls_crypt_wrap(const struct buffer *src, struct buffer *dst,
  * @returns true iff unwrapping succeeded (data authenticated correctly and was
  * no replay).
  */
-bool tls_crypt_unwrap(const struct buffer *src, struct buffer *dst,
-                      struct crypto_options *opt);
+bool tls_crypt_unwrap(const struct buffer *src, struct buffer *dst, struct crypto_options *opt);
 
 /**
  * Initialize a tls-crypt-v2 server key (used to encrypt/decrypt client keys).
@@ -173,8 +170,8 @@ bool tls_crypt_unwrap(const struct buffer *src, struct buffer *dst,
  *                      otherwise.
  *
  */
-void tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
-                                  const char *key_file, bool key_inline);
+void tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt, const char *key_file,
+                                  bool key_inline);
 
 /**
  * Initialize a tls-crypt-v2 client key.
@@ -191,10 +188,9 @@ void tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt,
  * @param key_inline        True if key_file contains an inline key, False
  *                          otherwise.
  */
-void tls_crypt_v2_init_client_key(struct key_ctx_bi *key,
-                                  struct key2 *original_key,
-                                  struct buffer *wrapped_key_buf,
-                                  const char *key_file, bool key_inline);
+void tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct key2 *original_key,
+                                  struct buffer *wrapped_key_buf, const char *key_file,
+                                  bool key_inline);
 
 /**
  * Extract a tls-crypt-v2 client key from a P_CONTROL_HARD_RESET_CLIENT_V3
@@ -211,10 +207,8 @@ void tls_crypt_v2_init_client_key(struct key_ctx_bi *key,
  *
  * @returns true if a key was successfully extracted.
  */
-bool tls_crypt_v2_extract_client_key(struct buffer *buf,
-                                     struct tls_wrap_ctx *ctx,
-                                     const struct tls_options *opt,
-                                     bool initial_packet);
+bool tls_crypt_v2_extract_client_key(struct buffer *buf, struct tls_wrap_ctx *ctx,
+                                     const struct tls_options *opt, bool initial_packet);
 
 /**
  * Generate a tls-crypt-v2 server key, and write to file.
@@ -233,8 +227,7 @@ void tls_crypt_v2_write_server_key_file(const char *filename);
  * @param key_inline        True if key_file contains an inline key, False
  *                          otherwise.
  */
-void tls_crypt_v2_write_client_key_file(const char *filename,
-                                        const char *b64_metadata,
+void tls_crypt_v2_write_client_key_file(const char *filename, const char *b64_metadata,
                                         const char *key_file, bool key_inline);
 
 /** @} */

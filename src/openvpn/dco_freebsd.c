@@ -133,9 +133,8 @@ nvlist_to_sockaddr(const nvlist_t *nvl, struct sockaddr_storage *ss)
 }
 
 int
-dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
-             struct sockaddr *localaddr, struct sockaddr *remoteaddr,
-             struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6)
+dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd, struct sockaddr *localaddr,
+             struct sockaddr *remoteaddr, struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6)
 {
     struct ifdrv drv;
     nvlist_t *nvl, *local_nvl, *remote_nvl;
@@ -159,8 +158,7 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd,
 
     if (vpn_ipv4)
     {
-        nvlist_add_binary(nvl, "vpn_ipv4", &vpn_ipv4->s_addr,
-                          sizeof(vpn_ipv4->s_addr));
+        nvlist_add_binary(nvl, "vpn_ipv4", &vpn_ipv4->s_addr, sizeof(vpn_ipv4->s_addr));
     }
 
     if (vpn_ipv6)
@@ -278,7 +276,7 @@ create_interface(struct tuntap *tt, const char *dev)
     if (ret)
     {
         ret = -errno;
-        msg(M_WARN|M_ERRNO, "Failed to create interface %s (SIOCIFCREATE2)", ifr.ifr_name);
+        msg(M_WARN | M_ERRNO, "Failed to create interface %s (SIOCIFCREATE2)", ifr.ifr_name);
         return ret;
     }
 
@@ -300,7 +298,7 @@ create_interface(struct tuntap *tt, const char *dev)
         ret = -errno;
         /* Delete the created interface again. */
         (void)ioctl(tt->dco.fd, SIOCIFDESTROY, &ifr);
-        msg(M_WARN|M_ERRNO, "Failed to create interface %s (SIOCSIFNAME)", ifr.ifr_data);
+        msg(M_WARN | M_ERRNO, "Failed to create interface %s (SIOCSIFNAME)", ifr.ifr_data);
         return ret;
     }
 
@@ -412,8 +410,7 @@ dco_del_peer(dco_context_t *dco, unsigned int peerid)
 }
 
 int
-dco_del_key(dco_context_t *dco, unsigned int peerid,
-            dco_key_slot_t slot)
+dco_del_key(dco_context_t *dco, unsigned int peerid, dco_key_slot_t slot)
 {
     struct ifdrv drv;
     nvlist_t *nvl;
@@ -483,18 +480,16 @@ start_tun(dco_context_t *dco)
 }
 
 int
-dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid,
-            dco_key_slot_t slot,
-            const uint8_t *encrypt_key, const uint8_t *encrypt_iv,
-            const uint8_t *decrypt_key, const uint8_t *decrypt_iv,
-            const char *ciphername)
+dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t slot,
+            const uint8_t *encrypt_key, const uint8_t *encrypt_iv, const uint8_t *decrypt_key,
+            const uint8_t *decrypt_iv, const char *ciphername)
 {
     struct ifdrv drv;
     nvlist_t *nvl, *encrypt_nvl, *decrypt_nvl;
     int ret;
 
-    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s",
-        __func__, slot, keyid, peerid, ciphername);
+    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s", __func__, slot, keyid, peerid,
+        ciphername);
 
     nvl = nvlist_create(0);
 
@@ -532,16 +527,15 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid,
 }
 
 int
-dco_set_peer(dco_context_t *dco, unsigned int peerid,
-             int keepalive_interval, int keepalive_timeout,
+dco_set_peer(dco_context_t *dco, unsigned int peerid, int keepalive_interval, int keepalive_timeout,
              int mss)
 {
     struct ifdrv drv;
     nvlist_t *nvl;
     int ret;
 
-    msg(D_DCO_DEBUG, "%s: peer-id %d, ping interval %d, ping timeout %d",
-        __func__, peerid, keepalive_interval, keepalive_timeout);
+    msg(D_DCO_DEBUG, "%s: peer-id %d, ping interval %d, ping timeout %d", __func__, peerid,
+        keepalive_interval, keepalive_timeout);
 
     nvl = nvlist_create(0);
     nvlist_add_number(nvl, "peerid", peerid);
@@ -633,7 +627,8 @@ dco_do_read(dco_context_t *dco)
             dco->dco_message_type = OVPN_CMD_SWAP_KEYS;
             break;
 
-        case OVPN_NOTIF_FLOAT: {
+        case OVPN_NOTIF_FLOAT:
+        {
             const nvlist_t *address;
 
             if (!nvlist_exists_nvlist(nvl, "address"))
@@ -780,7 +775,6 @@ dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
 static void
 dco_update_peer_stat(struct multi_context *m, uint32_t peerid, const nvlist_t *nvl)
 {
-
     if (peerid >= m->max_clients || !m->instances[peerid])
     {
         msg(M_WARN, "dco_update_peer_stat: invalid peer ID %d returned by kernel", peerid);
@@ -796,7 +790,6 @@ dco_update_peer_stat(struct multi_context *m, uint32_t peerid, const nvlist_t *n
 int
 dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
 {
-
     struct ifdrv drv;
     uint8_t *buf = NULL;
     size_t buf_size = 4096;

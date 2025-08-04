@@ -36,8 +36,8 @@
 #include "basic.h"
 #include "buffer.h"
 
-#define hashsize(n) ((uint32_t)1<<(n))
-#define hashmask(n) (hashsize(n)-1)
+#define hashsize(n) ((uint32_t)1 << (n))
+#define hashmask(n) (hashsize(n) - 1)
 
 struct hash_element
 {
@@ -63,8 +63,7 @@ struct hash
     struct hash_bucket *buckets;
 };
 
-struct hash *hash_init(const int n_buckets,
-                       const uint32_t iv,
+struct hash *hash_init(const int n_buckets, const uint32_t iv,
                        uint32_t (*hash_function)(const void *key, uint32_t iv),
                        bool (*compare_function)(const void *key1, const void *key2));
 
@@ -72,15 +71,10 @@ void hash_free(struct hash *hash);
 
 bool hash_add(struct hash *hash, const void *key, void *value, bool replace);
 
-struct hash_element *hash_lookup_fast(struct hash *hash,
-                                      struct hash_bucket *bucket,
-                                      const void *key,
-                                      uint32_t hv);
+struct hash_element *hash_lookup_fast(struct hash *hash, struct hash_bucket *bucket,
+                                      const void *key, uint32_t hv);
 
-bool hash_remove_fast(struct hash *hash,
-                      struct hash_bucket *bucket,
-                      const void *key,
-                      uint32_t hv);
+bool hash_remove_fast(struct hash *hash, struct hash_bucket *bucket, const void *key, uint32_t hv);
 
 void hash_remove_by_value(struct hash *hash, void *value);
 
@@ -96,9 +90,7 @@ struct hash_iterator
     int bucket_index_end;
 };
 
-void hash_iterator_init_range(struct hash *hash,
-                              struct hash_iterator *hi,
-                              int start_bucket,
+void hash_iterator_init_range(struct hash *hash, struct hash_iterator *hi, int start_bucket,
                               int end_bucket);
 
 void hash_iterator_init(struct hash *hash, struct hash_iterator *iter);
@@ -154,10 +146,7 @@ hash_lookup(struct hash *hash, const void *key)
 
 /* NOTE: assumes that key is not a duplicate */
 static inline void
-hash_add_fast(struct hash *hash,
-              struct hash_bucket *bucket,
-              const void *key,
-              uint32_t hv,
+hash_add_fast(struct hash *hash, struct hash_bucket *bucket, const void *key, uint32_t hv,
               void *value)
 {
     struct hash_element *he;

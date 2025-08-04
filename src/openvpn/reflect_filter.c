@@ -46,10 +46,10 @@ reflect_filter_rate_limit_check(struct initial_packet_rate_limit *irl)
         int64_t dropped = irl->curr_period_counter - irl->max_per_period;
         if (dropped > 0)
         {
-            msg(D_TLS_DEBUG_LOW, "Dropped %" PRId64 " initial handshake packets"
-                " due to --connect-freq-initial %" PRId64 " %d", dropped,
-                irl->max_per_period, irl->period_length);
-
+            msg(D_TLS_DEBUG_LOW,
+                "Dropped %" PRId64 " initial handshake packets"
+                " due to --connect-freq-initial %" PRId64 " %d",
+                dropped, irl->max_per_period, irl->period_length);
         }
         irl->last_period_reset = now;
         irl->curr_period_counter = 0;
@@ -62,9 +62,11 @@ reflect_filter_rate_limit_check(struct initial_packet_rate_limit *irl)
 
     if (over_limit && !irl->warning_displayed)
     {
-        msg(M_WARN, "Note: --connect-freq-initial %" PRId64 " %d rate limit "
+        msg(M_WARN,
+            "Note: --connect-freq-initial %" PRId64 " %d rate limit "
             "exceeded, dropping initial handshake packets for the next %d "
-            "seconds", irl->max_per_period, irl->period_length,
+            "seconds",
+            irl->max_per_period, irl->period_length,
             (int)(irl->last_period_reset + irl->period_length - now));
         irl->warning_displayed = true;
     }

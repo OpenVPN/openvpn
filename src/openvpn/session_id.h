@@ -44,8 +44,7 @@ extern const struct session_id x_session_id_zero;
 #define SID_SIZE (sizeof(x_session_id_zero.id))
 
 static inline bool
-session_id_equal(const struct session_id *sid1,
-                 const struct session_id *sid2)
+session_id_equal(const struct session_id *sid1, const struct session_id *sid2)
 {
     return !memcmp(sid1->id, sid2->id, SID_SIZE);
 }

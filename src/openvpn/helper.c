@@ -70,14 +70,12 @@ print_opt_route(const in_addr_t network, const in_addr_t netmask, struct gc_aren
 
     if (netmask)
     {
-        buf_printf(&out, "route %s %s",
-                   print_in_addr_t(network, 0, gc),
+        buf_printf(&out, "route %s %s", print_in_addr_t(network, 0, gc),
                    print_in_addr_t(netmask, 0, gc));
     }
     else
     {
-        buf_printf(&out, "route %s",
-                   print_in_addr_t(network, 0, gc));
+        buf_printf(&out, "route %s", print_in_addr_t(network, 0, gc));
     }
 
     return BSTR(&out);
@@ -113,11 +111,8 @@ static void
 helper_add_route(const in_addr_t network, const in_addr_t netmask, struct options *o)
 {
     rol_check_alloc(o);
-    add_route_to_option_list(o->routes,
-                             print_in_addr_t(network, 0, &o->gc),
-                             print_in_addr_t(netmask, 0, &o->gc),
-                             NULL,
-                             NULL,
+    add_route_to_option_list(o->routes, print_in_addr_t(network, 0, &o->gc),
+                             print_in_addr_t(netmask, 0, &o->gc), NULL, NULL,
                              o->route_default_table_id);
 }
 
@@ -127,10 +122,8 @@ verify_common_subnet(const char *opt, const in_addr_t a, const in_addr_t b, cons
     struct gc_arena gc = gc_new();
     if ((a & subnet) != (b & subnet))
     {
-        msg(M_USAGE, "%s IP addresses %s and %s are not in the same %s subnet",
-            opt,
-            print_in_addr_t(a, 0, &gc),
-            print_in_addr_t(b, 0, &gc),
+        msg(M_USAGE, "%s IP addresses %s and %s are not in the same %s subnet", opt,
+            print_in_addr_t(a, 0, &gc), print_in_addr_t(b, 0, &gc),
             print_in_addr_t(subnet, 0, &gc));
     }
     gc_free(&gc);
@@ -206,17 +199,17 @@ helper_client_server(struct options *o)
         }
         if (o->ifconfig_ipv6_pool_defined)
         {
-            msg(M_USAGE, "--server-ipv6 already defines an ifconfig-ipv6-pool, so you can't also specify --ifconfig-pool explicitly");
+            msg(M_USAGE,
+                "--server-ipv6 already defines an ifconfig-ipv6-pool, so you can't also specify --ifconfig-pool explicitly");
         }
 
         o->mode = MODE_SERVER;
         o->tls_server = true;
 
         /* local ifconfig is "base address + 1" and "+2" */
-        o->ifconfig_ipv6_local =
-            print_in6_addr( add_in6_addr( o->server_network_ipv6, 1), 0, &o->gc );
+        o->ifconfig_ipv6_local = print_in6_addr(add_in6_addr(o->server_network_ipv6, 1), 0, &o->gc);
         o->ifconfig_ipv6_remote =
-            print_in6_addr( add_in6_addr( o->server_network_ipv6, 2), 0, &o->gc );
+            print_in6_addr(add_in6_addr(o->server_network_ipv6, 2), 0, &o->gc);
         o->ifconfig_ipv6_netbits = o->server_netbits_ipv6;
 
         /* basic sanity check */
@@ -228,8 +221,8 @@ helper_client_server(struct options *o)
          *
          * Smaller pools can't get that far, therefore we just increase by 2
          */
-        o->ifconfig_ipv6_pool_base = add_in6_addr(o->server_network_ipv6,
-                                                  o->server_netbits_ipv6 < 112 ? 0x1000 : 2);
+        o->ifconfig_ipv6_pool_base =
+            add_in6_addr(o->server_network_ipv6, o->server_netbits_ipv6 < 112 ? 0x1000 : 2);
         o->ifconfig_ipv6_pool_netbits = o->server_netbits_ipv6;
 
         push_option(o, "tun-ipv6", M_USAGE);
@@ -283,12 +276,14 @@ helper_client_server(struct options *o)
 
         if (o->shared_secret_file)
         {
-            msg(M_USAGE, "--server and --secret cannot be used together (you must use SSL/TLS keys)");
+            msg(M_USAGE,
+                "--server and --secret cannot be used together (you must use SSL/TLS keys)");
         }
 
         if (!(o->server_flags & SF_NOPOOL) && o->ifconfig_pool_defined)
         {
-            msg(M_USAGE, "--server already defines an ifconfig-pool, so you can't also specify --ifconfig-pool explicitly");
+            msg(M_USAGE,
+                "--server already defines an ifconfig-pool, so you can't also specify --ifconfig-pool explicitly");
         }
 
         if (!(dev == DEV_TYPE_TAP || dev == DEV_TYPE_TUN))
@@ -309,7 +304,8 @@ helper_client_server(struct options *o)
 
         if (netbits < IFCONFIG_POOL_MIN_NETBITS)
         {
-            msg(M_USAGE, "--server directive netmask allows for too many host addresses (subnet must be %s or higher)",
+            msg(M_USAGE,
+                "--server directive netmask allows for too many host addresses (subnet must be %s or higher)",
                 print_netmask(IFCONFIG_POOL_MIN_NETBITS, &gc));
         }
 
@@ -319,7 +315,8 @@ helper_client_server(struct options *o)
 
             if (netbits > 29)
             {
-                msg(M_USAGE, "--server directive when used with --dev tun must define a subnet of %s or lower",
+                msg(M_USAGE,
+                    "--server directive when used with --dev tun must define a subnet of %s or lower",
                     print_netmask(29, &gc));
             }
 
@@ -342,14 +339,17 @@ helper_client_server(struct options *o)
                 {
                     o->ifconfig_pool_defined = true;
                     o->ifconfig_pool_start = o->server_network + 4;
-                    o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - pool_end_reserve;
-                    ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
+                    o->ifconfig_pool_end =
+                        (o->server_network | ~o->server_netmask) - pool_end_reserve;
+                    ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start,
+                                               o->ifconfig_pool_end);
                 }
 
                 helper_add_route(o->server_network, o->server_netmask, o);
                 if (o->enable_c2c)
                 {
-                    push_option(o, print_opt_route(o->server_network, o->server_netmask, &o->gc), M_USAGE);
+                    push_option(o, print_opt_route(o->server_network, o->server_netmask, &o->gc),
+                                M_USAGE);
                 }
                 else if (o->topology == TOP_NET30)
                 {
@@ -366,7 +366,8 @@ helper_client_server(struct options *o)
                     o->ifconfig_pool_defined = true;
                     o->ifconfig_pool_start = o->server_network + 2;
                     o->ifconfig_pool_end = (o->server_network | ~o->server_netmask) - 1;
-                    ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start, o->ifconfig_pool_end);
+                    ifconfig_pool_verify_range(M_USAGE, o->ifconfig_pool_start,
+                                               o->ifconfig_pool_end);
                 }
                 o->ifconfig_pool_netmask = o->server_netmask;
 
@@ -386,16 +387,17 @@ helper_client_server(struct options *o)
             if (o->topology == TOP_NET30 && !(o->server_flags & SF_NOPOOL))
             {
                 msg(M_WARN, "WARNING: --topology net30 support for server "
-                    "configs with IPv4 pools will be removed in a future "
-                    "release. Please migrate to --topology subnet as soon "
-                    "as possible.");
+                            "configs with IPv4 pools will be removed in a future "
+                            "release. Please migrate to --topology subnet as soon "
+                            "as possible.");
             }
         }
         else if (dev == DEV_TYPE_TAP)
         {
             if (netbits > 30)
             {
-                msg(M_USAGE, "--server directive when used with --dev tap must define a subnet of %s or lower",
+                msg(M_USAGE,
+                    "--server directive when used with --dev tap must define a subnet of %s or lower",
                     print_netmask(30, &gc));
             }
 
@@ -463,12 +465,14 @@ helper_client_server(struct options *o)
 
         if (!(o->server_flags & SF_NOPOOL) && o->ifconfig_pool_defined)
         {
-            msg(M_USAGE, "--server-bridge already defines an ifconfig-pool, so you can't also specify --ifconfig-pool explicitly");
+            msg(M_USAGE,
+                "--server-bridge already defines an ifconfig-pool, so you can't also specify --ifconfig-pool explicitly");
         }
 
         if (o->shared_secret_file)
         {
-            msg(M_USAGE, "--server-bridge and --secret cannot be used together (you must use SSL/TLS keys)");
+            msg(M_USAGE,
+                "--server-bridge and --secret cannot be used together (you must use SSL/TLS keys)");
         }
 
         if (dev != DEV_TYPE_TAP)
@@ -478,9 +482,12 @@ helper_client_server(struct options *o)
 
         if (o->server_bridge_defined)
         {
-            verify_common_subnet("--server-bridge", o->server_bridge_ip, o->server_bridge_pool_start, o->server_bridge_netmask);
-            verify_common_subnet("--server-bridge", o->server_bridge_pool_start, o->server_bridge_pool_end, o->server_bridge_netmask);
-            verify_common_subnet("--server-bridge", o->server_bridge_ip, o->server_bridge_pool_end, o->server_bridge_netmask);
+            verify_common_subnet("--server-bridge", o->server_bridge_ip,
+                                 o->server_bridge_pool_start, o->server_bridge_netmask);
+            verify_common_subnet("--server-bridge", o->server_bridge_pool_start,
+                                 o->server_bridge_pool_end, o->server_bridge_netmask);
+            verify_common_subnet("--server-bridge", o->server_bridge_ip, o->server_bridge_pool_end,
+                                 o->server_bridge_netmask);
         }
 
         o->mode = MODE_SERVER;
@@ -551,13 +558,14 @@ helper_keepalive(struct options *o)
         }
         if (o->keepalive_ping * 2 > o->keepalive_timeout)
         {
-            msg(M_USAGE, "the second parameter to --keepalive (restart timeout=%d) must be at least twice the value of the first parameter (ping interval=%d).  A ratio of 1:5 or 1:6 would be even better.  Recommended setting is --keepalive 10 60.",
-                o->keepalive_timeout,
-                o->keepalive_ping);
+            msg(M_USAGE,
+                "the second parameter to --keepalive (restart timeout=%d) must be at least twice the value of the first parameter (ping interval=%d).  A ratio of 1:5 or 1:6 would be even better.  Recommended setting is --keepalive 10 60.",
+                o->keepalive_timeout, o->keepalive_ping);
         }
         if (o->ping_send_timeout || o->ping_rec_timeout)
         {
-            msg(M_USAGE, "--keepalive conflicts with --ping, --ping-exit, or --ping-restart.  If you use --keepalive, you don't need any of the other --ping directives.");
+            msg(M_USAGE,
+                "--keepalive conflicts with --ping, --ping-exit, or --ping-restart.  If you use --keepalive, you don't need any of the other --ping directives.");
         }
 
         /*

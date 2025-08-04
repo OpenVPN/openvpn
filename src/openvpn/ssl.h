@@ -57,9 +57,10 @@
 /*
  * Various timeouts
  */
-#define TLS_MULTI_REFRESH 15    /* call tls_multi_process once every n seconds */
-#define TLS_MULTI_HORIZON 2     /* call tls_multi_process frequently for n seconds after
-                                 * every packet sent/received action */
+#define TLS_MULTI_REFRESH 15 /* call tls_multi_process once every n seconds */
+#define TLS_MULTI_HORIZON                                                             \
+    2                        /* call tls_multi_process frequently for n seconds after \
+                              * every packet sent/received action */
 
 /*
  * Buffer sizes (also see mtu.h).
@@ -77,49 +78,49 @@
  * as reserved for this reason */
 
 /** Support P_DATA_V2 */
-#define IV_PROTO_DATA_V2        (1<<1)
+#define IV_PROTO_DATA_V2 (1 << 1)
 
 /** Assume client will send a push request and server does not need
  * to wait for a push-request to send a push-reply */
-#define IV_PROTO_REQUEST_PUSH   (1<<2)
+#define IV_PROTO_REQUEST_PUSH (1 << 2)
 
 /** Supports key derivation via TLS key material exporter [RFC5705] */
-#define IV_PROTO_TLS_KEY_EXPORT (1<<3)
+#define IV_PROTO_TLS_KEY_EXPORT (1 << 3)
 
 /** Supports signaling keywords with AUTH_PENDING, e.g. timeout=xy */
-#define IV_PROTO_AUTH_PENDING_KW (1<<4)
+#define IV_PROTO_AUTH_PENDING_KW (1 << 4)
 
 /** Support doing NCP in P2P mode. This mode works by both peers looking at
  * each other's IV_ variables and deterministically deciding both on the same
  * result. */
-#define IV_PROTO_NCP_P2P         (1<<5)
+#define IV_PROTO_NCP_P2P (1 << 5)
 
 /** Supports the --dns option introduced in version 2.6. Not sent anymore. */
-#define IV_PROTO_DNS_OPTION      (1<<6)
+#define IV_PROTO_DNS_OPTION (1 << 6)
 
 /** Support for explicit exit notify via control channel
  *  This also includes support for the protocol-flags pushed option */
-#define IV_PROTO_CC_EXIT_NOTIFY  (1<<7)
+#define IV_PROTO_CC_EXIT_NOTIFY (1 << 7)
 
 /** Support for AUTH_FAIL,TEMP messages */
-#define IV_PROTO_AUTH_FAIL_TEMP  (1<<8)
+#define IV_PROTO_AUTH_FAIL_TEMP (1 << 8)
 
 /** Support to dynamic tls-crypt (renegotiation with TLS-EKM derived tls-crypt key) */
-#define IV_PROTO_DYN_TLS_CRYPT   (1<<9)
+#define IV_PROTO_DYN_TLS_CRYPT (1 << 9)
 
 /** Support the extended packet id and epoch format for data channel packets */
-#define IV_PROTO_DATA_EPOCH      (1<<10)
+#define IV_PROTO_DATA_EPOCH (1 << 10)
 
 /** Supports the --dns option after all the incompatible changes */
-#define IV_PROTO_DNS_OPTION_V2   (1<<11)
+#define IV_PROTO_DNS_OPTION_V2 (1 << 11)
 
 /** Supports push-update */
-#define IV_PROTO_PUSH_UPDATE     (1<<12)
+#define IV_PROTO_PUSH_UPDATE (1 << 12)
 
 /* Default field in X509 to be username */
 #define X509_USERNAME_FIELD_DEFAULT "CN"
 
-#define KEY_METHOD_2  2
+#define KEY_METHOD_2 2
 
 /* key method taken from lower 4 bits */
 #define KEY_METHOD_MASK 0x0F
@@ -206,9 +207,7 @@ void tls_init_control_channel_frame_parameters(struct frame *frame, int tls_mtu)
  * Used to verify compatibility of local and remote option
  * sets.
  */
-void tls_multi_init_set_options(struct tls_multi *multi,
-                                const char *local,
-                                const char *remote);
+void tls_multi_init_set_options(struct tls_multi *multi, const char *local, const char *remote);
 
 /**
  * Cleanup a \c tls_multi structure and free associated memory
@@ -228,9 +227,9 @@ void tls_multi_free(struct tls_multi *multi, bool clear);
 
 /** @} addtogroup control_processor */
 
-#define TLSMP_INACTIVE 0
-#define TLSMP_ACTIVE   1
-#define TLSMP_KILL     2
+#define TLSMP_INACTIVE  0
+#define TLSMP_ACTIVE    1
+#define TLSMP_KILL      2
 #define TLSMP_RECONNECT 3
 
 /*
@@ -239,11 +238,9 @@ void tls_multi_free(struct tls_multi *multi, bool clear);
  * Basically decides if we should call tls_process for
  * the active or untrusted sessions.
  */
-int tls_multi_process(struct tls_multi *multi,
-                      struct buffer *to_link,
+int tls_multi_process(struct tls_multi *multi, struct buffer *to_link,
                       struct link_socket_actual **to_link_addr,
-                      struct link_socket_info *to_link_socket_info,
-                      interval_t *wakeup);
+                      struct link_socket_info *to_link_socket_info, interval_t *wakeup);
 
 
 /**************************************************************************/
@@ -299,11 +296,8 @@ int tls_multi_process(struct tls_multi *multi,
  * @li False if the packet is a data channel packet, or if an error
  *     occurred during processing of a control channel packet.
  */
-bool tls_pre_decrypt(struct tls_multi *multi,
-                     const struct link_socket_actual *from,
-                     struct buffer *buf,
-                     struct crypto_options **opt,
-                     bool floated,
+bool tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from,
+                     struct buffer *buf, struct crypto_options **opt, bool floated,
                      const uint8_t **ad_start);
 
 
@@ -325,8 +319,7 @@ bool tls_pre_decrypt(struct tls_multi *multi,
  * @param buf - The buffer containing the outgoing packet.
  * @param opt - Returns a crypto options structure with the security parameters.
  */
-void tls_pre_encrypt(struct tls_multi *multi,
-                     struct buffer *buf, struct crypto_options **opt);
+void tls_pre_encrypt(struct tls_multi *multi, struct buffer *buf, struct crypto_options **opt);
 
 /**
  * Selects the primary encryption that should be used to encrypt data of an
@@ -351,8 +344,7 @@ struct key_state *tls_select_encryption_key(struct tls_multi *multi);
  *
  * @ingroup data_crypto
  */
-void
-tls_prepend_opcode_v1(const struct tls_multi *multi, struct buffer *buf);
+void tls_prepend_opcode_v1(const struct tls_multi *multi, struct buffer *buf);
 
 /**
  * Prepend an OpenVPN data channel P_DATA_V2 header to the packet.  The
@@ -370,8 +362,7 @@ tls_prepend_opcode_v1(const struct tls_multi *multi, struct buffer *buf);
  *
  * @ingroup data_crypto
  */
-void
-tls_prepend_opcode_v2(const struct tls_multi *multi, struct buffer *buf);
+void tls_prepend_opcode_v2(const struct tls_multi *multi, struct buffer *buf);
 
 /**
  * Perform some accounting for the key state used.
@@ -435,15 +426,12 @@ void ssl_put_auth_challenge(const char *cr_str);
 /*
  * Send a payload over the TLS control channel
  */
-bool tls_send_payload(struct key_state *ks,
-                      const uint8_t *data,
-                      int size);
+bool tls_send_payload(struct key_state *ks, const uint8_t *data, int size);
 
 /*
  * Receive a payload through the TLS control channel
  */
-bool tls_rec_payload(struct tls_multi *multi,
-                     struct buffer *buf);
+bool tls_rec_payload(struct tls_multi *multi, struct buffer *buf);
 
 /**
  * Updates remote address in TLS sessions.
@@ -451,8 +439,7 @@ bool tls_rec_payload(struct tls_multi *multi,
  * @param multi - Tunnel to update
  * @param addr - new address
  */
-void tls_update_remote_addr(struct tls_multi *multi,
-                            const struct link_socket_actual *addr);
+void tls_update_remote_addr(struct tls_multi *multi, const struct link_socket_actual *addr);
 
 /**
  * Update TLS session crypto parameters (cipher and auth) and derive data
@@ -472,12 +459,9 @@ void tls_update_remote_addr(struct tls_multi *multi,
  *
  * @return true if updating succeeded or keys are already generated, false otherwise.
  */
-bool tls_session_update_crypto_params(struct tls_multi *multi,
-                                      struct tls_session *session,
-                                      struct options *options,
-                                      struct frame *frame,
-                                      struct frame *frame_fragment,
-                                      struct link_socket_info *lsi,
+bool tls_session_update_crypto_params(struct tls_multi *multi, struct tls_session *session,
+                                      struct options *options, struct frame *frame,
+                                      struct frame *frame_fragment, struct link_socket_info *lsi,
                                       dco_context_t *dco);
 
 /*
@@ -536,14 +520,12 @@ tls_set_single_session(struct tls_multi *multi)
  * protocol_dump() flags
  */
 #define PD_TLS_AUTH_HMAC_SIZE_MASK 0xFF
-#define PD_SHOW_DATA               (1<<8)
-#define PD_TLS                     (1<<9)
-#define PD_VERBOSE                 (1<<10)
-#define PD_TLS_CRYPT               (1<<11)
+#define PD_SHOW_DATA               (1 << 8)
+#define PD_TLS                     (1 << 9)
+#define PD_VERBOSE                 (1 << 10)
+#define PD_TLS_CRYPT               (1 << 11)
 
-const char *protocol_dump(struct buffer *buffer,
-                          unsigned int flags,
-                          struct gc_arena *gc);
+const char *protocol_dump(struct buffer *buffer, unsigned int flags, struct gc_arena *gc);
 
 /*
  * debugging code
@@ -569,10 +551,8 @@ bool is_hard_reset_method2(int op);
  * @param cipher_list_tls13 list of allowed TLS 1.3+ cipher, or NULL
  * @param tls_cert_profile  TLS certificate crypto profile name.
  */
-void
-show_available_tls_ciphers(const char *cipher_list,
-                           const char *cipher_list_tls13,
-                           const char *tls_cert_profile);
+void show_available_tls_ciphers(const char *cipher_list, const char *cipher_list_tls13,
+                                const char *tls_cert_profile);
 
 
 /**
@@ -581,25 +561,19 @@ show_available_tls_ciphers(const char *cipher_list,
  * This erases the source material used to generate the data channel keys, and
  * can thus be called only once per session.
  */
-bool
-tls_session_generate_data_channel_keys(struct tls_multi *multi,
-                                       struct tls_session *session);
+bool tls_session_generate_data_channel_keys(struct tls_multi *multi, struct tls_session *session);
 
-void
-tls_session_soft_reset(struct tls_multi *multi);
+void tls_session_soft_reset(struct tls_multi *multi);
 
 /**
  * Load ovpn.xkey provider used for external key signing
  */
-void
-load_xkey_provider(void);
+void load_xkey_provider(void);
 
 /* Special method to skip the three way handshake RESET stages. This is
  * used by the HMAC code when seeing a packet that matches the previous
  * HMAC based stateless server state */
-bool
-session_skip_to_pre_start(struct tls_session *session,
-                          struct tls_pre_decrypt_state *state,
-                          struct link_socket_actual *from);
+bool session_skip_to_pre_start(struct tls_session *session, struct tls_pre_decrypt_state *state,
+                               struct link_socket_actual *from);
 
 #endif /* ifndef OPENVPN_SSL_H */

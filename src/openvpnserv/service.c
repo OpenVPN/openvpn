@@ -33,8 +33,7 @@ ReportStatusToSCMgr(SERVICE_STATUS_HANDLE service, SERVICE_STATUS *status)
         status->dwControlsAccepted = SERVICE_ACCEPT_STOP;
     }
 
-    if (status->dwCurrentState == SERVICE_RUNNING
-        || status->dwCurrentState == SERVICE_STOPPED)
+    if (status->dwCurrentState == SERVICE_RUNNING || status->dwCurrentState == SERVICE_STOPPED)
     {
         status->dwCheckPoint = 0;
     }
@@ -79,16 +78,10 @@ CmdInstallServices(void)
 
     for (i = 0; i < _service_max; i++)
     {
-        service = CreateService(svc_ctl_mgr,
-                                openvpn_service[i].name,
-                                openvpn_service[i].display_name,
-                                SERVICE_QUERY_STATUS,
-                                SERVICE_WIN32_SHARE_PROCESS,
-                                openvpn_service[i].start_type,
-                                SERVICE_ERROR_NORMAL,
-                                path, NULL, NULL,
-                                openvpn_service[i].dependencies,
-                                NULL, NULL);
+        service = CreateService(
+            svc_ctl_mgr, openvpn_service[i].name, openvpn_service[i].display_name,
+            SERVICE_QUERY_STATUS, SERVICE_WIN32_SHARE_PROCESS, openvpn_service[i].start_type,
+            SERVICE_ERROR_NORMAL, path, NULL, NULL, openvpn_service[i].dependencies, NULL, NULL);
         if (service)
         {
             wprintf(L"%ls installed.\n", openvpn_service[i].display_name);
@@ -163,8 +156,8 @@ CmdRemoveServices(void)
     for (i = 0; i < _service_max; i++)
     {
         openvpn_service_t *ovpn_svc = &openvpn_service[i];
-        service = OpenService(svc_ctl_mgr, ovpn_svc->name,
-                              DELETE | SERVICE_STOP | SERVICE_QUERY_STATUS);
+        service =
+            OpenService(svc_ctl_mgr, ovpn_svc->name, DELETE | SERVICE_STOP | SERVICE_QUERY_STATUS);
         if (service == NULL)
         {
             wprintf(L"OpenService failed - %ls\n", GetLastErrorText());
@@ -228,15 +221,12 @@ wmain(int argc, WCHAR *argv[])
      * This is the default.
      */
     const SERVICE_TABLE_ENTRY dispatchTable_shared[] = {
-        { interactive_service.name, ServiceStartInteractive },
-        { NULL, NULL }
+        { interactive_service.name, ServiceStartInteractive }, { NULL, NULL }
     };
 
     /* Interactive service only (as a SERVICE_WIN32_OWN_PROCESS) */
-    const SERVICE_TABLE_ENTRY dispatchTable_interactive[] = {
-        { L"", ServiceStartInteractiveOwn },
-        { NULL, NULL }
-    };
+    const SERVICE_TABLE_ENTRY dispatchTable_interactive[] = { { L"", ServiceStartInteractiveOwn },
+                                                              { NULL, NULL } };
 
     const SERVICE_TABLE_ENTRY *dispatchTable = dispatchTable_shared;
 
@@ -260,7 +250,7 @@ wmain(int argc, WCHAR *argv[])
             }
             else if (argc > i + 2 && _wcsicmp(L"instance", argv[i] + 1) == 0)
             {
-                if (_wcsicmp(L"interactive", argv[i+1]) == 0)
+                if (_wcsicmp(L"interactive", argv[i + 1]) == 0)
                 {
                     dispatchTable = dispatchTable_interactive;
                     service_instance = argv[i + 2];
@@ -268,22 +258,28 @@ wmain(int argc, WCHAR *argv[])
                 }
                 else
                 {
-                    MsgToEventLog(M_ERR, L"Invalid argument to -instance <%s>. Service not started.", argv[i+1]);
+                    MsgToEventLog(M_ERR,
+                                  L"Invalid argument to -instance <%s>. Service not started.",
+                                  argv[i + 1]);
                     return 1;
                 }
             }
             else
             {
                 wprintf(L"%ls -install        to install the interactive service\n", APPNAME);
-                wprintf(L"%ls -start [name]   to start the service (name = \"interactive\") is optional\n", APPNAME);
+                wprintf(
+                    L"%ls -start [name]   to start the service (name = \"interactive\") is optional\n",
+                    APPNAME);
                 wprintf(L"%ls -remove         to remove the service\n", APPNAME);
 
                 wprintf(L"\nService run-time parameters:\n");
                 wprintf(L"-instance interactive <id>\n"
                         L"   Runs the service as an alternate instance.\n"
                         L"   The service settings will be loaded from\n"
-                        L"   HKLM\\Software\\" _L(PACKAGE_NAME) L"<id> registry key, and the service will accept\n"
-                        L"   requests on \\\\.\\pipe\\" _L(PACKAGE) L"<id>\\service named pipe.\n");
+                        L"   HKLM\\Software\\" _L(
+                            PACKAGE_NAME) L"<id> registry key, and the service will accept\n"
+                                          L"   requests on \\\\.\\pipe\\" _L(
+                                              PACKAGE) L"<id>\\service named pipe.\n");
 
                 return 0;
             }

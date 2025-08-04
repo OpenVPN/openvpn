@@ -31,31 +31,24 @@
  * the user provided taking care of implementing the actual tun
  * device.
  */
-void
-open_tun_afunix(struct options *o,
-                int mtu,
-                struct tuntap *tt,
-                struct env_set *env);
+void open_tun_afunix(struct options *o, int mtu, struct tuntap *tt, struct env_set *env);
 
 
 /**
  * Closes the socket used for the AF_UNIX based device. Also sends a
  * SIGINT to the child process that was spawned to handle the tun device
  */
-void
-close_tun_afunix(struct tuntap *tt);
+void close_tun_afunix(struct tuntap *tt);
 
 /**
  * Writes a packet to a AF_UNIX based tun device.
  */
-ssize_t
-write_tun_afunix(struct tuntap *tt, uint8_t *buf, int len);
+ssize_t write_tun_afunix(struct tuntap *tt, uint8_t *buf, int len);
 
 /**
  * Reads a packet from a AF_UNIX based tun device.
  */
-ssize_t
-read_tun_afunix(struct tuntap *tt, uint8_t *buf, int len);
+ssize_t read_tun_afunix(struct tuntap *tt, uint8_t *buf, int len);
 
 #endif /* AFUNIX_TUN_H */
 

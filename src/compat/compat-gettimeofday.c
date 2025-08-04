@@ -48,7 +48,7 @@ gettimeofday_calibrate(void)
 {
     const time_t t = time(NULL);
     const DWORD gtc = GetTickCount();
-    gtc_base = t - gtc/1000;
+    gtc_base = t - gtc / 1000;
     gtc_last = gtc;
 }
 
@@ -112,7 +112,7 @@ gettimeofday(struct timeval *tv, void *tz)
     return 0;
 }
 
-#else  /* ifdef _WIN32 */
+#else /* ifdef _WIN32 */
 
 #include <time.h>
 

@@ -56,14 +56,14 @@ digest_sign_verify(EVP_PKEY *privkey, EVP_PKEY *pubkey)
     size_t siglen = 0;
     int ret = 0;
 
-    OSSL_PARAM params[2] = {OSSL_PARAM_END};
+    OSSL_PARAM params[2] = { OSSL_PARAM_END };
     const char *mdname = "SHA256";
 
     if (EVP_PKEY_get_id(privkey) == EVP_PKEY_RSA)
     {
         const char *padmode = "pss"; /* RSA_PSS: for all other params, use defaults */
-        params[0] = OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PAD_MODE,
-                                                     (char *)padmode, 0);
+        params[0] =
+            OSSL_PARAM_construct_utf8_string(OSSL_SIGNATURE_PARAM_PAD_MODE, (char *)padmode, 0);
         params[1] = OSSL_PARAM_construct_end();
     }
     else if (EVP_PKEY_get_id(privkey) == EVP_PKEY_EC)
@@ -79,8 +79,7 @@ digest_sign_verify(EVP_PKEY *privkey, EVP_PKEY *pubkey)
     EVP_PKEY_CTX *pctx = NULL;
     EVP_MD_CTX *mctx = EVP_MD_CTX_new();
 
-    if (!mctx
-        || EVP_DigestSignInit_ex(mctx, &pctx, mdname, tls_libctx, NULL, privkey,  params) <= 0)
+    if (!mctx || EVP_DigestSignInit_ex(mctx, &pctx, mdname, tls_libctx, NULL, privkey, params) <= 0)
     {
         /* cmocka assert output for these kinds of failures is hardly explanatory,
          * print a message and assert in caller. */
@@ -115,7 +114,7 @@ digest_sign_verify(EVP_PKEY *privkey, EVP_PKEY *pubkey)
     mctx = EVP_MD_CTX_new();
     pctx = NULL;
     if (!mctx
-        || EVP_DigestVerifyInit_ex(mctx, &pctx, mdname, tls_libctx, NULL, pubkey,  params) <= 0)
+        || EVP_DigestVerifyInit_ex(mctx, &pctx, mdname, tls_libctx, NULL, pubkey, params) <= 0)
     {
         print_error("Failed to initialize EVP_DigestVerifyInit_ex()");
         goto done;

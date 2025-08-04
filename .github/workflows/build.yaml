@@ -5,35 +5,26 @@ on:
   pull_request:
 
 jobs:
-  checkuncrustify:
-    name: "Check code style with Uncrustify"
-    # Ubuntu 22.04 has uncrustify 0.72_f
-    runs-on: ubuntu-22.04
+  clang-format:
+    name: Check code style with clang-format
+    runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
-        run: sudo apt update && sudo apt install -y uncrustify
+        run: |
+          sudo apt update && sudo apt install -y python3-pip
+          pip3 install pre-commit
       - name: Checkout OpenVPN
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          path: openvpn
-      - name: Show uncrustify version
-        run: uncrustify --version
-      - name: Run uncrustify
-        run: ./dev-tools/reformat-all.sh
-        working-directory: openvpn
+      - name: Run clang-format
+        run: pre-commit run -a --show-diff-on-failure || true
       - name: Check for changes
-        run: git diff --output=uncrustify-changes.patch
-        working-directory: openvpn
-      - name: Show changes on standard output
-        run: git diff
-        working-directory: openvpn
+        run: git diff --output=format-changes.patch
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: uncrustify-changes.patch
-          path: 'openvpn/uncrustify-changes.patch'
+          name: format-changes.patch
+          path: format-changes.patch
       - name: Set job status
-        run: test ! -s uncrustify-changes.patch
-        working-directory: openvpn
+        run: test ! -s format-changes.patch
 
   android:
     strategy:

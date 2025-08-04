@@ -31,12 +31,12 @@
  * rwflags passed to event_ctl and returned by
  * struct event_set_return.
  */
-#define READ_SHIFT      0
-#define WRITE_SHIFT     1
+#define READ_SHIFT  0
+#define WRITE_SHIFT 1
 
-#define EVENT_UNDEF     4
-#define EVENT_READ      (1 << READ_SHIFT)
-#define EVENT_WRITE     (1 << WRITE_SHIFT)
+#define EVENT_UNDEF 4
+#define EVENT_READ  (1 << READ_SHIFT)
+#define EVENT_WRITE (1 << WRITE_SHIFT)
 
 /* event flags returned by io_wait.
  *
@@ -57,35 +57,35 @@
  * signals.
  */
 
-#define SOCKET_SHIFT        0
-#define SOCKET_READ         (1 << (SOCKET_SHIFT + READ_SHIFT))
-#define SOCKET_WRITE        (1 << (SOCKET_SHIFT + WRITE_SHIFT))
-#define TUN_SHIFT           2
-#define TUN_READ            (1 << (TUN_SHIFT + READ_SHIFT))
-#define TUN_WRITE           (1 << (TUN_SHIFT + WRITE_SHIFT))
-#define ERR_SHIFT           4
-#define ES_ERROR            (1 << (ERR_SHIFT + READ_SHIFT))
-#define ES_TIMEOUT          (1 << (ERR_SHIFT + WRITE_SHIFT))
-#define MANAGEMENT_SHIFT    6
-#define MANAGEMENT_READ     (1 << (MANAGEMENT_SHIFT + READ_SHIFT))
-#define MANAGEMENT_WRITE    (1 << (MANAGEMENT_SHIFT + WRITE_SHIFT))
-#define FILE_SHIFT          8
-#define FILE_CLOSED         (1 << (FILE_SHIFT + READ_SHIFT))
-#define DCO_SHIFT           10
-#define DCO_READ            (1 << (DCO_SHIFT + READ_SHIFT))
-#define DCO_WRITE           (1 << (DCO_SHIFT + WRITE_SHIFT))
+#define SOCKET_SHIFT     0
+#define SOCKET_READ      (1 << (SOCKET_SHIFT + READ_SHIFT))
+#define SOCKET_WRITE     (1 << (SOCKET_SHIFT + WRITE_SHIFT))
+#define TUN_SHIFT        2
+#define TUN_READ         (1 << (TUN_SHIFT + READ_SHIFT))
+#define TUN_WRITE        (1 << (TUN_SHIFT + WRITE_SHIFT))
+#define ERR_SHIFT        4
+#define ES_ERROR         (1 << (ERR_SHIFT + READ_SHIFT))
+#define ES_TIMEOUT       (1 << (ERR_SHIFT + WRITE_SHIFT))
+#define MANAGEMENT_SHIFT 6
+#define MANAGEMENT_READ  (1 << (MANAGEMENT_SHIFT + READ_SHIFT))
+#define MANAGEMENT_WRITE (1 << (MANAGEMENT_SHIFT + WRITE_SHIFT))
+#define FILE_SHIFT       8
+#define FILE_CLOSED      (1 << (FILE_SHIFT + READ_SHIFT))
+#define DCO_SHIFT        10
+#define DCO_READ         (1 << (DCO_SHIFT + READ_SHIFT))
+#define DCO_WRITE        (1 << (DCO_SHIFT + WRITE_SHIFT))
 
 /*
  * Initialization flags passed to event_set_init
  */
-#define EVENT_METHOD_US_TIMEOUT   (1<<0)
-#define EVENT_METHOD_FAST         (1<<1)
+#define EVENT_METHOD_US_TIMEOUT (1 << 0)
+#define EVENT_METHOD_FAST       (1 << 1)
 
 /*
  * The following constant is used as boundary between integer value
  * and real addresses when passing arguments to event handlers as (void *)
  */
-#define MULTI_N           ((void *)16) /* upper bound on MTCP_x */
+#define MULTI_N ((void *)16) /* upper bound on MTCP_x */
 
 #ifdef _WIN32
 
@@ -93,7 +93,7 @@ typedef const struct rw_handle *event_t;
 
 #define UNDEFINED_EVENT (NULL)
 
-#else  /* ifdef _WIN32 */
+#else /* ifdef _WIN32 */
 
 typedef int event_t;
 
@@ -117,7 +117,8 @@ struct event_set_functions
      * 0 on timeout
      * length of event_set_return if at least 1 event is returned
      */
-    int (*wait)(struct event_set *es, const struct timeval *tv, struct event_set_return *out, int outlen);
+    int (*wait)(struct event_set *es, const struct timeval *tv, struct event_set_return *out,
+                int outlen);
 };
 
 struct event_set_return
@@ -131,7 +132,8 @@ struct event_set
     struct event_set_functions func;
 };
 
-typedef enum {
+typedef enum
+{
     EVENT_ARG_MULTI_INSTANCE = 0,
     EVENT_ARG_LINK_SOCKET,
 } event_arg_t;
@@ -140,9 +142,10 @@ typedef enum {
 struct event_arg
 {
     event_arg_t type;
-    union {
+    union
+    {
         struct multi_instance *mi; /* if type = EVENT_ARG_MULTI_INSTANCE */
-        struct link_socket *sock; /* if type = EVENT_ARG_LINK_SOCKET */
+        struct link_socket *sock;  /* if type = EVENT_ARG_LINK_SOCKET */
     } u;
 };
 
@@ -210,7 +213,7 @@ wait_signal(struct event_set *es, void *arg)
     }
 }
 
-#else  /* ifdef _WIN32 */
+#else /* ifdef _WIN32 */
 
 static inline void
 wait_signal(struct event_set *es, void *arg)

@@ -110,12 +110,10 @@ net__route_v4_add(const char *dst_str, int prefixlen, int metric)
     printf("\n");
 
     return net_route_v4_add(NULL, &dst, prefixlen, NULL, iface, 0, metric);
-
 }
 
 static int
-net__route_v4_add_gw(const char *dst_str, int prefixlen, const char *gw_str,
-                     int metric)
+net__route_v4_add_gw(const char *dst_str, int prefixlen, const char *gw_str, int metric)
 {
     in_addr_t dst, gw;
     int ret;
@@ -140,8 +138,7 @@ net__route_v4_add_gw(const char *dst_str, int prefixlen, const char *gw_str,
     dst = ntohl(dst);
     gw = ntohl(gw);
 
-    printf("CMD: ip route add %s/%d dev %s via %s", dst_str, prefixlen, iface,
-           gw_str);
+    printf("CMD: ip route add %s/%d dev %s via %s", dst_str, prefixlen, iface, gw_str);
     if (metric > 0)
     {
         printf(" metric %d", metric);
@@ -176,12 +173,10 @@ net__route_v6_add(const char *dst_str, int prefixlen, int metric)
     printf("\n");
 
     return net_route_v6_add(NULL, &dst, prefixlen, NULL, iface, 0, metric);
-
 }
 
 static int
-net__route_v6_add_gw(const char *dst_str, int prefixlen, const char *gw_str,
-                     int metric)
+net__route_v6_add_gw(const char *dst_str, int prefixlen, const char *gw_str, int metric)
 {
     struct in6_addr dst, gw;
     int ret;
@@ -203,8 +198,7 @@ net__route_v6_add_gw(const char *dst_str, int prefixlen, const char *gw_str,
         return -1;
     }
 
-    printf("CMD: ip -6 route add %s/%d dev %s via %s", dst_str, prefixlen,
-           iface, gw_str);
+    printf("CMD: ip -6 route add %s/%d dev %s via %s", dst_str, prefixlen, iface, gw_str);
     if (metric > 0)
     {
         printf(" metric %d", metric);

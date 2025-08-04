@@ -42,8 +42,7 @@ management_auth_failure(struct management *man, const char *type, const char *re
 }
 
 char *
-management_query_pk_sig(struct management *man, const char *b64_data,
-                        const char *algorithm)
+management_query_pk_sig(struct management *man, const char *b64_data, const char *algorithm)
 {
     return NULL;
 }

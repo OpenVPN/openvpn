@@ -64,19 +64,16 @@ management_auth_failure(struct management *man, const char *type, const char *re
     assert_true(0);
 }
 bool
-management_query_user_pass(struct management *man,
-                           struct user_pass *up,
-                           const char *type,
-                           const unsigned int flags,
-                           const char *static_challenge)
+management_query_user_pass(struct management *man, struct user_pass *up, const char *type,
+                           const unsigned int flags, const char *static_challenge)
 {
     assert_true(0);
     return false;
 }
 /* stubs for some unused functions instead of pulling in too many dependencies */
 int
-parse_line(const char *line, char **p, const int n, const char *file,
-           const int line_num, int msglevel, struct gc_arena *gc)
+parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
+           int msglevel, struct gc_arena *gc)
 {
     assert_true(0);
     return 0;
@@ -162,7 +159,9 @@ test_get_user_pass_inline_creds(void **state)
     /*FIXME: query_user_exec() called even though nothing queued */
     will_return(query_user_exec_builtin, true);
     /* FIXME? content after first two lines just ignored */
-    assert_true(get_user_pass_cr(&up, "#iuser and 커뮤니티\n//ipasswörd!\nsome other content\nnot relevant", "UT", flags, NULL));
+    assert_true(
+        get_user_pass_cr(&up, "#iuser and 커뮤니티\n//ipasswörd!\nsome other content\nnot relevant",
+                         "UT", flags, NULL));
     assert_true(up.defined);
     assert_string_equal(up.username, "#iuser and 커뮤니티");
     assert_string_equal(up.password, "//ipasswörd!");
@@ -250,7 +249,7 @@ test_get_user_pass_authfile_file(void **state)
     unsigned int flags = 0;
 
     char authfile[PATH_MAX] = { 0 };
-    openvpn_test_get_srcdir_dir(authfile, PATH_MAX, "input/user_pass.txt" );
+    openvpn_test_get_srcdir_dir(authfile, PATH_MAX, "input/user_pass.txt");
 
     /*FIXME: query_user_exec() called even though nothing queued */
     will_return(query_user_exec_builtin, true);
@@ -292,7 +291,8 @@ test_get_user_pass_dynamic_challenge(void **state)
     const char *challenge = "CRV1:R,E:Om01u7Fh4LrGBS7uh0SWmzwabUiGiW6l:Y3Ix:Please enter token PIN";
     unsigned int flags = GET_USER_PASS_DYNAMIC_CHALLENGE;
 
-    expect_string(query_user_exec_builtin, query_user[i].prompt, "CHALLENGE: Please enter token PIN");
+    expect_string(query_user_exec_builtin, query_user[i].prompt,
+                  "CHALLENGE: Please enter token PIN");
     will_return(query_user_exec_builtin, "challenge_response");
     will_return(query_user_exec_builtin, true);
     assert_true(get_user_pass_cr(&up, NULL, "UT", flags, challenge));
@@ -314,7 +314,8 @@ test_get_user_pass_static_challenge(void **state)
     expect_string(query_user_exec_builtin, query_user[i].prompt, "Enter UT Password:");
     will_return(query_user_exec_builtin, "cpassword");
     will_return(query_user_exec_builtin, true);
-    expect_string(query_user_exec_builtin, query_user[i].prompt, "CHALLENGE: Please enter token PIN");
+    expect_string(query_user_exec_builtin, query_user[i].prompt,
+                  "CHALLENGE: Please enter token PIN");
     will_return(query_user_exec_builtin, "challenge_response");
     will_return(query_user_exec_builtin, true);
     assert_true(get_user_pass_cr(&up, NULL, "UT", flags, challenge));
@@ -332,7 +333,8 @@ test_get_user_pass_static_challenge(void **state)
     expect_string(query_user_exec_builtin, query_user[i].prompt, "Enter UT Password:");
     will_return(query_user_exec_builtin, "c1password");
     will_return(query_user_exec_builtin, true);
-    expect_string(query_user_exec_builtin, query_user[i].prompt, "CHALLENGE: Please enter token PIN");
+    expect_string(query_user_exec_builtin, query_user[i].prompt,
+                  "CHALLENGE: Please enter token PIN");
     will_return(query_user_exec_builtin, "0123456");
     will_return(query_user_exec_builtin, true);
     assert_true(get_user_pass_cr(&up, NULL, "UT", flags, challenge));
@@ -343,11 +345,12 @@ test_get_user_pass_static_challenge(void **state)
 
     reset_user_pass(&up);
 
-    flags = GET_USER_PASS_STATIC_CHALLENGE|GET_USER_PASS_INLINE_CREDS;
+    flags = GET_USER_PASS_STATIC_CHALLENGE | GET_USER_PASS_INLINE_CREDS;
 
     /*FIXME: query_user_exec() called even though nothing queued */
     will_return(query_user_exec_builtin, true);
-    expect_string(query_user_exec_builtin, query_user[i].prompt, "CHALLENGE: Please enter token PIN");
+    expect_string(query_user_exec_builtin, query_user[i].prompt,
+                  "CHALLENGE: Please enter token PIN");
     will_return(query_user_exec_builtin, "challenge_response");
     will_return(query_user_exec_builtin, true);
     assert_true(get_user_pass_cr(&up, "iuser\nipassword", "UT", flags, challenge));

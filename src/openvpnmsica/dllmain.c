@@ -41,10 +41,7 @@ DWORD openvpnmsica_thread_data_idx = TLS_OUT_OF_INDEXES;
  * DLL entry point
  */
 BOOL WINAPI
-DllMain(
-    _In_ HINSTANCE hinstDLL,
-    _In_ DWORD dwReason,
-    _In_ LPVOID lpReserved)
+DllMain(_In_ HINSTANCE hinstDLL, _In_ DWORD dwReason, _In_ LPVOID lpReserved)
 {
     UNREFERENCED_PARAMETER(hinstDLL);
     UNREFERENCED_PARAMETER(lpReserved);
@@ -58,12 +55,13 @@ DllMain(
             {
                 return FALSE;
             }
-        /* Fall through. */
+            /* Fall through. */
 
         case DLL_THREAD_ATTACH:
         {
             /* Create thread local storage data. */
-            struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)calloc(1, sizeof(struct openvpnmsica_thread_data));
+            struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)calloc(
+                1, sizeof(struct openvpnmsica_thread_data));
             if (s == NULL)
             {
                 return FALSE;
@@ -107,7 +105,8 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
     /* Secure last error before it is overridden. */
     DWORD dwResult = (flags & M_ERRNO) != 0 ? GetLastError() : ERROR_SUCCESS;
 
-    struct openvpnmsica_thread_data *s = (struct openvpnmsica_thread_data *)TlsGetValue(openvpnmsica_thread_data_idx);
+    struct openvpnmsica_thread_data *s =
+        (struct openvpnmsica_thread_data *)TlsGetValue(openvpnmsica_thread_data_idx);
     if (s->hInstall == 0)
     {
         /* No MSI session, no fun. */
@@ -160,16 +159,13 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
 
         /* Field 4: The Windows error description. */
         LPWSTR szErrMessage = NULL;
-        if (FormatMessage(
-                FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
-                0,
-                dwResult,
-                0,
-                (LPWSTR)&szErrMessage,
-                0,
-                NULL) && szErrMessage)
+        if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER
+                              | FORMAT_MESSAGE_IGNORE_INSERTS,
+                          0, dwResult, 0, (LPWSTR)&szErrMessage, 0, NULL)
+            && szErrMessage)
         {
-            /* Trim trailing whitespace. Set terminator after the last non-whitespace character. This prevents excessive trailing line breaks. */
+            /* Trim trailing whitespace. Set terminator after the last non-whitespace character.
+             * This prevents excessive trailing line breaks. */
             for (size_t i = 0, i_last = 0;; i++)
             {
                 if (szErrMessage[i])
@@ -190,6 +186,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         }
     }
 
-    MsiProcessMessage(s->hInstall, (flags & M_WARN) ? INSTALLMESSAGE_INFO : INSTALLMESSAGE_ERROR, hRecordProg);
+    MsiProcessMessage(s->hInstall, (flags & M_WARN) ? INSTALLMESSAGE_INFO : INSTALLMESSAGE_ERROR,
+                      hRecordProg);
     MsiCloseHandle(hRecordProg);
 }

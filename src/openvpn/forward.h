@@ -34,9 +34,9 @@
  * file
  */
 
-#define TUN_OUT(c)      (BLEN(&(c)->c2.to_tun) > 0)
-#define LINK_OUT(c)     (BLEN(&(c)->c2.to_link) > 0)
-#define ANY_OUT(c)      (TUN_OUT(c) || LINK_OUT(c))
+#define TUN_OUT(c)  (BLEN(&(c)->c2.to_tun) > 0)
+#define LINK_OUT(c) (BLEN(&(c)->c2.to_link) > 0)
+#define ANY_OUT(c)  (TUN_OUT(c) || LINK_OUT(c))
 
 #ifdef ENABLE_FRAGMENT
 #define TO_LINK_FRAG(c) ((c)->c2.fragment && fragment_outgoing_defined((c)->c2.fragment))
@@ -44,31 +44,32 @@
 #define TO_LINK_FRAG(c) (false)
 #endif
 
-#define TO_LINK_DEF(c)  (LINK_OUT(c) || TO_LINK_FRAG(c))
+#define TO_LINK_DEF(c) (LINK_OUT(c) || TO_LINK_FRAG(c))
 
 #include "openvpn.h"
 #include "occ.h"
 #include "ping.h"
 #include "multi_io.h"
 
-#define IOW_TO_TUN          (1<<0)
-#define IOW_TO_LINK         (1<<1)
-#define IOW_READ_TUN        (1<<2)
-#define IOW_READ_LINK       (1<<3)
-#define IOW_SHAPER          (1<<4)
-#define IOW_CHECK_RESIDUAL  (1<<5)
-#define IOW_FRAG            (1<<6)
-#define IOW_MBUF            (1<<7)
-#define IOW_READ_TUN_FORCE  (1<<8)
-#define IOW_WAIT_SIGNAL     (1<<9)
+#define IOW_TO_TUN         (1 << 0)
+#define IOW_TO_LINK        (1 << 1)
+#define IOW_READ_TUN       (1 << 2)
+#define IOW_READ_LINK      (1 << 3)
+#define IOW_SHAPER         (1 << 4)
+#define IOW_CHECK_RESIDUAL (1 << 5)
+#define IOW_FRAG           (1 << 6)
+#define IOW_MBUF           (1 << 7)
+#define IOW_READ_TUN_FORCE (1 << 8)
+#define IOW_WAIT_SIGNAL    (1 << 9)
 
-#define IOW_READ            (IOW_READ_TUN|IOW_READ_LINK)
+#define IOW_READ (IOW_READ_TUN | IOW_READ_LINK)
 
 extern counter_type link_read_bytes_global;
 
 extern counter_type link_write_bytes_global;
 
-void get_io_flags_dowork_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags);
+void get_io_flags_dowork_udp(struct context *c, struct multi_io *multi_io,
+                             const unsigned int flags);
 
 void get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags);
 
@@ -192,7 +193,8 @@ bool process_incoming_link_part1(struct context *c, struct link_socket_info *lsi
  * @param orig_buf - Pointer to a buffer data.
  *
  */
-void process_incoming_link_part2(struct context *c, struct link_socket_info *lsi, const uint8_t *orig_buf);
+void process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
+                                 const uint8_t *orig_buf);
 
 /**
  * Transfers \c float_sa data extracted from an incoming DCO
@@ -204,10 +206,8 @@ void process_incoming_link_part2(struct context *c, struct link_socket_info *lsi
  * @param float_sa - The sockaddr struct containing the data received from the
  *      DCO notification
  */
-void
-extract_dco_float_peer_addr(sa_family_t socket_family,
-                            struct openvpn_sockaddr *out_osaddr,
-                            const struct sockaddr *float_sa);
+void extract_dco_float_peer_addr(sa_family_t socket_family, struct openvpn_sockaddr *out_osaddr,
+                                 const struct sockaddr *float_sa);
 
 /**
  * Write a packet to the external network interface.
@@ -285,8 +285,7 @@ void process_outgoing_tun(struct context *c, struct link_socket *in_sock);
  * @param str        - The message to be sent
  * @param msglevel   - Message level to use for logging
  */
-bool
-send_control_channel_string(struct context *c, const char *str, int msglevel);
+bool send_control_channel_string(struct context *c, const char *str, int msglevel);
 
 /*
  * Send a string to remote over the TLS control channel.
@@ -304,9 +303,7 @@ send_control_channel_string(struct context *c, const char *str, int msglevel);
  * @param msglevel   - Message level to use for logging
  */
 
-bool
-send_control_channel_string_dowork(struct tls_session *session,
-                                   const char *str, int msglevel);
+bool send_control_channel_string_dowork(struct tls_session *session, const char *str, int msglevel);
 
 
 /**
@@ -317,13 +314,13 @@ send_control_channel_string_dowork(struct tls_session *session,
  */
 void reschedule_multi_process(struct context *c);
 
-#define PIPV4_PASSTOS                   (1<<0)
-#define PIP_MSSFIX                      (1<<1)         /* v4 and v6 */
-#define PIP_OUTGOING                    (1<<2)
-#define PIPV4_EXTRACT_DHCP_ROUTER       (1<<3)
-#define PIPV4_CLIENT_NAT                (1<<4)
-#define PIPV6_ICMP_NOHOST_CLIENT        (1<<5)
-#define PIPV6_ICMP_NOHOST_SERVER        (1<<6)
+#define PIPV4_PASSTOS             (1 << 0)
+#define PIP_MSSFIX                (1 << 1) /* v4 and v6 */
+#define PIP_OUTGOING              (1 << 2)
+#define PIPV4_EXTRACT_DHCP_ROUTER (1 << 3)
+#define PIPV4_CLIENT_NAT          (1 << 4)
+#define PIPV6_ICMP_NOHOST_CLIENT  (1 << 5)
+#define PIPV6_ICMP_NOHOST_SERVER  (1 << 6)
 
 
 void process_ip_header(struct context *c, unsigned int flags, struct buffer *buf,
@@ -365,7 +362,7 @@ register_activity(struct context *c, const int size)
 static inline unsigned int
 p2p_iow_flags(const struct context *c)
 {
-    unsigned int flags = (IOW_SHAPER|IOW_CHECK_RESIDUAL|IOW_FRAG|IOW_READ|IOW_WAIT_SIGNAL);
+    unsigned int flags = (IOW_SHAPER | IOW_CHECK_RESIDUAL | IOW_FRAG | IOW_READ | IOW_WAIT_SIGNAL);
     if (c->c2.to_link.len > 0)
     {
         flags |= IOW_TO_LINK;
@@ -384,8 +381,8 @@ p2p_iow_flags(const struct context *c)
 static inline void
 io_wait(struct context *c, const unsigned int flags)
 {
-    if (proto_is_dgram(c->c2.link_sockets[0]->info.proto)
-        && c->c2.fast_io && (flags & (IOW_TO_TUN|IOW_TO_LINK|IOW_MBUF)))
+    if (proto_is_dgram(c->c2.link_sockets[0]->info.proto) && c->c2.fast_io
+        && (flags & (IOW_TO_TUN | IOW_TO_LINK | IOW_MBUF)))
     {
         /* fast path -- only for TUN/TAP/UDP writes */
         unsigned int ret = 0;
@@ -393,7 +390,7 @@ io_wait(struct context *c, const unsigned int flags)
         {
             ret |= TUN_WRITE;
         }
-        if (flags & (IOW_TO_LINK|IOW_MBUF))
+        if (flags & (IOW_TO_LINK | IOW_MBUF))
         {
             ret |= SOCKET_WRITE;
         }

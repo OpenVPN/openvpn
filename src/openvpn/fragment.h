@@ -45,15 +45,15 @@
 #include "error.h"
 
 
-#define N_FRAG_BUF                   25
+#define N_FRAG_BUF 25
 /**< Number of packet buffers for
  *   reassembling incoming fragmented
  *   packets. */
 
-#define FRAG_TTL_SEC                 10
+#define FRAG_TTL_SEC 10
 /**< Time-to-live in seconds for a %fragment. */
 
-#define FRAG_WAKEUP_INTERVAL         5
+#define FRAG_WAKEUP_INTERVAL 5
 /**< Interval in seconds between calls to
  *   wakeup code. */
 
@@ -61,15 +61,16 @@
 /**
  * Structure for reassembling one incoming fragmented packet.
  */
-struct fragment {
-    bool defined;               /**< Whether reassembly is currently
-                                 *   taking place in this structure. */
+struct fragment
+{
+    bool defined;      /**< Whether reassembly is currently
+                        *   taking place in this structure. */
 
-    int max_frag_size;          /**< Maximum size of each %fragment. */
+    int max_frag_size; /**< Maximum size of each %fragment. */
 
 #define FRAG_MAP_MASK 0xFFFFFFFF
     /**< Mask for reassembly map. */
-#define MAX_FRAGS 32            /**< Maximum number of fragments per packet. */
+#define MAX_FRAGS     32 /**< Maximum number of fragments per packet. */
     unsigned int map;
     /**< Reassembly map for recording which
      *   fragments have been received.
@@ -80,10 +81,10 @@ struct fragment {
      *   n has been received.  Needs to have
      *   at least \c MAX_FRAGS bits. */
 
-    time_t timestamp;           /**< Timestamp for time-to-live purposes. */
+    time_t timestamp;  /**< Timestamp for time-to-live purposes. */
 
-    struct buffer buf;          /**< Buffer in which received datagrams
-                                 *   are reassembled. */
+    struct buffer buf; /**< Buffer in which received datagrams
+                        *   are reassembled. */
 };
 
 
@@ -135,11 +136,12 @@ struct fragment_list
  * fragment_incoming() function adds newly received parts into this array
  * and returns the whole packets once reassembly is complete.
  */
-struct fragment_master {
+struct fragment_master
+{
     struct event_timeout wakeup; /**< Timeout structure used by the main
                                   *   event loop to know when to do
                                   *   fragmentation housekeeping. */
-#define N_SEQ_ID            256
+#define N_SEQ_ID 256
     /**< One more than the maximum fragment
      *   sequence ID, above which the IDs wrap
      *   to zero.  Should be a power of 2. */
@@ -195,24 +197,24 @@ typedef uint32_t fragment_header_type;
 #define ntoh_fragment_header_type(x) ntohl(x)
 /**< Convert a \c fragment_header_type from network to host order. */
 
-#define FRAG_TYPE_MASK               0x00000003 /**< Bit mask for %fragment type info. */
-#define FRAG_TYPE_SHIFT              0          /**< Bit shift for %fragment type info. */
+#define FRAG_TYPE_MASK  0x00000003 /**< Bit mask for %fragment type info. */
+#define FRAG_TYPE_SHIFT 0          /**< Bit shift for %fragment type info. */
 
-#define FRAG_WHOLE                   0          /**< Fragment type indicating packet is whole. */
-#define FRAG_YES_NOTLAST             1
+#define FRAG_WHOLE       0         /**< Fragment type indicating packet is whole. */
+#define FRAG_YES_NOTLAST 1
 /**< Fragment type indicating packet is part of a fragmented packet, but not
  *   the last part in the sequence. */
-#define FRAG_YES_LAST                2
+#define FRAG_YES_LAST    2
 /**< Fragment type indicating packet is the last part in the sequence of parts. */
-#define FRAG_TEST                    3
+#define FRAG_TEST        3
 /**< Fragment type not implemented yet.
  * In the future might be used as a control packet for establishing MTU size. */
 
-#define FRAG_SEQ_ID_MASK             0x000000ff /**< Bit mask for %fragment sequence ID. */
-#define FRAG_SEQ_ID_SHIFT            2          /**< Bit shift for %fragment sequence ID. */
+#define FRAG_SEQ_ID_MASK  0x000000ff /**< Bit mask for %fragment sequence ID. */
+#define FRAG_SEQ_ID_SHIFT 2          /**< Bit shift for %fragment sequence ID. */
 
-#define FRAG_ID_MASK                 0x0000001f /**< Bit mask for %fragment ID. */
-#define FRAG_ID_SHIFT                10         /**< Bit shift for %fragment ID. */
+#define FRAG_ID_MASK  0x0000001f     /**< Bit mask for %fragment ID. */
+#define FRAG_ID_SHIFT 10             /**< Bit shift for %fragment ID. */
 
 
 /*
@@ -224,10 +226,10 @@ typedef uint32_t fragment_header_type;
  *   max_frag_size is only sent over the wire if FRAG_LAST is set.  Otherwise it is assumed
  *   to be the actual %fragment size received.
  */
-#define FRAG_SIZE_MASK               0x00003fff /**< Bit mask for %fragment size. */
-#define FRAG_SIZE_SHIFT              15         /**< Bit shift for %fragment size. */
-#define FRAG_SIZE_ROUND_SHIFT        2          /**< Bit shift for %fragment size rounding. */
-#define FRAG_SIZE_ROUND_MASK         ((1 << FRAG_SIZE_ROUND_SHIFT) - 1)
+#define FRAG_SIZE_MASK        0x00003fff /**< Bit mask for %fragment size. */
+#define FRAG_SIZE_SHIFT       15         /**< Bit shift for %fragment size. */
+#define FRAG_SIZE_ROUND_SHIFT 2          /**< Bit shift for %fragment size rounding. */
+#define FRAG_SIZE_ROUND_MASK  ((1 << FRAG_SIZE_ROUND_SHIFT) - 1)
 /**< Bit mask for %fragment size rounding. */
 
 /*
@@ -235,14 +237,14 @@ typedef uint32_t fragment_header_type;
  *
  * IF FRAG_WHOLE or FRAG_YES_NOTLAST, these 16 bits are available (not currently used)
  */
-#define FRAG_EXTRA_MASK              0x0000ffff /**< Bit mask for extra bits. */
-#define FRAG_EXTRA_SHIFT             15         /**< Bit shift for extra bits. */
+#define FRAG_EXTRA_MASK  0x0000ffff /**< Bit mask for extra bits. */
+#define FRAG_EXTRA_SHIFT 15         /**< Bit shift for extra bits. */
 
-/** @} name Fragment header *//********************************************/
+/** @} name Fragment header */      /********************************************/
 
 
 /**************************************************************************/
-/** @name Functions for initialization and cleanup *//** @{ *//************/
+/** @name Functions for initialization and cleanup */ /** @{ */ /************/
 
 /**
  * Allocate and initialize a \c fragment_master structure.
@@ -278,7 +280,7 @@ void fragment_frame_init(struct fragment_master *f, const struct frame *frame);
  */
 void fragment_free(struct fragment_master *f);
 
-/** @} name Functions for initialization and cleanup *//*******************/
+/** @} name Functions for initialization and cleanup */ /*******************/
 
 
 /**************************************************************************/
@@ -326,8 +328,7 @@ void fragment_free(struct fragment_master *f);
  *     complete.  If an error occurs during processing, the buffer length
  *     is also set to zero.
  */
-void fragment_incoming(struct fragment_master *f, struct buffer *buf,
-                       const struct frame *frame);
+void fragment_incoming(struct fragment_master *f, struct buffer *buf, const struct frame *frame);
 
 /** @} name Functions for processing packets received from a VPN tunnel */
 
@@ -378,8 +379,7 @@ void fragment_incoming(struct fragment_master *f, struct buffer *buf,
  *     cases a fragmentation header will have been prepended to inform the
  *     remote peer how to handle the packet.
  */
-void fragment_outgoing(struct fragment_master *f, struct buffer *buf,
-                       const struct frame *frame);
+void fragment_outgoing(struct fragment_master *f, struct buffer *buf, const struct frame *frame);
 
 /**
  * Check whether outgoing fragments are ready to be send, and if so make
@@ -435,7 +435,7 @@ void fragment_wakeup(struct fragment_master *f, struct frame *frame);
 
 
 /**************************************************************************/
-/** @name Functions for regular housekeeping *//** @{ *//******************/
+/** @name Functions for regular housekeeping */ /** @{ */ /******************/
 
 /**
  * Perform housekeeping of a \c fragment_master structure.
@@ -459,10 +459,10 @@ fragment_housekeeping(struct fragment_master *f, struct frame *frame, struct tim
     }
 }
 
-/** @} name Functions for regular housekeeping *//*************************/
+/** @} name Functions for regular housekeeping */ /*************************/
 
 
-/** @} addtogroup fragmentation *//****************************************/
+/** @} addtogroup fragmentation */ /****************************************/
 
 
 #endif /* ifdef ENABLE_FRAGMENT */

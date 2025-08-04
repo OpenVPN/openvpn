@@ -46,12 +46,13 @@ OSSL_provider_init_fn xkey_provider_init;
  * Struct to encapsulate signature algorithm parameters to pass
  * to sign operation.
  */
-typedef struct {
+typedef struct
+{
     const char *padmode; /**< "pkcs1", "pss" or "none" */
-    const char *mdname; /**< "SHA256" or "SHA2-256" etc. */
+    const char *mdname;  /**< "SHA256" or "SHA2-256" etc. */
     const char *saltlen; /**< "digest", "auto" or "max" */
     const char *keytype; /**< "EC" or "RSA" */
-    const char *op;     /**< "Sign" or "DigestSign" */
+    const char *op;      /**< "Sign" or "DigestSign" */
 } XKEY_SIGALG;
 
 /**
@@ -78,15 +79,14 @@ typedef struct {
  * before signing. The digest algorithm used (or to be used) is passed in the sigalg
  * structure.
  */
-typedef int (XKEY_EXTERNAL_SIGN_fn)(void *handle, unsigned char *sig, size_t *siglen,
-                                    const unsigned char *tbs, size_t tbslen,
-                                    XKEY_SIGALG sigalg);
+typedef int(XKEY_EXTERNAL_SIGN_fn)(void *handle, unsigned char *sig, size_t *siglen,
+                                   const unsigned char *tbs, size_t tbslen, XKEY_SIGALG sigalg);
 /**
  * Signature of private key free function callback used
  * to free the opaque private key handle obtained from the
  * backend. Not required for management-external-key.
  */
-typedef void (XKEY_PRIVKEY_FREE_fn)(void *handle);
+typedef void(XKEY_PRIVKEY_FREE_fn)(void *handle);
 
 /**
  * Generate an encapsulated EVP_PKEY for management-external-key
@@ -115,9 +115,8 @@ EVP_PKEY *xkey_load_management_key(OSSL_LIB_CTX *libctx, EVP_PKEY *pubkey);
  * to the required size and false is returned.
  *
  */
-bool
-encode_pkcs1(unsigned char *enc, size_t *enc_len, const char *mdname,
-             const unsigned char *tbs, size_t tbslen);
+bool encode_pkcs1(unsigned char *enc, size_t *enc_len, const char *mdname, const unsigned char *tbs,
+                  size_t tbslen);
 
 /**
  * Compute message digest
@@ -133,9 +132,8 @@ encode_pkcs1(unsigned char *enc, size_t *enc_len, const char *mdname,
  * On successful return *buflen is set to the actual size of the result.
  * TIP: EVP_MD_MAX_SIZE should be enough capacity of buf for al algorithms.
  */
-int
-xkey_digest(const unsigned char *src, size_t srclen, unsigned char *buf,
-            size_t *buflen, const char *mdname);
+int xkey_digest(const unsigned char *src, size_t srclen, unsigned char *buf, size_t *buflen,
+                const char *mdname);
 
 /**
  * Load a generic external key with custom sign and free ops
@@ -150,9 +148,8 @@ xkey_digest(const unsigned char *src, size_t srclen, unsigned char *buf,
  * IMPORTANT: a reference to the handle is retained by the provider and
  * relased by calling free_op. The caller should not free it.
  */
-EVP_PKEY *
-xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
-                      XKEY_EXTERNAL_SIGN_fn *sign_op, XKEY_PRIVKEY_FREE_fn *free_op);
+EVP_PKEY *xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
+                                XKEY_EXTERNAL_SIGN_fn *sign_op, XKEY_PRIVKEY_FREE_fn *free_op);
 
 extern OSSL_LIB_CTX *tls_libctx; /* Global */
 
@@ -166,7 +163,7 @@ extern OSSL_LIB_CTX *tls_libctx; /* Global */
 static inline int
 xkey_max_saltlen(int modBits, int hLen)
 {
-    int emLen = (modBits - 1 + 7)/8; /* ceil((modBits - 1)/8) */
+    int emLen = (modBits - 1 + 7) / 8; /* ceil((modBits - 1)/8) */
 
     return emLen - hLen - 2;
 }
@@ -181,8 +178,7 @@ xkey_max_saltlen(int modBits, int hLen)
  * @returns the size of the converted signature or <= 0 on error.
  * On success, buf is overwritten by its DER encoding
  */
-int
-ecdsa_bin2der(unsigned char *buf, int len, size_t capacity);
+int ecdsa_bin2der(unsigned char *buf, int len, size_t capacity);
 
 #endif /* HAVE_XKEY_PROVIDER */
 

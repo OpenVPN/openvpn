@@ -43,8 +43,7 @@
  * @return  The content of the variable as NULL terminated string or NULL if the
  *          variable cannot be found.
  */
-char *extract_var_peer_info(const char *peer_info, const char *var,
-                            struct gc_arena *gc);
+char *extract_var_peer_info(const char *peer_info, const char *var, struct gc_arena *gc);
 
 /**
  * Extracts the IV_PROTO variable and returns its value or 0
@@ -74,7 +73,11 @@ const char *options_string_compat_lzo(const char *options, struct gc_arena *gc);
  * @param cipher_name   Can be either OpenSSL or IANA cipher name
  * @return              tls_cipher_name_pair* if found, NULL otherwise
  */
-typedef struct { const char *openssl_name; const char *iana_name; } tls_cipher_name_pair;
+typedef struct
+{
+    const char *openssl_name;
+    const char *iana_name;
+} tls_cipher_name_pair;
 const tls_cipher_name_pair *tls_get_cipher_name_pair(const char *cipher_name, size_t len);
 
 /**
@@ -88,7 +91,6 @@ const tls_cipher_name_pair *tls_get_cipher_name_pair(const char *cipher_name, si
  * @param delimiter     the delimiter to count, typically ':'
  * @return              occrrences of delimiter + 1
  */
-int
-get_num_elements(const char *string, char delimiter);
+int get_num_elements(const char *string, char delimiter);
 
 #endif /* ifndef SSL_UTIL_H_ */

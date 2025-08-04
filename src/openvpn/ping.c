@@ -38,10 +38,8 @@
  *
  * PING_STRING_SIZE must be sizeof (ping_string)
  */
-const uint8_t ping_string[] = {
-    0x2a, 0x18, 0x7b, 0xf3, 0x64, 0x1e, 0xb4, 0xcb,
-    0x07, 0xed, 0x2d, 0x0a, 0x98, 0x1f, 0xc7, 0x48
-};
+const uint8_t ping_string[] = { 0x2a, 0x18, 0x7b, 0xf3, 0x64, 0x1e, 0xb4, 0xcb,
+                                0x07, 0xed, 0x2d, 0x0a, 0x98, 0x1f, 0xc7, 0x48 };
 
 void
 trigger_ping_timeout_signal(struct context *c)
@@ -50,8 +48,7 @@ trigger_ping_timeout_signal(struct context *c)
     switch (c->options.ping_rec_timeout_action)
     {
         case PING_EXIT:
-            msg(M_INFO, "%sInactivity timeout (--ping-exit), exiting",
-                format_common_name(c, &gc));
+            msg(M_INFO, "%sInactivity timeout (--ping-exit), exiting", format_common_name(c, &gc));
             register_signal(c->sig, SIGTERM, "ping-exit");
             break;
 

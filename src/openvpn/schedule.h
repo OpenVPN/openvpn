@@ -42,8 +42,8 @@
 
 struct schedule_entry
 {
-    struct timeval tv;           /* wakeup time */
-    unsigned int pri;            /* random treap priority */
+    struct timeval tv;             /* wakeup time */
+    unsigned int pri;              /* random treap priority */
     struct schedule_entry *parent; /* treap (btree) links */
     struct schedule_entry *lt;
     struct schedule_entry *gt;
@@ -52,7 +52,7 @@ struct schedule_entry
 struct schedule
 {
     struct schedule_entry *earliest_wakeup; /* cached earliest wakeup */
-    struct schedule_entry *root;          /* the root of the treap (btree) */
+    struct schedule_entry *root;            /* the root of the treap (btree) */
 };
 
 /* Public functions */
@@ -94,9 +94,7 @@ void schedule_remove_node(struct schedule *s, struct schedule_entry *e);
  * an opaque object.
  */
 static inline void
-schedule_add_entry(struct schedule *s,
-                   struct schedule_entry *e,
-                   const struct timeval *tv,
+schedule_add_entry(struct schedule *s, struct schedule_entry *e, const struct timeval *tv,
                    unsigned int sigma)
 {
     if (!IN_TREE(e) || !sigma || !tv_within_sigma(tv, &e->tv, sigma))
@@ -114,8 +112,7 @@ schedule_add_entry(struct schedule *s,
  * is randomized every time an entry is re-added).
  */
 static inline struct schedule_entry *
-schedule_get_earliest_wakeup(struct schedule *s,
-                             struct timeval *wakeup)
+schedule_get_earliest_wakeup(struct schedule *s, struct timeval *wakeup)
 {
     struct schedule_entry *ret;
 

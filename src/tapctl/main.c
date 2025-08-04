@@ -120,9 +120,7 @@ static const WCHAR usage_message_delete[] =
 static void
 usage(void)
 {
-    fwprintf(stderr,
-             usage_message,
-             title_string);
+    fwprintf(stderr, usage_message, title_string);
 }
 
 /**
@@ -139,8 +137,10 @@ is_adapter_name_available(LPCWSTR name, struct tap_adapter_node *adapter_list, B
             {
                 LPOLESTR adapter_id = NULL;
                 StringFromIID((REFIID)&a->guid, &adapter_id);
-                fwprintf(stderr, L"Adapter \"%ls\" already exists (GUID %"
-                         L"ls).\n", a->szName, adapter_id);
+                fwprintf(stderr,
+                         L"Adapter \"%ls\" already exists (GUID %"
+                         L"ls).\n",
+                         a->szName, adapter_id);
                 CoTaskMemFree(adapter_id);
             }
 
@@ -204,8 +204,7 @@ get_unique_adapter_name(LPCWSTR hwid, struct tap_adapter_node *adapter_list)
 /**
  * Program entry point
  */
-int __cdecl
-wmain(int argc, LPCWSTR argv[])
+int __cdecl wmain(int argc, LPCWSTR argv[])
 {
     int iResult;
     BOOL bRebootRequired = FALSE;
@@ -239,8 +238,10 @@ wmain(int argc, LPCWSTR argv[])
         }
         else
         {
-            fwprintf(stderr, L"Unknown command \"%ls"
-                     L"\". Please, use \"tapctl help\" to list supported commands.\n", argv[2]);
+            fwprintf(stderr,
+                     L"Unknown command \"%ls"
+                     L"\". Please, use \"tapctl help\" to list supported commands.\n",
+                     argv[2]);
         }
 
         return 1;
@@ -263,25 +264,24 @@ wmain(int argc, LPCWSTR argv[])
             }
             else
             {
-                fwprintf(stderr, L"Unknown option \"%ls"
-                         L"\". Please, use \"tapctl help create\" to list supported options. Ignored.\n",
-                         argv[i]);
+                fwprintf(
+                    stderr,
+                    L"Unknown option \"%ls"
+                    L"\". Please, use \"tapctl help create\" to list supported options. Ignored.\n",
+                    argv[i]);
             }
         }
 
         /* Create TUN/TAP adapter. */
         GUID guidAdapter;
         LPOLESTR szAdapterId = NULL;
-        DWORD dwResult = tap_create_adapter(
-            NULL,
-            L"Virtual Ethernet",
-            szHwId,
-            &bRebootRequired,
-            &guidAdapter);
+        DWORD dwResult =
+            tap_create_adapter(NULL, L"Virtual Ethernet", szHwId, &bRebootRequired, &guidAdapter);
         if (dwResult != ERROR_SUCCESS)
         {
             fwprintf(stderr, L"Creating TUN/TAP adapter failed (error 0x%x).\n", dwResult);
-            iResult = 1; goto quit;
+            iResult = 1;
+            goto quit;
         }
 
         /* Get existing network adapters. */
@@ -294,7 +294,8 @@ wmain(int argc, LPCWSTR argv[])
             goto create_delete_adapter;
         }
 
-        LPWSTR adapter_name = szName ? wcsdup(szName) : get_unique_adapter_name(szHwId, pAdapterList);
+        LPWSTR adapter_name =
+            szName ? wcsdup(szName) : get_unique_adapter_name(szHwId, pAdapterList);
         if (adapter_name)
         {
             /* Check for duplicates when name was specified,
@@ -310,11 +311,13 @@ wmain(int argc, LPCWSTR argv[])
             if (dwResult != ERROR_SUCCESS)
             {
                 StringFromIID((REFIID)&guidAdapter, &szAdapterId);
-                fwprintf(stderr, L"Renaming TUN/TAP adapter %ls"
+                fwprintf(stderr,
+                         L"Renaming TUN/TAP adapter %ls"
                          L" to \"%ls\" failed (error 0x%x).\n",
                          szAdapterId, adapter_name, dwResult);
                 CoTaskMemFree(szAdapterId);
-                iResult = 1; goto quit;
+                iResult = 1;
+                goto quit;
             }
         }
 
@@ -334,21 +337,19 @@ create_cleanup_pAdapterList:
         fwprintf(stdout, L"%ls\n", szAdapterId);
         CoTaskMemFree(szAdapterId);
 
-        iResult = 0; goto quit;
+        iResult = 0;
+        goto quit;
 
 create_delete_adapter:
-        tap_delete_adapter(
-            NULL,
-            &guidAdapter,
-            &bRebootRequired);
-        iResult = 1; goto quit;
+        tap_delete_adapter(NULL, &guidAdapter, &bRebootRequired);
+        iResult = 1;
+        goto quit;
     }
     else if (wcsicmp(argv[1], L"list") == 0)
     {
         WCHAR szzHwId[0x100] =
-            L"root\\" _L(TAP_WIN_COMPONENT_ID) L"\0"
-            _L(TAP_WIN_COMPONENT_ID) L"\0"
-            L"ovpn-dco\0";
+            L"root\\" _L(TAP_WIN_COMPONENT_ID) L"\0" _L(TAP_WIN_COMPONENT_ID) L"\0"
+                                                                              L"ovpn-dco\0";
 
         /* Parse options. */
         for (int i = 2; i < argc; i++)
@@ -357,13 +358,17 @@ create_delete_adapter:
             {
                 memset(szzHwId, 0, sizeof(szzHwId));
                 ++i;
-                memcpy_s(szzHwId, sizeof(szzHwId) - 2*sizeof(WCHAR) /*requires double zero termination*/, argv[i], wcslen(argv[i])*sizeof(WCHAR));
+                memcpy_s(szzHwId,
+                         sizeof(szzHwId) - 2 * sizeof(WCHAR) /*requires double zero termination*/,
+                         argv[i], wcslen(argv[i]) * sizeof(WCHAR));
             }
             else
             {
-                fwprintf(stderr, L"Unknown option \"%ls"
-                         L"\". Please, use \"tapctl help list\" to list supported options. Ignored.\n",
-                         argv[i]);
+                fwprintf(
+                    stderr,
+                    L"Unknown option \"%ls"
+                    L"\". Please, use \"tapctl help list\" to list supported options. Ignored.\n",
+                    argv[i]);
             }
         }
 
@@ -373,15 +378,18 @@ create_delete_adapter:
         if (dwResult != ERROR_SUCCESS)
         {
             fwprintf(stderr, L"Enumerating TUN/TAP adapters failed (error 0x%x).\n", dwResult);
-            iResult = 1; goto quit;
+            iResult = 1;
+            goto quit;
         }
 
         for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
         {
             LPOLESTR szAdapterId = NULL;
             StringFromIID((REFIID)&pAdapter->guid, &szAdapterId);
-            fwprintf(stdout, L"%ls\t%"
-                     L"ls\n", szAdapterId, pAdapter->szName);
+            fwprintf(stdout,
+                     L"%ls\t%"
+                     L"ls\n",
+                     szAdapterId, pAdapter->szName);
             CoTaskMemFree(szAdapterId);
         }
 
@@ -392,7 +400,9 @@ create_delete_adapter:
     {
         if (argc < 3)
         {
-            fwprintf(stderr, L"Missing adapter GUID or name. Please, use \"tapctl help delete\" for usage info.\n");
+            fwprintf(
+                stderr,
+                L"Missing adapter GUID or name. Please, use \"tapctl help delete\" for usage info.\n");
             return 1;
         }
 
@@ -405,7 +415,8 @@ create_delete_adapter:
             if (dwResult != ERROR_SUCCESS)
             {
                 fwprintf(stderr, L"Enumerating TUN/TAP adapters failed (error 0x%x).\n", dwResult);
-                iResult = 1; goto quit;
+                iResult = 1;
+                goto quit;
             }
 
             for (struct tap_adapter_node *pAdapter = pAdapterList;; pAdapter = pAdapter->pNext)
@@ -413,7 +424,8 @@ create_delete_adapter:
                 if (pAdapter == NULL)
                 {
                     fwprintf(stderr, L"\"%ls\" adapter not found.\n", argv[2]);
-                    iResult = 1; goto delete_cleanup_pAdapterList;
+                    iResult = 1;
+                    goto delete_cleanup_pAdapterList;
                 }
                 else if (wcsicmp(argv[2], pAdapter->szName) == 0)
                 {
@@ -433,23 +445,26 @@ delete_cleanup_pAdapterList:
         }
 
         /* Delete the network adapter. */
-        DWORD dwResult = tap_delete_adapter(
-            NULL,
-            &guidAdapter,
-            &bRebootRequired);
+        DWORD dwResult = tap_delete_adapter(NULL, &guidAdapter, &bRebootRequired);
         if (dwResult != ERROR_SUCCESS)
         {
-            fwprintf(stderr, L"Deleting adapter \"%ls"
-                     L"\" failed (error 0x%x).\n", argv[2], dwResult);
-            iResult = 1; goto quit;
+            fwprintf(stderr,
+                     L"Deleting adapter \"%ls"
+                     L"\" failed (error 0x%x).\n",
+                     argv[2], dwResult);
+            iResult = 1;
+            goto quit;
         }
 
-        iResult = 0; goto quit;
+        iResult = 0;
+        goto quit;
     }
     else
     {
-        fwprintf(stderr, L"Unknown command \"%ls"
-                 L"\". Please, use \"tapctl help\" to list supported commands.\n", argv[1]);
+        fwprintf(stderr,
+                 L"Unknown command \"%ls"
+                 L"\". Please, use \"tapctl help\" to list supported commands.\n",
+                 argv[1]);
         return 1;
     }
 
@@ -484,16 +499,13 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         /* Output system error message (if possible). */
         DWORD dwResult = GetLastError();
         LPWSTR szErrMessage = NULL;
-        if (FormatMessage(
-                FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_IGNORE_INSERTS,
-                0,
-                dwResult,
-                0,
-                (LPWSTR)&szErrMessage,
-                0,
-                NULL) && szErrMessage)
+        if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER
+                              | FORMAT_MESSAGE_IGNORE_INSERTS,
+                          0, dwResult, 0, (LPWSTR)&szErrMessage, 0, NULL)
+            && szErrMessage)
         {
-            /* Trim trailing whitespace. Set terminator after the last non-whitespace character. This prevents excessive trailing line breaks. */
+            /* Trim trailing whitespace. Set terminator after the last non-whitespace character.
+             * This prevents excessive trailing line breaks. */
             for (size_t i = 0, i_last = 0;; i++)
             {
                 if (szErrMessage[i])

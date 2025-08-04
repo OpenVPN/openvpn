@@ -84,7 +84,7 @@ hostname_randomize(const char *hostname, struct gc_arena *gc)
 
     uint8_t rnd_bytes[n_rnd_bytes];
     const char *rnd_str;
-    struct buffer hname = alloc_buf_gc(strlen(hostname)+sizeof(rnd_bytes)*2+4, gc);
+    struct buffer hname = alloc_buf_gc(strlen(hostname) + sizeof(rnd_bytes) * 2 + 4, gc);
 
     prng_bytes(rnd_bytes, sizeof(rnd_bytes));
     rnd_str = format_hex_ex(rnd_bytes, sizeof(rnd_bytes), 40, 0, NULL, gc);
@@ -118,7 +118,9 @@ auth_user_pass_mgmt(struct user_pass *up, const char *prefix, const unsigned int
         }
         else
         {
-            msg(M_FATAL, "ERROR: could not read %s username/password/ok/string from management interface", prefix);
+            msg(M_FATAL,
+                "ERROR: could not read %s username/password/ok/string from management interface",
+                prefix);
         }
     }
     return true;
@@ -134,7 +136,8 @@ auth_user_pass_mgmt(struct user_pass *up, const char *prefix, const unsigned int
  * @param auth_challenge The authentication challenge string to parse. Can't be NULL.
  * @param gc             The gc_arena structure for memory allocation.
  *
- * @return               A pointer to the parsed auth_challenge_info structure, or NULL if parsing fails.
+ * @return               A pointer to the parsed auth_challenge_info structure, or NULL if parsing
+ * fails.
  */
 static struct auth_challenge_info *
 parse_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
@@ -143,7 +146,7 @@ parse_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
 
     struct auth_challenge_info *ac;
     const int len = strlen(auth_challenge);
-    char *work = (char *) gc_malloc(len+1, false, gc);
+    char *work = (char *)gc_malloc(len + 1, false, gc);
     char *cp;
 
     struct buffer b;
@@ -191,7 +194,7 @@ parse_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
     {
         return NULL;
     }
-    ac->user = (char *) gc_malloc(strlen(work)+1, true, gc);
+    ac->user = (char *)gc_malloc(strlen(work) + 1, true, gc);
     openvpn_base64_decode(work, (void *)ac->user, -1);
 
     /* parse challenge text */
@@ -207,11 +210,8 @@ parse_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
  */
 
 bool
-get_user_pass_cr(struct user_pass *up,
-                 const char *auth_file,
-                 const char *prefix,
-                 const unsigned int flags,
-                 const char *auth_challenge)
+get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix,
+                 const unsigned int flags, const char *auth_challenge)
 {
     struct gc_arena gc = gc_new();
 
@@ -232,8 +232,7 @@ get_user_pass_cr(struct user_pass *up,
         /*
          * Get username/password from management interface?
          */
-        if (management
-            && (!from_authfile && (flags & GET_USER_PASS_MANAGEMENT))
+        if (management && (!from_authfile && (flags & GET_USER_PASS_MANAGEMENT))
             && management_query_user_pass_enabled(management))
         {
             response_from_stdin = false;
@@ -244,117 +243,118 @@ get_user_pass_cr(struct user_pass *up,
         }
         else
 #endif /* ifdef ENABLE_MANAGEMENT */
-        /*
-         * Get NEED_OK confirmation from the console
-         */
-        if (flags & GET_USER_PASS_NEED_OK)
-        {
-            struct buffer user_prompt = alloc_buf_gc(128, &gc);
-
-            buf_printf(&user_prompt, "NEED-OK|%s|%s:", prefix, up->username);
-            if (!query_user_SINGLE(BSTR(&user_prompt), BLEN(&user_prompt),
-                                   up->password, USER_PASS_LEN, false))
-            {
-                msg(M_FATAL, "ERROR: could not read %s ok-confirmation from stdin", prefix);
-            }
-
-            if (!strlen(up->password))
-            {
-                strcpy(up->password, "ok");
-            }
-        }
-        else if (flags & GET_USER_PASS_INLINE_CREDS)
-        {
-            struct buffer buf;
-            buf_set_read(&buf, (uint8_t *) auth_file, strlen(auth_file) + 1);
-            if (!(flags & GET_USER_PASS_PASSWORD_ONLY))
-            {
-                buf_parse(&buf, '\n', up->username, USER_PASS_LEN);
-            }
-            buf_parse(&buf, '\n', up->password, USER_PASS_LEN);
-
-            if (strlen(up->password) == 0)
-            {
-                password_from_stdin = 1;
-            }
-        }
-        /*
-         * Read from auth file unless this is a dynamic challenge request.
-         */
-        else if (from_authfile && !(flags & GET_USER_PASS_DYNAMIC_CHALLENGE))
-        {
             /*
-             * Try to get username/password from a file.
+             * Get NEED_OK confirmation from the console
              */
-            FILE *fp;
-            char password_buf[USER_PASS_LEN] = { '\0' };
-
-            fp = platform_fopen(auth_file, "r");
-            if (!fp)
+            if (flags & GET_USER_PASS_NEED_OK)
             {
-                msg(M_ERR, "Error opening '%s' auth file: %s", prefix, auth_file);
-            }
+                struct buffer user_prompt = alloc_buf_gc(128, &gc);
 
-            if ((flags & GET_USER_PASS_PASSWORD_ONLY) == 0)
-            {
-                /* Read username first */
-                if (fgets(up->username, USER_PASS_LEN, fp) == NULL)
+                buf_printf(&user_prompt, "NEED-OK|%s|%s:", prefix, up->username);
+                if (!query_user_SINGLE(BSTR(&user_prompt), BLEN(&user_prompt), up->password,
+                                       USER_PASS_LEN, false))
                 {
-                    msg(M_FATAL, "Error reading username from %s authfile: %s",
-                        prefix,
+                    msg(M_FATAL, "ERROR: could not read %s ok-confirmation from stdin", prefix);
+                }
+
+                if (!strlen(up->password))
+                {
+                    strcpy(up->password, "ok");
+                }
+            }
+            else if (flags & GET_USER_PASS_INLINE_CREDS)
+            {
+                struct buffer buf;
+                buf_set_read(&buf, (uint8_t *)auth_file, strlen(auth_file) + 1);
+                if (!(flags & GET_USER_PASS_PASSWORD_ONLY))
+                {
+                    buf_parse(&buf, '\n', up->username, USER_PASS_LEN);
+                }
+                buf_parse(&buf, '\n', up->password, USER_PASS_LEN);
+
+                if (strlen(up->password) == 0)
+                {
+                    password_from_stdin = 1;
+                }
+            }
+            /*
+             * Read from auth file unless this is a dynamic challenge request.
+             */
+            else if (from_authfile && !(flags & GET_USER_PASS_DYNAMIC_CHALLENGE))
+            {
+                /*
+                 * Try to get username/password from a file.
+                 */
+                FILE *fp;
+                char password_buf[USER_PASS_LEN] = { '\0' };
+
+                fp = platform_fopen(auth_file, "r");
+                if (!fp)
+                {
+                    msg(M_ERR, "Error opening '%s' auth file: %s", prefix, auth_file);
+                }
+
+                if ((flags & GET_USER_PASS_PASSWORD_ONLY) == 0)
+                {
+                    /* Read username first */
+                    if (fgets(up->username, USER_PASS_LEN, fp) == NULL)
+                    {
+                        msg(M_FATAL, "Error reading username from %s authfile: %s", prefix,
+                            auth_file);
+                    }
+                }
+                chomp(up->username);
+
+                if (fgets(password_buf, USER_PASS_LEN, fp) != NULL)
+                {
+                    chomp(password_buf);
+                }
+
+                if (flags & GET_USER_PASS_PASSWORD_ONLY && !password_buf[0])
+                {
+                    msg(M_FATAL, "Error reading password from %s authfile: %s", prefix, auth_file);
+                }
+
+                if (password_buf[0])
+                {
+                    strncpy(up->password, password_buf, USER_PASS_LEN);
+                }
+                /* The auth-file does not have the password: get both username
+                 * and password from the management interface if possible.
+                 * Otherwise set to read password from console.
+                 */
+#if defined(ENABLE_MANAGEMENT)
+                else if (management && (flags & GET_USER_PASS_MANAGEMENT)
+                         && management_query_user_pass_enabled(management))
+                {
+                    msg(D_LOW,
+                        "No password found in %s authfile '%s'. Querying the management interface",
+                        prefix, auth_file);
+                    if (!auth_user_pass_mgmt(up, prefix, flags, auth_challenge))
+                    {
+                        fclose(fp);
+                        return false;
+                    }
+                }
+#endif
+                else
+                {
+                    password_from_stdin = 1;
+                }
+
+                fclose(fp);
+
+                if (!(flags & GET_USER_PASS_PASSWORD_ONLY) && strlen(up->username) == 0)
+                {
+                    msg(M_FATAL, "ERROR: username from %s authfile '%s' is empty", prefix,
                         auth_file);
                 }
             }
-            chomp(up->username);
-
-            if (fgets(password_buf, USER_PASS_LEN, fp) != NULL)
-            {
-                chomp(password_buf);
-            }
-
-            if (flags & GET_USER_PASS_PASSWORD_ONLY && !password_buf[0])
-            {
-                msg(M_FATAL, "Error reading password from %s authfile: %s", prefix, auth_file);
-            }
-
-            if (password_buf[0])
-            {
-                strncpy(up->password, password_buf, USER_PASS_LEN);
-            }
-            /* The auth-file does not have the password: get both username
-             * and password from the management interface if possible.
-             * Otherwise set to read password from console.
-             */
-#if defined(ENABLE_MANAGEMENT)
-            else if (management
-                     && (flags & GET_USER_PASS_MANAGEMENT)
-                     && management_query_user_pass_enabled(management))
-            {
-                msg(D_LOW, "No password found in %s authfile '%s'. Querying the management interface", prefix, auth_file);
-                if (!auth_user_pass_mgmt(up, prefix, flags, auth_challenge))
-                {
-                    fclose(fp);
-                    return false;
-                }
-            }
-#endif
             else
             {
-                password_from_stdin = 1;
+                username_from_stdin = true;
+                password_from_stdin = true;
             }
-
-            fclose(fp);
-
-            if (!(flags & GET_USER_PASS_PASSWORD_ONLY) && strlen(up->username) == 0)
-            {
-                msg(M_FATAL, "ERROR: username from %s authfile '%s' is empty", prefix, auth_file);
-            }
-        }
-        else
-        {
-            username_from_stdin = true;
-            password_from_stdin = true;
-        }
 
         /*
          * Get username/password from standard input?
@@ -367,15 +367,15 @@ get_user_pass_cr(struct user_pass *up,
                 struct auth_challenge_info *ac = parse_auth_challenge(auth_challenge, &gc);
                 if (ac)
                 {
-                    char *response = (char *) gc_malloc(USER_PASS_LEN, false, &gc);
+                    char *response = (char *)gc_malloc(USER_PASS_LEN, false, &gc);
                     struct buffer packed_resp, challenge;
 
-                    challenge = alloc_buf_gc(14+strlen(ac->challenge_text), &gc);
+                    challenge = alloc_buf_gc(14 + strlen(ac->challenge_text), &gc);
                     buf_printf(&challenge, "CHALLENGE: %s", ac->challenge_text);
                     buf_set_write(&packed_resp, (uint8_t *)up->password, USER_PASS_LEN);
 
-                    if (!query_user_SINGLE(BSTR(&challenge), BLEN(&challenge),
-                                           response, USER_PASS_LEN, BOOL_CAST(ac->flags&CR_ECHO)))
+                    if (!query_user_SINGLE(BSTR(&challenge), BLEN(&challenge), response,
+                                           USER_PASS_LEN, BOOL_CAST(ac->flags & CR_ECHO)))
                     {
                         msg(M_FATAL, "ERROR: could not read challenge response from stdin");
                     }
@@ -399,17 +399,17 @@ get_user_pass_cr(struct user_pass *up,
 
                 if (username_from_stdin && !(flags & GET_USER_PASS_PASSWORD_ONLY))
                 {
-                    query_user_add(BSTR(&user_prompt), BLEN(&user_prompt),
-                                   up->username, USER_PASS_LEN, true);
+                    query_user_add(BSTR(&user_prompt), BLEN(&user_prompt), up->username,
+                                   USER_PASS_LEN, true);
                 }
 
                 if (password_from_stdin)
                 {
-                    query_user_add(BSTR(&pass_prompt), BLEN(&pass_prompt),
-                                   up->password, USER_PASS_LEN, false);
+                    query_user_add(BSTR(&pass_prompt), BLEN(&pass_prompt), up->password,
+                                   USER_PASS_LEN, false);
                 }
 
-                if (!query_user_exec() )
+                if (!query_user_exec())
                 {
                     msg(M_FATAL, "ERROR: Failed retrieving username or password");
                 }
@@ -423,17 +423,18 @@ get_user_pass_cr(struct user_pass *up,
                 }
 
 #ifdef ENABLE_MANAGEMENT
-                if (auth_challenge && (flags & GET_USER_PASS_STATIC_CHALLENGE) && response_from_stdin)
+                if (auth_challenge && (flags & GET_USER_PASS_STATIC_CHALLENGE)
+                    && response_from_stdin)
                 {
-                    char *response = (char *) gc_malloc(USER_PASS_LEN, false, &gc);
+                    char *response = (char *)gc_malloc(USER_PASS_LEN, false, &gc);
                     struct buffer packed_resp, challenge;
                     char *pw64 = NULL, *resp64 = NULL;
 
-                    challenge = alloc_buf_gc(14+strlen(auth_challenge), &gc);
+                    challenge = alloc_buf_gc(14 + strlen(auth_challenge), &gc);
                     buf_printf(&challenge, "CHALLENGE: %s", auth_challenge);
 
-                    if (!query_user_SINGLE(BSTR(&challenge), BLEN(&challenge),
-                                           response, USER_PASS_LEN,
+                    if (!query_user_SINGLE(BSTR(&challenge), BLEN(&challenge), response,
+                                           USER_PASS_LEN,
                                            BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO)))
                     {
                         msg(M_FATAL, "ERROR: could not retrieve static challenge response");
@@ -456,7 +457,8 @@ get_user_pass_cr(struct user_pass *up,
                     {
                         if (strlen(up->password) + strlen(response) >= USER_PASS_LEN)
                         {
-                            msg(M_FATAL, "ERROR: could not concatenate password/static_response: string too long");
+                            msg(M_FATAL,
+                                "ERROR: could not concatenate password/static_response: string too long");
                         }
                         strncat(up->password, response, USER_PASS_LEN - strlen(up->password) - 1);
                     }
@@ -499,7 +501,8 @@ purge_user_pass(struct user_pass *up, const bool force)
          */
         if (!warn_shown)
         {
-            msg(M_WARN, "WARNING: this configuration may cache passwords in memory -- use the auth-nocache option to prevent this");
+            msg(M_WARN,
+                "WARNING: this configuration may cache passwords in memory -- use the auth-nocache option to prevent this");
             warn_shown = true;
         }
     }
@@ -594,7 +597,7 @@ make_inline_array(const char *str, struct gc_arena *gc)
     char **ret = NULL;
     int i = 0;
 
-    buf_set_read(&buf, (const uint8_t *) str, strlen(str));
+    buf_set_read(&buf, (const uint8_t *)str, strlen(str));
     while (buf_parse(&buf, '\n', line, sizeof(line)))
     {
         ++len;
@@ -603,7 +606,7 @@ make_inline_array(const char *str, struct gc_arena *gc)
     /* alloc return array */
     ALLOC_ARRAY_CLEAR_GC(ret, char *, len + 1, gc);
 
-    buf_set_read(&buf, (const uint8_t *) str, strlen(str));
+    buf_set_read(&buf, (const uint8_t *)str, strlen(str));
     while (buf_parse(&buf, '\n', line, sizeof(line)))
     {
         chomp(line);
@@ -668,12 +671,12 @@ make_extended_arg_array(char **p, bool is_inline, struct gc_arena *gc)
 const char *
 sanitize_control_message(const char *src, struct gc_arena *gc)
 {
-    char *ret = gc_malloc(strlen(src)+1, false, gc);
+    char *ret = gc_malloc(strlen(src) + 1, false, gc);
     char *dest = ret;
     bool redact = false;
     int skip = 0;
 
-    for (;; )
+    for (;;)
     {
         const char c = *src;
         if (c == '\0')
@@ -690,8 +693,7 @@ sanitize_control_message(const char *src, struct gc_arena *gc)
             skip = 4;
             redact = true;
         }
-        else if (!check_debug_level(D_SHOW_KEYS)
-                 && (c == 'a' && !strncmp(src, "auth-token ", 11)))
+        else if (!check_debug_level(D_SHOW_KEYS) && (c == 'a' && !strncmp(src, "auth-token ", 11)))
         {
             /* Unless --verb is 7 or higher (D_SHOW_KEYS), hide
              * the auth-token value coming in the src string
@@ -755,8 +757,7 @@ validate_peer_info_line(char *line)
 
             case 2:
                 /* after the '=', replace non-printable or shell meta with '_' */
-                if (!isprint(c) || isspace(c)
-                    || c == '$' || c == '(' || c == '`')
+                if (!isprint(c) || isspace(c) || c == '$' || c == '(' || c == '`')
                 {
                     *line = '_';
                 }
@@ -771,12 +772,12 @@ output_peer_info_env(struct env_set *es, const char *peer_info)
 {
     char line[256];
     struct buffer buf;
-    buf_set_read(&buf, (const uint8_t *) peer_info, strlen(peer_info));
+    buf_set_read(&buf, (const uint8_t *)peer_info, strlen(peer_info));
     while (buf_parse(&buf, '\n', line, sizeof(line)))
     {
         chomp(line);
         if (validate_peer_info_line(line)
-            && (strncmp(line, "IV_", 3) == 0 || strncmp(line, "UV_", 3) == 0) )
+            && (strncmp(line, "IV_", 3) == 0 || strncmp(line, "UV_", 3) == 0))
         {
             msg(M_INFO, "peer info: %s", line);
             env_set_add(es, line);

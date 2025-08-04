@@ -56,8 +56,7 @@ lz4_compress_uninit(struct compress_context *compctx)
 
 /* Doesn't do any actual compression anymore */
 static void
-lz4_compress(struct buffer *buf, struct buffer work,
-             struct compress_context *compctx,
+lz4_compress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
              const struct frame *frame)
 {
     if (buf->len <= 0)
@@ -78,8 +77,7 @@ lz4_compress(struct buffer *buf, struct buffer work,
 
 /* Doesn't do any actual compression anymore */
 static void
-lz4v2_compress(struct buffer *buf, struct buffer work,
-               struct compress_context *compctx,
+lz4v2_compress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
                const struct frame *frame)
 {
     if (buf->len <= 0)
@@ -91,14 +89,13 @@ lz4v2_compress(struct buffer *buf, struct buffer work,
 }
 
 static void
-do_lz4_decompress(size_t zlen_max,
-                  struct buffer *work,
-                  struct buffer *buf,
+do_lz4_decompress(size_t zlen_max, struct buffer *work, struct buffer *buf,
                   struct compress_context *compctx)
 {
     int uncomp_len;
     ASSERT(buf_safe(work, zlen_max));
-    uncomp_len = LZ4_decompress_safe((const char *)BPTR(buf), (char *)BPTR(work), (size_t)BLEN(buf), zlen_max);
+    uncomp_len = LZ4_decompress_safe((const char *)BPTR(buf), (char *)BPTR(work), (size_t)BLEN(buf),
+                                     zlen_max);
     if (uncomp_len <= 0)
     {
         dmsg(D_COMP_ERRORS, "LZ4 decompression error: %d", uncomp_len);
@@ -117,12 +114,11 @@ do_lz4_decompress(size_t zlen_max,
 }
 
 static void
-lz4_decompress(struct buffer *buf, struct buffer work,
-               struct compress_context *compctx,
+lz4_decompress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
                const struct frame *frame)
 {
     size_t zlen_max = frame->buf.payload_size;
-    uint8_t c;          /* flag indicating whether or not our peer compressed */
+    uint8_t c; /* flag indicating whether or not our peer compressed */
 
     if (buf->len <= 0)
     {
@@ -155,12 +151,11 @@ lz4_decompress(struct buffer *buf, struct buffer work,
 }
 
 static void
-lz4v2_decompress(struct buffer *buf, struct buffer work,
-                 struct compress_context *compctx,
+lz4v2_decompress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
                  const struct frame *frame)
 {
     size_t zlen_max = frame->buf.payload_size;
-    uint8_t c;          /* flag indicating whether or not our peer compressed */
+    uint8_t c; /* flag indicating whether or not our peer compressed */
 
     if (buf->len <= 0)
     {
@@ -203,19 +198,9 @@ lz4v2_decompress(struct buffer *buf, struct buffer work,
     }
 }
 
-const struct compress_alg lz4_alg = {
-    "lz4",
-    lz4_compress_init,
-    lz4_compress_uninit,
-    lz4_compress,
-    lz4_decompress
-};
+const struct compress_alg lz4_alg = { "lz4", lz4_compress_init, lz4_compress_uninit, lz4_compress,
+                                      lz4_decompress };
 
-const struct compress_alg lz4v2_alg = {
-    "lz4v2",
-    lz4v2_compress_init,
-    lz4_compress_uninit,
-    lz4v2_compress,
-    lz4v2_decompress
-};
+const struct compress_alg lz4v2_alg = { "lz4v2", lz4v2_compress_init, lz4_compress_uninit,
+                                        lz4v2_compress, lz4v2_decompress };
 #endif /* ENABLE_LZ4 */

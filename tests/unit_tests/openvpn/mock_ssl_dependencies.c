@@ -37,8 +37,8 @@
 #include "ssl_verify.h"
 
 int
-parse_line(const char *line, char **p, const int n, const char *file,
-           const int line_num, int msglevel, struct gc_arena *gc)
+parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
+           int msglevel, struct gc_arena *gc)
 {
     /* Dummy function to get the linker happy, should never be called */
     assert_true(false);

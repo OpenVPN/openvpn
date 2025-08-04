@@ -11,7 +11,7 @@
 static void
 test_true(void **state)
 {
-    (void) state;
+    (void)state;
 }
 
 

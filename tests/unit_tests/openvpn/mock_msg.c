@@ -71,8 +71,7 @@ get_debug_level(void)
 }
 
 void
-x_msg_va(const unsigned int flags, const char *format,
-         va_list arglist)
+x_msg_va(const unsigned int flags, const char *format, va_list arglist)
 {
     if (flags & M_FATAL)
     {
@@ -107,7 +106,7 @@ assert_failed(const char *filename, int line, const char *condition)
     /* Keep compiler happy.  Should not happen, mock_assert() does not return */
     exit(1);
 }
-#else  /* ifndef NO_CMOCKA */
+#else /* ifndef NO_CMOCKA */
 void
 assert_failed(const char *filename, int line, const char *condition)
 {

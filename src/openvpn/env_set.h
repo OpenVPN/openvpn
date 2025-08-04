@@ -33,26 +33,23 @@
  * Handle environmental variable lists
  */
 
-struct env_item {
+struct env_item
+{
     char *string;
     struct env_item *next;
 };
 
-struct env_set {
+struct env_set
+{
     struct gc_arena *gc;
     struct env_item *list;
 };
 
 /* set/delete environmental variable */
-void setenv_str_ex(struct env_set *es,
-                   const char *name,
-                   const char *value,
-                   const unsigned int name_include,
-                   const unsigned int name_exclude,
-                   const char name_replace,
-                   const unsigned int value_include,
-                   const unsigned int value_exclude,
-                   const char value_replace);
+void setenv_str_ex(struct env_set *es, const char *name, const char *value,
+                   const unsigned int name_include, const unsigned int name_exclude,
+                   const char name_replace, const unsigned int value_include,
+                   const unsigned int value_exclude, const char value_replace);
 
 void setenv_counter(struct env_set *es, const char *name, counter_type value);
 
@@ -123,8 +120,7 @@ env_safe_to_print(const char *str)
 /* returns true if environmental variable may be passed to an external program */
 bool env_allowed(const char *str);
 
-const char **make_env_array(const struct env_set *es,
-                            const bool check_allowed,
+const char **make_env_array(const struct env_set *es, const bool check_allowed,
                             struct gc_arena *gc);
 
 #endif /* ifndef ENV_SET_H */

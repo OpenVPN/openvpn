@@ -39,8 +39,7 @@
 /* Define this function here as dummy since including the ssl_*.c files
  * leads to having to include even more unrelated code */
 bool
-key_state_export_keying_material(struct tls_session *session,
-                                 const char *label, size_t label_size,
+key_state_export_keying_material(struct tls_session *session, const char *label, size_t label_size,
                                  void *ekm, size_t ekm_size)
 {
     memset(ekm, 0xba, ekm_size);
@@ -48,22 +47,22 @@ key_state_export_keying_material(struct tls_session *session,
 }
 
 
-#define TESTBUF_SIZE            128
+#define TESTBUF_SIZE 128
 
 /* Defines for use in the tests and the mock parse_line() */
-#define PATH1       "/s p a c e"
-#define PATH2       "/foo bar/baz"
-#define PARAM1      "param1"
-#define PARAM2      "param two"
+#define PATH1  "/s p a c e"
+#define PATH2  "/foo bar/baz"
+#define PARAM1 "param1"
+#define PARAM2 "param two"
 
-static const char *test_server_key = \
+static const char *test_server_key =
     "-----BEGIN OpenVPN tls-crypt-v2 server key-----\n"
     "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4v\n"
     "MDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5f\n"
     "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8=\n"
     "-----END OpenVPN tls-crypt-v2 server key-----\n";
 
-static const char *test_client_key = \
+static const char *test_client_key =
     "-----BEGIN OpenVPN tls-crypt-v2 client key-----\n"
     "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4v\n"
     "MDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5f\n"
@@ -81,7 +80,7 @@ static const char *test_client_key = \
 
 
 /* Has custom metadata of AABBCCDD (base64) */
-static const char *test_client_key_metadata = \
+static const char *test_client_key_metadata =
     "-----BEGIN OpenVPN tls-crypt-v2 client key-----\n"
     "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4v\n"
     "MDEyMzQ1Njc4OTo7PD0+P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5f\n"
@@ -98,8 +97,8 @@ static const char *test_client_key_metadata = \
     "-----END OpenVPN tls-crypt-v2 client key-----\n";
 
 int
-__wrap_parse_line(const char *line, char **p, const int n, const char *file,
-                  const int line_num, int msglevel, struct gc_arena *gc)
+__wrap_parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
+                  int msglevel, struct gc_arena *gc)
 {
     p[0] = PATH1 PATH2;
     p[1] = PARAM1;
@@ -141,7 +140,8 @@ __wrap_rand_bytes(uint8_t *output, int len)
     return true;
 }
 
-struct test_tls_crypt_context {
+struct test_tls_crypt_context
+{
     struct crypto_options co;
     struct key_type kt;
     struct buffer source;
@@ -156,8 +156,10 @@ test_tls_crypt_setup(void **state)
     struct test_tls_crypt_context *ctx = calloc(1, sizeof(*ctx));
     *state = ctx;
 
-    struct key_parameters key = { .cipher = { 0 }, .hmac = { 0 },
-                                  .hmac_size = MAX_HMAC_KEY_LENGTH, .cipher_size = MAX_CIPHER_KEY_LENGTH };
+    struct key_parameters key = { .cipher = { 0 },
+                                  .hmac = { 0 },
+                                  .hmac_size = MAX_HMAC_KEY_LENGTH,
+                                  .cipher_size = MAX_CIPHER_KEY_LENGTH };
 
     ctx->kt = tls_crypt_kt();
     if (!ctx->kt.cipher || !ctx->kt.digest)
@@ -187,8 +189,7 @@ test_tls_crypt_setup(void **state)
 static int
 test_tls_crypt_teardown(void **state)
 {
-    struct test_tls_crypt_context *ctx =
-        (struct test_tls_crypt_context *)*state;
+    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *)*state;
 
     free_buf(&ctx->source);
     free_buf(&ctx->ciphertext);
@@ -216,7 +217,7 @@ skip_if_tls_crypt_not_supported(struct test_tls_crypt_context *ctx)
 static void
 tls_crypt_loopback(void **state)
 {
-    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *) *state;
+    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *)*state;
 
     skip_if_tls_crypt_not_supported(ctx);
 
@@ -224,8 +225,7 @@ tls_crypt_loopback(void **state)
     assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
     assert_true(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
     assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
-    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped),
-                        BLEN(&ctx->source));
+    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped), BLEN(&ctx->source));
 }
 
 
@@ -235,8 +235,7 @@ tls_crypt_loopback(void **state)
 static void
 test_tls_crypt_secure_reneg_key(void **state)
 {
-    struct test_tls_crypt_context *ctx =
-        (struct test_tls_crypt_context *)*state;
+    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *)*state;
 
     struct gc_arena gc = gc_new();
 
@@ -255,19 +254,19 @@ test_tls_crypt_secure_reneg_key(void **state)
     tls_crypt_wrap(&ctx->source, &rctx->work, &rctx->opt);
     assert_int_equal(buf_len(&ctx->source) + 40, buf_len(&rctx->work));
 
-    uint8_t expected_ciphertext[] = {
-        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0xe3, 0x19, 0x27, 0x7f, 0x1c, 0x8d, 0x6e, 0x6a,
-        0x77, 0x96, 0xa8, 0x55, 0x33, 0x7b, 0x9c, 0xfb, 0x56, 0xe1, 0xf1, 0x3a, 0x87, 0x0e, 0x66, 0x47,
-        0xdf, 0xa1, 0x95, 0xc9, 0x2c, 0x17, 0xa0, 0x15, 0xba, 0x49, 0x67, 0xa1, 0x1d, 0x55, 0xea, 0x1a,
-        0x06, 0xa7
-    };
+    uint8_t expected_ciphertext[] = { 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0xe3, 0x19,
+                                      0x27, 0x7f, 0x1c, 0x8d, 0x6e, 0x6a, 0x77, 0x96, 0xa8, 0x55,
+                                      0x33, 0x7b, 0x9c, 0xfb, 0x56, 0xe1, 0xf1, 0x3a, 0x87, 0x0e,
+                                      0x66, 0x47, 0xdf, 0xa1, 0x95, 0xc9, 0x2c, 0x17, 0xa0, 0x15,
+                                      0xba, 0x49, 0x67, 0xa1, 0x1d, 0x55, 0xea, 0x1a, 0x06, 0xa7 };
     assert_memory_equal(BPTR(&rctx->work), expected_ciphertext, buf_len(&rctx->work));
     tls_wrap_free(&session.tls_wrap_reneg);
 
     /* Use previous tls-crypt key as 0x00, with xor we should have the same key
      * and expect the same result */
     session.tls_wrap.mode = TLS_WRAP_CRYPT;
-    memset(&session.tls_wrap.original_wrap_keydata.keys, 0x00, sizeof(session.tls_wrap.original_wrap_keydata.keys));
+    memset(&session.tls_wrap.original_wrap_keydata.keys, 0x00,
+           sizeof(session.tls_wrap.original_wrap_keydata.keys));
     session.tls_wrap.original_wrap_keydata.n = 2;
 
     tls_session_generate_dynamic_tls_crypt_key(&session);
@@ -278,7 +277,8 @@ test_tls_crypt_secure_reneg_key(void **state)
     tls_wrap_free(&session.tls_wrap_reneg);
 
     /* XOR should not force a different key */
-    memset(&session.tls_wrap.original_wrap_keydata.keys, 0x42, sizeof(session.tls_wrap.original_wrap_keydata.keys));
+    memset(&session.tls_wrap.original_wrap_keydata.keys, 0x42,
+           sizeof(session.tls_wrap.original_wrap_keydata.keys));
     tls_session_generate_dynamic_tls_crypt_key(&session);
 
     tls_crypt_wrap(&ctx->source, &rctx->work, &rctx->opt);
@@ -302,7 +302,7 @@ test_tls_crypt_secure_reneg_key(void **state)
 static void
 tls_crypt_loopback_zero_len(void **state)
 {
-    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *) *state;
+    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *)*state;
 
     skip_if_tls_crypt_not_supported(ctx);
 
@@ -312,8 +312,7 @@ tls_crypt_loopback_zero_len(void **state)
     assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
     assert_true(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
     assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
-    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped),
-                        BLEN(&ctx->source));
+    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped), BLEN(&ctx->source));
 }
 
 /**
@@ -322,20 +321,19 @@ tls_crypt_loopback_zero_len(void **state)
 static void
 tls_crypt_loopback_max_len(void **state)
 {
-    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *) *state;
+    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *)*state;
 
     skip_if_tls_crypt_not_supported(ctx);
 
     buf_clear(&ctx->source);
-    assert_non_null(buf_write_alloc(&ctx->source,
-                                    TESTBUF_SIZE - BLEN(&ctx->ciphertext) - tls_crypt_buf_overhead()));
+    assert_non_null(buf_write_alloc(&ctx->source, TESTBUF_SIZE - BLEN(&ctx->ciphertext)
+                                                      - tls_crypt_buf_overhead()));
 
     assert_true(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
     assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
     assert_true(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
     assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
-    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped),
-                        BLEN(&ctx->source));
+    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped), BLEN(&ctx->source));
 }
 
 /**
@@ -344,13 +342,13 @@ tls_crypt_loopback_max_len(void **state)
 static void
 tls_crypt_fail_msg_too_long(void **state)
 {
-    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *) *state;
+    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *)*state;
 
     skip_if_tls_crypt_not_supported(ctx);
 
     buf_clear(&ctx->source);
-    assert_non_null(buf_write_alloc(&ctx->source,
-                                    TESTBUF_SIZE - BLEN(&ctx->ciphertext) - tls_crypt_buf_overhead() + 1));
+    assert_non_null(buf_write_alloc(&ctx->source, TESTBUF_SIZE - BLEN(&ctx->ciphertext)
+                                                      - tls_crypt_buf_overhead() + 1));
     assert_false(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
 }
 
@@ -361,13 +359,15 @@ tls_crypt_fail_msg_too_long(void **state)
 static void
 tls_crypt_fail_invalid_key(void **state)
 {
-    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *) *state;
+    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *)*state;
 
     skip_if_tls_crypt_not_supported(ctx);
 
     /* Change decrypt key */
-    struct key_parameters key = { .cipher = { 1 }, .hmac = { 1 },
-                                  .cipher_size = MAX_CIPHER_KEY_LENGTH, .hmac_size = MAX_HMAC_KEY_LENGTH };
+    struct key_parameters key = { .cipher = { 1 },
+                                  .hmac = { 1 },
+                                  .cipher_size = MAX_CIPHER_KEY_LENGTH,
+                                  .hmac_size = MAX_HMAC_KEY_LENGTH };
     free_key_ctx(&ctx->co.key_ctx_bi.decrypt);
     init_key_ctx(&ctx->co.key_ctx_bi.decrypt, &key, &ctx->kt, false, "TEST");
 
@@ -382,7 +382,7 @@ tls_crypt_fail_invalid_key(void **state)
 static void
 tls_crypt_fail_replay(void **state)
 {
-    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *) *state;
+    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *)*state;
 
     skip_if_tls_crypt_not_supported(ctx);
 
@@ -402,7 +402,7 @@ tls_crypt_fail_replay(void **state)
 static void
 tls_crypt_ignore_replay(void **state)
 {
-    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *) *state;
+    struct test_tls_crypt_context *ctx = (struct test_tls_crypt_context *)*state;
 
     skip_if_tls_crypt_not_supported(ctx);
 
@@ -416,7 +416,8 @@ tls_crypt_ignore_replay(void **state)
     assert_true(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
 }
 
-struct test_tls_crypt_v2_context {
+struct test_tls_crypt_v2_context
+{
     struct gc_arena gc;
     struct key2 server_key2;
     struct key_ctx_bi server_keys;
@@ -436,17 +437,15 @@ test_tls_crypt_v2_setup(void **state)
     ctx->gc = gc_new();
 
     /* Slightly longer buffers to be able to test too-long data */
-    ctx->metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN+16, &ctx->gc);
-    ctx->unwrapped_metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN+16,
-                                           &ctx->gc);
-    ctx->wkc = alloc_buf_gc(TLS_CRYPT_V2_MAX_WKC_LEN+16, &ctx->gc);
+    ctx->metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN + 16, &ctx->gc);
+    ctx->unwrapped_metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN + 16, &ctx->gc);
+    ctx->wkc = alloc_buf_gc(TLS_CRYPT_V2_MAX_WKC_LEN + 16, &ctx->gc);
 
     /* Generate server key */
     rand_bytes((void *)ctx->server_key2.keys, sizeof(ctx->server_key2.keys));
     ctx->server_key2.n = 2;
     struct key_type kt = tls_crypt_kt();
-    init_key_ctx_bi(&ctx->server_keys, &ctx->server_key2,
-                    KEY_DIRECTION_BIDIRECTIONAL, &kt,
+    init_key_ctx_bi(&ctx->server_keys, &ctx->server_key2, KEY_DIRECTION_BIDIRECTIONAL, &kt,
                     "tls-crypt-v2 server key");
 
     /* Generate client key */
@@ -459,8 +458,7 @@ test_tls_crypt_v2_setup(void **state)
 static int
 test_tls_crypt_v2_teardown(void **state)
 {
-    struct test_tls_crypt_v2_context *ctx =
-        (struct test_tls_crypt_v2_context *) *state;
+    struct test_tls_crypt_v2_context *ctx = (struct test_tls_crypt_v2_context *)*state;
 
     free_key_ctx_bi(&ctx->server_keys);
     free_key_ctx_bi(&ctx->client_key);
@@ -478,27 +476,20 @@ test_tls_crypt_v2_teardown(void **state)
 static void
 tls_crypt_v2_wrap_unwrap_no_metadata(void **state)
 {
-    struct test_tls_crypt_v2_context *ctx =
-        (struct test_tls_crypt_v2_context *) *state;
+    struct test_tls_crypt_v2_context *ctx = (struct test_tls_crypt_v2_context *)*state;
 
-    struct buffer wrapped_client_key = alloc_buf_gc(TLS_CRYPT_V2_MAX_WKC_LEN,
-                                                    &ctx->gc);
-    assert_true(tls_crypt_v2_wrap_client_key(&wrapped_client_key,
-                                             &ctx->client_key2,
-                                             &ctx->metadata,
-                                             &ctx->server_keys.encrypt,
-                                             &ctx->gc));
+    struct buffer wrapped_client_key = alloc_buf_gc(TLS_CRYPT_V2_MAX_WKC_LEN, &ctx->gc);
+    assert_true(tls_crypt_v2_wrap_client_key(&wrapped_client_key, &ctx->client_key2, &ctx->metadata,
+                                             &ctx->server_keys.encrypt, &ctx->gc));
 
-    struct buffer unwrap_metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN,
-                                                 &ctx->gc);
+    struct buffer unwrap_metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN, &ctx->gc);
     struct key2 unwrapped_client_key2 = { 0 };
-    assert_true(tls_crypt_v2_unwrap_client_key(&unwrapped_client_key2,
-                                               &unwrap_metadata,
-                                               wrapped_client_key,
-                                               &ctx->server_keys.decrypt));
+    assert_true(tls_crypt_v2_unwrap_client_key(&unwrapped_client_key2, &unwrap_metadata,
+                                               wrapped_client_key, &ctx->server_keys.decrypt));
 
-    assert_true(0 == memcmp(ctx->client_key2.keys, unwrapped_client_key2.keys,
-                            sizeof(ctx->client_key2.keys)));
+    assert_true(0
+                == memcmp(ctx->client_key2.keys, unwrapped_client_key2.keys,
+                          sizeof(ctx->client_key2.keys)));
 }
 
 /**
@@ -508,26 +499,21 @@ tls_crypt_v2_wrap_unwrap_no_metadata(void **state)
 static void
 tls_crypt_v2_wrap_unwrap_max_metadata(void **state)
 {
-    struct test_tls_crypt_v2_context *ctx =
-        (struct test_tls_crypt_v2_context *) *state;
+    struct test_tls_crypt_v2_context *ctx = (struct test_tls_crypt_v2_context *)*state;
 
-    uint8_t *metadata =
-        buf_write_alloc(&ctx->metadata, TLS_CRYPT_V2_MAX_METADATA_LEN);
+    uint8_t *metadata = buf_write_alloc(&ctx->metadata, TLS_CRYPT_V2_MAX_METADATA_LEN);
     assert_true(rand_bytes(metadata, TLS_CRYPT_V2_MAX_METADATA_LEN));
-    assert_true(tls_crypt_v2_wrap_client_key(&ctx->wkc, &ctx->client_key2,
-                                             &ctx->metadata,
-                                             &ctx->server_keys.encrypt,
-                                             &ctx->gc));
+    assert_true(tls_crypt_v2_wrap_client_key(&ctx->wkc, &ctx->client_key2, &ctx->metadata,
+                                             &ctx->server_keys.encrypt, &ctx->gc));
 
-    struct buffer unwrap_metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN,
-                                                 &ctx->gc);
+    struct buffer unwrap_metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN, &ctx->gc);
     struct key2 unwrapped_client_key2 = { 0 };
-    assert_true(tls_crypt_v2_unwrap_client_key(&unwrapped_client_key2,
-                                               &unwrap_metadata, ctx->wkc,
+    assert_true(tls_crypt_v2_unwrap_client_key(&unwrapped_client_key2, &unwrap_metadata, ctx->wkc,
                                                &ctx->server_keys.decrypt));
 
-    assert_true(0 == memcmp(ctx->client_key2.keys, unwrapped_client_key2.keys,
-                            sizeof(ctx->client_key2.keys)));
+    assert_true(0
+                == memcmp(ctx->client_key2.keys, unwrapped_client_key2.keys,
+                          sizeof(ctx->client_key2.keys)));
     assert_true(buf_equal(&ctx->metadata, &unwrap_metadata));
 
     struct tls_wrap_ctx wrap_ctx = {
@@ -545,14 +531,11 @@ tls_crypt_v2_wrap_unwrap_max_metadata(void **state)
 static void
 tls_crypt_v2_wrap_too_long_metadata(void **state)
 {
-    struct test_tls_crypt_v2_context *ctx =
-        (struct test_tls_crypt_v2_context *) *state;
+    struct test_tls_crypt_v2_context *ctx = (struct test_tls_crypt_v2_context *)*state;
 
-    assert_true(buf_inc_len(&ctx->metadata, TLS_CRYPT_V2_MAX_METADATA_LEN+1));
-    assert_false(tls_crypt_v2_wrap_client_key(&ctx->wkc, &ctx->client_key2,
-                                              &ctx->metadata,
-                                              &ctx->server_keys.encrypt,
-                                              &ctx->gc));
+    assert_true(buf_inc_len(&ctx->metadata, TLS_CRYPT_V2_MAX_METADATA_LEN + 1));
+    assert_false(tls_crypt_v2_wrap_client_key(&ctx->wkc, &ctx->client_key2, &ctx->metadata,
+                                              &ctx->server_keys.encrypt, &ctx->gc));
 }
 
 /**
@@ -562,28 +545,22 @@ tls_crypt_v2_wrap_too_long_metadata(void **state)
 static void
 tls_crypt_v2_wrap_unwrap_wrong_key(void **state)
 {
-    struct test_tls_crypt_v2_context *ctx =
-        (struct test_tls_crypt_v2_context *) *state;
+    struct test_tls_crypt_v2_context *ctx = (struct test_tls_crypt_v2_context *)*state;
 
-    assert_true(tls_crypt_v2_wrap_client_key(&ctx->wkc, &ctx->client_key2,
-                                             &ctx->metadata,
-                                             &ctx->server_keys.encrypt,
-                                             &ctx->gc));
+    assert_true(tls_crypt_v2_wrap_client_key(&ctx->wkc, &ctx->client_key2, &ctx->metadata,
+                                             &ctx->server_keys.encrypt, &ctx->gc));
 
     /* Change server key */
     struct key_type kt = tls_crypt_kt();
     free_key_ctx_bi(&ctx->server_keys);
     memset(&ctx->server_key2.keys, 0, sizeof(ctx->server_key2.keys));
-    init_key_ctx_bi(&ctx->server_keys, &ctx->server_key2,
-                    KEY_DIRECTION_BIDIRECTIONAL, &kt,
+    init_key_ctx_bi(&ctx->server_keys, &ctx->server_key2, KEY_DIRECTION_BIDIRECTIONAL, &kt,
                     "wrong tls-crypt-v2 server key");
 
 
     struct key2 unwrapped_client_key2 = { 0 };
-    assert_false(tls_crypt_v2_unwrap_client_key(&unwrapped_client_key2,
-                                                &ctx->unwrapped_metadata,
-                                                ctx->wkc,
-                                                &ctx->server_keys.decrypt));
+    assert_false(tls_crypt_v2_unwrap_client_key(&unwrapped_client_key2, &ctx->unwrapped_metadata,
+                                                ctx->wkc, &ctx->server_keys.decrypt));
 
     const struct key2 zero = { 0 };
     assert_true(0 == memcmp(&unwrapped_client_key2, &zero, sizeof(zero)));
@@ -597,23 +574,17 @@ tls_crypt_v2_wrap_unwrap_wrong_key(void **state)
 static void
 tls_crypt_v2_wrap_unwrap_dst_too_small(void **state)
 {
-    struct test_tls_crypt_v2_context *ctx =
-        (struct test_tls_crypt_v2_context *) *state;
+    struct test_tls_crypt_v2_context *ctx = (struct test_tls_crypt_v2_context *)*state;
 
-    uint8_t *metadata =
-        buf_write_alloc(&ctx->metadata, TLS_CRYPT_V2_MAX_METADATA_LEN);
+    uint8_t *metadata = buf_write_alloc(&ctx->metadata, TLS_CRYPT_V2_MAX_METADATA_LEN);
     assert_true(rand_bytes(metadata, TLS_CRYPT_V2_MAX_METADATA_LEN));
-    assert_true(tls_crypt_v2_wrap_client_key(&ctx->wkc, &ctx->client_key2,
-                                             &ctx->metadata,
-                                             &ctx->server_keys.encrypt,
-                                             &ctx->gc));
+    assert_true(tls_crypt_v2_wrap_client_key(&ctx->wkc, &ctx->client_key2, &ctx->metadata,
+                                             &ctx->server_keys.encrypt, &ctx->gc));
 
     struct key2 unwrapped_client_key2 = { 0 };
-    struct buffer unwrapped_metadata =
-        alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN-1, &ctx->gc);
-    assert_false(tls_crypt_v2_unwrap_client_key(&unwrapped_client_key2,
-                                                &unwrapped_metadata, ctx->wkc,
-                                                &ctx->server_keys.decrypt));
+    struct buffer unwrapped_metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN - 1, &ctx->gc);
+    assert_false(tls_crypt_v2_unwrap_client_key(&unwrapped_client_key2, &unwrapped_metadata,
+                                                ctx->wkc, &ctx->server_keys.decrypt));
 
     const struct key2 zero = { 0 };
     assert_true(0 == memcmp(&unwrapped_client_key2, &zero, sizeof(zero)));
@@ -626,8 +597,7 @@ test_tls_crypt_v2_write_server_key_file(void **state)
     const char *filename = "testfilename.key";
 
     expect_string(__wrap_buffer_write_file, filename, filename);
-    expect_memory(__wrap_buffer_write_file, pem, test_server_key,
-                  strlen(test_server_key));
+    expect_memory(__wrap_buffer_write_file, pem, test_server_key, strlen(test_server_key));
     will_return(__wrap_buffer_write_file, true);
 
     tls_crypt_v2_write_server_key_file(filename);
@@ -640,8 +610,7 @@ test_tls_crypt_v2_write_client_key_file(void **state)
 
     /* Test writing the client key */
     expect_string(__wrap_buffer_write_file, filename, filename);
-    expect_memory(__wrap_buffer_write_file, pem, test_client_key,
-                  strlen(test_client_key));
+    expect_memory(__wrap_buffer_write_file, pem, test_client_key, strlen(test_client_key));
     will_return(__wrap_buffer_write_file, true);
 
     /* Key generation re-reads the created file as a sanity check */
@@ -667,8 +636,7 @@ test_tls_crypt_v2_write_client_key_file_metadata(void **state)
     expect_string(__wrap_buffer_read_from_file, filename, filename);
     will_return(__wrap_buffer_read_from_file, test_client_key_metadata);
 
-    tls_crypt_v2_write_client_key_file(filename, b64metadata, test_server_key,
-                                       true);
+    tls_crypt_v2_write_client_key_file(filename, b64metadata, test_server_key, true);
 }
 
 int
@@ -676,44 +644,31 @@ main(void)
 {
     openvpn_unit_test_setup();
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test_setup_teardown(tls_crypt_loopback,
-                                        test_tls_crypt_setup,
+        cmocka_unit_test_setup_teardown(tls_crypt_loopback, test_tls_crypt_setup,
                                         test_tls_crypt_teardown),
-        cmocka_unit_test_setup_teardown(tls_crypt_loopback_zero_len,
-                                        test_tls_crypt_setup,
+        cmocka_unit_test_setup_teardown(tls_crypt_loopback_zero_len, test_tls_crypt_setup,
                                         test_tls_crypt_teardown),
-        cmocka_unit_test_setup_teardown(tls_crypt_loopback_max_len,
-                                        test_tls_crypt_setup,
+        cmocka_unit_test_setup_teardown(tls_crypt_loopback_max_len, test_tls_crypt_setup,
                                         test_tls_crypt_teardown),
-        cmocka_unit_test_setup_teardown(tls_crypt_fail_msg_too_long,
-                                        test_tls_crypt_setup,
+        cmocka_unit_test_setup_teardown(tls_crypt_fail_msg_too_long, test_tls_crypt_setup,
                                         test_tls_crypt_teardown),
-        cmocka_unit_test_setup_teardown(tls_crypt_fail_invalid_key,
-                                        test_tls_crypt_setup,
+        cmocka_unit_test_setup_teardown(tls_crypt_fail_invalid_key, test_tls_crypt_setup,
                                         test_tls_crypt_teardown),
-        cmocka_unit_test_setup_teardown(tls_crypt_fail_replay,
-                                        test_tls_crypt_setup,
+        cmocka_unit_test_setup_teardown(tls_crypt_fail_replay, test_tls_crypt_setup,
                                         test_tls_crypt_teardown),
-        cmocka_unit_test_setup_teardown(tls_crypt_ignore_replay,
-                                        test_tls_crypt_setup,
+        cmocka_unit_test_setup_teardown(tls_crypt_ignore_replay, test_tls_crypt_setup,
                                         test_tls_crypt_teardown),
         cmocka_unit_test_setup_teardown(tls_crypt_v2_wrap_unwrap_no_metadata,
-                                        test_tls_crypt_v2_setup,
-                                        test_tls_crypt_v2_teardown),
+                                        test_tls_crypt_v2_setup, test_tls_crypt_v2_teardown),
         cmocka_unit_test_setup_teardown(tls_crypt_v2_wrap_unwrap_max_metadata,
-                                        test_tls_crypt_v2_setup,
-                                        test_tls_crypt_v2_teardown),
+                                        test_tls_crypt_v2_setup, test_tls_crypt_v2_teardown),
         cmocka_unit_test_setup_teardown(tls_crypt_v2_wrap_too_long_metadata,
-                                        test_tls_crypt_v2_setup,
-                                        test_tls_crypt_v2_teardown),
-        cmocka_unit_test_setup_teardown(tls_crypt_v2_wrap_unwrap_wrong_key,
-                                        test_tls_crypt_v2_setup,
+                                        test_tls_crypt_v2_setup, test_tls_crypt_v2_teardown),
+        cmocka_unit_test_setup_teardown(tls_crypt_v2_wrap_unwrap_wrong_key, test_tls_crypt_v2_setup,
                                         test_tls_crypt_v2_teardown),
         cmocka_unit_test_setup_teardown(tls_crypt_v2_wrap_unwrap_dst_too_small,
-                                        test_tls_crypt_v2_setup,
-                                        test_tls_crypt_v2_teardown),
-        cmocka_unit_test_setup_teardown(test_tls_crypt_secure_reneg_key,
-                                        test_tls_crypt_setup,
+                                        test_tls_crypt_v2_setup, test_tls_crypt_v2_teardown),
+        cmocka_unit_test_setup_teardown(test_tls_crypt_secure_reneg_key, test_tls_crypt_setup,
                                         test_tls_crypt_teardown),
         cmocka_unit_test(test_tls_crypt_v2_write_server_key_file),
         cmocka_unit_test(test_tls_crypt_v2_write_client_key_file),

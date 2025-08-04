@@ -45,18 +45,20 @@
 #define OPENVPN_MAX_CIPHER_BLOCK_SIZE 32
 
 /* Maximum HMAC digest size (bytes) */
-#define OPENVPN_MAX_HMAC_SIZE   64
+#define OPENVPN_MAX_HMAC_SIZE 64
 
 /** Types referencing specific message digest hashing algorithms */
-typedef enum {
+typedef enum
+{
     MD_SHA1,
     MD_SHA256
 } hash_algo_type;
 
 /** Struct used in cipher name translation table */
-typedef struct {
-    const char *openvpn_name;   /**< Cipher name used by OpenVPN */
-    const char *lib_name;       /**< Cipher name used by crypto library */
+typedef struct
+{
+    const char *openvpn_name; /**< Cipher name used by OpenVPN */
+    const char *lib_name;     /**< Cipher name used by crypto library */
 } cipher_name_pair;
 
 /** Cipher name translation table */
@@ -122,8 +124,8 @@ void show_available_engines(void);
  *
  * @return true iff PEM encode succeeded.
  */
-bool crypto_pem_encode(const char *name, struct buffer *dst,
-                       const struct buffer *src, struct gc_arena *gc);
+bool crypto_pem_encode(const char *name, struct buffer *dst, const struct buffer *src,
+                       struct gc_arena *gc);
 
 /**
  * Decode a PEM buffer to binary data.
@@ -134,8 +136,7 @@ bool crypto_pem_encode(const char *name, struct buffer *dst,
  *
  * @return true iff PEM decode succeeded.
  */
-bool crypto_pem_decode(const char *name, struct buffer *dst,
-                       const struct buffer *src);
+bool crypto_pem_decode(const char *name, struct buffer *dst, const struct buffer *src);
 
 /*
  *
@@ -338,8 +339,8 @@ void cipher_ctx_free(cipher_ctx_t *ctx);
  * @param enc           Whether to encrypt or decrypt (either
  *                      \c OPENVPN_OP_ENCRYPT or \c OPENVPN_OP_DECRYPT).
  */
-void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key,
-                     const char *ciphername, crypto_operation_t enc);
+void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key, const char *ciphername,
+                     crypto_operation_t enc);
 
 /**
  * Returns the size of the IV used by the cipher, in bytes, or 0 if no IV is
@@ -447,8 +448,7 @@ int cipher_ctx_update_ad(cipher_ctx_t *ctx, const uint8_t *src, int src_len);
  *
  * @return              \c 0 on failure, \c 1 on success.
  */
-int cipher_ctx_update(cipher_ctx_t *ctx, uint8_t *dst, int *dst_len,
-                      uint8_t *src, int src_len);
+int cipher_ctx_update(cipher_ctx_t *ctx, uint8_t *dst, int *dst_len, uint8_t *src, int src_len);
 
 /**
  * Pads the final cipher block using PKCS padding, and output to the destination
@@ -475,8 +475,8 @@ int cipher_ctx_final(cipher_ctx_t *ctx, uint8_t *dst, int *dst_len);
  *
  * @return              \c 0 on failure, \c 1 on success.
  */
-int cipher_ctx_final_check_tag(cipher_ctx_t *ctx, uint8_t *dst, int *dst_len,
-                               uint8_t *tag, size_t tag_len);
+int cipher_ctx_final_check_tag(cipher_ctx_t *ctx, uint8_t *dst, int *dst_len, uint8_t *tag,
+                               size_t tag_len);
 
 
 /*
@@ -716,7 +716,7 @@ const char *translate_cipher_name_to_openvpn(const char *cipher_name);
  *
  * @return              true if successful, false on any error
  */
-bool ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret,
-                  int secret_len, uint8_t *output, int output_len);
+bool ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret, int secret_len,
+                  uint8_t *output, int output_len);
 
 #endif /* CRYPTO_BACKEND_H_ */
