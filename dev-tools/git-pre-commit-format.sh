@@ -2,6 +2,7 @@
 
 # Copyright (c) 2015, David Martin
 #               2022, Heiko Hund
+#               2025, Frank Lichtenheld
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,10 +27,12 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-# git pre-commit hook that runs an Uncrustify stylecheck.
+# git pre-commit hook that runs a stylecheck.
 # Features:
 #  - abort commit when commit does not comply with the style guidelines
 #  - create a patch of the proposed style changes
+#  - use clang-format or uncrustify depending on presence of .clang-format
+#    config file
 #
 # More info on Uncrustify: http://uncrustify.sourceforge.net/
 
@@ -77,27 +80,42 @@ else
     against=4b825dc642cb6eb9a060e54bf8d69288fbee4904
 fi
 
-UNCRUSTIFY=$(command -v uncrustify)
-UNCRUST_CONFIG="$(git rev-parse --show-toplevel)/dev-tools/uncrustify.conf"
+TOPDIR="$(git rev-parse --show-toplevel)"
+if [ -e "${TOPDIR}/.clang-format" ]; then
+    TOOL=clang-format
+    TOOL_BIN=$(command -v clang-format)
+    TOOL_CMD="$TOOL_BIN"
 
-# make sure the config file and executable are correctly set
-if [ ! -f "$UNCRUST_CONFIG" ] ; then
-    printf "Error: uncrustify config file not found.\n"
-    printf "Expected to find it at $UNCRUST_CONFIG.\n"
-    printf "Aborting commit.\n"
-    exit 1
+    # Allow to use in parallel with pre-commit
+    if [ $(basename "$0") = "pre-commit.legacy" ]; then
+       echo "Skipping clang-format check in favor of pre-commit"
+       exit 0
+    fi
+else
+    TOOL=uncrustify
+    TOOL_BIN=$(command -v uncrustify)
+    UNCRUST_CONFIG="${TOPDIR}/dev-tools/uncrustify.conf"
+    TOOL_CMD="$TOOL_BIN -q -l C -c $UNCRUST_CONFIG"
+
+    # make sure the config file is correctly set
+    if [ ! -f "$UNCRUST_CONFIG" ] ; then
+        printf "Error: uncrustify config file not found.\n"
+        printf "Expected to find it at $UNCRUST_CONFIG.\n"
+        printf "Aborting commit.\n"
+        exit 1
+    fi
 fi
 
-if [ -z "$UNCRUSTIFY" ] ; then
-    printf "Error: uncrustify executable not found.\n"
+if [ -z "$TOOL_BIN" ] ; then
+    printf "Error: $TOOL executable not found.\n"
     printf "Is it installed and in your \$PATH?\n"
     printf "Aborting commit.\n"
     exit 1
 fi
 
 # create a filename to store our generated patch
-patch=$(mktemp /tmp/ovpn-fmt-XXXXXX)
-tmpout=$(mktemp /tmp/uncrustify-XXXXXX)
+patch=$(mktemp /tmp/ovpn-fmt-patch-XXXXXX)
+tmpout=$(mktemp /tmp/ovpn-fmt-tmp-XXXXXX)
 
 # create one patch containing all changes to the files
 # sed to remove quotes around the filename, if inserted by the system
@@ -131,7 +149,7 @@ do
     #    +++ $tmpout timestamp
     # to both lines working on the same file and having a a/ and b/ prefix.
     # Else it can not be applied with 'git apply'.
-    git show ":$file" | "$UNCRUSTIFY" -q -l C -c "$UNCRUST_CONFIG" -o "$tmpout"
+    git show ":$file" | $TOOL_CMD > "$tmpout"
     git show ":$file" | diff -u -- - "$tmpout" | \
         sed -e "1s|--- -|--- \"b/$file_escaped_target\"|" -e "2s|+++ $tmpout|+++ \"a/$file_escaped_target\"|" >> "$patch"
 done
