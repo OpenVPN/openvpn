@@ -425,7 +425,7 @@ jobs:
       - name: autoconf
         run: autoreconf -fvi
       - name: configure
-        run: ./configure --with-crypto-library=mbedtls
+        run: ./configure --with-crypto-library=mbedtls --enable-werror
       - name: make all
         run: make -j3
       - name: configure checks
@@ -489,7 +489,7 @@ jobs:
           OPENSSL_CFLAGS="-I/${{ env.AWS_LC_INSTALL }}/include" \
           OPENSSL_LIBS="-L/${{ env.AWS_LC_INSTALL }}/lib -lssl -lcrypto" \
           LDFLAGS="-Wl,-rpath=/${{ env.AWS_LC_INSTALL }}/lib" \
-          ./configure --with-crypto-library=openssl
+          ./configure --with-crypto-library=openssl --enable-werror
       - name: make all
         run: make -j3
       - name: configure checks
