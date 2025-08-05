@@ -48,3 +48,8 @@ abe49856d81f51136d543539202a0bf8fb946474
 
 # Reformat for sp_after_comma=add
 e51d9a73693ee742b36e19fb1718e5e27167831d
+
+# The Great Reformatting of 2025, switching to clang-format
+3cca3367e6e0ffeccb8e39cb2c739d1dcb086701
+# Switching to ColumnLimit 0 for clang-format
+21f7d6e1ad65b1f7db673bc98764dc7325858e0b
