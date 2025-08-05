@@ -27,12 +27,15 @@
 #include "env_set.h"
 
 /* Script security */
-#define SSEC_NONE     0 /* strictly no calling of external programs */
-#define SSEC_BUILT_IN 1 /* only call built-in programs such as ifconfig, route, netsh, etc.*/
-#define SSEC_SCRIPTS  2 /* allow calling of built-in programs and user-defined scripts */
-#define SSEC_PW_ENV                                                                              \
-    3 /* allow calling of built-in programs and user-defined scripts that may receive a password \
-         as an environmental variable */
+/** strictly no calling of external programs */
+#define SSEC_NONE     0
+/** only call built-in programs such as ifconfig, route, netsh, etc.*/
+#define SSEC_BUILT_IN 1
+/** allow calling of built-in programs and user-defined scripts */
+#define SSEC_SCRIPTS  2
+/** allow calling of built-in programs and user-defined scripts that may receive a password
+    as an environmental variable */
+#define SSEC_PW_ENV   3
 
 #define OPENVPN_EXECVE_ERROR       -1  /* generic error while forking to run an external program */
 #define OPENVPN_EXECVE_NOT_ALLOWED -2  /* external program not run due to script security */

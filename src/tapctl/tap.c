@@ -225,10 +225,8 @@ static DWORD
 delete_device(_In_ HDEVINFO hDeviceInfoSet, _In_ PSP_DEVINFO_DATA pDeviceInfoData,
               _Inout_ LPBOOL pbRebootRequired)
 {
-    SP_REMOVEDEVICE_PARAMS params =
-    {
-        .ClassInstallHeader =
-        {
+    SP_REMOVEDEVICE_PARAMS params = {
+        .ClassInstallHeader = {
             .cbSize = sizeof(SP_CLASSINSTALL_HEADER),
             .InstallFunction = DIF_REMOVE,
         },
@@ -281,10 +279,8 @@ static DWORD
 change_device_state(_In_ HDEVINFO hDeviceInfoSet, _In_ PSP_DEVINFO_DATA pDeviceInfoData,
                     _In_ BOOL bEnable, _Inout_ LPBOOL pbRebootRequired)
 {
-    SP_PROPCHANGE_PARAMS params =
-    {
-        .ClassInstallHeader =
-        {
+    SP_PROPCHANGE_PARAMS params = {
+        .ClassInstallHeader = {
             .cbSize = sizeof(SP_CLASSINSTALL_HEADER),
             .InstallFunction = DIF_PROPERTYCHANGE,
         },
@@ -768,10 +764,8 @@ cleanup_remove_device:
     if (dwResult != ERROR_SUCCESS)
     {
         /* The adapter was installed. But, the adapter ID was unobtainable. Clean-up. */
-        SP_REMOVEDEVICE_PARAMS removedevice_params =
-        {
-            .ClassInstallHeader =
-            {
+        SP_REMOVEDEVICE_PARAMS removedevice_params = {
+            .ClassInstallHeader = {
                 .cbSize = sizeof(SP_CLASSINSTALL_HEADER),
                 .InstallFunction = DIF_REMOVE,
             },

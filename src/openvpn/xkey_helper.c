@@ -329,10 +329,12 @@ encode_pkcs1(unsigned char *enc, size_t *enc_len, const char *mdname, const unsi
 
 #define MAKE_DI(x) { NID_##x, x, sizeof(x) }
 
+    /* clang-format off */
     DIG_INFO dinfo[] = {
         MAKE_DI(sha1),   MAKE_DI(sha256),     MAKE_DI(sha384),     MAKE_DI(sha512),
         MAKE_DI(sha224), MAKE_DI(sha512_224), MAKE_DI(sha512_256), { 0, NULL, 0 }
     };
+    /* clang-format on */
 
     size_t out_len = 0;
     bool ret = false;

@@ -266,7 +266,7 @@ translate_mtu_discover_type_name(const char *name)
         return IP_PMTUDISC_DONT;
     }
     msg(M_FATAL, "invalid --mtu-disc type: '%s' -- valid types are 'yes', 'maybe', or 'no'", name);
-#else /* if defined(IP_PMTUDISC_DONT) && defined(IP_PMTUDISC_WANT) && defined(IP_PMTUDISC_DO) */
+#else
     msg(M_FATAL, MTUDISC_NOT_SUPPORTED_MSG);
 #endif
     return -1; /* NOTREACHED */

@@ -146,14 +146,14 @@ atoi_warn(const char *str, int msglevel)
     return (int)i;
 }
 
-static const char *updatable_options[] = { "block-ipv6",        "block-outside-dns",
-                                           "dhcp-option",       "dns",
-                                           "ifconfig",          "ifconfig-ipv6",
+static const char *updatable_options[] = { "block-ipv6", "block-outside-dns",
+                                           "dhcp-option", "dns",
+                                           "ifconfig", "ifconfig-ipv6",
                                            "push-continuation", "redirect-gateway",
-                                           "redirect-private",  "route",
-                                           "route-gateway",     "route-ipv6",
-                                           "route-metric",      "topology",
-                                           "tun-mtu",           "keepalive" };
+                                           "redirect-private", "route",
+                                           "route-gateway", "route-ipv6",
+                                           "route-metric", "topology",
+                                           "tun-mtu", "keepalive" };
 
 bool
 check_push_update_option_flags(char *line, int *i, unsigned int *flags)

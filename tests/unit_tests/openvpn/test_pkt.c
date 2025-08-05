@@ -219,7 +219,7 @@ test_tls_decrypt_lite_crypt(void **ut_state)
     {
         buf_reset_len(&buf);
         buf_write(&buf, client_reset_v2_tls_crypt, sizeof(client_reset_v2_tls_crypt));
-        BPTR(&buf)[i] = 0x23;
+        (BPTR(&buf))[i] = 0x23;
         verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
         assert_int_equal(verdict, VERDICT_INVALID);
         free_tls_pre_decrypt_state(&state);
@@ -274,7 +274,7 @@ test_tls_decrypt_lite_auth(void **ut_state)
     free_tls_pre_decrypt_state(&state);
 
     /* flip a byte in the hmac */
-    BPTR(&buf)[20] = 0x23;
+    (BPTR(&buf))[20] = 0x23;
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
     assert_int_equal(verdict, VERDICT_INVALID);
     free_tls_pre_decrypt_state(&state);

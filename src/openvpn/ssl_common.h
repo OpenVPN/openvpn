@@ -222,15 +222,15 @@ struct key_state
      */
     uint32_t peer_id;
 
-    struct key_state_ssl ks_ssl; /* contains SSL object and BIOs for the control channel */
+    struct key_state_ssl ks_ssl;           /* contains SSL object and BIOs for the control channel */
 
-    time_t initial;              /* when we created this session */
-    time_t established;          /* when our state went S_ACTIVE */
-    time_t must_negotiate;       /* key negotiation times out if not finished before this time */
-    time_t must_die;             /* this object is destroyed at this time */
-    time_t peer_last_packet;     /* Last time we received a packet in this control session */
+    time_t initial;                        /* when we created this session */
+    time_t established;                    /* when our state went S_ACTIVE */
+    time_t must_negotiate;                 /* key negotiation times out if not finished before this time */
+    time_t must_die;                       /* this object is destroyed at this time */
+    time_t peer_last_packet;               /* Last time we received a packet in this control session */
 
-    int initial_opcode;          /* our initial P_ opcode */
+    int initial_opcode;                    /* our initial P_ opcode */
     struct session_id session_id_remote;   /* peer's random session ID */
     struct link_socket_actual remote_addr; /* peer's IP addr */
 
@@ -579,9 +579,8 @@ struct tls_session
 enum multi_status
 {
     CAS_NOT_CONNECTED,
-    CAS_WAITING_AUTH, /**< Initial TLS connection established but deferred auth is not yet finished
-                       */
-    CAS_PENDING,      /**< Options import (Connect script/plugin, ccd,...) */
+    CAS_WAITING_AUTH,             /**< Initial TLS connection established but deferred auth is not yet finished */
+    CAS_PENDING,                  /**< Options import (Connect script/plugin, ccd,...) */
     CAS_PENDING_DEFERRED,         /**< Waiting on an async option import handler */
     CAS_PENDING_DEFERRED_PARTIAL, /**< at least handler succeeded but another is still pending */
     CAS_FAILED,                   /**< Option import failed or explicitly denied the client */

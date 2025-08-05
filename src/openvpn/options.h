@@ -133,16 +133,16 @@ struct connection_entry
     int tls_mtu;           /* Maximum MTU for the control channel messages */
 
     /* Advanced MTU negotiation and datagram fragmentation options */
-    int mtu_discover_type; /* used if OS supports setting Path MTU discovery options on socket */
+    int mtu_discover_type;          /* used if OS supports setting Path MTU discovery options on socket */
 
-    int fragment;          /* internal fragmentation size */
-    bool fragment_encap;   /* true if --fragment had the "mtu" parameter to
-                            * include overhead from IP and TCP/UDP encapsulation */
-    int mssfix;            /* Upper bound on TCP MSS */
-    bool mssfix_default;   /* true if --mssfix should use the default parameters */
-    bool mssfix_encap;     /* true if --mssfix had the "mtu" parameter to include
-                            * overhead from IP and TCP/UDP encapsulation */
-    bool mssfix_fixed;     /* use the mssfix value without any encapsulation adjustments */
+    int fragment;                   /* internal fragmentation size */
+    bool fragment_encap;            /* true if --fragment had the "mtu" parameter to
+                                     * include overhead from IP and TCP/UDP encapsulation */
+    int mssfix;                     /* Upper bound on TCP MSS */
+    bool mssfix_default;            /* true if --mssfix should use the default parameters */
+    bool mssfix_encap;              /* true if --mssfix had the "mtu" parameter to include
+                                     * overhead from IP and TCP/UDP encapsulation */
+    bool mssfix_fixed;              /* use the mssfix value without any encapsulation adjustments */
 
     int explicit_exit_notification; /* Explicitly tell peer when we are exiting via OCC_EXIT or
                                        [RESTART] message */

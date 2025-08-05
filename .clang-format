@@ -24,7 +24,7 @@ BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeBraces: Allman
 BreakBeforeTernaryOperators: true
 BreakStringLiterals: false
-ColumnLimit: '100'
+ColumnLimit: '0'
 ContinuationIndentWidth: '4'
 DerivePointerAlignment: false
 IndentCaseLabels: true

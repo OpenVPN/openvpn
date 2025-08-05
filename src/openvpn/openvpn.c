@@ -160,9 +160,7 @@ openvpn_main(int argc, char *argv[])
     struct context c;
 
 #if PEDANTIC
-    fprintf(
-        stderr,
-        "Sorry, I was built with --enable-pedantic and I am incapable of doing any real work!\n");
+    fprintf(stderr, "Sorry, I was built with --enable-pedantic and I am incapable of doing any real work!\n");
     return 1;
 #endif
 

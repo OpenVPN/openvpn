@@ -3931,7 +3931,8 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
  *  Check file/directory sanity
  *
  */
-#ifndef ENABLE_SMALL /* Expect people using the stripped down version to know what they do */
+/* Expect people using the stripped down version to know what they do */
+#ifndef ENABLE_SMALL
 
 #define CHKACC_FILE       (1 << 0) /**< Check for a file/directory presence */
 #define CHKACC_DIRPATH    (1 << 1) /**< Check for directory presence where a file should reside */
@@ -6243,7 +6244,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         print_default_gateway(M_INFO, &rgi, &rgi6);
         openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */
     }
-#endif /* if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL) */
+#endif
     else if (streq(p[0], "echo") || streq(p[0], "parameter"))
     {
         struct buffer string = alloc_buf_gc(OPTION_PARM_SIZE, &gc);

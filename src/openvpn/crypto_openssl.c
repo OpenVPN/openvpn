@@ -1046,11 +1046,16 @@ md_valid(const char *digest)
  * this translation table for forward lookup, only for returning the name
  * with md_kt_name() */
 const cipher_name_pair digest_name_translation_table[] = {
-    { "BLAKE2s256", "BLAKE2S-256" },  { "BLAKE2b512", "BLAKE2B-512" },
-    { "RIPEMD160", "RIPEMD-160" },    { "SHA224", "SHA2-224" },
-    { "SHA256", "SHA2-256" },         { "SHA384", "SHA2-384" },
-    { "SHA512", "SHA2-512" },         { "SHA512-224", "SHA2-512/224" },
-    { "SHA512-256", "SHA2-512/256" }, { "SHAKE128", "SHAKE-128" },
+    { "BLAKE2s256", "BLAKE2S-256" },
+    { "BLAKE2b512", "BLAKE2B-512" },
+    { "RIPEMD160", "RIPEMD-160" },
+    { "SHA224", "SHA2-224" },
+    { "SHA256", "SHA2-256" },
+    { "SHA384", "SHA2-384" },
+    { "SHA512", "SHA2-512" },
+    { "SHA512-224", "SHA2-512/224" },
+    { "SHA512-256", "SHA2-512/256" },
+    { "SHAKE128", "SHAKE-128" },
     { "SHAKE256", "SHAKE-256" },
 };
 const size_t digest_name_translation_table_count =

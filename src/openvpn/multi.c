@@ -1006,9 +1006,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 
 #ifdef PACKET_TRUNCATION_CHECK
         {
-            status_printf(
-                so,
-                "HEADER,ERRORS,Common Name,TUN Read Trunc,TUN Write Trunc,Pre-encrypt Trunc,Post-decrypt Trunc");
+            status_printf(so, "HEADER,ERRORS,Common Name,TUN Read Trunc,TUN Write Trunc,Pre-encrypt Trunc,Post-decrypt Trunc");
             hash_iterator_init(m->hash, &hi);
             while ((he = hash_iterator_next(&hi)))
             {

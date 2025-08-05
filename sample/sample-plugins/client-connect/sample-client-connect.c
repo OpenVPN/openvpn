@@ -128,9 +128,8 @@ openvpn_plugin_open_v3(const int v3structver, struct openvpn_plugin_args_open_in
     /* Check API compatibility -- struct version 5 or higher needed */
     if (v3structver < 5)
     {
-        fprintf(
-            stderr,
-            "sample-client-connect: this plugin is incompatible with the running version of OpenVPN\n");
+        fprintf(stderr,
+                "sample-client-connect: this plugin is incompatible with the running version of OpenVPN\n");
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 

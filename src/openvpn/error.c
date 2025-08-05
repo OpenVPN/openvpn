@@ -175,7 +175,7 @@ error_reset(void)
     {
         openvpn_exit(OPENVPN_EXIT_STATUS_CANNOT_OPEN_DEBUG_FILE); /* exit point */
     }
-#else /* ifdef OPENVPN_DEBUG_COMMAND_LINE */
+#else
     msgfp = NULL;
 #endif
 }

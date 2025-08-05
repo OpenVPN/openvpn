@@ -80,8 +80,7 @@ openvpn_plugin_open_v3(const int v3structver, struct openvpn_plugin_args_open_in
     /* Check that we are API compatible */
     if (v3structver != OPENVPN_PLUGINv3_STRUCTVER)
     {
-        printf(
-            "log_v3: ** ERROR ** Incompatible plug-in interface between this plug-in and OpenVPN\n");
+        printf("log_v3: ** ERROR ** Incompatible plug-in interface between this plug-in and OpenVPN\n");
         return OPENVPN_PLUGIN_FUNC_ERROR;
     }
 
