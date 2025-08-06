@@ -297,6 +297,10 @@ multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int 
 
     switch (action)
     {
+        case TA_BULK_LENG:
+            multi_process_post_part2(m, mpp_flags);
+            break;
+
         case TA_TUN_READ:
             read_incoming_tun(&m->top);
             if (!IS_SIG(&m->top))
@@ -412,6 +416,11 @@ multi_io_post(struct multi_context *m, struct multi_instance *mi, const int acti
             gc_free(&gc);
             break;
         }
+    }
+
+    if (m->bulk_leng > 0)
+    {
+        newaction = TA_BULK_LENG;
     }
 
     dmsg(D_MULTI_DEBUG, "MULTI IO: multi_io_post %s -> %s", pract(action), pract(newaction));
@@ -575,7 +584,7 @@ multi_io_action(struct multi_context *m, struct multi_instance *mi, int action, 
          * On our first pass, poll will be false because we already know
          * that input is available, and to call io_wait would be redundant.
          */
-        if (poll && action != TA_SOCKET_READ_RESIDUAL)
+        if (poll && action != TA_SOCKET_READ_RESIDUAL && action != TA_BULK_LENG)
         {
             const int orig_action = action;
             action = multi_io_wait_lite(m, mi, action, &tun_input_pending);
