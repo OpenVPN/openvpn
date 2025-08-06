@@ -79,6 +79,7 @@ void pre_select(struct context *c);
 
 void process_io(struct context *c, struct link_socket *sock);
 
+bool check_bulk_mode(struct context *c);
 
 /**********************************************************************/
 /**
@@ -195,6 +196,8 @@ bool process_incoming_link_part1(struct context *c, struct link_socket_info *lsi
  */
 void process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
                                  const uint8_t *orig_buf);
+
+void process_incoming_link_part3(struct context *c);
 
 /**
  * Transfers \c float_sa data extracted from an incoming DCO
