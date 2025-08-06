@@ -643,12 +643,6 @@ buf_write_alloc(struct buffer *buf, size_t size)
 }
 
 static inline uint8_t *
-buf_write_alloc_prepend(struct buffer *buf, int size, bool prepend)
-{
-    return prepend ? buf_prepend(buf, size) : buf_write_alloc(buf, size);
-}
-
-static inline uint8_t *
 buf_read_alloc(struct buffer *buf, int size)
 {
     uint8_t *ret;
