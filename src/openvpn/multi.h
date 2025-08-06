@@ -147,6 +147,8 @@ struct multi_instance
 #ifdef ENABLE_ASYNC_PUSH
     int inotify_watch; /* watch descriptor for acf */
 #endif
+
+    int bulk_rpid;
 };
 
 
@@ -218,6 +220,11 @@ struct multi_context
 #endif
 
     struct deferred_signal_schedule_entry deferred_shutdown_signal;
+
+    struct multi_instance *bulk_inst;
+    struct multi_instance **bulk_list;
+    int bulk_leng;
+    int bulk_flag;
 };
 
 /**
@@ -277,6 +284,7 @@ bool multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags
 #define MPP_CLOSE_ON_SIGNAL        (1 << 2)
 #define MPP_RECORD_TOUCH           (1 << 3)
 
+bool multi_process_post_part2(struct multi_context *m, const unsigned int mpp_flags);
 
 /**************************************************************************/
 /**
