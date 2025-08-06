@@ -44,6 +44,7 @@
 #define TA_INITIAL               8
 #define TA_TIMEOUT               9
 #define TA_TUN_WRITE_TIMEOUT     10
+#define TA_INST_LENG             11
 
 /*
  * I/O state and events tracker
