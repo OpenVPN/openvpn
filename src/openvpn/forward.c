@@ -46,6 +46,9 @@
 
 #include "mstats.h"
 
+#include <sys/select.h>
+#include <sys/time.h>
+
 counter_type link_read_bytes_global;  /* GLOBAL */
 counter_type link_write_bytes_global; /* GLOBAL */
 
@@ -77,6 +80,24 @@ show_wait_status(struct context *c)
 }
 
 #endif /* ifdef ENABLE_DEBUG */
+
+bool check_for_bulk_mode(struct context *c)
+{
+    if ((c->c2.frame.bulk_size > 0) && (c->c1.tuntap != NULL) && (c->c2.buffers != NULL))
+    {
+        return true;
+    }
+    return false;
+}
+
+bool check_for_bulk_data(struct context *c)
+{
+    if ((c->c2.buffers != NULL) && (c->c2.buffers->bulk_flag == -9))
+    {
+        return true;
+    }
+    return false;
+}
 
 static void
 check_tls_errors_co(struct context *c)
@@ -611,6 +632,21 @@ buffer_turnover(const uint8_t *orig_buf, struct buffer *dest_stub, struct buffer
     }
 }
 
+uint8_t *buff_prepsize(uint8_t *buff, int *size)
+{
+    buff[0] = ((*size >> 8) & 0xff);
+    buff[1] = ((*size >> 0) & 0xff);
+    buff += 2;
+    return buff;
+}
+
+uint8_t *buff_postsize(uint8_t *buff, int *size)
+{
+    *size = ((buff[0] << 8) + (buff[1] << 0));
+    buff += 2;
+    return buff;
+}
+
 /*
  * Compress, fragment, encrypt and HMAC-sign an outgoing packet.
  * Input: c->c2.buf
@@ -888,7 +924,7 @@ socks_postprocess_incoming_link(struct context *c, struct link_socket *sock)
 {
     if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
     {
-        socks_process_incoming_udp(&c->c2.buf, &c->c2.from);
+        socks_process_incoming_udp(&c->c2.buf2, &c->c2.from);
     }
 }
 
@@ -918,7 +954,7 @@ link_socket_write_post_size_adjust(int *size, int size_delta, struct buffer *buf
 }
 
 /*
- * Output: c->c2.buf
+ * Output: c->c2.buf2
  */
 
 void
@@ -934,10 +970,10 @@ read_incoming_link(struct context *c, struct link_socket *sock)
 
     perf_push(PERF_READ_IN_LINK);
 
-    c->c2.buf = c->c2.buffers->read_link_buf;
-    ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
+    c->c2.buf2 = c->c2.buffers->read_link_buf;
+    ASSERT(buf_init(&c->c2.buf2, c->c2.frame.buf.headroom));
 
-    status = link_socket_read(sock, &c->c2.buf, &c->c2.from);
+    status = link_socket_read(sock, &c->c2.buf2, &c->c2.from);
 
     if (socket_connection_reset(sock, status))
     {
@@ -993,17 +1029,17 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
     struct gc_arena gc = gc_new();
     bool decrypt_status = false;
 
-    if (c->c2.buf.len > 0)
+    if (c->c2.buf2.len > 0)
     {
-        c->c2.link_read_bytes += c->c2.buf.len;
-        link_read_bytes_global += c->c2.buf.len;
+        c->c2.link_read_bytes += c->c2.buf2.len;
+        link_read_bytes_global += c->c2.buf2.len;
 #ifdef ENABLE_MEMSTATS
         if (mmap_stats)
         {
             mmap_stats->link_read_bytes = link_read_bytes_global;
         }
 #endif
-        c->c2.original_recv_size = c->c2.buf.len;
+        c->c2.original_recv_size = c->c2.buf2.len;
     }
     else
     {
@@ -1016,21 +1052,22 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
     {
         if (!ask_gremlin(c->options.gremlin))
         {
-            c->c2.buf.len = 0;
+            c->c2.buf2.len = 0;
         }
-        corrupt_gremlin(&c->c2.buf, c->options.gremlin);
+        corrupt_gremlin(&c->c2.buf2, c->options.gremlin);
     }
 #endif
 
     /* log incoming packet */
 #ifdef LOG_RW
-    if (c->c2.log_rw && c->c2.buf.len > 0)
+    if (c->c2.log_rw && c->c2.buf2.len > 0)
     {
         fprintf(stderr, "R");
     }
 #endif
+
     msg(D_LINK_RW, "%s READ [%d] from %s: %s", proto2ascii(lsi->proto, lsi->af, true),
-        BLEN(&c->c2.buf), print_link_socket_actual(&c->c2.from, &gc), PROTO_DUMP(&c->c2.buf, &gc));
+        BLEN(&c->c2.buf2), print_link_socket_actual(&c->c2.from, &gc), PROTO_DUMP(&c->c2.buf2, &gc));
 
     /*
      * Good, non-zero length packet received.
@@ -1039,18 +1076,18 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
      * If any stage fails, it sets buf.len to 0 or -1,
      * telling downstream stages to ignore the packet.
      */
-    if (c->c2.buf.len > 0)
+    if (c->c2.buf2.len > 0)
     {
         struct crypto_options *co = NULL;
         const uint8_t *ad_start = NULL;
-        if (!link_socket_verify_incoming_addr(&c->c2.buf, lsi, &c->c2.from))
+        if (!link_socket_verify_incoming_addr(&c->c2.buf2, lsi, &c->c2.from))
         {
-            link_socket_bad_incoming_addr(&c->c2.buf, lsi, &c->c2.from);
+            link_socket_bad_incoming_addr(&c->c2.buf2, lsi, &c->c2.from);
         }
 
         if (c->c2.tls_multi)
         {
-            uint8_t opcode = *BPTR(&c->c2.buf) >> P_OPCODE_SHIFT;
+            uint8_t opcode = *BPTR(&c->c2.buf2) >> P_OPCODE_SHIFT;
 
             /*
              * If DCO is enabled, the kernel drivers require that the
@@ -1064,7 +1101,7 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
             {
                 msg(D_LINK_ERRORS, "Data Channel Offload doesn't support DATA_V1 packets. "
                                    "Upgrade your server to 2.4.5 or newer.");
-                c->c2.buf.len = 0;
+                c->c2.buf2.len = 0;
             }
 
             /*
@@ -1077,7 +1114,7 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
              * will load crypto_options with the correct encryption key
              * and return false.
              */
-            if (tls_pre_decrypt(c->c2.tls_multi, &c->c2.from, &c->c2.buf, &co, floated, &ad_start))
+            if (tls_pre_decrypt(c->c2.tls_multi, &c->c2.from, &c->c2.buf2, &co, floated, &ad_start))
             {
                 interval_action(&c->c2.tmp_int);
 
@@ -1100,12 +1137,12 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
          */
         if (c->c2.tls_multi && c->c2.tls_multi->multi_state < CAS_CONNECT_DONE)
         {
-            c->c2.buf.len = 0;
+            c->c2.buf2.len = 0;
         }
 
         /* authenticate and decrypt the incoming packet */
         decrypt_status =
-            openvpn_decrypt(&c->c2.buf, c->c2.buffers->decrypt_buf, co, &c->c2.frame, ad_start);
+            openvpn_decrypt(&c->c2.buf2, c->c2.buffers->decrypt_buf, co, &c->c2.frame, ad_start);
 
         if (!decrypt_status
             /* on the instance context we have only one socket, so just check the first one */
@@ -1130,12 +1167,12 @@ void
 process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
                             const uint8_t *orig_buf)
 {
-    if (c->c2.buf.len > 0)
+    if (c->c2.buf2.len > 0)
     {
 #ifdef ENABLE_FRAGMENT
         if (c->c2.fragment)
         {
-            fragment_incoming(c->c2.fragment, &c->c2.buf, &c->c2.frame_fragment);
+            fragment_incoming(c->c2.fragment, &c->c2.buf2, &c->c2.frame_fragment);
         }
 #endif
 
@@ -1143,14 +1180,14 @@ process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
         /* decompress the incoming packet */
         if (c->c2.comp_context)
         {
-            (*c->c2.comp_context->alg.decompress)(&c->c2.buf, c->c2.buffers->decompress_buf,
+            (*c->c2.comp_context->alg.decompress)(&c->c2.buf2, c->c2.buffers->decompress_buf,
                                                   c->c2.comp_context, &c->c2.frame);
         }
 #endif
 
 #ifdef PACKET_TRUNCATION_CHECK
-        /* if (c->c2.buf.len > 1) --c->c2.buf.len; */
-        ipv4_packet_size_verify(BPTR(&c->c2.buf), BLEN(&c->c2.buf), TUNNEL_TYPE(c->c1.tuntap),
+        /* if (c->c2.buf2.len > 1) --c->c2.buf2.len; */
+        ipv4_packet_size_verify(BPTR(&c->c2.buf2), BLEN(&c->c2.buf2), TUNNEL_TYPE(c->c1.tuntap),
                                 "POST_DECRYPT", &c->c2.n_trunc_post_decrypt);
 #endif
 
@@ -1163,44 +1200,64 @@ process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
          *
          * Also, update the persisted version of our packet-id.
          */
-        if (!TLS_MODE(c) && c->c2.buf.len > 0)
+        if (!TLS_MODE(c) && c->c2.buf2.len > 0)
         {
             link_socket_set_outgoing_addr(lsi, &c->c2.from, NULL, c->c2.es);
         }
 
         /* reset packet received timer */
-        if (c->options.ping_rec_timeout && c->c2.buf.len > 0)
+        if (c->options.ping_rec_timeout && c->c2.buf2.len > 0)
         {
             event_timeout_reset(&c->c2.ping_rec_interval);
         }
 
         /* increment authenticated receive byte count */
-        if (c->c2.buf.len > 0)
+        if (c->c2.buf2.len > 0)
         {
-            c->c2.link_read_bytes_auth += c->c2.buf.len;
+            c->c2.link_read_bytes_auth += c->c2.buf2.len;
             c->c2.max_recv_size_local =
                 max_int(c->c2.original_recv_size, c->c2.max_recv_size_local);
         }
 
         /* Did we just receive an openvpn ping packet? */
-        if (is_ping_msg(&c->c2.buf))
+        if (is_ping_msg(&c->c2.buf2))
         {
             dmsg(D_PING, "RECEIVED PING PACKET");
-            c->c2.buf.len = 0; /* drop packet */
+            c->c2.buf2.len = 0; /* drop packet */
         }
 
         /* Did we just receive an OCC packet? */
-        if (is_occ_msg(&c->c2.buf))
+        if (is_occ_msg(&c->c2.buf2))
         {
             process_received_occ_msg(c);
         }
 
-        buffer_turnover(orig_buf, &c->c2.to_tun, &c->c2.buf, &c->c2.buffers->read_link_buf);
+        buffer_turnover(orig_buf, &c->c2.to_tun, &c->c2.buf2, &c->c2.buffers->read_link_buf);
 
         /* to_tun defined + unopened tuntap can cause deadlock */
         if (!tuntap_defined(c->c1.tuntap))
         {
             c->c2.to_tun.len = 0;
+        }
+    }
+    else
+    {
+        buf_reset(&c->c2.to_tun);
+    }
+}
+
+void process_incoming_link_part3(struct context *c)
+{
+    int leng = BLEN(&c->c2.buf2);
+    if (leng > 0)
+    {
+        if (check_for_bulk_mode(c))
+        {
+            c->c2.buffers->send_tun_max.offset = TUN_BAT_OFF;
+            c->c2.buffers->send_tun_max.len = leng;
+            bcopy(BPTR(&c->c2.buf2), BPTR(&c->c2.buffers->send_tun_max), leng);
+            c->c2.to_tun.offset += 2;
+            c->c2.buf2.offset += 2;
         }
     }
     else
@@ -1215,10 +1272,11 @@ process_incoming_link(struct context *c, struct link_socket *sock)
     perf_push(PERF_PROC_IN_LINK);
 
     struct link_socket_info *lsi = &sock->info;
-    const uint8_t *orig_buf = c->c2.buf.data;
+    const uint8_t *orig_buf = c->c2.buf2.data;
 
     process_incoming_link_part1(c, lsi, false);
     process_incoming_link_part2(c, lsi, orig_buf);
+    process_incoming_link_part3(c);
 
     perf_pop();
 }
@@ -1319,7 +1377,7 @@ process_incoming_dco(struct context *c)
  */
 
 void
-read_incoming_tun(struct context *c)
+read_incoming_tun_part2(struct context *c)
 {
     /*
      * Setup for read() call on TUN/TAP device.
@@ -1378,6 +1436,54 @@ read_incoming_tun(struct context *c)
     check_status(c->c2.buf.len, "read from TUN/TAP", NULL, c->c1.tuntap);
 
     perf_pop();
+}
+
+void read_incoming_tun_part3(struct context *c)
+{
+    fd_set rfds;
+    struct timeval timo;
+    if (check_for_bulk_mode(c))
+    {
+        int plen = 0, pidx = -1;
+        int fdno = c->c1.tuntap->fd;
+        for (int x = 0; x < TUN_BAT_MIN; ++x)
+        {
+            int leng = plen, indx = (pidx + 1);
+            if (leng < 1)
+            {
+                FD_ZERO(&rfds);
+                FD_SET(fdno, &rfds);
+                timo.tv_sec = 0;
+                timo.tv_usec = 0;
+                select(fdno+1, &rfds, NULL, NULL, &timo);
+                if (FD_ISSET(fdno, &rfds))
+                {
+                    read_incoming_tun_part2(c);
+                    plen = BLEN(&c->c2.buf);
+                } else { break; }
+            }
+            leng = plen;
+            if (leng > 0)
+            {
+                c->c2.buffers->read_tun_bufs[indx].offset = TUN_BAT_OFF;
+                c->c2.buffers->read_tun_bufs[indx].len = leng;
+                bcopy(BPTR(&c->c2.buf), BPTR(&c->c2.buffers->read_tun_bufs[indx]), leng);
+                c->c2.bufs[indx] = c->c2.buffers->read_tun_bufs[indx];
+                pidx = indx;
+            } else { break; }
+            plen = 0;
+        }
+        c->c2.buffers->bulk_indx = pidx;
+    }
+}
+
+void read_incoming_tun(struct context *c)
+{
+    if (!check_for_bulk_mode(c))
+    {
+        read_incoming_tun_part2(c);
+    }
+    read_incoming_tun_part3(c);
 }
 
 /**
@@ -1467,7 +1573,7 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
  */
 
 void
-process_incoming_tun(struct context *c, struct link_socket *out_sock)
+process_incoming_tun_part2(struct context *c, struct link_socket *out_sock)
 {
     struct gc_arena gc = gc_new();
 
@@ -1486,7 +1592,7 @@ process_incoming_tun(struct context *c, struct link_socket *out_sock)
 #endif
 
     /* Show packet content */
-    dmsg(D_TUN_RW, "TUN READ [%d]", BLEN(&c->c2.buf));
+    dmsg(D_TUN_RW, "TUN READ [%d] [%d]", BLEN(&c->c2.buf), c->c2.frame.buf.payload_size);
 
     if (c->c2.buf.len > 0)
     {
@@ -1510,7 +1616,10 @@ process_incoming_tun(struct context *c, struct link_socket *out_sock)
     }
     if (c->c2.buf.len > 0)
     {
-        encrypt_sign(c, true);
+        if (!check_for_bulk_data(c))
+        {
+            encrypt_sign(c, true);
+        }
     }
     else
     {
@@ -1518,6 +1627,66 @@ process_incoming_tun(struct context *c, struct link_socket *out_sock)
     }
     perf_pop();
     gc_free(&gc);
+}
+
+void process_incoming_tun_part3(struct context *c, struct link_socket *out_sock)
+{
+    if (c->c2.buf.len > 0)
+    {
+        if (check_for_bulk_mode(c))
+        {
+            c->c2.buffers->bulk_flag = -9;
+            c->c2.buffers->read_tun_max.offset = TUN_BAT_OFF;
+            c->c2.buffers->read_tun_max.len = 0;
+            uint8_t *temp = BPTR(&c->c2.buffers->read_tun_max);
+            int plen = 0, fdno = c->c1.tuntap->fd;
+            int maxl = 0, leng = (c->c2.buffers->bulk_indx + 1);
+            if ((fdno > 0) && (leng > 0))
+            {
+                for (int x = 0; x < leng; ++x)
+                {
+                    c->c2.buf = c->c2.bufs[x];
+                    process_incoming_tun_part2(c, out_sock);
+                    if (BLEN(&c->c2.buf) < 1)
+                    {
+                        c->c2.bufs[x].len = 0;
+                    }
+                }
+                for (int x = 0; x < leng; ++x)
+                {
+                    plen = c->c2.bufs[x].len;
+                    if (plen > 0)
+                    {
+                        temp = buff_prepsize(temp, &plen);
+                        bcopy(BPTR(&c->c2.bufs[x]), temp, plen);
+                        temp += plen; maxl += (plen + 2);
+                    }
+                }
+                if (maxl > 0)
+                {
+                    c->c2.buffers->read_tun_max.offset = TUN_BAT_OFF;
+                    c->c2.buffers->read_tun_max.len = maxl;
+                    c->c2.buf = c->c2.buffers->read_tun_max;
+                    encrypt_sign(c, true);
+                }
+            }
+            c->c2.buffers->bulk_indx = -1;
+            c->c2.buffers->bulk_flag = -1;
+        }
+    }
+    else
+    {
+        buf_reset(&c->c2.to_link);
+    }
+}
+
+void process_incoming_tun(struct context *c, struct link_socket *out_sock)
+{
+    if (!check_for_bulk_mode(c))
+    {
+        process_incoming_tun_part2(c, out_sock);
+    }
+    process_incoming_tun_part3(c, out_sock);
 }
 
 /**
@@ -1746,7 +1915,7 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
 
     perf_push(PERF_PROC_OUT_LINK);
 
-    if (c->c2.to_link.len > 0 && c->c2.to_link.len <= c->c2.frame.buf.payload_size)
+    if (c->c2.to_link.len > 0 && (c->c2.to_link.len <= c->c2.frame.buf.payload_size || c->c2.frame.bulk_size > 0))
     {
         /*
          * Setup for call to send/sendto which will send
@@ -1791,6 +1960,7 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
                 fprintf(stderr, "W");
             }
 #endif
+
             msg(D_LINK_RW, "%s WRITE [%d] to %s: %s",
                 proto2ascii(sock->info.proto, sock->info.af, true), BLEN(&c->c2.to_link),
                 print_link_socket_actual(c->c2.to_link_addr, &gc), PROTO_DUMP(&c->c2.to_link, &gc));
@@ -1882,7 +2052,7 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
  */
 
 void
-process_outgoing_tun(struct context *c, struct link_socket *in_sock)
+process_outgoing_tun_part2(struct context *c, struct link_socket *in_sock)
 {
     /*
      * Set up for write() call to TUN/TAP
@@ -1915,7 +2085,8 @@ process_outgoing_tun(struct context *c, struct link_socket *in_sock)
             fprintf(stderr, "w");
         }
 #endif
-        dmsg(D_TUN_RW, "TUN WRITE [%d]", BLEN(&c->c2.to_tun));
+
+        dmsg(D_TUN_RW, "TUN WRITE [%d] [%d]", BLEN(&c->c2.to_tun), c->c2.frame.buf.payload_size);
 
 #ifdef PACKET_TRUNCATION_CHECK
         ipv4_packet_size_verify(BPTR(&c->c2.to_tun), BLEN(&c->c2.to_tun), TUNNEL_TYPE(c->c1.tuntap),
@@ -1969,6 +2140,40 @@ process_outgoing_tun(struct context *c, struct link_socket *in_sock)
     buf_reset(&c->c2.to_tun);
 
     perf_pop();
+}
+
+void process_outgoing_tun_part3(struct context *c, struct link_socket *in_sock)
+{
+    if (check_for_bulk_mode(c))
+    {
+        int maxl = 0, plen = 0;
+        int leng = BLEN(&c->c2.buffers->send_tun_max);
+        uint8_t *temp = BPTR(&c->c2.buffers->send_tun_max);
+        for (int x = 0; x < TUN_BAT_MIN; ++x)
+        {
+            temp = buff_postsize(temp, &plen);
+            if ((leng > 0) && (plen > 0) && ((maxl + plen) < leng))
+            {
+                c->c2.to_tun = c->c2.buffers->to_tun_max;
+                c->c2.to_tun.offset = TUN_BAT_OFF;
+                c->c2.to_tun.len = plen;
+                bcopy(temp, BPTR(&c->c2.to_tun), plen);
+                temp += plen; maxl += (plen + 2);
+                process_outgoing_tun_part2(c, in_sock);
+            } else { break; }
+        }
+        c->c2.buffers->send_tun_max.len = 0;
+    }
+    buf_reset(&c->c2.to_tun);
+}
+
+void process_outgoing_tun(struct context *c, struct link_socket *in_sock)
+{
+    if (!check_for_bulk_mode(c))
+    {
+        process_outgoing_tun_part2(c, in_sock);
+    }
+    process_outgoing_tun_part3(c, in_sock);
 }
 
 #if defined(__GNUC__) || defined(__clang__)
