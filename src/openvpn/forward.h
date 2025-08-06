@@ -34,6 +34,11 @@
  * file
  */
 
+#define BULK_MODE(c) (c && c->c2.frame.bulk_size > 0)
+#define BULK_DATA(b) (b && (b->bulk_leng > 0) && (b->bulk_indx < b->bulk_leng))
+#define INST_LENG(a) (a && (a->inst_leng > 0) && (a->inst_indx < a->inst_leng) && (a->pending == NULL))
+#define LINK_LEFT(i) (i && sockets_read_residual(i))
+
 #define TUN_OUT(c)  (BLEN(&(c)->c2.to_tun) > 0)
 #define LINK_OUT(c) (BLEN(&(c)->c2.to_link) > 0)
 #define ANY_OUT(c)  (TUN_OUT(c) || LINK_OUT(c))
@@ -195,6 +200,8 @@ bool process_incoming_link_part1(struct context *c, struct link_socket_info *lsi
  */
 void process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
                                  const uint8_t *orig_buf);
+
+void process_incoming_link_part3(struct context *c);
 
 /**
  * Transfers \c float_sa data extracted from an incoming DCO
