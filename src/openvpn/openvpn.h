@@ -112,6 +112,14 @@ struct context_buffers
      */
     struct buffer read_link_buf;
     struct buffer read_tun_buf;
+
+    struct buffer read_tun_bufs[TUN_BAT_MAX];
+    struct buffer read_tun_max;
+    struct buffer send_tun_max;
+    struct buffer to_tun_max;
+
+    int bulk_indx;
+    int bulk_flag;
 };
 
 /*
@@ -373,8 +381,11 @@ struct context_2
      * struct context_buffers.
      */
     struct buffer buf;
+    struct buffer buf2;
     struct buffer to_tun;
     struct buffer to_link;
+
+    struct buffer bufs[TUN_BAT_MAX];
 
     /* should we print R|W|r|w to console on packet transfers? */
     bool log_rw;
