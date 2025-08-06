@@ -3414,6 +3414,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                 }
 
                 process_incoming_link_part2(c, lsi, orig_buf);
+                process_incoming_link_part3(c);
             }
             perf_pop();
 
@@ -3558,9 +3559,7 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
         const int dev_type = TUNNEL_TYPE(m->top.c1.tuntap);
         int16_t vid = 0;
 
-#ifdef MULTI_DEBUG_EVENT_LOOP
-        printf("TUN -> TCP/UDP [%d]\n", BLEN(&m->top.c2.buf));
-#endif
+        msg(D_MULTI_DEBUG, "TUN -> TCP/UDP [%d]", BLEN(&m->top.c2.buf));
 
         if (m->pending)
         {
@@ -3610,6 +3609,8 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
                         {
                             /* transfer packet pointer from top-level context buffer to instance */
                             c->c2.buf = m->top.c2.buf;
+                            /* todo determine if to call this (multi_process_incoming_tun) for each bulk item read? */
+                            xfer_io(c, &m->top);
                         }
                         else
                         {
