@@ -218,6 +218,10 @@ struct multi_context
 #endif
 
     struct deferred_signal_schedule_entry deferred_shutdown_signal;
+
+    int inst_indx;
+    int inst_leng;
+    struct multi_instance **inst_list;
 };
 
 /**
@@ -257,6 +261,7 @@ struct multi_route
  */
 void tunnel_server(struct context *top);
 
+int min_max(int a, int b, int c);
 
 const char *multi_instance_string(const struct multi_instance *mi, bool null, struct gc_arena *gc);
 
@@ -359,6 +364,9 @@ bool multi_process_incoming_link(struct multi_context *m, struct multi_instance 
  */
 bool multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags);
 
+bool multi_process_post_part2(struct multi_context *m, const unsigned int mpp_flags);
+
+bool multi_in_tun(struct multi_context *m, const unsigned int mpp_flags);
 
 void multi_process_drop_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags);
 
