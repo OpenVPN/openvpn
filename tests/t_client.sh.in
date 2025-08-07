@@ -377,13 +377,13 @@ do
     $RUN_SUDO "${openvpn}" $openvpn_conf >>$LOGDIR/$SUF:openvpn.log &
     sudopid=$!
 
-    # Check if OpenVPN has initialized before continuing.  It will check every 3rd second up
+    # Check if OpenVPN has initialized before continuing.  It will check every second up
     # to $ovpn_init_check times.
-    ovpn_init_check=10
+    ovpn_init_check=30
     ovpn_init_success=0
     while [ $ovpn_init_check -gt 0 ];
     do
-       sleep 3  # Wait for OpenVPN to initialize and have had time to write the pid file
+       sleep 1  # Wait for OpenVPN to initialize and have had time to write the pid file
        grep "Initialization Sequence Completed" $LOGDIR/$SUF:openvpn.log >/dev/null
        if [ $? -eq 0 ]; then
            ovpn_init_check=0
