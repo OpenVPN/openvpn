@@ -59,6 +59,14 @@
 #define TUN_MTU_MIN 100
 
 /*
+ * Bulk mode static define values.
+ */
+#define TUN_BAT_MIN        6
+#define TUN_BAT_MAX        9
+#define TUN_BAT_OFF        256
+#define TUN_BAT_NOP        0
+
+/*
  * Default MTU of network over which tunnel data will pass by TCP/UDP.
  */
 #define LINK_MTU_DEFAULT 1500
@@ -152,6 +160,10 @@ struct frame
                             *   which defaults to 0 for tun and 32
                             *   (\c TAP_MTU_EXTRA_DEFAULT) for tap.
                             *   */
+
+    int bulk_size;              /**< Signal to the init frame function
+                                 *   to allow for bulk mode TCP transfers.
+                                 *   */
 };
 
 /* Forward declarations, to prevent includes */
@@ -171,6 +183,7 @@ struct options;
  * larger than the headroom.
  */
 #define BUF_SIZE(f) ((f)->buf.headroom + (f)->buf.payload_size + (f)->buf.tailroom)
+#define BAT_SIZE(a, b, c) ((a * b) + c)
 
 /*
  * Function prototypes.
