@@ -1246,6 +1246,11 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu, const struc
     bool tun_p2p = is_tun_p2p(tt);
 #endif
 
+    if (tt->skip_bind == -1)
+    {
+        tt->local = htonl(inet_addr("127.1.1.1"));
+    }
+
 #if !defined(TARGET_LINUX)
     const char *ifconfig_local = NULL;
     const char *ifconfig_remote_netmask = NULL;
@@ -1755,7 +1760,7 @@ write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -2044,7 +2049,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
@@ -2263,7 +2268,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
@@ -2843,7 +2848,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -2989,7 +2994,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -3088,7 +3093,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -3343,7 +3348,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -3489,7 +3494,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
@@ -6541,7 +6546,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
