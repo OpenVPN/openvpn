@@ -46,7 +46,9 @@
 #include "memdbg.h"
 
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 counter_type link_read_bytes_global;  /* GLOBAL */
 counter_type link_write_bytes_global; /* GLOBAL */
@@ -1358,8 +1360,7 @@ read_incoming_tun_part2(struct context *c)
     ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
     if (c->c1.tuntap->backend_driver == DRIVER_AFUNIX)
     {
-        c->c2.buf.len =
-            read_tun_afunix(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
+        c->c2.buf.len = read_tun_afunix(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
     }
     else
     {
@@ -2511,8 +2512,28 @@ io_wait_dowork(struct context *c, const unsigned int flags)
     dmsg(D_EVENT_WAIT, "I/O WAIT status=0x%04x", c->c2.event_set_status);
 }
 
+void threaded_fwd_inp_intf(struct context *c, struct link_socket *sock, struct thread_pointer *b)
+{
+    if (b->p->h == b->p->n)
+    {
+        ssize_t size;
+        uint8_t temp[1];
+        size = read(c->c1.tuntap->fd, temp, 1);
+        if (size < 1) { /* no-op */ }
+        if (!IS_SIG(c))
+        {
+            if (!BULK_MODE(c))
+            {
+                c->c2.buf = c->c2.buffers->read_tun_buf;
+            }
+            process_incoming_tun(c, sock);
+        }
+        size = write(c->c1.tuntap->fz, temp, 1);
+    }
+}
+
 void
-process_io(struct context *c, struct link_socket *sock)
+process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b)
 {
     const unsigned int status = c->c2.event_set_status;
 
@@ -2546,11 +2567,7 @@ process_io(struct context *c, struct link_socket *sock)
     /* Incoming data on TUN device */
     else if (status & TUN_READ)
     {
-        read_incoming_tun(c);
-        if (!IS_SIG(c))
-        {
-            process_incoming_tun(c, sock);
-        }
+        threaded_fwd_inp_intf(c, sock, b);
     }
     else if (status & DCO_READ)
     {
