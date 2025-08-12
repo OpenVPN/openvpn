@@ -47,6 +47,17 @@
 #include "dns.h"
 
 /*
+    mtio mode commit notes:
+      - maps size hash modp >= 2^14  16384
+      - briefly track && map a connection state to a given available thread to ensure packet ordering
+      - Use a simple calculation based on src && dst IP addresses to get a starting list index value
+*/
+
+#define MAX_THREADS 4
+#define MAX_STRLENG 64
+#define MAX_CSTATES 16421
+
+/*
  * Our global key schedules, packaged thusly
  * to facilitate key persistence.
  */
@@ -518,12 +529,86 @@ struct context
     bool did_we_daemonize;       /**< Whether demonization has already
                                   *   taken place. */
 
+    int skip_bind;
+
     struct context_persist persist;
     /**< Persistent %context. */
     struct context_0 *c0; /**< Level 0 %context. */
     struct context_1 c1;  /**< Level 1 %context. */
     struct context_2 c2;  /**< Level 2 %context. */
 };
+
+
+#define HASH_PART(a, s, p, q) ((((a >> s) & 0xff) + p) * q)
+
+struct context_pointer
+{
+    int i, h, n, x, z;
+    int s[MAX_THREADS][2];
+    int r[MAX_THREADS][2];
+    struct context *c;
+    struct multi_context **m;
+    struct multi_context *p;
+    struct multi_link *k;
+    pthread_mutex_t *l;
+};
+
+struct thread_pointer
+{
+    int i, n, h;
+    struct context *c;
+    struct context_pointer *p;
+};
+
+struct multi_address
+{
+    char ladr[MAX_STRLENG];
+    char wadr[MAX_STRLENG];
+    char comm[MAX_STRLENG];
+    char user[MAX_STRLENG];
+    char uniq[MAX_STRLENG];
+    time_t last;
+    in_addr_t addr;
+};
+
+struct multi_link
+{
+    int indx;
+    char uniq[MAX_STRLENG];
+    time_t last;
+    struct multi_address adrs[MAX_THREADS];
+};
+
+struct multi_info
+{
+    int maxt, maxc;
+    int *indx, *hold;
+    struct ifconfig_pool *pool;
+    pthread_mutex_t *lock;
+    struct multi_link *link;
+};
+
+struct mtio_args
+{
+    char *pref;
+    int expr;
+    int *thid;
+    uint8_t *busy;
+    int notl;
+    in_addr_t *nots;
+    int mskl;
+    in_addr_t *msks;
+};
+
+struct mtio_cons
+{
+    int thid;
+    time_t last;
+    in_addr_t srca, dsta;
+};
+
+void *threaded_io_management(void *a);
+
 
 /*
  * Check for a signal when inside an event loop
