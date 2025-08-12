@@ -180,6 +180,10 @@ struct connection_entry
 
     /* Bulk mode allows for multiple tun reads + larger tcp writes */
     bool bulk_mode;
+
+    /* Multi threaded IO mode operates on a primary tun interface + multiple tcp connections */
+    bool mtio_mode;
+    int mtio_time;
 };
 
 struct remote_entry
