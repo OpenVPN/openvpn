@@ -307,6 +307,7 @@ static const char usage_message[] =
     "                  'yes'   -- Always DF (Don't Fragment)\n"
     "--mtu-test      : Empirically measure and report MTU.\n"
     "--bulk-mode     : Use bulk TUN/TCP reads/writes.\n"
+    "--mtio-mode n   : Use multi threaded mode. (optional expire time: n=30)\n"
 #ifdef ENABLE_FRAGMENT
     "--fragment max  : Enable internal datagram fragmentation so that no UDP\n"
     "                  datagrams are sent which are larger than max bytes.\n"
@@ -9291,6 +9292,19 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "bulk-mode"))
     {
         options->ce.bulk_mode = true;
+    }
+    else if (streq(p[0], "mtio-mode"))
+    {
+        options->ce.mtio_mode = true;
+        options->ce.mtio_time = 30;
+        if (p[1])
+        {
+            int mtio_time = positive_atoi(p[1], msglevel);
+            if ((5 <= mtio_time) && (mtio_time <= 9995))
+            {
+                options->ce.mtio_time = mtio_time;
+            }
+        }
     }
     else
     {
