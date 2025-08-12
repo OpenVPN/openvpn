@@ -1915,6 +1915,7 @@ do_open_tun(struct context *c, int *error_flags)
         }
 
         /* do ifconfig */
+        c->c1.tuntap->skip_bind = c->skip_bind;
         if (!ifconfig_noexec_enabled(c) && ifconfig_order(c->c1.tuntap) == IFCONFIG_BEFORE_TUN_OPEN)
         {
             /* guess actual tun/tap unit number that will be returned
@@ -2007,6 +2008,10 @@ do_open_tun(struct context *c, int *error_flags)
         }
 
         add_wfp_block(c);
+    }
+    if (c->c1.tuntap)
+    {
+        c->c1.tuntap->fe = c->c1.tuntap->fd;
     }
     gc_free(&gc);
     return ret;

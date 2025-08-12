@@ -177,6 +177,10 @@ struct connection_entry
 
     /* Bulk mode allows for multiple tun reads + larger tcp writes */
     bool bulk_mode;
+
+    /* mtio mode */
+    bool mtio_mode;
+    int mtio_flag;
 };
 
 struct remote_entry

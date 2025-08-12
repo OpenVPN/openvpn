@@ -77,7 +77,7 @@ void io_wait_dowork(struct context *c, const unsigned int flags);
 
 void pre_select(struct context *c);
 
-void process_io(struct context *c, struct link_socket *sock);
+void process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b);
 
 bool check_bulk_mode(struct context *c);
 

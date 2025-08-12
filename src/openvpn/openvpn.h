@@ -46,6 +46,8 @@
 #include "manage.h"
 #include "dns.h"
 
+#define MAX_THREADS 4
+
 /*
  * Our global key schedules, packaged thusly
  * to facilitate key persistence.
@@ -521,12 +523,57 @@ struct context
     bool did_we_daemonize;       /**< Whether demonization has already
                                   *   taken place. */
 
+    int skip_bind;
+
     struct context_persist persist;
     /**< Persistent %context. */
     struct context_0 *c0; /**< Level 0 %context. */
     struct context_1 c1;  /**< Level 1 %context. */
     struct context_2 c2;  /**< Level 2 %context. */
 };
+
+
+struct context_pointer
+{
+    int i, h, n, x, z;
+    int s[MAX_THREADS][2];
+    int r[MAX_THREADS][2];
+    struct context *c;
+    struct multi_context **m;
+    struct multi_context *p;
+    struct multi_address *a;
+    pthread_mutex_t *l;
+};
+
+struct thread_pointer
+{
+    int i, n, h;
+    struct context *c;
+    struct context_pointer *p;
+};
+
+struct multi_address
+{
+    int indx, stat;
+    char lans[64];
+    char wans[64];
+    char usrs[64];
+    time_t last;
+    in_addr_t ladr[MAX_THREADS];
+    pthread_mutex_t lock;
+};
+
+struct multi_info
+{
+    int maxt, maxc;
+    int *indx, *hold;
+    struct ifconfig_pool *pool;
+    pthread_mutex_t *lock;
+    struct multi_address *addr;
+};
+
+void *threaded_io_management(void *args);
+
 
 /*
  * Check for a signal when inside an event loop
