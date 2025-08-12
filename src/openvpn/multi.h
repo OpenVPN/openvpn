@@ -149,6 +149,11 @@ struct multi_instance
 #endif
 
     int bulk_rpid;
+    int mtio_idno;
+    int mtio_flag;
+    char mtio_lans[64];
+    char mtio_wans[64];
+    char mtio_user[64];
 };
 
 
@@ -223,9 +228,16 @@ struct multi_context
 
     struct multi_instance *bulk_inst;
     struct multi_instance **bulk_list;
+    struct ifconfig_pool *mtio_pool;
     int bulk_leng;
     int bulk_flag;
+    int mtio_idno;
+    int mtio_leng;
+    int *mtio_indx;
+    pthread_mutex_t *mtio_lock;
+    struct multi_info mtio_ptrs;
 };
+
 
 /**
  * Return values used by the client connect call-back functions.
@@ -262,8 +274,9 @@ struct multi_route
  *
  * @param top          - Top-level context structure.
  */
-void tunnel_server(struct context *top);
+void threaded_tunnel_server(struct context *c, struct context *d);
 
+bool multi_context_switch_addr(struct multi_context *m, struct multi_instance *i);
 
 const char *multi_instance_string(const struct multi_instance *mi, bool null, struct gc_arena *gc);
 
@@ -271,9 +284,7 @@ const char *multi_instance_string(const struct multi_instance *mi, bool null, st
  * Called by mtcp.c, mudp.c, or other (to be written) protocol drivers
  */
 
-struct multi_instance *multi_create_instance(struct multi_context *m,
-                                             const struct mroute_addr *real,
-                                             struct link_socket *sock);
+struct multi_instance *multi_create_instance(struct multi_args *a, const struct mroute_addr *real, struct link_socket *sock);
 
 void multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool shutdown);
 
@@ -284,6 +295,7 @@ bool multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags
 #define MPP_CLOSE_ON_SIGNAL        (1 << 2)
 #define MPP_RECORD_TOUCH           (1 << 3)
 
+bool multi_read_incoming_tun(struct multi_context *m, const unsigned int mpp_flags);
 bool multi_process_post_part2(struct multi_context *m, const unsigned int mpp_flags);
 
 /**************************************************************************/

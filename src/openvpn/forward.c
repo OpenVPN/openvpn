@@ -47,7 +47,9 @@
 #include "mstats.h"
 
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 counter_type link_read_bytes_global;  /* GLOBAL */
 counter_type link_write_bytes_global; /* GLOBAL */
@@ -2521,8 +2523,25 @@ io_wait_dowork(struct context *c, const unsigned int flags)
     dmsg(D_EVENT_WAIT, "I/O WAIT status=0x%04x", c->c2.event_set_status);
 }
 
+void threaded_io_tun(struct context *c, struct link_socket *sock, struct thread_pointer *b)
+{
+    if (b->i != b->p->i)
+    {
+        if (pthread_mutex_trylock(&(b->p->l)) == 0)
+        {
+            read_incoming_tun(c);
+            b->p->i = b->i;
+            pthread_mutex_unlock(&(b->p->l));
+            if (!IS_SIG(c))
+            {
+                process_incoming_tun(c, sock);
+            }
+        }
+    }
+}
+
 void
-process_io(struct context *c, struct link_socket *sock)
+process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b)
 {
     const unsigned int status = c->c2.event_set_status;
 
@@ -2556,10 +2575,20 @@ process_io(struct context *c, struct link_socket *sock)
     /* Incoming data on TUN device */
     else if (status & TUN_READ)
     {
-        read_incoming_tun(c);
-        if (!IS_SIG(c))
+        if (b->p->n > 1)
         {
-            process_incoming_tun(c, sock);
+            if (b->p->h == b->p->n)
+            {
+                threaded_io_tun(c, sock, b);
+            }
+        }
+        else
+        {
+            read_incoming_tun(c);
+            if (!IS_SIG(c))
+            {
+                process_incoming_tun(c, sock);
+            }
         }
     }
     else if (status & DCO_READ)
