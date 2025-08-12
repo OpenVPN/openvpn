@@ -305,6 +305,7 @@ static const char usage_message[] =
     "                  'yes'   -- Always DF (Don't Fragment)\n"
     "--mtu-test      : Empirically measure and report MTU.\n"
     "--bulk-mode     : Use bulk TUN/TCP reads/writes.\n"
+    "--mtio-mode     : Use multi threaded mode.\n"
 #ifdef ENABLE_FRAGMENT
     "--fragment max  : Enable internal datagram fragmentation so that no UDP\n"
     "                  datagrams are sent which are larger than max bytes.\n"
@@ -3008,6 +3009,14 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
         }
         if (ce->proto != PROTO_TCP && ce->proto != PROTO_TCP_SERVER && ce->proto != PROTO_TCP_CLIENT) {
             ce->bulk_mode = false;
+        }
+        if (ce->mtio_mode == true) {
+            if (ce->proto == PROTO_TCP_CLIENT) {
+                ce->mtio_flag = 1;
+            }
+            if (ce->proto == PROTO_TCP_SERVER) {
+                ce->mtio_flag = 2;
+            }
         }
     }
 
@@ -9933,6 +9942,10 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "bulk-mode"))
     {
         options->ce.bulk_mode = true;
+    }
+    else if (streq(p[0], "mtio-mode"))
+    {
+        options->ce.mtio_mode = true;
     }
     else
     {

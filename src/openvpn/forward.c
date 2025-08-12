@@ -47,7 +47,9 @@
 #include "mstats.h"
 
 #include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 counter_type link_read_bytes_global;  /* GLOBAL */
 counter_type link_write_bytes_global; /* GLOBAL */
@@ -2560,6 +2562,75 @@ process_io(struct context *c, struct link_socket *sock)
         if (!IS_SIG(c))
         {
             process_incoming_tun(c, sock);
+        }
+    }
+    else if (status & DCO_READ)
+    {
+        if (!IS_SIG(c))
+        {
+            process_incoming_dco(c);
+        }
+    }
+}
+
+bool threaded_lock(struct thread_pointer *b)
+{
+    if (pthread_mutex_trylock(&(b->p->m)) == 0)
+    {
+        if (b->p->f == 0)
+        {
+            b->p->f = b->n;
+        }
+        pthread_mutex_unlock(&(b->p->m));
+    }
+    if (b->p->f == b->n) { return true; }
+    return false;
+}
+
+void threaded_io(struct context *c, struct link_socket *sock, struct thread_pointer *b)
+{
+    const unsigned int status = c->c2.event_set_status;
+
+#ifdef ENABLE_MANAGEMENT
+    if (status & (MANAGEMENT_READ | MANAGEMENT_WRITE))
+    {
+        ASSERT(management);
+        management_io(management);
+    }
+#endif
+
+    //msg(M_INFO, "MTIO MODE DEBUG PROC [%d] [%d][%d][%d][%d] [%d] [%d][%d][%p]",status,SOCKET_READ,SOCKET_WRITE,TUN_READ,TUN_WRITE,sock->sd,b->n,b->l,c->c2.buffers);
+
+    /* TCP/UDP port ready to accept write */
+    if (status & SOCKET_WRITE)
+    {
+        process_outgoing_link(c, sock);
+    }
+    /* TUN device ready to accept write */
+    else if (status & TUN_WRITE)
+    {
+        process_outgoing_tun(c, sock);
+    }
+    /* Incoming data on TCP/UDP port */
+    else if (status & SOCKET_READ)
+    {
+        read_incoming_link(c, sock);
+        if (!IS_SIG(c))
+        {
+            process_incoming_link(c, sock);
+        }
+    }
+    /* Incoming data on TUN device */
+    else if (status & TUN_READ)
+    {
+        if (threaded_lock(b))
+        {
+            read_incoming_tun(c);
+            b->p->f = 0;
+            if (!IS_SIG(c))
+            {
+                process_incoming_tun(c, sock);
+            }
         }
     }
     else if (status & DCO_READ)

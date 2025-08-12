@@ -53,9 +53,16 @@ process_signal_p2p(struct context *c)
  *
  * @param c - The context structure of the single active VPN tunnel.
  */
-static void
-tunnel_point_to_point(struct context *c)
+void *
+tunnel_point_to_point(void *a)
 {
+    struct thread_pointer *b = (struct thread_pointer *)a;
+    struct context_pointer *p = b->p;
+    struct context *c = (b->n == 1) ? p->c : b->c;
+    struct context *d = (b->n == 1) ? b->c : p->c;
+    int hold = 0;
+    int flag = c->options.ce.mtio_flag;
+
     context_clear_2(c);
 
     /* set point-to-point mode */
@@ -66,12 +73,28 @@ tunnel_point_to_point(struct context *c)
     init_instance_handle_signals(c, c->es, stdin_config ? 0 : CC_HARD_USR1_TO_HUP);
     if (IS_SIG(c))
     {
-        return;
+        return NULL;
     }
+
+    if (b->n != 1) {
+        hold = 1;
+    }
+
+    msg(M_INFO, "TCPv4_CLIENT MTIO INIT [%d][%d] [%d][%d]",hold,flag,b->n,b->l);
 
     /* main event loop */
     while (true)
     {
+        if (hold == 1) {
+            if (d->c2.do_up_ran) {
+                c->c1.tuntap = d->c1.tuntap;
+                c->c2.did_open_tun = d->c2.did_open_tun;
+                hold = 2;
+                msg(M_INFO, "TCPv4_CLIENT MTIO WAIT [%d][%d] [%d][%d]",hold,flag,b->n,b->l);
+            }
+            sleep(1);
+            continue;
+        }
         perf_push(PERF_EVENT_LOOP);
 
         /* process timers, TLS, etc. */
@@ -90,7 +113,11 @@ tunnel_point_to_point(struct context *c)
         }
 
         /* process the I/O which triggered select */
+        if (flag == 1) {
+        threaded_io(c, c->c2.link_sockets[0], b);
+        } else {
         process_io(c, c->c2.link_sockets[0]);
+        }
         P2P_CHECK_SIG();
 
         perf_pop();
@@ -102,6 +129,44 @@ tunnel_point_to_point(struct context *c)
 
     /* tear down tunnel instance (unless --persist-tun) */
     close_instance(c);
+
+    return NULL;
+}
+
+void threaded_tunnel_point_to_point(struct context *c, struct context *d)
+{
+    int l = 1;
+    struct context_pointer p;
+    struct thread_pointer a[MAX_THREADS];
+    pthread_t t[MAX_THREADS];
+
+    if (c->options.ce.mtio_mode)
+    {
+        l = MAX_THREADS;
+        pthread_mutex_init(&(p.m), NULL);
+    }
+
+    p.c = c; p.f = 0;
+
+    a[0].p = &p; a[0].c = c; a[0].n = 1; a[0].l = l;
+    bzero(&(t[0]), sizeof(pthread_t));
+    pthread_create(&(t[0]), NULL, tunnel_point_to_point, &(a[0]));
+
+    if (c->options.ce.mtio_mode)
+    {
+        for (int x = 1; x < MAX_THREADS; ++x)
+        {
+            a[x].p = &p; a[x].c = &(d[x]); a[x].n = (x + 1); a[x].l = l;
+            bzero(&(t[x]), sizeof(pthread_t));
+            pthread_create(&(t[x]), NULL, tunnel_point_to_point, &(a[x]));
+        }
+        for (int x = 1; x < MAX_THREADS; ++x)
+        {
+            pthread_join(t[x], NULL);
+        }
+    }
+
+    pthread_join(t[0], NULL);
 }
 
 #undef PROCESS_SIGNAL_P2P
@@ -158,6 +223,7 @@ static int
 openvpn_main(int argc, char *argv[])
 {
     struct context c;
+    struct context d[MAX_THREADS];
 
 #if PEDANTIC
     fprintf(stderr, "Sorry, I was built with --enable-pedantic and I am incapable of doing any real work!\n");
@@ -303,15 +369,24 @@ openvpn_main(int argc, char *argv[])
 
             do
             {
+                if (c.options.ce.mtio_mode)
+                {
+                    for (int x = 0; x < MAX_THREADS; ++x)
+                    {
+                        bcopy(&c, &(d[x]), sizeof(struct context));
+                        context_init_1(&(d[x]));
+                    }
+                }
+
                 /* run tunnel depending on mode */
                 switch (c.options.mode)
                 {
                     case MODE_POINT_TO_POINT:
-                        tunnel_point_to_point(&c);
+                        threaded_tunnel_point_to_point(&c, d);
                         break;
 
                     case MODE_SERVER:
-                        tunnel_server(&c);
+                        threaded_tunnel_server(&c, d);
                         break;
 
                     default:

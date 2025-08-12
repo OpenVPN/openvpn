@@ -46,6 +46,8 @@
 #include "manage.h"
 #include "dns.h"
 
+#define MAX_THREADS 4
+
 /*
  * Our global key schedules, packaged thusly
  * to facilitate key persistence.
@@ -526,6 +528,22 @@ struct context
     struct context_1 c1;  /**< Level 1 %context. */
     struct context_2 c2;  /**< Level 2 %context. */
 };
+
+
+struct context_pointer
+{
+    int f;
+    struct context *c;
+    pthread_mutex_t m;
+};
+
+struct thread_pointer
+{
+    int n, l;
+    struct context *c;
+    struct context_pointer *p;
+};
+
 
 /*
  * Check for a signal when inside an event loop

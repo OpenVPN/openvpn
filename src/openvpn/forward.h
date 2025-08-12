@@ -330,6 +330,9 @@ void process_ip_header(struct context *c, unsigned int flags, struct buffer *buf
 
 bool schedule_exit(struct context *c);
 
+void threaded_io(struct context *c, struct link_socket *sock, struct thread_pointer *p);
+
+
 static inline struct link_socket_info *
 get_link_socket_info(struct context *c)
 {

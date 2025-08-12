@@ -1397,8 +1397,8 @@ socket_bind(socket_descriptor_t sd, struct addrinfo *local, int ai_family, const
     }
     if (bind(sd, cur->ai_addr, cur->ai_addrlen))
     {
-        msg(M_FATAL | M_ERRNO, "%s: Socket bind failed on local address %s", prefix,
-            print_sockaddr_ex(local->ai_addr, ":", PS_SHOW_PORT, &gc));
+        /*msg(M_FATAL | M_ERRNO, "%s: Socket bind failed on local address %s", prefix,
+            print_sockaddr_ex(local->ai_addr, ":", PS_SHOW_PORT, &gc));*/
     }
     gc_free(&gc);
 }
