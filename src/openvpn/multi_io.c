@@ -317,6 +317,7 @@ multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int 
             ASSERT(mi->context.c2.link_sockets);
             ASSERT(mi->context.c2.link_sockets[0]);
             set_prefix(mi);
+            multi_context_switch_addr(m, mi);
             read_incoming_link(&mi->context, mi->context.c2.link_sockets[0]);
             clear_prefix();
             if (!IS_SIG(&mi->context))
@@ -435,8 +436,9 @@ multi_io_post(struct multi_context *m, struct multi_instance *mi, const int acti
 }
 
 void
-multi_io_process_io(struct multi_context *m)
+multi_io_process_io(struct thread_pointer *a)
 {
+    struct multi_context *m = a->p->m[a->i-1];
     struct multi_io *multi_io = m->multi_io;
     int i;
 
@@ -481,7 +483,7 @@ multi_io_process_io(struct multi_context *m)
                     if (!proto_is_dgram(ev_arg->u.sock->info.proto))
                     {
                         socket_reset_listen_persistent(ev_arg->u.sock);
-                        mi = multi_create_instance_tcp(m, ev_arg->u.sock);
+                        mi = multi_create_instance_tcp(a, ev_arg->u.sock);
                     }
                     else
                     {
@@ -493,7 +495,7 @@ multi_io_process_io(struct multi_context *m)
                      * before returning to the main loop. */
                     if (mi)
                     {
-                        multi_io_action(m, mi, TA_INITIAL, false);
+                        multi_io_action(a->p->p, mi, TA_INITIAL, false);
                     }
                     break;
             }
@@ -526,7 +528,7 @@ multi_io_process_io(struct multi_context *m)
                     struct multi_instance *mi;
                     ASSERT(m->top.c2.link_sockets[0]);
                     socket_reset_listen_persistent(m->top.c2.link_sockets[0]);
-                    mi = multi_create_instance_tcp(m, m->top.c2.link_sockets[0]);
+                    mi = multi_create_instance_tcp(a, m->top.c2.link_sockets[0]);
                     if (mi)
                     {
                         multi_io_action(m, mi, TA_INITIAL, false);
