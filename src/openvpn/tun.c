@@ -1266,6 +1266,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu, const struc
         msg(M_FATAL, "Linux can't bring %s up", ifname);
     }
 
+    if (tt->skip_bind != -1) {
     if (tun_p2p)
     {
         if (net_addr_ptp_v4_add(ctx, ifname, &tt->local, &tt->remote_netmask) < 0)
@@ -1279,6 +1280,7 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu, const struc
         {
             msg(M_FATAL, "Linux can't add IP to interface %s", ifname);
         }
+    }
     }
 #elif defined(TARGET_ANDROID)
     char out[64];
@@ -1746,7 +1748,7 @@ write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -2030,7 +2032,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
@@ -2244,7 +2246,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
@@ -2820,7 +2822,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -2961,7 +2963,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -3056,7 +3058,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -3306,7 +3308,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -3448,7 +3450,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
@@ -6687,7 +6689,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
