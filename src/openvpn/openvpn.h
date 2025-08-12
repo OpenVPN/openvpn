@@ -46,6 +46,10 @@
 #include "manage.h"
 #include "dns.h"
 
+#define MAX_THREADS 4
+#define MAX_STRLENG 64
+#define MAX_CSTATES 16421 /* hash modp >= 2^14 {16384} */
+
 /*
  * Our global key schedules, packaged thusly
  * to facilitate key persistence.
@@ -521,12 +525,88 @@ struct context
     bool did_we_daemonize;       /**< Whether demonization has already
                                   *   taken place. */
 
+    int skip_bind;
+
     struct context_persist persist;
     /**< Persistent %context. */
     struct context_0 *c0; /**< Level 0 %context. */
     struct context_1 c1;  /**< Level 1 %context. */
     struct context_2 c2;  /**< Level 2 %context. */
 };
+
+
+#define TEST_ADRS_CONN_MAPS(s, d, i) (((s.v4.addr == i.srca) && (d.v4.addr == i.dsta)) || ((d.v4.addr == i.srca) && (s.v4.addr == i.dsta)))
+#define TEST_ADRS_CONN_NOTS(s, d, i) ((s.v4.addr == i) || (d.v4.addr == i))
+#define TEST_ADRS_CONN_MSKS(s, d, i) (((s.v4.addr & i) == i) && ((d.v4.addr & i) == i))
+#define HASH_PART(a, s, p, q) ((((a >> s) & 0xff) + p) * q)
+
+struct context_pointer
+{
+    int i, h, n, x, z;
+    int s[MAX_THREADS][2];
+    int r[MAX_THREADS][2];
+    struct context *c;
+    struct multi_context **m;
+    struct multi_context *p;
+    struct multi_address *a;
+    pthread_mutex_t *l;
+};
+
+struct thread_pointer
+{
+    int i, n, h;
+    struct context *c;
+    struct context_pointer *p;
+};
+
+struct multi_link
+{
+    int indx;
+    char usrs[MAX_STRLENG];
+    in_addr_t ladr;
+    time_t last;
+};
+
+struct multi_address
+{
+    int indx, stat;
+    char lans[MAX_STRLENG];
+    char wans[MAX_STRLENG];
+    char usrs[MAX_STRLENG];
+    time_t last;
+    struct multi_link *link;
+};
+
+struct multi_info
+{
+    int maxt, maxc;
+    int *indx, *hold;
+    struct ifconfig_pool *pool;
+    pthread_mutex_t *lock;
+    struct multi_address *addr;
+};
+
+struct mtio_args
+{
+    char *pref;
+    int expr;
+    int *thid;
+    uint8_t *busy;
+    int notl;
+    in_addr_t *nots;
+    int mskl;
+    in_addr_t *msks;
+};
+
+struct mtio_cons
+{
+    int thid;
+    time_t last;
+    in_addr_t srca, dsta;
+};
+
+void *threaded_io_management(void *a);
+
 
 /*
  * Check for a signal when inside an event loop

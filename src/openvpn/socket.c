@@ -712,6 +712,7 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
     /* set socket to --mark packets with given value */
     socket_set_mark(sock->sd, sock->mark);
 
+    if (sock->skip_bind != -1) {
 #if defined(TARGET_LINUX)
     if (sock->bind_dev)
     {
@@ -726,6 +727,11 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
 #endif
 
     bind_local(sock, addr->ai_family);
+    } else {
+        struct sockaddr_in locl = { 0 };
+        locl.sin_family = AF_INET; locl.sin_addr.s_addr = inet_addr("127.0.0.1");
+        bind(sock->sd, (struct sockaddr *)&locl, sizeof(locl));
+    }
 }
 
 #ifdef TARGET_ANDROID
@@ -1780,6 +1786,7 @@ link_socket_init_phase2(struct context *c, struct link_socket *sock)
                     addr_family_name(sock->info.lsa->bind_local->ai_family));
                 sock->info.af = sock->info.lsa->bind_local->ai_family;
             }
+            sock->skip_bind = c->skip_bind;
             create_socket(sock, sock->info.lsa->bind_local);
         }
     }
