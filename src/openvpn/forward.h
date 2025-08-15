@@ -196,6 +196,8 @@ bool process_incoming_link_part1(struct context *c, struct link_socket_info *lsi
 void process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
                                  const uint8_t *orig_buf);
 
+void process_incoming_link_part3(struct context *c);
+
 /**
  * Transfers \c float_sa data extracted from an incoming DCO
  * PEER_FLOAT_NTF to \c out_osaddr for later processing.
@@ -327,6 +329,9 @@ void process_ip_header(struct context *c, unsigned int flags, struct buffer *buf
                        struct link_socket *sock);
 
 bool schedule_exit(struct context *c);
+
+void threaded_io(struct context *c, struct link_socket *sock, struct thread_pointer *p);
+
 
 static inline struct link_socket_info *
 get_link_socket_info(struct context *c)
