@@ -158,7 +158,7 @@ ifconfig_pool_init(const bool ipv4_pool, enum pool_type type, in_addr_t start, i
         switch (pool->ipv4.type)
         {
             case IFCONFIG_POOL_30NET:
-                pool->ipv4.base = start & ~3;
+                pool->ipv4.base = start & ~3u;
                 pool_ipv4_size = (((end | 3) + 1) - pool->ipv4.base) >> 2;
                 break;
 

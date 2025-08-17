@@ -343,7 +343,7 @@ management_callback_remote_entry_get(void *arg, unsigned int index, char **remot
         const char *status = (ce->flags & CE_DISABLED) ? "disabled" : "enabled";
 
         /* space for output including 3 commas and a nul */
-        int len =
+        size_t len =
             strlen(ce->remote) + strlen(ce->remote_port) + strlen(proto) + strlen(status) + 3 + 1;
         char *out = malloc(len);
         check_malloc_return(out);

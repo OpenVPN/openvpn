@@ -4957,7 +4957,7 @@ atou(const char *str)
 #endif
 
 static inline bool
-space(unsigned char c)
+space(char c)
 {
     return c == '\0' || isspace(c);
 }
