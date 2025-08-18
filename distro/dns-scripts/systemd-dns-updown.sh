@@ -189,11 +189,13 @@ function do_resolvconf {
             domains+="${!domain_var} "
         done
         {
+            local i=1
             local maxns=3
-            local server_var=dns_server_${n}_address_*
-            for addr_var in ${!server_var}; do
-                [ $((maxns--)) -gt 0 ] || break
+            while [ "${i}" -le "${maxns}" ]; do
+                local addr_var=dns_server_${n}_address_${i}
+                [ -n "${!addr_var}" ] || break
                 echo "nameserver ${!addr_var}"
+                i=$((i+1))
             done
             [ -z "$domains" ] || echo "search $domains"
         } | /sbin/resolvconf -a "$dev"
