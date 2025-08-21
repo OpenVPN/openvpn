@@ -13,7 +13,7 @@ srcdir="${srcdir:-.}"
 top_builddir="${top_builddir:-..}"
 sample_keys="${srcdir}/../sample/sample-keys"
 
-DH="${sample_keys}/dh2048.pem"
+DH="${sample_keys}/ffdhe2048.pem"
 CA="${sample_keys}/ca.crt"
 CLIENT_CERT="${sample_keys}/client.crt"
 CLIENT_KEY="${sample_keys}/client.key"
