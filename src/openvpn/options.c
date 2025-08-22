@@ -7951,7 +7951,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             goto err;
         }
         options->real_hash_size = real;
-        options->virtual_hash_size = real;
+        options->virtual_hash_size = virtual;
     }
     else if (streq(p[0], "connect-freq") && p[1] && p[2] && !p[3])
     {
