@@ -193,6 +193,8 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
     struct mroute_addr real = { 0 };
     struct multi_instance *mi = NULL;
     struct hash *hash = m->hash;
+    struct multi_pointer p = { 0 };
+    struct multi_args a = { 0 };
     real.proto = sock->info.proto;
     m->hmac_reply_ls = sock;
 
@@ -266,7 +268,8 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
                      * connect-freq but not against connect-freq-initial */
                     reflect_filter_rate_limit_decrease(m->initial_rate_limiter);
 
-                    mi = multi_create_instance(m, &real, sock);
+                    p.p = m; a.p = &p; a.i = -1;
+                    mi = multi_create_instance(&a, &real, sock);
                     if (mi)
                     {
                         hash_add_fast(hash, bucket, &mi->real, hv, mi);

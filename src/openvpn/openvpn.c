@@ -53,9 +53,15 @@ process_signal_p2p(struct context *c)
  *
  * @param c - The context structure of the single active VPN tunnel.
  */
-static void
-tunnel_point_to_point(struct context *c)
+void *
+tunnel_point_to_point(void *a)
 {
+    struct thread_pointer *b = (struct thread_pointer *)a;
+    struct context_pointer *p = b->p;
+    struct context *c = (b->n == 1) ? p->c : b->c;
+    struct context *d = (b->n == 1) ? b->c : p->c;
+    int limi = 0, liml = 9;
+
     context_clear_2(c);
 
     /* set point-to-point mode */
@@ -66,12 +72,34 @@ tunnel_point_to_point(struct context *c)
     init_instance_handle_signals(c, c->es, stdin_config ? 0 : CC_HARD_USR1_TO_HUP);
     if (IS_SIG(c))
     {
-        return;
+        return NULL;
     }
+
+    msg(M_INFO, "TCPv4_CLIENT MTIO init [%d][%d] [%d][%d] [%d]",b->h,p->n,b->i,b->n,p->h);
 
     /* main event loop */
     while (true)
     {
+        if (p->z == -1) { break; }
+        if (b->h == 1)
+        {
+            if (d->c2.do_up_ran && d->c1.tuntap && d->c2.did_open_tun)
+            {
+                c->c1.tuntap = d->c1.tuntap;
+                c->c2.did_open_tun = d->c2.did_open_tun;
+                b->h = 2;
+                p->h += 1;
+                msg(M_INFO, "TCPv4_CLIENT MTIO wait [%d][%d] [%d][%d] [%d]",b->h,p->n,b->i,b->n,p->h);
+            }
+            limi += 1;
+            if (limi >= liml)
+            {
+                p->z = -1;
+            }
+            sleep(1);
+            continue;
+        }
+
         perf_push(PERF_EVENT_LOOP);
 
         /* process timers, TLS, etc. */
@@ -90,11 +118,13 @@ tunnel_point_to_point(struct context *c)
         }
 
         /* process the I/O which triggered select */
-        process_io(c, c->c2.link_sockets[0]);
+        process_io(c, c->c2.link_sockets[0], b);
         P2P_CHECK_SIG();
 
         perf_pop();
     }
+
+    p->z = -1;
 
     persist_client_stats(c);
 
@@ -102,6 +132,40 @@ tunnel_point_to_point(struct context *c)
 
     /* tear down tunnel instance (unless --persist-tun) */
     close_instance(c);
+
+    return NULL;
+}
+
+void threaded_tunnel_point_to_point(struct context *c, struct context *d)
+{
+    struct context_pointer p;
+    struct thread_pointer a[MAX_THREADS];
+    pthread_t t[MAX_THREADS];
+
+    p.c = c; p.i = 1; p.n = 1; p.h = 1; p.z = 0;
+    if (c->options.ce.mtio_mode)
+    {
+        p.n = MAX_THREADS;
+    }
+    pthread_mutex_init(&(p.l), NULL);
+
+    a[0].p = &p; a[0].c = c; a[0].i = 1; a[0].n = p.n; a[0].h = 0;
+    bzero(&(t[0]), sizeof(pthread_t));
+    pthread_create(&(t[0]), NULL, tunnel_point_to_point, &(a[0]));
+
+    for (int x = 1; x < p.n; ++x)
+    {
+        a[x].p = &p; a[x].c = &(d[x]); a[x].i = (x + 1); a[x].n = p.n; a[x].h = 1;
+        bzero(&(t[x]), sizeof(pthread_t));
+        pthread_create(&(t[x]), NULL, tunnel_point_to_point, &(a[x]));
+    }
+
+    pthread_join(t[0], NULL);
+
+    for (int x = 1; x < p.n; ++x)
+    {
+        pthread_join(t[x], NULL);
+    }
 }
 
 #undef PROCESS_SIGNAL_P2P
@@ -158,6 +222,7 @@ static int
 openvpn_main(int argc, char *argv[])
 {
     struct context c;
+    struct context d[MAX_THREADS];
 
 #if PEDANTIC
     fprintf(stderr, "Sorry, I was built with --enable-pedantic and I am incapable of doing any real work!\n");
@@ -301,17 +366,26 @@ openvpn_main(int argc, char *argv[])
             /* finish context init */
             context_init_1(&c);
 
+            if (c.options.ce.mtio_mode)
+            {
+                for (int x = 0; x < MAX_THREADS; ++x)
+                {
+                    bcopy(&c, &(d[x]), sizeof(struct context));
+                    context_init_1(&(d[x]));
+                }
+            }
+
             do
             {
                 /* run tunnel depending on mode */
                 switch (c.options.mode)
                 {
                     case MODE_POINT_TO_POINT:
-                        tunnel_point_to_point(&c);
+                        threaded_tunnel_point_to_point(&c, d);
                         break;
 
                     case MODE_SERVER:
-                        tunnel_server(&c);
+                        threaded_tunnel_server(&c, d);
                         break;
 
                     default:
@@ -329,6 +403,15 @@ openvpn_main(int argc, char *argv[])
 
                 /* pass restart status to management subsystem */
                 signal_restart_status(c.sig);
+
+                if (c.options.ce.mtio_mode)
+                {
+                    for (int x = 0; x < MAX_THREADS; ++x)
+                    {
+                        d[x].first_time = false;
+                        signal_restart_status(d[x].sig);
+                    }
+                }
             } while (signal_reset(c.sig, SIGUSR1) == SIGUSR1);
 
             env_set_destroy(c.es);
