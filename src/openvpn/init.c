@@ -2916,7 +2916,7 @@ frame_finalize_options(struct context *c, const struct options *o)
 
     /* We always allow at least 1600 MTU packets to be received in our buffer
      * space to allow server to push "baby giant" MTU sizes */
-    frame->tun_max_mtu = max_int(1600, frame->tun_max_mtu);
+    frame->tun_max_mtu = max_int(TUN_MTU_MAX_MIN, frame->tun_max_mtu);
 
     size_t payload_size = frame->tun_max_mtu;
 

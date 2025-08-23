@@ -69,6 +69,11 @@
 #define TUN_MTU_DEFAULT 1500
 
 /*
+ * Minimum maximum MTU
+ */
+#define TUN_MTU_MAX_MIN 1600
+
+/*
  * MTU Defaults for TAP devices
  */
 #define TAP_MTU_EXTRA_DEFAULT 32

@@ -587,7 +587,7 @@ routing.
   packets larger than ``tun-mtu`` (e.g. Linux and FreeBSD) but other platforms
   (like macOS) limit received packets to the same size as the MTU.
 
---tun-max-mtu maxmtu
+--tun-mtu-max maxmtu
   This configures the maximum MTU size that a server can push to ``maxmtu``,
   by configuring the internal buffers to allow at least this packet size.
   The default for ``maxmtu`` is 1600. Currently, only increasing beyond 1600

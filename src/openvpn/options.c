@@ -297,6 +297,7 @@ static const char usage_message[] =
     "--tun-mtu-extra n : Assume that tun/tap device might return as many\n"
     "                  as n bytes more than the tun-mtu size on read\n"
     "                  (default TUN=0 TAP=%d).\n"
+    "--tun-mtu-max n : Maximum pushable MTU (default and minimum=%d).\n"
     "--link-mtu n    : Take the TCP/UDP device MTU to be n and derive the tun MTU\n"
     "                  from it.\n"
     "--mtu-disc type : Should we do Path MTU discovery on TCP/UDP channel?\n"
@@ -4844,8 +4845,9 @@ usage(void)
 
     fprintf(fp, usage_message, title_string, o.ce.connect_retry_seconds,
             o.ce.connect_retry_seconds_max, o.ce.local_port, o.ce.remote_port, TUN_MTU_DEFAULT,
-            TAP_MTU_EXTRA_DEFAULT, o.verbosity, o.authname, o.replay_window, o.replay_time,
-            o.tls_timeout, o.renegotiate_seconds, o.handshake_window, o.transition_window);
+            TAP_MTU_EXTRA_DEFAULT, TUN_MTU_MAX_MIN, o.verbosity, o.authname, o.replay_window,
+            o.replay_time, o.tls_timeout, o.renegotiate_seconds, o.handshake_window,
+            o.transition_window);
     fflush(fp);
 
 #endif                                       /* ENABLE_SMALL */
@@ -7011,7 +7013,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             options->ce.occ_mtu = 0;
         }
     }
-    else if (streq(p[0], "tun-mtu-max") && p[1] && !p[3])
+    else if (streq(p[0], "tun-mtu-max") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_MTU | OPT_P_CONNECTION);
         int max_mtu = positive_atoi(p[1], msglevel);

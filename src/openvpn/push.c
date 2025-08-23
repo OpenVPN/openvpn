@@ -721,7 +721,7 @@ prepare_push_reply(struct context *c, struct gc_arena *gc, struct push_list *pus
         {
             msg(M_WARN,
                 "Warning: reported maximum MTU from client (%d) is lower "
-                "than MTU used on the server (%d). Add tun-max-mtu %d "
+                "than MTU used on the server (%d). Add tun-mtu-max %d "
                 "to client configuration.",
                 client_max_mtu, o->ce.tun_mtu, o->ce.tun_mtu);
         }
