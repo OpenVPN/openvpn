@@ -370,7 +370,7 @@ management_callback_remote_cmd(void *arg, const char **p)
         && ((ce->flags >> CE_MAN_QUERY_REMOTE_SHIFT) & CE_MAN_QUERY_REMOTE_MASK)
                == CE_MAN_QUERY_REMOTE_QUERY)
     {
-        int flags = 0;
+        unsigned int flags = 0;
         if (!strcmp(p[1], "ACCEPT"))
         {
             flags = CE_MAN_QUERY_REMOTE_ACCEPT;
