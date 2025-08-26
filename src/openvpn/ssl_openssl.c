@@ -308,7 +308,7 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
     ASSERT(NULL != ctx);
 
     /* process SSL options */
-    long sslopt = SSL_OP_SINGLE_DH_USE | SSL_OP_NO_TICKET;
+    uint64_t sslopt = SSL_OP_SINGLE_DH_USE | SSL_OP_NO_TICKET;
 #ifdef SSL_OP_CIPHER_SERVER_PREFERENCE
     sslopt |= SSL_OP_CIPHER_SERVER_PREFERENCE;
 #endif
