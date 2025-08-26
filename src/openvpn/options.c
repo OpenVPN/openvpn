@@ -5720,6 +5720,8 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
         {
             options->routes_ipv6->flags = 0;
         }
+        env_set_del(es, "route_redirect_gateway_ipv4");
+        env_set_del(es, "route_redirect_gateway_ipv6");
     }
     else if (streq(p[0], "dns") && !p[1])
     {
@@ -6039,6 +6041,8 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             {
                 options->routes_ipv6->flags = 0;
             }
+            env_set_del(es, "route_redirect_gateway_ipv4");
+            env_set_del(es, "route_redirect_gateway_ipv6");
             *update_options_found |= OPT_P_U_REDIR_GATEWAY;
         }
     }
@@ -7660,6 +7664,16 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
                 msg(msglevel, "unknown --%s flag: %s", p[0], p[j]);
                 goto err;
             }
+        }
+        if (options->routes->flags & RG_REROUTE_GW)
+        {
+            setenv_int(es, "route_redirect_gateway_ipv4",
+                       options->routes->flags & RG_BLOCK_LOCAL ? 2 : 1);
+        }
+        if (options->routes_ipv6 && (options->routes_ipv6->flags & RG_REROUTE_GW))
+        {
+            setenv_int(es, "route_redirect_gateway_ipv6",
+                       options->routes->flags & RG_BLOCK_LOCAL ? 2 : 1);
         }
 #ifdef _WIN32
         /* we need this here to handle pushed --redirect-gateway */

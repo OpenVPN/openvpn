@@ -874,6 +874,14 @@ instances.
     translations will be recorded rather than their names as denoted on the
     command line or configuration file.
 
+:code:`route_redirect_gateway_ipv4`
+
+:code:`route_redirect_gateway_ipv6`
+    Set to `1` if the corresponding default gateway should be redirected
+    into the tunnel, and to `2` if also the local LAN segment should be
+    blocked (`block-local`).  Not set otherwise.  Set prior to **--up** script
+    execution.
+
 :code:`script_context`
     Set to "init" or "restart" prior to up/down script execution. For more
     information, see documentation for ``--up``.
