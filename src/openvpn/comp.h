@@ -32,23 +32,23 @@
 
 /* Compression flags */
 /* Removed
- #define COMP_F_ADAPTIVE             (1<<0) / * COMP_ALG_LZO only * /
- #define COMP_F_ALLOW_COMPRESS       (1<<1) / * not only incoming is compressed but also outgoing *
+ #define COMP_F_ADAPTIVE             (1u<<0) / * COMP_ALG_LZO only * /
+ #define COMP_F_ALLOW_COMPRESS       (1u<<1) / * not only incoming is compressed but also outgoing *
  /
  */
 /** initial command byte is swapped with last byte in buffer to preserve payload alignment */
-#define COMP_F_SWAP                 (1 << 2)
+#define COMP_F_SWAP                 (1u << 2)
 /** tell server that we only support compression stubs */
-#define COMP_F_ADVERTISE_STUBS_ONLY (1 << 3)
+#define COMP_F_ADVERTISE_STUBS_ONLY (1u << 3)
 /** Only accept stub compression, even with COMP_F_ADVERTISE_STUBS_ONLY
  * we still accept other compressions to be pushed */
-#define COMP_F_ALLOW_STUB_ONLY      (1 << 4)
+#define COMP_F_ALLOW_STUB_ONLY      (1u << 4)
 /** push stub-v2 or comp-lzo no when we see a client with comp-lzo in occ */
-#define COMP_F_MIGRATE              (1 << 5)
+#define COMP_F_MIGRATE              (1u << 5)
 /** Compression was explicitly set to allow asymetric compression */
-#define COMP_F_ALLOW_ASYM           (1 << 6)
+#define COMP_F_ALLOW_ASYM           (1u << 6)
 /** Do not allow compression framing (breaks DCO) */
-#define COMP_F_ALLOW_NOCOMP_ONLY    (1 << 7)
+#define COMP_F_ALLOW_NOCOMP_ONLY    (1u << 7)
 
 /* algorithms */
 #define COMP_ALG_UNDEF  0
