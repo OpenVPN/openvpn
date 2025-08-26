@@ -83,14 +83,14 @@ struct route_option
 };
 
 /* redirect-gateway flags */
-#define RG_ENABLE      (1 << 0)
-#define RG_LOCAL       (1 << 1)
-#define RG_DEF1        (1 << 2)
-#define RG_BYPASS_DHCP (1 << 3)
-#define RG_BYPASS_DNS  (1 << 4)
-#define RG_REROUTE_GW  (1 << 5)
-#define RG_AUTO_LOCAL  (1 << 6)
-#define RG_BLOCK_LOCAL (1 << 7)
+#define RG_ENABLE      (1u << 0)
+#define RG_LOCAL       (1u << 1)
+#define RG_DEF1        (1u << 2)
+#define RG_BYPASS_DHCP (1u << 3)
+#define RG_BYPASS_DNS  (1u << 4)
+#define RG_REROUTE_GW  (1u << 5)
+#define RG_AUTO_LOCAL  (1u << 6)
+#define RG_BLOCK_LOCAL (1u << 7)
 
 struct route_option_list
 {
@@ -117,9 +117,9 @@ struct route_ipv6_option_list
 
 struct route_ipv4
 {
-#define RT_DEFINED        (1 << 0)
-#define RT_ADDED          (1 << 1)
-#define RT_METRIC_DEFINED (1 << 2)
+#define RT_DEFINED        (1u << 0)
+#define RT_ADDED          (1u << 1)
+#define RT_METRIC_DEFINED (1u << 2)
     struct route_ipv4 *next;
     unsigned int flags;
     const struct route_option *option;
@@ -227,9 +227,9 @@ struct route_ipv6_gateway_info
 
 struct route_list
 {
-#define RL_DID_REDIRECT_DEFAULT_GATEWAY (1 << 0)
-#define RL_DID_LOCAL                    (1 << 1)
-#define RL_ROUTES_ADDED                 (1 << 2)
+#define RL_DID_REDIRECT_DEFAULT_GATEWAY (1u << 0)
+#define RL_DID_LOCAL                    (1u << 1)
+#define RL_ROUTES_ADDED                 (1u << 2)
     unsigned int iflags;
 
     struct route_special_addr spec;
