@@ -307,7 +307,7 @@ tls_poor_mans_ncp(struct options *o, const char *remote_ciphername)
 }
 
 bool
-check_pull_client_ncp(struct context *c, const int found)
+check_pull_client_ncp(struct context *c, const unsigned int found)
 {
     if (found & OPT_P_NCP)
     {
