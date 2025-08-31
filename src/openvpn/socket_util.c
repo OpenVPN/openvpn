@@ -241,14 +241,12 @@ print_in_port_t(in_port_t port, struct gc_arena *gc)
 struct in6_addr
 add_in6_addr(struct in6_addr base, uint32_t add)
 {
-    int i;
-
-    for (i = 15; i >= 0 && add > 0; i--)
+    for (int i = 15; i >= 0 && add > 0; i--)
     {
-        register int carry;
+        register uint32_t carry;
         register uint32_t h;
 
-        h = (unsigned char)base.s6_addr[i];
+        h = base.s6_addr[i];
         base.s6_addr[i] = (h + add) & UINT8_MAX;
 
         /* using explicit carry for the 8-bit additions will catch
