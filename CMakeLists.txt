@@ -628,9 +628,11 @@ if (NOT WIN32)
     target_compile_options(openvpn PRIVATE -DPLUGIN_LIBDIR=\"${PLUGIN_DIR}\")
 
     find_library(resolv resolv)
-    # some platform like BSDs already include resolver functionality in the libc and not have an extra resolv library
+    # some platform like BSDs already include resolver functionality in the libc
+    # and do not have an extra resolv library
     if (${resolv} OR APPLE)
-        target_link_libraries(openvpn PUBLIC -lresolv)
+        set(RESOLV_LIBRARIES resolv)
+        target_link_libraries(openvpn PUBLIC ${RESOLV_LIBRARIES})
     endif ()
 endif ()
 
@@ -653,6 +655,7 @@ if (BUILD_TESTING)
         "test_packet_id"
         "test_pkt"
         "test_provider"
+        "test_socket"
         "test_ssl"
         "test_user_pass"
         "test_push_update_msg"
@@ -847,6 +850,16 @@ if (BUILD_TESTING)
         src/openvpn/xkey_provider.c
         src/openvpn/xkey_helper.c
         src/openvpn/base64.c
+        )
+
+    target_link_libraries(test_socket PUBLIC ${RESOLV_LIBRARIES})
+    target_sources(test_socket PRIVATE
+        tests/unit_tests/openvpn/mock_get_random.c
+        tests/unit_tests/openvpn/mock_management.c
+        tests/unit_tests/openvpn/mock_win32_execve.c
+        src/openvpn/env_set.c
+        src/openvpn/run_command.c
+        src/openvpn/socket_util.c
         )
 
     target_sources(test_user_pass PRIVATE

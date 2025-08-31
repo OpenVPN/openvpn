@@ -46,4 +46,18 @@ management_query_pk_sig(struct management *man, const char *b64_data, const char
 {
     return NULL;
 }
+
+void
+management_set_state(struct management *man, const int state, const char *detail,
+                     const in_addr_t *tun_local_ip, const struct in6_addr *tun_local_ip6,
+                     const struct openvpn_sockaddr *local_addr,
+                     const struct openvpn_sockaddr *remote_addr)
+{
+}
+
 #endif
+
+void
+management_sleep(const int n)
+{
+}
