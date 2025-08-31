@@ -26,6 +26,7 @@
 #include "proto.h"
 #include "error.h"
 #include "mtu.h"
+#include "socket.h"
 #include "ssl_common.h"
 
 void mss_fixup_ipv4(struct buffer *buf, uint16_t maxmss);

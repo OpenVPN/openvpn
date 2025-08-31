@@ -29,7 +29,7 @@
 #include "pool.h"
 #include "buffer.h"
 #include "error.h"
-#include "socket.h"
+#include "socket_util.h"
 #include "otime.h"
 
 #include "memdbg.h"

@@ -45,7 +45,7 @@
 #include "ssl_ncp.h"
 #include "options.h"
 #include "misc.h"
-#include "socket.h"
+#include "socket_util.h"
 #include "packet_id.h"
 #include "pkcs11.h"
 #include "win32.h"

@@ -30,7 +30,7 @@
 #include "mroute.h"
 #include "proto.h"
 #include "error.h"
-#include "socket.h"
+#include "socket_util.h"
 
 #include "memdbg.h"
 

@@ -39,7 +39,7 @@
 #include "fdmisc.h"
 #include "common.h"
 #include "run_command.h"
-#include "socket.h"
+#include "socket_util.h"
 #include "manage.h"
 #include "route.h"
 #include "win32.h"

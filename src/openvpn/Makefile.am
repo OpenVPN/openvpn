@@ -128,6 +128,7 @@ openvpn_SOURCES = \
 	shaper.c shaper.h \
 	sig.c sig.h \
 	socket.c socket.h \
+	socket_util.c socket_util.h \
 	socks.c socks.h \
 	ssl.c ssl.h  ssl_backend.h \
 	ssl_openssl.c ssl_openssl.h \

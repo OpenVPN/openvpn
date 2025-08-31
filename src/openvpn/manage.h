@@ -48,7 +48,7 @@
 
 #include "misc.h"
 #include "event.h"
-#include "socket.h"
+#include "socket_util.h"
 #include "mroute.h"
 
 #define MANAGEMENT_VERSION                  5

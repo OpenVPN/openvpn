@@ -72,27 +72,6 @@ set_std_files_to_null(bool stdin_only)
 #endif
 }
 
-/*
- * Prepend a random string to hostname to prevent DNS caching.
- * For example, foo.bar.gov would be modified to <random-chars>.foo.bar.gov.
- * Of course, this requires explicit support in the DNS server (wildcard).
- */
-const char *
-hostname_randomize(const char *hostname, struct gc_arena *gc)
-{
-#define n_rnd_bytes 6
-
-    uint8_t rnd_bytes[n_rnd_bytes];
-    const char *rnd_str;
-    struct buffer hname = alloc_buf_gc(strlen(hostname) + sizeof(rnd_bytes) * 2 + 4, gc);
-
-    prng_bytes(rnd_bytes, sizeof(rnd_bytes));
-    rnd_str = format_hex_ex(rnd_bytes, sizeof(rnd_bytes), 40, 0, NULL, gc);
-    buf_printf(&hname, "%s.%s", rnd_str, hostname);
-    return BSTR(&hname);
-#undef n_rnd_bytes
-}
-
 #ifdef ENABLE_MANAGEMENT
 /* Get username/password from the management interface */
 static bool

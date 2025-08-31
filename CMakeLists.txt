@@ -555,6 +555,8 @@ set(SOURCE_FILES
     src/openvpn/sig.h
     src/openvpn/socket.c
     src/openvpn/socket.h
+    src/openvpn/socket_util.c
+    src/openvpn/socket_util.h
     src/openvpn/socks.c
     src/openvpn/socks.h
     src/openvpn/ssl.c

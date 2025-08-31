@@ -28,7 +28,7 @@
 
 #include "clinat.h"
 #include "proto.h"
-#include "socket.h"
+#include "socket_util.h"
 #include "memdbg.h"
 
 static bool

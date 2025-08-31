@@ -44,9 +44,6 @@ const char **make_arg_array(const char *first, const char *parms, struct gc_aren
 
 const char **make_extended_arg_array(char **p, bool is_inline, struct gc_arena *gc);
 
-/* prepend a random prefix to hostname */
-const char *hostname_randomize(const char *hostname, struct gc_arena *gc);
-
 /*
  * Get and store a username/password
  */

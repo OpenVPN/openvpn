@@ -33,7 +33,7 @@
 #include "mtu.h"
 #include "route.h"
 #include "tun.h"
-#include "socket.h"
+#include "socket_util.h"
 #include "plugin.h"
 #include "manage.h"
 #include "proxy.h"

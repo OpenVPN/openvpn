@@ -30,7 +30,7 @@
 #define SSL_COMMON_H_
 
 #include "session_id.h"
-#include "socket.h"
+#include "socket_util.h"
 #include "packet_id.h"
 #include "crypto.h"
 #include "options.h"

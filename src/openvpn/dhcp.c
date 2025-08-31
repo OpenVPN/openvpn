@@ -27,7 +27,7 @@
 #include "syshead.h"
 
 #include "dhcp.h"
-#include "socket.h"
+#include "socket_util.h"
 #include "error.h"
 
 #include "memdbg.h"

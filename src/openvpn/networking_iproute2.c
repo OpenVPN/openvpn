@@ -30,7 +30,7 @@
 #include "misc.h"
 #include "openvpn.h"
 #include "run_command.h"
-#include "socket.h"
+#include "socket_util.h"
 
 #include <stdbool.h>
 #include <netinet/in.h>
