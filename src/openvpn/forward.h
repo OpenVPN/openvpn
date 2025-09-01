@@ -314,13 +314,13 @@ bool send_control_channel_string_dowork(struct tls_session *session, const char 
  */
 void reschedule_multi_process(struct context *c);
 
-#define PIPV4_PASSTOS             (1 << 0)
-#define PIP_MSSFIX                (1 << 1) /* v4 and v6 */
-#define PIP_OUTGOING              (1 << 2)
-#define PIPV4_EXTRACT_DHCP_ROUTER (1 << 3)
-#define PIPV4_CLIENT_NAT          (1 << 4)
-#define PIPV6_ICMP_NOHOST_CLIENT  (1 << 5)
-#define PIPV6_ICMP_NOHOST_SERVER  (1 << 6)
+#define PIPV4_PASSTOS             (1u << 0)
+#define PIP_MSSFIX                (1u << 1) /* v4 and v6 */
+#define PIP_OUTGOING              (1u << 2)
+#define PIPV4_EXTRACT_DHCP_ROUTER (1u << 3)
+#define PIPV4_CLIENT_NAT          (1u << 4)
+#define PIPV6_ICMP_NOHOST_CLIENT  (1u << 5)
+#define PIPV6_ICMP_NOHOST_SERVER  (1u << 6)
 
 
 void process_ip_header(struct context *c, unsigned int flags, struct buffer *buf,
