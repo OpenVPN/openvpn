@@ -41,9 +41,21 @@ int positive_atoi(const char *str, int msglevel);
 
 /**
  * Converts a str to an integer if the string can be represented as an
- * integer number. Otherwise print a warning with msglevel and return 0
+ * integer number. Otherwise print a warning with \p msglevel and return 0
  */
 int atoi_warn(const char *str, int msglevel);
+
+/**
+ * Converts a str to an integer if the string can be represented as an
+ * integer number and is between \p min and \p max.
+ * The integer is stored in \p value.
+ * On error, print a warning with \p msglevel using \p name. \p value is
+ * not changed on error.
+ *
+ * @return \c true if the integer has been parsed and stored in value, \c false otherwise
+ */
+bool atoi_constrained(const char *str, int *value, const char *name, int min, int max,
+                      int msglevel);
 
 /**
  * Filter an option line by all pull filters.

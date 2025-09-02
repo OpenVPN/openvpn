@@ -351,6 +351,14 @@ test_atoi_variants(void **state)
     assert_int_equal(atoi_warn("0", msglevel), 0);
     assert_int_equal(atoi_warn("-1194", msglevel), -1194);
 
+    int parameter = 0;
+    assert_true(atoi_constrained("1234", &parameter, "test", 0, INT_MAX, msglevel));
+    assert_int_equal(parameter, 1234);
+    assert_true(atoi_constrained("0", &parameter, "test", -1, 0, msglevel));
+    assert_int_equal(parameter, 0);
+    assert_true(atoi_constrained("-1194", &parameter, "test", INT_MIN, INT_MAX, msglevel));
+    assert_int_equal(parameter, -1194);
+
     CLEAR(mock_msg_buf);
     assert_int_equal(positive_atoi("-1234", msglevel), 0);
     assert_string_equal(mock_msg_buf, "Cannot parse argument '-1234' as non-negative integer");
@@ -365,6 +373,12 @@ test_atoi_variants(void **state)
     assert_string_equal(mock_msg_buf, "Cannot parse argument '2147483653' as integer");
 
     CLEAR(mock_msg_buf);
+    parameter = -42;
+    assert_false(atoi_constrained("2147483653", &parameter, "test", 0, INT_MAX, msglevel));
+    assert_string_equal(mock_msg_buf, "test: Cannot parse '2147483653' as integer");
+    assert_int_equal(parameter, -42);
+
+    CLEAR(mock_msg_buf);
     assert_int_equal(positive_atoi("foo77", msglevel), 0);
     assert_string_equal(mock_msg_buf, "Cannot parse argument 'foo77' as non-negative integer");
 
@@ -373,12 +387,49 @@ test_atoi_variants(void **state)
     assert_string_equal(mock_msg_buf, "Cannot parse argument '77foo' as non-negative integer");
 
     CLEAR(mock_msg_buf);
+    parameter = -42;
+    assert_false(atoi_constrained("foo77", &parameter, "test", 0, INT_MAX, msglevel));
+    assert_string_equal(mock_msg_buf, "test: Cannot parse 'foo77' as integer");
+    assert_int_equal(parameter, -42);
+
+    CLEAR(mock_msg_buf);
+    parameter = -42;
+    assert_false(atoi_constrained("77foo", &parameter, "test", 0, INT_MAX, msglevel));
+    assert_string_equal(mock_msg_buf, "test: Cannot parse '77foo' as integer");
+    assert_int_equal(parameter, -42);
+
+    CLEAR(mock_msg_buf);
     assert_int_equal(atoi_warn("foo77", msglevel), 0);
     assert_string_equal(mock_msg_buf, "Cannot parse argument 'foo77' as integer");
 
     CLEAR(mock_msg_buf);
     assert_int_equal(atoi_warn("77foo", msglevel), 0);
     assert_string_equal(mock_msg_buf, "Cannot parse argument '77foo' as integer");
+
+    /* special tests for _constrained */
+    CLEAR(mock_msg_buf);
+    parameter = -42;
+    assert_false(atoi_constrained("77", &parameter, "test", 0, 76, msglevel));
+    assert_string_equal(mock_msg_buf, "test: Must be an integer between 0 and 76, not 77");
+    assert_int_equal(parameter, -42);
+
+    CLEAR(mock_msg_buf);
+    parameter = -42;
+    assert_false(atoi_constrained("-77", &parameter, "test", -76, 76, msglevel));
+    assert_string_equal(mock_msg_buf, "test: Must be an integer between -76 and 76, not -77");
+    assert_int_equal(parameter, -42);
+
+    CLEAR(mock_msg_buf);
+    parameter = -42;
+    assert_false(atoi_constrained("-77", &parameter, "test", 0, INT_MAX, msglevel));
+    assert_string_equal(mock_msg_buf, "test: Must be an integer >= 0, not -77");
+    assert_int_equal(parameter, -42);
+
+    CLEAR(mock_msg_buf);
+    parameter = -42;
+    assert_false(atoi_constrained("0", &parameter, "test", 1, INT_MAX, msglevel));
+    assert_string_equal(mock_msg_buf, "test: Must be an integer >= 1, not 0");
+    assert_int_equal(parameter, -42);
 
     mock_set_debug_level(saved_log_level);
 }

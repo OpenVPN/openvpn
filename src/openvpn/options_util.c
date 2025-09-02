@@ -146,6 +146,37 @@ atoi_warn(const char *str, int msglevel)
     return (int)i;
 }
 
+bool
+atoi_constrained(const char *str, int *value, const char *name, int min, int max, int msglevel)
+{
+    ASSERT(min < max);
+
+    char *endptr;
+    long long i = strtoll(str, &endptr, 10);
+    if (i < INT_MIN || *endptr != '\0' || i > INT_MAX)
+    {
+        msg(msglevel, "%s: Cannot parse '%s' as integer", name, str);
+        return false;
+    }
+    if (i < min || i > max)
+    {
+        if (max == INT_MAX) /* nicer message for common case */
+        {
+            msg(msglevel, "%s: Must be an integer >= %d, not %lld",
+                name, min, i);
+        }
+        else
+        {
+            msg(msglevel, "%s: Must be an integer between %d and %d, not %lld",
+                name, min, max, i);
+        }
+        return false;
+    }
+
+    *value = i;
+    return true;
+}
+
 static const char *updatable_options[] = { "block-ipv6", "block-outside-dns",
                                            "dhcp-option", "dns",
                                            "ifconfig", "ifconfig-ipv6",

@@ -6411,16 +6411,12 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "management-log-cache") && p[1] && !p[2])
     {
-        int cache;
-
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        cache = atoi_warn(p[1], msglevel);
-        if (cache < 1)
+        if (!atoi_constrained(p[1], &options->management_log_history_cache,
+                              p[0], 1, INT_MAX, msglevel))
         {
-            msg(msglevel, "--management-log-cache parameter is out of range");
             goto err;
         }
-        options->management_log_history_cache = cache;
     }
 #endif /* ifdef ENABLE_MANAGEMENT */
 #ifdef ENABLE_PLUGIN
@@ -6969,16 +6965,11 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "status-version") && p[1] && !p[2])
     {
-        int version;
-
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        version = atoi_warn(p[1], msglevel);
-        if (version < 1 || version > 3)
+        if (!atoi_constrained(p[1], &options->status_file_version, p[0], 1, 3, msglevel))
         {
-            msg(msglevel, "--status-version must be 1 to 3");
             goto err;
         }
-        options->status_file_version = version;
     }
     else if (streq(p[0], "remap-usr1") && p[1] && !p[2])
     {
@@ -7151,16 +7142,11 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "shaper") && p[1] && !p[2])
     {
-        int shaper;
-
         VERIFY_PERMISSION(OPT_P_SHAPER);
-        shaper = atoi_warn(p[1], msglevel);
-        if (shaper < SHAPER_MIN || shaper > SHAPER_MAX)
+        if (!atoi_constrained(p[1], &options->shaper, p[0], SHAPER_MIN, SHAPER_MAX, msglevel))
         {
-            msg(msglevel, "Bad shaper value, must be between %d and %d", SHAPER_MIN, SHAPER_MAX);
             goto err;
         }
-        options->shaper = shaper;
     }
     else if (streq(p[0], "port") && p[1] && !p[2])
     {
@@ -7739,7 +7725,11 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "script-security") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        script_security_set(atoi_warn(p[1], msglevel));
+        int security;
+        if (atoi_constrained(p[1], &security, p[0], SSEC_NONE, SSEC_PW_ENV, msglevel))
+        {
+            script_security_set(security);
+        }
     }
     else if (streq(p[0], "mssfix") && !p[3])
     {
@@ -7959,11 +7949,9 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         int real, virtual;
 
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        real = atoi_warn(p[1], msglevel);
-        virtual = atoi_warn(p[2], msglevel);
-        if (real < 1 || virtual < 1)
+        if (!atoi_constrained(p[1], &real, "hash-size real", 1, INT_MAX, msglevel)
+            || !atoi_constrained(p[2], &virtual, "hash-size virtual", 1, INT_MAX, msglevel))
         {
-            msg(msglevel, "--hash-size sizes must be >= 1 (preferably a power of 2)");
             goto err;
         }
         options->real_hash_size = real;
@@ -7974,11 +7962,9 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         int cf_max, cf_per;
 
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        cf_max = atoi_warn(p[1], msglevel);
-        cf_per = atoi_warn(p[2], msglevel);
-        if (cf_max < 0 || cf_per < 0)
+        if (!atoi_constrained(p[1], &cf_max, "connect-freq n", 1, INT_MAX, msglevel)
+            || !atoi_constrained(p[2], &cf_per, "connect-freq seconds", 1, INT_MAX, msglevel))
         {
-            msg(msglevel, "--connect-freq parms must be > 0");
             goto err;
         }
         options->cf_max = cf_max;
@@ -7986,15 +7972,12 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "connect-freq-initial") && p[1] && p[2] && !p[3])
     {
-        long cf_max, cf_per;
+        int cf_max, cf_per;
 
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        char *e1, *e2;
-        cf_max = strtol(p[1], &e1, 10);
-        cf_per = strtol(p[2], &e2, 10);
-        if (cf_max < 0 || cf_per < 0 || *e1 != '\0' || *e2 != '\0')
+        if (!atoi_constrained(p[1], &cf_max, "connect-freq-initial n", 1, INT_MAX, msglevel)
+            || !atoi_constrained(p[2], &cf_per, "connect-freq-initial seconds", 1, INT_MAX, msglevel))
         {
-            msg(msglevel, "--connect-freq-initial parameters must be integers and >= 0");
             goto err;
         }
         options->cf_initial_max = cf_max;
@@ -8002,21 +7985,11 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "max-clients") && p[1] && !p[2])
     {
-        int max_clients;
-
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        max_clients = atoi_warn(p[1], msglevel);
-        if (max_clients < 0)
+        if (!atoi_constrained(p[1], &options->max_clients, p[0], 1, MAX_PEER_ID, msglevel))
         {
-            msg(msglevel, "--max-clients must be at least 1");
             goto err;
         }
-        if (max_clients >= MAX_PEER_ID) /* max peer-id value */
-        {
-            msg(msglevel, "--max-clients must be less than %d", MAX_PEER_ID);
-            goto err;
-        }
-        options->max_clients = max_clients;
     }
     else if (streq(p[0], "max-routes-per-client") && p[1] && !p[2])
     {
@@ -8188,27 +8161,13 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "bcast-buffers") && p[1] && !p[2])
     {
-        int n_bcast_buf;
-
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        n_bcast_buf = atoi_warn(p[1], msglevel);
-        if (n_bcast_buf < 1)
-        {
-            msg(msglevel, "--bcast-buffers parameter must be > 0");
-        }
-        options->n_bcast_buf = n_bcast_buf;
+        atoi_constrained(p[1], &options->n_bcast_buf, p[0], 1, INT_MAX, msglevel);
     }
     else if (streq(p[0], "tcp-queue-limit") && p[1] && !p[2])
     {
-        int tcp_queue_limit;
-
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        tcp_queue_limit = atoi_warn(p[1], msglevel);
-        if (tcp_queue_limit < 1)
-        {
-            msg(msglevel, "--tcp-queue-limit parameter must be > 0");
-        }
-        options->tcp_queue_limit = tcp_queue_limit;
+        atoi_constrained(p[1], &options->tcp_queue_limit, p[0], 1, INT_MAX, msglevel);
     }
 #if PORT_SHARE
     else if (streq(p[0], "port-share") && p[1] && p[2] && !p[4])
@@ -8354,21 +8313,24 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         int ageing_time, check_interval;
 
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        ageing_time = atoi_warn(p[1], msglevel);
+        if (!atoi_constrained(p[1], &ageing_time, "stale-routes-check age", 1, INT_MAX, msglevel))
+        {
+            goto err;
+        }
+
         if (p[2])
         {
-            check_interval = atoi_warn(p[2], msglevel);
+            if (!atoi_constrained(p[2], &check_interval,
+                                  "stale-routes-check interval", 1, INT_MAX, msglevel))
+            {
+                goto err;
+            }
         }
         else
         {
             check_interval = ageing_time;
         }
 
-        if (ageing_time < 1 || check_interval < 1)
-        {
-            msg(msglevel, "--stale-routes-check aging time and check interval must be >= 1");
-            goto err;
-        }
         options->stale_routes_ageing_time = ageing_time;
         options->stale_routes_check_interval = check_interval;
     }
@@ -8386,7 +8348,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "push-continuation") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_PULL_MODE);
-        options->push_continuation = atoi_warn(p[1], msglevel);
+        atoi_constrained(p[1], &options->push_continuation, p[0], 0, 2, msglevel);
     }
     else if (streq(p[0], "auth-user-pass") && !p[2])
     {
@@ -8505,33 +8467,23 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             {
                 if (!streq(p[2], "default"))
                 {
-                    int offset = atoi_warn(p[2], msglevel);
+                    int offset;
 
-                    if (!(offset > -256 && offset < 256))
+                    if (!atoi_constrained(p[2], &offset, "ip-win32 offset", -256, 256, msglevel))
                     {
-                        msg(msglevel,
-                            "--ip-win32 dynamic [offset] [lease-time]: offset (%d) must be > -256 and < 256",
-                            offset);
                         goto err;
                     }
-
                     to->dhcp_masq_custom_offset = true;
                     to->dhcp_masq_offset = offset;
                 }
 
                 if (p[3])
                 {
-                    const int min_lease = 30;
-                    int lease_time;
-                    lease_time = atoi_warn(p[3], msglevel);
-                    if (lease_time < min_lease)
+                    if (!atoi_constrained(p[3], &to->dhcp_lease_time,
+                                          "ip-win32 lease time", 30, INT_MAX, msglevel))
                     {
-                        msg(msglevel,
-                            "--ip-win32 dynamic [offset] [lease-time]: lease time parameter (%d) must be at least %d seconds",
-                            lease_time, min_lease);
                         goto err;
                     }
-                    to->dhcp_lease_time = lease_time;
                 }
             }
         }
@@ -8629,8 +8581,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         }
         else if (streq(p[1], "NBT") && p[2] && !p[3])
         {
-            int t;
-            t = atoi_warn(p[2], msglevel);
+            int t = atoi_warn(p[2], msglevel);
             if (!(t == 1 || t == 2 || t == 4 || t == 8))
             {
                 msg(msglevel, "--dhcp-option NBT: parameter (%d) must be 1, 2, 4, or 8", t);
@@ -8704,15 +8655,11 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "tap-sleep") && p[1] && !p[2])
     {
-        int s;
         VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        s = atoi_warn(p[1], msglevel);
-        if (s < 0 || s >= 256)
+        if (!atoi_constrained(p[1], &options->tuntap_options.tap_sleep, p[0], 0, 255, msglevel))
         {
-            msg(msglevel, "--tap-sleep parameter must be between 0 and 255");
             goto err;
         }
-        options->tuntap_options.tap_sleep = s;
     }
     else if (streq(p[0], "dhcp-renew") && !p[1])
     {
@@ -9152,30 +9099,19 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         if (p[1])
         {
-            int replay_window;
-
-            replay_window = atoi_warn(p[1], msglevel);
-            if (!(MIN_SEQ_BACKTRACK <= replay_window && replay_window <= MAX_SEQ_BACKTRACK))
+            if (!atoi_constrained(p[1], &options->replay_window, "replay-window windows size",
+                                  MIN_SEQ_BACKTRACK, MAX_SEQ_BACKTRACK, msglevel))
             {
-                msg(msglevel, "replay-window window size parameter (%d) must be between %d and %d",
-                    replay_window, MIN_SEQ_BACKTRACK, MAX_SEQ_BACKTRACK);
                 goto err;
             }
-            options->replay_window = replay_window;
 
             if (p[2])
             {
-                int replay_time;
-
-                replay_time = atoi_warn(p[2], msglevel);
-                if (!(MIN_TIME_BACKTRACK <= replay_time && replay_time <= MAX_TIME_BACKTRACK))
+                if (!atoi_constrained(p[2], &options->replay_time, "replay-window time window",
+                                      MIN_TIME_BACKTRACK, MAX_TIME_BACKTRACK, msglevel))
                 {
-                    msg(msglevel,
-                        "replay-window time window parameter (%d) must be between %d and %d",
-                        replay_time, MIN_TIME_BACKTRACK, MAX_TIME_BACKTRACK);
                     goto err;
                 }
-                options->replay_time = replay_time;
             }
         }
         else
@@ -9771,7 +9707,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         else if (!p[2])
         {
             char *endp = NULL;
-            int i = strtol(provider, &endp, 10);
+            long i = strtol(provider, &endp, 10);
 
             if (*endp == 0)
             {
@@ -9842,7 +9778,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "pkcs11-pin-cache") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->pkcs11_pin_cache_period = atoi_warn(p[1], msglevel);
+        options->pkcs11_pin_cache_period = positive_atoi(p[1], msglevel);
     }
     else if (streq(p[0], "pkcs11-id") && p[1] && !p[2])
     {
