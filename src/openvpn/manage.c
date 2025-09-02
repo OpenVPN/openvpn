@@ -514,6 +514,28 @@ man_bytecount(struct management *man, const int update_seconds)
         man->connection.bytecount_update_seconds = 0;
         event_timeout_clear(&man->connection.bytecount_update_interval);
     }
+
+    /* The newly received bytecount interval may be sooner than the existing
+     * coarse timer wakeup. Reset the timer to ensure it fires at the correct,
+     * earlier time.
+     */
+    if (man->persist.callback.arg)
+    {
+        struct context *c;
+
+        if (man->settings.flags & MF_SERVER)
+        {
+            struct multi_context *m = man->persist.callback.arg;
+            c = &m->top;
+        }
+        else
+        {
+            c = man->persist.callback.arg;
+        }
+
+        reset_coarse_timers(c);
+    }
+
     msg(M_CLIENT, "SUCCESS: bytecount interval changed");
 }
 
