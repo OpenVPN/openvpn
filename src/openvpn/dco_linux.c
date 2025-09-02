@@ -548,7 +548,7 @@ nla_put_failure:
 int
 dco_del_peer(dco_context_t *dco, unsigned int peerid)
 {
-    msg(D_DCO_DEBUG, "%s: peer-id %d", __func__, peerid);
+    msg(D_DCO_DEBUG | M_NOIPREFIX, "%s: peer-id %d", __func__, peerid);
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_PEER_DEL);
     if (!nl_msg)
@@ -868,7 +868,7 @@ ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
     uint32_t peer_id = nla_get_u32(tb_peer[OVPN_A_PEER_ID]);
     struct context_2 *c2;
 
-    msg(D_DCO_DEBUG, "%s: parsing message for peer %u...", __func__, peer_id);
+    msg(D_DCO_DEBUG | M_NOIPREFIX, "%s: parsing message for peer %u...", __func__, peer_id);
 
     if (dco->ifmode == OVPN_MODE_P2P)
     {
@@ -890,7 +890,7 @@ ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
         struct multi_instance *mi = dco->c->multi->instances[peer_id];
         if (!mi)
         {
-            msg(M_WARN, "%s: received data for a non-existing peer %u", __func__, peer_id);
+            msg(M_WARN | M_NOIPREFIX, "%s: received data for a non-existing peer %u", __func__, peer_id);
             return NL_SKIP;
         }
 
@@ -934,32 +934,32 @@ ovpn_handle_peer_del_ntf(dco_context_t *dco, struct nlattr *attrs[])
 
     if (!attrs[OVPN_A_PEER])
     {
-        msg(D_DCO, "ovpn-dco: no peer in PEER_DEL_NTF message");
+        msg(D_DCO | M_NOIPREFIX, "ovpn-dco: no peer in PEER_DEL_NTF message");
         return NL_STOP;
     }
 
     struct nlattr *dp_attrs[OVPN_A_PEER_MAX + 1];
     if (nla_parse_nested(dp_attrs, OVPN_A_PEER_MAX, attrs[OVPN_A_PEER], NULL))
     {
-        msg(D_DCO, "ovpn-dco: can't parse peer in PEER_DEL_NTF messsage");
+        msg(D_DCO | M_NOIPREFIX, "ovpn-dco: can't parse peer in PEER_DEL_NTF messsage");
         return NL_STOP;
     }
 
     if (!dp_attrs[OVPN_A_PEER_DEL_REASON])
     {
-        msg(D_DCO, "ovpn-dco: no reason in PEER_DEL_NTF message");
+        msg(D_DCO | M_NOIPREFIX, "ovpn-dco: no reason in PEER_DEL_NTF message");
         return NL_STOP;
     }
     if (!dp_attrs[OVPN_A_PEER_ID])
     {
-        msg(D_DCO, "ovpn-dco: no peer-id in PEER_DEL_NTF message");
+        msg(D_DCO | M_NOIPREFIX, "ovpn-dco: no peer-id in PEER_DEL_NTF message");
         return NL_STOP;
     }
 
     int reason = nla_get_u32(dp_attrs[OVPN_A_PEER_DEL_REASON]);
     unsigned int peerid = nla_get_u32(dp_attrs[OVPN_A_PEER_ID]);
 
-    msg(D_DCO_DEBUG, "ovpn-dco: received CMD_PEER_DEL_NTF, ifindex: %d, peer-id %u, reason: %d",
+    msg(D_DCO_DEBUG | M_NOIPREFIX, "ovpn-dco: received CMD_PEER_DEL_NTF, ifindex: %d, peer-id %u, reason: %d",
         dco->ifindex, peerid, reason);
     dco->dco_message_peer_id = peerid;
     dco->dco_del_peer_reason = reason;
@@ -1065,7 +1065,7 @@ ovpn_handle_msg(struct nl_msg *msg, void *arg)
     struct nlmsghdr *nlh = nlmsg_hdr(msg);
     struct genlmsghdr *gnlh = genlmsg_hdr(nlh);
 
-    msg(D_DCO_DEBUG, "ovpn-dco: received netlink message type=%u cmd=%u flags=%#.4x",
+    msg(D_DCO_DEBUG | M_NOIPREFIX, "ovpn-dco: received netlink message type=%u cmd=%u flags=%#.4x",
         nlh->nlmsg_type, gnlh->cmd, nlh->nlmsg_flags);
 
     /* if we get a message from the NLCTRL family, it means
@@ -1148,7 +1148,7 @@ dco_get_peer(dco_context_t *dco, int peer_id, const bool raise_sigusr1_on_err)
         return 0;
     }
 
-    msg(D_DCO_DEBUG, "%s: peer-id %d", __func__, peer_id);
+    msg(D_DCO_DEBUG | M_NOIPREFIX, "%s: peer-id %d", __func__, peer_id);
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_PEER_GET);
     struct nlattr *attr = nla_nest_start(nl_msg, OVPN_A_PEER);

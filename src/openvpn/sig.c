@@ -239,7 +239,7 @@ register_signal(struct signal_info *si, int signum, const char *signal_text)
         {
             si->source = SIG_SOURCE_CONNECTION_FAILED;
         }
-        msg(D_SIGNAL_DEBUG, "register signal: %s (%s)", signal_name(signum, true), signal_text);
+        msg(D_SIGNAL_DEBUG | M_NOIPREFIX, "register signal: %s (%s)", signal_name(signum, true), signal_text);
     }
     else
     {
