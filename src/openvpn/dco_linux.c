@@ -1139,6 +1139,8 @@ dco_do_read(dco_context_t *dco)
 static int
 dco_get_peer(dco_context_t *dco, int peer_id, const bool raise_sigusr1_on_err)
 {
+    ASSERT(dco);
+
     /* peer_id == -1 means "dump all peers", but this is allowed in MP mode only.
      * If it happens in P2P mode it means that the DCO peer was deleted and we
      * can simply bail out
@@ -1182,6 +1184,11 @@ nla_put_failure:
 int
 dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
 {
+    if (!c->c1.tuntap || c->c1.tuntap->dco.ifindex == 0)
+    {
+        return -1;
+    }
+
     return dco_get_peer(&c->c1.tuntap->dco, c->c2.tls_multi->dco_peer_id, raise_sigusr1_on_err);
 }
 
