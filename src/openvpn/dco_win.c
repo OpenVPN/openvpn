@@ -30,6 +30,7 @@
 #include "forward.h"
 #include "tun.h"
 #include "crypto.h"
+#include "multi.h"
 #include "ssl_common.h"
 #include "openvpn.h"
 
@@ -189,6 +190,8 @@ bool
 ovpn_dco_init(struct context *c)
 {
     dco_context_t *dco = &c->c1.tuntap->dco;
+
+    dco->c = c;
 
     switch (c->mode)
     {
@@ -714,12 +717,132 @@ dco_do_read(dco_context_t *dco)
 int
 dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
 {
-    /* Not implemented. */
-    return 0;
+    struct gc_arena gc = gc_new();
+
+    int ret = 0;
+    struct tuntap *tt = dco->tt;
+
+    if (!tuntap_defined(tt))
+    {
+        ret = -1;
+        goto done;
+    }
+
+    OVPN_GET_PEER_STATS ps = {
+        .PeerId = -1
+    };
+
+    DWORD required_size = 0, bytes_returned = 0;
+    /* first, figure out buffer size */
+    if (!DeviceIoControl(tt->hand, OVPN_IOCTL_GET_PEER_STATS, &ps, sizeof(ps), &required_size, sizeof(DWORD), &bytes_returned, NULL))
+    {
+        if (GetLastError() == ERROR_MORE_DATA)
+        {
+            if (bytes_returned != sizeof(DWORD))
+            {
+                msg(M_WARN, "%s: invalid bytes returned for size query (%lu, expected %zu)", __func__, bytes_returned, sizeof(DWORD));
+                ret = -1;
+                goto done;
+            }
+            /* required_size now contains the size written by the driver */
+            if (required_size == 0)
+            {
+                ret = 0; /* no peers to process */
+                goto done;
+            }
+            if (required_size < sizeof(OVPN_PEER_STATS))
+            {
+                msg(M_WARN, "%s: invalid required size %lu (minimum %zu)", __func__, required_size, sizeof(OVPN_PEER_STATS));
+                ret = -1;
+                goto done;
+            }
+        }
+        else
+        {
+            msg(M_WARN | M_ERRNO, "%s: failed to fetch required buffer size", __func__);
+            ret = -1;
+            goto done;
+        }
+    }
+    else
+    {
+        /* unexpected success? */
+        if (bytes_returned == 0)
+        {
+            ret = 0; /* no peers to process */
+            goto done;
+        }
+
+        msg(M_WARN, "%s: first DeviceIoControl call succeeded unexpectedly (%lu bytes returned)", __func__, bytes_returned);
+        ret = -1;
+        goto done;
+    }
+
+
+    /* allocate the buffer and fetch stats */
+    OVPN_PEER_STATS *peer_stats = gc_malloc(required_size, true, &gc);
+    if (!peer_stats)
+    {
+        msg(M_WARN, "%s: failed to allocate buffer of size %lu", __func__, required_size);
+        ret = -1;
+        goto done;
+    }
+
+    if (!DeviceIoControl(tt->hand, OVPN_IOCTL_GET_PEER_STATS, &ps, sizeof(ps), peer_stats, required_size, &bytes_returned, NULL))
+    {
+        /* unlikely case when a peer has been added since fetching buffer size, not an error! */
+        if (GetLastError() == ERROR_MORE_DATA)
+        {
+            msg(M_WARN, "%s: peer has been added, skip fetching stats", __func__);
+            ret = 0;
+            goto done;
+        }
+
+        msg(M_WARN | M_ERRNO, "%s: failed to fetch multipeer stats", __func__);
+        ret = -1;
+        goto done;
+    }
+
+    /* iterate over stats and update peers */
+    for (int i = 0; i < bytes_returned / sizeof(OVPN_PEER_STATS); ++i)
+    {
+        OVPN_PEER_STATS *stat = &peer_stats[i];
+
+        if (stat->PeerId >= dco->c->multi->max_clients)
+        {
+            msg(M_WARN, "%s: received out of bound peer_id %u (max=%u)", __func__, stat->PeerId,
+                dco->c->multi->max_clients);
+            continue;
+        }
+
+        struct multi_instance *mi = dco->c->multi->instances[stat->PeerId];
+        if (!mi)
+        {
+            msg(M_WARN, "%s: received data for a non-existing peer %u", __func__, stat->PeerId);
+            continue;
+        }
+
+        /* update peer stats */
+        struct context_2 *c2 = &mi->context.c2;
+        c2->dco_read_bytes = stat->LinkRxBytes;
+        c2->dco_write_bytes = stat->LinkTxBytes;
+        c2->tun_read_bytes = stat->VpnRxBytes;
+        c2->tun_write_bytes = stat->VpnTxBytes;
+    }
+
+done:
+    gc_free(&gc);
+
+    if (raise_sigusr1_on_err && ret < 0)
+    {
+        register_signal(dco->c->sig, SIGUSR1, "dco peer stats error");
+    }
+
+    return ret;
 }
 
 int
-dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
+dco_get_peer_stats_fallback(struct context *c, const bool raise_sigusr1_on_err)
 {
     struct tuntap *tt = c->c1.tuntap;
 
@@ -743,6 +866,48 @@ dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
     c->c2.dco_write_bytes = stats.TransportBytesSent;
     c->c2.tun_read_bytes = stats.TunBytesReceived;
     c->c2.tun_write_bytes = stats.TunBytesSent;
+
+    return 0;
+}
+
+int
+dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
+{
+    struct tuntap *tt = c->c1.tuntap;
+
+    if (!tuntap_defined(tt))
+    {
+        return -1;
+    }
+
+    /* first, try a new ioctl */
+    OVPN_GET_PEER_STATS ps = { .PeerId = c->c2.tls_multi->dco_peer_id };
+
+    OVPN_PEER_STATS peer_stats = { 0 };
+    DWORD bytes_returned = 0;
+    if (!DeviceIoControl(tt->hand, OVPN_IOCTL_GET_PEER_STATS, &ps, sizeof(ps), &peer_stats, sizeof(peer_stats),
+                         &bytes_returned, NULL))
+    {
+        if (GetLastError() == ERROR_INVALID_FUNCTION)
+        {
+            /* are we using the old driver? */
+            return dco_get_peer_stats_fallback(c, raise_sigusr1_on_err);
+        }
+
+        msg(M_WARN | M_ERRNO, "%s: DeviceIoControl(OVPN_IOCTL_GET_PEER_STATS) failed", __func__);
+        return -1;
+    }
+
+    if (bytes_returned != sizeof(OVPN_PEER_STATS))
+    {
+        msg(M_WARN | M_ERRNO, "%s: DeviceIoControl(OVPN_IOCTL_GET_PEER_STATS) returned invalid size", __func__);
+        return -1;
+    }
+
+    c->c2.dco_read_bytes = peer_stats.LinkRxBytes;
+    c->c2.dco_write_bytes = peer_stats.LinkTxBytes;
+    c->c2.tun_read_bytes = peer_stats.VpnRxBytes;
+    c->c2.tun_write_bytes = peer_stats.VpnTxBytes;
 
     return 0;
 }

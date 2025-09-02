@@ -57,6 +57,8 @@ struct dco_context
 
     uint64_t dco_read_bytes;
     uint64_t dco_write_bytes;
+
+    struct context *c;
 };
 
 typedef struct dco_context dco_context_t;
