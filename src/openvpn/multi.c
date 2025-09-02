@@ -3812,6 +3812,13 @@ multi_process_per_second_timers_dowork(struct multi_context *m)
     {
         check_stale_routes(m);
     }
+
+#ifdef ENABLE_MANAGEMENT
+    if (management)
+    {
+        management_check_bytecount_server(m);
+    }
+#endif /* ENABLE_MANAGEMENT */
 }
 
 static void

@@ -41,6 +41,7 @@
 #include "manage.h"
 #include "openvpn.h"
 #include "dco.h"
+#include "multi.h"
 
 #include "memdbg.h"
 
@@ -517,29 +518,27 @@ man_bytecount(struct management *man, const int update_seconds)
 }
 
 static void
-man_bytecount_output_client(struct management *man, counter_type dco_read_bytes,
-                            counter_type dco_write_bytes)
+man_bytecount_output_client(counter_type bytes_in_total, counter_type bytes_out_total)
 {
     char in[32];
     char out[32];
 
     /* do in a roundabout way to work around possible mingw or mingw-glibc bug */
-    snprintf(in, sizeof(in), counter_format, man->persist.bytes_in + dco_read_bytes);
-    snprintf(out, sizeof(out), counter_format, man->persist.bytes_out + dco_write_bytes);
+    snprintf(in, sizeof(in), counter_format, bytes_in_total);
+    snprintf(out, sizeof(out), counter_format, bytes_out_total);
     msg(M_CLIENT, ">BYTECOUNT:%s,%s", in, out);
 }
 
-void
-man_bytecount_output_server(const counter_type *bytes_in_total, const counter_type *bytes_out_total,
+static void
+man_bytecount_output_server(const counter_type bytes_in_total, const counter_type bytes_out_total,
                             struct man_def_auth_context *mdac)
 {
     char in[32];
     char out[32];
     /* do in a roundabout way to work around possible mingw or mingw-glibc bug */
-    snprintf(in, sizeof(in), counter_format, *bytes_in_total);
-    snprintf(out, sizeof(out), counter_format, *bytes_out_total);
+    snprintf(in, sizeof(in), counter_format, bytes_in_total);
+    snprintf(out, sizeof(out), counter_format, bytes_out_total);
     msg(M_CLIENT, ">BYTECOUNT_CLI:%lu,%s,%s", mdac->cid, in, out);
-    mdac->bytecount_last_update = now;
 }
 
 static void
@@ -4065,42 +4064,82 @@ management_sleep(const int n)
 }
 
 void
-management_check_bytecount(struct context *c, struct management *man, struct timeval *timeval)
+management_check_bytecount_client(struct context *c, struct management *man, struct timeval *timeval)
 {
+    if (man->persist.callback.flags & MCF_SERVER)
+    {
+        return;
+    }
+
     if (event_timeout_trigger(&man->connection.bytecount_update_interval, timeval, ETT_DEFAULT))
     {
-        counter_type dco_read_bytes = 0;
-        counter_type dco_write_bytes = 0;
-
         if (dco_enabled(&c->options))
         {
             if (dco_get_peer_stats(c, true) < 0)
             {
                 return;
             }
-
-            dco_read_bytes = c->c2.dco_read_bytes;
-            dco_write_bytes = c->c2.dco_write_bytes;
         }
 
-        if (!(man->persist.callback.flags & MCF_SERVER))
-        {
-            man_bytecount_output_client(man, dco_read_bytes, dco_write_bytes);
-        }
+        man_bytecount_output_client(c->c2.dco_read_bytes + man->persist.bytes_in + c->c2.link_read_bytes,
+                                    c->c2.dco_write_bytes + man->persist.bytes_out + c->c2.link_write_bytes);
     }
 }
 
-/* DCO resets stats on reconnect. Since client expects stats
- * to be preserved across reconnects, we need to save DCO
+void
+management_check_bytecount_server(struct multi_context *multi)
+{
+    if (!(management->persist.callback.flags & MCF_SERVER))
+    {
+        return;
+    }
+
+    struct timeval null;
+    CLEAR(null);
+    if (event_timeout_trigger(&management->connection.bytecount_update_interval, &null, ETT_DEFAULT))
+    {
+        /* fetch counters from dco */
+        if (dco_enabled(&multi->top.options))
+        {
+            if (dco_get_peer_stats_multi(&multi->top.c1.tuntap->dco, true) < 0)
+            {
+                return;
+            }
+        }
+
+        /* iterate over peers and report counters for each connected peer */
+        struct hash_iterator hi;
+        struct hash_element *he;
+        hash_iterator_init(multi->hash, &hi);
+        while ((he = hash_iterator_next(&hi)))
+        {
+            struct multi_instance *mi = (struct multi_instance *)he->value;
+            struct context_2 *c2 = &mi->context.c2;
+
+            if ((c2->mda_context.flags & (DAF_CONNECTION_ESTABLISHED | DAF_CONNECTION_CLOSED)) == DAF_CONNECTION_ESTABLISHED)
+            {
+                man_bytecount_output_server(c2->dco_read_bytes + c2->link_read_bytes, c2->dco_write_bytes + c2->link_write_bytes, &c2->mda_context);
+            }
+        }
+        hash_iterator_free(&hi);
+    }
+}
+
+/* context_2 stats are reset on reconnect. Since client expects stats
+ * to be preserved across reconnects, we need to save context_2
  * stats before tearing the tunnel down.
  */
 void
 man_persist_client_stats(struct management *man, struct context *c)
 {
-    /* no need to raise SIGUSR1 since we are already closing the instance */
+    man->persist.bytes_in += c->c2.link_read_bytes;
+    man->persist.bytes_out += c->c2.link_write_bytes;
+
+    /* no need to raise SIGUSR1 on error since we are already closing the instance */
     if (dco_enabled(&c->options) && (dco_get_peer_stats(c, false) == 0))
     {
-        management_bytes_client(man, c->c2.dco_read_bytes, c->c2.dco_write_bytes);
+        man->persist.bytes_in += c->c2.dco_read_bytes;
+        man->persist.bytes_out += c->c2.dco_write_bytes;
     }
 }
 

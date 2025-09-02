@@ -70,8 +70,6 @@ struct man_def_auth_context
     unsigned int flags;
 
     unsigned int mda_key_id_counter;
-
-    time_t bytecount_last_update;
 };
 
 /*
@@ -492,34 +490,9 @@ void management_auth_token(struct management *man, const char *token);
  * These functions drive the bytecount in/out counters.
  */
 
-void management_check_bytecount(struct context *c, struct management *man, struct timeval *timeval);
+void management_check_bytecount_client(struct context *c, struct management *man, struct timeval *timeval);
 
-static inline void
-management_bytes_client(struct management *man, const int size_in, const int size_out)
-{
-    if (!(man->persist.callback.flags & MCF_SERVER))
-    {
-        man->persist.bytes_in += size_in;
-        man->persist.bytes_out += size_out;
-    }
-}
-
-void man_bytecount_output_server(const counter_type *bytes_in_total,
-                                 const counter_type *bytes_out_total,
-                                 struct man_def_auth_context *mdac);
-
-static inline void
-management_bytes_server(struct management *man, const counter_type *bytes_in_total,
-                        const counter_type *bytes_out_total, struct man_def_auth_context *mdac)
-{
-    if (man->connection.bytecount_update_seconds > 0
-        && now >= mdac->bytecount_last_update + man->connection.bytecount_update_seconds
-        && (mdac->flags & (DAF_CONNECTION_ESTABLISHED | DAF_CONNECTION_CLOSED))
-               == DAF_CONNECTION_ESTABLISHED)
-    {
-        man_bytecount_output_server(bytes_in_total, bytes_out_total, mdac);
-    }
-}
+void management_check_bytecount_server(struct multi_context *multi);
 
 void man_persist_client_stats(struct management *man, struct context *c);
 

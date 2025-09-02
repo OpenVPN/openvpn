@@ -818,7 +818,7 @@ process_coarse_timers(struct context *c)
 #ifdef ENABLE_MANAGEMENT
     if (management)
     {
-        management_check_bytecount(c, management, &c->c2.timeval);
+        management_check_bytecount_client(c, management, &c->c2.timeval);
     }
 #endif /* ENABLE_MANAGEMENT */
 }
@@ -998,14 +998,6 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
         }
 #endif
         c->c2.original_recv_size = c->c2.buf.len;
-#ifdef ENABLE_MANAGEMENT
-        if (management)
-        {
-            management_bytes_client(management, c->c2.buf.len, 0);
-            management_bytes_server(management, &c->c2.link_read_bytes, &c->c2.link_write_bytes,
-                                    &c->c2.mda_context);
-        }
-#endif
     }
     else
     {
@@ -1821,14 +1813,6 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
                 if (mmap_stats)
                 {
                     mmap_stats->link_write_bytes = link_write_bytes_global;
-                }
-#endif
-#ifdef ENABLE_MANAGEMENT
-                if (management)
-                {
-                    management_bytes_client(management, 0, size);
-                    management_bytes_server(management, &c->c2.link_read_bytes,
-                                            &c->c2.link_write_bytes, &c->c2.mda_context);
                 }
 #endif
             }
