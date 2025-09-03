@@ -131,10 +131,22 @@ PUSH_UPDATE client support
     implementation for OpenVPN 2.x is still under development.
     See also: https://openvpn.github.io/openvpn-rfc/openvpn-wire-protocol.html
 
+PUSH_UPDATE server support (minimal)
+    new management interface commands ``push-update-broad`` and
+    ``push-update-cid`` to send PUSH_UPDATE option updates to all
+    clients ("there is a new DNS server") or only a specific client ID
+    ("privileges have changed, here's a new IP address").  See
+    doc/management-notes.txt
+
 Support for user-defined routing tables on Linux
     see the ``--route-table`` option in the manpage
 
 PQE support for WolfSSL
+
+Two new environment variables have been introduced to communicate desired
+    default gateway redirection to plugins like Network Manager,
+    ``route_redirect_gateway_ipv4`` and ``route_redirect_gateway_ipv6``.
+    See the "Environmental Variables" section in the man page
 
 
 Deprecated features
@@ -234,6 +246,24 @@ User-visible Changes
   a fallback to ``tap-windows6``.  To force TAP (for example because a
   server pushes DCO incompatible options), use the ``--disable-dco``
   option.
+
+- Apply more checks to incoming TLS handshake packets before creating
+  new state - namely, verify message ID / acked ID for "valid range for
+  an initial packet".  This fixes a problem with clients that float
+  very early but send control channel packet from the pre-float IP
+  (Github: OpenVPN/openvpn#704).
+
+- Use of ``--dh dh2048.pem`` in all sample configs has been replaced
+  with ``--dh none``.  The ``dh2048.pem`` file has been removed, and
+  has been replaced with ``ffdhe2048.pem`` for the benefit of the
+  t_server_null test (to test all variants of ``--dh``).
+
+- the startup delay in ``t_client.sh`` has been reduced from 3s to 1s,
+  making a noticeable difference for setups with many tests.
+
+- changed from using ``uncrustify`` for code formatting and pre-commit checks
+  to ``clang-format``.  This reformatted quite a bit of code, and requires
+  that regular committers change their pre-commit checks accordingly.
 
 
 Overview of changes in 2.6

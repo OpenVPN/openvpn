@@ -1,6 +1,71 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.09.04 -- Version 2.7_beta1
+
+Arne Schwabe (1):
+      Check message id/acked ids too when doing sessionid cookie checks
+
+Frank Lichtenheld (27):
+      Update text of GPL to latest version from FSF
+      Update GPL header in all source files to current recommended version
+      Define a .clang-format file for the project
+      Disable clang-format for some code parts
+      Update git-pre-commit-uncrustify.sh to handle clang-format
+      GHA: enable -Werror for mbedTLS v3 and AWS LC builds
+      Reformat the whole project with clang-format
+      Fix build error with clang-cl on latest Windows SDK
+      clang-format: Switch to ColumnLimit 0
+      Add clang-format reformat commit to .git-blame-ignore-revs
+      Remove uncrustify config and reformat-all.sh
+      buffer: remove unused function buf_write_alloc_prepend
+      t_client.sh: Do not wait 3 seconds for OpenVPN to come up
+      Collect trivial conversion fixes
+      options: Fix --hash-size virtual argument
+      Clean up documentation for --tun-mtu-max
+      comp: Make sure comp flags are treated as unsigned
+      crypto: Make sure crypto flags are treated as unsigned
+      options: Make sure option types are treated as unsigned
+      route: Make sure various route flags are treated as unsigned
+      socket: Create socket_util with non-socket functions
+      Add new unit test module test_socket
+      socket_util: Clean up conversion warnings in add_in6_addr
+      manage: Make sure various management flags are treated as unsigned
+      forward: Make sure pip flags are treated as unsigned
+      options: Introduce atoi_constrained and review usages of atoi_warn
+      ssl_openssl: Fix type of sslopts argument to SSL_CTX_set_options
+
+Gert Doering (3):
+      Remove use of 'dh dh2048.pem' from sample configs, remove 'dh2048.pem' file
+      Introduce env variables to communicate desired gateway redirection to NM.
+      OpenVPN Release 2.7_beta1
+
+Gianmarco De Gregori (1):
+      dco: avoid printing mi prefix on debug messages
+
+Heiko Hund (1):
+      dns: fix systemd dns-updown script
+
+Ilia Shipitsin (1):
+      GHA: limit 'Deploy Doxygen documentation' to main repo only
+
+Lev Stipakov (3):
+      Log setting DNS via NRPT
+      dco-win: add support for multipeer stats
+      Refactor management bytecount tracking
+
+Marco Baffo (1):
+      PUSH_UPDATE message sender: enabling the server to send PUSH_UPDATE control messages
+
+Ralf Lici (3):
+      management: resync timer on bytecount interval change
+      dco_linux: validate tun interface before fetching stats
+      management: stop bytecount on client disconnection
+
+Samuli Seppänen (2):
+      Add sample FFDH parameters file and use that in t_server_null tests
+
+
 2025.07.31 -- Version 2.7_alpha3
 
 Antonio Quartulli (10):
