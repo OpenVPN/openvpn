@@ -686,5 +686,12 @@ multi_set_pending(struct multi_context *m, struct multi_instance *mi)
  */
 void multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi);
 
+#ifdef ENABLE_MANAGEMENT
+struct multi_instance *
+lookup_by_cid(struct multi_context *m, const unsigned long cid);
+#endif
+
+void
+update_vhash(struct multi_context *m, struct multi_instance *mi, const char *old_ip, const char *old_ipv6);
 
 #endif /* MULTI_H */

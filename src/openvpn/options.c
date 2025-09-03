@@ -5488,7 +5488,6 @@ apply_push_options(struct context *c, struct options *options, struct buffer *bu
             {
                 continue; /* Ignoring this option */
             }
-            throw_signal_soft(SIGUSR1, "Offending option received from server");
             return false; /* Cause push/pull error and stop push processing */
         }
 

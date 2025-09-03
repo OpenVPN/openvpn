@@ -41,6 +41,15 @@
 #define PUSH_OPT_TO_REMOVE (1 << 0)
 #define PUSH_OPT_OPTIONAL  (1 << 1)
 
+#ifdef ENABLE_MANAGEMENT
+/* Push-update message sender modes */
+typedef enum
+{
+    UPT_BROADCAST = 0,
+    UPT_BY_CID = 1
+} push_update_type;
+#endif
+
 int process_incoming_push_request(struct context *c);
 
 /**
@@ -56,6 +65,7 @@ int process_incoming_push_request(struct context *c);
  * @param option_types_found A pointer to a variable that will be filled with the types of options
  *                           found in the message.
  * @param buf A buffer containing the received message.
+ * @param msg_sender A boolean indicating if function is called by the message sender (server).
  *
  * @return
  * - `PUSH_MSG_UPDATE`: The message was processed successfully, and the updates were applied.
@@ -65,7 +75,8 @@ int process_incoming_push_request(struct context *c);
  */
 
 int process_incoming_push_update(struct context *c, unsigned int permission_mask,
-                                 unsigned int *option_types_found, struct buffer *buf);
+                                 unsigned int *option_types_found, struct buffer *buf,
+                                 bool msg_sender);
 
 int process_incoming_push_msg(struct context *c, const struct buffer *buffer,
                               bool honor_received_options, unsigned int permission_mask,
@@ -126,5 +137,29 @@ void send_push_reply_auth_token(struct tls_multi *multi);
  * @param buffer        Buffer containing the control message with AUTH_PENDING
  */
 void receive_auth_pending(struct context *c, const struct buffer *buffer);
+
+#ifdef ENABLE_MANAGEMENT
+/**
+ * @brief A function to send a PUSH_UPDATE control message from server to client(s).
+ *
+ * @param m the multi_context, contains all the clients connected to this server.
+ * @param target the target to which to send the message. It should be:
+ * `NULL` if `type == UPT_BROADCAST`,
+ * a `mroute_addr *` if `type == UPT_BY_ADDR`,
+ * a `char *` if `type == UPT_BY_CN`,
+ * an `unsigned long *` if `type == UPT_BY_CID`.
+ * @param msg a string containing the options to send.
+ * @param type the way to address the message (broadcast, by cid, by cn, by address).
+ * @param push_bundle_size the maximum size of a bundle of pushed option. Just use PUSH_BUNDLE_SIZE macro.
+ * @return the number of clients to which the message was sent.
+ */
+int
+send_push_update(struct multi_context *m, const void *target, const char *msg, const push_update_type type, const int push_bundle_size);
+
+bool management_callback_send_push_update_broadcast(void *arg, const char *options);
+
+bool management_callback_send_push_update_by_cid(void *arg, unsigned long cid, const char *options);
+
+#endif /* ifdef ENABLE_MANAGEMENT*/
 
 #endif /* ifndef PUSH_H */

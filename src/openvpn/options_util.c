@@ -236,11 +236,11 @@ check_push_update_option_flags(char *line, int *i, unsigned int *flags)
     {
         if (*flags & PUSH_OPT_OPTIONAL)
         {
-            msg(D_PUSH, "Pushed option is not updatable: '%s'. Ignoring.", line);
+            msg(D_PUSH, "Pushed dispensable option is not updatable: '%s'. Ignoring.", line);
         }
         else
         {
-            msg(M_WARN, "Pushed option is not updatable: '%s'. Restarting.", line);
+            msg(M_WARN, "Pushed option is not updatable: '%s'.", line);
             return false;
         }
     }

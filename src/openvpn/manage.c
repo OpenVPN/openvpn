@@ -41,6 +41,7 @@
 #include "manage.h"
 #include "openvpn.h"
 #include "dco.h"
+#include "push.h"
 #include "multi.h"
 
 #include "memdbg.h"
@@ -132,8 +133,10 @@ man_help(void)
     msg(M_CLIENT, "test n                 : Produce n lines of output for testing/debugging.");
     msg(M_CLIENT, "username type u        : Enter username u for a queried OpenVPN username.");
     msg(M_CLIENT, "verb [n]               : Set log verbosity level to n, or show if n is absent.");
-    msg(M_CLIENT,
-        "version [n]            : Set client's version to n or show current version of daemon.");
+    msg(M_CLIENT, "version [n]            : Set client's version to n or show current version of daemon.");
+    msg(M_CLIENT, "push-update-broad options : Broadcast a message to update the specified options.");
+    msg(M_CLIENT, "                            Ex. push-update-broad \"route something, -dns\"");
+    msg(M_CLIENT, "push-update-cid CID options : Send an update message to the client identified by CID.");
     msg(M_CLIENT, "END");
 }
 
@@ -1333,6 +1336,48 @@ set_client_version(struct management *man, const char *version)
 }
 
 static void
+man_push_update(struct management *man, const char **p, const push_update_type type)
+{
+    bool status = false;
+
+    if (type == UPT_BROADCAST)
+    {
+        if (!man->persist.callback.push_update_broadcast)
+        {
+            man_command_unsupported("push-update-broad");
+            return;
+        }
+
+        status = (*man->persist.callback.push_update_broadcast)(man->persist.callback.arg, p[1]);
+    }
+    else if (type == UPT_BY_CID)
+    {
+        if (!man->persist.callback.push_update_by_cid)
+        {
+            man_command_unsupported("push-update-cid");
+            return;
+        }
+
+        unsigned long cid = 0;
+
+        if (!parse_cid(p[1], &cid))
+        {
+            msg(M_CLIENT, "ERROR: push-update-cid fail during cid parsing");
+            return;
+        }
+
+        status = (*man->persist.callback.push_update_by_cid)(man->persist.callback.arg, cid, p[2]);
+    }
+
+    if (status)
+    {
+        msg(M_CLIENT, "SUCCESS: push-update command succeeded");
+        return;
+    }
+    msg(M_CLIENT, "ERROR: push-update command failed");
+}
+
+static void
 man_dispatch_command(struct management *man, struct status_output *so, const char **p,
                      const int nparms)
 {
@@ -1653,6 +1698,20 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
         if (man_need(man, p, 1, MN_AT_LEAST))
         {
             man_remote(man, p);
+        }
+    }
+    else if (streq(p[0], "push-update-broad"))
+    {
+        if (man_need(man, p, 1, 0))
+        {
+            man_push_update(man, p, UPT_BROADCAST);
+        }
+    }
+    else if (streq(p[0], "push-update-cid"))
+    {
+        if (man_need(man, p, 2, 0))
+        {
+            man_push_update(man, p, UPT_BY_CID);
         }
     }
 #if 1

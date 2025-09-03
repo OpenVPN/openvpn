@@ -874,9 +874,10 @@ if (BUILD_TESTING)
     target_sources(test_push_update_msg PRIVATE
         tests/unit_tests/openvpn/mock_msg.c
         tests/unit_tests/openvpn/mock_get_random.c
-	    src/openvpn/push_util.c
-	    src/openvpn/options_util.c
-	    src/openvpn/otime.c
+        src/openvpn/push_util.c
+        src/openvpn/options_util.c
+        src/openvpn/otime.c
+        src/openvpn/list.c
         )
 
     if (TARGET test_argv)

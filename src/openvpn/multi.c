@@ -3996,7 +3996,7 @@ management_delete_event(void *arg, event_t event)
     }
 }
 
-static struct multi_instance *
+struct multi_instance *
 lookup_by_cid(struct multi_context *m, const unsigned long cid)
 {
     if (m)
@@ -4137,6 +4137,8 @@ init_management_callback_multi(struct multi_context *m)
         cb.client_auth = management_client_auth;
         cb.client_pending_auth = management_client_pending_auth;
         cb.get_peer_info = management_get_peer_info;
+        cb.push_update_broadcast = management_callback_send_push_update_broadcast;
+        cb.push_update_by_cid = management_callback_send_push_update_by_cid;
         management_set_callback(management, &cb);
     }
 #endif /* ifdef ENABLE_MANAGEMENT */
@@ -4260,4 +4262,48 @@ tunnel_server(struct context *top)
     multi_uninit(&multi);
     multi_top_free(&multi);
     close_instance(top);
+}
+
+/**
+ * Update the vhash with new IP/IPv6 addresses in the multi_context when a
+ * push-update message containing ifconfig/ifconfig-ipv6 options is sent
+ * from the server. This function should be called after a push-update
+ * and old_ip/old_ipv6 are the previous addresses of the client in
+ * ctx->options.ifconfig_local and ctx->options.ifconfig_ipv6_local.
+ */
+void
+update_vhash(struct multi_context *m, struct multi_instance *mi, const char *old_ip, const char *old_ipv6)
+{
+    struct in_addr addr;
+    struct in6_addr new_ipv6;
+
+    if ((mi->context.options.ifconfig_local && (!old_ip || strcmp(old_ip, mi->context.options.ifconfig_local)))
+        && inet_pton(AF_INET, mi->context.options.ifconfig_local, &addr) == 1)
+    {
+        in_addr_t new_ip = ntohl(addr.s_addr);
+
+        /* Add new IP */
+        multi_learn_in_addr_t(m, mi, new_ip, -1, true);
+    }
+
+    /* TO DO:
+     *  else if (old_ip)
+     *  {
+     *      // remove old IP
+     *  }
+     */
+
+    if ((mi->context.options.ifconfig_ipv6_local && (!old_ipv6 || strcmp(old_ipv6, mi->context.options.ifconfig_ipv6_local)))
+        && inet_pton(AF_INET6, mi->context.options.ifconfig_ipv6_local, &new_ipv6) == 1)
+    {
+        /* Add new IPv6 */
+        multi_learn_in6_addr(m, mi, new_ipv6, -1, true);
+    }
+
+    /* TO DO:
+     *  else if (old_ipv6)
+     *  {
+     *      // remove old IPv6
+     *  }
+     */
 }

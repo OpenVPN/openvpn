@@ -1073,6 +1073,10 @@ process_incoming_push_reply(struct context *c, unsigned int permission_mask,
                     break;
             }
         }
+        else
+        {
+            throw_signal_soft(SIGUSR1, "Offending option received from server");
+        }
     }
     else if (ch == '\0')
     {
@@ -1100,7 +1104,7 @@ process_incoming_push_msg(struct context *c, const struct buffer *buffer,
     }
     else if (honor_received_options && buf_string_compare_advance(&buf, push_update_cmd))
     {
-        return process_incoming_push_update(c, permission_mask, option_types_found, &buf);
+        return process_incoming_push_update(c, permission_mask, option_types_found, &buf, false);
     }
     else
     {
