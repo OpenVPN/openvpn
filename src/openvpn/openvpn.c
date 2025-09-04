@@ -53,9 +53,13 @@ process_signal_p2p(struct context *c)
  *
  * @param c - The context structure of the single active VPN tunnel.
  */
-static void
-tunnel_point_to_point(struct context *c)
+void *tunnel_point_to_point(void *a)
 {
+    struct thread_pointer *b = (struct thread_pointer *)a;
+    struct context_pointer *p = b->p;
+    struct context *c = (b->n == 1) ? p->c : b->c;
+    struct context *d = (b->n == 1) ? b->c : p->c;
+
     context_clear_2(c);
 
     /* set point-to-point mode */
@@ -66,12 +70,38 @@ tunnel_point_to_point(struct context *c)
     init_instance_handle_signals(c, c->es, stdin_config ? 0 : CC_HARD_USR1_TO_HUP);
     if (IS_SIG(c))
     {
-        return;
+        return NULL;
     }
+
+    if (b->i == 1) { p->z += 1; }
+    else
+    {
+        while ((p->z == 0) || (!(d->c1.tuntap)))
+        {
+            if (p->z == -1) { break; }
+            sleep(1);
+        }
+        b->h += 1; p->h += 1;
+    }
+
+    msg(M_INFO, "TCPv4_CLIENT MTIO init [%d][%d] [%d][%d] [%d][%d]", b->h, p->n, b->i, b->n, p->h, p->z);
 
     /* main event loop */
     while (true)
     {
+        if (p->z != 1) { break; }
+        if (c->c1.tuntap && (c->c1.tuntap->ff <= 1))
+        {
+            socketpair(AF_UNIX, SOCK_DGRAM, 0, p->s[b->i-1]);
+            socketpair(AF_UNIX, SOCK_DGRAM, 0, p->r[b->i-1]);
+            c->c1.tuntap->ff = c->c1.tuntap->fd;
+            c->c1.tuntap->fe = (b->i == 1) ? c->c1.tuntap->ff : d->c1.tuntap->ff;
+            //c->c1.tuntap->fd = (b->i == 1) ? c->c1.tuntap->ff : d->c1.tuntap->ff;
+            c->c1.tuntap->fd = p->s[b->i-1][0];
+            c->c1.tuntap->fz = p->r[b->i-1][1];
+            msg(M_INFO, "TCPv4_CLIENT MTIO fdno [%d][%d][%d][%d] {%d}", c->c1.tuntap->fd, c->c1.tuntap->fe, c->c1.tuntap->ff, c->c1.tuntap->fz, b->i);
+        }
+
         perf_push(PERF_EVENT_LOOP);
 
         /* process timers, TLS, etc. */
@@ -90,10 +120,22 @@ tunnel_point_to_point(struct context *c)
         }
 
         /* process the I/O which triggered select */
-        process_io(c, c->c2.link_sockets[0]);
+        process_io(c, c->c2.link_sockets[0], b);
         P2P_CHECK_SIG();
 
         perf_pop();
+    }
+
+    msg(M_INFO, "TCPv4_CLIENT MTIO fins [%d][%d] [%d][%d] [%d][%d]", b->h, p->n, b->i, b->n, p->h, p->z);
+
+    p->z = -1;
+
+    if (c->c1.tuntap && (c->c1.tuntap->ff > 1))
+    {
+        close(c->c1.tuntap->ff);
+        close(p->s[b->i-1][1]);
+        close(p->r[b->i-1][0]);
+        close(p->r[b->i-1][1]);
     }
 
     persist_client_stats(c);
@@ -102,6 +144,158 @@ tunnel_point_to_point(struct context *c)
 
     /* tear down tunnel instance (unless --persist-tun) */
     close_instance(c);
+
+    return NULL;
+}
+
+void *threaded_io_management(void *args)
+{
+    struct thread_pointer *a = (struct thread_pointer *)args;
+    struct context_pointer *p = a->p;
+    struct context *c, *d;
+    int size = p->c->options.ce.tun_mtu;
+    int maxt = p->n, maxf = 0;
+    int indx = 0, leng = 0;
+    int fdno, flag;
+    uint8_t buff[MAX_THREADS*2];
+    fd_set rfds;
+    struct timeval timo;
+
+    msg(M_INFO, "%s MTIO mgmt [%d]", (p->m) ? "TCPv4_SERVER" : "TCPv4_CLIENT", size);
+
+    bzero(buff, maxt * sizeof(uint8_t));
+    while (p->z != -1)
+    {
+        if ((p->z == 1) && (p->h == p->n))
+        {
+            indx = -1; maxf = 0;
+            FD_ZERO(&rfds);
+            for (int x = 0; x < maxt; ++x)
+            {
+                if (buff[x] != 1) { indx = x; break; }
+                FD_SET(p->r[x][0], &rfds);
+                if (p->r[x][0] > maxf) { maxf = p->r[x][0]; }
+            }
+            if (indx < 0)
+            {
+                select(maxf+1, &rfds, NULL, NULL, NULL);
+                for (int x = 0; x < maxt; ++x)
+                {
+                    if (FD_ISSET(p->r[x][0], &rfds))
+                    {
+                        leng = read(p->r[x][0], &(buff[maxt+1]), 1);
+                        buff[x] = 0;
+                        indx = x;
+                    }
+                }
+            }
+            if (p->m) {
+                c = &(p->m[indx]->top);
+                d = &(p->m[0]->top);
+            } else {
+                c = a[indx].c;
+                d = p->c;
+            }
+            if (d->c1.tuntap && (d->c1.tuntap->ff > 1) && c->c2.buffers)
+            {
+                flag = 0;
+                fdno = d->c1.tuntap->ff;
+                FD_ZERO(&rfds); FD_SET(fdno, &rfds);
+                timo.tv_sec = 5; timo.tv_usec = 0;
+                if (check_bulk_mode(c))
+                {
+                    for (int x = 0; x < TUN_BAT_MIN; ++x)
+                    {
+                        select(fdno+1, &rfds, NULL, NULL, &timo);
+                        if (FD_ISSET(fdno, &rfds))
+                        {
+                            c->c2.buffers->read_tun_bufs[x].offset = TUN_BAT_OFF;
+                            leng = read(fdno, BPTR(&c->c2.buffers->read_tun_bufs[x]), size);
+                            c->c2.buffers->read_tun_bufs[x].len = leng;
+                            c->c2.bufs[x] = c->c2.buffers->read_tun_bufs[x];
+                            c->c2.buf = c->c2.bufs[0];
+                            c->c2.buffers->bulk_indx = x;
+                            flag = 1;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                        FD_ZERO(&rfds); FD_SET(fdno, &rfds);
+                        timo.tv_sec = 0; timo.tv_usec = 0;
+                    }
+                }
+                else
+                {
+                    select(fdno+1, &rfds, NULL, NULL, &timo);
+                    if (FD_ISSET(fdno, &rfds))
+                    {
+                        leng = read(fdno, BPTR(&c->c2.buffers->read_tun_buf), size);
+                        c->c2.buffers->read_tun_buf.len = leng;
+                        c->c2.buf = c->c2.buffers->read_tun_buf;
+                        flag = 1;
+                    }
+                }
+                if (flag > 0)
+                {
+                    leng = write(p->s[indx][1], buff, 1);
+                    buff[indx] = 1;
+                }
+            }
+            else
+            {
+                sleep(1);
+            }
+        }
+        else
+        {
+            sleep(1);
+        }
+    }
+
+    p->z = -1;
+
+    return NULL;
+}
+
+void threaded_tunnel_point_to_point(struct context *c, struct context *d)
+{
+    int maxt = (c->options.ce.mtio_mode) ? MAX_THREADS : 1;
+    struct context_pointer p;
+    struct thread_pointer a[MAX_THREADS];
+    pthread_t thrm, thrd[MAX_THREADS];
+    pthread_mutex_t lock;
+
+    bzero(&p, sizeof(struct context_pointer));
+    p.c = c; p.i = 1; p.n = maxt; p.h = 1; p.z = 0;
+    p.l = &(lock);
+    bzero(p.l, sizeof(pthread_mutex_t));
+    pthread_mutex_init(p.l, NULL);
+
+    d[0].skip_bind = 0;
+    a[0].p = &(p); a[0].c = c; a[0].i = 1; a[0].n = p.n; a[0].h = 0;
+    bzero(&(thrd[0]), sizeof(pthread_t));
+    pthread_create(&(thrd[0]), NULL, tunnel_point_to_point, &(a[0]));
+
+    bzero(&(thrm), sizeof(pthread_t));
+    pthread_create(&(thrm), NULL, threaded_io_management, &(a[0]));
+
+    for (int x = 1; x < p.n; ++x)
+    {
+        d[x].skip_bind = -1;
+        a[x].p = &(p); a[x].c = &(d[x]); a[x].i = (x + 1); a[x].n = p.n; a[x].h = 1;
+        bzero(&(thrd[x]), sizeof(pthread_t));
+        pthread_create(&(thrd[x]), NULL, tunnel_point_to_point, &(a[x]));
+    }
+
+    pthread_join(thrd[0], NULL);
+
+    for (int x = 1; x < p.n; ++x)
+    {
+        pthread_join(thrd[x], NULL);
+    }
+
+    pthread_join(thrm, NULL);
 }
 
 #undef PROCESS_SIGNAL_P2P
@@ -158,6 +352,7 @@ static int
 openvpn_main(int argc, char *argv[])
 {
     struct context c;
+    struct context d[MAX_THREADS];
 
 #if PEDANTIC
     fprintf(stderr, "Sorry, I was built with --enable-pedantic and I am incapable of doing any real work!\n");
@@ -301,17 +496,33 @@ openvpn_main(int argc, char *argv[])
             /* finish context init */
             context_init_1(&c);
 
+            if (c.options.ce.mtio_mode)
+            {
+                char devs[MAX_STRLENG];
+                for (int x = 0; x < MAX_THREADS; ++x)
+                {
+                    bcopy(&c, &(d[x]), sizeof(struct context));
+                    context_init_1(&(d[x]));
+
+                    bzero(devs, MAX_STRLENG * sizeof(char));
+                    snprintf(devs, MAX_STRLENG-8, "%st%02d", c.options.dev, x);
+                    d[x].options.dev = strdup(devs);
+
+                    msg(M_INFO, "MTIO devs [%d][%s]", x, d[x].options.dev);
+                }
+            }
+
             do
             {
                 /* run tunnel depending on mode */
                 switch (c.options.mode)
                 {
                     case MODE_POINT_TO_POINT:
-                        tunnel_point_to_point(&c);
+                        threaded_tunnel_point_to_point(&c, d);
                         break;
 
                     case MODE_SERVER:
-                        tunnel_server(&c);
+                        threaded_tunnel_server(&c, d);
                         break;
 
                     default:
@@ -329,6 +540,15 @@ openvpn_main(int argc, char *argv[])
 
                 /* pass restart status to management subsystem */
                 signal_restart_status(c.sig);
+
+                if (c.options.ce.mtio_mode)
+                {
+                    for (int x = 0; x < MAX_THREADS; ++x)
+                    {
+                        d[x].first_time = false;
+                        signal_restart_status(d[x].sig);
+                    }
+                }
             } while (signal_reset(c.sig, SIGUSR1) == SIGUSR1);
 
             env_set_destroy(c.es);
