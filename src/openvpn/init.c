@@ -330,7 +330,7 @@ management_callback_send_cc_message(void *arg,
 static unsigned int
 management_callback_remote_entry_count(void *arg)
 {
-    assert(arg);
+    ASSERT(arg);
     struct context *c = (struct context *) arg;
     struct connection_list *l = c->options.connection_list;
 
@@ -340,8 +340,8 @@ management_callback_remote_entry_count(void *arg)
 static bool
 management_callback_remote_entry_get(void *arg, unsigned int index, char **remote)
 {
-    assert(arg);
-    assert(remote);
+    ASSERT(arg);
+    ASSERT(remote);
 
     struct context *c = (struct context *) arg;
     struct connection_list *l = c->options.connection_list;
