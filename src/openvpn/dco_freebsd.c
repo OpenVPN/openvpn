@@ -100,7 +100,7 @@ nvlist_to_sockaddr(const nvlist_t *nvl, struct sockaddr_storage *ss)
 
             in->sin_len = sizeof(*in);
             data = nvlist_get_binary(nvl, "address", &len);
-            assert(len == sizeof(in->sin_addr));
+            ASSERT(len == sizeof(in->sin_addr));
             memcpy(&in->sin_addr, data, sizeof(in->sin_addr));
             in->sin_port = nvlist_get_number(nvl, "port");
             break;
@@ -114,7 +114,7 @@ nvlist_to_sockaddr(const nvlist_t *nvl, struct sockaddr_storage *ss)
 
             in6->sin6_len = sizeof(*in6);
             data = nvlist_get_binary(nvl, "address", &len);
-            assert(len == sizeof(in6->sin6_addr));
+            ASSERT(len == sizeof(in6->sin6_addr));
             memcpy(&in6->sin6_addr, data, sizeof(in6->sin6_addr));
             in6->sin6_port = nvlist_get_number(nvl, "port");
 

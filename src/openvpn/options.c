@@ -3486,9 +3486,9 @@ tuntap_options_postprocess_dns(struct options *o)
     {
         /* Copy --dhcp-options to tuntap_options */
         struct dhcp_options *dhcp = &dns->from_dhcp;
-        assert(sizeof(dhcp->dns) == sizeof(tt->dns));
-        assert(sizeof(dhcp->dns6) == sizeof(tt->dns6));
-        assert(sizeof(dhcp->domain_search_list) == sizeof(tt->domain_search_list));
+        ASSERT(sizeof(dhcp->dns) == sizeof(tt->dns));
+        ASSERT(sizeof(dhcp->dns6) == sizeof(tt->dns6));
+        ASSERT(sizeof(dhcp->domain_search_list) == sizeof(tt->domain_search_list));
 
         tt->domain = dhcp->domain;
         tt->dns_len = dhcp->dns_len;
