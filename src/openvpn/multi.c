@@ -3313,7 +3313,7 @@ multi_process_incoming_dco(struct multi_context *m)
         {
             process_incoming_del_peer(m, mi, dco);
         }
-#if 0
+#if defined(TARGET_FREEBSD)
         else if (dco->dco_message_type == OVPN_CMD_FLOAT_PEER)
         {
             ASSERT(mi->context.c2.link_socket);
