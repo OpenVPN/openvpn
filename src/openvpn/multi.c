@@ -3294,6 +3294,7 @@ multi_process_incoming_dco(struct multi_context *m)
     if ((peer_id < m->max_clients) && (m->instances[peer_id]))
     {
         mi = m->instances[peer_id];
+        set_prefix(mi);
         if (dco->dco_message_type == OVPN_CMD_DEL_PEER)
         {
             process_incoming_del_peer(m, mi, dco);
@@ -3311,6 +3312,7 @@ multi_process_incoming_dco(struct multi_context *m)
         {
             tls_session_soft_reset(mi->context.c2.tls_multi);
         }
+        clear_prefix();
     }
     else
     {
