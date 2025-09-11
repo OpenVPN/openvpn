@@ -7193,8 +7193,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         options->inactivity_timeout = positive_atoi(p[1], msglevel);
         if (p[2])
         {
-            int64_t val = atoll(p[2]);
-            options->inactivity_minimum_bytes = (val < 0) ? 0 : val;
+            positive_atoll(p[2], &options->inactivity_minimum_bytes, p[0], msglevel);
             if (options->inactivity_minimum_bytes > INT_MAX)
             {
                 msg(M_WARN,
@@ -9545,26 +9544,18 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "reneg-bytes") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_TLS_PARMS);
-        char *end;
-        long long reneg_bytes = strtoll(p[1], &end, 10);
-        if (*end != '\0' || reneg_bytes < 0)
+        if (!positive_atoll(p[1], &options->renegotiate_bytes, p[0], msglevel))
         {
-            msg(msglevel, "--reneg-bytes parameter must be an integer and >= 0");
             goto err;
         }
-        options->renegotiate_bytes = reneg_bytes;
     }
     else if (streq(p[0], "reneg-pkts") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_TLS_PARMS);
-        char *end;
-        long long pkt_max = strtoll(p[1], &end, 10);
-        if (*end != '\0' || pkt_max < 0)
+        if (!positive_atoll(p[1], &options->renegotiate_packets, p[0], msglevel))
         {
-            msg(msglevel, "--reneg-pkts parameter must be an integer and >= 0");
             goto err;
         }
-        options->renegotiate_packets = pkt_max;
     }
     else if (streq(p[0], "reneg-sec") && p[1] && !p[3])
     {

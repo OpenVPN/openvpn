@@ -41,6 +41,17 @@ int positive_atoi(const char *str, int msglevel);
 
 /**
  * Converts a str to an integer if the string can be represented as an
+ * integer number and is >= 0.
+ * The integer is stored in \p value.
+ * On error, print a warning with \p msglevel using \p name. \p value is
+ * not changed on error.
+ *
+ * @return \c true if the integer has been parsed and stored in value, \c false otherwise
+ */
+bool positive_atoll(const char *str, int64_t *value, const char *name, int msglevel);
+
+/**
+ * Converts a str to an integer if the string can be represented as an
  * integer number. Otherwise print a warning with \p msglevel and return 0
  */
 int atoi_warn(const char *str, int msglevel);

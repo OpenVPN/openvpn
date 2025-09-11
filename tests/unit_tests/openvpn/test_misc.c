@@ -359,6 +359,17 @@ test_atoi_variants(void **state)
     assert_true(atoi_constrained("-1194", &parameter, "test", INT_MIN, INT_MAX, msglevel));
     assert_int_equal(parameter, -1194);
 
+    int64_t parameter64 = 0;
+    assert_true(positive_atoll("1234", &parameter64, "test", msglevel));
+    assert_int_equal(parameter64, 1234);
+    assert_true(positive_atoll("0", &parameter64, "test", msglevel));
+    assert_int_equal(parameter64, 0);
+    assert_true(positive_atoll("2147483653", &parameter64, "test", msglevel));
+    assert_int_equal(parameter64, 2147483653);
+    /* overflow gets capped to LLONG_MAX */
+    assert_true(positive_atoll("9223372036854775810", &parameter64, "test", msglevel));
+    assert_int_equal(parameter64, 9223372036854775807);
+
     CLEAR(mock_msg_buf);
     assert_int_equal(positive_atoi("-1234", msglevel), 0);
     assert_string_equal(mock_msg_buf, "Cannot parse argument '-1234' as non-negative integer");

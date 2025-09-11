@@ -131,6 +131,22 @@ positive_atoi(const char *str, int msglevel)
     return (int)i;
 }
 
+bool
+positive_atoll(const char *str, int64_t *value, const char *name, int msglevel)
+{
+    char *endptr;
+    long long ll = strtoll(str, &endptr, 10);
+
+    if (ll < 0 || *endptr != '\0')
+    {
+        msg(msglevel, "%s: Cannot parse '%s' as non-negative integer", name, str);
+        return false;
+    }
+
+    *value = (int64_t)ll;
+    return true;
+}
+
 int
 atoi_warn(const char *str, int msglevel)
 {
