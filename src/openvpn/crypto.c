@@ -1903,8 +1903,8 @@ check_tls_prf_working(void)
     uint8_t out[8];
     uint8_t expected_out[] = { 'q', 'D', 0xfe, '%', '@', 's', 'u', 0x95 };
 
-    int ret = ssl_tls1_PRF((uint8_t *)seed, (int)strlen(seed), (uint8_t *)secret,
-                           (int)strlen(secret), out, sizeof(out));
+    int ret = ssl_tls1_PRF((uint8_t *)seed, strlen(seed), (uint8_t *)secret,
+                           strlen(secret), out, sizeof(out));
 
     return (ret && memcmp(out, expected_out, sizeof(out)) == 0);
 }

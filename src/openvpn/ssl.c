@@ -1294,10 +1294,10 @@ key_source2_print(const struct key_source2 *k)
 }
 
 static bool
-openvpn_PRF(const uint8_t *secret, int secret_len, const char *label, const uint8_t *client_seed,
-            int client_seed_len, const uint8_t *server_seed, int server_seed_len,
+openvpn_PRF(const uint8_t *secret, size_t secret_len, const char *label, const uint8_t *client_seed,
+            size_t client_seed_len, const uint8_t *server_seed, size_t server_seed_len,
             const struct session_id *client_sid, const struct session_id *server_sid,
-            uint8_t *output, int output_len)
+            uint8_t *output, size_t output_len)
 {
     /* concatenate seed components */
 

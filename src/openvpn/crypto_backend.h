@@ -716,7 +716,7 @@ const char *translate_cipher_name_to_openvpn(const char *cipher_name);
  *
  * @return              true if successful, false on any error
  */
-bool ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret, int secret_len,
-                  uint8_t *output, int output_len);
+bool ssl_tls1_PRF(const uint8_t *seed, size_t seed_len, const uint8_t *secret, size_t secret_len,
+                  uint8_t *output, size_t output_len);
 
 #endif /* CRYPTO_BACKEND_H_ */

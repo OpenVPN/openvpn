@@ -1341,8 +1341,8 @@ memcmp_constant_time(const void *a, const void *b, size_t size)
 }
 #if (OPENSSL_VERSION_NUMBER >= 0x30000000L) && !defined(LIBRESSL_VERSION_NUMBER)
 bool
-ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret, int secret_len,
-             uint8_t *output, int output_len)
+ssl_tls1_PRF(const uint8_t *seed, size_t seed_len, const uint8_t *secret, size_t secret_len,
+             uint8_t *output, size_t output_len)
 {
     bool ret = true;
     EVP_KDF_CTX *kctx = NULL;
@@ -1368,9 +1368,9 @@ ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret, int secre
     params[0] =
         OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST, SN_md5_sha1, strlen(SN_md5_sha1));
     params[1] = OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SECRET, (uint8_t *)secret,
-                                                  (size_t)secret_len);
+                                                  secret_len);
     params[2] =
-        OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SEED, (uint8_t *)seed, (size_t)seed_len);
+        OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SEED, (uint8_t *)seed, seed_len);
     params[3] = OSSL_PARAM_construct_end();
 
     if (EVP_KDF_derive(kctx, output, output_len, params) <= 0)
@@ -1392,15 +1392,15 @@ out:
 }
 #elif defined(OPENSSL_IS_AWSLC)
 bool
-ssl_tls1_PRF(const uint8_t *label, int label_len, const uint8_t *sec, int slen, uint8_t *out1,
-             int olen)
+ssl_tls1_PRF(const uint8_t *label, size_t label_len, const uint8_t *sec, size_t slen, uint8_t *out1,
+             size_t olen)
 {
     CRYPTO_tls1_prf(EVP_md5_sha1(), out1, olen, sec, slen, label, label_len, NULL, 0, NULL, 0);
 }
 #elif !defined(LIBRESSL_VERSION_NUMBER) && !defined(ENABLE_CRYPTO_WOLFSSL)
 bool
-ssl_tls1_PRF(const uint8_t *seed, int seed_len, const uint8_t *secret, int secret_len,
-             uint8_t *output, int output_len)
+ssl_tls1_PRF(const uint8_t *seed, size_t seed_len, const uint8_t *secret, size_t secret_len,
+             uint8_t *output, size_t output_len)
 {
     EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_TLS1_PRF, NULL);
     if (!pctx)
@@ -1448,8 +1448,8 @@ out:
  * OpenSSL does. As result they will only be able to support
  * peers that support TLS EKM like when running with OpenSSL 3.x FIPS */
 bool
-ssl_tls1_PRF(const uint8_t *label, int label_len, const uint8_t *sec, int slen, uint8_t *out1,
-             int olen)
+ssl_tls1_PRF(const uint8_t *label, size_t label_len, const uint8_t *sec, size_t slen, uint8_t *out1,
+             size_t olen)
 {
     return false;
 }
