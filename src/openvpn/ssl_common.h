@@ -421,17 +421,17 @@ struct tls_options
 #endif
 
     /* configuration file SSL-related boolean and low-permutation options */
-#define SSLF_CLIENT_CERT_NOT_REQUIRED (1 << 0)
-#define SSLF_CLIENT_CERT_OPTIONAL     (1 << 1)
-#define SSLF_USERNAME_AS_COMMON_NAME  (1 << 2)
-#define SSLF_AUTH_USER_PASS_OPTIONAL  (1 << 3)
-#define SSLF_OPT_VERIFY               (1 << 4)
-#define SSLF_CRL_VERIFY_DIR           (1 << 5)
+#define SSLF_CLIENT_CERT_NOT_REQUIRED (1u << 0)
+#define SSLF_CLIENT_CERT_OPTIONAL     (1u << 1)
+#define SSLF_USERNAME_AS_COMMON_NAME  (1u << 2)
+#define SSLF_AUTH_USER_PASS_OPTIONAL  (1u << 3)
+#define SSLF_OPT_VERIFY               (1u << 4)
+#define SSLF_CRL_VERIFY_DIR           (1u << 5)
 #define SSLF_TLS_VERSION_MIN_SHIFT    6
-#define SSLF_TLS_VERSION_MIN_MASK     0xF /* (uses bit positions 6 to 9) */
+#define SSLF_TLS_VERSION_MIN_MASK     0xFu /* (uses bit positions 6 to 9) */
 #define SSLF_TLS_VERSION_MAX_SHIFT    10
-#define SSLF_TLS_VERSION_MAX_MASK     0xF /* (uses bit positions 10 to 13) */
-#define SSLF_TLS_DEBUG_ENABLED        (1 << 14)
+#define SSLF_TLS_VERSION_MAX_MASK     0xFu /* (uses bit positions 10 to 13) */
+#define SSLF_TLS_DEBUG_ENABLED        (1u << 14)
     unsigned int ssl_flags;
 
 #ifdef ENABLE_MANAGEMENT

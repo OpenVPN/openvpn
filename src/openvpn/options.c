@@ -2717,9 +2717,9 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
                     "may accept clients which do not present a certificate");
     }
 
-    const int tls_version_max =
+    const unsigned int tls_version_max =
         (options->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) & SSLF_TLS_VERSION_MAX_MASK;
-    const int tls_version_min =
+    const unsigned int tls_version_min =
         (options->ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK;
 
     if (tls_version_max > 0 && tls_version_max < tls_version_min)
@@ -3385,10 +3385,10 @@ static void
 options_set_backwards_compatible_options(struct options *o)
 {
     /* TLS min version is not set */
-    int tls_ver_min = (o->ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK;
+    unsigned int tls_ver_min = (o->ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK;
     if (tls_ver_min == 0)
     {
-        int tls_ver_max = (o->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) & SSLF_TLS_VERSION_MAX_MASK;
+        unsigned int tls_ver_max = (o->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) & SSLF_TLS_VERSION_MAX_MASK;
         if (need_compatibility_before(o, 20307))
         {
             /* 2.3.6 and earlier have TLS 1.0 only, set minimum to TLS 1.0 */
@@ -9302,9 +9302,8 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "tls-version-min") && p[1] && !p[3])
     {
-        int ver;
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        ver = tls_version_parse(p[1], p[2]);
+        int ver = tls_version_parse(p[1], p[2]);
         if (ver == TLS_VER_BAD)
         {
             msg(msglevel, "unknown tls-version-min parameter: %s", p[1]);
@@ -9320,20 +9319,19 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
 #endif
 
         options->ssl_flags &= ~(SSLF_TLS_VERSION_MIN_MASK << SSLF_TLS_VERSION_MIN_SHIFT);
-        options->ssl_flags |= (ver << SSLF_TLS_VERSION_MIN_SHIFT);
+        options->ssl_flags |= ((unsigned int)ver << SSLF_TLS_VERSION_MIN_SHIFT);
     }
     else if (streq(p[0], "tls-version-max") && p[1] && !p[2])
     {
-        int ver;
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        ver = tls_version_parse(p[1], NULL);
+        int ver = tls_version_parse(p[1], NULL);
         if (ver == TLS_VER_BAD)
         {
             msg(msglevel, "unknown tls-version-max parameter: %s", p[1]);
             goto err;
         }
         options->ssl_flags &= ~(SSLF_TLS_VERSION_MAX_MASK << SSLF_TLS_VERSION_MAX_SHIFT);
-        options->ssl_flags |= (ver << SSLF_TLS_VERSION_MAX_SHIFT);
+        options->ssl_flags |= ((unsigned int)ver << SSLF_TLS_VERSION_MAX_SHIFT);
     }
 #ifndef ENABLE_CRYPTO_MBEDTLS
     else if (streq(p[0], "pkcs12") && p[1] && !p[2])
