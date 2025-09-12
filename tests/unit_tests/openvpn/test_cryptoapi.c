@@ -65,7 +65,7 @@ crypto_print_openssl_errors(const unsigned int flags)
     unsigned long e;
     while ((e = ERR_get_error()))
     {
-        msg(flags, "OpenSSL error %lu: %s\n", e, ERR_error_string(e, NULL));
+        msg(flags, "OpenSSL error %lu: %s", e, ERR_error_string(e, NULL));
     }
 }
 

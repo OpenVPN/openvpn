@@ -2530,7 +2530,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     {
         if (ioctl(if_fd, SIOCGLIFFLAGS, &ifr) < 0)
         {
-            msg(M_ERR, "Can't get flags\n");
+            msg(M_ERR, "Can't get flags");
         }
         strncpynt(ifr.lifr_name, tt->actual_name, sizeof(ifr.lifr_name));
         ifr.lifr_ppa = ppa;
@@ -2541,7 +2541,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         }
         if (ioctl(if_fd, SIOCGLIFFLAGS, &ifr) <0)
         {
-            msg(M_ERR, "Can't get flags\n");
+            msg(M_ERR, "Can't get flags");
         }
         /* Push arp module to if_fd */
         if (ioctl(if_fd, I_PUSH, "arp") < 0)
@@ -2560,18 +2560,18 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         /* Push arp module to ip_fd */
         if (ioctl(tt->ip_fd, I_PUSH, "arp") < 0)
         {
-            msg(M_ERR, "Can't push ARP module\n");
+            msg(M_ERR, "Can't push ARP module");
         }
 
         /* Open arp_fd */
         if ((arp_fd = open(arp_node, O_RDWR, 0)) < 0)
         {
-            msg(M_ERR, "Can't open %s\n", arp_node);
+            msg(M_ERR, "Can't open %s", arp_node);
         }
         /* Push arp module to arp_fd */
         if (ioctl(arp_fd, I_PUSH, "arp") < 0)
         {
-            msg(M_ERR, "Can't push ARP module\n");
+            msg(M_ERR, "Can't push ARP module");
         }
 
         /* Set ifname to arp */
@@ -2581,7 +2581,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         strioc_if.ic_dp = (char *)&ifr;
         if (ioctl(arp_fd, I_STR, &strioc_if) < 0)
         {
-            msg(M_ERR, "Can't set ifname to arp\n");
+            msg(M_ERR, "Can't set ifname to arp");
         }
     }
 

@@ -939,7 +939,7 @@ static int
 signature_sign(void *ctx, unsigned char *sig, size_t *siglen, size_t sigsize,
                const unsigned char *tbs, size_t tbslen)
 {
-    xkey_dmsg(D_XKEY, "entry with siglen = %zu\n", *siglen);
+    xkey_dmsg(D_XKEY, "entry with siglen = %zu", *siglen);
 
     XKEY_SIGNATURE_CTX *sctx = ctx;
     ASSERT(sctx);

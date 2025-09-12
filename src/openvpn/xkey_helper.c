@@ -54,7 +54,7 @@ print_openssl_errors()
     unsigned long e;
     while ((e = ERR_get_error()))
     {
-        msg(M_WARN, "OpenSSL error %lu: %s\n", e, ERR_error_string(e, NULL));
+        msg(M_WARN, "OpenSSL error %lu: %s", e, ERR_error_string(e, NULL));
     }
 }
 
@@ -431,7 +431,7 @@ ecdsa_bin2der(unsigned char *buf, int len, size_t capacity)
     if (derlen > (int) capacity)
     {
         ECDSA_SIG_free(ecsig);
-        msg(M_NONFATAL, "Error: DER encoded ECDSA signature is too long (%d)\n", derlen);
+        msg(M_NONFATAL, "Error: DER encoded ECDSA signature is too long (%d)", derlen);
         return 0;
     }
     derlen = i2d_ECDSA_SIG(ecsig, &buf);
