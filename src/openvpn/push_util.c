@@ -161,6 +161,10 @@ send_single_push_update(struct context *c, struct buffer *msgs, unsigned int *op
          * will not be routed towards the client.
          * For the same reason we later update the vhash too in
          * `send_push_update()` function.
+         * Using `buf_string_compare_advance()` we mimic the behavior
+         * inside `process_incoming_push_msg()`. However, we don't need
+         * to check the return value here because we just want to `advance`,
+         * meaning we skip the `push_update_cmd' we added earlier.
          */
         buf_string_compare_advance(&msgs[i], push_update_cmd);
         if (process_incoming_push_update(c, pull_permission_mask(c), option_types_found, &msgs[i], true) == PUSH_MSG_ERROR)
