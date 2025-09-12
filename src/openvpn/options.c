@@ -2763,6 +2763,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
 #ifdef ENABLE_CRYPTOAPI
             MUST_BE_UNDEF(cryptoapi_cert, "cryptoapicert");
 #endif
+            MUST_BE_UNDEF(auth_user_pass_file, "auth_user_pass");
         }
         else
 #endif /* ifdef ENABLE_PKCS11 */
@@ -2776,6 +2777,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             MUST_BE_UNDEF(pkcs12_file, "pkcs12");
             MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_KEY, "management-external-key");
             MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_CERT, "management-external-cert");
+            MUST_BE_UNDEF(auth_user_pass_file, "auth_user_pass");
         }
         else
 #endif
@@ -2790,62 +2792,64 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             MUST_BE_UNDEF(priv_key_file, "key");
             MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_KEY, "management-external-key");
             MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_CERT, "management-external-cert");
+            MUST_BE_UNDEF(auth_user_pass_file, "auth_user_pass");
 #endif       /* ifdef ENABLE_CRYPTO_MBEDTLS */
         }
-        else /* cert/key from none of pkcs11, pkcs12, cryptoapi */
+        else if ((options->management_flags & (MF_EXTERNAL_KEY | MF_EXTERNAL_CERT))
+                || options->priv_key_file
+                || options->cert_file)
         {
-            if ((options->management_flags & MF_EXTERNAL_KEY) && options->priv_key_file)
+            /* cert/key from none of pkcs11, pkcs12, cryptoapi */
+            const char use_err[] = "Parameter --%s cannot be used when "
+                                   "--management-external-%1$s is also specified.";
+            MUST_BE_FALSE((options->management_flags & MF_EXTERNAL_KEY)
+                           && options->priv_key_file, "key");
+            MUST_BE_FALSE((options->management_flags & MF_EXTERNAL_CERT)
+                           && options->cert_file, "cert");
+            if ((options->management_flags & MF_EXTERNAL_KEY)
+                && (options->management_flags & MF_EXTERNAL_CERT) // when both
             {
-                msg(M_USAGE, "--key and --management-external-key are mutually exclusive");
+                const char use_err[] = "Parameter --%s cannot be used when "
+                                   "--management-external-cert and "
+                                   "--management-external-key are also specified.";
+                MUST_BE_UNDEF(cert_file, "cert");
+                MUST_BE_UNDEF(priv_key_file, "key");
+                MUST_BE_UNDEF(auth_user_pass_file, "auth_user_pass");
             }
-            if ((options->management_flags & MF_EXTERNAL_CERT))
+            else if (options->management_flags & (MF_EXTERNAL_KEY | MF_EXTERNAL_CERT)) // when either
             {
-                if (options->cert_file)
-                {
-                    msg(M_USAGE, "--cert and --management-external-cert are mutually exclusive");
-                }
-                else if (!(options->management_flags & MF_EXTERNAL_KEY))
-                {
-                    msg(M_USAGE,
-                        "--management-external-cert must be used with --management-external-key");
-                }
+                msg(M_USAGE,
+                    "--management-external-cert and --management-external-key must be used together")
             }
-            if (pull)
+            /* Neither --management-external-cert nor --management-external-key given. */
+            else if ((options->cert_file != NULL) || (options->priv_key_file != NULL))
             {
-                const int sum =
-                    ((options->cert_file != NULL) || (options->management_flags & MF_EXTERNAL_CERT))
-                    + ((options->priv_key_file != NULL)
-                       || (options->management_flags & MF_EXTERNAL_KEY));
-
-                if (sum == 0)
-                {
-                    if (!options->auth_user_pass_file)
-                    {
-                        msg(M_USAGE, "No client-side authentication method is "
-                                     "specified.  You must use either "
-                                     "--cert/--key, --pkcs12, or "
-                                     "--auth-user-pass");
-                    }
-                }
-                else if (sum != 2)
-                {
-                    msg(M_USAGE, "If you use one of --cert or --key, you must use them both");
-                }
-            }
-            else
-            {
-                if (!(options->management_flags & MF_EXTERNAL_CERT))
-                {
-                    notnull(options->cert_file,
-                            "certificate file (--cert) or PKCS#12 file (--pkcs12)");
-                }
-                if (!(options->management_flags & MF_EXTERNAL_KEY))
-                {
-                    notnull(options->priv_key_file,
-                            "private key file (--key) or PKCS#12 file (--pkcs12)");
-                }
+                msg(M_USAGE, "--cert must be used with --key");
+                notnull(options->priv_key_file, "private key file (--key)");
+                notnull(options->cert_file, "certificate file (--cert)");
             }
         }
+        else if (options->auth_user_pass_file)
+        {
+            /* Nothing to do here */
+        }
+        else
+        {
+            msg(M_USAGE, "No client-side authentication method is "
+                     "specified.  You must use either "
+                     "--cert/--key, "
+#ifdef ENABLE_PKCS11
+                     "--pkcs11-provider, "
+#endif
+#ifndef ENABLE_CRYPTO_MBEDTLS
+                     "--pkcs12, "
+#endif
+#ifdef ENABLE_CRYPTOAPI
+                     "--cryptoapicert, "
+#endif
+                     "or --auth-user-pass");
+        }
+
         if (ce->tls_auth_file && ce->tls_crypt_file)
         {
             msg(M_USAGE, "--tls-auth and --tls-crypt are mutually exclusive");
@@ -2903,15 +2907,14 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         MUST_BE_UNDEF(pkcs11_id, "pkcs11-id");
         MUST_BE_UNDEF(pkcs11_id_management, "pkcs11-id-management");
 #endif
+#ifdef ENABLE_CRYPTOAPI
+        MUST_BE_UNDEF(cryptoapi_cert, "cryptoapicert");
+#endif
 
         if (pull)
         {
             msg(M_USAGE, use_err, "--pull");
         }
-    }
-    if (options->auth_user_pass_file && !options->pull)
-    {
-        msg(M_USAGE, "--auth-user-pass requires --pull");
     }
 
     uninit_options(&defaults);
@@ -3326,6 +3329,12 @@ options_postprocess_cipher(struct options *o)
         else
         {
             o->enable_ncp_fallback = true;
+            msg(M_INFO, "Note: Automatically setting --enable-ncp-fallback=true"
+                "for compatibility with OpenVPN server versions before 2.5 "
+                "defaulted to BF-CBC as fallback when cipher negotiation "
+                "failed in this case. NCP Fallback will always be "
+                "enabled when --cipher is provided, we're NOT in "
+                "MODE_SERVER and --pull was not provided")
         }
         return;
     }
