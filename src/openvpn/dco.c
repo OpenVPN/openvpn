@@ -268,7 +268,7 @@ dco_check_option_ce(const struct connection_entry *ce, int msglevel, int mode)
 #endif
 
 #if defined(_WIN32)
-    if (!proto_is_udp(ce->proto) && mode == MODE_SERVER)
+    if (!proto_is_udp(ce->local_list->array[0]->proto) && mode == MODE_SERVER)
     {
         msg(msglevel,
             "NOTE: TCP transport disables data channel offload on Windows in server mode.");
