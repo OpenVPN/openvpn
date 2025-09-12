@@ -264,6 +264,7 @@ clone_dns_options(const struct dns_options *o, struct gc_arena *gc)
     clone.servers_prepull = clone_dns_servers(o->servers_prepull, gc);
     clone.updown = o->updown;
     clone.updown_flags = o->updown_flags;
+    clone.from_dhcp = o->from_dhcp;
 
     return clone;
 }
