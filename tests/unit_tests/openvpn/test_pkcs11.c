@@ -52,7 +52,7 @@ crypto_print_openssl_errors(const unsigned int flags)
     unsigned long e;
     while ((e = ERR_get_error()))
     {
-        msg(flags, "OpenSSL error %lu: %s\n", e, ERR_error_string(e, NULL));
+        msg(flags, "OpenSSL error %lu: %s", e, ERR_error_string(e, NULL));
     }
 }
 
@@ -170,7 +170,7 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
     }
     else
     {
-        msg(M_NONFATAL, "ERROR: get_user_pass called with unknown request <%s> ignored\n", prefix);
+        msg(M_NONFATAL, "ERROR: get_user_pass called with unknown request <%s> ignored", prefix);
         ret = false;
     }
 

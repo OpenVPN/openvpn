@@ -1007,7 +1007,7 @@ plugin_return_print(const int msglevel, const char *prefix, const struct plugin_
         msg(msglevel, "PLUGIN #%d (%s)", i, prefix);
         while (l)
         {
-            msg(msglevel, "[%d] '%s' -> '%s'\n", ++count, l->name, l->value);
+            msg(msglevel, "[%d] '%s' -> '%s'", ++count, l->name, l->value);
             l = l->next;
         }
     }

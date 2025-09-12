@@ -1036,7 +1036,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 #ifdef ENABLE_ASYNC_PUSH
     if (m->inotify_watchers)
     {
-        msg(D_MULTI_DEBUG, "inotify watchers count: %d\n", hash_n_elements(m->inotify_watchers));
+        msg(D_MULTI_DEBUG, "inotify watchers count: %d", hash_n_elements(m->inotify_watchers));
     }
 #endif
 }
