@@ -2334,7 +2334,7 @@ man_read(struct management *man)
         bool processed_command = false;
 
         ASSERT(len <= (int)sizeof(buf));
-        command_line_add(man->connection.in, buf, len);
+        command_line_add(man->connection.in, buf, (size_t)len);
 
         /*
          * Reset output object
@@ -3873,7 +3873,7 @@ management_hold(struct management *man, int holdtime)
  */
 
 struct command_line *
-command_line_new(const int buf_len)
+command_line_new(const size_t buf_len)
 {
     struct command_line *cl;
     ALLOC_OBJ_CLEAR(cl, struct command_line);
@@ -3903,10 +3903,9 @@ command_line_free(struct command_line *cl)
 }
 
 void
-command_line_add(struct command_line *cl, const unsigned char *buf, const int len)
+command_line_add(struct command_line *cl, const unsigned char *buf, const size_t len)
 {
-    int i;
-    for (i = 0; i < len; ++i)
+    for (size_t i = 0; i < len; ++i)
     {
         if (buf[i] && char_class(buf[i], (CC_PRINT | CC_NEWLINE)))
         {
@@ -3921,10 +3920,9 @@ command_line_add(struct command_line *cl, const unsigned char *buf, const int le
 const char *
 command_line_get(struct command_line *cl)
 {
-    int i;
     const char *ret = NULL;
 
-    i = buf_substring_len(&cl->buf, '\n');
+    int i = buf_substring_len(&cl->buf, '\n');
     if (i >= 0)
     {
         buf_copy_excess(&cl->residual, &cl->buf, i);

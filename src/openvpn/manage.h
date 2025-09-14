@@ -80,11 +80,11 @@ struct command_line
     struct buffer residual;
 };
 
-struct command_line *command_line_new(const int buf_len);
+struct command_line *command_line_new(const size_t buf_len);
 
 void command_line_free(struct command_line *cl);
 
-void command_line_add(struct command_line *cl, const unsigned char *buf, const int len);
+void command_line_add(struct command_line *cl, const unsigned char *buf, const size_t len);
 
 const char *command_line_get(struct command_line *cl);
 
