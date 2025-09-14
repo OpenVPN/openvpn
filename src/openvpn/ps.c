@@ -334,26 +334,22 @@ proxy_list_housekeeping(struct proxy_connection **list)
 static void
 journal_add(const char *journal_dir, struct proxy_connection *pc, struct proxy_connection *cp)
 {
-    struct gc_arena gc = gc_new();
     struct openvpn_sockaddr from, to;
-    socklen_t slen, dlen;
-    int fnlen;
-    char *jfn;
-    int fd;
 
-    slen = sizeof(from.addr);
-    dlen = sizeof(to.addr);
+    socklen_t slen = sizeof(from.addr);
+    socklen_t dlen = sizeof(to.addr);
     if (!getpeername(pc->sd, (struct sockaddr *)&from.addr.sa, &slen)
         && !getsockname(cp->sd, (struct sockaddr *)&to.addr.sa, &dlen))
     {
+        struct gc_arena gc = gc_new();
         const char *f = print_openvpn_sockaddr(&from, &gc);
         const char *t = print_openvpn_sockaddr(&to, &gc);
-        fnlen = strlen(journal_dir) + strlen(t) + 2;
-        jfn = (char *)malloc(fnlen);
+        size_t fnlen = strlen(journal_dir) + strlen(t) + 2;
+        char *jfn = (char *)malloc(fnlen);
         check_malloc_return(jfn);
         snprintf(jfn, fnlen, "%s/%s", journal_dir, t);
         dmsg(D_PS_PROXY_DEBUG, "PORT SHARE PROXY: client origin %s -> %s", jfn, f);
-        fd = platform_open(jfn, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
+        int fd = platform_open(jfn, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
         if (fd != -1)
         {
             if (write(fd, f, strlen(f)) != strlen(f))
@@ -368,8 +364,8 @@ journal_add(const char *journal_dir, struct proxy_connection *pc, struct proxy_c
             msg(M_WARN | M_ERRNO, "PORT SHARE: unable to write journal file in %s", jfn);
             free(jfn);
         }
+        gc_free(&gc);
     }
-    gc_free(&gc);
 }
 
 /*
