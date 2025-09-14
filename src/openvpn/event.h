@@ -35,8 +35,8 @@
 #define WRITE_SHIFT 1
 
 #define EVENT_UNDEF 4
-#define EVENT_READ  (1 << READ_SHIFT)
-#define EVENT_WRITE (1 << WRITE_SHIFT)
+#define EVENT_READ  (1u << READ_SHIFT)
+#define EVENT_WRITE (1u << WRITE_SHIFT)
 
 /* event flags returned by io_wait.
  *

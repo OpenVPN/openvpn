@@ -70,7 +70,7 @@ struct proxy_connection
     struct proxy_connection *counterpart;
     struct buffer buf;
     bool buffer_initial;
-    int rwflags;
+    unsigned int rwflags;
     int sd;
     char *jfn;
 };
@@ -387,12 +387,12 @@ proxy_list_close(struct proxy_connection **list)
 }
 
 static inline void
-proxy_connection_io_requeue(struct proxy_connection *pc, const int rwflags_new,
+proxy_connection_io_requeue(struct proxy_connection *pc, const unsigned int rwflags_new,
                             struct event_set *es)
 {
     if (socket_defined(pc->sd) && pc->rwflags != rwflags_new)
     {
-        /*dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: requeue[%d] rwflags=%d", (int)pc->sd,
+        /*dmsg (D_PS_PROXY_DEBUG, "PORT SHARE PROXY: requeue[%d] rwflags=%u", (int)pc->sd,
          * rwflags_new);*/
         event_ctl(es, pc->sd, rwflags_new, (void *)pc);
         pc->rwflags = rwflags_new;
@@ -652,7 +652,7 @@ proxy_connection_io_xfer(struct proxy_connection *pc, const int max_transfer)
  * Decide how the receipt of an EAGAIN status should affect our next IO queueing.
  */
 static bool
-proxy_connection_io_status(const int status, int *rwflags_pc, int *rwflags_cp)
+proxy_connection_io_status(const int status, unsigned int *rwflags_pc, unsigned int *rwflags_cp)
 {
     switch (status)
     {
@@ -683,12 +683,13 @@ proxy_connection_io_status(const int status, int *rwflags_pc, int *rwflags_cp)
  * in the proxied connection.
  */
 static int
-proxy_connection_io_dispatch(struct proxy_connection *pc, const int rwflags, struct event_set *es)
+proxy_connection_io_dispatch(struct proxy_connection *pc, const unsigned int rwflags,
+                             struct event_set *es)
 {
     const int max_transfer_per_iteration = 10000;
     struct proxy_connection *cp = pc->counterpart;
-    int rwflags_pc = pc->rwflags;
-    int rwflags_cp = cp->rwflags;
+    unsigned int rwflags_pc = pc->rwflags;
+    unsigned int rwflags_cp = cp->rwflags;
 
     ASSERT(pc->defined && cp->defined && cp->counterpart == pc);
 
