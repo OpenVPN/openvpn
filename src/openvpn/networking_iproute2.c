@@ -150,7 +150,7 @@ net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface, const in_addr_t *addr
 
     const char *addr_str = print_in_addr_t(*addr, 0, &ctx->gc);
 
-    argv_printf(&argv, "%s addr add dev %s %s/%d", iproute_path, iface, addr_str, prefixlen);
+    argv_printf(&argv, "%s addr add dev %s %s/%d broadcast +", iproute_path, iface, addr_str, prefixlen);
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip addr add failed");
 
