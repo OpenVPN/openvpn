@@ -153,7 +153,8 @@ do_pre_decrypt_check(struct multi_context *m,
          * need to contain the peer id */
         struct gc_arena gc = gc_new();
 
-        bool ret = check_session_id_hmac(state, from, hmac, handwindow);
+        bool pkt_is_ack = (verdict == VERDICT_VALID_ACK_V1);
+        bool ret = check_session_hmac_and_pkt_id(state, from, hmac, handwindow, pkt_is_ack);
 
         const char *peer = print_link_socket_actual(&m->top.c2.from, &gc);
         uint8_t pkt_firstbyte = *BPTR( &m->top.c2.buf);
@@ -161,7 +162,8 @@ do_pre_decrypt_check(struct multi_context *m,
 
         if (!ret)
         {
-            msg(D_MULTI_MEDIUM, "Packet (%s) with invalid or missing SID from %s",
+            msg(D_MULTI_MEDIUM, "Packet (%s) with invalid or missing SID from"
+                " %s or wrong packet id",
                 packet_opcode_name(op), peer);
         }
         else
