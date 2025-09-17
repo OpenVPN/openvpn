@@ -66,7 +66,7 @@ void post_init_signal_catch(void);
 
 void restore_signal_state(void);
 
-void print_signal(const struct signal_info *si, const char *title, int msglevel);
+void print_signal(const struct signal_info *si, const char *title, msglvl_t msglevel);
 
 void print_status(struct context *c, struct status_output *so);
 

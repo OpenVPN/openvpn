@@ -181,7 +181,7 @@ struct options;
  * Function prototypes.
  */
 
-void frame_print(const struct frame *frame, int level, const char *prefix);
+void frame_print(const struct frame *frame, msglvl_t msglevel, const char *prefix);
 
 void set_mtu_discover_type(socket_descriptor_t sd, int mtu_type, sa_family_t proto_af);
 

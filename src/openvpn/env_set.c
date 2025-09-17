@@ -209,7 +209,7 @@ env_set_get(const struct env_set *es, const char *name)
 }
 
 void
-env_set_print(int msglevel, const struct env_set *es)
+env_set_print(msglvl_t msglevel, const struct env_set *es)
 {
     if (check_debug_level(msglevel))
     {

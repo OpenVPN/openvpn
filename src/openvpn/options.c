@@ -1107,7 +1107,7 @@ delete_all_dhcp_fo(struct options *o, struct env_item **list)
 #endif /* ifndef _WIN32 */
 
 static in_addr_t
-get_ip_addr(const char *ip_string, int msglevel, bool *error)
+get_ip_addr(const char *ip_string, msglvl_t msglevel, bool *error)
 {
     unsigned int flags = GETADDR_HOST_ORDER;
     bool succeeded = false;
@@ -1187,7 +1187,7 @@ string_substitute(const char *src, int from, int to, struct gc_arena *gc)
  * @param   gc          The returned object will be allocated in this gc
  */
 static struct verify_hash_list *
-parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_arena *gc)
+parse_hash_fingerprint(const char *str, int nbytes, msglvl_t msglevel, struct gc_arena *gc)
 {
     int i = 0;
     const char *cp = str;
@@ -1240,7 +1240,8 @@ parse_hash_fingerprint(const char *str, int nbytes, int msglevel, struct gc_aren
  * @param   gc          The returned list items will be allocated in this gc
  */
 static struct verify_hash_list *
-parse_hash_fingerprint_multiline(const char *str, int nbytes, int msglevel, struct gc_arena *gc)
+parse_hash_fingerprint_multiline(const char *str, int nbytes, msglvl_t msglevel,
+                                 struct gc_arena *gc)
 {
     struct gc_arena gc_temp = gc_new();
     char *lines = string_alloc(str, &gc_temp);
@@ -1329,7 +1330,7 @@ show_tuntap_options(const struct tuntap_options *o)
 #endif /* ifdef _WIN32 */
 
 static void
-dhcp_option_dns6_parse(const char *parm, struct in6_addr *dns6_list, int *len, int msglevel)
+dhcp_option_dns6_parse(const char *parm, struct in6_addr *dns6_list, int *len, msglvl_t msglevel)
 {
     struct in6_addr addr;
     if (*len >= N_DHCP_ADDR)
@@ -1344,7 +1345,7 @@ dhcp_option_dns6_parse(const char *parm, struct in6_addr *dns6_list, int *len, i
 }
 static void
 dhcp_option_address_parse(const char *name, const char *parm, in_addr_t *array, int *len,
-                          int msglevel)
+                          msglvl_t msglevel)
 {
     if (*len >= N_DHCP_ADDR)
     {
@@ -1480,7 +1481,8 @@ show_p2mp_parms(const struct options *o)
 #endif /* ! ENABLE_SMALL */
 
 static void
-option_iroute(struct options *o, const char *network_str, const char *netmask_str, int msglevel)
+option_iroute(struct options *o, const char *network_str, const char *netmask_str,
+              msglvl_t msglevel)
 {
     struct iroute *ir;
 
@@ -1506,7 +1508,7 @@ option_iroute(struct options *o, const char *network_str, const char *netmask_st
 }
 
 static void
-option_iroute_ipv6(struct options *o, const char *prefix_str, int msglevel)
+option_iroute_ipv6(struct options *o, const char *prefix_str, msglvl_t msglevel)
 {
     struct iroute_ipv6 *ir;
 
@@ -2063,7 +2065,7 @@ alloc_local_list_if_undef(struct connection_entry *ce, struct gc_arena *gc)
 }
 
 static struct local_entry *
-alloc_local_entry(struct connection_entry *ce, const int msglevel, struct gc_arena *gc)
+alloc_local_entry(struct connection_entry *ce, const msglvl_t msglevel, struct gc_arena *gc)
 {
     struct local_list *l = alloc_local_list_if_undef(ce, gc);
     struct local_entry *e;
@@ -2104,7 +2106,7 @@ alloc_connection_list_if_undef(struct options *options)
 }
 
 static struct connection_entry *
-alloc_connection_entry(struct options *options, const int msglevel)
+alloc_connection_entry(struct options *options, const msglvl_t msglevel)
 {
     struct connection_list *l = alloc_connection_list_if_undef(options);
     struct connection_entry *e;
@@ -2140,7 +2142,7 @@ alloc_remote_list_if_undef(struct options *options)
 }
 
 static struct remote_entry *
-alloc_remote_entry(struct options *options, const int msglevel)
+alloc_remote_entry(struct options *options, const msglvl_t msglevel)
 {
     struct remote_list *l = alloc_remote_list_if_undef(options);
     struct remote_entry *e;
@@ -2694,7 +2696,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
 
     if (!options->tls_server && !options->tls_client)
     {
-        int msglevel = M_USAGE;
+        msglvl_t msglevel = M_USAGE;
         if (options->allow_deprecated_insecure_static_crypto)
         {
             msglevel = M_INFO;
@@ -4566,8 +4568,9 @@ options_warning_extract_parm1(const char *option_string, struct gc_arena *gc_ret
 }
 
 static void
-options_warning_safe_scan2(const int msglevel, const int delim, const bool report_inconsistent,
-                           const char *p1, const struct buffer *b2_src, const char *b1_name,
+options_warning_safe_scan2(const msglvl_t msglevel, const int delim,
+                           const bool report_inconsistent, const char *p1,
+                           const struct buffer *b2_src, const char *b1_name,
                            const char *b2_name)
 {
     /* We will stop sending 'key-method', 'keydir', 'proto' and 'tls-auth' in
@@ -4619,9 +4622,9 @@ done:
 }
 
 static void
-options_warning_safe_scan1(const int msglevel, const int delim, const bool report_inconsistent,
-                           const struct buffer *b1_src, const struct buffer *b2_src,
-                           const char *b1_name, const char *b2_name)
+options_warning_safe_scan1(const msglvl_t msglevel, const int delim,
+                           const bool report_inconsistent, const struct buffer *b1_src,
+                           const struct buffer *b2_src, const char *b1_name, const char *b2_name)
 {
     struct gc_arena gc = gc_new();
     struct buffer b = *b1_src;
@@ -4637,7 +4640,7 @@ options_warning_safe_scan1(const int msglevel, const int delim, const bool repor
 }
 
 static void
-options_warning_safe_ml(const int msglevel, char *actual, const char *expected, size_t actual_n)
+options_warning_safe_ml(const msglvl_t msglevel, char *actual, const char *expected, size_t actual_n)
 {
     struct gc_arena gc = gc_new();
 
@@ -4729,7 +4732,7 @@ options_string_extract_option(const char *options_string, const char *opt_name, 
  */
 
 int
-parse_topology(const char *str, const int msglevel)
+parse_topology(const char *str, const msglvl_t msglevel)
 {
     if (streq(str, "net30"))
     {
@@ -4785,7 +4788,7 @@ auth_retry_get(void)
 }
 
 bool
-auth_retry_set(const int msglevel, const char *option)
+auth_retry_set(const msglvl_t msglevel, const char *option)
 {
     if (streq(option, "interact"))
     {
@@ -4942,7 +4945,7 @@ string_defined_equal(const char *s1, const char *s2)
 
 #if 0
 static void
-ping_rec_err(int msglevel)
+ping_rec_err(msglvl_t msglevel)
 {
     msg(msglevel, "only one of --ping-exit or --ping-restart options may be specified");
 }
@@ -4966,7 +4969,7 @@ space(char c)
 
 int
 parse_line(const char *line, char *p[], const int n, const char *file, const int line_num,
-           int msglevel, struct gc_arena *gc)
+           msglvl_t msglevel, struct gc_arena *gc)
 {
     const int STATE_INITIAL = 0;
     const int STATE_READING_QUOTED_PARM = 1;
@@ -5271,24 +5274,25 @@ check_inline_file_via_buf(struct buffer *multiline, char *p[], struct gc_arena *
 }
 
 static void add_option(struct options *options, char *p[], bool is_inline, const char *file,
-                       int line, const int level, const int msglevel,
+                       int line, const int level, const msglvl_t msglevel,
                        const unsigned int permission_mask, unsigned int *option_types_found,
                        struct env_set *es);
 
 static void remove_option(struct context *c, struct options *options, char *p[], bool is_inline,
-                          const char *file, int line, const int msglevel,
+                          const char *file, int line, const msglvl_t msglevel,
                           const unsigned int permission_mask, unsigned int *option_types_found,
                           struct env_set *es);
 
 static void update_option(struct context *c, struct options *options, char *p[], bool is_inline,
-                          const char *file, int line, const int level, const int msglevel,
+                          const char *file, int line, const int level, const msglvl_t msglevel,
                           const unsigned int permission_mask, unsigned int *option_types_found,
                           struct env_set *es, unsigned int *update_options_found);
 
 static void
 read_config_file(struct options *options, const char *file, int level, const char *top_file,
-                 const int top_line, const int msglevel, const unsigned int permission_mask,
-                 unsigned int *option_types_found, struct env_set *es)
+                 const int top_line, const msglvl_t msglevel,
+                 const unsigned int permission_mask, unsigned int *option_types_found,
+                 struct env_set *es)
 {
     const int max_recursive_levels = 10;
     FILE *fp;
@@ -5360,7 +5364,7 @@ read_config_file(struct options *options, const char *file, int level, const cha
 
 static void
 read_config_string(const char *prefix, struct options *options, const char *config,
-                   const int msglevel, const unsigned int permission_mask,
+                   const msglvl_t msglevel, const unsigned int permission_mask,
                    unsigned int *option_types_found, struct env_set *es)
 {
     char line[OPTION_LINE_SIZE];
@@ -5388,7 +5392,7 @@ read_config_string(const char *prefix, struct options *options, const char *conf
 }
 
 void
-parse_argv(struct options *options, const int argc, char *argv[], const int msglevel,
+parse_argv(struct options *options, const int argc, char *argv[], const msglvl_t msglevel,
            const unsigned int permission_mask, unsigned int *option_types_found, struct env_set *es)
 {
     /* usage message */
@@ -5457,7 +5461,7 @@ apply_push_options(struct context *c, struct options *options, struct buffer *bu
     char line[OPTION_PARM_SIZE];
     int line_num = 0;
     const char *file = "[PUSH-OPTIONS]";
-    const int msglevel = D_PUSH_ERRORS | M_OPTERR;
+    const msglvl_t msglevel = D_PUSH_ERRORS | M_OPTERR;
     unsigned int update_options_found = 0;
 
     while (buf_parse(buf, ',', line, sizeof(line)))
@@ -5514,7 +5518,7 @@ apply_push_options(struct context *c, struct options *options, struct buffer *bu
 }
 
 void
-options_server_import(struct options *o, const char *filename, int msglevel,
+options_server_import(struct options *o, const char *filename, msglvl_t msglevel,
                       unsigned int permission_mask, unsigned int *option_types_found,
                       struct env_set *es)
 {
@@ -5524,7 +5528,7 @@ options_server_import(struct options *o, const char *filename, int msglevel,
 }
 
 void
-options_string_import(struct options *options, const char *config, const int msglevel,
+options_string_import(struct options *options, const char *config, const msglvl_t msglevel,
                       const unsigned int permission_mask, unsigned int *option_types_found,
                       struct env_set *es)
 {
@@ -5543,7 +5547,7 @@ options_string_import(struct options *options, const char *config, const int msg
 
 static bool
 verify_permission(const char *name, const char *file, int line, const unsigned int type,
-                  const unsigned int allowed, unsigned int *found, const int msglevel,
+                  const unsigned int allowed, unsigned int *found, const msglvl_t msglevel,
                   struct options *options, bool is_inline)
 {
     if (!(type & allowed))
@@ -5595,7 +5599,7 @@ verify_permission(const char *name, const char *file, int line, const unsigned i
 #define NM_QUOTE_HINT (1 << 0)
 
 static bool
-no_more_than_n_args(const int msglevel, char *p[], const int max, const unsigned int flags)
+no_more_than_n_args(const msglvl_t msglevel, char *p[], const int max, const unsigned int flags)
 {
     const int len = string_array_len((const char **)p);
 
@@ -5619,8 +5623,8 @@ no_more_than_n_args(const int msglevel, char *p[], const int max, const unsigned
     }
 }
 
-static inline int
-msglevel_forward_compatible(struct options *options, const int msglevel)
+static inline msglvl_t
+msglevel_forward_compatible(struct options *options, const msglvl_t msglevel)
 {
     return options->forward_compatible ? M_WARN : msglevel;
 }
@@ -5654,10 +5658,11 @@ msglevel_forward_compatible(struct options *options, const int msglevel)
  */
 static void
 remove_option(struct context *c, struct options *options, char *p[], bool is_inline,
-              const char *file, int line, const int msglevel, const unsigned int permission_mask,
-              unsigned int *option_types_found, struct env_set *es)
+              const char *file, int line, const msglvl_t msglevel,
+              const unsigned int permission_mask, unsigned int *option_types_found,
+              struct env_set *es)
 {
-    int msglevel_fc = msglevel_forward_compatible(options, msglevel);
+    msglvl_t msglevel_fc = msglevel_forward_compatible(options, msglevel);
 
     if (streq(p[0], "ifconfig") && !p[1])
     {
@@ -5792,11 +5797,10 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
 #endif
     else
     {
-        int i;
-        int msglevel_unknown = msglevel_fc;
+        msglvl_t msglevel_unknown = msglevel_fc;
         /* Check if an option is in --ignore-unknown-option and
          * set warning level to non fatal */
-        for (i = 0; options->ignore_unknown_option && options->ignore_unknown_option[i]; i++)
+        for (int i = 0; options->ignore_unknown_option && options->ignore_unknown_option[i]; i++)
         {
             if (streq(p[0], options->ignore_unknown_option[i]))
             {
@@ -5815,7 +5819,7 @@ err:
 
 
 static bool
-check_route_option(struct options *options, char *p[], const int msglevel, bool pull_mode)
+check_route_option(struct options *options, char *p[], const msglvl_t msglevel, bool pull_mode)
 {
     rol_check_alloc(options);
     if (pull_mode)
@@ -5843,7 +5847,7 @@ check_route_option(struct options *options, char *p[], const int msglevel, bool 
 
 
 static bool
-check_route6_option(struct options *options, char *p[], const int msglevel, bool pull_mode)
+check_route6_option(struct options *options, char *p[], const msglvl_t msglevel, bool pull_mode)
 {
     rol6_check_alloc(options);
     if (pull_mode)
@@ -5864,7 +5868,7 @@ check_route6_option(struct options *options, char *p[], const int msglevel, bool
 }
 
 static bool
-check_dns_option(struct options *options, char *p[], const int msglevel, bool pull_mode)
+check_dns_option(struct options *options, char *p[], const msglvl_t msglevel, bool pull_mode)
 {
     if (streq(p[1], "search-domains") && p[2])
     {
@@ -5984,7 +5988,7 @@ check_dns_option(struct options *options, char *p[], const int msglevel, bool pu
  */
 static void
 update_option(struct context *c, struct options *options, char *p[], bool is_inline,
-              const char *file, int line, const int level, const int msglevel,
+              const char *file, int line, const int level, const msglvl_t msglevel,
               const unsigned int permission_mask, unsigned int *option_types_found,
               struct env_set *es, unsigned int *update_options_found)
 {
@@ -6169,12 +6173,12 @@ key_is_external(const struct options *options)
 
 static void
 add_option(struct options *options, char *p[], bool is_inline, const char *file, int line,
-           const int level, const int msglevel, const unsigned int permission_mask,
+           const int level, const msglvl_t msglevel, const unsigned int permission_mask,
            unsigned int *option_types_found, struct env_set *es)
 {
     struct gc_arena gc = gc_new();
     const bool pull_mode = BOOL_CAST(permission_mask & OPT_P_PULL_MODE);
-    int msglevel_fc = msglevel_forward_compatible(options, msglevel);
+    msglvl_t msglevel_fc = msglevel_forward_compatible(options, msglevel);
 
     ASSERT(MAX_PARMS >= 7);
 
@@ -9869,7 +9873,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else
     {
         int i;
-        int msglevel_unknown = msglevel_fc;
+        msglvl_t msglevel_unknown = msglevel_fc;
         /* Check if an option is in --ignore-unknown-option and
          * set warning level to non fatal */
         for (i = 0; options->ignore_unknown_option && options->ignore_unknown_option[i]; i++)

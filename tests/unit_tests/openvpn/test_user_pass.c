@@ -73,7 +73,7 @@ management_query_user_pass(struct management *man, struct user_pass *up, const c
 /* stubs for some unused functions instead of pulling in too many dependencies */
 int
 parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
-           int msglevel, struct gc_arena *gc)
+           msglvl_t msglevel, struct gc_arena *gc)
 {
     assert_true(0);
     return 0;

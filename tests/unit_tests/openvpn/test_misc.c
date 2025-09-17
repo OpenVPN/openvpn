@@ -339,8 +339,8 @@ test_atoi_variants(void **state)
     assert_false(valid_integer("-2147483653", false));
 
 
-    int msglevel = D_LOW;
-    int saved_log_level = mock_get_debug_level();
+    msglvl_t msglevel = D_LOW;
+    msglvl_t saved_log_level = mock_get_debug_level();
     mock_set_debug_level(D_LOW);
 
     /* check happy path */

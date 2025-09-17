@@ -111,7 +111,7 @@ tls_common_name(const struct tls_multi *multi, const bool null)
 
 #ifndef ENABLE_MANAGEMENT
 bool
-send_control_channel_string(struct context *c, const char *str, int msglevel)
+send_control_channel_string(struct context *c, const char *str, msglvl_t msglevel)
 {
     return true;
 }
@@ -120,7 +120,7 @@ char **res;
 int i;
 
 bool
-send_control_channel_string(struct context *c, const char *str, int msglevel)
+send_control_channel_string(struct context *c, const char *str, msglvl_t msglevel)
 {
     if (res && res[i] && strcmp(res[i], str))
     {

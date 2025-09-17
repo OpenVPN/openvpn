@@ -48,12 +48,12 @@
 #endif
 
 /* Globals */
-unsigned int x_debug_level; /* GLOBAL */
+msglvl_t x_debug_level; /* GLOBAL */
 
 /* Mute state */
-static int mute_cutoff;   /* GLOBAL */
-static int mute_count;    /* GLOBAL */
-static int mute_category; /* GLOBAL */
+static int mute_cutoff;        /* GLOBAL */
+static int mute_count;         /* GLOBAL */
+static msglvl_t mute_category; /* GLOBAL */
 
 /*
  * Output mode priorities are as follows:
@@ -103,16 +103,14 @@ msg_forked(void)
 bool
 set_debug_level(const int level, const unsigned int flags)
 {
-    const int ceiling = 15;
-
-    if (level >= 0 && level <= ceiling)
+    if (level >= 0 && level <= M_DEBUG_LEVEL)
     {
-        x_debug_level = level;
+        x_debug_level = (msglvl_t)level;
         return true;
     }
     else if (flags & SDL_CONSTRAIN)
     {
-        x_debug_level = constrain_int(level, 0, ceiling);
+        x_debug_level = (msglvl_t)constrain_int(level, 0, M_DEBUG_LEVEL);
         return true;
     }
     return false;
@@ -132,7 +130,7 @@ set_mute_cutoff(const int cutoff)
     }
 }
 
-int
+msglvl_t
 get_debug_level(void)
 {
     return x_debug_level;
@@ -190,7 +188,7 @@ errors_to_stderr(void)
  * Return a file to print messages to before syslog is opened.
  */
 FILE *
-msg_fp(const unsigned int flags)
+msg_fp(const msglvl_t flags)
 {
     FILE *fp = msgfp;
     if (!fp)
@@ -214,7 +212,7 @@ msg_fp(const unsigned int flags)
 int x_msg_line_num; /* GLOBAL */
 
 void
-x_msg(const unsigned int flags, const char *format, ...)
+x_msg(const msglvl_t flags, const char *format, ...)
 {
     va_list arglist;
     va_start(arglist, format);
@@ -235,7 +233,7 @@ openvpn_strerror(int err, bool crt_error, struct gc_arena *gc)
 }
 
 void
-x_msg_va(const unsigned int flags, const char *format, va_list arglist)
+x_msg_va(const msglvl_t flags, const char *format, va_list arglist)
 {
     struct gc_arena gc;
 #if SYSLOG_CAPABILITY
@@ -385,13 +383,13 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
  * Apply muting filter.
  */
 bool
-dont_mute(unsigned int flags)
+dont_mute(msglvl_t flags)
 {
     bool ret = true;
     if (mute_cutoff > 0 && !(flags & M_NOMUTE))
     {
-        const int mute_level = DECODE_MUTE_LEVEL(flags);
-        if (mute_level > 0 && mute_level == mute_category)
+        const msglvl_t mute_level = DECODE_MUTE_LEVEL(flags);
+        if (mute_level == mute_category)
         {
             if (mute_count == mute_cutoff)
             {
@@ -750,7 +748,7 @@ openvpn_exit(const int status)
  * Translate msg flags into a string
  */
 const char *
-msg_flags_string(const unsigned int flags, struct gc_arena *gc)
+msg_flags_string(const msglvl_t flags, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(16, gc);
     if (flags == M_INFO)

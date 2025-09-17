@@ -541,7 +541,7 @@ openvpn_getaddrinfo(unsigned int flags, const char *hostname, const char *servna
     struct addrinfo hints;
     int status;
     struct signal_info sigrec = { 0 };
-    int msglevel = (flags & GETADDR_FATAL) ? M_FATAL : D_RESOLVE_ERRORS;
+    msglvl_t msglevel = (flags & GETADDR_FATAL) ? M_FATAL : D_RESOLVE_ERRORS;
     struct gc_arena gc = gc_new();
     const char *print_hostname;
     const char *print_servname;
@@ -604,7 +604,7 @@ openvpn_getaddrinfo(unsigned int flags, const char *hostname, const char *servna
         int resolve_retries =
             (flags & GETADDR_TRY_ONCE) ? 1 : ((resolve_retry_seconds + 4) / fail_wait_interval);
         const char *fmt;
-        int level = 0;
+        msglvl_t level = 0;
 
         /* this is not a numeric IP, therefore force resolution using the
          * provided ai_family */
@@ -739,7 +739,7 @@ openvpn_getaddrinfo(unsigned int flags, const char *hostname, const char *servna
 done:
     if (sig_info && sig_info->signal_received)
     {
-        int level = 0;
+        msglvl_t level = 0;
         if (flags & GETADDR_FATAL_ON_SIGNAL)
         {
             level = M_FATAL;

@@ -193,8 +193,8 @@ void x509_setenv(struct env_set *es, int cert_depth, openvpn_x509_cert_t *cert);
  * @param gc            Garbage collection arena for temp data
  *
  */
-void x509_track_add(const struct x509_track **ll_head, const char *name, int msglevel,
-                    struct gc_arena *gc);
+void x509_track_add(const struct x509_track **ll_head, const char *name,
+                    msglvl_t msglevel, struct gc_arena *gc);
 
 /*
  * Save X509 fields to environment, using the naming convention:

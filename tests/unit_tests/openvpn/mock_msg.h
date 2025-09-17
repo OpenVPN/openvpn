@@ -28,17 +28,15 @@
  * this function from your test driver to increase debug output when you
  * need debug output.
  */
-void mock_set_debug_level(int level);
+void mock_set_debug_level(msglvl_t level);
 
 #define MOCK_MSG_BUF 2048
 
 extern bool fatal_error_triggered;
 extern char mock_msg_buf[MOCK_MSG_BUF];
 
-void mock_set_debug_level(int level);
+msglvl_t mock_get_debug_level(void);
 
-int mock_get_debug_level(void);
-
-void mock_set_print_debug_level(int level);
+void mock_set_print_debug_level(msglvl_t level);
 
 #endif /* MOCK_MSG */

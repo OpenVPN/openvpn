@@ -187,7 +187,7 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
 }
 
 void
-frame_print(const struct frame *frame, int level, const char *prefix)
+frame_print(const struct frame *frame, msglvl_t msglevel, const char *prefix)
 {
     struct gc_arena gc = gc_new();
     struct buffer out = alloc_buf_gc(256, &gc);
@@ -208,7 +208,7 @@ frame_print(const struct frame *frame, int level, const char *prefix)
     buf_printf(&out, " ET:%d", frame->extra_tun);
     buf_printf(&out, " ]");
 
-    msg(level, "%s", out.data);
+    msg(msglevel, "%s", out.data);
     gc_free(&gc);
 }
 

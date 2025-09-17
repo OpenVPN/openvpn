@@ -74,7 +74,7 @@ typedef int (*ovpn_nl_cb)(struct nl_msg *msg, void *arg);
  * @return ID on success, negative error code on error
  */
 static int
-resolve_ovpn_netlink_id(int msglevel)
+resolve_ovpn_netlink_id(msglvl_t msglevel)
 {
     int ret;
     struct nl_sock *nl_sock = nl_socket_alloc();
@@ -1199,7 +1199,7 @@ dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
 }
 
 bool
-dco_available(int msglevel)
+dco_available(msglvl_t msglevel)
 {
     if (resolve_ovpn_netlink_id(D_DCO_DEBUG) < 0)
     {

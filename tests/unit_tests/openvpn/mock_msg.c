@@ -38,8 +38,8 @@
 #include "error.h"
 #include "mock_msg.h"
 
-unsigned int x_debug_level = 0; /* Default to (almost) no debugging output */
-unsigned int print_x_debug_level = 0;
+msglvl_t x_debug_level = 0; /* Default to (almost) no debugging output */
+msglvl_t print_x_debug_level = 0;
 
 bool fatal_error_triggered = false;
 
@@ -47,31 +47,31 @@ char mock_msg_buf[MOCK_MSG_BUF];
 
 
 void
-mock_set_debug_level(int level)
+mock_set_debug_level(msglvl_t level)
 {
     x_debug_level = level;
 }
 
-int
+msglvl_t
 mock_get_debug_level(void)
 {
     return x_debug_level;
 }
 
 void
-mock_set_print_debug_level(int level)
+mock_set_print_debug_level(msglvl_t level)
 {
     print_x_debug_level = level;
 }
 
-int
+msglvl_t
 get_debug_level(void)
 {
     return x_debug_level;
 }
 
 void
-x_msg_va(const unsigned int flags, const char *format, va_list arglist)
+x_msg_va(const msglvl_t flags, const char *format, va_list arglist)
 {
     if (flags & M_FATAL)
     {
@@ -89,7 +89,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
 }
 
 void
-x_msg(const unsigned int flags, const char *format, ...)
+x_msg(const msglvl_t flags, const char *format, ...)
 {
     va_list arglist;
     va_start(arglist, format);
@@ -128,7 +128,7 @@ out_of_memory(void)
 }
 
 bool
-dont_mute(unsigned int flags)
+dont_mute(msglvl_t flags)
 {
     return true;
 }

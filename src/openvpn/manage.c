@@ -1475,7 +1475,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
         }
         else
         {
-            msg(M_CLIENT, "SUCCESS: verb=%d", get_debug_level());
+            msg(M_CLIENT, "SUCCESS: verb=%u", get_debug_level());
         }
     }
     else if (streq(p[0], "mute"))

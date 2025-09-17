@@ -37,7 +37,7 @@ bool valid_integer(const char *str, bool positive);
  * Converts a str to a positive number if the string represents a postive
  * integer number. Otherwise print a warning with msglevel and return 0
  */
-int positive_atoi(const char *str, int msglevel);
+int positive_atoi(const char *str, msglvl_t msglevel);
 
 /**
  * Converts a str to an integer if the string can be represented as an
@@ -48,13 +48,13 @@ int positive_atoi(const char *str, int msglevel);
  *
  * @return \c true if the integer has been parsed and stored in value, \c false otherwise
  */
-bool positive_atoll(const char *str, int64_t *value, const char *name, int msglevel);
+bool positive_atoll(const char *str, int64_t *value, const char *name, msglvl_t msglevel);
 
 /**
  * Converts a str to an integer if the string can be represented as an
  * integer number. Otherwise print a warning with \p msglevel and return 0
  */
-int atoi_warn(const char *str, int msglevel);
+int atoi_warn(const char *str, msglvl_t msglevel);
 
 /**
  * Converts a str to an integer if the string can be represented as an
@@ -66,7 +66,7 @@ int atoi_warn(const char *str, int msglevel);
  * @return \c true if the integer has been parsed and stored in value, \c false otherwise
  */
 bool atoi_constrained(const char *str, int *value, const char *name, int min, int max,
-                      int msglevel);
+                      msglvl_t msglevel);
 
 /**
  * Filter an option line by all pull filters.

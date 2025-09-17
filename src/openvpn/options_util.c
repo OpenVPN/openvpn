@@ -117,7 +117,7 @@ valid_integer(const char *str, bool positive)
 }
 
 int
-positive_atoi(const char *str, int msglevel)
+positive_atoi(const char *str, msglvl_t msglevel)
 {
     char *endptr;
     long long i = strtoll(str, &endptr, 10);
@@ -132,7 +132,7 @@ positive_atoi(const char *str, int msglevel)
 }
 
 bool
-positive_atoll(const char *str, int64_t *value, const char *name, int msglevel)
+positive_atoll(const char *str, int64_t *value, const char *name, msglvl_t msglevel)
 {
     char *endptr;
     long long ll = strtoll(str, &endptr, 10);
@@ -148,7 +148,7 @@ positive_atoll(const char *str, int64_t *value, const char *name, int msglevel)
 }
 
 int
-atoi_warn(const char *str, int msglevel)
+atoi_warn(const char *str, msglvl_t msglevel)
 {
     char *endptr;
     long long i = strtoll(str, &endptr, 10);
@@ -163,7 +163,7 @@ atoi_warn(const char *str, int msglevel)
 }
 
 bool
-atoi_constrained(const char *str, int *value, const char *name, int min, int max, int msglevel)
+atoi_constrained(const char *str, int *value, const char *name, int min, int max, msglvl_t msglevel)
 {
     ASSERT(min < max);
 

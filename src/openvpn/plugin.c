@@ -50,7 +50,7 @@
 static struct plugin_common *static_plugin_common = NULL; /* GLOBAL */
 
 static void
-plugin_show_string_array(int msglevel, const char *name, const char *array[])
+plugin_show_string_array(msglvl_t msglevel, const char *name, const char *array[])
 {
     int i;
     for (i = 0; array[i]; ++i)
@@ -63,7 +63,7 @@ plugin_show_string_array(int msglevel, const char *name, const char *array[])
 }
 
 static void
-plugin_show_args_env(int msglevel, const char *argv[], const char *envp[])
+plugin_show_args_env(msglvl_t msglevel, const char *argv[], const char *envp[])
 {
     if (check_debug_level(msglevel))
     {
@@ -184,7 +184,7 @@ plugin_option_list_add(struct plugin_option_list *list, char **p, struct gc_aren
 
 #ifndef ENABLE_SMALL
 void
-plugin_option_list_print(const struct plugin_option_list *list, int msglevel)
+plugin_option_list_print(const struct plugin_option_list *list, msglvl_t msglevel)
 {
     int i;
     struct gc_arena gc = gc_new();
@@ -995,7 +995,7 @@ plugin_return_free(struct plugin_return *pr)
 
 #ifdef ENABLE_DEBUG
 void
-plugin_return_print(const int msglevel, const char *prefix, const struct plugin_return *pr)
+plugin_return_print(const msglvl_t msglevel, const char *prefix, const struct plugin_return *pr)
 {
     int i;
     msg(msglevel, "PLUGIN_RETURN_PRINT %s", prefix);

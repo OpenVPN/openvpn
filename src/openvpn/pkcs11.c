@@ -72,10 +72,10 @@ static pkcs11h_engine_system_t s_pkcs11h_sys_engine = { malloc, free, __mytime, 
 #endif
 };
 
-static unsigned
+static msglvl_t
 _pkcs11_msg_pkcs112openvpn(const unsigned flags)
 {
-    unsigned openvpn_flags;
+    msglvl_t openvpn_flags;
 
     switch (flags)
     {
@@ -112,7 +112,7 @@ _pkcs11_msg_pkcs112openvpn(const unsigned flags)
 }
 
 static unsigned
-_pkcs11_msg_openvpn2pkcs11(const unsigned flags)
+_pkcs11_msg_openvpn2pkcs11(const msglvl_t flags)
 {
     unsigned pkcs11_flags;
 

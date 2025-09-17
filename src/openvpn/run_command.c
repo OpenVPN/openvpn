@@ -107,7 +107,7 @@ system_error_message(int stat, struct gc_arena *gc)
 
 #ifndef WIN32
 bool
-openvpn_waitpid_check(pid_t pid, const char *msg_prefix, int msglevel)
+openvpn_waitpid_check(pid_t pid, const char *msg_prefix, msglvl_t msglevel)
 {
     if (pid == 0)
     {

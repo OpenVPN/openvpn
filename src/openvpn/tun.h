@@ -445,9 +445,9 @@ bool is_ip_in_adapter_subnet(const IP_ADAPTER_INFO *ai, const in_addr_t ip,
 DWORD adapter_index_of_ip(const IP_ADAPTER_INFO *list, const in_addr_t ip, int *count,
                           in_addr_t *netmask);
 
-void show_tap_win_adapters(int msglev, int warnlev);
+void show_tap_win_adapters(msglvl_t msglevel, msglvl_t warnlevel);
 
-void show_adapters(int msglev);
+void show_adapters(msglvl_t msglevel);
 
 void tap_allow_nonadmin_access(const char *dev_node);
 

@@ -822,7 +822,7 @@ struct pull_filter_list
     struct pull_filter *tail;
 };
 
-void parse_argv(struct options *options, const int argc, char *argv[], const int msglevel,
+void parse_argv(struct options *options, const int argc, char *argv[], const msglvl_t msglevel,
                 const unsigned int permission_mask, unsigned int *option_types_found,
                 struct env_set *es);
 
@@ -888,7 +888,7 @@ bool apply_push_options(struct context *c, struct options *options, struct buffe
 
 void options_detach(struct options *o);
 
-void options_server_import(struct options *o, const char *filename, int msglevel,
+void options_server_import(struct options *o, const char *filename, msglvl_t msglevel,
                            unsigned int permission_mask, unsigned int *option_types_found,
                            struct env_set *es);
 
@@ -897,13 +897,13 @@ void pre_pull_default(struct options *o);
 void rol_check_alloc(struct options *options);
 
 int parse_line(const char *line, char *p[], const int n, const char *file, const int line_num,
-               int msglevel, struct gc_arena *gc);
+               msglvl_t msglevel, struct gc_arena *gc);
 
 /*
  * parse/print topology coding
  */
 
-int parse_topology(const char *str, const int msglevel);
+int parse_topology(const char *str, const msglvl_t msglevel);
 
 const char *print_topology(const int topology);
 
@@ -917,11 +917,11 @@ const char *print_topology(const int topology);
 
 int auth_retry_get(void);
 
-bool auth_retry_set(const int msglevel, const char *option);
+bool auth_retry_set(const msglvl_t msglevel, const char *option);
 
 const char *auth_retry_print(void);
 
-void options_string_import(struct options *options, const char *config, const int msglevel,
+void options_string_import(struct options *options, const char *config, const msglvl_t msglevel,
                            const unsigned int permission_mask, unsigned int *option_types_found,
                            struct env_set *es);
 

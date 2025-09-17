@@ -350,7 +350,7 @@ do_setenv_name(struct env_set *es, const struct x509_track *xt, const mbedtls_x5
 }
 
 void
-x509_track_add(const struct x509_track **ll_head, const char *name, int msglevel,
+x509_track_add(const struct x509_track **ll_head, const char *name, msglvl_t msglevel,
                struct gc_arena *gc)
 {
     struct x509_track *xt;

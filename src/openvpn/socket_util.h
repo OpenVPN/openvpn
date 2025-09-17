@@ -142,7 +142,7 @@ in_addr_t getaddr(unsigned int flags, const char *hostname, int resolve_retry_se
  * Translate an IPv6 addr or hostname from string form to in6_addr
  */
 bool get_ipv6_addr(const char *hostname, struct in6_addr *network, unsigned int *netbits,
-                   int msglevel);
+                   msglvl_t msglevel);
 
 int openvpn_getaddrinfo(unsigned int flags, const char *hostname, const char *servname,
                         int resolve_retry_seconds, struct signal_info *sig_info, int ai_family,

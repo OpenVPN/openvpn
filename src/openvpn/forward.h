@@ -285,7 +285,7 @@ void process_outgoing_tun(struct context *c, struct link_socket *in_sock);
  * @param str        - The message to be sent
  * @param msglevel   - Message level to use for logging
  */
-bool send_control_channel_string(struct context *c, const char *str, int msglevel);
+bool send_control_channel_string(struct context *c, const char *str, msglvl_t msglevel);
 
 /*
  * Send a string to remote over the TLS control channel.
@@ -303,7 +303,8 @@ bool send_control_channel_string(struct context *c, const char *str, int msgleve
  * @param msglevel   - Message level to use for logging
  */
 
-bool send_control_channel_string_dowork(struct tls_session *session, const char *str, int msglevel);
+bool send_control_channel_string_dowork(struct tls_session *session, const char *str,
+                                        msglvl_t msglevel);
 
 
 /**

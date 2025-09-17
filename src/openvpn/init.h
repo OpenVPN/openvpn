@@ -136,7 +136,7 @@ bool open_management(struct context *c);
 
 void close_management(void);
 
-void management_show_net_callback(void *arg, const int msglevel);
+void management_show_net_callback(void *arg, const msglvl_t msglevel);
 
 #endif
 

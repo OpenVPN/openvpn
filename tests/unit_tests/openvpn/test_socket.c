@@ -59,7 +59,7 @@ win32_signal_get(struct win32_signal *ws)
 
 int
 parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
-           int msglevel, struct gc_arena *gc)
+           msglvl_t msglevel, struct gc_arena *gc)
 {
     assert_true(0);
     return 0;

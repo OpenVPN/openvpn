@@ -85,7 +85,7 @@ void env_set_add(struct env_set *es, const char *str);
 
 const char *env_set_get(const struct env_set *es, const char *name);
 
-void env_set_print(int msglevel, const struct env_set *es);
+void env_set_print(msglvl_t msglevel, const struct env_set *es);
 
 /**
  * Write a struct env_set to a file. Each item on one line.

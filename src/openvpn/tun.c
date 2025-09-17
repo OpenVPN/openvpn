@@ -105,9 +105,9 @@ static void windows_set_mtu(const int iface_index, const short family, const int
 static void netsh_set_dns6_servers(const struct in6_addr *addr_list, const int addr_len,
                                    DWORD adapter_index);
 
-static void netsh_command(const struct argv *a, int n, int msglevel);
+static void netsh_command(const struct argv *a, int n, msglvl_t msglevel);
 
-static void exec_command(const char *prefix, const struct argv *a, int n, int msglevel);
+static void exec_command(const char *prefix, const struct argv *a, int n, msglvl_t msglevel);
 
 static const char *netsh_get_id(const char *dev_node, struct gc_arena *gc);
 
@@ -4001,7 +4001,7 @@ show_valid_win32_tun_subnets(void)
 }
 
 void
-show_tap_win_adapters(int msglev, int warnlev)
+show_tap_win_adapters(msglvl_t msglevel, msglvl_t warnlevel)
 {
     struct gc_arena gc = gc_new();
 
@@ -4018,7 +4018,7 @@ show_tap_win_adapters(int msglev, int warnlev)
     const struct tap_reg *tap_reg = get_tap_reg(&gc);
     const struct panel_reg *panel_reg = get_panel_reg(&gc);
 
-    msg(msglev, "Available adapters [name, GUID, driver]:");
+    msg(msglevel, "Available adapters [name, GUID, driver]:");
 
     /* loop through each TAP-Windows adapter registry entry */
     for (tr = tap_reg; tr != NULL; tr = tr->next)
@@ -4030,7 +4030,7 @@ show_tap_win_adapters(int msglev, int warnlev)
         {
             if (!strcmp(tr->guid, pr->guid))
             {
-                msg(msglev, "'%s' %s %s", pr->name, tr->guid,
+                msg(msglevel, "'%s' %s %s", pr->name, tr->guid,
                     print_tun_backend_driver(tr->windows_driver));
                 ++links;
             }
@@ -4045,7 +4045,7 @@ show_tap_win_adapters(int msglev, int warnlev)
             /* a TAP adapter exists without a link from the network
              * connections control panel */
             warn_panel_null = true;
-            msg(msglev, "[NULL] %s", tr->guid);
+            msg(msglevel, "[NULL] %s", tr->guid);
         }
     }
 
@@ -4064,18 +4064,18 @@ show_tap_win_adapters(int msglev, int warnlev)
     /* warn on registry inconsistencies */
     if (warn_tap_dup)
     {
-        msg(warnlev, "WARNING: Some TAP-Windows adapters have duplicate GUIDs");
+        msg(warnlevel, "WARNING: Some TAP-Windows adapters have duplicate GUIDs");
     }
 
     if (warn_panel_dup)
     {
-        msg(warnlev,
+        msg(warnlevel,
             "WARNING: Some TAP-Windows adapters have duplicate links from the Network Connections control panel");
     }
 
     if (warn_panel_null)
     {
-        msg(warnlev,
+        msg(warnlevel,
             "WARNING: Some TAP-Windows adapters have no link from the Network Connections control panel");
     }
 
@@ -4805,31 +4805,31 @@ format_ip_addr_string(const IP_ADDR_STRING *ip, struct gc_arena *gc)
  * Show info for a single adapter
  */
 static void
-show_adapter(int msglev, const IP_ADAPTER_INFO *a, struct gc_arena *gc)
+show_adapter(msglvl_t msglevel, const IP_ADAPTER_INFO *a, struct gc_arena *gc)
 {
-    msg(msglev, "%s", a->Description);
-    msg(msglev, "  Index = %d", (int)a->Index);
-    msg(msglev, "  GUID = %s", a->AdapterName);
-    msg(msglev, "  IP = %s", format_ip_addr_string(&a->IpAddressList, gc));
-    msg(msglev, "  MAC = %s", format_hex_ex(a->Address, a->AddressLength, 0, 1, ":", gc));
-    msg(msglev, "  GATEWAY = %s", format_ip_addr_string(&a->GatewayList, gc));
+    msg(msglevel, "%s", a->Description);
+    msg(msglevel, "  Index = %d", (int)a->Index);
+    msg(msglevel, "  GUID = %s", a->AdapterName);
+    msg(msglevel, "  IP = %s", format_ip_addr_string(&a->IpAddressList, gc));
+    msg(msglevel, "  MAC = %s", format_hex_ex(a->Address, a->AddressLength, 0, 1, ":", gc));
+    msg(msglevel, "  GATEWAY = %s", format_ip_addr_string(&a->GatewayList, gc));
     if (a->DhcpEnabled)
     {
-        msg(msglev, "  DHCP SERV = %s", format_ip_addr_string(&a->DhcpServer, gc));
-        msg(msglev, "  DHCP LEASE OBTAINED = %s", time_string(a->LeaseObtained, 0, false, gc));
-        msg(msglev, "  DHCP LEASE EXPIRES  = %s", time_string(a->LeaseExpires, 0, false, gc));
+        msg(msglevel, "  DHCP SERV = %s", format_ip_addr_string(&a->DhcpServer, gc));
+        msg(msglevel, "  DHCP LEASE OBTAINED = %s", time_string(a->LeaseObtained, 0, false, gc));
+        msg(msglevel, "  DHCP LEASE EXPIRES  = %s", time_string(a->LeaseExpires, 0, false, gc));
     }
     if (a->HaveWins)
     {
-        msg(msglev, "  PRI WINS = %s", format_ip_addr_string(&a->PrimaryWinsServer, gc));
-        msg(msglev, "  SEC WINS = %s", format_ip_addr_string(&a->SecondaryWinsServer, gc));
+        msg(msglevel, "  PRI WINS = %s", format_ip_addr_string(&a->PrimaryWinsServer, gc));
+        msg(msglevel, "  SEC WINS = %s", format_ip_addr_string(&a->SecondaryWinsServer, gc));
     }
 
     {
         const IP_PER_ADAPTER_INFO *pai = get_per_adapter_info(a->Index, gc);
         if (pai)
         {
-            msg(msglev, "  DNS SERV = %s", format_ip_addr_string(&pai->DnsServerList, gc));
+            msg(msglevel, "  DNS SERV = %s", format_ip_addr_string(&pai->DnsServerList, gc));
         }
     }
 }
@@ -4838,12 +4838,12 @@ show_adapter(int msglev, const IP_ADAPTER_INFO *a, struct gc_arena *gc)
  * Show current adapter list
  */
 void
-show_adapters(int msglev)
+show_adapters(msglvl_t msglevel)
 {
     struct gc_arena gc = gc_new();
     const IP_ADAPTER_INFO *ai = get_adapter_info_list(&gc);
 
-    msg(msglev, "SYSTEM ADAPTER LIST");
+    msg(msglevel, "SYSTEM ADAPTER LIST");
     if (ai)
     {
         const IP_ADAPTER_INFO *a;
@@ -4851,7 +4851,7 @@ show_adapters(int msglev)
         /* find index in the linked list */
         for (a = ai; a != NULL; a = a->Next)
         {
-            show_adapter(msglev, a, &gc);
+            show_adapter(msglevel, a, &gc);
         }
     }
     gc_free(&gc);
@@ -5048,7 +5048,7 @@ dhcp_renew(const struct tuntap *tt)
 }
 
 static void
-exec_command(const char *prefix, const struct argv *a, int n, int msglevel)
+exec_command(const char *prefix, const struct argv *a, int n, msglvl_t msglevel)
 {
     int i;
     for (i = 0; i < n; ++i)
@@ -5069,7 +5069,7 @@ exec_command(const char *prefix, const struct argv *a, int n, int msglevel)
 }
 
 static void
-netsh_command(const struct argv *a, int n, int msglevel)
+netsh_command(const struct argv *a, int n, msglvl_t msglevel)
 {
     exec_command("NETSH", a, n, msglevel);
 }

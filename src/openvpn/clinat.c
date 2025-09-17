@@ -47,7 +47,7 @@ add_entry(struct client_nat_option_list *dest, const struct client_nat_entry *e)
 }
 
 void
-print_client_nat_list(const struct client_nat_option_list *list, int msglevel)
+print_client_nat_list(const struct client_nat_option_list *list, msglvl_t msglevel)
 {
     struct gc_arena gc = gc_new();
     int i;
@@ -101,7 +101,7 @@ copy_client_nat_option_list(struct client_nat_option_list *dest,
 void
 add_client_nat_to_option_list(struct client_nat_option_list *dest, const char *type,
                               const char *network, const char *netmask, const char *foreign_network,
-                              int msglevel)
+                              msglvl_t msglevel)
 {
     struct client_nat_entry e;
     bool ok;
@@ -159,7 +159,7 @@ print_checksum(struct openvpn_iphdr *iph, const char *prefix)
 #endif
 
 static void
-print_pkt(struct openvpn_iphdr *iph, const char *prefix, const int direction, const int msglevel)
+print_pkt(struct openvpn_iphdr *iph, const char *prefix, const int direction, const msglvl_t msglevel)
 {
     struct gc_arena gc = gc_new();
 

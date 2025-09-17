@@ -53,6 +53,7 @@ struct status_output
 
     char *filename;
     int fd;
+    /* NB: -1 is used to indicate that output should only go to the file */
     int msglevel;
     const struct virtual_output *vout;
 

@@ -99,9 +99,9 @@ void incoming_push_message(struct context *c, const struct buffer *buffer);
 
 void clone_push_list(struct options *o);
 
-void push_option(struct options *o, const char *opt, int msglevel);
+void push_option(struct options *o, const char *opt, msglvl_t msglevel);
 
-void push_options(struct options *o, char **p, int msglevel, struct gc_arena *gc);
+void push_options(struct options *o, char **p, msglvl_t msglevel, struct gc_arena *gc);
 
 void push_reset(struct options *o);
 

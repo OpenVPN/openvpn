@@ -78,7 +78,7 @@ struct ifconfig_pool *ifconfig_pool_init(const bool ipv4_pool, enum pool_type ty
 
 void ifconfig_pool_free(struct ifconfig_pool *pool);
 
-bool ifconfig_pool_verify_range(const int msglevel, const in_addr_t start, const in_addr_t end);
+bool ifconfig_pool_verify_range(const msglvl_t msglevel, const in_addr_t start, const in_addr_t end);
 
 ifconfig_pool_handle ifconfig_pool_acquire(struct ifconfig_pool *pool, in_addr_t *local,
                                            in_addr_t *remote, struct in6_addr *remote_ipv6,

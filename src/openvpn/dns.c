@@ -200,7 +200,7 @@ dns_server_get(struct dns_server **entry, long priority, struct gc_arena *gc)
 }
 
 bool
-dns_options_verify(int msglevel, const struct dns_options *o)
+dns_options_verify(msglvl_t msglevel, const struct dns_options *o)
 {
     const struct dns_server *server = o->servers ? o->servers : o->servers_prepull;
     while (server)

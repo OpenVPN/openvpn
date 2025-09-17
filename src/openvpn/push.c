@@ -373,8 +373,8 @@ receive_auth_pending(struct context *c, const struct buffer *buffer)
  *
  * @return true on success, false on failure.
  */
-static bool push_option_fmt(struct gc_arena *gc, struct push_list *push_list, int msglevel,
-                            const char *fmt, ...)
+static bool push_option_fmt(struct gc_arena *gc, struct push_list *push_list,
+                            msglvl_t msglevel, const char *fmt, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
     __attribute__((format(gnu_printf, 4, 5)))
@@ -853,7 +853,7 @@ fail:
 
 static void
 push_option_ex(struct gc_arena *gc, struct push_list *push_list, const char *opt, bool enable,
-               int msglevel)
+               msglvl_t msglevel)
 {
     if (!string_class(opt, CC_ANY, CC_COMMA))
     {
@@ -881,7 +881,7 @@ push_option_ex(struct gc_arena *gc, struct push_list *push_list, const char *opt
 }
 
 void
-push_option(struct options *o, const char *opt, int msglevel)
+push_option(struct options *o, const char *opt, msglvl_t msglevel)
 {
     push_option_ex(&o->gc, &o->push_list, opt, true, msglevel);
 }
@@ -902,7 +902,7 @@ clone_push_list(struct options *o)
 }
 
 void
-push_options(struct options *o, char **p, int msglevel, struct gc_arena *gc)
+push_options(struct options *o, char **p, msglvl_t msglevel, struct gc_arena *gc)
 {
     const char **argv = make_extended_arg_array(p, false, gc);
     char *opt = print_argv(argv, gc, 0);
@@ -910,8 +910,8 @@ push_options(struct options *o, char **p, int msglevel, struct gc_arena *gc)
 }
 
 static bool
-push_option_fmt(struct gc_arena *gc, struct push_list *push_list, int msglevel, const char *format,
-                ...)
+push_option_fmt(struct gc_arena *gc, struct push_list *push_list,
+                msglvl_t msglevel, const char *format, ...)
 {
     va_list arglist;
     char tmp[256] = { 0 };

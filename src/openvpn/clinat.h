@@ -54,11 +54,11 @@ struct client_nat_option_list *clone_client_nat_option_list(
 void copy_client_nat_option_list(struct client_nat_option_list *dest,
                                  const struct client_nat_option_list *src);
 
-void print_client_nat_list(const struct client_nat_option_list *list, int msglevel);
+void print_client_nat_list(const struct client_nat_option_list *list, msglvl_t msglevel);
 
 void add_client_nat_to_option_list(struct client_nat_option_list *dest, const char *type,
                                    const char *network, const char *netmask,
-                                   const char *foreign_network, int msglevel);
+                                   const char *foreign_network, msglvl_t msglevel);
 
 void client_nat_transform(const struct client_nat_option_list *list, struct buffer *ipbuf,
                           const int direction);

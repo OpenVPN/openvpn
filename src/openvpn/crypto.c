@@ -1609,7 +1609,7 @@ must_have_n_keys(const char *filename, const char *option, const struct key2 *ke
 }
 
 int
-ascii2keydirection(int msglevel, const char *str)
+ascii2keydirection(msglvl_t msglevel, const char *str)
 {
     if (!str)
     {

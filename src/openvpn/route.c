@@ -1228,28 +1228,28 @@ show_opt(const char *option)
 }
 
 static void
-print_route_option(const struct route_option *ro, int level)
+print_route_option(const struct route_option *ro, msglvl_t msglevel)
 {
-    msg(level, "  route %s/%s/%s/%s", show_opt(ro->network), show_opt(ro->netmask),
+    msg(msglevel, "  route %s/%s/%s/%s", show_opt(ro->network), show_opt(ro->netmask),
         show_opt(ro->gateway), show_opt(ro->metric));
 }
 
 void
-print_route_options(const struct route_option_list *rol, int level)
+print_route_options(const struct route_option_list *rol, msglvl_t msglevel)
 {
     struct route_option *ro;
     if (rol->flags & RG_ENABLE)
     {
-        msg(level, "  [redirect_default_gateway local=%d]", (rol->flags & RG_LOCAL) != 0);
+        msg(msglevel, "  [redirect_default_gateway local=%d]", (rol->flags & RG_LOCAL) != 0);
     }
     for (ro = rol->routes; ro; ro = ro->next)
     {
-        print_route_option(ro, level);
+        print_route_option(ro, msglevel);
     }
 }
 
 void
-print_default_gateway(const int msglevel, const struct route_gateway_info *rgi,
+print_default_gateway(const msglvl_t msglevel, const struct route_gateway_info *rgi,
                       const struct route_ipv6_gateway_info *rgi6)
 {
     struct gc_arena gc = gc_new();
@@ -1323,23 +1323,23 @@ print_default_gateway(const int msglevel, const struct route_gateway_info *rgi,
 #endif /* ifndef ENABLE_SMALL */
 
 static void
-print_route(const struct route_ipv4 *r, int level)
+print_route(const struct route_ipv4 *r, msglvl_t msglevel)
 {
     struct gc_arena gc = gc_new();
     if (r->flags & RT_DEFINED)
     {
-        msg(level, "%s", route_string(r, &gc));
+        msg(msglevel, "%s", route_string(r, &gc));
     }
     gc_free(&gc);
 }
 
 void
-print_routes(const struct route_list *rl, int level)
+print_routes(const struct route_list *rl, msglvl_t msglevel)
 {
     struct route_ipv4 *r;
     for (r = rl->routes; r; r = r->next)
     {
-        print_route(r, level);
+        print_route(r, msglevel);
     }
 }
 
@@ -3059,18 +3059,18 @@ format_route_entry(const MIB_IPFORWARDROW *r, struct gc_arena *gc)
  * Show current routing table
  */
 void
-show_routes(int msglev)
+show_routes(msglvl_t msglevel)
 {
     struct gc_arena gc = gc_new();
 
     const MIB_IPFORWARDTABLE *rt = get_windows_routing_table(&gc);
 
-    msg(msglev, "SYSTEM ROUTING TABLE");
+    msg(msglevel, "SYSTEM ROUTING TABLE");
     if (rt)
     {
         for (DWORD i = 0; i < rt->dwNumEntries; ++i)
         {
-            msg(msglev, "%s", format_route_entry(&rt->table[i], &gc));
+            msg(msglevel, "%s", format_route_entry(&rt->table[i], &gc));
         }
     }
     gc_free(&gc);

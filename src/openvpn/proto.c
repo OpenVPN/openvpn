@@ -183,7 +183,7 @@ ipv4_packet_size_verify(const uint8_t *data, const int size, const int tunnel_ty
             int hlen;
             int totlen;
             const char *msgstr = "PACKET SIZE INFO";
-            unsigned int msglevel = D_PACKET_TRUNC_DEBUG;
+            msglvl_t msglevel = D_PACKET_TRUNC_DEBUG;
 
             if (BLEN(&buf) < (int)sizeof(struct openvpn_iphdr))
             {

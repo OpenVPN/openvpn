@@ -287,7 +287,7 @@ signal_reset(struct signal_info *si, int signum)
 }
 
 void
-print_signal(const struct signal_info *si, const char *title, int msglevel)
+print_signal(const struct signal_info *si, const char *title, msglvl_t msglevel)
 {
     if (si)
     {

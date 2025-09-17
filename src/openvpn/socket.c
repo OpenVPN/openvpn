@@ -78,7 +78,7 @@ sf2gaf(const unsigned int getaddr_flags, const unsigned int sockflags)
 static int
 get_addr_generic(sa_family_t af, unsigned int flags, const char *hostname, void *network,
                  unsigned int *netbits, int resolve_retry_seconds, struct signal_info *sig_info,
-                 int msglevel)
+                 msglvl_t msglevel)
 {
     char *endp, *sep, *var_host = NULL;
     struct addrinfo *ai = NULL;
@@ -211,7 +211,8 @@ getaddr(unsigned int flags, const char *hostname, int resolve_retry_seconds, boo
 }
 
 bool
-get_ipv6_addr(const char *hostname, struct in6_addr *network, unsigned int *netbits, int msglevel)
+get_ipv6_addr(const char *hostname, struct in6_addr *network, unsigned int *netbits,
+              msglvl_t msglevel)
 {
     if (get_addr_generic(AF_INET6, GETADDR_RESOLVE, hostname, network, netbits, 0, NULL, msglevel)
         < 0)
@@ -1516,7 +1517,7 @@ static void
 linksock_print_addr(struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
-    const int msglevel = (sock->mode == LS_MODE_TCP_ACCEPT_FROM) ? D_INIT_MEDIUM : M_INFO;
+    const msglvl_t msglevel = (sock->mode == LS_MODE_TCP_ACCEPT_FROM) ? D_INIT_MEDIUM : M_INFO;
 
     /* print local address */
     if (sock->bind_local)

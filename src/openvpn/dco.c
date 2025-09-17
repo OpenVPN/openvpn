@@ -233,7 +233,7 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
 }
 
 static bool
-dco_check_option_ce(const struct connection_entry *ce, int msglevel, int mode)
+dco_check_option_ce(const struct connection_entry *ce, msglvl_t msglevel, int mode)
 {
     if (ce->fragment)
     {
@@ -293,7 +293,7 @@ dco_check_option_ce(const struct connection_entry *ce, int msglevel, int mode)
 }
 
 bool
-dco_check_startup_option(int msglevel, const struct options *o)
+dco_check_startup_option(msglvl_t msglevel, const struct options *o)
 {
     /* check if no dev name was specified at all. In the case,
      * later logic will most likely stop OpenVPN, so no need to
@@ -430,7 +430,7 @@ dco_check_startup_option(int msglevel, const struct options *o)
 }
 
 bool
-dco_check_option(int msglevel, const struct options *o)
+dco_check_option(msglvl_t msglevel, const struct options *o)
 {
     /* At this point the ciphers have already been normalised */
     if (o->enable_ncp_fallback
@@ -480,7 +480,7 @@ dco_check_option(int msglevel, const struct options *o)
 }
 
 bool
-dco_check_pull_options(int msglevel, const struct options *o)
+dco_check_pull_options(msglvl_t msglevel, const struct options *o)
 {
     if (!o->use_peer_id)
     {

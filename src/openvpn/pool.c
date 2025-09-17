@@ -114,7 +114,7 @@ ifconfig_pool_find(struct ifconfig_pool *pool, const char *common_name)
  * Verify start/end range
  */
 bool
-ifconfig_pool_verify_range(const int msglevel, const in_addr_t start, const in_addr_t end)
+ifconfig_pool_verify_range(const msglvl_t msglevel, const in_addr_t start, const in_addr_t end)
 {
     struct gc_arena gc = gc_new();
     bool ret = true;

@@ -98,7 +98,7 @@ static const char *test_client_key_metadata =
 
 int
 __wrap_parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
-                  int msglevel, struct gc_arena *gc)
+                  msglvl_t msglevel, struct gc_arena *gc)
 {
     p[0] = PATH1 PATH2;
     p[1] = PARAM1;

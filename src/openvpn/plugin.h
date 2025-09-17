@@ -111,7 +111,7 @@ struct plugin_option_list *plugin_option_list_new(struct gc_arena *gc);
 bool plugin_option_list_add(struct plugin_option_list *list, char **p, struct gc_arena *gc);
 
 #ifndef ENABLE_SMALL
-void plugin_option_list_print(const struct plugin_option_list *list, int msglevel);
+void plugin_option_list_print(const struct plugin_option_list *list, msglvl_t msglevel);
 
 #endif
 
@@ -136,7 +136,7 @@ void plugin_return_get_column(const struct plugin_return *src, struct plugin_ret
 void plugin_return_free(struct plugin_return *pr);
 
 #ifdef ENABLE_DEBUG
-void plugin_return_print(const int msglevel, const char *prefix, const struct plugin_return *pr);
+void plugin_return_print(const msglvl_t msglevel, const char *prefix, const struct plugin_return *pr);
 
 #endif
 

@@ -55,7 +55,7 @@ struct tuntap;
  * @param msglevel      level to print messages to
  * @return              true if ovpn-dco is available, false otherwise
  */
-bool dco_available(int msglevel);
+bool dco_available(msglvl_t msglevel);
 
 
 /**
@@ -75,7 +75,7 @@ const char *dco_version_string(struct gc_arena *gc);
  * @param o         the options struct that hold the options
  * @return          true if no conflict was detected, false otherwise
  */
-bool dco_check_option(int msglevel, const struct options *o);
+bool dco_check_option(msglvl_t msglevel, const struct options *o);
 
 /**
  * Check whether the options struct has any further option that is not supported
@@ -87,7 +87,7 @@ bool dco_check_option(int msglevel, const struct options *o);
  * @param o         the options struct that hold the options
  * @return          true if no conflict was detected, false otherwise
  */
-bool dco_check_startup_option(int msglevel, const struct options *o);
+bool dco_check_startup_option(msglvl_t msglevel, const struct options *o);
 
 /**
  * Check whether any of the options pushed by the server is not supported by
@@ -98,7 +98,7 @@ bool dco_check_startup_option(int msglevel, const struct options *o);
  * @param o         the options struct that hold the options
  * @return          true if no conflict was detected, false otherwise
  */
-bool dco_check_pull_options(int msglevel, const struct options *o);
+bool dco_check_pull_options(msglvl_t msglevel, const struct options *o);
 
 /**
  * Initialize the DCO context
@@ -261,7 +261,7 @@ dco_supports_epoch_data(struct context *c)
 typedef void *dco_context_t;
 
 static inline bool
-dco_available(int msglevel)
+dco_available(msglvl_t msglevel)
 {
     return false;
 }
@@ -273,19 +273,19 @@ dco_version_string(struct gc_arena *gc)
 }
 
 static inline bool
-dco_check_option(int msglevel, const struct options *o)
+dco_check_option(msglvl_t msglevel, const struct options *o)
 {
     return false;
 }
 
 static inline bool
-dco_check_startup_option(int msglevel, const struct options *o)
+dco_check_startup_option(msglvl_t msglevel, const struct options *o)
 {
     return false;
 }
 
 static inline bool
-dco_check_pull_options(int msglevel, const struct options *o)
+dco_check_pull_options(msglvl_t msglevel, const struct options *o)
 {
     return false;
 }

@@ -4273,7 +4273,7 @@ management_callback_status_p2p(void *arg, const int version, struct status_outpu
 }
 
 void
-management_show_net_callback(void *arg, const int msglevel)
+management_show_net_callback(void *arg, const msglvl_t msglevel)
 {
 #ifdef _WIN32
     show_routes(msglevel);

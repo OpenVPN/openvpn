@@ -618,7 +618,7 @@ void verify_fix_key2(struct key2 *key2, const struct key_type *kt, const char *s
 
 void must_have_n_keys(const char *filename, const char *option, const struct key2 *key2, int n);
 
-int ascii2keydirection(int msglevel, const char *str);
+int ascii2keydirection(msglvl_t msglevel, const char *str);
 
 const char *keydirection2ascii(int kd, bool remote, bool humanreadable);
 

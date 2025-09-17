@@ -658,7 +658,7 @@ dco_do_read(dco_context_t *dco)
 }
 
 bool
-dco_available(int msglevel)
+dco_available(msglvl_t msglevel)
 {
     struct if_clonereq ifcr;
     char *buf = NULL;

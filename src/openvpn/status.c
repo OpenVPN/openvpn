@@ -230,14 +230,13 @@ status_printf(struct status_output *so, const char *format, ...)
 
         if (so->msglevel >= 0 && !so->errors)
         {
-            msg(so->msglevel, "%s", buf);
+            msg((msglvl_t)so->msglevel, "%s", buf);
         }
 
         if (so->fd >= 0 && !so->errors)
         {
-            int len;
             strcat(buf, "\n");
-            len = strlen(buf);
+            size_t len = strlen(buf);
             if (len > 0)
             {
                 if (write(so->fd, buf, len) != len)

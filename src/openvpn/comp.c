@@ -159,7 +159,7 @@ comp_generate_peer_info_string(const struct compress_options *opt, struct buffer
 #endif /* USE_COMP */
 
 bool
-check_compression_settings_valid(struct compress_options *info, int msglevel)
+check_compression_settings_valid(struct compress_options *info, msglvl_t msglevel)
 {
     /*
      * We also allow comp-stub-v2 here as it technically allows escaping of

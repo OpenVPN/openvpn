@@ -368,7 +368,8 @@ check_connection_established(struct context *c)
 }
 
 bool
-send_control_channel_string_dowork(struct tls_session *session, const char *str, int msglevel)
+send_control_channel_string_dowork(struct tls_session *session, const char *str,
+                                   msglvl_t msglevel)
 {
     struct gc_arena gc = gc_new();
     bool stat;
@@ -395,7 +396,7 @@ reschedule_multi_process(struct context *c)
 }
 
 bool
-send_control_channel_string(struct context *c, const char *str, int msglevel)
+send_control_channel_string(struct context *c, const char *str, msglvl_t msglevel)
 {
     if (c->c2.tls_multi)
     {

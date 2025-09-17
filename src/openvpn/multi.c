@@ -3316,7 +3316,7 @@ multi_process_incoming_dco(struct multi_context *m)
     }
     else
     {
-        int msglevel = D_DCO;
+        msglvl_t msglevel = D_DCO;
         if (dco->dco_message_type == OVPN_CMD_DEL_PEER
             && dco->dco_del_peer_reason == OVPN_DEL_PEER_REASON_USERSPACE)
         {

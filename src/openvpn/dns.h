@@ -166,7 +166,7 @@ bool dns_server_addr_parse(struct dns_server *server, const char *addr);
  * @param   o           Pointer to the DNS options to validate
  * @return              True if no error was found
  */
-bool dns_options_verify(int msglevel, const struct dns_options *o);
+bool dns_options_verify(msglvl_t msglevel, const struct dns_options *o);
 
 /**
  * Makes a deep copy of the passed DNS options.

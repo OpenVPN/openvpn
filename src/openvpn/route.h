@@ -356,7 +356,7 @@ void get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn
 void get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi, const struct in6_addr *dest,
                               openvpn_net_ctx_t *ctx);
 
-void print_default_gateway(const int msglevel, const struct route_gateway_info *rgi,
+void print_default_gateway(const msglvl_t msglevel, const struct route_gateway_info *rgi,
                            const struct route_ipv6_gateway_info *rgi6);
 
 /*
@@ -371,15 +371,15 @@ void print_default_gateway(const int msglevel, const struct route_gateway_info *
 int test_local_addr(const in_addr_t addr, const struct route_gateway_info *rgi);
 
 #ifndef ENABLE_SMALL
-void print_route_options(const struct route_option_list *rol, int level);
+void print_route_options(const struct route_option_list *rol, msglvl_t msglevel);
 
 #endif
 
-void print_routes(const struct route_list *rl, int level);
+void print_routes(const struct route_list *rl, msglvl_t msglevel);
 
 #ifdef _WIN32
 
-void show_routes(int msglev);
+void show_routes(msglvl_t msglevel);
 
 bool test_routes(const struct route_list *rl, const struct tuntap *tt);
 

@@ -53,15 +53,15 @@
 #define SEQ_EXPIRED ((time_t)1)
 
 #ifdef ENABLE_DEBUG
-static void packet_id_debug_print(int msglevel, const struct packet_id_rec *p,
+static void packet_id_debug_print(msglvl_t msglevel, const struct packet_id_rec *p,
                                   const struct packet_id_net *pin, const char *message,
                                   packet_id_print_type value);
 
 #endif /* ENABLE_DEBUG */
 
 static inline void
-packet_id_debug(int msglevel, const struct packet_id_rec *p, const struct packet_id_net *pin,
-                const char *message, uint64_t value)
+packet_id_debug(msglvl_t msglevel, const struct packet_id_rec *p,
+                const struct packet_id_net *pin, const char *message, uint64_t value)
 {
 #ifdef ENABLE_DEBUG
     if (unlikely(check_debug_level(msglevel)))
@@ -573,7 +573,8 @@ packet_id_persist_print(const struct packet_id_persist *p, struct gc_arena *gc)
 #ifdef ENABLE_DEBUG
 
 static void
-packet_id_debug_print(int msglevel, const struct packet_id_rec *p, const struct packet_id_net *pin,
+packet_id_debug_print(msglvl_t msglevel, const struct packet_id_rec *p,
+                      const struct packet_id_net *pin,
                       const char *message, packet_id_print_type value)
 {
     struct gc_arena gc = gc_new();

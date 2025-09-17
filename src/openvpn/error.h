@@ -74,31 +74,33 @@ const char *strerror_win32(DWORD errnum, struct gc_arena *gc);
 #define openvpn_errno() errno
 #endif
 
+typedef unsigned int msglvl_t;
+
 /*
  * These globals should not be accessed directly,
  * but rather through macros or inline functions defined below.
  */
-extern unsigned int x_debug_level;
+extern msglvl_t x_debug_level;
 extern int x_msg_line_num;
 
 /* msg() flags */
 
-#define M_DEBUG_LEVEL (0x0F) /* debug level mask */
+#define M_DEBUG_LEVEL (0x0Fu) /* debug level mask */
 
-#define M_FATAL    (1 << 4)  /* exit program */
-#define M_NONFATAL (1 << 5)  /* non-fatal error */
-#define M_WARN     (1 << 6)  /* call syslog with LOG_WARNING */
-#define M_DEBUG    (1 << 7)
+#define M_FATAL    (1u << 4)  /* exit program */
+#define M_NONFATAL (1u << 5)  /* non-fatal error */
+#define M_WARN     (1u << 6)  /* call syslog with LOG_WARNING */
+#define M_DEBUG    (1u << 7)
 
-#define M_ERRNO (1 << 8)         /* show errno description */
+#define M_ERRNO (1u << 8)         /* show errno description */
 
-#define M_NOMUTE       (1 << 11) /* don't do mute processing */
-#define M_NOPREFIX     (1 << 12) /* don't show date/time prefix */
-#define M_USAGE_SMALL  (1 << 13) /* fatal options error, call usage_small */
-#define M_MSG_VIRT_OUT (1 << 14) /* output message through msg_status_output callback */
-#define M_OPTERR       (1 << 15) /* print "Options error:" prefix */
-#define M_NOLF         (1 << 16) /* don't print new line */
-#define M_NOIPREFIX    (1 << 17) /* don't print instance prefix */
+#define M_NOMUTE       (1u << 11) /* don't do mute processing */
+#define M_NOPREFIX     (1u << 12) /* don't show date/time prefix */
+#define M_USAGE_SMALL  (1u << 13) /* fatal options error, call usage_small */
+#define M_MSG_VIRT_OUT (1u << 14) /* output message through msg_status_output callback */
+#define M_OPTERR       (1u << 15) /* print "Options error:" prefix */
+#define M_NOLF         (1u << 16) /* don't print new line */
+#define M_NOIPREFIX    (1u << 17) /* don't print instance prefix */
 
 /* flag combinations which are frequently used */
 #define M_ERR    (M_FATAL | M_ERRNO)
@@ -112,7 +114,7 @@ extern int x_msg_line_num;
  * A mute level of 0 is always printed.
  */
 #define MUTE_LEVEL_SHIFT 24
-#define MUTE_LEVEL_MASK  0xFF
+#define MUTE_LEVEL_MASK  0xFFu
 
 #define ENCODE_MUTE_LEVEL(mute_level) (((mute_level) & MUTE_LEVEL_MASK) << MUTE_LEVEL_SHIFT)
 #define DECODE_MUTE_LEVEL(flags)      (((flags) >> MUTE_LEVEL_SHIFT) & MUTE_LEVEL_MASK)
@@ -135,7 +137,7 @@ extern int x_msg_line_num;
  */
 
 /** Check muting filter */
-bool dont_mute(unsigned int flags);
+bool dont_mute(msglvl_t flags);
 
 /* Macro to ensure (and teach static analysis tools) we exit on fatal errors */
 #define EXIT_FATAL(flags)      \
@@ -170,7 +172,7 @@ bool dont_mute(unsigned int flags);
 #define dmsg(flags, ...)
 #endif
 
-void x_msg(const unsigned int flags, const char *format, ...)
+void x_msg(const msglvl_t flags, const char *format, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
     __attribute__((format(gnu_printf, 2, 3)))
@@ -180,7 +182,7 @@ void x_msg(const unsigned int flags, const char *format, ...)
 #endif
     ; /* should be called via msg above */
 
-void x_msg_va(const unsigned int flags, const char *format, va_list arglist);
+void x_msg_va(const msglvl_t flags, const char *format, va_list arglist);
 
 /*
  * Function prototypes
@@ -201,16 +203,16 @@ bool set_debug_level(const int level, const unsigned int flags);
 
 bool set_mute_cutoff(const int cutoff);
 
-int get_debug_level(void);
+msglvl_t get_debug_level(void);
 
 int get_mute_cutoff(void);
 
-const char *msg_flags_string(const unsigned int flags, struct gc_arena *gc);
+const char *msg_flags_string(const msglvl_t flags, struct gc_arena *gc);
 
 /*
  * File to print messages to before syslog is opened.
  */
-FILE *msg_fp(const unsigned int flags);
+FILE *msg_fp(const msglvl_t flags);
 
 /* Fatal logic errors */
 #ifndef ENABLE_SMALL
@@ -254,14 +256,14 @@ assert_failed(const char *filename, int line, const char *condition)
 /* Inline functions */
 
 static inline bool
-check_debug_level(unsigned int level)
+check_debug_level(msglvl_t level)
 {
     return (level & M_DEBUG_LEVEL) <= x_debug_level;
 }
 
 /** Return true if flags represent an enabled, not muted log level */
 static inline bool
-msg_test(unsigned int flags)
+msg_test(msglvl_t flags)
 {
     return check_debug_level(flags) && dont_mute(flags);
 }
@@ -400,8 +402,8 @@ ignore_sys_error(const int err, bool crt_error)
 }
 
 /** Convert fatal errors to nonfatal, don't touch other errors */
-static inline unsigned int
-nonfatal(const unsigned int err)
+static inline msglvl_t
+nonfatal(const msglvl_t err)
 {
     return err & M_FATAL ? (err ^ M_FATAL) | M_NONFATAL : err;
 }
