@@ -23,6 +23,7 @@
 
 #include "service.h"
 #include "validate.h"
+#include "eventmsg.h"
 
 LPCTSTR service_instance = TEXT("");
 static wchar_t win_sys_path[MAX_PATH];
@@ -219,24 +220,28 @@ GetLastErrorText()
     LPTSTR tmp = NULL;
 
     error = GetLastError();
-    len = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ARGUMENT_ARRAY,
-                        NULL, error, LANG_NEUTRAL, tmp, 0, NULL);
+    len = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM| FORMAT_MESSAGE_IGNORE_INSERTS,
+                         NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&tmp, 0, NULL);
 
-    if (len == 0 || (long) _countof(buf) < (long) len + 14)
+    if (!len || !tmp)
     {
-        buf[0] = TEXT('\0');
-    }
-    else
-    {
-        tmp[wcslen(tmp) - 2] = TEXT('\0'); /* remove CR/LF characters */
-        openvpn_swprintf(buf, _countof(buf), TEXT("%ls (0x%x)"), tmp, error);
-    }
-
-    if (tmp)
-    {
-        LocalFree(tmp);
+        openvpn_swprintf(buf, _countof(buf), TEXT("Unknown error (0x%lx)"), error);
+        if (tmp)
+        {
+            LocalFree(tmp);
+        }
+        return buf;
     }
 
+    /* trim trailing CR / LF / spaces safely */
+    while (len && (tmp[len - 1] == TEXT('\r') || tmp[len - 1] == TEXT('\n') || tmp[len - 1] == TEXT(' ')))
+    {
+        tmp[--len] = TEXT('\0');
+    }
+
+    openvpn_swprintf(buf, _countof(buf), TEXT("%ls (0x%lx)"), tmp, error);
+
+    LocalFree(tmp);
     return buf;
 }
 
@@ -268,9 +273,15 @@ MsgToEventLog(DWORD flags, LPCTSTR format, ...)
         va_end(arglist);
 
         const TCHAR *mesg[] = { msg[0], msg[1] };
-        ReportEvent(hEventSource, flags & MSG_FLAGS_ERROR ?
-                    EVENTLOG_ERROR_TYPE : EVENTLOG_INFORMATION_TYPE,
-                    0, 0, NULL, 2, 0, mesg, NULL);
+        ReportEvent(hEventSource,
+                    flags & MSG_FLAGS_ERROR ? EVENTLOG_ERROR_TYPE : EVENTLOG_INFORMATION_TYPE,
+                    0,
+                    EVT_TEXT_2,
+                    NULL,
+                    2,
+                    0,
+                    mesg,
+                    NULL);
         DeregisterEventSource(hEventSource);
     }
 
