@@ -99,6 +99,7 @@ def apply_patch_mods(patch_text, details, args):
     assert comment_start > signed_off_end
     acked_by_text = ""
     acked_by_names = ""
+    gerrit_url = f"{args.url}/c/{details['project']}/+/{args.changeid}"
     for ack in details["acked_by"]:
         acked_by_text += f"Acked-by: {ack}\n"
         acked_by_names += f"{ack}\n"
@@ -106,12 +107,13 @@ def apply_patch_mods(patch_text, details, args):
         patch_text[:signed_off_end]
         + signed_off_text
         + acked_by_text
+        + f"Gerrit URL: {gerrit_url}\n"
         + patch_text[signed_off_end:comment_start]
         + f"""
 This change was reviewed on Gerrit and approved by at least one
 developer. I request to merge it to {details["target"]}.
 
-Gerrit URL: {args.url}/c/{details["project"]}/+/{args.changeid}
+Gerrit URL: {gerrit_url}
 This mail reflects revision {details["revision"]} of this Change.
 {signed_off_comment}
 Acked-by according to Gerrit (reflected above):
