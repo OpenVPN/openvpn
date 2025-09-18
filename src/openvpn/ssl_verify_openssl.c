@@ -783,23 +783,7 @@ tls_verify_crl_missing(const struct tls_options *opt)
         return false;
     }
 
-    X509_STORE *store = SSL_CTX_get_cert_store(opt->ssl_ctx.ctx);
-    if (!store)
-    {
-        crypto_msg(M_FATAL, "Cannot get certificate store");
-    }
-
-    STACK_OF(X509_OBJECT) *objs = X509_STORE_get0_objects(store);
-    for (int i = 0; i < sk_X509_OBJECT_num(objs); i++)
-    {
-        X509_OBJECT *obj = sk_X509_OBJECT_value(objs, i);
-        ASSERT(obj);
-        if (X509_OBJECT_get_type(obj) == X509_LU_CRL)
-        {
-            return false;
-        }
-    }
-    return true;
+    return opt->ssl_ctx.crls == NULL || sk_X509_CRL_num(opt->ssl_ctx.crls) == 0;
 }
 
 #endif /* defined(ENABLE_CRYPTO_OPENSSL) */
