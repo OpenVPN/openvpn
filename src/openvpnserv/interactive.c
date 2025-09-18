@@ -40,6 +40,7 @@
 #include "validate.h"
 #include "block_dns.h"
 #include "ring_buffer.h"
+#include "domain_helper.h"
 
 #define IO_TIMEOUT  2000 /*ms*/
 
@@ -1215,6 +1216,12 @@ static DWORD
 SetDNSDomain(const wchar_t *if_name, const char *domain, undo_lists_t *lists)
 {
     NET_IFINDEX if_index;
+
+    if (!validate_domain(domain))
+    {
+        MsgToEventLog(MSG_FLAGS_ERROR, TEXT("Failed to set DNS domain '%hs' because it contains invalid characters"), domain);
+        return ERROR_INVALID_DATA;
+    }
 
     DWORD err  = ConvertInterfaceNameToIndex(if_name, &if_index);
     if (err != ERROR_SUCCESS)
