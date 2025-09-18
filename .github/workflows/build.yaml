@@ -69,8 +69,8 @@ jobs:
         with:
           name: openvpn-mingw-${{ matrix.arch }}
           path: |
-            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/Debug/*.exe
-            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/Debug/*.dll
+            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/**/Debug/*.exe
+            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/**/Debug/*.dll
             !${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/Debug/test_*.exe
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
