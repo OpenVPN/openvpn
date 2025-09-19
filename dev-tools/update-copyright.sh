@@ -30,7 +30,7 @@ fi
 
 # Only update Copyright lines with these owners
 # The 'or' operator is GNU sed specific, and must be \|
-UPDATE_COPYRIGHT_LINES="@openvpn\.net\|@fox-it\.com\|@sophos.com\|@eurephia\.org\|@greenie\.muc\.de\|@rozman.si\|@unstable\.cc\|@rfc2549.org\|@karger\.me\|selva.nair@"
+UPDATE_COPYRIGHT_LINES="@openvpn\.net\|@sentyron\.com\|@sophos.com\|@eurephia\.org\|@greenie\.muc\.de\|@rozman.si\|@unstable\.cc\|@rfc2549.org\|@karger\.me\|selva.nair@"
 COPY_YEAR="$1"
 
 cd "$(git rev-parse --show-toplevel)"

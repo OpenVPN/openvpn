@@ -5,7 +5,7 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2010-2021 Fox Crypto B.V. <openvpn@foxcrypto.com>
+ *  Copyright (C) 2010-2021 Sentyron B.V. <openvpn@sentyron.com>
  *
  *
  *  This program is free software; you can redistribute it and/or modify
