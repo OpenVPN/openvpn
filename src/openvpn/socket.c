@@ -246,10 +246,10 @@ streqnull(const char *a, const char *b)
  */
 static int
 get_cached_dns_entry(struct cached_dns_entry *dns_cache, const char *hostname, const char *servname,
-                     int ai_family, int resolve_flags, struct addrinfo **ai)
+                     int ai_family, unsigned int resolve_flags, struct addrinfo **ai)
 {
     struct cached_dns_entry *ph;
-    int flags;
+    unsigned int flags;
 
     /* Only use flags that are relevant for the structure */
     flags = resolve_flags & GETADDR_CACHE_MASK;
@@ -269,7 +269,7 @@ get_cached_dns_entry(struct cached_dns_entry *dns_cache, const char *hostname, c
 
 static int
 do_preresolve_host(struct context *c, const char *hostname, const char *servname, const int af,
-                   const int flags)
+                   const unsigned int flags)
 {
     struct addrinfo *ai;
     int status;
@@ -323,7 +323,7 @@ do_preresolve(struct context *c)
     {
         int status;
         const char *remote;
-        int flags = preresolve_flags;
+        unsigned int flags = preresolve_flags;
 
         struct connection_entry *ce = l->array[i];
 
@@ -1186,7 +1186,7 @@ resolve_bind_local(struct link_socket *sock, const sa_family_t af)
     /* resolve local address if undefined */
     if (!sock->info.lsa->bind_local)
     {
-        int flags = GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL | GETADDR_PASSIVE;
+        unsigned int flags = GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL | GETADDR_PASSIVE;
         int status;
 
         if (proto_is_dgram(sock->info.proto))
