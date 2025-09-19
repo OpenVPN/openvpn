@@ -34,22 +34,21 @@
 #include "memdbg.h"
 
 struct hash *
-hash_init(const int n_buckets, const uint32_t iv,
+hash_init(const uint32_t n_buckets, const uint32_t iv,
           uint32_t (*hash_function)(const void *key, uint32_t iv),
           bool (*compare_function)(const void *key1, const void *key2))
 {
     struct hash *h;
-    int i;
 
     ASSERT(n_buckets > 0);
     ALLOC_OBJ_CLEAR(h, struct hash);
-    h->n_buckets = (int)adjust_power_of_2(n_buckets);
+    h->n_buckets = (uint32_t)adjust_power_of_2(n_buckets);
     h->mask = h->n_buckets - 1;
     h->hash_function = hash_function;
     h->compare_function = compare_function;
     h->iv = iv;
     ALLOC_ARRAY(h->buckets, struct hash_bucket, h->n_buckets);
-    for (i = 0; i < h->n_buckets; ++i)
+    for (uint32_t i = 0; i < h->n_buckets; ++i)
     {
         struct hash_bucket *b = &h->buckets[i];
         b->list = NULL;
@@ -60,8 +59,7 @@ hash_init(const int n_buckets, const uint32_t iv,
 void
 hash_free(struct hash *hash)
 {
-    int i;
-    for (i = 0; i < hash->n_buckets; ++i)
+    for (uint32_t i = 0; i < hash->n_buckets; ++i)
     {
         struct hash_bucket *b = &hash->buckets[i];
         struct hash_element *he = b->list;
@@ -212,15 +210,15 @@ hash_remove_marked(struct hash *hash, struct hash_bucket *bucket)
 }
 
 void
-hash_iterator_init_range(struct hash *hash, struct hash_iterator *hi, int start_bucket,
-                         int end_bucket)
+hash_iterator_init_range(struct hash *hash, struct hash_iterator *hi, uint32_t start_bucket,
+                         uint32_t end_bucket)
 {
     if (end_bucket > hash->n_buckets)
     {
         end_bucket = hash->n_buckets;
     }
 
-    ASSERT(start_bucket >= 0 && start_bucket <= end_bucket);
+    ASSERT(start_bucket <= end_bucket);
 
     hi->hash = hash;
     hi->elem = NULL;
@@ -324,6 +322,9 @@ hash_iterator_delete_element(struct hash_iterator *hi)
  * Returns a 32-bit value.  Every bit of the key affects every bit of
  * the return value.  Every 1-bit and 2-bit delta achieves avalanche.
  * About 36+6len instructions.
+ *
+ * #define hashsize(n) ((uint32_t)1<<(n))
+ * #define hashmask(n) (hashsize(n)-1)
  *
  * The best hash table sizes are powers of 2.  There is no need to do
  * mod a prime (mod is sooo slow!).  If you need less than 32 bits,

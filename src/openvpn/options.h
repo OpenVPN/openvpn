@@ -499,8 +499,8 @@ struct options
     struct in6_addr ifconfig_ipv6_pool_base; /* IPv6 */
     int ifconfig_ipv6_pool_netbits;          /* IPv6 */
 
-    int real_hash_size;
-    int virtual_hash_size;
+    uint32_t real_hash_size;
+    uint32_t virtual_hash_size;
     const char *client_connect_script;
     const char *client_disconnect_script;
     const char *learn_address_script;

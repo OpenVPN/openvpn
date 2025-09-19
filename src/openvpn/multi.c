@@ -169,17 +169,11 @@ multi_ifconfig_pool_persist(struct multi_context *m, bool force)
 }
 
 static void
-multi_reap_range(const struct multi_context *m, int start_bucket, int end_bucket)
+multi_reap_range(const struct multi_context *m, uint32_t start_bucket, uint32_t end_bucket)
 {
     struct gc_arena gc = gc_new();
     struct hash_iterator hi;
     struct hash_element *he;
-
-    if (start_bucket < 0)
-    {
-        start_bucket = 0;
-        end_bucket = hash_n_buckets(m->vhash);
-    }
 
     dmsg(D_MULTI_DEBUG, "MULTI: REAP range %d -> %d", start_bucket, end_bucket);
     hash_iterator_init_range(m->vhash, &hi, start_bucket, end_bucket);
@@ -201,11 +195,11 @@ multi_reap_range(const struct multi_context *m, int start_bucket, int end_bucket
 static void
 multi_reap_all(const struct multi_context *m)
 {
-    multi_reap_range(m, -1, 0);
+    multi_reap_range(m, 0, hash_n_buckets(m->vhash));
 }
 
 static struct multi_reap *
-multi_reap_new(int buckets_per_pass)
+multi_reap_new(uint32_t buckets_per_pass)
 {
     struct multi_reap *mr;
     ALLOC_OBJ(mr, struct multi_reap);
@@ -237,10 +231,10 @@ multi_reap_free(struct multi_reap *mr)
 /*
  * How many buckets in vhash to reap per pass.
  */
-static int
-reap_buckets_per_pass(int n_buckets)
+static uint32_t
+reap_buckets_per_pass(uint32_t n_buckets)
 {
-    return constrain_int(n_buckets / REAP_DIVISOR, REAP_MIN, REAP_MAX);
+    return constrain_uint(n_buckets / REAP_DIVISOR, REAP_MIN, REAP_MAX);
 }
 
 #ifdef ENABLE_MANAGEMENT

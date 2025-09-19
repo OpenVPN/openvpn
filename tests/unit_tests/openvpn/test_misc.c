@@ -128,7 +128,7 @@ static uint32_t
 word_hash_function(const void *key, uint32_t iv)
 {
     const char *str = (const char *)key;
-    const int len = strlen(str);
+    const uint32_t len = (uint32_t)strlen(str);
     return hash_func((const uint8_t *)str, len, iv);
 }
 
@@ -138,11 +138,11 @@ word_compare_function(const void *key1, const void *key2)
     return strcmp((const char *)key1, (const char *)key2) == 0;
 }
 
-static unsigned long
+static uint32_t
 get_random(void)
 {
     /* rand() is not very random, but it's C99 and this is just for testing */
-    return rand();
+    return (uint32_t)rand();
 }
 
 static struct hash_element *
@@ -176,7 +176,7 @@ test_list(void **state)
     struct hash *hash = hash_init(10000, get_random(), word_hash_function, word_compare_function);
     struct hash *nhash = hash_init(256, get_random(), word_hash_function, word_compare_function);
 
-    printf("hash_init n_buckets=%d mask=0x%08x\n", hash->n_buckets, hash->mask);
+    printf("hash_init n_buckets=%u mask=0x%08x\n", hash->n_buckets, hash->mask);
 
     char wordfile[PATH_MAX] = { 0 };
     openvpn_test_get_srcdir_dir(wordfile, PATH_MAX, "/../../../COPYRIGHT.GPL");
@@ -254,10 +254,10 @@ test_list(void **state)
 
     /* output contents of hash table */
     {
-        ptr_type inc = 0;
+        uint32_t inc = 0;
         int count = 0;
 
-        for (ptr_type base = 0; base < hash_n_buckets(hash); base += inc)
+        for (uint32_t base = 0; base < hash_n_buckets(hash); base += inc)
         {
             struct hash_iterator hi;
             struct hash_element *he;

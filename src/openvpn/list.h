@@ -36,14 +36,11 @@
 #include "basic.h"
 #include "buffer.h"
 
-#define hashsize(n) ((uint32_t)1 << (n))
-#define hashmask(n) (hashsize(n) - 1)
-
 struct hash_element
 {
     void *value;
     const void *key;
-    unsigned int hash_value;
+    uint32_t hash_value;
     struct hash_element *next;
 };
 
@@ -54,16 +51,16 @@ struct hash_bucket
 
 struct hash
 {
-    int n_buckets;
-    int n_elements;
-    int mask;
+    uint32_t n_buckets;
+    uint32_t n_elements;
+    uint32_t mask;
     uint32_t iv;
     uint32_t (*hash_function)(const void *key, uint32_t iv);
     bool (*compare_function)(const void *key1, const void *key2); /* return true if equal */
     struct hash_bucket *buckets;
 };
 
-struct hash *hash_init(const int n_buckets, const uint32_t iv,
+struct hash *hash_init(const uint32_t n_buckets, const uint32_t iv,
                        uint32_t (*hash_function)(const void *key, uint32_t iv),
                        bool (*compare_function)(const void *key1, const void *key2));
 
@@ -81,17 +78,17 @@ void hash_remove_by_value(struct hash *hash, void *value);
 struct hash_iterator
 {
     struct hash *hash;
-    int bucket_index;
+    uint32_t bucket_index;
     struct hash_bucket *bucket;
     struct hash_element *elem;
     struct hash_element *last;
     bool bucket_marked;
-    int bucket_index_start;
-    int bucket_index_end;
+    uint32_t bucket_index_start;
+    uint32_t bucket_index_end;
 };
 
-void hash_iterator_init_range(struct hash *hash, struct hash_iterator *hi, int start_bucket,
-                              int end_bucket);
+void hash_iterator_init_range(struct hash *hash, struct hash_iterator *hi, uint32_t start_bucket,
+                              uint32_t end_bucket);
 
 void hash_iterator_init(struct hash *hash, struct hash_iterator *iter);
 
@@ -109,13 +106,13 @@ hash_value(const struct hash *hash, const void *key)
     return (*hash->hash_function)(key, hash->iv);
 }
 
-static inline int
+static inline uint32_t
 hash_n_elements(const struct hash *hash)
 {
     return hash->n_elements;
 }
 
-static inline int
+static inline uint32_t
 hash_n_buckets(const struct hash *hash)
 {
     return hash->n_buckets;
