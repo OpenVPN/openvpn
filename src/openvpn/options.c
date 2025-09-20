@@ -305,6 +305,8 @@ static const char usage_message[] =
     "                  'maybe' -- Use per-route hints\n"
     "                  'yes'   -- Always DF (Don't Fragment)\n"
     "--mtu-test      : Empirically measure and report MTU.\n"
+    "--bulk-mode     : Use bulk TUN/TCP reads/writes.\n"
+    "--mtio-mode     : Use multi threaded mode.\n"
 #ifdef ENABLE_FRAGMENT
     "--fragment max  : Enable internal datagram fragmentation so that no UDP\n"
     "                  datagrams are sent which are larger than max bytes.\n"
@@ -3285,6 +3287,23 @@ options_postprocess_mutate_invariant(struct options *options)
         options->pkcs11_providers[0] = DEFAULT_PKCS11_MODULE;
     }
 #endif
+
+    if ((options->ce.proto != PROTO_TCP) && (options->ce.proto != PROTO_TCP_SERVER) && (options->ce.proto != PROTO_TCP_CLIENT))
+    {
+        options->ce.bulk_mode = false;
+    }
+
+    if (options->ce.mtio_mode == true)
+    {
+        if (options->ce.proto == PROTO_TCP_CLIENT)
+        {
+            options->ce.mtio_flag = 1;
+        }
+        if (options->ce.proto == PROTO_TCP_SERVER)
+        {
+            options->ce.mtio_flag = 2;
+        }
+    }
 }
 
 static void
@@ -9869,6 +9888,14 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
                 OPENVPN_8021Q_MIN_VID, OPENVPN_8021Q_MAX_VID);
             goto err;
         }
+    }
+    else if (streq(p[0], "bulk-mode"))
+    {
+        options->ce.bulk_mode = true;
+    }
+    else if (streq(p[0], "mtio-mode"))
+    {
+        options->ce.mtio_mode = true;
     }
     else
     {
