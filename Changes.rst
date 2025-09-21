@@ -1,3 +1,73 @@
+Overview of changes in 2.6.15
+=============================
+New features / User visible changes
+-----------------------------------
+- on Windows, do not use "wmic.exe" any longer to set DNS search domain
+  (discontinued by Microsoft), use "powershell" fragment instead.
+
+- on Windows, logging to the windows event log has been improved
+  (and logging of GetLastError() strings repaired).  To make this work,
+  a new "openvpnmsgserv.dll" library is now installed and registered.
+
+- DNS domain names are now strictly validated with a positive-list of
+  allowed characters (including UTF-8 high-bit-set bytes) before being
+  handed to powershell.
+
+- Apply more checks to incoming TLS handshake packets before creating
+  new state - namely, verify message ID / acked ID for "valid range for
+  an initial packet".  This fixes a problem with clients that float
+  very early but send control channel packet from the pre-float IP
+  (Github: OpenVPN/openvpn#704), backported from 2.7_beta1.
+
+- backport handling of client float notifications on FreeBSD 14/STABLE DCO
+  (see https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=289303)
+
+- update GPL license text to latest version from FSF
+
+- on Linux, on interfaces where applicable, OpenVPN explicitly configures
+  the broadcast address again.  This was dropped for 2.6.0 "because
+  computers are smart and can do it themselves", but the kernel netlink
+  interface isn't, and will install "0.0.0.0".  This does not normally
+  matter, but for broadcast-based applications that get the address to
+  use from "ifconfig", this change repairs functionality.
+
+
+Code maintenance
+----------------
+- remove a few extra newline characters at the end of rarely-seen log lines
+
+- replace assert() calls in the code with OpenVPN ASSERT() calls
+  (not subject to -DNDEBUG, plus better logging on the actual cause)
+
+- remove "dh 20248.pem" from all sample configurations, remove "dh2048.pem"
+  file from source tree - OpenSSL 3.5 Seclevel=3 considers this "not
+  secure enough" and OpenVPN has not needed an explit DH file in a long while.
+
+- properly handle "old Linux DCO" enum definitions conflicting with
+  "new Linux DCO" kernel headers (uapi/linux/if_link.h)
+
+- fix stdint.h related build errors on Fedora 42
+
+- GHA: update dependencies, pin CMake version
+
+- fix MBEDTLS_DEPRECATED_REMOVED build errors (improve compatibility with
+  recent versions of mbedTLS)
+
+
+Documentation Updates
+---------------------
+- improve ``--tmp-dir`` documentation
+
+
+Bugfixes
+--------
+- dco-win: fix a possible "out of scope" access on access to the
+  "OVERLAPPED" Structure (backport of master commit f60a493)
+
+- bring back configuring of broadcast address on Linux tun/tap interface
+  (see above)
+
+
 Overview of changes in 2.6.14
 =============================
 Security fixes

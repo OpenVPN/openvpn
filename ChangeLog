@@ -1,6 +1,55 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.09.22 -- Version 2.6.15
+
+Antonio Quartulli (1):
+      dco: add standard mi prefix handling to multi_process_incoming_dco()
+
+Arne Schwabe (1):
+      Check message id/acked ids too when doing sessionid cookie checks
+
+Frank Lichtenheld (6):
+      GHA: Pin version of CMake for MinGW build
+      GHA: Dependency and Actions update April 2025 (2.6)
+      GHA: Update dependencies July 2025 (2.6)
+      Fix compiler warning in reliable.c with --disable-debug
+      dco linux: avoid redefining ovpn enums (2.6)
+      Update text of GPL to latest version from FSF
+
+Gert Doering (7):
+      unit_tests/plugins/auth-pam: fix stdint.h related build error on fedora 42
+      Remove use of 'dh dh2048.pem' from sample configs, remove 'dh2048.pem' file
+      replace assert() calls with ASSERT()
+      remove newline characters at the end of msg() calls
+      fix building of openvpnsrvmsg.dll from eventmsg.mc in mingw builds
+      Fix t_net.sh / networking_testdriver after 'broadcast' change
+      preparing release 2.6.15
+
+Klemens Nanni (1):
+      Fix tmp-dir documentation
+
+Kristof Provost (1):
+      dco: support float notifications on FreeBSD
+
+Lev Stipakov (6):
+      dco-win: Ensure correct OVERLAPPED scope
+      win: replace wmic invocation with powershell
+      openvpnserv: Fix writing messages to the event log
+      Validate DNS domain name before powershell invocation
+      Makefile: fix 'make dist'
+      GHA: collect more artifacts for mingw builds
+
+Ralf Lici (1):
+      dco: backport OS-independent part of peer float support
+
+Sebastian Marsching (1):
+      Bugfix: Set broadcast address on interface.
+
+rein.vanbaaren (1):
+      Fix MBEDTLS_DEPRECATED_REMOVED build errors
+
+
 2025.04.02 -- Version 2.6.14
 
 Arne Schwabe (1):
