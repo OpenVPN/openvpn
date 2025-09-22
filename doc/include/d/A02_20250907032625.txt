@@ -1,0 +1,84 @@
+***************************************************************
+*                                                             *
+* Copyright Hikvision Digital Technology Co., Ltd.            *
+*                                                             *
+***************************************************************
+
+2 logs output
+
+
+User: admin Date:08/09/2025 Time: 06:22:15 made video export from device 0820230923CCWRAH0602061WCVU
+
+
+----------------------------
+1     2025-09-07 03:31:41
+----------------------------
+Major Type: Information
+Minor Type: System Running Status
+Local User: N/A
+Host IP Address: N/A
+Parameter Type: N/A
+Camera No.: N/A
+
+A1 Len: 22672456 R: 893252 W: 1114952 Time: 07-09-2025 03:31:41
+A2 Len: 8619948 R: 70848 W: 104648 Time: 07-09-2025 03:31:41
+A3 Len: 8697808 R: 1065628 W: 1077244 Time: 07-09-2025 03:31:41
+A4 Len: 7446536 R: 561804 W: 974264 Time: 07-09-2025 03:31:41
+A5 Len: 7942268 R: 200616 W: 601028 Time: 07-09-2025 03:31:41
+A6 Len: 7938492 R: 1217888 W: 32868 Time: 07-09-2025 03:31:41
+A7 Len: 7935640 R: 166340 W: 462148 Time: 07-09-2025 03:31:41
+A8 Len: 7943196 R: 472104 W: 755072 Time: 07-09-2025 03:31:41
+D1 Len: 0 R: 0 W: 0 Time: 01-01-1970 00:00:00
+D2 Len: 0 R: 0 W: 0 Time: 01-01-1970 00:00:00
+D3 Len: 0 R: 0 W: 0 Time: 01-01-1970 00:00:00
+D4 Len: 0 R: 0 W: 0 Time: 01-01-1970 00:00:00
+D5 Len: 0 R: 0 W: 0 Time: 01-01-1970 00:00:00
+D6 Len: 0 R: 0 W: 0 Time: 01-01-1970 00:00:00
+D7 Len: 0 R: 0 W: 0 Time: 01-01-1970 00:00:00
+D8 Len: 0 R: 0 W: 0 Time: 01-01-1970 00:00:00
+D9 Len: 0 R: 0 W: 0 Time: 01-01-1970 00:00:00
+D10 Len: 0 R: 0 W: 0 Time: 01-01-1970 00:00:00
+
+
+
+----------------------------
+2     2025-09-07 03:31:41
+----------------------------
+Major Type: Information
+Minor Type: System Running Status
+Local User: N/A
+Host IP Address: N/A
+Parameter Type: N/A
+Camera No.: N/A
+
+System status: 2
+User: 0%
+Sys: 4%
+Iowait: 4%
+Soft: 4%
+Idle: 86%
+Total memory: 158.23MB
+Free memory: 60.35MB
+Buffer: 8KB
+Cached: 0KB
+Main output: HDMI(2)
+Main output status: 11
+Main output screen-division: 0
+Enable main output screensaver: 1
+Aux output: Main CVBS(1)
+Aux output status: 0
+Aux output screen-division: 0
+Enable Aux output  screensaver: 1
+Current output: 2
+Motherboard temperature: 127
+DSP status: 
+CPU Temperature: 0
+Flash write frequency: 2
+
+
+
+
+
+********************** LOG  END*************************
+
+
