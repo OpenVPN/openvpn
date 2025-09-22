@@ -1273,7 +1273,7 @@ hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const char *mdname)
 
     /* We need to make a copy of the key since the OSSL parameters
      * only reference it */
-    memcpy(ctx->key, key, EVP_MD_size(kt));
+    memcpy(ctx->key, key, (size_t)EVP_MD_size(kt));
 
     /* Lookup/setting of parameters in OpenSSL 3.0 are string based
      *
@@ -1282,7 +1282,7 @@ hmac_ctx_init(hmac_ctx_t *ctx, const uint8_t *key, const char *mdname)
      * the constness away here.
      */
     ctx->params[0] = OSSL_PARAM_construct_utf8_string("digest", (char *)EVP_MD_get0_name(kt), 0);
-    ctx->params[1] = OSSL_PARAM_construct_octet_string("key", ctx->key, EVP_MD_size(kt));
+    ctx->params[1] = OSSL_PARAM_construct_octet_string("key", ctx->key, (size_t)EVP_MD_size(kt));
     ctx->params[2] = OSSL_PARAM_construct_end();
 
     if (!EVP_MAC_init(ctx->ctx, NULL, 0, ctx->params))

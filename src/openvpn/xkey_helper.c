@@ -351,7 +351,7 @@ encode_pkcs1(unsigned char *enc, size_t *enc_len, const char *mdname, const unsi
         }
     }
 
-    if (tbslen != EVP_MD_size(EVP_get_digestbyname(mdname)))
+    if (tbslen != (size_t)EVP_MD_size(EVP_get_digestbyname(mdname)))
     {
         msg(M_WARN, "Error: encode_pkcs11: invalid input length <%zu>", tbslen);
         goto done;
