@@ -120,7 +120,7 @@ x509_username_field_ext_supported(const char *fieldname)
 }
 
 static bool
-extract_x509_extension(X509 *cert, char *fieldname, char *out, int size)
+extract_x509_extension(X509 *cert, char *fieldname, char *out, size_t size)
 {
     bool retval = false;
     char *buf = 0;
@@ -195,7 +195,7 @@ extract_x509_extension(X509 *cert, char *fieldname, char *out, int size)
  * to contain result is grounds for error).
  */
 static result_t
-extract_x509_field_ssl(X509_NAME *x509, const char *field_name, char *out, int size)
+extract_x509_field_ssl(X509_NAME *x509, const char *field_name, char *out, size_t size)
 {
     int lastpos = -1;
     int tmp = -1;
@@ -252,7 +252,7 @@ extract_x509_field_ssl(X509_NAME *x509, const char *field_name, char *out, int s
 }
 
 result_t
-backend_x509_get_username(char *common_name, int cn_len, char *x509_username_field, X509 *peer_cert)
+backend_x509_get_username(char *common_name, size_t cn_len, char *x509_username_field, X509 *peer_cert)
 {
 #ifdef ENABLE_X509ALTUSERNAME
     if (strncmp("ext:", x509_username_field, 4) == 0)

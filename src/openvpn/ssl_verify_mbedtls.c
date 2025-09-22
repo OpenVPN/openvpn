@@ -128,7 +128,7 @@ verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth, uint3
 #endif
 
 result_t
-backend_x509_get_username(char *cn, int cn_len, char *x509_username_field, mbedtls_x509_crt *cert)
+backend_x509_get_username(char *cn, size_t cn_len, char *x509_username_field, mbedtls_x509_crt *cert)
 {
     mbedtls_x509_name *name;
 

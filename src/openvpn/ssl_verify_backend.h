@@ -123,7 +123,7 @@ struct buffer x509_get_sha256_fingerprint(openvpn_x509_cert_t *cert, struct gc_a
  *
  * @return              \c FAILURE, \c or SUCCESS
  */
-result_t backend_x509_get_username(char *common_name, int cn_len, char *x509_username_field,
+result_t backend_x509_get_username(char *common_name, size_t cn_len, char *x509_username_field,
                                    openvpn_x509_cert_t *peer_cert);
 
 #ifdef ENABLE_X509ALTUSERNAME
