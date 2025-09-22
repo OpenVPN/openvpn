@@ -61,7 +61,7 @@ net__addr_v4_add(const char *addr_str, int prefixlen)
 
     addr = ntohl(addr);
 
-    printf("CMD: ip addr add %s/%d dev %s\n", addr_str, prefixlen, iface);
+    printf("CMD: ip addr add %s/%d dev %s broadcast +\n", addr_str, prefixlen, iface);
 
     return net_addr_v4_add(NULL, iface, &addr, prefixlen);
 }
