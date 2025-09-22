@@ -264,10 +264,10 @@ pem_password_callback(char *buf, int size, int rwflag, void *u)
         /* prompt for password even if --askpass wasn't specified */
         pem_password_setup(NULL);
         ASSERT(!passbuf.protected);
-        strncpynt(buf, passbuf.password, size);
+        strncpynt(buf, passbuf.password, (size_t)size);
         purge_user_pass(&passbuf, false);
 
-        return strlen(buf);
+        return (int)strlen(buf);
     }
     return 0;
 }
