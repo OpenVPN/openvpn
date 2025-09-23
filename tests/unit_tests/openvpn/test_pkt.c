@@ -164,7 +164,7 @@ struct tls_auth_standalone
 init_tas_auth(int key_direction)
 {
     struct tls_auth_standalone tas = { 0 };
-    struct frame frame = { { .headroom = 200, .payload_size = 1400 }, 0 };
+    struct frame frame = { .buf = { .headroom = 200, .payload_size = 1400 }, 0 };
     tas.frame = frame;
 
     tas.tls_wrap.mode = TLS_WRAP_AUTH;
@@ -591,7 +591,7 @@ test_generate_reset_packet_plain(void **ut_state)
     enum first_packet_verdict verdict;
 
     tas.tls_wrap.mode = TLS_WRAP_NONE;
-    struct frame frame = { { .headroom = 200, .payload_size = 1400 }, 0 };
+    struct frame frame = { .buf = { .headroom = 200, .payload_size = 1400 }, 0 };
     tas.frame = frame;
     tas.workbuf = alloc_buf(1600);
 

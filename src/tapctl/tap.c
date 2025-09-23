@@ -40,11 +40,11 @@
 #endif
 
 
-const static GUID GUID_DEVCLASS_NET = {
+static const GUID GUID_DEVCLASS_NET = {
     0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 }
 };
 
-const static WCHAR szAdapterRegKeyPathTemplate[] =
+static const WCHAR szAdapterRegKeyPathTemplate[] =
     L"SYSTEM\\CurrentControlSet\\Control\\Network\\%ls\\%ls\\Connection";
 #define ADAPTER_REGKEY_PATH_MAX                                                                \
     (_countof(L"SYSTEM\\CurrentControlSet\\Control\\Network\\") - 1 + 38 + _countof(L"\\") - 1 \

@@ -733,7 +733,7 @@ validate_peer_info_line(char *line)
                 {
                     return false;
                 }
-
+                /* Intentional [[fallthrough]]; */
             case 2:
                 /* after the '=', replace non-printable or shell meta with '_' */
                 if (!isprint(c) || isspace(c) || c == '$' || c == '(' || c == '`')

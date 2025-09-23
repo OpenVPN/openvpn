@@ -1398,6 +1398,13 @@ ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-stringop-truncation])
 ACL_CHECK_ADD_COMPILE_FLAGS([-Wstrict-prototypes])
 ACL_CHECK_ADD_COMPILE_FLAGS([-Wold-style-definition])
 ACL_CHECK_ADD_COMPILE_FLAGS([-Wall])
+ACL_CHECK_ADD_COMPILE_FLAGS([-Wextra -Wno-sign-compare -Wno-type-limits -Wno-unused-parameter])
+# clang doesn't have the different levels but also doesn't include it in -Wextra
+ACL_CHECK_ADD_COMPILE_FLAGS([-Wimplicit-fallthrough=2])
+if test "${WIN32}" = "yes"; then
+        # Not sure how to deal with GetProcAddress
+	ACL_CHECK_ADD_COMPILE_FLAGS([-Wno-cast-function-type])
+fi
 
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes"

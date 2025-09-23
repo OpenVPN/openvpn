@@ -84,10 +84,10 @@ print_tun_backend_driver(enum tun_driver_type driver)
 
 #ifdef _WIN32
 
-const static GUID GUID_DEVCLASS_NET = {
+static const GUID GUID_DEVCLASS_NET = {
     0x4d36e972L, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 }
 };
-const static GUID GUID_DEVINTERFACE_NET = {
+static const GUID GUID_DEVINTERFACE_NET = {
     0xcac88484, 0x7515, 0x4c03, { 0x82, 0xe6, 0x71, 0xa8, 0x7a, 0xba, 0xc3, 0x61 }
 };
 
