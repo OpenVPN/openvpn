@@ -61,7 +61,7 @@ struct multi_io
 #endif
 };
 
-struct multi_io *multi_io_init(int maxevents, int *maxclients);
+struct multi_io *multi_io_init(int maxclients);
 
 void multi_io_free(struct multi_io *multi_io);
 

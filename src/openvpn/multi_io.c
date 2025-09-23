@@ -113,21 +113,18 @@ multi_get_context(struct multi_context *m, struct multi_instance *mi)
 }
 
 struct multi_io *
-multi_io_init(int maxevents, int *maxclients)
+multi_io_init(const int maxclients)
 {
     struct multi_io *multi_io;
-    const int extra_events = BASE_N_EVENTS;
 
-    ASSERT(maxevents >= 1);
-    ASSERT(maxclients);
+    ASSERT(maxclients >= 1);
 
     ALLOC_OBJ_CLEAR(multi_io, struct multi_io);
-    multi_io->maxevents = maxevents + extra_events;
+    multi_io->maxevents = maxclients + BASE_N_EVENTS;
     multi_io->es = event_set_init(&multi_io->maxevents, 0);
     wait_signal(multi_io->es, MULTI_IO_SIG);
     ALLOC_ARRAY(multi_io->esr, struct event_set_return, multi_io->maxevents);
-    *maxclients = max_int(min_int(multi_io->maxevents - extra_events, *maxclients), 1);
-    msg(D_MULTI_LOW, "MULTI IO: MULTI_IO INIT maxclients=%d maxevents=%d", *maxclients,
+    msg(D_MULTI_LOW, "MULTI IO: MULTI_IO INIT maxclients=%d maxevents=%d", maxclients,
         multi_io->maxevents);
     return multi_io;
 }

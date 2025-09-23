@@ -411,7 +411,7 @@ multi_init(struct context *t)
     /*
      * Initialize multi-socket I/O wait object
      */
-    m->multi_io = multi_io_init(t->options.max_clients, &m->max_clients);
+    m->multi_io = multi_io_init(m->max_clients);
     m->tcp_queue_limit = t->options.tcp_queue_limit;
 
     /*
