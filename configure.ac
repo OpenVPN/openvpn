@@ -1388,9 +1388,9 @@ fi
 # required for gcc, but some compilers such as clang need it.
 AC_DEFUN([ACL_CHECK_ADD_COMPILE_FLAGS], [
     old_cflags="$CFLAGS"
-    CFLAGS="$1 -Werror $CFLAGS"
+    CFLAGS="-Werror $CFLAGS $1"
     AC_MSG_CHECKING([whether the compiler accepts $1])
-    AC_COMPILE_IFELSE([AC_LANG_PROGRAM()], [AC_MSG_RESULT([yes])]; CFLAGS="$1 $old_cflags",
+    AC_COMPILE_IFELSE([AC_LANG_PROGRAM()], [AC_MSG_RESULT([yes])]; CFLAGS="$old_cflags $1",
         [AC_MSG_RESULT([no]); CFLAGS="$old_cflags"])]
 )
 
