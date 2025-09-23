@@ -81,6 +81,54 @@ socks_proxy_close(struct socks_proxy_info *sp)
 }
 
 static bool
+socks_proxy_recv_char(char *c, const char *name, socket_descriptor_t sd,
+                      struct event_timeout *server_poll_timeout,
+                      volatile int *signal_received)
+{
+    fd_set reads;
+    FD_ZERO(&reads);
+    openvpn_fd_set(sd, &reads);
+
+    struct timeval tv;
+    tv.tv_sec = get_server_poll_remaining_time(server_poll_timeout);
+    tv.tv_usec = 0;
+
+    const int status = select(sd + 1, &reads, NULL, NULL, &tv);
+
+    get_signal(signal_received);
+    if (*signal_received)
+    {
+        return false;
+    }
+
+    /* timeout? */
+    if (status == 0)
+    {
+        msg(D_LINK_ERRORS | M_ERRNO, "%s: TCP port read timeout expired", name);
+        return false;
+    }
+
+    /* error */
+    if (status < 0)
+    {
+        msg(D_LINK_ERRORS | M_ERRNO, "%s: TCP port read failed on select()", name);
+        return false;
+    }
+
+    /* read single char */
+    const ssize_t size = recv(sd, c, 1, MSG_NOSIGNAL);
+
+    /* error? */
+    if (size != 1)
+    {
+        msg(D_LINK_ERRORS | M_ERRNO, "%s: TCP port read failed on recv()", name);
+        return false;
+    }
+
+    return true;
+}
+
+static bool
 socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
                              struct event_timeout *server_poll_timeout,
                              volatile int *signal_received)
@@ -121,52 +169,12 @@ socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
 
     while (len < 2)
     {
-        int status;
-        ssize_t size;
-        fd_set reads;
-        struct timeval tv;
         char c;
 
-        FD_ZERO(&reads);
-        openvpn_fd_set(sd, &reads);
-        tv.tv_sec = get_server_poll_remaining_time(server_poll_timeout);
-        tv.tv_usec = 0;
-
-        status = select(sd + 1, &reads, NULL, NULL, &tv);
-
-        get_signal(signal_received);
-        if (*signal_received)
+        if (!socks_proxy_recv_char(&c, __func__, sd, server_poll_timeout, signal_received))
         {
             goto cleanup;
         }
-
-        /* timeout? */
-        if (status == 0)
-        {
-            msg(D_LINK_ERRORS | M_ERRNO,
-                "socks_username_password_auth: TCP port read timeout expired");
-            goto cleanup;
-        }
-
-        /* error */
-        if (status < 0)
-        {
-            msg(D_LINK_ERRORS | M_ERRNO,
-                "socks_username_password_auth: TCP port read failed on select()");
-            goto cleanup;
-        }
-
-        /* read single char */
-        size = recv(sd, &c, 1, MSG_NOSIGNAL);
-
-        /* error? */
-        if (size != 1)
-        {
-            msg(D_LINK_ERRORS | M_ERRNO,
-                "socks_username_password_auth: TCP port read failed on recv()");
-            goto cleanup;
-        }
-
         /* store char in buffer */
         buf[len++] = c;
     }
@@ -208,49 +216,12 @@ socks_handshake(struct socks_proxy_info *p, socket_descriptor_t sd,
 
     while (len < 2)
     {
-        int status;
-        ssize_t size;
-        fd_set reads;
-        struct timeval tv;
         char c;
 
-        FD_ZERO(&reads);
-        openvpn_fd_set(sd, &reads);
-        tv.tv_sec = get_server_poll_remaining_time(server_poll_timeout);
-        tv.tv_usec = 0;
-
-        status = select(sd + 1, &reads, NULL, NULL, &tv);
-
-        get_signal(signal_received);
-        if (*signal_received)
+        if (!socks_proxy_recv_char(&c, __func__, sd, server_poll_timeout, signal_received))
         {
             return false;
         }
-
-        /* timeout? */
-        if (status == 0)
-        {
-            msg(D_LINK_ERRORS | M_ERRNO, "socks_handshake: TCP port read timeout expired");
-            return false;
-        }
-
-        /* error */
-        if (status < 0)
-        {
-            msg(D_LINK_ERRORS | M_ERRNO, "socks_handshake: TCP port read failed on select()");
-            return false;
-        }
-
-        /* read single char */
-        size = recv(sd, &c, 1, MSG_NOSIGNAL);
-
-        /* error? */
-        if (size != 1)
-        {
-            msg(D_LINK_ERRORS | M_ERRNO, "socks_handshake: TCP port read failed on recv()");
-            return false;
-        }
-
         /* store char in buffer */
         buf[len++] = c;
     }
@@ -317,51 +288,10 @@ recv_socks_reply(socket_descriptor_t sd, struct openvpn_sockaddr *addr,
 
     while (len < 4 + alen + 2)
     {
-        int status;
-        ssize_t size;
-        fd_set reads;
-        struct timeval tv;
         char c;
 
-        FD_ZERO(&reads);
-        openvpn_fd_set(sd, &reads);
-        tv.tv_sec = get_server_poll_remaining_time(server_poll_timeout);
-        tv.tv_usec = 0;
-
-        status = select(sd + 1, &reads, NULL, NULL, &tv);
-
-        get_signal(signal_received);
-        if (*signal_received)
+        if (!socks_proxy_recv_char(&c, __func__, sd, server_poll_timeout, signal_received))
         {
-            return false;
-        }
-
-        /* timeout? */
-        if (status == 0)
-        {
-            msg(D_LINK_ERRORS | M_ERRNO, "recv_socks_reply: TCP port read timeout expired");
-            return false;
-        }
-
-        /* error */
-        if (status < 0)
-        {
-            msg(D_LINK_ERRORS | M_ERRNO, "recv_socks_reply: TCP port read failed on select()");
-            return false;
-        }
-
-        /* read single char */
-        size = recv(sd, &c, 1, MSG_NOSIGNAL);
-
-        /* error? */
-        if (size < 0)
-        {
-            msg(D_LINK_ERRORS | M_ERRNO, "recv_socks_reply: TCP port read failed on recv()");
-            return false;
-        }
-        else if (size == 0)
-        {
-            msg(D_LINK_ERRORS, "ERROR: recv_socks_reply: empty response from socks server");
             return false;
         }
 
