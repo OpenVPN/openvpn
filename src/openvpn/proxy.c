@@ -229,7 +229,7 @@ make_base64_string2(const uint8_t *str, int src_len, struct gc_arena *gc)
 uint8_t *
 make_base64_string(const uint8_t *str, struct gc_arena *gc)
 {
-    return make_base64_string2(str, strlen((const char *)str), gc);
+    return make_base64_string2(str, (int)strlen((const char *)str), gc);
 }
 
 static const char *

@@ -420,8 +420,8 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
                     }
                     if (!(flags & GET_USER_PASS_STATIC_CHALLENGE_CONCAT))
                     {
-                        if (openvpn_base64_encode(up->password, strlen(up->password), &pw64) == -1
-                            || openvpn_base64_encode(response, strlen(response), &resp64) == -1)
+                        if (openvpn_base64_encode(up->password, (int)strlen(up->password), &pw64) == -1
+                            || openvpn_base64_encode(response, (int)strlen(response), &resp64) == -1)
                         {
                             msg(M_FATAL, "ERROR: could not base64-encode password/static_response");
                         }

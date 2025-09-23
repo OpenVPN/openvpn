@@ -754,7 +754,7 @@ management_sign_func(void *sign_ctx, const void *src, size_t src_len, void *dst,
     char *src_b64 = NULL;
     char *dst_b64 = NULL;
 
-    if (!management || (openvpn_base64_encode(src, src_len, &src_b64) <= 0))
+    if (!management || (openvpn_base64_encode(src, (int)src_len, &src_b64) <= 0))
     {
         goto cleanup;
     }
@@ -768,7 +768,7 @@ management_sign_func(void *sign_ctx, const void *src, size_t src_len, void *dst,
         goto cleanup;
     }
 
-    if (openvpn_base64_decode(dst_b64, dst, dst_len) != dst_len)
+    if (openvpn_base64_decode(dst_b64, dst, (int)dst_len) != dst_len)
     {
         goto cleanup;
     }
