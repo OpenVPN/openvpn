@@ -642,11 +642,10 @@ run_updown_runner(bool up, struct options *o, const struct tuntap *tt,
 
         while (1)
         {
-            ssize_t rlen, wlen;
             char path[PATH_MAX];
 
             /* Block here until parent sends a path */
-            rlen = read(dns_pipe_fd[0], &path, sizeof(path));
+            ssize_t rlen = read(dns_pipe_fd[0], &path, sizeof(path));
             if (rlen < 1)
             {
                 if (rlen == -1 && errno == EINTR)
@@ -665,8 +664,8 @@ run_updown_runner(bool up, struct options *o, const struct tuntap *tt,
             /* Unblock parent process */
             while (1)
             {
-                wlen = write(ack_pipe_fd[1], &res, sizeof(res));
-                if ((wlen == -1 && errno != EINTR) || wlen < sizeof(res))
+                ssize_t wlen = write(ack_pipe_fd[1], &res, sizeof(res));
+                if ((wlen == -1 && errno != EINTR) || wlen < (ssize_t)sizeof(res))
                 {
                     /* Not much we can do about errors but exit */
                     close(dns_pipe_fd[0]);
@@ -727,7 +726,7 @@ run_up_down_command(bool up, struct options *o, const struct tuntap *tt,
         env_set_write_file(dvf, es);
 
         int wfd = updown_runner->fds[1];
-        size_t dvf_size = strlen(dvf) + 1;
+        ssize_t dvf_size = strlen(dvf) + 1;
         while (1)
         {
             ssize_t len = write(wfd, dvf, dvf_size);
@@ -746,7 +745,7 @@ run_up_down_command(bool up, struct options *o, const struct tuntap *tt,
         while (1)
         {
             ssize_t len = read(rfd, &status, sizeof(status));
-            if (len < sizeof(status))
+            if (len < (ssize_t)sizeof(status))
             {
                 if (len == -1 && errno == EINTR)
                 {
