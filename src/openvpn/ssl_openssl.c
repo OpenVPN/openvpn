@@ -235,8 +235,8 @@ tls_version_max(void)
 }
 
 /** Convert internal version number to openssl version number */
-static int
-openssl_tls_version(int ver)
+static uint16_t
+openssl_tls_version(unsigned int ver)
 {
     if (ver == TLS_VER_1_0)
     {
@@ -272,23 +272,18 @@ openssl_tls_version(int ver)
     return 0;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static bool
 tls_ctx_set_tls_versions(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
-    int tls_ver_min =
+    uint16_t tls_ver_min =
         openssl_tls_version((ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK);
-    int tls_ver_max =
+    uint16_t tls_ver_max =
         openssl_tls_version((ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) & SSLF_TLS_VERSION_MAX_MASK);
 
     if (!tls_ver_min)
     {
         /* Enforce at least TLS 1.0 */
-        int cur_min = SSL_CTX_get_min_proto_version(ctx->ctx);
+        uint16_t cur_min = (uint16_t)SSL_CTX_get_min_proto_version(ctx->ctx);
         tls_ver_min = cur_min < TLS1_VERSION ? TLS1_VERSION : cur_min;
     }
 
@@ -387,7 +382,7 @@ convert_tls_list_to_openssl(char *openssl_ciphers, size_t len, const char *ciphe
             /* %.*s format specifier expects length of type int, so guarantee */
             /* that length is small enough and cast to int. */
             msg(D_LOW, "No valid translation found for TLS cipher '%.*s'",
-                constrain_int(current_cipher_len, 0, 256), current_cipher);
+                constrain_int((int)current_cipher_len, 0, 256), current_cipher);
         }
         else
         {
@@ -428,10 +423,6 @@ convert_tls_list_to_openssl(char *openssl_ciphers, size_t len, const char *ciphe
         openssl_ciphers[openssl_ciphers_len - 1] = '\0';
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
@@ -2522,11 +2513,6 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
     msg(D_HANDSHAKE, "%s%s%s%s%s", s1, s2, s3, s4, s5);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 void
 show_available_tls_ciphers_list(const char *cipher_list, const char *tls_cert_profile, bool tls13)
 {
@@ -2541,7 +2527,7 @@ show_available_tls_ciphers_list(const char *cipher_list, const char *tls_cert_pr
 #if defined(TLS1_3_VERSION)
     if (tls13)
     {
-        SSL_CTX_set_min_proto_version(tls_ctx.ctx, openssl_tls_version(TLS_VER_1_3));
+        SSL_CTX_set_min_proto_version(tls_ctx.ctx, TLS1_3_VERSION);
         tls_ctx_restrict_ciphers_tls13(&tls_ctx, cipher_list);
     }
     else
@@ -2593,10 +2579,6 @@ show_available_tls_ciphers_list(const char *cipher_list, const char *tls_cert_pr
     SSL_free(ssl);
     SSL_CTX_free(tls_ctx.ctx);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /*
  * Show the Elliptic curves that are available for us to use
