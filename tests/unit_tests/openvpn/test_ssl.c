@@ -133,11 +133,6 @@ static struct
     const char *keyfile;
 } global_state;
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static int
 init(void **state)
 {
@@ -152,16 +147,15 @@ init(void **state)
     {
         fail_msg("make tmpfile for certificate or key data failed (error = %d)", errno);
     }
-    assert_int_equal(write(certfd, unittest_cert, strlen(unittest_cert)), strlen(unittest_cert));
-    assert_int_equal(write(keyfd, unittest_key, strlen(unittest_key)), strlen(unittest_key));
+    /* Awkward casts required for MinGW with -O0 only */
+    assert_int_equal(write(certfd, unittest_cert, (unsigned int)strlen(unittest_cert)),
+                     strlen(unittest_cert));
+    assert_int_equal(write(keyfd, unittest_key, (unsigned int)strlen(unittest_key)),
+                     strlen(unittest_key));
     close(certfd);
     close(keyfd);
     return 0;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static int
 cleanup(void **state)

@@ -674,15 +674,10 @@ struct epoch_test_state
     struct crypto_options co;
 };
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static int
 crypto_test_epoch_setup(void **state)
 {
-    int *num_future_keys = (int *)*state;
+    uint16_t *num_future_keys = (uint16_t *)*state;
     struct epoch_test_state *data = calloc(1, sizeof(struct epoch_test_state));
 
     data->gc = gc_new();
@@ -698,10 +693,6 @@ crypto_test_epoch_setup(void **state)
     *state = data;
     return 0;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static int
 crypto_test_epoch_teardown(void **state)
@@ -906,9 +897,9 @@ epoch_test_derive_data_key(void **state)
 int
 main(void)
 {
-    int prestate_num13 = 13;
-    int prestate_num16 = 16;
-    int prestate_num32 = 32;
+    uint16_t prestate_num13 = 13;
+    uint16_t prestate_num16 = 16;
+    uint16_t prestate_num32 = 32;
 
     openvpn_unit_test_setup();
     const struct CMUnitTest tests[] = {
