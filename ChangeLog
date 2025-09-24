@@ -1,6 +1,66 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.09.25 -- Version 2.7_beta2
+
+Antonio Quartulli (1):
+      dco: add standard mi prefix handling to multi_process_incoming_dco()
+
+Arne Schwabe (1):
+      Switch test_ssl certificate from RSA 2048 to secp384r1
+
+Frank Lichtenheld (22):
+      openvpn_PRF: Change API to use size_t for lengths
+      ssl_common: Make sure ssl flags are treated as unsigned
+      options: Factor out usages of strtoll and atoll
+      ps: Clean up conversion warnings in journal_add function
+      events: Make sure rwflags are treated as unsigned
+      manage: Change command_line_* API to use size_t for lengths
+      Introduce msglvl_t to unify msglevel type handling
+      socket: Change resolve flags to unsigned int
+      list: Make types of hash elements consistent
+      ssl: Fix -Wconversion warnings in pem_password_callback
+      ssl_verify: Change backend_x509_* functions to size_t for lengths
+      Handle return type of EVP_MD_size
+      Clean up conversion warnings related to base64_{en, de}code
+      configure.ac: Make ACL_CHECK_ADD_COMPILE_FLAGS append instead of prepend
+      Enable a subset of -Wextra
+      socks: factor out socks_proxy_recv_char()
+      multi_io_init: simplify
+      dns: Fix bug in error handling when talking to script
+      Enable -Wconversion -Wno-sign-conversion by default
+      Make unit tests -Wconversion clean
+      ps: Fix conversion warnings related to send/recv return values
+      event: Silence conversion warning in tv_to_ms_timeout
+
+Gert Doering (5):
+      replace assert() calls with ASSERT()
+      remove newline characters at the end of msg() calls
+      dev-tools/gerrit-send-mail.py: include Gerrit URL into the commit message
+      fix building of openvpnsrvmsg.dll from eventmsg.mc in mingw builds
+      Fix t_net.sh / networking_testdriver after 'broadcast' change
+
+Gianmarco De Gregori (2):
+      Multi-socket win: avoid repeated socket_set()
+      Fix multi-socket and dco-win interaction
+
+Lev Stipakov (5):
+      Preserve --dhcp-option values from local config
+      win: replace wmic invocation with powershell
+      openvpnserv: Fix writing messages to the event log
+      GHA: collect more artifacts for mingw builds
+      Validate DNS parameters
+
+Marco Baffo (1):
+      push-update-server: comment about buf_string_compare_advance() usage in send_single_push_update()
+
+Max Fillinger (1):
+      Rename Fox Crypto to Sentyron in copyright notices
+
+Sebastian Marsching (1):
+      Bugfix: Set broadcast address on interface.
+
+
 2025.09.04 -- Version 2.7_beta1
 
 Arne Schwabe (1):

@@ -45,6 +45,9 @@ Windows network adapters are now generated on demand
 Windows automatic service now runs as an unpriviledged user
     All tasks that need privileges are now delegated to the interactive
     service.
+    **NOTE** this has the risk of breaking existing setups if the
+    Windows certificate store is used (cryptoapi), and the certificates
+    are not readable for ``NT SERVICE\OpenVPNService``.
 
 Support for new version of Linux DCO module
     OpenVPN DCO module is moving upstream and being merged into the
@@ -147,6 +150,8 @@ Two new environment variables have been introduced to communicate desired
     default gateway redirection to plugins like Network Manager,
     ``route_redirect_gateway_ipv4`` and ``route_redirect_gateway_ipv6``.
     See the "Environmental Variables" section in the man page
+
+Improved logging of service events/errors to event log on Windows.
 
 
 Deprecated features
@@ -264,6 +269,14 @@ User-visible Changes
 - changed from using ``uncrustify`` for code formatting and pre-commit checks
   to ``clang-format``.  This reformatted quite a bit of code, and requires
   that regular committers change their pre-commit checks accordingly.
+
+- on Linux, on interfaces where applicable, OpenVPN explicitly configures
+  the broadcast address again.  This was dropped for 2.6.0 "because
+  computers are smart and can do it themselves", but the kernel netlink
+  interface isn't, and will install "0.0.0.0".  This does not normally
+  matter, but for broadcast-based applications that get the address to
+  use from "ifconfig", this change repairs functionality (this has
+  been backported to 2.6.15, but is not in earlier 2.6 versions).
 
 
 Overview of changes in 2.6
