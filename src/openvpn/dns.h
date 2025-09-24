@@ -141,13 +141,14 @@ bool dns_server_priority_parse(long *priority, const char *str, bool pulled);
 struct dns_server *dns_server_get(struct dns_server **entry, long priority, struct gc_arena *gc);
 
 /**
- * Appends DNS domain parameters to a linked list.
+ * Appends safe DNS domain parameters to a linked list.
  *
  * @param   entry       Address of the first list entry pointer
  * @param   domains     Address of the first domain parameter
  * @param   gc          The gc the new list items should be allocated in
+ * @return              True if domains were appended and don't contain invalid characters
  */
-void dns_domain_list_append(struct dns_domain **entry, char **domains, struct gc_arena *gc);
+bool dns_domain_list_append(struct dns_domain **entry, char **domains, struct gc_arena *gc);
 
 /**
  * Parses a string IPv4 or IPv6 address and optional colon separated port,

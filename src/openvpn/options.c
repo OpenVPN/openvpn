@@ -61,6 +61,7 @@
 #include "dco.h"
 #include "options_util.h"
 #include "tun_afunix.h"
+#include "domain_helper.h"
 
 #include <ctype.h>
 
@@ -5877,8 +5878,12 @@ check_dns_option(struct options *options, char *p[], const msglvl_t msglevel, bo
 {
     if (streq(p[1], "search-domains") && p[2])
     {
-        dns_domain_list_append(&options->dns_options.search_domains, &p[2],
-                               &options->dns_options.gc);
+        if (!dns_domain_list_append(&options->dns_options.search_domains, &p[2],
+                                    &options->dns_options.gc))
+        {
+            msg(msglevel, "--dns %s contain invalid characters", p[1]);
+            return false;
+        }
     }
     else if (streq(p[1], "server") && p[2] && p[3] && p[4])
     {
@@ -5906,7 +5911,11 @@ check_dns_option(struct options *options, char *p[], const msglvl_t msglevel, bo
         }
         else if (streq(p[3], "resolve-domains"))
         {
-            dns_domain_list_append(&server->domains, &p[4], &options->dns_options.gc);
+            if (!dns_domain_list_append(&server->domains, &p[4], &options->dns_options.gc))
+            {
+                msg(msglevel, "--dns server %ld: %s contain invalid characters", priority, p[3]);
+                return false;
+            }
         }
         else if (streq(p[3], "dnssec") && !p[5])
         {
@@ -5950,6 +5959,11 @@ check_dns_option(struct options *options, char *p[], const msglvl_t msglevel, bo
         }
         else if (streq(p[3], "sni") && !p[5])
         {
+            if (!validate_domain(p[4]))
+            {
+                msg(msglevel, "--dns server %ld: %s contains invalid characters", priority, p[3]);
+                return false;
+            }
             server->sni = p[4];
         }
         else
@@ -8551,11 +8565,23 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
 
         if ((streq(p[1], "DOMAIN") || streq(p[1], "ADAPTER_DOMAIN_SUFFIX")) && p[2] && !p[3])
         {
+            if (!validate_domain(p[2]))
+            {
+                msg(msglevel, "--dhcp-option %s contains invalid characters", p[1]);
+                goto err;
+            }
+
             dhcp->domain = p[2];
             dhcp_optional = true;
         }
         else if (streq(p[1], "DOMAIN-SEARCH") && p[2] && !p[3])
         {
+            if (!validate_domain(p[2]))
+            {
+                msg(msglevel, "--dhcp-option %s contains invalid characters", p[1]);
+                goto err;
+            }
+
             if (dhcp->domain_search_list_len < N_SEARCH_LIST_LEN)
             {
                 dhcp->domain_search_list[dhcp->domain_search_list_len++] = p[2];

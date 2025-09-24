@@ -30,6 +30,7 @@
 #include "socket_util.h"
 #include "options.h"
 #include "run_command.h"
+#include "domain_helper.h"
 
 #ifdef _WIN32
 #include "win32.h"
@@ -143,7 +144,7 @@ dns_server_addr_parse(struct dns_server *server, const char *addr)
     return true;
 }
 
-void
+bool
 dns_domain_list_append(struct dns_domain **entry, char **domains, struct gc_arena *gc)
 {
     /* Fast forward to the end of the list */
@@ -155,11 +156,19 @@ dns_domain_list_append(struct dns_domain **entry, char **domains, struct gc_aren
     /* Append all domains to the end of the list */
     while (*domains)
     {
+        char *domain = *domains++;
+        if (!validate_domain(domain))
+        {
+            return false;
+        }
+
         ALLOC_OBJ_CLEAR_GC(*entry, struct dns_domain, gc);
         struct dns_domain *new = *entry;
-        new->name = *domains++;
+        new->name = domain;
         entry = &new->next;
     }
+
+    return true;
 }
 
 bool
