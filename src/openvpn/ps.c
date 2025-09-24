@@ -475,11 +475,6 @@ proxy_entry_new(struct proxy_connection **list, struct event_set *es,
     return true;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /*
  * This function runs in the context of the background proxy process.
  * Receive a control message from the parent (sent by the port_share_sendmsg
@@ -539,7 +534,7 @@ control_message_from_parent(const socket_descriptor_t sd_control, struct proxy_c
 
             if (status >= 2 && command == COMMAND_REDIRECT)
             {
-                buf.len = status - 1;
+                buf.len = (int)status - 1;
                 if (proxy_entry_new(list, es, server_addr, received_fd, &buf, journal_dir))
                 {
                     CLEAR(buf); /* we gave the buffer to proxy_entry_new */
@@ -566,7 +561,7 @@ static int
 proxy_connection_io_recv(struct proxy_connection *pc)
 {
     /* recv data from socket */
-    const int status = recv(pc->sd, BPTR(&pc->buf), BCAP(&pc->buf), MSG_NOSIGNAL);
+    const ssize_t status = recv(pc->sd, BPTR(&pc->buf), BCAP(&pc->buf), MSG_NOSIGNAL);
     if (status < 0)
     {
         return (errno == EAGAIN) ? IOSTAT_EAGAIN_ON_READ : IOSTAT_READ_ERROR;
@@ -577,8 +572,8 @@ proxy_connection_io_recv(struct proxy_connection *pc)
         {
             return IOSTAT_READ_ERROR;
         }
-        dmsg(D_PS_PROXY_DEBUG, "PORT SHARE PROXY: read[%d] %d", (int)pc->sd, status);
-        pc->buf.len = status;
+        dmsg(D_PS_PROXY_DEBUG, "PORT SHARE PROXY: read[%d] %zd", (int)pc->sd, status);
+        pc->buf.len = (int)status;
     }
     return IOSTAT_GOOD;
 }
@@ -587,7 +582,7 @@ static int
 proxy_connection_io_send(struct proxy_connection *pc, int *bytes_sent)
 {
     const socket_descriptor_t sd = pc->counterpart->sd;
-    const int status = send(sd, BPTR(&pc->buf), BLEN(&pc->buf), MSG_NOSIGNAL);
+    const ssize_t status = send(sd, BPTR(&pc->buf), BLEN(&pc->buf), MSG_NOSIGNAL);
 
     if (status < 0)
     {
@@ -596,17 +591,17 @@ proxy_connection_io_send(struct proxy_connection *pc, int *bytes_sent)
     }
     else
     {
-        *bytes_sent += status;
+        *bytes_sent += (int)status;
         if (status != pc->buf.len)
         {
-            dmsg(D_PS_PROXY_DEBUG, "PORT SHARE PROXY: partial write[%d], tried=%d got=%d", (int)sd,
+            dmsg(D_PS_PROXY_DEBUG, "PORT SHARE PROXY: partial write[%d], tried=%d got=%zd", (int)sd,
                  pc->buf.len, status);
-            buf_advance(&pc->buf, status);
+            buf_advance(&pc->buf, (int)status);
             return IOSTAT_EAGAIN_ON_WRITE;
         }
         else
         {
-            dmsg(D_PS_PROXY_DEBUG, "PORT SHARE PROXY: wrote[%d] %d", (int)sd, status);
+            dmsg(D_PS_PROXY_DEBUG, "PORT SHARE PROXY: wrote[%d] %zd", (int)sd, status);
             pc->buf.len = 0;
             pc->buf.offset = 0;
         }
@@ -796,10 +791,6 @@ done:
     }
     msg(M_INFO, "PORT SHARE PROXY: proxy exiting");
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /*
  * Called from the main OpenVPN process to enable the port
