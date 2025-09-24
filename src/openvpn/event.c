@@ -65,11 +65,15 @@
 #define SELECT_MAX_FDS 256
 #endif
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
+/** Convert \c timeval value (which is in seconds and microseconds)
+    to a value of milliseconds which is required by multiple polling
+    APIs.
 
+    @param tv \c timeval to convert
+
+    @return Milliseconds to wait. Zero if \p tv is zero.
+     Otherwise the return value is always greater than zero.
+*/
 static inline int
 tv_to_ms_timeout(const struct timeval *tv)
 {
@@ -79,13 +83,10 @@ tv_to_ms_timeout(const struct timeval *tv)
     }
     else
     {
-        return max_int(tv->tv_sec * 1000 + (tv->tv_usec + 500) / 1000, 1);
+        /* might overflow but not for practically useful numbers */
+        return max_int((int)(tv->tv_sec * 1000 + (tv->tv_usec + 500) / 1000), 1);
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #ifdef _WIN32
 
