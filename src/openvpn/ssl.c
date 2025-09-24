@@ -180,6 +180,11 @@ tls_init_control_channel_frame_parameters(struct frame *frame, int tls_mtu)
     frame->tun_mtu = max_int(frame->tun_mtu, TLS_CHANNEL_MTU_MIN);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /**
  * calculate the maximum overhead that control channel frames have
  * This includes header, op code and everything apart from the
@@ -221,6 +226,10 @@ calc_control_channel_frame_overhead(const struct tls_session *session)
 
     return overhead;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 init_ssl_lib(void)
@@ -1119,6 +1128,11 @@ compute_earliest_wakeup(interval_t *earliest, interval_t seconds_from_now)
         *earliest = 0;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
 
 /*
  * Return true if "lame duck" or retiring key has expired and can
@@ -3978,6 +3992,10 @@ tls_prepend_opcode_v1(const struct tls_multi *multi, struct buffer *buf)
     op = (P_DATA_V1 << P_OPCODE_SHIFT) | ks->key_id;
     ASSERT(buf_write_prepend(buf, &op, 1));
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 tls_prepend_opcode_v2(const struct tls_multi *multi, struct buffer *buf)

@@ -100,6 +100,11 @@ tv_string_abs(const struct timeval *tv, struct gc_arena *gc)
 
 /* format a time_t as ascii, or use current time if 0 */
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 const char *
 time_string(time_t t, long usec, bool show_usec, struct gc_arena *gc)
 {
@@ -129,6 +134,10 @@ time_string(time_t t, long usec, bool show_usec, struct gc_arena *gc)
 
     return BSTR(&out);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Limit the frequency of an event stream.

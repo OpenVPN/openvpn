@@ -162,6 +162,11 @@ atoi_warn(const char *str, msglvl_t msglevel)
     return (int)i;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 bool
 atoi_constrained(const char *str, int *value, const char *name, int min, int max, msglvl_t msglevel)
 {
@@ -192,6 +197,10 @@ atoi_constrained(const char *str, int *value, const char *name, int min, int max
     *value = i;
     return true;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static const char *updatable_options[] = { "block-ipv6", "block-outside-dns",
                                            "dhcp-option", "dns",

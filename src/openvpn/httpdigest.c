@@ -61,6 +61,11 @@ CvtHex(IN HASH Bin, OUT HASHHEX Hex)
     Hex[HASHHEXLEN] = '\0';
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /* calculate H(A1) as per spec */
 void
 DigestCalcHA1(IN char *pszAlg, IN char *pszUserName, IN char *pszRealm, IN char *pszPassword,
@@ -144,5 +149,9 @@ DigestCalcResponse(IN HASHHEX HA1,         /* H(A1) */
     md_ctx_free(md5_ctx);
     CvtHex(RespHash, Response);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* if PROXY_DIGEST_AUTH */

@@ -74,6 +74,11 @@ gen_hmac_md5(const uint8_t *data, int data_len, const uint8_t *key, uint8_t *res
     hmac_ctx_free(hmac_ctx);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static void
 gen_timestamp(uint8_t *timestamp)
 {
@@ -383,4 +388,8 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
 
     return ((const char *)make_base64_string2((unsigned char *)phase3, phase3_bufpos, gc));
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 #endif /* if NTLM */

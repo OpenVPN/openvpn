@@ -65,6 +65,11 @@ schedule_entry_debug_info(const char *caller, const struct schedule_entry *e)
 }
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static inline void
 schedule_set_pri(struct schedule_entry *e)
 {
@@ -74,6 +79,10 @@ schedule_set_pri(struct schedule_entry *e)
         e->pri = 1;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /* This is the master key comparison routine.  A key is
  * simply a struct timeval containing the absolute time for

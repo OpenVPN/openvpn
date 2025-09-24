@@ -250,6 +250,11 @@ err:
     return FAILURE;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static struct buffer
 x509_get_fingerprint(const mbedtls_md_info_t *md_info, mbedtls_x509_crt *cert, struct gc_arena *gc)
 {
@@ -259,6 +264,10 @@ x509_get_fingerprint(const mbedtls_md_info_t *md_info, mbedtls_x509_crt *cert, s
     ASSERT(buf_inc_len(&fingerprint, md_size));
     return fingerprint;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 struct buffer
 x509_get_sha1_fingerprint(mbedtls_x509_crt *cert, struct gc_arena *gc)

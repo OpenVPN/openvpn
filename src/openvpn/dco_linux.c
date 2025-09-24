@@ -62,6 +62,11 @@ void dco_check_key_ctx(const struct key_ctx_bi *key);
 
 typedef int (*ovpn_nl_cb)(struct nl_msg *msg, void *arg);
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /**
  * @brief resolves the netlink ID for ovpn-dco
  *
@@ -1297,5 +1302,9 @@ dco_get_supported_ciphers(void)
 {
     return "AES-128-GCM:AES-256-GCM:AES-192-GCM:CHACHA20-POLY1305";
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* defined(ENABLE_DCO) && defined(TARGET_LINUX) */

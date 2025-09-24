@@ -1383,6 +1383,11 @@ InitialSearchListExists(HKEY key)
     return TRUE;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /**
  * Prepare DNS domain "SearchList" registry value, so additional
  * VPN domains can be added and its original state can be restored
@@ -2613,6 +2618,10 @@ SetNrptRules(HKEY nrpt_key, const nrpt_address_t *addresses, const char *domains
     }
     return err;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  * Return the registry key where NRPT rules are stored

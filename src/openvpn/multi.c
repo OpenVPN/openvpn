@@ -256,6 +256,11 @@ cid_compare_function(const void *key1, const void *key2)
 
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 #ifdef ENABLE_ASYNC_PUSH
 static uint32_t
 /*
@@ -3981,6 +3986,10 @@ management_callback_kill_by_addr(void *arg, const in_addr_t addr, const int port
     }
     return count;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static void
 management_delete_event(void *arg, event_t event)

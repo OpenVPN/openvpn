@@ -455,6 +455,11 @@ ce_management_query_remote(struct context *c)
 }
 #endif /* ENABLE_MANAGEMENT */
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /*
  * Initialize and possibly randomize the connection list.
  *
@@ -3489,6 +3494,10 @@ do_init_frame_tls(struct context *c)
         c->c2.tls_auth_standalone->workbuf = alloc_buf_gc(BUF_SIZE(&c->c2.frame), &c->c2.gc);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * No encryption or authentication.

@@ -280,6 +280,11 @@ packet_id_persist_enabled(const struct packet_id_persist *p)
     return p->fd >= 0;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /* transfer packet_id -> packet_id_persist */
 static inline void
 packet_id_persist_save_obj(struct packet_id_persist *p, const struct packet_id *pid)
@@ -290,6 +295,10 @@ packet_id_persist_save_obj(struct packet_id_persist *p, const struct packet_id *
         p->id = pid->rec.id;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  * Reset the current send packet id to its initial state.

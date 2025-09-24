@@ -160,6 +160,11 @@ tls_wrap_control(struct tls_wrap_ctx *ctx, uint8_t header, struct buffer *buf,
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 void
 write_control_auth(struct tls_session *session, struct key_state *ks, struct buffer *buf,
                    struct link_socket_actual **to_link_addr, int opcode, int max_ack,
@@ -494,6 +499,10 @@ calculate_session_id_hmac(struct session_id client_sid, const struct openvpn_soc
 
     return result.sid;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 bool
 check_session_hmac_and_pkt_id(struct tls_pre_decrypt_state *state,

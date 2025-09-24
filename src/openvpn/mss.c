@@ -130,6 +130,11 @@ mss_fixup_ipv6(struct buffer *buf, uint16_t maxmss)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /*
  * change TCP MSS option in SYN/SYN-ACK packets, if present
  * this is generic for IPv4 and IPv6, as the TCP header is the same
@@ -198,6 +203,10 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
         }
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static inline size_t
 adjust_payload_max_cbc(const struct key_type *kt, size_t target)

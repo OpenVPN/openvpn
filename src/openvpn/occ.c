@@ -174,6 +174,11 @@ check_send_occ_req_dowork(struct context *c)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 void
 check_send_occ_load_test_dowork(struct context *c)
 {
@@ -346,6 +351,10 @@ check_send_occ_msg_dowork(struct context *c)
 
     c->c2.occ_op = -1;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 process_received_occ_msg(struct context *c)

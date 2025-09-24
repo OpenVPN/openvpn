@@ -378,7 +378,7 @@ test_pkcs11_ids(void **state)
         /* decode the base64 data and convert to X509 and get its sha1 fingerprint */
         unsigned char *der = malloc(strlen(base64));
         assert_non_null(der);
-        int derlen = openvpn_base64_decode(base64, der, strlen(base64));
+        int derlen = openvpn_base64_decode(base64, der, (int)strlen(base64));
         free(base64);
         assert_true(derlen > 0);
 

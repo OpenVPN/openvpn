@@ -491,6 +491,11 @@ dco_check_pull_options(msglvl_t msglevel, const struct options *o)
     return true;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 int
 dco_p2p_add_new_peer(struct context *c)
 {
@@ -644,6 +649,10 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
 
     return 0;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 dco_install_iroute(struct multi_context *m, struct multi_instance *mi, struct mroute_addr *addr)

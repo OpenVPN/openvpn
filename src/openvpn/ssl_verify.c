@@ -874,6 +874,11 @@ check_auth_pending_method(const char *peer_info, const char *method)
     return supported;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /**
  *  Checks if the deferred state should also send auth pending
  *  request to the client. Also removes the auth_pending control file
@@ -945,6 +950,9 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads, struct tls_m
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  *  Removes auth_pending and auth_control files from file system

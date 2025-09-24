@@ -9,6 +9,11 @@
 #include "multi.h"
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 int
 process_incoming_push_update(struct context *c, unsigned int permission_mask,
                              unsigned int *option_types_found, struct buffer *buf,
@@ -306,3 +311,7 @@ management_callback_send_push_update_by_cid(void *arg, unsigned long cid, const 
     RETURN_UPDATE_STATUS(n_sent);
 }
 #endif /* ifdef ENABLE_MANAGEMENT */
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

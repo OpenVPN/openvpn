@@ -65,6 +65,11 @@
 #define SELECT_MAX_FDS 256
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static inline int
 tv_to_ms_timeout(const struct timeval *tv)
 {
@@ -77,6 +82,10 @@ tv_to_ms_timeout(const struct timeval *tv)
         return max_int(tv->tv_sec * 1000 + (tv->tv_usec + 500) / 1000, 1);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #ifdef _WIN32
 

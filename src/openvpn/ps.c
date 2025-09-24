@@ -475,6 +475,11 @@ proxy_entry_new(struct proxy_connection **list, struct event_set *es,
     return true;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /*
  * This function runs in the context of the background proxy process.
  * Receive a control message from the parent (sent by the port_share_sendmsg
@@ -791,6 +796,10 @@ done:
     }
     msg(M_INFO, "PORT SHARE PROXY: proxy exiting");
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Called from the main OpenVPN process to enable the port

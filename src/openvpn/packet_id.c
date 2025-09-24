@@ -71,6 +71,11 @@ packet_id_debug(msglvl_t msglevel, const struct packet_id_rec *p,
 #endif
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static void
 packet_id_init_recv(struct packet_id_rec *rec, int seq_backtrack, int time_backtrack,
                     const char *name, int unit)
@@ -662,6 +667,10 @@ packet_id_read_epoch(struct packet_id_net *pin, struct buffer *buf)
     pin->id = id & PACKET_ID_MASK;
     return epoch;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 bool
 packet_id_write_epoch(struct packet_id_send *p, uint16_t epoch, struct buffer *buf)

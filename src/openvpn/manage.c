@@ -206,6 +206,11 @@ man_password_needed(struct management *man)
     return man->settings.up.defined && !man->connection.password_verified;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static void
 man_check_password(struct management *man, const char *line)
 {
@@ -235,6 +240,10 @@ man_check_password(struct management *man, const char *line)
         }
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static void
 man_update_io_state(struct management *man)
@@ -2305,6 +2314,11 @@ managment_android_persisttun_action(struct management *man)
 
 #endif /* ifdef TARGET_ANDROID */
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static int
 man_read(struct management *man)
 {
@@ -2441,6 +2455,10 @@ man_write(struct management *man)
 
     return sent;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static void
 man_connection_clear(struct man_connection *mc)

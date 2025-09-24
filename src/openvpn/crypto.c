@@ -186,6 +186,11 @@ err:
     return;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static void
 openvpn_encrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options *opt)
 {
@@ -1531,6 +1536,10 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
     /* pop our garbage collection level */
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 int
 write_key_file(const int nkeys, const char *filename)

@@ -230,6 +230,11 @@ show_available_engines(void)
            "available\n");
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 bool
 crypto_pem_encode(const char *name, struct buffer *dst, const struct buffer *src,
                   struct gc_arena *gc)
@@ -760,7 +765,6 @@ cipher_ctx_final_check_tag(mbedtls_cipher_context_t *ctx, uint8_t *dst, int *dst
     return 1;
 }
 
-
 /*
  *
  * Generic message digest information functions
@@ -1119,4 +1123,9 @@ ssl_tls1_PRF(const uint8_t *label, size_t label_len, const uint8_t *sec, size_t 
     return true;
 }
 #endif /* HAVE_MBEDTLS_SSL_TLS_PRF && defined(MBEDTLS_SSL_TLS_PRF_TLS1) */
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 #endif /* ENABLE_CRYPTO_MBEDTLS */

@@ -72,6 +72,11 @@ ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, int info_len, uint8
     hmac_ctx_free(hmac_ctx);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 bool
 ovpn_expand_label(const uint8_t *secret, size_t secret_len, const uint8_t *label, size_t label_len,
                   const uint8_t *context, size_t context_len, uint8_t *out, uint16_t out_len)
@@ -162,6 +167,10 @@ epoch_data_key_derive(struct key_parameters *key, const struct epoch_key *epoch_
                       epoch_data_iv_label_len, NULL, 0, (uint8_t *)(&key->hmac), key->hmac_size);
     key->epoch = epoch_key->epoch;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static void
 epoch_init_send_key_ctx(struct crypto_options *co)

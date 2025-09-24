@@ -45,6 +45,11 @@
 
 #include "win32.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /**
  * Get input from a Windows console.
  *
@@ -133,6 +138,10 @@ get_console_input_win32(const char *prompt, const bool echo, char *input, const 
 
     return false;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* _WIN32 */
 
@@ -264,6 +273,10 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
 
 /**
  * @copydoc query_user_exec()
@@ -296,3 +309,7 @@ query_user_exec_builtin(void)
 
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

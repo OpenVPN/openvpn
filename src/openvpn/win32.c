@@ -1418,6 +1418,11 @@ win32_version_string(struct gc_arena *gc)
     return (const char *)out.data;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 bool
 send_msg_iservice(HANDLE pipe, const void *data, size_t size, ack_message_t *ack,
                   const char *context)
@@ -1631,5 +1636,9 @@ unprotect_buffer_win32(char *buf, size_t len)
     }
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* ifdef _WIN32 */

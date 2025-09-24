@@ -59,6 +59,11 @@ void update_now(const time_t system_time);
 extern time_t now_usec;
 void update_now_usec(struct timeval *tv);
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static inline int
 openvpn_gettimeofday(struct timeval *tv, void *tz)
 {
@@ -235,6 +240,10 @@ tv_delta(struct timeval *dest, const struct timeval *t1, const struct timeval *t
     dest->tv_sec = sec;
     dest->tv_usec = usec;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #define TV_WITHIN_SIGMA_MAX_SEC  600
 #define TV_WITHIN_SIGMA_MAX_USEC (TV_WITHIN_SIGMA_MAX_SEC * 1000000)

@@ -429,6 +429,10 @@ send_auth_failed(struct context *c, const char *client_reason)
     gc_free(&gc);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
 
 bool
 send_auth_pending_messages(struct tls_multi *tls_multi, struct tls_session *session,
@@ -1085,6 +1089,10 @@ process_incoming_push_reply(struct context *c, unsigned int permission_mask,
     /* show_settings (&c->options); */
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 int
 process_incoming_push_msg(struct context *c, const struct buffer *buffer,

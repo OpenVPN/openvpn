@@ -80,6 +80,11 @@ socks_proxy_close(struct socks_proxy_info *sp)
     free(sp);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static bool
 socks_proxy_recv_char(char *c, const char *name, socket_descriptor_t sd,
                       struct event_timeout *server_poll_timeout,
@@ -437,6 +442,10 @@ error:
     register_signal(sig_info, SIGUSR1, "socks-error");
     return;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 establish_socks_proxy_udpassoc(struct socks_proxy_info *p,

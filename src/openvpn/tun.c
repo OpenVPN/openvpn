@@ -1720,6 +1720,11 @@ header_modify_read_write_return(int len)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static int
 write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
 {
@@ -1773,6 +1778,11 @@ read_tun_header(struct tuntap *tt, uint8_t *buf, int len)
         return read(tt->fd, buf, len);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 #endif /* if defined (TARGET_OPENBSD) || defined(TARGET_DARWIN) */
 
 bool
@@ -2244,6 +2254,11 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     free(tt);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
@@ -2255,6 +2270,10 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     return read(tt->fd, buf, len);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #elif defined(TARGET_SOLARIS)
 
@@ -2935,6 +2954,11 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     argv_free(&argv);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
@@ -2988,6 +3012,10 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
         return read(tt->fd, buf, len);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #elif defined(TARGET_DRAGONFLY)
 
@@ -3277,6 +3305,11 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 void
 close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
@@ -3325,6 +3358,10 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
         return read(tt->fd, buf, len);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #elif defined(TARGET_AIX)
 
@@ -5517,6 +5554,11 @@ tun_standby(struct tuntap *tt)
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /*
  * Convert DHCP options from the command line / config file
  * into a raw DHCP-format options string.
@@ -5655,6 +5697,10 @@ write_dhcp_search_str(struct buffer *buf, const int type, const char *const *str
     buf_write_u8(buf, len);
     buf_write(buf, tmp_buf, len);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static bool
 build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)

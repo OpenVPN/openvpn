@@ -88,6 +88,11 @@ lz4v2_compress(struct buffer *buf, struct buffer work, struct compress_context *
     compv2_escape_data_ifneeded(buf);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static void
 do_lz4_decompress(size_t zlen_max, struct buffer *work, struct buffer *buf,
                   struct compress_context *compctx)
@@ -112,6 +117,10 @@ do_lz4_decompress(size_t zlen_max, struct buffer *work, struct buffer *buf,
 
     *buf = *work;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static void
 lz4_decompress(struct buffer *buf, struct buffer work, struct compress_context *compctx,

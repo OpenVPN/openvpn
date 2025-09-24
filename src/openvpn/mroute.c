@@ -103,6 +103,11 @@ mroute_learnable_address(const struct mroute_addr *addr, struct gc_arena *gc)
     return true;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static inline void
 mroute_get_in_addr_t(struct mroute_addr *ma, const in_addr_t src, unsigned int mask)
 {
@@ -546,6 +551,10 @@ mroute_helper_del_iroute46(struct mroute_helper *mh, int netbits)
         }
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 mroute_helper_free(struct mroute_helper *mh)

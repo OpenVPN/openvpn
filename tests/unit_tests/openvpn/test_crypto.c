@@ -674,6 +674,11 @@ struct epoch_test_state
     struct crypto_options co;
 };
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static int
 crypto_test_epoch_setup(void **state)
 {
@@ -693,6 +698,10 @@ crypto_test_epoch_setup(void **state)
     *state = data;
     return 0;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static int
 crypto_test_epoch_teardown(void **state)

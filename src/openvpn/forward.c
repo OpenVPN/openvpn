@@ -367,6 +367,11 @@ check_connection_established(struct context *c)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 bool
 send_control_channel_string_dowork(struct tls_session *session, const char *str,
                                    msglvl_t msglevel)
@@ -1965,6 +1970,10 @@ process_outgoing_tun(struct context *c, struct link_socket *in_sock)
 
     perf_pop();
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 pre_select(struct context *c)

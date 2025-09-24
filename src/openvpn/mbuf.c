@@ -34,6 +34,11 @@
 
 #include "memdbg.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 struct mbuf_set *
 mbuf_init(unsigned int size)
 {
@@ -43,6 +48,10 @@ mbuf_init(unsigned int size)
     ALLOC_ARRAY(ret->array, struct mbuf_item, ret->capacity);
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 mbuf_free(struct mbuf_set *ms)

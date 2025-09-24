@@ -133,6 +133,11 @@ static struct
     const char *keyfile;
 } global_state;
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static int
 init(void **state)
 {
@@ -153,6 +158,10 @@ init(void **state)
     close(keyfd);
     return 0;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static int
 cleanup(void **state)

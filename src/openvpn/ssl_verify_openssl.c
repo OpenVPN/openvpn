@@ -667,6 +667,11 @@ x509_verify_ns_cert_type(openvpn_x509_cert_t *peer_cert, const int usage)
     return FAILURE;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 result_t
 x509_verify_cert_ku(X509 *x509, const unsigned *const expected_ku, int expected_len)
 {
@@ -725,6 +730,10 @@ x509_verify_cert_ku(X509 *x509, const unsigned *const expected_ku, int expected_
 
     return fFound;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 result_t
 x509_verify_cert_eku(X509 *x509, const char *const expected_oid)

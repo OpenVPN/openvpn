@@ -72,6 +72,11 @@ sf2gaf(const unsigned int getaddr_flags, const unsigned int sockflags)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /*
  * Functions related to the translation of DNS names to IP addresses.
  */
@@ -2448,6 +2453,10 @@ link_socket_write_tcp(struct link_socket *sock, struct buffer *buf, struct link_
     return link_socket_write_tcp_posix(sock, buf);
 #endif
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #if ENABLE_IP_PKTINFO
 

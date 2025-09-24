@@ -205,6 +205,11 @@ err:
     return false;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 bool
 tls_crypt_unwrap(const struct buffer *src, struct buffer *dst, struct crypto_options *opt)
 {
@@ -412,6 +417,10 @@ tls_crypt_v2_wrap_client_key(struct buffer *wkc, const struct key2 *src_key,
 
     return buf_copy(wkc, &work);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static bool
 tls_crypt_v2_unwrap_client_key(struct key2 *client_key, struct buffer *metadata,

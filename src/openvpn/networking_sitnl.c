@@ -131,6 +131,11 @@ struct sitnl_route_data_cb
     inet_address_t gw;
 };
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /**
  * Helper function used to easily add attributes to a rtnl message
  */
@@ -1468,6 +1473,10 @@ net_iface_del(openvpn_net_ctx_t *ctx, const char *iface)
 
     return sitnl_send(&req.n, 0, 0, NULL, NULL);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* !ENABLE_SITNL */
 

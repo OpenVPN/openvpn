@@ -272,6 +272,11 @@ openssl_tls_version(int ver)
     return 0;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static bool
 tls_ctx_set_tls_versions(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
@@ -423,6 +428,10 @@ convert_tls_list_to_openssl(char *openssl_ciphers, size_t len, const char *ciphe
         openssl_ciphers[openssl_ciphers_len - 1] = '\0';
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
@@ -2513,6 +2522,11 @@ print_details(struct key_state_ssl *ks_ssl, const char *prefix)
     msg(D_HANDSHAKE, "%s%s%s%s%s", s1, s2, s3, s4, s5);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 void
 show_available_tls_ciphers_list(const char *cipher_list, const char *tls_cert_profile, bool tls13)
 {
@@ -2579,6 +2593,10 @@ show_available_tls_ciphers_list(const char *cipher_list, const char *tls_cert_pr
     SSL_free(ssl);
     SSL_CTX_free(tls_ctx.ctx);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Show the Elliptic curves that are available for us to use

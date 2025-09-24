@@ -72,6 +72,11 @@ sockaddr_to_nvlist(const struct sockaddr *sa)
     return (nvl);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static bool
 nvlist_to_sockaddr(const nvlist_t *nvl, struct sockaddr_storage *ss)
 {
@@ -853,6 +858,10 @@ retry:
     nvlist_destroy(nvl);
     return 0;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 int
 dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)

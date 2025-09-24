@@ -1760,6 +1760,10 @@ done:
     return (status != RTA_ERROR);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
 
 void
 route_ipv6_clear_host_bits(struct route_ipv6 *r6)
@@ -2363,6 +2367,10 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt, const st
     /* release resources potentially allocated during route cleanup */
     net_ctx_reset(ctx);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * The --redirect-gateway option requires OS-specific code below
@@ -3360,6 +3368,11 @@ struct rtmsg
 
 #define max(a, b) ((a) > (b) ? (a) : (b))
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 void
 get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_ctx_t *ctx)
 {
@@ -3732,6 +3745,10 @@ done:
         close(sockfd);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #undef max
 
