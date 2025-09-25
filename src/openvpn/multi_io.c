@@ -99,6 +99,15 @@ pract(int action)
 }
 #endif /* ENABLE_DEBUG */
 
+bool check_bulk_leng(struct multi_context *m)
+{
+    if ((m->bulk_leng > 0) && (m->bulk_indx < m->bulk_leng))
+    {
+        return true;
+    }
+    return false;
+}
+
 static inline struct context *
 multi_get_context(struct multi_context *m, struct multi_instance *mi)
 {
@@ -294,12 +303,9 @@ multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int 
 
     switch (action)
     {
+        case TA_BULK_LENG:
         case TA_TUN_READ:
-            read_incoming_tun(&m->top);
-            if (!IS_SIG(&m->top))
-            {
-                multi_process_incoming_tun(m, mpp_flags);
-            }
+            multi_in_tun(m, mpp_flags);
             break;
 
         case TA_SOCKET_READ:
@@ -368,6 +374,7 @@ multi_io_post(struct multi_context *m, struct multi_instance *mi, const int acti
 #define MTP_NONE     0
 #define MTP_TUN_OUT  (1 << 0)
 #define MTP_LINK_OUT (1 << 1)
+#define MTP_BUFFS_OUT (1 << 2)
     unsigned int flags = MTP_NONE;
 
     if (TUN_OUT(c))
@@ -378,9 +385,17 @@ multi_io_post(struct multi_context *m, struct multi_instance *mi, const int acti
     {
         flags |= MTP_LINK_OUT;
     }
+    if (check_bulk_leng(m))
+    {
+        flags |= MTP_BUFFS_OUT;
+    }
 
     switch (flags)
     {
+        case MTP_BUFFS_OUT:
+            newaction = TA_BULK_LENG;
+            break;
+
         case MTP_TUN_OUT | MTP_LINK_OUT:
         case MTP_TUN_OUT:
             newaction = TA_TUN_WRITE;
@@ -572,7 +587,7 @@ multi_io_action(struct multi_context *m, struct multi_instance *mi, int action, 
          * On our first pass, poll will be false because we already know
          * that input is available, and to call io_wait would be redundant.
          */
-        if (poll && action != TA_SOCKET_READ_RESIDUAL)
+        if (poll && action != TA_SOCKET_READ_RESIDUAL && action != TA_BULK_LENG)
         {
             const int orig_action = action;
             action = multi_io_wait_lite(m, mi, action, &tun_input_pending);
