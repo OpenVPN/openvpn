@@ -249,6 +249,9 @@ struct tuntap
 
     dco_context_t dco;
     afunix_context_t afunix;
+
+    int fe, ff, fz;
+    int skip_bind;
 };
 
 static inline bool
