@@ -525,11 +525,6 @@ dco_set_peer(dco_context_t *dco, unsigned int peerid, int keepalive_interval, in
     return 0;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 int
 dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t slot,
             const uint8_t *encrypt_key, const uint8_t *encrypt_iv, const uint8_t *decrypt_key,
@@ -540,21 +535,23 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t s
 
     const int nonce_len = 8;
     size_t key_len = cipher_kt_key_size(ciphername);
+    ASSERT(key_len <= 32);
 
     OVPN_CRYPTO_DATA crypto_data;
     ZeroMemory(&crypto_data, sizeof(crypto_data));
 
     crypto_data.CipherAlg = dco_get_cipher(ciphername);
-    crypto_data.KeyId = keyid;
+    ASSERT(keyid > 0 && keyid <= UCHAR_MAX);
+    crypto_data.KeyId = (unsigned char)keyid;
     crypto_data.PeerId = peerid;
     crypto_data.KeySlot = slot;
 
     CopyMemory(crypto_data.Encrypt.Key, encrypt_key, key_len);
-    crypto_data.Encrypt.KeyLen = (char)key_len;
+    crypto_data.Encrypt.KeyLen = (unsigned char)key_len;
     CopyMemory(crypto_data.Encrypt.NonceTail, encrypt_iv, nonce_len);
 
     CopyMemory(crypto_data.Decrypt.Key, decrypt_key, key_len);
-    crypto_data.Decrypt.KeyLen = (char)key_len;
+    crypto_data.Decrypt.KeyLen = (unsigned char)key_len;
     CopyMemory(crypto_data.Decrypt.NonceTail, decrypt_iv, nonce_len);
 
     ASSERT(crypto_data.CipherAlg > 0);
@@ -569,10 +566,6 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t s
     }
     return 0;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 int
 dco_del_key(dco_context_t *dco, unsigned int peerid, dco_key_slot_t slot)
