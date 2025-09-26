@@ -214,7 +214,7 @@ struct ip_tcp_udp_hdr
  */
 #define ADJUST_CHECKSUM(acc, cksum)                \
     {                                              \
-        int _acc = acc;                            \
+        int32_t _acc = acc;                        \
         _acc += (cksum);                           \
         if (_acc < 0)                              \
         {                                          \
@@ -231,16 +231,16 @@ struct ip_tcp_udp_hdr
         }                                          \
     }
 
-#define ADD_CHECKSUM_32(acc, u32) \
-    {                             \
-        acc += (u32) & 0xffff;    \
-        acc += (u32) >> 16;       \
+#define ADD_CHECKSUM_32(acc, u32)         \
+    {                                     \
+        acc += (int32_t)((u32) & 0xffff); \
+        acc += (int32_t)((u32) >> 16);    \
     }
 
-#define SUB_CHECKSUM_32(acc, u32) \
-    {                             \
-        acc -= (u32) & 0xffff;    \
-        acc -= (u32) >> 16;       \
+#define SUB_CHECKSUM_32(acc, u32)         \
+    {                                     \
+        acc -= (int32_t)((u32) & 0xffff); \
+        acc -= (int32_t)((u32) >> 16);    \
     }
 
 /*

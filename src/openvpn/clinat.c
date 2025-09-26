@@ -185,11 +185,7 @@ client_nat_transform(const struct client_nat_option_list *list, struct buffer *i
                      const int direction)
 {
     struct ip_tcp_udp_hdr *h = (struct ip_tcp_udp_hdr *)BPTR(ipbuf);
-    int i;
-    uint32_t addr, *addr_ptr;
-    const uint32_t *from, *to;
-    int accumulate = 0;
-    unsigned int amask;
+    int32_t accumulate = 0;
     unsigned int alog = 0;
 
     if (check_debug_level(D_CLIENT_NAT))
@@ -197,8 +193,11 @@ client_nat_transform(const struct client_nat_option_list *list, struct buffer *i
         print_pkt(&h->ip, "BEFORE", direction, D_CLIENT_NAT);
     }
 
-    for (i = 0; i < list->n; ++i)
+    for (int i = 0; i < list->n; ++i)
     {
+        uint32_t addr, *addr_ptr;
+        const uint32_t *from, *to;
+        unsigned int amask;
         const struct client_nat_entry *e = &list->entries[i]; /* current NAT rule */
         if (e->type ^ direction)
         {

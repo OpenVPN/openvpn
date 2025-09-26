@@ -130,11 +130,6 @@ mss_fixup_ipv6(struct buffer *buf, uint16_t maxmss)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /*
  * change TCP MSS option in SYN/SYN-ACK packets, if present
  * this is generic for IPv4 and IPv6, as the TCP header is the same
@@ -143,11 +138,8 @@ mss_fixup_ipv6(struct buffer *buf, uint16_t maxmss)
 void
 mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
 {
-    int hlen, olen, optlen;
+    int olen, optlen;
     uint8_t *opt;
-    uint16_t mssval;
-    int accumulate;
-    struct openvpn_tcphdr *tc;
 
     if (BLEN(buf) < (int)sizeof(struct openvpn_tcphdr))
     {
@@ -155,8 +147,8 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
     }
 
     verify_align_4(buf);
-    tc = (struct openvpn_tcphdr *)BPTR(buf);
-    hlen = OPENVPN_TCPH_GET_DOFF(tc->doff_res);
+    struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *)BPTR(buf);
+    int hlen = OPENVPN_TCPH_GET_DOFF(tc->doff_res);
 
     /* Invalid header length or header without options. */
     if (hlen <= (int)sizeof(struct openvpn_tcphdr) || hlen > BLEN(buf))
@@ -171,42 +163,36 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
         {
             break;
         }
-        else if (*opt == OPENVPN_TCPOPT_NOP)
+        if (*opt == OPENVPN_TCPOPT_NOP)
         {
             optlen = 1;
+            continue;
         }
-        else
+
+        optlen = *(opt + 1);
+        if (optlen <= 0 || optlen > olen)
         {
-            optlen = *(opt + 1);
-            if (optlen <= 0 || optlen > olen)
+            break;
+        }
+        if (*opt == OPENVPN_TCPOPT_MAXSEG)
+        {
+            if (optlen != OPENVPN_TCPOLEN_MAXSEG)
             {
-                break;
+                continue;
             }
-            if (*opt == OPENVPN_TCPOPT_MAXSEG)
+            uint16_t mssval = (uint16_t)(opt[2] << 8) + opt[3];
+            if (mssval > maxmss)
             {
-                if (optlen != OPENVPN_TCPOLEN_MAXSEG)
-                {
-                    continue;
-                }
-                mssval = opt[2] << 8;
-                mssval += opt[3];
-                if (mssval > maxmss)
-                {
-                    dmsg(D_MSS, "MSS: %" PRIu16 " -> %" PRIu16, mssval, maxmss);
-                    accumulate = htons(mssval);
-                    opt[2] = (uint8_t)((maxmss >> 8) & 0xff);
-                    opt[3] = (uint8_t)(maxmss & 0xff);
-                    accumulate -= htons(maxmss);
-                    ADJUST_CHECKSUM(accumulate, tc->check);
-                }
+                dmsg(D_MSS, "MSS: %" PRIu16 " -> %" PRIu16, mssval, maxmss);
+                opt[2] = (uint8_t)((maxmss >> 8) & 0xff);
+                opt[3] = (uint8_t)(maxmss & 0xff);
+                int32_t accumulate = htons(mssval);
+                accumulate -= htons(maxmss);
+                ADJUST_CHECKSUM(accumulate, tc->check);
             }
         }
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static inline size_t
 adjust_payload_max_cbc(const struct key_type *kt, size_t target)
