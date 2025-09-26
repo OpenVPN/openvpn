@@ -88,19 +88,13 @@ lz4v2_compress(struct buffer *buf, struct buffer work, struct compress_context *
     compv2_escape_data_ifneeded(buf);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static void
-do_lz4_decompress(size_t zlen_max, struct buffer *work, struct buffer *buf,
+do_lz4_decompress(int zlen_max, struct buffer *work, struct buffer *buf,
                   struct compress_context *compctx)
 {
-    int uncomp_len;
     ASSERT(buf_safe(work, zlen_max));
-    uncomp_len = LZ4_decompress_safe((const char *)BPTR(buf), (char *)BPTR(work), (size_t)BLEN(buf),
-                                     zlen_max);
+    int uncomp_len = LZ4_decompress_safe((const char *)BPTR(buf), (char *)BPTR(work), BLEN(buf),
+                                         zlen_max);
     if (uncomp_len <= 0)
     {
         dmsg(D_COMP_ERRORS, "LZ4 decompression error: %d", uncomp_len);
@@ -118,15 +112,11 @@ do_lz4_decompress(size_t zlen_max, struct buffer *work, struct buffer *buf,
     *buf = *work;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-
 static void
 lz4_decompress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
                const struct frame *frame)
 {
-    size_t zlen_max = frame->buf.payload_size;
+    int zlen_max = frame->buf.payload_size;
     uint8_t c; /* flag indicating whether or not our peer compressed */
 
     if (buf->len <= 0)
@@ -163,7 +153,7 @@ static void
 lz4v2_decompress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
                  const struct frame *frame)
 {
-    size_t zlen_max = frame->buf.payload_size;
+    int zlen_max = frame->buf.payload_size;
     uint8_t c; /* flag indicating whether or not our peer compressed */
 
     if (buf->len <= 0)
