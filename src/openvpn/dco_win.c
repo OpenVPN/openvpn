@@ -541,7 +541,7 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t s
     ZeroMemory(&crypto_data, sizeof(crypto_data));
 
     crypto_data.CipherAlg = dco_get_cipher(ciphername);
-    ASSERT(keyid > 0 && keyid <= UCHAR_MAX);
+    ASSERT(keyid >= 0 && keyid <= UCHAR_MAX);
     crypto_data.KeyId = (unsigned char)keyid;
     crypto_data.PeerId = peerid;
     crypto_data.KeySlot = slot;
