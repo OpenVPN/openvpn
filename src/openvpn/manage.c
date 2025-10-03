@@ -1847,25 +1847,26 @@ man_new_connection_post(struct management *man, const char *description)
 static bool
 man_verify_unix_peer_uid_gid(struct management *man, const socket_descriptor_t sd)
 {
-    if (socket_defined(sd) && (man->settings.client_uid != -1 || man->settings.client_gid != -1))
+    if (socket_defined(sd) && (man->settings.user.user_valid || man->settings.group.group_valid))
     {
         static const char err_prefix[] =
             "MANAGEMENT: unix domain socket client connection rejected --";
-        int uid, gid;
+        uid_t uid;
+        gid_t gid;
         if (unix_socket_get_peer_uid_gid(man->connection.sd_cli, &uid, &gid))
         {
-            if (man->settings.client_uid != -1 && man->settings.client_uid != uid)
+            if (man->settings.user.user_valid && man->settings.user.uid != uid)
             {
                 msg(D_MANAGEMENT,
                     "%s UID of socket peer (%d) doesn't match required value (%d) as given by --management-client-user",
-                    err_prefix, uid, man->settings.client_uid);
+                    err_prefix, uid, man->settings.user.uid);
                 return false;
             }
-            if (man->settings.client_gid != -1 && man->settings.client_gid != gid)
+            if (man->settings.group.group_valid && man->settings.group.gid != gid)
             {
                 msg(D_MANAGEMENT,
                     "%s GID of socket peer (%d) doesn't match required value (%d) as given by --management-client-group",
-                    err_prefix, gid, man->settings.client_gid);
+                    err_prefix, gid, man->settings.group.gid);
                 return false;
             }
         }
@@ -2542,8 +2543,6 @@ man_settings_init(struct man_settings *ms, const char *addr, const char *port,
         CLEAR(*ms);
 
         ms->flags = flags;
-        ms->client_uid = -1;
-        ms->client_gid = -1;
 
         /*
          * Get username/password
@@ -2553,27 +2552,21 @@ man_settings_init(struct man_settings *ms, const char *addr, const char *port,
             get_user_pass(&ms->up, pass_file, "Management", GET_USER_PASS_PASSWORD_ONLY);
         }
 
+#if UNIX_SOCK_SUPPORT
         /*
          * lookup client UID/GID if specified
          */
         if (client_user)
         {
-            struct platform_state_user s;
-            platform_user_get(client_user, &s);
-            ms->client_uid = platform_state_user_uid(&s);
-            msg(D_MANAGEMENT, "MANAGEMENT: client_uid=%d", ms->client_uid);
-            ASSERT(ms->client_uid >= 0);
+            ASSERT(platform_user_get(client_user, &ms->user));
+            msg(D_MANAGEMENT, "MANAGEMENT: client_uid=%d", ms->user.uid);
         }
         if (client_group)
         {
-            struct platform_state_group s;
-            platform_group_get(client_group, &s);
-            ms->client_gid = platform_state_group_gid(&s);
-            msg(D_MANAGEMENT, "MANAGEMENT: client_gid=%d", ms->client_gid);
-            ASSERT(ms->client_gid >= 0);
+            ASSERT(platform_group_get(client_group, &ms->group));
+            msg(D_MANAGEMENT, "MANAGEMENT: client_gid=%d", ms->group.gid);
         }
 
-#if UNIX_SOCK_SUPPORT
         if (ms->flags & MF_UNIX_SOCK)
         {
             sockaddr_unix_init(&ms->local_unix, addr);

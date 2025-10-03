@@ -64,9 +64,8 @@ struct platform_state_user
 #if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
     const char *username;
     uid_t uid;
-#else
-    int dummy;
 #endif
+    bool user_valid;
 };
 
 /* Get/Set GID of process */
@@ -76,9 +75,8 @@ struct platform_state_group
 #if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
     const char *groupname;
     gid_t gid;
-#else
-    int dummy;
 #endif
+    bool group_valid;
 };
 
 bool platform_user_get(const char *username, struct platform_state_user *state);
@@ -88,28 +86,6 @@ bool platform_group_get(const char *groupname, struct platform_state_group *stat
 void platform_user_group_set(const struct platform_state_user *user_state,
                              const struct platform_state_group *group_state, struct context *c);
 
-
-/*
- * Extract UID or GID
- */
-
-static inline int
-platform_state_user_uid(const struct platform_state_user *s)
-{
-#if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
-    return s->uid;
-#endif
-    return -1;
-}
-
-static inline int
-platform_state_group_gid(const struct platform_state_group *s)
-{
-#if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
-    return s->gid;
-#endif
-    return -1;
-}
 
 void platform_chroot(const char *path);
 

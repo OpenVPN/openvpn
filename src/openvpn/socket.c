@@ -3082,7 +3082,7 @@ socket_delete_unix(const struct sockaddr_un *local)
 }
 
 bool
-unix_socket_get_peer_uid_gid(const socket_descriptor_t sd, int *uid, int *gid)
+unix_socket_get_peer_uid_gid(const socket_descriptor_t sd, uid_t *uid, gid_t *gid)
 {
 #ifdef HAVE_GETPEEREID
     uid_t u;

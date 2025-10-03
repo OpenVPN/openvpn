@@ -242,14 +242,14 @@ struct man_settings
     struct addrinfo *local;
 #if UNIX_SOCK_SUPPORT
     struct sockaddr_un local_unix;
+    struct platform_state_user user;
+    struct platform_state_group group;
 #endif
     bool management_over_tunnel;
     struct user_pass up;
     int log_history_cache;
     int echo_buffer_size;
     int state_buffer_size;
-    int client_uid;
-    int client_gid;
 
 /* flags for handling the management interface "signal" command */
 #define MANSIG_IGNORE_USR1_HUP  (1u << 0)

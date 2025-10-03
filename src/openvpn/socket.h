@@ -371,7 +371,7 @@ const char *sockaddr_unix_name(const struct sockaddr_un *local, const char *null
 
 void socket_delete_unix(const struct sockaddr_un *local);
 
-bool unix_socket_get_peer_uid_gid(const socket_descriptor_t sd, int *uid, int *gid);
+bool unix_socket_get_peer_uid_gid(const socket_descriptor_t sd, uid_t *uid, gid_t *gid);
 
 #endif /* if UNIX_SOCK_SUPPORT */
 

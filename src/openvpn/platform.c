@@ -39,7 +39,7 @@
 
 #include "platform.h"
 
-#if _WIN32
+#ifdef _WIN32
 #include <direct.h>
 #endif
 
@@ -79,12 +79,10 @@ platform_chroot(const char *path)
 bool
 platform_user_get(const char *username, struct platform_state_user *state)
 {
-    bool ret = false;
     CLEAR(*state);
     if (username)
     {
 #if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
-        state->uid = -1;
         const struct passwd *pw = getpwnam(username);
         if (!pw)
         {
@@ -93,23 +91,23 @@ platform_user_get(const char *username, struct platform_state_user *state)
         else
         {
             state->uid = pw->pw_uid;
+            state->user_valid = true;
         }
         state->username = username;
-        ret = true;
 #else /* if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID) */
         msg(M_FATAL,
             "cannot get UID for user %s -- platform lacks getpwname() or setuid() system calls",
             username);
 #endif
     }
-    return ret;
+    return state->user_valid;
 }
 
 static void
 platform_user_set(const struct platform_state_user *state)
 {
 #if defined(HAVE_GETPWNAM) && defined(HAVE_SETUID)
-    if (state->username && state->uid >= 0)
+    if (state->username && state->user_valid)
     {
         if (setuid(state->uid))
         {
@@ -125,12 +123,10 @@ platform_user_set(const struct platform_state_user *state)
 bool
 platform_group_get(const char *groupname, struct platform_state_group *state)
 {
-    bool ret = false;
     CLEAR(*state);
     if (groupname)
     {
 #if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
-        state->gid = -1;
         const struct group *gr = getgrnam(groupname);
         if (!gr)
         {
@@ -139,23 +135,23 @@ platform_group_get(const char *groupname, struct platform_state_group *state)
         else
         {
             state->gid = gr->gr_gid;
+            state->group_valid = true;
         }
         state->groupname = groupname;
-        ret = true;
 #else /* if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID) */
         msg(M_FATAL,
             "cannot get GID for group %s -- platform lacks getgrnam() or setgid() system calls",
             groupname);
 #endif
     }
-    return ret;
+    return state->group_valid;
 }
 
 static void
 platform_group_set(const struct platform_state_group *state)
 {
 #if defined(HAVE_GETGRNAM) && defined(HAVE_SETGID)
-    if (state->groupname && state->gid >= 0)
+    if (state->groupname && state->group_valid)
     {
         if (setgid(state->gid))
         {
@@ -237,13 +233,13 @@ platform_user_group_set(const struct platform_state_user *user_state,
      * new_uid/new_gid defaults to -1, which will not make
      * libcap-ng change the UID/GID unless configured
      */
-    if (group_state->groupname && group_state->gid >= 0)
+    if (group_state->groupname && group_state->group_valid)
     {
-        new_gid = group_state->gid;
+        new_gid = (int)group_state->gid;
     }
-    if (user_state->username && user_state->uid >= 0)
+    if (user_state->username && user_state->user_valid)
     {
-        new_uid = user_state->uid;
+        new_uid = (int)user_state->uid;
     }
 
     /* Prepare capabilities before dropping UID/GID */
