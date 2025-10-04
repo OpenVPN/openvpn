@@ -2358,6 +2358,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
         device = r6->iface;
         gateway_needed = true;
     }
+    (void)device; /* unused on some platforms */
 
     /* if we used a gateway on "add route", we also need to specify it on
      * delete, otherwise some OSes will refuse to delete the route
