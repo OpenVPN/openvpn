@@ -117,21 +117,21 @@ Reference
 
    [RFC5705]               "Keying Material Exporters for TLS"
                            E. Rescorla, RFC 5705 March 2010
-                           http://tools.ietf.org/html/rfc5705
+                           https://tools.ietf.org/html/rfc5705
 
    [RFC5929]               "Channel Bindings for TLS"
                            J. Altman, N. Williams, L. Zhu, RFC 5929, July 2010
-                           http://tools.ietf.org/html/rfc5929
+                           https://tools.ietf.org/html/rfc5929
 
    [RFC4680]               "TLS Handshake Message for Supplemental Data"
                            S. Santesson, RFC 4680, September 2006
-                           http://tools.ietf.org/html/rfc4680
+                           https://tools.ietf.org/html/rfc4680
 
    [RFC5878]               "TLS Authorization Extension"
                            M. Brown, R. Housley, RFC 5878, May 2010
-                           http://tools.ietf.org/html/rfc5878
+                           https://tools.ietf.org/html/rfc5878
 
    [RFC5746]               "TLS Renegotiation Indication Extension"
                            E. Rescorla, M. Raym, S. Dispensa, N. Oskov
                            RFC 5746, February 2010
-                           http://tools.ietf.org/html/rfc5746
+                           https://tools.ietf.org/html/rfc5746

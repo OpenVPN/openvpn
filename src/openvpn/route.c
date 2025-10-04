@@ -3259,9 +3259,9 @@ done:
 }
 
 /* IPv6 implementation using netlink
- * http://www.linuxjournal.com/article/7356
+ * https://www.linuxjournal.com/article/7356 - "Kernel Korner - Why and How to Use Netlink Socket"
  * netlink(3), netlink(7), rtnetlink(7)
- * http://www.virtualbox.org/svn/vbox/trunk/src/VBox/NetworkServices/NAT/rtmon_linux.c
+ * https://www.virtualbox.org/svn/vbox/trunk/src/VBox/NetworkServices/NAT/
  */
 struct rtreq
 {

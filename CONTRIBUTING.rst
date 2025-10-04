@@ -20,7 +20,7 @@ small, atomic pieces to make reviews easier.
 
 Please make sure that the source code formatting follows the guidelines at
 https://community.openvpn.net/openvpn/wiki/CodeStyle. Automated checking can be
-done with uncrustify (http://uncrustify.sourceforge.net/) and the configuration
+done with uncrustify (https://uncrustify.sourceforge.net/) and the configuration
 file which can be found in the git repository at dev-tools/uncrustify.conf.
 There is also a git pre-commit hook script, which runs uncrustify automatically
 each time you commit and lets you format your code conveniently, if needed.

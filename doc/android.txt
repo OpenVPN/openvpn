@@ -7,7 +7,7 @@ This support is primarily used in the "OpenVPN for Android" app
 README: https://github.com/schwabe/ics-openvpn/blob/master/doc/README.txt
 
 Android provides the VPNService API
-(http://developer.android.com/reference/android/net/VpnService.html)
+(https://developer.android.com/reference/android/net/VpnService)
 which allows establishing VPN connections without rooting the device.
 
 Unlike on other platforms, the tun device is openend by UI instead of
