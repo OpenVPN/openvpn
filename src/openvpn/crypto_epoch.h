@@ -60,7 +60,7 @@ void ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, int info_len, 
  */
 bool ovpn_expand_label(const uint8_t *secret, size_t secret_len, const uint8_t *label,
                        size_t label_len, const uint8_t *context, size_t context_len, uint8_t *out,
-                       uint16_t out_len);
+                       int out_len);
 
 /**
  * Generate a data channel key pair from the epoch key

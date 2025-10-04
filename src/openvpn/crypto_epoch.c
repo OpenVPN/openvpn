@@ -72,14 +72,9 @@ ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, int info_len, uint8
     hmac_ctx_free(hmac_ctx);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 bool
 ovpn_expand_label(const uint8_t *secret, size_t secret_len, const uint8_t *label, size_t label_len,
-                  const uint8_t *context, size_t context_len, uint8_t *out, uint16_t out_len)
+                  const uint8_t *context, size_t context_len, uint8_t *out, int out_len)
 {
     if (secret_len != 32 || label_len > 250 || context_len > 255 || label_len < 1)
     {
@@ -89,22 +84,23 @@ ovpn_expand_label(const uint8_t *secret, size_t secret_len, const uint8_t *label
          * need need to be in range */
         return false;
     }
+    ASSERT(out_len >= 0 && out_len <= UINT16_MAX);
 
     struct gc_arena gc = gc_new();
     /* 2 byte for the outlen encoded as uint16, 5 bytes for "ovpn ",
      * 1 byte for context len byte and 1 byte for label len byte */
     const uint8_t *label_prefix = (const uint8_t *)("ovpn ");
-    int prefix_len = 5;
+    uint8_t prefix_len = 5;
 
-    int hkdf_label_len = 2 + prefix_len + 1 + label_len + 1 + context_len;
+    size_t hkdf_label_len = 2 + prefix_len + 1 + label_len + 1 + context_len;
     struct buffer hkdf_label = alloc_buf_gc(hkdf_label_len, &gc);
 
-    buf_write_u16(&hkdf_label, out_len);
-    buf_write_u8(&hkdf_label, prefix_len + label_len);
+    buf_write_u16(&hkdf_label, (uint16_t)out_len);
+    buf_write_u8(&hkdf_label, prefix_len + (uint8_t)label_len);
     buf_write(&hkdf_label, label_prefix, prefix_len);
     buf_write(&hkdf_label, label, label_len);
 
-    buf_write_u8(&hkdf_label, context_len);
+    buf_write_u8(&hkdf_label, (uint8_t)context_len);
     if (context_len > 0)
     {
         buf_write(&hkdf_label, context, context_len);
@@ -167,10 +163,6 @@ epoch_data_key_derive(struct key_parameters *key, const struct epoch_key *epoch_
                       epoch_data_iv_label_len, NULL, 0, (uint8_t *)(&key->hmac), key->hmac_size);
     key->epoch = epoch_key->epoch;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static void
 epoch_init_send_key_ctx(struct crypto_options *co)
