@@ -287,9 +287,9 @@ xkey_provider_test_mgmt_sign_cb(void **state)
     for (size_t i = 0; i < _countof(pubkeys); i++)
     {
         pubkey = load_pubkey(pubkeys[i]);
-        assert_true(pubkey != NULL);
+        assert_non_null(pubkey);
         EVP_PKEY *privkey = xkey_load_management_key(NULL, pubkey);
-        assert_true(privkey != NULL);
+        assert_non_null(privkey);
 
         management->settings.flags = MF_EXTERNAL_KEY | MF_EXTERNAL_KEY_PSSPAD;
 
@@ -384,11 +384,11 @@ xkey_provider_test_generic_sign_cb(void **state)
     for (size_t i = 0; i < _countof(pubkeys); i++)
     {
         pubkey = load_pubkey(pubkeys[i]);
-        assert_true(pubkey != NULL);
+        assert_non_null(pubkey);
 
         EVP_PKEY *privkey =
             xkey_load_generic_key(NULL, (void *)dummy, pubkey, xkey_sign, xkey_free);
-        assert_true(privkey != NULL);
+        assert_non_null(privkey);
 
         xkey_sign_called = 0;
         xkey_free_called = 0;

@@ -286,9 +286,9 @@ auth_token_test_session_mismatch(void **state)
     strcpy(ctx->up.password, ctx->multi.auth_token);
     assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session), AUTH_TOKEN_HMAC_OK);
 
-    assert_int_not_equal(0, memcmp(ctx->multi.auth_token_initial + strlen(SESSION_ID_PREFIX),
-                                   token_sessiona + strlen(SESSION_ID_PREFIX),
-                                   AUTH_TOKEN_SESSION_ID_BASE64_LEN));
+    assert_memory_not_equal(ctx->multi.auth_token_initial + strlen(SESSION_ID_PREFIX),
+                            token_sessiona + strlen(SESSION_ID_PREFIX),
+                            AUTH_TOKEN_SESSION_ID_BASE64_LEN);
 
     /* The first token is valid but should trigger the invalid response since
      * the session id is not the same */

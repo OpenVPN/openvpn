@@ -487,9 +487,8 @@ tls_crypt_v2_wrap_unwrap_no_metadata(void **state)
     assert_true(tls_crypt_v2_unwrap_client_key(&unwrapped_client_key2, &unwrap_metadata,
                                                wrapped_client_key, &ctx->server_keys.decrypt));
 
-    assert_true(0
-                == memcmp(ctx->client_key2.keys, unwrapped_client_key2.keys,
-                          sizeof(ctx->client_key2.keys)));
+    assert_memory_equal(ctx->client_key2.keys, unwrapped_client_key2.keys,
+                        sizeof(ctx->client_key2.keys));
 }
 
 /**
@@ -511,9 +510,8 @@ tls_crypt_v2_wrap_unwrap_max_metadata(void **state)
     assert_true(tls_crypt_v2_unwrap_client_key(&unwrapped_client_key2, &unwrap_metadata, ctx->wkc,
                                                &ctx->server_keys.decrypt));
 
-    assert_true(0
-                == memcmp(ctx->client_key2.keys, unwrapped_client_key2.keys,
-                          sizeof(ctx->client_key2.keys)));
+    assert_memory_equal(ctx->client_key2.keys, unwrapped_client_key2.keys,
+                        sizeof(ctx->client_key2.keys));
     assert_true(buf_equal(&ctx->metadata, &unwrap_metadata));
 
     struct tls_wrap_ctx wrap_ctx = {
@@ -563,8 +561,8 @@ tls_crypt_v2_wrap_unwrap_wrong_key(void **state)
                                                 ctx->wkc, &ctx->server_keys.decrypt));
 
     const struct key2 zero = { 0 };
-    assert_true(0 == memcmp(&unwrapped_client_key2, &zero, sizeof(zero)));
-    assert_true(0 == BLEN(&ctx->unwrapped_metadata));
+    assert_memory_equal(&unwrapped_client_key2, &zero, sizeof(zero));
+    assert_int_equal(0, BLEN(&ctx->unwrapped_metadata));
 }
 
 /**
@@ -587,8 +585,8 @@ tls_crypt_v2_wrap_unwrap_dst_too_small(void **state)
                                                 ctx->wkc, &ctx->server_keys.decrypt));
 
     const struct key2 zero = { 0 };
-    assert_true(0 == memcmp(&unwrapped_client_key2, &zero, sizeof(zero)));
-    assert_true(0 == BLEN(&ctx->unwrapped_metadata));
+    assert_memory_equal(&unwrapped_client_key2, &zero, sizeof(zero));
+    assert_int_equal(0, BLEN(&ctx->unwrapped_metadata));
 }
 
 static void
