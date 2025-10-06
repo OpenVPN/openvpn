@@ -280,15 +280,9 @@ struct probehdr
     struct timeval tv;
 };
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 const char *
 format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc)
 {
-    int res;
     struct probehdr rcvbuf;
     struct iovec iov;
     struct msghdr msg;
@@ -313,7 +307,7 @@ format_extended_socket_error(int fd, int *mtu, struct gc_arena *gc)
         msg.msg_control = cbuf;
         msg.msg_controllen = 256; /* size of cbuf */
 
-        res = recvmsg(fd, &msg, MSG_ERRQUEUE);
+        ssize_t res = recvmsg(fd, &msg, MSG_ERRQUEUE);
         if (res < 0)
         {
             goto exit;
@@ -393,10 +387,6 @@ exit:
     buf_rmtail(&out, '|');
     return BSTR(&out);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 set_sock_extended_error_passing(int sd, sa_family_t proto_af)
