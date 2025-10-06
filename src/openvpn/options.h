@@ -22,7 +22,7 @@
 
 /*
  * 2004-01-28: Added Socks5 proxy support
- *   (Christof Meerwald, http://cmeerw.org)
+ *   (Christof Meerwald, https://cmeerw.org)
  */
 
 #ifndef OPTIONS_H

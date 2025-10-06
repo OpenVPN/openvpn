@@ -62,7 +62,7 @@
  *
  * The dmalloc package can be downloaded from:
  *
- *     http://dmalloc.com/
+ *     https://dmalloc.com/
  *
  * When dmalloc is installed and enabled,
  * use this command prior to running openvpn:
