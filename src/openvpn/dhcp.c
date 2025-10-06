@@ -72,11 +72,6 @@ get_dhcp_message_type(const struct dhcp *dhcp, const int optlen)
     return -1;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static in_addr_t
 do_extract(struct dhcp *dhcp, int optlen)
 {
@@ -115,7 +110,7 @@ do_extract(struct dhcp *dhcp, int optlen)
                         const int owlen = len + 2; /* len of data to overwrite */
                         uint8_t *src = dest + owlen;
                         uint8_t *end = p + optlen;
-                        const int movlen = end - src;
+                        const intptr_t movlen = end - src;
                         if (movlen > 0)
                         {
                             memmove(dest, src, movlen);       /* overwrite router option */
@@ -155,7 +150,7 @@ dhcp_extract_router_msg(struct buffer *ipbuf)
     struct dhcp_full *df = (struct dhcp_full *)BPTR(ipbuf);
     const int optlen =
         BLEN(ipbuf)
-        - (sizeof(struct openvpn_iphdr) + sizeof(struct openvpn_udphdr) + sizeof(struct dhcp));
+        - (int)(sizeof(struct openvpn_iphdr) + sizeof(struct openvpn_udphdr) + sizeof(struct dhcp));
 
     if (optlen >= 0 && df->ip.protocol == OPENVPN_IPPROTO_UDP
         && df->udp.source == htons(BOOTPS_PORT) && df->udp.dest == htons(BOOTPC_PORT)
@@ -190,7 +185,3 @@ dhcp_extract_router_msg(struct buffer *ipbuf)
     }
     return 0;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
