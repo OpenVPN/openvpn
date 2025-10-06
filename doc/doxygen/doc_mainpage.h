@@ -33,7 +33,7 @@
  * This documentation describes the internal structure of OpenVPN.  It was
  * automatically generated from specially formatted comment blocks in
  * OpenVPN's source code using Doxygen.  (See
- * http://www.stack.nl/~dimitri/doxygen/ for more information on Doxygen)
+ * https://www.doxygen.nl/ for more information on Doxygen)
  *
  * The \ref mainpage_modules "Modules section" below gives an introduction
  * into the high-level module concepts used throughout this documentation.

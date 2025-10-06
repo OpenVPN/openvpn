@@ -23,7 +23,7 @@
 
 /*
  * 2004-01-30: Added Socks5 proxy support, see RFC 1928
- *   (Christof Meerwald, http://cmeerw.org)
+ *   (Christof Meerwald, https://cmeerw.org)
  *
  * 2010-10-10: Added Socks5 plain text authentication support (RFC 1929)
  *   (Pierre Bourdon <delroth@gmail.com>)

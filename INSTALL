@@ -67,7 +67,7 @@ SYSTEM REQUIREMENTS:
       a virtual point-to-point IP or Ethernet device.
       See TUN/TAP Driver References section below for more info.
   (2a) OpenSSL library, necessary for encryption, version 1.0.2 or higher
-      required, available from http://www.openssl.org/
+      required, available from https://www.openssl.org/
       or
   (2b) mbed TLS library, an alternative for encryption, version 2.0 or higher
       required, available from https://tls.mbed.org/
@@ -76,7 +76,7 @@ SYSTEM REQUIREMENTS:
 
 OPTIONAL:
   (5) LZO real-time compression library, required for link compression,
-      available from http://www.oberhumer.com/opensource/lzo/
+      available from https://www.oberhumer.com/opensource/lzo/
       (most supported operating systems have LZO in their installable
       packages repository.  It might be necessary to add LZO_CFLAGS=
       and LZO_LIBS= to the configure call to make it find the LZO pieces)
@@ -87,7 +87,7 @@ OPTIONAL (for developers only):
       Automake 1.9 or higher
       Libtool
       Git
-  (2) cmocka test framework (http://cmocka.org)
+  (2) cmocka test framework (https://cmocka.org)
   (3) If using t_client.sh test framework, fping/fping6 is needed
       Note: t_client.sh needs an external configured OpenVPN server.
       See t_client.rc-sample for more info.
@@ -261,7 +261,7 @@ TUN/TAP Driver References:
 
   You need a TUN/TAP kernel driver for OpenVPN to work:
 
-    http://www.whiteboard.ne.jp/~admin2/tuntap/
+    https://web.archive.org/web/20250504214754/http://www.whiteboard.ne.jp/~admin2/tuntap/
 
 * Windows
 

@@ -69,8 +69,7 @@ utf16to8(const wchar_t *utf16, struct gc_arena *gc)
  * CON, PRN, AUX, NUL, COM1, COM2, COM3, COM4, COM5, COM6, COM7, COM8, COM9,
  * LPT1, LPT2, LPT3, LPT4, LPT5, LPT6, LPT7, LPT8, LPT9, and CLOCK$
  *
- * See: http://msdn.microsoft.com/en-us/library/aa365247.aspx
- *  and http://msdn.microsoft.com/en-us/library/86k9f82k(VS.80).aspx
+ * See: https://learn.microsoft.com/en-us/windows/win32/fileio/naming-a-file
  */
 
 static bool

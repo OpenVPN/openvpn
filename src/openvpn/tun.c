@@ -2414,7 +2414,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     struct strioctl strioc_if, strioc_ppa;
 
     /* improved generic TUN/TAP driver from
-     * http://www.whiteboard.ne.jp/~admin2/tuntap/
+     * https://web.archive.org/web/20250504214754/http://www.whiteboard.ne.jp/~admin2/tuntap/
      * has IPv6 support
      */
     CLEAR(ifr);
@@ -3253,7 +3253,7 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
 /*
  * utun is the native Darwin tun driver present since at least 10.7
  * Thanks goes to Jonathan Levin for providing an example how to utun
- * (http://newosxbook.com/src.jl?tree=listings&file=17-15-utun.c)
+ * (https://www.cs.dartmouth.edu/~sergey/netreads/utun/utun-demo.c)
  */
 
 #ifdef HAVE_NET_IF_UTUN_H

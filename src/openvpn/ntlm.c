@@ -190,7 +190,7 @@ ntlm_phase_1(const struct http_proxy_info *p, struct gc_arena *gc)
     struct buffer out = alloc_buf_gc(96, gc);
     /* try a minimal NTLM handshake
      *
-     * http://davenport.sourceforge.net/ntlm.html
+     * https://davenport.sourceforge.net/ntlm.html
      *
      * This message contains only the NTLMSSP signature,
      * the NTLM message type,
@@ -207,7 +207,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
 {
     /* NTLM handshake
      *
-     * http://davenport.sourceforge.net/ntlm.html
+     * https://davenport.sourceforge.net/ntlm.html
      *
      */
 

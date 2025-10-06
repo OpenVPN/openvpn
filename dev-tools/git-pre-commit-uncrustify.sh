@@ -31,7 +31,7 @@
 #  - abort commit when commit does not comply with the style guidelines
 #  - create a patch of the proposed style changes
 #
-# More info on Uncrustify: http://uncrustify.sourceforge.net/
+# More info on Uncrustify: https://uncrustify.sourceforge.net/
 
 # This file was taken from a set of unofficial pre-commit hooks available
 # at https://github.com/ddddavidmartin/Pre-commit-hooks and modified to

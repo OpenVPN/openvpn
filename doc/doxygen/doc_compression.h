@@ -87,5 +87,5 @@
  *
  * @par
  * For more information on the LZO library, see:\n
- * http://www.oberhumer.com/opensource/lzo/
+ * https://www.oberhumer.com/opensource/lzo/
  */

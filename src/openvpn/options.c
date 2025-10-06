@@ -24,7 +24,7 @@
 
 /*
  * 2004-01-28: Added Socks5 proxy support
- *   (Christof Meerwald, http://cmeerw.org)
+ *   (Christof Meerwald, https://cmeerw.org)
  */
 
 #ifdef HAVE_CONFIG_H
