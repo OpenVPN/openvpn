@@ -324,7 +324,7 @@ the local and the remote host.
   used over unreliable or congested networks.
 
   This article outlines some of problems with tunneling IP over TCP:
-  http://sites.inka.de/sites/bigred/devel/tcp-tcp.html
+  https://web.archive.org/web/20141025181658/http://sites.inka.de/sites/bigred/devel/tcp-tcp.html
 
   There are certain cases, however, where using TCP may be advantageous
   from a security and robustness perspective, such as tunneling non-IP or

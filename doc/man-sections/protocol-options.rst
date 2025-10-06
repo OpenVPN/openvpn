@@ -56,7 +56,7 @@ configured in a compatible way between both the local and remote side.
   authentication.
 
   For more information on HMAC see
-  http://www.cs.ucsd.edu/users/mihir/papers/hmac.html
+  https://tools.ietf.org/html/rfc2104
 
 --cipher alg
   This option should not be used any longer in TLS mode and still
