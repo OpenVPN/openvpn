@@ -59,9 +59,9 @@
         _nest;                                          \
     })
 
-#define SITNL_NEST_END(_msg, _nest)                                      \
-    {                                                                    \
-        _nest->rta_len = (void *)sitnl_nlmsg_tail(_msg) - (void *)_nest; \
+#define SITNL_NEST_END(_msg, _nest)                                                        \
+    {                                                                                      \
+        _nest->rta_len = (unsigned short)((void *)sitnl_nlmsg_tail(_msg) - (void *)_nest); \
     }
 
 /* This function was originally implemented as a macro, but compiling with
@@ -131,29 +131,24 @@ struct sitnl_route_data_cb
     inet_address_t gw;
 };
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /**
  * Helper function used to easily add attributes to a rtnl message
  */
 static int
-sitnl_addattr(struct nlmsghdr *n, int maxlen, int type, const void *data, int alen)
+sitnl_addattr(struct nlmsghdr *n, size_t maxlen, unsigned short type, const void *data, size_t alen)
 {
-    int len = RTA_LENGTH(alen);
-    struct rtattr *rta;
+    size_t len = RTA_LENGTH(alen);
 
-    if ((int)(NLMSG_ALIGN(n->nlmsg_len) + RTA_ALIGN(len)) > maxlen)
+    if ((NLMSG_ALIGN(n->nlmsg_len) + RTA_ALIGN(len)) > maxlen)
     {
-        msg(M_WARN, "%s: rtnl: message exceeded bound of %d", __func__, maxlen);
+        msg(M_WARN, "%s: rtnl: message exceeded bound of %zu", __func__, maxlen);
         return -EMSGSIZE;
     }
 
-    rta = sitnl_nlmsg_tail(n);
+    struct rtattr *rta = sitnl_nlmsg_tail(n);
     rta->rta_type = type;
-    rta->rta_len = len;
+    ASSERT(len <= USHRT_MAX);
+    rta->rta_len = (unsigned short)len;
 
     if (!data)
     {
@@ -252,11 +247,10 @@ static int
 sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups, sitnl_parse_reply_cb cb,
            void *arg_cb)
 {
-    int len, rem_len, fd, ret, rcv_len;
+    int fd, ret;
     struct sockaddr_nl nladdr;
     struct nlmsgerr *err;
     struct nlmsghdr *h;
-    unsigned int seq;
     char buf[1024 * 16];
     struct iovec iov = {
         .iov_base = payload,
@@ -275,7 +269,11 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups, sitnl_pars
     nladdr.nl_pid = peer;
     nladdr.nl_groups = groups;
 
-    payload->nlmsg_seq = seq = time(NULL);
+    /* NB: We currently do not verify seq and pid on answers.
+     * If we ever want to start with that we probably need to come up
+     * with something better than "seconds since epoch"...
+     */
+    payload->nlmsg_seq = (uint32_t)time(NULL);
 
     /* no need to send reply */
     if (!cb)
@@ -290,16 +288,14 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups, sitnl_pars
         return -errno;
     }
 
-    ret = sitnl_bind(fd, 0);
-    if (ret < 0)
+    if (sitnl_bind(fd, 0) < 0)
     {
         msg(M_WARN | M_ERRNO, "%s: can't bind rtnl socket", __func__);
         ret = -errno;
         goto out;
     }
 
-    ret = sendmsg(fd, &nlmsg, 0);
-    if (ret < 0)
+    if (sendmsg(fd, &nlmsg, 0) < 0)
     {
         msg(M_WARN | M_ERRNO, "%s: rtnl: error on sendmsg()", __func__);
         ret = -errno;
@@ -318,8 +314,8 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups, sitnl_pars
          */
         msg(D_RTNL, "%s: checking for received messages", __func__);
         iov.iov_len = sizeof(buf);
-        rcv_len = recvmsg(fd, &nlmsg, 0);
-        msg(D_RTNL, "%s: rtnl: received %d bytes", __func__, rcv_len);
+        ssize_t rcv_len = recvmsg(fd, &nlmsg, 0);
+        msg(D_RTNL, "%s: rtnl: received %zd bytes", __func__, rcv_len);
         if (rcv_len < 0)
         {
             if ((errno == EINTR) || (errno == EAGAIN))
@@ -350,8 +346,8 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups, sitnl_pars
         h = (struct nlmsghdr *)buf;
         while (rcv_len >= (int)sizeof(*h))
         {
-            len = h->nlmsg_len;
-            rem_len = len - sizeof(*h);
+            uint32_t len = h->nlmsg_len;
+            ssize_t rem_len = len - sizeof(*h);
 
             if ((rem_len < 0) || (len > rcv_len))
             {
@@ -361,7 +357,7 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups, sitnl_pars
                     ret = -EIO;
                     goto out;
                 }
-                msg(M_WARN, "%s: malformed message: len=%d", __func__, len);
+                msg(M_WARN, "%s: malformed message: len=%u", __func__, len);
                 ret = -EIO;
                 goto out;
             }
@@ -388,7 +384,7 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups, sitnl_pars
             if (h->nlmsg_type == NLMSG_ERROR)
             {
                 err = (struct nlmsgerr *)NLMSG_DATA(h);
-                if (rem_len < (int)sizeof(struct nlmsgerr))
+                if (rem_len < sizeof(struct nlmsgerr))
                 {
                     msg(M_WARN, "%s: ERROR truncated", __func__);
                     ret = -EIO;
@@ -443,7 +439,7 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups, sitnl_pars
 
         if (rcv_len)
         {
-            msg(M_WARN, "%s: rtnl: %d not parsed bytes", __func__, rcv_len);
+            msg(M_WARN, "%s: rtnl: %zd not parsed bytes", __func__, rcv_len);
             ret = -1;
             goto out;
         }
@@ -456,7 +452,7 @@ out:
 
 typedef struct
 {
-    int addr_size;
+    size_t addr_size;
     inet_address_t gw;
     char iface[IFNAMSIZ];
     bool default_only;
@@ -469,7 +465,7 @@ sitnl_route_save(struct nlmsghdr *n, void *arg)
     route_res_t *res = arg;
     struct rtmsg *r = NLMSG_DATA(n);
     struct rtattr *rta = RTM_RTA(r);
-    int len = n->nlmsg_len - NLMSG_LENGTH(sizeof(*r));
+    size_t len = n->nlmsg_len - NLMSG_LENGTH(sizeof(*r));
     unsigned int table, ifindex = 0;
     void *gw = NULL;
 
@@ -547,7 +543,8 @@ sitnl_route_best_gw(sa_family_t af_family, const inet_address_t *dst, void *best
     req.n.nlmsg_type = RTM_GETROUTE;
     req.n.nlmsg_flags = NLM_F_REQUEST;
 
-    req.r.rtm_family = af_family;
+    ASSERT(af_family <= UCHAR_MAX);
+    req.r.rtm_family = (unsigned char)af_family;
 
     switch (af_family)
     {
@@ -761,7 +758,7 @@ err:
 }
 
 static int
-sitnl_addr_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
+sitnl_addr_set(uint16_t cmd, uint16_t flags, int ifindex, sa_family_t af_family,
                const inet_address_t *local, const inet_address_t *remote, int prefixlen)
 {
     struct sitnl_addr_req req;
@@ -775,7 +772,8 @@ sitnl_addr_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
     req.n.nlmsg_flags = NLM_F_REQUEST | flags;
 
     req.i.ifa_index = ifindex;
-    req.i.ifa_family = af_family;
+    ASSERT(af_family <= UINT8_MAX);
+    req.i.ifa_family = (uint8_t)af_family;
 
     switch (af_family)
     {
@@ -797,7 +795,8 @@ sitnl_addr_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family,
     {
         prefixlen = size * 8;
     }
-    req.i.ifa_prefixlen = prefixlen;
+    ASSERT(prefixlen <= UINT8_MAX);
+    req.i.ifa_prefixlen = (uint8_t)prefixlen;
 
     if (remote)
     {
@@ -890,9 +889,9 @@ sitnl_addr_ptp_del(sa_family_t af_family, const char *iface, const inet_address_
 }
 
 static int
-sitnl_route_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family, const void *dst,
+sitnl_route_set(uint16_t cmd, uint16_t flags, int ifindex, sa_family_t af_family, const void *dst,
                 int prefixlen, const void *gw, enum rt_class_t table, int metric,
-                enum rt_scope_t scope, int protocol, int type)
+                enum rt_scope_t scope, unsigned char protocol, unsigned char type)
 {
     struct sitnl_route_req req;
     int ret = -1, size;
@@ -917,15 +916,17 @@ sitnl_route_set(int cmd, uint32_t flags, int ifindex, sa_family_t af_family, con
     req.n.nlmsg_type = cmd;
     req.n.nlmsg_flags = NLM_F_REQUEST | flags;
 
-    req.r.rtm_family = af_family;
-    req.r.rtm_scope = scope;
+    ASSERT(af_family <= UCHAR_MAX);
+    req.r.rtm_family = (unsigned char)af_family;
+    req.r.rtm_scope = (unsigned char)scope;
     req.r.rtm_protocol = protocol;
     req.r.rtm_type = type;
-    req.r.rtm_dst_len = prefixlen;
+    ASSERT(prefixlen >= 0 && prefixlen <= UCHAR_MAX);
+    req.r.rtm_dst_len = (unsigned char)prefixlen;
 
-    if (table < 256)
+    if (table <= UCHAR_MAX)
     {
-        req.r.rtm_table = table;
+        req.r.rtm_table = (unsigned char)table;
     }
     else
     {
@@ -1348,7 +1349,7 @@ err:
 }
 
 static int
-sitnl_parse_rtattr_flags(struct rtattr *tb[], int max, struct rtattr *rta, int len,
+sitnl_parse_rtattr_flags(struct rtattr *tb[], size_t max, struct rtattr *rta, size_t len,
                          unsigned short flags)
 {
     unsigned short type;
@@ -1369,14 +1370,14 @@ sitnl_parse_rtattr_flags(struct rtattr *tb[], int max, struct rtattr *rta, int l
 
     if (len)
     {
-        msg(D_ROUTE, "%s: %d bytes not parsed! (rta_len=%d)", __func__, len, rta->rta_len);
+        msg(D_ROUTE, "%s: %zu bytes not parsed! (rta_len=%u)", __func__, len, rta->rta_len);
     }
 
     return 0;
 }
 
 static int
-sitnl_parse_rtattr(struct rtattr *tb[], int max, struct rtattr *rta, int len)
+sitnl_parse_rtattr(struct rtattr *tb[], size_t max, struct rtattr *rta, size_t len)
 {
     return sitnl_parse_rtattr_flags(tb, max, rta, len, 0);
 }
@@ -1473,10 +1474,6 @@ net_iface_del(openvpn_net_ctx_t *ctx, const char *iface)
 
     return sitnl_send(&req.n, 0, 0, NULL, NULL);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #endif /* !ENABLE_SITNL */
 
