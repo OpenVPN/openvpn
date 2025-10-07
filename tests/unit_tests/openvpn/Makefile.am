@@ -4,12 +4,11 @@ EXTRA_DIST = input
 
 AM_TESTSUITE_SUMMARY_HEADER = ' for $(PACKAGE_STRING) Unit-Tests'
 
-test_binaries = crypto_testdriver packet_id_testdriver auth_token_testdriver \
+test_binaries = argv_testdriver buffer_testdriver crypto_testdriver packet_id_testdriver auth_token_testdriver \
 	ncp_testdriver misc_testdriver pkt_testdriver ssl_testdriver \
 	user_pass_testdriver push_update_msg_testdriver provider_testdriver socket_testdriver
 
 if HAVE_LD_WRAP_SUPPORT
-test_binaries += argv_testdriver buffer_testdriver
 if !WIN32
 test_binaries += tls_crypt_testdriver
 endif
@@ -36,7 +35,7 @@ check_PROGRAMS += networking_testdriver
 endif
 
 argv_testdriver_CFLAGS  = -I$(top_srcdir)/src/openvpn -I$(top_srcdir)/src/compat @TEST_CFLAGS@
-argv_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(top_srcdir)/src/openvpn -Wl,--wrap=parse_line
+argv_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(top_srcdir)/src/openvpn
 argv_testdriver_SOURCES = test_argv.c \
 	mock_msg.c mock_msg.h test_common.h \
 	mock_get_random.c \
@@ -46,7 +45,7 @@ argv_testdriver_SOURCES = test_argv.c \
 	$(top_srcdir)/src/openvpn/argv.c
 
 buffer_testdriver_CFLAGS  = -I$(top_srcdir)/src/openvpn -I$(top_srcdir)/src/compat @TEST_CFLAGS@
-buffer_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(top_srcdir)/src/openvpn -Wl,--wrap=parse_line
+buffer_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(top_srcdir)/src/openvpn
 buffer_testdriver_SOURCES = test_buffer.c \
 	mock_msg.c mock_msg.h test_common.h \
 	mock_get_random.c \

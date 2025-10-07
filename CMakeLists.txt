@@ -654,6 +654,7 @@ if (BUILD_TESTING)
     endif ()
 
     set(unit_tests
+        "test_argv"
         "test_auth_token"
         "test_buffer"
         "test_crypto"
@@ -684,7 +685,6 @@ if (BUILD_TESTING)
     # Clang-cl (which is also MSVC) is wrongly detected to support wrap
     if (NOT MSVC AND "${LD_SUPPORTS_WRAP}")
         list(APPEND unit_tests
-            "test_argv"
             "test_tls_crypt"
             )
     endif ()
@@ -887,13 +887,10 @@ if (BUILD_TESTING)
         src/openvpn/list.c
         )
 
-    if (TARGET test_argv)
-        target_link_options(test_argv PRIVATE -Wl,--wrap=parse_line)
-        target_sources(test_argv PRIVATE
-            tests/unit_tests/openvpn/mock_get_random.c
-            src/openvpn/argv.c
-            )
-    endif ()
+    target_sources(test_argv PRIVATE
+        tests/unit_tests/openvpn/mock_get_random.c
+        src/openvpn/argv.c
+        )
 
     if (TARGET test_cryptoapi)
         target_sources(test_cryptoapi PRIVATE

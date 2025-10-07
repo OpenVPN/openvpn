@@ -22,8 +22,8 @@
 #define SCRIPT_CMD "\"" PATH1 PATH2 "\"" PARAM1 "\"" PARAM2 "\""
 
 int
-__wrap_parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
-                  msglvl_t msglevel, struct gc_arena *gc)
+parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
+           msglvl_t msglevel, struct gc_arena *gc)
 {
     p[0] = PATH1 PATH2;
     p[1] = PARAM1;
