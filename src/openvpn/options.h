@@ -822,13 +822,82 @@ struct pull_filter_list
     struct pull_filter *tail;
 };
 
+void add_option(struct options *options, char *p[], bool is_inline, const char *file,
+                int line, const int level, const msglvl_t msglevel,
+                const unsigned int permission_mask, unsigned int *option_types_found,
+                struct env_set *es);
+
+/**
+ * @brief Resets options found in the PUSH_UPDATE message that are preceded by the `-` flag.
+ *        This function is used in push-updates to reset specified options.
+ *        The number of parameters `p` must always be 1. If the permission is verified,
+ *        all related options are erased or reset to their default values.
+ *        Upon successful permission verification (by VERIFY_PERMISSION()),
+ *        `option_types_found` is filled with the flag corresponding to the option.
+ *
+ * @param c The context structure.
+ * @param options A pointer to the options structure.
+ * @param p An array of strings containing the options and their parameters.
+ * @param is_inline A boolean indicating if the option is inline.
+ * @param file The file where the function is called.
+ * @param line The line number where the function is called.
+ * @param msglevel The message level.
+ * @param permission_mask The permission mask used by VERIFY_PERMISSION().
+ * @param option_types_found A pointer to the variable where the flags corresponding to the options
+ * found are stored.
+ * @param es The environment set structure.
+ */
+void remove_option(struct context *c, struct options *options, char *p[], bool is_inline,
+                   const char *file, int line, const msglvl_t msglevel,
+                   const unsigned int permission_mask, unsigned int *option_types_found,
+                   struct env_set *es);
+
+/**
+ * @brief Processes an option to update. It first checks whether it has already
+ *        received an option of the same type within the same update message.
+ *        If the option has already been received, it calls add_option().
+ *        Otherwise, it deletes all existing values related to that option before calling
+ * add_option().
+ *
+ * @param c The context structure.
+ * @param options A pointer to the options structure.
+ * @param p An array of strings containing the options and their parameters.
+ * @param is_inline A boolean indicating if the option is inline.
+ * @param file The file where the function is called.
+ * @param line The line number where the function is called.
+ * @param level The level of the option.
+ * @param msglevel The message level for logging.
+ * @param permission_mask The permission mask used by VERIFY_PERMISSION().
+ * @param option_types_found A pointer to the variable where the flags corresponding to the options
+ * found are stored.
+ * @param es The environment set structure.
+ * @param update_options_found A pointer to the variable where the flags corresponding to the update
+ * options found are stored, used to check if an option of the same type has already been processed
+ * by update_option() within the same push-update message.
+ */
+void update_option(struct context *c, struct options *options, char *p[], bool is_inline,
+                   const char *file, int line, const int level, const msglvl_t msglevel,
+                   const unsigned int permission_mask, unsigned int *option_types_found,
+                   struct env_set *es, unsigned int *update_options_found);
+
 void parse_argv(struct options *options, const int argc, char *argv[], const msglvl_t msglevel,
                 const unsigned int permission_mask, unsigned int *option_types_found,
                 struct env_set *es);
 
+void read_config_file(struct options *options, const char *file, int level, const char *top_file,
+                      const int top_line, const msglvl_t msglevel,
+                      const unsigned int permission_mask, unsigned int *option_types_found,
+                      struct env_set *es);
+
+void read_config_string(const char *prefix, struct options *options, const char *config,
+                        const msglvl_t msglevel, const unsigned int permission_mask,
+                        unsigned int *option_types_found, struct env_set *es);
+
 void notnull(const char *arg, const char *description);
 
 void usage_small(void);
+
+void usage(void);
 
 void show_library_versions(const unsigned int flags);
 

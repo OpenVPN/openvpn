@@ -23,6 +23,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stdint.h>
+
 /*
  * Statistics counters and associated printf format.
  */
