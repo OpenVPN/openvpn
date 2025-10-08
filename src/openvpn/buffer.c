@@ -832,19 +832,24 @@ buf_parse(struct buffer *buf, const int delim, char *line, const int size)
 
     do
     {
-        c = buf_read_u8(buf);
+        c = buf_peek_u8(buf);
         if (c < 0)
         {
             eol = true;
+            line[n] = 0;
+            break;
         }
-        if (c <= 0 || c == delim)
+        if (c == delim)
         {
-            c = 0;
+            buf_advance(buf, 1);
+            line[n] = 0;
+            break;
         }
-        if (n >= size)
+        if (n >= (size - 1))
         {
             break;
         }
+        buf_advance(buf, 1);
         line[n++] = (char)c;
     } while (c);
 

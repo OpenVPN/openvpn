@@ -450,6 +450,56 @@ test_buffer_chomp(void **state)
     gc_free(&gc);
 }
 
+/* for building long texts */
+#define A_TIMES_256 "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO"
+
+void
+test_buffer_parse(void **state)
+{
+    struct gc_arena gc = gc_new();
+    struct buffer buf = alloc_buf_gc(1024, &gc);
+    char line[512];
+    bool status;
+    const char test1[] = A_TIMES_256 "EOL\n" A_TIMES_256 "EOF";
+
+    /* line buffer bigger than actual line */
+    assert_int_equal(buf_write(&buf, test1, sizeof(test1)), true);
+    status = buf_parse(&buf, '\n', line, sizeof(line));
+    assert_int_equal(status, true);
+    assert_string_equal(line, A_TIMES_256 "EOL");
+    status = buf_parse(&buf, '\n', line, sizeof(line));
+    assert_int_equal(status, true);
+    assert_string_equal(line, A_TIMES_256 "EOF");
+
+    /* line buffer exactly same size as actual line + terminating \0 */
+    buf_reset_len(&buf);
+    assert_int_equal(buf_write(&buf, test1, sizeof(test1)), true);
+    status = buf_parse(&buf, '\n', line, 260);
+    assert_int_equal(status, true);
+    assert_string_equal(line, A_TIMES_256 "EOL");
+    status = buf_parse(&buf, '\n', line, 260);
+    assert_int_equal(status, true);
+    assert_string_equal(line, A_TIMES_256 "EOF");
+
+    /* line buffer smaller than actual line */
+    buf_reset_len(&buf);
+    assert_int_equal(buf_write(&buf, test1, sizeof(test1)), true);
+    status = buf_parse(&buf, '\n', line, 257);
+    assert_int_equal(status, true);
+    assert_string_equal(line, A_TIMES_256);
+    status = buf_parse(&buf, '\n', line, 257);
+    assert_int_equal(status, true);
+    assert_string_equal(line, "EOL");
+    status = buf_parse(&buf, '\n', line, 257);
+    assert_int_equal(status, true);
+    assert_string_equal(line, A_TIMES_256);
+    status = buf_parse(&buf, '\n', line, 257);
+    assert_int_equal(status, true);
+    assert_string_equal(line, "EOF");
+
+    gc_free(&gc);
+}
+
 int
 main(void)
 {
@@ -478,7 +528,8 @@ main(void)
         cmocka_unit_test(test_character_class),
         cmocka_unit_test(test_character_string_mod_buf),
         cmocka_unit_test(test_snprintf),
-        cmocka_unit_test(test_buffer_chomp)
+        cmocka_unit_test(test_buffer_chomp),
+        cmocka_unit_test(test_buffer_parse)
     };
 
     return cmocka_run_group_tests_name("buffer", tests, NULL, NULL);

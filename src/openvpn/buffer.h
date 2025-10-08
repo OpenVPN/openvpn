@@ -771,7 +771,7 @@ buf_read(struct buffer *src, void *dest, int size)
 }
 
 static inline int
-buf_read_u8(struct buffer *buf)
+buf_peek_u8(struct buffer *buf)
 {
     int ret;
     if (BLEN(buf) < 1)
@@ -779,7 +779,17 @@ buf_read_u8(struct buffer *buf)
         return -1;
     }
     ret = *BPTR(buf);
-    buf_advance(buf, 1);
+    return ret;
+}
+
+static inline int
+buf_read_u8(struct buffer *buf)
+{
+    int ret = buf_peek_u8(buf);
+    if (ret >= 0)
+    {
+        buf_advance(buf, 1);
+    }
     return ret;
 }
 
