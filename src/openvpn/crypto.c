@@ -186,11 +186,6 @@ err:
     return;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static void
 openvpn_encrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options *opt)
 {
@@ -302,7 +297,7 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
         if (ctx->hmac)
         {
             hmac_ctx_reset(ctx->hmac);
-            hmac_ctx_update(ctx->hmac, hmac_start, BEND(&work) - hmac_start);
+            hmac_ctx_update(ctx->hmac, hmac_start, (int)(BEND(&work) - hmac_start));
             hmac_ctx_final(ctx->hmac, mac_out);
             dmsg(D_PACKET_CONTENT, "ENCRYPT HMAC: %s",
                  format_hex(mac_out, hmac_ctx_size(ctx->hmac), 80, &gc));
@@ -533,7 +528,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
         }
     }
 
-    const int ad_size = BPTR(buf) - ad_start;
+    const int ad_size = (int)(BPTR(buf) - ad_start);
 
     uint8_t *tag_ptr = NULL;
     int data_len = 0;
@@ -1366,8 +1361,8 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
     int state = PARSE_INITIAL;
 
     /* constants */
-    const int hlen = strlen(static_key_head);
-    const int flen = strlen(static_key_foot);
+    const int hlen = (int)strlen(static_key_head);
+    const int flen = (int)strlen(static_key_foot);
     const int onekeylen = sizeof(key2->keys[0]);
 
     CLEAR(*key2);
@@ -1378,7 +1373,9 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
      */
     if (flags & RKF_INLINE) /* 'file' is a string containing ascii representation of key */
     {
-        size = strlen(file) + 1;
+        size_t buf_size = strlen(file) + 1;
+        ASSERT(buf_size <= INT_MAX);
+        size = (int)buf_size;
         buf_set_read(&in, (const uint8_t *)file, size);
     }
     else /* 'file' is a filename which refers to a file containing the ascii key */
@@ -1536,10 +1533,6 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
     /* pop our garbage collection level */
     gc_free(&gc);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 int
 write_key_file(const int nkeys, const char *filename)
