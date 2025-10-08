@@ -465,6 +465,7 @@ setup2(void **state)
     m->instances = calloc(1, sizeof(struct multi_instance *));
     struct multi_instance *mi = calloc(1, sizeof(struct multi_instance));
     *(m->instances) = mi;
+    m->top.options.disable_dco = true;
     *state = m;
     return 0;
 }

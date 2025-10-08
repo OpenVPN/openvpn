@@ -1112,6 +1112,12 @@ process_incoming_push_msg(struct context *c, const struct buffer *buffer,
     }
     else if (honor_received_options && buf_string_compare_advance(&buf, push_update_cmd))
     {
+        if (dco_enabled(&c->options))
+        {
+            msg(M_WARN, "WARN: PUSH_UPDATE messages cannot currently be processed in client mode while DCO is enabled, ignoring."
+                        " To be able to process PUSH_UPDATE messages, be sure to use the --disable-dco option.");
+            return PUSH_MSG_ERROR;
+        }
         return process_incoming_push_update(c, permission_mask, option_types_found, &buf, false);
     }
     else

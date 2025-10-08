@@ -1926,8 +1926,12 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
         /* support for exit notify via control channel */
         iv_proto |= IV_PROTO_CC_EXIT_NOTIFY;
 
-        /* support push-updates */
-        iv_proto |= IV_PROTO_PUSH_UPDATE;
+        /* currently push-update is not supported when DCO is enabled */
+        if (!session->opt->dco_enabled)
+        {
+            /* support push-updates */
+            iv_proto |= IV_PROTO_PUSH_UPDATE;
+        }
 
         if (session->opt->pull)
         {

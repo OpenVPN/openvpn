@@ -191,6 +191,13 @@ send_single_push_update(struct context *c, struct buffer *msgs, unsigned int *op
 int
 send_push_update(struct multi_context *m, const void *target, const char *msg, const push_update_type type, const int push_bundle_size)
 {
+    if (dco_enabled(&m->top.options))
+    {
+        msg(M_WARN, "WARN: PUSH_UPDATE messages cannot currently be sent while DCO is enabled."
+                    " To send a PUSH_UPDATE message, be sure to use the --disable-dco option.");
+        return 0;
+    }
+
     if (!msg || !*msg || !m
         || (!target && type != UPT_BROADCAST))
     {
@@ -293,7 +300,6 @@ send_push_update(struct multi_context *m, const void *target, const char *msg, c
             return false;                                             \
         }                                                             \
     } while (0)
-
 
 bool
 management_callback_send_push_update_broadcast(void *arg, const char *options)
