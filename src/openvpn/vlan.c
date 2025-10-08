@@ -43,11 +43,6 @@ vlanhdr_get_vid(const struct openvpn_8021qhdr *hdr)
     return ntohs(hdr->pcp_cfi_vid & OPENVPN_8021Q_MASK_VID);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /*
  * Set the VLAN Identifier (VID) in an IEEE 802.1Q header.
  *
@@ -60,10 +55,6 @@ vlanhdr_set_vid(struct openvpn_8021qhdr *hdr, const uint16_t vid)
     hdr->pcp_cfi_vid =
         (hdr->pcp_cfi_vid & ~OPENVPN_8021Q_MASK_VID) | (htons(vid) & OPENVPN_8021Q_MASK_VID);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /*
  * vlan_decapsulate - remove 802.1q header and return VID
