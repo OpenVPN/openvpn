@@ -5,11 +5,10 @@ EXTRA_DIST = input
 AM_TESTSUITE_SUMMARY_HEADER = ' for $(PACKAGE_STRING) Unit-Tests'
 
 test_binaries = argv_testdriver buffer_testdriver crypto_testdriver packet_id_testdriver auth_token_testdriver \
-	ncp_testdriver misc_testdriver pkt_testdriver ssl_testdriver \
+	ncp_testdriver misc_testdriver options_parse_testdriver pkt_testdriver ssl_testdriver \
 	user_pass_testdriver push_update_msg_testdriver provider_testdriver socket_testdriver
 
 if HAVE_LD_WRAP_SUPPORT
-test_binaries += options_parse_testdriver
 if !WIN32
 test_binaries += tls_crypt_testdriver
 endif
@@ -192,11 +191,7 @@ networking_testdriver_SOURCES = test_networking.c mock_msg.c \
 endif
 
 options_parse_testdriver_CFLAGS  = -I$(top_srcdir)/src/openvpn -I$(top_srcdir)/src/compat @TEST_CFLAGS@
-options_parse_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(top_srcdir)/src/openvpn \
-	-Wl,--wrap=add_option \
-	-Wl,--wrap=update_option \
-	-Wl,--wrap=remove_option \
-	-Wl,--wrap=usage
+options_parse_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(top_srcdir)/src/openvpn
 options_parse_testdriver_SOURCES = test_options_parse.c \
 	mock_msg.c mock_msg.h test_common.h \
 	mock_get_random.c \

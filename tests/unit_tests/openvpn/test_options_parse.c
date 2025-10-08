@@ -38,10 +38,10 @@
 #include "mock_msg.h"
 
 void
-__wrap_add_option(struct options *options, char *p[], bool is_inline, const char *file,
-                  int line, const int level, const msglvl_t msglevel,
-                  const unsigned int permission_mask, unsigned int *option_types_found,
-                  struct env_set *es)
+add_option(struct options *options, char *p[], bool is_inline, const char *file,
+           int line, const int level, const msglvl_t msglevel,
+           const unsigned int permission_mask, unsigned int *option_types_found,
+           struct env_set *es)
 {
     function_called();
     check_expected(p);
@@ -49,23 +49,23 @@ __wrap_add_option(struct options *options, char *p[], bool is_inline, const char
 }
 
 void
-__wrap_remove_option(struct context *c, struct options *options, char *p[], bool is_inline,
-                     const char *file, int line, const msglvl_t msglevel,
-                     const unsigned int permission_mask, unsigned int *option_types_found,
-                     struct env_set *es)
+remove_option(struct context *c, struct options *options, char *p[], bool is_inline,
+              const char *file, int line, const msglvl_t msglevel,
+              const unsigned int permission_mask, unsigned int *option_types_found,
+              struct env_set *es)
 {
 }
 
 void
-__wrap_update_option(struct context *c, struct options *options, char *p[], bool is_inline,
-                     const char *file, int line, const int level, const msglvl_t msglevel,
-                     const unsigned int permission_mask, unsigned int *option_types_found,
-                     struct env_set *es, unsigned int *update_options_found)
+update_option(struct context *c, struct options *options, char *p[], bool is_inline,
+              const char *file, int line, const int level, const msglvl_t msglevel,
+              const unsigned int permission_mask, unsigned int *option_types_found,
+              struct env_set *es, unsigned int *update_options_found)
 {
 }
 
 void
-__wrap_usage(void)
+usage(void)
 {
 }
 
@@ -270,34 +270,34 @@ test_read_config(void **state)
     p_expect_inlineopt[1] = "some text\nother text\n";
 
     /* basic test */
-    expect_function_call(__wrap_add_option);
-    expect_check(__wrap_add_option, p, check_tokens, p_expect_someopt);
-    expect_value(__wrap_add_option, is_inline, 0);
-    expect_function_call(__wrap_add_option);
-    expect_check(__wrap_add_option, p, check_tokens, p_expect_otheropt);
-    expect_value(__wrap_add_option, is_inline, 0);
+    expect_function_call(add_option);
+    expect_check(add_option, p, check_tokens, p_expect_someopt);
+    expect_value(add_option, is_inline, 0);
+    expect_function_call(add_option);
+    expect_check(add_option, p, check_tokens, p_expect_otheropt);
+    expect_value(add_option, is_inline, 0);
     read_single_config(&o, "someopt parm1 parm2\n  otheropt 1 2");
 
     /* -- gets stripped */
-    expect_function_call(__wrap_add_option);
-    expect_check(__wrap_add_option, p, check_tokens, p_expect_someopt);
-    expect_value(__wrap_add_option, is_inline, 0);
-    expect_function_call(__wrap_add_option);
-    expect_check(__wrap_add_option, p, check_tokens, p_expect_otheropt);
-    expect_value(__wrap_add_option, is_inline, 0);
+    expect_function_call(add_option);
+    expect_check(add_option, p, check_tokens, p_expect_someopt);
+    expect_value(add_option, is_inline, 0);
+    expect_function_call(add_option);
+    expect_check(add_option, p, check_tokens, p_expect_otheropt);
+    expect_value(add_option, is_inline, 0);
     read_single_config(&o, "someopt parm1 parm2\n\t--otheropt 1 2");
 
     /* inline options */
-    expect_function_call(__wrap_add_option);
-    expect_check(__wrap_add_option, p, check_tokens, p_expect_inlineopt);
-    expect_value(__wrap_add_option, is_inline, 1);
+    expect_function_call(add_option);
+    expect_check(add_option, p, check_tokens, p_expect_inlineopt);
+    expect_value(add_option, is_inline, 1);
     read_single_config(&o, "<inlineopt>\nsome text\nother text\n</inlineopt>");
 
     p_expect_inlineopt[0] = "inlineopt";
     p_expect_inlineopt[1] = A_TIMES_256 A_TIMES_256 A_TIMES_256 A_TIMES_256 A_TIMES_256 "\n";
-    expect_function_call(__wrap_add_option);
-    expect_check(__wrap_add_option, p, check_tokens, p_expect_inlineopt);
-    expect_value(__wrap_add_option, is_inline, 1);
+    expect_function_call(add_option);
+    expect_check(add_option, p, check_tokens, p_expect_inlineopt);
+    expect_value(add_option, is_inline, 1);
     read_single_config(&o, "<inlineopt>\n" A_TIMES_256 A_TIMES_256 A_TIMES_256 A_TIMES_256 A_TIMES_256 "\n</inlineopt>");
 
     gc_free(&o.gc);

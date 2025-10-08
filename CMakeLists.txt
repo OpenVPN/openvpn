@@ -660,6 +660,7 @@ if (BUILD_TESTING)
         "test_crypto"
         "test_misc"
         "test_ncp"
+        "test_options_parse"
         "test_packet_id"
         "test_pkt"
         "test_provider"
@@ -685,7 +686,6 @@ if (BUILD_TESTING)
     # Clang-cl (which is also MSVC) is wrongly detected to support wrap
     if (NOT MSVC AND "${LD_SUPPORTS_WRAP}")
         list(APPEND unit_tests
-            "test_options_parse"
             "test_tls_crypt"
             )
     endif ()
@@ -827,19 +827,11 @@ if (BUILD_TESTING)
         src/compat/compat-strsep.c
         )
 
-    if (TARGET test_options_parse)
-        target_link_options(test_options_parse PRIVATE
-            -Wl,--wrap=add_option
-            -Wl,--wrap=remove_option
-            -Wl,--wrap=update_option
-	    -Wl,--wrap=usage
+    target_sources(test_options_parse PRIVATE
+        tests/unit_tests/openvpn/mock_get_random.c
+        src/openvpn/options_parse.c
+        src/openvpn/options_util.c
         )
-        target_sources(test_options_parse PRIVATE
-            tests/unit_tests/openvpn/mock_get_random.c
-            src/openvpn/options_parse.c
-            src/openvpn/options_util.c
-        )
-    endif ()
 
     target_sources(test_packet_id PRIVATE
         tests/unit_tests/openvpn/mock_get_random.c
