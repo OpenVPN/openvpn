@@ -198,14 +198,25 @@ read_single_config(struct options *options, const char *config)
                        &option_types_found, &es);
 }
 
+/* compat with various versions of cmocka.h
+ * Older versions have LargestIntegralType. Newer
+ * versions use uintmax_t. But LargestIntegralType
+ * is not guaranteed to be equal to uintmax_t, so
+ * we can't use that unconditionally. So we only use
+ * it if cmocka.h does not define LargestIntegralType.
+ */
+#ifndef LargestIntegralType
+#define LargestIntegralType uintmax_t
+#endif
+
 union tokens_parameter
 {
-    uintmax_t as_int;
+    LargestIntegralType as_int;
     void *as_pointer;
 };
 
 static int
-check_tokens(const uintmax_t value, const uintmax_t expected)
+check_tokens(const LargestIntegralType value, const LargestIntegralType expected)
 {
     union tokens_parameter temp;
     temp.as_int = value;
