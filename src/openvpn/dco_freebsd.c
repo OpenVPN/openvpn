@@ -487,14 +487,14 @@ start_tun(dco_context_t *dco)
 int
 dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t slot,
             const uint8_t *encrypt_key, const uint8_t *encrypt_iv, const uint8_t *decrypt_key,
-            const uint8_t *decrypt_iv, const char *ciphername)
+            const uint8_t *decrypt_iv, const char *ciphername, bool epoch)
 {
     struct ifdrv drv;
     nvlist_t *nvl, *encrypt_nvl, *decrypt_nvl;
     int ret;
 
-    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s", __func__, slot, keyid, peerid,
-        ciphername);
+    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s, epoch %d", __func__, slot, keyid, peerid,
+        ciphername, epoch);
 
     nvl = nvlist_create(0);
 
@@ -874,6 +874,12 @@ const char *
 dco_get_supported_ciphers(void)
 {
     return "none:AES-256-GCM:AES-192-GCM:AES-128-GCM:CHACHA20-POLY1305";
+}
+
+bool
+dco_supports_epoch_data(struct context *c)
+{
+    return false;
 }
 
 #endif /* defined(ENABLE_DCO) && defined(TARGET_FREEBSD) */

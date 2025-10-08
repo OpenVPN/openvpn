@@ -596,10 +596,10 @@ nla_put_failure:
 int
 dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t slot,
             const uint8_t *encrypt_key, const uint8_t *encrypt_iv, const uint8_t *decrypt_key,
-            const uint8_t *decrypt_iv, const char *ciphername)
+            const uint8_t *decrypt_iv, const char *ciphername, bool epoch)
 {
-    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s", __func__, slot, keyid, peerid,
-        ciphername);
+    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s, epoch %d", __func__, slot, keyid, peerid,
+        ciphername, epoch);
 
     const int key_len = cipher_kt_key_size(ciphername);
     const int nonce_tail_len = 8;
@@ -1296,6 +1296,12 @@ const char *
 dco_get_supported_ciphers(void)
 {
     return "AES-128-GCM:AES-256-GCM:AES-192-GCM:CHACHA20-POLY1305";
+}
+
+bool
+dco_supports_epoch_data(struct context *c)
+{
+    return false;
 }
 
 #endif /* defined(ENABLE_DCO) && defined(TARGET_LINUX) */

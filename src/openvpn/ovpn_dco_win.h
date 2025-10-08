@@ -118,6 +118,13 @@ typedef struct _OVPN_CRYPTO_DATA {
 	int PeerId;
 } OVPN_CRYPTO_DATA, * POVPN_CRYPTO_DATA;
 
+#define CRYPTO_OPTIONS_EPOCH (1<<1)
+
+typedef struct _OVPN_CRYPTO_DATA_V2 {
+    OVPN_CRYPTO_DATA V1;
+    UINT32 CryptoOptions;
+} OVPN_CRYPTO_DATA_V2, * POVPN_CRYPTO_DATA_V2;
+
 typedef struct _OVPN_MP_SET_PEER {
     int PeerId;
     LONG KeepaliveInterval;

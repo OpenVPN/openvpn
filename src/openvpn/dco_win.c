@@ -528,7 +528,7 @@ dco_set_peer(dco_context_t *dco, unsigned int peerid, int keepalive_interval, in
 int
 dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t slot,
             const uint8_t *encrypt_key, const uint8_t *encrypt_iv, const uint8_t *decrypt_key,
-            const uint8_t *decrypt_iv, const char *ciphername)
+            const uint8_t *decrypt_iv, const char *ciphername, bool epoch)
 {
     msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s", __func__, slot, keyid, peerid,
         ciphername);
@@ -537,29 +537,42 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t s
     size_t key_len = cipher_kt_key_size(ciphername);
     ASSERT(key_len <= 32);
 
-    OVPN_CRYPTO_DATA crypto_data;
+    OVPN_CRYPTO_DATA_V2 crypto_data;
     ZeroMemory(&crypto_data, sizeof(crypto_data));
 
-    crypto_data.CipherAlg = dco_get_cipher(ciphername);
+    OVPN_CRYPTO_DATA *v1 = &crypto_data.V1;
+
+    v1->CipherAlg = dco_get_cipher(ciphername);
     ASSERT(keyid >= 0 && keyid <= UCHAR_MAX);
-    crypto_data.KeyId = (unsigned char)keyid;
-    crypto_data.PeerId = peerid;
-    crypto_data.KeySlot = slot;
+    v1->KeyId = (unsigned char)keyid;
+    v1->PeerId = peerid;
+    v1->KeySlot = slot;
 
-    CopyMemory(crypto_data.Encrypt.Key, encrypt_key, key_len);
-    crypto_data.Encrypt.KeyLen = (unsigned char)key_len;
-    CopyMemory(crypto_data.Encrypt.NonceTail, encrypt_iv, nonce_len);
+    /* for epoch we use key material as a seed, no as actual key */
+    CopyMemory(v1->Encrypt.Key, encrypt_key, epoch ? 32 : key_len);
+    v1->Encrypt.KeyLen = (unsigned char)key_len;
+    CopyMemory(v1->Encrypt.NonceTail, encrypt_iv, nonce_len);
 
-    CopyMemory(crypto_data.Decrypt.Key, decrypt_key, key_len);
-    crypto_data.Decrypt.KeyLen = (unsigned char)key_len;
-    CopyMemory(crypto_data.Decrypt.NonceTail, decrypt_iv, nonce_len);
+    CopyMemory(v1->Decrypt.Key, decrypt_key, epoch ? 32 : key_len);
+    v1->Decrypt.KeyLen = (unsigned char)key_len;
+    CopyMemory(v1->Decrypt.NonceTail, decrypt_iv, nonce_len);
 
-    ASSERT(crypto_data.CipherAlg > 0);
+    ASSERT(v1->CipherAlg > 0);
+
+    DWORD ioctl = OVPN_IOCTL_NEW_KEY;
+    VOID *buf = &crypto_data.V1;
+    DWORD bufSize = sizeof(crypto_data.V1);
+    if (epoch)
+    {
+        ioctl = OVPN_IOCTL_NEW_KEY_V2;
+        crypto_data.CryptoOptions |= CRYPTO_OPTIONS_EPOCH;
+        buf = &crypto_data;
+        bufSize = sizeof(crypto_data);
+    }
 
     DWORD bytes_returned = 0;
 
-    if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_NEW_KEY, &crypto_data, sizeof(crypto_data), NULL,
-                         0, &bytes_returned, NULL))
+    if (!DeviceIoControl(dco->tt->hand, ioctl, buf, bufSize, NULL, 0, &bytes_returned, NULL))
     {
         msg(M_ERR, "DeviceIoControl(OVPN_IOCTL_NEW_KEY) failed");
         return -1;
@@ -1074,6 +1087,13 @@ dco_win_del_iroute_ipv6(dco_context_t *dco, struct in6_addr dst, unsigned int ne
     }
 
     gc_free(&gc);
+}
+
+bool
+dco_supports_epoch_data(struct context *c)
+{
+    OVPN_VERSION ver = { 0 };
+    return dco_get_version(&ver) && ((ver.Major == 2 && ver.Minor >= 8) || (ver.Major > 2));
 }
 
 #endif /* defined(_WIN32) */
