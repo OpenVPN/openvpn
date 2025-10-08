@@ -72,11 +72,6 @@ lzo_compress(struct buffer *buf, struct buffer work, struct compress_context *co
     *header = NO_COMPRESS_BYTE;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static void
 lzo_decompress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
                const struct frame *frame)
@@ -107,7 +102,7 @@ lzo_decompress(struct buffer *buf, struct buffer work, struct compress_context *
         }
 
         ASSERT(buf_safe(&work, zlen));
-        work.len = zlen;
+        work.len = (int)zlen;
 
         dmsg(D_COMP, "LZO decompress %d -> %d", buf->len, work.len);
         compctx->pre_decompress += buf->len;
@@ -125,10 +120,6 @@ lzo_decompress(struct buffer *buf, struct buffer work, struct compress_context *
         buf->len = 0;
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 const struct compress_alg lzo_alg = { "lzo", lzo_compress_init, lzo_compress_uninit, lzo_compress,
                                       lzo_decompress };
