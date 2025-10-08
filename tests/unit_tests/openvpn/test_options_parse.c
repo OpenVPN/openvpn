@@ -43,6 +43,9 @@ __wrap_add_option(struct options *options, char *p[], bool is_inline, const char
                   const unsigned int permission_mask, unsigned int *option_types_found,
                   struct env_set *es)
 {
+    function_called();
+    check_expected(p);
+    check_expected(is_inline);
 }
 
 void
@@ -185,11 +188,117 @@ test_parse_line(void **state)
     gc_free(&gc);
 }
 
+static void
+read_single_config(struct options *options, const char *config)
+{
+    unsigned int option_types_found = 0;
+    struct env_set es;
+    CLEAR(es);
+    read_config_string("test_options_parse", options, config, M_INFO, OPT_P_DEFAULT,
+                       &option_types_found, &es);
+}
+
+union tokens_parameter
+{
+    uintmax_t as_int;
+    void *as_pointer;
+};
+
+static int
+check_tokens(const uintmax_t value, const uintmax_t expected)
+{
+    union tokens_parameter temp;
+    temp.as_int = value;
+    const char **p = (const char **)temp.as_pointer;
+    temp.as_int = expected;
+    const char **expected_p = (const char **)temp.as_pointer;
+    for (int i = 0; i < MAX_PARMS; i++)
+    {
+        if (!p[i] && !expected_p[i])
+        {
+            return true;
+        }
+        if ((p[i] && !expected_p[i])
+            || (!p[i] && expected_p[i]))
+        {
+            fprintf(stderr, "diff at i=%d\n", i);
+            return false;
+        }
+        if (strcmp(p[i], expected_p[i]))
+        {
+            fprintf(stderr, "diff at i=%d, p=<%s> ep=<%s>\n", i, p[i], expected_p[i]);
+            return false;
+        }
+    }
+    fprintf(stderr, "fallthrough");
+    return false;
+}
+
+static void
+test_read_config(void **state)
+{
+    struct options o;
+    CLEAR(o); /* NB: avoiding init_options to limit dependencies */
+    gc_init(&o.gc);
+    gc_init(&o.dns_options.gc);
+    o.gc_owned = true;
+
+    char *p_expect_someopt[MAX_PARMS];
+    char *p_expect_otheropt[MAX_PARMS];
+    char *p_expect_inlineopt[MAX_PARMS];
+    CLEAR(p_expect_someopt);
+    CLEAR(p_expect_otheropt);
+    CLEAR(p_expect_inlineopt);
+    p_expect_someopt[0] = "someopt";
+    p_expect_someopt[1] = "parm1";
+    p_expect_someopt[2] = "parm2";
+    p_expect_otheropt[0] = "otheropt";
+    p_expect_otheropt[1] = "1";
+    p_expect_otheropt[2] = "2";
+    p_expect_inlineopt[0] = "inlineopt";
+    p_expect_inlineopt[1] = "some text\nother text\n";
+
+    /* basic test */
+    expect_function_call(__wrap_add_option);
+    expect_check(__wrap_add_option, p, check_tokens, p_expect_someopt);
+    expect_value(__wrap_add_option, is_inline, 0);
+    expect_function_call(__wrap_add_option);
+    expect_check(__wrap_add_option, p, check_tokens, p_expect_otheropt);
+    expect_value(__wrap_add_option, is_inline, 0);
+    read_single_config(&o, "someopt parm1 parm2\n  otheropt 1 2");
+
+    /* -- gets stripped */
+    expect_function_call(__wrap_add_option);
+    expect_check(__wrap_add_option, p, check_tokens, p_expect_someopt);
+    expect_value(__wrap_add_option, is_inline, 0);
+    expect_function_call(__wrap_add_option);
+    expect_check(__wrap_add_option, p, check_tokens, p_expect_otheropt);
+    expect_value(__wrap_add_option, is_inline, 0);
+    read_single_config(&o, "someopt parm1 parm2\n\t--otheropt 1 2");
+
+    /* inline options */
+    expect_function_call(__wrap_add_option);
+    expect_check(__wrap_add_option, p, check_tokens, p_expect_inlineopt);
+    expect_value(__wrap_add_option, is_inline, 1);
+    read_single_config(&o, "<inlineopt>\nsome text\nother text\n</inlineopt>");
+
+    p_expect_inlineopt[0] = "inlineopt";
+    p_expect_inlineopt[1] = A_TIMES_256 A_TIMES_256 A_TIMES_256 A_TIMES_256 A_TIMES_256 "\n";
+    expect_function_call(__wrap_add_option);
+    expect_check(__wrap_add_option, p, check_tokens, p_expect_inlineopt);
+    expect_value(__wrap_add_option, is_inline, 1);
+    read_single_config(&o, "<inlineopt>\n" A_TIMES_256 A_TIMES_256 A_TIMES_256 A_TIMES_256 A_TIMES_256 "\n</inlineopt>");
+
+    gc_free(&o.gc);
+    gc_free(&o.dns_options.gc);
+}
+
 int
 main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_parse_line),
+        cmocka_unit_test(test_read_config),
     };
 
     return cmocka_run_group_tests_name("options_parse", tests, NULL, NULL);
