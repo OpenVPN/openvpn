@@ -144,7 +144,13 @@ mroute_extract_openvpn_sockaddr(struct mroute_addr *addr,
 {
     return true;
 }
-#endif /* ifndef ENABLE_MANAGEMENT */
+
+unsigned int
+extract_iv_proto(const char *peer_info)
+{
+    return IV_PROTO_PUSH_UPDATE;
+}
+#endif /* ifdef ENABLE_MANAGEMENT */
 
 /* tests */
 
@@ -464,6 +470,7 @@ setup2(void **state)
     struct multi_context *m = calloc(1, sizeof(struct multi_context));
     m->instances = calloc(1, sizeof(struct multi_instance *));
     struct multi_instance *mi = calloc(1, sizeof(struct multi_instance));
+    mi->context.c2.tls_multi = calloc(1, sizeof(struct tls_multi));
     *(m->instances) = mi;
     m->top.options.disable_dco = true;
     *state = m;
@@ -474,6 +481,7 @@ static int
 teardown2(void **state)
 {
     struct multi_context *m = *state;
+    free((*(m->instances))->context.c2.tls_multi);
     free(*(m->instances));
     free(m->instances);
     free(m);
