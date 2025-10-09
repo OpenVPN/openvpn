@@ -3143,6 +3143,9 @@ pre_connect_save(struct options *o)
         o->pre_connect->client_nat_defined = true;
     }
 
+    o->pre_connect->ifconfig_local = o->ifconfig_local;
+    o->pre_connect->ifconfig_ipv6_local = o->ifconfig_ipv6_local;
+
     o->pre_connect->route_default_gateway = o->route_default_gateway;
     o->pre_connect->route_ipv6_default_gateway = o->route_ipv6_default_gateway;
 
@@ -3192,6 +3195,9 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
         {
             o->routes_ipv6 = NULL;
         }
+
+        o->ifconfig_local = pp->ifconfig_local;
+        o->ifconfig_ipv6_local = pp->ifconfig_ipv6_local;
 
         o->route_default_gateway = pp->route_default_gateway;
         o->route_ipv6_default_gateway = pp->route_ipv6_default_gateway;

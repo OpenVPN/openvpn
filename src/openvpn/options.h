@@ -64,6 +64,9 @@ struct options_pre_connect
     bool tuntap_options_defined;
     struct tuntap_options tuntap_options;
 
+    const char *ifconfig_local;
+    const char *ifconfig_ipv6_local;
+
     bool routes_defined;
     struct route_option_list *routes;
 
