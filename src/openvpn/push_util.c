@@ -170,9 +170,12 @@ send_single_push_update(struct context *c, struct buffer *msgs, unsigned int *op
          * inside `process_incoming_push_msg()`. However, we don't need
          * to check the return value here because we just want to `advance`,
          * meaning we skip the `push_update_cmd' we added earlier.
+         * Also we need to make a temporary copy so we can buf_advance()
+         * without modifying original buffer.
          */
-        buf_string_compare_advance(&msgs[i], push_update_cmd);
-        if (process_incoming_push_update(c, pull_permission_mask(c), option_types_found, &msgs[i], true) == PUSH_MSG_ERROR)
+        struct buffer tmp_msg = msgs[i];
+        buf_string_compare_advance(&tmp_msg, push_update_cmd);
+        if (process_incoming_push_update(c, pull_permission_mask(c), option_types_found, &tmp_msg, true) == PUSH_MSG_ERROR)
         {
             msg(M_WARN, "Failed to process push update message sent to client ID: %u",
                 c->c2.tls_multi ? c->c2.tls_multi->peer_id : UINT32_MAX);
