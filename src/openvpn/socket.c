@@ -2490,7 +2490,7 @@ link_socket_write_udp_posix_sendmsg(struct link_socket *sock, struct buffer *buf
             {
                 struct in_pktinfo *pkti;
                 pkti = (struct in_pktinfo *)CMSG_DATA(cmsg);
-                pkti->ipi_ifindex = to->pi.in4.ipi_ifindex;
+                pkti->ipi_ifindex = 0;
                 pkti->ipi_spec_dst = to->pi.in4.ipi_spec_dst;
                 pkti->ipi_addr.s_addr = 0;
             }
@@ -2524,7 +2524,7 @@ link_socket_write_udp_posix_sendmsg(struct link_socket *sock, struct buffer *buf
             cmsg->cmsg_type = IPV6_PKTINFO;
 
             pkti6 = (struct in6_pktinfo *)CMSG_DATA(cmsg);
-            pkti6->ipi6_ifindex = to->pi.in6.ipi6_ifindex;
+            pkti6->ipi6_ifindex = 0;
             pkti6->ipi6_addr = to->pi.in6.ipi6_addr;
             break;
         }
