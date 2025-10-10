@@ -41,7 +41,6 @@
 msglvl_t x_debug_level = 0; /* Default to (almost) no debugging output */
 msglvl_t print_x_debug_level = 0;
 
-bool fatal_error_triggered = false;
 
 char mock_msg_buf[MOCK_MSG_BUF];
 
@@ -75,7 +74,6 @@ x_msg_va(const msglvl_t flags, const char *format, va_list arglist)
 {
     if (flags & M_FATAL)
     {
-        fatal_error_triggered = true;
         printf("FATAL ERROR:");
     }
     CLEAR(mock_msg_buf);
@@ -86,6 +84,12 @@ x_msg_va(const msglvl_t flags, const char *format, va_list arglist)
         printf("%s", mock_msg_buf);
         printf("\n");
     }
+#ifndef NO_CMOCKA
+    if (flags & M_FATAL)
+    {
+        mock_assert(false, "FATAL ERROR", __FILE__, __LINE__);
+    }
+#endif
 }
 
 void
