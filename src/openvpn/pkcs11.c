@@ -671,7 +671,7 @@ _pkcs11_openvpn_show_pkcs11_ids_pin_prompt(void *const global_data, void *const 
     ASSERT(token != NULL);
 
     buf_printf(&pass_prompt, "Please enter '%s' token PIN or 'cancel': ", token->display);
-    if (!query_user_SINGLE(BSTR(&pass_prompt), BLEN(&pass_prompt), pin, pin_max, false))
+    if (!query_user_SINGLE(BSTR(&pass_prompt), pin, (int)pin_max, false))
     {
         msg(M_FATAL, "Could not retrieve the PIN");
     }

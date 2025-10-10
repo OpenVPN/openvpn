@@ -53,14 +53,14 @@ query_user_clear(void)
 
 
 void
-query_user_add(char *prompt, size_t prompt_len, char *resp, size_t resp_len, bool echo)
+query_user_add(char *prompt, char *resp, int resp_len, bool echo)
 {
     int i;
 
     /* Ensure input is sane.  All these must be present otherwise it is
      * a programming error.
      */
-    ASSERT(prompt_len > 0 && prompt != NULL && resp_len > 0 && resp != NULL);
+    ASSERT(prompt != NULL && resp_len > 0 && resp != NULL);
 
     /* Seek to the last unused slot */
     for (i = 0; i < QUERY_USER_NUMSLOTS; i++)
@@ -74,7 +74,6 @@ query_user_add(char *prompt, size_t prompt_len, char *resp, size_t resp_len, boo
 
     /* Save the information needed for the user interaction */
     query_user[i].prompt = prompt;
-    query_user[i].prompt_len = prompt_len;
     query_user[i].response = resp;
     query_user[i].response_len = resp_len;
     query_user[i].echo = echo;

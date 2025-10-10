@@ -32,11 +32,10 @@
  */
 struct _query_user
 {
-    char *prompt;        /**< Prompt to present to the user */
-    size_t prompt_len;   /**< Length of the prompt string */
-    char *response;      /**< The user's response */
-    size_t response_len; /**< Length the of the user response */
-    bool echo;           /**< True: The user should see what is being typed, otherwise mask it */
+    char *prompt;     /**< Prompt to present to the user */
+    char *response;   /**< The user's response */
+    int response_len; /**< Length the of the user response */
+    bool echo;        /**< True: The user should see what is being typed, otherwise mask it */
 };
 
 #define QUERY_USER_NUMSLOTS 10
@@ -53,13 +52,12 @@ void query_user_clear(void);
  * Adds an item to ask the user for
  *
  * @param prompt     Prompt to display to the user
- * @param prompt_len Length of the prompt string
  * @param resp       String containing the user response
  * @param resp_len   Length of the response string
  * @param echo       Should the user input be echoed to the user?  If False, input will be masked
  *
  */
-void query_user_add(char *prompt, size_t prompt_len, char *resp, size_t resp_len, bool echo);
+void query_user_add(char *prompt, char *resp, int resp_len, bool echo);
 
 
 /**
@@ -117,10 +115,10 @@ query_user_exec(void)
  *
  */
 static inline bool
-query_user_SINGLE(char *prompt, size_t prompt_len, char *resp, size_t resp_len, bool echo)
+query_user_SINGLE(char *prompt, char *resp, int resp_len, bool echo)
 {
     query_user_clear();
-    query_user_add(prompt, prompt_len, resp, resp_len, echo);
+    query_user_add(prompt, resp, resp_len, echo);
     return query_user_exec();
 }
 
