@@ -320,7 +320,7 @@ setup_pkcs11(void **state)
     /* set default propq as we do in ssl_openssl.c */
     EVP_set_default_properties(tls_libctx, "?provider!=ovpn.xkey");
 #endif
-    pkcs11_initialize(true, 0); /* protected auth enabled, pin-cache = 0 */
+    pkcs11_initialize(true, 60); /* protected auth enabled, pin-cache = 60s */
     pkcs11_addProvider(SOFTHSM2_MODULE_PATH, false, 0, false);
     return 0;
 }
