@@ -80,11 +80,6 @@ socks_proxy_close(struct socks_proxy_info *sp)
     free(sp);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static bool
 socks_proxy_recv_char(char *c, const char *name, socket_descriptor_t sd,
                       struct event_timeout *server_poll_timeout,
@@ -98,7 +93,8 @@ socks_proxy_recv_char(char *c, const char *name, socket_descriptor_t sd,
     tv.tv_sec = get_server_poll_remaining_time(server_poll_timeout);
     tv.tv_usec = 0;
 
-    const int status = select(sd + 1, &reads, NULL, NULL, &tv);
+    /* NB: first argument ignored on Windows where socket_descriptor_t != int */
+    const int status = select((int)sd + 1, &reads, NULL, NULL, &tv);
 
     get_signal(signal_received);
     if (*signal_received)
@@ -139,10 +135,7 @@ socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
                              volatile int *signal_received)
 {
     char to_send[516];
-    char buf[2];
-    int len = 0;
     struct user_pass creds;
-    ssize_t size;
     bool ret = false;
 
     CLEAR(creds);
@@ -161,9 +154,10 @@ socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
 
     int sret = snprintf(to_send, sizeof(to_send), "\x01%c%s%c%s", (int)strlen(creds.username),
                         creds.username, (int)strlen(creds.password), creds.password);
-    ASSERT(sret <= sizeof(to_send));
+    ASSERT(sret >= 0 && sret <= sizeof(to_send));
 
-    size = send(sd, to_send, strlen(to_send), MSG_NOSIGNAL);
+    /* NB: int because Windows APIs */
+    ssize_t size = send(sd, to_send, (int)strlen(to_send), MSG_NOSIGNAL);
 
     if (size != strlen(to_send))
     {
@@ -172,6 +166,8 @@ socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
         goto cleanup;
     }
 
+    int len = 0;
+    char buf[2];
     while (len < 2)
     {
         char c;
@@ -419,8 +415,10 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
     buf[5 + len + 1] = (char)(port & 0xff);
 
     {
-        const ssize_t size = send(sd, buf, 5 + len + 2, MSG_NOSIGNAL);
-        if ((int)size != 5 + (int)len + 2)
+        /* int because Windows APIs */
+        int send_len = 5 + (int)len + 2;
+        const ssize_t size = send(sd, buf, send_len, MSG_NOSIGNAL);
+        if (size != send_len)
         {
             msg(D_LINK_ERRORS | M_ERRNO,
                 "establish_socks_proxy_passthru: TCP port write failed on send()");
@@ -442,10 +440,6 @@ error:
     register_signal(sig_info, SIGUSR1, "socks-error");
     return;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
