@@ -342,27 +342,27 @@ build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)
     bool error = false;
     if (o->domain)
     {
-        write_dhcp_str(buf, 15, o->domain, &error);
+        write_dhcp_str(buf, DHCP_DOMAIN_NAME, o->domain, &error);
     }
 
     if (o->netbios_scope)
     {
-        write_dhcp_str(buf, 47, o->netbios_scope, &error);
+        write_dhcp_str(buf, DHCP_NETBIOS_SCOPE, o->netbios_scope, &error);
     }
 
     if (o->netbios_node_type)
     {
-        write_dhcp_u8(buf, 46, o->netbios_node_type, &error);
+        write_dhcp_u8(buf, DHCP_NETBIOS_NODE_TYPE, o->netbios_node_type, &error);
     }
 
-    write_dhcp_u32_array(buf, 6, (uint32_t *)o->dns, o->dns_len, &error);
-    write_dhcp_u32_array(buf, 44, (uint32_t *)o->wins, o->wins_len, &error);
-    write_dhcp_u32_array(buf, 42, (uint32_t *)o->ntp, o->ntp_len, &error);
-    write_dhcp_u32_array(buf, 45, (uint32_t *)o->nbdd, o->nbdd_len, &error);
+    write_dhcp_u32_array(buf, DHCP_DOMAIN_SERVER, (uint32_t *)o->dns, o->dns_len, &error);
+    write_dhcp_u32_array(buf, DHCP_NETBIOS_DOMAIN_SERVER, (uint32_t *)o->wins, o->wins_len, &error);
+    write_dhcp_u32_array(buf, DHCP_NTP_SERVER, (uint32_t *)o->ntp, o->ntp_len, &error);
+    write_dhcp_u32_array(buf, DHCP_NETBIOS_DIST_SERVER, (uint32_t *)o->nbdd, o->nbdd_len, &error);
 
     if (o->domain_search_list_len > 0)
     {
-        write_dhcp_search_str(buf, 119, o->domain_search_list, o->domain_search_list_len, &error);
+        write_dhcp_search_str(buf, DHCP_DOMAIN_SEARCH, o->domain_search_list, o->domain_search_list_len, &error);
     }
 
     /* the MS DHCP server option 'Disable Netbios-over-TCP/IP
@@ -375,7 +375,7 @@ build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)
             msg(M_WARN, "build_dhcp_options_string: buffer overflow building DHCP options");
             return false;
         }
-        buf_write_u8(buf, 43);
+        buf_write_u8(buf, DHCP_VENDOR);
         buf_write_u8(buf, 6); /* total length field */
         buf_write_u8(buf, 0x001);
         buf_write_u8(buf, 4); /* length of the vendor specified field */
