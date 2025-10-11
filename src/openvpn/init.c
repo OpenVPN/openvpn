@@ -1523,7 +1523,7 @@ do_init_route_ipv6_list(const struct options *options, struct route_ipv6_list *r
 
     /* redirect (IPv6) gateway to VPN?  if yes, add a few more specifics
      */
-    if (options->routes_ipv6->flags & RG_REROUTE_GW)
+    if (options->routes_ipv6->flags & RG_REROUTE_GW && options->ifconfig_ipv6_local)
     {
         char *opt_list[] = { "::/3", "2000::/4", "3000::/4", "fc00::/7", NULL };
         int i;
