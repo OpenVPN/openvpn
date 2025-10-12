@@ -1,6 +1,66 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.10.13 -- Version 2.7_beta3
+
+Arne Schwabe (2):
+      Allowing installing FreeBSD routes with interface instead of next-hop
+      Allow route_ipv6_match_host to be used outside of route.c
+
+Frank Lichtenheld (33):
+      GHA: Dependency updates September 2025
+      comp-lz4: Fix types in call to LZ4_decompress_safe
+      dco_win: In dco_new_key, document size assumptions for the integer casts
+      dco_linux: Fix -Wconversion warnings
+      ssl_openssl: Use uint16_t internally for TLS versions
+      dco: Change sd argument to dco_new_peer from int to socket_descriptor_t
+      crypto_epoch: Clean up type handling in ovpn_expand_label()
+      route: Fix a unused-but-set-variable warning on OpenBSD
+      platform: Do not assume uid_t/gid_t are signed
+      mtu: Trivial -Wconversion fix
+      Review CMocka assertion usage
+      dhcp: Fix conversion warnings
+      COPYING: Remove licenses for software bundled in the Windows client
+      sitnl: Clean up type handling
+      options: Factor out parsing code to separate options_parse.c
+      unit_tests: Remove useless wrapping for argv/buffer tests
+      crypto: Make some casts to int explicit
+      test_options_parse: Start new UT for options_parse.c
+      buffer: Fix buf_parse eating input
+      test_options_parse: Add test for read_config_string
+      vlan: Remove -Wconversion override
+      GHA: Run options_parse test for MinGW
+      test_options_parse: Do not use uintmax_t instead of LargestIntegralType
+      proto: Clean up conversion warnings related to checksum macros
+      test_options_parse: Remove --wrap
+      lzo: Fix conversion warning
+      options_util: Fix conversion warning in atoi_constrained
+      options: Review use of positive_atoi vs atoi_constrained
+      console: Simplify query_user_add interface
+      socks: Fix conversion warnings with MinGW
+      Move build_dhcp_options_string from tun to dhcp
+      dhcp: Replace DHCP Option types with defines
+      test_user_pass: Check fatal errors for empty username/password
+
+Lev Stipakov (4):
+      dco-win: fix broken ASSERT in dco_new_key
+      dco-win: support for epoch data channel
+      Preserve ifconfig(_ipv6)_local across reconnect
+      Make recursive routing check more fine-grained
+
+Marco Baffo (4):
+      PUSH_UPDATE: disabling PUSH_UPDATE server and client if DCO is enabled
+      PUSH_UPDATE server: bug-fix, reset buffer after processing
+      PUSH_UPDATE server: check IV_PROTO before sending the message to the client
+      redirect-gateway: only redirect traffic through TUN if address families match
+
+Selva Nair (1):
+      Fix PIN cache time in test_pkcs11.c
+
+Steffan Karger (1):
+      Document that tls-crypt-v2 can be used in connection profile
+
+
 2025.09.25 -- Version 2.7_beta2
 
 Antonio Quartulli (1):

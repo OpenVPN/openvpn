@@ -87,6 +87,8 @@ Epoch data keys and packet format
     - IV constructed with XOR instead of concatenation to not have (parts) of
       the real IV on the wire
 
+Support for Epoch data channel on Windows, using the win-dco driver (2.8.0+)
+
 Default ciphers in ``--data-ciphers``
     Ciphers in ``--data-ciphers`` can contain the string DEFAULT that is
     replaced by the default ciphers used by OpenVPN, making it easier to
@@ -133,6 +135,8 @@ PUSH_UPDATE client support
     currently only supported by OpenVPN Inc commercial offerings, the
     implementation for OpenVPN 2.x is still under development.
     See also: https://openvpn.github.io/openvpn-rfc/openvpn-wire-protocol.html
+    NOTE: PUSH_UPDATE client support is currently disabled if DCO
+    is active (on all platforms).
 
 PUSH_UPDATE server support (minimal)
     new management interface commands ``push-update-broad`` and
@@ -140,6 +144,8 @@ PUSH_UPDATE server support (minimal)
     clients ("there is a new DNS server") or only a specific client ID
     ("privileges have changed, here's a new IP address").  See
     doc/management-notes.txt
+    NOTE: PUSH_UPDATE server support is currently disabled if DCO
+    is active (on all platforms).
 
 Support for user-defined routing tables on Linux
     see the ``--route-table`` option in the manpage
@@ -152,6 +158,17 @@ Two new environment variables have been introduced to communicate desired
     See the "Environmental Variables" section in the man page
 
 Improved logging of service events/errors to event log on Windows.
+
+"Recursive Routing" check is now more granular, and will only drop
+   packets-in-tunnel if destination IP, protocol and port matches with
+   those needed to reach the VPN server.  With that change, you can now
+   use policies that direct "everything that is not OpenVPN" into the
+   tunnel, and have IP packets to the VPN server address arrive as
+   expected (no such policies are currently installed by OpenVPN)
+   (github #669).
+
+COPYING: license details only relevant to our Windows installers have
+   been updated and moved to the openvpn-build repo
 
 
 Deprecated features
@@ -277,6 +294,13 @@ User-visible Changes
   matter, but for broadcast-based applications that get the address to
   use from "ifconfig", this change repairs functionality (this has
   been backported to 2.6.15, but is not in earlier 2.6 versions).
+
+- `max-routes-per-client 0` used to be silently upgraded to `1`.  This
+  now produces an error.
+
+- `ifconfig` and `ifconfig-ipv6` values are now stored in pre-connect
+  options cache, and will be restored to pre-connect values on reconnects
+  if the server stops pushing the respective option.
 
 
 Overview of changes in 2.6
