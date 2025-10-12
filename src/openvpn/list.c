@@ -338,7 +338,7 @@ hash_iterator_delete_element(struct hash_iterator *hi)
  * By Bob Jenkins, 1996.  bob_jenkins@burtleburtle.net.  You may use this
  * code any way you wish, private, educational, or commercial.  It's free.
  *
- * See http://burlteburtle.net/bob/hash/evahash.html
+ * See https://burtleburtle.net/bob/hash/evahash.html
  * Use for hash table lookup, or anything where one collision in 2^32 is
  * acceptable.  Do NOT use for cryptographic purposes.
  *

@@ -41,7 +41,7 @@ PORTING GUIDELINE TO A NEW PLATFORM:
     platform.
   * Make sure that a tun or tap virtual device
     driver exists for your platform.  See
-    http://vtun.sourceforge.net/tun/ for examples
+    https://vtun.sourceforge.net/tun/ for examples
     of tun and tap drivers that have been written
     for Linux, Solaris, and FreeBSD.
   * Make sure you have autoconf 2.50+ and

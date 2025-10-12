@@ -150,10 +150,10 @@ NOTES
 This product includes software developed by the OpenSSL Project
 (https://www.openssl.org/)
 
-For more information on the TLS protocol, see
-http://www.ietf.org/rfc/rfc2246.txt
+For more information on the TLS protocol see:
+https://tools.ietf.org/html/rfc2246
 
-For more information on the LZO real-time compression library see
+For more information on the LZO real-time compression library see:
 https://www.oberhumer.com/opensource/lzo/
 
 

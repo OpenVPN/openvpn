@@ -34,7 +34,7 @@
 #  - use clang-format or uncrustify depending on presence of .clang-format
 #    config file
 #
-# More info on Uncrustify: http://uncrustify.sourceforge.net/
+# More info on Uncrustify: https://uncrustify.sourceforge.net/
 
 # This file was taken from a set of unofficial pre-commit hooks available
 # at https://github.com/ddddavidmartin/Pre-commit-hooks and modified to

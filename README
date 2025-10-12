@@ -34,9 +34,6 @@ For a sample VPN configuration, see
 
 To report an issue, see
   https://github.com/OpenVPN/openvpn/issues/new
-  (Note: We recently switched to GitHub for reporting new issues,
-   old issues can be found at:
-   https://community.openvpn.net/openvpn/report)
 
 For a description of OpenVPN's underlying protocol,
   see the file ssl.h included in the source distribution.
