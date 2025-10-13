@@ -1322,7 +1322,7 @@ show_tuntap_options(const struct tuntap_options *o)
     SHOW_BOOL(dhcp_pre_release);
     SHOW_STR(domain);
     SHOW_STR(netbios_scope);
-    SHOW_INT(netbios_node_type);
+    SHOW_UNSIGNED(netbios_node_type);
     SHOW_BOOL(disable_nbt);
 
     show_dhcp_option_addrs("DNS", o->dns, o->dns_len);
@@ -8001,7 +8001,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
                 msg(msglevel, "--dhcp-option NBT: parameter (%d) must be 1, 2, 4, or 8", t);
                 goto err;
             }
-            o->netbios_node_type = t;
+            o->netbios_node_type = (uint8_t)t;
             o->dhcp_options |= DHCP_OPTIONS_DHCP_REQUIRED;
         }
         else if (streq(p[1], "WINS") && p[2] && !p[3])

@@ -104,11 +104,10 @@ struct tuntap_options
 
     const char *netbios_scope; /* NBS (47) */
 
-    int netbios_node_type;     /* NBT 1,2,4,8 (46) */
+    uint8_t netbios_node_type; /* NBT 1,2,4,8 (46) */
 
-#define N_DHCP_ADDR                     \
-    4 /* Max # of addresses allowed for \
-       * DNS, WINS, etc. */
+/* Max # of addresses allowed for  DNS, WINS, etc. */
+#define N_DHCP_ADDR 4
 
     /* DNS (6) */
     in_addr_t dns[N_DHCP_ADDR];

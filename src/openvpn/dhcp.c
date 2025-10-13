@@ -188,18 +188,13 @@ dhcp_extract_router_msg(struct buffer *ipbuf)
 
 #if defined(_WIN32) || defined(DHCP_UNIT_TEST)
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /*
  * Convert DHCP options from the command line / config file
  * into a raw DHCP-format options string.
  */
 
 static void
-write_dhcp_u8(struct buffer *buf, const int type, const int data, bool *error)
+write_dhcp_u8(struct buffer *buf, const uint8_t type, const uint8_t data, bool *error)
 {
     if (!buf_safe(buf, 3))
     {
@@ -213,13 +208,12 @@ write_dhcp_u8(struct buffer *buf, const int type, const int data, bool *error)
 }
 
 static void
-write_dhcp_u32_array(struct buffer *buf, const int type, const uint32_t *data,
+write_dhcp_u32_array(struct buffer *buf, const uint8_t type, const uint32_t *data,
                      const unsigned int len, bool *error)
 {
     if (len > 0)
     {
-        int i;
-        const int size = len * sizeof(uint32_t);
+        const size_t size = len * sizeof(uint32_t);
 
         if (!buf_safe(buf, 2 + size))
         {
@@ -230,12 +224,12 @@ write_dhcp_u32_array(struct buffer *buf, const int type, const uint32_t *data,
         if (size < 1 || size > 255)
         {
             *error = true;
-            msg(M_WARN, "write_dhcp_u32_array: size (%d) must be > 0 and <= 255", size);
+            msg(M_WARN, "write_dhcp_u32_array: size (%zu) must be > 0 and <= 255", size);
             return;
         }
         buf_write_u8(buf, type);
-        buf_write_u8(buf, size);
-        for (i = 0; i < len; ++i)
+        buf_write_u8(buf, (uint8_t)size);
+        for (unsigned int i = 0; i < len; ++i)
         {
             buf_write_u32(buf, data[i]);
         }
@@ -243,9 +237,9 @@ write_dhcp_u32_array(struct buffer *buf, const int type, const uint32_t *data,
 }
 
 static void
-write_dhcp_str(struct buffer *buf, const int type, const char *str, bool *error)
+write_dhcp_str(struct buffer *buf, const uint8_t type, const char *str, bool *error)
 {
-    const int len = strlen(str);
+    const size_t len = strlen(str);
     if (!buf_safe(buf, 2 + len))
     {
         *error = true;
@@ -259,7 +253,7 @@ write_dhcp_str(struct buffer *buf, const int type, const char *str, bool *error)
         return;
     }
     buf_write_u8(buf, type);
-    buf_write_u8(buf, len);
+    buf_write_u8(buf, (uint8_t)len);
     buf_write(buf, str, len);
 }
 
@@ -272,15 +266,14 @@ write_dhcp_str(struct buffer *buf, const int type, const char *str, bool *error)
  *  0x1D  0x7 openvpn 0x3 net 0x00 0x0A duckduckgo 0x3 com 0x00
  */
 static void
-write_dhcp_search_str(struct buffer *buf, const int type, const char *const *str_array,
+write_dhcp_search_str(struct buffer *buf, const uint8_t type, const char *const *str_array,
                       int array_len, bool *error)
 {
     char tmp_buf[256];
-    int i;
-    int len = 0;
-    int label_length_pos;
+    size_t len = 0;
+    size_t label_length_pos;
 
-    for (i = 0; i < array_len; i++)
+    for (int i = 0; i < array_len; i++)
     {
         const char *ptr = str_array[i];
 
@@ -301,7 +294,8 @@ write_dhcp_search_str(struct buffer *buf, const int type, const char *const *str
         {
             if (*ptr == '.' || *ptr == '\0')
             {
-                tmp_buf[label_length_pos] = (len - label_length_pos) - 1;
+                /* cast is protected by sizeof(tmp_buf) */
+                tmp_buf[label_length_pos] = (char)(len - label_length_pos - 1);
                 label_length_pos = len;
                 if (*ptr == '\0')
                 {
@@ -328,13 +322,9 @@ write_dhcp_search_str(struct buffer *buf, const int type, const char *const *str
     }
 
     buf_write_u8(buf, type);
-    buf_write_u8(buf, len);
+    buf_write_u8(buf, (uint8_t)len);
     buf_write(buf, tmp_buf, len);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 bool
 build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)
