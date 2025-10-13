@@ -79,17 +79,19 @@ parse_line(const char *line, char **p, const int n, const char *file, const int 
     return 0;
 }
 
+#ifdef _WIN32
 bool
-protect_buffer_win32(char *buf, size_t len)
+protect_buffer_win32(char *buf, DWORD len)
 {
     return true;
 }
 
 bool
-unprotect_buffer_win32(char *buf, size_t len)
+unprotect_buffer_win32(char *buf, DWORD len)
 {
     return true;
 }
+#endif
 
 /* tooling */
 static void

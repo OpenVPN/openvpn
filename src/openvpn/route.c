@@ -2840,7 +2840,7 @@ del_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt)
 
 /* Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error */
 static int
-do_route_service(const bool add, const route_message_t *rt, const size_t size, HANDLE pipe)
+do_route_service(const bool add, const route_message_t *rt, const DWORD size, HANDLE pipe)
 {
     int ret = RTA_ERROR;
     ack_message_t ack;

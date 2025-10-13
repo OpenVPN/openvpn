@@ -301,12 +301,14 @@ bool win_wfp_uninit(const NET_IFINDEX index, const HANDLE msg_channel);
  */
 const char *win32_version_string(struct gc_arena *gc);
 
-/*
- * Send the |size| bytes in buffer |data| to the interactive service |pipe|
- * and read the result in |ack|. Returns false on communication error.
- * The string in |context| is used to prefix error messages.
+/**
+ * Send the \p size bytes in buffer \p data to the interactive service \p pipe
+ * and read the result in \p ack.
+ * The string in \p context is used to prefix error messages.
+ *
+ * @return true on success, false on communication error
  */
-bool send_msg_iservice(HANDLE pipe, const void *data, size_t size, ack_message_t *ack,
+bool send_msg_iservice(HANDLE pipe, const void *data, DWORD size, ack_message_t *ack,
                        const char *context);
 
 /*
@@ -350,7 +352,7 @@ bool plugin_in_trusted_dir(const WCHAR *plugin_path);
  * - len   number of bytes to encrypt -- must be a multiple of
  *         CRYPTPROTECTMEMORY_BLOCK_SIZE = 16
  */
-bool protect_buffer_win32(char *buf, size_t len);
+bool protect_buffer_win32(char *buf, DWORD len);
 
 /**
  * Decrypt a previously encrypted region of memory using CryptUnProtectMemory()
@@ -360,7 +362,7 @@ bool protect_buffer_win32(char *buf, size_t len);
  * - len   number of bytes to encrypt -- must be a multiple of
  *         CRYPTPROTECTMEMORY_BLOCK_SIZE = 16
  */
-bool unprotect_buffer_win32(char *buf, size_t len);
+bool unprotect_buffer_win32(char *buf, DWORD len);
 
 #endif /* ifndef OPENVPN_WIN32_H */
 #endif /* ifdef _WIN32 */

@@ -1418,13 +1418,8 @@ win32_version_string(struct gc_arena *gc)
     return (const char *)out.data;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 bool
-send_msg_iservice(HANDLE pipe, const void *data, size_t size, ack_message_t *ack,
+send_msg_iservice(HANDLE pipe, const void *data, DWORD size, ack_message_t *ack,
                   const char *context)
 {
     struct gc_arena gc = gc_new();
@@ -1527,7 +1522,8 @@ win32_sleep(const int n)
 
     while (expire >= now)
     {
-        DWORD status = WaitForSingleObject(win32_signal.in.read, (expire - now) * 1000);
+        DWORD wait_ms = (DWORD)((expire - now) * 1000);
+        DWORD status = WaitForSingleObject(win32_signal.in.read, wait_ms);
         if ((status == WAIT_OBJECT_0 && win32_signal_get(&win32_signal)) || status == WAIT_TIMEOUT)
         {
             return;
@@ -1539,7 +1535,7 @@ win32_sleep(const int n)
         {
             if (expire > now)
             {
-                Sleep((expire - now) * 1000);
+                Sleep((DWORD)((expire - now) * 1000));
             }
             return;
         }
@@ -1602,7 +1598,7 @@ plugin_in_trusted_dir(const WCHAR *plugin_path)
 }
 
 bool
-protect_buffer_win32(char *buf, size_t len)
+protect_buffer_win32(char *buf, DWORD len)
 {
     bool ret;
     if (len % CRYPTPROTECTMEMORY_BLOCK_SIZE)
@@ -1620,7 +1616,7 @@ protect_buffer_win32(char *buf, size_t len)
 }
 
 bool
-unprotect_buffer_win32(char *buf, size_t len)
+unprotect_buffer_win32(char *buf, DWORD len)
 {
     bool ret;
     if (len % CRYPTPROTECTMEMORY_BLOCK_SIZE)
@@ -1636,9 +1632,5 @@ unprotect_buffer_win32(char *buf, size_t len)
     }
     return ret;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #endif /* ifdef _WIN32 */
