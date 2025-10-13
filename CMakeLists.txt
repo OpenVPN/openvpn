@@ -658,6 +658,7 @@ if (BUILD_TESTING)
         "test_auth_token"
         "test_buffer"
         "test_crypto"
+        "test_dhcp"
         "test_misc"
         "test_ncp"
         "test_options_parse"
@@ -909,6 +910,11 @@ if (BUILD_TESTING)
             src/openvpn/base64.c
             )
     endif ()
+
+    target_compile_definitions(test_dhcp PRIVATE DHCP_UNIT_TEST)
+    target_sources(test_dhcp PRIVATE
+        tests/unit_tests/openvpn/mock_get_random.c
+        )
 
     if (TARGET test_networking)
         target_link_options(test_networking PRIVATE -Wl,--wrap=parse_line)

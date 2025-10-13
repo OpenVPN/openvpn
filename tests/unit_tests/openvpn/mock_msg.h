@@ -23,6 +23,8 @@
 #ifndef MOCK_MSG_H
 #define MOCK_MSG_H
 
+#include "error.h"
+
 /**
  * Mock debug level defaults to 0, which gives clean(-ish) test reports.  Call
  * this function from your test driver to increase debug output when you

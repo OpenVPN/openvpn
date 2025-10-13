@@ -186,7 +186,7 @@ dhcp_extract_router_msg(struct buffer *ipbuf)
     return 0;
 }
 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(DHCP_UNIT_TEST)
 
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push

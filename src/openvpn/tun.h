@@ -59,7 +59,7 @@ enum tun_driver_type
 #define DCO_WIN_REFERENCE_STRING "ovpn-dco"
 #endif
 
-#if defined(_WIN32) || defined(TARGET_ANDROID)
+#if defined(_WIN32) || defined(TARGET_ANDROID) || defined(DHCP_UNIT_TEST)
 
 #define TUN_ADAPTER_INDEX_INVALID ((DWORD)-1)
 

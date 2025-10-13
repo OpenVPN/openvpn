@@ -6,7 +6,7 @@ AM_TESTSUITE_SUMMARY_HEADER = ' for $(PACKAGE_STRING) Unit-Tests'
 
 AM_TESTS_ENVIRONMENT = export LSAN_OPTIONS=suppressions=$(srcdir)/input/leak_suppr.txt;
 
-test_binaries = argv_testdriver buffer_testdriver crypto_testdriver packet_id_testdriver auth_token_testdriver \
+test_binaries = argv_testdriver buffer_testdriver crypto_testdriver dhcp_testdriver packet_id_testdriver auth_token_testdriver \
 	ncp_testdriver misc_testdriver options_parse_testdriver pkt_testdriver ssl_testdriver \
 	user_pass_testdriver push_update_msg_testdriver provider_testdriver socket_testdriver
 
@@ -71,6 +71,15 @@ crypto_testdriver_SOURCES = test_crypto.c \
 	$(top_srcdir)/src/openvpn/mtu.c \
 	$(top_srcdir)/src/openvpn/win32-util.c \
 	$(top_srcdir)/src/openvpn/mss.c
+
+dhcp_testdriver_CFLAGS  = -I$(top_srcdir)/src/openvpn -I$(top_srcdir)/src/compat @TEST_CFLAGS@ -DDHCP_UNIT_TEST
+dhcp_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(top_srcdir)/src/openvpn
+dhcp_testdriver_SOURCES = test_dhcp.c \
+	mock_msg.c mock_msg.h test_common.h \
+	mock_get_random.c \
+	$(top_srcdir)/src/openvpn/platform.c \
+	$(top_srcdir)/src/openvpn/buffer.c \
+	$(top_srcdir)/src/openvpn/win32-util.c
 
 ssl_testdriver_CFLAGS  = \
 	-I$(top_srcdir)/include -I$(top_srcdir)/src/compat -I$(top_srcdir)/src/openvpn \
