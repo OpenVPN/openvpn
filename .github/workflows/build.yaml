@@ -339,7 +339,7 @@ jobs:
           path: libressl
           # versioning=semver-coerced
           repository: libressl/portable
-          ref: v4.1.0
+          ref: v4.2.0
       - name: "libressl: autogen.sh"
         env:
           LIBRESSL_GIT_OPTIONS: "--no-single-branch"
