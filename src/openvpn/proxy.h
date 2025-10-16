@@ -83,6 +83,8 @@ void http_proxy_close(struct http_proxy_info *hp);
 bool proxy_recv_char(uint8_t *c, const char *name, socket_descriptor_t sd,
                      struct timeval *timeout, volatile int *signal_received);
 
+bool proxy_send(socket_descriptor_t sd, const void *buf, size_t buf_len);
+
 bool establish_http_proxy_passthru(struct http_proxy_info *p,
                                    socket_descriptor_t sd, /* already open to proxy */
                                    const char *host,       /* openvpn server remote */

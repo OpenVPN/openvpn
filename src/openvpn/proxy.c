@@ -184,13 +184,13 @@ recv_line(socket_descriptor_t sd, char *buf, int len, const int timeout_sec, con
     return true;
 }
 
-static bool
-send_line(socket_descriptor_t sd, const char *buf)
+bool
+proxy_send(socket_descriptor_t sd, const void *buf, size_t buf_len)
 {
-    const ssize_t size = openvpn_send(sd, buf, strlen(buf), MSG_NOSIGNAL);
-    if (size != (ssize_t)strlen(buf))
+    const ssize_t size = openvpn_send(sd, buf, buf_len, MSG_NOSIGNAL);
+    if (size != (ssize_t)buf_len)
     {
-        msg(D_LINK_ERRORS | M_ERRNO, "send_line: TCP port write failed on send()");
+        msg(D_LINK_ERRORS | M_ERRNO, "proxy_send: TCP port write failed on send()");
         return false;
     }
     return true;
@@ -201,10 +201,10 @@ send_line_crlf(socket_descriptor_t sd, const char *src)
 {
     bool ret;
 
-    struct buffer buf = alloc_buf(strlen(src) + 3);
+    struct buffer buf = alloc_buf(strlen(src) + 2);
     ASSERT(buf_write(&buf, src, strlen(src)));
-    ASSERT(buf_write(&buf, "\r\n", 3));
-    ret = send_line(sd, BSTR(&buf));
+    ASSERT(buf_write(&buf, "\r\n", 2));
+    ret = proxy_send(sd, BSTR(&buf), BLEN(&buf));
     free_buf(&buf);
     return ret;
 }

@@ -123,12 +123,8 @@ socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
                         creds.username, (int)strlen(creds.password), creds.password);
     ASSERT(sret >= 0 && sret <= sizeof(to_send));
 
-    ssize_t size = openvpn_send(sd, to_send, strlen(to_send), MSG_NOSIGNAL);
-
-    if (size != (ssize_t)strlen(to_send))
+    if (!proxy_send(sd, to_send, strlen(to_send)))
     {
-        msg(D_LINK_ERRORS | M_ERRNO,
-            "socks_username_password_auth: TCP port write failed on send()");
         goto cleanup;
     }
 
@@ -166,7 +162,6 @@ socks_handshake(struct socks_proxy_info *p, socket_descriptor_t sd,
 {
     uint8_t buf[2];
     int len = 0;
-    ssize_t size;
 
     /* VER = 5, NMETHODS = 1, METHODS = [0 (no auth)] */
     uint8_t method_sel[3] = { 0x05, 0x01, 0x00 };
@@ -174,10 +169,8 @@ socks_handshake(struct socks_proxy_info *p, socket_descriptor_t sd,
     {
         method_sel[2] = 0x02; /* METHODS = [2 (plain login)] */
     }
-    size = openvpn_send(sd, method_sel, sizeof(method_sel), MSG_NOSIGNAL);
-    if (size != sizeof(method_sel))
+    if (!proxy_send(sd, method_sel, sizeof(method_sel)))
     {
-        msg(D_LINK_ERRORS | M_ERRNO, "socks_handshake: TCP port write failed on send()");
         return false;
     }
 
@@ -380,17 +373,10 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
     buf[5 + len] = (char)(port >> 8);
     buf[5 + len + 1] = (char)(port & 0xff);
 
+    if (!proxy_send(sd, buf, 5 + len + 2))
     {
-        size_t send_len = 5 + len + 2;
-        const ssize_t size = openvpn_send(sd, buf, send_len, MSG_NOSIGNAL);
-        if (size != (ssize_t)send_len)
-        {
-            msg(D_LINK_ERRORS | M_ERRNO,
-                "establish_socks_proxy_passthru: TCP port write failed on send()");
-            goto error;
-        }
+        goto error;
     }
-
 
     /* receive reply from Socks proxy and discard */
     if (!recv_socks_reply(sd, NULL, server_poll_timeout, &sig_info->signal_received))
