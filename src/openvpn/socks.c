@@ -93,8 +93,7 @@ socks_proxy_recv_char(char *c, const char *name, socket_descriptor_t sd,
     tv.tv_sec = get_server_poll_remaining_time(server_poll_timeout);
     tv.tv_usec = 0;
 
-    /* NB: first argument ignored on Windows where socket_descriptor_t != int */
-    const int status = select((int)sd + 1, &reads, NULL, NULL, &tv);
+    const int status = openvpn_select(sd + 1, &reads, NULL, NULL, &tv);
 
     get_signal(signal_received);
     if (*signal_received)
@@ -156,10 +155,9 @@ socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
                         creds.username, (int)strlen(creds.password), creds.password);
     ASSERT(sret >= 0 && sret <= sizeof(to_send));
 
-    /* NB: int because Windows APIs */
-    ssize_t size = send(sd, to_send, (int)strlen(to_send), MSG_NOSIGNAL);
+    ssize_t size = openvpn_send(sd, to_send, strlen(to_send), MSG_NOSIGNAL);
 
-    if (size != strlen(to_send))
+    if (size != (ssize_t)strlen(to_send))
     {
         msg(D_LINK_ERRORS | M_ERRNO,
             "socks_username_password_auth: TCP port write failed on send()");
@@ -208,7 +206,7 @@ socks_handshake(struct socks_proxy_info *p, socket_descriptor_t sd,
     {
         method_sel[2] = 0x02; /* METHODS = [2 (plain login)] */
     }
-    size = send(sd, method_sel, sizeof(method_sel), MSG_NOSIGNAL);
+    size = openvpn_send(sd, method_sel, sizeof(method_sel), MSG_NOSIGNAL);
     if (size != sizeof(method_sel))
     {
         msg(D_LINK_ERRORS | M_ERRNO, "socks_handshake: TCP port write failed on send()");
@@ -415,10 +413,9 @@ establish_socks_proxy_passthru(struct socks_proxy_info *p,
     buf[5 + len + 1] = (char)(port & 0xff);
 
     {
-        /* int because Windows APIs */
-        int send_len = 5 + (int)len + 2;
-        const ssize_t size = send(sd, buf, send_len, MSG_NOSIGNAL);
-        if (size != send_len)
+        size_t send_len = 5 + len + 2;
+        const ssize_t size = openvpn_send(sd, buf, send_len, MSG_NOSIGNAL);
+        if (size != (ssize_t)send_len)
         {
             msg(D_LINK_ERRORS | M_ERRNO,
                 "establish_socks_proxy_passthru: TCP port write failed on send()");

@@ -849,6 +849,10 @@ tcp_connection_established(const struct link_socket_actual *act)
     gc_free(&gc);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 static socket_descriptor_t
 socket_listen_accept(socket_descriptor_t sd, struct link_socket_actual *act,
                      const char *remote_dynamic, const struct addrinfo *local, bool do_listen,
@@ -873,7 +877,7 @@ socket_listen_accept(socket_descriptor_t sd, struct link_socket_actual *act,
         tv.tv_sec = 0;
         tv.tv_usec = 0;
 
-        status = select(sd + 1, &reads, NULL, NULL, &tv);
+        status = openvpn_select(sd + 1, &reads, NULL, NULL, &tv);
 
         get_signal(signal_received);
         if (*signal_received)
@@ -979,7 +983,7 @@ socket_bind(socket_descriptor_t sd, struct addrinfo *local, int ai_family, const
             msg(M_NONFATAL | M_ERRNO, "Setting IPV6_V6ONLY=%d failed", v6only);
         }
     }
-    if (bind(sd, cur->ai_addr, cur->ai_addrlen))
+    if (openvpn_bind(sd, cur->ai_addr, cur->ai_addrlen))
     {
         msg(M_FATAL | M_ERRNO, "%s: Socket bind failed on local address %s", prefix,
             print_sockaddr_ex(local->ai_addr, ":", PS_SHOW_PORT, &gc));
@@ -1026,7 +1030,7 @@ openvpn_connect(socket_descriptor_t sd, const struct sockaddr *remote, int conne
             tv.tv_sec = (connect_timeout > 0) ? 1 : 0;
             tv.tv_usec = 0;
 
-            status = select(sd + 1, NULL, &writes, NULL, &tv);
+            status = openvpn_select(sd + 1, NULL, &writes, NULL, &tv);
 #endif
             if (signal_received)
             {
@@ -1182,6 +1186,11 @@ socket_frame_init(const struct frame *frame, struct link_socket *sock)
 #endif
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
 
 static void
 resolve_bind_local(struct link_socket *sock, const sa_family_t af)

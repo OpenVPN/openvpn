@@ -54,11 +54,6 @@ init_http_proxy_options_once(struct http_proxy_options **hpo, struct gc_arena *g
 }
 
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /* cached proxy username/password */
 static struct user_pass static_proxy_user_pass;
 
@@ -93,7 +88,7 @@ recv_line(socket_descriptor_t sd, char *buf, int len, const int timeout_sec, con
         tv.tv_sec = timeout_sec;
         tv.tv_usec = 0;
 
-        status = select(sd + 1, &reads, NULL, NULL, &tv);
+        status = openvpn_select(sd + 1, &reads, NULL, NULL, &tv);
 
         get_signal(signal_received);
         if (*signal_received)
@@ -192,7 +187,7 @@ error:
 static bool
 send_line(socket_descriptor_t sd, const char *buf)
 {
-    const ssize_t size = send(sd, buf, strlen(buf), MSG_NOSIGNAL);
+    const ssize_t size = openvpn_send(sd, buf, strlen(buf), MSG_NOSIGNAL);
     if (size != (ssize_t)strlen(buf))
     {
         msg(D_LINK_ERRORS | M_ERRNO, "send_line: TCP port write failed on send()");
@@ -903,7 +898,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
 
                 if (opaque)
                 {
-                    const int len = strlen(opaque) + 16;
+                    const size_t len = strlen(opaque) + 16;
                     opaque_kv = gc_malloc(len, false, &gc);
                     snprintf(opaque_kv, len, ", opaque=\"%s\"", opaque);
                 }
@@ -1068,7 +1063,3 @@ error:
     gc_free(&gc);
     return ret;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
