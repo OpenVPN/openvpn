@@ -2728,8 +2728,8 @@ do_deferred_options(struct context *c, const unsigned int found, const bool is_u
 
     /* Ensure that for epoch data format is only enabled if also data v2
      * is enabled */
-    bool epoch_data = (c->options.imported_protocol_flags & CO_EPOCH_DATA_KEY_FORMAT);
-    bool datav2_enabled = (c->options.peer_id >= 0 && c->options.peer_id < MAX_PEER_ID);
+    bool epoch_data = c->options.imported_protocol_flags & CO_EPOCH_DATA_KEY_FORMAT;
+    bool datav2_enabled = c->options.use_peer_id && c->options.peer_id < MAX_PEER_ID;
 
     if (epoch_data && !datav2_enabled)
     {
