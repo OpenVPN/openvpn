@@ -57,6 +57,50 @@ init_http_proxy_options_once(struct http_proxy_options **hpo, struct gc_arena *g
 /* cached proxy username/password */
 static struct user_pass static_proxy_user_pass;
 
+bool
+proxy_recv_char(uint8_t *c, const char *name, socket_descriptor_t sd,
+                struct timeval *timeout, volatile int *signal_received)
+{
+    fd_set reads;
+    FD_ZERO(&reads);
+    openvpn_fd_set(sd, &reads);
+
+    const int status = openvpn_select(sd + 1, &reads, NULL, NULL, timeout);
+
+    get_signal(signal_received);
+    if (*signal_received)
+    {
+        return false;
+    }
+
+    /* timeout? */
+    if (status == 0)
+    {
+        msg(D_LINK_ERRORS | M_ERRNO, "%s: TCP port read timeout expired", name);
+        return false;
+    }
+
+    /* error */
+    if (status < 0)
+    {
+        msg(D_LINK_ERRORS | M_ERRNO, "%s: TCP port read failed on select()", name);
+        return false;
+    }
+
+    /* read single char */
+    const ssize_t size = recv(sd, (void *)c, 1, MSG_NOSIGNAL);
+
+    /* error? */
+    if (size != 1)
+    {
+        msg(D_LINK_ERRORS | M_ERRNO, "%s: TCP port read failed on recv()", name);
+        return false;
+    }
+
+    return true;
+}
+
+
 static bool
 recv_line(socket_descriptor_t sd, char *buf, int len, const int timeout_sec, const bool verbose,
           struct buffer *lookahead, volatile int *signal_received)
@@ -72,9 +116,6 @@ recv_line(socket_descriptor_t sd, char *buf, int len, const int timeout_sec, con
 
     while (true)
     {
-        int status;
-        ssize_t size;
-        fd_set reads;
         struct timeval tv;
         uint8_t c;
 
@@ -83,50 +124,12 @@ recv_line(socket_descriptor_t sd, char *buf, int len, const int timeout_sec, con
             ASSERT(buf_init(&la, 0));
         }
 
-        FD_ZERO(&reads);
-        openvpn_fd_set(sd, &reads);
         tv.tv_sec = timeout_sec;
         tv.tv_usec = 0;
 
-        status = openvpn_select(sd + 1, &reads, NULL, NULL, &tv);
-
-        get_signal(signal_received);
-        if (*signal_received)
+        if (!proxy_recv_char(&c, "recv_line", sd, &tv, signal_received))
         {
-            goto error;
-        }
-
-        /* timeout? */
-        if (status == 0)
-        {
-            if (verbose)
-            {
-                msg(D_LINK_ERRORS | M_ERRNO, "recv_line: TCP port read timeout expired");
-            }
-            goto error;
-        }
-
-        /* error */
-        if (status < 0)
-        {
-            if (verbose)
-            {
-                msg(D_LINK_ERRORS | M_ERRNO, "recv_line: TCP port read failed on select()");
-            }
-            goto error;
-        }
-
-        /* read single char */
-        size = recv(sd, (void *)&c, 1, MSG_NOSIGNAL);
-
-        /* error? */
-        if (size != 1)
-        {
-            if (verbose)
-            {
-                msg(D_LINK_ERRORS | M_ERRNO, "recv_line: TCP port read failed on recv()");
-            }
-            goto error;
+            return false;
         }
 
 #if 0
@@ -179,9 +182,6 @@ recv_line(socket_descriptor_t sd, char *buf, int len, const int timeout_sec, con
     }
 
     return true;
-
-error:
-    return false;
 }
 
 static bool

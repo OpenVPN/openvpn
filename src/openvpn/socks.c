@@ -81,7 +81,7 @@ socks_proxy_close(struct socks_proxy_info *sp)
 }
 
 static bool
-socks_proxy_recv_char(char *c, const char *name, socket_descriptor_t sd,
+socks_proxy_recv_char(uint8_t *c, const char *name, socket_descriptor_t sd,
                       struct event_timeout *server_poll_timeout,
                       volatile int *signal_received)
 {
@@ -93,39 +93,7 @@ socks_proxy_recv_char(char *c, const char *name, socket_descriptor_t sd,
     tv.tv_sec = get_server_poll_remaining_time(server_poll_timeout);
     tv.tv_usec = 0;
 
-    const int status = openvpn_select(sd + 1, &reads, NULL, NULL, &tv);
-
-    get_signal(signal_received);
-    if (*signal_received)
-    {
-        return false;
-    }
-
-    /* timeout? */
-    if (status == 0)
-    {
-        msg(D_LINK_ERRORS | M_ERRNO, "%s: TCP port read timeout expired", name);
-        return false;
-    }
-
-    /* error */
-    if (status < 0)
-    {
-        msg(D_LINK_ERRORS | M_ERRNO, "%s: TCP port read failed on select()", name);
-        return false;
-    }
-
-    /* read single char */
-    const ssize_t size = recv(sd, c, 1, MSG_NOSIGNAL);
-
-    /* error? */
-    if (size != 1)
-    {
-        msg(D_LINK_ERRORS | M_ERRNO, "%s: TCP port read failed on recv()", name);
-        return false;
-    }
-
-    return true;
+    return proxy_recv_char(c, name, sd, &tv, signal_received);
 }
 
 static bool
@@ -165,10 +133,10 @@ socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
     }
 
     int len = 0;
-    char buf[2];
+    uint8_t buf[2];
     while (len < 2)
     {
-        char c;
+        uint8_t c;
 
         if (!socks_proxy_recv_char(&c, __func__, sd, server_poll_timeout, signal_received))
         {
@@ -196,12 +164,12 @@ static bool
 socks_handshake(struct socks_proxy_info *p, socket_descriptor_t sd,
                 struct event_timeout *server_poll_timeout, volatile int *signal_received)
 {
-    char buf[2];
+    uint8_t buf[2];
     int len = 0;
     ssize_t size;
 
     /* VER = 5, NMETHODS = 1, METHODS = [0 (no auth)] */
-    char method_sel[3] = { 0x05, 0x01, 0x00 };
+    uint8_t method_sel[3] = { 0x05, 0x01, 0x00 };
     if (p->authfile[0])
     {
         method_sel[2] = 0x02; /* METHODS = [2 (plain login)] */
@@ -215,7 +183,7 @@ socks_handshake(struct socks_proxy_info *p, socket_descriptor_t sd,
 
     while (len < 2)
     {
-        char c;
+        uint8_t c;
 
         if (!socks_proxy_recv_char(&c, __func__, sd, server_poll_timeout, signal_received))
         {
@@ -226,7 +194,7 @@ socks_handshake(struct socks_proxy_info *p, socket_descriptor_t sd,
     }
 
     /* VER == 5 */
-    if (buf[0] != '\x05')
+    if (buf[0] != 5)
     {
         msg(D_LINK_ERRORS, "socks_handshake: Socks proxy returned bad status");
         return false;
@@ -273,7 +241,7 @@ static bool
 recv_socks_reply(socket_descriptor_t sd, struct openvpn_sockaddr *addr,
                  struct event_timeout *server_poll_timeout, volatile int *signal_received)
 {
-    char atyp = '\0';
+    uint8_t atyp = 0;
     int alen = 0;
     int len = 0;
     char buf[270]; /* 4 + alen(max 256) + 2 */
@@ -287,7 +255,7 @@ recv_socks_reply(socket_descriptor_t sd, struct openvpn_sockaddr *addr,
 
     while (len < 4 + alen + 2)
     {
-        char c;
+        uint8_t c;
 
         if (!socks_proxy_recv_char(&c, __func__, sd, server_poll_timeout, signal_received))
         {
@@ -303,18 +271,18 @@ recv_socks_reply(socket_descriptor_t sd, struct openvpn_sockaddr *addr,
         {
             switch (atyp)
             {
-                case '\x01': /* IP V4 */
+                case 1: /* IP V4 */
                     alen = 4;
                     break;
 
-                case '\x03': /* DOMAINNAME */
+                case 3: /* DOMAINNAME */
                     /* RFC 1928, section 5: 1 byte length, <n> bytes name,
                      * so the total "address length" is (length+1)
                      */
-                    alen = (unsigned char)c + 1;
+                    alen = c + 1;
                     break;
 
-                case '\x04': /* IP V6 */
+                case 4: /* IP V6 */
                     alen = 16;
                     break;
 
@@ -333,14 +301,14 @@ recv_socks_reply(socket_descriptor_t sd, struct openvpn_sockaddr *addr,
     }
 
     /* VER == 5 && REP == 0 (succeeded) */
-    if (buf[0] != '\x05' || buf[1] != '\x00')
+    if (buf[0] != 5 || buf[1] != 0)
     {
         msg(D_LINK_ERRORS, "recv_socks_reply: Socks proxy returned bad reply");
         return false;
     }
 
     /* ATYP == 1 (IP V4 address) */
-    if (atyp == '\x01' && addr != NULL)
+    if (atyp == 1 && addr != NULL)
     {
         memcpy(&addr->addr.in4.sin_addr, buf + 4, sizeof(addr->addr.in4.sin_addr));
         memcpy(&addr->addr.in4.sin_port, buf + 8, sizeof(addr->addr.in4.sin_port));
