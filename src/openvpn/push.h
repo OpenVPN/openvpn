@@ -140,23 +140,6 @@ void send_push_reply_auth_token(struct tls_multi *multi);
 void receive_auth_pending(struct context *c, const struct buffer *buffer);
 
 #ifdef ENABLE_MANAGEMENT
-/**
- * @brief A function to send a PUSH_UPDATE control message from server to client(s).
- *
- * @param m the multi_context, contains all the clients connected to this server.
- * @param target the target to which to send the message. It should be:
- * `NULL` if `type == UPT_BROADCAST`,
- * a `mroute_addr *` if `type == UPT_BY_ADDR`,
- * a `char *` if `type == UPT_BY_CN`,
- * an `unsigned long *` if `type == UPT_BY_CID`.
- * @param msg a string containing the options to send.
- * @param type the way to address the message (broadcast, by cid, by cn, by address).
- * @param push_bundle_size the maximum size of a bundle of pushed option. Just use PUSH_BUNDLE_SIZE macro.
- * @return the number of clients to which the message was sent.
- */
-int
-send_push_update(struct multi_context *m, const void *target, const char *msg, const push_update_type type, const int push_bundle_size);
-
 bool management_callback_send_push_update_broadcast(void *arg, const char *options);
 
 bool management_callback_send_push_update_by_cid(void *arg, unsigned long cid, const char *options);

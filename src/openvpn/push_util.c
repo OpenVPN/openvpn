@@ -239,7 +239,21 @@ support_push_update(struct multi_instance *mi)
     return true;
 }
 
-int
+/**
+ * @brief A function to send a PUSH_UPDATE control message from server to client(s).
+ *
+ * @param m the multi_context, contains all the clients connected to this server.
+ * @param target the target to which to send the message. It should be:
+ * `NULL` if `type == UPT_BROADCAST`,
+ * a `mroute_addr *` if `type == UPT_BY_ADDR`,
+ * a `char *` if `type == UPT_BY_CN`,
+ * an `unsigned long *` if `type == UPT_BY_CID`.
+ * @param msg a string containing the options to send.
+ * @param type the way to address the message (broadcast, by cid, by cn, by address).
+ * @param push_bundle_size the maximum size of a bundle of pushed option. Just use PUSH_BUNDLE_SIZE macro.
+ * @return The number of clients to which the message was sent. Might return < 0 in case of error.
+ */
+static int
 send_push_update(struct multi_context *m, const void *target, const char *msg, const push_update_type type, const int push_bundle_size)
 {
     if (dco_enabled(&m->top.options))
