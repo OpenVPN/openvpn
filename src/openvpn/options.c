@@ -3317,11 +3317,22 @@ options_postprocess_verify(const struct options *o)
 
     dns_options_verify(M_FATAL, &o->dns_options);
 
-    if (dco_enabled(o) && o->enable_c2c)
+    if (dco_enabled(o))
     {
-        msg(M_WARN, "Note: --client-to-client has no effect when using data "
-                    "channel offload: packets are always sent to the VPN "
-                    "interface and then routed based on the system routing table");
+        if (o->enable_c2c)
+        {
+            msg(M_WARN, "Note: --client-to-client has no effect when using data "
+                        "channel offload: packets are always sent to the VPN "
+                        "interface and then routed based on the system routing table");
+        }
+
+        if (o->renegotiate_bytes > 0 || o->renegotiate_packets)
+        {
+            msg(M_WARN, "Note: '--reneg-bytes' and '--reneg-pkts' are not supported "
+                        "by data channel offload; automatic key renegotiation "
+                        "mechanisms are sufficient for modern ciphers. "
+                        "Ignoring these options.");
+        }
     }
 }
 
