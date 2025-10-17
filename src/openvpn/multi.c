@@ -3266,8 +3266,6 @@ process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi, dc
      * installed, and we do not need to clean up the state in the kernel */
     mi->context.c2.tls_multi->dco_peer_id = -1;
     mi->context.sig->signal_text = reason;
-    mi->context.c2.dco_read_bytes = dco->dco_read_bytes;
-    mi->context.c2.dco_write_bytes = dco->dco_write_bytes;
     multi_signal_instance(m, mi, SIGTERM);
 }
 
@@ -3337,8 +3335,6 @@ multi_process_incoming_dco(struct multi_context *m)
     dco->dco_message_type = 0;
     dco->dco_message_peer_id = -1;
     dco->dco_del_peer_reason = -1;
-    dco->dco_read_bytes = 0;
-    dco->dco_write_bytes = 0;
     return ret > 0;
 }
 #endif /* if defined(ENABLE_DCO) */

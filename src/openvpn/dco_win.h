@@ -55,9 +55,6 @@ struct dco_context
     int dco_del_peer_reason;
     struct sockaddr_storage dco_float_peer_ss;
 
-    uint64_t dco_read_bytes;
-    uint64_t dco_write_bytes;
-
     struct context *c;
 };
 
