@@ -290,21 +290,16 @@ tls_get_cipher_name_pair(const char *cipher_name, size_t len)
     return NULL;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 int
 get_num_elements(const char *string, char delimiter)
 {
-    int string_len = strlen(string);
+    const size_t string_len = strlen(string);
 
     ASSERT(0 != string_len);
 
     int element_count = 1;
     /* Get number of ciphers */
-    for (int i = 0; i < string_len; i++)
+    for (size_t i = 0; i < string_len; i++)
     {
         if (string[i] == delimiter)
         {
@@ -314,7 +309,3 @@ get_num_elements(const char *string, char delimiter)
 
     return element_count;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
