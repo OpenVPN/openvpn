@@ -61,11 +61,13 @@ int process_incoming_push_request(struct context *c);
  * message has not yet been received.
  *
  * @param c The context for the operation.
+ * @param o The options structure to be updated with the received push options.
  * @param permission_mask The permission mask specifying which options are allowed to be pulled.
  * @param option_types_found A pointer to a variable that will be filled with the types of options
  *                           found in the message.
  * @param buf A buffer containing the received message.
- * @param msg_sender A boolean indicating if function is called by the message sender (server).
+ * @param msg_sender A boolean indicating if the message is being processed on the client (false)
+ *                   or on the server (true).
  *
  * @return
  * - `PUSH_MSG_UPDATE`: The message was processed successfully, and the updates were applied.
@@ -74,9 +76,8 @@ int process_incoming_push_request(struct context *c);
  * - `PUSH_MSG_ERROR`: An error occurred during message processing, or the message is invalid.
  */
 
-int process_incoming_push_update(struct context *c, unsigned int permission_mask,
-                                 unsigned int *option_types_found, struct buffer *buf,
-                                 bool msg_sender);
+int process_push_update(struct context *c, struct options *o, unsigned int permission_mask,
+                        unsigned int *option_types_found, struct buffer *buf, bool msg_sender);
 
 int process_incoming_push_msg(struct context *c, const struct buffer *buffer,
                               bool honor_received_options, unsigned int permission_mask,

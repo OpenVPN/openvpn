@@ -1118,7 +1118,7 @@ process_incoming_push_msg(struct context *c, const struct buffer *buffer,
                         " To be able to process PUSH_UPDATE messages, be sure to use the --disable-dco option.");
             return PUSH_MSG_ERROR;
         }
-        return process_incoming_push_update(c, permission_mask, option_types_found, &buf, false);
+        return process_push_update(c, &c->options, permission_mask, option_types_found, &buf, false);
     }
     else
     {
