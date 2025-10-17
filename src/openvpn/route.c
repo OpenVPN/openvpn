@@ -2368,7 +2368,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt,
     {
         gateway_needed = true;
     }
-#endif
+#endif /* ifndef _WIN32 */
 
     struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
