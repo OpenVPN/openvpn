@@ -10,17 +10,12 @@
 #include "ssl_util.h"
 #endif
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 int
 process_push_update(struct context *c, struct options *o, unsigned int permission_mask,
                     unsigned int *option_types_found, struct buffer *buf, bool msg_sender)
 {
     int ret = PUSH_MSG_ERROR;
-    const uint8_t ch = buf_read_u8(buf);
+    const int ch = buf_read_u8(buf);
     if (ch == ',')
     {
         if (apply_push_options(c, o, buf, permission_mask, option_types_found, c->c2.es,
@@ -56,8 +51,8 @@ process_push_update(struct context *c, struct options *o, unsigned int permissio
  * Return index of last `,` or `0` if it didn't find any.
  * If there is a comma at index `0` it's an error anyway
  */
-static int
-find_first_comma_of_next_bundle(const char *str, int ix)
+static size_t
+find_first_comma_of_next_bundle(const char *str, size_t ix)
 {
     while (ix > 0)
     {
@@ -74,8 +69,8 @@ find_first_comma_of_next_bundle(const char *str, int ix)
 static struct buffer
 forge_msg(const char *src, const char *continuation, struct gc_arena *gc)
 {
-    int src_len = strlen(src);
-    int con_len = continuation ? strlen(continuation) : 0;
+    size_t src_len = strlen(src);
+    size_t con_len = continuation ? strlen(continuation) : 0;
     struct buffer buf = alloc_buf_gc(src_len + sizeof(push_update_cmd) + con_len + 2, gc);
 
     buf_printf(&buf, "%s,%s%s", push_update_cmd, src, continuation ? continuation : "");
@@ -92,11 +87,11 @@ gc_strdup(const char *src, struct gc_arena *gc)
     return ret;
 }
 
-/* It split the messagge (if necessay) and fill msgs with the message chunks.
+/* It split the messagge (if necessary) and fill msgs with the message chunks.
  * Return `false` on failure an `true` on success.
  */
 static bool
-message_splitter(const char *s, struct buffer *msgs, struct gc_arena *gc, const int safe_cap)
+message_splitter(const char *s, struct buffer *msgs, struct gc_arena *gc, const size_t safe_cap)
 {
     if (!s || !*s)
     {
@@ -104,7 +99,7 @@ message_splitter(const char *s, struct buffer *msgs, struct gc_arena *gc, const 
     }
 
     char *str = gc_strdup(s, gc);
-    int i = 0;
+    size_t i = 0;
     int im = 0;
 
     while (*str)
@@ -112,7 +107,7 @@ message_splitter(const char *s, struct buffer *msgs, struct gc_arena *gc, const 
         /* + ',' - '/0' */
         if (strlen(str) > safe_cap)
         {
-            int ci = find_first_comma_of_next_bundle(str, safe_cap);
+            size_t ci = find_first_comma_of_next_bundle(str, safe_cap);
             if (!ci)
             {
                 /* if no commas were found go to fail, do not send any message */
@@ -254,7 +249,7 @@ support_push_update(struct multi_instance *mi)
  * @return The number of clients to which the message was sent. Might return < 0 in case of error.
  */
 static int
-send_push_update(struct multi_context *m, const void *target, const char *msg, const push_update_type type, const int push_bundle_size)
+send_push_update(struct multi_context *m, const void *target, const char *msg, const push_update_type type, const size_t push_bundle_size)
 {
     if (dco_enabled(&m->top.options))
     {
@@ -263,19 +258,19 @@ send_push_update(struct multi_context *m, const void *target, const char *msg, c
         return 0;
     }
 
-    if (!msg || !*msg || !m
-        || (!target && type != UPT_BROADCAST))
+    if (!msg || !*msg || !m || (!target && type != UPT_BROADCAST))
     {
         return -EINVAL;
     }
 
     struct gc_arena gc = gc_new();
     /* extra space for possible trailing ifconfig and push-continuation */
-    const int extra = 84 + sizeof(push_update_cmd);
+    const size_t extra = 84 + sizeof(push_update_cmd);
     /* push_bundle_size is the maximum size of a message, so if the message
      * we want to send exceeds that size we have to split it into smaller messages */
-    const int safe_cap = push_bundle_size - extra;
-    int msgs_num = (strlen(msg) / safe_cap) + ((strlen(msg) % safe_cap) != 0);
+    ASSERT(push_bundle_size > extra);
+    const size_t safe_cap = push_bundle_size - extra;
+    size_t msgs_num = (strlen(msg) / safe_cap) + ((strlen(msg) % safe_cap) != 0);
     struct buffer *msgs = gc_malloc((msgs_num + 1) * sizeof(struct buffer), true, &gc);
 
     msgs[msgs_num].data = NULL;
@@ -374,7 +369,3 @@ management_callback_send_push_update_by_cid(void *arg, unsigned long cid, const 
     RETURN_UPDATE_STATUS(n_sent);
 }
 #endif /* ifdef ENABLE_MANAGEMENT */
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
