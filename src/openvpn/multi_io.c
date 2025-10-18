@@ -294,12 +294,9 @@ multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int 
 
     switch (action)
     {
+        case TA_INST_LENG:
         case TA_TUN_READ:
-            read_incoming_tun(&m->top);
-            if (!IS_SIG(&m->top))
-            {
-                multi_process_incoming_tun(m, mpp_flags);
-            }
+            multi_in_tun(m, mpp_flags);
             break;
 
         case TA_SOCKET_READ:
@@ -368,6 +365,7 @@ multi_io_post(struct multi_context *m, struct multi_instance *mi, const int acti
 #define MTP_NONE     0
 #define MTP_TUN_OUT  (1 << 0)
 #define MTP_LINK_OUT (1 << 1)
+#define MTP_MULTI_LEN (1 << 2)
     unsigned int flags = MTP_NONE;
 
     if (TUN_OUT(c))
@@ -378,9 +376,17 @@ multi_io_post(struct multi_context *m, struct multi_instance *mi, const int acti
     {
         flags |= MTP_LINK_OUT;
     }
+    if (INST_LENG(m))
+    {
+        flags  = MTP_MULTI_LEN;
+    }
 
     switch (flags)
     {
+        case MTP_MULTI_LEN:
+            newaction = TA_INST_LENG;
+            break;
+
         case MTP_TUN_OUT | MTP_LINK_OUT:
         case MTP_TUN_OUT:
             newaction = TA_TUN_WRITE;
@@ -572,7 +578,7 @@ multi_io_action(struct multi_context *m, struct multi_instance *mi, int action, 
          * On our first pass, poll will be false because we already know
          * that input is available, and to call io_wait would be redundant.
          */
-        if (poll && action != TA_SOCKET_READ_RESIDUAL)
+        if (poll && action != TA_SOCKET_READ_RESIDUAL && action != TA_INST_LENG)
         {
             const int orig_action = action;
             action = multi_io_wait_lite(m, mi, action, &tun_input_pending);
