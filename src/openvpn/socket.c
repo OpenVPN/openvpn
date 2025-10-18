@@ -147,6 +147,13 @@ get_addr_generic(sa_family_t af, unsigned int flags, const char *hostname, void 
         struct in6_addr *ip6;
         in_addr_t *ip4;
 
+        if (af != ai->ai_family)
+        {
+            msg(msglevel, "Can't parse %s as IPv%d address", var_host, (af == AF_INET) ? 4 : 6);
+            ret = -1;
+            goto out;
+        }
+
         switch (af)
         {
             case AF_INET:
