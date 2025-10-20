@@ -462,7 +462,7 @@ jobs:
           path: aws-lc
           # versioning=semver-coerced
           repository: aws/aws-lc
-          ref: v1.61.3
+          ref: v1.62.0
       - uses: lukka/get-cmake@2ecc21724e5215b0e567bc399a2602d2ecb48541 # v4.1.1
       - name: "AWS-LC: build"
         run: |
