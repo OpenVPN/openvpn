@@ -3965,9 +3965,9 @@ management_callback_kill_by_addr(void *arg, const in_addr_t addr, const int port
     saddr.addr.in4.sin_family = AF_INET;
     saddr.addr.in4.sin_addr.s_addr = htonl(addr);
     saddr.addr.in4.sin_port = htons(port);
+    maddr.proto = proto;
     if (mroute_extract_openvpn_sockaddr(&maddr, &saddr, true))
     {
-        maddr.proto = proto;
         hash_iterator_init(m->iter, &hi);
         while ((he = hash_iterator_next(&hi)))
         {
