@@ -836,7 +836,7 @@ socket_do_accept(socket_descriptor_t sd, struct link_socket_actual *act, const b
     {
         /* set socket file descriptor to not pass across execs, so that
          * scripts don't have access to it */
-        set_cloexec(sd);
+        set_cloexec(new_sd);
     }
     return new_sd;
 }
