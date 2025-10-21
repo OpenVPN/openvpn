@@ -3797,13 +3797,6 @@ multi_process_per_second_timers_dowork(struct multi_context *m)
     {
         check_stale_routes(m);
     }
-
-#ifdef ENABLE_MANAGEMENT
-    if (management)
-    {
-        management_check_bytecount_server(m);
-    }
-#endif /* ENABLE_MANAGEMENT */
 }
 
 static void
@@ -4152,6 +4145,29 @@ multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
     /* should not really end up here, since multi_create_instance returns null
      * if amount of clients exceeds max_clients */
     ASSERT(mi->context.c2.tls_multi->peer_id < m->max_clients);
+}
+
+/**
+ * @brief Determines the earliest wakeup interval based on periodic operations.
+ *
+ * Updates the \c timeval to reflect the next scheduled wakeup time.
+ * Also sets \c multi->earliest_wakeup to the instance with the earliest wakeup.
+ *
+ * @param multi     Pointer to the multi context
+ * @param timeval   Pointer to the timeval structure to be updated with the
+ *                  next wakeup time
+ */
+static void
+multi_get_timeout(struct multi_context *multi, struct timeval *timeval)
+{
+    multi_get_timeout_instance(multi, timeval);
+
+#ifdef ENABLE_MANAGEMENT
+    if (management)
+    {
+        management_check_bytecount_server(multi, timeval);
+    }
+#endif /* ENABLE_MANAGEMENT */
 }
 
 /**************************************************************************/

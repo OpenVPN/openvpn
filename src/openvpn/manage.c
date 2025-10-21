@@ -4184,16 +4184,14 @@ management_check_bytecount_client(struct context *c, struct management *man, str
 }
 
 void
-management_check_bytecount_server(struct multi_context *multi)
+management_check_bytecount_server(struct multi_context *multi, struct timeval *timeval)
 {
     if (!(management->persist.callback.flags & MCF_SERVER))
     {
         return;
     }
 
-    struct timeval null;
-    CLEAR(null);
-    if (event_timeout_trigger(&management->connection.bytecount_update_interval, &null, ETT_DEFAULT))
+    if (event_timeout_trigger(&management->connection.bytecount_update_interval, timeval, ETT_DEFAULT))
     {
         /* fetch counters from dco */
         if (dco_enabled(&multi->top.options))

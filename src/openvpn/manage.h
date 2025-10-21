@@ -493,7 +493,7 @@ void management_auth_token(struct management *man, const char *token);
 
 void management_check_bytecount_client(struct context *c, struct management *man, struct timeval *timeval);
 
-void management_check_bytecount_server(struct multi_context *multi);
+void management_check_bytecount_server(struct multi_context *multi, struct timeval *timeval);
 
 void man_persist_client_stats(struct management *man, struct context *c);
 
