@@ -2690,6 +2690,13 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         MUST_BE_UNDEF(vlan_accept, "vlan-accept");
         MUST_BE_UNDEF(vlan_pvid, "vlan-pvid");
         MUST_BE_UNDEF(force_key_material_export, "force-key-material-export");
+
+        if (options->push_list.head)
+        {
+            msg(M_WARN, "Note: Using --push without --mode server is an "
+                        "unsupported configuration. Negotiation of OpenVPN "
+                        "features is expected to fail.");
+        }
     }
 
     /*

@@ -768,14 +768,9 @@ struct options
 #define OPT_P_DEFAULT (~(OPT_P_INSTANCE | OPT_P_PULL_MODE))
 
 #define PULL_DEFINED(opt) ((opt)->pull)
-#define PUSH_DEFINED(opt) ((opt)->push_list)
 
 #ifndef PULL_DEFINED
 #define PULL_DEFINED(opt) (false)
-#endif
-
-#ifndef PUSH_DEFINED
-#define PUSH_DEFINED(opt) (false)
 #endif
 
 #ifdef _WIN32
