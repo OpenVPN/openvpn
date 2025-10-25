@@ -147,6 +147,9 @@ struct multi_instance
 #ifdef ENABLE_ASYNC_PUSH
     int inotify_watch; /* watch descriptor for acf */
 #endif
+
+    int mtio_idno;
+    struct multi_address mtio_addr;
 };
 
 
@@ -218,7 +221,15 @@ struct multi_context
 #endif
 
     struct deferred_signal_schedule_entry deferred_shutdown_signal;
+
+    int inst_indx;
+    int inst_leng;
+    struct multi_instance **inst_list;
+
+    int mtio_idno;
+    struct multi_info mtio_info;
 };
+
 
 /**
  * Return values used by the client connect call-back functions.
@@ -255,8 +266,11 @@ struct multi_route
  *
  * @param top          - Top-level context structure.
  */
-void tunnel_server(struct context *top);
+void threaded_tunnel_server(struct context *c, struct context *d);
 
+int min_max(int a, int b, int c);
+
+bool multi_context_switch_addr(struct multi_context *m, struct multi_instance *i);
 
 const char *multi_instance_string(const struct multi_instance *mi, bool null, struct gc_arena *gc);
 
@@ -264,9 +278,7 @@ const char *multi_instance_string(const struct multi_instance *mi, bool null, st
  * Called by mtcp.c, mudp.c, or other (to be written) protocol drivers
  */
 
-struct multi_instance *multi_create_instance(struct multi_context *m,
-                                             const struct mroute_addr *real,
-                                             struct link_socket *sock);
+struct multi_instance *multi_create_instance(struct thread_pointer *a, const struct mroute_addr *real, struct link_socket *sock);
 
 void multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool shutdown);
 
@@ -359,6 +371,9 @@ bool multi_process_incoming_link(struct multi_context *m, struct multi_instance 
  */
 bool multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags);
 
+bool multi_process_post_part2(struct multi_context *m, const unsigned int mpp_flags);
+
+bool threaded_multi_in_tun(struct multi_context *m, const unsigned int mpp_flags);
 
 void multi_process_drop_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags);
 
