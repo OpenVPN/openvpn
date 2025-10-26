@@ -93,7 +93,7 @@ struct dhcp_full
 
 in_addr_t dhcp_extract_router_msg(struct buffer *ipbuf);
 
-#if defined(_WIN32) || defined(DHCP_UNIT_TEST)
+#if defined(DHCP_UNIT_TEST)
 #include "tun.h"
 
 bool build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o);

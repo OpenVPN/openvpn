@@ -37,11 +37,6 @@
 #include "ssl_verify_openssl.h"
 #define SSLAPI SSLAPI_OPENSSL
 #endif
-#ifdef ENABLE_CRYPTO_MBEDTLS
-#include "ssl_mbedtls.h"
-#include "ssl_verify_mbedtls.h"
-#define SSLAPI SSLAPI_MBEDTLS
-#endif
 
 /* Ensure that SSLAPI got a sane value if SSL is disabled or unknown */
 #ifndef SSLAPI
@@ -51,7 +46,9 @@
 /**
  *  prototype for struct tls_session from ssl_common.h
  */
+struct tls_multi;
 struct tls_session;
+struct key_state;
 
 /*
  *
@@ -248,18 +245,6 @@ int tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file, bool 
                         bool load_ca_file);
 
 /**
- * Use Windows cryptoapi for key and cert, and add to library-specific TLS
- * context.
- *
- * @param ctx                   TLS context to use
- * @param cryptoapi_cert       String representing the certificate to load.
- */
-#ifdef ENABLE_CRYPTOAPI
-void tls_ctx_load_cryptoapi(struct tls_root_ctx *ctx, const char *cryptoapi_cert);
-
-#endif /* _WIN32 */
-
-/**
  * Load certificate file into the given TLS context. If the given certificate
  * file contains a certificate chain, load the whole chain.
  *
@@ -334,17 +319,6 @@ void tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file
 void tls_ctx_load_extra_certs(struct tls_root_ctx *ctx, const char *extra_certs_file,
                               bool extra_certs_file_inline);
 
-#ifdef ENABLE_CRYPTO_MBEDTLS
-/**
- * Add a personalisation string to the mbed TLS RNG, based on the certificate
- * loaded into the given context.
- *
- * @param ctx                   TLS context to use
- */
-void tls_ctx_personalise_random(struct tls_root_ctx *ctx);
-
-#endif
-
 /* **************************************
  *
  * Key-state specific functions
@@ -360,8 +334,7 @@ void tls_ctx_personalise_random(struct tls_root_ctx *ctx);
  * @param is_server     Initialise a server?
  * @param session       The session associated with the given key_state
  */
-void key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx,
-                        bool is_server, struct tls_session *session);
+void key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_multi *multi);
 
 /**
  * Sets a TLS session to be shutdown state, so the TLS library will generate
@@ -402,8 +375,7 @@ void backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_fi
  * @param ekm_size     The size of ekm, in bytes
  * @returns            true if exporting succeeded, false otherwise
  */
-bool key_state_export_keying_material(struct tls_session *session, const char *label,
-                                      size_t label_size, void *ekm, size_t ekm_size);
+bool key_state_export_keying_material(struct tls_session *session, struct key_state *ks, const char *label, size_t label_size, void *ekm, size_t ekm_size);
 
 /**************************************************************************/
 /** @addtogroup control_tls

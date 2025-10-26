@@ -116,17 +116,6 @@ void tls_crypt_init_key(struct key_ctx_bi *key, struct key2 *keydata, const char
                         bool key_inline, bool tls_server);
 
 /**
- * Generates a TLS-Crypt key to be used with dynamic tls-crypt using the
- * TLS EKM exporter function.
- *
- * All renegotiations of a session use the same generated dynamic key.
- *
- * @param session   session that will be used for the TLS EKM exporter
- * @return          true iff generating the key was successful
- */
-bool tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session);
-
-/**
  * Returns the maximum overhead (in bytes) added to the destination buffer by
  * tls_crypt_wrap().
  */

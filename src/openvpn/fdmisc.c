@@ -35,18 +35,10 @@
 bool
 set_nonblock_action(socket_descriptor_t fd)
 {
-#ifdef _WIN32
-    u_long arg = 1;
-    if (ioctlsocket(fd, FIONBIO, &arg))
-    {
-        return false;
-    }
-#else /* ifdef _WIN32 */
     if (fcntl(fd, F_SETFL, O_NONBLOCK) < 0)
     {
         return false;
     }
-#endif
     return true;
 }
 
@@ -54,12 +46,10 @@ set_nonblock_action(socket_descriptor_t fd)
 bool
 set_cloexec_action(socket_descriptor_t fd)
 {
-#ifndef _WIN32
     if (fcntl(fd, F_SETFD, FD_CLOEXEC) < 0)
     {
         return false;
     }
-#endif
     return true;
 }
 
