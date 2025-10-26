@@ -57,10 +57,6 @@
 #include <openssl/core_names.h>
 #endif
 
-#if defined(_WIN32) && defined(OPENSSL_NO_EC)
-#error Windows build with OPENSSL_NO_EC: disabling EC key is not supported.
-#endif
-
 #ifdef _MSC_VER
 /* mute ossl3 deprecation warnings treated as errors in msvc */
 #pragma warning(disable : 4996)

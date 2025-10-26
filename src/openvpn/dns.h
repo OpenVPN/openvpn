@@ -83,9 +83,7 @@ struct dns_updown_runner_info
 {
     bool required;
     int fds[2];
-#if !defined(_WIN32)
     pid_t pid;
-#endif
 };
 
 #ifndef N_DHCP_ADDR

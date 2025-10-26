@@ -794,17 +794,6 @@ protect_user_pass(struct user_pass *up)
     {
         return;
     }
-#ifdef _WIN32
-    if (protect_buffer_win32(up->username, sizeof(up->username))
-        && protect_buffer_win32(up->password, sizeof(up->password)))
-    {
-        up->protected = true;
-    }
-    else
-    {
-        purge_user_pass(up, true);
-    }
-#endif
 }
 
 void
@@ -814,15 +803,4 @@ unprotect_user_pass(struct user_pass *up)
     {
         return;
     }
-#ifdef _WIN32
-    if (unprotect_buffer_win32(up->username, sizeof(up->username))
-        && unprotect_buffer_win32(up->password, sizeof(up->password)))
-    {
-        up->protected = false;
-    }
-    else
-    {
-        purge_user_pass(up, true);
-    }
-#endif
 }

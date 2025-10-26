@@ -84,19 +84,9 @@
  */
 #define MULTI_N ((void *)16) /* upper bound on MTCP_x */
 
-#ifdef _WIN32
-
-typedef const struct rw_handle *event_t;
-
-#define UNDEFINED_EVENT (NULL)
-
-#else /* ifdef _WIN32 */
-
 typedef int event_t;
 
 #define UNDEFINED_EVENT (-1)
-
-#endif
 
 struct event_set;
 struct event_set_return;
@@ -197,24 +187,10 @@ event_set_return_init(struct event_set_return *esr)
     esr->arg = NULL;
 }
 
-#ifdef _WIN32
-
 static inline void
 wait_signal(struct event_set *es, void *arg)
 {
-    if (HANDLE_DEFINED(win32_signal.in.read))
-    {
-        event_ctl(es, &win32_signal.in, EVENT_READ, arg);
-    }
+    /* no-op */
 }
-
-#else /* ifdef _WIN32 */
-
-static inline void
-wait_signal(struct event_set *es, void *arg)
-{
-}
-
-#endif
 
 #endif /* ifndef EVENT_H */

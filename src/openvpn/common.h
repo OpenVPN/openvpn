@@ -35,11 +35,7 @@ typedef uint64_t counter_type;
  * Time intervals
  */
 typedef int interval_t;
-
-/*
- * Used as an upper bound for timeouts.
- */
-#define BIG_TIMEOUT (60 * 60 * 24 * 7) /* one week (in seconds) */
+#define LOOP_WAIT 7
 
 /*
  * Printf formats for special types

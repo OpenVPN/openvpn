@@ -71,68 +71,6 @@ tls_crypt_init_key(struct key_ctx_bi *key, struct key2 *keydata, const char *key
                             "Control Channel Encryption", "tls-crypt", keydata);
 }
 
-/**
- * Will produce key = key XOR other
- */
-static void
-xor_key2(struct key2 *key, const struct key2 *other)
-{
-    ASSERT(key->n == 2 && other->n == 2);
-    for (int k = 0; k < 2; k++)
-    {
-        for (int j = 0; j < MAX_CIPHER_KEY_LENGTH; j++)
-        {
-            key->keys[k].cipher[j] = key->keys[k].cipher[j] ^ other->keys[k].cipher[j];
-        }
-
-        for (int j = 0; j < MAX_HMAC_KEY_LENGTH; j++)
-        {
-            key->keys[k].hmac[j] = key->keys[k].hmac[j] ^ other->keys[k].hmac[j];
-        }
-    }
-}
-
-bool
-tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session)
-{
-    struct key2 rengokeys;
-    if (!key_state_export_keying_material(session, EXPORT_DYNAMIC_TLS_CRYPT_LABEL,
-                                          strlen(EXPORT_DYNAMIC_TLS_CRYPT_LABEL), rengokeys.keys,
-                                          sizeof(rengokeys.keys)))
-    {
-        return false;
-    }
-    rengokeys.n = 2;
-
-    session->tls_wrap_reneg.opt = session->tls_wrap.opt;
-    session->tls_wrap_reneg.mode = TLS_WRAP_CRYPT;
-    session->tls_wrap_reneg.cleanup_key_ctx = true;
-    session->tls_wrap_reneg.work = alloc_buf(BUF_SIZE(&session->opt->frame));
-    session->tls_wrap_reneg.opt.pid_persist = NULL;
-
-    packet_id_init(&session->tls_wrap_reneg.opt.packet_id, session->opt->replay_window,
-                   session->opt->replay_time, "TLS_WRAP_RENEG", session->key_id);
-
-    if (session->tls_wrap.mode == TLS_WRAP_CRYPT || session->tls_wrap.mode == TLS_WRAP_AUTH)
-    {
-        xor_key2(&rengokeys, &session->tls_wrap.original_wrap_keydata);
-    }
-
-    const int key_direction = session->opt->server ? KEY_DIRECTION_NORMAL : KEY_DIRECTION_INVERSE;
-
-    struct key_direction_state kds;
-    key_direction_state_init(&kds, key_direction);
-
-    struct key_type kt = tls_crypt_kt();
-
-    init_key_ctx_bi(&session->tls_wrap_reneg.opt.key_ctx_bi, &rengokeys, key_direction, &kt,
-                    "dynamic tls-crypt");
-    secure_memzero(&rengokeys, sizeof(rengokeys));
-
-    return true;
-}
-
-
 bool
 tls_crypt_wrap(const struct buffer *src, struct buffer *dst, struct crypto_options *opt)
 {

@@ -53,6 +53,8 @@ bool do_genkey(const struct options *options);
 
 bool do_persist_tuntap(struct options *options, openvpn_net_ctx_t *ctx);
 
+bool do_deferred_options_part2(struct context *c);
+
 bool possibly_become_daemon(const struct options *options);
 
 void pre_setup(const struct options *options);

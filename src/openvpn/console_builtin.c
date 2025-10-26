@@ -41,101 +41,6 @@
 #include <termios.h>
 #endif
 
-#ifdef _WIN32
-
-#include "win32.h"
-
-/**
- * Get input from a Windows console.
- *
- * @param prompt    Prompt to display to the user
- * @param echo      Should the user input be displayed in the console
- * @param input     Pointer to the buffer the user input will be saved
- * @param capacity  Size of the buffer for the user input
- *
- * @return Return false on input error, or if service
- *         exit event is signaled.
- */
-static bool
-get_console_input_win32(const char *prompt, const bool echo, char *input, const int capacity)
-{
-    ASSERT(prompt);
-    ASSERT(input);
-    ASSERT(capacity > 0);
-
-    input[0] = '\0';
-
-    HANDLE in = GetStdHandle(STD_INPUT_HANDLE);
-    int orig_stderr = get_orig_stderr(); /* guaranteed to be always valid */
-    if ((in == INVALID_HANDLE_VALUE) || win32_service_interrupt(&win32_signal)
-        || (_write(orig_stderr, prompt, (unsigned int)strlen(prompt)) == -1))
-    {
-        msg(M_WARN | M_ERRNO, "get_console_input_win32(): unexpected error");
-        return false;
-    }
-
-    bool is_console = (GetFileType(in) == FILE_TYPE_CHAR);
-    DWORD flags_save = 0;
-    int status = 0;
-    WCHAR *winput;
-
-    if (is_console)
-    {
-        if (GetConsoleMode(in, &flags_save))
-        {
-            DWORD flags = ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT;
-            if (echo)
-            {
-                flags |= ENABLE_ECHO_INPUT;
-            }
-            SetConsoleMode(in, flags);
-        }
-        else
-        {
-            is_console = 0;
-        }
-    }
-
-    DWORD len = 0;
-
-    if (is_console)
-    {
-        winput = malloc(capacity * sizeof(WCHAR));
-        if (winput == NULL)
-        {
-            return false;
-        }
-
-        status = ReadConsoleW(in, winput, capacity, &len, NULL);
-        WideCharToMultiByte(CP_UTF8, 0, winput, len, input, capacity, NULL, NULL);
-        free(winput);
-    }
-    else
-    {
-        status = ReadFile(in, input, capacity, &len, NULL);
-    }
-
-    string_null_terminate(input, (int)len, capacity);
-    chomp(input);
-
-    if (!echo)
-    {
-        _write(orig_stderr, "\r\n", 2);
-    }
-    if (is_console)
-    {
-        SetConsoleMode(in, flags_save);
-    }
-    if (status && !win32_service_interrupt(&win32_signal))
-    {
-        return true;
-    }
-
-    return false;
-}
-
-#endif /* _WIN32 */
-
 
 #ifdef HAVE_TERMIOS_H
 
@@ -198,9 +103,7 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
     ASSERT(capacity > 0);
     input[0] = '\0';
 
-#if defined(_WIN32)
-    return get_console_input_win32(prompt, echo, input, capacity);
-#elif defined(HAVE_TERMIOS_H)
+#if defined(HAVE_TERMIOS_H)
     bool restore_tty = false;
     struct termios tty_tmp, tty_save;
 
@@ -258,9 +161,9 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
     }
 
     close_tty(fp);
-#else  /* if defined(_WIN32) */
+#else
     msg(M_FATAL, "Sorry, but I can't get console input on this OS (%s)", prompt);
-#endif /* if defined(_WIN32) */
+#endif
     return ret;
 }
 

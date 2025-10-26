@@ -128,7 +128,7 @@ is_auth_token(const char *password)
  * @param multi     Pointer the multi object of the TLS session
  * @param session   Pointer to the TLS session itself
  */
-void resend_auth_token_renegotiation(struct tls_multi *multi, struct tls_session *session);
+void resend_auth_token_renegotiation(struct tls_multi *multi);
 
 
 /**

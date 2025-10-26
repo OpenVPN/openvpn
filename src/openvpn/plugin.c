@@ -200,8 +200,6 @@ plugin_option_list_print(const struct plugin_option_list *list, msglvl_t msgleve
 }
 #endif
 
-#ifndef _WIN32
-
 static void
 libdl_resolve_symbol(void *handle, void **dest, const char *symbol, const char *plugin_name,
                      const unsigned int flags)
@@ -214,22 +212,6 @@ libdl_resolve_symbol(void *handle, void **dest, const char *symbol, const char *
     }
 }
 
-#else  /* ifndef _WIN32 */
-
-static void
-dll_resolve_symbol(HMODULE module, void **dest, const char *symbol, const char *plugin_name,
-                   const unsigned int flags)
-{
-    *dest = GetProcAddress(module, symbol);
-    if ((flags & PLUGIN_SYMBOL_REQUIRED) && !*dest)
-    {
-        msg(M_FATAL, "PLUGIN: could not find required symbol '%s' in plugin DLL %s", symbol,
-            plugin_name);
-    }
-}
-
-#endif /* ifndef _WIN32 */
-
 static void
 plugin_init_item(struct plugin *p, const struct plugin_option *o)
 {
@@ -238,8 +220,6 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
 
     p->so_pathname = o->so_pathname;
     p->plugin_type_mask = plugin_supported_types();
-
-#ifndef _WIN32
 
     p->handle = NULL;
 
@@ -278,35 +258,6 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
 
 #define PLUGIN_SYM(var, name, flags) \
     libdl_resolve_symbol(p->handle, (void *)&p->var, name, p->so_pathname, flags)
-
-#else /* ifndef _WIN32 */
-
-    WCHAR *wpath = wide_string(p->so_pathname, &gc);
-    WCHAR normalized_plugin_path[MAX_PATH] = { 0 };
-    /* Normalize the plugin path, converting any relative paths to absolute paths. */
-    if (!GetFullPathNameW(wpath, MAX_PATH, normalized_plugin_path, NULL))
-    {
-        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls. Failed to normalize plugin path.",
-            wpath);
-    }
-
-    if (!plugin_in_trusted_dir(normalized_plugin_path))
-    {
-        msg(M_FATAL,
-            "PLUGIN_INIT: could not load plugin DLL: %ls. The DLL is not in a trusted directory.",
-            normalized_plugin_path);
-    }
-
-    p->module = LoadLibraryW(normalized_plugin_path);
-    if (!p->module)
-    {
-        msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls", normalized_plugin_path);
-    }
-
-#define PLUGIN_SYM(var, name, flags) \
-    dll_resolve_symbol(p->module, (void *)&p->var, name, p->so_pathname, flags)
-
-#endif /* ifndef _WIN32 */
 
     PLUGIN_SYM(open1, "openvpn_plugin_open_v1", 0);
     PLUGIN_SYM(open2, "openvpn_plugin_open_v2", 0);
@@ -621,17 +572,10 @@ plugin_close_item(struct plugin *p)
             (*p->close)(p->plugin_handle);
         }
 
-#ifndef _WIN32
         if (dlclose(p->handle))
         {
             msg(M_WARN, "PLUGIN_CLOSE: dlclose() failed on plugin: %s", p->so_pathname);
         }
-#elif defined(_WIN32)
-        if (!FreeLibrary(p->module))
-        {
-            msg(M_WARN, "PLUGIN_CLOSE: FreeLibrary() failed on plugin: %s", p->so_pathname);
-        }
-#endif
 
         p->initialized = false;
     }

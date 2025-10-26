@@ -364,6 +364,9 @@ void tls_prepend_opcode_v1(const struct tls_multi *multi, struct buffer *buf);
  */
 void tls_prepend_opcode_v2(const struct tls_multi *multi, struct buffer *buf);
 
+/* Established control channel key exchange */
+void tls_prepend_opcode_k1(const struct tls_multi *multi, struct buffer *buf);
+
 /**
  * Perform some accounting for the key state used.
  * @ingroup data_crypto
@@ -459,7 +462,7 @@ void tls_update_remote_addr(struct tls_multi *multi, const struct link_socket_ac
  *
  * @return true if updating succeeded or keys are already generated, false otherwise.
  */
-bool tls_session_update_crypto_params(struct tls_multi *multi, struct tls_session *session,
+bool tls_session_update_crypto_params(struct tls_multi *multi, struct tls_session *session, struct key_state *ks,
                                       struct options *options, struct frame *frame,
                                       struct frame *frame_fragment, struct link_socket_info *lsi,
                                       dco_context_t *dco);
@@ -494,17 +497,21 @@ tls_initial_packet_received(const struct tls_multi *multi)
 }
 
 static inline int
-tls_test_payload_len(const struct tls_multi *multi)
+tls_test_payload_len(struct tls_multi *multi)
 {
+    int size = 0;
     if (multi)
     {
-        const struct key_state *ks = get_primary_key(multi);
-        if (ks->state >= S_ACTIVE)
+        for (int i = 0; i < KEY_SCAN_SIZE; ++i)
         {
-            return BLEN(&ks->plaintext_read_buf);
+            struct key_state *ks = get_key_scan(multi, i);
+            if (ks->state >= S_ACTIVE)
+            {
+                size += BLEN(&ks->plaintext_read_buf);
+            }
         }
     }
-    return 0;
+    return size;
 }
 
 static inline void
@@ -561,7 +568,7 @@ void show_available_tls_ciphers(const char *cipher_list, const char *cipher_list
  * This erases the source material used to generate the data channel keys, and
  * can thus be called only once per session.
  */
-bool tls_session_generate_data_channel_keys(struct tls_multi *multi, struct tls_session *session);
+bool tls_session_generate_data_channel_keys(struct tls_multi *multi, struct tls_session *session, struct key_state *ks);
 
 void tls_session_soft_reset(struct tls_multi *multi);
 

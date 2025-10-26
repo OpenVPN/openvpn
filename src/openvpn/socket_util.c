@@ -655,10 +655,9 @@ openvpn_getaddrinfo(unsigned int flags, const char *hostname, const char *servna
          */
         while (true)
         {
-#ifndef _WIN32
             /* force resolv.conf reload */
             res_init();
-#endif
+
             /* try hostname lookup */
             hints.ai_flags &= ~AI_NUMERICHOST;
             dmsg(D_SOCKET_DEBUG, "GETADDRINFO flags=0x%04x ai_family=%d ai_socktype=%d", flags,

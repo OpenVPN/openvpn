@@ -128,7 +128,7 @@ bool tls_item_in_cipher_list(const char *item, const char *list);
  * accomandate all kind of corner cases in P2P mode NCP only takes IV_CIPHER
  * into account and falls back to previous behaviour if this fails.
  */
-void p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session);
+void p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session, struct key_state *ks);
 
 /**
  * Determines the best common cipher from both peers IV_CIPHER lists. The
@@ -142,8 +142,7 @@ void p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session);
  * @param gc            gc arena that will be used to allocate the returned cipher
  * @return              common cipher if one exist.
  */
-const char *get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info,
-                               struct gc_arena *gc);
+const char *get_p2p_ncp_cipher(struct tls_multi *multi, const char *peer_info, struct gc_arena *gc);
 
 
 /**
