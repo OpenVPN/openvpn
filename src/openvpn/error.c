@@ -220,12 +220,6 @@ x_msg(const msglvl_t flags, const char *format, ...)
 static const char *
 openvpn_strerror(int err, bool crt_error, struct gc_arena *gc)
 {
-#ifdef _WIN32
-    if (!crt_error)
-    {
-        return strerror_win32(err, gc);
-    }
-#endif
     return strerror(err);
 }
 
@@ -477,84 +471,10 @@ close_syslog(void)
 #endif
 }
 
-#ifdef _WIN32
-static int orig_stderr;
-
-int
-get_orig_stderr(void)
-{
-    return orig_stderr ? orig_stderr : _fileno(stderr);
-}
-#endif
-
 void
 redirect_stdout_stderr(const char *file, bool append)
 {
-#if defined(_WIN32)
-    if (!std_redir)
-    {
-        struct gc_arena gc = gc_new();
-        HANDLE log_handle;
-        int log_fd;
-
-        SECURITY_ATTRIBUTES saAttr;
-        saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
-        saAttr.bInheritHandle = TRUE;
-        saAttr.lpSecurityDescriptor = NULL;
-
-        log_handle = CreateFileW(wide_string(file, &gc), GENERIC_WRITE, FILE_SHARE_READ, &saAttr,
-                                 append ? OPEN_ALWAYS : CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-
-        gc_free(&gc);
-
-        if (log_handle == INVALID_HANDLE_VALUE)
-        {
-            msg(M_WARN | M_ERRNO, "Warning: cannot open --log file: %s", file);
-            return;
-        }
-
-        /* append to logfile? */
-        if (append)
-        {
-            if (SetFilePointer(log_handle, 0, NULL, FILE_END) == INVALID_SET_FILE_POINTER)
-            {
-                msg(M_ERR, "Error: cannot seek to end of --log file: %s", file);
-            }
-        }
-
-        /* save original stderr for password prompts */
-        orig_stderr = _dup(_fileno(stderr));
-        if (orig_stderr == -1)
-        {
-            msg(M_WARN | M_ERRNO,
-                "Warning: cannot duplicate stderr, password prompts will appear in log file instead of console.");
-            orig_stderr = _fileno(stderr);
-        }
-
-        /* direct stdout/stderr to point to log_handle */
-        log_fd = _open_osfhandle((intptr_t)log_handle, _O_TEXT);
-        if (log_fd == -1)
-        {
-            msg(M_ERR, "Error: --log redirect failed due to _open_osfhandle failure");
-        }
-
-        /* open log_handle as FILE stream */
-        ASSERT(msgfp == NULL);
-        msgfp = _fdopen(log_fd, "wt");
-        if (msgfp == NULL)
-        {
-            msg(M_ERR, "Error: --log redirect failed due to _fdopen");
-        }
-
-        /* redirect C-library stdout/stderr to log file */
-        if (_dup2(log_fd, 1) == -1 || _dup2(log_fd, 2) == -1)
-        {
-            msg(M_WARN, "Error: --log redirect of stdout/stderr failed");
-        }
-
-        std_redir = true;
-    }
-#elif defined(HAVE_DUP2)
+#if defined(HAVE_DUP2)
     if (!std_redir)
     {
         int out = open(file, O_CREAT | O_WRONLY | (append ? O_APPEND : O_TRUNC), S_IRUSR | S_IWUSR);
@@ -583,10 +503,10 @@ redirect_stdout_stderr(const char *file, bool append)
         std_redir = true;
     }
 
-#else  /* if defined(_WIN32) */
+#else
     msg(M_WARN,
         "WARNING: The --log option is not supported on this OS because it lacks the dup2 function");
-#endif /* if defined(_WIN32) */
+#endif
 }
 
 /*
@@ -648,14 +568,6 @@ x_check_status(ssize_t status, const char *description, struct link_socket *sock
         }
 #endif /* EXTENDED_SOCKET_ERROR_CAPABILITY */
 
-#ifdef _WIN32
-        /* get possible driver error from TAP-Windows driver */
-        if (tuntap_defined(tt))
-        {
-            extended_msg = tap_win_getinfo(tt, &gc);
-        }
-#endif
-
         if (!ignore_sys_error(my_errno, crt_error))
         {
             if (extended_msg)
@@ -703,9 +615,6 @@ openvpn_exit(const int status)
     {
         tun_abort();
 
-#ifdef _WIN32
-        uninit_win32();
-#endif
         remove_pid_file();
 
         close_syslog();
@@ -761,200 +670,3 @@ msg_flags_string(const msglvl_t flags, struct gc_arena *gc)
     }
     return BSTR(&out);
 }
-
-#ifdef _WIN32
-
-const char *
-strerror_win32(DWORD errnum, struct gc_arena *gc)
-{
-    /*
-     * This code can be omitted, though often the Windows
-     * WSA error messages are less informative than the
-     * Posix equivalents.
-     */
-#if 1
-    switch (errnum)
-    {
-        /*
-         * When the TAP-Windows driver returns STATUS_UNSUCCESSFUL, this code
-         * gets returned to user space.
-         */
-        case ERROR_GEN_FAILURE:
-            return "General failure (ERROR_GEN_FAILURE)";
-
-        case ERROR_IO_PENDING:
-            return "I/O Operation in progress (ERROR_IO_PENDING)";
-
-        case WSA_IO_INCOMPLETE:
-            return "I/O Operation in progress (WSA_IO_INCOMPLETE)";
-
-        case WSAEINTR:
-            return "Interrupted system call (WSAEINTR)";
-
-        case WSAEBADF:
-            return "Bad file number (WSAEBADF)";
-
-        case WSAEACCES:
-            return "Permission denied (WSAEACCES)";
-
-        case WSAEFAULT:
-            return "Bad address (WSAEFAULT)";
-
-        case WSAEINVAL:
-            return "Invalid argument (WSAEINVAL)";
-
-        case WSAEMFILE:
-            return "Too many open files (WSAEMFILE)";
-
-        case WSAEWOULDBLOCK:
-            return "Operation would block (WSAEWOULDBLOCK)";
-
-        case WSAEINPROGRESS:
-            return "Operation now in progress (WSAEINPROGRESS)";
-
-        case WSAEALREADY:
-            return "Operation already in progress (WSAEALREADY)";
-
-        case WSAEDESTADDRREQ:
-            return "Destination address required (WSAEDESTADDRREQ)";
-
-        case WSAEMSGSIZE:
-            return "Message too long (WSAEMSGSIZE)";
-
-        case WSAEPROTOTYPE:
-            return "Protocol wrong type for socket (WSAEPROTOTYPE)";
-
-        case WSAENOPROTOOPT:
-            return "Bad protocol option (WSAENOPROTOOPT)";
-
-        case WSAEPROTONOSUPPORT:
-            return "Protocol not supported (WSAEPROTONOSUPPORT)";
-
-        case WSAESOCKTNOSUPPORT:
-            return "Socket type not supported (WSAESOCKTNOSUPPORT)";
-
-        case WSAEOPNOTSUPP:
-            return "Operation not supported on socket (WSAEOPNOTSUPP)";
-
-        case WSAEPFNOSUPPORT:
-            return "Protocol family not supported (WSAEPFNOSUPPORT)";
-
-        case WSAEAFNOSUPPORT:
-            return "Address family not supported by protocol family (WSAEAFNOSUPPORT)";
-
-        case WSAEADDRINUSE:
-            return "Address already in use (WSAEADDRINUSE)";
-
-        case WSAENETDOWN:
-            return "Network is down (WSAENETDOWN)";
-
-        case WSAENETUNREACH:
-            return "Network is unreachable (WSAENETUNREACH)";
-
-        case WSAENETRESET:
-            return "Net dropped connection or reset (WSAENETRESET)";
-
-        case WSAECONNABORTED:
-            return "Software caused connection abort (WSAECONNABORTED)";
-
-        case WSAECONNRESET:
-            return "Connection reset by peer (WSAECONNRESET)";
-
-        case WSAENOBUFS:
-            return "No buffer space available (WSAENOBUFS)";
-
-        case WSAEISCONN:
-            return "Socket is already connected (WSAEISCONN)";
-
-        case WSAENOTCONN:
-            return "Socket is not connected (WSAENOTCONN)";
-
-        case WSAETIMEDOUT:
-            return "Connection timed out (WSAETIMEDOUT)";
-
-        case WSAECONNREFUSED:
-            return "Connection refused (WSAECONNREFUSED)";
-
-        case WSAELOOP:
-            return "Too many levels of symbolic links (WSAELOOP)";
-
-        case WSAENAMETOOLONG:
-            return "File name too long (WSAENAMETOOLONG)";
-
-        case WSAEHOSTDOWN:
-            return "Host is down (WSAEHOSTDOWN)";
-
-        case WSAEHOSTUNREACH:
-            return "No Route to Host (WSAEHOSTUNREACH)";
-
-        case WSAENOTEMPTY:
-            return "Directory not empty (WSAENOTEMPTY)";
-
-        case WSAEPROCLIM:
-            return "Too many processes (WSAEPROCLIM)";
-
-        case WSAEUSERS:
-            return "Too many users (WSAEUSERS)";
-
-        case WSAEDQUOT:
-            return "Disc Quota Exceeded (WSAEDQUOT)";
-
-        case WSAESTALE:
-            return "Stale NFS file handle (WSAESTALE)";
-
-        case WSASYSNOTREADY:
-            return "Network SubSystem is unavailable (WSASYSNOTREADY)";
-
-        case WSAVERNOTSUPPORTED:
-            return "WINSOCK DLL Version out of range (WSAVERNOTSUPPORTED)";
-
-        case WSANOTINITIALISED:
-            return "Successful WSASTARTUP not yet performed (WSANOTINITIALISED)";
-
-        case WSAEREMOTE:
-            return "Too many levels of remote in path (WSAEREMOTE)";
-
-        case WSAHOST_NOT_FOUND:
-            return "Host not found (WSAHOST_NOT_FOUND)";
-
-        default:
-            break;
-    }
-#endif /* if 1 */
-
-    /* format a windows error message */
-    {
-        wchar_t wmessage[256];
-        char *message = NULL;
-        struct buffer out = alloc_buf_gc(256, gc);
-        const DWORD status =
-            FormatMessageW(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM
-                               | FORMAT_MESSAGE_ARGUMENT_ARRAY,
-                           NULL, errnum, 0, wmessage, SIZE(wmessage), NULL);
-        if (status)
-        {
-            message = utf16to8(wmessage, gc);
-        }
-        if (!status || !message)
-        {
-            buf_printf(&out, "[Unknown Win32 Error]");
-        }
-        else
-        {
-            char *cp;
-            for (cp = message; *cp != '\0'; ++cp)
-            {
-                if (*cp == '\n' || *cp == '\r')
-                {
-                    *cp = ' ';
-                }
-            }
-
-            buf_printf(&out, "%s", message);
-        }
-
-        return BSTR(&out);
-    }
-}
-
-#endif /* ifdef _WIN32 */

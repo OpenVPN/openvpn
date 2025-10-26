@@ -73,13 +73,6 @@ frame_calculate_protocol_header_size(const struct key_type *kt, const struct opt
 
     bool tlsmode = options->tls_server || options->tls_client;
 
-    /* A socks proxy adds 10 byte of extra header to each packet
-     * (we only support Socks with IPv4, this value is different for IPv6) */
-    if (options->ce.socks_proxy_server && proto_is_udp(options->ce.proto))
-    {
-        header_size += 10;
-    }
-
     /* TCP stream based packets have a 16 bit length field */
     if (proto_is_tcp(options->ce.proto))
     {
@@ -120,13 +113,6 @@ frame_calculate_payload_overhead(size_t extra_tun, const struct options *options
         || options->comp.alg == COMP_ALG_LZO)
     {
         overhead += 1;
-    }
-#endif
-#if defined(ENABLE_FRAGMENT)
-    /* Add the size of the fragment header (uint32_t) */
-    if (options->ce.fragment)
-    {
-        overhead += 4;
     }
 #endif
 
@@ -204,9 +190,6 @@ frame_print(const struct frame *frame, msglvl_t msglevel, const char *prefix)
     }
     buf_printf(&out, "[");
     buf_printf(&out, " mss_fix:%" PRIu16, frame->mss_fix);
-#ifdef ENABLE_FRAGMENT
-    buf_printf(&out, " max_frag:%d", frame->max_fragment_size);
-#endif
     buf_printf(&out, " tun_mtu:%d", frame->tun_mtu);
     buf_printf(&out, " tun_max_mtu:%d", frame->tun_max_mtu);
     buf_printf(&out, " headroom:%d", frame->buf.headroom);

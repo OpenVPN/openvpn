@@ -84,15 +84,11 @@ struct options_pre_connect
     const char *ciphername;
     const char *authname;
 
-    int ping_send_timeout;
-    int ping_rec_timeout;
-    int ping_rec_timeout_action;
-
     int foreign_option_index;
     struct compress_options comp;
 };
 
-#if !defined(ENABLE_CRYPTO_OPENSSL) && !defined(ENABLE_CRYPTO_MBEDTLS)
+#if !defined(ENABLE_CRYPTO_OPENSSL)
 #error "At least one of OpenSSL or mbed TLS needs to be defined."
 #endif
 
@@ -119,10 +115,6 @@ struct connection_entry
     int connect_retry_seconds;
     int connect_retry_seconds_max;
     int connect_timeout;
-    struct http_proxy_options *http_proxy_options;
-    const char *socks_proxy_server;
-    const char *socks_proxy_port;
-    const char *socks_proxy_authfile;
 
     int tun_mtu;          /* MTU of tun device */
     int occ_mtu;          /* if non-null, this is the MTU we announce to peers in OCC */
@@ -185,6 +177,9 @@ struct connection_entry
     bool mtio_conf;
     bool mtio_mode;
     int mtio_time;
+
+    /* Dual mode splits the core operations into two independent threads: link-read + tunn-send & tunn-read + link-send */
+    bool dual_mode;
 };
 
 struct remote_entry
@@ -316,10 +311,6 @@ struct options
      * (300s by default) */
     int server_backoff_time;
 
-#if ENABLE_MANAGEMENT
-    struct http_proxy_options *http_proxy_override;
-#endif
-
     struct remote_host_store *rh_store;
 
     struct dns_options dns_options;
@@ -346,22 +337,9 @@ struct options
 
     bool mlock;
 
-    int keepalive_ping; /* a proxy for ping/ping-restart */
-    int keepalive_timeout;
-
-    int inactivity_timeout; /* --inactive */
-    int64_t inactivity_minimum_bytes;
-
-    int session_timeout;    /* Force-kill session after n seconds */
-
-    int ping_send_timeout;  /* Send a TCP/UDP ping to remote every n seconds */
-    int ping_rec_timeout;   /* Expect a TCP/UDP ping from remote at least once every n seconds */
-    bool ping_timer_remote; /* Run ping timer only if we have a remote address */
-
 #define PING_UNDEF   0
 #define PING_EXIT    1
 #define PING_RESTART 2
-    int ping_rec_timeout_action; /* What action to take on ping_rec_timeout (exit or restart)? */
 
     bool persist_tun;            /* Don't close/reopen TUN/TAP dev on SIGUSR1 or PING_RESTART */
     bool persist_local_ip;       /* Don't re-resolve local address on SIGUSR1 or PING_RESTART */
@@ -594,9 +572,6 @@ struct options
     int replay_time;
     const char *packet_id_file;
     bool test_crypto;
-#ifdef ENABLE_PREDICTION_RESISTANCE
-    bool use_prediction_resistance;
-#endif
 
     /* TLS (control channel) parms */
     bool tls_server;
@@ -645,9 +620,6 @@ struct options
     bool pkcs11_id_management;
 #endif
 
-#ifdef ENABLE_CRYPTOAPI
-    const char *cryptoapi_cert;
-#endif
     /* Per-packet timeout on control channel */
     int tls_timeout;
 
@@ -699,16 +671,6 @@ struct options
 
     /* special state parms */
     int foreign_option_index;
-
-#ifdef _WIN32
-    HANDLE msg_channel;
-    const char *exit_event_name;
-    bool exit_event_initial_state;
-    bool show_net_up;
-    int route_method;
-    bool block_outside_dns;
-    enum tun_driver_type windows_driver;
-#endif
 
     bool use_peer_id;
     uint32_t peer_id;
@@ -775,11 +737,7 @@ struct options
 
 #define PULL_DEFINED(opt) ((opt)->pull)
 
-#ifdef _WIN32
-#define ROUTE_OPTION_FLAGS(o) ((o)->route_method & ROUTE_METHOD_MASK)
-#else
 #define ROUTE_OPTION_FLAGS(o) (0)
-#endif
 
 #define SHAPER_DEFINED(opt) ((opt)->shaper)
 
@@ -900,11 +858,6 @@ void usage_small(void);
 void usage(void);
 
 void show_library_versions(const unsigned int flags);
-
-#ifdef _WIN32
-void show_windows_version(const unsigned int flags);
-
-#endif
 
 void show_dco_version(const unsigned int flags);
 

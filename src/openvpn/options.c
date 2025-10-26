@@ -73,13 +73,11 @@ const char title_string[] = PACKAGE_STRING
     " [git:" CONFIGURE_GIT_REVISION CONFIGURE_GIT_FLAGS "]"
 #endif
     " " TARGET_ALIAS
-#if defined(ENABLE_CRYPTO_MBEDTLS)
-    " [SSL (mbed TLS)]"
-#elif defined(ENABLE_CRYPTO_OPENSSL)
+#if defined(ENABLE_CRYPTO_OPENSSL)
     " [SSL (OpenSSL)]"
 #else
     " [SSL]"
-#endif /* defined(ENABLE_CRYPTO_MBEDTLS) */
+#endif
 #ifdef USE_COMP
 #ifdef ENABLE_LZO
     " [LZO]"
@@ -308,11 +306,7 @@ static const char usage_message[] =
     "--mtu-test      : Empirically measure and report MTU.\n"
     "--bulk-mode     : Use bulk TUN/TCP reads/writes.\n"
     "--mtio-mode n   : Use multi threaded mode. (optional expire time: n=30)\n"
-#ifdef ENABLE_FRAGMENT
-    "--fragment max  : Enable internal datagram fragmentation so that no UDP\n"
-    "                  datagrams are sent which are larger than max bytes.\n"
-    "                  Adds 4 bytes of overhead per datagram.\n"
-#endif
+    "--dual-mode     : Use dual threads for the link/tunn core operations.\n"
     "--mssfix [n]    : Set upper bound on TCP MSS, default = tun-mtu size\n"
     "                  or --fragment max value, whichever is lower.\n"
     "--sndbuf size   : Set the TCP/UDP send buffer size.\n"
@@ -557,9 +551,7 @@ static const char usage_message[] =
     "                  You should usually use --data-ciphers instead.\n"
     "                  Set alg=none to disable encryption.\n"
     "--data-ciphers list : List of ciphers that are allowed to be negotiated.\n"
-#ifndef ENABLE_CRYPTO_MBEDTLS
     "--engine [name] : Enable OpenSSL hardware crypto engine functionality.\n"
-#endif
     "--mute-replay-warnings : Silence the output of replay warnings to log file.\n"
     "--replay-window n [t]  : Use a replay protection sliding window of size n\n"
     "                         and a time window of t seconds.\n"
@@ -568,10 +560,6 @@ static const char usage_message[] =
     "                  using file.\n"
     "--test-crypto   : Run a self-test of crypto features enabled.\n"
     "                  For debugging only.\n"
-#ifdef ENABLE_PREDICTION_RESISTANCE
-    "--use-prediction-resistance: Enable prediction resistance on the random\n"
-    "                             number generator.\n"
-#endif
     "\n"
     "TLS Key Negotiation Options:\n"
     "(These options are meaningful only for TLS-mode)\n"
@@ -579,10 +567,8 @@ static const char usage_message[] =
     "--tls-client    : Enable TLS and assume client role during TLS handshake.\n"
     "--ca file       : Certificate authority file in .pem format containing\n"
     "                  root certificate.\n"
-#ifndef ENABLE_CRYPTO_MBEDTLS
     "--capath dir    : A directory of trusted certificates (CAs"
     " and CRLs).\n"
-#endif /* ENABLE_CRYPTO_MBEDTLS */
     "--dh file       : File containing Diffie Hellman parameters\n"
     "                  in .pem format (for --tls-server only).\n"
     "                  Use \"openssl dhparam -out dh1024.pem 1024\" to generate.\n"
@@ -594,20 +580,14 @@ static const char usage_message[] =
     "    will accept from the peer.  If version is unrecognized and 'or-highest'\n"
     "    is specified, require max TLS version supported by SSL implementation.\n"
     "--tls-version-max <version> : sets the maximum TLS version we will use.\n"
-#ifndef ENABLE_CRYPTO_MBEDTLS
     "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
     "                  and optionally the root CA certificate.\n"
-#endif
 #ifdef ENABLE_X509ALTUSERNAME
     "--x509-username-field : Field in x509 certificate containing the username.\n"
     "                        Default is CN in the Subject field.\n"
 #endif
     "--verify-hash hash [algo] : Specify fingerprint for level-1 certificate.\n"
     "                            Valid algo flags are SHA1 and SHA256. \n"
-#ifdef _WIN32
-    "--cryptoapicert select-string : Load the certificate and private key from the\n"
-    "                  Windows Certificate System Store.\n"
-#endif
     "--tls-cipher l  : A list l of allowable TLS ciphers separated by : (optional).\n"
     "--tls-ciphersuites l: A list of allowed TLS 1.3 cipher suites separated by : (optional)\n"
     "                : Use --show-tls to see a list of supported TLS ciphers (suites).\n"
@@ -661,10 +641,8 @@ static const char usage_message[] =
     "--verify-x509-name name: Accept connections only from a host with X509 subject\n"
     "                  DN name. The remote host must also pass all other tests\n"
     "                  of verification.\n"
-#ifndef ENABLE_CRYPTO_MBEDTLS
     "--ns-cert-type t: (DEPRECATED) Require that peer certificate was signed with \n"
     "                  an explicit nsCertType designation t = 'client' | 'server'.\n"
-#endif
     "--x509-track x  : Save peer X509 attribute x in environment for use by\n"
     "                  plugins and management interface.\n"
     "--keying-material-exporter label len : Save Exported Keying Material (RFC5705)\n"
@@ -703,65 +681,6 @@ static const char usage_message[] =
     "--show-digests  : Show message digest algorithms to use with --auth option.\n"
     "--show-engines  : Show hardware crypto accelerator engines (if available).\n"
     "--show-tls      : Show all TLS ciphers (TLS used only as a control channel).\n"
-#ifdef _WIN32
-    "\n"
-    "Windows Specific:\n"
-    "--win-sys path    : Pathname of Windows system directory. Default is the pathname\n"
-    "                    from SystemRoot environment variable.\n"
-    "--ip-win32 method : When using --ifconfig on Windows, set TAP-Windows adapter\n"
-    "                    IP address using method = manual, netsh, ipapi,\n"
-    "                    dynamic, or adaptive (default = adaptive).\n"
-    "                    Dynamic method allows two optional parameters:\n"
-    "                    offset: DHCP server address offset (> -256 and < 256).\n"
-    "                            If 0, use network address, if >0, take nth\n"
-    "                            address forward from network address, if <0,\n"
-    "                            take nth address backward from broadcast\n"
-    "                            address.\n"
-    "                            Default is 0.\n"
-    "                    lease-time: Lease time in seconds.\n"
-    "                                Default is one year.\n"
-    "--route-method    : Which method to use for adding routes on Windows?\n"
-    "                    adaptive (default) -- Try ipapi then fall back to exe.\n"
-    "                    ipapi -- Use IP helper API.\n"
-    "                    exe -- Call the route.exe shell command.\n"
-    "--dhcp-option type [parm] : Set extended TAP-Windows properties, must\n"
-    "                    be used with --ip-win32 dynamic.  For options\n"
-    "                    which allow multiple addresses,\n"
-    "                    --dhcp-option must be repeated.\n"
-    "                    DOMAIN name : Set DNS suffix\n"
-    "                    DOMAIN-SEARCH entry : Add entry to DNS domain search list\n"
-    "                    DNS addr    : Set domain name server address(es) (IPv4 and IPv6)\n"
-    "                    NTP         : Set NTP server address(es)\n"
-    "                    NBDD        : Set NBDD server address(es)\n"
-    "                    WINS addr   : Set WINS server address(es)\n"
-    "                    NBT type    : Set NetBIOS over TCP/IP Node type\n"
-    "                                  1: B, 2: P, 4: M, 8: H\n"
-    "                    NBS id      : Set NetBIOS scope ID\n"
-    "                    DISABLE-NBT : Disable Netbios-over-TCP/IP.\n"
-    "--dhcp-renew       : Ask Windows to renew the TAP adapter lease on startup.\n"
-    "--dhcp-pre-release : Ask Windows to release the previous TAP adapter lease on\n"
-    "                       startup.\n"
-    "--register-dns  : Run ipconfig /flushdns and ipconfig /registerdns\n"
-    "                  on connection initiation.\n"
-    "--tap-sleep n   : Sleep for n seconds after TAP adapter open before\n"
-    "                  attempting to set adapter properties.\n"
-    "--pause-exit         : When run from a console window, pause before exiting.\n"
-    "--service ex [0|1]   : For use when " PACKAGE_NAME " is being instantiated by a\n"
-    "                       service, and should not be used directly by end-users.\n"
-    "                       ex is the name of an event object which, when\n"
-    "                       signaled, will cause " PACKAGE_NAME " to exit.  A second\n"
-    "                       optional parameter controls the initial state of ex.\n"
-    "--show-net-up   : Show " PACKAGE_NAME "'s view of routing table and net adapter list\n"
-    "                  after TAP adapter is up and routes have been added.\n"
-    "--block-outside-dns   : Block DNS on other network adapters to prevent DNS leaks\n"
-    "Windows Standalone Options:\n"
-    "\n"
-    "--show-adapters : Show all TAP-Windows adapters.\n"
-    "--show-net      : Show " PACKAGE_NAME "'s view of routing table and net adapter list.\n"
-    "--show-valid-subnets : Show valid subnets for --dev tun emulation.\n"
-    "--allow-nonadmin [TAP-adapter] : Allow " PACKAGE_NAME " running without admin privileges\n"
-    "                                 to access TAP adapter.\n"
-#endif /* ifdef _WIN32 */
     "\n"
     "Generate a new key :\n"
     "--genkey tls-auth file   : Generate a new random key of type and write to file\n"
@@ -846,19 +765,6 @@ init_options(struct options *o, const bool init_gc)
 #ifdef ENABLE_FEATURE_TUN_PERSIST
     o->persist_mode = 1;
 #endif
-#ifdef _WIN32
-#if 0
-    o->tuntap_options.ip_win32_type = IPW32_SET_ADAPTIVE;
-#else
-    o->tuntap_options.ip_win32_type = IPW32_SET_DHCP_MASQ;
-#endif
-    o->tuntap_options.dhcp_lease_time = 31536000; /* one year */
-    /* use network address as internal DHCP server address */
-    o->tuntap_options.dhcp_masq_offset = 0;
-    o->route_method = ROUTE_METHOD_ADAPTIVE;
-    o->block_outside_dns = false;
-    o->windows_driver = WINDOWS_DRIVER_UNSPECIFIED;
-#endif
     o->vlan_accept = VLAN_ALL;
     o->vlan_pvid = 1;
     o->real_hash_size = 256;
@@ -876,9 +782,6 @@ init_options(struct options *o, const bool init_gc)
     o->replay_window = DEFAULT_SEQ_BACKTRACK;
     o->replay_time = DEFAULT_TIME_BACKTRACK;
     o->key_direction = KEY_DIRECTION_BIDIRECTIONAL;
-#ifdef ENABLE_PREDICTION_RESISTANCE
-    o->use_prediction_resistance = false;
-#endif
     o->tls_timeout = 2;
     o->renegotiate_bytes = -1;
     o->renegotiate_seconds = 3600;
@@ -898,25 +801,13 @@ init_options(struct options *o, const bool init_gc)
     o->auth_token_generate = false;
 
     /* Set default --tmp-dir */
-#ifdef _WIN32
-    /* On Windows, find temp dir via environment variables */
-    o->tmp_dir = win_get_tempdir();
-
-    if (!o->tmp_dir)
-    {
-        /* Error out if we can't find a valid temporary directory, which should
-         * be very unlikely. */
-        msg(M_USAGE, "Could not find a suitable temporary directory."
-                     " (GetTempPath() failed).  Consider using --tmp-dir");
-    }
-#else  /* ifdef _WIN32 */
     /* Non-windows platforms use $TMPDIR, and if not set, default to '/tmp' */
     o->tmp_dir = getenv("TMPDIR");
     if (!o->tmp_dir)
     {
         o->tmp_dir = "/tmp";
     }
-#endif /* _WIN32 */
+
     o->allow_recursive_routing = false;
 
 #ifndef ENABLE_DCO
@@ -986,17 +877,6 @@ setenv_connection_entry(struct env_set *es, const struct connection_entry *e, co
 {
     setenv_str_i(es, "remote", e->remote, i);
     setenv_str_i(es, "remote_port", e->remote_port, i);
-
-    if (e->http_proxy_options)
-    {
-        setenv_str_i(es, "http_proxy_server", e->http_proxy_options->server, i);
-        setenv_str_i(es, "http_proxy_port", e->http_proxy_options->port, i);
-    }
-    if (e->socks_proxy_server)
-    {
-        setenv_str_i(es, "socks_proxy_server", e->socks_proxy_server, i);
-        setenv_str_i(es, "socks_proxy_port", e->socks_proxy_port, i);
-    }
 }
 
 static void
@@ -1039,7 +919,6 @@ setenv_settings(struct env_set *es, const struct options *o)
     }
 }
 
-#ifndef _WIN32
 static void
 setenv_foreign_option(struct options *o, const char *option, const char *value, struct env_set *es)
 {
@@ -1101,8 +980,6 @@ delete_all_dhcp_fo(struct options *o, struct env_item **list)
         prev = current;
     }
 }
-
-#endif /* ifndef _WIN32 */
 
 static in_addr_t
 get_ip_addr(const char *ip_string, msglvl_t msglevel, bool *error)
@@ -1280,57 +1157,6 @@ parse_hash_fingerprint_multiline(const char *str, int nbytes, msglvl_t msglevel,
 
     return ret;
 }
-#ifdef _WIN32
-
-#ifndef ENABLE_SMALL
-
-static void
-show_dhcp_option_list(const char *name, const char *const *array, int len)
-{
-    int i;
-    for (i = 0; i < len; ++i)
-    {
-        msg(D_SHOW_PARMS, "  %s[%d] = %s", name, i, array[i]);
-    }
-}
-
-static void
-show_dhcp_option_addrs(const char *name, const in_addr_t *array, int len)
-{
-    struct gc_arena gc = gc_new();
-    int i;
-    for (i = 0; i < len; ++i)
-    {
-        msg(D_SHOW_PARMS, "  %s[%d] = %s", name, i, print_in_addr_t(array[i], 0, &gc));
-    }
-    gc_free(&gc);
-}
-
-static void
-show_tuntap_options(const struct tuntap_options *o)
-{
-    SHOW_BOOL(ip_win32_defined);
-    SHOW_INT(ip_win32_type);
-    SHOW_INT(dhcp_masq_offset);
-    SHOW_INT(dhcp_lease_time);
-    SHOW_INT(tap_sleep);
-    SHOW_UNSIGNED(dhcp_options);
-    SHOW_BOOL(dhcp_renew);
-    SHOW_BOOL(dhcp_pre_release);
-    SHOW_STR(domain);
-    SHOW_STR(netbios_scope);
-    SHOW_UNSIGNED(netbios_node_type);
-    SHOW_BOOL(disable_nbt);
-
-    show_dhcp_option_addrs("DNS", o->dns, o->dns_len);
-    show_dhcp_option_addrs("WINS", o->wins, o->wins_len);
-    show_dhcp_option_addrs("NTP", o->ntp, o->ntp_len);
-    show_dhcp_option_addrs("NBDD", o->nbdd, o->nbdd_len);
-    show_dhcp_option_list("DOMAIN-SEARCH", o->domain_search_list, o->domain_search_list_len);
-}
-
-#endif /* ifndef ENABLE_SMALL */
-#endif /* ifdef _WIN32 */
 
 static void
 dhcp_option_dns6_parse(const char *parm, struct in6_addr *dns6_list, int *len, msglvl_t msglevel)
@@ -1527,37 +1353,6 @@ option_iroute_ipv6(struct options *o, const char *prefix_str, msglvl_t msglevel)
     o->iroutes_ipv6 = ir;
 }
 
-#ifndef ENABLE_SMALL
-static void
-show_http_proxy_options(const struct http_proxy_options *o)
-{
-    int i;
-    msg(D_SHOW_PARMS, "BEGIN http_proxy");
-    SHOW_STR(server);
-    SHOW_STR(port);
-    SHOW_STR(auth_method_string);
-    SHOW_STR(auth_file);
-    SHOW_STR(auth_file_up);
-    SHOW_BOOL(inline_creds);
-    SHOW_BOOL(nocache);
-    SHOW_STR(http_version);
-    SHOW_STR(user_agent);
-    for (i = 0; i < MAX_CUSTOM_HTTP_HEADER && o->custom_headers[i].name; i++)
-    {
-        if (o->custom_headers[i].content)
-        {
-            msg(D_SHOW_PARMS, "  custom_header[%d] = %s: %s", i, o->custom_headers[i].name,
-                o->custom_headers[i].content);
-        }
-        else
-        {
-            msg(D_SHOW_PARMS, "  custom_header[%d] = %s", i, o->custom_headers[i].name);
-        }
-    }
-    msg(D_SHOW_PARMS, "END http_proxy");
-}
-#endif /* ifndef ENABLE_SMALL */
-
 void
 options_detach(struct options *o)
 {
@@ -1611,6 +1406,7 @@ show_connection_entry(const struct connection_entry *o)
             o->local_list->array[i]->port,
             proto2ascii(o->local_list->array[i]->proto, o->af, false));
     }
+
     SHOW_STR(remote);
     SHOW_STR(remote_port);
     SHOW_BOOL(remote_float);
@@ -1620,12 +1416,6 @@ show_connection_entry(const struct connection_entry *o)
     SHOW_INT(connect_retry_seconds);
     SHOW_INT(connect_timeout);
 
-    if (o->http_proxy_options)
-    {
-        show_http_proxy_options(o->http_proxy_options);
-    }
-    SHOW_STR(socks_proxy_server);
-    SHOW_STR(socks_proxy_port);
     SHOW_INT(tun_mtu);
     SHOW_BOOL(tun_mtu_defined);
     SHOW_INT(link_mtu);
@@ -1633,12 +1423,7 @@ show_connection_entry(const struct connection_entry *o)
     SHOW_INT(tun_mtu_extra);
     SHOW_BOOL(tun_mtu_extra_defined);
     SHOW_INT(tls_mtu);
-
     SHOW_INT(mtu_discover_type);
-
-#ifdef ENABLE_FRAGMENT
-    SHOW_INT(fragment);
-#endif
     SHOW_INT(mssfix);
     SHOW_BOOL(mssfix_encap);
     SHOW_BOOL(mssfix_fixed);
@@ -1741,15 +1526,6 @@ show_settings(const struct options *o)
 
     SHOW_BOOL(mlock);
 
-    SHOW_INT(keepalive_ping);
-    SHOW_INT(keepalive_timeout);
-    SHOW_INT(inactivity_timeout);
-    SHOW_INT(session_timeout);
-    SHOW_INT64(inactivity_minimum_bytes);
-    SHOW_INT(ping_send_timeout);
-    SHOW_INT(ping_rec_timeout);
-    SHOW_INT(ping_rec_timeout_action);
-    SHOW_BOOL(ping_timer_remote);
     SHOW_INT(remap_sigusr1);
     SHOW_BOOL(persist_tun);
     SHOW_BOOL(persist_local_ip);
@@ -1849,18 +1625,12 @@ show_settings(const struct options *o)
     SHOW_STR(ciphername);
     SHOW_STR(ncp_ciphers);
     SHOW_STR(authname);
-#ifndef ENABLE_CRYPTO_MBEDTLS
     SHOW_BOOL(engine);
-#endif /* ENABLE_CRYPTO_MBEDTLS */
     SHOW_BOOL(mute_replay_warnings);
     SHOW_INT(replay_window);
     SHOW_INT(replay_time);
     SHOW_STR(packet_id_file);
     SHOW_BOOL(test_crypto);
-#ifdef ENABLE_PREDICTION_RESISTANCE
-    SHOW_BOOL(use_prediction_resistance);
-#endif
-
     SHOW_BOOL(tls_server);
     SHOW_BOOL(tls_client);
     SHOW_STR_INLINE(ca_file);
@@ -1884,12 +1654,8 @@ show_settings(const struct options *o)
     {
         SHOW_STR_INLINE(priv_key_file);
     }
-#ifndef ENABLE_CRYPTO_MBEDTLS
+
     SHOW_STR_INLINE(pkcs12_file);
-#endif
-#ifdef ENABLE_CRYPTOAPI
-    SHOW_STR(cryptoapi_cert);
-#endif
     SHOW_STR(cipher_list);
     SHOW_STR(cipher_list_tls13);
     SHOW_STR(tls_cert_profile);
@@ -1977,13 +1743,6 @@ show_settings(const struct options *o)
 #endif /* ENABLE_PKCS11 */
 
     show_p2mp_parms(o);
-
-#ifdef _WIN32
-    SHOW_BOOL(show_net_up);
-    SHOW_INT(route_method);
-    SHOW_BOOL(block_outside_dns);
-    show_tuntap_options(&o->tuntap_options);
-#endif
 #endif /* ifndef ENABLE_SMALL */
 }
 
@@ -1991,71 +1750,6 @@ show_settings(const struct options *o)
 #undef SHOW_STR
 #undef SHOW_INT
 #undef SHOW_BOOL
-
-#ifdef ENABLE_MANAGEMENT
-
-static struct http_proxy_options *
-parse_http_proxy_override(const char *server, const char *port, const char *flags,
-                          struct gc_arena *gc)
-{
-    if (server && port)
-    {
-        struct http_proxy_options *ho;
-        ALLOC_OBJ_CLEAR_GC(ho, struct http_proxy_options, gc);
-        ho->server = string_alloc(server, gc);
-        ho->port = port;
-        if (flags && !strcmp(flags, "nct"))
-        {
-            ho->auth_retry = PAR_NCT;
-        }
-        else
-        {
-            ho->auth_retry = PAR_ALL;
-        }
-        ho->http_version = "1.0";
-        ho->user_agent = "OpenVPN-Autoproxy/1.0";
-        return ho;
-    }
-    else
-    {
-        return NULL;
-    }
-}
-
-static void
-options_postprocess_http_proxy_override(struct options *o)
-{
-    const struct connection_list *l = o->connection_list;
-    int i;
-    bool succeed = false;
-    for (i = 0; i < l->len; ++i)
-    {
-        struct connection_entry *ce = l->array[i];
-        if (ce->proto == PROTO_TCP_CLIENT || ce->proto == PROTO_TCP)
-        {
-            ce->http_proxy_options = o->http_proxy_override;
-            succeed = true;
-        }
-    }
-    if (succeed)
-    {
-        for (i = 0; i < l->len; ++i)
-        {
-            struct connection_entry *ce = l->array[i];
-            if (ce->proto == PROTO_UDP)
-            {
-                ce->flags |= CE_DISABLED;
-            }
-        }
-    }
-    else
-    {
-        msg(M_WARN,
-            "Note: option http-proxy-override ignored because no TCP-based connection profiles are defined");
-    }
-}
-
-#endif /* ifdef ENABLE_MANAGEMENT */
 
 static struct local_list *
 alloc_local_list_if_undef(struct connection_entry *ce, struct gc_arena *gc)
@@ -2241,26 +1935,13 @@ connection_entry_preload_key(const char **key_file, bool *key_inline, struct gc_
 static void
 check_ca_required(const struct options *options)
 {
-#ifdef ENABLE_CRYPTO_MBEDTLS
-    if (options->ca_path)
-    {
-        msg(M_USAGE, "Parameter --capath cannot be used with the mbed TLS version of OpenVPN.");
-    }
-#endif
-
-    if (options->verify_hash_no_ca || options->pkcs12_file || options->ca_file
-#ifndef ENABLE_CRYPTO_MBEDTLS
-        || options->ca_path
-#endif
-    )
+    if (options->verify_hash_no_ca || options->pkcs12_file || options->ca_file || options->ca_path)
     {
         return;
     }
 
     const char *const str = "You must define CA file (--ca)"
-#ifndef ENABLE_CRYPTO_MBEDTLS
                             " or CA path (--capath)"
-#endif
                             " and/or peer fingerprint verification (--peer-fingerprint)";
     msg(M_USAGE, "%s", str);
 }
@@ -2431,70 +2112,13 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
      * Windows-specific options.
      */
 
-#ifdef _WIN32
-    if (dev == DEV_TYPE_TUN
-        && !(pull || (options->ifconfig_local && options->ifconfig_remote_netmask)))
-    {
-        msg(M_USAGE, "On Windows, --ifconfig is required when --dev tun is used");
-    }
-
-    if ((options->tuntap_options.ip_win32_defined)
-        && !(pull || (options->ifconfig_local && options->ifconfig_remote_netmask)))
-    {
-        msg(M_USAGE, "On Windows, --ip-win32 doesn't make sense unless --ifconfig is also used");
-    }
-
-    if (options->tuntap_options.dhcp_options & DHCP_OPTIONS_DHCP_REQUIRED)
-    {
-        const char *prefix = "Some --dhcp-option or --dns options require DHCP server";
-        if (options->windows_driver != WINDOWS_DRIVER_TAP_WINDOWS6)
-        {
-            msg(M_USAGE, "%s, which is not supported by the selected %s driver", prefix,
-                print_tun_backend_driver(options->windows_driver));
-        }
-        else if (options->tuntap_options.ip_win32_type != IPW32_SET_DHCP_MASQ
-                 && options->tuntap_options.ip_win32_type != IPW32_SET_ADAPTIVE)
-        {
-            msg(M_USAGE, "%s, which requires --ip-win32 dynamic or adaptive", prefix);
-        }
-    }
-#endif /* ifdef _WIN32 */
-
     /*
      * Check that protocol options make sense.
      */
 
-#ifdef ENABLE_FRAGMENT
-    if (!proto_is_udp(ce->proto) && ce->fragment)
-    {
-        msg(M_USAGE, "--fragment can only be used with --proto udp");
-    }
-#endif
-
     if (!ce->remote && ce->proto == PROTO_TCP_CLIENT)
     {
         msg(M_USAGE, "--remote MUST be used in TCP Client mode");
-    }
-
-    if ((ce->http_proxy_options) && ce->proto != PROTO_TCP_CLIENT)
-    {
-        msg(M_USAGE, "--http-proxy MUST be used in TCP Client mode (i.e. --proto "
-                     "tcp-client)");
-    }
-
-    if ((ce->http_proxy_options) && !ce->http_proxy_options->server)
-    {
-        msg(M_USAGE, "--http-proxy not specified but other http proxy options present");
-    }
-
-    if (ce->http_proxy_options && ce->socks_proxy_server)
-    {
-        msg(M_USAGE, "--http-proxy can not be used together with --socks-proxy");
-    }
-
-    if (ce->socks_proxy_server && ce->proto == PROTO_TCP_SERVER)
-    {
-        msg(M_USAGE, "--socks-proxy can not be used in TCP Server mode");
     }
 
     if (ce->proto == PROTO_TCP_SERVER && (options->connection_list->len > 1))
@@ -2542,8 +2166,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         }
         MUST_BE_FALSE(ce->remote, "remote");
         MUST_BE_FALSE(!ce->bind_local, "nobind");
-        MUST_BE_FALSE(ce->http_proxy_options, "http-proxy");
-        MUST_BE_FALSE(ce->socks_proxy_server, "socks-proxy");
         /* <connection> blocks force to have a remote embedded, so we check
          * for the --remote and bail out if it is present
          */
@@ -2771,37 +2393,17 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             MUST_BE_UNDEF(pkcs12_file, "pkcs12");
             MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_KEY, "management-external-key");
             MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_CERT, "management-external-cert");
-#ifdef ENABLE_CRYPTOAPI
-            MUST_BE_UNDEF(cryptoapi_cert, "cryptoapicert");
-#endif
         }
         else
 #endif /* ifdef ENABLE_PKCS11 */
-#ifdef ENABLE_CRYPTOAPI
-            if (options->cryptoapi_cert)
+             if (options->pkcs12_file)
         {
-            const char use_err[] =
-                "Parameter --%s cannot be used when --cryptoapicert is also specified.";
-            MUST_BE_UNDEF(cert_file, "cert");
-            MUST_BE_UNDEF(priv_key_file, "key");
-            MUST_BE_UNDEF(pkcs12_file, "pkcs12");
-            MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_KEY, "management-external-key");
-            MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_CERT, "management-external-cert");
-        }
-        else
-#endif
-            if (options->pkcs12_file)
-        {
-#ifdef ENABLE_CRYPTO_MBEDTLS
-            msg(M_USAGE, "Parameter --pkcs12 cannot be used with the mbed TLS version of OpenVPN.");
-#else
             const char use_err[] = "Parameter --%s cannot be used when --pkcs12 is also specified.";
             MUST_BE_UNDEF(ca_path, "capath");
             MUST_BE_UNDEF(cert_file, "cert");
             MUST_BE_UNDEF(priv_key_file, "key");
             MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_KEY, "management-external-key");
             MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_CERT, "management-external-cert");
-#endif       /* ifdef ENABLE_CRYPTO_MBEDTLS */
         }
         else /* cert/key from none of pkcs11, pkcs12, cryptoapi */
         {
@@ -2883,9 +2485,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         MUST_BE_UNDEF(dh_file, "dh");
         MUST_BE_UNDEF(cert_file, "cert");
         MUST_BE_UNDEF(priv_key_file, "key");
-#ifndef ENABLE_CRYPTO_MBEDTLS
         MUST_BE_UNDEF(pkcs12_file, "pkcs12");
-#endif
         MUST_BE_UNDEF(cipher_list, "tls-cipher");
         MUST_BE_UNDEF(cipher_list_tls13, "tls-ciphersuites");
         MUST_BE_UNDEF(tls_cert_profile, "tls-cert-profile");
@@ -2958,7 +2558,7 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
     bool need_bind = ce->local_port_defined || ce->bind_defined || ce->local_list;
 
     /* socks proxy is enabled */
-    bool uses_socks = ce->proto == PROTO_UDP && ce->socks_proxy_server;
+    bool uses_socks = false;
 
     /* If binding is not forced by an explicit option and we have (at least)
      * one of --tcp-client, --pull (or --client), or socks we do not bind
@@ -2979,29 +2579,6 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
     if (o->proto_force >= 0 && o->proto_force != ce->proto)
     {
         ce->flags |= CE_DISABLED;
-    }
-
-    if (ce->http_proxy_options)
-    {
-        ce->http_proxy_options->nocache = ssl_get_auth_nocache();
-    }
-
-    /* our socks code is not fully IPv6 enabled yet (TCP works, UDP not)
-     * so fall back to IPv4-only (trac #1221)
-     */
-    if (ce->socks_proxy_server && proto_is_udp(ce->proto) && ce->af != AF_INET)
-    {
-        if (ce->af == AF_INET6)
-        {
-            msg(M_INFO, "WARNING: '--proto udp6' is not compatible with "
-                        "'--socks-proxy' today.  Forcing IPv4 mode.");
-        }
-        else
-        {
-            msg(M_INFO, "NOTICE: dual-stack mode for '--proto udp' does not "
-                        "work correctly with '--socks-proxy' today.  Forcing IPv4.");
-        }
-        ce->af = AF_INET;
     }
 
     /*
@@ -3026,13 +2603,6 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
      */
     if (o->ce.mssfix_default)
     {
-#ifdef ENABLE_FRAGMENT
-        if (ce->fragment)
-        {
-            ce->mssfix = ce->fragment;
-        }
-        else
-#endif
             if (ce->tun_mtu_defined)
         {
             if (o->ce.tun_mtu == TUN_MTU_DEFAULT)
@@ -3104,20 +2674,6 @@ options_postprocess_mutate_le(struct connection_entry *ce, struct local_entry *l
     }
 }
 
-#ifdef _WIN32
-/* If iservice is in use, we need def1 method for redirect-gateway */
-static void
-remap_redirect_gateway_flags(struct options *opt)
-{
-    if (opt->routes && opt->route_method == ROUTE_METHOD_SERVICE
-        && opt->routes->flags & RG_REROUTE_GW && !(opt->routes->flags & RG_DEF1))
-    {
-        msg(M_INFO, "Flag 'def1' added to --redirect-gateway (iservice is in use)");
-        opt->routes->flags |= RG_DEF1;
-    }
-}
-#endif /* ifdef _WIN32 */
-
 /*
  * Save/Restore certain option defaults before --pull is applied.
  */
@@ -3157,11 +2713,6 @@ pre_connect_save(struct options *o)
     /* NCP related options that can be overwritten by a push */
     o->pre_connect->ciphername = o->ciphername;
     o->pre_connect->authname = o->authname;
-
-    /* Ping related options should be reset to the config values on reconnect */
-    o->pre_connect->ping_rec_timeout = o->ping_rec_timeout;
-    o->pre_connect->ping_rec_timeout_action = o->ping_rec_timeout_action;
-    o->pre_connect->ping_send_timeout = o->ping_send_timeout;
 
     /* Miscellaneous Options */
     o->pre_connect->comp = o->comp;
@@ -3226,10 +2777,6 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
         o->ciphername = pp->ciphername;
         o->authname = pp->authname;
 
-        o->ping_rec_timeout = pp->ping_rec_timeout;
-        o->ping_rec_timeout_action = pp->ping_rec_timeout_action;
-        o->ping_send_timeout = pp->ping_send_timeout;
-
         /* Miscellaneous Options */
         o->comp = pp->comp;
     }
@@ -3242,55 +2789,6 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
 static void
 options_postprocess_mutate_invariant(struct options *options)
 {
-#ifdef _WIN32
-    const int dev = dev_type_enum(options->dev, options->dev_type);
-
-    /* when using ovpn-dco, kernel doesn't send DHCP requests, so don't use it */
-    if ((options->windows_driver == DRIVER_DCO)
-        && (options->tuntap_options.ip_win32_type == IPW32_SET_DHCP_MASQ
-            || options->tuntap_options.ip_win32_type == IPW32_SET_ADAPTIVE))
-    {
-        options->tuntap_options.ip_win32_type = IPW32_SET_NETSH;
-    }
-
-    if ((dev == DEV_TYPE_TUN || dev == DEV_TYPE_TAP) && !options->route_delay_defined)
-    {
-        /* delay may only be necessary when we perform DHCP handshake */
-        const bool dhcp = (options->tuntap_options.ip_win32_type == IPW32_SET_DHCP_MASQ)
-                          || (options->tuntap_options.ip_win32_type == IPW32_SET_ADAPTIVE);
-        if ((options->mode == MODE_POINT_TO_POINT) && dhcp)
-        {
-            options->route_delay_defined = true;
-            options->route_delay = 5; /* Vista sometimes has a race without this */
-        }
-    }
-
-    if (options->ifconfig_noexec)
-    {
-        options->tuntap_options.ip_win32_type = IPW32_SET_MANUAL;
-        options->ifconfig_noexec = false;
-    }
-
-    remap_redirect_gateway_flags(options);
-
-    /*
-     * Check consistency of --mode server options.
-     */
-    if (options->mode == MODE_SERVER)
-    {
-        /*
-         * We need to explicitly set --tap-sleep because
-         * we do not schedule event timers in the top-level context.
-         */
-        options->tuntap_options.tap_sleep = 10;
-        if (options->route_delay_defined && options->route_delay)
-        {
-            options->tuntap_options.tap_sleep = options->route_delay;
-        }
-        options->route_delay_defined = false;
-    }
-#endif /* ifdef _WIN32 */
-
 #ifdef DEFAULT_PKCS11_MODULE
     /* If p11-kit is present on the system then load its p11-kit-proxy.so
      * by default if the user asks for PKCS#11 without otherwise specifying
@@ -3309,6 +2807,11 @@ options_postprocess_mutate_invariant(struct options *options)
     options->ce.mtio_conf = false;
 
     if (options->ce.mtio_mode)
+    {
+        options->ce.mtio_conf = true;
+    }
+
+    if (options->ce.dual_mode)
     {
         options->ce.mtio_conf = true;
     }
@@ -3508,7 +3011,7 @@ options_process_mutate_prf(struct options *o)
     }
 }
 
-#if defined(_WIN32) || defined(TARGET_ANDROID)
+#if defined(TARGET_ANDROID)
 /**
  * @brief Postprocess DNS related settings
  *
@@ -3545,13 +3048,6 @@ tuntap_options_postprocess_dns(struct options *o)
 
         return;
     }
-
-#if defined(_WIN32)
-    if (tt->ip_win32_type != IPW32_SET_DHCP_MASQ && tt->ip_win32_type != IPW32_SET_ADAPTIVE)
-    {
-        return; /* Not in DHCP mode */
-    }
-#endif          /* if defined(_WIN32) */
 
     /* Copy --dns options to tuntap_options */
 
@@ -3620,7 +3116,7 @@ tuntap_options_postprocess_dns(struct options *o)
     }
 }
 
-#else  /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+#else  /* if defined(TARGET_ANDROID) */
 
 /**
  * @brief Postprocess DNS related settings
@@ -3772,7 +3268,7 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
 
     gc_free(&gc);
 }
-#endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+#endif /* if defined(TARGET_ANDROID) */
 
 static void
 options_postprocess_mutate(struct options *o, struct env_set *es)
@@ -3785,7 +3281,6 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     helper_client_server(o);
     /* must be called after helpers that might set --mode */
     helper_setdefault_topology(o);
-    helper_keepalive(o);
     helper_tcp_nodelay(o);
 
     options_postprocess_setdefault_ncpciphers(o);
@@ -3881,12 +3376,6 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
                     "include this in your server configuration");
         o->dh_file = NULL;
     }
-#if ENABLE_MANAGEMENT
-    if (o->http_proxy_override)
-    {
-        options_postprocess_http_proxy_override(o);
-    }
-#endif
     if (!o->ca_file && !o->ca_path && o->verify_hash && o->verify_hash_depth == 0)
     {
         msg(M_INFO, "Using certificate fingerprint to verify peer (no CA "
@@ -3912,32 +3401,12 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     }
 #endif
 
-#ifdef _WIN32
-    if (dco_enabled(o))
-    {
-        o->windows_driver = DRIVER_DCO;
-    }
-    else
-    {
-        if (o->windows_driver == DRIVER_DCO)
-        {
-            msg(M_WARN,
-                "Option --windows-driver ovpn-dco is ignored because Data Channel Offload is disabled");
-            o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
-        }
-        else if (o->windows_driver == WINDOWS_DRIVER_UNSPECIFIED)
-        {
-            o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
-        }
-    }
-#else  /* _WIN32 */
     if (dco_enabled(o) && o->dev_node)
     {
         msg(M_WARN, "Note: ignoring --dev-node as it has no effect when using "
                     "data channel offload");
         o->dev_node = NULL;
     }
-#endif /* _WIN32 */
 
     /* this depends on o->windows_driver, which is set above */
     options_postprocess_mutate_invariant(o);
@@ -3955,7 +3424,7 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     }
     else
     {
-#if defined(_WIN32) || defined(TARGET_ANDROID)
+#if defined(TARGET_ANDROID)
         tuntap_options_postprocess_dns(o);
 #else
         dhcp_options_postprocess_dns(o, es);
@@ -4053,7 +3522,6 @@ check_file_access(const int type, const char *file, const int mode, const char *
         {
             msg(M_WARN | M_ERRNO, "WARNING: cannot stat file '%s'", file);
         }
-#ifndef _WIN32
         else
         {
             if (st.st_mode & (S_IRWXG | S_IRWXO))
@@ -4061,7 +3529,6 @@ check_file_access(const int type, const char *file, const int mode, const char *
                 msg(M_WARN, "WARNING: file '%s' is group or others accessible", file);
             }
         }
-#endif
     }
 
     /* Scream if an error is found */
@@ -4328,7 +3795,7 @@ options_postprocess_pull(struct options *o, struct env_set *es)
     if (success)
     {
         dns_options_postprocess_pull(&o->dns_options);
-#if defined(_WIN32) || defined(TARGET_ANDROID)
+#if defined(TARGET_ANDROID)
         tuntap_options_postprocess_dns(o);
 #else
         dhcp_options_postprocess_dns(o, es);
@@ -4455,13 +3922,6 @@ options_string(const struct options *o, const struct frame *frame, struct tuntap
     }
 #endif
 
-#ifdef ENABLE_FRAGMENT
-    if (o->ce.fragment)
-    {
-        buf_printf(&out, ",mtu-dynamic");
-    }
-#endif
-
 #define TLS_CLIENT (o->tls_client)
 #define TLS_SERVER (o->tls_server)
 
@@ -4516,13 +3976,6 @@ options_string(const struct options *o, const struct frame *frame, struct tuntap
         {
             buf_printf(&out, ",secret");
         }
-
-#ifdef ENABLE_PREDICTION_RESISTANCE
-        if (o->use_prediction_resistance)
-        {
-            buf_printf(&out, ",use-prediction-resistance");
-        }
-#endif
     }
 
     /*
@@ -4903,16 +4356,6 @@ usage_small(void)
     openvpn_exit(OPENVPN_EXIT_STATUS_USAGE); /* exit point */
 }
 
-#ifdef _WIN32
-void
-show_windows_version(const unsigned int flags)
-{
-    struct gc_arena gc = gc_new();
-    msg(flags, "Windows version: %s", win32_version_string(&gc));
-    gc_free(&gc);
-}
-#endif
-
 void
 show_dco_version(const unsigned int flags)
 {
@@ -4942,9 +4385,6 @@ usage_version(void)
 {
     msg(M_INFO | M_NOPREFIX, "%s", title_string);
     show_library_versions(M_INFO | M_NOPREFIX);
-#ifdef _WIN32
-    show_windows_version(M_INFO | M_NOPREFIX);
-#endif
     show_dco_version(M_INFO | M_NOPREFIX);
     msg(M_INFO | M_NOPREFIX, "Originally developed by James Yonan");
     msg(M_INFO | M_NOPREFIX, "Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>");
@@ -4980,24 +4420,6 @@ string_defined_equal(const char *s1, const char *s2)
         return false;
     }
 }
-
-#if 0
-static void
-ping_rec_err(msglvl_t msglevel)
-{
-    msg(msglevel, "only one of --ping-exit or --ping-restart options may be specified");
-}
-#endif
-
-#ifdef _WIN32 /* This function is only used when compiling on Windows */
-static unsigned int
-atou(const char *str)
-{
-    unsigned int val = 0;
-    sscanf(str, "%u", &val);
-    return val;
-}
-#endif
 
 #define VERIFY_PERMISSION(mask)                                                               \
     {                                                                                         \
@@ -5194,7 +4616,7 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
         VERIFY_PERMISSION(OPT_P_ROUTE);
         options->block_ipv6 = false;
     }
-#if defined(_WIN32) || defined(TARGET_ANDROID)
+#if defined(TARGET_ANDROID)
     else if (streq(p[0], "dhcp-option") && !p[1])
     {
         struct tuntap_options *o = &options->tuntap_options;
@@ -5219,25 +4641,13 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
         }
         o->disable_nbt = 0;
         o->dhcp_options = 0;
-#if defined(TARGET_ANDROID)
-        o->http_proxy_port = 0;
-        o->http_proxy = NULL;
-#endif
     }
-#endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
-#ifdef _WIN32
-    else if (streq(p[0], "block-outside-dns") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        options->block_outside_dns = false;
-    }
-#else /* ifdef _WIN32 */
+#endif /* if defined(TARGET_ANDROID) */
     else if (streq(p[0], "dhcp-option") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_DHCPDNS);
         delete_all_dhcp_fo(options, &es->list);
     }
-#endif
     else
     {
         msglvl_t msglevel_unknown = msglevel_fc;
@@ -5496,7 +4906,7 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             *update_options_found |= OPT_P_U_DNS;
         }
     }
-#if defined(_WIN32) || defined(TARGET_ANDROID)
+#if defined(TARGET_ANDROID)
     else if (streq(p[0], "dhcp-option") && p[1] && !p[3])
     {
         if (!(*update_options_found & OPT_P_U_DHCP))
@@ -5525,14 +4935,10 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             o->dhcp_options = 0;
 
             CLEAR(options->dns_options.from_dhcp);
-#if defined(TARGET_ANDROID)
-            o->http_proxy_port = 0;
-            o->http_proxy = NULL;
-#endif
             *update_options_found |= OPT_P_U_DHCP;
         }
     }
-#else  /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+#else  /* if defined(TARGET_ANDROID) */
     else if (streq(p[0], "dhcp-option") && p[1] && !p[3])
     {
         if (!(*update_options_found & OPT_P_U_DHCP))
@@ -5542,7 +4948,7 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             *update_options_found |= OPT_P_U_DHCP;
         }
     }
-#endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+#endif /* if defined(TARGET_ANDROID) */
     add_option(options, p, is_inline, file, line, level, msglevel, permission_mask,
                option_types_found, es);
     return;
@@ -5596,9 +5002,6 @@ key_is_external(const struct options *options)
     ret = ret || (options->management_flags & MF_EXTERNAL_KEY);
 #ifdef ENABLE_PKCS11
     ret = ret || (options->pkcs11_providers[0] != NULL);
-#endif
-#ifdef ENABLE_CRYPTOAPI
-    ret = ret || options->cryptoapi_cert;
 #endif
 
     return ret;
@@ -5897,15 +5300,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->dev_type = p[1];
     }
-#ifdef _WIN32
-    else if (streq(p[0], "windows-driver") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        msg(M_WARN,
-            "DEPRECATED OPTION: windows-driver: In OpenVPN 2.7, the default Windows driver is ovpn-dco. "
-            "If incompatible options are used, OpenVPN will fall back to tap-windows6. Wintun support has been removed.");
-    }
-#endif
     else if (streq(p[0], "disable-dco"))
     {
         options->disable_dco = true;
@@ -6105,17 +5499,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
 
         options->ignore_unknown_option[i] = NULL;
     }
-#if ENABLE_MANAGEMENT
-    else if (streq(p[0], "http-proxy-override") && p[1] && p[2] && !p[4])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->http_proxy_override = parse_http_proxy_override(p[1], p[2], p[3], &options->gc);
-        if (!options->http_proxy_override)
-        {
-            goto err;
-        }
-    }
-#endif
     else if (streq(p[0], "remote") && p[1] && !p[4])
     {
         struct remote_entry re;
@@ -6478,31 +5861,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         options->ce.mssfix_default = false;
         options->ce.mssfix_encap = true;
     }
-#ifdef ENABLE_FRAGMENT
-    else if (streq(p[0], "mtu-dynamic"))
-    {
-        VERIFY_PERMISSION(OPT_P_MTU | OPT_P_CONNECTION);
-        msg(msglevel, "--mtu-dynamic has been replaced by --fragment");
-        goto err;
-    }
-    else if (streq(p[0], "fragment") && p[1] && !p[3])
-    {
-        VERIFY_PERMISSION(OPT_P_MTU | OPT_P_CONNECTION);
-        if (!atoi_constrained(p[1], &options->ce.fragment, p[0], 68, INT_MAX, msglevel))
-        {
-            goto err;
-        }
-
-        if (p[2] && streq(p[2], "mtu"))
-        {
-            options->ce.fragment_encap = true;
-        }
-        else if (p[2])
-        {
-            msg(msglevel, "Unknown parameter to --fragment: %s", p[2]);
-        }
-    }
-#endif /* ifdef ENABLE_FRAGMENT */
     else if (streq(p[0], "mtu-disc") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_MTU | OPT_P_CONNECTION);
@@ -6616,29 +5974,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->fast_io = true;
     }
-    else if (streq(p[0], "inactive") && p[1] && !p[3])
-    {
-        VERIFY_PERMISSION(OPT_P_TIMER);
-        options->inactivity_timeout = positive_atoi(p[1], msglevel);
-        if (p[2])
-        {
-            positive_atoll(p[2], &options->inactivity_minimum_bytes, p[0], msglevel);
-            if (options->inactivity_minimum_bytes > INT_MAX)
-            {
-                msg(M_WARN,
-                    "WARNING: '--inactive' with a 'bytes' value"
-                    " >2 Gbyte was silently ignored in older versions.  If "
-                    " your VPN exits unexpectedly with 'Inactivity timeout'"
-                    " in %d seconds, revisit this value.",
-                    options->inactivity_timeout);
-            }
-        }
-    }
-    else if (streq(p[0], "session-timeout") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_TIMER);
-        options->session_timeout = positive_atoi(p[1], msglevel);
-    }
     else if (streq(p[0], "proto") && p[1] && !p[2])
     {
         int proto;
@@ -6666,168 +6001,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             goto err;
         }
         options->proto_force = proto_force;
-    }
-    else if (streq(p[0], "http-proxy") && p[1] && !p[5])
-    {
-        struct http_proxy_options *ho;
-
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
-
-        {
-            if (!p[2])
-            {
-                msg(msglevel, "http-proxy port number not defined");
-                goto err;
-            }
-
-            ho = init_http_proxy_options_once(&options->ce.http_proxy_options, &options->gc);
-
-            ho->server = p[1];
-            ho->port = p[2];
-        }
-
-        if (p[3])
-        {
-            /* auto -- try to figure out proxy addr, port, and type automatically */
-            /* auto-nct -- disable proxy auth cleartext protocols (i.e. basic auth) */
-            if (streq(p[3], "auto"))
-            {
-                ho->auth_retry = PAR_ALL;
-            }
-            else if (streq(p[3], "auto-nct"))
-            {
-                ho->auth_retry = PAR_NCT;
-            }
-            else
-            {
-                ho->auth_method_string = "basic";
-                ho->auth_file = p[3];
-
-                if (p[4])
-                {
-                    ho->auth_method_string = p[4];
-                }
-            }
-        }
-        else
-        {
-            ho->auth_method_string = "none";
-        }
-    }
-    else if (streq(p[0], "http-proxy-user-pass") && p[1])
-    {
-        struct http_proxy_options *ho;
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_INLINE);
-        ho = init_http_proxy_options_once(&options->ce.http_proxy_options, &options->gc);
-        ho->auth_file_up = p[1];
-        ho->inline_creds = is_inline;
-    }
-    else if (streq(p[0], "http-proxy-retry") || streq(p[0], "socks-proxy-retry"))
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
-        msg(M_WARN, "DEPRECATED OPTION: http-proxy-retry and socks-proxy-retry: "
-                    "In OpenVPN 2.4 proxy connection retries are handled like regular connections. "
-                    "Use connect-retry-max 1 to get a similar behavior as before.");
-    }
-    else if (streq(p[0], "http-proxy-timeout") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
-        msg(M_WARN,
-            "DEPRECATED OPTION: http-proxy-timeout: In OpenVPN 2.4 the timeout until a connection to a "
-            "server is established is managed with a single timeout set by connect-timeout");
-    }
-    else if (streq(p[0], "http-proxy-option") && p[1] && !p[4])
-    {
-        struct http_proxy_options *ho;
-
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
-        ho = init_http_proxy_options_once(&options->ce.http_proxy_options, &options->gc);
-
-        if (streq(p[1], "VERSION") && p[2] && !p[3])
-        {
-            ho->http_version = p[2];
-        }
-        else if (streq(p[1], "AGENT") && p[2] && !p[3])
-        {
-            ho->user_agent = p[2];
-        }
-        else if ((streq(p[1], "EXT1") || streq(p[1], "EXT2") || streq(p[1], "CUSTOM-HEADER"))
-                 && p[2])
-        {
-            /* In the wild patched versions use both EXT1/2 and CUSTOM-HEADER
-             * with either two argument or one */
-
-            struct http_custom_header *custom_header = NULL;
-            int i;
-            /* Find the first free header */
-            for (i = 0; i < MAX_CUSTOM_HTTP_HEADER; i++)
-            {
-                if (!ho->custom_headers[i].name)
-                {
-                    custom_header = &ho->custom_headers[i];
-                    break;
-                }
-            }
-            if (!custom_header)
-            {
-                msg(msglevel, "Cannot use more than %d http-proxy-option CUSTOM-HEADER : '%s'",
-                    MAX_CUSTOM_HTTP_HEADER, p[1]);
-            }
-            else
-            {
-                /* We will save p[2] and p[3], the proxy code will detect if
-                 * p[3] is NULL */
-                custom_header->name = p[2];
-                custom_header->content = p[3];
-            }
-        }
-        else
-        {
-            msg(msglevel, "Bad http-proxy-option or missing or extra parameter: '%s'", p[1]);
-        }
-    }
-    else if (streq(p[0], "socks-proxy") && p[1] && !p[4])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
-
-        if (p[2])
-        {
-            options->ce.socks_proxy_port = p[2];
-        }
-        else
-        {
-            options->ce.socks_proxy_port = "1080";
-        }
-        options->ce.socks_proxy_server = p[1];
-        options->ce.socks_proxy_authfile = p[3]; /* might be NULL */
-    }
-    else if (streq(p[0], "keepalive") && p[1] && p[2] && !p[3])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->keepalive_ping = atoi_warn(p[1], msglevel);
-        options->keepalive_timeout = atoi_warn(p[2], msglevel);
-    }
-    else if (streq(p[0], "ping") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_TIMER);
-        options->ping_send_timeout = positive_atoi(p[1], msglevel);
-    }
-    else if (streq(p[0], "ping-exit") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_TIMER);
-        options->ping_rec_timeout = positive_atoi(p[1], msglevel);
-        options->ping_rec_timeout_action = PING_EXIT;
-    }
-    else if (streq(p[0], "ping-restart") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_TIMER);
-        options->ping_rec_timeout = positive_atoi(p[1], msglevel);
-        options->ping_rec_timeout_action = PING_RESTART;
-    }
-    else if (streq(p[0], "ping-timer-rem") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_TIMER);
-        options->ping_timer_remote = true;
     }
     else if (streq(p[0], "explicit-exit-notify") && !p[2])
     {
@@ -7088,10 +6261,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             setenv_int(es, "route_redirect_gateway_ipv6",
                        options->routes->flags & RG_BLOCK_LOCAL ? 2 : 1);
         }
-#ifdef _WIN32
-        /* we need this here to handle pushed --redirect-gateway */
-        remap_redirect_gateway_flags(options);
-#endif
     }
     else if (streq(p[0], "block-ipv6") && !p[1])
     {
@@ -7817,107 +6986,9 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
 #endif
     else if (streq(p[0], "msg-channel") && p[1])
     {
-#ifdef _WIN32
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        HANDLE process = GetCurrentProcess();
-        HANDLE handle = (HANDLE)((intptr_t)atoll(p[1]));
-        if (!DuplicateHandle(process, handle, process, &options->msg_channel, 0, FALSE,
-                             DUPLICATE_CLOSE_SOURCE | DUPLICATE_SAME_ACCESS))
-        {
-            msg(msglevel, "could not duplicate service pipe handle");
-            goto err;
-        }
-        options->route_method = ROUTE_METHOD_SERVICE;
-#else /* ifdef _WIN32 */
         msg(msglevel, "--msg-channel is only supported on Windows");
         goto err;
-#endif
     }
-#ifdef _WIN32
-    else if (streq(p[0], "win-sys") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        if (streq(p[1], "env"))
-        {
-            msg(M_INFO, "NOTE: --win-sys env is default from OpenVPN 2.3.	 "
-                        "This entry will now be ignored.  "
-                        "Please remove this entry from your configuration file.");
-        }
-        else
-        {
-            set_win_sys_path(p[1], es);
-        }
-    }
-    else if (streq(p[0], "route-method") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_ROUTE_EXTRAS);
-        if (streq(p[1], "adaptive"))
-        {
-            options->route_method = ROUTE_METHOD_ADAPTIVE;
-        }
-        else if (streq(p[1], "ipapi"))
-        {
-            options->route_method = ROUTE_METHOD_IPAPI;
-        }
-        else if (streq(p[1], "exe"))
-        {
-            options->route_method = ROUTE_METHOD_EXE;
-        }
-        else
-        {
-            msg(msglevel, "--route method must be 'adaptive', 'ipapi', or 'exe'");
-            goto err;
-        }
-    }
-    else if (streq(p[0], "ip-win32") && p[1] && !p[4])
-    {
-        const int index = ascii2ipset(p[1]);
-        struct tuntap_options *to = &options->tuntap_options;
-
-        VERIFY_PERMISSION(OPT_P_DHCPDNS);
-
-        if (index < 0)
-        {
-            msg(msglevel, "Bad --ip-win32 method: '%s'.  Allowed methods: %s", p[1],
-                ipset2ascii_all(&gc));
-            goto err;
-        }
-
-        if (index == IPW32_SET_ADAPTIVE)
-        {
-            options->route_delay_window = IPW32_SET_ADAPTIVE_DELAY_WINDOW;
-        }
-
-        if (index == IPW32_SET_DHCP_MASQ)
-        {
-            if (p[2])
-            {
-                if (!streq(p[2], "default"))
-                {
-                    int offset;
-
-                    if (!atoi_constrained(p[2], &offset, "ip-win32 offset", -256, 256, msglevel))
-                    {
-                        goto err;
-                    }
-                    to->dhcp_masq_custom_offset = true;
-                    to->dhcp_masq_offset = offset;
-                }
-
-                if (p[3])
-                {
-                    if (!atoi_constrained(p[3], &to->dhcp_lease_time,
-                                          "ip-win32 lease time", 30, INT_MAX, msglevel))
-                    {
-                        goto err;
-                    }
-                }
-            }
-        }
-        to->ip_win32_type = index;
-        to->ip_win32_defined = true;
-    }
-#endif /* ifdef _WIN32 */
     else if (streq(p[0], "dns-updown") && p[1])
     {
         VERIFY_PERMISSION(OPT_P_SCRIPT);
@@ -7962,7 +7033,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "dhcp-option") && p[1])
     {
         struct dhcp_options *dhcp = &options->dns_options.from_dhcp;
-#if defined(_WIN32) || defined(TARGET_ANDROID)
+#if defined(TARGET_ANDROID)
         struct tuntap_options *o = &options->tuntap_options;
 #endif
         VERIFY_PERMISSION(OPT_P_DHCPDNS);
@@ -8012,7 +7083,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
                 dhcp_optional = true;
             }
         }
-#if defined(_WIN32) || defined(TARGET_ANDROID)
+#if defined(TARGET_ANDROID)
         else if (streq(p[1], "NBS") && p[2] && !p[3])
         {
             o->netbios_scope = p[2];
@@ -8049,152 +7120,23 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             o->disable_nbt = 1;
             o->dhcp_options |= DHCP_OPTIONS_DHCP_REQUIRED;
         }
-#if defined(TARGET_ANDROID)
-        else if (streq(p[1], "PROXY_HTTP") && p[3] && !p[4])
-        {
-            o->http_proxy_port = positive_atoi(p[3], msglevel);
-            o->http_proxy = p[2];
-        }
-#endif
         else
         {
             msg(msglevel, "--dhcp-option: unknown option type '%s' or missing or unknown parameter",
                 p[1]);
             goto err;
         }
-#else  /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+#else  /* if defined(TARGET_ANDROID) */
         setenv_foreign_option(options, p[1], p[2], es);
-#endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+#endif /* if defined(TARGET_ANDROID) */
 
         if (dhcp_optional)
         {
-#if defined(_WIN32) || defined(TARGET_ANDROID)
+#if defined(TARGET_ANDROID)
             o->dhcp_options |= DHCP_OPTIONS_DHCP_OPTIONAL;
 #endif
         }
     }
-#ifdef _WIN32
-    else if (streq(p[0], "show-adapters") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        show_tap_win_adapters(M_INFO | M_NOPREFIX, M_WARN | M_NOPREFIX);
-        openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */
-    }
-    else if (streq(p[0], "show-net") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        show_routes(M_INFO | M_NOPREFIX);
-        show_adapters(M_INFO | M_NOPREFIX);
-        openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */
-    }
-    else if (streq(p[0], "show-net-up") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_UP);
-        options->show_net_up = true;
-    }
-    else if (streq(p[0], "tap-sleep") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        if (!atoi_constrained(p[1], &options->tuntap_options.tap_sleep, p[0], 0, 255, msglevel))
-        {
-            goto err;
-        }
-    }
-    else if (streq(p[0], "dhcp-renew") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        options->tuntap_options.dhcp_renew = true;
-    }
-    else if (streq(p[0], "dhcp-pre-release") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        options->tuntap_options.dhcp_pre_release = true;
-        options->tuntap_options.dhcp_renew = true;
-    }
-    else if (streq(p[0], "dhcp-release") && !p[1])
-    {
-        msg(M_WARN, "Obsolete option --dhcp-release detected. This is now on by default");
-    }
-    else if (streq(p[0], "dhcp-internal") && p[1] && !p[2]) /* standalone method for internal use */
-    {
-        unsigned int adapter_index;
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        set_debug_level(options->verbosity, SDL_CONSTRAIN);
-        adapter_index = atou(p[1]);
-        sleep(options->tuntap_options.tap_sleep);
-        if (options->tuntap_options.dhcp_pre_release)
-        {
-            dhcp_release_by_adapter_index(adapter_index);
-        }
-        if (options->tuntap_options.dhcp_renew)
-        {
-            dhcp_renew_by_adapter_index(adapter_index);
-        }
-        openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */
-    }
-    else if (streq(p[0], "register-dns") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        options->tuntap_options.register_dns = true;
-    }
-    else if (streq(p[0], "block-outside-dns") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        options->block_outside_dns = true;
-    }
-    else if (streq(p[0], "rdns-internal") && !p[1])
-    /* standalone method for internal use
-     *
-     * (if --register-dns is set, openvpn needs to call itself in a
-     *  sub-process to execute the required functions in a non-blocking
-     *  way, and uses --rdns-internal to signal that to itself)
-     */
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        set_debug_level(options->verbosity, SDL_CONSTRAIN);
-        if (options->tuntap_options.register_dns)
-        {
-            ipconfig_register_dns(NULL);
-        }
-        openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */
-    }
-    else if (streq(p[0], "show-valid-subnets") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        show_valid_win32_tun_subnets();
-        openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */
-    }
-    else if (streq(p[0], "pause-exit") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        set_pause_exit_win32();
-    }
-    else if (streq(p[0], "service") && p[1] && !p[3])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->exit_event_name = p[1];
-        if (p[2])
-        {
-            options->exit_event_initial_state = (atoi_warn(p[2], msglevel) != 0);
-        }
-    }
-    else if (streq(p[0], "allow-nonadmin") && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        tap_allow_nonadmin_access(p[1]);
-        openvpn_exit(OPENVPN_EXIT_STATUS_GOOD); /* exit point */
-    }
-    else if (streq(p[0], "user") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        msg(M_WARN, "NOTE: --user option is not implemented on Windows");
-    }
-    else if (streq(p[0], "group") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        msg(M_WARN, "NOTE: --group option is not implemented on Windows");
-    }
-#else  /* ifdef _WIN32 */
     else if (streq(p[0], "user") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
@@ -8215,7 +7157,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         VERIFY_PERMISSION(OPT_P_ROUTE_EXTRAS);
         /* ignore when pushed to non-Windows OS */
     }
-#endif /* ifdef _WIN32 */
 #if PASSTOS_CAPABILITY
     else if (streq(p[0], "passtos") && !p[1])
     {
@@ -8574,7 +7515,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->test_crypto = true;
     }
-#ifndef ENABLE_CRYPTO_MBEDTLS
     else if (streq(p[0], "engine") && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
@@ -8587,7 +7527,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             options->engine = "auto";
         }
     }
-#endif /* ENABLE_CRYPTO_MBEDTLS */
     else if (streq(p[0], "providers") && p[1])
     {
         for (size_t j = 1; j < MAX_PARMS && p[j] != NULL; j++)
@@ -8595,13 +7534,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             options->providers.names[j] = p[j];
         }
     }
-#ifdef ENABLE_PREDICTION_RESISTANCE
-    else if (streq(p[0], "use-prediction-resistance") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->use_prediction_resistance = true;
-    }
-#endif
     else if (streq(p[0], "show-tls") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
@@ -8636,13 +7568,11 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         options->ca_file = p[1];
         options->ca_file_inline = is_inline;
     }
-#ifndef ENABLE_CRYPTO_MBEDTLS
     else if (streq(p[0], "capath") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->ca_path = p[1];
     }
-#endif /* ENABLE_CRYPTO_MBEDTLS */
     else if (streq(p[0], "dh") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_INLINE);
@@ -8727,13 +7657,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             listend->next = newlist;
         }
     }
-#if defined(ENABLE_CRYPTOAPI) && defined(HAVE_XKEY_PROVIDER)
-    else if (streq(p[0], "cryptoapicert") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->cryptoapi_cert = p[1];
-    }
-#endif
     else if (streq(p[0], "key") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_INLINE);
@@ -8749,15 +7672,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             msg(msglevel, "unknown tls-version-min parameter: %s", p[1]);
             goto err;
         }
-
-#ifdef ENABLE_CRYPTO_MBEDTLS
-        if (ver < TLS_VER_1_2)
-        {
-            msg(M_WARN, "--tls-version-min %s is not supported by mbedtls, using 1.2", p[1]);
-            ver = TLS_VER_1_2;
-        }
-#endif
-
         options->ssl_flags &= ~(SSLF_TLS_VERSION_MIN_MASK << SSLF_TLS_VERSION_MIN_SHIFT);
         options->ssl_flags |= ((unsigned int)ver << SSLF_TLS_VERSION_MIN_SHIFT);
     }
@@ -8773,14 +7687,12 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         options->ssl_flags &= ~(SSLF_TLS_VERSION_MAX_MASK << SSLF_TLS_VERSION_MAX_SHIFT);
         options->ssl_flags |= ((unsigned int)ver << SSLF_TLS_VERSION_MAX_SHIFT);
     }
-#ifndef ENABLE_CRYPTO_MBEDTLS
     else if (streq(p[0], "pkcs12") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_INLINE);
         options->pkcs12_file = p[1];
         options->pkcs12_file_inline = is_inline;
     }
-#endif /* ENABLE_CRYPTO_MBEDTLS */
     else if (streq(p[0], "askpass") && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
@@ -8917,10 +7829,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "ns-cert-type") && p[1] && !p[2])
     {
-#ifdef ENABLE_CRYPTO_MBEDTLS
-        msg(msglevel, "--ns-cert-type is not available with mbedtls.");
-        goto err;
-#else
         VERIFY_PERMISSION(OPT_P_GENERAL);
         if (streq(p[1], "server"))
         {
@@ -8935,7 +7843,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             msg(msglevel, "--ns-cert-type must be 'client' or 'server'");
             goto err;
         }
-#endif /* ENABLE_CRYPTO_MBEDTLS */
     }
     else if (streq(p[0], "remote-cert-ku"))
     {
@@ -9328,6 +8235,10 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
                 options->ce.mtio_time = mtio_time;
             }
         }
+    }
+    else if (streq(p[0], "dual-mode"))
+    {
+        options->ce.dual_mode = true;
     }
     else
     {

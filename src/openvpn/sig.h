@@ -90,9 +90,7 @@ int signal_reset(struct signal_info *si, int signum);
 static inline void
 halt_non_edge_triggered_signals(void)
 {
-#ifdef _WIN32
-    win32_signal_close(&win32_signal);
-#endif
+    /* no-op */
 }
 
 /**
@@ -108,11 +106,7 @@ halt_non_edge_triggered_signals(void)
 static inline void
 get_signal(volatile int *sig)
 {
-#ifdef _WIN32
-    const int i = win32_signal_get(&win32_signal);
-#else
     const int i = siginfo_static.signal_received;
-#endif
     if (i && sig != &siginfo_static.signal_received)
     {
         *sig = i;

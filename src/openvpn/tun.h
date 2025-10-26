@@ -23,13 +23,6 @@
 #ifndef TUN_H
 #define TUN_H
 
-#ifdef _WIN32
-#include <winioctl.h>
-#include <tap-windows.h>
-#include <setupapi.h>
-#include <cfgmgr32.h>
-#endif
-
 #include "buffer.h"
 #include "error.h"
 #include "mtu.h"
@@ -55,11 +48,7 @@ enum tun_driver_type
     DRIVER_UTUN
 };
 
-#ifdef _WIN32
-#define DCO_WIN_REFERENCE_STRING "ovpn-dco"
-#endif
-
-#if defined(_WIN32) || defined(TARGET_ANDROID) || defined(DHCP_UNIT_TEST)
+#if defined(TARGET_ANDROID) || defined(DHCP_UNIT_TEST)
 
 #define TUN_ADAPTER_INDEX_INVALID ((DWORD)-1)
 
@@ -83,10 +72,6 @@ struct tuntap_options
 #define IPW32_SET_ADAPTIVE  4 /* "--ip-win32 adaptive" */
 #define IPW32_SET_N         5
     int ip_win32_type;
-
-#ifdef _WIN32
-    HANDLE msg_channel;
-#endif
 
     /* --ip-win32 dynamic options */
     bool dhcp_masq_custom_offset;
@@ -141,10 +126,6 @@ struct tuntap_options
 
     struct in6_addr dns6[N_DHCP_ADDR];
     int dns6_len;
-#if defined(TARGET_ANDROID)
-    const char *http_proxy;
-    int http_proxy_port;
-#endif
 };
 
 #elif defined(TARGET_LINUX)
@@ -154,14 +135,14 @@ struct tuntap_options
     int txqueuelen;
 };
 
-#else  /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+#else  /* if defined(TARGET_ANDROID) */
 
 struct tuntap_options
 {
     int dummy; /* not used */
 };
 
-#endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+#endif /* if defined(TARGET_ANDROID) */
 
 /*
  * Define a TUN/TAP dev.
@@ -214,30 +195,7 @@ struct tuntap
     struct in6_addr remote_ipv6;
     int netbits_ipv6;
 
-#ifdef _WIN32
-    HANDLE hand;
-    /* used for async NEW_PEER dco call, which might wait for TCP connect */
-    OVERLAPPED dco_new_peer_ov;
-    struct overlapped_io reads;
-    struct overlapped_io writes;
-    struct rw_handle rw_handle;
-
-    /* used for setting interface address via IP Helper API
-     * or DHCP masquerade */
-    bool ipapi_context_defined;
-    ULONG ipapi_context;
-    ULONG ipapi_instance;
-    in_addr_t adapter_netmask;
-
-    /* Windows adapter index for TAP-Windows adapter,
-     * ~0 if undefined */
-    DWORD adapter_index;
-
-    int standby_iter;
-
-#else  /* ifdef _WIN32 */
     int fd; /* file descriptor for TUN/TAP dev */
-#endif /* ifdef _WIN32 */
 
 #ifdef TARGET_SOLARIS
     int ip_fd;
@@ -256,11 +214,7 @@ struct tuntap
 static inline bool
 tuntap_defined(const struct tuntap *tt)
 {
-#ifdef _WIN32
-    return tt && tt->hand != NULL;
-#else
     return tt && tt->fd >= 0;
-#endif
 }
 
 /*
@@ -372,8 +326,6 @@ ifconfig_order(struct tuntap *tt)
     return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(TARGET_NETBSD)
     return IFCONFIG_AFTER_TUN_OPEN;
-#elif defined(_WIN32)
-    return IFCONFIG_AFTER_TUN_OPEN;
 #elif defined(TARGET_ANDROID)
     return IFCONFIG_BEFORE_TUN_OPEN;
 #else /* if defined(TARGET_LINUX) */
@@ -398,154 +350,6 @@ route_order(struct tuntap *tt)
     return ROUTE_ORDER_DEFAULT;
 #endif
 }
-
-
-#ifdef _WIN32
-
-struct tap_reg
-{
-    const char *guid;
-    enum tun_driver_type windows_driver;
-    struct tap_reg *next;
-};
-
-struct panel_reg
-{
-    const char *name;
-    const char *guid;
-    struct panel_reg *next;
-};
-
-struct device_instance_id_interface
-{
-    LPBYTE net_cfg_instance_id;
-    const char *device_interface;
-    struct device_instance_id_interface *next;
-};
-
-int ascii2ipset(const char *name);
-
-const char *ipset2ascii(int index);
-
-const char *ipset2ascii_all(struct gc_arena *gc);
-
-void verify_255_255_255_252(in_addr_t local, in_addr_t remote);
-
-const IP_ADAPTER_INFO *get_adapter_info_list(struct gc_arena *gc);
-
-const IP_ADAPTER_INFO *get_tun_adapter(const struct tuntap *tt, const IP_ADAPTER_INFO *list);
-
-const IP_ADAPTER_INFO *get_adapter_info(DWORD index, struct gc_arena *gc);
-
-const IP_PER_ADAPTER_INFO *get_per_adapter_info(const DWORD index, struct gc_arena *gc);
-
-const IP_ADAPTER_INFO *get_adapter(const IP_ADAPTER_INFO *ai, DWORD index);
-
-bool is_adapter_up(const struct tuntap *tt, const IP_ADAPTER_INFO *list);
-
-bool is_ip_in_adapter_subnet(const IP_ADAPTER_INFO *ai, const in_addr_t ip,
-                             in_addr_t *highest_netmask);
-
-DWORD adapter_index_of_ip(const IP_ADAPTER_INFO *list, const in_addr_t ip, int *count,
-                          in_addr_t *netmask);
-
-void show_tap_win_adapters(msglvl_t msglevel, msglvl_t warnlevel);
-
-void show_adapters(msglvl_t msglevel);
-
-void tap_allow_nonadmin_access(const char *dev_node);
-
-void show_valid_win32_tun_subnets(void);
-
-const char *tap_win_getinfo(const struct tuntap *tt, struct gc_arena *gc);
-
-void tun_show_debug(struct tuntap *tt);
-
-bool dhcp_release_by_adapter_index(const DWORD adapter_index);
-
-bool dhcp_renew_by_adapter_index(const DWORD adapter_index);
-
-void fork_register_dns_action(struct tuntap *tt);
-
-void ipconfig_register_dns(const struct env_set *es);
-
-void tun_standby_init(struct tuntap *tt);
-
-bool tun_standby(struct tuntap *tt);
-
-int tun_read_queue(struct tuntap *tt, int maxsize);
-
-int tun_write_queue(struct tuntap *tt, struct buffer *buf);
-
-static inline bool
-tuntap_stop(int status)
-{
-    /*
-     * This corresponds to the STATUS_NO_SUCH_DEVICE
-     * error in tapdrvr.c.
-     */
-    if (status < 0)
-    {
-        return GetLastError() == ERROR_FILE_NOT_FOUND;
-    }
-    return false;
-}
-
-static inline bool
-tuntap_abort(int status)
-{
-    /*
-     * Typically generated when driver is halted.
-     */
-    if (status < 0)
-    {
-        return GetLastError() == ERROR_OPERATION_ABORTED;
-    }
-    return false;
-}
-
-int tun_write_win32(struct tuntap *tt, struct buffer *buf);
-
-static inline bool
-is_ip_packet_valid(const struct buffer *buf)
-{
-    const struct openvpn_iphdr *ih = (const struct openvpn_iphdr *)BPTR(buf);
-
-    if (OPENVPN_IPH_GET_VER(ih->version_len) == 4)
-    {
-        if (BLEN(buf) < sizeof(struct openvpn_iphdr))
-        {
-            return false;
-        }
-    }
-    else if (OPENVPN_IPH_GET_VER(ih->version_len) == 6)
-    {
-        if (BLEN(buf) < sizeof(struct openvpn_ipv6hdr))
-        {
-            return false;
-        }
-    }
-    else
-    {
-        return false;
-    }
-
-    return true;
-}
-
-static inline bool
-tuntap_is_dco_win(struct tuntap *tt)
-{
-    return tt && tt->backend_driver == DRIVER_DCO;
-}
-
-static inline bool
-tuntap_is_dco_win_timeout(struct tuntap *tt, int status)
-{
-    return tuntap_is_dco_win(tt) && (status < 0) && (openvpn_errno() == ERROR_NETNAME_DELETED);
-}
-
-#else  /* ifdef _WIN32 */
 
 static inline bool
 tuntap_stop(int status)
@@ -583,8 +387,6 @@ tuntap_is_dco_win_timeout(struct tuntap *tt, int status)
     return false;
 }
 
-#endif /* ifdef _WIN32 */
-
 /*
  * TUN/TAP I/O wait functions
  */
@@ -592,11 +394,7 @@ tuntap_is_dco_win_timeout(struct tuntap *tt, int status)
 static inline event_t
 tun_event_handle(const struct tuntap *tt)
 {
-#ifdef _WIN32
-    return &tt->rw_handle;
-#else
     return tt->fd;
-#endif
 }
 
 static inline void
@@ -617,12 +415,7 @@ tun_set(struct tuntap *tt, struct event_set *es, unsigned int rwflags, void *arg
             *persistent = rwflags;
         }
     }
-#ifdef _WIN32
-    if (tt->backend_driver == WINDOWS_DRIVER_TAP_WINDOWS6 && (rwflags & EVENT_READ))
-    {
-        tun_read_queue(tt, 0);
-    }
-#endif
+
     tt->rwflags_debug = rwflags;
 }
 

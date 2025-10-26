@@ -33,21 +33,13 @@ struct multi_context;
 struct multi_instance;
 struct context;
 
-void multi_tcp_dereference_instance(struct multi_io *multi_io, struct multi_instance *mi);
-
 bool multi_tcp_instance_specific_init(struct multi_context *m, struct multi_instance *mi);
 
 void multi_tcp_instance_specific_free(struct multi_instance *mi);
 
-bool multi_tcp_process_outgoing_link(struct multi_context *m, bool defer,
-                                     const unsigned int mpp_flags);
-
-bool multi_tcp_process_outgoing_link_ready(struct multi_context *m, struct multi_instance *mi,
-                                           const unsigned int mpp_flags);
+bool multi_tcp_process_outgoing_link(struct multi_context *m, bool defer, const unsigned int mpp_flags, int t);
 
 struct multi_instance *multi_create_instance_tcp(struct thread_pointer *b, struct link_socket *sock);
-
-void multi_tcp_link_out_deferred(struct multi_context *m, struct multi_instance *mi);
 
 void multi_tcp_delete_event(struct multi_io *multi_io, event_t event);
 

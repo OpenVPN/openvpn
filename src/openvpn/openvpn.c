@@ -161,6 +161,29 @@ void *tunnel_point_to_point(void *a)
         }
     }
 
+    bool dual_mode = d->options.ce.dual_mode;
+    bool conn_stat = false;
+    int t = THREAD_MAIN;
+    uint8_t buff[5];
+    size_t leng;
+    struct dual_args link, intf;
+    pthread_t thrl, thri;
+
+    if (dual_mode)
+    {
+        socketpair(AF_UNIX, SOCK_DGRAM, 0, intf.w[0]);
+        socketpair(AF_UNIX, SOCK_DGRAM, 0, intf.w[1]);
+        intf.c = c; intf.b = b; intf.t = THREAD_RTWL; intf.z = 0;
+        bzero(&(thri), sizeof(pthread_t));
+        pthread_create(&(thri), NULL, threaded_process_io, &(intf));
+
+        socketpair(AF_UNIX, SOCK_DGRAM, 0, link.w[0]);
+        socketpair(AF_UNIX, SOCK_DGRAM, 0, link.w[1]);
+        link.c = c; link.b = b; link.t = THREAD_RLWT; link.z = 0;
+        bzero(&(thrl), sizeof(pthread_t));
+        pthread_create(&(thrl), NULL, threaded_process_io, &(link));
+    }
+
     msg(M_INFO, "TCPv4_CLIENT MTIO init [%d][%d] [%d][%d] {%d}{%d}", b->h, b->n, p->h, p->n, p->z, b->i);
 
     /* main event loop */
@@ -184,7 +207,7 @@ void *tunnel_point_to_point(void *a)
         P2P_CHECK_SIG();
 
         /* set up and do the I/O wait */
-        io_wait(c, p2p_iow_flags(c));
+        io_wait(c, p2p_iow_flags(c), t);
         P2P_CHECK_SIG();
 
         /* timeout? */
@@ -193,8 +216,45 @@ void *tunnel_point_to_point(void *a)
             continue;
         }
 
+        struct tls_multi *m = c->c2.tls_multi;
+        if (m && (m->multi_state == CAS_CONNECT_DONE)) { conn_stat = true; }
+
+        if (dual_mode)
+        {
+            intf.a = -1; link.a = -1;
+        }
+
         /* process the I/O which triggered select */
-        process_io(c, c->c2.link_sockets[0], b);
+        if (conn_stat && dual_mode)
+        {
+            intf.a = TA_FORWARD; link.a = TA_FORWARD;
+        }
+        else
+        {
+            process_io(c, c->c2.link_sockets[0], b, t);
+        }
+
+        if (dual_mode)
+        {
+            if (intf.a != -1 && link.a != -1)
+            {
+                if (intf.z == 0)
+                {
+                    intf.z = 1;
+                    leng = write(intf.w[0][1], buff, 1);
+                    if (leng < 1) { /* no-op */ }
+                }
+                if (link.z == 0)
+                {
+                    link.z = 1;
+                    leng = write(link.w[0][1], buff, 1);
+                    if (leng < 1) { /* no-op */ }
+                }
+                leng = read(intf.w[1][0], buff, 1);
+                leng = read(link.w[1][0], buff, 1);
+            }
+        }
+
         P2P_CHECK_SIG();
     }
 
@@ -208,6 +268,15 @@ void *tunnel_point_to_point(void *a)
         close(p->r[b->i-1][0]); close(p->r[b->i-1][1]);
         c->c1.tuntap->fd = c->c1.tuntap->ff;
         c->c1.tuntap->ff = -1;
+    }
+
+    if (dual_mode)
+    {
+        close(intf.w[0][0]); close(intf.w[0][1]);
+        close(intf.w[1][0]); close(intf.w[1][1]);
+        close(link.w[0][0]); close(link.w[0][1]);
+        close(link.w[1][0]); close(link.w[1][1]);
+        pthread_join(thri, NULL); pthread_join(thrl, NULL);
     }
 
     persist_client_stats(c);
@@ -535,10 +604,6 @@ openvpn_main(int argc, char *argv[])
     return 1;
 #endif
 
-#ifdef _WIN32
-    SetConsoleOutputCP(CP_UTF8);
-#endif
-
     CLEAR(c);
 
     /* signify first time for components which can
@@ -568,9 +633,6 @@ openvpn_main(int argc, char *argv[])
 
             /* initialize environmental variable store */
             c.es = env_set_create(NULL);
-#ifdef _WIN32
-            set_win_sys_path_via_env(c.es);
-#endif
 
 #ifdef ENABLE_MANAGEMENT
             /* initialize management subsystem */
@@ -623,9 +685,7 @@ openvpn_main(int argc, char *argv[])
 
             /* print version number */
             msg(M_INFO, "%s", title_string);
-#ifdef _WIN32
-            show_windows_version(M_INFO);
-#endif
+
             show_library_versions(M_INFO);
 
             show_dco_version(M_INFO);
@@ -770,40 +830,8 @@ openvpn_main(int argc, char *argv[])
     return 0;                               /* NOTREACHED */
 }
 
-#ifdef _WIN32
-int
-wmain(int argc, wchar_t *wargv[])
-{
-    char **argv;
-    int ret;
-    int i;
-
-    if ((argv = calloc(argc + 1, sizeof(char *))) == NULL)
-    {
-        return 1;
-    }
-
-    for (i = 0; i < argc; i++)
-    {
-        int n = WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, NULL, 0, NULL, NULL);
-        argv[i] = malloc(n);
-        WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, argv[i], n, NULL, NULL);
-    }
-
-    ret = openvpn_main(argc, argv);
-
-    for (i = 0; i < argc; i++)
-    {
-        free(argv[i]);
-    }
-    free(argv);
-
-    return ret;
-}
-#else  /* ifdef _WIN32 */
 int
 main(int argc, char *argv[])
 {
     return openvpn_main(argc, argv);
 }
-#endif /* ifdef _WIN32 */

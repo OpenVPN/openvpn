@@ -30,6 +30,7 @@
 #ifndef FORWARD_H
 #define FORWARD_H
 
+
 /* the following macros must be defined before including any other header
  * file
  */
@@ -37,19 +38,16 @@
 #define BULK_MODE(c) (c && c->c2.frame.bulk_size > 0)
 #define BULK_DATA(b) (b && (b->bulk_leng > 0) && (b->bulk_indx < b->bulk_leng))
 #define INST_LENG(a) (a && (a->inst_leng > 0) && (a->inst_indx < a->inst_leng))
-#define LINK_LEFT(i) (i && sockets_read_residual(i))
+#define LINK_SOCK(s) (s && s->context.c2.link_sockets && s->context.c2.link_sockets[0] && (!s->context.c2.link_sockets[0]->stream_reset))
+#define LINK_LEFT(l) (LINK_SOCK(l) && sockets_read_residual(l->context.c2.link_sockets, 1))
 
-#define TUN_OUT(c)  (BLEN(&(c)->c2.to_tun) > 0)
-#define LINK_OUT(c) (BLEN(&(c)->c2.to_link) > 0)
-#define ANY_OUT(c)  (TUN_OUT(c) || LINK_OUT(c))
+#define TUN_IN(c)     (BLEN(&(c)->c2.buf) > 0)
+#define LINK_IN(c)    (BLEN(&(c)->c2.buf2) > 0)
+#define TUN_OUT(c)    (BLEN(&(c)->c2.to_tun) > 0)
+#define LINK_OUT(c)   (BLEN(&(c)->c2.to_link) > 0)
+#define REKEY_OUT(c)  ((c)->c2.tls_multi && (c)->c2.tls_multi->keys_noop && (c)->c2.tls_multi->plaintext_send_buf.len)
+#define LINKS_READ(c) ((c)->c2.link_sockets && (c)->c2.link_sockets[0] && sockets_read_residual((c)->c2.link_sockets, (c)->c1.link_sockets_num))
 
-#ifdef ENABLE_FRAGMENT
-#define TO_LINK_FRAG(c) ((c)->c2.fragment && fragment_outgoing_defined((c)->c2.fragment))
-#else
-#define TO_LINK_FRAG(c) (false)
-#endif
-
-#define TO_LINK_DEF(c) (LINK_OUT(c) || TO_LINK_FRAG(c))
 
 #include "openvpn.h"
 #include "occ.h"
@@ -60,29 +58,30 @@
 #define IOW_TO_LINK        (1 << 1)
 #define IOW_READ_TUN       (1 << 2)
 #define IOW_READ_LINK      (1 << 3)
-#define IOW_SHAPER         (1 << 4)
-#define IOW_CHECK_RESIDUAL (1 << 5)
-#define IOW_FRAG           (1 << 6)
-#define IOW_MBUF           (1 << 7)
-#define IOW_READ_TUN_FORCE (1 << 8)
+#define IOW_4444           (1 << 4)
+#define IOW_5555           (1 << 5)
+#define IOW_6666           (1 << 6)
+#define IOW_7777           (1 << 7)
+#define IOW_8888           (1 << 8)
 #define IOW_WAIT_SIGNAL    (1 << 9)
 
-#define IOW_READ (IOW_READ_TUN | IOW_READ_LINK)
 
 extern counter_type link_read_bytes_global;
 
 extern counter_type link_write_bytes_global;
 
-void get_io_flags_dowork_udp(struct context *c, struct multi_io *multi_io,
-                             const unsigned int flags);
+
+void get_io_flags_dowork_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags);
 
 void get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags);
 
-void io_wait_dowork(struct context *c, const unsigned int flags);
+void io_wait_dowork(struct context *c, const unsigned int flags, int t);
 
 void pre_select(struct context *c);
 
-void process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b);
+void process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b, int t);
+
+void *threaded_process_io(void *a);
 
 
 /**********************************************************************/
@@ -198,10 +197,11 @@ bool process_incoming_link_part1(struct context *c, struct link_socket_info *lsi
  * @param orig_buf - Pointer to a buffer data.
  *
  */
-void process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
-                                 const uint8_t *orig_buf);
+void process_incoming_link_part2(struct context *c, struct link_socket_info *lsi, const uint8_t *orig_buf);
 
 void process_incoming_link_part3(struct context *c);
+
+void process_incoming_link(struct context *c, struct link_socket *sock);
 
 /**
  * Transfers \c float_sa data extracted from an incoming DCO
@@ -213,8 +213,7 @@ void process_incoming_link_part3(struct context *c);
  * @param float_sa - The sockaddr struct containing the data received from the
  *      DCO notification
  */
-void extract_dco_float_peer_addr(sa_family_t socket_family, struct openvpn_sockaddr *out_osaddr,
-                                 const struct sockaddr *float_sa);
+void extract_dco_float_peer_addr(sa_family_t socket_family, struct openvpn_sockaddr *out_osaddr, const struct sockaddr *float_sa);
 
 /**
  * Process an incoming DCO message (from kernel space).
@@ -310,15 +309,12 @@ bool send_control_channel_string(struct context *c, const char *str, msglvl_t ms
  * The caller needs to ensure that it is scheduled or call
  * send_control_channel_string
  *
- * @param session    - The session structure of the VPN tunnel associated
- *                     with the packet. The method will always use the
- *                     primary key (KS_PRIMARY) for sending the message
+ * @param session    - The session structure of the VPN tunnel associated with the packet.
  * @param str        - The message to be sent
  * @param msglevel   - Message level to use for logging
  */
 
-bool send_control_channel_string_dowork(struct tls_session *session, const char *str,
-                                        msglvl_t msglevel);
+bool send_control_channel_string_dowork(struct tls_multi *multi, struct key_state *ks, const char *str, msglvl_t msglevel);
 
 
 /**
@@ -356,20 +352,6 @@ get_link_socket_info(struct context *c)
     }
 }
 
-static inline void
-register_activity(struct context *c, const int64_t size)
-{
-    if (c->options.inactivity_timeout)
-    {
-        c->c2.inactivity_bytes += size;
-        if (c->c2.inactivity_bytes >= c->options.inactivity_minimum_bytes)
-        {
-            c->c2.inactivity_bytes = 0;
-            event_timeout_reset(&c->c2.inactivity_interval);
-        }
-    }
-}
-
 /*
  * Return the io_wait() flags appropriate for
  * a point-to-point tunnel.
@@ -377,14 +359,18 @@ register_activity(struct context *c, const int64_t size)
 static inline unsigned int
 p2p_iow_flags(const struct context *c)
 {
-    unsigned int flags = (IOW_SHAPER | IOW_CHECK_RESIDUAL | IOW_FRAG | IOW_READ | IOW_WAIT_SIGNAL);
-    if (c->c2.to_link.len > 0)
+    unsigned int flags = (IOW_WAIT_SIGNAL);
+    if (TUN_IN(c) || LINK_OUT(c) || REKEY_OUT(c))
     {
         flags |= IOW_TO_LINK;
     }
-    if (c->c2.to_tun.len > 0)
+    if (LINK_IN(c) || TUN_OUT(c))
     {
         flags |= IOW_TO_TUN;
+    }
+    if (LINKS_READ(c))
+    {
+        flags |= IOW_READ_LINK;
     }
     return flags;
 }
@@ -394,10 +380,10 @@ p2p_iow_flags(const struct context *c)
  * for the top-level server sockets.
  */
 static inline void
-io_wait(struct context *c, const unsigned int flags)
+io_wait(struct context *c, const unsigned int flags, int t)
 {
     if (proto_is_dgram(c->c2.link_sockets[0]->info.proto) && c->c2.fast_io
-        && (flags & (IOW_TO_TUN | IOW_TO_LINK | IOW_MBUF)))
+        && (flags & (IOW_TO_TUN | IOW_TO_LINK)))
     {
         /* fast path -- only for TUN/TAP/UDP writes */
         unsigned int ret = 0;
@@ -405,7 +391,7 @@ io_wait(struct context *c, const unsigned int flags)
         {
             ret |= TUN_WRITE;
         }
-        if (flags & (IOW_TO_LINK | IOW_MBUF))
+        if (flags & IOW_TO_LINK)
         {
             ret |= SOCKET_WRITE;
         }
@@ -414,7 +400,7 @@ io_wait(struct context *c, const unsigned int flags)
     else
     {
         /* slow path */
-        io_wait_dowork(c, flags);
+        io_wait_dowork(c, flags, t);
     }
 }
 

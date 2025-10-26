@@ -57,6 +57,10 @@
 #define MAX_STRLENG 64
 #define MAX_CSTATES 16421
 
+#define THREAD_RTWL (1 << 0)
+#define THREAD_RLWT (1 << 1)
+#define THREAD_MAIN (THREAD_RTWL | THREAD_RLWT)
+
 /*
  * Our global key schedules, packaged thusly
  * to facilitate key persistence.
@@ -204,14 +208,6 @@ struct context_1
     struct status_output *status_output;
     bool status_output_owned;
 
-    /* HTTP proxy object */
-    struct http_proxy_info *http_proxy;
-    bool http_proxy_owned;
-
-    /* SOCKS proxy object */
-    struct socks_proxy_info *socks_proxy;
-    bool socks_proxy_owned;
-
     /* persist --ifconfig-pool db to file */
     struct ifconfig_pool_persist *ifconfig_pool_persist;
     bool ifconfig_pool_persist_owned;
@@ -266,12 +262,6 @@ struct context_2
     /* MTU frame parameters */
     struct frame frame; /* Active frame parameters */
 
-#ifdef ENABLE_FRAGMENT
-    /* Object to handle advanced MTU negotiation and datagram fragmentation */
-    struct fragment_master *fragment;
-    struct frame frame_fragment;
-#endif
-
     /*
      * Traffic shaper object.
      */
@@ -299,12 +289,6 @@ struct context_2
      * timeout features.
      */
     struct event_timeout wait_for_connect;
-    struct event_timeout ping_send_interval;
-    struct event_timeout ping_rec_interval;
-
-    /* --inactive */
-    struct event_timeout inactivity_interval;
-    int64_t inactivity_bytes;
 
     struct event_timeout session_interval;
 
@@ -474,10 +458,6 @@ struct context_2
 #ifdef ENABLE_MANAGEMENT
     struct man_def_auth_context mda_context;
 #endif
-
-#ifdef ENABLE_ASYNC_PUSH
-    int inotify_fd; /* descriptor for monitoring file changes */
-#endif
 };
 
 
@@ -611,6 +591,14 @@ struct mtio_cons
     int thid;
     time_t last;
     in_addr_t srca, dsta;
+};
+
+struct dual_args
+{
+    int a, f, t, z;
+    int w[2][2];
+    struct context *c;
+    struct thread_pointer *b;
 };
 
 void *threaded_io_management(void *a);

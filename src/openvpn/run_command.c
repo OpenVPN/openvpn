@@ -64,16 +64,6 @@ system_error_message(int stat, struct gc_arena *gc)
             buf_printf(&out, "disallowed by script-security setting");
             break;
 
-#ifdef _WIN32
-        case OPENVPN_EXECVE_ERROR:
-            buf_printf(&out, "external program did not execute -- ");
-            /* fall through */
-
-        default:
-            buf_printf(&out, "returned error code %d", stat);
-            break;
-#else  /* ifdef _WIN32 */
-
         case OPENVPN_EXECVE_ERROR:
             buf_printf(&out, "external program fork failed");
             break;
@@ -100,7 +90,6 @@ system_error_message(int stat, struct gc_arena *gc)
                 }
             }
             break;
-#endif /* ifdef _WIN32 */
     }
     return (const char *)out.data;
 }
@@ -156,7 +145,6 @@ openvpn_execve_allowed(const unsigned int flags)
 }
 
 
-#ifndef _WIN32
 /*
  * Run execve() inside a fork().  Designed to replicate the semantics of system() but
  * in a safer way that doesn't require the invocation of a shell or the risks
@@ -224,7 +212,6 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
     gc_free(&gc);
     return ret;
 }
-#endif /* ifndef _WIN32 */
 
 /*
  * Wrapper around openvpn_execve

@@ -106,9 +106,6 @@ context_clear_all_except_first_time(struct context *c)
 static void
 run_up_down(const char *command, const struct plugin_list *plugins, int plugin_type,
             const char *arg,
-#ifdef _WIN32
-            DWORD adapter_index,
-#endif
             const char *dev_type, int tun_mtu, const char *ifconfig_local,
             const char *ifconfig_remote, const char *context, const char *signal_text,
             const char *script_type, struct env_set *es)
@@ -119,25 +116,26 @@ run_up_down(const char *command, const struct plugin_list *plugins, int plugin_t
     {
         setenv_str(es, "signal", signal_text);
     }
+
     setenv_str(es, "script_context", context);
     setenv_int(es, "tun_mtu", tun_mtu);
     setenv_str(es, "dev", arg);
+
     if (dev_type)
     {
         setenv_str(es, "dev_type", dev_type);
     }
-#ifdef _WIN32
-    setenv_int(es, "dev_idx", adapter_index);
-#endif
 
     if (!ifconfig_local)
     {
         ifconfig_local = "";
     }
+
     if (!ifconfig_remote)
     {
         ifconfig_remote = "";
     }
+
     if (!context)
     {
         context = "";
@@ -181,65 +179,14 @@ run_up_down(const char *command, const struct plugin_list *plugins, int plugin_t
 static void
 update_options_ce_post(struct options *options)
 {
-    /*
-     * In pull mode, we usually import --ping/--ping-restart parameters from
-     * the server.  However we should also set an initial default --ping-restart
-     * for the period of time before we pull the --ping-restart parameter
-     * from the server.
-     */
-    if (options->pull && options->ping_rec_timeout_action == PING_UNDEF
-        && proto_is_dgram(options->ce.proto))
-    {
-        options->ping_rec_timeout = PRE_PULL_INITIAL_PING_RESTART;
-        options->ping_rec_timeout_action = PING_RESTART;
-    }
+    /* no-op */
 }
 
 #ifdef ENABLE_MANAGEMENT
 static bool
 management_callback_proxy_cmd(void *arg, const char **p)
 {
-    struct context *c = arg;
-    struct connection_entry *ce = &c->options.ce;
-    struct gc_arena *gc = &c->c2.gc;
-    bool ret = false;
-
-    update_time();
-    if (streq(p[1], "NONE"))
-    {
-        ret = true;
-    }
-    else if (p[2] && p[3])
-    {
-        if (streq(p[1], "HTTP"))
-        {
-            struct http_proxy_options *ho;
-            if (ce->proto != PROTO_TCP && ce->proto != PROTO_TCP_CLIENT)
-            {
-                msg(M_WARN, "HTTP proxy support only works for TCP based connections");
-                return false;
-            }
-            ho = init_http_proxy_options_once(&ce->http_proxy_options, gc);
-            ho->server = string_alloc(p[2], gc);
-            ho->port = string_alloc(p[3], gc);
-            ho->auth_retry = (p[4] && streq(p[4], "nct") ? PAR_NCT : PAR_ALL);
-            ret = true;
-        }
-        else if (streq(p[1], "SOCKS"))
-        {
-            ce->socks_proxy_server = string_alloc(p[2], gc);
-            ce->socks_proxy_port = string_alloc(p[3], gc);
-            ret = true;
-        }
-    }
-    else
-    {
-        msg(M_WARN, "Bad proxy command");
-    }
-
-    ce->flags &= ~CE_MAN_QUERY_PROXY;
-
-    return ret;
+    return false;
 }
 
 static bool
@@ -670,50 +617,13 @@ init_query_passwords(const struct context *c)
 static void
 uninit_proxy_dowork(struct context *c)
 {
-    if (c->c1.http_proxy_owned && c->c1.http_proxy)
-    {
-        http_proxy_close(c->c1.http_proxy);
-        c->c1.http_proxy = NULL;
-        c->c1.http_proxy_owned = false;
-    }
-    if (c->c1.socks_proxy_owned && c->c1.socks_proxy)
-    {
-        socks_proxy_close(c->c1.socks_proxy);
-        c->c1.socks_proxy = NULL;
-        c->c1.socks_proxy_owned = false;
-    }
+    /* no-op */
 }
 
 static void
 init_proxy_dowork(struct context *c)
 {
-    bool did_http = false;
-
-    uninit_proxy_dowork(c);
-
-    if (c->options.ce.http_proxy_options)
-    {
-        c->options.ce.http_proxy_options->first_time = c->first_time;
-
-        /* Possible HTTP proxy user/pass input */
-        c->c1.http_proxy = http_proxy_new(c->options.ce.http_proxy_options);
-        if (c->c1.http_proxy)
-        {
-            did_http = true;
-            c->c1.http_proxy_owned = true;
-        }
-    }
-
-    if (!did_http && c->options.ce.socks_proxy_server)
-    {
-        c->c1.socks_proxy =
-            socks_proxy_new(c->options.ce.socks_proxy_server, c->options.ce.socks_proxy_port,
-                            c->options.ce.socks_proxy_authfile);
-        if (c->c1.socks_proxy)
-        {
-            c->c1.socks_proxy_owned = true;
-        }
-    }
+    /* no-op */
 }
 
 static void
@@ -847,10 +757,6 @@ init_static(void)
 
     error_reset();        /* initialize error.c */
     reset_check_status(); /* initialize status check code in socket.c */
-
-#ifdef _WIN32
-    init_win32();
-#endif
 
 #ifdef OPENVPN_DEBUG_COMMAND_LINE
     {
@@ -1272,24 +1178,7 @@ format_common_name(struct context *c, struct gc_arena *gc)
 void
 pre_setup(const struct options *options)
 {
-#ifdef _WIN32
-    if (options->exit_event_name)
-    {
-        win32_signal_open(&win32_signal, WSO_FORCE_SERVICE, options->exit_event_name,
-                          options->exit_event_initial_state);
-    }
-    else
-    {
-        win32_signal_open(&win32_signal, WSO_FORCE_CONSOLE, NULL, false);
-
-        /* put a title on the top window bar */
-        if (win32_signal.mode == WSO_MODE_CONSOLE)
-        {
-            window_title_save(&window_title);
-            window_title_generate(options->config);
-        }
-    }
-#endif /* ifdef _WIN32 */
+    /* no-op */
 }
 
 void
@@ -1322,38 +1211,6 @@ do_init_timers(struct context *c, bool deferred)
     update_time();
     reset_coarse_timers(c);
 
-    /* initialize inactivity timeout */
-    if (c->options.inactivity_timeout)
-    {
-        event_timeout_init(&c->c2.inactivity_interval, c->options.inactivity_timeout, now);
-    }
-
-    /* initialize inactivity timeout */
-    if (c->options.session_timeout)
-    {
-        event_timeout_init(&c->c2.session_interval, c->options.session_timeout, now);
-    }
-
-    /* initialize pings */
-    if (dco_enabled(&c->options))
-    {
-        /* The DCO kernel module will send the pings instead of user space */
-        event_timeout_clear(&c->c2.ping_rec_interval);
-        event_timeout_clear(&c->c2.ping_send_interval);
-    }
-    else
-    {
-        if (c->options.ping_send_timeout)
-        {
-            event_timeout_init(&c->c2.ping_send_interval, c->options.ping_send_timeout, 0);
-        }
-
-        if (c->options.ping_rec_timeout)
-        {
-            event_timeout_init(&c->c2.ping_rec_interval, c->options.ping_rec_timeout, now);
-        }
-    }
-
     /* If the auth-token renewal interval is shorter than reneg-sec, arm
      * "auth-token renewal" timer to send additional auth-token to update the
      * token on the client more often.  If not, this happens automatically
@@ -1369,20 +1226,6 @@ do_init_timers(struct context *c, bool deferred)
     {
         /* initialize connection establishment timer */
         event_timeout_init(&c->c2.wait_for_connect, 1, now);
-
-        /* initialize occ timers */
-
-        if (c->options.occ && !TLS_MODE(c) && c->c2.options_string_local
-            && c->c2.options_string_remote)
-        {
-            event_timeout_init(&c->c2.occ_interval, OCC_INTERVAL_SECONDS, now);
-        }
-
-        if (c->options.mtu_test)
-        {
-            event_timeout_init(&c->c2.occ_mtu_load_test_interval, OCC_MTU_LOAD_INTERVAL_SECONDS,
-                               now);
-        }
 
         /* initialize packet_id persistence timer */
         if (c->options.packet_id_file)
@@ -1538,16 +1381,10 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
     /* Test if errors */
     if (flags & ISC_ERRORS)
     {
-#ifdef _WIN32
-        show_routes(M_INFO | M_NOPREFIX);
-        show_adapters(M_INFO | M_NOPREFIX);
-        msg(M_INFO, "%s With Errors ( see http://openvpn.net/faq.html#dhcpclientserv )", message);
-#else
 #ifdef ENABLE_SYSTEMD
         sd_notifyf(0, "STATUS=Failed to start up: %s With Errors\nERRNO=1", message);
 #endif /* HAVE_SYSTEMD_SD_DAEMON_H */
         msg(M_INFO, "%s With Errors", message);
-#endif
     }
     else
     {
@@ -1562,10 +1399,6 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
     {
         c->options.no_advance = true;
     }
-
-#ifdef _WIN32
-    fork_register_dns_action(c->c1.tuntap);
-#endif
 
 #ifdef ENABLE_MANAGEMENT
     /* Tell management interface that we initialized */
@@ -1584,7 +1417,7 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
         /* Flag route error only on platforms where trivial "already exists" errors
          * are filtered out. Currently this is the case on Windows or if usng netlink.
          */
-#if defined(_WIN32) || defined(ENABLE_SITNL)
+#if defined(ENABLE_SITNL)
         else if (flags & ISC_ROUTE_ERRORS)
         {
             detail = "ROUTE_ERROR";
@@ -1681,18 +1514,6 @@ do_route(const struct options *options, struct route_list *route_list,
         argv_free(&argv);
     }
 
-#ifdef _WIN32
-    if (options->show_net_up)
-    {
-        show_routes(M_INFO | M_NOPREFIX);
-        show_adapters(M_INFO | M_NOPREFIX);
-    }
-    else if (check_debug_level(D_SHOW_NET))
-    {
-        show_routes(D_SHOW_NET | M_NOPREFIX);
-        show_adapters(D_SHOW_NET | M_NOPREFIX);
-    }
-#endif
     return ret;
 }
 
@@ -1718,12 +1539,6 @@ do_init_tun(struct context *c)
     {
         c->c1.tuntap->backend_driver = DRIVER_NULL;
     }
-#ifdef _WIN32
-    else
-    {
-        c->c1.tuntap->backend_driver = c->options.windows_driver;
-    }
-#else
     else if (dco_enabled(&c->options))
     {
         c->c1.tuntap->backend_driver = DRIVER_DCO;
@@ -1732,7 +1547,6 @@ do_init_tun(struct context *c)
     {
         c->c1.tuntap->backend_driver = DRIVER_GENERIC_TUNTAP;
     }
-#endif
 
     init_tun_post(c->c1.tuntap, &c->c2.frame, &c->options.tuntap_options);
 
@@ -1769,19 +1583,7 @@ can_preserve_tun(struct tuntap *tt)
 static void
 add_wfp_block(struct context *c)
 {
-#if defined(_WIN32)
-    /* Fortify 'redirect-gateway block-local' with firewall rules? */
-    bool block_local = block_local_needed(c->c1.route_list);
-
-    if (c->options.block_outside_dns || block_local)
-    {
-        BOOL dns_only = !block_local;
-        if (!win_wfp_block(c->c1.tuntap->adapter_index, c->options.msg_channel, dns_only))
-        {
-            msg(M_FATAL, "WFP: initialization failed");
-        }
-    }
-#endif
+    /* no-op */
 }
 
 /**
@@ -1795,15 +1597,7 @@ add_wfp_block(struct context *c)
 static void
 del_wfp_block(struct context *c, unsigned long adapter_index)
 {
-#if defined(_WIN32)
-    if (c->options.block_outside_dns || block_local_needed(c->c1.route_list))
-    {
-        if (!win_wfp_uninit(adapter_index, c->options.msg_channel))
-        {
-            msg(M_FATAL, "WFP: deinitialization failed");
-        }
-    }
-#endif
+    /* no-op */
 }
 
 /**
@@ -1873,12 +1667,6 @@ do_open_tun(struct context *c, int *error_flags)
             c->c2.tls_multi->dco = &c->c1.tuntap->dco;
         }
 
-#ifdef _WIN32
-        /* store (hide) interactive service handle in tuntap_options */
-        c->c1.tuntap->options.msg_channel = c->options.msg_channel;
-        msg(D_ROUTE, "interactive service msg_channel=%" PRIuPTR, (intptr_t)c->options.msg_channel);
-#endif
-
         /* allocate route list structure */
         do_alloc_route_list(c);
 
@@ -1944,9 +1732,6 @@ do_open_tun(struct context *c, int *error_flags)
 
         /* run the up script */
         run_up_down(c->options.up_script, c->plugins, OPENVPN_PLUGIN_UP, c->c1.tuntap->actual_name,
-#ifdef _WIN32
-                    c->c1.tuntap->adapter_index,
-#endif
                     dev_type_string(c->options.dev, c->options.dev_type), c->c2.frame.tun_mtu,
                     print_in_addr_t(c->c1.tuntap->local, IA_EMPTY_IF_UNDEF, &gc),
                     print_in_addr_t(c->c1.tuntap->remote_netmask, IA_EMPTY_IF_UNDEF, &gc), "init",
@@ -1979,9 +1764,6 @@ do_open_tun(struct context *c, int *error_flags)
         {
             run_up_down(c->options.up_script, c->plugins, OPENVPN_PLUGIN_UP,
                         c->c1.tuntap->actual_name,
-#ifdef _WIN32
-                        c->c1.tuntap->adapter_index,
-#endif
                         dev_type_string(c->options.dev, c->options.dev_type), c->c2.frame.tun_mtu,
                         print_in_addr_t(c->c1.tuntap->local, IA_EMPTY_IF_UNDEF, &gc),
                         print_in_addr_t(c->c1.tuntap->remote_netmask, IA_EMPTY_IF_UNDEF, &gc),
@@ -2055,9 +1837,6 @@ do_close_tun(struct context *c, bool force)
     const in_addr_t local = c->c1.tuntap->local;
     const in_addr_t remote_netmask = c->c1.tuntap->remote_netmask;
     unsigned long adapter_index = 0;
-#ifdef _WIN32
-    adapter_index = c->c1.tuntap->adapter_index;
-#endif
 
     run_dns_up_down(false, &c->options, c->c1.tuntap, &c->persist.duri);
 
@@ -2079,9 +1858,6 @@ do_close_tun(struct context *c, bool force)
         {
             run_up_down(c->options.route_predown_script, c->plugins, OPENVPN_PLUGIN_ROUTE_PREDOWN,
                         tuntap_actual,
-#ifdef _WIN32
-                        adapter_index,
-#endif
                         NULL, c->c2.frame.tun_mtu, print_in_addr_t(local, IA_EMPTY_IF_UNDEF, &gc),
                         print_in_addr_t(remote_netmask, IA_EMPTY_IF_UNDEF, &gc), "init",
                         signal_description(c->sig->signal_received, c->sig->signal_text),
@@ -2100,9 +1876,6 @@ do_close_tun(struct context *c, bool force)
         /* Run the down script -- note that it will run at reduced
          * privilege if, for example, "--user" was used. */
         run_up_down(c->options.down_script, c->plugins, OPENVPN_PLUGIN_DOWN, tuntap_actual,
-#ifdef _WIN32
-                    adapter_index,
-#endif
                     NULL, c->c2.frame.tun_mtu, print_in_addr_t(local, IA_EMPTY_IF_UNDEF, &gc),
                     print_in_addr_t(remote_netmask, IA_EMPTY_IF_UNDEF, &gc), "init",
                     signal_description(c->sig->signal_received, c->sig->signal_text), "down",
@@ -2122,9 +1895,6 @@ do_close_tun(struct context *c, bool force)
         if (c->options.up_restart)
         {
             run_up_down(c->options.down_script, c->plugins, OPENVPN_PLUGIN_DOWN, tuntap_actual,
-#ifdef _WIN32
-                        adapter_index,
-#endif
                         NULL, c->c2.frame.tun_mtu, print_in_addr_t(local, IA_EMPTY_IF_UNDEF, &gc),
                         print_in_addr_t(remote_netmask, IA_EMPTY_IF_UNDEF, &gc), "restart",
                         signal_description(c->sig->signal_received, c->sig->signal_text), "down",
@@ -2222,43 +1992,6 @@ tls_print_deferred_options_results(struct context *c)
 
     buf_printf(&out, "%s", header);
 
-    if (o->ping_send_timeout)
-    {
-        buf_printf(&out, "ping %d", o->ping_send_timeout);
-    }
-
-    if (o->ping_rec_timeout_action != PING_UNDEF)
-    {
-        /* yes unidirectional ping is possible .... */
-        add_delim_if_non_empty(&out, header);
-
-        if (o->ping_rec_timeout_action == PING_EXIT)
-        {
-            buf_printf(&out, "ping-exit %d", o->ping_rec_timeout);
-        }
-        else
-        {
-            buf_printf(&out, "ping-restart %d", o->ping_rec_timeout);
-        }
-    }
-
-    if (o->inactivity_timeout)
-    {
-        add_delim_if_non_empty(&out, header);
-
-        buf_printf(&out, "inactive %d", o->inactivity_timeout);
-        if (o->inactivity_minimum_bytes)
-        {
-            buf_printf(&out, " %" PRIu64, o->inactivity_minimum_bytes);
-        }
-    }
-
-    if (o->session_timeout)
-    {
-        add_delim_if_non_empty(&out, header);
-        buf_printf(&out, "session-timeout %d", o->session_timeout);
-    }
-
     if (buf_len(&out) > strlen(header))
     {
         msg(D_HANDSHAKE, "%s", BSTR(&out));
@@ -2310,24 +2043,30 @@ tls_print_deferred_options_results(struct context *c)
  * can be done only after the DCO device was created and the new peer was
  * properly added.
  */
-static bool
+bool
 do_deferred_options_part2(struct context *c)
 {
     struct frame *frame_fragment = NULL;
-#ifdef ENABLE_FRAGMENT
-    if (c->options.ce.fragment)
-    {
-        frame_fragment = &c->c2.frame_fragment;
-    }
-#endif
 
-    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-    if (!tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame,
-                                          frame_fragment, get_link_socket_info(c),
-                                          &c->c1.tuntap->dco))
+    struct tls_multi *multi = c->c2.tls_multi;
+    for (int i = 0; i < TM_SIZE; ++i)
     {
-        msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
-        return false;
+        struct tls_session *session = &multi->session[i];
+        struct key_state *ks = &session->key[KS_MAIN];
+        if (i == TM_MAIN && ks->state == S_ACTIVE && ks->authenticated == KS_AUTH_TRUE)
+        {
+            if (!tls_session_update_crypto_params(multi, session, ks, &c->options, &c->c2.frame,
+                                                  frame_fragment, get_link_socket_info(c),
+                                                  &c->c1.tuntap->dco))
+            {
+                msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
+                return false;
+            }
+        }
+        if (i == TM_MAIN && ks->state == S_GENERATED_KEYS && ks->authenticated == KS_AUTH_TRUE && multi->gens_stat)
+        {
+            tls_session_generate_data_keys_helper(multi, session, ks);
+        }
     }
 
     return true;
@@ -2547,10 +2286,9 @@ do_deferred_p2p_ncp(struct context *c)
 
     c->options.use_peer_id = c->c2.tls_multi->use_peer_id;
 
-    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
+    struct tls_multi *multi = c->c2.tls_multi;
 
-    const char *ncp_cipher =
-        get_p2p_ncp_cipher(session, c->c2.tls_multi->peer_info, &c->options.gc);
+    const char *ncp_cipher = get_p2p_ncp_cipher(multi, multi->peer_info, &c->options.gc);
 
     if (ncp_cipher)
     {
@@ -2564,21 +2302,11 @@ do_deferred_p2p_ncp(struct context *c)
         return false;
     }
 
-    struct frame *frame_fragment = NULL;
-#ifdef ENABLE_FRAGMENT
-    if (c->options.ce.fragment)
+    if (!do_deferred_options_part2(c))
     {
-        frame_fragment = &c->c2.frame_fragment;
-    }
-#endif
-
-    if (!tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame,
-                                          frame_fragment, get_link_socket_info(c),
-                                          &c->c1.tuntap->dco))
-    {
-        msg(D_TLS_ERRORS, "ERROR: failed to set crypto cipher");
         return false;
     }
+
     return true;
 }
 
@@ -2998,13 +2726,6 @@ init_crypto_pre(struct context *c, const unsigned int flags)
             packet_id_persist_load(&c->c1.pid_persist, c->options.packet_id_file);
         }
     }
-
-#ifdef ENABLE_PREDICTION_RESISTANCE
-    if (c->options.use_prediction_resistance)
-    {
-        rand_ctx_enable_prediction_resistance();
-    }
-#endif
 }
 
 /*
@@ -3025,11 +2746,10 @@ do_init_crypto_static(struct context *c, const unsigned int flags)
     }
 
     /* Initialize packet ID tracking */
-    packet_id_init(&c->c2.crypto_options.packet_id, options->replay_window, options->replay_time,
-                   "STATIC", 0);
+    packet_id_init(&c->c2.crypto_options.packet_id, options->replay_window, options->replay_time, "STATIC", 0);
     c->c2.crypto_options.pid_persist = &c->c1.pid_persist;
     c->c2.crypto_options.flags |= CO_PACKET_ID_LONG_FORM;
-    packet_id_persist_load_obj(&c->c1.pid_persist, &c->c2.crypto_options.packet_id);
+    //packet_id_persist_load_obj(&c->c1.pid_persist, &c->c2.crypto_options.packet_id);
 
     if (!key_ctx_bi_defined(&c->c1.ks.static_key))
     {
@@ -3439,6 +3159,8 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     /* let the TLS engine know if keys have to be installed in DCO or not */
     to.dco_enabled = dco_enabled(options);
 
+    to.dual_mode = c->options.ce.dual_mode;
+
     /*
      * Initialize OpenVPN's master TLS-mode object.
      */
@@ -3549,45 +3271,12 @@ do_init_frame(struct context *c)
      * make sure values are rational, etc.
      */
     frame_finalize_options(c, NULL);
-
-
-#if defined(ENABLE_FRAGMENT)
-    /*
-     * MTU advisories
-     */
-    if (c->options.ce.fragment && c->options.mtu_test)
-    {
-        msg(M_WARN,
-            "WARNING: using --fragment and --mtu-test together may produce an inaccurate MTU test result");
-    }
-#endif
-
-#ifdef ENABLE_FRAGMENT
-    if (c->options.ce.fragment > 0 && c->options.ce.mssfix > c->options.ce.fragment)
-    {
-        msg(M_WARN,
-            "WARNING: if you use --mssfix and --fragment, you should "
-            "set --fragment (%d) larger or equal than --mssfix (%d)",
-            c->options.ce.fragment, c->options.ce.mssfix);
-    }
-    if (c->options.ce.fragment > 0 && c->options.ce.mssfix > 0
-        && c->options.ce.fragment_encap != c->options.ce.mssfix_encap)
-    {
-        msg(M_WARN, "WARNING: if you use --mssfix and --fragment, you should "
-                    "use the \"mtu\" flag for both or none of of them.");
-    }
-#endif
 }
 
 static void
 do_option_warnings(struct context *c)
 {
     const struct options *o = &c->options;
-
-    if (o->ping_send_timeout && !o->ping_rec_timeout)
-    {
-        msg(M_WARN, "WARNING: --ping should normally be used with --ping-restart or --ping-exit");
-    }
 
     if (o->username || o->groupname || o->chroot_dir
 #ifdef ENABLE_SELINUX
@@ -3630,10 +3319,6 @@ do_option_warnings(struct context *c)
         if (o->duplicate_cn && o->ifconfig_pool_persist_filename)
         {
             msg(M_WARN, "WARNING: --ifconfig-pool-persist will not work with --duplicate-cn");
-        }
-        if (!o->keepalive_ping || !o->keepalive_timeout)
-        {
-            msg(M_WARN, "WARNING: --keepalive option is missing from server config");
         }
     }
 
@@ -3779,29 +3464,6 @@ do_init_buffers(struct context *c)
     c->c2.buffers_owned = true;
 }
 
-#ifdef ENABLE_FRAGMENT
-/*
- * Fragmenting code has buffers to initialize
- * once frame parameters are known.
- */
-static void
-do_init_fragment(struct context *c)
-{
-    ASSERT(c->options.ce.fragment);
-
-    /*
-     * Set frame parameter for fragment code.  This is necessary because
-     * the fragmentation code deals with payloads which have already been
-     * passed through the compression code.
-     */
-    c->c2.frame_fragment = c->c2.frame;
-
-    frame_calculate_dynamic(&c->c2.frame_fragment, &c->c1.ks.key_type, &c->options,
-                            get_link_socket_info(c));
-    fragment_frame_init(c->c2.fragment, &c->c2.frame_fragment);
-}
-#endif
-
 /*
  * Allocate our socket object.
  */
@@ -3870,12 +3532,6 @@ static void
 do_print_data_channel_mtu_parms(struct context *c)
 {
     frame_print(&c->c2.frame, D_MTU_INFO, "Data Channel MTU parms");
-#ifdef ENABLE_FRAGMENT
-    if (c->c2.fragment)
-    {
-        frame_print(&c->c2.frame_fragment, D_MTU_INFO, "Fragmentation MTU parms");
-    }
-#endif
 }
 
 /*
@@ -4078,21 +3734,6 @@ do_close_packet_id(struct context *c)
     }
 }
 
-#ifdef ENABLE_FRAGMENT
-/*
- * Close fragmentation handler.
- */
-static void
-do_close_fragment(struct context *c)
-{
-    if (c->c2.fragment)
-    {
-        fragment_free(c->c2.fragment);
-        c->c2.fragment = NULL;
-    }
-}
-#endif
-
 /*
  * Open and close our event objects.
  */
@@ -4221,9 +3862,6 @@ do_setup_fast_io(struct context *c)
 {
     if (c->options.fast_io)
     {
-#ifdef _WIN32
-        msg(M_INFO, "NOTE: --fast-io is disabled since we are running on Windows");
-#else
         if (c->options.shaper)
         {
             msg(M_INFO, "NOTE: --fast-io is disabled since we are using --shaper");
@@ -4232,7 +3870,6 @@ do_setup_fast_io(struct context *c)
         {
             c->c2.fast_io = true;
         }
-#endif
     }
 }
 
@@ -4330,13 +3967,7 @@ management_callback_status_p2p(void *arg, const int version, struct status_outpu
 void
 management_show_net_callback(void *arg, const msglvl_t msglevel)
 {
-#ifdef _WIN32
-    show_routes(msglevel);
-    show_adapters(msglevel);
-    msg(msglevel, "END");
-#else
     msg(msglevel, "ERROR: Sorry, this command is currently only implemented on Windows");
-#endif
 }
 
 #ifdef TARGET_ANDROID
@@ -4603,12 +4234,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         do_open_ifconfig_pool_persist(c);
     }
 
-    /* reset OCC state */
-    if (c->mode == CM_P2P || child)
-    {
-        c->c2.occ_op = occ_reset_op();
-    }
-
     /* our wait-for-i/o objects, different for posix vs. win32 */
     if (c->mode == CM_P2P || c->mode == CM_TOP)
     {
@@ -4627,14 +4252,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     {
         do_link_socket_new(c);
     }
-
-#ifdef ENABLE_FRAGMENT
-    /* initialize internal fragmentation object */
-    if (options->ce.fragment && (c->mode == CM_P2P || child))
-    {
-        c->c2.fragment = fragment_init(&c->c2.frame);
-    }
-#endif
 
     /* init crypto layer */
     {
@@ -4677,14 +4294,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     {
         do_init_buffers(c);
     }
-
-#ifdef ENABLE_FRAGMENT
-    /* initialize internal fragmentation capability with known frame size */
-    if (options->ce.fragment && (c->mode == CM_P2P || child))
-    {
-        do_init_fragment(c);
-    }
-#endif
 
     /* bind the TCP/UDP socket */
     if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
@@ -4870,11 +4479,6 @@ close_instance(struct context *c)
 
         /* close --status file */
         do_close_status_output(c);
-
-#ifdef ENABLE_FRAGMENT
-        /* close fragmentation handler */
-        do_close_fragment(c);
-#endif
 
         /* close --ifconfig-pool-persist obj */
         do_close_ifconfig_pool_persist(c);

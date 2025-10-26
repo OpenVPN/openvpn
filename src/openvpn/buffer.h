@@ -413,9 +413,7 @@ has_digit(const char *src)
 static inline void
 secure_memzero(void *data, size_t len)
 {
-#if defined(_WIN32)
-    SecureZeroMemory(data, len);
-#elif defined(__GNUC__) || defined(__clang__)
+#if defined(__GNUC__) || defined(__clang__)
     memset(data, 0, len);
     __asm__ __volatile__("" : : "r"(data) : "memory");
 #else
