@@ -92,14 +92,6 @@ print_opt_topology(const int topology, struct gc_arena *gc)
 }
 
 static const char *
-print_str_int(const char *str, const int i, struct gc_arena *gc)
-{
-    struct buffer out = alloc_buf_gc(128, gc);
-    buf_printf(&out, "%s %d", str, i);
-    return BSTR(&out);
-}
-
-static const char *
 print_str(const char *str, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(128, gc);
@@ -525,71 +517,6 @@ helper_client_server(struct options *o)
     }
 
     gc_free(&gc);
-}
-
-/*
- *
- * HELPER DIRECTIVE:
- *
- * keepalive 10 60
- *
- * EXPANDS TO:
- *
- * if mode server:
- *   ping 10
- *   ping-restart 120
- *   push "ping 10"
- *   push "ping-restart 60"
- * else
- *   ping 10
- *   ping-restart 60
- */
-void
-helper_keepalive(struct options *o)
-{
-    if (o->keepalive_ping || o->keepalive_timeout)
-    {
-        /*
-         * Sanity checks.
-         */
-        if (o->keepalive_ping <= 0 || o->keepalive_timeout <= 0)
-        {
-            msg(M_USAGE, "--keepalive parameters must be > 0");
-        }
-        if (o->keepalive_ping * 2 > o->keepalive_timeout)
-        {
-            msg(M_USAGE,
-                "the second parameter to --keepalive (restart timeout=%d) must be at least twice the value of the first parameter (ping interval=%d).  A ratio of 1:5 or 1:6 would be even better.  Recommended setting is --keepalive 10 60.",
-                o->keepalive_timeout, o->keepalive_ping);
-        }
-        if (o->ping_send_timeout || o->ping_rec_timeout)
-        {
-            msg(M_USAGE,
-                "--keepalive conflicts with --ping, --ping-exit, or --ping-restart.  If you use --keepalive, you don't need any of the other --ping directives.");
-        }
-
-        /*
-         * Expand.
-         */
-        if (o->mode == MODE_POINT_TO_POINT)
-        {
-            o->ping_rec_timeout_action = PING_RESTART;
-            o->ping_send_timeout = o->keepalive_ping;
-            o->ping_rec_timeout = o->keepalive_timeout;
-        }
-        else if (o->mode == MODE_SERVER)
-        {
-            o->ping_rec_timeout_action = PING_RESTART;
-            o->ping_send_timeout = o->keepalive_ping;
-            o->ping_rec_timeout = o->keepalive_timeout * 2;
-            push_option(o, print_str_int("ping", o->keepalive_ping, &o->gc), M_USAGE);
-            push_option(o, print_str_int("ping-restart", o->keepalive_timeout, &o->gc), M_USAGE);
-        }
-        else
-        {
-            ASSERT(0);
-        }
-    }
 }
 
 /*

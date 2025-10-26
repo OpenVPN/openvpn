@@ -104,9 +104,6 @@ multi_create_instance_tcp(struct thread_pointer *b, struct link_socket *sock)
 bool
 multi_tcp_instance_specific_init(struct multi_context *m, struct multi_instance *mi)
 {
-    /* buffer for queued TCP socket output packets */
-    mi->tcp_link_out_deferred = mbuf_init(m->top.options.n_bcast_buf);
-
     ASSERT(mi->context.c2.link_sockets);
     ASSERT(mi->context.c2.link_sockets[0]);
     ASSERT(mi->context.c2.link_sockets[0]->info.lsa);
@@ -126,7 +123,7 @@ multi_tcp_instance_specific_init(struct multi_context *m, struct multi_instance 
 void
 multi_tcp_instance_specific_free(struct multi_instance *mi)
 {
-    mbuf_free(mi->tcp_link_out_deferred);
+    /* no-op */
 }
 
 void
@@ -136,86 +133,4 @@ multi_tcp_delete_event(struct multi_io *multi_io, event_t event)
     {
         event_del(multi_io->es, event);
     }
-}
-
-void
-multi_tcp_dereference_instance(struct multi_io *multi_io, struct multi_instance *mi)
-{
-    struct link_socket *sock = mi->context.c2.link_sockets[0];
-    if (sock && mi->socket_set_called)
-    {
-        event_del(multi_io->es, socket_event_handle(sock));
-        mi->socket_set_called = false;
-    }
-    multi_io->n_esr = 0;
-}
-
-bool
-multi_tcp_process_outgoing_link_ready(struct multi_context *m, struct multi_instance *mi,
-                                      const unsigned int mpp_flags)
-{
-    struct mbuf_item item;
-    bool ret = true;
-    ASSERT(mi);
-
-    /* extract from queue */
-    if (mbuf_extract_item(mi->tcp_link_out_deferred, &item)) /* ciphertext IP packet */
-    {
-        dmsg(D_MULTI_TCP, "MULTI TCP: transmitting previously deferred packet");
-
-        ASSERT(mi == item.instance);
-        mi->context.c2.to_link = item.buffer->buf;
-        ret = multi_process_outgoing_link_dowork(m, mi, mpp_flags);
-        if (!ret)
-        {
-            mi = NULL;
-        }
-        mbuf_free_buf(item.buffer);
-    }
-    return ret;
-}
-
-bool
-multi_tcp_process_outgoing_link(struct multi_context *m, bool defer, const unsigned int mpp_flags)
-{
-    struct multi_instance *mi = multi_process_outgoing_link_pre(m);
-    bool ret = true;
-
-    if (mi)
-    {
-        if ((defer && !proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto))
-            || mbuf_defined(mi->tcp_link_out_deferred))
-        {
-            /* save to queue */
-            struct buffer *buf = &mi->context.c2.to_link;
-            if (BLEN(buf) > 0)
-            {
-                struct mbuf_buffer *mb = mbuf_alloc_buf(buf);
-                struct mbuf_item item;
-
-                set_prefix(mi);
-                dmsg(D_MULTI_TCP, "MULTI TCP: queuing deferred packet");
-                item.buffer = mb;
-                item.instance = mi;
-                mbuf_add_item(mi->tcp_link_out_deferred, &item);
-                mbuf_free_buf(mb);
-                buf_reset(buf);
-                ret = multi_process_post(m, mi, mpp_flags);
-                if (!ret)
-                {
-                    mi = NULL;
-                }
-                clear_prefix();
-            }
-        }
-        else
-        {
-            ret = multi_process_outgoing_link_dowork(m, mi, mpp_flags);
-            if (!ret)
-            {
-                mi = NULL;
-            }
-        }
-    }
-    return ret;
 }

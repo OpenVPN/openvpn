@@ -239,36 +239,6 @@ get_ip_encap_overhead(const struct options *options, const struct link_socket_in
 }
 
 static void
-frame_calculate_fragment(struct frame *frame, struct key_type *kt, const struct options *options,
-                         struct link_socket_info *lsi)
-{
-#if defined(ENABLE_FRAGMENT)
-    size_t overhead;
-
-    overhead = frame_calculate_protocol_header_size(kt, options, false);
-
-    if (options->ce.fragment_encap)
-    {
-        overhead += get_ip_encap_overhead(options, lsi);
-    }
-
-    size_t target = options->ce.fragment - overhead;
-    /* The 4 bytes of header that fragment adds itself. The other extra payload
-     * bytes (Ethernet header/compression) are handled by the fragment code
-     * just as part of the payload and therefore automatically taken into
-     * account if the packet needs to fragmented */
-    frame->max_fragment_size = clamp_size_to_int(adjust_payload_max_cbc(kt, target)) - 4;
-
-    if (cipher_kt_mode_cbc(kt->cipher))
-    {
-        /* The packet id gets added to *each* fragment in CBC mode, so we need
-         * to account for it */
-        frame->max_fragment_size -= calc_packet_id_size_dc(options, kt);
-    }
-#endif
-}
-
-static void
 frame_calculate_mssfix(struct frame *frame, struct key_type *kt, const struct options *options,
                        struct link_socket_info *lsi)
 {
@@ -314,14 +284,8 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt, const struct op
 }
 
 void
-frame_calculate_dynamic(struct frame *frame, struct key_type *kt, const struct options *options,
-                        struct link_socket_info *lsi)
+frame_calculate_dynamic(struct frame *frame, struct key_type *kt, const struct options *options, struct link_socket_info *lsi)
 {
-    if (options->ce.fragment > 0)
-    {
-        frame_calculate_fragment(frame, kt, options, lsi);
-    }
-
     if (options->ce.mssfix > 0)
     {
         frame_calculate_mssfix(frame, kt, options, lsi);
@@ -356,18 +320,4 @@ frame_adjust_path_mtu(struct context *c)
         o->ce.mssfix_encap = true;
         frame_calculate_dynamic(&c->c2.frame, &c->c1.ks.key_type, o, lsi);
     }
-
-#if defined(ENABLE_FRAGMENT)
-    if (pmtu < o->ce.fragment || (o->ce.fragment_encap && pmtu < o->ce.fragment + encap_overhead))
-    {
-        const char *mtustr = o->ce.fragment_encap ? " mtu" : "";
-        msg(D_MTU_INFO,
-            "Note adjusting 'fragment %d%s' to 'fragment %d mtu' "
-            "according to path MTU discovery",
-            o->ce.fragment, mtustr, pmtu);
-        o->ce.fragment = pmtu;
-        o->ce.fragment_encap = true;
-        frame_calculate_dynamic(&c->c2.frame_fragment, &c->c1.ks.key_type, o, lsi);
-    }
-#endif
 }

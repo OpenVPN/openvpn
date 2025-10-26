@@ -53,35 +53,6 @@
 counter_type link_read_bytes_global;  /* GLOBAL */
 counter_type link_write_bytes_global; /* GLOBAL */
 
-/* show event wait debugging info */
-
-#ifdef ENABLE_DEBUG
-
-static const char *
-wait_status_string(struct context *c, struct gc_arena *gc)
-{
-    struct buffer out = alloc_buf_gc(64, gc);
-
-    buf_printf(&out, "I/O WAIT %s|%s| %s", tun_stat(c->c1.tuntap, EVENT_READ, gc),
-               tun_stat(c->c1.tuntap, EVENT_WRITE, gc), tv_string(&c->c2.timeval, gc));
-    for (int i = 0; i < c->c1.link_sockets_num; i++)
-    {
-        buf_printf(&out, "\n %s|%s", socket_stat(c->c2.link_sockets[i], EVENT_READ, gc),
-                   socket_stat(c->c2.link_sockets[i], EVENT_WRITE, gc));
-    }
-    return BSTR(&out);
-}
-
-static void
-show_wait_status(struct context *c)
-{
-    struct gc_arena gc = gc_new();
-    dmsg(D_EVENT_WAIT, "%s", wait_status_string(c, &gc));
-    gc_free(&gc);
-}
-
-#endif /* ifdef ENABLE_DEBUG */
-
 static void
 check_tls_errors_co(struct context *c)
 {
@@ -182,12 +153,13 @@ check_dco_key_status(struct context *c)
 static void
 check_tls(struct context *c)
 {
-    interval_t wakeup = BIG_TIMEOUT;
+    if (!c->c2.tls_multi) { return; }
+
+    interval_t wakeup = LOOP_WAIT;
 
     if (interval_test(&c->c2.tmp_int))
     {
-        const int tmp_status = tls_multi_process(
-            c->c2.tls_multi, &c->c2.to_link, &c->c2.to_link_addr, get_link_socket_info(c), &wakeup);
+        const int tmp_status = tls_multi_process(c->c2.tls_multi, &c->c2.to_link, &c->c2.to_link_addr, get_link_socket_info(c), &wakeup);
 
         if (tmp_status == TLSMP_RECONNECT)
         {
@@ -200,6 +172,7 @@ check_tls(struct context *c)
             update_time();
             interval_action(&c->c2.tmp_int);
         }
+
         else if (tmp_status == TLSMP_KILL)
         {
             if (c->options.mode == MODE_SERVER)
@@ -285,15 +258,16 @@ parse_incoming_control_channel_command(struct context *c, struct buffer *buf)
  * messages on the control channel.
  */
 static void
-check_incoming_control_channel(struct context *c)
+check_tls_control_channel(struct context *c)
 {
+    if (!c->c2.tls_multi) { return; }
+
     int len = tls_test_payload_len(c->c2.tls_multi);
-    /* We should only be called with len >0 */
-    ASSERT(len > 0);
+    if (len < 1) { return; }
 
     struct gc_arena gc = gc_new();
     struct buffer buf = alloc_buf_gc(len, &gc);
-    if (tls_rec_payload(c->c2.tls_multi, &buf))
+    while (tls_rec_payload(c->c2.tls_multi, &buf))
     {
         while (BLEN(&buf) > 1)
         {
@@ -304,10 +278,6 @@ check_incoming_control_channel(struct context *c)
                 parse_incoming_control_channel_command(c, &cmdbuf);
             }
         }
-    }
-    else
-    {
-        msg(D_PUSH_ERRORS, "WARNING: Receive control message failed");
     }
 
     gc_free(&gc);
@@ -372,20 +342,18 @@ check_connection_established(struct context *c)
 }
 
 bool
-send_control_channel_string_dowork(struct tls_session *session, const char *str,
-                                   msglvl_t msglevel)
+send_control_channel_string_dowork(struct tls_multi *multi, struct key_state *ks, const char *str, msglvl_t msglevel)
 {
     struct gc_arena gc = gc_new();
     bool stat;
 
-    ASSERT(session);
-    struct key_state *ks = &session->key[KS_PRIMARY];
+    ASSERT(multi);
 
     /* buffered cleartext write onto TLS control channel */
     stat = tls_send_payload(ks, (uint8_t *)str, strlen(str) + 1);
 
     msg(msglevel, "SENT CONTROL [%s]: '%s' (status=%d)",
-        session->common_name ? session->common_name : "UNDEF", sanitize_control_message(str, &gc),
+        multi->common_name ? multi->common_name : "UNDEF", sanitize_control_message(str, &gc),
         (int)stat);
 
     gc_free(&gc);
@@ -402,12 +370,12 @@ reschedule_multi_process(struct context *c)
 bool
 send_control_channel_string(struct context *c, const char *str, msglvl_t msglevel)
 {
-    if (c->c2.tls_multi)
+    struct tls_multi *multi = c->c2.tls_multi;
+    if (multi)
     {
-        struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-        bool ret = send_control_channel_string_dowork(session, str, msglevel);
+        struct key_state *ks = tls_select_encryption_key_init(multi);
+        bool ret = send_control_channel_string_dowork(multi, ks, str, msglevel);
         reschedule_multi_process(c);
-
         return ret;
     }
     return true;
@@ -451,10 +419,6 @@ check_add_routes(struct context *c)
             {
                 register_signal(c->sig, SIGHUP, "ip-fail");
                 c->persist.restart_sleep_seconds = 10;
-#ifdef _WIN32
-                show_routes(M_INFO | M_NOPREFIX);
-                show_adapters(M_INFO | M_NOPREFIX);
-#endif
             }
         }
         update_time();
@@ -462,47 +426,7 @@ check_add_routes(struct context *c)
         {
             event_timeout_init(&c->c2.route_wakeup, 1, now);
         }
-        event_timeout_reset(&c->c2.ping_rec_interval);
     }
-}
-
-/*
- * Should we exit due to inactivity timeout?
- *
- * In the non-dco case, the timeout is reset via register_activity()
- * whenever there is sufficient activity on tun or link, so this function
- * is only ever called to raise the TERM signal.
- *
- * With DCO, OpenVPN does not see incoming or outgoing data packets anymore
- * and the logic needs to change - we permit the event to trigger and check
- * kernel DCO counters here, returning and rearming the timer if there was
- * sufficient traffic.
- *
- * NOTE: FreeBSD DCO does not supply "tun bytes" (= decrypted payload) today,
- * so "dco bytes" (encrypted bytes, including keepalives) is used instead
- */
-static void
-check_inactivity_timeout(struct context *c)
-{
-    if (dco_enabled(&c->options) && dco_get_peer_stats(c, true) == 0)
-    {
-#ifdef TARGET_FREEBSD
-        int64_t tot_bytes = c->c2.dco_read_bytes + c->c2.dco_write_bytes;
-#else
-        int64_t tot_bytes = c->c2.tun_read_bytes + c->c2.tun_write_bytes;
-#endif
-        int64_t new_bytes = tot_bytes - c->c2.inactivity_bytes;
-
-        if (new_bytes > c->options.inactivity_minimum_bytes)
-        {
-            c->c2.inactivity_bytes = tot_bytes;
-            event_timeout_reset(&c->c2.inactivity_interval);
-            return;
-        }
-    }
-
-    msg(M_INFO, "Inactivity timeout (--inactive), exiting");
-    register_signal(c->sig, SIGTERM, "inactive");
 }
 
 int
@@ -568,37 +492,6 @@ check_status_file(struct context *c)
     }
 }
 
-#ifdef ENABLE_FRAGMENT
-/*
- * Should we deliver a datagram fragment to remote?
- * c is expected to be a single-link context (p2p or child)
- */
-static void
-check_fragment(struct context *c)
-{
-    struct link_socket_info *lsi = get_link_socket_info(c);
-
-    /* OS MTU Hint? */
-    if (lsi->mtu_changed && lsi->lsa)
-    {
-        frame_adjust_path_mtu(c);
-        lsi->mtu_changed = false;
-    }
-
-    if (fragment_outgoing_defined(c->c2.fragment))
-    {
-        if (!c->c2.to_link.len)
-        {
-            /* encrypt a fragment for output to TCP/UDP port */
-            ASSERT(fragment_ready_to_send(c->c2.fragment, &c->c2.buf, &c->c2.frame_fragment));
-            encrypt_sign(c, false);
-        }
-    }
-
-    fragment_housekeeping(c->c2.fragment, &c->c2.frame_fragment, &c->c2.timeval);
-}
-#endif /* ifdef ENABLE_FRAGMENT */
-
 /*
  * Buffer reallocation, for use with null encryption.
  */
@@ -643,6 +536,8 @@ encrypt_sign(struct context *c, bool comp_frag)
     struct context_buffers *b = c->c2.buffers;
     const uint8_t *orig_buf = c->c2.buf.data;
     struct crypto_options *co = NULL;
+    int op_v = (!c->c2.tls_multi->use_peer_id) ? 0 : 1;
+    op_v = (!c->c2.tls_multi->send_buf_key) ? op_v : 2;
 
     if (dco_enabled(&c->options))
     {
@@ -671,12 +566,6 @@ encrypt_sign(struct context *c, bool comp_frag)
                                                 &c->c2.frame);
         }
 #endif
-#ifdef ENABLE_FRAGMENT
-        if (c->c2.fragment)
-        {
-            fragment_outgoing(c->c2.fragment, &c->c2.buf, &c->c2.frame_fragment);
-        }
-#endif
     }
 
     /* initialize work buffer with buf.headroom bytes of prepend capacity */
@@ -689,9 +578,13 @@ encrypt_sign(struct context *c, bool comp_frag)
         /* If using P_DATA_V2, prepend the 1-byte opcode and 3-byte peer-id to the
          * packet before openvpn_encrypt(), so we can authenticate the opcode too.
          */
-        if (c->c2.buf.len > 0 && c->c2.tls_multi->use_peer_id)
+        if (c->c2.buf.len > 0 && op_v == 1)
         {
             tls_prepend_opcode_v2(c->c2.tls_multi, &b->encrypt_buf);
+        }
+        if (c->c2.buf.len > 0 && op_v == 2)
+        {
+            tls_prepend_opcode_k1(c->c2.tls_multi, &b->encrypt_buf);
         }
     }
     else
@@ -705,7 +598,7 @@ encrypt_sign(struct context *c, bool comp_frag)
     /* Do packet administration */
     if (c->c2.tls_multi)
     {
-        if (c->c2.buf.len > 0 && !c->c2.tls_multi->use_peer_id)
+        if (c->c2.buf.len > 0 && op_v == 0)
         {
             tls_prepend_opcode_v1(c->c2.tls_multi, &c->c2.buf);
         }
@@ -719,20 +612,6 @@ encrypt_sign(struct context *c, bool comp_frag)
 
     /* if null encryption, copy result to read_tun_buf */
     buffer_turnover(orig_buf, &c->c2.to_link, &c->c2.buf, &b->read_tun_buf);
-}
-
-/*
- * Should we exit due to session timeout?
- */
-static void
-check_session_timeout(struct context *c)
-{
-    if (c->options.session_timeout
-        && event_timeout_trigger(&c->c2.session_interval, &c->c2.timeval, ETT_DEFAULT))
-    {
-        msg(M_INFO, "Session timeout, exiting");
-        register_signal(c->sig, SIGTERM, "session-timeout");
-    }
 }
 
 /*
@@ -780,27 +659,6 @@ process_coarse_timers(struct context *c)
         check_send_auth_token(c);
     }
 
-    /* possibly exit due to --inactive */
-    if (c->options.inactivity_timeout
-        && event_timeout_trigger(&c->c2.inactivity_interval, &c->c2.timeval, ETT_DEFAULT))
-    {
-        check_inactivity_timeout(c);
-    }
-
-    if (c->sig->signal_received)
-    {
-        return;
-    }
-
-    /* kill session if time is over */
-    check_session_timeout(c);
-    if (c->sig->signal_received)
-    {
-        return;
-    }
-
-    /* restart if ping not received */
-    check_ping_restart(c);
     if (c->sig->signal_received)
     {
         return;
@@ -827,20 +685,11 @@ process_coarse_timers(struct context *c)
         }
     }
 
-    /* Should we send an OCC_REQUEST message? */
-    check_send_occ_req(c);
-
-    /* Should we send an MTU load test? */
-    check_send_occ_load_test(c);
-
     /* Should we send an OCC_EXIT message to remote? */
     if (c->c2.explicit_exit_notification_time_wait)
     {
         process_explicit_exit_notification_timer_wakeup(c);
     }
-
-    /* Should we ping the remote? */
-    check_ping_send(c);
 
 #ifdef ENABLE_MANAGEMENT
     if (management)
@@ -860,7 +709,7 @@ check_coarse_timers(struct context *c)
     }
 
     const struct timeval save = c->c2.timeval;
-    c->c2.timeval.tv_sec = BIG_TIMEOUT;
+    c->c2.timeval.tv_sec = LOOP_WAIT;
     c->c2.timeval.tv_usec = 0;
     process_coarse_timers(c);
     c->c2.coarse_timer_wakeup = now + c->c2.timeval.tv_sec;
@@ -896,45 +745,6 @@ check_timeout_random_component(struct context *c)
     if (c->c2.timeval.tv_sec >= 1)
     {
         tv_add(&c->c2.timeval, &c->c2.timeout_random_component);
-    }
-}
-
-/*
- * Handle addition and removal of the 10-byte Socks5 header
- * in UDP packets.
- */
-
-static inline void
-socks_postprocess_incoming_link(struct context *c, struct link_socket *sock)
-{
-    if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
-    {
-        socks_process_incoming_udp(&c->c2.buf2, &c->c2.from);
-    }
-}
-
-static inline void
-socks_preprocess_outgoing_link(struct context *c, struct link_socket *sock,
-                               struct link_socket_actual **to_addr, int *size_delta)
-{
-    if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
-    {
-        *size_delta += socks_process_outgoing_udp(&c->c2.to_link, c->c2.to_link_addr);
-        *to_addr = &sock->socks_relay;
-    }
-}
-
-/* undo effect of socks_preprocess_outgoing_link */
-static inline void
-link_socket_write_post_size_adjust(int *size, int size_delta, struct buffer *buf)
-{
-    if (size_delta > 0 && *size > size_delta)
-    {
-        *size -= size_delta;
-        if (!buf_advance(buf, size_delta))
-        {
-            *size = 0;
-        }
     }
 }
 
@@ -988,19 +798,8 @@ read_incoming_link(struct context *c, struct link_socket *sock)
         return;
     }
 
-    /* check_status() call below resets last-error code */
-    bool dco_win_timeout = tuntap_is_dco_win_timeout(c->c1.tuntap, status);
-
     /* check recvfrom status */
     check_status(status, "read", sock, NULL);
-
-    if (dco_win_timeout)
-    {
-        trigger_ping_timeout_signal(c);
-    }
-
-    /* Remove socks header if applicable */
-    socks_postprocess_incoming_link(c, sock);
 }
 
 bool
@@ -1008,6 +807,7 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
 {
     struct gc_arena gc = gc_new();
     bool decrypt_status = false;
+    uint8_t opcode = 0;
 
     if (c->c2.buf2.len > 0)
     {
@@ -1015,30 +815,11 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
         link_read_bytes_global += c->c2.buf2.len;
         c->c2.original_recv_size = c->c2.buf2.len;
     }
+
     else
     {
         c->c2.original_recv_size = 0;
     }
-
-#ifdef ENABLE_DEBUG
-    /* take action to corrupt packet if we are in gremlin test mode */
-    if (c->options.gremlin)
-    {
-        if (!ask_gremlin(c->options.gremlin))
-        {
-            c->c2.buf2.len = 0;
-        }
-        corrupt_gremlin(&c->c2.buf2, c->options.gremlin);
-    }
-#endif
-
-    /* log incoming packet */
-#ifdef LOG_RW
-    if (c->c2.log_rw && c->c2.buf2.len > 0)
-    {
-        fprintf(stderr, "R");
-    }
-#endif
 
     msg(D_LINK_RW, "%s READ [%d] from %s: %s", proto2ascii(lsi->proto, lsi->af, true),
         BLEN(&c->c2.buf2), print_link_socket_actual(&c->c2.from, &gc), PROTO_DUMP(&c->c2.buf2, &gc));
@@ -1054,6 +835,7 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
     {
         struct crypto_options *co = NULL;
         const uint8_t *ad_start = NULL;
+
         if (!link_socket_verify_incoming_addr(&c->c2.buf2, lsi, &c->c2.from))
         {
             link_socket_bad_incoming_addr(&c->c2.buf2, lsi, &c->c2.from);
@@ -1061,7 +843,7 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
 
         if (c->c2.tls_multi)
         {
-            uint8_t opcode = *BPTR(&c->c2.buf2) >> P_OPCODE_SHIFT;
+            opcode = *BPTR(&c->c2.buf2) >> P_OPCODE_SHIFT;
 
             /*
              * If DCO is enabled, the kernel drivers require that the
@@ -1091,14 +873,9 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
             if (tls_pre_decrypt(c->c2.tls_multi, &c->c2.from, &c->c2.buf2, &co, floated, &ad_start))
             {
                 interval_action(&c->c2.tmp_int);
-
-                /* reset packet received timer if TLS packet */
-                if (c->options.ping_rec_timeout)
-                {
-                    event_timeout_reset(&c->c2.ping_rec_interval);
-                }
             }
         }
+
         else
         {
             co = &c->c2.crypto_options;
@@ -1115,8 +892,7 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
         }
 
         /* authenticate and decrypt the incoming packet */
-        decrypt_status =
-            openvpn_decrypt(&c->c2.buf2, c->c2.buffers->decrypt_buf, co, &c->c2.frame, ad_start);
+        decrypt_status = openvpn_decrypt(&c->c2.buf2, c->c2.buffers->decrypt_buf, co, &c->c2.frame, ad_start);
 
         if (!decrypt_status
             /* on the instance context we have only one socket, so just check the first one */
@@ -1127,28 +903,25 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
                             "decryption-error"); /* SOFT-SIGUSR1 -- decryption error in TCP mode */
             msg(D_STREAM_ERRORS, "Fatal decryption error (process_incoming_link), restarting");
         }
+
+        if (opcode == P_KEYS_V1)
+        {
+            c->c2.tls_multi->plaintext_read_buf.len = 0;
+            buf_copy(&c->c2.tls_multi->plaintext_read_buf, &c->c2.buf2);
+            c->c2.buf2.len = 0;
+        }
     }
-    else
-    {
-        buf_reset(&c->c2.to_tun);
-    }
+
     gc_free(&gc);
 
     return decrypt_status;
 }
 
 void
-process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
-                            const uint8_t *orig_buf)
+process_incoming_link_part2(struct context *c, struct link_socket_info *lsi, const uint8_t *orig_buf)
 {
     if (c->c2.buf2.len > 0)
     {
-#ifdef ENABLE_FRAGMENT
-        if (c->c2.fragment)
-        {
-            fragment_incoming(c->c2.fragment, &c->c2.buf2, &c->c2.frame_fragment);
-        }
-#endif
 
 #ifdef USE_COMP
         /* decompress the incoming packet */
@@ -1179,31 +952,12 @@ process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
             link_socket_set_outgoing_addr(lsi, &c->c2.from, NULL, c->c2.es);
         }
 
-        /* reset packet received timer */
-        if (c->options.ping_rec_timeout && c->c2.buf2.len > 0)
-        {
-            event_timeout_reset(&c->c2.ping_rec_interval);
-        }
-
         /* increment authenticated receive byte count */
         if (c->c2.buf2.len > 0)
         {
             c->c2.link_read_bytes_auth += c->c2.buf2.len;
             c->c2.max_recv_size_local =
                 max_int(c->c2.original_recv_size, c->c2.max_recv_size_local);
-        }
-
-        /* Did we just receive an openvpn ping packet? */
-        if (is_ping_msg(&c->c2.buf2))
-        {
-            dmsg(D_PING, "RECEIVED PING PACKET");
-            c->c2.buf2.len = 0; /* drop packet */
-        }
-
-        /* Did we just receive an OCC packet? */
-        if (is_occ_msg(&c->c2.buf2))
-        {
-            process_received_occ_msg(c);
         }
 
         buffer_turnover(orig_buf, &c->c2.to_tun, &c->c2.buf2, &c->c2.buffers->read_link_buf);
@@ -1214,29 +968,9 @@ process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
             c->c2.to_tun.len = 0;
         }
     }
-    else
-    {
-        buf_reset(&c->c2.to_tun);
-    }
 }
 
-void process_incoming_link_part3(struct context *c)
-{
-    if (BULK_MODE(c))
-    {
-        if (c->c2.buf2.len > 0)
-        {
-            c->c2.to_tun.offset += 2;
-            c->c2.buf2.offset += 2;
-        }
-        else
-        {
-            buf_reset(&c->c2.to_tun);
-        }
-    }
-}
-
-static void
+void
 process_incoming_link(struct context *c, struct link_socket *sock)
 {
     struct link_socket_info *lsi = &sock->info;
@@ -1244,7 +978,8 @@ process_incoming_link(struct context *c, struct link_socket *sock)
 
     process_incoming_link_part1(c, lsi, false);
     process_incoming_link_part2(c, lsi, orig_buf);
-    process_incoming_link_part3(c);
+
+    c->c2.buf2.len = 0;
 }
 
 void
@@ -1310,7 +1045,6 @@ process_incoming_dco(dco_context_t *dco)
                     "%s: received peer expired notification of for peer-id "
                     "%d",
                     __func__, dco->dco_message_peer_id);
-                trigger_ping_timeout_signal(c);
                 return;
             }
             break;
@@ -1344,13 +1078,6 @@ read_incoming_tun_part2(struct context *c)
 
     c->c2.buf = c->c2.buffers->read_tun_buf;
 
-#ifdef _WIN32
-    /* we cannot end up here when using dco */
-    ASSERT(!dco_enabled(&c->options));
-
-    sockethandle_t sh = { .is_handle = true, .h = c->c1.tuntap->hand, .prepend_sa = false };
-    sockethandle_finalize(sh, &c->c1.tuntap->reads, &c->c2.buf, NULL);
-#else  /* ifdef _WIN32 */
     ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
     ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
     if (c->c1.tuntap->backend_driver == DRIVER_AFUNIX)
@@ -1361,7 +1088,6 @@ read_incoming_tun_part2(struct context *c)
     {
         c->c2.buf.len = (int)read_tun(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
     }
-#endif /* ifdef _WIN32 */
 
 #ifdef PACKET_TRUNCATION_CHECK
     ipv4_packet_size_verify(BPTR(&c->c2.buf), BLEN(&c->c2.buf), TUNNEL_TYPE(c->c1.tuntap),
@@ -1579,14 +1305,6 @@ process_incoming_tun_part2(struct context *c, struct link_socket *out_sock)
         c->c2.tun_read_bytes += c->c2.buf.len;
     }
 
-#ifdef LOG_RW
-    if (c->c2.log_rw && c->c2.buf.len > 0)
-    {
-        fprintf(stderr, "r");
-    }
-#endif
-
-    /* Show packet content */
     dmsg(D_TUN_RW, "TUN READ [%d] [%d]", BLEN(&c->c2.buf), c->c2.frame.buf.payload_size);
 
     if (c->c2.buf.len > 0)
@@ -1609,6 +1327,7 @@ process_incoming_tun_part2(struct context *c, struct link_socket *out_sock)
                                 "PRE_ENCRYPT", &c->c2.n_trunc_pre_encrypt);
 #endif
     }
+
     if (c->c2.buf.len > 0)
     {
         if (!BULK_MODE(c))
@@ -1616,10 +1335,7 @@ process_incoming_tun_part2(struct context *c, struct link_socket *out_sock)
             encrypt_sign(c, true);
         }
     }
-    else
-    {
-        buf_reset(&c->c2.to_link);
-    }
+
     gc_free(&gc);
 }
 
@@ -1652,14 +1368,6 @@ void process_incoming_tun_part3(struct context *c, struct link_socket *out_sock)
             c->c2.buf = c->c2.buffers->read_tun_max;
             encrypt_sign(c, true);
         }
-        else
-        {
-            buf_reset(&c->c2.to_link);
-        }
-    }
-    else
-    {
-        buf_reset(&c->c2.to_link);
     }
     c->c2.buffers->bulk_indx = -1;
     c->c2.buffers->bulk_leng = -1;
@@ -1675,6 +1383,8 @@ void process_incoming_tun(struct context *c, struct link_socket *out_sock)
     {
         process_incoming_tun_part3(c, out_sock);
     }
+
+    c->c2.buf.len = 0;
 }
 
 /**
@@ -1904,6 +1614,17 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
     int error_code = 0;
+    struct buffer og = c->c2.buf;
+
+    if ((!LINK_OUT(c)) && REKEY_OUT(c))
+    {
+        c->c2.tls_multi->send_buf_key = true;
+        c->c2.buf = c->c2.tls_multi->plaintext_send_buf;
+        encrypt_sign(c, false);
+        c->c2.buf = og;
+        c->c2.tls_multi->plaintext_send_buf.len = 0;
+        c->c2.tls_multi->send_buf_key = false;
+    }
 
     if (c->c2.to_link.len > 0 && (c->c2.to_link.len <= c->c2.frame.buf.payload_size || c->c2.frame.bulk_size > 0))
     {
@@ -1914,10 +1635,6 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
         int size = 0;
         ASSERT(link_socket_actual_defined(c->c2.to_link_addr));
 
-#ifdef ENABLE_DEBUG
-        /* In gremlin-test mode, we may choose to drop this packet */
-        if (!c->options.gremlin || ask_gremlin(c->options.gremlin))
-#endif
         {
             /*
              * Let the traffic shaper know how many bytes
@@ -1930,45 +1647,18 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
                 shaper_wrote_bytes(&c->c2.shaper, BLEN(&c->c2.to_link) + overhead);
             }
 
-            /*
-             * Let the pinger know that we sent a packet.
-             */
-            if (c->options.ping_send_timeout)
-            {
-                event_timeout_reset(&c->c2.ping_send_interval);
-            }
-
 #if PASSTOS_CAPABILITY
             /* Set TOS */
             link_socket_set_tos(sock);
-#endif
-
-            /* Log packet send */
-#ifdef LOG_RW
-            if (c->c2.log_rw)
-            {
-                fprintf(stderr, "W");
-            }
 #endif
 
             msg(D_LINK_RW, "%s WRITE [%d] to %s: %s",
                 proto2ascii(sock->info.proto, sock->info.af, true), BLEN(&c->c2.to_link),
                 print_link_socket_actual(c->c2.to_link_addr, &gc), PROTO_DUMP(&c->c2.to_link, &gc));
 
-            /* Packet send complexified by possible Socks5 usage */
-            {
-                struct link_socket_actual *to_addr = c->c2.to_link_addr;
-                int size_delta = 0;
-
-                /* If Socks5 over UDP, prepend header */
-                socks_preprocess_outgoing_link(c, sock, &to_addr, &size_delta);
-
-                /* Send packet */
-                size = (int)link_socket_write(sock, &c->c2.to_link, to_addr);
-
-                /* Undo effect of prepend */
-                link_socket_write_post_size_adjust(&size, size_delta, &c->c2.to_link);
-            }
+            /* Send packet */
+            struct link_socket_actual *to_addr = c->c2.to_link_addr;
+            size = (int)link_socket_write(sock, &c->c2.to_link, to_addr);
 
             if (size > 0)
             {
@@ -1993,20 +1683,9 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
             }
         }
 
-        /* if not a ping/control message, indicate activity regarding --inactive parameter */
-        if (c->c2.buf.len > 0)
-        {
-            register_activity(c, size);
-        }
-
         /* for unreachable network and "connecting" state switch to the next host */
 
-        bool unreachable = error_code ==
-#ifdef _WIN32
-                           WSAENETUNREACH;
-#else
-                           ENETUNREACH;
-#endif
+        bool unreachable = error_code == ENETUNREACH;
         if (size < 0 && unreachable && c->c2.tls_multi
             && !tls_initial_packet_received(c->c2.tls_multi)
             && c->options.mode == MODE_POINT_TO_POINT)
@@ -2015,6 +1694,7 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
             register_signal(c->sig, SIGUSR1, "network-unreachable");
         }
     }
+
     else
     {
         if (c->c2.to_link.len > 0)
@@ -2025,6 +1705,7 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
         }
     }
 
+    c->c2.buf.len = 0;
     buf_reset(&c->c2.to_link);
 
     gc_free(&gc);
@@ -2060,13 +1741,6 @@ process_outgoing_tun_part2(struct context *c, struct link_socket *in_sock)
          */
         ssize_t size;
 
-#ifdef LOG_RW
-        if (c->c2.log_rw)
-        {
-            fprintf(stderr, "w");
-        }
-#endif
-
         dmsg(D_TUN_RW, "TUN WRITE [%d] [%d]", BLEN(&c->c2.to_tun), c->c2.frame.buf.payload_size);
 
 #ifdef PACKET_TRUNCATION_CHECK
@@ -2074,9 +1748,6 @@ process_outgoing_tun_part2(struct context *c, struct link_socket *in_sock)
                                 "WRITE_TUN", &c->c2.n_trunc_tun_write);
 #endif
 
-#ifdef _WIN32
-        size = tun_write_win32(c->c1.tuntap, &c->c2.to_tun);
-#else
         if (c->c1.tuntap->backend_driver == DRIVER_AFUNIX)
         {
             size = write_tun_afunix(c->c1.tuntap, BPTR(&c->c2.to_tun), BLEN(&c->c2.to_tun));
@@ -2085,12 +1756,12 @@ process_outgoing_tun_part2(struct context *c, struct link_socket *in_sock)
         {
             size = write_tun(c->c1.tuntap, BPTR(&c->c2.to_tun), BLEN(&c->c2.to_tun));
         }
-#endif
 
         if (size > 0)
         {
             c->c2.tun_write_bytes += size;
         }
+
         check_status(size, "write to TUN/TAP", NULL, c->c1.tuntap);
 
         /* check written packet size */
@@ -2103,11 +1774,9 @@ process_outgoing_tun_part2(struct context *c, struct link_socket *in_sock)
                     "TUN/TAP packet was destructively fragmented on write to %s (tried=%d,actual=%zd)",
                     c->c1.tuntap->actual_name, BLEN(&c->c2.to_tun), size);
             }
-
-            /* indicate activity regarding --inactive parameter */
-            register_activity(c, size);
         }
     }
+
     else
     {
         /*
@@ -2118,6 +1787,7 @@ process_outgoing_tun_part2(struct context *c, struct link_socket *in_sock)
             c->c2.frame.buf.payload_size);
     }
 
+    c->c2.buf2.len = 0;
     buf_reset(&c->c2.to_tun);
 }
 
@@ -2125,7 +1795,6 @@ void process_outgoing_tun_part3(struct context *c, struct link_socket *in_sock)
 {
     if ((c->c2.to_tun.len > 0) && (c->c2.to_tun.offset > 1))
     {
-        c->c2.to_tun.offset -= 2;
         buf_init(&c->c2.buffers->send_tun_max, TUN_BAT_OFF);
         buf_copy(&c->c2.buffers->send_tun_max, &c->c2.to_tun);
         int maxl = 0, plen = 0;
@@ -2149,6 +1818,8 @@ void process_outgoing_tun_part3(struct context *c, struct link_socket *in_sock)
             }
         }
     }
+
+    c->c2.buf2.len = 0;
     buf_reset(&c->c2.to_tun);
 }
 
@@ -2174,70 +1845,38 @@ pre_select(struct context *c)
      * reduce to a timeout that reflects the component which
      * needs the earliest service.
      */
-    c->c2.timeval.tv_sec = BIG_TIMEOUT;
+    c->c2.timeval.tv_sec = LOOP_WAIT;
     c->c2.timeval.tv_usec = 0;
-
-#if defined(_WIN32)
-    if (check_debug_level(D_TAP_WIN_DEBUG))
-    {
-        c->c2.timeval.tv_sec = 1;
-        if (tuntap_defined(c->c1.tuntap))
-        {
-            tun_show_debug(c->c1.tuntap);
-        }
-    }
-#endif
 
     /* check coarse timers? */
     check_coarse_timers(c);
-    if (c->sig->signal_received)
-    {
-        return;
-    }
 
     /* If tls is enabled, do tls control channel packet processing. */
-    if (c->c2.tls_multi)
-    {
-        check_tls(c);
-    }
+    check_tls(c);
 
     /* In certain cases, TLS errors will require a restart */
     check_tls_errors(c);
+
+    /* check for incoming control messages on the control channel like
+     * push request/reply/update, or authentication failure and 2FA messages */
+    check_tls_control_channel(c);
+
+    /* Update random component of timeout */
+    check_timeout_random_component(c);
+
     if (c->sig->signal_received)
     {
         return;
     }
-
-    /* check for incoming control messages on the control channel like
-     * push request/reply/update, or authentication failure and 2FA messages */
-    if (tls_test_payload_len(c->c2.tls_multi) > 0)
-    {
-        check_incoming_control_channel(c);
-    }
-
-    /* Should we send an OCC message? */
-    check_send_occ_msg(c);
-
-#ifdef ENABLE_FRAGMENT
-    /* Should we deliver a datagram fragment to remote? */
-    if (c->c2.fragment)
-    {
-        check_fragment(c);
-    }
-#endif
-
-    /* Update random component of timeout */
-    check_timeout_random_component(c);
 }
 
-static void
-multi_io_process_flags(struct context *c, struct event_set *es, const unsigned int flags,
-                       unsigned int *out_socket, unsigned int *out_tuntap)
+static bool
+multi_io_process_flags(struct context *c, struct event_set *es, const unsigned int flags)
 {
-    unsigned int socket = 0;
-    unsigned int tuntap = 0;
+    bool read_wait = true;
     static uintptr_t tun_shift = TUN_SHIFT;
     static uintptr_t err_shift = ERR_SHIFT;
+    unsigned int *event_set_status = &c->c2.event_set_status;
 
     /*
      * Calculate the flags based on the provided 'flags' argument.
@@ -2245,77 +1884,6 @@ multi_io_process_flags(struct context *c, struct event_set *es, const unsigned i
     if ((c->options.mode != MODE_SERVER) && (flags & IOW_WAIT_SIGNAL))
     {
         wait_signal(es, (void *)err_shift);
-    }
-
-    if (flags & IOW_TO_LINK)
-    {
-        if (flags & IOW_SHAPER)
-        {
-            /*
-             * If sending this packet would put us over our traffic shaping
-             * quota, don't send -- instead compute the delay we must wait
-             * until it will be OK to send the packet.
-             */
-            int delay = 0;
-
-            /* set traffic shaping delay in microseconds */
-            if (c->options.shaper)
-            {
-                delay = max_int(delay, shaper_delay(&c->c2.shaper));
-            }
-
-            if (delay < 1000)
-            {
-                socket |= EVENT_WRITE;
-            }
-            else
-            {
-                shaper_soonest_event(&c->c2.timeval, delay);
-            }
-        }
-        else
-        {
-            socket |= EVENT_WRITE;
-        }
-    }
-    else if (!((flags & IOW_FRAG) && TO_LINK_FRAG(c)))
-    {
-        if (flags & IOW_READ_TUN)
-        {
-            tuntap |= EVENT_READ;
-        }
-    }
-
-    /*
-     * If outgoing data (for TUN/TAP device) pending, wait for ready-to-send status
-     * from device.  Otherwise, wait for incoming data on TCP/UDP port.
-     */
-    if (flags & IOW_TO_TUN)
-    {
-        tuntap |= EVENT_WRITE;
-    }
-    else
-    {
-        if (flags & IOW_READ_LINK)
-        {
-            socket |= EVENT_READ;
-        }
-    }
-
-    /*
-     * outgoing bcast buffer waiting to be sent?
-     */
-    if (flags & IOW_MBUF)
-    {
-        socket |= EVENT_WRITE;
-    }
-
-    /*
-     * Force wait on TUN input, even if also waiting on TCP/UDP output
-     */
-    if (flags & IOW_READ_TUN_FORCE)
-    {
-        tuntap |= EVENT_READ;
     }
 
     /*
@@ -2327,21 +1895,43 @@ multi_io_process_flags(struct context *c, struct event_set *es, const unsigned i
     {
         if ((c->options.mode != MODE_SERVER) || (proto_is_dgram(c->c2.link_sockets[i]->info.proto)))
         {
-            socket_set(c->c2.link_sockets[i], es, socket, &c->c2.link_sockets[i]->ev_arg, NULL);
+            socket_set(c->c2.link_sockets[i], es, EVENT_READ, &c->c2.link_sockets[i]->ev_arg, NULL);
         }
     }
 
-    tun_set(c->c1.tuntap, es, tuntap, (void *)tun_shift, NULL);
+    /*
+     * Configure event wait based on interface.
+     */
+    tun_set(c->c1.tuntap, es, EVENT_READ, (void *)tun_shift, NULL);
 
-    if (out_socket)
+    /*
+     * Check for any data processing already waiting.
+     */
+    *event_set_status = 0;
+
+    if (flags & IOW_TO_LINK)
     {
-        *out_socket = socket;
+        *event_set_status |= SOCKET_WRITE;
+        read_wait = false;
+    }
+    if (flags & IOW_READ_TUN)
+    {
+        *event_set_status |= TUN_READ;
+        read_wait = false;
     }
 
-    if (out_tuntap)
+    if (flags & IOW_TO_TUN)
     {
-        *out_tuntap = tuntap;
+        *event_set_status |= TUN_WRITE;
+        read_wait = false;
     }
+    if (flags & IOW_READ_LINK)
+    {
+        *event_set_status |= SOCKET_READ;
+        read_wait = false;
+    }
+
+    return read_wait;
 }
 
 /*
@@ -2352,10 +1942,7 @@ multi_io_process_flags(struct context *c, struct event_set *es, const unsigned i
 void
 get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags)
 {
-    unsigned int out_socket;
-
-    multi_io_process_flags(c, multi_io->es, flags, &out_socket, NULL);
-    multi_io->udp_flags = (out_socket << SOCKET_SHIFT);
+    multi_io_process_flags(c, multi_io->es, flags);
 }
 
 /*
@@ -2363,11 +1950,11 @@ get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned in
  * for the top-level server sockets.
  */
 void
-io_wait(struct context *c, const unsigned int flags)
+io_wait(struct context *c, const unsigned int flags, int t)
 {
-    unsigned int out_socket;
-    unsigned int out_tuntap;
     struct event_set_return esr[4];
+    struct event_set *event_set = c->c2.event_set;
+    unsigned int *event_set_status = &c->c2.event_set_status;
 
     /* These shifts all depend on EVENT_READ and EVENT_WRITE */
     static uintptr_t socket_shift = SOCKET_SHIFT; /* depends on SOCKET_READ and SOCKET_WRITE */
@@ -2376,28 +1963,17 @@ io_wait(struct context *c, const unsigned int flags)
         MANAGEMENT_SHIFT; /* depends on MANAGEMENT_READ and MANAGEMENT_WRITE */
 #endif
 
-#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
-    static uintptr_t dco_shift = DCO_SHIFT; /* Event from DCO linux kernel module */
-#endif
-
     /*
      * Decide what kind of events we want to wait for.
      */
-    event_reset(c->c2.event_set);
+    event_reset(event_set);
 
-    multi_io_process_flags(c, c->c2.event_set, flags, &out_socket, &out_tuntap);
-
-#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
-    if (out_socket & EVENT_READ && c->c2.did_open_tun)
-    {
-        dco_event_set(&c->c1.tuntap->dco, c->c2.event_set, (void *)dco_shift);
-    }
-#endif
+    bool read_wait = multi_io_process_flags(c, event_set, flags);
 
 #ifdef ENABLE_MANAGEMENT
     if (management)
     {
-        management_socket_set(management, c->c2.event_set, (void *)management_shift, NULL);
+        management_socket_set(management, event_set, (void *)management_shift, NULL);
     }
 #endif
 
@@ -2410,34 +1986,25 @@ io_wait(struct context *c, const unsigned int flags)
      *  (5) we received a signal (handler sets signal_received)
      *  (6) timeout (tv) expired
      */
-
-    c->c2.event_set_status = ES_ERROR;
-
     if (!c->sig->signal_received)
     {
-        if (true)
+        if (read_wait)
         {
             int status;
 
-#ifdef ENABLE_DEBUG
-            if (check_debug_level(D_EVENT_WAIT))
-            {
-                show_wait_status(c);
-            }
-#endif
+            *event_set_status = ES_ERROR;
 
             /*
              * Wait for something to happen.
              */
-            status = event_wait(c->c2.event_set, &c->c2.timeval, esr, SIZE(esr));
+            status = event_wait(event_set, &c->c2.timeval, esr, SIZE(esr));
 
             check_status(status, "event_wait", NULL, NULL);
 
             if (status > 0)
             {
-                int i;
-                c->c2.event_set_status = 0;
-                for (i = 0; i < status; ++i)
+                *event_set_status = 0;
+                for (int i = 0; i < status; ++i)
                 {
                     const struct event_set_return *e = &esr[i];
                     uintptr_t shift;
@@ -2447,7 +2014,7 @@ io_wait(struct context *c, const unsigned int flags)
                         struct event_arg *ev_arg = (struct event_arg *)e->arg;
                         if (ev_arg->type != EVENT_ARG_LINK_SOCKET)
                         {
-                            c->c2.event_set_status = ES_ERROR;
+                            *event_set_status = ES_ERROR;
                             msg(D_LINK_ERRORS, "io_work: non socket event delivered");
                             return;
                         }
@@ -2459,17 +2026,9 @@ io_wait(struct context *c, const unsigned int flags)
                         shift = (uintptr_t)e->arg;
                     }
 
-                    c->c2.event_set_status |= ((e->rwflags & 3) << shift);
+                    *event_set_status |= ((e->rwflags & 3) << shift);
                 }
             }
-            else if (status == 0)
-            {
-                c->c2.event_set_status = ES_TIMEOUT;
-            }
-        }
-        if (sockets_read_residual(c))
-        {
-            c->c2.event_set_status |= (SOCKET_READ << SOCKET_SHIFT);
         }
     }
 
@@ -2477,12 +2036,12 @@ io_wait(struct context *c, const unsigned int flags)
     update_time();
 
     /* set signal_received if a signal was received */
-    if (c->c2.event_set_status & ES_ERROR)
+    if (*event_set_status & ES_ERROR)
     {
         get_signal(&c->sig->signal_received);
     }
 
-    dmsg(D_EVENT_WAIT, "I/O WAIT status=0x%04x", c->c2.event_set_status);
+    dmsg(D_EVENT_WAIT, "I/O WAIT status=0x%04x", *event_set_status);
 }
 
 void threaded_fwd_inp_intf(struct context *c, struct link_socket *sock, struct thread_pointer *b)
@@ -2501,13 +2060,31 @@ void threaded_fwd_inp_intf(struct context *c, struct link_socket *sock, struct t
             }
             process_incoming_tun(c, sock);
         }
+        if (!IS_SIG(c))
+        {
+            process_outgoing_link(c, sock);
+        }
         size = write(c->c1.tuntap->fz, temp, 1);
     }
 }
 
-void
-process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b)
+void threaded_fwd_inp_link(struct context *c, struct link_socket *sock)
 {
+    read_incoming_link(c, sock);
+    if (!IS_SIG(c))
+    {
+        process_incoming_link(c, sock);
+    }
+    if (!IS_SIG(c))
+    {
+        process_outgoing_tun(c, sock);
+    }
+}
+
+void
+process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b, int t)
+{
+    bool loop = true;
     const unsigned int status = c->c2.event_set_status;
 
 #ifdef ENABLE_MANAGEMENT
@@ -2518,35 +2095,124 @@ process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b
     }
 #endif
 
-    /* TCP/UDP port ready to accept write */
-    if (status & SOCKET_WRITE)
+    if ((t & THREAD_RTWL) != 0)
     {
-        process_outgoing_link(c, sock);
-    }
-    /* TUN device ready to accept write */
-    else if (status & TUN_WRITE)
-    {
-        process_outgoing_tun(c, sock);
-    }
-    /* Incoming data on TCP/UDP port */
-    else if (status & SOCKET_READ)
-    {
-        read_incoming_link(c, sock);
-        if (!IS_SIG(c))
+        /* TCP/UDP port ready to accept write */
+        while (loop)
         {
-            process_incoming_link(c, sock);
+            loop = false;
+            if (TUN_IN(c))
+            {
+                process_incoming_tun(c, sock);
+                loop = true;
+            }
+            if (LINK_OUT(c) || REKEY_OUT(c))
+            {
+                process_outgoing_link(c, sock);
+                loop = true;
+            }
+        }
+        /* Incoming data on TUN device */
+        if (status & TUN_READ)
+        {
+            threaded_fwd_inp_intf(c, sock, b);
         }
     }
-    /* Incoming data on TUN device */
-    else if (status & TUN_READ)
+
+    if ((t & THREAD_RLWT) != 0)
     {
-        threaded_fwd_inp_intf(c, sock, b);
-    }
-    else if (status & DCO_READ)
-    {
-        if (!IS_SIG(c))
+        /* TUN device ready to accept write */
+        while (loop)
         {
-            dco_read_and_process(&c->c1.tuntap->dco);
+            loop = false;
+            if (LINK_IN(c))
+            {
+                process_incoming_link(c, sock);
+                loop = true;
+            }
+            if (TUN_OUT(c))
+            {
+                process_outgoing_tun(c, sock);
+                loop = true;
+            }
+        }
+        /* Incoming data on TCP/UDP port */
+        if (status & SOCKET_READ)
+        {
+            threaded_fwd_inp_link(c, sock);
         }
     }
+
+    if (t == THREAD_MAIN)
+    {
+        if (status & DCO_READ)
+        {
+            if (!IS_SIG(c))
+            {
+                dco_read_and_process(&c->c1.tuntap->dco);
+            }
+        }
+    }
+}
+
+void *threaded_process_io(void *a)
+{
+    /*
+        dual mode commit notes:
+          - thread1 handles tunn-read->link-send && thread2 handles link-read->tunn-send
+          - set thread1 to handle the pre_select() call as it falls under the threaded paths
+            and the function will eventually overwrite the c2.buf and c2.to_link buffer variables
+            which will then cause data conflict and corruption errors if not called from thread1
+          - the server is slower to move through the key session states than the client is
+            so hold onto old keys longer before rotation and delay using new keys before selection
+          - this mode is built on the organization and separation code mods implemented in bulk mode
+    */
+
+    struct dual_args *d = (struct dual_args *)a;
+    struct thread_pointer *b = d->b;
+
+    int t = d->t;
+    unsigned int f = d->f;
+    uint8_t buff[5];
+    size_t leng;
+
+    fd_set rfds;
+    struct timeval timo;
+
+    while (true)
+    {
+        if (b->p->z != 1) { break; }
+
+        FD_ZERO(&rfds); FD_SET(d->w[0][0], &rfds);
+        timo.tv_sec = 1; timo.tv_usec = 750000;
+        select(d->w[0][0]+1, &rfds, NULL, NULL, &timo);
+
+        if (b->p->z != 1) { break; }
+
+        if (FD_ISSET(d->w[0][0], &rfds))
+        {
+            leng = read(d->w[0][0], buff, 1);
+            if (leng < 1) { /* no-op */ }
+
+            if (d->a == TA_UNDEF)
+            {
+                multi_io_process_io(b, f, t);
+            }
+            else if (d->a == TA_TIMEOUT)
+            {
+                struct multi_context *m = b->p->m[b->i-1];
+                multi_io_action(m, TA_TIMEOUT, false, f, t);
+            }
+            else if (d->a == TA_FORWARD)
+            {
+                struct context *c = d->c;
+                process_io(c, c->c2.link_sockets[0], b, t);
+            }
+
+            d->z = 0;
+            leng = write(d->w[1][1], buff, 1);
+        }
+    }
+
+    return NULL;
 }

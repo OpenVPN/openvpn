@@ -42,10 +42,6 @@
 #include "tun.h"
 #include "tun_afunix.h"
 
-#if defined(_WIN32)
-#include "dco_win.h"
-#endif
-
 #ifdef HAVE_LIBCAPNG
 #include <cap-ng.h>
 #endif
@@ -242,18 +238,6 @@ dco_check_option_ce(const struct connection_entry *ce, msglvl_t msglevel, int mo
         return false;
     }
 
-    if (ce->http_proxy_options)
-    {
-        msg(msglevel, "Note: --http-proxy disables data channel offload.");
-        return false;
-    }
-
-    if (ce->socks_proxy_server)
-    {
-        msg(msglevel, "Note: --socks-proxy disables data channel offload.");
-        return false;
-    }
-
 #if defined(TARGET_FREEBSD)
     if (ce->local_list)
     {
@@ -265,28 +249,6 @@ dco_check_option_ce(const struct connection_entry *ce, msglvl_t msglevel, int mo
                 return false;
             }
         }
-    }
-#endif
-
-#if defined(_WIN32)
-    if (!proto_is_udp(ce->local_list->array[0]->proto) && mode == MODE_SERVER)
-    {
-        msg(msglevel,
-            "NOTE: TCP transport disables data channel offload on Windows in server mode.");
-        return false;
-    }
-
-    if (!ce->remote && !dco_win_supports_multipeer())
-    {
-        msg(msglevel,
-            "NOTE: --remote is not defined. This DCO version doesn't support multipeer. Disabling Data Channel Offload");
-        return false;
-    }
-
-    if ((mode == MODE_SERVER) && (ce->local_list->len > 1))
-    {
-        msg(msglevel, "NOTE: multiple --local options defined, disabling data channel offload");
-        return false;
     }
 #endif
 
@@ -349,21 +311,7 @@ dco_check_startup_option(msglvl_t msglevel, const struct options *o)
         }
     }
 
-#if defined(_WIN32)
-    if ((o->mode == MODE_SERVER) && !dco_win_supports_multipeer())
-    {
-        msg(msglevel,
-            "--mode server is set. This DCO version doesn't support multipeer. Disabling Data Channel Offload");
-        return false;
-    }
-
-    if ((o->mode == MODE_SERVER) && o->ce.local_list->len > 1)
-    {
-        msg(msglevel, "multiple --local options defined, disabling data channel offload");
-        return false;
-    }
-
-#elif defined(TARGET_LINUX)
+#if defined(TARGET_LINUX)
     /* if the device name is fixed, we need to check if an interface with this
      * name already exists. IF it does, it must be a DCO interface, otherwise
      * DCO has to be disabled in order to continue.
@@ -388,7 +336,7 @@ dco_check_startup_option(msglvl_t msglevel, const struct options *o)
                 ret);
         }
     }
-#endif /* if defined(_WIN32) */
+#endif
 
 #if defined(HAVE_LIBCAPNG)
     /* DCO can't operate without CAP_NET_ADMIN. To retain it when switching user
@@ -661,7 +609,7 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
 void
 dco_install_iroute(struct multi_context *m, struct multi_instance *mi, struct mroute_addr *addr)
 {
-#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(_WIN32)
+#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
     if (!dco_enabled(&m->top.options))
     {
         return;
@@ -676,21 +624,9 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi, struct mr
         return;
     }
 
-#if defined(_WIN32)
-    if (addr->type & MR_ONLINK_DCO_ADDR)
-    {
-        /* Windows does not need these extra routes, so we ignore/skip them */
-        return;
-    }
-#endif
-
     struct context *c = &mi->context;
     if (addrtype == MR_ADDR_IPV6)
     {
-#if defined(_WIN32)
-        dco_win_add_iroute_ipv6(&c->c1.tuntap->dco, addr->v6.addr, addr->netbits,
-                                c->c2.tls_multi->peer_id);
-#else
         const struct in6_addr *gateway = &mi->context.c2.push_ifconfig_ipv6_local;
         if (addr->type & MR_ONLINK_DCO_ADDR)
         {
@@ -700,14 +636,9 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi, struct mr
         net_route_v6_add(&m->top.net_ctx, &addr->v6.addr, addr->netbits,
                          gateway, c->c1.tuntap->actual_name, 0,
                          DCO_IROUTE_METRIC);
-#endif
     }
     else if (addrtype == MR_ADDR_IPV4)
     {
-#if defined(_WIN32)
-        dco_win_add_iroute_ipv4(&c->c1.tuntap->dco, addr->v4.addr, addr->netbits,
-                                c->c2.tls_multi->peer_id);
-#else
         in_addr_t dest = htonl(addr->v4.addr);
         const in_addr_t *gateway = &mi->context.c2.push_ifconfig_local;
         if (addr->type & MR_ONLINK_DCO_ADDR)
@@ -717,15 +648,14 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi, struct mr
 
         net_route_v4_add(&m->top.net_ctx, &dest, addr->netbits, gateway,
                          c->c1.tuntap->actual_name, 0, DCO_IROUTE_METRIC);
-#endif
     }
-#endif /* if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(_WIN32) */
+#endif /* if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) */
 }
 
 void
 dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
 {
-#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(_WIN32)
+#if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
     if (!dco_enabled(&m->top.options))
     {
         return;
@@ -738,16 +668,11 @@ dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
     {
         for (const struct iroute *ir = c->options.iroutes; ir; ir = ir->next)
         {
-#if defined(_WIN32)
-            dco_win_del_iroute_ipv4(&c->c1.tuntap->dco, htonl(ir->network), ir->netbits);
-#else
             net_route_v4_del(&m->top.net_ctx, &ir->network, ir->netbits,
                              &mi->context.c2.push_ifconfig_local, c->c1.tuntap->actual_name, 0,
                              DCO_IROUTE_METRIC);
-#endif
         }
 
-#if !defined(_WIN32)
         /* Check if we added a host route as the assigned client IP address was
          * not in the on link scope defined by --ifconfig */
         in_addr_t ifconfig_local = mi->context.c2.push_ifconfig_local;
@@ -759,25 +684,19 @@ dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
                              32, NULL, c->c1.tuntap->actual_name, 0,
                              DCO_IROUTE_METRIC);
         }
-#endif
     }
 
     if (mi->context.c2.push_ifconfig_ipv6_defined)
     {
         for (const struct iroute_ipv6 *ir6 = c->options.iroutes_ipv6; ir6; ir6 = ir6->next)
         {
-#if defined(_WIN32)
-            dco_win_del_iroute_ipv6(&c->c1.tuntap->dco, ir6->network, ir6->netbits);
-#else
             net_route_v6_del(&m->top.net_ctx, &ir6->network, ir6->netbits,
                              &mi->context.c2.push_ifconfig_ipv6_local, c->c1.tuntap->actual_name, 0,
                              DCO_IROUTE_METRIC);
-#endif
         }
 
         /* Checked if we added a host route as the assigned client IP address was
          * outside the --ifconfig-ipv6 tun interface config */
-#if !defined(_WIN32)
         struct in6_addr *dest = &mi->context.c2.push_ifconfig_ipv6_local;
         if (multi_check_push_ifconfig_ipv6_extra_route(mi, dest))
         {
@@ -785,9 +704,8 @@ dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
             net_route_v6_del(&m->top.net_ctx, dest, 128, NULL,
                              c->c1.tuntap->actual_name, 0, DCO_IROUTE_METRIC);
         }
-#endif
     }
-#endif /* if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(_WIN32) */
+#endif /* if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) */
 }
 
 #endif /* defined(ENABLE_DCO) */

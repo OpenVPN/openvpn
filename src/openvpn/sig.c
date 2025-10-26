@@ -33,7 +33,7 @@
 #include "init.h"
 #include "status.h"
 #include "sig.h"
-#include "occ.h"
+#include "forward.h"
 #include "manage.h"
 #include "openvpn.h"
 
@@ -122,11 +122,9 @@ signal_description(const int signum, const char *sigtext)
 static inline void
 block_async_signals(void)
 {
-#ifndef _WIN32
     sigset_t all;
     sigfillset(&all); /* all signals */
     sigprocmask(SIG_BLOCK, &all, NULL);
-#endif
 }
 
 /**
@@ -135,11 +133,9 @@ block_async_signals(void)
 static inline void
 unblock_async_signals(void)
 {
-#ifndef _WIN32
     sigset_t none;
     sigemptyset(&none);
     sigprocmask(SIG_SETMASK, &none, NULL);
-#endif
 }
 
 /**
@@ -372,14 +368,12 @@ signal_restart_status(const struct signal_info *si)
 #endif /* ifdef ENABLE_MANAGEMENT */
 }
 
-#ifndef _WIN32
 /* normal signal handler, when we are in event loop */
 static void
 signal_handler(const int signum)
 {
     try_throw_signal(&siginfo_static, signum, SIG_SOURCE_HARD);
 }
-#endif
 
 /* set handlers for unix signals */
 
@@ -391,7 +385,6 @@ static int signal_mode; /* GLOBAL */
 void
 pre_init_signal_catch(void)
 {
-#ifndef _WIN32
     sigset_t block_mask;
     struct sigaction sa;
     CLEAR(sa);
@@ -410,7 +403,7 @@ pre_init_signal_catch(void)
     sigaction(SIGUSR1, &sa, NULL);
     sigaction(SIGUSR2, &sa, NULL);
     sigaction(SIGPIPE, &sa, NULL);
-#endif /* _WIN32 */
+
     /* clear any pending signals of the ignored type */
     signal_reset(&siginfo_static, SIGUSR1);
     signal_reset(&siginfo_static, SIGUSR2);
@@ -420,7 +413,6 @@ pre_init_signal_catch(void)
 void
 post_init_signal_catch(void)
 {
-#ifndef _WIN32
     sigset_t block_mask;
     struct sigaction sa;
     CLEAR(sa);
@@ -438,20 +430,18 @@ post_init_signal_catch(void)
     sigaction(SIGUSR2, &sa, NULL);
     sa.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &sa, NULL);
-#endif /* _WIN32 */
 }
 
 void
 halt_low_priority_signals(void)
 {
-#ifndef _WIN32
     struct sigaction sa;
     CLEAR(sa);
     sa.sa_handler = SIG_IGN;
     sigaction(SIGHUP, &sa, NULL);
     sigaction(SIGUSR1, &sa, NULL);
     sigaction(SIGUSR2, &sa, NULL);
-#endif /* _WIN32 */
+
     ignored_hard_signals_mask = (1LL << SIGHUP) | (1LL << SIGUSR1) | (1LL << SIGUSR2);
 }
 
@@ -510,16 +500,6 @@ print_status(struct context *c, struct status_output *so)
     status_printf(so, "Pre-encrypt truncations," counter_format, c->c2.n_trunc_pre_encrypt);
     status_printf(so, "Post-decrypt truncations," counter_format, c->c2.n_trunc_post_decrypt);
 #endif
-#ifdef _WIN32
-    if (tuntap_defined(c->c1.tuntap))
-    {
-        const char *extended_msg = tap_win_getinfo(c->c1.tuntap, &gc);
-        if (extended_msg)
-        {
-            status_printf(so, "TAP-WIN32 driver status,\"%s\"", extended_msg);
-        }
-    }
-#endif
 
     status_printf(so, "END");
     status_flush(so);
@@ -550,13 +530,6 @@ process_explicit_exit_notification_init(struct context *c)
     signal_reset(c->sig, 0);
 
     c->c2.explicit_exit_notification_time_wait = now;
-
-    /* Check if we are in TLS mode and should send the notification via data
-     * channel */
-    if (cc_exit_notify_enabled(c))
-    {
-        send_control_channel_string(c, "EXIT", D_PUSH);
-    }
 }
 
 void
@@ -572,10 +545,6 @@ process_explicit_exit_notification_timer_wakeup(struct context *c)
         {
             event_timeout_clear(&c->c2.explicit_exit_notification_interval);
             register_signal(c->sig, SIGTERM, "exit-with-notification");
-        }
-        else if (!cc_exit_notify_enabled(c))
-        {
-            c->c2.occ_op = OCC_EXIT;
         }
     }
 }

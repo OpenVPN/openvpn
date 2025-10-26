@@ -101,7 +101,7 @@ struct link_socket_info
  */
 struct stream_buf
 {
-    struct buffer buf_init;
+    struct buffer buf_init[2];
     struct buffer residual;
     int maxlen;
     bool residual_fully_formed;
@@ -109,6 +109,8 @@ struct stream_buf
     struct buffer buf;
     struct buffer next;
     int len;    /* -1 if not yet known */
+    int off;
+    int idx;
 
     bool error; /* if true, fatal TCP error has occurred,
                  *  requiring that connection be restarted */
@@ -156,13 +158,6 @@ struct link_socket
     socket_descriptor_t sd;
     socket_descriptor_t ctrl_sd; /* only used for UDP over Socks */
 
-#ifdef _WIN32
-    struct overlapped_io reads;
-    struct overlapped_io writes;
-    struct rw_handle rw_handle;
-    struct rw_handle listen_handle; /* For listening on TCP socket in server mode */
-#endif
-
     /* used for printing status info only */
     unsigned int rwflags_debug;
 
@@ -202,15 +197,8 @@ struct link_socket
 
     /* for stream sockets */
     struct stream_buf stream_buf;
-    struct buffer stream_buf_data;
+    struct buffer stream_buf_data[2];
     bool stream_reset;
-
-    /* HTTP proxy */
-    struct http_proxy_info *http_proxy;
-
-    /* Socks proxy */
-    struct socks_proxy_info *socks_proxy;
-    struct link_socket_actual socks_relay; /* Socks UDP relay address */
 
     /* The OpenVPN server we will use the proxy to connect to */
     const char *proxy_dest_host;
@@ -245,89 +233,11 @@ struct link_socket
 #define MSG_NOSIGNAL 0
 #endif
 
-#ifdef _WIN32
-
-#define openvpn_close_socket(s) closesocket(s)
-
-int socket_recv_queue(struct link_socket *sock, int maxsize);
-
-int socket_send_queue(struct link_socket *sock, struct buffer *buf,
-                      const struct link_socket_actual *to);
-
-typedef struct
-{
-    union
-    {
-        SOCKET s;
-        HANDLE h;
-    };
-    bool is_handle;
-    bool prepend_sa; /* are incoming packets prepended with sockaddr? */
-} sockethandle_t;
-
-int sockethandle_finalize(sockethandle_t sh, struct overlapped_io *io, struct buffer *buf,
-                          struct link_socket_actual *from);
-
-static inline BOOL
-SocketHandleGetOverlappedResult(sockethandle_t sh, struct overlapped_io *io)
-{
-    return sh.is_handle
-               ? GetOverlappedResult(sh.h, &io->overlapped, &io->size, FALSE)
-               : WSAGetOverlappedResult(sh.s, &io->overlapped, &io->size, FALSE, &io->flags);
-}
-
-static inline int
-SocketHandleGetLastError(sockethandle_t sh)
-{
-    return sh.is_handle ? (int)GetLastError() : WSAGetLastError();
-}
-
-inline static void
-SocketHandleSetLastError(sockethandle_t sh, DWORD err)
-{
-    sh.is_handle ? SetLastError(err) : WSASetLastError(err);
-}
-
-static inline void
-SocketHandleSetInvalError(sockethandle_t sh)
-{
-    sh.is_handle ? SetLastError(ERROR_INVALID_FUNCTION) : WSASetLastError(WSAEINVAL);
-}
-
-/* winsock(2).h uses slightly different types so to avoid conversion
-   errors we wrap these functions on Windows */
-
-static inline int
-openvpn_select(socket_descriptor_t nfds, fd_set *readfds, fd_set *writefds,
-               fd_set *exceptfds, struct timeval *timeout)
-{
-    (void)nfds; /* first argument ignored on Windows */
-    return select(0, readfds, writefds, exceptfds, timeout);
-}
-
-static inline ssize_t
-openvpn_send(socket_descriptor_t sockfd, const void *buf, size_t len, int flags)
-{
-    ASSERT(len <= INT_MAX);
-    return send(sockfd, buf, (int)len, flags);
-}
-
-static inline int
-openvpn_bind(socket_descriptor_t sockfd, const struct sockaddr *addr, size_t addrlen)
-{
-    ASSERT(addrlen <= INT_MAX);
-    return bind(sockfd, addr, (int)addrlen);
-}
-
-#else /* ifdef _WIN32 */
-
 #define openvpn_close_socket(s) close(s)
 #define openvpn_select(nfds, readfds, writefds, exceptfds, timeout) \
     select(nfds, readfds, writefds, exceptfds, timeout)
 #define openvpn_send(sockfd, buf, len, flags) send(sockfd, buf, len, flags)
 #define openvpn_bind(sockfd, addr, addrlen)   bind(sockfd, addr, addrlen)
-
-#endif /* ifdef _WIN32 */
 
 struct link_socket *link_socket_new(void);
 
@@ -377,6 +287,12 @@ void setenv_trusted(struct env_set *es, const struct link_socket_info *info);
 bool link_socket_update_flags(struct link_socket *sock, unsigned int sockflags);
 
 void link_socket_update_buffer_sizes(struct link_socket *sock, int rcvbuf, int sndbuf);
+
+void stream_buf_reset(struct stream_buf *sb);
+
+void stream_buf_set_next(struct stream_buf *sb);
+
+bool stream_buf_added(struct stream_buf *sb, int length_added);
 
 /*
  * Low-level functions
@@ -454,12 +370,7 @@ socket_connection_reset(const struct link_socket *sock, int status)
         else if (status < 0)
         {
             const int err = openvpn_errno();
-#ifdef _WIN32
-            return err == WSAECONNRESET || err == WSAECONNABORTED
-                   || err == ERROR_CONNECTION_ABORTED;
-#else
             return err == ECONNRESET;
-#endif
         }
     }
     return false;
@@ -562,28 +473,7 @@ socket_is_dco_win(const struct link_socket *s)
 
 int link_socket_read_tcp(struct link_socket *sock, struct buffer *buf);
 
-#ifdef _WIN32
-
-static inline int
-link_socket_read_udp_win32(struct link_socket *sock, struct buffer *buf,
-                           struct link_socket_actual *from)
-{
-    sockethandle_t sh = { .s = sock->sd };
-    if (socket_is_dco_win(sock))
-    {
-        *from = sock->info.lsa->actual;
-        sh.is_handle = true;
-        sh.prepend_sa = sock->sockflags & SF_PREPEND_SA;
-    }
-    return sockethandle_finalize(sh, &sock->reads, buf, from);
-}
-
-#else  /* ifdef _WIN32 */
-
-int link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
-                               struct link_socket_actual *from);
-
-#endif /* ifdef _WIN32 */
+int link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *from);
 
 /* read a TCP or UDP packet from link */
 static inline int
@@ -595,11 +485,7 @@ link_socket_read(struct link_socket *sock, struct buffer *buf, struct link_socke
     {
         int res;
 
-#ifdef _WIN32
-        res = link_socket_read_udp_win32(sock, buf, from);
-#else
         res = link_socket_read_udp_posix(sock, buf, from);
-#endif
         return res;
     }
     else if (proto_is_tcp(sock->info.proto)) /* unified TCPv4 and TCPv6 */
@@ -619,55 +505,9 @@ link_socket_read(struct link_socket *sock, struct buffer *buf, struct link_socke
  * Socket Write routines
  */
 
-ssize_t link_socket_write_tcp(struct link_socket *sock, struct buffer *buf,
-                              struct link_socket_actual *to);
+ssize_t link_socket_write_tcp(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *to);
 
-#ifdef _WIN32
-
-static inline int
-link_socket_write_win32(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *to)
-{
-    int err = 0;
-    int status = 0;
-    sockethandle_t sh = { .s = sock->sd, .is_handle = socket_is_dco_win(sock) };
-    if (overlapped_io_active(&sock->writes))
-    {
-        status = sockethandle_finalize(sh, &sock->writes, NULL, NULL);
-        if (status < 0)
-        {
-            err = SocketHandleGetLastError(sh);
-        }
-    }
-
-    /* dco-win mp requires control packets to be prepended with sockaddr */
-    if (sock->sockflags & SF_PREPEND_SA)
-    {
-        if (to->dest.addr.sa.sa_family == AF_INET)
-        {
-            buf_write_prepend(buf, &to->dest.addr.in4, sizeof(struct sockaddr_in));
-        }
-        else
-        {
-            buf_write_prepend(buf, &to->dest.addr.in6, sizeof(struct sockaddr_in6));
-        }
-    }
-
-    socket_send_queue(sock, buf, to);
-    if (status < 0)
-    {
-        SocketHandleSetLastError(sh, err);
-        return status;
-    }
-    else
-    {
-        return BLEN(buf);
-    }
-}
-
-#else /* ifdef _WIN32 */
-
-ssize_t link_socket_write_udp_posix_sendmsg(struct link_socket *sock, struct buffer *buf,
-                                            struct link_socket_actual *to);
+ssize_t link_socket_write_udp_posix_sendmsg(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *to);
 
 
 static inline ssize_t
@@ -692,16 +532,10 @@ link_socket_write_tcp_posix(struct link_socket *sock, struct buffer *buf)
     return send(sock->sd, BPTR(buf), BLEN(buf), MSG_NOSIGNAL);
 }
 
-#endif /* ifdef _WIN32 */
-
 static inline ssize_t
 link_socket_write_udp(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *to)
 {
-#ifdef _WIN32
-    return link_socket_write_win32(sock, buf, to);
-#else
     return link_socket_write_udp_posix(sock, buf, to);
-#endif
 }
 
 /* write a TCP or UDP packet to link */
@@ -764,39 +598,22 @@ link_socket_set_tos(struct link_socket *sock)
  * to all initialized sockets, ensuring the complete
  * packet is read.
  */
-bool sockets_read_residual(const struct context *c);
+bool sockets_read_residual(struct link_socket **links, int num);
 
 static inline event_t
 socket_event_handle(const struct link_socket *sock)
 {
-#ifdef _WIN32
-    return &sock->rw_handle;
-#else
     return sock->sd;
-#endif
 }
 
 event_t socket_listen_event_handle(struct link_socket *sock);
 
-unsigned int socket_set(struct link_socket *sock, struct event_set *es, unsigned int rwflags,
-                        void *arg, unsigned int *persistent);
-
-static inline void
-socket_set_listen_persistent(struct link_socket *sock, struct event_set *es, void *arg)
-{
-    if (sock && !sock->listen_persistent_queued)
-    {
-        event_ctl(es, socket_listen_event_handle(sock), EVENT_READ, arg);
-        sock->listen_persistent_queued = true;
-    }
-}
+unsigned int socket_set(struct link_socket *sock, struct event_set *es, unsigned int rwflags, void *arg, unsigned int *persistent);
 
 static inline void
 socket_reset_listen_persistent(struct link_socket *sock)
 {
-#ifdef _WIN32
-    reset_net_event_win32(&sock->listen_handle, sock->sd);
-#endif
+    /* no-op */
 }
 
 const char *socket_stat(const struct link_socket *sock, unsigned int rwflags, struct gc_arena *gc);

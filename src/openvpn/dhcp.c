@@ -186,7 +186,7 @@ dhcp_extract_router_msg(struct buffer *ipbuf)
     return 0;
 }
 
-#if defined(_WIN32) || defined(DHCP_UNIT_TEST)
+#if defined(DHCP_UNIT_TEST)
 
 /*
  * Convert DHCP options from the command line / config file
@@ -374,4 +374,4 @@ build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)
     return !error;
 }
 
-#endif /* defined(_WIN32) */
+#endif

@@ -53,27 +53,6 @@
 #include <net/route.h> /* RT_ROUNDUP(), RT_ADVANCE() */
 #endif
 
-#ifdef _WIN32
-#include "openvpn-msg.h"
-
-#define METRIC_NOT_USED ((DWORD)-1)
-static int add_route_service(const struct route_ipv4 *, const struct tuntap *);
-
-static bool del_route_service(const struct route_ipv4 *, const struct tuntap *);
-
-static int add_route_ipv6_service(const struct route_ipv6 *, const struct tuntap *);
-
-static bool del_route_ipv6_service(const struct route_ipv6 *, const struct tuntap *);
-
-static int route_ipv6_ipapi(bool add, const struct route_ipv6 *, const struct tuntap *);
-
-static int add_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt,
-                           DWORD adapter_index);
-
-static bool del_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt);
-
-
-#endif
 
 static void delete_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
                          const struct route_gateway_info *rgi, const struct env_set *es,
@@ -859,11 +838,7 @@ init_route_ipv6_list(struct route_ipv6_list *rl6, const struct route_ipv6_option
                 r6->gateway = rl6->rgi6.gateway.addr_ipv6;
             }
             r6->metric = 1;
-#ifdef _WIN32
-            r6->adapter_index = rl6->rgi6.adapter_index;
-#else
             r6->iface = rl6->rgi6.iface;
-#endif
             r6->flags = RT_DEFINED | RT_METRIC_DEFINED;
 
             r6->next = rl6->routes_ipv6;
@@ -1269,17 +1244,10 @@ print_default_gateway(const msglvl_t msglevel, const struct route_gateway_info *
         {
             buf_printf(&out, "/%s", print_in_addr_t(rgi->gateway.netmask, 0, &gc));
         }
-#ifdef _WIN32
-        if (rgi->flags & RGI_IFACE_DEFINED)
-        {
-            buf_printf(&out, " I=%lu", rgi->adapter_index);
-        }
-#else
         if (rgi->flags & RGI_IFACE_DEFINED)
         {
             buf_printf(&out, " IFACE=%s", rgi->iface);
         }
-#endif
         if (rgi->flags & RGI_HWADDR_DEFINED)
         {
             buf_printf(&out, " HWADDR=%s", format_hex_ex(rgi->hwaddr, 6, 0, 1, ":", &gc));
@@ -1300,17 +1268,10 @@ print_default_gateway(const msglvl_t msglevel, const struct route_gateway_info *
         {
             buf_printf(&out, "/%d", rgi6->gateway.netbits_ipv6);
         }
-#ifdef _WIN32
-        if (rgi6->flags & RGI_IFACE_DEFINED)
-        {
-            buf_printf(&out, " I=%lu", rgi6->adapter_index);
-        }
-#else
         if (rgi6->flags & RGI_IFACE_DEFINED)
         {
             buf_printf(&out, " IFACE=%s", rgi6->iface);
         }
-#endif
         if (rgi6->flags & RGI_HWADDR_DEFINED)
         {
             buf_printf(&out, " HWADDR=%s", format_hex_ex(rgi6->hwaddr, 6, 0, 1, ":", &gc));
@@ -1466,7 +1427,7 @@ local_route(in_addr_t network, in_addr_t netmask, in_addr_t gateway,
 
 /* Return true if the "on-link" form of the route should be used.  This is when the gateway for
  * a route is specified as an interface rather than an address. */
-#if defined(TARGET_LINUX) || defined(_WIN32) || defined(TARGET_DARWIN)
+#if defined(TARGET_LINUX) || defined(TARGET_DARWIN)
 static inline bool
 is_on_link(const int is_local_route, const unsigned int flags, const struct route_gateway_info *rgi)
 {
@@ -1548,68 +1509,6 @@ add_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
     }
     bool ret = management_android_control(management, "ROUTE", out);
     status = ret ? RTA_SUCCESS : RTA_ERROR;
-
-#elif defined(_WIN32)
-    {
-        DWORD ai = TUN_ADAPTER_INDEX_INVALID;
-        argv_printf(&argv, "%s%s ADD %s MASK %s %s", get_win_sys_path(), WIN_ROUTE_PATH_SUFFIX,
-                    network, netmask, gateway);
-        if (r->flags & RT_METRIC_DEFINED)
-        {
-            argv_printf_cat(&argv, "METRIC %d", r->metric);
-        }
-        if (is_on_link(is_local_route, flags, rgi))
-        {
-            ai = rgi->adapter_index;
-            argv_printf_cat(&argv, "IF %lu", ai);
-        }
-
-        argv_msg(D_ROUTE, &argv);
-
-        const char *method = "service";
-        if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_SERVICE)
-        {
-            status = add_route_service(r, tt);
-        }
-        else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_IPAPI)
-        {
-            status = add_route_ipapi(r, tt, ai);
-            method = "ipapi";
-        }
-        else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_EXE)
-        {
-            netcmd_semaphore_lock();
-            bool ret =
-                openvpn_execve_check(&argv, es, 0, "ERROR: Windows route add command failed");
-            status = ret ? RTA_SUCCESS : RTA_ERROR;
-            netcmd_semaphore_release();
-            method = "route.exe";
-        }
-        else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_ADAPTIVE)
-        {
-            status = add_route_ipapi(r, tt, ai);
-            method = "ipapi [adaptive]";
-            if (status == RTA_ERROR)
-            {
-                msg(D_ROUTE, "Route addition fallback to route.exe");
-                netcmd_semaphore_lock();
-                bool ret = openvpn_execve_check(
-                    &argv, es, 0, "ERROR: Windows route add command failed [adaptive]");
-                status = ret ? RTA_SUCCESS : RTA_ERROR;
-                netcmd_semaphore_release();
-                method = "route.exe";
-            }
-        }
-        else
-        {
-            ASSERT(0);
-        }
-        if (status != RTA_ERROR) /* error is logged upstream */
-        {
-            msg(D_ROUTE, "Route addition via %s %s", method,
-                (status == RTA_SUCCESS) ? "succeeded" : "failed because route exists");
-        }
-    }
 
 #elif defined(TARGET_SOLARIS)
 
@@ -1805,7 +1704,6 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
     struct argv argv = argv_new();
     struct gc_arena gc = gc_new();
 
-#ifndef _WIN32
     const char *device = tt->actual_name;
     if (r6->iface != NULL) /* vpn server special route */
     {
@@ -1815,7 +1713,6 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
             gateway_needed = true;
         }
     }
-#endif
 
     route_ipv6_clear_host_bits(r6);
     const char *network = print_in6_addr(r6->network, 0, &gc);
@@ -1838,13 +1735,8 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
     }
 #endif
 
-#ifndef _WIN32
     msg(D_ROUTE, "add_route_ipv6(%s/%d -> %s metric %d) dev %s", network, r6->netbits, gateway,
         r6->metric, device);
-#else
-    msg(D_ROUTE, "add_route_ipv6(%s/%d -> %s metric %d) IF %lu", network, r6->netbits, gateway,
-        r6->metric, r6->adapter_index ? r6->adapter_index : tt->adapter_index);
-#endif
 
     /*
      * Filter out routes which are essentially no-ops
@@ -1902,16 +1794,6 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
 
     status = management_android_control(management, "ROUTE6", out);
 
-#elif defined(_WIN32)
-
-    if (tt->options.msg_channel)
-    {
-        status = add_route_ipv6_service(r6, tt);
-    }
-    else
-    {
-        status = route_ipv6_ipapi(true, r6, tt);
-    }
 #elif defined(TARGET_SOLARIS)
 
     /* example: route add -inet6 2001:db8::/32 somegateway 0 */
@@ -2080,46 +1962,6 @@ delete_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
     {
         msg(M_WARN, "ERROR: Linux route delete command failed");
     }
-#elif defined(_WIN32)
-
-    argv_printf(&argv, "%s%s DELETE %s MASK %s %s", get_win_sys_path(), WIN_ROUTE_PATH_SUFFIX,
-                network, netmask, gateway);
-
-    argv_msg(D_ROUTE, &argv);
-
-    if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_SERVICE)
-    {
-        const bool status = del_route_service(r, tt);
-        msg(D_ROUTE, "Route deletion via service %s", status ? "succeeded" : "failed");
-    }
-    else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_IPAPI)
-    {
-        const bool status = del_route_ipapi(r, tt);
-        msg(D_ROUTE, "Route deletion via IPAPI %s", status ? "succeeded" : "failed");
-    }
-    else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_EXE)
-    {
-        netcmd_semaphore_lock();
-        openvpn_execve_check(&argv, es, 0, "ERROR: Windows route delete command failed");
-        netcmd_semaphore_release();
-    }
-    else if ((flags & ROUTE_METHOD_MASK) == ROUTE_METHOD_ADAPTIVE)
-    {
-        const bool status = del_route_ipapi(r, tt);
-        msg(D_ROUTE, "Route deletion via IPAPI %s [adaptive]", status ? "succeeded" : "failed");
-        if (!status)
-        {
-            msg(D_ROUTE, "Route deletion fallback to route.exe");
-            netcmd_semaphore_lock();
-            openvpn_execve_check(&argv, es, 0,
-                                 "ERROR: Windows route delete command failed [adaptive]");
-            netcmd_semaphore_release();
-        }
-    }
-    else
-    {
-        ASSERT(0);
-    }
 
 #elif defined(TARGET_SOLARIS)
 
@@ -2209,7 +2051,6 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt, const st
         return;
     }
 
-#if !defined(_WIN32)
 #if !defined(TARGET_LINUX)
     const char *gateway;
 #endif
@@ -2231,13 +2072,12 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt, const st
         gateway_needed = true;
     }
 #endif
-#endif
 
     struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
 
     network = print_in6_addr(r6->network, 0, &gc);
-#if !defined(TARGET_LINUX) && !defined(_WIN32)
+#if !defined(TARGET_LINUX)
     gateway = print_in6_addr(r6->gateway, 0, &gc);
 #endif
 
@@ -2274,16 +2114,6 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt, const st
         msg(M_WARN, "ERROR: Linux route v6 delete command failed");
     }
 
-#elif defined(_WIN32)
-
-    if (tt->options.msg_channel)
-    {
-        del_route_ipv6_service(r6, tt);
-    }
-    else
-    {
-        route_ipv6_ipapi(false, r6, tt);
-    }
 #elif defined(TARGET_SOLARIS)
 
     /* example: route delete -inet6 2001:db8::/32 somegateway */
@@ -2378,714 +2208,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt, const st
  * to get the current default gateway.
  */
 
-#if defined(_WIN32)
-
-static const MIB_IPFORWARDTABLE *
-get_windows_routing_table(struct gc_arena *gc)
-{
-    ULONG size = 0;
-    PMIB_IPFORWARDTABLE rt = NULL;
-    DWORD status;
-
-    status = GetIpForwardTable(NULL, &size, TRUE);
-    if (status == ERROR_INSUFFICIENT_BUFFER)
-    {
-        rt = (PMIB_IPFORWARDTABLE)gc_malloc(size, false, gc);
-        status = GetIpForwardTable(rt, &size, TRUE);
-        if (status != NO_ERROR)
-        {
-            msg(D_ROUTE, "NOTE: GetIpForwardTable returned error: %s (code=%u)",
-                strerror_win32(status, gc), (unsigned int)status);
-            rt = NULL;
-        }
-    }
-    return rt;
-}
-
-static int
-test_route(const IP_ADAPTER_INFO *adapters, const in_addr_t gateway, DWORD *index)
-{
-    int count = 0;
-    DWORD i = adapter_index_of_ip(adapters, gateway, &count, NULL);
-    if (index)
-    {
-        *index = i;
-    }
-    return count;
-}
-
-static void
-test_route_helper(bool *ret, int *count, int *good, int *ambig, const IP_ADAPTER_INFO *adapters,
-                  const in_addr_t gateway)
-{
-    int c;
-
-    ++*count;
-    c = test_route(adapters, gateway, NULL);
-    if (c == 0)
-    {
-        *ret = false;
-    }
-    else
-    {
-        ++*good;
-    }
-    if (c > 1)
-    {
-        ++*ambig;
-    }
-}
-
-/*
- * If we tried to add routes now, would we succeed?
- */
-bool
-test_routes(const struct route_list *rl, const struct tuntap *tt)
-{
-    struct gc_arena gc = gc_new();
-    const IP_ADAPTER_INFO *adapters = get_adapter_info_list(&gc);
-    bool ret = false;
-    int count = 0;
-    int good = 0;
-    int ambig = 0;
-    int len = -1;
-    bool adapter_up = false;
-
-    if (is_adapter_up(tt, adapters))
-    {
-        ret = true;
-        adapter_up = true;
-
-        /* we do this test only if we have IPv4 routes to install, and if
-         * the tun/tap interface has seen IPv4 ifconfig - because if we
-         * have no IPv4, the check will always fail, failing tun init
-         */
-        if (rl && tt->did_ifconfig_setup)
-        {
-            struct route_ipv4 *r;
-            for (r = rl->routes, len = 0; r; r = r->next, ++len)
-            {
-                test_route_helper(&ret, &count, &good, &ambig, adapters, r->gateway);
-            }
-
-            if ((rl->flags & RG_ENABLE) && (rl->spec.flags & RTSA_REMOTE_ENDPOINT))
-            {
-                test_route_helper(&ret, &count, &good, &ambig, adapters, rl->spec.remote_endpoint);
-            }
-        }
-    }
-
-    msg(D_ROUTE, "TEST ROUTES: %d/%d succeeded len=%d ret=%d a=%d u/d=%s", good, count, len,
-        (int)ret, ambig, adapter_up ? "up" : "down");
-
-    gc_free(&gc);
-    return ret;
-}
-
-static const MIB_IPFORWARDROW *
-get_default_gateway_row(const MIB_IPFORWARDTABLE *routes)
-{
-    struct gc_arena gc = gc_new();
-    DWORD lowest_metric = MAXDWORD;
-    const MIB_IPFORWARDROW *ret = NULL;
-    int best = -1;
-
-    if (routes)
-    {
-        for (DWORD i = 0; i < routes->dwNumEntries; ++i)
-        {
-            const MIB_IPFORWARDROW *row = &routes->table[i];
-            const in_addr_t net = ntohl(row->dwForwardDest);
-            const in_addr_t mask = ntohl(row->dwForwardMask);
-            const DWORD index = row->dwForwardIfIndex;
-            const DWORD metric = row->dwForwardMetric1;
-
-            dmsg(D_ROUTE_DEBUG, "GDGR: route[%lu] %s/%s i=%d m=%d", i,
-                 print_in_addr_t((in_addr_t)net, 0, &gc), print_in_addr_t((in_addr_t)mask, 0, &gc),
-                 (int)index, (int)metric);
-
-            if (!net && !mask && metric < lowest_metric)
-            {
-                ret = row;
-                lowest_metric = metric;
-                best = i;
-            }
-        }
-    }
-
-    dmsg(D_ROUTE_DEBUG, "GDGR: best=%d lm=%u", best, (unsigned int)lowest_metric);
-
-    gc_free(&gc);
-    return ret;
-}
-
-/**
- * @brief Determines the best route to a destination for both IPv4 and IPv6.
- *
- * Uses `GetBestInterfaceEx` and `GetBestRoute2` to find the optimal route
- * and network interface for the specified destination address.
- *
- * @param gc Pointer to struct gc_arena for internal string allocation.
- * @param dest The destination IP address (IPv4 or IPv6).
- * @param best_route Pointer to a `MIB_IPFORWARD_ROW2` structure to store the best route.
- * @return DWORD `NO_ERROR` on success, or an error code.
- */
-static DWORD
-get_best_route(struct gc_arena *gc, SOCKADDR_INET *dest, MIB_IPFORWARD_ROW2 *best_route)
-{
-    DWORD best_if_index;
-    DWORD status;
-
-    CLEAR(*best_route);
-
-    /* get the best interface index to reach dest */
-    status = GetBestInterfaceEx((struct sockaddr *)dest, &best_if_index);
-    if (status != NO_ERROR)
-    {
-        msg(D_ROUTE, "NOTE: GetBestInterfaceEx returned error: %s (code=%u)",
-            strerror_win32(status, gc), (unsigned int)status);
-        goto done;
-    }
-
-    msg(D_ROUTE_DEBUG, "GetBestInterfaceEx() returned if=%d", (int)best_if_index);
-
-    /* get the routing information (such as NextHop) for the destination and interface */
-    NET_LUID luid;
-    CLEAR(luid);
-    SOCKADDR_INET best_src;
-    CLEAR(best_src);
-    status = GetBestRoute2(&luid, best_if_index, NULL, dest, 0, best_route, &best_src);
-    if (status != NO_ERROR)
-    {
-        msg(D_ROUTE, "NOTE: GetIpForwardEntry2 returned error: %s (code=%u)",
-            strerror_win32(status, gc), (unsigned int)status);
-        goto done;
-    }
-
-done:
-    return status;
-}
-
-void
-get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_ctx_t *ctx)
-{
-    CLEAR(*rgi);
-
-    struct gc_arena gc = gc_new();
-
-    /* convert in_addr_t into SOCKADDR_INET */
-    SOCKADDR_INET sa;
-    CLEAR(sa);
-    sa.si_family = AF_INET;
-    sa.Ipv4.sin_addr.s_addr = htonl(dest);
-
-    /* get the best route to the destination */
-    MIB_IPFORWARD_ROW2 best_route;
-    CLEAR(best_route);
-    DWORD status = get_best_route(&gc, &sa, &best_route);
-    if (status != NO_ERROR)
-    {
-        goto done;
-    }
-
-    rgi->flags = RGI_ADDR_DEFINED | RGI_IFACE_DEFINED;
-    rgi->gateway.addr = ntohl(best_route.NextHop.Ipv4.sin_addr.S_un.S_addr);
-    rgi->adapter_index = best_route.InterfaceIndex;
-
-    if (rgi->gateway.addr == INADDR_ANY)
-    {
-        rgi->flags |= RGI_ON_LINK;
-    }
-
-    /* get netmask and MAC address */
-    const IP_ADAPTER_INFO *adapters = get_adapter_info_list(&gc);
-    const IP_ADAPTER_INFO *ai = get_adapter(adapters, rgi->adapter_index);
-    if (ai)
-    {
-        memcpy(rgi->hwaddr, ai->Address, 6);
-        rgi->flags |= RGI_HWADDR_DEFINED;
-
-        /* get netmask for non-onlink routes */
-        in_addr_t nm = inet_addr(ai->IpAddressList.IpMask.String);
-        if (!(rgi->flags & RGI_ON_LINK) && (nm != INADDR_NONE))
-        {
-            rgi->gateway.netmask = ntohl(nm);
-            rgi->flags |= RGI_NETMASK_DEFINED;
-        }
-    }
-
-done:
-    gc_free(&gc);
-}
-
-static DWORD
-windows_route_find_if_index(const struct route_ipv4 *r, const struct tuntap *tt)
-{
-    struct gc_arena gc = gc_new();
-    DWORD ret = TUN_ADAPTER_INDEX_INVALID;
-    int count = 0;
-    const IP_ADAPTER_INFO *adapters = get_adapter_info_list(&gc);
-    const IP_ADAPTER_INFO *tun_adapter = get_tun_adapter(tt, adapters);
-    bool on_tun = false;
-
-    /* first test on tun interface */
-    if (is_ip_in_adapter_subnet(tun_adapter, r->gateway, NULL))
-    {
-        ret = tun_adapter->Index;
-        count = 1;
-        on_tun = true;
-    }
-    else /* test on other interfaces */
-    {
-        count = test_route(adapters, r->gateway, &ret);
-    }
-
-    if (count == 0)
-    {
-        msg(M_WARN, "Warning: route gateway is not reachable on any active network adapters: %s",
-            print_in_addr_t(r->gateway, 0, &gc));
-        ret = TUN_ADAPTER_INDEX_INVALID;
-    }
-    else if (count > 1)
-    {
-        msg(M_WARN, "Warning: route gateway is ambiguous: %s (%d matches)",
-            print_in_addr_t(r->gateway, 0, &gc), count);
-    }
-
-    dmsg(D_ROUTE_DEBUG, "DEBUG: route find if: on_tun=%d count=%d index=%d", on_tun, count,
-         (int)ret);
-
-    gc_free(&gc);
-    return ret;
-}
-
-/* IPv6 implementation using GetBestRoute2()
- *   (TBD: dynamic linking so the binary can still run on XP?)
- * https://msdn.microsoft.com/en-us/library/windows/desktop/aa365922(v=vs.85).aspx
- * https://msdn.microsoft.com/en-us/library/windows/desktop/aa814411(v=vs.85).aspx
- */
-void
-get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6, const struct in6_addr *dest,
-                         openvpn_net_ctx_t *ctx)
-{
-    struct gc_arena gc = gc_new();
-    CLEAR(*rgi6);
-
-    SOCKADDR_INET DestinationAddress;
-    CLEAR(DestinationAddress);
-    DestinationAddress.si_family = AF_INET6;
-    if (dest)
-    {
-        DestinationAddress.Ipv6.sin6_addr = *dest;
-    }
-
-    MIB_IPFORWARD_ROW2 BestRoute;
-    CLEAR(BestRoute);
-    DWORD status = get_best_route(&gc, &DestinationAddress, &BestRoute);
-
-    if (status != NO_ERROR)
-    {
-        goto done;
-    }
-
-    msg(D_ROUTE, "GDG6: II=%lu DP=%s/%d NH=%s", BestRoute.InterfaceIndex,
-        print_in6_addr(BestRoute.DestinationPrefix.Prefix.Ipv6.sin6_addr, 0, &gc),
-        BestRoute.DestinationPrefix.PrefixLength,
-        print_in6_addr(BestRoute.NextHop.Ipv6.sin6_addr, 0, &gc));
-    msg(D_ROUTE, "GDG6: Metric=%d, Loopback=%d, AA=%d, I=%d", (int)BestRoute.Metric,
-        (int)BestRoute.Loopback, (int)BestRoute.AutoconfigureAddress, (int)BestRoute.Immortal);
-
-    rgi6->gateway.addr_ipv6 = BestRoute.NextHop.Ipv6.sin6_addr;
-    rgi6->adapter_index = BestRoute.InterfaceIndex;
-    rgi6->flags |= RGI_ADDR_DEFINED | RGI_IFACE_DEFINED;
-
-    /* on-link is signalled by receiving an empty (::) NextHop */
-    if (IN6_IS_ADDR_UNSPECIFIED(&BestRoute.NextHop.Ipv6.sin6_addr))
-    {
-        rgi6->flags |= RGI_ON_LINK;
-    }
-
-done:
-    gc_free(&gc);
-}
-
-/* Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error */
-static int
-add_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt, DWORD adapter_index)
-{
-    struct gc_arena gc = gc_new();
-    int ret = RTA_ERROR;
-    DWORD status;
-    const DWORD if_index = (adapter_index == TUN_ADAPTER_INDEX_INVALID)
-                               ? windows_route_find_if_index(r, tt)
-                               : adapter_index;
-
-    if (if_index != TUN_ADAPTER_INDEX_INVALID)
-    {
-        MIB_IPFORWARDROW fr;
-        CLEAR(fr);
-        fr.dwForwardDest = htonl(r->network);
-        fr.dwForwardMask = htonl(r->netmask);
-        fr.dwForwardPolicy = 0;
-        fr.dwForwardNextHop = htonl(r->gateway);
-        fr.dwForwardIfIndex = if_index;
-        fr.dwForwardType = 4;  /* the next hop is not the final dest */
-        fr.dwForwardProto = 3; /* PROTO_IP_NETMGMT */
-        fr.dwForwardAge = 0;
-        fr.dwForwardNextHopAS = 0;
-        fr.dwForwardMetric1 = (r->flags & RT_METRIC_DEFINED) ? r->metric : 1;
-        fr.dwForwardMetric2 = METRIC_NOT_USED;
-        fr.dwForwardMetric3 = METRIC_NOT_USED;
-        fr.dwForwardMetric4 = METRIC_NOT_USED;
-        fr.dwForwardMetric5 = METRIC_NOT_USED;
-
-        if ((r->network & r->netmask) != r->network)
-        {
-            msg(M_WARN, "Warning: address %s is not a network address in relation to netmask %s",
-                print_in_addr_t(r->network, 0, &gc), print_in_addr_t(r->netmask, 0, &gc));
-        }
-
-        status = CreateIpForwardEntry(&fr);
-
-        if (status == NO_ERROR)
-        {
-            ret = RTA_SUCCESS;
-        }
-        else if (status == ERROR_OBJECT_ALREADY_EXISTS)
-        {
-            ret = RTA_EEXIST;
-        }
-        else
-        {
-            /* failed, try increasing the metric to work around Vista issue */
-            const unsigned int forward_metric_limit =
-                2048; /* iteratively retry higher metrics up to this limit */
-
-            for (; fr.dwForwardMetric1 <= forward_metric_limit; ++fr.dwForwardMetric1)
-            {
-                /* try a different forward type=3 ("the next hop is the final dest") in addition
-                 * to 4.
-                 * --redirect-gateway over RRAS seems to need this. */
-                for (fr.dwForwardType = 4; fr.dwForwardType >= 3; --fr.dwForwardType)
-                {
-                    status = CreateIpForwardEntry(&fr);
-                    if (status == NO_ERROR)
-                    {
-                        msg(D_ROUTE,
-                            "ROUTE: CreateIpForwardEntry succeeded with dwForwardMetric1=%u and dwForwardType=%u",
-                            (unsigned int)fr.dwForwardMetric1, (unsigned int)fr.dwForwardType);
-                        ret = RTA_SUCCESS;
-                        goto doublebreak;
-                    }
-                    else if (status != ERROR_BAD_ARGUMENTS)
-                    {
-                        goto doublebreak;
-                    }
-                }
-            }
-
-doublebreak:
-            if (status != NO_ERROR)
-            {
-                if (status == ERROR_OBJECT_ALREADY_EXISTS)
-                {
-                    ret = RTA_EEXIST;
-                }
-                else
-                {
-                    msg(M_WARN,
-                        "ERROR: route addition failed using CreateIpForwardEntry: "
-                        "%s [status=%u if_index=%u]",
-                        strerror_win32(status, &gc), (unsigned int)status, (unsigned int)if_index);
-                }
-            }
-        }
-    }
-
-    gc_free(&gc);
-    return ret;
-}
-
-static bool
-del_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt)
-{
-    struct gc_arena gc = gc_new();
-    bool ret = false;
-    DWORD status;
-    const DWORD if_index = windows_route_find_if_index(r, tt);
-
-    if (if_index != TUN_ADAPTER_INDEX_INVALID)
-    {
-        MIB_IPFORWARDROW fr;
-        CLEAR(fr);
-
-        fr.dwForwardDest = htonl(r->network);
-        fr.dwForwardMask = htonl(r->netmask);
-        fr.dwForwardPolicy = 0;
-        fr.dwForwardNextHop = htonl(r->gateway);
-        fr.dwForwardIfIndex = if_index;
-
-        status = DeleteIpForwardEntry(&fr);
-
-        if (status == NO_ERROR)
-        {
-            ret = true;
-        }
-        else
-        {
-            msg(M_WARN, "ERROR: route deletion failed using DeleteIpForwardEntry: %s",
-                strerror_win32(status, &gc));
-        }
-    }
-
-    gc_free(&gc);
-    return ret;
-}
-
-/* Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error */
-static int
-do_route_service(const bool add, const route_message_t *rt, const DWORD size, HANDLE pipe)
-{
-    int ret = RTA_ERROR;
-    ack_message_t ack;
-    struct gc_arena gc = gc_new();
-
-    if (!send_msg_iservice(pipe, rt, size, &ack, "ROUTE"))
-    {
-        goto out;
-    }
-
-    if (ack.error_number != NO_ERROR)
-    {
-        ret = (ack.error_number == ERROR_OBJECT_ALREADY_EXISTS) ? RTA_EEXIST : RTA_ERROR;
-        if (ret == RTA_ERROR)
-        {
-            msg(M_WARN, "ERROR: route %s failed using service: %s [status=%u if_index=%d]",
-                (add ? "addition" : "deletion"), strerror_win32(ack.error_number, &gc),
-                ack.error_number, rt->iface.index);
-        }
-        goto out;
-    }
-
-    ret = RTA_SUCCESS;
-
-out:
-    gc_free(&gc);
-    return ret;
-}
-
-/* Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error */
-static int
-do_route_ipv4_service(const bool add, const struct route_ipv4 *r, const struct tuntap *tt)
-{
-    DWORD if_index = windows_route_find_if_index(r, tt);
-    if (if_index == ~0)
-    {
-        return RTA_ERROR;
-    }
-
-    route_message_t msg = { .header = { (add ? msg_add_route : msg_del_route),
-                                        sizeof(route_message_t), 0 },
-                            .family = AF_INET,
-                            .prefix.ipv4.s_addr = htonl(r->network),
-                            .gateway.ipv4.s_addr = htonl(r->gateway),
-                            .iface = { .index = if_index, .name = "" },
-                            .metric = (r->flags & RT_METRIC_DEFINED ? r->metric : -1) };
-
-    netmask_to_netbits(r->network, r->netmask, &msg.prefix_len);
-    if (msg.prefix_len == -1)
-    {
-        msg.prefix_len = 32;
-    }
-
-    return do_route_service(add, &msg, sizeof(msg), tt->options.msg_channel);
-}
-
-/* Add or delete an ipv6 route
- * Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error
- */
-static int
-route_ipv6_ipapi(const bool add, const struct route_ipv6 *r, const struct tuntap *tt)
-{
-    DWORD err;
-    int ret = RTA_ERROR;
-    PMIB_IPFORWARD_ROW2 fwd_row;
-    struct gc_arena gc = gc_new();
-
-    fwd_row = gc_malloc(sizeof(*fwd_row), true, &gc);
-
-    fwd_row->ValidLifetime = 0xffffffff;
-    fwd_row->PreferredLifetime = 0xffffffff;
-    fwd_row->Protocol = MIB_IPPROTO_NETMGMT;
-    fwd_row->Metric = ((r->flags & RT_METRIC_DEFINED) ? r->metric : -1);
-    fwd_row->DestinationPrefix.Prefix.si_family = AF_INET6;
-    fwd_row->DestinationPrefix.Prefix.Ipv6.sin6_addr = r->network;
-    fwd_row->DestinationPrefix.PrefixLength = (UINT8)r->netbits;
-    fwd_row->NextHop.si_family = AF_INET6;
-    fwd_row->NextHop.Ipv6.sin6_addr = r->gateway;
-    fwd_row->InterfaceIndex = r->adapter_index ? r->adapter_index : tt->adapter_index;
-
-    /* In TUN mode we use a special link-local address as the next hop.
-     * The tapdrvr knows about it and will answer neighbor discovery packets.
-     * (only do this for routes actually using the tun/tap device)
-     */
-    if (tt->type == DEV_TYPE_TUN && !r->adapter_index)
-    {
-        inet_pton(AF_INET6, "fe80::8", &fwd_row->NextHop.Ipv6.sin6_addr);
-    }
-
-    /* Use LUID if interface index not available */
-    if (fwd_row->InterfaceIndex == TUN_ADAPTER_INDEX_INVALID && strlen(tt->actual_name))
-    {
-        NET_LUID luid;
-        err = ConvertInterfaceAliasToLuid(wide_string(tt->actual_name, &gc), &luid);
-        if (err != NO_ERROR)
-        {
-            goto out;
-        }
-        fwd_row->InterfaceLuid = luid;
-        fwd_row->InterfaceIndex = 0;
-    }
-
-    if (add)
-    {
-        err = CreateIpForwardEntry2(fwd_row);
-    }
-    else
-    {
-        err = DeleteIpForwardEntry2(fwd_row);
-    }
-
-out:
-    if (err != NO_ERROR)
-    {
-        ret = (err == ERROR_OBJECT_ALREADY_EXISTS) ? RTA_EEXIST : RTA_ERROR;
-        if (ret == RTA_ERROR)
-        {
-            msg(M_WARN, "ERROR: route %s failed using ipapi: %s [status=%lu if_index=%lu]",
-                (add ? "addition" : "deletion"), strerror_win32(err, &gc), err,
-                fwd_row->InterfaceIndex);
-        }
-        else if (add)
-        {
-            msg(D_ROUTE, "IPv6 route addition using ipapi failed because route exists");
-        }
-    }
-    else
-    {
-        msg(D_ROUTE, "IPv6 route %s using ipapi", add ? "added" : "deleted");
-        ret = RTA_SUCCESS;
-    }
-    gc_free(&gc);
-    return ret;
-}
-
-/* Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error */
-static int
-do_route_ipv6_service(const bool add, const struct route_ipv6 *r, const struct tuntap *tt)
-{
-    int status;
-    route_message_t msg = { .header = { (add ? msg_add_route : msg_del_route),
-                                        sizeof(route_message_t), 0 },
-                            .family = AF_INET6,
-                            .prefix.ipv6 = r->network,
-                            .prefix_len = r->netbits,
-                            .gateway.ipv6 = r->gateway,
-                            .iface = { .index = tt->adapter_index, .name = "" },
-                            .metric = ((r->flags & RT_METRIC_DEFINED) ? r->metric : -1) };
-
-    if (r->adapter_index) /* vpn server special route */
-    {
-        msg.iface.index = r->adapter_index;
-    }
-
-    /* In TUN mode we use a special link-local address as the next hop.
-     * The tapdrvr knows about it and will answer neighbor discovery packets.
-     * (only do this for routes actually using the tun/tap device)
-     */
-    if (tt->type == DEV_TYPE_TUN && msg.iface.index == tt->adapter_index)
-    {
-        inet_pton(AF_INET6, "fe80::8", &msg.gateway.ipv6);
-    }
-
-    if (msg.iface.index == TUN_ADAPTER_INDEX_INVALID)
-    {
-        strncpy(msg.iface.name, tt->actual_name, sizeof(msg.iface.name));
-        msg.iface.name[sizeof(msg.iface.name) - 1] = '\0';
-    }
-
-    status = do_route_service(add, &msg, sizeof(msg), tt->options.msg_channel);
-    if (status != RTA_ERROR)
-    {
-        msg(D_ROUTE, "IPv6 route %s via service %s", add ? "addition" : "deletion",
-            (status == RTA_SUCCESS) ? "succeeded" : "failed because route exists");
-    }
-    return status;
-}
-
-/* Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error */
-static int
-add_route_service(const struct route_ipv4 *r, const struct tuntap *tt)
-{
-    return do_route_ipv4_service(true, r, tt);
-}
-
-static bool
-del_route_service(const struct route_ipv4 *r, const struct tuntap *tt)
-{
-    return do_route_ipv4_service(false, r, tt);
-}
-
-/* Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error */
-static int
-add_route_ipv6_service(const struct route_ipv6 *r, const struct tuntap *tt)
-{
-    return do_route_ipv6_service(true, r, tt);
-}
-
-static bool
-del_route_ipv6_service(const struct route_ipv6 *r, const struct tuntap *tt)
-{
-    return do_route_ipv6_service(false, r, tt);
-}
-
-static const char *
-format_route_entry(const MIB_IPFORWARDROW *r, struct gc_arena *gc)
-{
-    struct buffer out = alloc_buf_gc(256, gc);
-    buf_printf(&out, "%s %s %s p=%d i=%d t=%d pr=%d a=%d h=%d m=%d/%d/%d/%d/%d",
-               print_in_addr_t(r->dwForwardDest, IA_NET_ORDER, gc),
-               print_in_addr_t(r->dwForwardMask, IA_NET_ORDER, gc),
-               print_in_addr_t(r->dwForwardNextHop, IA_NET_ORDER, gc), (int)r->dwForwardPolicy,
-               (int)r->dwForwardIfIndex, (int)r->dwForwardType, (int)r->dwForwardProto,
-               (int)r->dwForwardAge, (int)r->dwForwardNextHopAS, (int)r->dwForwardMetric1,
-               (int)r->dwForwardMetric2, (int)r->dwForwardMetric3, (int)r->dwForwardMetric4,
-               (int)r->dwForwardMetric5);
-    return BSTR(&out);
-}
-
-/*
- * Show current routing table
- */
-void
-show_routes(msglvl_t msglevel)
-{
-    struct gc_arena gc = gc_new();
-
-    const MIB_IPFORWARDTABLE *rt = get_windows_routing_table(&gc);
-
-    msg(msglevel, "SYSTEM ROUTING TABLE");
-    if (rt)
-    {
-        for (DWORD i = 0; i < rt->dwNumEntries; ++i)
-        {
-            msg(msglevel, "%s", format_route_entry(&rt->table[i], &gc));
-        }
-    }
-    gc_free(&gc);
-}
-
-#elif defined(TARGET_ANDROID)
+#if defined(TARGET_ANDROID)
 
 void
 get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_ctx_t *ctx)
@@ -3833,7 +2956,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6, const struct in6_
     CLEAR(*rgi6);
 }
 
-#else  /* if defined(_WIN32) */
+#else
 
 /*
  * This is a platform-specific method that returns data about
@@ -3872,7 +2995,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6, const struct in6_
     CLEAR(*rgi6);
 }
 
-#endif /* if defined(_WIN32) */
+#endif
 
 bool
 netmask_to_netbits(const in_addr_t network, const in_addr_t netmask, int *netbits)
@@ -3929,77 +3052,11 @@ netmask_to_netbits2(in_addr_t netmask)
  * so that outgoing packets to these servers don't end up in the tunnel.
  */
 
-#if defined(_WIN32)
-
-static void
-add_host_route_if_nonlocal(struct route_bypass *rb, const in_addr_t addr)
-{
-    if (test_local_addr(addr, NULL) == TLA_NONLOCAL && addr != 0 && addr != IPV4_NETMASK_HOST)
-    {
-        add_bypass_address(rb, addr);
-    }
-}
-
-static void
-add_host_route_array(struct route_bypass *rb, const IP_ADDR_STRING *iplist)
-{
-    while (iplist)
-    {
-        bool succeed = false;
-        const in_addr_t ip =
-            getaddr(GETADDR_HOST_ORDER, iplist->IpAddress.String, 0, &succeed, NULL);
-        if (succeed)
-        {
-            add_host_route_if_nonlocal(rb, ip);
-        }
-        iplist = iplist->Next;
-    }
-}
-
-static void
-get_bypass_addresses(struct route_bypass *rb, const unsigned int flags)
-{
-    struct gc_arena gc = gc_new();
-    /*bool ret_bool = false;*/
-
-    /* get full routing table */
-    const MIB_IPFORWARDTABLE *routes = get_windows_routing_table(&gc);
-
-    /* get the route which represents the default gateway */
-    const MIB_IPFORWARDROW *row = get_default_gateway_row(routes);
-
-    if (row)
-    {
-        /* get the adapter which the default gateway is associated with */
-        const IP_ADAPTER_INFO *dgi = get_adapter_info(row->dwForwardIfIndex, &gc);
-
-        /* get extra adapter info, such as DNS addresses */
-        const IP_PER_ADAPTER_INFO *pai = get_per_adapter_info(row->dwForwardIfIndex, &gc);
-
-        /* Bypass DHCP server address */
-        if ((flags & RG_BYPASS_DHCP) && dgi && dgi->DhcpEnabled)
-        {
-            add_host_route_array(rb, &dgi->DhcpServer);
-        }
-
-        /* Bypass DNS server addresses */
-        if ((flags & RG_BYPASS_DNS) && pai)
-        {
-            add_host_route_array(rb, &pai->DnsServerList);
-        }
-    }
-
-    gc_free(&gc);
-}
-
-#else  /* if defined(_WIN32) */
-
 static void
 get_bypass_addresses(struct route_bypass *rb, const unsigned int flags) /* PLATFORM-SPECIFIC */
 {
+    /* no-op */
 }
-
-#endif /* if defined(_WIN32) */
 
 /*
  * Test if addr is reachable via a local interface (return ILA_LOCAL),
@@ -4009,39 +3066,6 @@ get_bypass_addresses(struct route_bypass *rb, const unsigned int flags) /* PLATF
  *
  * Used by redirect-gateway autolocal feature
  */
-
-#if defined(_WIN32)
-
-int
-test_local_addr(const in_addr_t addr, const struct route_gateway_info *rgi)
-{
-    struct gc_arena gc = gc_new();
-    const in_addr_t nonlocal_netmask =
-        0x80000000L; /* routes with netmask <= to this are considered non-local */
-    int ret = TLA_NONLOCAL;
-
-    /* get full routing table */
-    const MIB_IPFORWARDTABLE *rt = get_windows_routing_table(&gc);
-    if (rt)
-    {
-        for (DWORD i = 0; i < rt->dwNumEntries; ++i)
-        {
-            const MIB_IPFORWARDROW *row = &rt->table[i];
-            const in_addr_t net = ntohl(row->dwForwardDest);
-            const in_addr_t mask = ntohl(row->dwForwardMask);
-            if (mask > nonlocal_netmask && (addr & mask) == net)
-            {
-                ret = TLA_LOCAL;
-                break;
-            }
-        }
-    }
-
-    gc_free(&gc);
-    return ret;
-}
-
-#else  /* if defined(_WIN32) */
 
 int
 test_local_addr(const in_addr_t addr, const struct route_gateway_info *rgi) /* PLATFORM-SPECIFIC */
@@ -4059,5 +3083,3 @@ test_local_addr(const in_addr_t addr, const struct route_gateway_info *rgi) /* P
     }
     return TLA_NOT_IMPLEMENTED;
 }
-
-#endif /* if defined(_WIN32) */

@@ -30,9 +30,6 @@
 #ifdef ENABLE_CRYPTO_OPENSSL
 #include "ssl_verify_openssl.h"
 #endif
-#ifdef ENABLE_CRYPTO_MBEDTLS
-#include "ssl_verify_mbedtls.h"
-#endif
 #include "openvpn-plugin.h"
 
 #ifdef ENABLE_PLUGIN
@@ -60,11 +57,7 @@ struct plugin
     unsigned int plugin_type_mask;
     int requested_initialization_point;
 
-#ifndef _WIN32
     void *handle;
-#else
-    HMODULE module;
-#endif
 
     openvpn_plugin_open_v1 open1;
     openvpn_plugin_open_v2 open2;
