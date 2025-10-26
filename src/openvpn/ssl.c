@@ -47,7 +47,6 @@
 #include "misc.h"
 #include "fdmisc.h"
 #include "interval.h"
-#include "perf.h"
 #include "status.h"
 #include "gremlin.h"
 #include "pkcs11.h"
@@ -3220,8 +3219,6 @@ tls_multi_process(struct tls_multi *multi, struct buffer *to_link,
     int active = TLSMP_INACTIVE;
     bool error = false;
 
-    perf_push(PERF_TLS_MULTI_PROCESS);
-
     tls_clear_error();
 
     /*
@@ -3413,7 +3410,6 @@ nohard:
     }
 #endif
 
-    perf_pop();
     gc_free(&gc);
 
     return (tas == TLS_AUTHENTICATION_FAILED) ? TLSMP_KILL : active;

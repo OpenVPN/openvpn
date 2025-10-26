@@ -27,7 +27,6 @@
 #include "syshead.h"
 
 #include "status.h"
-#include "perf.h"
 #include "misc.h"
 #include "fdmisc.h"
 

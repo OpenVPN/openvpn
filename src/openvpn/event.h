@@ -25,7 +25,6 @@
 
 #include "win32.h"
 #include "sig.h"
-#include "perf.h"
 
 /*
  * rwflags passed to event_ctl and returned by
@@ -189,9 +188,7 @@ static inline int
 event_wait(struct event_set *es, const struct timeval *tv, struct event_set_return *out, int outlen)
 {
     int ret;
-    perf_push(PERF_IO_WAIT);
     ret = (*es->func.wait)(es, tv, out, outlen);
-    perf_pop();
     return ret;
 }
 

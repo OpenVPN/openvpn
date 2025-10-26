@@ -2208,14 +2208,12 @@ int
 key_state_write_plaintext(struct key_state_ssl *ks_ssl, struct buffer *buf)
 {
     int ret = 0;
-    perf_push(PERF_BIO_WRITE_PLAINTEXT);
 
     ASSERT(NULL != ks_ssl);
 
     ret = bio_write(ks_ssl->ssl_bio, BPTR(buf), BLEN(buf), "tls_write_plaintext");
     bio_write_post(ret, buf);
 
-    perf_pop();
     return ret;
 }
 
@@ -2223,13 +2221,11 @@ int
 key_state_write_plaintext_const(struct key_state_ssl *ks_ssl, const uint8_t *data, int len)
 {
     int ret = 0;
-    perf_push(PERF_BIO_WRITE_PLAINTEXT);
 
     ASSERT(NULL != ks_ssl);
 
     ret = bio_write(ks_ssl->ssl_bio, data, len, "tls_write_plaintext_const");
 
-    perf_pop();
     return ret;
 }
 
@@ -2237,13 +2233,11 @@ int
 key_state_read_ciphertext(struct key_state_ssl *ks_ssl, struct buffer *buf)
 {
     int ret = 0;
-    perf_push(PERF_BIO_READ_CIPHERTEXT);
 
     ASSERT(NULL != ks_ssl);
 
     ret = bio_read(ks_ssl->ct_out, buf, "tls_read_ciphertext");
 
-    perf_pop();
     return ret;
 }
 
@@ -2251,14 +2245,12 @@ int
 key_state_write_ciphertext(struct key_state_ssl *ks_ssl, struct buffer *buf)
 {
     int ret = 0;
-    perf_push(PERF_BIO_WRITE_CIPHERTEXT);
 
     ASSERT(NULL != ks_ssl);
 
     ret = bio_write(ks_ssl->ct_in, BPTR(buf), BLEN(buf), "tls_write_ciphertext");
     bio_write_post(ret, buf);
 
-    perf_pop();
     return ret;
 }
 
@@ -2266,13 +2258,11 @@ int
 key_state_read_plaintext(struct key_state_ssl *ks_ssl, struct buffer *buf)
 {
     int ret = 0;
-    perf_push(PERF_BIO_READ_PLAINTEXT);
 
     ASSERT(NULL != ks_ssl);
 
     ret = bio_read(ks_ssl->ssl_bio, buf, "tls_read_plaintext");
 
-    perf_pop();
     return ret;
 }
 

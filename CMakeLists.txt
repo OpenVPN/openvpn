@@ -519,8 +519,6 @@ set(SOURCE_FILES
     src/openvpn/ovpn_dco_win.h
     src/openvpn/packet_id.c
     src/openvpn/packet_id.h
-    src/openvpn/perf.c
-    src/openvpn/perf.h
     src/openvpn/ping.c
     src/openvpn/ping.h
     src/openvpn/pkcs11.c

@@ -524,7 +524,6 @@ struct context
     if (IS_SIG(c))                            \
     {                                         \
         const int brk = func(arg);            \
-        perf_pop();                           \
         if (brk)                              \
         {                                     \
             break;                            \

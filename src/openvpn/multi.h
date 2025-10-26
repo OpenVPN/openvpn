@@ -38,7 +38,6 @@
 #include "mudp.h"
 #include "mtcp.h"
 #include "multi_io.h"
-#include "perf.h"
 #include "vlan.h"
 #include "reflect_filter.h"
 

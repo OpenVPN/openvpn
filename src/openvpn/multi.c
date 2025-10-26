@@ -580,8 +580,6 @@ multi_client_disconnect_script(struct multi_context *m, struct multi_instance *m
 void
 multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool shutdown)
 {
-    perf_push(PERF_MULTI_CLOSE_INSTANCE);
-
     ASSERT(!mi->halt);
     mi->halt = true;
     bool is_dgram = proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto);
@@ -672,8 +670,6 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
      * vhash reaper deal with it.
      */
     multi_instance_dec_refcount(mi);
-
-    perf_pop();
 }
 
 /*
@@ -733,8 +729,6 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
 {
     struct gc_arena gc = gc_new();
     struct multi_instance *mi;
-
-    perf_push(PERF_MULTI_CREATE_INSTANCE);
 
     msg(D_MULTI_MEDIUM, "MULTI: multi_create_instance called");
 
@@ -807,13 +801,11 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
     mi->ev_arg.type = EVENT_ARG_MULTI_INSTANCE;
     mi->ev_arg.u.mi = mi;
 
-    perf_pop();
     gc_free(&gc);
     return mi;
 
 err:
     multi_close_instance(m, mi, false);
-    perf_pop();
     gc_free(&gc);
     return NULL;
 }
@@ -2907,7 +2899,6 @@ multi_bcast(struct multi_context *m, const struct buffer *buf,
 
     if (BLEN(buf) > 0)
     {
-        perf_push(PERF_MULTI_BCAST);
 #ifdef MULTI_DEBUG_EVENT_LOOP
         printf("BCAST len=%d\n", BLEN(buf));
 #endif
@@ -2929,7 +2920,6 @@ multi_bcast(struct multi_context *m, const struct buffer *buf,
 
         hash_iterator_free(&hi);
         mbuf_free_buf(mb);
-        perf_pop();
     }
 }
 
@@ -3399,7 +3389,6 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
 
             /* decrypt in instance context */
 
-            perf_push(PERF_PROC_IN_LINK);
             lsi = &sock->info;
             orig_buf = c->c2.buf.data;
             if (process_incoming_link_part1(c, lsi, floated))
@@ -3412,7 +3401,6 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
 
                 process_incoming_link_part2(c, lsi, orig_buf);
             }
-            perf_pop();
 
             if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TUN)
             {
@@ -4180,8 +4168,6 @@ tunnel_server_loop(struct multi_context *multi)
 
     while (true)
     {
-        perf_push(PERF_EVENT_LOOP);
-
         /* wait on tun/socket list */
         multi_get_timeout(multi, &multi->top.c2.timeval);
         status = multi_io_wait(multi);
@@ -4202,7 +4188,6 @@ tunnel_server_loop(struct multi_context *multi)
         }
 
         MULTI_CHECK_SIG(multi);
-        perf_pop();
     }
 }
 

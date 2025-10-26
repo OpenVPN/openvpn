@@ -242,9 +242,7 @@ multi_io_wait_lite(struct multi_context *m, struct multi_instance *mi, const int
             tun_input_pending = NULL;
             /* For some reason, the Linux 2.2 TUN/TAP driver hits this timeout */
             c->c2.timeval.tv_sec = 1;
-            perf_push(PERF_PROC_OUT_TUN_MTCP);
             io_wait(c, IOW_TO_TUN);
-            perf_pop();
             break;
 
         case TA_SOCKET_WRITE:

@@ -1286,14 +1286,12 @@ int
 key_state_write_plaintext_const(struct key_state_ssl *ks, const uint8_t *data, int len)
 {
     int retval = 0;
-    perf_push(PERF_BIO_WRITE_PLAINTEXT);
 
     ASSERT(NULL != ks);
     ASSERT(len >= 0);
 
     if (0 == len)
     {
-        perf_pop();
         return 0;
     }
 
@@ -1303,7 +1301,6 @@ key_state_write_plaintext_const(struct key_state_ssl *ks, const uint8_t *data, i
 
     if (retval < 0)
     {
-        perf_pop();
         if (MBEDTLS_ERR_SSL_WANT_WRITE == retval || MBEDTLS_ERR_SSL_WANT_READ == retval)
         {
             return 0;
@@ -1316,14 +1313,12 @@ key_state_write_plaintext_const(struct key_state_ssl *ks, const uint8_t *data, i
     {
         msg(D_TLS_ERRORS, "TLS ERROR: write tls_write_plaintext_const incomplete %d/%d", retval,
             len);
-        perf_pop();
         return -1;
     }
 
     /* successful write */
     dmsg(D_HANDSHAKE_VERBOSE, "write tls_write_plaintext_const %d bytes", retval);
 
-    perf_pop();
     return 1;
 }
 
@@ -1333,15 +1328,12 @@ key_state_read_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
     int retval = 0;
     int len = 0;
 
-    perf_push(PERF_BIO_READ_CIPHERTEXT);
-
     ASSERT(NULL != ks);
     ASSERT(buf);
     ASSERT(buf->len >= 0);
 
     if (buf->len)
     {
-        perf_pop();
         return 0;
     }
 
@@ -1352,7 +1344,6 @@ key_state_read_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
     /* Error during read, check for retry error */
     if (retval < 0)
     {
-        perf_pop();
         if (MBEDTLS_ERR_SSL_WANT_WRITE == retval || MBEDTLS_ERR_SSL_WANT_READ == retval)
         {
             return 0;
@@ -1365,14 +1356,12 @@ key_state_read_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
     if (0 == retval)
     {
         buf->len = 0;
-        perf_pop();
         return 0;
     }
 
     /* successful read */
     dmsg(D_HANDSHAKE_VERBOSE, "read tls_read_ciphertext %d bytes", retval);
     buf->len = retval;
-    perf_pop();
     return 1;
 }
 
@@ -1380,7 +1369,6 @@ int
 key_state_write_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
 {
     int retval = 0;
-    perf_push(PERF_BIO_WRITE_CIPHERTEXT);
 
     ASSERT(NULL != ks);
     ASSERT(buf);
@@ -1388,7 +1376,6 @@ key_state_write_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
 
     if (0 == buf->len)
     {
-        perf_pop();
         return 0;
     }
 
@@ -1396,8 +1383,6 @@ key_state_write_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
 
     if (retval < 0)
     {
-        perf_pop();
-
         if (MBEDTLS_ERR_SSL_WANT_WRITE == retval || MBEDTLS_ERR_SSL_WANT_READ == retval)
         {
             return 0;
@@ -1410,7 +1395,6 @@ key_state_write_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
     {
         msg(D_TLS_ERRORS, "TLS ERROR: write tls_write_ciphertext incomplete %d/%d", retval,
             buf->len);
-        perf_pop();
         return -1;
     }
 
@@ -1420,7 +1404,6 @@ key_state_write_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
     memset(BPTR(buf), 0, BLEN(buf)); /* erase data just written */
     buf->len = 0;
 
-    perf_pop();
     return 1;
 }
 
@@ -1430,15 +1413,12 @@ key_state_read_plaintext(struct key_state_ssl *ks, struct buffer *buf)
     int retval = 0;
     int len = 0;
 
-    perf_push(PERF_BIO_READ_PLAINTEXT);
-
     ASSERT(NULL != ks);
     ASSERT(buf);
     ASSERT(buf->len >= 0);
 
     if (buf->len)
     {
-        perf_pop();
         return 0;
     }
 
@@ -1455,14 +1435,12 @@ key_state_read_plaintext(struct key_state_ssl *ks, struct buffer *buf)
         }
         mbed_log_err(D_TLS_ERRORS, retval, "TLS_ERROR: read tls_read_plaintext error");
         buf->len = 0;
-        perf_pop();
         return -1;
     }
     /* Nothing read, try again */
     if (0 == retval)
     {
         buf->len = 0;
-        perf_pop();
         return 0;
     }
 
@@ -1470,7 +1448,6 @@ key_state_read_plaintext(struct key_state_ssl *ks, struct buffer *buf)
     dmsg(D_HANDSHAKE_VERBOSE, "read tls_read_plaintext %d bytes", retval);
     buf->len = retval;
 
-    perf_pop();
     return 1;
 }
 

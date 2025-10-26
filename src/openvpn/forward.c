@@ -932,8 +932,6 @@ read_incoming_link(struct context *c, struct link_socket *sock)
 
     /*ASSERT (!c->c2.to_tun.len);*/
 
-    perf_push(PERF_READ_IN_LINK);
-
     c->c2.buf = c->c2.buffers->read_link_buf;
     ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
 
@@ -966,7 +964,6 @@ read_incoming_link(struct context *c, struct link_socket *sock)
                 msg(D_STREAM_ERRORS, "Connection reset, restarting [%d]", status);
             }
         }
-        perf_pop();
         return;
     }
 
@@ -983,8 +980,6 @@ read_incoming_link(struct context *c, struct link_socket *sock)
 
     /* Remove socks header if applicable */
     socks_postprocess_incoming_link(c, sock);
-
-    perf_pop();
 }
 
 bool
@@ -1212,15 +1207,11 @@ process_incoming_link_part2(struct context *c, struct link_socket_info *lsi,
 static void
 process_incoming_link(struct context *c, struct link_socket *sock)
 {
-    perf_push(PERF_PROC_IN_LINK);
-
     struct link_socket_info *lsi = &sock->info;
     const uint8_t *orig_buf = c->c2.buf.data;
 
     process_incoming_link_part1(c, lsi, false);
     process_incoming_link_part2(c, lsi, orig_buf);
-
-    perf_pop();
 }
 
 void
@@ -1326,8 +1317,6 @@ read_incoming_tun(struct context *c)
      */
     /*ASSERT (!c->c2.to_link.len);*/
 
-    perf_push(PERF_READ_IN_TUN);
-
     c->c2.buf = c->c2.buffers->read_tun_buf;
 
 #ifdef _WIN32
@@ -1360,7 +1349,6 @@ read_incoming_tun(struct context *c)
     {
         register_signal(c->sig, SIGTERM, "tun-stop");
         msg(M_INFO, "TUN/TAP interface has been stopped, exiting");
-        perf_pop();
         return;
     }
 
@@ -1370,14 +1358,11 @@ read_incoming_tun(struct context *c)
         register_signal(c->sig, SIGHUP, "tun-abort");
         c->persist.restart_sleep_seconds = 10;
         msg(M_INFO, "TUN/TAP I/O operation aborted, restarting");
-        perf_pop();
         return;
     }
 
     /* Check the status return from read() */
     check_status(c->c2.buf.len, "read from TUN/TAP", NULL, c->c1.tuntap);
-
-    perf_pop();
 }
 
 /**
@@ -1497,8 +1482,6 @@ process_incoming_tun(struct context *c, struct link_socket *out_sock)
 {
     struct gc_arena gc = gc_new();
 
-    perf_push(PERF_PROC_IN_TUN);
-
     if (c->c2.buf.len > 0)
     {
         c->c2.tun_read_bytes += c->c2.buf.len;
@@ -1542,7 +1525,6 @@ process_incoming_tun(struct context *c, struct link_socket *out_sock)
     {
         buf_reset(&c->c2.to_link);
     }
-    perf_pop();
     gc_free(&gc);
 }
 
@@ -1770,8 +1752,6 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
     struct gc_arena gc = gc_new();
     int error_code = 0;
 
-    perf_push(PERF_PROC_OUT_LINK);
-
     if (c->c2.to_link.len > 0 && c->c2.to_link.len <= c->c2.frame.buf.payload_size)
     {
         /*
@@ -1899,7 +1879,6 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
 
     buf_reset(&c->c2.to_link);
 
-    perf_pop();
     gc_free(&gc);
 }
 
@@ -1918,8 +1897,6 @@ process_outgoing_tun(struct context *c, struct link_socket *in_sock)
     {
         return;
     }
-
-    perf_push(PERF_PROC_OUT_TUN);
 
     /*
      * The --mssfix option requires
@@ -1993,8 +1970,6 @@ process_outgoing_tun(struct context *c, struct link_socket *in_sock)
     }
 
     buf_reset(&c->c2.to_tun);
-
-    perf_pop();
 }
 
 #if defined(__GNUC__) || defined(__clang__)

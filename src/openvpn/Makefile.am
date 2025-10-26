@@ -112,7 +112,6 @@ openvpn_SOURCES = \
 	options_parse.c \
 	otime.c otime.h \
 	packet_id.c packet_id.h \
-	perf.c perf.h \
 	ping.c ping.h \
 	plugin.c plugin.h \
 	pool.c pool.h \

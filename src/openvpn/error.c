@@ -34,7 +34,6 @@
 #include "socket.h"
 #include "tun.h"
 #include "otime.h"
-#include "perf.h"
 #include "status.h"
 #include "integer.h"
 #include "ps.h"
@@ -734,11 +733,6 @@ openvpn_exit(const int status)
             abort();
         }
 #endif
-
-        if (status == OPENVPN_EXIT_STATUS_GOOD)
-        {
-            perf_output_results();
-        }
     }
 
     exit(status);
