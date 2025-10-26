@@ -186,8 +186,7 @@ check_tls(struct context *c)
 
     if (interval_test(&c->c2.tmp_int))
     {
-        const int tmp_status = tls_multi_process(
-            c->c2.tls_multi, &c->c2.to_link, &c->c2.to_link_addr, get_link_socket_info(c), &wakeup);
+        const int tmp_status = tls_multi_process(c->c2.tls_multi, &c->c2.to_link, &c->c2.to_link_addr, get_link_socket_info(c), &wakeup);
 
         if (tmp_status == TLSMP_RECONNECT)
         {
@@ -293,7 +292,7 @@ check_incoming_control_channel(struct context *c)
 
     struct gc_arena gc = gc_new();
     struct buffer buf = alloc_buf_gc(len, &gc);
-    if (tls_rec_payload(c->c2.tls_multi, &buf))
+    while (tls_rec_payload(c->c2.tls_multi, &buf))
     {
         while (BLEN(&buf) > 1)
         {
@@ -304,10 +303,6 @@ check_incoming_control_channel(struct context *c)
                 parse_incoming_control_channel_command(c, &cmdbuf);
             }
         }
-    }
-    else
-    {
-        msg(D_PUSH_ERRORS, "WARNING: Receive control message failed");
     }
 
     gc_free(&gc);
@@ -372,20 +367,18 @@ check_connection_established(struct context *c)
 }
 
 bool
-send_control_channel_string_dowork(struct tls_session *session, const char *str,
-                                   msglvl_t msglevel)
+send_control_channel_string_dowork(struct tls_multi *multi, struct key_state *ks, const char *str, msglvl_t msglevel)
 {
     struct gc_arena gc = gc_new();
     bool stat;
 
-    ASSERT(session);
-    struct key_state *ks = &session->key[KS_PRIMARY];
+    ASSERT(multi);
 
     /* buffered cleartext write onto TLS control channel */
     stat = tls_send_payload(ks, (uint8_t *)str, strlen(str) + 1);
 
     msg(msglevel, "SENT CONTROL [%s]: '%s' (status=%d)",
-        session->common_name ? session->common_name : "UNDEF", sanitize_control_message(str, &gc),
+        multi->common_name ? multi->common_name : "UNDEF", sanitize_control_message(str, &gc),
         (int)stat);
 
     gc_free(&gc);
@@ -402,12 +395,12 @@ reschedule_multi_process(struct context *c)
 bool
 send_control_channel_string(struct context *c, const char *str, msglvl_t msglevel)
 {
-    if (c->c2.tls_multi)
+    struct tls_multi *multi = c->c2.tls_multi;
+    if (multi)
     {
-        struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-        bool ret = send_control_channel_string_dowork(session, str, msglevel);
+        struct key_state *ks = tls_select_encryption_key_init(multi);
+        bool ret = send_control_channel_string_dowork(multi, ks, str, msglevel);
         reschedule_multi_process(c);
-
         return ret;
     }
     return true;
@@ -2398,11 +2391,13 @@ get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned in
 }
 
 void
-io_wait_dowork(struct context *c, const unsigned int flags)
+io_wait_dowork(struct context *c, const unsigned int flags, int t)
 {
     unsigned int out_socket;
     unsigned int out_tuntap;
     struct event_set_return esr[4];
+    struct event_set *event_set = ((t & THREAD_RTWL) != 0) ? c->c2.event_set : c->c2.event_set2;
+    unsigned int *event_set_status = ((t & THREAD_RTWL) != 0) ? &(c->c2.event_set_status) : &(c->c2.event_set_status2);
 
     /* These shifts all depend on EVENT_READ and EVENT_WRITE */
     static uintptr_t socket_shift = SOCKET_SHIFT; /* depends on SOCKET_READ and SOCKET_WRITE */
@@ -2420,21 +2415,21 @@ io_wait_dowork(struct context *c, const unsigned int flags)
     /*
      * Decide what kind of events we want to wait for.
      */
-    event_reset(c->c2.event_set);
+    event_reset(event_set);
 
-    multi_io_process_flags(c, c->c2.event_set, flags, &out_socket, &out_tuntap);
+    multi_io_process_flags(c, event_set, flags, &out_socket, &out_tuntap);
 
 #if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
     if (out_socket & EVENT_READ && c->c2.did_open_tun)
     {
-        dco_event_set(&c->c1.tuntap->dco, c->c2.event_set, (void *)dco_shift);
+        dco_event_set(&c->c1.tuntap->dco, event_set, (void *)dco_shift);
     }
 #endif
 
 #ifdef ENABLE_MANAGEMENT
     if (management)
     {
-        management_socket_set(management, c->c2.event_set, (void *)management_shift, NULL);
+        management_socket_set(management, event_set, (void *)management_shift, NULL);
     }
 #endif
 
@@ -2442,7 +2437,7 @@ io_wait_dowork(struct context *c, const unsigned int flags)
     /* arm inotify watcher */
     if (c->options.mode == MODE_SERVER)
     {
-        event_ctl(c->c2.event_set, c->c2.inotify_fd, EVENT_READ, (void *)file_shift);
+        event_ctl(event_set, c->c2.inotify_fd, EVENT_READ, (void *)file_shift);
     }
 #endif
 
@@ -2456,7 +2451,7 @@ io_wait_dowork(struct context *c, const unsigned int flags)
      *  (6) timeout (tv) expired
      */
 
-    c->c2.event_set_status = ES_ERROR;
+    *event_set_status = ES_ERROR;
 
     if (!c->sig->signal_received)
     {
@@ -2474,14 +2469,14 @@ io_wait_dowork(struct context *c, const unsigned int flags)
             /*
              * Wait for something to happen.
              */
-            status = event_wait(c->c2.event_set, &c->c2.timeval, esr, SIZE(esr));
+            status = event_wait(event_set, &c->c2.timeval, esr, SIZE(esr));
 
             check_status(status, "event_wait", NULL, NULL);
 
             if (status > 0)
             {
                 int i;
-                c->c2.event_set_status = 0;
+                *event_set_status = 0;
                 for (i = 0; i < status; ++i)
                 {
                     const struct event_set_return *e = &esr[i];
@@ -2492,7 +2487,7 @@ io_wait_dowork(struct context *c, const unsigned int flags)
                         struct event_arg *ev_arg = (struct event_arg *)e->arg;
                         if (ev_arg->type != EVENT_ARG_LINK_SOCKET)
                         {
-                            c->c2.event_set_status = ES_ERROR;
+                            *event_set_status = ES_ERROR;
                             msg(D_LINK_ERRORS, "io_work: non socket event delivered");
                             return;
                         }
@@ -2504,17 +2499,13 @@ io_wait_dowork(struct context *c, const unsigned int flags)
                         shift = (uintptr_t)e->arg;
                     }
 
-                    c->c2.event_set_status |= ((e->rwflags & 3) << shift);
+                    *event_set_status |= ((e->rwflags & 3) << shift);
                 }
             }
-            else if (status == 0)
-            {
-                c->c2.event_set_status = ES_TIMEOUT;
-            }
         }
-        if (sockets_read_residual(c))
+        if (sockets_read_residual(c->c2.link_sockets, c->c1.link_sockets_num))
         {
-            c->c2.event_set_status |= (SOCKET_READ << SOCKET_SHIFT);
+            *event_set_status |= (SOCKET_READ << SOCKET_SHIFT);
         }
     }
 
@@ -2522,12 +2513,12 @@ io_wait_dowork(struct context *c, const unsigned int flags)
     update_time();
 
     /* set signal_received if a signal was received */
-    if (c->c2.event_set_status & ES_ERROR)
+    if (*event_set_status & ES_ERROR)
     {
         get_signal(&c->sig->signal_received);
     }
 
-    dmsg(D_EVENT_WAIT, "I/O WAIT status=0x%04x", c->c2.event_set_status);
+    dmsg(D_EVENT_WAIT, "I/O WAIT status=0x%04x", *event_set_status);
 }
 
 void threaded_fwd_inp_intf(struct context *c, struct link_socket *sock, struct thread_pointer *b)
@@ -2547,7 +2538,7 @@ void threaded_fwd_inp_intf(struct context *c, struct link_socket *sock, struct t
 }
 
 void
-process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b)
+process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b, int t)
 {
     const unsigned int status = c->c2.event_set_status;
 
@@ -2560,17 +2551,17 @@ process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b
 #endif
 
     /* TCP/UDP port ready to accept write */
-    if (status & SOCKET_WRITE)
+    if ((status & SOCKET_WRITE) && ((t & THREAD_RTWL) != 0))
     {
         process_outgoing_link(c, sock);
     }
     /* TUN device ready to accept write */
-    else if (status & TUN_WRITE)
+    else if ((status & TUN_WRITE) && ((t & THREAD_RLWT) != 0))
     {
         process_outgoing_tun(c, sock);
     }
     /* Incoming data on TCP/UDP port */
-    else if (status & SOCKET_READ)
+    else if ((status & SOCKET_READ) && ((t & THREAD_RLWT) != 0))
     {
         read_incoming_link(c, sock);
         if (!IS_SIG(c))
@@ -2579,15 +2570,77 @@ process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b
         }
     }
     /* Incoming data on TUN device */
-    else if (status & TUN_READ)
+    else if ((status & TUN_READ) && ((t & THREAD_RTWL) != 0))
     {
         threaded_fwd_inp_intf(c, sock, b);
     }
-    else if (status & DCO_READ)
+    else if ((status & DCO_READ) && ((t & THREAD_RTWL) != 0))
     {
         if (!IS_SIG(c))
         {
             process_incoming_dco(c);
         }
     }
+}
+
+void *threaded_process_io(void *a)
+{
+    /*
+        dual mode commit notes:
+          - thread1 handles tunn-read-->--link-send and thread2 handles link-read-->--tunn-send
+          - set thread1 to handle the pre_select() call as it falls under the threaded paths
+            and the function will eventually overwrite the c2.buf and c2.to_link buffer variables
+            which will then cause data conflict and corruption errors if not called from thread1
+          - the server is slower to move through the key session states than the client is
+            so hold onto old keys longer before rotation and delay using new keys before selection
+          - dual mode is built on the organization && separation code modifications implemented in bulk mode
+    */
+
+    struct dual_args *d = (struct dual_args *)a;
+    struct thread_pointer *b = d->b;
+
+    int t = d->t;
+    unsigned int f = d->f;
+    uint8_t buff[5];
+    size_t leng;
+
+    fd_set rfds;
+    struct timeval timo;
+
+    while (true)
+    {
+        if (b->p->z != 1) { break; }
+
+        FD_ZERO(&rfds); FD_SET(d->w[0][0], &rfds);
+        timo.tv_sec = 1; timo.tv_usec = 750000;
+        select(d->w[0][0]+1, &rfds, NULL, NULL, &timo);
+
+        if (b->p->z != 1) { break; }
+
+        if (FD_ISSET(d->w[0][0], &rfds))
+        {
+            leng = read(d->w[0][0], buff, 1);
+            if (leng < 1) { /* no-op */ }
+
+            if (d->a == TA_UNDEF)
+            {
+                multi_io_process_io(b, f, t);
+            }
+            else if (d->a == TA_TIMEOUT)
+            {
+                struct multi_context *m = b->p->m[b->i-1];
+                multi_io_action(m, NULL, TA_TIMEOUT, false, f, t);
+            }
+            else if (d->a == TA_FORWARD)
+            {
+                struct context *c = d->c;
+                process_io(c, c->c2.link_sockets[0], b, t);
+            }
+
+            d->z = 0;
+            leng = write(d->w[1][1], buff, 1);
+        }
+    }
+
+    return NULL;
 }

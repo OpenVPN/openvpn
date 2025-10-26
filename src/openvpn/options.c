@@ -308,6 +308,7 @@ static const char usage_message[] =
     "--mtu-test      : Empirically measure and report MTU.\n"
     "--bulk-mode     : Use bulk TUN/TCP reads/writes.\n"
     "--mtio-mode n   : Use multi threaded mode. (optional expire time: n=30)\n"
+    "--dual-mode     : Use dual threads for the link/tunn core operations.\n"
 #ifdef ENABLE_FRAGMENT
     "--fragment max  : Enable internal datagram fragmentation so that no UDP\n"
     "                  datagrams are sent which are larger than max bytes.\n"
@@ -9305,6 +9306,10 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
                 options->ce.mtio_time = mtio_time;
             }
         }
+    }
+    else if (streq(p[0], "dual-mode"))
+    {
+        options->ce.dual_mode = true;
     }
     else
     {

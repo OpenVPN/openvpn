@@ -46,21 +46,21 @@
 #define MAX_SUBJECT_LENGTH 256
 
 int
-verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth, uint32_t *flags)
+verify_callback(void *multi_obj, mbedtls_x509_crt *cert, int cert_depth, uint32_t *flags)
 {
-    struct tls_session *session = (struct tls_session *)session_obj;
+    struct tls_multi *multi = (struct tls_multi *)multi_obj;
     struct gc_arena gc = gc_new();
 
     ASSERT(cert);
-    ASSERT(session);
+    ASSERT(multi);
 
-    session->verified = false;
+    multi->verified = false;
 
     /* Remember certificate hash */
     struct buffer cert_fingerprint = x509_get_sha256_fingerprint(cert, &gc);
-    cert_hash_remember(session, cert_depth, &cert_fingerprint);
+    cert_hash_remember(multi, cert_depth, &cert_fingerprint);
 
-    if (session->opt->verify_hash_no_ca)
+    if (multi->opt.verify_hash_no_ca)
     {
         /*
          * If we decide to verify the peer certificate based on the fingerprint
@@ -111,7 +111,7 @@ verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth, uint3
 
         /* Leave flags set to non-zero to indicate that the cert is not ok */
     }
-    else if (SUCCESS != verify_cert(session, cert, cert_depth))
+    else if (SUCCESS != verify_cert(multi, cert, cert_depth))
     {
         *flags |= MBEDTLS_X509_BADCERT_OTHER;
     }

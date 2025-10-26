@@ -101,7 +101,7 @@ struct link_socket_info
  */
 struct stream_buf
 {
-    struct buffer buf_init;
+    struct buffer buf_init[2];
     struct buffer residual;
     int maxlen;
     bool residual_fully_formed;
@@ -109,6 +109,8 @@ struct stream_buf
     struct buffer buf;
     struct buffer next;
     int len;    /* -1 if not yet known */
+    int off;
+    int idx;
 
     bool error; /* if true, fatal TCP error has occurred,
                  *  requiring that connection be restarted */
@@ -201,7 +203,7 @@ struct link_socket
 
     /* for stream sockets */
     struct stream_buf stream_buf;
-    struct buffer stream_buf_data;
+    struct buffer stream_buf_data[2];
     bool stream_reset;
 
     /* HTTP proxy */
@@ -376,6 +378,12 @@ void setenv_trusted(struct env_set *es, const struct link_socket_info *info);
 bool link_socket_update_flags(struct link_socket *sock, unsigned int sockflags);
 
 void link_socket_update_buffer_sizes(struct link_socket *sock, int rcvbuf, int sndbuf);
+
+void stream_buf_reset(struct stream_buf *sb);
+
+void stream_buf_set_next(struct stream_buf *sb);
+
+bool stream_buf_added(struct stream_buf *sb, int length_added);
 
 /*
  * Low-level functions
@@ -763,7 +771,7 @@ link_socket_set_tos(struct link_socket *sock)
  * to all initialized sockets, ensuring the complete
  * packet is read.
  */
-bool sockets_read_residual(const struct context *c);
+bool sockets_read_residual(struct link_socket **links, int num);
 
 static inline event_t
 socket_event_handle(const struct link_socket *sock)
@@ -777,18 +785,7 @@ socket_event_handle(const struct link_socket *sock)
 
 event_t socket_listen_event_handle(struct link_socket *sock);
 
-unsigned int socket_set(struct link_socket *sock, struct event_set *es, unsigned int rwflags,
-                        void *arg, unsigned int *persistent);
-
-static inline void
-socket_set_listen_persistent(struct link_socket *sock, struct event_set *es, void *arg)
-{
-    if (sock && !sock->listen_persistent_queued)
-    {
-        event_ctl(es, socket_listen_event_handle(sock), EVENT_READ, arg);
-        sock->listen_persistent_queued = true;
-    }
-}
+unsigned int socket_set(struct link_socket *sock, struct event_set *es, unsigned int rwflags, void *arg, unsigned int *persistent);
 
 static inline void
 socket_reset_listen_persistent(struct link_socket *sock)

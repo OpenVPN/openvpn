@@ -2310,10 +2310,11 @@ tls_print_deferred_options_results(struct context *c)
  * can be done only after the DCO device was created and the new peer was
  * properly added.
  */
-static bool
+bool
 do_deferred_options_part2(struct context *c)
 {
     struct frame *frame_fragment = NULL;
+
 #ifdef ENABLE_FRAGMENT
     if (c->options.ce.fragment)
     {
@@ -2321,13 +2322,25 @@ do_deferred_options_part2(struct context *c)
     }
 #endif
 
-    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-    if (!tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame,
-                                          frame_fragment, get_link_socket_info(c),
-                                          &c->c1.tuntap->dco))
+    struct tls_multi *multi = c->c2.tls_multi;
+    for (int i = 0; i < TM_SIZE; ++i)
     {
-        msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
-        return false;
+        struct tls_session *session = &multi->session[i];
+        struct key_state *ks = &session->key[KS_MAIN];
+        if (i == TM_MAIN && ks->state == S_ACTIVE && ks->authenticated == KS_AUTH_TRUE)
+        {
+            if (!tls_session_update_crypto_params(multi, session, ks, &c->options, &c->c2.frame,
+                                                  frame_fragment, get_link_socket_info(c),
+                                                  &c->c1.tuntap->dco))
+            {
+                msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
+                return false;
+            }
+        }
+        if (i == TM_MAIN && ks->state == S_GENERATED_KEYS && ks->authenticated == KS_AUTH_TRUE && multi->gens_stat)
+        {
+            tls_session_generate_data_keys_helper(multi, session, ks);
+        }
     }
 
     return true;
@@ -2547,10 +2560,9 @@ do_deferred_p2p_ncp(struct context *c)
 
     c->options.use_peer_id = c->c2.tls_multi->use_peer_id;
 
-    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
+    struct tls_multi *multi = c->c2.tls_multi;
 
-    const char *ncp_cipher =
-        get_p2p_ncp_cipher(session, c->c2.tls_multi->peer_info, &c->options.gc);
+    const char *ncp_cipher = get_p2p_ncp_cipher(multi, multi->peer_info, &c->options.gc);
 
     if (ncp_cipher)
     {
@@ -2564,21 +2576,11 @@ do_deferred_p2p_ncp(struct context *c)
         return false;
     }
 
-    struct frame *frame_fragment = NULL;
-#ifdef ENABLE_FRAGMENT
-    if (c->options.ce.fragment)
+    if (!do_deferred_options_part2(c))
     {
-        frame_fragment = &c->c2.frame_fragment;
-    }
-#endif
-
-    if (!tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame,
-                                          frame_fragment, get_link_socket_info(c),
-                                          &c->c1.tuntap->dco))
-    {
-        msg(D_TLS_ERRORS, "ERROR: failed to set crypto cipher");
         return false;
     }
+
     return true;
 }
 
@@ -3438,6 +3440,8 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     /* let the TLS engine know if keys have to be installed in DCO or not */
     to.dco_enabled = dco_enabled(options);
 
+    to.dual_mode = c->options.ce.dual_mode;
+
     /*
      * Initialize OpenVPN's master TLS-mode object.
      */
@@ -4111,6 +4115,7 @@ do_event_set_init(struct context *c, bool need_us_timeout)
     }
 
     c->c2.event_set = event_set_init(&c->c2.event_set_max, flags);
+    c->c2.event_set2 = event_set_init(&c->c2.event_set_max, flags);
     c->c2.event_set_owned = true;
 }
 
@@ -4120,7 +4125,9 @@ do_close_event_set(struct context *c)
     if (c->c2.event_set && c->c2.event_set_owned)
     {
         event_free(c->c2.event_set);
+        event_free(c->c2.event_set2);
         c->c2.event_set = NULL;
+        c->c2.event_set2 = NULL;
         c->c2.event_set_owned = false;
     }
 }
@@ -4925,6 +4932,7 @@ inherit_context_child(struct context *dest, const struct context *src, struct li
     options_detach(&dest->options);
 
     dest->c2.event_set = src->c2.event_set;
+    dest->c2.event_set2 = src->c2.event_set2;
 
     if (dest->mode == CM_CHILD_TCP)
     {
@@ -5016,6 +5024,7 @@ inherit_context_top(struct context *dest, const struct context *src)
     dest->c2.es_owned = false;
 
     dest->c2.event_set = NULL;
+    dest->c2.event_set2 = NULL;
     do_event_set_init(dest, false);
 
 #ifdef USE_COMP
