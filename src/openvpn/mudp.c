@@ -283,7 +283,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
                         {
                             mi->context.c2.tls_multi->n_sessions++;
                             struct tls_session *session =
-                                &mi->context.c2.tls_multi->session[TM_INITIAL];
+                                &mi->context.c2.tls_multi->session[TM_INIT];
                             session_skip_to_pre_start(session, &state, &m->top.c2.from);
                         }
                     }

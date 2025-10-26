@@ -183,38 +183,10 @@ multi_tcp_process_outgoing_link(struct multi_context *m, bool defer, const unsig
 
     if (mi)
     {
-        if ((defer && !proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto))
-            || mbuf_defined(mi->tcp_link_out_deferred))
+        ret = multi_process_outgoing_link_dowork(m, mi, mpp_flags);
+        if (!ret)
         {
-            /* save to queue */
-            struct buffer *buf = &mi->context.c2.to_link;
-            if (BLEN(buf) > 0)
-            {
-                struct mbuf_buffer *mb = mbuf_alloc_buf(buf);
-                struct mbuf_item item;
-
-                set_prefix(mi);
-                dmsg(D_MULTI_TCP, "MULTI TCP: queuing deferred packet");
-                item.buffer = mb;
-                item.instance = mi;
-                mbuf_add_item(mi->tcp_link_out_deferred, &item);
-                mbuf_free_buf(mb);
-                buf_reset(buf);
-                ret = multi_process_post(m, mi, mpp_flags);
-                if (!ret)
-                {
-                    mi = NULL;
-                }
-                clear_prefix();
-            }
-        }
-        else
-        {
-            ret = multi_process_outgoing_link_dowork(m, mi, mpp_flags);
-            if (!ret)
-            {
-                mi = NULL;
-            }
+            mi = NULL;
         }
     }
     return ret;

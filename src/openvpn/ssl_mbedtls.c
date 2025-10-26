@@ -246,8 +246,7 @@ mbedtls_ssl_export_keys_cb(void *p_expkey, mbedtls_ssl_key_export_type type,
 
 
 bool
-key_state_export_keying_material(struct tls_session *session, const char *label, size_t label_size,
-                                 void *ekm, size_t ekm_size)
+key_state_export_keying_material(struct tls_session *session, struct key_state *ks, const char *label, size_t label_size, void *ekm, size_t ekm_size)
 {
     ASSERT(strlen(label) == label_size);
 

@@ -50,6 +50,10 @@
 #define MAX_STRLENG 64
 #define MAX_CSTATES 16421 /* hash modp >= 2^14 {16384} */
 
+#define THREAD_RTWL (1 << 0)
+#define THREAD_RLWT (1 << 1)
+#define THREAD_MAIN (THREAD_RTWL | THREAD_RLWT)
+
 /*
  * Our global key schedules, packaged thusly
  * to facilitate key persistence.
@@ -240,11 +244,13 @@ struct context_2
 
     /* our global wait events */
     struct event_set *event_set;
+    struct event_set *event_set2;
     int event_set_max;
     bool event_set_owned;
 
     /* bitmask for event status. Check event.h for possible values */
     unsigned int event_set_status;
+    unsigned int event_set_status2;
 
     struct link_socket **link_sockets;
     struct link_socket_info **link_socket_infos;
@@ -603,6 +609,14 @@ struct mtio_cons
     int thid;
     time_t last;
     in_addr_t srca, dsta;
+};
+
+struct dual_args
+{
+    int a, f, t, z;
+    int w[2][2];
+    struct context *c;
+    struct thread_pointer *b;
 };
 
 void *threaded_io_management(void *a);

@@ -352,7 +352,7 @@ check_pull_client_ncp(struct context *c, const unsigned int found)
 }
 
 const char *
-get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info, struct gc_arena *gc)
+get_p2p_ncp_cipher(struct tls_multi *multi, const char *peer_info, struct gc_arena *gc)
 {
     /* we use a local gc arena to keep the temporary strings needed by strsep */
     struct gc_arena gc_local = gc_new();
@@ -367,14 +367,14 @@ get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info, struct gc
     const char *server_ciphers;
     const char *client_ciphers;
 
-    if (session->opt->server)
+    if (multi->opt.server)
     {
-        server_ciphers = session->opt->config_ncp_ciphers;
+        server_ciphers = multi->opt.config_ncp_ciphers;
         client_ciphers = peer_ciphers;
     }
     else
     {
-        client_ciphers = session->opt->config_ncp_ciphers;
+        client_ciphers = multi->opt.config_ncp_ciphers;
         server_ciphers = peer_ciphers;
     }
 
@@ -402,7 +402,7 @@ get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info, struct gc
 }
 
 static void
-p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session, const char *common_cipher)
+p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session, struct key_state *ks, const char *common_cipher)
 {
     /* will return 0 if peer_info is null */
     const unsigned int iv_proto_peer = extract_iv_proto(multi->peer_info);
@@ -447,8 +447,7 @@ p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session, const 
              * peer-id that can be useful for NAT tracking etc. */
 
             uint8_t peerid[3];
-            if (!key_state_export_keying_material(session, EXPORT_P2P_PEERID_LABEL,
-                                                  strlen(EXPORT_P2P_PEERID_LABEL), &peerid, 3))
+            if (!key_state_export_keying_material(session, ks, EXPORT_P2P_PEERID_LABEL, strlen(EXPORT_P2P_PEERID_LABEL), &peerid, 3))
             {
                 /* Non DCO setup might still work but also this should never
                  * happen or very likely the TLS encryption key exporter will
@@ -469,16 +468,16 @@ p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session, const 
 }
 
 void
-p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session)
+p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session, struct key_state *ks)
 {
     struct gc_arena gc = gc_new();
 
     /* Query the common cipher here to log it as part of our message.
      * We postpone switching the cipher to do_up */
-    const char *common_cipher = get_p2p_ncp_cipher(session, multi->peer_info, &gc);
+    const char *common_cipher = get_p2p_ncp_cipher(multi, multi->peer_info, &gc);
 
     /* Set the common options */
-    p2p_ncp_set_options(multi, session, common_cipher);
+    p2p_ncp_set_options(multi, session, ks, common_cipher);
 
     if (!common_cipher)
     {

@@ -51,7 +51,9 @@
 /**
  *  prototype for struct tls_session from ssl_common.h
  */
+struct tls_multi;
 struct tls_session;
+struct key_state;
 
 /*
  *
@@ -360,8 +362,7 @@ void tls_ctx_personalise_random(struct tls_root_ctx *ctx);
  * @param is_server     Initialise a server?
  * @param session       The session associated with the given key_state
  */
-void key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx,
-                        bool is_server, struct tls_session *session);
+void key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_multi *multi);
 
 /**
  * Sets a TLS session to be shutdown state, so the TLS library will generate
@@ -402,8 +403,7 @@ void backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_fi
  * @param ekm_size     The size of ekm, in bytes
  * @returns            true if exporting succeeded, false otherwise
  */
-bool key_state_export_keying_material(struct tls_session *session, const char *label,
-                                      size_t label_size, void *ekm, size_t ekm_size);
+bool key_state_export_keying_material(struct tls_session *session, struct key_state *ks, const char *label, size_t label_size, void *ekm, size_t ekm_size);
 
 /**************************************************************************/
 /** @addtogroup control_tls
