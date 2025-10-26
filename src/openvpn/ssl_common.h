@@ -215,6 +215,9 @@ struct key_state
      * @see tls_session::key_id.
      */
     int key_id;
+    int keys_idno;
+    int keys_sels;
+    int keys_lame;
 
     /**
      * Key id for this key_state, inherited from struct tls_session.
@@ -453,6 +456,8 @@ struct tls_options
     size_t ekm_size;
 
     bool dco_enabled; /**< Whether keys have to be installed in DCO or not */
+
+    bool dual_mode;
 };
 
 /** @addtogroup control_processor
@@ -547,8 +552,10 @@ struct tls_session
     1                  /**< As yet un-trusted \c tls_session \
                         *   being negotiated. */
 #define TM_LAME_DUCK 2 /**< Old \c tls_session. */
+#define TM_THREADED 3
+#define TM_THREADRE 4
 #define TM_SIZE                                              \
-    3                  /**< Size of the \c tls_multi.session \
+    5                  /**< Size of the \c tls_multi.session \
                         *   array. */
 /** @} name Index of tls_session objects within a tls_multi structure */
 /** @} addtogroup control_processor */
@@ -564,7 +571,7 @@ struct tls_session
  * channel key available even when network conditions are so bad that
  * we can't negotiate a new key within the time allotted.
  */
-#define KEY_SCAN_SIZE 3
+#define KEY_SCAN_SIZE 5
 
 
 /* multi state (originally client authentication state (=CAS))
@@ -723,6 +730,9 @@ struct tls_multi
      */
     int dco_peer_id;
 
+    int lame_mods;
+    int lame_test;
+
     dco_context_t *dco;
 };
 
@@ -743,6 +753,12 @@ get_key_scan(struct tls_multi *multi, int index)
         case 2:
             return &multi->session[TM_LAME_DUCK].key[KS_LAME_DUCK];
 
+        case 3:
+            return &multi->session[TM_THREADED].key[KS_PRIMARY];
+
+        case 4:
+            return &multi->session[TM_THREADRE].key[KS_PRIMARY];
+
         default:
             ASSERT(false);
             return NULL; /* NOTREACHED */
@@ -756,6 +772,18 @@ static inline const struct key_state *
 get_primary_key(const struct tls_multi *multi)
 {
     return &multi->session[TM_ACTIVE].key[KS_PRIMARY];
+}
+
+static inline const struct key_state *
+get_threaded_key(const struct tls_multi *multi)
+{
+    return &multi->session[TM_THREADED].key[KS_PRIMARY];
+}
+
+static inline const struct key_state *
+get_threadre_key(const struct tls_multi *multi)
+{
+    return &multi->session[TM_THREADRE].key[KS_PRIMARY];
 }
 
 #endif /* SSL_COMMON_H_ */

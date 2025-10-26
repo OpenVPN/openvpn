@@ -161,6 +161,25 @@ void *tunnel_point_to_point(void *a)
         }
     }
 
+    bool dual_mode = d->options.ce.dual_mode;
+    struct dual_args link, intf;
+    pthread_t thrl, thri;
+
+    if (dual_mode)
+    {
+        pthread_mutex_init(&(link.i), NULL); pthread_mutex_init(&(link.o), NULL);
+        pthread_mutex_lock(&(link.i)); pthread_mutex_lock(&(link.o));
+        link.c = c; link.b = b; link.z = THREAD_RLWT; link.a = 0;
+        bzero(&(thrl), sizeof(pthread_t));
+        pthread_create(&(thrl), NULL, threaded_process_io, &(link));
+
+        pthread_mutex_init(&(intf.i), NULL); pthread_mutex_init(&(intf.o), NULL);
+        pthread_mutex_lock(&(intf.i)); pthread_mutex_lock(&(intf.o));
+        intf.c = c; intf.b = b; intf.z = THREAD_RTWL; intf.a = 0;
+        bzero(&(thri), sizeof(pthread_t));
+        pthread_create(&(thri), NULL, threaded_process_io, &(intf));
+    }
+
     msg(M_INFO, "TCPv4_CLIENT MTIO init [%d][%d] [%d][%d] {%d}{%d}", b->h, b->n, p->h, p->n, p->z, b->i);
 
     /* main event loop */
@@ -184,7 +203,7 @@ void *tunnel_point_to_point(void *a)
         P2P_CHECK_SIG();
 
         /* set up and do the I/O wait */
-        io_wait(c, p2p_iow_flags(c));
+        io_wait(c, p2p_iow_flags(c), THREAD_MAIN);
         P2P_CHECK_SIG();
 
         /* timeout? */
@@ -194,7 +213,15 @@ void *tunnel_point_to_point(void *a)
         }
 
         /* process the I/O which triggered select */
-        process_io(c, c->c2.link_sockets[0], b);
+        if (dual_mode)
+        {
+            pthread_mutex_unlock(&(link.i)); pthread_mutex_unlock(&(intf.i));
+            pthread_mutex_lock(&(link.o)); pthread_mutex_lock(&(intf.o));
+        }
+        else
+        {
+            process_io(c, c->c2.link_sockets[0], b, THREAD_MAIN);
+        }
         P2P_CHECK_SIG();
     }
 
@@ -210,6 +237,12 @@ void *tunnel_point_to_point(void *a)
         close(p->r[b->i-1][1]);
         c->c1.tuntap->fd = c->c1.tuntap->ff;
         c->c1.tuntap->ff = -1;
+    }
+
+    if (dual_mode)
+    {
+        pthread_mutex_unlock(&(link.i)); pthread_mutex_unlock(&(intf.i));
+        pthread_join(thrl, NULL); pthread_join(thri, NULL);
     }
 
     persist_client_stats(c);

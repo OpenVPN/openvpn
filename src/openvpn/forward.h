@@ -77,11 +77,15 @@ void get_io_flags_dowork_udp(struct context *c, struct multi_io *multi_io,
 
 void get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags);
 
-void io_wait_dowork(struct context *c, const unsigned int flags);
+void io_wait_dowork(struct context *c, const unsigned int flags, int z);
 
 void pre_select(struct context *c);
 
-void process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b);
+void process_io(struct context *c, struct link_socket *sock, struct thread_pointer *b, int z);
+
+void *threaded_process_io(void *a);
+
+void threaded_dual_init(struct dual_args *d);
 
 
 /**********************************************************************/
@@ -386,7 +390,7 @@ p2p_iow_flags(const struct context *c)
  * for the top-level server sockets.
  */
 static inline void
-io_wait(struct context *c, const unsigned int flags)
+io_wait(struct context *c, const unsigned int flags, int z)
 {
     if (proto_is_dgram(c->c2.link_sockets[0]->info.proto) && c->c2.fast_io
         && (flags & (IOW_TO_TUN | IOW_TO_LINK | IOW_MBUF)))
@@ -406,7 +410,7 @@ io_wait(struct context *c, const unsigned int flags)
     else
     {
         /* slow path */
-        io_wait_dowork(c, flags);
+        io_wait_dowork(c, flags, z);
     }
 }
 

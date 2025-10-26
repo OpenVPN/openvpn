@@ -178,7 +178,7 @@ struct multi_context
     struct mbuf_set *mbuf;             /**< Set of buffers for passing data
                                         *   channel packets between VPN tunnel
                                         *   instances. */
-    struct multi_io *multi_io;         /**< I/O state and events tracker */
+    struct multi_io multi_io[MAX_THREADS];         /**< I/O state and events tracker */
     struct ifconfig_pool *ifconfig_pool;
     struct frequency_limit *new_connection_limiter;
     struct initial_packet_rate_limit *initial_rate_limiter;
@@ -288,6 +288,7 @@ bool multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags
 #define MPP_CONDITIONAL_PRE_SELECT (1 << 1)
 #define MPP_CLOSE_ON_SIGNAL        (1 << 2)
 #define MPP_RECORD_TOUCH           (1 << 3)
+#define MPP_THREADZ                (1 << 4)
 
 
 /**************************************************************************/

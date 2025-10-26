@@ -401,11 +401,15 @@ multi_init(struct context *t)
     m->instances = calloc(m->max_clients, sizeof(struct multi_instance *));
 
     m->top.c2.event_set = t->c2.event_set;
+    m->top.c2.event_set2 = t->c2.event_set2;
 
     /*
      * Initialize multi-socket I/O wait object
      */
-    m->multi_io = multi_io_init(m->max_clients);
+    for (int x = 0; x < MAX_THREADS; ++x)
+    {
+        m->multi_io[x] = multi_io_init(m->max_clients);
+    }
     m->tcp_queue_limit = t->options.tcp_queue_limit;
 
     /*
@@ -856,7 +860,7 @@ multi_create_instance(struct thread_pointer *b, const struct mroute_addr *real, 
     mi->inotify_watch = -1;
 #endif
 
-    if (!multi_process_post(m, mi, MPP_PRE_SELECT))
+    if (!multi_process_post(m, mi, MPP_PRE_SELECT | MPP_THREADZ))
     {
         msg(D_MULTI_ERRORS, "MULTI: signal occurred during client instance initialization");
         goto err;
@@ -2411,6 +2415,9 @@ multi_client_generate_tls_keys(struct context *c)
         return false;
     }
 
+    session = &c->c2.tls_multi->session[TM_THREADED];
+    tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame, frame_fragment, get_link_socket_info(c), &c->c1.tuntap->dco);
+
     return true;
 }
 
@@ -3195,7 +3202,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
 {
     bool ret = true;
 
-    if (!IS_SIG(&mi->context)
+    if (!IS_SIG(&mi->context) && ((flags & MPP_THREADZ) != 0)
         && ((flags & MPP_PRE_SELECT)
             || ((flags & MPP_CONDITIONAL_PRE_SELECT) && !ANY_OUT(&mi->context))))
     {
@@ -3255,7 +3262,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
 
     if (IS_SIG(&mi->context))
     {
-        if (flags & MPP_CLOSE_ON_SIGNAL)
+        if ((flags & MPP_CLOSE_ON_SIGNAL) && ((flags & MPP_THREADZ) != 0))
         {
             multi_close_instance_on_signal(m, mi);
             ret = false;
@@ -3264,8 +3271,8 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
     else
     {
         /* continue to pend on output? */
-        multi_set_pending(m, LINK_OUT(&mi->context) ? mi : NULL);
-        multi_set_pending2(m, TUN_OUT(&mi->context) ? mi : NULL);
+        if ((flags & MPP_THREADZ) != 0) { multi_set_pending(m, LINK_OUT(&mi->context) ? mi : NULL); }
+        if ((flags & MPP_THREADZ) == 0) { multi_set_pending2(m, TUN_OUT(&mi->context) ? mi : NULL); }
 
 #ifdef MULTI_DEBUG_EVENT_LOOP
         printf("POST %s[%d][%d] to=%d lo=%d/%d w=%" PRIi64 "/%ld\n", id(mi), (int)(mi == m->pending), (int)(mi == m->pending2),
@@ -4328,9 +4335,12 @@ static void
 management_delete_event(void *arg, event_t event)
 {
     struct multi_context *m = (struct multi_context *)arg;
-    if (m->multi_io)
+    if (m->multi_io->es)
     {
-        multi_tcp_delete_event(m->multi_io, event);
+        for (int x = 0; x < MAX_THREADS; ++x)
+        {
+            multi_tcp_delete_event(&(m->multi_io[x]), event);
+        }
     }
 }
 
@@ -4384,6 +4394,10 @@ management_client_pending_auth(void *arg, const unsigned long cid, const unsigne
         else if (multi->session[TM_ACTIVE].key[KS_PRIMARY].mda_key_id == mda_key_id)
         {
             session = &multi->session[TM_ACTIVE];
+        }
+        else if (multi->session[TM_THREADED].key[KS_PRIMARY].mda_key_id == mda_key_id)
+        {
+            session = &multi->session[TM_THREADED];
         }
         else
         {
@@ -4526,6 +4540,20 @@ multi_get_timeout(struct multi_context *multi, struct timeval *timeval)
 #endif /* ENABLE_MANAGEMENT */
 }
 
+void multi_copy_events(struct multi_context *m)
+{
+    struct multi_io *multi_io = &(m->multi_io[THREAD_MAIN]);
+    for (int i = 0; i < multi_io->n_esr; ++i)
+    {
+        for (int j = THREAD_RLWT; j <= THREAD_RTWL; ++j)
+        {
+            struct multi_io *multi_io_z = &(m->multi_io[j]);
+            multi_io_z->esr[i] = multi_io->esr[i];
+            multi_io_z->n_esr = multi_io->n_esr;
+        }
+    }
+}
+
 /**************************************************************************/
 /**
  * Main event loop for OpenVPN in point-to-multipoint server mode.
@@ -4582,6 +4610,26 @@ static void tunnel_server_loop(struct thread_pointer *b)
         }
     }
 
+    bool dual_mode = d->options.ce.dual_mode;
+    const unsigned int f = MPP_THREADZ;
+    struct dual_args link, intf;
+    pthread_t thrl, thri;
+
+    if (dual_mode)
+    {
+        pthread_mutex_init(&(link.i), NULL); pthread_mutex_init(&(link.o), NULL);
+        pthread_mutex_lock(&(link.i)); pthread_mutex_lock(&(link.o));
+        link.c = c; link.b = b; link.z = THREAD_RLWT; link.a = 0;
+        bzero(&(thrl), sizeof(pthread_t));
+        pthread_create(&(thrl), NULL, threaded_multi_io_process_io, &(link));
+
+        pthread_mutex_init(&(intf.i), NULL); pthread_mutex_init(&(intf.o), NULL);
+        pthread_mutex_lock(&(intf.i)); pthread_mutex_lock(&(intf.o));
+        intf.c = c; intf.b = b; intf.z = THREAD_RTWL; intf.a = 0;
+        bzero(&(thri), sizeof(pthread_t));
+        pthread_create(&(thri), NULL, threaded_multi_io_process_io, &(intf));
+    }
+
     msg(M_INFO, "TCPv4_SERVER MTIO init [%d][%d] [%d][%d] {%d}{%d}", b->h, b->n, p->h, p->n, p->z, b->i);
 
     while (true)
@@ -4611,11 +4659,24 @@ static void tunnel_server_loop(struct thread_pointer *b)
         if (status > 0)
         {
             /* process the I/O which triggered select */
-            multi_io_process_io(b);
+            if (dual_mode)
+            {
+                multi_copy_events(multi);
+                pthread_mutex_unlock(&(link.i)); pthread_mutex_unlock(&(intf.i));
+                pthread_mutex_lock(&(link.o)); pthread_mutex_lock(&(intf.o));
+            }
+            else
+            {
+                multi_io_process_io(b, f, THREAD_MAIN);
+            }
+            for (int x = 0; x < MAX_THREADS; ++x)
+            {
+                multi->multi_io[x].n_esr = 0;
+            }
         }
         else if (status == 0)
         {
-            multi_io_action(multi, NULL, TA_TIMEOUT, false);
+            multi_io_action(multi, NULL, TA_TIMEOUT, false, f, THREAD_MAIN);
         }
 
         MULTI_CHECK_SIG(multi);
@@ -4633,6 +4694,12 @@ static void tunnel_server_loop(struct thread_pointer *b)
         close(p->r[b->i-1][1]);
         c->c1.tuntap->fd = c->c1.tuntap->ff;
         c->c1.tuntap->ff = -1;
+    }
+
+    if (dual_mode)
+    {
+        pthread_mutex_unlock(&(link.i)); pthread_mutex_unlock(&(intf.i));
+        pthread_join(thrl, NULL); pthread_join(thri, NULL);
     }
 }
 

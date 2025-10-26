@@ -184,6 +184,9 @@ struct connection_entry
     /* Multi threaded IO mode operates on a primary tun interface + multiple tcp connections */
     bool mtio_mode;
     int mtio_time;
+
+    /* Dual mode splits the core operations into two independent threads: link-read + tunn-send & tunn-read + link-send */
+    bool dual_mode;
 };
 
 struct remote_entry
