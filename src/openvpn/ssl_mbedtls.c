@@ -1489,13 +1489,13 @@ key_state_read_plaintext(struct key_state_ssl *ks, struct buffer *buf)
     /* Error during read, check for retry error */
     if (retval < 0)
     {
+        perf_pop();
         if (MBEDTLS_ERR_SSL_WANT_WRITE == retval || MBEDTLS_ERR_SSL_WANT_READ == retval)
         {
             return 0;
         }
         mbed_log_err(D_TLS_ERRORS, retval, "TLS_ERROR: read tls_read_plaintext error");
         buf->len = 0;
-        perf_pop();
         return -1;
     }
     /* Nothing read, try again */
