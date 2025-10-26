@@ -119,10 +119,6 @@ struct connection_entry
     int connect_retry_seconds;
     int connect_retry_seconds_max;
     int connect_timeout;
-    struct http_proxy_options *http_proxy_options;
-    const char *socks_proxy_server;
-    const char *socks_proxy_port;
-    const char *socks_proxy_authfile;
 
     int tun_mtu;          /* MTU of tun device */
     int occ_mtu;          /* if non-null, this is the MTU we announce to peers in OCC */
@@ -185,6 +181,9 @@ struct connection_entry
     bool mtio_conf;
     bool mtio_mode;
     int mtio_time;
+
+    /* Dual mode splits the core operations into two independent threads: link-read + tunn-send & tunn-read + link-send */
+    bool dual_mode;
 };
 
 struct remote_entry
@@ -315,10 +314,6 @@ struct options
      * will still be capped by the max timeout between connections
      * (300s by default) */
     int server_backoff_time;
-
-#if ENABLE_MANAGEMENT
-    struct http_proxy_options *http_proxy_override;
-#endif
 
     struct remote_host_store *rh_store;
 

@@ -90,7 +90,7 @@ int mydata_index; /* GLOBAL */
 void
 tls_init_lib(void)
 {
-    mydata_index = SSL_get_ex_new_index(0, "struct session *", NULL, NULL, NULL);
+    mydata_index = SSL_get_ex_new_index(0, "struct tls_multi *", NULL, NULL, NULL);
     ASSERT(mydata_index >= 0);
 }
 
@@ -152,11 +152,10 @@ tls_ctx_initialised(struct tls_root_ctx *ctx)
 }
 
 bool
-key_state_export_keying_material(struct tls_session *session, const char *label, size_t label_size,
-                                 void *ekm, size_t ekm_size)
+key_state_export_keying_material(struct tls_session *session, struct key_state *ks, const char *label, size_t label_size, void *ekm, size_t ekm_size)
 
 {
-    SSL *ssl = session->key[KS_PRIMARY].ks_ssl.ssl;
+    SSL *ssl = ks->ks_ssl->ssl;
 
     if (SSL_export_keying_material(ssl, ekm, ekm_size, label, label_size, NULL, 0, 0) == 1)
     {
@@ -2122,7 +2121,7 @@ bio_read(BIO *bio, struct buffer *buf, const char *desc)
     {
         if (!BIO_should_retry(bio))
         {
-            crypto_msg(D_TLS_ERRORS, "TLS_ERROR: BIO read %s error", desc);
+            //crypto_msg(D_TLS_ERRORS, "TLS_ERROR: BIO read %s error", desc);
             buf->len = 0;
             ret = -1;
             ERR_clear_error();
@@ -2143,8 +2142,7 @@ bio_read(BIO *bio, struct buffer *buf, const char *desc)
 }
 
 void
-key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx, bool is_server,
-                   struct tls_session *session)
+key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_ctx, bool is_server, struct tls_multi *multi)
 {
     ASSERT(NULL != ssl_ctx);
     ASSERT(ks_ssl);
@@ -2158,7 +2156,7 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_
 
     /* put session * in ssl object so we can access it
      * from verify callback*/
-    SSL_set_ex_data(ks_ssl->ssl, mydata_index, session);
+    SSL_set_ex_data(ks_ssl->ssl, mydata_index, multi);
 
     ASSERT((ks_ssl->ssl_bio = BIO_new(BIO_f_ssl())));
     ASSERT((ks_ssl->ct_in = BIO_new(BIO_s_mem())));

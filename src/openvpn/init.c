@@ -181,65 +181,14 @@ run_up_down(const char *command, const struct plugin_list *plugins, int plugin_t
 static void
 update_options_ce_post(struct options *options)
 {
-    /*
-     * In pull mode, we usually import --ping/--ping-restart parameters from
-     * the server.  However we should also set an initial default --ping-restart
-     * for the period of time before we pull the --ping-restart parameter
-     * from the server.
-     */
-    if (options->pull && options->ping_rec_timeout_action == PING_UNDEF
-        && proto_is_dgram(options->ce.proto))
-    {
-        options->ping_rec_timeout = PRE_PULL_INITIAL_PING_RESTART;
-        options->ping_rec_timeout_action = PING_RESTART;
-    }
+    /* no-op */
 }
 
 #ifdef ENABLE_MANAGEMENT
 static bool
 management_callback_proxy_cmd(void *arg, const char **p)
 {
-    struct context *c = arg;
-    struct connection_entry *ce = &c->options.ce;
-    struct gc_arena *gc = &c->c2.gc;
-    bool ret = false;
-
-    update_time();
-    if (streq(p[1], "NONE"))
-    {
-        ret = true;
-    }
-    else if (p[2] && p[3])
-    {
-        if (streq(p[1], "HTTP"))
-        {
-            struct http_proxy_options *ho;
-            if (ce->proto != PROTO_TCP && ce->proto != PROTO_TCP_CLIENT)
-            {
-                msg(M_WARN, "HTTP proxy support only works for TCP based connections");
-                return false;
-            }
-            ho = init_http_proxy_options_once(&ce->http_proxy_options, gc);
-            ho->server = string_alloc(p[2], gc);
-            ho->port = string_alloc(p[3], gc);
-            ho->auth_retry = (p[4] && streq(p[4], "nct") ? PAR_NCT : PAR_ALL);
-            ret = true;
-        }
-        else if (streq(p[1], "SOCKS"))
-        {
-            ce->socks_proxy_server = string_alloc(p[2], gc);
-            ce->socks_proxy_port = string_alloc(p[3], gc);
-            ret = true;
-        }
-    }
-    else
-    {
-        msg(M_WARN, "Bad proxy command");
-    }
-
-    ce->flags &= ~CE_MAN_QUERY_PROXY;
-
-    return ret;
+    return false;
 }
 
 static bool
@@ -670,50 +619,13 @@ init_query_passwords(const struct context *c)
 static void
 uninit_proxy_dowork(struct context *c)
 {
-    if (c->c1.http_proxy_owned && c->c1.http_proxy)
-    {
-        http_proxy_close(c->c1.http_proxy);
-        c->c1.http_proxy = NULL;
-        c->c1.http_proxy_owned = false;
-    }
-    if (c->c1.socks_proxy_owned && c->c1.socks_proxy)
-    {
-        socks_proxy_close(c->c1.socks_proxy);
-        c->c1.socks_proxy = NULL;
-        c->c1.socks_proxy_owned = false;
-    }
+    /* no-op */
 }
 
 static void
 init_proxy_dowork(struct context *c)
 {
-    bool did_http = false;
-
-    uninit_proxy_dowork(c);
-
-    if (c->options.ce.http_proxy_options)
-    {
-        c->options.ce.http_proxy_options->first_time = c->first_time;
-
-        /* Possible HTTP proxy user/pass input */
-        c->c1.http_proxy = http_proxy_new(c->options.ce.http_proxy_options);
-        if (c->c1.http_proxy)
-        {
-            did_http = true;
-            c->c1.http_proxy_owned = true;
-        }
-    }
-
-    if (!did_http && c->options.ce.socks_proxy_server)
-    {
-        c->c1.socks_proxy =
-            socks_proxy_new(c->options.ce.socks_proxy_server, c->options.ce.socks_proxy_port,
-                            c->options.ce.socks_proxy_authfile);
-        if (c->c1.socks_proxy)
-        {
-            c->c1.socks_proxy_owned = true;
-        }
-    }
+    /* no-op */
 }
 
 static void
@@ -1369,20 +1281,6 @@ do_init_timers(struct context *c, bool deferred)
     {
         /* initialize connection establishment timer */
         event_timeout_init(&c->c2.wait_for_connect, 1, now);
-
-        /* initialize occ timers */
-
-        if (c->options.occ && !TLS_MODE(c) && c->c2.options_string_local
-            && c->c2.options_string_remote)
-        {
-            event_timeout_init(&c->c2.occ_interval, OCC_INTERVAL_SECONDS, now);
-        }
-
-        if (c->options.mtu_test)
-        {
-            event_timeout_init(&c->c2.occ_mtu_load_test_interval, OCC_MTU_LOAD_INTERVAL_SECONDS,
-                               now);
-        }
 
         /* initialize packet_id persistence timer */
         if (c->options.packet_id_file)
@@ -2310,24 +2208,30 @@ tls_print_deferred_options_results(struct context *c)
  * can be done only after the DCO device was created and the new peer was
  * properly added.
  */
-static bool
+bool
 do_deferred_options_part2(struct context *c)
 {
     struct frame *frame_fragment = NULL;
-#ifdef ENABLE_FRAGMENT
-    if (c->options.ce.fragment)
-    {
-        frame_fragment = &c->c2.frame_fragment;
-    }
-#endif
 
-    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-    if (!tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame,
-                                          frame_fragment, get_link_socket_info(c),
-                                          &c->c1.tuntap->dco))
+    struct tls_multi *multi = c->c2.tls_multi;
+    for (int i = 0; i < TM_SIZE; ++i)
     {
-        msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
-        return false;
+        struct tls_session *session = &multi->session[i];
+        struct key_state *ks = &session->key[KS_MAIN];
+        if (i == TM_MAIN && ks->state == S_ACTIVE && ks->authenticated == KS_AUTH_TRUE)
+        {
+            if (!tls_session_update_crypto_params(multi, session, ks, &c->options, &c->c2.frame,
+                                                  frame_fragment, get_link_socket_info(c),
+                                                  &c->c1.tuntap->dco))
+            {
+                msg(D_TLS_ERRORS, "OPTIONS ERROR: failed to import crypto options");
+                return false;
+            }
+        }
+        if (i == TM_MAIN && ks->state == S_GENERATED_KEYS && ks->authenticated == KS_AUTH_TRUE && multi->gens_stat)
+        {
+            tls_session_generate_data_keys_helper(multi, session, ks);
+        }
     }
 
     return true;
@@ -2547,10 +2451,9 @@ do_deferred_p2p_ncp(struct context *c)
 
     c->options.use_peer_id = c->c2.tls_multi->use_peer_id;
 
-    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
+    struct tls_multi *multi = c->c2.tls_multi;
 
-    const char *ncp_cipher =
-        get_p2p_ncp_cipher(session, c->c2.tls_multi->peer_info, &c->options.gc);
+    const char *ncp_cipher = get_p2p_ncp_cipher(multi, multi->peer_info, &c->options.gc);
 
     if (ncp_cipher)
     {
@@ -2564,21 +2467,11 @@ do_deferred_p2p_ncp(struct context *c)
         return false;
     }
 
-    struct frame *frame_fragment = NULL;
-#ifdef ENABLE_FRAGMENT
-    if (c->options.ce.fragment)
+    if (!do_deferred_options_part2(c))
     {
-        frame_fragment = &c->c2.frame_fragment;
-    }
-#endif
-
-    if (!tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame,
-                                          frame_fragment, get_link_socket_info(c),
-                                          &c->c1.tuntap->dco))
-    {
-        msg(D_TLS_ERRORS, "ERROR: failed to set crypto cipher");
         return false;
     }
+
     return true;
 }
 
@@ -3025,11 +2918,10 @@ do_init_crypto_static(struct context *c, const unsigned int flags)
     }
 
     /* Initialize packet ID tracking */
-    packet_id_init(&c->c2.crypto_options.packet_id, options->replay_window, options->replay_time,
-                   "STATIC", 0);
+    packet_id_init(&c->c2.crypto_options.packet_id, options->replay_window, options->replay_time, "STATIC", 0);
     c->c2.crypto_options.pid_persist = &c->c1.pid_persist;
     c->c2.crypto_options.flags |= CO_PACKET_ID_LONG_FORM;
-    packet_id_persist_load_obj(&c->c1.pid_persist, &c->c2.crypto_options.packet_id);
+    //packet_id_persist_load_obj(&c->c1.pid_persist, &c->c2.crypto_options.packet_id);
 
     if (!key_ctx_bi_defined(&c->c1.ks.static_key))
     {
@@ -3439,6 +3331,8 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     /* let the TLS engine know if keys have to be installed in DCO or not */
     to.dco_enabled = dco_enabled(options);
 
+    to.dual_mode = c->options.ce.dual_mode;
+
     /*
      * Initialize OpenVPN's master TLS-mode object.
      */
@@ -3549,34 +3443,6 @@ do_init_frame(struct context *c)
      * make sure values are rational, etc.
      */
     frame_finalize_options(c, NULL);
-
-
-#if defined(ENABLE_FRAGMENT)
-    /*
-     * MTU advisories
-     */
-    if (c->options.ce.fragment && c->options.mtu_test)
-    {
-        msg(M_WARN,
-            "WARNING: using --fragment and --mtu-test together may produce an inaccurate MTU test result");
-    }
-#endif
-
-#ifdef ENABLE_FRAGMENT
-    if (c->options.ce.fragment > 0 && c->options.ce.mssfix > c->options.ce.fragment)
-    {
-        msg(M_WARN,
-            "WARNING: if you use --mssfix and --fragment, you should "
-            "set --fragment (%d) larger or equal than --mssfix (%d)",
-            c->options.ce.fragment, c->options.ce.mssfix);
-    }
-    if (c->options.ce.fragment > 0 && c->options.ce.mssfix > 0
-        && c->options.ce.fragment_encap != c->options.ce.mssfix_encap)
-    {
-        msg(M_WARN, "WARNING: if you use --mssfix and --fragment, you should "
-                    "use the \"mtu\" flag for both or none of of them.");
-    }
-#endif
 }
 
 static void
@@ -3779,29 +3645,6 @@ do_init_buffers(struct context *c)
     c->c2.buffers_owned = true;
 }
 
-#ifdef ENABLE_FRAGMENT
-/*
- * Fragmenting code has buffers to initialize
- * once frame parameters are known.
- */
-static void
-do_init_fragment(struct context *c)
-{
-    ASSERT(c->options.ce.fragment);
-
-    /*
-     * Set frame parameter for fragment code.  This is necessary because
-     * the fragmentation code deals with payloads which have already been
-     * passed through the compression code.
-     */
-    c->c2.frame_fragment = c->c2.frame;
-
-    frame_calculate_dynamic(&c->c2.frame_fragment, &c->c1.ks.key_type, &c->options,
-                            get_link_socket_info(c));
-    fragment_frame_init(c->c2.fragment, &c->c2.frame_fragment);
-}
-#endif
-
 /*
  * Allocate our socket object.
  */
@@ -3870,12 +3713,6 @@ static void
 do_print_data_channel_mtu_parms(struct context *c)
 {
     frame_print(&c->c2.frame, D_MTU_INFO, "Data Channel MTU parms");
-#ifdef ENABLE_FRAGMENT
-    if (c->c2.fragment)
-    {
-        frame_print(&c->c2.frame_fragment, D_MTU_INFO, "Fragmentation MTU parms");
-    }
-#endif
 }
 
 /*
@@ -4077,21 +3914,6 @@ do_close_packet_id(struct context *c)
         packet_id_persist_close(&c->c1.pid_persist);
     }
 }
-
-#ifdef ENABLE_FRAGMENT
-/*
- * Close fragmentation handler.
- */
-static void
-do_close_fragment(struct context *c)
-{
-    if (c->c2.fragment)
-    {
-        fragment_free(c->c2.fragment);
-        c->c2.fragment = NULL;
-    }
-}
-#endif
 
 /*
  * Open and close our event objects.
@@ -4603,12 +4425,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         do_open_ifconfig_pool_persist(c);
     }
 
-    /* reset OCC state */
-    if (c->mode == CM_P2P || child)
-    {
-        c->c2.occ_op = occ_reset_op();
-    }
-
     /* our wait-for-i/o objects, different for posix vs. win32 */
     if (c->mode == CM_P2P || c->mode == CM_TOP)
     {
@@ -4627,14 +4443,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     {
         do_link_socket_new(c);
     }
-
-#ifdef ENABLE_FRAGMENT
-    /* initialize internal fragmentation object */
-    if (options->ce.fragment && (c->mode == CM_P2P || child))
-    {
-        c->c2.fragment = fragment_init(&c->c2.frame);
-    }
-#endif
 
     /* init crypto layer */
     {
@@ -4677,14 +4485,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
     {
         do_init_buffers(c);
     }
-
-#ifdef ENABLE_FRAGMENT
-    /* initialize internal fragmentation capability with known frame size */
-    if (options->ce.fragment && (c->mode == CM_P2P || child))
-    {
-        do_init_fragment(c);
-    }
-#endif
 
     /* bind the TCP/UDP socket */
     if (c->mode == CM_P2P || c->mode == CM_TOP || c->mode == CM_CHILD_TCP)
@@ -4870,11 +4670,6 @@ close_instance(struct context *c)
 
         /* close --status file */
         do_close_status_output(c);
-
-#ifdef ENABLE_FRAGMENT
-        /* close fragmentation handler */
-        do_close_fragment(c);
-#endif
 
         /* close --ifconfig-pool-persist obj */
         do_close_ifconfig_pool_persist(c);

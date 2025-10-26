@@ -103,6 +103,10 @@ typedef uint64_t packet_id_print_type;
  */
 #define SEQ_REAP_INTERVAL 5
 
+#define PAID_INDX 31337
+#define PAID_INIT 1337
+#define PAID_TIME 15
+
 CIRC_LIST(seq_list, time_t);
 
 /*
@@ -311,8 +315,8 @@ packet_id_persist_save_obj(struct packet_id_persist *p, const struct packet_id *
 static inline void
 reset_packet_id_send(struct packet_id_send *p)
 {
-    p->time = 0;
-    p->id = 0;
+    p->id = PAID_INIT;
+    p->time = PAID_TIME;
 }
 
 const char *packet_id_net_print(const struct packet_id_net *pin, bool print_timestamp,

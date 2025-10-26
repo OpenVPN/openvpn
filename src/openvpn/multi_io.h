@@ -35,16 +35,20 @@
 
 #define TA_UNDEF                 0
 #define TA_SOCKET_READ           1
-#define TA_SOCKET_READ_RESIDUAL  2
+/* no-op 2 */
 #define TA_SOCKET_WRITE          3
-#define TA_SOCKET_WRITE_READY    4
-#define TA_SOCKET_WRITE_DEFERRED 5
+/* no-op 4 */
+/* no-op 5 */
 #define TA_TUN_READ              6
 #define TA_TUN_WRITE             7
 #define TA_INITIAL               8
 #define TA_TIMEOUT               9
-#define TA_TUN_WRITE_TIMEOUT     10
+/* no-op 10 */
 #define TA_INST_LENG             11
+/* no-op 12 */
+#define TA_FORWARD               13
+/* no-op 14 */
+#define TA_KEYS                  15
 
 /*
  * I/O state and events tracker
@@ -62,17 +66,15 @@ struct multi_io
 #endif
 };
 
-struct multi_io *multi_io_init(int maxclients);
+struct multi_io multi_io_init(int maxclients);
 
 void multi_io_free(struct multi_io *multi_io);
 
 int multi_io_wait(struct multi_context *m);
 
-void multi_io_process_io(struct thread_pointer *b);
+void multi_io_process_io(struct thread_pointer *b, const unsigned int f, int t);
 
-void multi_io_set_global_rw_flags(struct multi_context *m, struct multi_instance *mi);
-
-void multi_io_action(struct multi_context *m, struct multi_instance *mi, int action, bool poll);
+void multi_io_action(struct multi_context *m, int action, bool poll, const unsigned int flags, int t);
 
 void multi_io_delete_event(struct multi_io *multi_io, event_t event);
 

@@ -42,13 +42,21 @@
 #include "memdbg.h"
 
 bool
-sockets_read_residual(const struct context *c)
+sockets_read_residual(struct link_socket **links, int num)
 {
-    int i;
-
-    for (i = 0; i < c->c1.link_sockets_num; i++)
+    if (num < 1) { num = 1; }
+    for (int i = 0; i < num; i++)
     {
-        if (c->c2.link_sockets[i]->stream_buf.residual_fully_formed)
+        struct stream_buf *sb = &links[i]->stream_buf;
+        if (links[i]->stream_reset)
+        {
+            return false;
+        }
+        if (sb->len > 0 && sb->buf.len >= sb->len)
+        {
+            return true;
+        }
+        if (sb->residual_fully_formed)
         {
             return true;
         }
@@ -334,7 +342,6 @@ do_preresolve(struct context *c)
     for (int i = 0; i < l->len; ++i)
     {
         int status;
-        const char *remote;
         unsigned int flags = preresolve_flags;
 
         struct connection_entry *ce = l->array[i];
@@ -347,47 +354,6 @@ do_preresolve(struct context *c)
         if (c->options.sockflags & SF_HOST_RANDOMIZE)
         {
             flags |= GETADDR_RANDOMIZE;
-        }
-
-        if (c->options.ip_remote_hint)
-        {
-            remote = c->options.ip_remote_hint;
-        }
-        else
-        {
-            remote = ce->remote;
-        }
-
-        /* HTTP remote hostname does not need to be resolved */
-        if (!ce->http_proxy_options)
-        {
-            status = do_preresolve_host(c, remote, ce->remote_port, ce->af, flags);
-            if (status != 0)
-            {
-                goto err;
-            }
-        }
-
-        /* Preresolve proxy */
-        if (ce->http_proxy_options)
-        {
-            status = do_preresolve_host(c, ce->http_proxy_options->server,
-                                        ce->http_proxy_options->port, ce->af, preresolve_flags);
-
-            if (status != 0)
-            {
-                goto err;
-            }
-        }
-
-        if (ce->socks_proxy_server)
-        {
-            status =
-                do_preresolve_host(c, ce->socks_proxy_server, ce->socks_proxy_port, ce->af, flags);
-            if (status != 0)
-            {
-                goto err;
-            }
         }
 
         if (ce->bind_local)
@@ -668,15 +634,7 @@ bind_local(struct link_socket *sock, const sa_family_t ai_family)
     /* bind to local address/port */
     if (sock->bind_local)
     {
-        if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
-        {
-            socket_bind(sock->ctrl_sd, sock->info.lsa->bind_local, ai_family, "SOCKS", false);
-        }
-        else
-        {
-            socket_bind(sock->sd, sock->info.lsa->bind_local, ai_family, "TCP/UDP",
-                        sock->info.bind_ipv6_only);
-        }
+        socket_bind(sock->sd, sock->info.lsa->bind_local, ai_family, "TCP/UDP", sock->info.bind_ipv6_only);
     }
 }
 
@@ -687,19 +645,6 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
     {
         sock->sd = create_socket_udp(addr, sock->sockflags);
         sock->sockflags |= SF_GETADDRINFO_DGRAM;
-
-        /* Assume that control socket and data socket to the socks proxy
-         * are using the same IP family */
-        if (sock->socks_proxy)
-        {
-            /* Construct a temporary addrinfo to create the socket,
-             * currently resolve two remote addresses is not supported,
-             * TODO: Rewrite the whole resolve_remote */
-            struct addrinfo addrinfo_tmp = *addr;
-            addrinfo_tmp.ai_socktype = SOCK_STREAM;
-            addrinfo_tmp.ai_protocol = IPPROTO_TCP;
-            sock->ctrl_sd = create_socket_tcp(&addrinfo_tmp);
-        }
     }
     else if (addr->ai_protocol == IPPROTO_TCP || addr->ai_socktype == SOCK_STREAM)
     {
@@ -1168,12 +1113,9 @@ done:
  * such as TCP.
  */
 
-static void stream_buf_init(struct stream_buf *sb, struct buffer *buf, const unsigned int sockflags,
-                            const int proto);
+static void stream_buf_init(struct stream_buf *sb, struct buffer *buf, const unsigned int sockflags, const int proto);
 
 static void stream_buf_close(struct stream_buf *sb);
-
-static bool stream_buf_added(struct stream_buf *sb, int length_added);
 
 /* For stream protocols, allocate a buffer to build up packet.
  * Called after frame has been finalized. */
@@ -1191,13 +1133,13 @@ socket_frame_init(const struct frame *frame, struct link_socket *sock)
     if (link_socket_connection_oriented(sock))
     {
 #ifdef _WIN32
-        stream_buf_init(&sock->stream_buf, &sock->reads.buf_init, sock->sockflags,
-                        sock->info.proto);
+        stream_buf_init(&sock->stream_buf, &sock->reads.buf_init, sock->sockflags, sock->info.proto);
 #else
-        alloc_buf_sock_tun(&sock->stream_buf_data, frame);
-
-        stream_buf_init(&sock->stream_buf, &sock->stream_buf_data, sock->sockflags,
-                        sock->info.proto);
+        struct stream_buf *sb = &sock->stream_buf;
+        alloc_buf_sock_tun(&sock->stream_buf_data[0], frame);
+        alloc_buf_sock_tun(&sock->stream_buf_data[1], frame);
+        stream_buf_init(sb, sock->stream_buf_data, sock->sockflags, sock->info.proto);
+        stream_buf_read_setup(sock);
 #endif
     }
 }
@@ -1427,8 +1369,6 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
     sock->remote_host = remote_host;
     sock->remote_port = remote_port;
     sock->dns_cache = c->c1.dns_cache;
-    sock->http_proxy = c->c1.http_proxy;
-    sock->socks_proxy = c->c1.socks_proxy;
     sock->bind_local = o->ce.bind_local;
     sock->resolve_retry_seconds = o->resolve_retry_seconds;
     sock->mtu_discover_type = o->ce.mtu_discover_type;
@@ -1470,35 +1410,8 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
         sock->info.af = c->c2.accept_from->info.af;
     }
 
-    /* are we running in HTTP proxy mode? */
-    if (sock->http_proxy)
-    {
-        ASSERT(sock->info.proto == PROTO_TCP_CLIENT);
-
-        /* the proxy server */
-        sock->remote_host = c->c1.http_proxy->options.server;
-        sock->remote_port = c->c1.http_proxy->options.port;
-
-        /* the OpenVPN server we will use the proxy to connect to */
-        sock->proxy_dest_host = remote_host;
-        sock->proxy_dest_port = remote_port;
-    }
-    /* or in Socks proxy mode? */
-    else if (sock->socks_proxy)
-    {
-        /* the proxy server */
-        sock->remote_host = c->c1.socks_proxy->server;
-        sock->remote_port = c->c1.socks_proxy->port;
-
-        /* the OpenVPN server we will use the proxy to connect to */
-        sock->proxy_dest_host = remote_host;
-        sock->proxy_dest_port = remote_port;
-    }
-    else
-    {
-        sock->remote_host = remote_host;
-        sock->remote_port = remote_port;
-    }
+    sock->remote_host = remote_host;
+    sock->remote_port = remote_port;
 
     /* bind behavior for TCP server vs. client */
     if (sock->info.proto == PROTO_TCP_SERVER)
@@ -1612,73 +1525,14 @@ phase2_tcp_server(struct link_socket *sock, const char *remote_dynamic,
     }
 }
 
-
 static void
 phase2_tcp_client(struct link_socket *sock, struct signal_info *sig_info)
 {
-    bool proxy_retry = false;
-    do
-    {
-        socket_connect(&sock->sd, sock->info.lsa->current_remote->ai_addr,
-                       get_server_poll_remaining_time(sock->server_poll_timeout), sig_info);
-
-        if (sig_info->signal_received)
-        {
-            return;
-        }
-
-        if (sock->http_proxy)
-        {
-            proxy_retry = establish_http_proxy_passthru(
-                sock->http_proxy, sock->sd, sock->proxy_dest_host, sock->proxy_dest_port,
-                sock->server_poll_timeout, &sock->stream_buf.residual, sig_info);
-        }
-        else if (sock->socks_proxy)
-        {
-            establish_socks_proxy_passthru(sock->socks_proxy, sock->sd, sock->proxy_dest_host,
-                                           sock->proxy_dest_port, sock->server_poll_timeout,
-                                           sig_info);
-        }
-        if (proxy_retry)
-        {
-            openvpn_close_socket(sock->sd);
-            sock->sd = create_socket_tcp(sock->info.lsa->current_remote);
-        }
-
-    } while (proxy_retry);
-}
-
-static void
-phase2_socks_client(struct link_socket *sock, struct signal_info *sig_info)
-{
-    socket_connect(&sock->ctrl_sd, sock->info.lsa->current_remote->ai_addr,
-                   get_server_poll_remaining_time(sock->server_poll_timeout), sig_info);
-
+    socket_connect(&sock->sd, sock->info.lsa->current_remote->ai_addr, get_server_poll_remaining_time(sock->server_poll_timeout), sig_info);
     if (sig_info->signal_received)
     {
         return;
     }
-
-    establish_socks_proxy_udpassoc(sock->socks_proxy, sock->ctrl_sd, &sock->socks_relay.dest,
-                                   sock->server_poll_timeout, sig_info);
-
-    if (sig_info->signal_received)
-    {
-        return;
-    }
-
-    sock->remote_host = sock->proxy_dest_host;
-    sock->remote_port = sock->proxy_dest_port;
-
-    addr_zero_host(&sock->info.lsa->actual.dest);
-    if (sock->info.lsa->remote_list)
-    {
-        freeaddrinfo(sock->info.lsa->remote_list);
-        sock->info.lsa->current_remote = NULL;
-        sock->info.lsa->remote_list = NULL;
-    }
-
-    resolve_remote(sock, 1, NULL, sig_info);
 }
 
 #if defined(_WIN32)
@@ -1819,10 +1673,6 @@ link_socket_init_phase2(struct context *c, struct link_socket *sock)
     {
         phase2_tcp_client(sock, sig_info);
     }
-    else if (sock->info.proto == PROTO_UDP && sock->socks_proxy)
-    {
-        phase2_socks_client(sock, sig_info);
-    }
 #ifdef TARGET_ANDROID
     if (sock->sd != -1)
     {
@@ -1896,7 +1746,8 @@ link_socket_close(struct link_socket *sock)
         }
 
         stream_buf_close(&sock->stream_buf);
-        free_buf(&sock->stream_buf_data);
+        free_buf(&sock->stream_buf_data[0]);
+        free_buf(&sock->stream_buf_data[1]);
         if (!gremlin)
         {
             free(sock);
@@ -2111,43 +1962,48 @@ socket_stat(const struct link_socket *s, unsigned int rwflags, struct gc_arena *
  * stream connection.
  */
 
-static inline void
+void
 stream_buf_reset(struct stream_buf *sb)
 {
-    dmsg(D_STREAM_DEBUG, "STREAM: RESET");
+    msg(D_STREAM_DEBUG, "STREAM: RESET [%d]", sb->idx);
     sb->residual_fully_formed = false;
-    sb->buf = sb->buf_init;
-    buf_reset(&sb->next);
+    sb->buf = sb->buf_init[sb->idx];
+    ASSERT(buf_init(&sb->buf, sb->off));
     sb->len = -1;
+    sb->idx = ((sb->idx + 1) % 2);
 }
 
 static void
-stream_buf_init(struct stream_buf *sb, struct buffer *buf, const unsigned int sockflags,
-                const int proto)
+stream_buf_init(struct stream_buf *sb, struct buffer *buf, const unsigned int sockflags, const int proto)
 {
-    sb->buf_init = *buf;
-    sb->maxlen = sb->buf_init.len;
-    sb->buf_init.len = 0;
+    sb->off = 150;
+    sb->idx = 0;
+    for (int x = 0; x < 2; ++x)
+    {
+        sb->maxlen = buf[x].len;
+        sb->buf_init[x] = buf[x];
+        ASSERT(buf_init(&sb->buf_init[x], sb->off));
+    }
+    sb->buf = sb->buf_init[sb->idx];
+    ASSERT(buf_init(&sb->buf, sb->off));
     sb->residual = alloc_buf(sb->maxlen);
+    ASSERT(buf_init(&sb->residual, sb->off));
     sb->error = false;
 #if PORT_SHARE
     sb->port_share_state =
         ((sockflags & SF_PORT_SHARE) && (proto == PROTO_TCP_SERVER)) ? PS_ENABLED : PS_DISABLED;
 #endif
-    stream_buf_reset(sb);
-
     dmsg(D_STREAM_DEBUG, "STREAM: INIT maxlen=%d", sb->maxlen);
 }
 
-static inline void
+void
 stream_buf_set_next(struct stream_buf *sb)
 {
     /* set up 'next' for next i/o read */
     sb->next = sb->buf;
     sb->next.offset = sb->buf.offset + sb->buf.len;
-    sb->next.len = (sb->len >= 0 ? sb->len : sb->maxlen) - sb->buf.len;
-    dmsg(D_STREAM_DEBUG, "STREAM: SET NEXT, buf=[%d,%d] next=[%d,%d] len=%d maxlen=%d",
-         sb->buf.offset, sb->buf.len, sb->next.offset, sb->next.len, sb->len, sb->maxlen);
+    sb->next.len = sb->maxlen - sb->next.offset;
+    msg(D_STREAM_DEBUG, "STREAM: SET NEXT, buf=[%d,%d] next=[%d,%d] len=%d maxlen=%d", sb->buf.offset, sb->buf.len, sb->next.offset, sb->next.len, sb->len, sb->maxlen);
     ASSERT(sb->next.len > 0);
     ASSERT(buf_safe(&sb->buf, sb->next.len));
 }
@@ -2171,30 +2027,23 @@ stream_buf_get_next(struct stream_buf *sb, struct buffer *buf)
 bool
 stream_buf_read_setup_dowork(struct link_socket *sock)
 {
-    if (sock->stream_buf.residual.len && !sock->stream_buf.residual_fully_formed)
+    struct stream_buf *sb = &sock->stream_buf;
+    stream_buf_reset(sb);
+    if (sb->residual.len)
     {
-        ASSERT(buf_copy(&sock->stream_buf.buf, &sock->stream_buf.residual));
-        ASSERT(buf_init(&sock->stream_buf.residual, 0));
-        sock->stream_buf.residual_fully_formed = stream_buf_added(&sock->stream_buf, 0);
-        dmsg(D_STREAM_DEBUG, "STREAM: RESIDUAL FULLY FORMED [%s], len=%d",
-             sock->stream_buf.residual_fully_formed ? "YES" : "NO", sock->stream_buf.residual.len);
+        ASSERT(buf_copy(&sb->buf, &sb->residual));
     }
-
-    if (!sock->stream_buf.residual_fully_formed)
-    {
-        stream_buf_set_next(&sock->stream_buf);
-    }
-    return !sock->stream_buf.residual_fully_formed;
+    ASSERT(buf_init(&sb->residual, sb->off));
+    sb->residual_fully_formed = stream_buf_added(sb, 0);
+    msg(D_STREAM_DEBUG, "STREAM: RESIDUAL FULLY FORMED [%s], len=%d", sb->residual_fully_formed ? "YES" : "NO", sb->buf.len);
+    stream_buf_set_next(sb);
+    return true;
 }
 
-static bool
+bool
 stream_buf_added(struct stream_buf *sb, int length_added)
 {
     dmsg(D_STREAM_DEBUG, "STREAM: ADD length_added=%d", length_added);
-    if (length_added > 0)
-    {
-        sb->buf.len += length_added;
-    }
 
     /* if length unknown, see if we can get the length prefix from
      * the head of the buffer */
@@ -2237,19 +2086,17 @@ stream_buf_added(struct stream_buf *sb, int length_added)
     if (sb->len > 0 && sb->buf.len >= sb->len)
     {
         /* save any residual data that's part of the next packet */
-        ASSERT(buf_init(&sb->residual, 0));
+        ASSERT(buf_init(&sb->residual, sb->off));
         if (sb->buf.len > sb->len)
         {
             ASSERT(buf_copy_excess(&sb->residual, &sb->buf, sb->len));
         }
-        dmsg(D_STREAM_DEBUG, "STREAM: ADD returned TRUE, buf_len=%d, residual_len=%d",
-             BLEN(&sb->buf), BLEN(&sb->residual));
+        dmsg(D_STREAM_DEBUG, "STREAM: ADD returned TRUE, buf_len=%d, residual_len=%d", BLEN(&sb->buf), BLEN(&sb->residual));
         return true;
     }
     else
     {
         dmsg(D_STREAM_DEBUG, "STREAM: ADD returned FALSE (have=%d need=%d)", sb->buf.len, sb->len);
-        stream_buf_set_next(sb);
         return false;
     }
 }
@@ -2299,9 +2146,17 @@ bad_address_length(int actual, int expected)
 int
 link_socket_read_tcp(struct link_socket *sock, struct buffer *buf)
 {
-    int len = 0;
+    int len = 0, low = 5;
+    struct stream_buf *sb = &sock->stream_buf;
 
-    if (!sock->stream_buf.residual_fully_formed)
+    struct buffer frag;
+    stream_buf_get_next(sb, &frag);
+
+    if (!sb->residual_fully_formed)
+    {
+        sb->residual_fully_formed = stream_buf_added(sb, 0);
+    }
+    if (!sb->residual_fully_formed && BLEN(&frag) > low)
     {
         /* with Linux-DCO, we sometimes try to access a socket that is
          * already installed in the kernel and has no valid file descriptor
@@ -2311,40 +2166,54 @@ link_socket_read_tcp(struct link_socket *sock, struct buffer *buf)
         if (sock->sd == SOCKET_UNDEFINED)
         {
             msg(M_INFO, "BUG: link_socket_read_tcp(): sock->sd==-1, reset client instance");
-            sock->stream_reset = true; /* reset client instance */
-            return buf->len = 0;       /* nothing to read */
+            sock->stream_reset = true;
+            sb->residual.len = 0;
+            buf->len = 0;
+            goto last;
         }
 
 #ifdef _WIN32
         sockethandle_t sh = { .s = sock->sd };
         len = sockethandle_finalize(sh, &sock->reads, buf, NULL);
 #else
-        struct buffer frag;
-        stream_buf_get_next(&sock->stream_buf, &frag);
-        len = recv(sock->sd, BPTR(&frag), BLEN(&frag), MSG_NOSIGNAL);
+        len = recv(sock->sd, BPTR(&frag), BLEN(&frag) - low, MSG_NOSIGNAL);
 #endif
 
-        if (!len)
+        if (len > 0)
         {
-            sock->stream_reset = true;
+            sb->buf.len += len;
+            stream_buf_set_next(sb);
         }
+
+        msg(D_STREAM_DEBUG, "STREAM: READ %d buf=%d size=%d", (int)len, BLEN(&sb->buf), BLEN(&sb->next));
+
         if (len <= 0)
         {
-            return buf->len = len;
+            sock->stream_reset = true;
+            sb->residual.len = 0;
+            buf->len = 0;
+            goto last;
         }
     }
-
-    if (sock->stream_buf.residual_fully_formed
-        || stream_buf_added(&sock->stream_buf, len)) /* packet complete? */
+    if (!sb->residual_fully_formed)
     {
-        stream_buf_get_final(&sock->stream_buf, buf);
-        stream_buf_reset(&sock->stream_buf);
-        return buf->len;
+        sb->residual_fully_formed = stream_buf_added(sb, 0);
+    }
+
+    if (sb->residual_fully_formed) /* packet complete? */
+    {
+        stream_buf_get_final(sb, buf);
+        stream_buf_read_setup(sock);
+        goto last;
     }
     else
     {
-        return buf->len = 0; /* no error, but packet is still incomplete */
+        buf->len = 0; /* no error, but packet is still incomplete */
+        goto last;
     }
+
+last:
+    return buf->len;
 }
 
 #ifndef _WIN32
@@ -2449,8 +2318,7 @@ link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
     else
 #endif
     {
-        buf->len = recvfrom(sock->sd, BPTR(buf), buf_forward_capacity(buf), 0, &from->dest.addr.sa,
-                            &fromlen);
+        buf->len = recvfrom(sock->sd, BPTR(buf), buf_forward_capacity(buf), 0, &from->dest.addr.sa, &fromlen);
     }
     /* FIXME: won't do anything when sock->info.af == AF_UNSPEC */
     if (buf->len >= 0 && expectedlen && fromlen != expectedlen)
@@ -2470,7 +2338,7 @@ ssize_t
 link_socket_write_tcp(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *to)
 {
     packet_size_type len = BLEN(buf);
-    dmsg(D_STREAM_DEBUG, "STREAM: WRITE %d offset=%d", (int)len, buf->offset);
+    msg(D_STREAM_DEBUG, "STREAM: WRITE %d offset=%d", (int)len, buf->offset);
     ASSERT(len <= sock->stream_buf.maxlen);
     len = htonps(len);
     ASSERT(buf_write_prepend(buf, &len, sizeof(len)));
@@ -2968,35 +2836,12 @@ sockethandle_finalize(sockethandle_t sh, struct overlapped_io *io, struct buffer
  */
 
 unsigned int
-socket_set(struct link_socket *s, struct event_set *es, unsigned int rwflags, void *arg,
-           unsigned int *persistent)
+socket_set(struct link_socket *s, struct event_set *es, unsigned int rwflags, void *arg, unsigned int *persistent)
 {
     if (s)
     {
-        if ((rwflags & EVENT_READ) && !stream_buf_read_setup(s))
-        {
-            ASSERT(!persistent);
-            rwflags &= ~EVENT_READ;
-        }
-
-#ifdef _WIN32
-        if (rwflags & EVENT_READ)
-        {
-            socket_recv_queue(s, 0);
-        }
-#endif
-
-        /* if persistent is defined, call event_ctl only if rwflags has changed since last call */
-        if (!persistent || *persistent != rwflags)
-        {
-            event_ctl(es, socket_event_handle(s), rwflags, arg);
-            if (persistent)
-            {
-                *persistent = rwflags;
-            }
-        }
-
-        s->rwflags_debug = rwflags;
+        rwflags |= EVENT_READ;
+        event_ctl(es, socket_event_handle(s), rwflags, arg);
     }
     return rwflags;
 }

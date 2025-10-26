@@ -283,7 +283,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
                         {
                             mi->context.c2.tls_multi->n_sessions++;
                             struct tls_session *session =
-                                &mi->context.c2.tls_multi->session[TM_INITIAL];
+                                &mi->context.c2.tls_multi->session[TM_INIT];
                             session_skip_to_pre_start(session, &state, &m->top.c2.from);
                         }
                     }
@@ -314,32 +314,10 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
 }
 
 /*
- * Send a packet to UDP socket.
- */
-static inline void
-multi_process_outgoing_link(struct multi_context *m, const unsigned int mpp_flags)
-{
-    struct multi_instance *mi = multi_process_outgoing_link_pre(m);
-    if (mi)
-    {
-        multi_process_outgoing_link_dowork(m, mi, mpp_flags);
-    }
-    if (m->hmac_reply_dest && m->hmac_reply.len > 0)
-    {
-        msg_set_prefix("Connection Attempt");
-        m->top.c2.to_link = m->hmac_reply;
-        m->top.c2.to_link_addr = m->hmac_reply_dest;
-        process_outgoing_link(&m->top, m->hmac_reply_ls);
-        m->hmac_reply_ls = NULL;
-        m->hmac_reply_dest = NULL;
-    }
-}
-
-/*
  * Process a UDP socket event.
  */
 void
-multi_process_io_udp(struct multi_context *m, struct link_socket *sock)
+multi_process_io_udp(struct multi_context *m, struct link_socket *sock, int t)
 {
     const unsigned int status = m->multi_io->udp_flags;
     const unsigned int mpp_flags = m->top.c2.fast_io
@@ -349,7 +327,7 @@ multi_process_io_udp(struct multi_context *m, struct link_socket *sock)
     /* UDP port ready to accept write */
     if (status & SOCKET_WRITE)
     {
-        multi_process_outgoing_link(m, mpp_flags);
+        multi_process_outgoing_link(m, mpp_flags, t);
     }
     /* Incoming data on UDP port */
     else if (status & SOCKET_READ)
@@ -357,7 +335,7 @@ multi_process_io_udp(struct multi_context *m, struct link_socket *sock)
         read_incoming_link(&m->top, sock);
         if (!IS_SIG(&m->top))
         {
-            multi_process_incoming_link(m, NULL, mpp_flags, sock);
+            multi_process_incoming_link(m, mpp_flags, sock);
         }
     }
 
@@ -383,17 +361,13 @@ p2mp_iow_flags(const struct multi_context *m)
             flags |= IOW_TO_TUN;
         }
     }
-    else if (mbuf_defined(m->mbuf))
-    {
-        flags |= IOW_MBUF;
-    }
     else if (m->hmac_reply_dest)
     {
         flags |= IOW_TO_LINK;
     }
     else
     {
-        flags |= IOW_READ;
+        flags |= (IOW_READ_TUN | IOW_READ_LINK);
     }
     return flags;
 }

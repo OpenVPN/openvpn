@@ -66,17 +66,8 @@ pract(int action)
         case TA_SOCKET_READ:
             return "TA_SOCKET_READ";
 
-        case TA_SOCKET_READ_RESIDUAL:
-            return "TA_SOCKET_READ_RESIDUAL";
-
         case TA_SOCKET_WRITE:
             return "TA_SOCKET_WRITE";
-
-        case TA_SOCKET_WRITE_READY:
-            return "TA_SOCKET_WRITE_READY";
-
-        case TA_SOCKET_WRITE_DEFERRED:
-            return "TA_SOCKET_WRITE_DEFERRED";
 
         case TA_TUN_READ:
             return "TA_TUN_READ";
@@ -89,9 +80,6 @@ pract(int action)
 
         case TA_TIMEOUT:
             return "TA_TIMEOUT";
-
-        case TA_TUN_WRITE_TIMEOUT:
-            return "TA_TUN_WRITE_TIMEOUT";
 
         default:
             return "?";
@@ -112,279 +100,263 @@ multi_get_context(struct multi_context *m, struct multi_instance *mi)
     }
 }
 
-struct multi_io *
+struct multi_io
 multi_io_init(const int maxclients)
 {
-    struct multi_io *multi_io;
+    struct multi_io multi_io;
 
     ASSERT(maxclients >= 1);
 
-    ALLOC_OBJ_CLEAR(multi_io, struct multi_io);
-    multi_io->maxevents = maxclients + BASE_N_EVENTS;
-    multi_io->es = event_set_init(&multi_io->maxevents, 0);
-    wait_signal(multi_io->es, MULTI_IO_SIG);
-    ALLOC_ARRAY(multi_io->esr, struct event_set_return, multi_io->maxevents);
-    msg(D_MULTI_LOW, "MULTI IO: MULTI_IO INIT maxclients=%d maxevents=%d", maxclients,
-        multi_io->maxevents);
+    bzero(&(multi_io), sizeof(struct multi_io));
+    multi_io.maxevents = maxclients + BASE_N_EVENTS;
+    multi_io.es = event_set_init(&multi_io.maxevents, 0);
+    wait_signal(multi_io.es, MULTI_IO_SIG);
+    ALLOC_ARRAY(multi_io.esr, struct event_set_return, multi_io.maxevents);
+    msg(D_MULTI_LOW, "MULTI IO: MULTI_IO INIT maxclients=%d maxevents=%d", maxclients, multi_io.maxevents);
+
     return multi_io;
-}
-
-void
-multi_io_set_global_rw_flags(struct multi_context *m, struct multi_instance *mi)
-{
-    if (!mi)
-    {
-        return;
-    }
-
-    mi->socket_set_called = true;
-    if (proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto))
-    {
-        socket_set(mi->context.c2.link_sockets[0], m->multi_io->es, EVENT_READ,
-                   &mi->context.c2.link_sockets[0]->ev_arg, NULL);
-    }
-    else
-    {
-        socket_set(mi->context.c2.link_sockets[0], m->multi_io->es,
-                   mbuf_defined(mi->tcp_link_out_deferred) ? EVENT_WRITE : EVENT_READ, &mi->ev_arg,
-                   &mi->tcp_rwflags);
-    }
 }
 
 void
 multi_io_free(struct multi_io *multi_io)
 {
-    if (multi_io)
+    if (multi_io->es)
     {
-        event_free(multi_io->es);
-        free(multi_io->esr);
-        free(multi_io);
+        for (int x = 0; x < MAX_THREADS; ++x)
+        {
+            event_free(multi_io[x].es);
+            free(multi_io[x].esr);
+        }
     }
 }
 
-int
-multi_io_wait(struct multi_context *m)
+int look_link(struct multi_context *m)
 {
-    int status, i;
-    unsigned int *persistent = &m->multi_io->tun_rwflags;
-
-    if (!tuntap_is_dco_win(m->top.c1.tuntap))
+    for (int x = 0; x < m->max_clients; ++x)
     {
-        for (i = 0; i < m->top.c1.link_sockets_num; i++)
+        struct multi_instance *i = m->instances[x];
+        struct context *c = multi_get_context(m, i);
+        if (!i) { continue; }
+        if (LINK_OUT(c))
         {
-            socket_set_listen_persistent(m->top.c2.link_sockets[i], m->multi_io->es,
-                                         &m->top.c2.link_sockets[i]->ev_arg);
+            multi_set_pending(m, i);
+            return TA_SOCKET_WRITE;
+        }
+        if (REKEY_OUT(c))
+        {
+            multi_set_pending(m, i);
+            return TA_KEYS;
+        }
+    }
+    return TA_UNDEF;
+}
+
+int look_intf(struct multi_context *m)
+{
+    for (int x = 0; x < m->max_clients; ++x)
+    {
+        struct multi_instance *i = m->instances[x];
+        struct context *c = multi_get_context(m, i);
+        if (!i) { continue; }
+        if (TUN_OUT(c))
+        {
+            multi_set_pending2(m, i);
+            return TA_TUN_WRITE;
+        }
+    }
+    return TA_UNDEF;
+}
+
+int look_left(struct multi_context *m)
+{
+    for (int x = 0; x < m->max_clients; ++x)
+    {
+        struct multi_instance *i = m->instances[x];
+        if (!i) { continue; }
+        if (LINK_LEFT(i))
+        {
+            multi_set_pending2(m, i);
+            return TA_SOCKET_READ;
+        }
+    }
+    return TA_UNDEF;
+}
+
+int multi_io_wait(struct multi_context *m)
+{
+    int status;
+    struct multi_io *multi_io = &(m->multi_io[THREAD_MAIN]);
+    unsigned int *persistent = &multi_io->tun_rwflags;
+
+    for (int i = 0; i < m->top.c1.link_sockets_num; ++i)
+    {
+        socket_set(m->top.c2.link_sockets[i], multi_io->es, EVENT_READ, &m->top.c2.link_sockets[i]->ev_arg, NULL);
+    }
+
+    for (int i = 0; i < m->max_clients; ++i)
+    {
+        struct multi_instance *mi = m->instances[i];
+        if (!mi) { continue; }
+        if (proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto))
+        {
+            socket_set(mi->context.c2.link_sockets[0], multi_io->es, EVENT_READ, &mi->context.c2.link_sockets[0]->ev_arg, NULL);
+        }
+        else
+        {
+            socket_set(mi->context.c2.link_sockets[0], multi_io->es, EVENT_READ, &mi->ev_arg, NULL);
         }
     }
 
     if (has_udp_in_local_list(&m->top.options))
     {
-        get_io_flags_udp(&m->top, m->multi_io, p2mp_iow_flags(m));
+        get_io_flags_udp(&m->top, multi_io, p2mp_iow_flags(m));
     }
 
-    tun_set(m->top.c1.tuntap, m->multi_io->es, EVENT_READ, MULTI_IO_TUN, persistent);
+    tun_set(m->top.c1.tuntap, multi_io->es, EVENT_READ, MULTI_IO_TUN, persistent);
 #if defined(ENABLE_DCO)
-    dco_event_set(&m->top.c1.tuntap->dco, m->multi_io->es, MULTI_IO_DCO);
+    dco_event_set(&m->top.c1.tuntap->dco, multi_io->es, MULTI_IO_DCO);
 #endif
 
 #ifdef ENABLE_MANAGEMENT
     if (management)
     {
-        management_socket_set(management, m->multi_io->es, MULTI_IO_MANAGEMENT,
-                              &m->multi_io->management_persist_flags);
+        management_socket_set(management, multi_io->es, MULTI_IO_MANAGEMENT, &multi_io->management_persist_flags);
     }
 #endif
 
 #ifdef ENABLE_ASYNC_PUSH
     /* arm inotify watcher */
-    event_ctl(m->multi_io->es, m->top.c2.inotify_fd, EVENT_READ, MULTI_IO_FILE_CLOSE_WRITE);
+    event_ctl(multi_io->es, m->top.c2.inotify_fd, EVENT_READ, MULTI_IO_FILE_CLOSE_WRITE);
 #endif
 
-    status =
-        event_wait(m->multi_io->es, &m->top.c2.timeval, m->multi_io->esr, m->multi_io->maxevents);
+    status = event_wait(multi_io->es, &m->top.c2.timeval, multi_io->esr, multi_io->maxevents);
     update_time();
-    m->multi_io->n_esr = 0;
-    if (status > 0)
-    {
-        m->multi_io->n_esr = status;
-    }
+    multi_io->n_esr = (status > 0) ? status : 0;
     return status;
 }
 
-static int
-multi_io_wait_lite(struct multi_context *m, struct multi_instance *mi, const int action,
-                   bool *tun_input_pending)
+int multi_io_instance(struct multi_context *m, const int action, const unsigned int add_flags, int t)
 {
-    struct context *c = multi_get_context(m, mi);
-    unsigned int looking_for = 0;
+    const unsigned int mpp_flags = MPP_PRE_SELECT | MPP_RECORD_TOUCH | add_flags;
 
-    dmsg(D_MULTI_DEBUG, "MULTI IO: multi_io_wait_lite a=%s mi=" ptr_format, pract(action),
-         (ptr_type)mi);
+    bool pall = false;
+    time_t secs = time(NULL);
 
-    tv_clear(&c->c2.timeval); /* ZERO-TIMEOUT */
-
-    switch (action)
+    if ((secs - m->last[t]) >= POST_WAIT)
     {
-        case TA_TUN_READ:
-            looking_for = TUN_READ;
-            tun_input_pending = NULL;
-            io_wait(c, IOW_READ_TUN);
-            break;
-
-        case TA_SOCKET_READ:
-            looking_for = SOCKET_READ;
-            tun_input_pending = NULL;
-            io_wait(c, IOW_READ_LINK);
-            break;
-
-        case TA_TUN_WRITE:
-            looking_for = TUN_WRITE;
-            tun_input_pending = NULL;
-            /* For some reason, the Linux 2.2 TUN/TAP driver hits this timeout */
-            c->c2.timeval.tv_sec = 1;
-            io_wait(c, IOW_TO_TUN);
-            break;
-
-        case TA_SOCKET_WRITE:
-            looking_for = SOCKET_WRITE;
-            io_wait(c, IOW_TO_LINK | IOW_READ_TUN_FORCE);
-            break;
-
-        default:
-            msg(M_FATAL, "MULTI IO: multi_io_wait_lite, unhandled action=%d", action);
+        pall = true;
     }
 
-    if (tun_input_pending && (c->c2.event_set_status & TUN_READ))
+    if (pall || m->post[t])
     {
-        *tun_input_pending = true;
-    }
-
-    if (c->c2.event_set_status & looking_for)
-    {
-        return action;
-    }
-    else
-    {
-        switch (action)
+        for (int x = 0; x < m->max_clients; ++x)
         {
-            /* MULTI PROTOCOL socket output buffer is full */
-            case TA_SOCKET_WRITE:
-                return TA_SOCKET_WRITE_DEFERRED;
+            struct multi_instance *i = m->instances[x];
 
-            /* TUN device timed out on accepting write */
-            case TA_TUN_WRITE:
-                return TA_TUN_WRITE_TIMEOUT;
+            if (!i) { continue; }
+
+            if (i && IS_SIG(&i->context))
+            {
+                multi_close_instance_on_signal(m, i);
+                continue;
+            }
+
+            if (pall || i->post[t])
+            {
+                set_prefix(i);
+                multi_process_post(m, i, mpp_flags);
+                clear_prefix();
+
+                i->post[t] = false;
+                if (pall) { i->last[t] = secs; }
+            }
         }
 
-        return TA_UNDEF;
+        m->post[t] = false;
+        if (pall) { m->last[t] = secs; }
     }
+
+    return action;
 }
 
-static struct multi_instance *
-multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int action)
+int multi_io_dispatch(struct multi_context *m, const int action, const unsigned int add_flags, int t)
 {
-    const unsigned int mpp_flags = MPP_PRE_SELECT | MPP_RECORD_TOUCH;
-    struct multi_instance *touched = mi;
-    m->mpp_touched = &touched;
+    const unsigned int mpp_flags = MPP_PRE_SELECT | MPP_RECORD_TOUCH | add_flags;
 
-    dmsg(D_MULTI_DEBUG, "MULTI IO: multi_io_dispatch a=%s mi=" ptr_format, pract(action),
-         (ptr_type)mi);
+    struct multi_instance *i = m->pending;
+
+    dmsg(D_MULTI_DEBUG, "MULTI IO: multi_io_dispatch a=%s m=" ptr_format, pract(action), (ptr_type)m);
 
     switch (action)
     {
         case TA_INST_LENG:
         case TA_TUN_READ:
-            threaded_multi_inp_tun(m, mpp_flags);
+            threaded_multi_inp_tun(m, mpp_flags, t);
             break;
 
         case TA_SOCKET_READ:
-        case TA_SOCKET_READ_RESIDUAL:
-            ASSERT(mi);
-            ASSERT(mi->context.c2.link_sockets);
-            ASSERT(mi->context.c2.link_sockets[0]);
-            set_prefix(mi);
-            read_incoming_link(&mi->context, mi->context.c2.link_sockets[0]);
-            clear_prefix();
-            if (!IS_SIG(&mi->context))
+            multi_tcp_process_incoming_link(m, mpp_flags, t);
+            break;
+
+        case TA_TUN_WRITE:
+            multi_process_outgoing_tun(m, mpp_flags, t);
+            break;
+
+        case TA_KEYS:
+        case TA_SOCKET_WRITE:
+            multi_process_outgoing_link(m, mpp_flags, t);
+            break;
+
+        case TA_INITIAL:
+            if (i)
             {
-                multi_process_incoming_link(m, mi, mpp_flags, mi->context.c2.link_sockets[0]);
-                if (!IS_SIG(&mi->context))
-                {
-                    stream_buf_read_setup(mi->context.c2.link_sockets[0]);
-                }
+                i->post[t] = true;
+                m->post[t] = true;
             }
             break;
 
         case TA_TIMEOUT:
-            multi_process_timeout(m, mpp_flags);
-            break;
-
-        case TA_TUN_WRITE:
-            multi_process_outgoing_tun(m, mpp_flags);
-            break;
-
-        case TA_TUN_WRITE_TIMEOUT:
-            multi_process_drop_outgoing_tun(m, mpp_flags);
-            break;
-
-        case TA_SOCKET_WRITE_READY:
-            ASSERT(mi);
-            multi_tcp_process_outgoing_link_ready(m, mi, mpp_flags);
-            break;
-
-        case TA_SOCKET_WRITE:
-            multi_tcp_process_outgoing_link(m, false, mpp_flags);
-            break;
-
-        case TA_SOCKET_WRITE_DEFERRED:
-            multi_tcp_process_outgoing_link(m, true, mpp_flags);
-            break;
-
-        case TA_INITIAL:
-            ASSERT(mi);
-            multi_io_set_global_rw_flags(m, mi);
-            multi_process_post(m, mi, mpp_flags);
+            multi_process_timeout(m, mpp_flags, t);
             break;
 
         default:
             msg(M_FATAL, "MULTI IO: multi_io_dispatch, unhandled action=%d", action);
     }
 
-    m->mpp_touched = NULL;
-    return touched;
+    return action;
 }
 
-static int
-multi_io_post(struct multi_context *m, struct multi_instance *mi, const int action)
+int multi_io_pending(struct multi_context *m, const int action, const unsigned int add_flags, int t)
 {
-    struct context *c = multi_get_context(m, mi);
     int newaction = TA_UNDEF;
+    int getaction = TA_UNDEF;
 
-    if (LINK_OUT(c))
+    if ((t & THREAD_RTWL) != 0)
     {
-        newaction = TA_SOCKET_WRITE;
-        goto last;
-    }
-    else if (INST_LENG(m))
-    {
-        newaction = TA_INST_LENG;
-        goto last;
-    }
-
-    if (TUN_OUT(c))
-    {
-        newaction = TA_TUN_WRITE;
-        goto last;
-    }
-    else if (LINK_LEFT(c))
-    {
-        newaction = TA_SOCKET_READ_RESIDUAL;
-        goto last;
+        if ((getaction = look_link(m)) != TA_UNDEF)
+        {
+            newaction = getaction;
+            goto last;
+        }
+        else if (INST_LENG(m))
+        {
+            newaction = TA_INST_LENG;
+            goto last;
+        }
     }
 
-    if (mi)
+    if ((t & THREAD_RLWT) != 0)
     {
-        multi_io_set_global_rw_flags(m, mi);
+        if ((getaction = look_intf(m)) != TA_UNDEF)
+        {
+            newaction = getaction;
+            goto last;
+        }
+        else if ((getaction = look_left(m)) != TA_UNDEF)
+        {
+            newaction = getaction;
+            goto last;
+        }
     }
 
 last:
@@ -393,14 +365,68 @@ last:
     return newaction;
 }
 
-void
-multi_io_process_io(struct thread_pointer *b)
+void multi_io_action(struct multi_context *m, int action, bool poll, const unsigned int flags, int t)
+{
+    do
+    {
+        msg(D_MULTI_DEBUG, "MULTI IO: multi_io_action t=%d a=%s p=%d", t, pract(action), poll);
+
+        if ((t == THREAD_RTWL) && !(action == TA_TIMEOUT || action == TA_INITIAL || action == TA_TUN_READ || action == TA_INST_LENG || action == TA_SOCKET_WRITE || action == TA_KEYS))
+        {
+            break;
+        }
+
+        if ((t == THREAD_RLWT) && !(action == TA_TIMEOUT || action == TA_SOCKET_READ || action == TA_TUN_WRITE))
+        {
+            break;
+        }
+
+
+        /*
+         * Dispatch the action
+         */
+        action = multi_io_dispatch(m, action, flags, t);
+
+        /*
+         * Process any instances
+         */
+        action = multi_io_instance(m, action, flags, t);
+
+        /*
+         * Process any pending
+         */
+        action = multi_io_pending(m, action, flags, t);
+
+
+        poll = true;
+
+    } while (action != TA_UNDEF);
+}
+
+void multi_io_process_io(struct thread_pointer *b, const unsigned int f, int t)
 {
     struct multi_context *m = b->p->m[b->i-1];
-    struct multi_io *multi_io = m->multi_io;
-    int i;
+    struct multi_io *multi_io = &(m->multi_io[t]);
+    struct multi_instance *mi;
+    int getaction;
 
-    for (i = 0; i < multi_io->n_esr; ++i)
+    if ((t & THREAD_RTWL) != 0)
+    {
+        while ((getaction = look_link(m)) != TA_UNDEF)
+        {
+            multi_io_action(m, getaction, false, f, t);
+        }
+    }
+
+    if ((t & THREAD_RLWT) != 0)
+    {
+        while ((getaction = look_intf(m)) != TA_UNDEF)
+        {
+            multi_io_action(m, getaction, false, f, t);
+        }
+    }
+
+    for (int i = 0; i < multi_io->n_esr; ++i)
     {
         struct event_set_return *e = &multi_io->esr[i];
         struct event_arg *ev_arg = (struct event_arg *)e->arg;
@@ -408,89 +434,94 @@ multi_io_process_io(struct thread_pointer *b)
         /* incoming data for instance or listening socket? */
         if (e->arg >= MULTI_N)
         {
-            switch (ev_arg->type)
+            /* react to event on child instance */
+            if (ev_arg->type == EVENT_ARG_MULTI_INSTANCE)
             {
-                struct multi_instance *mi;
+                ASSERT(ev_arg->u.mi);
+                mi = ev_arg->u.mi;
+                if ((t & THREAD_RLWT) != 0)
+                {
+                    if (e->rwflags & EVENT_READ)
+                    {
+                        if (LINK_SOCK(mi))
+                        {
+                            multi_set_pending2(m, mi);
+                            multi_io_action(m, TA_SOCKET_READ, false, f, t);
+                        }
+                        else
+                        {
+                            multi_close_instance_on_signal(m, mi);
+                        }
+                    }
+                }
+            }
 
-                /* react to event on child instance */
-                case EVENT_ARG_MULTI_INSTANCE:
-                    if (!ev_arg->u.mi)
-                    {
-                        msg(D_MULTI_ERRORS, "MULTI IO: multi_io_proc_io: null minstance");
-                        break;
-                    }
-
-                    mi = ev_arg->u.mi;
-                    if (e->rwflags & EVENT_WRITE)
-                    {
-                        multi_io_action(m, mi, TA_SOCKET_WRITE_READY, false);
-                    }
-                    else if (e->rwflags & EVENT_READ)
-                    {
-                        multi_io_action(m, mi, TA_SOCKET_READ, false);
-                    }
-                    break;
-
-                case EVENT_ARG_LINK_SOCKET:
-                    if (!ev_arg->u.sock)
-                    {
-                        msg(D_MULTI_ERRORS, "MULTI IO: multi_io_proc_io: null socket");
-                        break;
-                    }
-                    /* new incoming TCP client attempting to connect? */
+            /* new incoming TCP client attempting to connect? */
+            if (ev_arg->type == EVENT_ARG_LINK_SOCKET)
+            {
+                if ((t & THREAD_RTWL) != 0)
+                {
+                    ASSERT(ev_arg->u.sock);
                     if (!proto_is_dgram(ev_arg->u.sock->info.proto))
                     {
                         socket_reset_listen_persistent(ev_arg->u.sock);
                         mi = multi_create_instance_tcp(b, ev_arg->u.sock);
-                        if (mi) { multi_io_action(b->p->p, mi, TA_INITIAL, false); }
+                        multi_set_pending(m, mi);
+                        multi_io_action(b->p->p, TA_INITIAL, false, f, t);
                     }
                     else
                     {
-                        multi_process_io_udp(m, ev_arg->u.sock);
-                        if (m->pending) { multi_io_action(m, m->pending, TA_INITIAL, false); }
-                        if (m->pending2) { multi_io_action(m, m->pending2, TA_INITIAL, false); }
+                        multi_process_io_udp(m, ev_arg->u.sock, t);
+                        multi_io_action(m, TA_INITIAL, false, f, t);
                     }
-                    break;
+                }
             }
         }
         else
         {
 #ifdef ENABLE_MANAGEMENT
-            if (e->arg == MULTI_IO_MANAGEMENT)
-            {
-                ASSERT(management);
-                management_io(management);
-            }
-            else
+                if (e->arg == MULTI_IO_MANAGEMENT)
+                {
+                    ASSERT(management);
+                    management_io(management);
+                }
 #endif
                 /* incoming data on TUN? */
                 if (e->arg == MULTI_IO_TUN)
                 {
-                    if (e->rwflags & EVENT_WRITE)
+                    if ((t & THREAD_RTWL) != 0)
                     {
-                        multi_io_action(m, NULL, TA_TUN_WRITE, false);
-                    }
-                    else if (e->rwflags & EVENT_READ)
-                    {
-                        multi_io_action(m, NULL, TA_TUN_READ, false);
+                        if (e->rwflags & EVENT_READ)
+                        {
+                            multi_io_action(m, TA_TUN_READ, false, f, t);
+                        }
                     }
                 }
 #if defined(ENABLE_DCO)
                 /* incoming data on DCO? */
-                else if (e->arg == MULTI_IO_DCO)
+                if (e->arg == MULTI_IO_DCO)
                 {
-                    dco_read_and_process(&m->top.c1.tuntap->dco);
+                    if (t == THREAD_MAIN)
+                    {
+                        dco_read_and_process(&m->top.c1.tuntap->dco);
+                    }
                 }
 #endif
                 /* signal received? */
-                else if (e->arg == MULTI_IO_SIG)
+                if (e->arg == MULTI_IO_SIG)
                 {
-                    get_signal(&m->top.sig->signal_received);
+                    if ((t & THREAD_RTWL) != 0)
+                    {
+                        get_signal(&m->top.sig->signal_received);
+                    }
                 }
 #ifdef ENABLE_ASYNC_PUSH
-                else if (e->arg == MULTI_IO_FILE_CLOSE_WRITE)
+                if (e->arg == MULTI_IO_FILE_CLOSE_WRITE)
                 {
-                    multi_process_file_closed(m, MPP_PRE_SELECT | MPP_RECORD_TOUCH);
+                    if ((t & THREAD_RTWL) != 0)
+                    {
+                        multi_process_file_closed(m, MPP_PRE_SELECT | MPP_RECORD_TOUCH | f);
+                    }
                 }
 #endif
         }
@@ -499,137 +530,24 @@ multi_io_process_io(struct thread_pointer *b)
             break;
         }
     }
-    multi_io->n_esr = 0;
 
-    /*
-     * Process queued mbuf packets destined for TCP socket
-     */
+    if ((t & THREAD_RTWL) != 0)
     {
-        struct multi_instance *mi;
-        while (!IS_SIG(&m->top) && (mi = mbuf_peek(m->mbuf)) != NULL)
+        if (m->mtio_stat == 3)
         {
-            multi_io_action(m, mi, TA_SOCKET_WRITE, true);
+            for (int x = 0; x < m->max_clients; ++x)
+            {
+                struct multi_instance *i = m->instances[x];
+                if (!i) { continue; }
+                if (LINK_SOCK(i) && (i->mtio_stat == 3))
+                {
+                    multi_context_switch_addr(m, i, true, true);
+                    i->mtio_stat = 5;
+                    m->mtio_stat = 5;
+                }
+            }
         }
     }
-
-    if (m->mtio_stat == 3)
-    {
-        for (int x = 0; x < m->max_clients; ++x)
-        {
-            struct multi_instance *j = m->instances[x];
-            if (!j) { continue; }
-            if (j->mtio_stat == 3)
-            {
-                multi_context_switch_addr(m, j, true, true);
-                j->mtio_stat = 5;
-            }
-        }
-        m->mtio_stat = 5;
-    }
-}
-
-void
-multi_io_action(struct multi_context *m, struct multi_instance *mi, int action, bool poll)
-{
-    bool tun_input_pending = false;
-
-    do
-    {
-        dmsg(D_MULTI_DEBUG, "MULTI IO: multi_io_action a=%s p=%d", pract(action), poll);
-
-        /*
-         * If TA_SOCKET_READ_RESIDUAL, it means we still have pending
-         * input packets which were read by a prior recv.
-         *
-         * Otherwise do a "lite" wait, which means we wait with 0 timeout
-         * on I/O events only related to the current instance, not
-         * the big list of events.
-         *
-         * On our first pass, poll will be false because we already know
-         * that input is available, and to call io_wait would be redundant.
-         */
-        if (poll && action != TA_SOCKET_READ_RESIDUAL && action != TA_INST_LENG)
-        {
-            const int orig_action = action;
-            action = multi_io_wait_lite(m, mi, action, &tun_input_pending);
-            if (action == TA_UNDEF)
-            {
-                msg(M_FATAL, "MULTI IO: I/O wait required blocking in multi_io_action, action=%d",
-                    orig_action);
-            }
-        }
-
-        /*
-         * Dispatch the action
-         */
-        struct multi_instance *touched = multi_io_dispatch(m, mi, action);
-
-        /*
-         * Signal received or connection
-         * reset by peer?
-         */
-        if (touched && IS_SIG(&touched->context))
-        {
-            if (mi == touched)
-            {
-                mi = NULL;
-            }
-            multi_close_instance_on_signal(m, touched);
-        }
-
-
-        /*
-         * If dispatch produced any pending output
-         * for a particular instance, point to
-         * that instance.
-         */
-        int retry_undef = 0;
-        if (m->pending)
-        {
-            mi = m->pending;
-        }
-        if (m->pending2)
-        {
-            if (!m->pending)
-            {
-                mi = m->pending2;
-            }
-            else
-            {
-                retry_undef = 1;
-            }
-        }
-
-        /*
-         * Based on the effects of the action,
-         * such as generating pending output,
-         * possibly transition to a new action state.
-         */
-        action = multi_io_post(m, mi, action);
-        if ((action == TA_UNDEF) && (retry_undef == 1))
-        {
-            mi = m->pending2;
-            action = multi_io_post(m, mi, action);
-        }
-
-        /*
-         * If we are finished processing the original action,
-         * check if we have any TUN input.  If so, transition
-         * our action state to processing this input.
-         */
-        if (tun_input_pending && action == TA_UNDEF)
-        {
-            action = TA_TUN_READ;
-            mi = NULL;
-            tun_input_pending = false;
-            poll = false;
-        }
-        else
-        {
-            poll = true;
-        }
-
-    } while (action != TA_UNDEF);
 }
 
 void

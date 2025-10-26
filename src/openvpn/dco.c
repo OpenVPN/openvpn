@@ -242,18 +242,6 @@ dco_check_option_ce(const struct connection_entry *ce, msglvl_t msglevel, int mo
         return false;
     }
 
-    if (ce->http_proxy_options)
-    {
-        msg(msglevel, "Note: --http-proxy disables data channel offload.");
-        return false;
-    }
-
-    if (ce->socks_proxy_server)
-    {
-        msg(msglevel, "Note: --socks-proxy disables data channel offload.");
-        return false;
-    }
-
 #if defined(TARGET_FREEBSD)
     if (ce->local_list)
     {
