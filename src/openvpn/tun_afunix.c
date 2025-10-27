@@ -128,7 +128,12 @@ close_tun_afunix(struct tuntap *tt)
         close(tt->fd);
         tt->fd = 0;
     }
-    kill(tt->afunix.childprocess, SIGINT);
+    /* only kill the child process if the PID is not 0 to avoid killing
+     * ourselves by accident */
+    if (tt->afunix.childprocess)
+    {
+        kill(tt->afunix.childprocess, SIGINT);
+    }
 
     free(tt->actual_name);
     free(tt);
