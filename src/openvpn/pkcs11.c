@@ -436,9 +436,6 @@ pkcs11_management_id_get(const int index, char **id, char **base64)
 {
     pkcs11h_certificate_id_list_t id_list = NULL;
     pkcs11h_certificate_id_list_t entry = NULL;
-#if 0 /* certificate_id seems to be unused -- JY */
-    pkcs11h_certificate_id_t certificate_id = NULL;
-#endif
     pkcs11h_certificate_t certificate = NULL;
     CK_RV rv = CKR_OK;
     unsigned char *certificate_blob = NULL;
@@ -547,6 +544,9 @@ cleanup:
 
     pkcs11h_certificate_freeCertificateIdList(id_list);
     id_list = NULL;
+
+    pkcs11h_certificate_freeCertificate(certificate);
+    certificate = NULL;
 
     free(internal_id);
     internal_id = NULL;
