@@ -444,6 +444,8 @@ test_verify_hmac_tls_auth(void **ut_state)
     hmac_ctx_t *hmac = session_id_hmac_init();
 
     struct link_socket_actual from = { 0 };
+    from.dest.addr.sa.sa_family = AF_INET;
+    from.dest.addr.in4.sin_addr.s_addr = ntohl(0x01020304);
     struct tls_auth_standalone tas = { 0 };
     struct tls_pre_decrypt_state state = { 0 };
 
@@ -471,10 +473,12 @@ test_verify_hmac_tls_auth(void **ut_state)
 static void
 test_verify_hmac_none(void **ut_state)
 {
+    now = 1000;
     hmac_ctx_t *hmac = session_id_hmac_init();
 
     struct link_socket_actual from = { 0 };
     from.dest.addr.sa.sa_family = AF_INET;
+    from.dest.addr.in4.sin_addr.s_addr = ntohl(0x01020304);
 
     struct tls_auth_standalone tas = { 0 };
     struct tls_pre_decrypt_state state = { 0 };
@@ -489,8 +493,60 @@ test_verify_hmac_none(void **ut_state)
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
     assert_int_equal(verdict, VERDICT_VALID_ACK_V1);
 
+    /* This packet has a random hmac, so it should fail to validate */
     bool valid = check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true);
+    assert_false(valid);
+
+    struct session_id client_id = { { 0xae, 0xb9, 0xaf, 0xe1, 0xf0, 0x1d, 0x79, 0xc8 } };
+    assert_memory_equal(&client_id, &state.peer_session_id, sizeof(struct session_id));
+
+    struct session_id expected_id = calculate_session_id_hmac(client_id, &from.dest, hmac, 30, 0);
+
+    free_tls_pre_decrypt_state(&state);
+    buf_reset_len(&buf);
+
+    /* Write the packet again into the buffer but this time, replacing the peer packet
+     * id with the expected one */
+    buf_write(&buf, client_ack_none_random_id, sizeof(client_ack_none_random_id) - 8);
+    buf_write(&buf, expected_id.id, 8);
+
+    verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
+    assert_int_equal(verdict, VERDICT_VALID_ACK_V1);
+    valid = check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true);
+
     assert_true(valid);
+
+    /* Our handwindow is 30 so the slices are half of that, so they are
+     * (975,990), (990, 1005), (1005, 1020), (1020, 1035), (1035, 1050)
+     * So setting time to the two future ones should work
+     */
+    now = 980;
+    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    now = 1040;
+    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    now = 1002;
+    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    now = 1022;
+    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    now = 1010;
+    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+
+    /* Changing the IP address should make this invalid */
+    from.dest.addr.in4.sin_addr.s_addr = ntohl(0x01020305);
+    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+
+    /* Change to the correct one again */
+    from.dest.addr.in4.sin_addr.s_addr = ntohl(0x01020304);
+    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+
+    /* Modify the peer id, should now fail hmac verification */
+    buf_inc_len(&buf, -4);
+    buf_write_u32(&buf, 0x12345678);
+
+    free_tls_pre_decrypt_state(&state);
+    verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
+    assert_int_equal(verdict, VERDICT_VALID_ACK_V1);
+    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
 
     free_tls_pre_decrypt_state(&state);
     free_buf(&buf);
@@ -723,12 +779,12 @@ int
 main(void)
 {
     const struct CMUnitTest tests[] = {
+        cmocka_unit_test(test_verify_hmac_none),
         cmocka_unit_test(test_tls_decrypt_lite_none),
         cmocka_unit_test(test_tls_decrypt_lite_auth),
         cmocka_unit_test(test_tls_decrypt_lite_crypt),
         cmocka_unit_test(test_parse_ack),
         cmocka_unit_test(test_calc_session_id_hmac_static),
-        cmocka_unit_test(test_verify_hmac_none),
         cmocka_unit_test(test_verify_hmac_tls_auth),
         cmocka_unit_test(test_verify_hmac_none_out_of_range_ack),
         cmocka_unit_test(test_generate_reset_packet_plain),

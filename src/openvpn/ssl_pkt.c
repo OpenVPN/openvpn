@@ -576,13 +576,14 @@ check_session_hmac_and_pkt_id(struct tls_pre_decrypt_state *state,
     }
 
 
-    /* check adjacent timestamps too */
-    for (int offset = -2; offset <= 1; offset++)
+    /* check adjacent timestamps too, the handwindow is split in 2 for the
+     * offset, so we check the current timeslot and the two before that */
+    for (int offset = -2; offset <= 0; offset++)
     {
         struct session_id expected_id =
             calculate_session_id_hmac(state->peer_session_id, from, hmac, handwindow, offset);
 
-        if (memcmp_constant_time(&expected_id, &state->server_session_id, SID_SIZE))
+        if (memcmp_constant_time(&expected_id, &state->server_session_id, SID_SIZE) == 0)
         {
             return true;
         }
