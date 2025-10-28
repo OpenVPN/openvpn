@@ -769,10 +769,6 @@ struct options
 
 #define PULL_DEFINED(opt) ((opt)->pull)
 
-#ifndef PULL_DEFINED
-#define PULL_DEFINED(opt) (false)
-#endif
-
 #ifdef _WIN32
 #define ROUTE_OPTION_FLAGS(o) ((o)->route_method & ROUTE_METHOD_MASK)
 #else
