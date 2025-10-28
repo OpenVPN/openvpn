@@ -170,6 +170,12 @@ Improved logging of service events/errors to event log on Windows.
 COPYING: license details only relevant to our Windows installers have
    been updated and moved to the openvpn-build repo
 
+Improved BYTECOUNT support - more strictly adhere to timing interval
+   requested, correctly support client and server counters with Linux and
+   Windows DCO offloading.
+
+Improve compatibility with OpenSSL 3.6.0 (do not fail t_lpback selftest)
+
 
 Deprecated features
 -------------------
@@ -222,6 +228,14 @@ Compression on send has been removed.
     user of this feature.  This feature provided very limited statistics
     (number of users, link bytes read/written) and we do not except any
     usage because of this.
+
+Using ``--push`` in a mode that is not ``--mode server`` will now print a
+    clear warning that this is an unsupported operation and might cause
+    negotiation failures.
+
+``--reneg-bytes`` and ``--reneg-packets`` do not work in DCO mode, and will
+    now print an appropriate warning.
+
 
 User-visible Changes
 --------------------

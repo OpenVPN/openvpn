@@ -1,6 +1,87 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.10.29 -- Version 2.7_rc1
+
+Antonio Quartulli (1):
+      sitnl: set FD_CLOEXEC on socket to prevent abuse
+
+Arne Schwabe (12):
+      Do not try to use the encrypt-then-mac ciphers from OpenSSL 3.6.0
+      Avoid possible race condition that kill OpenVPN itself
+      Add ASSERT to afunix code that dev_node is always set up the way we expect
+      Warn if push is used without --mode server/--server/--server-bridge
+      Fix logic when pushed cipher triggers tun reopen and ignore more options
+      Install host routes for out-of-subnet ifconfig-push addresses when DCO is enabled
+      Remove --memstats feature
+      clean up environment variable handling in verify_user_pass_script
+      fix key_state_gen_auth_control_files probably checking file creation
+      Fix warnings about conversion from int to unsigned char/uint8_t
+      Ensure return value of snprintf is correctly checked
+      Ensure that get_sigtype always return non-NULL
+
+Christian Kujau (2):
+      doc: Fix hyperlinks in openvpn(8)
+      doc: HTTPS upgrades and URL fixes throughout the tree
+
+Frank Lichtenheld (18):
+      test_dhcp: Start a dhcp helper functions UT
+      CONTRIBUTING: Update outdated/obsolete information
+      schedule: Fix conversion warning
+      win32: Change some APIs to use DWORD instead of size_t
+      dhcp: Clean up type handling of write_dhcp_*
+      init: Fix datav2_enabled check in options import
+      socket: Wrap winsock functions to avoid common conversion warnings
+      proxy: factor out recv_char code common with socks proxy
+      proxy: factor out send code common with socks proxy
+      push_util: Make send_push_update static
+      ssl_util: Fix conversion warning in get_num_elements
+      push_util: Fix conversion warnings
+      multi: Fix wrong usage of mroute_extract_openvpn_sockaddr
+      mroute: Remove unused mask argument of mroute_get_in*
+      gremlin: Avoid some conversion warnings
+      crypto_backend: Change len argument of md_ctx_update to size_t
+      mudp/mtcp: Remove -Wconversion pragmas
+      manage: Change kill_by_addr to use better types for port/proto
+
+Gert Doering (3):
+      remove redundant PULL_DEFINED() macro definition
+      zeroize struct image in packet_id_persist_save() before writing to disk
+      OpenVPN Release 2.7_rc1
+
+Heiko Hund (2):
+      iservice: use interface index with netsh
+      iservice: check return value of MultiByteToWideChar
+
+Joshua Rogers (1):
+      tcp: apply CLOEXEC to accepted socket, not listener
+
+Lev Stipakov (1):
+      interactive.c: add the upper bound for startupdata size
+
+Marco Baffo (2):
+      PUSH_UPDATE server: remove old IP(s) from vhash after sending a message containing ifconfig(-ipv6)
+      PUSH_UPDATE server: invalid read bug-fix and unit-tests improvements
+
+Max Fillinger (1):
+      Zeroize tls-crypt-v2 client keys
+
+Ralf Lici (5):
+      options: warn and ignore --reneg-bytes/pkts when DCO is enabled
+      dco-freebsd: store peer stats directly in c2
+      dco: remove dco_read/write_bytes from dco_context_t
+      dco-freebsd: fix peer stats storage on client instances
+      management: ensure consistent BYTECOUNT timing on server
+
+Selva Nair (3):
+      pkcs11_management_id_get: Free certificate object after use
+      Canonicalize config_dir before comparing with the config file location
+      Add -lpathcch for mingw32 builds using autotools
+
+Steffan Karger (1):
+      Remove perf.c/perf.h
+
+
 2025.10.13 -- Version 2.7_beta3
 
 Arne Schwabe (2):
