@@ -28,6 +28,7 @@
 
 #include "dco.h"
 #include "errlevel.h"
+#include "fdmisc.h"
 #include "buffer.h"
 #include "misc.h"
 #include "networking.h"
@@ -165,6 +166,9 @@ sitnl_socket(void)
         msg(M_WARN, "%s: cannot open netlink socket", __func__);
         return fd;
     }
+
+    /* set close on exec to avoid child processes access the socket */
+    set_cloexec(fd);
 
     if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sndbuf, sizeof(sndbuf)) < 0)
     {

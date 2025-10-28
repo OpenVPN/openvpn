@@ -711,6 +711,7 @@ if (BUILD_TESTING)
             src/openvpn/crypto_mbedtls.c
             src/openvpn/crypto_openssl.c
             src/openvpn/crypto.c
+            src/openvpn/fdmisc.c
             src/openvpn/otime.c
             src/openvpn/packet_id.c
             )
