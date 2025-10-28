@@ -511,6 +511,7 @@ packet_id_persist_save(struct packet_id_persist *p)
         && (p->time != p->time_last_written || p->id != p->id_last_written))
     {
         struct packet_id_persist_file_image image;
+        CLEAR(image);
         ssize_t n;
         off_t seek_ret;
         struct gc_arena gc = gc_new();
