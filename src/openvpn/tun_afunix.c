@@ -53,6 +53,8 @@ tun_afunix_exec_child(const char *dev_node, struct tuntap *tt, struct env_set *e
     const char *msgprefix = "ERROR: failure executing process for tun:";
     struct argv argv = argv_new();
 
+    /* we should always called with a proper unix: dev node string */
+    ASSERT(dev_node && strncmp(dev_node, "unix:", strlen("unix:")) == 0);
     /* since we know that dev-node starts with unix: we can just skip that
      * to get the program name */
     const char *program = dev_node + strlen("unix:");
