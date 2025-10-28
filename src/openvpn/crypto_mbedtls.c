@@ -765,6 +765,10 @@ cipher_ctx_final_check_tag(mbedtls_cipher_context_t *ctx, uint8_t *dst, int *dst
     return 1;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 /*
  *
  * Generic message digest information functions
@@ -877,7 +881,7 @@ md_ctx_size(const mbedtls_md_context_t *ctx)
 }
 
 void
-md_ctx_update(mbedtls_md_context_t *ctx, const uint8_t *src, int src_len)
+md_ctx_update(mbedtls_md_context_t *ctx, const uint8_t *src, size_t src_len)
 {
     ASSERT(0 == mbedtls_md_update(ctx, src, src_len));
 }
@@ -994,6 +998,11 @@ ssl_tls1_PRF(const uint8_t *seed, size_t seed_len, const uint8_t *secret, size_t
                                        seed_len, output, output_len));
 }
 #else /* defined(HAVE_MBEDTLS_SSL_TLS_PRF) && defined(MBEDTLS_SSL_TLS_PRF_TLS1) */
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 /*
  * Generate the hash required by for the \c tls1_PRF function.
  *
@@ -1122,10 +1131,10 @@ ssl_tls1_PRF(const uint8_t *label, size_t label_len, const uint8_t *sec, size_t 
     gc_free(&gc);
     return true;
 }
-#endif /* HAVE_MBEDTLS_SSL_TLS_PRF && defined(MBEDTLS_SSL_TLS_PRF_TLS1) */
 
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
+#endif /* HAVE_MBEDTLS_SSL_TLS_PRF && defined(MBEDTLS_SSL_TLS_PRF_TLS1) */
 
 #endif /* ENABLE_CRYPTO_MBEDTLS */

@@ -1165,7 +1165,7 @@ md_ctx_size(const EVP_MD_CTX *ctx)
 }
 
 void
-md_ctx_update(EVP_MD_CTX *ctx, const uint8_t *src, int src_len)
+md_ctx_update(EVP_MD_CTX *ctx, const uint8_t *src, size_t src_len)
 {
     EVP_DigestUpdate(ctx, src, src_len);
 }

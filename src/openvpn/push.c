@@ -772,6 +772,10 @@ send_push_options(struct context *c, struct buffer *buf, struct push_list *push_
     return true;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 void
 send_push_reply_auth_token(struct tls_multi *multi)
 {
@@ -1046,7 +1050,7 @@ process_incoming_push_reply(struct context *c, unsigned int permission_mask,
                             unsigned int *option_types_found, struct buffer *buf)
 {
     int ret = PUSH_MSG_ERROR;
-    const uint8_t ch = buf_read_u8(buf);
+    const int ch = buf_read_u8(buf);
     if (ch == ',')
     {
         struct buffer buf_orig = (*buf);
@@ -1089,10 +1093,6 @@ process_incoming_push_reply(struct context *c, unsigned int permission_mask,
     /* show_settings (&c->options); */
     return ret;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 int
 process_incoming_push_msg(struct context *c, const struct buffer *buffer,

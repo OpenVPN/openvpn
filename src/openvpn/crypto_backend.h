@@ -599,7 +599,7 @@ int md_ctx_size(const md_ctx_t *ctx);
  * @param src           Buffer to digest. May not be NULL.
  * @param src_len       The length of the incoming buffer.
  */
-void md_ctx_update(md_ctx_t *ctx, const uint8_t *src, int src_len);
+void md_ctx_update(md_ctx_t *ctx, const uint8_t *src, size_t src_len);
 
 /*
  * Output the message digest to the given buffer.
