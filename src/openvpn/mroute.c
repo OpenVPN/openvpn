@@ -103,17 +103,12 @@ mroute_learnable_address(const struct mroute_addr *addr, struct gc_arena *gc)
     return true;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static inline void
-mroute_get_in_addr_t(struct mroute_addr *ma, const in_addr_t src, unsigned int mask)
+mroute_get_in_addr_t(struct mroute_addr *ma, const in_addr_t src)
 {
     if (ma)
     {
-        ma->type = MR_ADDR_IPV4 | mask;
+        ma->type = MR_ADDR_IPV4;
         ma->netbits = 0;
         ma->len = 4;
         ma->v4.addr = src;
@@ -121,11 +116,11 @@ mroute_get_in_addr_t(struct mroute_addr *ma, const in_addr_t src, unsigned int m
 }
 
 static inline void
-mroute_get_in6_addr(struct mroute_addr *ma, const struct in6_addr src, unsigned int mask)
+mroute_get_in6_addr(struct mroute_addr *ma, const struct in6_addr src)
 {
     if (ma)
     {
-        ma->type = MR_ADDR_IPV6 | mask;
+        ma->type = MR_ADDR_IPV6;
         ma->netbits = 0;
         ma->len = 16;
         ma->v6.addr = src;
@@ -161,8 +156,8 @@ mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest, const 
                 {
                     const struct openvpn_iphdr *ip = (const struct openvpn_iphdr *)BPTR(buf);
 
-                    mroute_get_in_addr_t(src, ip->saddr, 0);
-                    mroute_get_in_addr_t(dest, ip->daddr, 0);
+                    mroute_get_in_addr_t(src, ip->saddr);
+                    mroute_get_in_addr_t(dest, ip->daddr);
 
                     /* multicast packet? */
                     if (mroute_is_mcast(ip->daddr))
@@ -192,8 +187,8 @@ mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest, const 
                     gc_free(&gc);
 #endif
 
-                    mroute_get_in6_addr(src, ipv6->saddr, 0);
-                    mroute_get_in6_addr(dest, ipv6->daddr, 0);
+                    mroute_get_in6_addr(src, ipv6->saddr);
+                    mroute_get_in6_addr(dest, ipv6->daddr);
 
                     if (mroute_is_mcast_ipv6(ipv6->daddr))
                     {
@@ -342,7 +337,7 @@ mroute_addr_mask_host_bits(struct mroute_addr *ma)
             }
             else
             {
-                ma->v6.addr.s6_addr[byte--] &= (IPV4_NETMASK_HOST << bits_to_clear);
+                ma->v6.addr.s6_addr[byte--] &= (0xFF << bits_to_clear);
                 bits_to_clear = 0;
             }
         }
@@ -551,10 +546,6 @@ mroute_helper_del_iroute46(struct mroute_helper *mh, int netbits)
         }
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 mroute_helper_free(struct mroute_helper *mh)
