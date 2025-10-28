@@ -634,7 +634,17 @@ dco_do_read(dco_context_t *dco)
 
             if (nvlist_exists_nvlist(nvl, "bytes"))
             {
-                dco_update_peer_stat(dco->c->multi, dco->dco_message_peer_id, nvlist_get_nvlist(nvl, "bytes"));
+                const nvlist_t *bytes = nvlist_get_nvlist(nvl, "bytes");
+
+                if (dco->c->mode == CM_TOP)
+                {
+                    dco_update_peer_stat(dco->c->multi, dco->dco_message_peer_id, bytes);
+                }
+                else
+                {
+                    dco->c->c2.dco_read_bytes = nvlist_get_number(bytes, "in");
+                    dco->c->c2.dco_write_bytes = nvlist_get_number(bytes, "out");
+                }
             }
 
             dco->dco_message_type = OVPN_CMD_DEL_PEER;
