@@ -6,6 +6,11 @@ project(openvpnserv)
 
 add_executable(openvpnserv)
 
+include(CheckSymbolExists)
+
+# Some old versions of mingw does not have PATHCCH_OPTIONS enums -- add a check
+check_symbol_exists(PATHCCH_ENSURE_TRAILING_SLASH pathcch.h HAVE_PATHCCH_ENSURE_TRAILING_SLASH)
+
 set(MC_GEN_DIR ${CMAKE_CURRENT_BINARY_DIR}/mc)
 
 target_include_directories(openvpnserv PRIVATE
@@ -31,7 +36,7 @@ target_compile_options(openvpnserv PRIVATE
     )
 target_link_libraries(openvpnserv
     advapi32.lib userenv.lib iphlpapi.lib fwpuclnt.lib rpcrt4.lib
-    shlwapi.lib netapi32.lib ws2_32.lib ntdll.lib ole32.lib)
+    shlwapi.lib netapi32.lib ws2_32.lib ntdll.lib ole32.lib pathcch.lib)
 if (MINGW)
     target_compile_options(openvpnserv PRIVATE -municode)
     target_link_options(openvpnserv PRIVATE -municode)

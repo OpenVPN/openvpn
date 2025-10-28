@@ -25,6 +25,11 @@
 #include <lmaccess.h>
 #include <shlwapi.h>
 #include <lm.h>
+#include <pathcch.h>
+
+#ifndef HAVE_PATHCCH_ENSURE_TRAILING_SLASH
+#define PATHCCH_ENSURE_TRAILING_SLASH 0x20
+#endif
 
 static const WCHAR *white_list[] = {
     L"auth-retry",
@@ -61,7 +66,7 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
 {
     WCHAR tmp[MAX_PATH];
     const WCHAR *config_file = NULL;
-    const WCHAR *config_dir = NULL;
+    WCHAR config_dir[MAX_PATH];
 
     /* convert fname to full path */
     if (PathIsRelativeW(fname))
@@ -74,9 +79,12 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
         config_file = fname;
     }
 
-    config_dir = s->config_dir;
+    /* canonicalize config_dir and add trailing slash before comparison */
+    HRESULT res = PathCchCanonicalizeEx(config_dir, _countof(config_dir), s->config_dir,
+                                        PATHCCH_ENSURE_TRAILING_SLASH);
 
-    if (wcsncmp(config_dir, config_file, wcslen(config_dir)) == 0
+    if (res == S_OK
+        && wcsncmp(config_dir, config_file, wcslen(config_dir)) == 0
         && wcsstr(config_file + wcslen(config_dir), L"..") == NULL)
     {
         return TRUE;
