@@ -98,11 +98,6 @@ flip(int n)
     return (get_random() % n) == 0;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /*
  * Return uniformly distributed random number between
  * low and high.
@@ -112,7 +107,7 @@ roll(int low, int high)
 {
     int ret;
     ASSERT(low <= high);
-    ret = low + (get_random() % (high - low + 1));
+    ret = low + (int)(get_random() % (high - low + 1));
     ASSERT(ret >= low && ret <= high);
     return ret;
 }
@@ -195,7 +190,7 @@ corrupt_gremlin(struct buffer *buf, int flags)
             {
                 if (buf->len > 0)
                 {
-                    uint8_t r = roll(0, 255);
+                    uint8_t r = (uint8_t)roll(0, 255);
                     int method = roll(0, 5);
 
                     switch (method)
@@ -234,9 +229,5 @@ corrupt_gremlin(struct buffer *buf, int flags)
         }
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #endif /* ifdef ENABLE_DEBUG */
