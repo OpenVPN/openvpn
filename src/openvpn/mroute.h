@@ -20,6 +20,7 @@
  *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
+
 #ifndef MROUTE_H
 #define MROUTE_H
 
@@ -73,6 +74,9 @@
 
 /* Address type mask indicating that proto # is part of address */
 #define MR_WITH_PROTO 32
+
+/* MRoute is an on link/scope address needed for DCO on Unix platforms */
+#define MR_ONLINK_DCO_ADDR 64
 
 struct mroute_addr
 {

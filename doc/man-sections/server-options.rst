@@ -314,6 +314,10 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   3.  Use ``--ifconfig-pool`` allocation for dynamic IP (last
       choice).
 
+  When DCO is enabled and the IP is not in contained in the network specified
+  by ``--ifconfig``, OpenVPN will install a /32 host route for the ``local``
+  IP address.
+
 --ifconfig-ipv6-push args
   for ``--client-config-dir`` per-client static IPv6 interface
   configuration, see ``--client-config-dir`` and ``--ifconfig-push`` for
@@ -323,6 +327,10 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   ::
 
      ifconfig-ipv6-push ipv6addr/bits ipv6remote
+
+  When DCO is enabled and the IP is not in contained in the network specified
+  by ``--ifconfig-ipv6``, OpenVPN will install a /128 host route for the
+  ``ipv6addr`` IP address.
 
 --multihome
   Configure a multi-homed UDP server. This option needs to be used when a
