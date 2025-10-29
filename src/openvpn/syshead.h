@@ -528,13 +528,6 @@ socket_defined(const socket_descriptor_t sd)
 #define USE_COMP
 #endif
 
-/*
- * Enable --memstats option
- */
-#ifdef TARGET_LINUX
-#define ENABLE_MEMSTATS
-#endif
-
 #ifdef _MSC_VER
 #ifndef PATH_MAX
 #define PATH_MAX MAX_PATH

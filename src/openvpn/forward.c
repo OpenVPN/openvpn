@@ -44,8 +44,6 @@
 
 #include "memdbg.h"
 
-#include "mstats.h"
-
 counter_type link_read_bytes_global;  /* GLOBAL */
 counter_type link_write_bytes_global; /* GLOBAL */
 
@@ -992,12 +990,6 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
     {
         c->c2.link_read_bytes += c->c2.buf.len;
         link_read_bytes_global += c->c2.buf.len;
-#ifdef ENABLE_MEMSTATS
-        if (mmap_stats)
-        {
-            mmap_stats->link_read_bytes = link_read_bytes_global;
-        }
-#endif
         c->c2.original_recv_size = c->c2.buf.len;
     }
     else
@@ -1821,12 +1813,6 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
                 c->c2.max_send_size_local = max_int(size, c->c2.max_send_size_local);
                 c->c2.link_write_bytes += size;
                 link_write_bytes_global += size;
-#ifdef ENABLE_MEMSTATS
-                if (mmap_stats)
-                {
-                    mmap_stats->link_write_bytes = link_write_bytes_global;
-                }
-#endif
             }
         }
 

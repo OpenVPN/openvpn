@@ -44,7 +44,6 @@
 #include "ps.h"
 #include "lladdr.h"
 #include "ping.h"
-#include "mstats.h"
 #include "ssl_verify.h"
 #include "ssl_ncp.h"
 #include "tls_crypt.h"
@@ -908,22 +907,6 @@ init_static(void)
     return false;
 #endif
 
-#ifdef MSTATS_TEST
-    {
-        int i;
-        mstats_open("/dev/shm/mstats.dat");
-        for (i = 0; i < 30; ++i)
-        {
-            mmap_stats->n_clients += 1;
-            mmap_stats->link_write_bytes += 8;
-            mmap_stats->link_read_bytes += 16;
-            sleep(1);
-        }
-        mstats_close();
-        return false;
-    }
-#endif
-
     return true;
 }
 
@@ -1232,13 +1215,6 @@ do_uid_gid_chroot(struct context *c, bool no_delay)
                 msg(M_INFO, "NOTE: UID/GID downgrade %s", why_not);
             }
         }
-
-#ifdef ENABLE_MEMSTATS
-        if (c->first_time && c->options.memstats_fn)
-        {
-            mstats_open(c->options.memstats_fn);
-        }
-#endif
 
 #ifdef ENABLE_SELINUX
         /* Apply a SELinux context in order to restrict what OpenVPN can do

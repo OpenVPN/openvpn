@@ -217,6 +217,11 @@ Compression on send has been removed.
     ``--allow-compression yes`` is now an alias for
     ``--allow-compression asym``.
 
+``--memstats`` feature removed
+    The ``--mememstat`` was largely undocumented and there is no known
+    user of this feature.  This feature provided very limited statistics
+    (number of users, link bytes read/written) and we do not except any
+    usage because of this.
 
 User-visible Changes
 --------------------

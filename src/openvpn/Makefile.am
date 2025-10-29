@@ -90,7 +90,6 @@ openvpn_SOURCES = \
 	mbedtls_compat.h \
 	mroute.c mroute.h \
 	mss.c mss.h \
-	mstats.c mstats.h \
 	mtcp.c mtcp.h \
 	mtu.c mtu.h \
 	mudp.c mudp.h \

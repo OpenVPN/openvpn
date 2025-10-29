@@ -37,8 +37,6 @@
 #include "status.h"
 #include "integer.h"
 #include "ps.h"
-#include "mstats.h"
-
 
 #if SYSLOG_CAPABILITY
 #ifndef LOG_OPENVPN
@@ -721,10 +719,6 @@ openvpn_exit(const int status)
         {
             port_share_abort(port_share);
         }
-#endif
-
-#ifdef ENABLE_MEMSTATS
-        mstats_close();
 #endif
 
 #ifdef ABORT_ON_ERROR

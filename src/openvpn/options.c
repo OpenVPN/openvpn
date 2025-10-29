@@ -323,9 +323,6 @@ static const char usage_message[] =
     "                  via a VRF present on the system.\n"
 #endif
     "--txqueuelen n  : Set the tun/tap TX queue length to n (Linux only).\n"
-#ifdef ENABLE_MEMSTATS
-    "--memstats file : Write live usage stats to memory mapped binary file.\n"
-#endif
     "--mlock         : Disable Paging -- ensures key material and tunnel\n"
     "                  data will never be written to disk.\n"
     "--up cmd        : Run command cmd after successful tun device open.\n"
@@ -6333,13 +6330,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         options->log = true;
         redirect_stdout_stderr(p[1], true);
     }
-#ifdef ENABLE_MEMSTATS
-    else if (streq(p[0], "memstats") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->memstats_fn = p[1];
-    }
-#endif
     else if (streq(p[0], "mlock") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
