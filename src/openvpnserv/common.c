@@ -293,6 +293,10 @@ wchar_t *
 utf8to16(const char *utf8)
 {
     int n = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, NULL, 0);
+    if (n == 0)
+    {
+        return NULL;
+    }
     wchar_t *utf16 = malloc(n * sizeof(wchar_t));
     if (!utf16)
     {
