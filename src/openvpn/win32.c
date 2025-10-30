@@ -881,8 +881,9 @@ env_block(const struct env_set *es)
     char force_path[256];
     char *sysroot = get_win_sys_path();
 
-    if (!snprintf(force_path, sizeof(force_path), "PATH=%s\\System32;%s;%s\\System32\\Wbem",
-                  sysroot, sysroot, sysroot))
+    if (snprintf(force_path, sizeof(force_path), "PATH=%s\\System32;%s;%s\\System32\\Wbem",
+                 sysroot, sysroot, sysroot)
+        >= sizeof(force_path))
     {
         msg(M_WARN, "env_block: default path truncated to %s", force_path);
     }

@@ -85,8 +85,9 @@ verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth, uint3
 
         ret = mbedtls_x509_crt_verify_info(errstr, sizeof(errstr) - 1, "", *flags);
         if (ret <= 0
-            && !snprintf(errstr, sizeof(errstr), "Could not retrieve error string, flags=%" PRIx32,
-                         *flags))
+            && snprintf(errstr, sizeof(errstr), "Could not retrieve error string, flags=%" PRIx32,
+                        *flags)
+                   >= sizeof(errstr))
         {
             errstr[0] = '\0';
         }

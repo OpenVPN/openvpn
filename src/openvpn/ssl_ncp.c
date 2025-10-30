@@ -198,7 +198,7 @@ append_cipher_to_ncp_list(struct options *o, const char *ciphername)
     size_t newlen = strlen(o->ncp_ciphers) + 1 + strlen(ciphername) + 1;
     char *ncp_ciphers = gc_malloc(newlen, false, &o->gc);
 
-    ASSERT(snprintf(ncp_ciphers, newlen, "%s:%s", o->ncp_ciphers, ciphername));
+    ASSERT(snprintf(ncp_ciphers, newlen, "%s:%s", o->ncp_ciphers, ciphername) < newlen);
     o->ncp_ciphers = ncp_ciphers;
 }
 

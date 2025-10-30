@@ -334,7 +334,7 @@ setenv_str_incr(struct env_set *es, const char *name, const char *value)
     strcpy(tmpname, name);
     while (NULL != env_set_get(es, tmpname) && counter < 1000)
     {
-        ASSERT(snprintf(tmpname, tmpname_len, "%s_%u", name, counter));
+        ASSERT(snprintf(tmpname, tmpname_len, "%s_%u", name, counter) < tmpname_len);
         counter++;
     }
     if (counter < 1000)
