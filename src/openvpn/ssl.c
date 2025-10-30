@@ -1829,11 +1829,6 @@ read_string(struct buffer *buf, char *str, const unsigned int capacity)
     return len;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static char *
 read_string_alloc(struct buffer *buf)
 {
@@ -2174,15 +2169,15 @@ export_user_keying_material(struct tls_session *session)
 {
     if (session->opt->ekm_size > 0)
     {
-        unsigned int size = session->opt->ekm_size;
+        const size_t size = session->opt->ekm_size;
         struct gc_arena gc = gc_new();
 
-        unsigned char *ekm = gc_malloc(session->opt->ekm_size, true, &gc);
+        unsigned char *ekm = gc_malloc(size, true, &gc);
         if (key_state_export_keying_material(session, session->opt->ekm_label,
                                              session->opt->ekm_label_size, ekm,
                                              session->opt->ekm_size))
         {
-            unsigned int len = (size * 2) + 2;
+            const size_t len = (size * 2) + 2;
 
             const char *key = format_hex_ex(ekm, size, len, 0, NULL, &gc);
             setenv_str(session->opt->es, "exported_keying_material", key);
@@ -2198,6 +2193,11 @@ export_user_keying_material(struct tls_session *session)
         gc_free(&gc);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
 
 /**
  * Handle reading key data, peer-info, username/password, OCC

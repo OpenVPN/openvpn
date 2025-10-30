@@ -480,18 +480,17 @@ gc_transfer(struct gc_arena *dest, struct gc_arena *src)
  */
 
 char *
-format_hex_ex(const uint8_t *data, int size, int maxoutput, unsigned int space_break_flags,
+format_hex_ex(const uint8_t *data, size_t size, size_t maxoutput, unsigned int space_break_flags,
               const char *separator, struct gc_arena *gc)
 {
     const size_t bytes_per_hexblock = space_break_flags & FHE_SPACE_BREAK_MASK;
     const size_t separator_len = separator ? strlen(separator) : 0;
-    static_assert(INT_MAX <= SIZE_MAX, "Code assumes INT_MAX <= SIZE_MAX");
     const size_t out_len = maxoutput > 0
                                ? maxoutput
                                : ((size * 2) + ((size / bytes_per_hexblock) * separator_len) + 2);
 
     struct buffer out = alloc_buf_gc(out_len, gc);
-    for (int i = 0; i < size; ++i)
+    for (size_t i = 0; i < size; ++i)
     {
         if (separator && i && !(i % bytes_per_hexblock))
         {
