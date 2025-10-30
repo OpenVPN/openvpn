@@ -1329,7 +1329,7 @@ verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
     }
     else
     {
-        setenv_str(session->opt->es, "username", up->username);
+        /* username env is already set by set_verify_user_pass_env */
         setenv_str(session->opt->es, "password", up->password);
     }
 
@@ -1377,10 +1377,6 @@ verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
         /* purge auth control filename (and file itself) for non-deferred returns */
         key_state_rm_auth_control_files(&ks->script_auth);
     }
-    if (!session->opt->auth_user_pass_verify_script_via_file)
-    {
-        setenv_del(session->opt->es, "password");
-    }
 
 done:
     if (tmp_file && strlen(tmp_file) > 0)
@@ -1389,6 +1385,11 @@ done:
     }
 
 error:
+    if (!session->opt->auth_user_pass_verify_script_via_file)
+    {
+        setenv_del(session->opt->es, "password");
+    }
+
     argv_free(&argv);
     gc_free(&gc);
     return retval;
