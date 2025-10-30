@@ -2408,7 +2408,17 @@ get_sigtype(int nid)
             return "(error getting name)";
 
         default:
-            return OBJ_nid2sn(nid);
+        {
+            const char *type = OBJ_nid2sn(nid);
+            if (!type)
+            {
+                /* This is unlikely to ever happen as OpenSSL is unlikely to
+                 * return an NID it cannot resolve itself but we silence
+                 * linter/code checkers here */
+                type = "(error getting name, OBJ_nid2sn failed)";
+            }
+            return type;
+        }
     }
 }
 #endif /* ifndef LIBRESSL_VERSION_NUMBER */
