@@ -1882,7 +1882,7 @@ do_open_tun(struct context *c, int *error_flags)
 #endif
         if (dco_enabled(&c->options))
         {
-            ovpn_dco_init(c->mode, &c->c1.tuntap->dco);
+            ovpn_dco_init(c);
         }
 
         /* open the tun device */

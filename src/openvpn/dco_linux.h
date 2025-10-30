@@ -43,6 +43,8 @@ typedef struct
     struct nl_cb *nl_cb;
     int status;
 
+    struct context *c;
+
     enum ovpn_mode ifmode;
 
     int ovpn_dco_id;

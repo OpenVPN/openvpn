@@ -283,7 +283,7 @@ nla_put_failure:
 }
 
 static int
-ovpn_nl_cb_finish(struct nl_msg (*msg) __attribute__ ((unused)), void *arg)
+ovpn_nl_cb_finish(struct nl_msg(*msg) __attribute__ ((unused)), void *arg)
 {
     int *status = arg;
 
@@ -300,7 +300,7 @@ ovpn_nl_cb_finish(struct nl_msg (*msg) __attribute__ ((unused)), void *arg)
  * reply to see if it contains a human-readable error. If found, it is printed.
  */
 static int
-ovpn_nl_cb_error(struct sockaddr_nl (*nla) __attribute__ ((unused)),
+ovpn_nl_cb_error(struct sockaddr_nl(*nla) __attribute__ ((unused)),
                  struct nlmsgerr *err, void *arg)
 {
     struct nlmsghdr *nlh = (struct nlmsghdr *)err - 1;
@@ -391,9 +391,11 @@ ovpn_dco_init_netlink(dco_context_t *dco)
 }
 
 bool
-ovpn_dco_init(int mode, dco_context_t *dco)
+ovpn_dco_init(struct context *c)
 {
-    switch (mode)
+    dco_context_t *dco = &c->c1.tuntap->dco;
+
+    switch (c->mode)
     {
         case CM_TOP:
             dco->ifmode = OVPN_MODE_MP;
@@ -406,6 +408,10 @@ ovpn_dco_init(int mode, dco_context_t *dco)
         default:
             ASSERT(false);
     }
+    /* store pointer to context as it may be required by message
+     * parsing routines
+     */
+    dco->c = c;
 
     ovpn_dco_init_netlink(dco);
     return true;
