@@ -337,7 +337,7 @@ mroute_addr_mask_host_bits(struct mroute_addr *ma)
             }
             else
             {
-                ma->v6.addr.s6_addr[byte--] &= (0xFF << bits_to_clear);
+                ma->v6.addr.s6_addr[byte--] &= (uint8_t)(0xFF << bits_to_clear);
                 bits_to_clear = 0;
             }
         }

@@ -46,7 +46,7 @@ CvtHex(IN HASH Bin, OUT HASHHEX Hex)
         }
         else
         {
-            Hex[i * 2] = (j + 'a' - 10);
+            Hex[i * 2] = (unsigned char)(j + 'a' - 10);
         }
         j = Bin[i] & 0xf;
         if (j <= 9)
@@ -55,7 +55,7 @@ CvtHex(IN HASH Bin, OUT HASHHEX Hex)
         }
         else
         {
-            Hex[i * 2 + 1] = (j + 'a' - 10);
+            Hex[i * 2 + 1] = (unsigned char)(j + 'a' - 10);
         }
     }
     Hex[HASHHEXLEN] = '\0';
