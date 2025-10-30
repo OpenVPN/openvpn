@@ -723,6 +723,160 @@ nla_put_failure:
     return ret;
 }
 
+ static void
+dco_update_peer_stat(struct context_2 *c2, struct nlattr *tb[], uint32_t id)
+{
+    if (tb[OVPN_GET_PEER_RESP_ATTR_LINK_RX_BYTES])
+    {
+        c2->dco_read_bytes = nla_get_u64(tb[OVPN_GET_PEER_RESP_ATTR_LINK_RX_BYTES]);
+        msg(D_DCO_DEBUG, "%s / dco_read_bytes: " counter_format, __func__,
+            c2->dco_read_bytes);
+    }
+    else
+    {
+        msg(M_WARN, "%s: no link RX bytes provided in reply for peer %u",
+            __func__, id);
+    }
+
+    if (tb[OVPN_GET_PEER_RESP_ATTR_LINK_TX_BYTES])
+    {
+        c2->dco_write_bytes = nla_get_u64(tb[OVPN_GET_PEER_RESP_ATTR_LINK_TX_BYTES]);
+        msg(D_DCO_DEBUG, "%s / dco_write_bytes: " counter_format, __func__,
+            c2->dco_write_bytes);
+    }
+    else
+    {
+        msg(M_WARN, "%s: no link TX bytes provided in reply for peer %u",
+            __func__, id);
+    }
+
+    if (tb[OVPN_GET_PEER_RESP_ATTR_VPN_RX_BYTES])
+    {
+        c2->tun_read_bytes = nla_get_u64(tb[OVPN_GET_PEER_RESP_ATTR_VPN_RX_BYTES]);
+        msg(D_DCO_DEBUG, "%s / tun_read_bytes: " counter_format, __func__,
+            c2->tun_read_bytes);
+    }
+    else
+    {
+        msg(M_WARN, "%s: no VPN RX bytes provided in reply for peer %u",
+            __func__, id);
+    }
+
+    if (tb[OVPN_GET_PEER_RESP_ATTR_VPN_TX_BYTES])
+    {
+        c2->tun_write_bytes = nla_get_u64(tb[OVPN_GET_PEER_RESP_ATTR_VPN_TX_BYTES]);
+        msg(D_DCO_DEBUG, "%s / tun_write_bytes: " counter_format, __func__,
+            c2->tun_write_bytes);
+    }
+    else
+    {
+        msg(M_WARN, "%s: no VPN TX bytes provided in reply for peer %u",
+            __func__, id);
+    }
+}
+
+static int
+ovpn_handle_peer_multi(dco_context_t *dco, struct nlattr *attrs[])
+{
+    msg(D_DCO_DEBUG, "%s: parsing message...", __func__);
+
+    /* this function assumes openvpn is running in multipeer mode as
+     * it accesses c->multi
+     */
+    if (dco->ifmode != OVPN_MODE_MP)
+    {
+        msg(M_WARN, "%s: can't parse 'multi-peer' message on P2P instance", __func__);
+        return NL_SKIP;
+    }
+
+    if (!attrs[OVPN_ATTR_GET_PEER])
+    {
+        return NL_SKIP;
+    }
+
+    struct nlattr *tb_peer[OVPN_GET_PEER_RESP_ATTR_MAX + 1];
+
+    nla_parse(tb_peer, OVPN_GET_PEER_RESP_ATTR_MAX,
+              nla_data(attrs[OVPN_ATTR_GET_PEER]),
+              nla_len(attrs[OVPN_ATTR_GET_PEER]), NULL);
+
+    if (!tb_peer[OVPN_GET_PEER_RESP_ATTR_PEER_ID])
+    {
+        msg(M_WARN, "ovpn-dco: no peer-id provided in (MULTI) PEER_GET reply");
+        return NL_SKIP;
+    }
+
+    struct multi_context *m = dco->c->multi;
+    uint32_t peer_id = nla_get_u32(tb_peer[OVPN_GET_PEER_RESP_ATTR_PEER_ID]);
+
+    if (peer_id >= m->max_clients || !m->instances[peer_id])
+    {
+        msg(M_WARN, "%s: cannot store DCO stats for peer %u", __func__,
+            peer_id);
+        return NL_SKIP;
+    }
+
+    dco_update_peer_stat(&m->instances[peer_id]->context.c2, tb_peer, peer_id);
+
+    return NL_OK;
+}
+
+static int
+ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
+{
+    msg(D_DCO_DEBUG, "%s: parsing message...", __func__);
+
+    if (!attrs[OVPN_ATTR_GET_PEER])
+    {
+        msg(D_DCO_DEBUG, "%s: malformed reply", __func__);
+        return NL_SKIP;
+    }
+
+    struct nlattr *tb_peer[OVPN_GET_PEER_RESP_ATTR_MAX + 1];
+
+    nla_parse(tb_peer, OVPN_GET_PEER_RESP_ATTR_MAX,
+              nla_data(attrs[OVPN_ATTR_GET_PEER]),
+              nla_len(attrs[OVPN_ATTR_GET_PEER]), NULL);
+
+    if (!tb_peer[OVPN_GET_PEER_RESP_ATTR_PEER_ID])
+    {
+        msg(M_WARN, "ovpn-dco: no peer-id provided in PEER_GET reply");
+        return NL_SKIP;
+    }
+
+    uint32_t peer_id = nla_get_u32(tb_peer[OVPN_GET_PEER_RESP_ATTR_PEER_ID]);
+    struct context_2 *c2;
+
+    if (dco->ifmode == OVPN_MODE_P2P)
+    {
+        c2 = &dco->c->c2;
+    }
+    else
+    {
+        struct multi_instance *mi = dco->c->multi->instances[peer_id];
+        if (!mi)
+        {
+            msg(M_WARN, "%s: received data for a non-existing peer %u", __func__, peer_id);
+            return NL_SKIP;
+        }
+
+        c2 = &mi->context.c2;
+    }
+
+    /* at this point this check should never fail for MP mode,
+     * but it's still fully valid for P2P mode
+     */
+    if (c2->tls_multi->dco_peer_id != peer_id)
+    {
+        return NL_SKIP;
+    }
+
+    dco_update_peer_stat(c2, tb_peer, peer_id);
+
+    return NL_OK;
+}
+
+
 /* This function parses any netlink message sent by ovpn-dco to userspace */
 static int
 ovpn_handle_msg(struct nl_msg *msg, void *arg)
@@ -768,7 +922,7 @@ ovpn_handle_msg(struct nl_msg *msg, void *arg)
      */
     switch (gnlh->cmd)
     {
-        case OVPN_CMD_PEER_GET:
+        case OVPN_CMD_GET_PEER:
         {
             /* this message is part of a peer list dump, hence triggered
              * by a MP/server instance
@@ -854,104 +1008,6 @@ dco_do_read(dco_context_t *dco)
     return ovpn_nl_recvmsgs(dco, __func__);
 }
 
-static void
-dco_update_peer_stat(struct context_2 *c2, struct nlattr *tb[], uint32_t id)
-{
-    if (tb[OVPN_GET_PEER_RESP_ATTR_LINK_RX_BYTES])
-    {
-        c2->dco_read_bytes = nla_get_u64(tb[OVPN_GET_PEER_RESP_ATTR_LINK_RX_BYTES]);
-        msg(D_DCO_DEBUG, "%s / dco_read_bytes: " counter_format, __func__,
-            c2->dco_read_bytes);
-    }
-    else
-    {
-        msg(M_WARN, "%s: no link RX bytes provided in reply for peer %u",
-            __func__, id);
-    }
-
-    if (tb[OVPN_GET_PEER_RESP_ATTR_LINK_TX_BYTES])
-    {
-        c2->dco_write_bytes = nla_get_u64(tb[OVPN_GET_PEER_RESP_ATTR_LINK_TX_BYTES]);
-        msg(D_DCO_DEBUG, "%s / dco_write_bytes: " counter_format, __func__,
-            c2->dco_write_bytes);
-    }
-    else
-    {
-        msg(M_WARN, "%s: no link TX bytes provided in reply for peer %u",
-            __func__, id);
-    }
-
-    if (tb[OVPN_GET_PEER_RESP_ATTR_VPN_RX_BYTES])
-    {
-        c2->tun_read_bytes = nla_get_u64(tb[OVPN_GET_PEER_RESP_ATTR_VPN_RX_BYTES]);
-        msg(D_DCO_DEBUG, "%s / tun_read_bytes: " counter_format, __func__,
-            c2->tun_read_bytes);
-    }
-    else
-    {
-        msg(M_WARN, "%s: no VPN RX bytes provided in reply for peer %u",
-            __func__, id);
-    }
-
-    if (tb[OVPN_GET_PEER_RESP_ATTR_VPN_TX_BYTES])
-    {
-        c2->tun_write_bytes = nla_get_u64(tb[OVPN_GET_PEER_RESP_ATTR_VPN_TX_BYTES]);
-        msg(D_DCO_DEBUG, "%s / tun_write_bytes: " counter_format, __func__,
-            c2->tun_write_bytes);
-    }
-    else
-    {
-        msg(M_WARN, "%s: no VPN TX bytes provided in reply for peer %u",
-            __func__, id);
-    }
-}
-
-int
-ovpn_handle_peer_multi(dco_context_t *dco, struct nlattr *attrs[])
-{
-    msg(D_DCO_DEBUG, "%s: parsing message...", __func__);
-
-    /* this function assumes openvpn is running in multipeer mode as
-     * it accesses c->multi
-     */
-    if (dco->ifmode != OVPN_MODE_MP)
-    {
-        msg(M_WARN, "%s: can't parse 'multi-peer' message on P2P instance", __func__);
-        return NL_SKIP;
-    }
-
-    if (!attrs[OVPN_ATTR_GET_PEER])
-    {
-        return NL_SKIP;
-    }
-
-    struct nlattr *tb_peer[OVPN_GET_PEER_RESP_ATTR_MAX + 1];
-
-    nla_parse(tb_peer, OVPN_GET_PEER_RESP_ATTR_MAX,
-              nla_data(attrs[OVPN_ATTR_GET_PEER]),
-              nla_len(attrs[OVPN_ATTR_GET_PEER]), NULL);
-
-    if (!tb_peer[OVPN_GET_PEER_RESP_ATTR_PEER_ID])
-    {
-        msg(M_WARN, "ovpn-dco: no peer-id provided in (MULTI) PEER_GET reply");
-        return NL_SKIP;
-    }
-
-    struct multi_context *m = dco->c->multi;
-    uint32_t peer_id = nla_get_u32(tb_peer[OVPN_GET_PEER_RESP_ATTR_PEER_ID]);
-
-    if (peer_id >= m->max_clients || !m->instances[peer_id])
-    {
-        msg(M_WARN, "%s: cannot store DCO stats for peer %u", __func__,
-            peer_id);
-        return NL_SKIP;
-    }
-
-    dco_update_peer_stat(&m->instances[peer_id]->context.c2, tb_peer, peer_id);
-
-    return NL_OK;
-}
-
 int
 dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
 {
@@ -965,61 +1021,6 @@ dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
 
     nlmsg_free(nl_msg);
     return ret;
-}
-
-static int
-ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
-{
-    msg(D_DCO_DEBUG, "%s: parsing message...", __func__);
-
-    if (!attrs[OVPN_ATTR_GET_PEER])
-    {
-        msg(D_DCO_DEBUG, "%s: malformed reply", __func__);
-        return NL_SKIP;
-    }
-
-    struct nlattr *tb_peer[OVPN_GET_PEER_RESP_ATTR_MAX + 1];
-
-    nla_parse(tb_peer, OVPN_GET_PEER_RESP_ATTR_MAX,
-              nla_data(attrs[OVPN_ATTR_GET_PEER]),
-              nla_len(attrs[OVPN_ATTR_GET_PEER]), NULL);
-
-    if (!tb_peer[OVPN_GET_PEER_RESP_ATTR_PEER_ID])
-    {
-        msg(M_WARN, "ovpn-dco: no peer-id provided in PEER_GET reply");
-        return NL_SKIP;
-    }
-
-    uint32_t peer_id = nla_get_u32(tb_peer[OVPN_GET_PEER_RESP_ATTR_PEER_ID]);
-    struct context_2 *c2;
-
-    if (dco->ifmode == OVPN_MODE_P2P)
-    {
-        c2 = &dco->c->c2;
-    }
-    else
-    {
-        struct multi_instance *mi = dco->c->multi->instances[peer_id];
-        if (!mi)
-        {
-            msg(M_WARN, "%s: received data for a non-existing peer %u", __func__, peer_id);
-            return NL_SKIP;
-        }
-
-        c2 = &mi->context.c2;
-    }
-
-    /* at this point this check should never fail for MP mode,
-     * but it's still fully valid for P2P mode
-     */
-    if (c2->tls_multi->dco_peer_id != peer_id)
-    {
-        return NL_SKIP;
-    }
-
-    dco_update_peer_stat(c2, tb_peer, peer_id);
-
-    return NL_OK;
 }
 
 int
