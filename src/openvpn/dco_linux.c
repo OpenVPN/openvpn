@@ -391,9 +391,11 @@ ovpn_dco_init_netlink(dco_context_t *dco)
 }
 
 bool
-ovpn_dco_init(int mode, dco_context_t *dco)
+ovpn_dco_init(struct context *c)
 {
-    switch (mode)
+    dco_context_t *dco = &c->c1.tuntap->dco;
+
+    switch (c->mode)
     {
         case CM_TOP:
             dco->ifmode = OVPN_MODE_MP;
@@ -406,6 +408,10 @@ ovpn_dco_init(int mode, dco_context_t *dco)
         default:
             ASSERT(false);
     }
+    /* store pointer to context as it may be required by message
+     * parsing routines
+     */
+    dco->c = c;
 
     ovpn_dco_init_netlink(dco);
     return true;

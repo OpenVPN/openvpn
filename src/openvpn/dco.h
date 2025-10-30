@@ -104,11 +104,10 @@ bool dco_check_pull_options(int msglevel, const struct options *o);
 /**
  * Initialize the DCO context
  *
- * @param mode      the instance operating mode (P2P or multi-peer)
- * @param dco       the context to initialize
+ * @param c         the main instance context
  * @return          true on success, false otherwise
  */
-bool ovpn_dco_init(int mode, dco_context_t *dco);
+bool ovpn_dco_init(struct context *c);
 
 /**
  * Open/create a DCO interface
@@ -284,7 +283,7 @@ dco_check_pull_options(int msglevel, const struct options *o)
 }
 
 static inline bool
-ovpn_dco_init(int mode, dco_context_t *dco)
+ovpn_dco_init(struct context *c)
 {
     return true;
 }
