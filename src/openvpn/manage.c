@@ -608,14 +608,14 @@ man_kill(struct management *man, const char *victim)
             if (status)
             {
                 const int port = atoi(p3);
-                const int proto = (streq(p1, "tcp"))   ? PROTO_TCP_SERVER
-                                  : (streq(p1, "udp")) ? PROTO_UDP
-                                                       : PROTO_NONE;
+                const uint8_t proto = (streq(p1, "tcp"))   ? PROTO_TCP_SERVER
+                                      : (streq(p1, "udp")) ? PROTO_UDP
+                                                           : PROTO_NONE;
 
-                if ((port > 0 && port < 65536) && (proto != PROTO_NONE))
+                if ((port > 0 && port < UINT16_MAX) && (proto != PROTO_NONE))
                 {
                     n_killed = (*man->persist.callback.kill_by_addr)(man->persist.callback.arg,
-                                                                     addr, port, proto);
+                                                                     addr, (uint16_t)port, proto);
                     if (n_killed > 0)
                     {
                         msg(M_CLIENT, "SUCCESS: %d client(s) at address %s:%s:%d killed", n_killed,

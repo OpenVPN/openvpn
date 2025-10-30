@@ -89,7 +89,7 @@ struct link_socket_info
     const char *ipchange_command;
     const struct plugin_list *plugins;
     bool remote_float;
-    int proto;       /* Protocol (PROTO_x defined below) */
+    uint8_t proto;   /* Protocol (PROTO_x defined below) */
     sa_family_t af;  /* Address family like AF_INET, AF_INET6 or AF_UNSPEC*/
     bool bind_ipv6_only;
     int mtu_changed; /* Set to true when mtu value is changed */

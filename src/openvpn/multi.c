@@ -3937,7 +3937,7 @@ management_callback_kill_by_cn(void *arg, const char *del_cn)
 }
 
 static int
-management_callback_kill_by_addr(void *arg, const in_addr_t addr, const int port, const int proto)
+management_callback_kill_by_addr(void *arg, const in_addr_t addr, const uint16_t port, const uint8_t proto)
 {
     struct multi_context *m = (struct multi_context *)arg;
     struct hash_iterator hi;
