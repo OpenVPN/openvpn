@@ -992,7 +992,7 @@ key_state_gen_auth_control_files(struct auth_deferred_status *ads, const struct 
     const char *apf = platform_create_temp_file(opt->tmp_dir, "apf", &gc);
     const char *afr = platform_create_temp_file(opt->tmp_dir, "afr", &gc);
 
-    if (acf && apf)
+    if (acf && apf && afr)
     {
         ads->auth_control_file = string_alloc(acf, NULL);
         ads->auth_pending_file = string_alloc(apf, NULL);
@@ -1004,7 +1004,7 @@ key_state_gen_auth_control_files(struct auth_deferred_status *ads, const struct 
     }
 
     gc_free(&gc);
-    return (acf && apf);
+    return (acf && apf && afr);
 }
 
 /**
