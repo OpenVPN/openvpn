@@ -44,6 +44,7 @@ typedef struct
     int status;
 
     struct context *c;
+    int ctrlid;
 
     enum ovpn_mode ifmode;
 
