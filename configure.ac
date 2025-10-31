@@ -1383,6 +1383,17 @@ if test "${enable_pkcs11}" = "yes"; then
 	fi
 fi
 
+if test "${WIN32}" == "yes"; then
+	AC_CHECK_DECLS(
+		[PATHCCH_ENSURE_TRAILING_SLASH],
+		[AC_DEFINE([HAVE_PATHCCH_ENSURE_TRAILING_SLASH], [1], [PATHCCH_ENSURE_TRAILING_SLASH is defined])],
+		,
+		[[
+			#include <pathcch.h>
+		]]
+	)
+fi
+
 # When testing a compiler option, we add -Werror to force
 # an error when the option is unsupported. This is not
 # required for gcc, but some compilers such as clang need it.
