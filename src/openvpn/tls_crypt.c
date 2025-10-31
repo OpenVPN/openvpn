@@ -642,6 +642,12 @@ tls_crypt_v2_extract_client_key(struct buffer *buf, struct tls_wrap_ctx *ctx,
         return false;
     }
 
+    if (opt && opt->tls_crypt_v2_verify_script && !tls_crypt_v2_verify_metadata(ctx, opt))
+    {
+        secure_memzero(&ctx->original_wrap_keydata, sizeof(ctx->original_wrap_keydata));
+        return false;
+    }
+
     /* Load the decrypted key */
     ctx->mode = TLS_WRAP_CRYPT;
     ctx->cleanup_key_ctx = true;
@@ -651,11 +657,6 @@ tls_crypt_v2_extract_client_key(struct buffer *buf, struct tls_wrap_ctx *ctx,
 
     /* Remove client key from buffer so tls-crypt code can unwrap message */
     ASSERT(buf_inc_len(buf, -(BLEN(&wrapped_client_key))));
-
-    if (opt && opt->tls_crypt_v2_verify_script)
-    {
-        return tls_crypt_v2_verify_metadata(ctx, opt);
-    }
 
     return true;
 }

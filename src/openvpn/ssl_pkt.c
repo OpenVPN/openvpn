@@ -280,6 +280,7 @@ free_tls_pre_decrypt_state(struct tls_pre_decrypt_state *state)
     if (state->tls_wrap_tmp.cleanup_key_ctx)
     {
         free_key_ctx_bi(&state->tls_wrap_tmp.opt.key_ctx_bi);
+        secure_memzero(&state->tls_wrap_tmp.original_wrap_keydata, sizeof(state->tls_wrap_tmp.original_wrap_keydata));
     }
 }
 
