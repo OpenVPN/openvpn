@@ -43,6 +43,11 @@
 
 #define MULTI_PREFIX_MAX_LENGTH 256
 
+
+void
+process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi,
+                          dco_context_t *dco);
+
 /*
  * Walk (don't run) through the routing table,
  * deleting old entries, and possibly multi_instance
@@ -260,11 +265,11 @@ const char *multi_instance_string(const struct multi_instance *mi, bool null, st
  * Called by mtcp.c, mudp.c, or other (to be written) protocol drivers
  */
 
-void multi_init(struct multi_context *m, struct context *t, bool tcp_mode);
+void multi_init(struct context *t, bool tcp_mode);
 
 void multi_uninit(struct multi_context *m);
 
-void multi_top_init(struct multi_context *m, struct context *top);
+void multi_top_init(struct context *top);
 
 void multi_top_free(struct multi_context *m);
 
