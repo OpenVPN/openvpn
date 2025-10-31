@@ -131,6 +131,7 @@ nla_put_failure:
 static int
 ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
 {
+    msg(D_DCO_DEBUG, "%s: entering %s", prefix, __func__);
     int ret = nl_recvmsgs(dco->nl_sock, dco->nl_cb);
 
     switch (ret)
@@ -163,6 +164,7 @@ ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
             break;
     }
 
+    msg(D_DCO_DEBUG, "%s: leaving %s", prefix, __func__);
     return ret;
 }
 
@@ -178,6 +180,7 @@ ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
 static int
 ovpn_nl_msg_send(dco_context_t *dco, struct nl_msg *nl_msg, const char *prefix)
 {
+    msg(D_DCO_DEBUG, "%s: entering %s", prefix, __func__);
     dco->status = 1;
 
     nl_send_auto(dco->nl_sock, nl_msg);
@@ -193,6 +196,7 @@ ovpn_nl_msg_send(dco_context_t *dco, struct nl_msg *nl_msg, const char *prefix)
             prefix, strerror(-dco->status), dco->status);
     }
 
+    msg(D_DCO_DEBUG, "%s: leaving %s", prefix, __func__);
     return dco->status;
 }
 
@@ -1020,6 +1024,7 @@ dco_get_peer_stats_multi(dco_context_t *dco, struct multi_context *m)
     int ret = ovpn_nl_msg_send(dco, nl_msg, __func__);
 
     nlmsg_free(nl_msg);
+    msg(D_DCO_DEBUG, "leaving %s", __func__);
     return ret;
 }
 
