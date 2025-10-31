@@ -984,22 +984,83 @@ ovpn_handle_msg(struct nl_msg *msg, void *arg)
                 return NL_SKIP;
             }
             int reason = nla_get_u8(dp_attrs[OVPN_DEL_PEER_ATTR_REASON]);
-            unsigned int peerid = nla_get_u32(dp_attrs[OVPN_DEL_PEER_ATTR_PEER_ID]);
+            unsigned int peer_id = nla_get_u32(dp_attrs[OVPN_DEL_PEER_ATTR_PEER_ID]);
 
             msg(D_DCO_DEBUG, "ovpn-dco: received CMD_DEL_PEER, ifindex: %d, peer-id %d, reason: %d",
-                ifindex, peerid, reason);
-            dco->dco_message_peer_id = peerid;
-            dco->dco_del_peer_reason = reason;
-            dco->dco_message_type = OVPN_CMD_DEL_PEER;
+                ifindex, peer_id, reason);
 
-            break;
+            if (dco->c->mode == CM_TOP) {
+                struct multi_context *m = dco->c->multi;
+                struct multi_instance *mi = NULL;
+
+                /* no peer-specific message delivered -> nothing to process.
+                 * bail out right away
+                 */
+                if (peer_id < 0)
+                {
+                    return NL_SKIP;
+                }
+
+                if ((peer_id < m->max_clients) && (m->instances[peer_id]))
+                {
+                    mi = m->instances[peer_id];
+                    set_prefix(mi);
+                    dco->dco_del_peer_reason = reason;
+                    process_incoming_del_peer(m, mi, dco);
+                    clear_prefix();
+                }
+                else
+                {
+                    int msglevel = D_DCO;
+                    if (reason == OVPN_DEL_PEER_REASON_USERSPACE)
+                    {
+                        /* we receive OVPN_CMD_DEL_PEER message with reason USERSPACE
+                         * after we kill the peer ourselves. This peer may have already
+                         * been deleted, so we end up here.
+                         * In this case, print the following debug message with DCO_DEBUG
+                         * level only to avoid polluting the standard DCO level with this
+                         * harmless event.
+                         */
+                        msglevel = D_DCO_DEBUG;
+                    }
+                    msg(msglevel, "Received DCO message for unknown peer-id: %d, "
+                        "type %d, del_peer_reason %d", peer_id, OVPN_CMD_DEL_PEER,
+                        reason);
+                }
+
+            }
+            else {
+                /* FreeBSD currently sends us removal notifcation with the old peer-id in
+                 * p2p mode with the ping timeout reason, so ignore that one to not shoot
+                 * ourselves in the foot and removing the just established session */
+                if (peer_id != dco->c->c2.tls_multi->dco_peer_id)
+                {
+                    msg(D_DCO_DEBUG, "%s: received message for mismatching peer-id %d, "
+                        "expected %d", __func__, peer_id,
+                        dco->c->c2.tls_multi->dco_peer_id);
+                    return NL_SKIP;
+                }
+                if (dco->dco_del_peer_reason == OVPN_DEL_PEER_REASON_EXPIRED)
+                {
+                    msg(D_DCO_DEBUG, "%s: received peer expired notification of for peer-id "
+                        "%d", __func__, peer_id);
+                    trigger_ping_timeout_signal(dco->c);
+                    return NL_SKIP;
+                }
+            }
         }
-
+        break;
         default:
             msg(D_DCO, "ovpn-dco: received unknown command: %d", gnlh->cmd);
             dco->dco_message_type = 0;
             return NL_SKIP;
     }
+
+    dco->dco_message_type = 0;
+    dco->dco_message_peer_id = -1;
+    dco->dco_del_peer_reason = -1;
+    dco->dco_read_bytes = 0;
+    dco->dco_write_bytes = 0;
 
     return NL_OK;
 }

@@ -1290,16 +1290,6 @@ process_incoming_dco(struct context *c)
 
     switch (dco->dco_message_type)
     {
-        case OVPN_CMD_DEL_PEER:
-            if (dco->dco_del_peer_reason == OVPN_DEL_PEER_REASON_EXPIRED)
-            {
-                msg(D_DCO_DEBUG, "%s: received peer expired notification of for peer-id "
-                    "%d", __func__, dco->dco_message_peer_id);
-                trigger_ping_timeout_signal(c);
-                return;
-            }
-            break;
-
         case OVPN_CMD_SWAP_KEYS:
             msg(D_DCO_DEBUG, "%s: received key rotation notification for peer-id %d",
                 __func__, dco->dco_message_peer_id);

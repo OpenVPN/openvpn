@@ -3244,7 +3244,7 @@ multi_signal_instance(struct multi_context *m, struct multi_instance *mi, const 
 #endif
 
 #if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD))
-static void
+void
 process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi,
                           dco_context_t *dco)
 {
@@ -3311,9 +3311,9 @@ multi_process_incoming_dco(struct multi_context *m)
     {
         mi = m->instances[peer_id];
         set_prefix(mi);
-        if (dco->dco_message_type == OVPN_CMD_DEL_PEER)
+        if (dco->dco_message_type == OVPN_CMD_SWAP_KEYS)
         {
-            process_incoming_del_peer(m, mi, dco);
+            tls_session_soft_reset(mi->context.c2.tls_multi);
         }
 #if defined(TARGET_FREEBSD)
         else if (dco->dco_message_type == OVPN_CMD_FLOAT_PEER)
@@ -3326,28 +3326,11 @@ multi_process_incoming_dco(struct multi_context *m)
             CLEAR(dco->dco_float_peer_ss);
         }
 #endif /* if defined(TARGET_LINUX) || defined(TARGET_WIN32) */
-        else if (dco->dco_message_type == OVPN_CMD_SWAP_KEYS)
-        {
-            tls_session_soft_reset(mi->context.c2.tls_multi);
-        }
         clear_prefix();
     }
     else
     {
-        int msglevel = D_DCO;
-        if (dco->dco_message_type == OVPN_CMD_DEL_PEER
-            && dco->dco_del_peer_reason == OVPN_DEL_PEER_REASON_USERSPACE)
-        {
-            /* we receive OVPN_CMD_DEL_PEER message with reason USERSPACE
-             * after we kill the peer ourselves. This peer may have already
-             * been deleted, so we end up here.
-             * In this case, print the following debug message with DCO_DEBUG
-             * level only to avoid polluting the standard DCO level with this
-             * harmless event.
-             */
-            msglevel = D_DCO_DEBUG;
-        }
-        msg(msglevel, "Received DCO message for unknown peer-id: %d, "
+        msg(D_DCO, "Received DCO message for unknown peer-id: %d, "
             "type %d, del_peer_reason %d", peer_id, dco->dco_message_type,
             dco->dco_del_peer_reason);
     }

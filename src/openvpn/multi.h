@@ -43,6 +43,11 @@
 
 #define MULTI_PREFIX_MAX_LENGTH 256
 
+
+void
+process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi,
+                          dco_context_t *dco);
+
 /*
  * Walk (don't run) through the routing table,
  * deleting old entries, and possibly multi_instance
