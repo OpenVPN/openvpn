@@ -54,6 +54,33 @@ GetRegString(HKEY key, LPCWSTR value, LPWSTR data, DWORD size, LPCWSTR default_v
 }
 
 
+/**
+ * Make sure that a dir path ends with a backslash.
+ * If it doesn't, a \ is added to the end of the path, if there's room in the buffer.
+ *
+ * @param dir       pointer to the wide dir path string buffer
+ * @param size      maximum number of wide chars the dir path buffer
+ * @return BOOL to indicate success or failure
+ */
+static BOOL
+ensure_trailing_backslash(PWSTR dir, size_t size)
+{
+    size_t len = wcslen(dir);
+
+    if (dir[len - 1] != '\\')
+    {
+        if (len + 1 > size)
+        {
+            return FALSE;
+        }
+        dir[len] = '\\';
+        dir[len + 1] = '\0';
+    }
+
+    return TRUE;
+}
+
+
 DWORD
 GetOpenvpnSettings(settings_t *s)
 {
@@ -90,16 +117,16 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
 
-    swprintf(default_value, _countof(default_value), L"%ls\\config", install_path);
+    swprintf(default_value, _countof(default_value), L"%ls\\config\\", install_path);
     error = GetRegString(key, L"config_dir", s->config_dir, sizeof(s->config_dir), default_value);
-    if (error != ERROR_SUCCESS)
+    if (error != ERROR_SUCCESS || !ensure_trailing_backslash(s->config_dir, _countof(s->config_dir)))
     {
         goto out;
     }
 
-    swprintf(default_value, _countof(default_value), L"%ls\\bin", install_path);
+    swprintf(default_value, _countof(default_value), L"%ls\\bin\\", install_path);
     error = GetRegString(key, L"bin_dir", s->bin_dir, sizeof(s->bin_dir), default_value);
-    if (error != ERROR_SUCCESS)
+    if (error != ERROR_SUCCESS || !ensure_trailing_backslash(s->bin_dir, _countof(s->bin_dir)))
     {
         goto out;
     }
@@ -110,9 +137,9 @@ GetOpenvpnSettings(settings_t *s)
         goto out;
     }
 
-    swprintf(default_value, _countof(default_value), L"%ls\\log", install_path);
+    swprintf(default_value, _countof(default_value), L"%ls\\log\\", install_path);
     error = GetRegString(key, L"log_dir", s->log_dir, sizeof(s->log_dir), default_value);
-    if (error != ERROR_SUCCESS)
+    if (error != ERROR_SUCCESS || !ensure_trailing_backslash(s->log_dir, _countof(s->log_dir)))
     {
         goto out;
     }
