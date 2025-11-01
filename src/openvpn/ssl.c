@@ -760,6 +760,12 @@ session_index_name(int index)
         case TM_LAME_DUCK:
             return "TM_LAME_DUCK";
 
+        case TM_THREADED:
+            return "TM_THREADED";
+
+        case TM_THREADRE:
+            return "TM_THREADRE";
+
         default:
             return "TM_???";
     }
@@ -771,13 +777,13 @@ session_index_name(int index)
 static const char *
 print_key_id(struct tls_multi *multi, struct gc_arena *gc)
 {
-    struct buffer out = alloc_buf_gc(256, gc);
+    struct buffer out = alloc_buf_gc(2048, gc);
 
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
         struct key_state *ks = get_key_scan(multi, i);
-        buf_printf(&out, " [key#%d state=%s auth=%s id=%d sid=%s]", i, state_name(ks->state),
-                   ks_auth_name(ks->authenticated), ks->key_id,
+        buf_printf(&out, " [key#%d state=%s auth=%s id=%d no=%d sid=%s]", i, state_name(ks->state),
+                   ks_auth_name(ks->authenticated), ks->key_id, ks->keys_idno,
                    session_id_print(&ks->session_id_remote, gc));
     }
 
@@ -848,6 +854,8 @@ key_state_init(struct tls_session *session, struct key_state *ks)
     {
         session->key_id = 1;
     }
+    ks->keys_idno = ks->key_id;
+    ks->keys_sels = 0;
 
     /* allocate key source material object */
     ALLOC_OBJ_CLEAR(ks->key_src, struct key_source2);
@@ -1187,6 +1195,13 @@ tls_multi_init_finalize(struct tls_multi *multi, int tls_mtu)
 
     tls_session_init(multi, &multi->session[TM_ACTIVE]);
     tls_session_init(multi, &multi->session[TM_INITIAL]);
+    tls_session_init(multi, &multi->session[TM_THREADED]);
+    tls_session_init(multi, &multi->session[TM_THREADRE]);
+
+    multi->session[TM_THREADRE].key[KS_PRIMARY].state = S_UNDEF;
+
+    multi->lame_mods = 0;
+    multi->lame_test = 0;
 }
 
 /*
@@ -1760,24 +1775,44 @@ flush_payload_buffer(struct key_state *ks)
  * active key.
  */
 static void
-key_state_soft_reset(struct tls_session *session)
+key_state_soft_reset(struct tls_multi *multi, struct tls_session *session)
 {
     struct key_state *ks = &session->key[KS_PRIMARY];        /* primary key */
     struct key_state *ks_lame = &session->key[KS_LAME_DUCK]; /* retiring key */
+    int lame_idno = ks->keys_idno;
+    int lame_mods = multi->lame_mods;
 
-    ks->must_die = now + session->opt->transition_window;    /* remaining lifetime of old key */
-    key_state_free(ks_lame, false);
-    *ks_lame = *ks;
-
-    key_state_init(session, ks);
-    ks->session_id_remote = ks_lame->session_id_remote;
-    ks->remote_addr = ks_lame->remote_addr;
+    if (lame_idno < TM_THREADED)
+    {
+        ks->must_die = now + session->opt->transition_window;    /* remaining lifetime of old key */
+        key_state_free(ks_lame, false);
+        *ks_lame = *ks;
+        key_state_init(session, ks);
+        ks->remote_addr = ks_lame->remote_addr;
+        ks->session_id_remote = ks_lame->session_id_remote;
+    }
+    else
+    {
+        /*ks->keys_lame = TM_THREADED;
+        int KEYS_INDX = (TM_THREADED + lame_mods);
+        struct tls_session *sn = &multi->session[KEYS_INDX];
+        ks = &sn->key[KS_PRIMARY];
+        ks_lame = &sn->key[KS_LAME_DUCK];
+        key_state_free(ks, false);
+        key_state_init(sn, ks);
+        ks->remote_addr = ks_lame->remote_addr;
+        ks->session_id_remote = ks_lame->session_id_remote;
+        ks->keys_idno = (TM_THREADED + lame_mods);*/
+    }
+    struct gc_arena gcz = gc_new();
+    msg(M_INFO, "DEBUG-NEWS-R [%d][%s]", lame_idno, print_key_id(multi, &gcz));
+    gc_free(&gcz);
 }
 
 void
 tls_session_soft_reset(struct tls_multi *tls_multi)
 {
-    key_state_soft_reset(&tls_multi->session[TM_ACTIVE]);
+    key_state_soft_reset(tls_multi, &tls_multi->session[TM_ACTIVE]);
 }
 
 /*
@@ -2760,7 +2795,7 @@ tls_process_state(struct tls_multi *multi, struct tls_session *session, struct b
     }
 
     /* Are we timed out on receive? */
-    if (now >= ks->must_negotiate && ks->state >= S_UNDEF && ks->state < S_ACTIVE)
+    if (now >= ks->must_negotiate && ks->state >= S_UNDEF && ks->state < S_ACTIVE && false)
     {
         msg(D_TLS_ERRORS,
             "TLS Error: TLS key negotiation failed to occur within %d seconds (check your network connectivity)",
@@ -3027,7 +3062,7 @@ tls_process(struct tls_multi *multi, struct tls_session *session, struct buffer 
     ASSERT(session_id_defined(&session->session_id));
 
     /* Should we trigger a soft reset? -- new key, keeps old key for a while */
-    if (ks->state >= S_GENERATED_KEYS && should_trigger_renegotiation(session, ks))
+    if (ks->state >= S_GENERATED_KEYS && should_trigger_renegotiation(session, ks) && ks->keys_lame != TM_THREADED)
     {
         msg(D_TLS_DEBUG_LOW,
             "TLS: soft reset sec=%d/%d bytes=" counter_format "/%" PRIi64 " pkts=" counter_format
@@ -3039,7 +3074,7 @@ tls_process(struct tls_multi *multi, struct tls_session *session, struct buffer 
             session->opt->aead_usage_limit,
             ks->crypto_options.key_ctx_bi.decrypt.plaintext_blocks + ks->n_packets,
             session->opt->aead_usage_limit);
-        key_state_soft_reset(session);
+        key_state_soft_reset(multi, session);
     }
 
     /* Kill lame duck key transition_window seconds after primary key negotiation */
@@ -3221,6 +3256,8 @@ tls_multi_process(struct tls_multi *multi, struct buffer *to_link,
 
     tls_clear_error();
 
+    update_time();
+
     /*
      * Process each session object having state of S_INITIAL or greater,
      * and which has a defined remote IP addr.
@@ -3237,7 +3274,17 @@ tls_multi_process(struct tls_multi *multi, struct buffer *to_link,
          * established */
         if (i == TM_INITIAL && ks->state == S_INITIAL && get_primary_key(multi)->state <= S_INITIAL
             && link_socket_actual_defined(&to_link_socket_info->lsa->actual))
-        {
+        {msg(M_INFO, "DEBUG-KEYS-P [%d][%d]",i,multi->lame_test);
+            ks->remote_addr = to_link_socket_info->lsa->actual;
+        }
+        else if (i == TM_INITIAL && ks->state == S_INITIAL && get_threaded_key(multi)->state == S_INITIAL && multi->lame_test == 0
+            && link_socket_actual_defined(&to_link_socket_info->lsa->actual))
+        {msg(M_INFO, "DEBUG-KEYS-T [%d][%d]",i,multi->lame_test);
+            ks->remote_addr = to_link_socket_info->lsa->actual;
+        }
+        else if (i == TM_INITIAL && ks->state == S_INITIAL && get_threadre_key(multi)->state == S_INITIAL && multi->lame_test == 0
+            && link_socket_actual_defined(&to_link_socket_info->lsa->actual))
+        {msg(M_INFO, "DEBUG-KEYS-S [%d][%d]",i,multi->lame_test);
             ks->remote_addr = to_link_socket_info->lsa->actual;
         }
 
@@ -3297,44 +3344,40 @@ tls_multi_process(struct tls_multi *multi, struct buffer *to_link,
                 }
             }
         }
-    }
 
-    update_time();
+        /* If we have successfully authenticated and are still waiting for the authentication to finish
+         * move the state machine for the multi context forward */
 
-    enum tls_auth_status tas = tls_authentication_status(multi);
-
-    /* If we have successfully authenticated and are still waiting for the authentication to finish
-     * move the state machine for the multi context forward */
-
-    if (multi->multi_state >= CAS_CONNECT_DONE)
-    {
-        /* Only generate keys for the TM_ACTIVE session. We defer generating
-         * keys for TM_INITIAL until we actually trust it.
-         * For TM_LAME_DUCK it makes no sense to generate new keys. */
-        struct tls_session *session = &multi->session[TM_ACTIVE];
-        struct key_state *ks = &session->key[KS_PRIMARY];
-
-        if (ks->state == S_ACTIVE && ks->authenticated == KS_AUTH_TRUE)
+        if (multi->multi_state >= CAS_RECONNECT_PENDING)
         {
-            /* Session is now fully authenticated.
-             * tls_session_generate_data_channel_keys will move ks->state
-             * from S_ACTIVE to S_GENERATED_KEYS */
-            if (!tls_session_generate_data_channel_keys(multi, session))
-            {
-                msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
-                ks->authenticated = KS_AUTH_FALSE;
-                key_state_ssl_shutdown(&ks->ks_ssl);
-                ks->state = S_ERROR_PRE;
-            }
+            /* Only generate keys for the TM_ACTIVE session. We defer generating
+             * keys for TM_INITIAL until we actually trust it.
+             * For TM_LAME_DUCK it makes no sense to generate new keys. */
 
-            /* Update auth token on the client if needed on renegotiation
-             * (key id !=0) */
-            if (session->key[KS_PRIMARY].key_id != 0)
+            if (ks->state == S_ACTIVE && ks->authenticated == KS_AUTH_TRUE)
             {
-                resend_auth_token_renegotiation(multi, session);
+                /* Session is now fully authenticated.
+                 * tls_session_generate_data_channel_keys will move ks->state
+                 * from S_ACTIVE to S_GENERATED_KEYS */
+                if (!tls_session_generate_data_channel_keys(multi, session))
+                {
+                    msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
+                    ks->authenticated = KS_AUTH_FALSE;
+                    key_state_ssl_shutdown(&ks->ks_ssl);
+                    ks->state = S_ERROR_PRE;
+                }
+
+                /* Update auth token on the client if needed on renegotiation
+                 * (key id !=0) */
+                if (session->key[KS_PRIMARY].key_id != 0)
+                {
+                    resend_auth_token_renegotiation(multi, session);
+                }
             }
         }
     }
+
+    enum tls_auth_status tas = tls_authentication_status(multi);
 
     if (multi->multi_state == CAS_WAITING_AUTH && tas == TLS_AUTHENTICATION_SUCCEEDED)
     {
@@ -3361,17 +3404,48 @@ tls_multi_process(struct tls_multi *multi, struct buffer *to_link,
      */
     if (TLS_AUTHENTICATED(multi, &multi->session[TM_INITIAL].key[KS_PRIMARY]))
     {
-        move_session(multi, TM_ACTIVE, TM_INITIAL, true);
+        int KEYS_INDX = TM_ACTIVE;
+        for (int i = 0; i < TM_SIZE; ++i)
+        {
+            struct tls_session *sn = &multi->session[i];
+            struct key_state *ks = &sn->key[KS_PRIMARY];
+            if (i != TM_INITIAL && ks->state == S_INITIAL)
+            {msg(M_INFO, "DEBUG-KEYS-I [%d][%d]",i,multi->lame_test);
+                KEYS_INDX = i;
+                break;
+            }
+        }
+
+        move_session(multi, KEYS_INDX, TM_INITIAL, true);
         tas = tls_authentication_status(multi);
         msg(D_TLS_DEBUG_LOW,
             "TLS: tls_multi_process: initial untrusted "
             "session promoted to %strusted",
             tas == TLS_AUTHENTICATION_SUCCEEDED ? "" : "semi-");
 
-        if (multi->multi_state == CAS_CONNECT_DONE)
+        if ((multi->multi_state == CAS_CONNECT_DONE) && (KEYS_INDX == TM_ACTIVE))
         {
             multi->multi_state = CAS_RECONNECT_PENDING;
             active = TLSMP_RECONNECT;
+        }
+
+        if (KEYS_INDX >= TM_THREADED)
+        {
+            struct tls_session *sn = &multi->session[KEYS_INDX];
+            struct key_state *ks = &sn->key[KS_PRIMARY];
+            int lame_mods = multi->lame_mods;
+            ks->keys_idno = (TM_THREADED + lame_mods);
+            msg(M_INFO, "%s DUAL keys (%d) [%d][%d] {%d}{%d}", (multi->opt.mode == MODE_SERVER) ? "TCPv4_SERVER" : "TCPv4_CLIENT", KEYS_INDX, ks->key_id, ks->keys_idno, lame_mods, multi->multi_state);
+            lame_mods = ((lame_mods + 1) % 2);
+            int LAME_INDX = (TM_THREADED + lame_mods);
+            sn = &multi->session[LAME_INDX];
+            ks = &sn->key[KS_PRIMARY];
+            ks->keys_lame = 0;
+            multi->lame_mods = lame_mods;
+            struct gc_arena gcz = gc_new();
+            msg(M_INFO, "DEBUG-NEWS-I [%s]", print_key_id(multi, &gcz));
+            gc_free(&gcz);
+            multi->lame_test = 9;
         }
     }
 
@@ -3495,7 +3569,7 @@ handle_data_channel_packet(struct tls_multi *multi, const struct link_socket_act
          * passive side is the server which only listens for the connections, the
          * active side is the client which initiates connections).
          */
-        if (ks->state >= S_GENERATED_KEYS && key_id == ks->key_id
+        if (ks->state >= S_GENERATED_KEYS && (key_id == ks->key_id || key_id == ks->keys_idno)
             && ks->authenticated == KS_AUTH_TRUE
             && (floated || link_socket_actual_match(from, &ks->remote_addr)))
         {
@@ -3679,7 +3753,7 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
      * multi->session: Possible initial packet. New sessions always start
      * as TM_INITIAL
      */
-    if (i == TM_SIZE && is_hard_reset_method2(op))
+    if (i == TM_SIZE || is_hard_reset_method2(op))
     {
         /*
          * No match with existing sessions,
@@ -3735,7 +3809,7 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
         /*
          * Packet must belong to an existing session.
          */
-        if (i != TM_ACTIVE && i != TM_INITIAL)
+        if (i != TM_ACTIVE && i != TM_INITIAL && i != TM_THREADED && i != TM_THREADRE)
         {
             msg(D_TLS_ERRORS, "TLS Error: Unroutable control packet received from %s (si=%d op=%s)",
                 print_link_socket_actual(from, &gc), i, packet_opcode_name(op));
@@ -3765,7 +3839,7 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
                 goto error;
             }
 
-            key_state_soft_reset(session);
+            key_state_soft_reset(multi, session);
 
             dmsg(D_TLS_DEBUG, "TLS: received P_CONTROL_SOFT_RESET_V1 s=%d sid=%s", i,
                  session_id_print(&sid, &gc));
@@ -3852,9 +3926,9 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
     }
 
     /* Check key_id */
-    if (ks->key_id != key_id)
+    if ((ks->key_id != key_id) && (ks->keys_idno != key_id))
     {
-        msg(D_TLS_ERRORS, "TLS ERROR: local/remote key IDs out of sync (%d/%d) ID: %s", ks->key_id,
+        msg(D_TLS_ERRORS, "TLS ERROR: local/remote key IDs out of sync (%d/%d) ID: %s", ks->keys_idno,
             key_id, print_key_id(multi, &gc));
         goto error;
     }
@@ -3923,6 +3997,7 @@ error:
 struct key_state *
 tls_select_encryption_key(struct tls_multi *multi)
 {
+    int indx = -1;
     struct key_state *ks_select = NULL;
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
@@ -3931,16 +4006,44 @@ tls_select_encryption_key(struct tls_multi *multi)
         {
             ASSERT(ks->crypto_options.key_ctx_bi.initialized);
 
+            if (i >= TM_THREADED)
+            {
+                if (multi->opt.mode == MODE_SERVER)
+                {
+                    indx = i;
+                    ks_select = ks;
+                    break;
+                }
+                continue;
+            }
+
             if (!ks_select)
             {
+                indx = i;
                 ks_select = ks;
             }
+
             if (now >= ks->auth_deferred_expire)
             {
+                bool scan_more = false;
+                if (i < TM_THREADED)
+                {
+                    if (multi->opt.mode == MODE_SERVER)
+                    {
+                        scan_more = true;
+                    }
+                }
+                indx = i;
                 ks_select = ks;
+                if (scan_more) { continue; }
                 break;
             }
         }
+    }
+    if ((multi->opt.mode == MODE_SERVER) && ks_select && (ks_select->keys_sels != 9))
+    {
+        msg(M_INFO, "TCPv4_SERVER DUAL sels [%d][%d]", indx, ks_select->keys_idno);
+        ks_select->keys_sels = 9;
     }
     return ks_select;
 }
@@ -3964,7 +4067,7 @@ tls_pre_encrypt(struct tls_multi *multi, struct buffer *buf, struct crypto_optio
     {
         *opt = &ks_select->crypto_options;
         multi->save_ks = ks_select;
-        dmsg(D_TLS_KEYSELECT, "TLS: tls_pre_encrypt: key_id=%d", ks_select->key_id);
+        dmsg(D_TLS_KEYSELECT, "TLS: tls_pre_encrypt: key_id=%d", ks_select->keys_idno);
         return;
     }
     else
@@ -3989,7 +4092,7 @@ tls_prepend_opcode_v1(const struct tls_multi *multi, struct buffer *buf)
 
     ASSERT(ks);
 
-    op = (P_DATA_V1 << P_OPCODE_SHIFT) | ks->key_id;
+    op = (P_DATA_V1 << P_OPCODE_SHIFT) | ks->keys_idno;
     ASSERT(buf_write_prepend(buf, &op, 1));
 }
 
@@ -4007,7 +4110,7 @@ tls_prepend_opcode_v2(const struct tls_multi *multi, struct buffer *buf)
 
     ASSERT(ks);
 
-    peer = htonl(((P_DATA_V2 << P_OPCODE_SHIFT) | ks->key_id) << 24 | (multi->peer_id & 0xFFFFFF));
+    peer = htonl(((P_DATA_V2 << P_OPCODE_SHIFT) | ks->keys_idno) << 24 | (multi->peer_id & 0xFFFFFF));
     ASSERT(buf_write_prepend(buf, &peer, 4));
 }
 

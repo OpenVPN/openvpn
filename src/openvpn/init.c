@@ -1896,6 +1896,7 @@ do_open_tun(struct context *c, int *error_flags)
         }
 
         /* do ifconfig */
+        c->c1.tuntap->skip_bind = c->skip_bind;
         if (!ifconfig_noexec_enabled(c) && ifconfig_order(c->c1.tuntap) == IFCONFIG_BEFORE_TUN_OPEN)
         {
             /* guess actual tun/tap unit number that will be returned
@@ -1988,6 +1989,10 @@ do_open_tun(struct context *c, int *error_flags)
         }
 
         add_wfp_block(c);
+    }
+    if (c->c1.tuntap)
+    {
+        c->c1.tuntap->fe = c->c1.tuntap->fd;
     }
     gc_free(&gc);
     return ret;
@@ -2325,6 +2330,9 @@ do_deferred_options_part2(struct context *c)
         return false;
     }
 
+    session = &c->c2.tls_multi->session[TM_THREADED];
+    tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame, frame_fragment, get_link_socket_info(c), &c->c1.tuntap->dco);
+
     return true;
 }
 
@@ -2574,6 +2582,10 @@ do_deferred_p2p_ncp(struct context *c)
         msg(D_TLS_ERRORS, "ERROR: failed to set crypto cipher");
         return false;
     }
+
+    session = &c->c2.tls_multi->session[TM_THREADED];
+    tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame, frame_fragment, get_link_socket_info(c), &c->c1.tuntap->dco);
+
     return true;
 }
 
@@ -2951,6 +2963,11 @@ frame_finalize_options(struct context *c, const struct options *o)
         COMP_EXTRA_BUFFER(payload_size), payload_size);
     tailroom += COMP_EXTRA_BUFFER(payload_size);
 #endif
+
+    if (frame->bulk_size > 0)
+    {
+        payload_size = BAT_SIZE(TUN_BAT_ONE, frame->tun_mtu, TUN_BAT_OFF);
+    }
 
     frame->buf.payload_size = payload_size;
     frame->buf.headroom = headroom;
@@ -3428,6 +3445,8 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     /* let the TLS engine know if keys have to be installed in DCO or not */
     to.dco_enabled = dco_enabled(options);
 
+    to.dual_mode = c->options.ce.dual_mode;
+
     /*
      * Initialize OpenVPN's master TLS-mode object.
      */
@@ -3454,6 +3473,10 @@ do_init_frame_tls(struct context *c)
     if (c->c2.tls_multi)
     {
         tls_multi_init_finalize(c->c2.tls_multi, c->options.ce.tls_mtu);
+        if (c->c2.frame.bulk_size > 0)
+        {
+            c->c2.tls_multi->opt.frame.buf.payload_size = c->c2.frame.tun_mtu;
+        }
         ASSERT(c->c2.tls_multi->opt.frame.buf.payload_size <= c->c2.frame.buf.payload_size);
         frame_print(&c->c2.tls_multi->opt.frame, D_MTU_INFO, "Control Channel MTU parms");
 
@@ -3519,6 +3542,14 @@ do_init_frame(struct context *c)
     if (c->options.ce.tun_mtu_extra_defined)
     {
         c->c2.frame.extra_tun += c->options.ce.tun_mtu_extra;
+    }
+
+    /*
+     * Adjust bulk size based on the --bulk-mode parameter.
+     */
+    if (c->options.ce.bulk_mode)
+    {
+        c->c2.frame.bulk_size = c->options.ce.tun_mtu;
     }
 
     /*
@@ -3661,8 +3692,44 @@ init_context_buffers(const struct frame *frame)
 
     size_t buf_size = BUF_SIZE(frame);
 
+    if (frame->bulk_size > 0)
+    {
+        size_t off_size = (frame->buf.headroom + TUN_BAT_OFF + frame->buf.tailroom);
+        buf_size = BAT_SIZE(TUN_BAT_MAX, frame->tun_mtu, off_size);
+    }
+
+    dmsg(M_INFO, "MEM NEW [%ld] [%d+%d+%d]", buf_size, frame->buf.headroom, frame->buf.payload_size, frame->buf.tailroom);
+
     b->read_link_buf = alloc_buf(buf_size);
     b->read_tun_buf = alloc_buf(buf_size);
+
+    if (frame->bulk_size > 0)
+    {
+        size_t off_size = (frame->buf.headroom + TUN_BAT_OFF + frame->buf.tailroom);
+        size_t one_size = BAT_SIZE(TUN_BAT_ONE, frame->tun_mtu, off_size);
+
+        for (int x = 0; x < TUN_BAT_MAX; ++x)
+        {
+            b->read_tun_bufs[x] = alloc_buf(one_size);
+            b->read_tun_bufs[x].offset = TUN_BAT_OFF;
+            b->read_tun_bufs[x].len = 0;
+        }
+
+        b->read_tun_max = alloc_buf(buf_size);
+        b->read_tun_max.offset = TUN_BAT_OFF;
+        b->read_tun_max.len = 0;
+
+        b->send_tun_max = alloc_buf(buf_size);
+        b->send_tun_max.offset = TUN_BAT_OFF;
+        b->send_tun_max.len = 0;
+
+        b->to_tun_max = alloc_buf(buf_size);
+        b->to_tun_max.offset = TUN_BAT_OFF;
+        b->to_tun_max.len = 0;
+    }
+
+    b->bulk_indx = -1;
+    b->bulk_leng = -1;
 
     b->aux_buf = alloc_buf(buf_size);
 
@@ -3685,6 +3752,17 @@ free_context_buffers(struct context_buffers *b)
         free_buf(&b->read_link_buf);
         free_buf(&b->read_tun_buf);
         free_buf(&b->aux_buf);
+
+        if (b->to_tun_max.data)
+        {
+            free_buf(&b->to_tun_max);
+            free_buf(&b->send_tun_max);
+            free_buf(&b->read_tun_max);
+            for (int x = 0; x < TUN_BAT_MAX; ++x)
+            {
+                free_buf(&b->read_tun_bufs[x]);
+            }
+        }
 
 #ifdef USE_COMP
         free_buf(&b->compress_buf);
@@ -4042,6 +4120,7 @@ do_event_set_init(struct context *c, bool need_us_timeout)
     }
 
     c->c2.event_set = event_set_init(&c->c2.event_set_max, flags);
+    c->c2.event_set2 = event_set_init(&c->c2.event_set_max, flags);
     c->c2.event_set_owned = true;
 }
 
@@ -4051,7 +4130,9 @@ do_close_event_set(struct context *c)
     if (c->c2.event_set && c->c2.event_set_owned)
     {
         event_free(c->c2.event_set);
+        event_free(c->c2.event_set2);
         c->c2.event_set = NULL;
+        c->c2.event_set2 = NULL;
         c->c2.event_set_owned = false;
     }
 }
@@ -4856,6 +4937,7 @@ inherit_context_child(struct context *dest, const struct context *src, struct li
     options_detach(&dest->options);
 
     dest->c2.event_set = src->c2.event_set;
+    dest->c2.event_set2 = src->c2.event_set2;
 
     if (dest->mode == CM_CHILD_TCP)
     {
@@ -4947,6 +5029,7 @@ inherit_context_top(struct context *dest, const struct context *src)
     dest->c2.es_owned = false;
 
     dest->c2.event_set = NULL;
+    dest->c2.event_set2 = NULL;
     do_event_set_init(dest, false);
 
 #ifdef USE_COMP

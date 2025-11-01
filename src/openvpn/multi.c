@@ -401,11 +401,15 @@ multi_init(struct context *t)
     m->instances = calloc(m->max_clients, sizeof(struct multi_instance *));
 
     m->top.c2.event_set = t->c2.event_set;
+    m->top.c2.event_set2 = t->c2.event_set2;
 
     /*
      * Initialize multi-socket I/O wait object
      */
-    m->multi_io = multi_io_init(m->max_clients);
+    for (int x = 0; x < MAX_THREADS; ++x)
+    {
+        m->multi_io[x] = multi_io_init(m->max_clients);
+    }
     m->tcp_queue_limit = t->options.tcp_queue_limit;
 
     /*
@@ -424,6 +428,10 @@ multi_init(struct context *t)
     }
 
     m->deferred_shutdown_signal.signal_received = 0;
+
+    m->inst_indx = -1;
+    m->inst_leng = -1;
+    m->inst_list = calloc(TUN_BAT_MAX, sizeof(struct multi_instance *));
 }
 
 const char *
@@ -584,6 +592,10 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
     {
         multi_set_pending(m, NULL);
     }
+    if (m->pending2 == mi)
+    {
+        multi_set_pending2(m, NULL);
+    }
     if (m->earliest_wakeup == mi)
     {
         m->earliest_wakeup = NULL;
@@ -621,7 +633,7 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
 
         schedule_remove_entry(m->schedule, (struct schedule_entry *)mi);
 
-        ifconfig_pool_release(m->ifconfig_pool, mi->vaddr_handle, false);
+        ifconfig_pool_release(m->mtio_info.pool, mi->vaddr_handle, false);
 
         if (mi->did_iroutes)
         {
@@ -705,18 +717,85 @@ multi_uninit(struct multi_context *m)
         multi_reap_free(m->reaper);
         mroute_helper_free(m->route_helper);
         multi_io_free(m->multi_io);
+
+        m->inst_indx = -1;
+        m->inst_leng = -1;
+        free(m->inst_list);
     }
+}
+
+struct multi_context *multi_context_switch_conn(struct thread_pointer *b, struct multi_context *m, struct multi_instance *i)
+{
+    if (b->i <= 0)
+    {
+        b->p->p = m;
+        return m;
+    }
+
+    struct sockaddr_in *wans_ipvo = (struct sockaddr_in *)&i->context.c2.link_sockets[0]->info.lsa->actual.dest.addr.sa;
+    const char *uniq = inet_ntoa(wans_ipvo->sin_addr);
+
+    int indx = -1, fidx = 0;
+    time_t secs = time(NULL);
+    struct multi_address *addr;
+
+    time_t last = secs;
+    for (int x = 0; x < b->p->x; ++x)
+    {
+        addr = &(b->p->a[x]);
+        if (addr->last < last)
+        {
+            fidx = x;
+            last = addr->last;
+        }
+        if (strcmp(addr->wans, uniq) == 0)
+        {
+            indx = x;
+            break;
+        }
+    }
+
+    pthread_mutex_lock(m->mtio_info.lock);
+    if (indx < 0)
+    {
+        if (fidx > -1) { indx = fidx; }
+        else { indx = 0; }
+        addr = &(b->p->a[indx]);
+        addr->indx = 0;
+        addr->last = 0;
+        bzero(addr->wans, MAX_STRLENG * sizeof(char));
+        strncpy(addr->wans, uniq, MAX_STRLENG-8);
+        for (int x = 0; x < b->p->x; ++x)
+        {
+            if (addr->link[x].indx == (indx + 1))
+            {
+                bzero(&(addr->link[x]), sizeof(struct multi_link));
+            }
+        }
+    }
+    pthread_mutex_unlock(m->mtio_info.lock);
+
+    addr = &(b->p->a[indx]);
+    fidx = addr->indx;
+    m = b->p->m[addr->indx];
+    b->p->p = b->p->m[fidx];
+    addr->indx = ((fidx + 1) % b->p->n);
+    addr->last = secs;
+
+    msg(M_INFO, "TCPv4_SERVER MTIO conn [%s][%p] [%d][%d] {%d}{%d}", uniq, m, indx, fidx, i->mtio_idno, m->mtio_idno);
+
+    return m;
 }
 
 /*
  * Create a client instance object for a newly connected client.
  */
 struct multi_instance *
-multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
-                      struct link_socket *sock)
+multi_create_instance(struct thread_pointer *b, const struct mroute_addr *real, struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
     struct multi_instance *mi;
+    struct multi_context *m = (b->i > 0) ? b->p->m[b->i-1] : b->p->p;
 
     msg(D_MULTI_MEDIUM, "MULTI: multi_create_instance called");
 
@@ -739,6 +818,7 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
     {
         goto err;
     }
+    m = multi_context_switch_conn(b, m, mi);
 
     mi->context.c2.tls_multi->multi_state = CAS_NOT_CONNECTED;
 
@@ -780,7 +860,7 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
     mi->inotify_watch = -1;
 #endif
 
-    if (!multi_process_post(m, mi, MPP_PRE_SELECT))
+    if (!multi_process_post(m, mi, MPP_PRE_SELECT | MPP_THREADZ))
     {
         msg(D_MULTI_ERRORS, "MULTI: signal occurred during client instance initialization");
         goto err;
@@ -788,6 +868,9 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
 
     mi->ev_arg.type = EVENT_ARG_MULTI_INSTANCE;
     mi->ev_arg.u.mi = mi;
+
+    mi->mtio_idno = m->mtio_idno;
+    bzero(&(mi->mtio_addr), sizeof(struct multi_address));
 
     gc_free(&gc);
     return mi;
@@ -1038,6 +1121,8 @@ multi_learn_addr(struct multi_context *m, struct multi_instance *mi, const struc
     struct multi_route *oldroute = NULL;
     struct multi_instance *owner = NULL;
     struct gc_arena gc = gc_new();
+
+    msg(M_INFO, "TCPv4_SERVER MTIO addr [%s][%s] [%s] {%d}{%d}", print_in_addr_t(mi->context.c2.push_ifconfig_local, IA_EMPTY_IF_UNDEF, &gc), mroute_addr_print(addr, &gc), mi->mtio_addr.wans, m->mtio_idno, mi->mtio_idno);
 
     /* if route currently exists, get the instance which owns it */
     he = hash_lookup_fast(m->vhash, bucket, addr, hv);
@@ -1440,7 +1525,7 @@ multi_select_virtual_addr(struct multi_context *m, struct multi_instance *mi)
          * release dynamic allocation */
         if (mi->vaddr_handle >= 0)
         {
-            ifconfig_pool_release(m->ifconfig_pool, mi->vaddr_handle, true);
+            ifconfig_pool_release(m->mtio_info.pool, mi->vaddr_handle, true);
             mi->vaddr_handle = -1;
         }
 
@@ -1461,20 +1546,21 @@ multi_select_virtual_addr(struct multi_context *m, struct multi_instance *mi)
                 "MULTI_sva: WARNING: if --ifconfig-push is used for IPv4, automatic IPv6 assignment from --ifconfig-ipv6-pool does not work.  Use --ifconfig-ipv6-push for IPv6 then.");
         }
     }
-    else if (m->ifconfig_pool && mi->vaddr_handle < 0) /* otherwise, choose a pool address */
+    else if (m->mtio_info.pool && mi->vaddr_handle < 0) /* otherwise, choose a pool address */
     {
         in_addr_t local = 0, remote = 0;
         struct in6_addr remote_ipv6;
         const char *cn = NULL;
 
-        if (!mi->context.options.duplicate_cn)
+        if ((!mi->context.options.duplicate_cn) && (!(m->top.options.ce.mtio_mode)))
         {
             cn = tls_common_name(mi->context.c2.tls_multi, true);
         }
 
         CLEAR(remote_ipv6);
-        mi->vaddr_handle =
-            ifconfig_pool_acquire(m->ifconfig_pool, &local, &remote, &remote_ipv6, cn);
+        pthread_mutex_lock(m->mtio_info.lock);
+        mi->vaddr_handle = ifconfig_pool_acquire(m->mtio_info.pool, &local, &remote, &remote_ipv6, cn);
+        pthread_mutex_unlock(m->mtio_info.lock);
         if (mi->vaddr_handle >= 0)
         {
             const int tunnel_type = TUNNEL_TYPE(mi->context.c1.tuntap);
@@ -2329,6 +2415,113 @@ multi_client_generate_tls_keys(struct context *c)
         return false;
     }
 
+    session = &c->c2.tls_multi->session[TM_THREADED];
+    tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame, frame_fragment, get_link_socket_info(c), &c->c1.tuntap->dco);
+
+    return true;
+}
+
+bool multi_context_switch_addr(struct multi_context *m, struct multi_instance *i)
+{
+    struct gc_arena g = gc_new();
+    in_addr_t locl_addr = i->context.c2.push_ifconfig_local;
+    time_t secs = time(NULL);
+    int maxt = m->mtio_info.maxt;
+    int xidx = 0, leng = 0;
+    int idxs[MAX_THREADS];
+    struct multi_address *addr;
+    struct multi_link *link;
+
+    const char *lans_addr = print_in_addr_t(locl_addr, IA_EMPTY_IF_UNDEF, &g);
+    if (lans_addr) {
+        bzero(i->mtio_addr.lans, MAX_STRLENG * sizeof(char));
+        strncpy(i->mtio_addr.lans, lans_addr, MAX_STRLENG-8);
+    }
+
+    struct sockaddr_in *wans_ipvo = (struct sockaddr_in *)&i->context.c2.link_sockets[0]->info.lsa->actual.dest.addr.sa;
+    const char *wans_addr = inet_ntoa(wans_ipvo->sin_addr);
+    if (wans_addr) {
+        bzero(i->mtio_addr.wans, MAX_STRLENG * sizeof(char));
+        strncpy(i->mtio_addr.wans, wans_addr, MAX_STRLENG-8);
+    }
+
+    const char *dest_user = tls_username(i->context.c2.tls_multi, false);
+    if (dest_user) {
+        bzero(i->mtio_addr.usrs, MAX_STRLENG * sizeof(char));
+        strncpy(i->mtio_addr.usrs, dest_user, MAX_STRLENG-8);
+    }
+
+    bzero(idxs, MAX_THREADS * sizeof(int));
+    pthread_mutex_lock(m->mtio_info.lock);
+    if ((strcmp(lans_addr, "") != 0) && (strcmp(dest_user, "") != 0))
+    {
+        for (int x = 0; x < m->mtio_info.maxc; ++x)
+        {
+            addr = &(m->mtio_info.addr[x]);
+            if (strcmp(addr->wans, i->mtio_addr.wans) == 0)
+            {
+                int lidx = 1, fidx = 0, eidx = 0, clen = 0;
+                time_t last = secs;
+                for (int y = 0; y < m->mtio_info.maxc; ++y)
+                {
+                    link = &(addr->link[y]);
+                    if (strcmp(link->usrs, dest_user) == 0)
+                    {
+                        link->last = secs;
+                        if (link->ladr == locl_addr) { eidx = (y + 1); }
+                        if (leng < MAX_THREADS) { idxs[leng] = (y + 1); leng += 1; }
+                        if (clen >= maxt) { bzero(link, sizeof(struct multi_link)); }
+                        if (link->last < last) { last = link->last; lidx = (y + 1); }
+                        clen += 1;
+                    }
+                    else if (strcmp(link->usrs, "") == 0)
+                    {
+                        if (fidx == 0) { fidx = (y + 1); }
+                    }
+                }
+                if (eidx != 0) { fidx = 0; }
+                else
+                {
+                    if (leng >= maxt) { fidx = idxs[i->mtio_idno]; }
+                    if (fidx == 0) { fidx = lidx; }
+                }
+                if (fidx > 0)
+                {
+                    link = &(addr->link[fidx-1]);
+                    bzero(link->usrs, MAX_STRLENG * sizeof(char));
+                    strncpy(link->usrs, dest_user, MAX_STRLENG-8);
+                    link->ladr = locl_addr;
+                    link->indx = (x + 1);
+                    link->last = secs;
+                    addr->last = secs;
+                    clen += 1;
+                }
+                if (clen >= maxt)
+                {
+                    xidx = (x + 1);
+                }
+            }
+        }
+    }
+    pthread_mutex_unlock(m->mtio_info.lock);
+
+    if ((xidx > 0) && (leng > 0))
+    {
+        addr = &(m->mtio_info.addr[xidx-1]);
+        for (int z = 0; z < leng; ++z)
+        {
+            int y = idxs[z];
+            if (y > 0)
+            {
+                link = &(addr->link[y-1]);
+                link->last = secs;
+                multi_learn_in_addr_t(m, i, link->ladr, -1, true);
+            }
+        }
+        i->mtio_addr.stat += 1;
+    }
+
+    gc_free(&g);
     return true;
 }
 
@@ -2378,6 +2571,8 @@ multi_client_connect_late_setup(struct multi_context *m, struct multi_instance *
     /* set our client's VPN endpoint for status reporting purposes */
     mi->reporting_addr = mi->context.c2.push_ifconfig_local;
     mi->reporting_addr_ipv6 = mi->context.c2.push_ifconfig_ipv6_local;
+
+    multi_context_switch_addr(m, mi);
 
     /* set context-level authentication flag */
     mi->context.c2.tls_multi->multi_state = CAS_CONNECT_DONE;
@@ -3007,7 +3202,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
 {
     bool ret = true;
 
-    if (!IS_SIG(&mi->context)
+    if (!IS_SIG(&mi->context) && ((flags & MPP_THREADZ) != 0)
         && ((flags & MPP_PRE_SELECT)
             || ((flags & MPP_CONDITIONAL_PRE_SELECT) && !ANY_OUT(&mi->context))))
     {
@@ -3067,7 +3262,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
 
     if (IS_SIG(&mi->context))
     {
-        if (flags & MPP_CLOSE_ON_SIGNAL)
+        if ((flags & MPP_CLOSE_ON_SIGNAL) && ((flags & MPP_THREADZ) != 0))
         {
             multi_close_instance_on_signal(m, mi);
             ret = false;
@@ -3076,10 +3271,11 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
     else
     {
         /* continue to pend on output? */
-        multi_set_pending(m, ANY_OUT(&mi->context) ? mi : NULL);
+        if ((flags & MPP_THREADZ) != 0) { multi_set_pending(m, LINK_OUT(&mi->context) ? mi : NULL); }
+        if ((flags & MPP_THREADZ) == 0) { multi_set_pending2(m, TUN_OUT(&mi->context) ? mi : NULL); }
 
 #ifdef MULTI_DEBUG_EVENT_LOOP
-        printf("POST %s[%d] to=%d lo=%d/%d w=%" PRIi64 "/%ld\n", id(mi), (int)(mi == m->pending),
+        printf("POST %s[%d][%d] to=%d lo=%d/%d w=%" PRIi64 "/%ld\n", id(mi), (int)(mi == m->pending), (int)(mi == m->pending2),
                mi ? mi->context.c2.to_tun.len : -1, mi ? mi->context.c2.to_link.len : -1,
                (mi && mi->context.c2.fragment) ? mi->context.c2.fragment->outgoing.len : -1,
                (int64_t)mi->context.c2.timeval.tv_sec, (long)mi->context.c2.timeval.tv_usec);
@@ -3138,7 +3334,7 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi, struct l
             msg(D_MULTI_LOW, "Disallow float to an address taken by another client %s",
                 multi_instance_string(ex_mi, false, &gc));
 
-            mi->context.c2.buf.len = 0;
+            mi->context.c2.buf2.len = 0;
 
             goto done;
         }
@@ -3333,6 +3529,37 @@ multi_process_incoming_dco(struct multi_context *m)
 }
 #endif /* if defined(ENABLE_DCO) */
 
+struct multi_instance *multi_learn_peer_addr(struct multi_context *m, struct multi_instance *i, struct mroute_addr *p)
+{
+    struct multi_instance *r = NULL;
+    struct multi_link *l;
+    in_addr_t a = ntohl(p->v4.addr);
+    for (int x = 0; x < m->mtio_info.maxc; ++x)
+    {
+        l = &(m->mtio_info.addr[0].link[x]);
+        if ((strcmp(l->usrs, "") != 0) && (l->ladr == a))
+        {
+            if (i)
+            {
+                multi_context_switch_addr(m, i);
+                r = i;
+            }
+            else
+            {
+                for (int y = 0; y < m->max_clients; ++y)
+                {
+                    struct multi_instance *t = m->instances[y];
+                    if (t && (strcmp(t->mtio_addr.usrs, l->usrs) == 0))
+                    {
+                        multi_context_switch_addr(m, t);
+                    }
+                }
+            }
+        }
+    }
+    return r;
+}
+
 /*
  * Process packets in the TCP/UDP socket -> TUN/TAP interface direction,
  * i.e. client -> server direction.
@@ -3350,7 +3577,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
     bool ret = true;
     bool floated = false;
 
-    if (m->pending)
+    if (m->pending2)
     {
         return true;
     }
@@ -3358,26 +3585,26 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
     if (!instance)
     {
 #ifdef MULTI_DEBUG_EVENT_LOOP
-        printf("TCP/UDP -> TUN [%d]\n", BLEN(&m->top.c2.buf));
+        printf("TCP/UDP -> TUN [%d]\n", BLEN(&m->top.c2.buf2));
 #endif
-        multi_set_pending(m, multi_get_create_instance_udp(m, &floated, sock));
+        multi_set_pending2(m, multi_get_create_instance_udp(m, &floated, sock));
     }
     else
     {
-        multi_set_pending(m, instance);
+        multi_set_pending2(m, instance);
     }
 
-    if (m->pending)
+    if (m->pending2)
     {
-        set_prefix(m->pending);
+        set_prefix(m->pending2);
 
         /* get instance context */
-        c = &m->pending->context;
+        c = &m->pending2->context;
 
         if (!instance)
         {
             /* transfer packet pointer from top-level context buffer to instance */
-            c->c2.buf = m->top.c2.buf;
+            c->c2.buf2 = m->top.c2.buf2;
 
             /* transfer from-addr from top-level context buffer to instance */
             if (!floated)
@@ -3386,7 +3613,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
             }
         }
 
-        if (BLEN(&c->c2.buf) > 0)
+        if (BLEN(&c->c2.buf2) > 0)
         {
             struct link_socket_info *lsi;
             const uint8_t *orig_buf;
@@ -3394,16 +3621,17 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
             /* decrypt in instance context */
 
             lsi = &sock->info;
-            orig_buf = c->c2.buf.data;
+            orig_buf = c->c2.buf2.data;
             if (process_incoming_link_part1(c, lsi, floated))
             {
                 /* nonzero length means that we have a valid, decrypted packed */
-                if (floated && c->c2.buf.len > 0)
+                if (floated && c->c2.buf2.len > 0)
                 {
-                    multi_process_float(m, m->pending, sock);
+                    multi_process_float(m, m->pending2, sock);
                 }
 
                 process_incoming_link_part2(c, lsi, orig_buf);
+                process_incoming_link_part3(c);
             }
 
             if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TUN)
@@ -3418,7 +3646,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                     c->c2.to_tun.len = 0;
                 }
                 /* make sure that source address is associated with this client */
-                else if (multi_get_instance_by_virtual_addr(m, &src, true) != m->pending)
+                else if ((multi_get_instance_by_virtual_addr(m, &src, true) != m->pending2) && (multi_learn_peer_addr(m, m->pending2, &src) != m->pending2))
                 {
                     /* IPv6 link-local address (fe80::xxx)? */
                     if ((src.type & MR_ADDR_MASK) == MR_ADDR_IPV6
@@ -3428,7 +3656,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                     }
                     else
                     {
-                        msg(D_MULTI_DROPPED,
+                        msg(D_MULTI_ERRORS,
                             "MULTI: bad source address from client [%s], packet dropped",
                             mroute_addr_print(&src, &gc));
                     }
@@ -3441,7 +3669,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                     if (mroute_flags & MROUTE_EXTRACT_MCAST)
                     {
                         /* for now, treat multicast as broadcast */
-                        multi_bcast(m, &c->c2.to_tun, m->pending, 0);
+                        multi_bcast(m, &c->c2.to_tun, m->pending2, 0);
                     }
                     else /* possible client to client routing */
                     {
@@ -3483,14 +3711,14 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
 
                 if (mroute_flags & MROUTE_EXTRACT_SUCCEEDED)
                 {
-                    if (multi_learn_addr(m, m->pending, &src, 0) == m->pending)
+                    if (multi_learn_addr(m, m->pending2, &src, 0) == m->pending2)
                     {
                         /* check for broadcast */
                         if (m->enable_c2c)
                         {
                             if (mroute_flags & (MROUTE_EXTRACT_BCAST | MROUTE_EXTRACT_MCAST))
                             {
-                                multi_bcast(m, &c->c2.to_tun, m->pending, vid);
+                                multi_bcast(m, &c->c2.to_tun, m->pending2, vid);
                             }
                             else /* try client-to-client routing */
                             {
@@ -3508,7 +3736,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                     }
                     else
                     {
-                        msg(D_MULTI_DROPPED,
+                        msg(D_MULTI_ERRORS,
                             "MULTI: bad source address from client [%s], packet dropped",
                             mroute_addr_print(&src, &gc));
                         c->c2.to_tun.len = 0;
@@ -3522,7 +3750,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
         }
 
         /* postprocess and set wakeup */
-        ret = multi_process_post(m, m->pending, mpp_flags);
+        ret = multi_process_post(m, m->pending2, mpp_flags);
 
         clear_prefix();
     }
@@ -3531,12 +3759,19 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
     return ret;
 }
 
+int min_max(int a, int b, int c)
+{
+    if (a > c) { return c; }
+    if (a < b) { return b; }
+    return a;
+}
+
 /*
  * Process packets in the TUN/TAP interface -> TCP/UDP socket direction,
  * i.e. server -> client direction.
  */
 bool
-multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags)
+multi_process_incoming_tun_part2(struct multi_context *m, const unsigned int mpp_flags)
 {
     bool ret = true;
 
@@ -3575,6 +3810,13 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
         if (mroute_flags & MROUTE_EXTRACT_SUCCEEDED)
         {
             struct context *c;
+            struct multi_instance *i = multi_get_instance_by_virtual_addr(m, &dest, dev_type == DEV_TYPE_TUN);
+
+            if (!i)
+            {
+                multi_learn_peer_addr(m, m->pending, &dest);
+                i = multi_get_instance_by_virtual_addr(m, &dest, dev_type == DEV_TYPE_TUN);
+            }
 
             /* broadcast or multicast dest addr? */
             if (mroute_flags & (MROUTE_EXTRACT_BCAST | MROUTE_EXTRACT_MCAST))
@@ -3582,10 +3824,29 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
                 /* for now, treat multicast as broadcast */
                 multi_bcast(m, &m->top.c2.buf, NULL, vid);
             }
+            else if (m->inst_indx == -9)
+            {
+                if (i)
+                {
+                    int leng = m->inst_leng;
+                    for (int x = 0; x < leng; ++x)
+                    {
+                        if (m->inst_list[x] == i)
+                        {
+                            m->inst_indx = x;
+                            return true;
+                        }
+                    }
+                    leng = min_max(leng, 0, TUN_BAT_MIN - 1);
+                    m->inst_list[leng] = i;
+                    m->inst_indx = leng;
+                    m->inst_leng = (leng + 1);
+                }
+                return true;
+            }
             else
             {
-                multi_set_pending(
-                    m, multi_get_instance_by_virtual_addr(m, &dest, dev_type == DEV_TYPE_TUN));
+                multi_set_pending(m, i);
 
                 if (m->pending)
                 {
@@ -3621,6 +3882,104 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
         }
     }
     return ret;
+}
+
+bool multi_process_inp_tun_post(struct multi_context *m, const unsigned int mpp_flags)
+{
+    if (!INST_LENG(m))
+    {
+        return false;
+    }
+    struct multi_instance *i = m->inst_list[m->inst_indx];
+    if (!i)
+    {
+        m->inst_indx += 1;
+        return false;
+    }
+    if (!(multi_output_queue_ready(m, i)))
+    {
+        return false;
+    }
+    multi_set_pending(m, i);
+    set_prefix(m->pending);
+    multi_process_post(m, m->pending, mpp_flags);
+    clear_prefix();
+    m->inst_list[m->inst_indx] = NULL;
+    m->inst_indx += 1;
+    return true;
+}
+
+bool multi_process_incoming_tun_part3(struct multi_context *m, const unsigned int mpp_flags)
+{
+    struct context *c, *b = &(m->top);
+    struct multi_instance *i;
+    int leng = b->c2.buffers->bulk_leng;
+    m->inst_indx = -1;
+    m->inst_leng = -1;
+    for (int x = 0; x < leng; ++x)
+    {
+        m->inst_indx = -9;
+        m->top.c2.buf = b->c2.bufs[x];
+        multi_process_incoming_tun_part2(m, mpp_flags);
+        if (m->inst_indx > -1)
+        {
+            i = m->inst_list[m->inst_indx];
+            c = &(i->context);
+            int y = min_max(c->c2.buffers->bulk_leng, 0, TUN_BAT_MIN - 1);
+            c->c2.buffers->read_tun_bufs[y].offset = TUN_BAT_OFF;
+            c->c2.buffers->read_tun_bufs[y].len = BLEN(&b->c2.bufs[x]);
+            bcopy(BPTR(&b->c2.bufs[x]), BPTR(&c->c2.buffers->read_tun_bufs[y]), BLEN(&b->c2.bufs[x]));
+            c->c2.bufs[y] = c->c2.buffers->read_tun_bufs[y];
+            c->c2.buffers->bulk_indx = 0;
+            c->c2.buffers->bulk_leng = (y + 1);
+        }
+    }
+    for (int x = 0; x < m->inst_leng; ++x)
+    {
+        i = m->inst_list[x];
+        c = &(i->context);
+        c->c2.buf = c->c2.bufs[0];
+        process_incoming_tun(c, c->c2.link_sockets[0]);
+    }
+    b->c2.buffers->bulk_indx = -1;
+    b->c2.buffers->bulk_leng = -1;
+    m->inst_indx = 0;
+    return multi_process_inp_tun_post(m, mpp_flags);
+}
+
+bool multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags)
+{
+    if (!(m->top.options.ce.bulk_mode)) {
+        return multi_process_incoming_tun_part2(m, mpp_flags);
+    } else {
+        return multi_process_incoming_tun_part3(m, mpp_flags);
+    }
+}
+
+bool threaded_multi_inp_tun(struct multi_context *m, const unsigned int mpp_flags)
+{
+    if (INST_LENG(m))
+    {
+        multi_process_inp_tun_post(m, mpp_flags);
+    }
+    else
+    {
+        struct context *c = &(m->top);
+        if (*(m->mtio_info.hold) == m->mtio_info.maxt)
+        {
+            int size;
+            uint8_t temp[1];
+            size = read(c->c1.tuntap->fd, temp, 1);
+            if (size < 1) { /* no-op */ }
+            if (!IS_SIG(c))
+            {
+                multi_process_incoming_tun(m, mpp_flags);
+            }
+            size = write(c->c1.tuntap->fz, temp, 1);
+            return true;
+        }
+    }
+    return false;
 }
 
 /*
@@ -3698,7 +4057,7 @@ multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags)
 void
 multi_process_drop_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags)
 {
-    struct multi_instance *mi = m->pending;
+    struct multi_instance *mi = m->pending2;
 
     ASSERT(mi);
 
@@ -3976,9 +4335,12 @@ static void
 management_delete_event(void *arg, event_t event)
 {
     struct multi_context *m = (struct multi_context *)arg;
-    if (m->multi_io)
+    if (m->multi_io->es)
     {
-        multi_tcp_delete_event(m->multi_io, event);
+        for (int x = 0; x < MAX_THREADS; ++x)
+        {
+            multi_tcp_delete_event(&(m->multi_io[x]), event);
+        }
     }
 }
 
@@ -4032,6 +4394,10 @@ management_client_pending_auth(void *arg, const unsigned long cid, const unsigne
         else if (multi->session[TM_ACTIVE].key[KS_PRIMARY].mda_key_id == mda_key_id)
         {
             session = &multi->session[TM_ACTIVE];
+        }
+        else if (multi->session[TM_THREADED].key[KS_PRIMARY].mda_key_id == mda_key_id)
+        {
+            session = &multi->session[TM_THREADED];
         }
         else
         {
@@ -4174,6 +4540,20 @@ multi_get_timeout(struct multi_context *multi, struct timeval *timeval)
 #endif /* ENABLE_MANAGEMENT */
 }
 
+void multi_copy_events(struct multi_context *m)
+{
+    struct multi_io *multi_io = &(m->multi_io[THREAD_MAIN]);
+    for (int i = 0; i < multi_io->n_esr; ++i)
+    {
+        for (int j = THREAD_RLWT; j <= THREAD_RTWL; ++j)
+        {
+            struct multi_io *multi_io_z = &(m->multi_io[j]);
+            multi_io_z->esr[i] = multi_io->esr[i];
+            multi_io_z->n_esr = multi_io->n_esr;
+        }
+    }
+}
+
 /**************************************************************************/
 /**
  * Main event loop for OpenVPN in point-to-multipoint server mode.
@@ -4181,13 +4561,92 @@ multi_get_timeout(struct multi_context *multi, struct timeval *timeval)
  *
  * @param multi context structure
  */
-static void
-tunnel_server_loop(struct multi_context *multi)
+static void tunnel_server_loop(struct thread_pointer *b)
 {
     int status;
+    struct context_pointer *p = b->p;
+
+    status = 0;
+    while (status == 0)
+    {
+        status = 1;
+        for (int x = 0; x < p->n; ++x)
+        {
+            if (p->m[x] == NULL)
+            {
+                status = 0;
+            }
+        }
+        sleep(1);
+    }
+
+    struct multi_context *multi = p->m[b->i-1];
+    struct context *c = &(p->m[b->i-1]->top);
+    struct context *d = &(p->m[0]->top);
+
+    multi->mtio_idno = b->i;
+    multi->mtio_info.maxt = b->n;
+    multi->mtio_info.maxc = p->x;
+    multi->mtio_info.addr = p->a;
+    multi->mtio_info.lock = p->l;
+    multi->mtio_info.indx = &(p->i);
+    multi->mtio_info.hold = &(p->h);
+    multi->mtio_info.pool = p->m[0]->ifconfig_pool;
+
+    if (b->i == 1)
+    {
+        while (p->h < p->n)
+        {
+            if (p->z == -1) { break; } else { sleep(1); }
+        }
+        p->z = 1;
+    }
+    else
+    {
+        b->h += 1; p->h += 1;
+        while ((p->z != 1) || (!(d->c1.tuntap)) || (d->c1.tuntap->ff <= 1))
+        {
+            if (p->z == -1) { break; } else { sleep(1); }
+        }
+    }
+
+    bool dual_mode = d->options.ce.dual_mode;
+    const unsigned int f = MPP_THREADZ;
+    struct dual_args link, intf;
+    pthread_t thrl, thri;
+
+    if (dual_mode)
+    {
+        pthread_mutex_init(&(link.i), NULL); pthread_mutex_init(&(link.o), NULL);
+        pthread_mutex_lock(&(link.i)); pthread_mutex_lock(&(link.o));
+        link.c = c; link.b = b; link.z = THREAD_RLWT; link.a = 0;
+        bzero(&(thrl), sizeof(pthread_t));
+        pthread_create(&(thrl), NULL, threaded_multi_io_process_io, &(link));
+
+        pthread_mutex_init(&(intf.i), NULL); pthread_mutex_init(&(intf.o), NULL);
+        pthread_mutex_lock(&(intf.i)); pthread_mutex_lock(&(intf.o));
+        intf.c = c; intf.b = b; intf.z = THREAD_RTWL; intf.a = 0;
+        bzero(&(thri), sizeof(pthread_t));
+        pthread_create(&(thri), NULL, threaded_multi_io_process_io, &(intf));
+    }
+
+    msg(M_INFO, "TCPv4_SERVER MTIO init [%d][%d] [%d][%d] {%d}{%d}", b->h, b->n, p->h, p->n, p->z, b->i);
 
     while (true)
     {
+        if (p->z != 1) { break; }
+        if (c->c1.tuntap && (c->c1.tuntap->fd > 1) && (c->c1.tuntap->ff <= 1))
+        {
+            socketpair(AF_UNIX, SOCK_DGRAM, 0, p->s[b->i-1]);
+            socketpair(AF_UNIX, SOCK_DGRAM, 0, p->r[b->i-1]);
+            c->c1.tuntap->ff = c->c1.tuntap->fd;
+            c->c1.tuntap->fe = (b->i == 1) ? c->c1.tuntap->ff : d->c1.tuntap->ff;
+            //c->c1.tuntap->fd = (b->i == 1) ? c->c1.tuntap->ff : d->c1.tuntap->ff;
+            c->c1.tuntap->fd = p->s[b->i-1][0];
+            c->c1.tuntap->fz = p->r[b->i-1][1];
+            msg(M_INFO, "TCPv4_SERVER MTIO fdno [%d][%d][%d][%d] {%d}", c->c1.tuntap->fd, c->c1.tuntap->fe, c->c1.tuntap->ff, c->c1.tuntap->fz, b->i);
+        }
+
         /* wait on tun/socket list */
         multi_get_timeout(multi, &multi->top.c2.timeval);
         status = multi_io_wait(multi);
@@ -4200,26 +4659,63 @@ tunnel_server_loop(struct multi_context *multi)
         if (status > 0)
         {
             /* process the I/O which triggered select */
-            multi_io_process_io(multi);
+            if (dual_mode)
+            {
+                multi_copy_events(multi);
+                pthread_mutex_unlock(&(link.i)); pthread_mutex_unlock(&(intf.i));
+                pthread_mutex_lock(&(link.o)); pthread_mutex_lock(&(intf.o));
+            }
+            else
+            {
+                multi_io_process_io(b, f, THREAD_MAIN);
+            }
+            for (int x = 0; x < MAX_THREADS; ++x)
+            {
+                multi->multi_io[x].n_esr = 0;
+            }
         }
         else if (status == 0)
         {
-            multi_io_action(multi, NULL, TA_TIMEOUT, false);
+            multi_io_action(multi, NULL, TA_TIMEOUT, false, f, THREAD_MAIN);
         }
 
         MULTI_CHECK_SIG(multi);
+    }
+
+    msg(M_INFO, "TCPv4_SERVER MTIO fins [%d][%d] [%d][%d] {%d}{%d}", b->h, b->n, p->h, p->n, p->z, b->i);
+
+    p->z = -1;
+
+    if (c->c1.tuntap && (c->c1.tuntap->ff > 1))
+    {
+        close(p->s[b->i-1][0]);
+        close(p->s[b->i-1][1]);
+        close(p->r[b->i-1][0]);
+        close(p->r[b->i-1][1]);
+        c->c1.tuntap->fd = c->c1.tuntap->ff;
+        c->c1.tuntap->ff = -1;
+    }
+
+    if (dual_mode)
+    {
+        pthread_mutex_unlock(&(link.i)); pthread_mutex_unlock(&(intf.i));
+        pthread_join(thrl, NULL); pthread_join(thri, NULL);
     }
 }
 
 /*
  * Top level event loop.
  */
-void
-tunnel_server(struct context *top)
+void *tunnel_server(void *args)
 {
-    ASSERT(top->options.mode == MODE_SERVER);
-
+    struct thread_pointer *arg = (struct thread_pointer *)args;
+    struct context_pointer *ptr = arg->p;
+    struct context *top = (arg->i == 1) ? ptr->c : arg->c;
     struct multi_context multi;
+
+    if (arg->i == 1) { sleep(1); }
+
+    ASSERT(top->options.mode == MODE_SERVER);
 
     top->mode = CM_TOP;
     top->multi = &multi;
@@ -4229,7 +4725,7 @@ tunnel_server(struct context *top)
     init_instance_handle_signals(top, top->es, CC_HARD_USR1_TO_HUP);
     if (IS_SIG(top))
     {
-        return;
+        return NULL;
     }
 
     /* initialize global multi_context object */
@@ -4252,7 +4748,10 @@ tunnel_server(struct context *top)
     }
 #endif
 
-    tunnel_server_loop(&multi);
+    bzero(&(multi.mtio_info), sizeof(struct multi_info));
+    ptr->m[arg->i-1] = &multi;
+
+    tunnel_server_loop(arg);
 
 #ifdef ENABLE_ASYNC_PUSH
     close(top->c2.inotify_fd);
@@ -4268,6 +4767,61 @@ tunnel_server(struct context *top)
     multi_uninit(&multi);
     multi_top_free(&multi);
     close_instance(top);
+
+    return NULL;
+}
+
+void threaded_tunnel_server(struct context *c, struct context *d)
+{
+    int maxt = (c->options.ce.mtio_mode) ? MAX_THREADS : 1;
+    int maxc = c->options.max_clients;
+    struct thread_pointer b[MAX_THREADS];
+    struct context_pointer p;
+    struct multi_address a[maxc];
+    struct multi_link l[maxc];
+    pthread_mutex_t lock;
+    pthread_t thrm, thrd[MAX_THREADS];
+
+    bzero(&(p), sizeof(struct context_pointer));
+    p.i = 1; p.h = 1; p.n = maxt; p.x = maxc; p.z = 0;
+    p.c = c; p.a = a; p.l = &(lock); p.p = NULL;
+    p.m = calloc(p.n, sizeof(struct multi_context *));
+    bzero(p.a, maxc * sizeof(struct multi_address));
+    bzero(p.l, sizeof(pthread_mutex_t));
+    pthread_mutex_init(p.l, NULL);
+
+    bzero(l, maxc * sizeof(struct multi_link));
+    for (int x = 0; x < maxc; ++x)
+    {
+        a[x].link = l;
+    }
+
+    c->skip_bind = 0;
+    b[0].p = &(p); b[0].c = c; b[0].i = 1; b[0].n = p.n; b[0].h = 0;
+    bzero(&(thrd[0]), sizeof(pthread_t));
+    pthread_create(&(thrd[0]), NULL, tunnel_server, &(b[0]));
+
+    bzero(&(thrm), sizeof(pthread_t));
+    pthread_create(&(thrm), NULL, threaded_io_management, &(b[0]));
+
+    for (int x = 1; x < p.n; ++x)
+    {
+        d[x].skip_bind = -1;
+        b[x].p = &(p); b[x].c = &(d[x]); b[x].i = (x + 1); b[x].n = p.n; b[x].h = 1;
+        bzero(&(thrd[x]), sizeof(pthread_t));
+        pthread_create(&(thrd[x]), NULL, tunnel_server, &(b[x]));
+    }
+
+    pthread_join(thrd[0], NULL);
+
+    for (int x = 1; x < p.n; ++x)
+    {
+        pthread_join(thrd[x], NULL);
+    }
+
+    pthread_join(thrm, NULL);
+
+    free(p.m);
 }
 
 /* Searches for the address and deletes it if it is owned by the multi_instance */

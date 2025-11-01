@@ -1160,6 +1160,7 @@ tls_authentication_status(struct tls_multi *multi)
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
         struct key_state *ks = get_key_scan(multi, i);
+        if (ks->keys_idno >= TM_THREADED) { continue; }
         if (TLS_AUTHENTICATED(multi, ks))
         {
             active++;
@@ -1740,7 +1741,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi, struct tls_sessi
         if (plugin_status == OPENVPN_PLUGIN_FUNC_DEFERRED
             || script_status == OPENVPN_PLUGIN_FUNC_DEFERRED)
         {
-            ks->authenticated = KS_AUTH_DEFERRED;
+            if (ks->keys_idno < TM_THREADED) { ks->authenticated = KS_AUTH_DEFERRED; }
         }
 #ifdef ENABLE_MANAGEMENT
         if (man_def_auth != KMDA_UNDEF)
@@ -1751,7 +1752,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi, struct tls_sessi
             }
             else
             {
-                ks->authenticated = KS_AUTH_DEFERRED;
+                if (ks->keys_idno < TM_THREADED) { ks->authenticated = KS_AUTH_DEFERRED; }
             }
         }
 #endif
@@ -1804,7 +1805,7 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
     }
 
     /* Don't allow the CN to change once it's been locked */
-    if (ks->authenticated > KS_AUTH_FALSE && multi->locked_cn)
+    if (ks->authenticated > KS_AUTH_FALSE && multi->locked_cn && ks->keys_idno < TM_THREADED)
     {
         const char *cn = session->common_name;
         if (cn && strcmp(cn, multi->locked_cn))
@@ -1820,7 +1821,7 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
     }
 
     /* Don't allow the cert hashes to change once they have been locked */
-    if (ks->authenticated > KS_AUTH_FALSE && multi->locked_cert_hash_set)
+    if (ks->authenticated > KS_AUTH_FALSE && multi->locked_cert_hash_set && ks->keys_idno < TM_THREADED)
     {
         const struct cert_hash_set *chs = session->cert_hash_set;
         if (chs && !cert_hash_compare(chs, multi->locked_cert_hash_set))
@@ -1835,7 +1836,7 @@ verify_final_auth_checks(struct tls_multi *multi, struct tls_session *session)
     }
 
     /* verify --client-config-dir based authentication */
-    if (ks->authenticated > KS_AUTH_FALSE && session->opt->client_config_dir_exclusive)
+    if (ks->authenticated > KS_AUTH_FALSE && session->opt->client_config_dir_exclusive && ks->keys_idno < TM_THREADED)
     {
         struct gc_arena gc = gc_new();
 

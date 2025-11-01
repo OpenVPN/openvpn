@@ -146,6 +146,9 @@ struct multi_instance
 #ifdef ENABLE_ASYNC_PUSH
     int inotify_watch; /* watch descriptor for acf */
 #endif
+
+    int mtio_idno;
+    struct multi_address mtio_addr;
 };
 
 
@@ -175,7 +178,7 @@ struct multi_context
     struct mbuf_set *mbuf;             /**< Set of buffers for passing data
                                         *   channel packets between VPN tunnel
                                         *   instances. */
-    struct multi_io *multi_io;         /**< I/O state and events tracker */
+    struct multi_io multi_io[MAX_THREADS];         /**< I/O state and events tracker */
     struct ifconfig_pool *ifconfig_pool;
     struct frequency_limit *new_connection_limiter;
     struct initial_packet_rate_limit *initial_rate_limiter;
@@ -194,6 +197,7 @@ struct multi_context
 #endif
 
     struct multi_instance *pending;
+    struct multi_instance *pending2;
     struct multi_instance *earliest_wakeup;
     struct multi_instance **mpp_touched;
     struct context_buffers *context_buffers;
@@ -217,7 +221,15 @@ struct multi_context
 #endif
 
     struct deferred_signal_schedule_entry deferred_shutdown_signal;
+
+    int inst_indx;
+    int inst_leng;
+    struct multi_instance **inst_list;
+
+    int mtio_idno;
+    struct multi_info mtio_info;
 };
+
 
 /**
  * Return values used by the client connect call-back functions.
@@ -254,8 +266,11 @@ struct multi_route
  *
  * @param top          - Top-level context structure.
  */
-void tunnel_server(struct context *top);
+void threaded_tunnel_server(struct context *c, struct context *d);
 
+int min_max(int a, int b, int c);
+
+bool multi_context_switch_addr(struct multi_context *m, struct multi_instance *i);
 
 const char *multi_instance_string(const struct multi_instance *mi, bool null, struct gc_arena *gc);
 
@@ -263,9 +278,7 @@ const char *multi_instance_string(const struct multi_instance *mi, bool null, st
  * Called by mtcp.c, mudp.c, or other (to be written) protocol drivers
  */
 
-struct multi_instance *multi_create_instance(struct multi_context *m,
-                                             const struct mroute_addr *real,
-                                             struct link_socket *sock);
+struct multi_instance *multi_create_instance(struct thread_pointer *b, const struct mroute_addr *real, struct link_socket *sock);
 
 void multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool shutdown);
 
@@ -275,6 +288,7 @@ bool multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags
 #define MPP_CONDITIONAL_PRE_SELECT (1 << 1)
 #define MPP_CLOSE_ON_SIGNAL        (1 << 2)
 #define MPP_RECORD_TOUCH           (1 << 3)
+#define MPP_THREADZ                (1 << 4)
 
 
 /**************************************************************************/
@@ -358,6 +372,9 @@ bool multi_process_incoming_link(struct multi_context *m, struct multi_instance 
  */
 bool multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags);
 
+bool multi_process_inp_tun_post(struct multi_context *m, const unsigned int mpp_flags);
+
+bool threaded_multi_inp_tun(struct multi_context *m, const unsigned int mpp_flags);
 
 void multi_process_drop_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags);
 
@@ -635,7 +652,7 @@ multi_get_timeout_instance(struct multi_context *m, struct timeval *dest)
 static inline bool
 multi_process_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags)
 {
-    struct multi_instance *mi = m->pending;
+    struct multi_instance *mi = m->pending2;
     bool ret = true;
 
     ASSERT(mi);
@@ -703,6 +720,13 @@ multi_set_pending(struct multi_context *m, struct multi_instance *mi)
 {
     m->pending = mi;
 }
+
+static inline void
+multi_set_pending2(struct multi_context *m, struct multi_instance *mi)
+{
+    m->pending2 = mi;
+}
+
 /**
  * Assigns a peer-id to a a client and adds the instance to the
  * the instances array of the \c multi_context structure.
