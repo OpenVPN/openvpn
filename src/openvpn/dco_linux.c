@@ -279,7 +279,7 @@ nla_put_failure:
 }
 
 static int
-ovpn_nl_cb_finish(struct nl_msg(*msg) __attribute__ ((unused)), void *arg)
+ovpn_nl_cb_finish(struct nl_msg (*msg) __attribute__ ((unused)), void *arg)
 {
     int *status = arg;
 
@@ -296,7 +296,7 @@ ovpn_nl_cb_finish(struct nl_msg(*msg) __attribute__ ((unused)), void *arg)
  * reply to see if it contains a human-readable error. If found, it is printed.
  */
 static int
-ovpn_nl_cb_error(struct sockaddr_nl(*nla) __attribute__ ((unused)),
+ovpn_nl_cb_error(struct sockaddr_nl (*nla) __attribute__ ((unused)),
                  struct nlmsgerr *err, void *arg)
 {
     struct nlmsghdr *nlh = (struct nlmsghdr *)err - 1;
