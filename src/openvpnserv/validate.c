@@ -65,6 +65,11 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
     const WCHAR *config_file = NULL;
     const WCHAR *config_dir = NULL;
 
+    /* fname = stdin is special: do not treat it as a relative path */
+    if (wcscmp(fname, L"stdin") == 0)
+    {
+        return FALSE;
+    }
     /* convert fname to full path */
     if (PathIsRelativeW(fname) )
     {
