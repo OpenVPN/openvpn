@@ -1797,7 +1797,7 @@ static DWORD
 HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
 {
     DWORD err = 0;
-    undo_type_t undo_type = (msg->family == AF_INET6) ? undo_dns4 : undo_dns6;
+    undo_type_t undo_type = (msg->family == AF_INET6) ? undo_dns6 : undo_dns4;
     int addr_len = msg->addr_len;
 
     /* sanity check */
