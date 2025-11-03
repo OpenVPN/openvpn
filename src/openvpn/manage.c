@@ -612,7 +612,7 @@ man_kill(struct management *man, const char *victim)
                                       : (streq(p1, "udp")) ? PROTO_UDP
                                                            : PROTO_NONE;
 
-                if ((port > 0 && port < UINT16_MAX) && (proto != PROTO_NONE))
+                if ((port > 0 && port <= UINT16_MAX) && (proto != PROTO_NONE))
                 {
                     n_killed = (*man->persist.callback.kill_by_addr)(man->persist.callback.arg,
                                                                      addr, (uint16_t)port, proto);
