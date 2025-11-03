@@ -1035,16 +1035,16 @@ HandleRegisterDNSMessage(void)
 }
 
 /**
- * Run the command: netsh interface $proto $action dns $if_name $addr [validate=no]
+ * Run the command: netsh interface $proto $action dns $if_index $addr [validate=no]
  * @param  action      "delete" or "add"
  * @param  proto       "ipv6" or "ip"
- * @param  if_name     "name_of_interface"
+ * @param  if_index     index of the interface to modify DNS for
  * @param  addr         IPv4 (for proto = ip) or IPv6 address as a string
  *
  * If addr is null and action = "delete" all addresses are deleted.
  */
 static DWORD
-netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_name, const wchar_t *addr)
+netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, int if_index, const wchar_t *addr)
 {
     DWORD err = 0;
     int timeout = 30000; /* in msec */
@@ -1069,10 +1069,10 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
     /* cmd template:
      * netsh interface $proto $action dns $if_name $addr [validate=no]
      */
-    const wchar_t *fmt = L"netsh interface %ls %ls dns \"%ls\" %ls";
+    const wchar_t *fmt = L"netsh interface %ls %ls dns %d %ls";
 
     /* max cmdline length in wchars -- include room for worst case and some */
-    size_t ncmdline = wcslen(fmt) + wcslen(if_name) + wcslen(addr) + 32 + 1;
+    size_t ncmdline = wcslen(fmt) + 11 /*if_index*/ + wcslen(addr) + 32 + 1;
     cmdline = malloc(ncmdline*sizeof(wchar_t));
     if (!cmdline)
     {
@@ -1080,7 +1080,7 @@ netsh_dns_cmd(const wchar_t *action, const wchar_t *proto, const wchar_t *if_nam
         goto out;
     }
 
-    openvpn_swprintf(cmdline, ncmdline, fmt, proto, action, if_name, addr);
+    openvpn_swprintf(cmdline, ncmdline, fmt, proto, action, if_index, addr);
 
     if (IsWindows7OrGreater())
     {
@@ -1094,16 +1094,16 @@ out:
 }
 
 /**
- * Run the command: netsh interface ip $action wins $if_name [static] $addr
+ * Run the command: netsh interface ip $action wins $if_index [static] $addr
  * @param  action      "delete", "add" or "set"
- * @param  if_name     "name_of_interface"
+ * @param  if_index    index of the interface to modify WINS for
  * @param  addr        IPv4 address as a string
  *
  * If addr is null and action = "delete" all addresses are deleted.
  * if action = "set" then "static" is added before $addr
  */
 static DWORD
-netsh_wins_cmd(const wchar_t *action, const wchar_t *if_name, const wchar_t *addr)
+netsh_wins_cmd(const wchar_t *action, int if_index, const wchar_t *addr)
 {
     DWORD err = 0;
     int timeout = 30000; /* in msec */
@@ -1129,11 +1129,11 @@ netsh_wins_cmd(const wchar_t *action, const wchar_t *if_name, const wchar_t *add
     /* cmd template:
      * netsh interface ip $action wins $if_name $static $addr
      */
-    const wchar_t *fmt = L"netsh interface ip %ls wins \"%ls\" %ls %ls";
+    const wchar_t *fmt = L"netsh interface ip %ls wins %d %ls %ls";
 
     /* max cmdline length in wchars -- include room for worst case and some */
-    size_t ncmdline = wcslen(fmt) + wcslen(if_name) + wcslen(action) + wcslen(addr)
-                      +wcslen(addr_static) + 32 + 1;
+    size_t ncmdline = wcslen(fmt) + 11 /*if_index*/ + wcslen(action) + wcslen(addr)
+                      + wcslen(addr_static) + 32 + 1;
     cmdline = malloc(ncmdline * sizeof(wchar_t));
     if (!cmdline)
     {
@@ -1141,7 +1141,7 @@ netsh_wins_cmd(const wchar_t *action, const wchar_t *if_name, const wchar_t *add
         goto out;
     }
 
-    openvpn_swprintf(cmdline, ncmdline, fmt, action, if_name, addr_static, addr);
+    openvpn_swprintf(cmdline, ncmdline, fmt, action, if_index, addr_static, addr);
 
     err = ExecCommand(argv0, cmdline, timeout);
 
@@ -1184,18 +1184,18 @@ pwsh_setdns_cmd(const NET_IFINDEX if_index, const wchar_t *data)
 
 /* Delete all IPv4 or IPv6 dns servers for an interface */
 static DWORD
-DeleteDNS(short family, wchar_t *if_name)
+DeleteDNS(short family, int if_index)
 {
     wchar_t *proto = (family == AF_INET6) ? L"ipv6" : L"ip";
-    return netsh_dns_cmd(L"delete", proto, if_name, NULL);
+    return netsh_dns_cmd(L"delete", proto, if_index, NULL);
 }
 
 /* Add an IPv4 or IPv6 dns server to an interface */
 static DWORD
-AddDNS(short family, wchar_t *if_name, wchar_t *addr)
+AddDNS(short family, int if_index, wchar_t *addr)
 {
     wchar_t *proto = (family == AF_INET6) ? L"ipv6" : L"ip";
-    return netsh_dns_cmd(L"add", proto, if_name, addr);
+    return netsh_dns_cmd(L"add", proto, if_index, addr);
 }
 
 static BOOL
@@ -1295,12 +1295,12 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
      */
     if (addr_len > 0 || msg->header.type == msg_del_dns_cfg)
     {
-        err = DeleteDNS(msg->family, wide_name);
+        err = DeleteDNS(msg->family, msg->iface.index);
         if (err)
         {
             goto out;
         }
-        free(RemoveListItem(&(*lists)[undo_type], CmpWString, wide_name));
+        free(RemoveListItem(&(*lists)[undo_type], CmpAny, NULL));
     }
 
     if (msg->header.type == msg_del_dns_cfg)
@@ -1323,7 +1323,7 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
         {
             RtlIpv4AddressToStringW(&msg->addr[i].ipv4, addr);
         }
-        err = AddDNS(msg->family, wide_name, addr);
+        err = AddDNS(msg->family, msg->iface.index, addr);
         if (i == 0 && err)
         {
             goto out;
@@ -1337,11 +1337,15 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
 
     if (msg->addr_len > 0)
     {
-        wchar_t *tmp_name = _wcsdup(wide_name);
-        if (!tmp_name || AddListItem(&(*lists)[undo_type], tmp_name))
+        int *tmp_index = malloc(sizeof(msg->iface.index));
+        if (tmp_index)
         {
-            free(tmp_name);
-            DeleteDNS(msg->family, wide_name);
+            *tmp_index = msg->iface.index;
+        }
+        if (!tmp_index || AddListItem(&(*lists)[undo_type], tmp_index))
+        {
+            free(tmp_index);
+            DeleteDNS(msg->family, msg->iface.index);
             err = ERROR_OUTOFMEMORY;
             goto out;
         }
@@ -1360,7 +1364,7 @@ out:
 static DWORD
 HandleWINSConfigMessage(const wins_cfg_message_t *msg, undo_lists_t *lists)
 {
-    DWORD err = 0;
+    DWORD err = NO_ERROR;
     wchar_t addr[16]; /* large enough to hold string representation of an ipv4 */
     int addr_len = msg->addr_len;
 
@@ -1370,21 +1374,9 @@ HandleWINSConfigMessage(const wins_cfg_message_t *msg, undo_lists_t *lists)
         addr_len = _countof(msg->addr);
     }
 
-    if (!msg->iface.name[0]) /* interface name is required */
+    if (!msg->iface.index) /* interface index is required */
     {
         return ERROR_MESSAGE_DATA;
-    }
-
-    /* use a non-const reference with limited scope to enforce null-termination of strings from client */
-    {
-        wins_cfg_message_t *msgptr = (wins_cfg_message_t *)msg;
-        msgptr->iface.name[_countof(msg->iface.name) - 1] = '\0';
-    }
-
-    wchar_t *wide_name = utf8to16(msg->iface.name); /* utf8 to wide-char */
-    if (!wide_name)
-    {
-        return ERROR_OUTOFMEMORY;
     }
 
     /* We delete all current addresses before adding any
@@ -1392,15 +1384,15 @@ HandleWINSConfigMessage(const wins_cfg_message_t *msg, undo_lists_t *lists)
      */
     if (addr_len > 0 || msg->header.type == msg_del_wins_cfg)
     {
-        err = netsh_wins_cmd(L"delete", wide_name, NULL);
+        err = netsh_wins_cmd(L"delete", msg->iface.index, NULL);
         if (err)
         {
             goto out;
         }
-        free(RemoveListItem(&(*lists)[undo_wins], CmpWString, wide_name));
+        free(RemoveListItem(&(*lists)[undo_wins], CmpAny, NULL));
     }
 
-    if (msg->header.type == msg_del_wins_cfg)
+    if (addr_len == 0 || msg->header.type == msg_del_wins_cfg)
     {
         goto out;  /* job done */
     }
@@ -1408,7 +1400,7 @@ HandleWINSConfigMessage(const wins_cfg_message_t *msg, undo_lists_t *lists)
     for (int i = 0; i < addr_len; ++i)
     {
         RtlIpv4AddressToStringW(&msg->addr[i].ipv4, addr);
-        err = netsh_wins_cmd(i == 0 ? L"set" : L"add", wide_name, addr);
+        err = netsh_wins_cmd(i == 0 ? L"set" : L"add", msg->iface.index, addr);
         if (i == 0 && err)
         {
             goto out;
@@ -1418,22 +1410,23 @@ HandleWINSConfigMessage(const wins_cfg_message_t *msg, undo_lists_t *lists)
          */
     }
 
-    err = 0;
-
-    if (addr_len > 0)
+    int *if_index = malloc(sizeof(msg->iface.index));
+    if (if_index)
     {
-        wchar_t *tmp_name = _wcsdup(wide_name);
-        if (!tmp_name || AddListItem(&(*lists)[undo_wins], tmp_name))
-        {
-            free(tmp_name);
-            netsh_wins_cmd(L"delete", wide_name, NULL);
-            err = ERROR_OUTOFMEMORY;
-            goto out;
-        }
+        *if_index = msg->iface.index;
     }
 
+    if (!if_index || AddListItem(&(*lists)[undo_wins], if_index))
+    {
+        free(if_index);
+        netsh_wins_cmd(L"delete", msg->iface.index, NULL);
+        err = ERROR_OUTOFMEMORY;
+        goto out;
+    }
+
+    err = 0;
+
 out:
-    free(wide_name);
     return err;
 }
 
@@ -1734,15 +1727,15 @@ Undo(undo_lists_t *lists)
                     break;
 
                 case undo_dns4:
-                    DeleteDNS(AF_INET, item->data);
+                    DeleteDNS(AF_INET, *(int *)item->data);
                     break;
 
                 case undo_dns6:
-                    DeleteDNS(AF_INET6, item->data);
+                    DeleteDNS(AF_INET6, *(int *)item->data);
                     break;
 
                 case undo_wins:
-                    netsh_wins_cmd(L"delete", item->data, NULL);
+                    netsh_wins_cmd(L"delete", *(int *)item->data, NULL);
                     break;
 
                 case undo_domain:
