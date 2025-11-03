@@ -2,7 +2,8 @@
 #include "syshead.h"
 #include "networking.h"
 
-#include <assert.h>
+#include <setjmp.h>
+#include <cmocka.h>
 
 static char *iface = "ovpn-dummy0";
 
@@ -27,7 +28,7 @@ net__iface_type(const char *name, const char *type)
     int ret = net_iface_type(NULL, name, ret_type);
     if (ret == 0)
     {
-        assert(strcmp(type, ret_type) == 0);
+        assert_string_equal(type, ret_type);
     }
 
     return ret;
@@ -265,10 +266,10 @@ main(int argc, char *argv[])
 
         /* following tests are standalone and do not print any CMD= */
         case 8:
-            assert(net__iface_new("dummy0815", "dummy") == 0);
-            assert(net__iface_type("dummy0815", "dummy") == 0);
-            assert(net__iface_del("dummy0815") == 0);
-            assert(net__iface_type("dummy0815", NULL) == -ENODEV);
+            assert_int_equal(net__iface_new("dummy0815", "dummy"), 0);
+            assert_int_equal(net__iface_type("dummy0815", "dummy"), 0);
+            assert_int_equal(net__iface_del("dummy0815"), 0);
+            assert_int_equal(net__iface_type("dummy0815", NULL), -ENODEV);
             return 0;
 
         default:
