@@ -1263,7 +1263,7 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
 {
     DWORD err = 0;
     wchar_t addr[46]; /* large enough to hold string representation of an ipv4 / ipv6 address */
-    undo_type_t undo_type = (msg->family == AF_INET6) ? undo_dns4 : undo_dns6;
+    undo_type_t undo_type = (msg->family == AF_INET6) ? undo_dns6 : undo_dns4;
     int addr_len = msg->addr_len;
 
     /* sanity check */
