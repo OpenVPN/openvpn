@@ -1873,7 +1873,7 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
             {
                 RtlIpv4AddressToStringA(&msg->addr[i].ipv4, addrs + offset);
             }
-            offset += strlen(addrs);
+            offset = strlen(addrs);
         }
 
         err = SetNameServers(iid, msg->family, addrs);
