@@ -45,7 +45,6 @@
 #include <ncrypt.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <assert.h>
 
 #include "buffer.h"
 #include "openssl_compat.h"

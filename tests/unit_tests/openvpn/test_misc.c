@@ -101,7 +101,7 @@ test_auth_fail_temp_flags(void **state)
     const char *msg = parse_auth_failed_temp(&o, teststr);
     assert_string_equal(msg, "");
     assert_int_equal(o.server_backoff_time, 42);
-    assert_int_equal(o.no_advance, true);
+    assert_true(o.no_advance);
 }
 
 static void

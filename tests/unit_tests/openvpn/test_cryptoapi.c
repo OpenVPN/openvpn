@@ -121,7 +121,7 @@ init_cert_data(void)
         { cert4, key4, cname4, "OVPN TEST CA2", "OVPN Test Cert 4", hash4, 0 },
         { 0 }
     };
-    assert(sizeof(certs_local) == sizeof(certs));
+    assert_int_equal(sizeof(certs_local), sizeof(certs));
     memcpy(certs, certs_local, sizeof(certs_local));
 }
 
