@@ -1780,20 +1780,16 @@ write_empty_string(struct buffer *buf)
     return true;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static bool
 write_string(struct buffer *buf, const char *str, const int maxlen)
 {
-    const int len = strlen(str) + 1;
-    if (len < 1 || (maxlen >= 0 && len > maxlen))
+    const size_t len = strlen(str) + 1;
+    const size_t real_maxlen = (maxlen >= 0 && maxlen <= UINT16_MAX) ? (size_t)maxlen : UINT16_MAX;
+    if (len > real_maxlen)
     {
         return false;
     }
-    if (!buf_write_u16(buf, len))
+    if (!buf_write_u16(buf, (uint16_t)len))
     {
         return false;
     }
@@ -1832,6 +1828,11 @@ read_string(struct buffer *buf, char *str, const unsigned int capacity)
     str[len - 1] = '\0';
     return len;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
 
 static char *
 read_string_alloc(struct buffer *buf)
