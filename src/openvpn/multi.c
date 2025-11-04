@@ -4346,6 +4346,7 @@ unlearn_ifconfig(struct multi_context *m, struct multi_instance *mi)
     multi_unlearn_in_addr_t(m, mi, old_addr);
     mi->context.c2.push_ifconfig_defined = false;
     mi->context.c2.push_ifconfig_local = 0;
+    mi->reporting_addr = 0;
 }
 
 /* Function to unlearn previous ifconfig-ipv6 of a client in the server multi_context after a PUSH_UPDATE */
@@ -4358,6 +4359,7 @@ unlearn_ifconfig_ipv6(struct multi_context *m, struct multi_instance *mi)
     multi_unlearn_in6_addr(m, mi, old_addr6);
     mi->context.c2.push_ifconfig_ipv6_defined = false;
     CLEAR(mi->context.c2.push_ifconfig_ipv6_local);
+    CLEAR(mi->reporting_addr_ipv6);
 }
 
 /**
@@ -4389,6 +4391,8 @@ update_vhash(struct multi_context *m, struct multi_instance *mi, const char *new
         {
             mi->context.c2.push_ifconfig_defined = true;
             mi->context.c2.push_ifconfig_local = ntohl(new_addr.s_addr);
+            /* set our client's VPN endpoint for status reporting purposes */
+            mi->reporting_addr = mi->context.c2.push_ifconfig_local;
         }
     }
 
@@ -4408,6 +4412,8 @@ update_vhash(struct multi_context *m, struct multi_instance *mi, const char *new
         {
             mi->context.c2.push_ifconfig_ipv6_defined = true;
             mi->context.c2.push_ifconfig_ipv6_local = new_addr6;
+            /* set our client's VPN endpoint for status reporting purposes */
+            mi->reporting_addr_ipv6 = mi->context.c2.push_ifconfig_ipv6_local;
         }
     }
 }
