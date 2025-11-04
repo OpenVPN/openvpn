@@ -71,13 +71,13 @@ static void do_init_first_time(struct context *c);
 
 static bool do_deferred_p2p_ncp(struct context *c);
 
-void
+static void
 context_clear(struct context *c)
 {
     CLEAR(*c);
 }
 
-void
+static void
 context_clear_1(struct context *c)
 {
     CLEAR(c->c1);
@@ -4430,32 +4430,9 @@ persist_client_stats(struct context *c)
 }
 
 /*
- * Initialize a tunnel instance, handle pre and post-init
- * signal settings.
- */
-void
-init_instance_handle_signals(struct context *c, const struct env_set *env, const unsigned int flags)
-{
-    pre_init_signal_catch();
-    init_instance(c, env, flags);
-    post_init_signal_catch();
-
-    /*
-     * This is done so that signals thrown during
-     * initialization can bring us back to
-     * a management hold.
-     */
-    if (IS_SIG(c))
-    {
-        remap_signal(c);
-        uninit_management_callback();
-    }
-}
-
-/*
  * Initialize a tunnel instance.
  */
-void
+static void
 init_instance(struct context *c, const struct env_set *env, const unsigned int flags)
 {
     const struct options *options = &c->options;
@@ -4742,6 +4719,29 @@ sig:
     }
     close_context(c, -1, flags);
     return;
+}
+
+/*
+ * Initialize a tunnel instance, handle pre and post-init
+ * signal settings.
+ */
+void
+init_instance_handle_signals(struct context *c, const struct env_set *env, const unsigned int flags)
+{
+    pre_init_signal_catch();
+    init_instance(c, env, flags);
+    post_init_signal_catch();
+
+    /*
+     * This is done so that signals thrown during
+     * initialization can bring us back to
+     * a management hold.
+     */
+    if (IS_SIG(c))
+    {
+        remap_signal(c);
+        uninit_management_callback();
+    }
 }
 
 /*

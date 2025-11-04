@@ -31,10 +31,6 @@
  */
 #define BASE_N_EVENTS 5
 
-void context_clear(struct context *c);
-
-void context_clear_1(struct context *c);
-
 void context_clear_2(struct context *c);
 
 void context_init_1(struct context *c);
@@ -63,8 +59,6 @@ void pre_setup(const struct options *options);
 
 void init_instance_handle_signals(struct context *c, const struct env_set *env,
                                   const unsigned int flags);
-
-void init_instance(struct context *c, const struct env_set *env, const unsigned int flags);
 
 /**
  * Query for private key and auth-user-pass username/passwords.
