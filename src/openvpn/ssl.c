@@ -3679,7 +3679,7 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
      * multi->session: Possible initial packet. New sessions always start
      * as TM_INITIAL
      */
-    if (i == TM_SIZE && is_hard_reset_method2(op))
+    if (i == TM_SIZE || is_hard_reset_method2(op))
     {
         /*
          * No match with existing sessions,
