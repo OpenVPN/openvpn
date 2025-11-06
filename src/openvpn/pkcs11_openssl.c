@@ -428,18 +428,12 @@ cleanup:
     return dn;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 int
 pkcs11_certificate_serial(pkcs11h_certificate_t certificate, char *serial, size_t serial_len)
 {
     X509 *x509 = NULL;
     BIO *bio = NULL;
     int ret = 1;
-    int n;
 
     if ((x509 = pkcs11h_openssl_getX509(certificate)) == NULL)
     {
@@ -454,7 +448,8 @@ pkcs11_certificate_serial(pkcs11h_certificate_t certificate, char *serial, size_
     }
 
     i2a_ASN1_INTEGER(bio, X509_get_serialNumber(x509));
-    n = BIO_read(bio, serial, serial_len - 1);
+    ASSERT(serial_len <= INT_MAX);
+    int n = BIO_read(bio, serial, (int)serial_len - 1);
 
     if (n < 0)
     {
@@ -473,9 +468,5 @@ cleanup:
 
     return ret;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #endif /* defined(ENABLE_PKCS11) && defined(ENABLE_OPENSSL) */
