@@ -33,6 +33,8 @@ typedef enum ovpn_key_cipher dco_cipher_t;
 
 enum ovpn_message_type_t
 {
+    /* message type #0 is treated as magic number by process_incoming_dco() */
+    OVPN_CMD_NO_MESSAGE = 0,
     OVPN_CMD_DEL_PEER,
     OVPN_CMD_PACKET,
     OVPN_CMD_SWAP_KEYS,
