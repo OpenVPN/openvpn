@@ -274,6 +274,11 @@ configuration.
   counted as traffic, as they are used internally by OpenVPN and are not
   an indication of actual user activity.
 
+  NOTE: on FreeBSD with DCO, due to platform limits, the previous paragraph
+  is not correct.  In that case, encapsulation overhead and keepalives are
+  counted, so using this feature needs a sufficiently-high ``bytes`` value to
+  take these extra numbers into account.
+
 --proto-force p
   When iterating through connection profiles, only consider profiles using
   protocol ``p`` (:code:`tcp` \| :code:`udp`).

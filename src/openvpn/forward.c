@@ -476,13 +476,20 @@ check_add_routes(struct context *c)
  * and the logic needs to change - we permit the event to trigger and check
  * kernel DCO counters here, returning and rearming the timer if there was
  * sufficient traffic.
+ *
+ * NOTE: FreeBSD DCO does not supply "tun bytes" (= decrypted payload) today,
+ * so "dco bytes" (encrypted bytes, including keepalives) is used instead
  */
 static void
 check_inactivity_timeout(struct context *c)
 {
     if (dco_enabled(&c->options) && dco_get_peer_stats(c, true) == 0)
     {
+#ifdef TARGET_FREEBSD
+        int64_t tot_bytes = c->c2.dco_read_bytes + c->c2.dco_write_bytes;
+#else
         int64_t tot_bytes = c->c2.tun_read_bytes + c->c2.tun_write_bytes;
+#endif
         int64_t new_bytes = tot_bytes - c->c2.inactivity_bytes;
 
         if (new_bytes > c->options.inactivity_minimum_bytes)
