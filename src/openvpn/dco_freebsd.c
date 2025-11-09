@@ -870,8 +870,20 @@ retry:
     {
         const nvlist_t *peer = nvpeers[i];
         uint32_t peerid = nvlist_get_number(peer, "peerid");
+        const nvlist_t *bytes = nvlist_get_nvlist(peer, "bytes");
 
-        dco_update_peer_stat(dco->c->multi, peerid, nvlist_get_nvlist(peer, "bytes"));
+        /* we can end here in p2mp mode, or in p2p mode via
+         * the call to "dco_get_peer_stat()"
+         */
+        if (dco->c->mode == CM_TOP)
+        {
+            dco_update_peer_stat(dco->c->multi, peerid, bytes);
+        }
+        else
+        {
+            dco->c->c2.dco_read_bytes = nvlist_get_number(bytes, "in");
+            dco->c->c2.dco_write_bytes = nvlist_get_number(bytes, "out");
+        }
     }
 
     nvlist_destroy(nvl);
@@ -882,12 +894,26 @@ retry:
 #pragma GCC diagnostic pop
 #endif
 
+/* get stats for a single peer
+ * we can get here for "the peer stats" in p2p client mode, or by
+ * being queried for a particular peer in p2mp mode, for --inactive
+ */
 int
 dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
 {
-    msg(D_DCO_DEBUG, __func__);
-    /* Not implemented. */
-    return 0;
+    ASSERT(c->c2.tls_multi);
+    msg(D_DCO_DEBUG, "%s: peer-id %d", __func__, c->c2.tls_multi->dco_peer_id);
+
+    if (c->c2.tls_multi->dco_peer_id < 0)
+    {
+        return -EINVAL; /* DCO not active yet */
+    }
+
+    /* unfortunately, the FreeBSD kernel has no peer-specific query - so
+     * we just get all the stats - and if we're there anyway, we can save it
+     * for all peers, too...
+     */
+    return dco_get_peer_stats_multi(&c->c1.tuntap->dco, raise_sigusr1_on_err);
 }
 
 const char *
