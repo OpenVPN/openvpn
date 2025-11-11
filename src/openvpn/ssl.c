@@ -179,21 +179,16 @@ tls_init_control_channel_frame_parameters(struct frame *frame, int tls_mtu)
     frame->tun_mtu = max_int(frame->tun_mtu, TLS_CHANNEL_MTU_MIN);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /**
  * calculate the maximum overhead that control channel frames have
  * This includes header, op code and everything apart from the
  * payload itself. This method is a bit pessimistic and might give higher
  * overhead than we actually have */
-static int
+static size_t
 calc_control_channel_frame_overhead(const struct tls_session *session)
 {
     const struct key_state *ks = &session->key[KS_PRIMARY];
-    int overhead = 0;
+    size_t overhead = 0;
 
     /* opcode */
     overhead += 1;
@@ -225,10 +220,6 @@ calc_control_channel_frame_overhead(const struct tls_session *session)
 
     return overhead;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 init_ssl_lib(void)
@@ -2650,7 +2641,7 @@ write_outgoing_tls_ciphertext(struct tls_session *session, bool *continue_tls_pr
     int max_pkt_len = min_int(TLS_CHANNEL_BUF_SIZE, session->opt->frame.tun_mtu);
 
     /* Subtract overhead */
-    max_pkt_len -= calc_control_channel_frame_overhead(session);
+    max_pkt_len -= (int)calc_control_channel_frame_overhead(session);
 
     /* calculate total available length for outgoing tls ciphertext */
     int maxlen = max_pkt_len * rel_avail;
