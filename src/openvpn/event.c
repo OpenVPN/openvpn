@@ -410,6 +410,13 @@ we_wait(struct event_set *es, const struct timeval *tv, struct event_set_return 
     }
 #endif
 
+    /* WSA_WAIT_EVENT_0 == 0 but the API documentation is written in a way
+       that doesn't guarantee that. So we make useless checks. */
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
+
     /*
      * First poll our event list with 0 timeout
      */
@@ -474,6 +481,9 @@ we_wait(struct event_set *es, const struct timeval *tv, struct event_set_return 
             return -1;
         }
     }
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 }
 
 static struct event_set *
