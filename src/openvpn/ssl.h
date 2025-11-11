@@ -426,7 +426,7 @@ void ssl_put_auth_challenge(const char *cr_str);
 /*
  * Send a payload over the TLS control channel
  */
-bool tls_send_payload(struct key_state *ks, const uint8_t *data, int size);
+bool tls_send_payload(struct key_state *ks, const uint8_t *data, size_t size);
 
 /*
  * Receive a payload through the TLS control channel

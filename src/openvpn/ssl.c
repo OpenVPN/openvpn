@@ -4032,7 +4032,7 @@ tls_post_encrypt(struct tls_multi *multi, struct buffer *buf)
  */
 
 bool
-tls_send_payload(struct key_state *ks, const uint8_t *data, int size)
+tls_send_payload(struct key_state *ks, const uint8_t *data, size_t size)
 {
     bool ret = false;
 
@@ -4042,7 +4042,8 @@ tls_send_payload(struct key_state *ks, const uint8_t *data, int size)
 
     if (ks->state >= S_ACTIVE)
     {
-        if (key_state_write_plaintext_const(&ks->ks_ssl, data, size) == 1)
+        ASSERT(size <= INT_MAX);
+        if (key_state_write_plaintext_const(&ks->ks_ssl, data, (int)size) == 1)
         {
             ret = true;
         }
@@ -4053,7 +4054,7 @@ tls_send_payload(struct key_state *ks, const uint8_t *data, int size)
         {
             ks->paybuf = buffer_list_new();
         }
-        buffer_list_push_data(ks->paybuf, data, (size_t)size);
+        buffer_list_push_data(ks->paybuf, data, size);
         ret = true;
     }
 

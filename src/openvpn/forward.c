@@ -365,11 +365,6 @@ check_connection_established(struct context *c)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 bool
 send_control_channel_string_dowork(struct tls_session *session, const char *str,
                                    msglvl_t msglevel)
@@ -833,6 +828,11 @@ process_coarse_timers(struct context *c)
     }
 #endif /* ENABLE_MANAGEMENT */
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
 
 static void
 check_coarse_timers(struct context *c)
