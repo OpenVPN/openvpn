@@ -33,6 +33,7 @@
 #include "mss.h"
 #include "event.h"
 #include "occ.h"
+#include "otime.h"
 #include "ping.h"
 #include "ps.h"
 #include "dhcp.h"
@@ -127,7 +128,7 @@ context_immediate_reschedule(struct context *c)
 }
 
 static inline void
-context_reschedule_sec(struct context *c, int sec)
+context_reschedule_sec(struct context *c, time_t sec)
 {
     if (sec < 0)
     {
@@ -135,7 +136,7 @@ context_reschedule_sec(struct context *c, int sec)
     }
     if (sec < c->c2.timeval.tv_sec)
     {
-        c->c2.timeval.tv_sec = sec;
+        c->c2.timeval.tv_sec = (tv_sec_t)sec;
         c->c2.timeval.tv_usec = 0;
     }
 }
@@ -829,11 +830,6 @@ process_coarse_timers(struct context *c)
 #endif /* ENABLE_MANAGEMENT */
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static void
 check_coarse_timers(struct context *c)
 {
@@ -1303,6 +1299,11 @@ process_incoming_dco(struct context *c)
 
 #endif /* if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD)) */
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
 
 /*
  * Output: c->c2.buf
