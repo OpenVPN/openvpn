@@ -411,7 +411,7 @@ static void
 test_tls_ctx_use_pkcs11(void **state)
 {
     (void)state;
-    struct tls_root_ctx tls_ctx = {};
+    struct tls_root_ctx tls_ctx = { 0 };
     uint8_t sha1[HASHSIZE];
     for (struct test_cert *c = certs; c->cert; c++)
     {

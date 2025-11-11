@@ -230,7 +230,7 @@ backend_x509_write_pem(openvpn_x509_cert_t *cert, const char *filename)
      * headers and footer */
     struct buffer pem = alloc_buf_gc(cert->raw.len * 3 + 100, &gc);
 
-    struct buffer der = {};
+    struct buffer der = { 0 };
     buf_set_read(&der, cert->raw.p, cert->raw.len);
 
     if (!crypto_pem_encode("CERTIFICATE", &pem, &der, &gc))
