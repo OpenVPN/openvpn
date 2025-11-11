@@ -194,21 +194,12 @@ SSL_get0_peer_signature_name(const SSL *ssl, const char **sigalg)
           LIBRESSL_VERSION_NUMBER > 0x3050400fL) */
 
 #if OPENSSL_VERSION_NUMBER < 0x30200000L && OPENSSL_VERSION_NUMBER >= 0x30000000L
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static inline const char *
 SSL_get0_group_name(SSL *s)
 {
-    int nid = SSL_get_negotiated_group(s);
+    int nid = (int)SSL_get_negotiated_group(s);
     return SSL_group_to_name(s, nid);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 #endif
 
 /* Introduced in OpenSSL 3.6.0 */
