@@ -152,14 +152,14 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     ASSERT(cipher_ctx_update(ctx->cipher, BEND(&work), &outlen, BPTR(buf), BLEN(buf)));
     ASSERT(buf_inc_len(&work, outlen));
 
-    /* update number of plaintext blocks encrypted. Use the (x + (n-1))/n trick
-     * to round up the result to the number of blocks used */
-    const int blocksize = AEAD_LIMIT_BLOCKSIZE;
-    opt->key_ctx_bi.encrypt.plaintext_blocks += (outlen + (blocksize - 1)) / blocksize;
-
     /* Flush the encryption buffer */
     ASSERT(cipher_ctx_final(ctx->cipher, BEND(&work), &outlen));
     ASSERT(buf_inc_len(&work, outlen));
+
+    /* update number of plaintext blocks encrypted. Use the (x + (n-1))/n trick
+     * to round up the result to the number of blocks used */
+    const int blocksize = AEAD_LIMIT_BLOCKSIZE;
+    opt->key_ctx_bi.encrypt.plaintext_blocks += (BLEN(&work) + (blocksize - 1)) / blocksize;
 
     /* if the tag is at end the end, allocate it now */
     if (use_epoch_data_format)
@@ -580,11 +580,10 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
         goto error_exit;
     }
 
-
     /* update number of plaintext blocks decrypted. Use the (x + (n-1))/n trick
      * to round up the result to the number of blocks used. */
     const int blocksize = AEAD_LIMIT_BLOCKSIZE;
-    opt->key_ctx_bi.decrypt.plaintext_blocks += (outlen + (blocksize - 1)) / blocksize;
+    opt->key_ctx_bi.decrypt.plaintext_blocks += (BLEN(&work) + (blocksize - 1)) / blocksize;
 
     *buf = work;
 
