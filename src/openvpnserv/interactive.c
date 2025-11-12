@@ -752,7 +752,7 @@ CmpAny(LPVOID item, LPVOID any)
 }
 
 static DWORD
-DeleteWfpBlock(const wfp_block_message_t *msg, undo_lists_t *lists)
+DeleteWfpBlock(undo_lists_t *lists)
 {
     DWORD err = 0;
     wfp_block_data_t *block_data = RemoveListItem(&(*lists)[wfp_block], CmpAny, NULL);
@@ -762,11 +762,11 @@ DeleteWfpBlock(const wfp_block_message_t *msg, undo_lists_t *lists)
         err = delete_wfp_block_filters(block_data->engine);
         if (block_data->metric_v4 >= 0)
         {
-            set_interface_metric(msg->iface.index, AF_INET, block_data->metric_v4);
+            set_interface_metric(block_data->index, AF_INET, block_data->metric_v4);
         }
         if (block_data->metric_v6 >= 0)
         {
-            set_interface_metric(msg->iface.index, AF_INET6, block_data->metric_v6);
+            set_interface_metric(block_data->index, AF_INET6, block_data->metric_v6);
         }
         free(block_data);
     }
@@ -829,7 +829,7 @@ AddWfpBlock(const wfp_block_message_t *msg, undo_lists_t *lists)
             if (err)
             {
                 /* delete the filters, remove undo item and free interface data */
-                DeleteWfpBlock(msg, lists);
+                DeleteWfpBlock(lists);
                 engine = NULL;
             }
         }
@@ -854,7 +854,7 @@ HandleWfpBlockMessage(const wfp_block_message_t *msg, undo_lists_t *lists)
     }
     else
     {
-        return DeleteWfpBlock(msg, lists);
+        return DeleteWfpBlock(lists);
     }
 }
 
