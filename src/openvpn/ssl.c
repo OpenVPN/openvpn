@@ -3840,9 +3840,6 @@ tls_pre_decrypt(struct tls_multi *multi,
     }
     else
     {
-        struct tls_session *session = &multi->session[i];
-        struct key_state *ks = &session->key[KS_PRIMARY];
-
         /*
          * Packet must belong to an existing session.
          */
@@ -3856,6 +3853,8 @@ tls_pre_decrypt(struct tls_multi *multi,
             goto error;
         }
 
+        struct tls_session *session = &multi->session[i];
+        struct key_state *ks = &session->key[KS_PRIMARY];
         /*
          * Verify remote IP address
          */
