@@ -27,10 +27,6 @@
 #include <pathcch.h>
 #include <lm.h>
 
-#ifndef HAVE_PATHCCH_ENSURE_TRAILING_SLASH
-#define PATHCCH_ENSURE_TRAILING_SLASH 0x20
-#endif
-
 static const WCHAR *white_list[] = {
     L"auth-retry",
     L"config",

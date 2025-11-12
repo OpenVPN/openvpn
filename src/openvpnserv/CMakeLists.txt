@@ -8,9 +8,6 @@ add_executable(openvpnserv)
 
 include(CheckSymbolExists)
 
-# Some old versions of mingw does not have PATHCCH_OPTIONS enums -- add a check
-check_symbol_exists(PATHCCH_ENSURE_TRAILING_SLASH pathcch.h HAVE_PATHCCH_ENSURE_TRAILING_SLASH)
-
 set(MC_GEN_DIR ${CMAKE_CURRENT_BINARY_DIR}/mc)
 
 target_include_directories(openvpnserv PRIVATE
