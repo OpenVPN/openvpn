@@ -78,7 +78,7 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
         res = PathCchCanonicalize(config_path, _countof(config_path), fname);
     }
 
-    return res == S_OK && wcsncmp(config_path, s->config_dir, wcslen(s->config_dir)) == 0;
+    return res == S_OK && wcsnicmp(config_path, s->config_dir, wcslen(s->config_dir)) == 0;
 }
 
 
