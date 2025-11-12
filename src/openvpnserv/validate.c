@@ -24,8 +24,8 @@
 
 #include <lmaccess.h>
 #include <shlwapi.h>
-#include <lm.h>
 #include <pathcch.h>
+#include <lm.h>
 
 #ifndef HAVE_PATHCCH_ENSURE_TRAILING_SLASH
 #define PATHCCH_ENSURE_TRAILING_SLASH 0x20
@@ -58,44 +58,31 @@ static BOOL IsUserInGroup(PSID sid, const PTOKEN_GROUPS groups, const WCHAR *gro
 static PTOKEN_GROUPS GetTokenGroups(const HANDLE token);
 
 /*
- * Check workdir\fname is inside config_dir
- * The logic here is simple: we may reject some valid paths if ..\ is in any of the strings
+ * Check that config path is inside config_dir
+ * The logic here is simple: if the path isn't prefixed with config_dir it's rejected
  */
 static BOOL
 CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
 {
-    WCHAR tmp[MAX_PATH];
-    const WCHAR *config_file = NULL;
-    WCHAR config_dir[MAX_PATH];
+    HRESULT res;
+    WCHAR config_path[MAX_PATH];
 
     /* fname = stdin is special: do not treat it as a relative path */
     if (wcscmp(fname, L"stdin") == 0)
     {
         return FALSE;
     }
-    /* convert fname to full path */
+    /* convert fname to full canonical path */
     if (PathIsRelativeW(fname))
     {
-        swprintf(tmp, _countof(tmp), L"%ls\\%ls", workdir, fname);
-        config_file = tmp;
+        res = PathCchCombine(config_path, _countof(config_path), workdir, fname);
     }
     else
     {
-        config_file = fname;
+        res = PathCchCanonicalize(config_path, _countof(config_path), fname);
     }
 
-    /* canonicalize config_dir and add trailing slash before comparison */
-    HRESULT res = PathCchCanonicalizeEx(config_dir, _countof(config_dir), s->config_dir,
-                                        PATHCCH_ENSURE_TRAILING_SLASH);
-
-    if (res == S_OK
-        && wcsncmp(config_dir, config_file, wcslen(config_dir)) == 0
-        && wcsstr(config_file + wcslen(config_dir), L"..") == NULL)
-    {
-        return TRUE;
-    }
-
-    return FALSE;
+    return res == S_OK && wcsncmp(config_path, s->config_dir, wcslen(s->config_dir)) == 0;
 }
 
 
