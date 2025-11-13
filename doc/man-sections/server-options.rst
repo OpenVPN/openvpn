@@ -413,19 +413,6 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   Note that this directive affects OpenVPN's internal routing table, not
   the kernel routing table.
 
---opt-verify
-  **DEPRECATED** Clients that connect with options that are incompatible with
-  those of the server will be disconnected.
-
-  Options that will be compared for compatibility include ``dev-type``,
-  ``link-mtu``, ``tun-mtu``, ``proto``, ``ifconfig``,
-  ``comp-lzo``, ``fragment``, ``keydir``, ``cipher``,
-  ``auth``, ``keysize``,
-  ``tls-auth``, ``key-method``, ``tls-server``
-  and ``tls-client``.
-
-  This option requires that ``--disable-occ`` NOT be used.
-
 --override-username username
   Sets the username of a connection to the specified username.  This username
   will also be used by ``--auth-gen-token``. However, the overridden

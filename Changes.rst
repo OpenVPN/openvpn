@@ -236,6 +236,9 @@ Using ``--push`` in a mode that is not ``--mode server`` will now print a
 ``--reneg-bytes`` and ``--reneg-packets`` do not work in DCO mode, and will
     now print an appropriate warning.
 
+``--opt-verify`` feature removed
+    This option was already deprecated and it is now being converted to a
+    no-op. Using this option will only print a warning.
 
 User-visible Changes
 --------------------

@@ -2334,13 +2334,6 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
 #endif
 
         options_warning(options, remote_options);
-
-        if (session->opt->ssl_flags & SSLF_OPT_VERIFY)
-        {
-            msg(D_TLS_ERRORS,
-                "Option inconsistency warnings triggering disconnect due to --opt-verify");
-            ks->authenticated = KS_AUTH_FALSE;
-        }
     }
 
     buf_clear(buf);

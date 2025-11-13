@@ -45,3 +45,7 @@ longer supported
 
 --persist-key
   Ignored since OpenVPN 2.7. Keys are now always persisted across restarts.
+
+--opt-verify
+  Removed in OpenVPN 2.7.  This option does not make sense anymore as option
+  strings may not match due to the introduction of parameters negotiation.
