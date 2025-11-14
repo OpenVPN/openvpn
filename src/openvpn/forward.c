@@ -1382,15 +1382,24 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
 
     struct openvpn_sockaddr *link_addr = &c->c2.to_link_addr->dest;
     struct link_socket_info *lsi = get_link_socket_info(c);
-    uint16_t link_port = atoi(c->c2.link_sockets[0]->remote_port);
 
     int ip_hdr_offset = 0;
-    int tun_ip_ver = get_tun_ip_ver(TUNNEL_TYPE(c->c1.tuntap), &c->c2.buf, &ip_hdr_offset);
+    int tun_ip_ver = get_tun_ip_ver(TUNNEL_TYPE(c->c1.tuntap), buf, &ip_hdr_offset);
 
     if (tun_ip_ver == 4)
     {
-        /* make sure we got whole IP header and TCP/UDP src/dst ports */
-        if (BLEN(buf) < ((int)sizeof(struct openvpn_iphdr) + ip_hdr_offset + sizeof(uint16_t) * 2))
+        /* Ensure we can safely read the IPv4 header */
+        const int min_ip_header = ip_hdr_offset + sizeof(struct openvpn_iphdr);
+        if (BLEN(buf) < min_ip_header)
+        {
+            return;
+        }
+
+        struct openvpn_iphdr *pip = (struct openvpn_iphdr *)(BPTR(buf) + ip_hdr_offset);
+        const int ip_hlen = OPENVPN_IPH_GET_LEN(pip->version_len);
+        /* Reject malformed or truncated headers */
+        if (ip_hlen < sizeof(struct openvpn_iphdr)
+            || BLEN(buf) < (int)(ip_hdr_offset + ip_hlen + sizeof(uint16_t) * 2))
         {
             return;
         }
@@ -1401,8 +1410,6 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
             return;
         }
 
-        struct openvpn_iphdr *pip = (struct openvpn_iphdr *)(BPTR(buf) + ip_hdr_offset);
-
         /* skip if tun protocol doesn't match link protocol */
         if ((lsi->proto == PROTO_TCP && pip->protocol != OPENVPN_IPPROTO_TCP)
             || (lsi->proto == PROTO_UDP && pip->protocol != OPENVPN_IPPROTO_UDP))
@@ -1410,9 +1417,10 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
             return;
         }
 
-
         /* drop packets with same dest addr and port as remote */
-        uint8_t *l4_hdr = (uint8_t *)pip + sizeof(struct openvpn_iphdr);
+        uint8_t *l4_hdr = (uint8_t *)pip + ip_hlen;
+
+        uint16_t link_port = ntohs(link_addr->addr.in4.sin_port);
 
         /* TCP and UDP ports are at the same place in the header, and other protocols
          * can not happen here due to the lsi->proto check above */
@@ -1420,7 +1428,7 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
         uint16_t dst_port = ntohs(*(uint16_t *)(l4_hdr + sizeof(uint16_t)));
         if ((memcmp(&link_addr->addr.in4.sin_addr.s_addr, &pip->daddr, sizeof(pip->daddr)) == 0) && (link_port == dst_port))
         {
-            c->c2.buf.len = 0;
+            buf->len = 0;
 
             struct gc_arena gc = gc_new();
             msg(D_LOW, "Recursive routing detected, packet dropped %s:%" PRIu16 " -> %s",
@@ -1433,7 +1441,8 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
     else if (tun_ip_ver == 6)
     {
         /* make sure we got whole IPv6 header and TCP/UDP src/dst ports */
-        if (BLEN(buf) < ((int)sizeof(struct openvpn_ipv6hdr) + ip_hdr_offset + sizeof(uint16_t) * 2))
+        const int min_ipv6 = ip_hdr_offset + sizeof(struct openvpn_ipv6hdr) + sizeof(uint16_t) * 2;
+        if (BLEN(buf) < min_ipv6)
         {
             return;
         }
@@ -1453,13 +1462,15 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
             return;
         }
 
+        uint16_t link_port = ntohs(link_addr->addr.in6.sin6_port);
+
         /* drop packets with same dest addr and port as remote */
         uint8_t *l4_hdr = (uint8_t *)pip6 + sizeof(struct openvpn_ipv6hdr);
         uint16_t src_port = ntohs(*(uint16_t *)l4_hdr);
         uint16_t dst_port = ntohs(*(uint16_t *)(l4_hdr + sizeof(uint16_t)));
         if ((OPENVPN_IN6_ARE_ADDR_EQUAL(&link_addr->addr.in6.sin6_addr, &pip6->daddr)) && (link_port == dst_port))
         {
-            c->c2.buf.len = 0;
+            buf->len = 0;
 
             struct gc_arena gc = gc_new();
             msg(D_LOW, "Recursive routing detected, packet dropped %s:%" PRIu16 " -> %s",
