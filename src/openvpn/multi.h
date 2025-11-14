@@ -260,11 +260,11 @@ const char *multi_instance_string(const struct multi_instance *mi, bool null, st
  * Called by mtcp.c, mudp.c, or other (to be written) protocol drivers
  */
 
-void multi_init(struct multi_context *m, struct context *t, bool tcp_mode);
+void multi_init(struct context *t, bool tcp_mode);
 
 void multi_uninit(struct multi_context *m);
 
-void multi_top_init(struct multi_context *m, struct context *top);
+void multi_top_init(struct context *top);
 
 void multi_top_free(struct multi_context *m);
 
