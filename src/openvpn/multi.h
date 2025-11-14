@@ -194,6 +194,7 @@ struct multi_context
 #endif
 
     struct multi_instance *pending;
+    struct multi_instance *pending2;
     struct multi_instance *earliest_wakeup;
     struct multi_instance **mpp_touched;
     struct context_buffers *context_buffers;
@@ -217,6 +218,10 @@ struct multi_context
 #endif
 
     struct deferred_signal_schedule_entry deferred_shutdown_signal;
+
+    int inst_indx;
+    int inst_leng;
+    struct multi_instance **inst_list;
 };
 
 /**
@@ -256,6 +261,7 @@ struct multi_route
  */
 void tunnel_server(struct context *top);
 
+int min_max(int a, int b, int c);
 
 const char *multi_instance_string(const struct multi_instance *mi, bool null, struct gc_arena *gc);
 
@@ -358,6 +364,9 @@ bool multi_process_incoming_link(struct multi_context *m, struct multi_instance 
  */
 bool multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags);
 
+bool multi_process_inp_tun_post(struct multi_context *m, const unsigned int mpp_flags);
+
+bool multi_in_tun(struct multi_context *m, const unsigned int mpp_flags);
 
 void multi_process_drop_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags);
 
@@ -410,7 +419,6 @@ static inline struct multi_instance *
 multi_process_outgoing_link_pre(struct multi_context *m)
 {
     struct multi_instance *mi = NULL;
-
     if (m->pending)
     {
         mi = m->pending;
@@ -635,7 +643,7 @@ multi_get_timeout_instance(struct multi_context *m, struct timeval *dest)
 static inline bool
 multi_process_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags)
 {
-    struct multi_instance *mi = m->pending;
+    struct multi_instance *mi = m->pending2;
     bool ret = true;
 
     ASSERT(mi);
@@ -655,8 +663,7 @@ multi_process_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags
      | OPT_P_COMP | OPT_P_SOCKFLAGS)
 
 static inline bool
-multi_process_outgoing_link_dowork(struct multi_context *m, struct multi_instance *mi,
-                                   const unsigned int mpp_flags)
+multi_process_outgoing_link_dowork(struct multi_context *m, struct multi_instance *mi, const unsigned int mpp_flags)
 {
     bool ret = true;
     set_prefix(mi);
@@ -703,6 +710,13 @@ multi_set_pending(struct multi_context *m, struct multi_instance *mi)
 {
     m->pending = mi;
 }
+
+static inline void
+multi_set_pending2(struct multi_context *m, struct multi_instance *mi)
+{
+    m->pending2 = mi;
+}
+
 /**
  * Assigns a peer-id to a a client and adds the instance to the
  * the instances array of the \c multi_context structure.
