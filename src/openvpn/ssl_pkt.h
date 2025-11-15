@@ -196,9 +196,7 @@ bool check_session_hmac_and_pkt_id(struct tls_pre_decrypt_state *state, const st
 /*
  * Write a control channel authentication record.
  */
-void write_control_auth(struct tls_session *session, struct key_state *ks, struct buffer *buf,
-                        struct link_socket_actual **to_link_addr, int opcode, int max_ack,
-                        bool prepend_ack);
+void write_control_auth(struct tls_multi *multi, struct tls_session *session, struct key_state *ks, struct buffer *buf, struct link_socket_actual **to_link_addr, int opcode, int max_ack, bool prepend_ack);
 
 
 /**
@@ -210,9 +208,7 @@ void write_control_auth(struct tls_session *session, struct key_state *ks, struc
  * @param initial_packet    whether this is the initial packet for the connection
  * @return                  if the packet was successfully processed
  */
-bool read_control_auth(struct buffer *buf, struct tls_wrap_ctx *ctx,
-                       const struct link_socket_actual *from, const struct tls_options *opt,
-                       bool initial_packet);
+bool read_control_auth(struct tls_multi *multi, struct buffer *buf, struct tls_wrap_ctx *ctx, const struct link_socket_actual *from, const struct tls_options *opt, bool initial_packet);
 
 
 /**
@@ -280,6 +276,31 @@ packet_opcode_name(int op)
     }
 }
 
+static inline struct tls_session *
+tls_select_encryption_session_control(struct tls_multi *multi, struct tls_session *session)
+{
+    time_t secs = time(NULL);
+
+    if (multi)
+    {
+        struct tls_session *sn = &multi->session[TM_MAIN];
+        struct tls_session *sl = &multi->session[TM_LAME];
+        struct key_state *kx = &sn->key[KS_MAIN];
+        struct key_state *kl = &sl->key[KS_MAIN];
+
+        if (kx->keys_gens && (secs - kx->keys_wait) >= 5)
+        {
+            return sn;
+        }
+        else if (kl->keys_gens && (secs - kl->keys_wait) >= 5)
+        {
+            return sl;
+        }
+    }
+
+    return session;
+}
+
 /**
  * Determines if the current session should use the renegotiation tls wrap
  * struct instead the normal one and returns it.
@@ -289,21 +310,15 @@ packet_opcode_name(int op)
  * @return
  */
 static inline struct tls_wrap_ctx *
-tls_session_get_tls_wrap(struct tls_session *session, int key_id)
+tls_session_get_tls_wrap(struct tls_multi *multi, struct tls_session *session)
 {
     /* OpenVPN has the hardcoded assumption in its protocol that
      * key-id 0 is always first session and renegotiations use key-id
      * 1 to 7 and wrap around to 1 after that. So key-id > 0 is equivalent
      * to "this is a renegotiation"
      */
-    if (key_id > 0 && session->tls_wrap_reneg.mode == TLS_WRAP_CRYPT)
-    {
-        return &session->tls_wrap_reneg;
-    }
-    else
-    {
-        return &session->tls_wrap;
-    }
+    struct tls_session *sn = tls_select_encryption_session_control(multi, session);
+    return &sn->tls_wrap;
 }
 
 /* initial packet id (instead of 0) that indicates that the peer supports

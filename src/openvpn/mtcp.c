@@ -46,15 +46,18 @@ struct ta_iow_flags
 };
 
 struct multi_instance *
-multi_create_instance_tcp(struct multi_context *m, struct link_socket *sock)
+multi_create_instance_tcp(struct thread_pointer *b, struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
+    struct multi_context *m = b->p->m[b->i-1];
     struct multi_instance *mi = NULL;
     struct hash *hash = m->hash;
 
-    mi = multi_create_instance(m, NULL, sock);
+    mi = multi_create_instance(b, NULL, sock);
     if (mi)
     {
+        m = b->p->p;
+        hash = m->hash;
         mi->real.proto = sock->info.proto;
         struct hash_element *he;
         const uint32_t hv = hash_value(hash, &mi->real);
@@ -180,38 +183,10 @@ multi_tcp_process_outgoing_link(struct multi_context *m, bool defer, const unsig
 
     if (mi)
     {
-        if ((defer && !proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto))
-            || mbuf_defined(mi->tcp_link_out_deferred))
+        ret = multi_process_outgoing_link_dowork(m, mi, mpp_flags);
+        if (!ret)
         {
-            /* save to queue */
-            struct buffer *buf = &mi->context.c2.to_link;
-            if (BLEN(buf) > 0)
-            {
-                struct mbuf_buffer *mb = mbuf_alloc_buf(buf);
-                struct mbuf_item item;
-
-                set_prefix(mi);
-                dmsg(D_MULTI_TCP, "MULTI TCP: queuing deferred packet");
-                item.buffer = mb;
-                item.instance = mi;
-                mbuf_add_item(mi->tcp_link_out_deferred, &item);
-                mbuf_free_buf(mb);
-                buf_reset(buf);
-                ret = multi_process_post(m, mi, mpp_flags);
-                if (!ret)
-                {
-                    mi = NULL;
-                }
-                clear_prefix();
-            }
-        }
-        else
-        {
-            ret = multi_process_outgoing_link_dowork(m, mi, mpp_flags);
-            if (!ret)
-            {
-                mi = NULL;
-            }
+            mi = NULL;
         }
     }
     return ret;

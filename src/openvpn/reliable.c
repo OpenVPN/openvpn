@@ -141,9 +141,12 @@ reliable_ack_acknowledge_packet_id(struct reliable_ack *ack, packet_id_type pid)
 
 
 bool
-reliable_ack_read(struct reliable_ack *ack, struct buffer *buf, const struct session_id *sid)
+reliable_ack_read(struct reliable_ack *ack, struct buffer *buf, struct tls_multi *multi)
 {
     struct session_id session_id_remote;
+    struct tls_session *si = &multi->session[TM_INIT];
+    struct tls_session *sn = &multi->session[TM_MAIN];
+    struct tls_session *sl = &multi->session[TM_LAME];
 
     if (!reliable_ack_parse(buf, ack, &session_id_remote))
     {
@@ -151,11 +154,12 @@ reliable_ack_read(struct reliable_ack *ack, struct buffer *buf, const struct ses
     }
 
     if (ack->len >= 1
-        && (!session_id_defined(&session_id_remote) || !session_id_equal(&session_id_remote, sid)))
+        && (!session_id_defined(&session_id_remote)
+            || (!session_id_equal(&session_id_remote, &si->session_id) && !session_id_equal(&session_id_remote, &sn->session_id) && !session_id_equal(&session_id_remote, &sl->session_id))))
     {
         struct gc_arena gc = gc_new();
-        dmsg(D_REL_LOW, "ACK read BAD SESSION-ID FROM REMOTE, local=%s, remote=%s",
-             session_id_print(sid, &gc), session_id_print(&session_id_remote, &gc));
+        dmsg(D_REL_LOW, "ACK read BAD SESSION-ID FROM REMOTE, local=%s/%s/%s, remote=%s",
+             session_id_print(&si->session_id, &gc), session_id_print(&sn->session_id, &gc), session_id_print(&sl->session_id, &gc), session_id_print(&session_id_remote, &gc));
         gc_free(&gc);
         return false;
     }

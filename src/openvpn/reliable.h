@@ -34,6 +34,7 @@
 #include "buffer.h"
 #include "packet_id.h"
 #include "session_id.h"
+#include "ssl_common.h"
 #include "mtu.h"
 
 /** @addtogroup reliable
@@ -123,7 +124,7 @@ struct reliable
  * @li True, if processing was successful.
  * @li False, if an error occurs during processing.
  */
-bool reliable_ack_read(struct reliable_ack *ack, struct buffer *buf, const struct session_id *sid);
+bool reliable_ack_read(struct reliable_ack *ack, struct buffer *buf, struct tls_multi *multi);
 
 
 /**

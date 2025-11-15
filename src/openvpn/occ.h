@@ -158,13 +158,15 @@ check_send_occ_msg(struct context *c)
 static inline bool
 cc_exit_notify_enabled(struct context *c)
 {
+    struct tls_multi *multi = c->c2.tls_multi;
+
     /* Check if we have TLS active at all */
-    if (!c->c2.tls_multi)
+    if (!multi)
     {
         return false;
     }
 
-    const struct key_state *ks = get_primary_key(c->c2.tls_multi);
-    return (ks->crypto_options.flags & CO_USE_CC_EXIT_NOTIFY);
+    struct key_state *ks = tls_select_encryption_key_init(multi);
+    return (ks && ks->crypto_options.flags & CO_USE_CC_EXIT_NOTIFY);
 }
 #endif /* ifndef OCC_H */
