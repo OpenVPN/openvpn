@@ -236,9 +236,6 @@ Using ``--push`` in a mode that is not ``--mode server`` will now print a
 ``--reneg-bytes`` and ``--reneg-packets`` do not work in DCO mode, and will
     now print an appropriate warning.
 
-``--opt-verify`` feature removed
-    This option was already deprecated and it is now being converted to a
-    no-op. Using this option will only print a warning.
 
 User-visible Changes
 --------------------
@@ -323,6 +320,17 @@ User-visible Changes
 - `ifconfig` and `ifconfig-ipv6` values are now stored in pre-connect
   options cache, and will be restored to pre-connect values on reconnects
   if the server stops pushing the respective option.
+
+- `tapctl.exe` helper binary on Windows has been reworked to improve
+  help texts (making clear that it can not only do TAP-Adapters but
+  Win-DCO as well), add printing of the hwid to all adapter outputs, and
+  change the default adapter type created to `ovpn-dco`.
+
+Deprecated features
+-------------------
+``--opt-verify`` feature removed
+    This option was already deprecated and it is now being converted to a
+    no-op. Using this option will only print a warning.
 
 
 Overview of changes in 2.6

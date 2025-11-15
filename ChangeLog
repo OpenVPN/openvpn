@@ -1,6 +1,72 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.11.17 -- Version 2.7_rc2
+
+Antonio Quartulli (4):
+      test_networking: use appropriate assert helpers
+      unit_tests: prefer proper cmocka assert helpers
+      init: make some functions static
+      options: remove --opt-verify functionality
+
+Arne Schwabe (3):
+      Do not underestimate number of encrypted/decrypted AEAD blocks
+      Fix construction of invalid pointer in tls_pre_decrypt
+      Fix memcmp check for the hmac verification in the 3way handshake being inverted
+
+Frank Lichtenheld (17):
+      manage: Correctly handle port 65535 in man_kill
+      pkcs11_openssl: Silence a conversion warning
+      Enable -Wtype-limits by default (via -Wextra)
+      ssl: Change tls_send_payload size argument to size_t
+      openssl_compat: Avoid conversion warning for SSL_get_negotiated_group
+      pkcs11: Avoid some conversion warnings
+      ssl: change return type of calc_control_channel_frame_overhead to size_t
+      otime: Fix various conversion warnings
+      interval: Fix conversion warning
+      forward: Change context_reschedule_sec sec argument to time_t
+      tls_crypt: Avoid some conversion warnings
+      ssl: Fix conversion warning in tls_prepend_opcode_v1
+      ssl: Change update argument of compute_earliest_wakeup to time_t
+      ssl: Clean up type handling in write_string()
+      ssl: Clean up type handling in export_user_keying_material()
+      ssl: Clean up type handling in parse_early_negotiation_tlvs()
+      ssl_pkt: Avoid conversion warnings
+
+Gert Doering (5):
+      FreeBSD DCO: repair incoming 'delete peer' notifications in p2p client mode
+      dco_freebsd.c: add D_DCO_DEBUG messages for counters and notifications
+      dco_freebsd: implement dco_get_peer_stats()
+      FreeBSD DCO: repair --inactive
+      dco_freebsd.c: fix integer warnings
+
+Heiko Hund (7):
+      iservice: fix DNS address list generation
+      msvc: fix struct initialization for v19 compilers
+      iservice: validate config path better
+      win: remove checks for PATHCCH_ENSURE_TRAILING_SLASH
+      iservice: validate config path case-insensitive
+      iservice: make sure directories have trailing backslash
+      iservice: use saved iface index to restore metric
+
+Lev Stipakov (5):
+      tapctl: use better wording for adapters
+      tapctl: factor out command handlers
+      recursive routing: fixes and clean-ups
+      tapctl: make output of 'list' and 'create' commands more verbose
+      tapctl: refactor 'create' command
+
+Marco Baffo (1):
+      PUSH_UPDATE server: update reporting_addr after ifconfig update
+
+Mikhail Khachaiants (1):
+      socket: reject mismatched address family in get_addr_generic
+
+Selva Nair (2):
+      openvpnserv: Disallow stdin as config unless user is authorized
+      Use correct undo_list when clearing DNS addresses
+
+
 2025.10.29 -- Version 2.7_rc1
 
 Antonio Quartulli (1):
