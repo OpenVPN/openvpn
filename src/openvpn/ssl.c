@@ -1107,22 +1107,17 @@ reset_session(struct tls_multi *multi, struct tls_session *session)
  * called again.
  */
 static inline void
-compute_earliest_wakeup(interval_t *earliest, interval_t seconds_from_now)
+compute_earliest_wakeup(interval_t *earliest, time_t seconds_from_now)
 {
     if (seconds_from_now < *earliest)
     {
-        *earliest = seconds_from_now;
+        *earliest = (interval_t)seconds_from_now;
     }
     if (*earliest < 0)
     {
         *earliest = 0;
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
 
 /*
  * Return true if "lame duck" or retiring key has expired and can
@@ -1338,7 +1333,7 @@ init_epoch_keys(struct key_state *ks, struct tls_multi *multi, const struct key_
     /* For now we hardcode this to be 16 for the software based data channel
      * DCO based implementations/HW implementation might adjust this number
      * based on their expected speed */
-    const int future_key_count = 16;
+    const uint8_t future_key_count = 16;
 
     int key_direction = server ? KEY_DIRECTION_INVERSE : KEY_DIRECTION_NORMAL;
     struct key_direction_state kds;
@@ -1784,6 +1779,11 @@ write_empty_string(struct buffer *buf)
     }
     return true;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
 
 static bool
 write_string(struct buffer *buf, const char *str, const int maxlen)
