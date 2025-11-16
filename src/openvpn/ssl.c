@@ -3962,23 +3962,23 @@ tls_pre_encrypt(struct tls_multi *multi, struct buffer *buf, struct crypto_optio
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 void
 tls_prepend_opcode_v1(const struct tls_multi *multi, struct buffer *buf)
 {
     struct key_state *ks = multi->save_ks;
-    uint8_t op;
 
     msg(D_TLS_DEBUG, __func__);
 
     ASSERT(ks);
+    ASSERT(ks->key_id <= P_KEY_ID_MASK);
 
-    op = (P_DATA_V1 << P_OPCODE_SHIFT) | ks->key_id;
+    uint8_t op = (P_DATA_V1 << P_OPCODE_SHIFT) | (uint8_t)ks->key_id;
     ASSERT(buf_write_prepend(buf, &op, 1));
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 tls_prepend_opcode_v2(const struct tls_multi *multi, struct buffer *buf)
