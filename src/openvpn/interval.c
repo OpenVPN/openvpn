@@ -38,11 +38,6 @@ interval_init(struct interval *top, int horizon, int refresh)
     top->horizon = horizon;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 bool
 event_timeout_trigger(struct event_timeout *et, struct timeval *tv, const int et_const_retry)
 {
@@ -52,7 +47,7 @@ event_timeout_trigger(struct event_timeout *et, struct timeval *tv, const int et
     }
 
     bool ret = false;
-    time_t wakeup = event_timeout_remaining(et);
+    interval_t wakeup = event_timeout_remaining(et);
 
     if (wakeup <= 0)
     {
@@ -82,7 +77,3 @@ event_timeout_trigger(struct event_timeout *et, struct timeval *tv, const int et
     }
     return ret;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
