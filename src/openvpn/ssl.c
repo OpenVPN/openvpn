@@ -2194,11 +2194,6 @@ export_user_keying_material(struct tls_session *session)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /**
  * Handle reading key data, peer-info, username/password, OCC
  * from the TLS control channel (cleartext).
@@ -2522,9 +2517,9 @@ parse_early_negotiation_tlvs(struct buffer *buf, struct key_state *ks)
             goto error;
         }
         /* read type */
-        uint16_t type = buf_read_u16(buf);
-        uint16_t len = buf_read_u16(buf);
-        if (buf_len(buf) < len)
+        int type = buf_read_u16(buf);
+        int len = buf_read_u16(buf);
+        if (type < 0 || len < 0 || buf_len(buf) < len)
         {
             goto error;
         }
@@ -2536,7 +2531,7 @@ parse_early_negotiation_tlvs(struct buffer *buf, struct key_state *ks)
                 {
                     goto error;
                 }
-                uint16_t flags = buf_read_u16(buf);
+                int flags = buf_read_u16(buf);
 
                 if (flags & EARLY_NEG_FLAG_RESEND_WKC)
                 {
@@ -3962,10 +3957,6 @@ tls_pre_encrypt(struct tls_multi *multi, struct buffer *buf, struct crypto_optio
         buf->len = 0;
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 tls_prepend_opcode_v1(const struct tls_multi *multi, struct buffer *buf)
