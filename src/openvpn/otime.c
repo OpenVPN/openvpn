@@ -95,49 +95,36 @@ tv_string(const struct timeval *tv, struct gc_arena *gc)
 const char *
 tv_string_abs(const struct timeval *tv, struct gc_arena *gc)
 {
-    return time_string((time_t)tv->tv_sec, (long)tv->tv_usec, true, gc);
+    return time_string(tv->tv_sec, tv->tv_usec, true, gc);
 }
 
 /* format a time_t as ascii, or use current time if 0 */
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 const char *
-time_string(time_t t, long usec, bool show_usec, struct gc_arena *gc)
+time_string(time_t t, tv_usec_t usec, bool show_usec, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(64, gc);
     struct timeval tv;
 
-    if (t)
-    {
-        tv.tv_sec = t;
-        tv.tv_usec = usec;
-    }
-    else
+    if (!t)
     {
         gettimeofday(&tv, NULL);
+        t = tv.tv_sec;
+        usec = tv.tv_usec;
     }
 
-    t = tv.tv_sec;
     struct tm *tm = localtime(&t);
 
     buf_printf(&out, "%04d-%02d-%02d %02d:%02d:%02d", tm->tm_year + 1900, tm->tm_mon + 1,
                tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
 
-    if (show_usec && tv.tv_usec)
+    if (show_usec && usec)
     {
-        buf_printf(&out, " us=%ld", (long)tv.tv_usec);
+        buf_printf(&out, " us=%ld", (long)usec);
     }
 
     return BSTR(&out);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /*
  * Limit the frequency of an event stream.

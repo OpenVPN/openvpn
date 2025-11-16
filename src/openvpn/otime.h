@@ -27,6 +27,14 @@
 #include "integer.h"
 #include "buffer.h"
 
+#ifdef _WIN32
+typedef long tv_sec_t;
+typedef long tv_usec_t;
+#else
+typedef time_t tv_sec_t;
+typedef suseconds_t tv_usec_t;
+#endif
+
 struct frequency_limit
 {
     int max;
@@ -42,7 +50,7 @@ void frequency_limit_free(struct frequency_limit *f);
 bool frequency_limit_event_allowed(struct frequency_limit *f);
 
 /* format a time_t as ascii, or use current time if 0 */
-const char *time_string(time_t t, long usec, bool show_usec, struct gc_arena *gc);
+const char *time_string(time_t t, tv_usec_t usec, bool show_usec, struct gc_arena *gc);
 
 /* struct timeval functions */
 
@@ -59,11 +67,6 @@ void update_now(const time_t system_time);
 extern time_t now_usec;
 void update_now_usec(struct timeval *tv);
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static inline int
 openvpn_gettimeofday(struct timeval *tv, void *tz)
 {
@@ -71,8 +74,8 @@ openvpn_gettimeofday(struct timeval *tv, void *tz)
     if (!status)
     {
         update_now_usec(tv);
-        tv->tv_sec = now;
-        tv->tv_usec = now_usec;
+        tv->tv_sec = (tv_sec_t)now;
+        tv->tv_usec = (tv_usec_t)now_usec;
     }
     return status;
 }
@@ -116,20 +119,21 @@ tv_defined(const struct timeval *tv)
 
 /* return tv1 - tv2 in usec, constrained by max_seconds */
 static inline int
-tv_subtract(const struct timeval *tv1, const struct timeval *tv2, const unsigned int max_seconds)
+tv_subtract(const struct timeval *tv1, const struct timeval *tv2, const int max_seconds)
 {
     const int max_usec = max_seconds * 1000000;
-    const int sec_diff = tv1->tv_sec - tv2->tv_sec;
+    const tv_sec_t sec_diff = tv1->tv_sec - tv2->tv_sec;
 
-    if (sec_diff > ((int)max_seconds + 10))
+    if (sec_diff > (max_seconds + 10))
     {
         return max_usec;
     }
-    else if (sec_diff < -((int)max_seconds + 10))
+    else if (sec_diff < -(max_seconds + 10))
     {
         return -max_usec;
     }
-    return constrain_int(sec_diff * 1000000 + (tv1->tv_usec - tv2->tv_usec), -max_usec, max_usec);
+    const time_t complete_diff = sec_diff * 1000000 + (tv1->tv_usec - tv2->tv_usec);
+    return constrain_int((int)complete_diff, -max_usec, max_usec);
 }
 
 static inline void
@@ -223,8 +227,8 @@ tv_eq(const struct timeval *t1, const struct timeval *t2)
 static inline void
 tv_delta(struct timeval *dest, const struct timeval *t1, const struct timeval *t2)
 {
-    int sec = t2->tv_sec - t1->tv_sec;
-    int usec = t2->tv_usec - t1->tv_usec;
+    tv_sec_t sec = t2->tv_sec - t1->tv_sec;
+    tv_usec_t usec = t2->tv_usec - t1->tv_usec;
 
     while (usec < 0)
     {
@@ -240,10 +244,6 @@ tv_delta(struct timeval *dest, const struct timeval *t1, const struct timeval *t
     dest->tv_sec = sec;
     dest->tv_usec = usec;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #define TV_WITHIN_SIGMA_MAX_SEC  600
 #define TV_WITHIN_SIGMA_MAX_USEC (TV_WITHIN_SIGMA_MAX_SEC * 1000000)
