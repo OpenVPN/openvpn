@@ -205,11 +205,6 @@ err:
     return false;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 bool
 tls_crypt_unwrap(const struct buffer *src, struct buffer *dst, struct crypto_options *opt)
 {
@@ -246,7 +241,7 @@ tls_crypt_unwrap(const struct buffer *src, struct buffer *dst, struct crypto_opt
             CRYPT_ERROR("cipher reset failed");
         }
         if (!cipher_ctx_update(ctx->cipher, BPTR(dst), &outlen, BPTR(src) + TLS_CRYPT_OFF_CT,
-                               BLEN(src) - TLS_CRYPT_OFF_CT))
+                               BLEN(src) - (int)TLS_CRYPT_OFF_CT))
         {
             CRYPT_ERROR("cipher update failed");
         }
@@ -381,8 +376,9 @@ tls_crypt_v2_wrap_client_key(struct buffer *wkc, const struct key2 *src_key,
         msg(M_WARN, "ERROR: could not write tag");
         return false;
     }
-    uint16_t net_len = htons(sizeof(src_key->keys) + BLEN(src_metadata) + TLS_CRYPT_V2_TAG_SIZE
-                             + sizeof(uint16_t));
+    const int data_len = BLEN(src_metadata) + sizeof(src_key->keys) + sizeof(uint16_t);
+    const int tagged_len = data_len + TLS_CRYPT_TAG_SIZE;
+    const uint16_t net_len = htons((uint16_t)tagged_len);
     hmac_ctx_t *hmac_ctx = server_key->hmac;
     hmac_ctx_reset(hmac_ctx);
     hmac_ctx_update(hmac_ctx, (void *)&net_len, sizeof(net_len));
@@ -396,8 +392,8 @@ tls_crypt_v2_wrap_client_key(struct buffer *wkc, const struct key2 *src_key,
     ASSERT(cipher_ctx_reset(cipher_ctx, tag));
 
     /* Overflow check (OpenSSL requires an extra block in the dst buffer) */
-    if (buf_forward_capacity(&work) < (sizeof(src_key->keys) + BLEN(src_metadata) + sizeof(net_len)
-                                       + cipher_ctx_block_size(cipher_ctx)))
+    const int padded_len = data_len + cipher_ctx_block_size(cipher_ctx);
+    if (buf_forward_capacity(&work) < padded_len)
     {
         msg(M_WARN, "ERROR: could not crypt: insufficient space in dst");
         return false;
@@ -417,10 +413,6 @@ tls_crypt_v2_wrap_client_key(struct buffer *wkc, const struct key2 *src_key,
 
     return buf_copy(wkc, &work);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static bool
 tls_crypt_v2_unwrap_client_key(struct key2 *client_key, struct buffer *metadata,
