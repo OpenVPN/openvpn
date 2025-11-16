@@ -80,7 +80,8 @@ static const WCHAR usage_message_create[] =
     L"\n"
     L"Output:\n"
     L"\n"
-    L"This command prints newly created VPN network adapter's GUID to stdout.        \n"
+    L"This command prints newly created VPN network adapter's GUID, name and         \n"
+    L"hardware ID to stdout.                                                         \n"
 ;
 
 static const WCHAR usage_message_list[] =
@@ -99,7 +100,7 @@ static const WCHAR usage_message_list[] =
     L"\n"
     L"Output:\n"
     L"\n"
-    L"This command prints all VPN network adapters to stdout.                        \n"
+    L"This command prints VPN network adapter GUID, name and hardware ID to stdout.  \n"
 ;
 
 static const WCHAR usage_message_delete[] =
@@ -211,10 +212,12 @@ command_create(int argc, LPCWSTR argv[], BOOL *bRebootRequired)
     LPCWSTR szName = NULL;
     LPCWSTR szHwId = L"root\\" _L(TAP_WIN_COMPONENT_ID);
     struct tap_adapter_node *adapter_list = NULL;
-    LPWSTR adapter_name = NULL;
+    LPWSTR rename_name = NULL;
+    LPWSTR final_name = NULL;
     LPOLESTR adapter_id = NULL;
     GUID guidAdapter;
     int result = 1;
+    BOOL delete_created_adapter = FALSE;
 
     for (int i = 2; i < argc; i++)
     {
@@ -247,43 +250,54 @@ command_create(int argc, LPCWSTR argv[], BOOL *bRebootRequired)
     if (dwResult != ERROR_SUCCESS)
     {
         fwprintf(stderr, L"Enumerating adapters failed (error 0x%x).\n", dwResult);
-        tap_delete_adapter(NULL, &guidAdapter, bRebootRequired);
-        return result;
+        delete_created_adapter = TRUE;
+        goto cleanup;
     }
 
-    adapter_name = szName ? wcsdup(szName) : get_unique_adapter_name(szHwId, adapter_list);
-    if (adapter_name)
+    rename_name = szName ? wcsdup(szName) : get_unique_adapter_name(szHwId, adapter_list);
+    if (rename_name)
     {
-        if (szName && !is_adapter_name_available(adapter_name, adapter_list, TRUE))
+        if (szName && !is_adapter_name_available(rename_name, adapter_list, TRUE))
         {
-            tap_delete_adapter(NULL, &guidAdapter, bRebootRequired);
+            delete_created_adapter = TRUE;
             goto cleanup;
         }
 
-        dwResult = tap_set_adapter_name(&guidAdapter, adapter_name, FALSE);
-        if (dwResult != ERROR_SUCCESS)
+        dwResult = tap_set_adapter_name(&guidAdapter, rename_name, FALSE);
+        if (dwResult == ERROR_SUCCESS)
+        {
+            final_name = rename_name;
+            rename_name = NULL;
+        }
+        else
         {
             StringFromIID((REFIID)&guidAdapter, &adapter_id);
             fwprintf(stderr,
                      L"Renaming TUN/TAP adapter %ls"
                      L" to \"%ls\" failed (error 0x%x).\n",
-                     adapter_id, adapter_name, dwResult);
+                     adapter_id, rename_name, dwResult);
             CoTaskMemFree(adapter_id);
-            goto cleanup;
         }
     }
 
     result = 0;
 
 cleanup:
-    free(adapter_name);
     tap_free_adapter_list(adapter_list);
+    free(rename_name);
 
-    if (result == 0)
+    if (result == 0 && final_name)
     {
         StringFromIID((REFIID)&guidAdapter, &adapter_id);
-        fwprintf(stdout, L"%ls\n", adapter_id);
+        fwprintf(stdout, L"%ls\t%ls\t%ls\n", adapter_id, final_name, szHwId ? szHwId : L"");
         CoTaskMemFree(adapter_id);
+    }
+
+    free(final_name);
+
+    if (result != 0 && delete_created_adapter)
+    {
+        tap_delete_adapter(NULL, &guidAdapter, bRebootRequired);
     }
 
     return result;
@@ -327,10 +341,11 @@ command_list(int argc, LPCWSTR argv[])
     {
         LPOLESTR adapter_id = NULL;
         StringFromIID((REFIID)&adapter->guid, &adapter_id);
-        fwprintf(stdout,
-                 L"%ls\t%"
-                 L"ls\n",
-                 adapter_id, adapter->szName);
+        const WCHAR *name = adapter->szName ? adapter->szName : L"";
+        const WCHAR *hwid = (adapter->szzHardwareIDs && adapter->szzHardwareIDs[0])
+                                ? adapter->szzHardwareIDs
+                                : L"";
+        fwprintf(stdout, L"%ls\t%ls\t%ls\n", adapter_id, name, hwid);
         CoTaskMemFree(adapter_id);
     }
 
