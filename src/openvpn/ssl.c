@@ -1054,7 +1054,7 @@ tls_session_free(struct tls_session *session, bool clear)
         /* we don't need clear=true for this call since
          * the structs are part of session and get cleared
          * as part of session */
-        key_state_free(&session->key[i], false);
+        key_state_free(&session->key[i], true);
     }
 
     free(session->common_name);
