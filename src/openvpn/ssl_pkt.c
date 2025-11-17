@@ -160,17 +160,14 @@ tls_wrap_control(struct tls_wrap_ctx *ctx, uint8_t header, struct buffer *buf,
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 void
 write_control_auth(struct tls_session *session, struct key_state *ks, struct buffer *buf,
                    struct link_socket_actual **to_link_addr, int opcode, int max_ack,
                    bool prepend_ack)
 {
-    uint8_t header = ks->key_id | (opcode << P_OPCODE_SHIFT);
+    ASSERT(ks->key_id >= 0 && ks->key_id <= P_KEY_ID_MASK);
+    ASSERT(opcode >= 0 && opcode <= P_LAST_OPCODE);
+    uint8_t header = (uint8_t)(ks->key_id | (opcode << P_OPCODE_SHIFT));
 
     /* Workaround for Softether servers. Softether has a bug that it only
      * allows 4 ACks in packets and drops packets if more ACKs are contained
@@ -474,7 +471,7 @@ calculate_session_id_hmac(struct session_id client_sid, const struct openvpn_soc
     /* Get the valid time quantisation for our hmac,
      * we divide time by handwindow/2 and allow the previous
      * and future session time if specified by offset */
-    uint32_t session_id_time = ntohl(now / ((handwindow + 1) / 2) + offset);
+    uint32_t session_id_time = ntohl((uint32_t)(now / ((handwindow + 1) / 2) + offset));
 
     hmac_ctx_reset(hmac);
     /* We do not care about endian here since it does not need to be
@@ -500,10 +497,6 @@ calculate_session_id_hmac(struct session_id client_sid, const struct openvpn_soc
 
     return result.sid;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 bool
 check_session_hmac_and_pkt_id(struct tls_pre_decrypt_state *state,
