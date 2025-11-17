@@ -1,3 +1,53 @@
+Overview of changes in 2.6.16
+=============================
+Code maintenance / Compat changes
+---------------------------------
+- adapt to new "encrypt-then-mac" cipher suites in OpenSSL 3.6.0 - these
+  need special handling which we don't do, so the t_lpback self-test
+  failed on them.  Exclude from list of allowed ciphers, as there is no
+  strong reason today to make OpenVPN use these.
+
+- fix various compile-time warnings
+
+Documentation updates
+---------------------
+- fix outdated and non-HTTPS URLs throughout the tree (doxygen, warnings,
+  manpage, ...)
+
+Bugfixes
+--------
+- Fix memcmp check for the hmac verification in the 3way handshake.
+  This bug renders the HMAC based protection against state exhaustion on
+  receiving spoofed TLS handshake packets in the OpenVPN server inefficient.
+  CVE: 2025-13086
+
+- fix invalid pointer creation in tls_pre_decrypt() - technically this is
+  a memory over-read issue, in practice, the compilers optimize it away
+  so no negative effects could be observed.
+
+- Windows: in the interactive service, fix the "undo DNS config" handling.
+
+- Windows: in the interactive service, disallow using of "stdin" for the
+  config file, unless the caller is authorized OpenVPN Administrator
+
+- Windows: in the interactive service, change all netsh calls to use
+  interface index and not interface name - sidesteps all possible attack
+  avenues with special characters in interface names.
+
+- Windows: in the interactive service, improve error handling in
+  some "unlikely to happen" paths.
+
+- auth plugin/script handling: properly check for errors in creation on
+  $auth_failed_reason_file (arf).
+
+- for incoming TCP connections, close-on-exec option was applied to
+  the wrong socket fd, leaking socket FDs to child processes.
+
+- sitnl: set close-on-exec flag on netlink socket
+
+- ssl_mbedtls: fix missing perf_pop() call (optional performance profiling)
+
+
 Overview of changes in 2.6.15
 =============================
 New features / User visible changes

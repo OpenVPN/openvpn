@@ -1,6 +1,40 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.11.17 -- Version 2.6.16
+
+Antonio Quartulli (1):
+      sitnl: set FD_CLOEXEC on socket to prevent abuse
+
+Arne Schwabe (4):
+      Do not try to use the encrypt-then-mac ciphers from OpenSSL 3.6.0
+      fix key_state_gen_auth_control_files probably checking file creation
+      Fix construction of invalid pointer in tls_pre_decrypt
+      Fix memcmp check for the hmac verification in the 3way handshake being inverted
+
+Christian Kujau (2):
+      doc: Fix hyperlinks in openvpn(8)
+      doc: HTTPS upgrades and URL fixes throughout the tree
+
+Frank Lichtenheld (2):
+      route: Fix a unused-but-set-variable warning on OpenBSD
+      route: Add #endif comment for uncrustify compliance
+
+Heiko Hund (2):
+      iservice: check return value of MultiByteToWideChar
+      iservice: use interface index with netsh
+
+Joshua Rogers (1):
+      tcp: apply CLOEXEC to accepted socket, not listener
+
+Selva Nair (2):
+      openvpnserv: Disallow stdin as config unless user is authorized
+      Use correct undo_list when clearing DNS addresses
+
+Steffan Karger (1):
+      ssl_mbedtls: fix missing perf_pop() call
+
+
 2025.09.22 -- Version 2.6.15
 
 Antonio Quartulli (1):
