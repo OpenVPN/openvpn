@@ -898,6 +898,12 @@ key_state_init(struct tls_session *session, struct key_state *ks)
 static void
 key_state_free(struct key_state *ks, bool clear)
 {
+    msg(M_INFO, "DEBUG KEY FREE PTR [%p][%p][%p][%p] [%p][%p][%p] [%p][%p][%p] [%p][%p][%p]",
+        ks->ks_ssl.ssl, ks->ks_ssl.ssl_bio, ks->ks_ssl.ct_in, ks->ks_ssl.ct_out,
+        ks->plaintext_read_buf.data, ks->plaintext_write_buf.data, ks->ack_write_buf.data,
+        ks->rec_ack, ks->lru_acks, ks->key_src,
+        ks->send_reliable, ks->rec_reliable, ks->paybuf);
+
     ks->state = S_UNDEF;
 
     key_state_ssl_free(&ks->ks_ssl);
@@ -1172,6 +1178,13 @@ tls_multi_init_finalize(struct tls_multi *multi, int tls_mtu)
     /* initialize the active and untrusted sessions */
 
     tls_session_init(multi, &multi->session[TM_ACTIVE]);
+    tls_session_free(&multi->session[TM_ACTIVE], false);
+    tls_session_free(&multi->session[TM_ACTIVE], false);
+    tls_session_init(multi, &multi->session[TM_ACTIVE]);
+
+    tls_session_init(multi, &multi->session[TM_INITIAL]);
+    tls_session_free(&multi->session[TM_INITIAL], false);
+    tls_session_free(&multi->session[TM_INITIAL], false);
     tls_session_init(multi, &multi->session[TM_INITIAL]);
 }
 
