@@ -210,9 +210,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ssllib: [openssl@1.1, openssl@3, libressl]
+        ssllib: [openssl@3, libressl]
         build: [normal, asan]
-        os: [macos-14, macos-15]
+        os: [macos-14, macos-15, macos-26]
         include:
           - build: asan
             cflags: "-fsanitize=address,undefined -fno-sanitize-recover=all  -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
