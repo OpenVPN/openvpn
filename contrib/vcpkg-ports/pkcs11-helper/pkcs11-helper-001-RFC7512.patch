@@ -1,5 +1,7 @@
 upstream PR: https://github.com/OpenSC/pkcs11-helper/pull/4
 
+Rebased to 1.31.0 by selva.nair@gmail.com
+
 commit 90590b02085edc3830bdfe0942a46c4e7bf3f1ab (HEAD -> master)
 Author: David Woodhouse <David.Woodhouse@intel.com>
 Date:   Thu Apr 30 14:58:24 2015 +0100
@@ -596,9 +598,9 @@ index ad275f8..1d077e4 100644
 +	}
 +	certificate_id->attrCKA_ID_size = id_hex_len/2;
  
- 	if (
- 		(rv = _pkcs11h_mem_malloc (
-@@ -430,21 +596,64 @@ pkcs11h_certificate_deserializeCertificateId (
+ 	if (certificate_id->attrCKA_ID_size == 0) {
+ 		rv = CKR_ATTRIBUTE_VALUE_INVALID;
+@@ -434,21 +600,64 @@ pkcs11h_certificate_deserializeCertificateId (
  		goto cleanup;
  	}
  
@@ -669,20 +671,17 @@ index ad275f8..1d077e4 100644
  		PKCS11H_LOG_DEBUG2,
  		"PKCS#11: pkcs11h_certificate_deserializeCertificateId return rv=%lu-'%s'",
 diff --git a/lib/pkcs11h-util.c b/lib/pkcs11h-util.c
-index 0743fd1..f90e443 100644
+index 1fcadfc..a304642 100644
 --- a/lib/pkcs11h-util.c
 +++ b/lib/pkcs11h-util.c
-@@ -110,12 +110,7 @@ _pkcs11h_util_hexToBinary (
- 		p++;
+@@ -123,10 +123,6 @@ _pkcs11h_util_hexToBinary (
+ 		(*p_target_size)++;
  	}
  
 -	if (*p != '\x0') {
--		return CKR_ATTRIBUTE_VALUE_INVALID;
+-		goto cleanup;
 -	}
--	else {
--		return CKR_OK;
--	}
-+	return CKR_OK;
- }
+-
+ 	ret = CKR_OK;
  
- CK_RV
+ cleanup:
