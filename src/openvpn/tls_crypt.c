@@ -29,6 +29,7 @@
 #include "argv.h"
 #include "base64.h"
 #include "crypto.h"
+#include "integer.h"
 #include "platform.h"
 #include "run_command.h"
 #include "session_id.h"
@@ -520,6 +521,34 @@ error_exit:
 }
 
 static bool
+tls_crypt_v2_check_client_key_age(const struct tls_wrap_ctx *ctx, int max_days)
+{
+    if (ctx->tls_crypt_v2_metadata.len < 1 + sizeof(int64_t))
+    {
+        msg(M_WARN, "ERROR: Client key metadata is too small to contain a timestamp.");
+        return false;
+    }
+
+    const uint8_t *metadata = ctx->tls_crypt_v2_metadata.data;
+    if (*metadata != TLS_CRYPT_METADATA_TYPE_TIMESTAMP)
+    {
+        msg(M_WARN, "ERROR: Client key does not have a timestamp.");
+        return false;
+    }
+
+    int64_t timestamp;
+    memcpy(&timestamp, metadata + 1, sizeof(int64_t));
+    timestamp = (int64_t)ntohll((uint64_t)timestamp);
+    int64_t max_age_in_seconds = max_days * 24 * 60 * 60;
+    if (now - timestamp > max_age_in_seconds)
+    {
+        msg(M_WARN, "ERROR: Client key is too old.");
+        return false;
+    }
+    return true;
+}
+
+static bool
 tls_crypt_v2_verify_metadata(const struct tls_wrap_ctx *ctx, const struct tls_options *opt)
 {
     bool ret = false;
@@ -630,6 +659,12 @@ tls_crypt_v2_extract_client_key(struct buffer *buf, struct tls_wrap_ctx *ctx,
                                         wrapped_client_key, &ctx->tls_crypt_v2_server_key))
     {
         msg(D_TLS_ERRORS, "Can not unwrap tls-crypt-v2 client key");
+        secure_memzero(&ctx->original_wrap_keydata, sizeof(ctx->original_wrap_keydata));
+        return false;
+    }
+
+    if (opt && opt->tls_crypt_v2_max_age > 0 && !tls_crypt_v2_check_client_key_age(ctx, opt->tls_crypt_v2_max_age))
+    {
         secure_memzero(&ctx->original_wrap_keydata, sizeof(ctx->original_wrap_keydata));
         return false;
     }

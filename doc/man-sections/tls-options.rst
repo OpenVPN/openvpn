@@ -568,6 +568,10 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   The command can reject the connection by exiting with a non-zero exit
   code.
 
+--tls-crypt-v2-max-age n
+  Reject tls-crypt-v2 client keys that are older than n days or have
+  no timestamp.
+
 --tls-exit
   Exit on TLS negotiation failure. This option can be useful when you only
   want to make one attempt at connecting, e.g. in a test or monitoring script.

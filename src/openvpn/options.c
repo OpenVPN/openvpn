@@ -648,6 +648,8 @@ static const char usage_message[] =
     "                  fresh tls-crypt-v2 server key, and store to keyfile\n"
     "--tls-crypt-v2-verify cmd : Run command cmd to verify the metadata of the\n"
     "                  client-supplied tls-crypt-v2 client key\n"
+    "--tls-crypt-v2-max-age n : Only accept tls-crypt-v2 client keys that have a\n"
+    "                  timestamp which is at most n days old.\n"
     "--askpass [file]: Get PEM password from controlling tty before we daemonize.\n"
     "--auth-nocache  : Don't cache --askpass or --auth-user-pass passwords.\n"
     "--crl-verify crl ['dir']: Check peer certificate against a CRL.\n"
@@ -9078,6 +9080,14 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->tls_crypt_v2_verify_script = p[1];
+    }
+    else if (streq(p[0], "tls-crypt-v2-max-age") && p[1])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        if (!atoi_constrained(p[1], &options->tls_crypt_v2_max_age, "tls-crypt-v2-max-age", 1, INT_MAX, msglevel))
+        {
+            goto err;
+        }
     }
     else if (streq(p[0], "x509-track") && p[1] && !p[2])
     {

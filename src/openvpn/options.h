@@ -678,6 +678,8 @@ struct options
 
     const char *tls_crypt_v2_verify_script;
 
+    int tls_crypt_v2_max_age;
+
     /* Allow only one session */
     bool single_session;
 

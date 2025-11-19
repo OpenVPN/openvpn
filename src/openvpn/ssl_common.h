@@ -383,6 +383,7 @@ struct tls_options
 
     bool tls_crypt_v2;
     const char *tls_crypt_v2_verify_script;
+    int tls_crypt_v2_max_age;
 
     /** TLS handshake wrapping state */
     struct tls_wrap_ctx tls_wrap;

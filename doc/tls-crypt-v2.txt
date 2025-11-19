@@ -139,7 +139,10 @@ When setting up the openvpn connection:
    The message is dropped and no error response is sent when either 3.1, 3.2 or
    3.3 fails (DoS protection).
 
-4. Server optionally checks metadata using a --tls-crypt-v2-verify script
+4. The server optionally checks if the client key contains a timestamp that is
+   below a maximum age configured with the --tls-crypt-v2-max-age option.
+
+5. Server optionally checks metadata using a --tls-crypt-v2-verify script
 
    This allows early abort of connection, *before* we expose any of the
    notoriously dangerous TLS, X.509 and ASN.1 parsers and thereby reduces the
