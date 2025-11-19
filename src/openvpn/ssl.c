@@ -1080,7 +1080,7 @@ move_session(struct tls_multi *multi, int dest, int src, bool reinit_src)
     ASSERT(src != dest);
     ASSERT(src >= 0 && src < TM_SIZE);
     ASSERT(dest >= 0 && dest < TM_SIZE);
-    tls_session_free(&multi->session[dest], false);
+    tls_session_free(&multi->session[dest], true);
     multi->session[dest] = multi->session[src];
 
     if (reinit_src)
@@ -1098,7 +1098,7 @@ move_session(struct tls_multi *multi, int dest, int src, bool reinit_src)
 static void
 reset_session(struct tls_multi *multi, struct tls_session *session)
 {
-    tls_session_free(session, false);
+    tls_session_free(session, true);
     tls_session_init(multi, session);
 }
 
@@ -1171,8 +1171,10 @@ tls_multi_init_finalize(struct tls_multi *multi, int tls_mtu)
     tls_init_control_channel_frame_parameters(&multi->opt.frame, tls_mtu);
     /* initialize the active and untrusted sessions */
 
-    tls_session_init(multi, &multi->session[TM_ACTIVE]);
-    tls_session_init(multi, &multi->session[TM_INITIAL]);
+    for (int i = 0; i < TM_SIZE; ++i)
+    {
+        tls_session_init(multi, &multi->session[i]);
+    }
 }
 
 /*
@@ -1251,7 +1253,7 @@ tls_multi_free(struct tls_multi *multi, bool clear)
 
     for (int i = 0; i < TM_SIZE; ++i)
     {
-        tls_session_free(&multi->session[i], false);
+        tls_session_free(&multi->session[i], true);
     }
 
     if (clear)
