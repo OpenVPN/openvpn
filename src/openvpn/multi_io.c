@@ -292,12 +292,9 @@ multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int 
 
     switch (action)
     {
+        case TA_INST_LENG:
         case TA_TUN_READ:
-            read_incoming_tun(&m->top);
-            if (!IS_SIG(&m->top))
-            {
-                multi_process_incoming_tun(m, mpp_flags);
-            }
+            multi_in_tun(m, mpp_flags);
             break;
 
         case TA_SOCKET_READ:
@@ -363,52 +360,34 @@ multi_io_post(struct multi_context *m, struct multi_instance *mi, const int acti
     struct context *c = multi_get_context(m, mi);
     int newaction = TA_UNDEF;
 
-#define MTP_NONE     0
-#define MTP_TUN_OUT  (1 << 0)
-#define MTP_LINK_OUT (1 << 1)
-    unsigned int flags = MTP_NONE;
+    if (LINK_OUT(c))
+    {
+        newaction = TA_SOCKET_WRITE;
+        goto last;
+    }
+    else if (INST_LENG(m))
+    {
+        newaction = TA_INST_LENG;
+        goto last;
+    }
 
     if (TUN_OUT(c))
     {
-        flags |= MTP_TUN_OUT;
+        newaction = TA_TUN_WRITE;
+        goto last;
     }
-    if (LINK_OUT(c))
+    else if (LINK_LEFT(c))
     {
-        flags |= MTP_LINK_OUT;
+        newaction = TA_SOCKET_READ_RESIDUAL;
+        goto last;
     }
 
-    switch (flags)
+    if (mi)
     {
-        case MTP_TUN_OUT | MTP_LINK_OUT:
-        case MTP_TUN_OUT:
-            newaction = TA_TUN_WRITE;
-            break;
-
-        case MTP_LINK_OUT:
-            newaction = TA_SOCKET_WRITE;
-            break;
-
-        case MTP_NONE:
-            if (mi && sockets_read_residual(c))
-            {
-                newaction = TA_SOCKET_READ_RESIDUAL;
-            }
-            else
-            {
-                multi_io_set_global_rw_flags(m, mi);
-            }
-            break;
-
-        default:
-        {
-            struct gc_arena gc = gc_new();
-            msg(M_FATAL, "MULTI IO: multi_io_post bad state, mi=%s flags=%d",
-                multi_instance_string(mi, false, &gc), flags);
-            gc_free(&gc);
-            break;
-        }
+        multi_io_set_global_rw_flags(m, mi);
     }
 
+last:
     dmsg(D_MULTI_DEBUG, "MULTI IO: multi_io_post %s -> %s", pract(action), pract(newaction));
 
     return newaction;
@@ -462,19 +441,17 @@ multi_io_process_io(struct multi_context *m)
                     {
                         socket_reset_listen_persistent(ev_arg->u.sock);
                         mi = multi_create_instance_tcp(m, ev_arg->u.sock);
+                        if (mi) { multi_io_action(m, mi, TA_INITIAL, false); }
                     }
                     else
                     {
                         multi_process_io_udp(m, ev_arg->u.sock);
-                        mi = m->pending;
+                        if (m->pending) { multi_io_action(m, m->pending, TA_INITIAL, false); }
+                        if (m->pending2) { multi_io_action(m, m->pending2, TA_INITIAL, false); }
                     }
                     /* monitor and/or handle events that are
                      * triggered in succession by the first one
                      * before returning to the main loop. */
-                    if (mi)
-                    {
-                        multi_io_action(m, mi, TA_INITIAL, false);
-                    }
                     break;
             }
         }
@@ -570,7 +547,7 @@ multi_io_action(struct multi_context *m, struct multi_instance *mi, int action, 
          * On our first pass, poll will be false because we already know
          * that input is available, and to call io_wait would be redundant.
          */
-        if (poll && action != TA_SOCKET_READ_RESIDUAL)
+        if (poll && action != TA_SOCKET_READ_RESIDUAL && action != TA_INST_LENG)
         {
             const int orig_action = action;
             action = multi_io_wait_lite(m, mi, action, &tun_input_pending);
@@ -605,9 +582,21 @@ multi_io_action(struct multi_context *m, struct multi_instance *mi, int action, 
          * for a particular instance, point to
          * that instance.
          */
+        int retry_undef = 0;
         if (m->pending)
         {
             mi = m->pending;
+        }
+        if (m->pending2)
+        {
+            if (!m->pending)
+            {
+                mi = m->pending2;
+            }
+            else
+            {
+                retry_undef = 1;
+            }
         }
 
         /*
@@ -616,6 +605,11 @@ multi_io_action(struct multi_context *m, struct multi_instance *mi, int action, 
          * possibly transition to a new action state.
          */
         action = multi_io_post(m, mi, action);
+        if ((action == TA_UNDEF) && (retry_undef == 1))
+        {
+            mi = m->pending2;
+            action = multi_io_post(m, mi, action);
+        }
 
         /*
          * If we are finished processing the original action,
