@@ -71,6 +71,7 @@ struct gc_arena;
 #ifdef _WIN32
 #define openvpn_errno() GetLastError()
 const char *strerror_win32(DWORD errnum, struct gc_arena *gc);
+
 #else
 #define openvpn_errno() errno
 #endif
