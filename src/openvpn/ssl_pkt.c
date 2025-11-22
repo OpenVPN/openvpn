@@ -116,8 +116,7 @@ swap_hmac(struct buffer *buf, const struct crypto_options *co, bool incoming)
  * @param session_id    session id to use as our session id
  */
 static void
-tls_wrap_control(struct tls_wrap_ctx *ctx, uint8_t header, struct buffer *buf,
-                 struct session_id *session_id)
+tls_wrap_control(struct tls_wrap_ctx *ctx, uint8_t header, struct buffer *buf, struct session_id *session_id)
 {
     if (ctx->mode == TLS_WRAP_AUTH || ctx->mode == TLS_WRAP_NONE)
     {
@@ -161,44 +160,54 @@ tls_wrap_control(struct tls_wrap_ctx *ctx, uint8_t header, struct buffer *buf,
 }
 
 void
-write_control_auth(struct tls_session *session, struct key_state *ks, struct buffer *buf,
-                   struct link_socket_actual **to_link_addr, int opcode, int max_ack,
-                   bool prepend_ack)
+write_control_auth(struct tls_multi *multi, struct tls_session *session, struct key_state *ks, struct buffer *buf, struct link_socket_actual **to_link_addr, int opcode, int max_ack, bool prepend_ack)
 {
     ASSERT(ks->key_id >= 0 && ks->key_id <= P_KEY_ID_MASK);
     ASSERT(opcode >= 0 && opcode <= P_LAST_OPCODE);
-    uint8_t header = (uint8_t)(ks->key_id | (opcode << P_OPCODE_SHIFT));
+
+    struct tls_session *sn = tls_select_encryption_session_control(multi, session);
+    struct tls_session *si = &multi->session[TM_INIT];
+    struct key_state *kx = &sn->key[KS_MAIN];
+    struct key_state *ki = &si->key[KS_MAIN];
+    struct tls_wrap_ctx *wr = &sn->tls_wrap;
+    struct tls_session *sw = sn;
+    struct key_state *kw = kx;
+
+    if (opcode == P_CONTROL_HARD_RESET_CLIENT_V2 || opcode == P_CONTROL_HARD_RESET_SERVER_V2)
+    {
+        sw = si; kw = ki;
+    }
+
+    uint8_t header = (uint8_t)(kw->key_id | (opcode << P_OPCODE_SHIFT));
 
     /* Workaround for Softether servers. Softether has a bug that it only
      * allows 4 ACks in packets and drops packets if more ACKs are contained
      * in a packet (see commit 37aa1ba5 in Softether) */
-    if (session->tls_wrap.mode == TLS_WRAP_NONE && !session->opt->server
-        && !(session->opt->crypto_flags & CO_USE_TLS_KEY_MATERIAL_EXPORT))
+    if (sn->tls_wrap.mode == TLS_WRAP_NONE && !sn->opt->server
+        && !(sn->opt->crypto_flags & CO_USE_TLS_KEY_MATERIAL_EXPORT))
     {
         max_ack = min_int(max_ack, 4);
     }
 
-    ASSERT(link_socket_actual_defined(&ks->remote_addr));
-    ASSERT(reliable_ack_write(ks->rec_ack, ks->lru_acks, buf, &ks->session_id_remote, max_ack,
-                              prepend_ack));
+    ASSERT(link_socket_actual_defined(&kx->remote_addr));
+    ASSERT(reliable_ack_write(kx->rec_ack, kx->lru_acks, buf, &kx->session_id_remote, max_ack, prepend_ack));
 
     msg(D_TLS_DEBUG, "%s(): %s", __func__, packet_opcode_name(opcode));
 
-    tls_wrap_control(tls_session_get_tls_wrap(session, ks->key_id), header, buf,
-                     &session->session_id);
+    tls_wrap_control(wr, header, buf, &sw->session_id);
 
-    *to_link_addr = &ks->remote_addr;
+    *to_link_addr = &kx->remote_addr;
 }
 
 bool
-read_control_auth(struct buffer *buf, struct tls_wrap_ctx *ctx,
-                  const struct link_socket_actual *from, const struct tls_options *opt,
-                  bool initial_packet)
+read_control_auth(struct tls_multi *multi, struct buffer *buf, struct tls_wrap_ctx *ctx, const struct link_socket_actual *from, const struct tls_options *opt, bool initial_packet)
 {
     struct gc_arena gc = gc_new();
     bool ret = false;
 
+    const uint8_t key_id = *(BPTR(buf)) & P_OPCODE_SHIFT;
     const uint8_t opcode = *(BPTR(buf)) >> P_OPCODE_SHIFT;
+
     if ((opcode == P_CONTROL_HARD_RESET_CLIENT_V3 || opcode == P_CONTROL_WKC_V1)
         && !tls_crypt_v2_extract_client_key(buf, ctx, opt, initial_packet))
     {
@@ -263,7 +272,10 @@ read_control_auth(struct buffer *buf, struct tls_wrap_ctx *ctx,
         buf_advance(buf, SID_SIZE + 1);
     }
 
+    msg(D_TLS_DEBUG, "%s(): %s [%d]", __func__, packet_opcode_name(opcode), key_id);
+
     ret = true;
+
 cleanup:
     gc_free(&gc);
     return ret;
@@ -351,7 +363,7 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas, struct tls_pre_decry
     /* HMAC test and unwrapping the encrypted part of the control message
      * into newbuf or just setting newbuf to point to the start of control
      * message */
-    bool status = read_control_auth(&state->newbuf, &state->tls_wrap_tmp, from, NULL, true);
+    bool status = read_control_auth(NULL, &state->newbuf, &state->tls_wrap_tmp, from, NULL, true);
 
     if (!status)
     {
