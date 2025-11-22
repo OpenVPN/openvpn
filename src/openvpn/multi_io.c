@@ -500,18 +500,7 @@ multi_io_process_io(struct multi_context *m)
                         multi_io_action(m, NULL, TA_TUN_READ, false);
                     }
                 }
-                /* new incoming TCP client attempting to connect? */
-                else if (e->arg == MULTI_IO_SOCKET)
-                {
-                    struct multi_instance *mi;
-                    ASSERT(m->top.c2.link_sockets[0]);
-                    socket_reset_listen_persistent(m->top.c2.link_sockets[0]);
-                    mi = multi_create_instance_tcp(m, m->top.c2.link_sockets[0]);
-                    if (mi)
-                    {
-                        multi_io_action(m, mi, TA_INITIAL, false);
-                    }
-                }
+
 #if defined(ENABLE_DCO)
                 /* incoming data on DCO? */
                 else if (e->arg == MULTI_IO_DCO)

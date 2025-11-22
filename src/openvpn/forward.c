@@ -2214,9 +2214,7 @@ io_wait_dowork(struct context *c, const unsigned int flags)
     static uintptr_t management_shift =
         MANAGEMENT_SHIFT; /* depends on MANAGEMENT_READ and MANAGEMENT_WRITE */
 #endif
-#ifdef ENABLE_ASYNC_PUSH
-    static uintptr_t file_shift = FILE_SHIFT;
-#endif
+
 #if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
     static uintptr_t dco_shift = DCO_SHIFT; /* Event from DCO linux kernel module */
 #endif
@@ -2239,14 +2237,6 @@ io_wait_dowork(struct context *c, const unsigned int flags)
     if (management)
     {
         management_socket_set(management, c->c2.event_set, (void *)management_shift, NULL);
-    }
-#endif
-
-#ifdef ENABLE_ASYNC_PUSH
-    /* arm inotify watcher */
-    if (c->options.mode == MODE_SERVER)
-    {
-        event_ctl(c->c2.event_set, c->c2.inotify_fd, EVENT_READ, (void *)file_shift);
     }
 #endif
 
