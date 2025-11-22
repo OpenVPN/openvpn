@@ -734,9 +734,8 @@ BlockDNSErrHandler(DWORD err, const char *msg)
 
     err_str = L"Unknown Win32 Error";
 
-    if (FormatMessage(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM
-                          | FORMAT_MESSAGE_ARGUMENT_ARRAY,
-                      NULL, err, 0, buf, sizeof(buf), NULL))
+    if (FormatMessageW(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM,
+                       NULL, err, 0, buf, _countof(buf), NULL))
     {
         err_str = buf;
     }
