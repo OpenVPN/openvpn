@@ -539,7 +539,7 @@ tls_crypt_v2_check_client_key_age(const struct tls_wrap_ctx *ctx, int max_days)
     int64_t timestamp;
     memcpy(&timestamp, metadata + 1, sizeof(int64_t));
     timestamp = (int64_t)ntohll((uint64_t)timestamp);
-    int64_t max_age_in_seconds = max_days * 24 * 60 * 60;
+    int64_t max_age_in_seconds = (int64_t)max_days * 24 * 60 * 60;
     if (now - timestamp > max_age_in_seconds)
     {
         msg(M_WARN, "ERROR: Client key is too old.");
