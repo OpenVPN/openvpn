@@ -2163,7 +2163,7 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
     {
         *size = buf_size;
         err = RegGetValueW(itf, NULL, values[i], RRF_RT_REG_SZ, NULL, (PBYTE)domains, size);
-        if (!err && *size > one_glyph && wcschr(domains, '.'))
+        if (!err && *size > one_glyph && domains[(*size / one_glyph) - 1] == '\0' && wcschr(domains, '.'))
         {
             /*
              * Found domain(s), now convert them:
