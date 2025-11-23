@@ -2149,7 +2149,7 @@ ListContainsDomain(PCWSTR list, PCWSTR domain, size_t len)
 static LSTATUS
 GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
 {
-    if (domains == NULL || size == 0)
+    if (domains == NULL || size == NULL || *size == 0)
     {
         return ERROR_INVALID_PARAMETER;
     }
