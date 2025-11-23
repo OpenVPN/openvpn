@@ -2106,7 +2106,7 @@ static BOOL
 ListContainsDomain(PCWSTR list, PCWSTR domain, size_t len)
 {
     PCWSTR match = list;
-    while (TRUE)
+    while (match)
     {
         match = wcsstr(match, domain);
         if (!match)
