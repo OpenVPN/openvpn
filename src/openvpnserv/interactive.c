@@ -2156,14 +2156,14 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
 
     LSTATUS err = ERROR_FILE_NOT_FOUND;
     const DWORD buf_size = *size;
-    const size_t one_glyph = sizeof(*domains);
+    const size_t glyph_size = sizeof(*domains);
     PWSTR values[] = { L"SearchList", L"Domain", L"DhcpDomainSearchList", L"DhcpDomain", NULL };
 
     for (int i = 0; values[i]; i++)
     {
         *size = buf_size;
         err = RegGetValueW(itf, NULL, values[i], RRF_RT_REG_SZ, NULL, (PBYTE)domains, size);
-        if (!err && *size > one_glyph && domains[(*size / one_glyph) - 1] == '\0' && wcschr(domains, '.'))
+        if (!err && *size > glyph_size && domains[(*size / glyph_size) - 1] == '\0' && wcschr(domains, '.'))
         {
             /*
              * Found domain(s), now convert them:
@@ -2171,7 +2171,7 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
              *   - convert comma separated list to MULTI_SZ
              */
             PWCHAR pos = domains;
-            const DWORD buf_len = buf_size / one_glyph;
+            const DWORD buf_len = buf_size / glyph_size;
             while (TRUE)
             {
                 /* Terminate the domain at the next comma */
@@ -2182,8 +2182,8 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
                 }
 
                 size_t domain_len = wcslen(pos);
-                size_t domain_size = domain_len * one_glyph;
-                size_t converted_size = (pos - domains) * one_glyph;
+                size_t domain_size = domain_len * glyph_size;
+                size_t converted_size = (pos - domains) * glyph_size;
 
                 /* Ignore itf domains which match a pushed search domain */
                 if (ListContainsDomain(search_domains, pos, domain_len))
@@ -2192,7 +2192,7 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
                     {
                         /* Overwrite the ignored domain with remaining one(s) */
                         memmove(pos, comma + 1, buf_size - converted_size);
-                        *size -= domain_size + one_glyph;
+                        *size -= domain_size + glyph_size;
                         continue;
                     }
                     else
@@ -2206,31 +2206,31 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
 
                 /* Add space for the leading dot */
                 domain_len += 1;
-                domain_size += one_glyph;
+                domain_size += glyph_size;
 
                 /* Space for the terminating zeros */
-                size_t extra_size = 2 * one_glyph;
+                size_t extra_size = 2 * glyph_size;
 
                 /* Check for enough space to convert this domain */
                 if (converted_size + domain_size + extra_size > buf_size)
                 {
                     /* Domain doesn't fit, bad luck if it's the first one */
                     *pos = '\0';
-                    *size = converted_size == 0 ? 0 : converted_size + one_glyph;
+                    *size = converted_size == 0 ? 0 : converted_size + glyph_size;
                     return ERROR_MORE_DATA;
                 }
 
                 /* Prefix domain at pos with the dot */
-                memmove(pos + 1, pos, buf_size - converted_size - one_glyph);
+                memmove(pos + 1, pos, buf_size - converted_size - glyph_size);
                 domains[buf_len - 1] = '\0';
                 *pos = '.';
-                *size += one_glyph;
+                *size += glyph_size;
 
                 if (!comma)
                 {
                     /* Conversion is done */
                     *(pos + domain_len) = '\0';
-                    *size += one_glyph;
+                    *size += glyph_size;
                     return NO_ERROR;
                 }
 
