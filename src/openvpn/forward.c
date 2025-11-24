@@ -2170,10 +2170,10 @@ multi_io_process_flags(struct context *c, struct event_set *es, const unsigned i
 void
 get_io_flags_dowork_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags)
 {
-    unsigned int out_socket, out_tuntap;
+    unsigned int out_socket;
 
-    multi_io_process_flags(c, multi_io->es, flags, &out_socket, &out_tuntap);
-    multi_io->udp_flags = out_socket | out_tuntap;
+    multi_io_process_flags(c, multi_io->es, flags, &out_socket, NULL);
+    multi_io->udp_flags = (out_socket << SOCKET_SHIFT);
 }
 
 void
