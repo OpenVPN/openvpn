@@ -222,6 +222,7 @@ ResetOverlapped(LPOVERLAPPED overlapped)
 
 typedef enum {
     peek,
+    peek_timed,
     read,
     write
 } async_op_t;
@@ -275,7 +276,7 @@ AsyncPipeOp(async_op_t op, HANDLE pipe, LPVOID buffer, DWORD size, DWORD count, 
         goto out;
     }
 
-    if (op == peek)
+    if (op == peek || op == peek_timed)
     {
         PeekNamedPipe(pipe, NULL, 0, NULL, &bytes, NULL);
     }
@@ -294,6 +295,12 @@ static DWORD
 PeekNamedPipeAsync(HANDLE pipe, DWORD count, LPHANDLE events)
 {
     return AsyncPipeOp(peek, pipe, NULL, 0, count, events);
+}
+
+static DWORD
+PeekNamedPipeAsyncTimed(HANDLE pipe, DWORD count, LPHANDLE events)
+{
+    return AsyncPipeOp(peek_timed, pipe, NULL, 0, count, events);
 }
 
 static DWORD
@@ -465,11 +472,11 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     WCHAR *data = NULL;
     DWORD bytes, read;
 
-    bytes = PeekNamedPipeAsync(pipe, 1, &exit_event);
+    bytes = PeekNamedPipeAsyncTimed(pipe, 1, &exit_event);
     if (bytes == 0)
     {
-        MsgToEventLog(M_SYSERR, TEXT("PeekNamedPipeAsync failed"));
-        ReturnLastError(pipe, L"PeekNamedPipeAsync");
+        MsgToEventLog(M_ERR, TEXT("Timeout waiting for startup data"));
+        ReturnError(pipe, ERROR_STARTUP_DATA, L"GetStartupData (timeout)", 1, &exit_event);
         goto err;
     }
 
@@ -1625,6 +1632,7 @@ RunOpenvpn(LPVOID p)
     undo_lists_t undo_lists;
     ring_buffer_handles_t ring_buffer_handles;
     WCHAR errmsg[512] = L"";
+    BOOL flush_pipe = TRUE;
 
     SECURITY_ATTRIBUTES inheritable = {
         .nLength = sizeof(inheritable),
@@ -1649,6 +1657,7 @@ RunOpenvpn(LPVOID p)
 
     if (!GetStartupData(pipe, &sud))
     {
+        flush_pipe = FALSE; /* client did not provide startup data */
         goto out;
     }
 
@@ -1910,7 +1919,10 @@ RunOpenvpn(LPVOID p)
     Undo(&undo_lists);
 
 out:
-    FlushFileBuffers(pipe);
+    if (flush_pipe)
+    {
+        FlushFileBuffers(pipe);
+    }
     DisconnectNamedPipe(pipe);
 
     free(ovpn_user);
@@ -2166,12 +2178,30 @@ ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
 
     while (TRUE)
     {
-        if (ConnectNamedPipe(pipe, &overlapped) == FALSE
-            && GetLastError() != ERROR_PIPE_CONNECTED
-            && GetLastError() != ERROR_IO_PENDING)
+        if (!ConnectNamedPipe(pipe, &overlapped))
         {
-            MsgToEventLog(M_SYSERR, TEXT("Could not connect pipe"));
-            break;
+            DWORD connect_error = GetLastError();
+            if (connect_error == ERROR_NO_DATA)
+            {
+                /*
+                 * Client connected and disconnected before we could process it.
+                 * Disconnect and retry instead of aborting the service.
+                 */
+                MsgToEventLog(M_ERR, TEXT("ConnectNamedPipe returned ERROR_NO_DATA (client dropped)"));
+                DisconnectNamedPipe(pipe);
+                ResetOverlapped(&overlapped);
+                continue;
+            }
+            else if (connect_error == ERROR_PIPE_CONNECTED)
+            {
+                /* No async I/O pending in this case; signal manually. */
+                SetEvent(overlapped.hEvent);
+            }
+            else if (connect_error != ERROR_IO_PENDING)
+            {
+                MsgToEventLog(M_SYSERR, TEXT("Could not connect pipe"));
+                break;
+            }
         }
 
         error = WaitForMultipleObjects(handle_count, handles, FALSE, INFINITE);
@@ -2179,6 +2209,17 @@ ServiceStartInteractive(DWORD dwArgc, LPTSTR *lpszArgv)
         {
             /* Client connected, spawn a worker thread for it */
             HANDLE next_pipe = CreateClientPipeInstance();
+
+            /* Avoid exceeding WaitForMultipleObjects MAXIMUM_WAIT_OBJECTS */
+            if (handle_count + 1 > MAXIMUM_WAIT_OBJECTS)
+            {
+                ReturnError(pipe, ERROR_CANT_WAIT, L"Too many concurrent clients", 1, &exit_event);
+                CloseHandleEx(&pipe);
+                pipe = next_pipe;
+                ResetOverlapped(&overlapped);
+                continue;
+            }
+
             HANDLE thread = CreateThread(NULL, 0, RunOpenvpn, pipe, CREATE_SUSPENDED, NULL);
             if (thread)
             {
