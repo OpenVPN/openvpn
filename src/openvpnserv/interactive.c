@@ -2181,8 +2181,11 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
                     *comma = '\0';
                 }
 
-                /* Ignore itf domains which match a pushed search domain */
                 size_t domain_len = wcslen(pos);
+                size_t domain_size = domain_len * one_glyph;
+                size_t converted_size = (pos - domains) * one_glyph;
+
+                /* Ignore itf domains which match a pushed search domain */
                 if (ListContainsDomain(search_domains, pos, domain_len))
                 {
                     if (comma)
@@ -2199,11 +2202,14 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
                     }
                 }
 
-                /* Check for enough space to convert this domain */
-                domain_len += 1; /* leading dot */
-                size_t converted_size = pos - domains;
-                size_t domain_size = domain_len * one_glyph;
+                /* Add space for the leading dot */
+                domain_len += 1;
+                domain_size += one_glyph;
+
+                /* Space for the terminating zeros */
                 size_t extra_size = 2 * one_glyph;
+
+                /* Check for enough space to convert this domain */
                 if (converted_size + domain_size + extra_size > buf_size)
                 {
                     /* Domain doesn't fit, bad luck if it's the first one */
