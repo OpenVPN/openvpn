@@ -2214,7 +2214,7 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
                 {
                     /* Domain doesn't fit, bad luck if it's the first one */
                     *pos = '\0';
-                    *size = converted_size == 0 ? 0 : *size + 1;
+                    *size = converted_size == 0 ? 0 : converted_size + one_glyph;
                     return ERROR_MORE_DATA;
                 }
 
