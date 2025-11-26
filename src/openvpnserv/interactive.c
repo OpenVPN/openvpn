@@ -2190,14 +2190,16 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
                 {
                     if (comma)
                     {
-                        pos = comma + 1;
+                        /* Overwrite the ignored domain with remaining one(s) */
+                        memmove(pos, comma + 1, buf_size - converted_size);
+                        *size -= domain_size + one_glyph;
                         continue;
                     }
                     else
                     {
                         /* This was the last domain */
                         *pos = '\0';
-                        *size += one_glyph;
+                        *size -= domain_size;
                         return wcslen(domains) ? NO_ERROR : ERROR_FILE_NOT_FOUND;
                     }
                 }
