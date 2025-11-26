@@ -326,6 +326,12 @@ User-visible Changes
   Win-DCO as well), add printing of the hwid to all adapter outputs, and
   change the default adapter type created to `ovpn-dco`.
 
+- the default for ``multihome`` egress interface handling has changed.
+  2.7.0 will default to ipi_ifindex=0, that is, leave the decision to the
+  routing/policy setup of the operating system.  The pre-2.7 behaviour
+  (force egress = ingress interface) can be achieved with the new
+  ``--multihome same-interface`` sub-option.
+
 Deprecated features
 -------------------
 ``--opt-verify`` feature removed

@@ -195,6 +195,7 @@ struct link_socket
 #define SF_GETADDRINFO_DGRAM (1 << 4)
 #define SF_DCO_WIN           (1 << 5)
 #define SF_PREPEND_SA        (1 << 6)
+#define SF_PKTINFO_COPY_IIF  (1 << 7)
     unsigned int sockflags;
     int mark;
     const char *bind_dev;

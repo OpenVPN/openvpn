@@ -2393,7 +2393,8 @@ link_socket_read_udp_posix_recvmsg(struct link_socket *sock, struct buffer *buf,
         {
 #if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
             struct in_pktinfo *pkti = (struct in_pktinfo *)CMSG_DATA(cmsg);
-            from->pi.in4.ipi_ifindex = pkti->ipi_ifindex;
+            from->pi.in4.ipi_ifindex =
+                (sock->sockflags & SF_PKTINFO_COPY_IIF) ? pkti->ipi_ifindex : 0;
             from->pi.in4.ipi_spec_dst = pkti->ipi_spec_dst;
 #elif defined(IP_RECVDSTADDR)
             from->pi.in4 = *(struct in_addr *)CMSG_DATA(cmsg);
@@ -2406,7 +2407,8 @@ link_socket_read_udp_posix_recvmsg(struct link_socket *sock, struct buffer *buf,
                  && cmsg->cmsg_len >= CMSG_LEN(sizeof(struct in6_pktinfo)))
         {
             struct in6_pktinfo *pkti6 = (struct in6_pktinfo *)CMSG_DATA(cmsg);
-            from->pi.in6.ipi6_ifindex = pkti6->ipi6_ifindex;
+            from->pi.in6.ipi6_ifindex =
+                (sock->sockflags & SF_PKTINFO_COPY_IIF) ? pkti6->ipi6_ifindex : 0;
             from->pi.in6.ipi6_addr = pkti6->ipi6_addr;
         }
         else if (cmsg != NULL)

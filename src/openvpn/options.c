@@ -6335,10 +6335,18 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         options->mlock = true;
     }
 #if ENABLE_IP_PKTINFO
-    else if (streq(p[0], "multihome") && !p[1])
+    else if (streq(p[0], "multihome") && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->sockflags |= SF_USE_IP_PKTINFO;
+        if (p[1] && streq(p[1], "same-interface"))
+        {
+            options->sockflags |= SF_PKTINFO_COPY_IIF;
+        }
+        else if (p[1])
+        {
+            msg(msglevel, "Unknown parameter to --multihome: %s", p[1]);
+        }
     }
 #endif
     else if (streq(p[0], "verb") && p[1] && !p[2])

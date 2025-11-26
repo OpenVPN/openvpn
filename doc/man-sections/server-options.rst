@@ -342,7 +342,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   by ``--ifconfig-ipv6``, OpenVPN will install a /128 host route for the
   ``ipv6addr`` IP address.
 
---multihome
+--multihome [same-interface]
   Configure a multi-homed UDP server. This option needs to be used when a
   server has more than one IP address (e.g. multiple interfaces, or
   secondary IP addresses), and is not using ``--local`` to force binding
@@ -353,12 +353,18 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   default.
 
   *Notes:*
-    -  This option is only relevant for UDP servers.
-    -  If you do an IPv6+IPv4 dual-stack bind on a Linux machine with
-       multiple IPv4 address, connections to IPv4 addresses will not
-       work right on kernels before 3.15, due to missing kernel
-       support for the IPv4-mapped case (some distributions have
-       ported this to earlier kernel versions, though).
+    - This option is only relevant for UDP servers.
+    - Starting with 2.7.0, OpenVPN will ignore the incoming interface of
+      the packet, and leave selection of the outgoing interface to the
+      normal routing/policy mechanisms of the OS ("set ipi_ifindex=0").
+    - if the ``same-interface`` flag is added, OpenVPN will copy the
+      incoming interface index to the outgoing interface index,
+      trying to send the packet out over the same interface where it came
+      in on (= restoring earlier OpenVPN behaviour). This might not work
+      if there are no usable routes on that interface.
+    - the \*BSD systems use a different API for IPv4 that does not provide
+      the interface index anyway (IP_RECVDSTADDR), so there the difference
+      applies only to IPv6.
 
 --iroute args
   Generate an internal route to a specific client. The ``netmask``
