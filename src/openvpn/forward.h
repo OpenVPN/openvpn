@@ -343,7 +343,7 @@ get_link_socket_info(struct context *c)
 }
 
 static inline void
-register_activity(struct context *c, const int size)
+register_activity(struct context *c, const int64_t size)
 {
     if (c->options.inactivity_timeout)
     {

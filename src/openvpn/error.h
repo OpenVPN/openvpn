@@ -307,11 +307,11 @@ void reset_check_status(void);
 
 void set_check_status(unsigned int info_level, unsigned int verbose_level);
 
-void x_check_status(int status, const char *description, struct link_socket *sock,
+void x_check_status(ssize_t status, const char *description, struct link_socket *sock,
                     struct tuntap *tt);
 
 static inline void
-check_status(int status, const char *description, struct link_socket *sock, struct tuntap *tt)
+check_status(ssize_t status, const char *description, struct link_socket *sock, struct tuntap *tt)
 {
     if (status < 0 || check_debug_level(x_cs_verbose_level))
     {

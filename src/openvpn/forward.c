@@ -1673,6 +1673,10 @@ ipv6_send_icmp_unreachable(struct context *c, struct buffer *buf, bool client)
 #undef MAX_ICMPV6LEN
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 void
 process_ip_header(struct context *c, unsigned int flags, struct buffer *buf,
                   struct link_socket *sock)
@@ -1915,7 +1919,7 @@ process_outgoing_tun(struct context *c, struct link_socket *in_sock)
         /*
          * Write to TUN/TAP device.
          */
-        int size;
+        ssize_t size;
 
 #ifdef LOG_RW
         if (c->c2.log_rw)
@@ -1956,7 +1960,7 @@ process_outgoing_tun(struct context *c, struct link_socket *in_sock)
             if (size != BLEN(&c->c2.to_tun))
             {
                 msg(D_LINK_ERRORS,
-                    "TUN/TAP packet was destructively fragmented on write to %s (tried=%d,actual=%d)",
+                    "TUN/TAP packet was destructively fragmented on write to %s (tried=%d,actual=%zd)",
                     c->c1.tuntap->actual_name, BLEN(&c->c2.to_tun), size);
             }
 
@@ -1976,10 +1980,6 @@ process_outgoing_tun(struct context *c, struct link_socket *in_sock)
 
     buf_reset(&c->c2.to_tun);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 pre_select(struct context *c)
