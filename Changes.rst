@@ -112,7 +112,8 @@ Support for tun/tap via unix domain socket and lwipovpn support
     can be pinged, can serve a website and more without requiring any
     elevated permission. This can make testing OpenVPN much easier.
 
-    For more details see [lwipovpn on Gihtub](https://github.com/OpenVPN/lwipovpn).
+    For more details see
+    `lwipovpn on Github <https://github.com/OpenVPN/lwipovpn>`_.
 
 Allow overriding username with ``--override-username``
     This is intended to allow using auth-gen-token in scenarios where the
@@ -314,17 +315,17 @@ User-visible Changes
   use from "ifconfig", this change repairs functionality (this has
   been backported to 2.6.15, but is not in earlier 2.6 versions).
 
-- `max-routes-per-client 0` used to be silently upgraded to `1`.  This
+- ``max-routes-per-client 0`` used to be silently upgraded to ``1``.  This
   now produces an error.
 
-- `ifconfig` and `ifconfig-ipv6` values are now stored in pre-connect
+- ``ifconfig`` and ``ifconfig-ipv6`` values are now stored in pre-connect
   options cache, and will be restored to pre-connect values on reconnects
   if the server stops pushing the respective option.
 
-- `tapctl.exe` helper binary on Windows has been reworked to improve
+- ``tapctl.exe`` helper binary on Windows has been reworked to improve
   help texts (making clear that it can not only do TAP-Adapters but
   Win-DCO as well), add printing of the hwid to all adapter outputs, and
-  change the default adapter type created to `ovpn-dco`.
+  change the default adapter type created to ``ovpn-dco``.
 
 - the default for ``multihome`` egress interface handling has changed.
   2.7.0 will default to ipi_ifindex=0, that is, leave the decision to the
@@ -809,7 +810,7 @@ Improved support for pending authentication
     wait for the second factor authentication to complete.
 
     This feature currently requires usage of the managent interface
-    on both client and server side. See the `management-notes.txt`
+    on both client and server side. See the ``management-notes.txt``
     ``client-pending-auth`` and ``cr-response`` commands for more
     details.
 
@@ -828,7 +829,7 @@ Support building of .msi installers for Windows
 Allow unicode search string in ``--cryptoapicert`` option (Windows)
 
 Support IPv4 configs with /31 netmasks now
-    (By no longer trying to configure ``broadcast x.x.x.x'' in
+    (By no longer trying to configure ``broadcast x.x.x.x`` in
     ifconfig calls, /31 support "just works")
 
 New option ``--block-ipv6`` to reject all IPv6 packets (ICMPv6)
