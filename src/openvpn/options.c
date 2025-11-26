@@ -807,6 +807,7 @@ init_options(struct options *o, const bool init_gc)
     if (init_gc)
     {
         gc_init(&o->gc);
+        gc_init(&o->push_list_gc);
         gc_init(&o->dns_options.gc);
         o->gc_owned = true;
     }
@@ -942,6 +943,7 @@ uninit_options(struct options *o)
     if (o->gc_owned)
     {
         gc_free(&o->gc);
+        gc_free(&o->push_list_gc);
         gc_free(&o->dns_options.gc);
     }
 }
