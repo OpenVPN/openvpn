@@ -2234,7 +2234,8 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
                     return NO_ERROR;
                 }
 
-                pos = comma + 1;
+                /* Comma pos is now +1 after adding leading dot */
+                pos = comma + 2;
             }
         }
     }
