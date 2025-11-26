@@ -3238,6 +3238,7 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
 
     o->push_continuation = 0;
     o->push_option_types_found = 0;
+    o->push_update_options_found = 0;
     o->imported_protocol_flags = 0;
 }
 

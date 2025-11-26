@@ -559,6 +559,7 @@ struct options
     bool pull; /* client pull of config options from server */
     int push_continuation;
     unsigned int push_option_types_found;
+    unsigned int push_update_options_found; /* tracks which option types have been reset in current PUSH_UPDATE sequence */
     const char *auth_user_pass_file;
     bool auth_user_pass_file_inline;
     struct options_pre_connect *pre_connect;
