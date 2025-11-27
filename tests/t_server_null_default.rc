@@ -57,7 +57,7 @@ SERVER_NAME_2="t_server_null_server-1195_tcp"
 SERVER_SERVER_2="--server 10.29.42.0 255.255.255.0"
 SERVER_MGMT_PORT_2="11195"
 SERVER_EXEC_2="${SERVER_EXEC}"
-SERVER_CONF_2="${SERVER_CONF_BASE} ${SERVER_SERVER_2} --lport 1195 --proto tcp --management 127.0.0.1 ${SERVER_MGMT_PORT_2} --dh ${DH}"
+SERVER_CONF_2="${SERVER_CONF_BASE} ${SERVER_SERVER_2} --lport 1195 --proto tcp --management 127.0.0.1 ${SERVER_MGMT_PORT_2} --dh none"
 
 SERVER_NAME_3="t_server_null_server-1196_udp"
 SERVER_SERVER_3="--server 10.29.43.0 255.255.255.0"

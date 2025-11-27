@@ -24,6 +24,10 @@
 #include <setjmp.h>
 #include <cmocka.h>
 
+#if defined(ENABLE_CRYPTO_MBEDTLS)
+#include "mbedtls_compat.h"
+#endif
+
 /* Do we use cmocka < 2.0.0? */
 #ifndef HAVE_CMOCKA_VERSION_H
 #define HAVE_OLD_CMOCKA_API 1
@@ -57,6 +61,9 @@ openvpn_unit_test_setup(void)
 {
     assert_int_equal(setvbuf(stdout, NULL, _IONBF, BUFSIZ), 0);
     assert_int_equal(setvbuf(stderr, NULL, _IONBF, BUFSIZ), 0);
+#if defined(ENABLE_CRYPTO_MBEDTLS)
+    mbedtls_compat_psa_crypto_init();
+#endif
 }
 
 /**
