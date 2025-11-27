@@ -571,8 +571,8 @@ characters for each string type will be converted to underbar ('\_').
     a filename, etc.
 
 *Q: Can string remapping be disabled?*
-    Yes, by using the ``--no-name-remapping`` option, however this
-    should be considered an advanced option.
+    No.  The options ``--no-name-remapping`` and ``--compat-names`` have
+    been removed in 2.5 because they were considered too insecure.
 
 Here is a brief rundown of OpenVPN's current string types and the
 permitted character class for each string:

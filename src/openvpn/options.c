@@ -474,8 +474,6 @@ static const char usage_message[] =
     "                  for generated tokens can be set.\n"
     "--auth-user-pass-optional : Allow connections by clients that don't\n"
     "                  specify a username/password.\n"
-    "--no-name-remapping : (DEPRECATED) Allow Common Name and X509 Subject to include\n"
-    "                      any printable character.\n"
     "--client-to-client : Internally route client-to-client traffic.\n"
     "--duplicate-cn  : Allow multiple clients with the same common name to\n"
     "                  concurrently connect.\n"
