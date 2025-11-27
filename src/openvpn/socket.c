@@ -524,7 +524,7 @@ socket_set_tcp_nodelay(socket_descriptor_t sd, int state)
 static inline void
 socket_set_mark(socket_descriptor_t sd, int mark)
 {
-#if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
+#if defined(TARGET_LINUX)
     if (mark && setsockopt(sd, SOL_SOCKET, SO_MARK, (void *)&mark, sizeof(mark)) != 0)
     {
         msg(M_WARN, "NOTE: setsockopt SO_MARK=%d failed", mark);

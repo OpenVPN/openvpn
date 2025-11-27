@@ -315,7 +315,7 @@ static const char usage_message[] =
     "                  or --fragment max value, whichever is lower.\n"
     "--sndbuf size   : Set the TCP/UDP send buffer size.\n"
     "--rcvbuf size   : Set the TCP/UDP receive buffer size.\n"
-#if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
+#if defined(TARGET_LINUX)
     "--mark value    : Mark encrypted packets being sent with value. The mark value\n"
     "                  can be matched in policy routing and packetfilter rules.\n"
     "--bind-dev dev  : Bind to the given device when making connection to a peer or\n"
@@ -768,7 +768,7 @@ static const char usage_message[] =
     "                         (for use with --tls-auth or --tls-crypt)."
 #ifdef ENABLE_FEATURE_TUN_PERSIST
     "\n"
-    "Tun/tap config mode (available with linux 2.4+):\n"
+    "Tun/tap config mode:\n"
     "--mktun         : Create a persistent tunnel.\n"
     "--rmtun         : Remove a persistent tunnel.\n"
     "--dev tunX|tapX : tun/tap device\n"
@@ -1792,7 +1792,7 @@ show_settings(const struct options *o)
     SHOW_BOOL(occ);
     SHOW_INT(rcvbuf);
     SHOW_INT(sndbuf);
-#if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
+#if defined(TARGET_LINUX)
     SHOW_INT(mark);
 #endif
     SHOW_INT(sockflags);
@@ -6518,7 +6518,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "mark") && p[1] && !p[2])
     {
-#if defined(TARGET_LINUX) && HAVE_DECL_SO_MARK
+#if defined(TARGET_LINUX)
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->mark = atoi_warn(p[1], msglevel);
 #endif

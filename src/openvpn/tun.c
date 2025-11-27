@@ -2055,10 +2055,6 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
 
 #elif defined(TARGET_LINUX)
 
-#ifndef HAVE_LINUX_SOCKIOS_H
-#error header file linux/sockios.h required
-#endif
-
 #if !PEDANTIC
 
 void
@@ -2185,11 +2181,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 #endif /* !PEDANTIC */
 
 #ifdef ENABLE_FEATURE_TUN_PERSIST
-
-/* TUNSETGROUP appeared in 2.6.23 */
-#ifndef TUNSETGROUP
-#define TUNSETGROUP _IOW('T', 206, int)
-#endif
 
 void
 tuncfg(const char *dev, const char *dev_type, const char *dev_node, int persist_mode,

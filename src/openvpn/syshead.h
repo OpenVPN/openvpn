@@ -185,24 +185,17 @@
 
 #if defined(TARGET_LINUX) || defined(TARGET_ANDROID)
 
-#ifdef HAVE_LINUX_IF_TUN_H
-#include <linux/if_tun.h>
+#define EXTENDED_SOCKET_ERROR_CAPABILITY 1
+
+#ifdef TARGET_LINUX
+#define ENABLE_FEATURE_TUN_PERSIST
 #endif
+
+#include <linux/if_tun.h>
+#include <linux/sockios.h>
 
 #ifdef HAVE_NETINET_IP_H
 #include <netinet/ip.h>
-#endif
-
-#ifdef HAVE_LINUX_SOCKIOS_H
-#include <linux/sockios.h>
-#endif
-
-#ifdef HAVE_LINUX_TYPES_H
-#include <linux/types.h>
-#endif
-
-#ifdef HAVE_LINUX_ERRQUEUE_H
-#include <linux/errqueue.h>
 #endif
 
 #ifdef HAVE_NETINET_TCP_H
@@ -361,15 +354,6 @@ typedef int MIB_TCP_STATE;
 #endif
 
 /*
- * Do we have the capability to report extended socket errors?
- */
-#if defined(HAVE_LINUX_TYPES_H) && defined(HAVE_LINUX_ERRQUEUE_H)
-#define EXTENDED_SOCKET_ERROR_CAPABILITY 1
-#else
-#define EXTENDED_SOCKET_ERROR_CAPABILITY 0
-#endif
-
-/*
  * Does this platform support linux-style IP_PKTINFO
  * or bsd-style IP_RECVDSTADDR ?
  */
@@ -394,14 +378,6 @@ typedef int MIB_TCP_STATE;
  */
 #ifndef HAVE_SA_FAMILY_T
 typedef unsigned short sa_family_t;
-#endif
-
-/*
- * Disable ESEC
- */
-#if 0
-#undef EXTENDED_SOCKET_ERROR_CAPABILITY
-#define EXTENDED_SOCKET_ERROR_CAPABILITY 0
 #endif
 
 /*

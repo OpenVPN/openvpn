@@ -274,6 +274,8 @@ translate_mtu_discover_type_name(const char *name)
 
 #if EXTENDED_SOCKET_ERROR_CAPABILITY
 
+#include <linux/errqueue.h>
+
 struct probehdr
 {
     uint32_t ttl;

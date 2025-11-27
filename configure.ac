@@ -494,8 +494,8 @@ AC_CHECK_HEADERS([ \
 	sys/mman.h sys/file.h sys/wait.h \
 	unistd.h libgen.h stropts.h \
 	syslog.h pwd.h grp.h termios.h \
-	sys/sockio.h sys/uio.h linux/sockios.h \
-	linux/types.h linux/errqueue.h poll.h sys/epoll.h err.h \
+	sys/sockio.h sys/uio.h \
+	poll.h sys/epoll.h err.h \
 ])
 
 SOCKET_INCLUDES="
@@ -585,12 +585,6 @@ AC_CHECK_TYPE(
 	[struct sockaddr_in6],
 	,
 	[AC_MSG_ERROR([struct sockaddr_in6 not found, needed for ipv6 transport support.])],
-	[[${SOCKET_INCLUDES}]]
-)
-AC_CHECK_DECLS(
-	[SO_MARK],
-	,
-	,
 	[[${SOCKET_INCLUDES}]]
 )
 
@@ -716,16 +710,6 @@ AC_CHECK_HEADERS(
 		tap-windows.h \
 	],
 	[have_tap_header="yes"]
-)
-AC_CHECK_DECLS(
-	[TUNSETPERSIST],
-	[AC_DEFINE([ENABLE_FEATURE_TUN_PERSIST], [1], [We have persist tun capability])],
-	,
-	[[
-		#ifdef HAVE_LINUX_IF_TUN_H
-		#include <linux/if_tun.h>
-		#endif
-	]]
 )
 CFLAGS="${old_CFLAGS}"
 test "${have_tap_header}" = "yes" || AC_MSG_ERROR([no tap header could be found])

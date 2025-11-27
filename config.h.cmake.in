@@ -20,9 +20,6 @@
 /* Enable debugging support (needed for verb>=4) */
 #define ENABLE_DEBUG 1
 
-/* We have persist tun capability */
-#cmakedefine ENABLE_FEATURE_TUN_PERSIST
-
 /* Enable internal fragmentation support */
 #define ENABLE_FRAGMENT 1
 
@@ -91,10 +88,6 @@
 
 /* Define to 1 if you have the `daemon' function. */
 #cmakedefine HAVE_DAEMON
-
-/* Define to 1 if you have the declaration of `SO_MARK', and to 0 if you
-don't. */
-#cmakedefine01 HAVE_DECL_SO_MARK
 
 /* Define to 1 if you have the <direct.h> header file. */
 #cmakedefine HAVE_DIRECT_H
@@ -165,15 +158,6 @@ don't. */
 
 /* Define to 1 if you have the <limits.h> header file. */
 #define HAVE_LIMITS_H 1
-
-/* Define to 1 if you have the <linux/if_tun.h> header file. */
-#cmakedefine HAVE_LINUX_IF_TUN_H
-
-/* Define to 1 if you have the <linux/sockios.h> header file. */
-#cmakedefine HAVE_LINUX_SOCKIOS_H
-
-/* Define to 1 if you have the <linux/types.h> header file. */
-#cmakedefine HAVE_LINUX_TYPES_H
 
 /* Define to 1 if you have the <lzo1x.h> header file. */
 #define HAVE_LZO1X_H 1

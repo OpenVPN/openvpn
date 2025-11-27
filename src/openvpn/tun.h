@@ -278,9 +278,11 @@ int write_tun(struct tuntap *tt, uint8_t *buf, int len);
 
 int read_tun(struct tuntap *tt, uint8_t *buf, int len);
 
+#ifdef ENABLE_FEATURE_TUN_PERSIST
 void tuncfg(const char *dev, const char *dev_type, const char *dev_node, int persist_mode,
             const char *username, const char *groupname, const struct tuntap_options *options,
             openvpn_net_ctx_t *ctx);
+#endif
 
 const char *guess_tuntap_dev(const char *dev, const char *dev_type, const char *dev_node,
                              struct gc_arena *gc);

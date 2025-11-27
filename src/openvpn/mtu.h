@@ -262,8 +262,7 @@ void alloc_buf_sock_tun(struct buffer *buf, const struct frame *frame);
 
 /*
  * EXTENDED_SOCKET_ERROR_CAPABILITY functions -- print extra error info
- * on socket errors, such as PMTU size.  As of 2003.05.11, only works
- * on Linux 2.4+.
+ * on socket errors, such as PMTU size.
  */
 
 #if EXTENDED_SOCKET_ERROR_CAPABILITY
