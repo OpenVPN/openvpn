@@ -1,3 +1,20 @@
+Overview of changes in 2.6.17
+=============================
+Bugfixes
+--------
+- Windows/interactive service: fix erroneous exit on error that could be
+  used by a local Windows users to achieve a local denial-of-service
+  (CVE-2025-13751)
+
+Security hardening
+------------------
+- Windows/interactive service: improve service pipe robustness against
+  file access races (uuid) and access by unauthorized processes (ACL).
+
+- upgrade bundled build instruction (vcpkg and patch) for pkcs11-helper
+  to 1.31, fixing a parser bug
+
+
 Overview of changes in 2.6.16
 =============================
 Code maintenance / Compat changes

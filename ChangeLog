@@ -1,6 +1,16 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.11.28 -- Version 2.6.17
+
+Lev Stipakov (1):
+      interactive.c: harden pipe handling against misbehaving clients
+
+Selva Nair (3):
+      vcpkg-ports/pkcs11-helper: bump version to 1.31
+      Harden interactive service pipe
+      Restrict access to the service pipe to SYSTEM and owner
+
 2025.11.17 -- Version 2.6.16
 
 Antonio Quartulli (1):
