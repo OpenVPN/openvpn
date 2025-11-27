@@ -527,18 +527,6 @@ AC_CHECK_HEADERS(
 	[[${SOCKET_INCLUDES}]]
 )
 
-AC_CHECK_TYPES(
-	[in_addr_t],
-	,
-	[AC_DEFINE([in_addr_t], [uint32_t], [Workaround missing in_addr_t])],
-	[[${SOCKET_INCLUDES}]]
-)
-AC_CHECK_TYPES(
-	[in_port_t],
-	,
-	[AC_DEFINE([in_port_t], [uint16_t], [Workaround missing in_port_t])],
-	[[${SOCKET_INCLUDES}]]
-)
 AC_CHECK_TYPE(
 	[struct msghdr],
 	[AC_DEFINE([HAVE_MSGHDR], [1], [struct msghdr needed for extended socket error support])],
@@ -599,48 +587,6 @@ AC_LINK_IFELSE(
 	[AC_MSG_RESULT([no])],
 )
 LDFLAGS="$saved_LDFLAGS"
-
-dnl We emulate signals in Windows
-AC_CHECK_DECLS(
-	[SIGHUP],
-	,
-	[AC_DEFINE([SIGHUP], [1], [SIGHUP replacement])],
-	[[
-		#include <signal.h>
-	]]
-)
-AC_CHECK_DECLS(
-	[SIGINT],
-	,
-	[AC_DEFINE([SIGINT], [2], [SIGINT replacement])],
-	[[
-		#include <signal.h>
-	]]
-)
-AC_CHECK_DECLS(
-	[SIGUSR1],
-	,
-	[AC_DEFINE([SIGUSR1], [10], [SIGUSR1 replacement])],
-	[[
-		#include <signal.h>
-	]]
-)
-AC_CHECK_DECLS(
-	[SIGUSR2],
-	,
-	[AC_DEFINE([SIGUSR2], [12], [SIGUSR2 replacement])],
-	[[
-		#include <signal.h>
-	]]
-)
-AC_CHECK_DECLS(
-	[SIGTERM],
-	,
-	[AC_DEFINE([SIGTERM], [15], [SIGTERM replacement])],
-	[[
-		#include <signal.h>
-	]]
-)
 
 AC_FUNC_FORK
 
