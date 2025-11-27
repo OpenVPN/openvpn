@@ -1,6 +1,58 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.11.28 -- Version 2.7_rc3
+
+Frank Lichtenheld (9):
+      doc: Document potential filesystem pitfalls of client-config-dir
+      GHA: Maintenance update November 2025
+      GHA: Add macos-26 and remove OpenSSL 1.1 builds on macOS
+      tls_crypt: Fix Coverity complaint in tls_crypt_v2_check_client_key_age
+      Changes.rst: Fix various syntax errors and typos
+      error: Allow status argument to check_status to be ssize_t
+      Linux: Assume we have a kernel that was release in the last 15 years
+      configure/CMake: Remove unused checks
+      configure/CMake: Unify Windows handling
+
+Gert Doering (4):
+      Change '--multihome' behaviour regarding egress interface selection.
+      extract_x509_field_ssl(): verify that X509_NAME is not NULL.
+      Remove remainders of --no-name-remapping option
+      OpenVPN Release 2.7_rc3
+
+Gianmarco De Gregori (2):
+      multi-socket: remove duplicated/dead code
+      multi-socket: do not return tuntap flags on server-side
+
+Heiko Hund (9):
+      iservice: fix buffer size in call to FormatMessage
+      iservice: make sure buffer size is not zero
+      iservice: make sure registry string is terminated
+      iservice: check for NULL pointer
+      iservice: fix calculation of converted domains size
+      iservice: return correct size when domains are truncated
+      iservice: handle ignoring itf domains correctly
+      iservice: fix off by one error
+      iservice: rename one_glyph to glyph_size
+
+Lev Stipakov (1):
+      interactive.c: harden pipe handling against misbehaving clients
+
+Marco Baffo (1):
+      route: handle default gateway (net_gateway) and nexthop towards VPN server separately
+
+Max Fillinger (1):
+      Add option to check tls-crypt-v2 key timestamps
+
+Ralf Lici (1):
+      dco: process messages immediately after read
+
+Selva Nair (3):
+      vcpkg-ports/pkcs11-helper: bump version to 1.31
+      Harden interactive service pipe
+      Restrict access to the service pipe to SYSTEM and owner
+
+
 2025.11.17 -- Version 2.7_rc2
 
 Antonio Quartulli (4):

@@ -177,6 +177,10 @@ Improved BYTECOUNT support - more strictly adhere to timing interval
 
 Improve compatibility with OpenSSL 3.6.0 (do not fail t_lpback selftest)
 
+New option ``--tls-crypt-v2-max-age n`` to check tls-crypt-v2 timestamps
+   (When a client is older than n days or has no timestamp, the server
+    will reject it)
+
 
 Deprecated features
 -------------------
@@ -260,7 +264,7 @@ User-visible Changes
 
 - ``--lport 0`` does not imply ``--bind`` anymore.
 
-- ``--redirect--gateway`` now works correctly if the VPN remote is not
+- ``--redirect-gateway`` now works correctly if the VPN remote is not
   reachable by the default gateway.
 
 - ``--show-gateway`` now supports querying the gateway for IPv4 addresses.
