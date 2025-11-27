@@ -202,8 +202,8 @@ extract_x509_field_ssl(X509_NAME *x509, const char *field_name, char *out, size_
     X509_NAME_ENTRY *x509ne = NULL;
     ASN1_STRING *asn1 = NULL;
     unsigned char *buf = NULL;
-    ASN1_OBJECT *field_name_obj = OBJ_txt2obj(field_name, 0);
 
+    ASN1_OBJECT *field_name_obj = OBJ_txt2obj(field_name, 0);
     if (field_name_obj == NULL)
     {
         msg(D_TLS_ERRORS, "Invalid X509 attribute name '%s'", field_name);
@@ -244,11 +244,9 @@ extract_x509_field_ssl(X509_NAME *x509, const char *field_name, char *out, size_
 
     strncpynt(out, (char *)buf, size);
 
-    {
-        const result_t ret = (strlen((char *)buf) < size) ? SUCCESS : FAILURE;
-        OPENSSL_free(buf);
-        return ret;
-    }
+    const result_t ret = (strlen((char *)buf) < size) ? SUCCESS : FAILURE;
+    OPENSSL_free(buf);
+    return ret;
 }
 
 result_t
@@ -278,12 +276,21 @@ backend_x509_get_username(char *common_name, size_t cn_len, char *x509_username_
     }
     else
 #endif /* ifdef ENABLE_X509ALTUSERNAME */
+    {
+        X509_NAME *x509_subject_name = X509_get_subject_name(peer_cert);
+        if (x509_subject_name == NULL)
+        {
+            msg(D_TLS_ERRORS, "X509 subject name is NULL");
+            return FAILURE;
+        }
+
         if (FAILURE
-            == extract_x509_field_ssl(X509_get_subject_name(peer_cert), x509_username_field,
+            == extract_x509_field_ssl(x509_subject_name, x509_username_field,
                                       common_name, cn_len))
         {
             return FAILURE;
         }
+    }
 
     return SUCCESS;
 }
