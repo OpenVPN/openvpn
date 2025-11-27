@@ -475,13 +475,7 @@ ifdef(
 )
 
 AC_C_INLINE
-AC_TYPE_OFF_T
-AC_TYPE_PID_T
-AC_TYPE_SIZE_T
-AC_TYPE_UID_T
 AX_TYPE_SOCKLEN_T
-AC_CHECK_SIZEOF([unsigned int])
-AC_CHECK_SIZEOF([unsigned long])
 AC_CHECK_HEADERS([ \
 	fcntl.h io.h \
 	sys/types.h sys/socket.h \
@@ -492,7 +486,7 @@ AC_CHECK_HEADERS([ \
 AC_CHECK_HEADERS([ \
 	sys/time.h sys/ioctl.h sys/stat.h \
 	sys/mman.h sys/file.h sys/wait.h \
-	unistd.h libgen.h stropts.h \
+	libgen.h stropts.h \
 	syslog.h pwd.h grp.h termios.h \
 	sys/sockio.h sys/uio.h \
 	poll.h sys/epoll.h err.h \
@@ -543,12 +537,6 @@ AC_CHECK_TYPES(
 	[in_port_t],
 	,
 	[AC_DEFINE([in_port_t], [uint16_t], [Workaround missing in_port_t])],
-	[[${SOCKET_INCLUDES}]]
-)
-AC_CHECK_TYPE(
-	[struct iphdr],
-	[AC_DEFINE([HAVE_IPHDR], [1], [struct iphdr needed for IPv6 support])],
-	,
 	[[${SOCKET_INCLUDES}]]
 )
 AC_CHECK_TYPE(
@@ -657,11 +645,11 @@ AC_CHECK_DECLS(
 AC_FUNC_FORK
 
 AC_CHECK_FUNCS([ \
-	daemon chroot getpwnam setuid nice system dup dup2 \
+	daemon chroot getpwnam setuid nice dup dup2 \
 	syslog openlog mlockall getrlimit getgrnam setgid \
-	setgroups flock time gettimeofday \
+	setgroups flock gettimeofday \
 	setsid chdir \
-	chsize ftruncate execve getpeereid basename dirname access \
+	chsize ftruncate execve getpeereid basename dirname \
 	epoll_create strsep \
 ])
 

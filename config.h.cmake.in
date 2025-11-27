@@ -281,9 +281,6 @@
 /* Define to 1 if you have the <syslog.h> header file. */
 #cmakedefine HAVE_SYSLOG_H
 
-/* Define to 1 if you have the `system' function. */
-#undef HAVE_SYSTEM
-
 /* Define to 1 if you have the <systemd/sd-daemon.h> header file. */
 #undef HAVE_SYSTEMD_SD_DAEMON_H
 
@@ -332,12 +329,6 @@
 /* Define to 1 if you have the <tap-windows.h> header file. */
 #undef HAVE_TAP_WINDOWS_H
 
-/* Define to 1 if you have the `time' function. */
-#define HAVE_TIME 1
-
-/* Define to 1 if you have the <time.h> header file. */
-#define HAVE_TIME_H 1
-
 /* Define to 1 if you have the <uapi.h> header file. */
 #undef HAVE_UAPI_H
 
@@ -346,12 +337,6 @@
 
 /* Define to 1 if you have the <valgrind/memcheck.h> header file. */
 #undef HAVE_VALGRIND_MEMCHECK_H
-
-/* Define to 1 if you have the `vfork' function. */
-#undef HAVE_VFORK
-
-/* Define to 1 if you have the <vfork.h> header file. */
-#undef HAVE_VFORK_H
 
 /* Availability of different mbed TLS features and APIs */
 #cmakedefine HAVE_PSA_CRYPTO_H

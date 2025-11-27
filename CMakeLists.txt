@@ -240,6 +240,7 @@ endif()
 
 check_symbol_exists(chsize io.h HAVE_CHSIZE)
 check_symbol_exists(getrlimit sys/resource.h HAVE_GETRLIMIT)
+check_symbol_exists(strsep string.h HAVE_STRSEP)
 
 # Some OS (e.g. FreeBSD) need some basic headers to allow
 # including network headers
