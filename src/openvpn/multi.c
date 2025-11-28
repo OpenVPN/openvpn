@@ -424,6 +424,10 @@ multi_init(struct context *t)
     }
 
     m->deferred_shutdown_signal.signal_received = 0;
+
+    m->inst_indx = -1;
+    m->inst_leng = -1;
+    m->inst_list = calloc(TUN_BAT_MAX, sizeof(struct multi_instance *));
 }
 
 const char *
@@ -584,6 +588,10 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
     {
         multi_set_pending(m, NULL);
     }
+    if (m->pending2 == mi)
+    {
+        multi_set_pending2(m, NULL);
+    }
     if (m->earliest_wakeup == mi)
     {
         m->earliest_wakeup = NULL;
@@ -705,6 +713,10 @@ multi_uninit(struct multi_context *m)
         multi_reap_free(m->reaper);
         mroute_helper_free(m->route_helper);
         multi_io_free(m->multi_io);
+
+        m->inst_indx = -1;
+        m->inst_leng = -1;
+        free(m->inst_list);
     }
 }
 
@@ -3009,7 +3021,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
 
     if (!IS_SIG(&mi->context)
         && ((flags & MPP_PRE_SELECT)
-            || ((flags & MPP_CONDITIONAL_PRE_SELECT) && !ANY_OUT(&mi->context))))
+            || ((flags & MPP_CONDITIONAL_PRE_SELECT) && !LINK_OUT(&mi->context))))
     {
 #if defined(ENABLE_ASYNC_PUSH)
         bool was_unauthenticated = true;
@@ -3076,10 +3088,11 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
     else
     {
         /* continue to pend on output? */
-        multi_set_pending(m, ANY_OUT(&mi->context) ? mi : NULL);
+        multi_set_pending(m, LINK_OUT(&mi->context) ? mi : NULL);
+        multi_set_pending2(m, TUN_OUT(&mi->context) ? mi : NULL);
 
 #ifdef MULTI_DEBUG_EVENT_LOOP
-        printf("POST %s[%d] to=%d lo=%d/%d w=%" PRIi64 "/%ld\n", id(mi), (int)(mi == m->pending),
+        printf("POST %s[%d][%d] to=%d lo=%d/%d w=%" PRIi64 "/%ld\n", id(mi), (int)(mi == m->pending), (int)(mi == m->pending2),
                mi ? mi->context.c2.to_tun.len : -1, mi ? mi->context.c2.to_link.len : -1,
                (mi && mi->context.c2.fragment) ? mi->context.c2.fragment->outgoing.len : -1,
                (int64_t)mi->context.c2.timeval.tv_sec, (long)mi->context.c2.timeval.tv_usec);
@@ -3138,7 +3151,7 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi, struct l
             msg(D_MULTI_LOW, "Disallow float to an address taken by another client %s",
                 multi_instance_string(ex_mi, false, &gc));
 
-            mi->context.c2.buf.len = 0;
+            mi->context.c2.buf2.len = 0;
 
             goto done;
         }
@@ -3343,7 +3356,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
     bool ret = true;
     bool floated = false;
 
-    if (m->pending)
+    if (m->pending2)
     {
         return true;
     }
@@ -3351,26 +3364,26 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
     if (!instance)
     {
 #ifdef MULTI_DEBUG_EVENT_LOOP
-        printf("TCP/UDP -> TUN [%d]\n", BLEN(&m->top.c2.buf));
+        printf("TCP/UDP -> TUN [%d]\n", BLEN(&m->top.c2.buf2));
 #endif
-        multi_set_pending(m, multi_get_create_instance_udp(m, &floated, sock));
+        multi_set_pending2(m, multi_get_create_instance_udp(m, &floated, sock));
     }
     else
     {
-        multi_set_pending(m, instance);
+        multi_set_pending2(m, instance);
     }
 
-    if (m->pending)
+    if (m->pending2)
     {
-        set_prefix(m->pending);
+        set_prefix(m->pending2);
 
         /* get instance context */
-        c = &m->pending->context;
+        c = &m->pending2->context;
 
         if (!instance)
         {
             /* transfer packet pointer from top-level context buffer to instance */
-            c->c2.buf = m->top.c2.buf;
+            c->c2.buf2 = m->top.c2.buf2;
 
             /* transfer from-addr from top-level context buffer to instance */
             if (!floated)
@@ -3379,7 +3392,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
             }
         }
 
-        if (BLEN(&c->c2.buf) > 0)
+        if (BLEN(&c->c2.buf2) > 0)
         {
             struct link_socket_info *lsi;
             const uint8_t *orig_buf;
@@ -3387,16 +3400,17 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
             /* decrypt in instance context */
 
             lsi = &sock->info;
-            orig_buf = c->c2.buf.data;
+            orig_buf = c->c2.buf2.data;
             if (process_incoming_link_part1(c, lsi, floated))
             {
                 /* nonzero length means that we have a valid, decrypted packed */
-                if (floated && c->c2.buf.len > 0)
+                if (floated && c->c2.buf2.len > 0)
                 {
-                    multi_process_float(m, m->pending, sock);
+                    multi_process_float(m, m->pending2, sock);
                 }
 
                 process_incoming_link_part2(c, lsi, orig_buf);
+                process_incoming_link_part3(c);
             }
 
             if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TUN)
@@ -3411,7 +3425,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                     c->c2.to_tun.len = 0;
                 }
                 /* make sure that source address is associated with this client */
-                else if (multi_get_instance_by_virtual_addr(m, &src, true) != m->pending)
+                else if (multi_get_instance_by_virtual_addr(m, &src, true) != m->pending2)
                 {
                     /* IPv6 link-local address (fe80::xxx)? */
                     if ((src.type & MR_ADDR_MASK) == MR_ADDR_IPV6
@@ -3434,7 +3448,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
                     if (mroute_flags & MROUTE_EXTRACT_MCAST)
                     {
                         /* for now, treat multicast as broadcast */
-                        multi_bcast(m, &c->c2.to_tun, m->pending, 0);
+                        multi_bcast(m, &c->c2.to_tun, m->pending2, 0);
                     }
                     else /* possible client to client routing */
                     {
@@ -3476,14 +3490,14 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
 
                 if (mroute_flags & MROUTE_EXTRACT_SUCCEEDED)
                 {
-                    if (multi_learn_addr(m, m->pending, &src, 0) == m->pending)
+                    if (multi_learn_addr(m, m->pending2, &src, 0) == m->pending2)
                     {
                         /* check for broadcast */
                         if (m->enable_c2c)
                         {
                             if (mroute_flags & (MROUTE_EXTRACT_BCAST | MROUTE_EXTRACT_MCAST))
                             {
-                                multi_bcast(m, &c->c2.to_tun, m->pending, vid);
+                                multi_bcast(m, &c->c2.to_tun, m->pending2, vid);
                             }
                             else /* try client-to-client routing */
                             {
@@ -3515,7 +3529,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
         }
 
         /* postprocess and set wakeup */
-        ret = multi_process_post(m, m->pending, mpp_flags);
+        ret = multi_process_post(m, m->pending2, mpp_flags);
 
         clear_prefix();
     }
@@ -3524,12 +3538,19 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
     return ret;
 }
 
+int min_max(int a, int b, int c)
+{
+    if (a > c) { return c; }
+    if (a < b) { return b; }
+    return a;
+}
+
 /*
  * Process packets in the TUN/TAP interface -> TCP/UDP socket direction,
  * i.e. server -> client direction.
  */
 bool
-multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags)
+multi_process_incoming_tun_part2(struct multi_context *m, const unsigned int mpp_flags)
 {
     bool ret = true;
 
@@ -3575,10 +3596,30 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
                 /* for now, treat multicast as broadcast */
                 multi_bcast(m, &m->top.c2.buf, NULL, vid);
             }
+            else if (m->inst_indx == -9)
+            {
+                struct multi_instance *inst = multi_get_instance_by_virtual_addr(m, &dest, dev_type == DEV_TYPE_TUN);
+                if (inst)
+                {
+                    int leng = m->inst_leng;
+                    for (int x = 0; x < leng; ++x)
+                    {
+                        if (m->inst_list[x] == inst)
+                        {
+                            m->inst_indx = x;
+                            return true;
+                        }
+                    }
+                    leng = min_max(leng, 0, TUN_BAT_MIN - 1);
+                    m->inst_list[leng] = inst;
+                    m->inst_indx = leng;
+                    m->inst_leng = (leng + 1);
+                }
+                return true;
+            }
             else
             {
-                multi_set_pending(
-                    m, multi_get_instance_by_virtual_addr(m, &dest, dev_type == DEV_TYPE_TUN));
+                multi_set_pending(m, multi_get_instance_by_virtual_addr(m, &dest, dev_type == DEV_TYPE_TUN));
 
                 if (m->pending)
                 {
@@ -3614,6 +3655,106 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
         }
     }
     return ret;
+}
+
+bool multi_process_inp_tun_post(struct multi_context *m, const unsigned int mpp_flags)
+{
+    if (!INST_LENG(m))
+    {
+        return false;
+    }
+    if (m->pending)
+    {
+        return false;
+    }
+    while (m->inst_indx < m->inst_leng)
+    {
+        struct multi_instance *i = m->inst_list[m->inst_indx];
+        if (i)
+        {
+            if (!(multi_output_queue_ready(m, i)))
+            {
+                return false;
+            }
+            multi_set_pending(m, i);
+            set_prefix(m->pending);
+            multi_process_post(m, m->pending, mpp_flags);
+            clear_prefix();
+            m->inst_list[m->inst_indx] = NULL;
+        }
+        m->inst_indx += 1;
+        break;
+    }
+    return true;
+}
+
+bool multi_process_incoming_tun_part3(struct multi_context *m, const unsigned int mpp_flags)
+{
+    struct context *c, *b = &(m->top);
+    struct multi_instance *i;
+    int leng = b->c2.buffers->bulk_leng;
+    m->inst_indx = -1;
+    m->inst_leng = -1;
+    for (int x = 0; x < leng; ++x)
+    {
+        m->inst_indx = -9;
+        m->top.c2.buf = b->c2.bufs[x];
+        multi_process_incoming_tun_part2(m, mpp_flags);
+        if (m->inst_indx > -1)
+        {
+            i = m->inst_list[m->inst_indx];
+            c = &(i->context);
+            int y = min_max(c->c2.buffers->bulk_leng, 0, TUN_BAT_MIN - 1);
+            c->c2.buffers->read_tun_bufs[y].offset = TUN_BAT_OFF;
+            c->c2.buffers->read_tun_bufs[y].len = BLEN(&b->c2.bufs[x]);
+            bcopy(BPTR(&b->c2.bufs[x]), BPTR(&c->c2.buffers->read_tun_bufs[y]), BLEN(&b->c2.bufs[x]));
+            c->c2.bufs[y] = c->c2.buffers->read_tun_bufs[y];
+            c->c2.buffers->bulk_indx = 0;
+            c->c2.buffers->bulk_leng = (y + 1);
+        }
+    }
+    b->c2.buffers->bulk_indx = -1;
+    b->c2.buffers->bulk_leng = -1;
+    for (int x = 0; x < m->inst_leng; ++x)
+    {
+        i = m->inst_list[x];
+        c = &(i->context);
+        c->c2.buf = c->c2.bufs[0];
+        process_incoming_tun(c, c->c2.link_sockets[0]);
+    }
+    m->inst_indx = 0;
+    return multi_process_inp_tun_post(m, mpp_flags);
+}
+
+bool multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags)
+{
+    if (!(m->top.options.ce.bulk_mode))
+    {
+        return multi_process_incoming_tun_part2(m, mpp_flags);
+    }
+    else
+    {
+        return multi_process_incoming_tun_part3(m, mpp_flags);
+    }
+}
+
+bool multi_in_tun(struct multi_context *m, const unsigned int mpp_flags)
+{
+    if (INST_LENG(m))
+    {
+        multi_process_inp_tun_post(m, mpp_flags);
+    }
+    else
+    {
+        struct context *c = &(m->top);
+        read_incoming_tun(c);
+        if (!IS_SIG(c))
+        {
+            multi_process_incoming_tun(m, mpp_flags);
+        }
+        return true;
+    }
+    return false;
 }
 
 /*
@@ -3691,7 +3832,7 @@ multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags)
 void
 multi_process_drop_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags)
 {
-    struct multi_instance *mi = m->pending;
+    struct multi_instance *mi = m->pending2;
 
     ASSERT(mi);
 
