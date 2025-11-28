@@ -49,6 +49,15 @@
 #include <netlink/genl/family.h>
 #include <netlink/genl/ctrl.h>
 
+/* When parsing multiple DEL_PEER notifications, openvpn tries to request stats
+ * for each DEL_PEER message (see setenv_stats). This triggers a GET_PEER
+ * request-reply while we are still parsing the rest of the initial
+ * notifications, which can lead to NLE_BUSY or even NLE_NOMEM.
+ *
+ * This basic lock ensures we don't bite our own tail by issuing a dco_get_peer
+ * while still busy receiving and parsing other messages.
+ */
+static bool __is_locked = false;
 
 /* libnl < 3.5.0 does not set the NLA_F_NESTED on its own, therefore we
  * have to explicitly do it to prevent the kernel from failing upon
@@ -127,7 +136,9 @@ nla_put_failure:
 static int
 ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
 {
+    __is_locked = true;
     int ret = nl_recvmsgs(dco->nl_sock, dco->nl_cb);
+    __is_locked = false;
 
     switch (ret)
     {
@@ -1094,29 +1105,34 @@ ovpn_handle_msg(struct nl_msg *msg, void *arg)
      * message, that stores the type-specific attributes.
      *
      * the "dco" object is then filled accordingly with the information
-     * retrieved from the message, so that the rest of the OpenVPN code can
-     * react as need be.
+     * retrieved from the message, so that *process_incoming_dco can react
+     * as need be.
      */
+    int ret;
     switch (gnlh->cmd)
     {
         case OVPN_CMD_PEER_GET:
         {
+            /* return directly, there are no messages to pass to *process_incoming_dco() */
             return ovpn_handle_peer(dco, attrs);
         }
 
         case OVPN_CMD_PEER_DEL_NTF:
         {
-            return ovpn_handle_peer_del_ntf(dco, attrs);
+            ret = ovpn_handle_peer_del_ntf(dco, attrs);
+            break;
         }
 
         case OVPN_CMD_PEER_FLOAT_NTF:
         {
-            return ovpn_handle_peer_float_ntf(dco, attrs);
+            ret = ovpn_handle_peer_float_ntf(dco, attrs);
+            break;
         }
 
         case OVPN_CMD_KEY_SWAP_NTF:
         {
-            return ovpn_handle_key_swap_ntf(dco, attrs);
+            ret = ovpn_handle_key_swap_ntf(dco, attrs);
+            break;
         }
 
         default:
@@ -1125,11 +1141,25 @@ ovpn_handle_msg(struct nl_msg *msg, void *arg)
             return NL_STOP;
     }
 
+    if (ret != NL_OK)
+    {
+        return ret;
+    }
+
+    if (dco->c->mode == CM_TOP)
+    {
+        multi_process_incoming_dco(dco);
+    }
+    else
+    {
+        process_incoming_dco(dco);
+    }
+
     return NL_OK;
 }
 
 int
-dco_do_read(dco_context_t *dco)
+dco_read_and_process(dco_context_t *dco)
 {
     msg(D_DCO_DEBUG, __func__);
 
@@ -1140,6 +1170,12 @@ static int
 dco_get_peer(dco_context_t *dco, int peer_id, const bool raise_sigusr1_on_err)
 {
     ASSERT(dco);
+
+    if (__is_locked)
+    {
+        msg(D_DCO_DEBUG, "%s: cannot request peer stats while parsing other messages", __func__);
+        return 0;
+    }
 
     /* peer_id == -1 means "dump all peers", but this is allowed in MP mode only.
      * If it happens in P2P mode it means that the DCO peer was deleted and we

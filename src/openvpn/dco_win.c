@@ -690,7 +690,7 @@ dco_handle_overlapped_success(dco_context_t *dco, bool queued)
 }
 
 int
-dco_do_read(dco_context_t *dco)
+dco_read_and_process(dco_context_t *dco)
 {
     if (dco->ifmode != DCO_MODE_MP)
     {
@@ -725,6 +725,15 @@ dco_do_read(dco_context_t *dco)
             }
 
             break;
+    }
+
+    if (dco->c->mode == CM_TOP)
+    {
+        multi_process_incoming_dco(dco);
+    }
+    else
+    {
+        process_incoming_dco(dco);
     }
 
     return 0;

@@ -505,7 +505,7 @@ multi_io_process_io(struct multi_context *m)
                 /* incoming data on DCO? */
                 else if (e->arg == MULTI_IO_DCO)
                 {
-                    multi_process_incoming_dco(m);
+                    dco_read_and_process(&m->top.c1.tuntap->dco);
                 }
 #endif
                 /* signal received? */

@@ -210,6 +210,13 @@ void extract_dco_float_peer_addr(sa_family_t socket_family, struct openvpn_socka
                                  const struct sockaddr *float_sa);
 
 /**
+ * Process an incoming DCO message (from kernel space).
+ *
+ * @param dco - Pointer to the structure representing the DCO context.
+ */
+void process_incoming_dco(dco_context_t *dco);
+
+/**
  * Write a packet to the external network interface.
  * @ingroup external_multiplexer
  *

@@ -1243,19 +1243,11 @@ extract_dco_float_peer_addr(const sa_family_t socket_family, struct openvpn_sock
     }
 }
 
-static void
-process_incoming_dco(struct context *c)
+void
+process_incoming_dco(dco_context_t *dco)
 {
 #if defined(ENABLE_DCO) && (defined(TARGET_LINUX) || defined(TARGET_FREEBSD))
-    dco_context_t *dco = &c->c1.tuntap->dco;
-
-    dco_do_read(dco);
-
-    /* no message for us to handle - platform specific code has logged details */
-    if (dco->dco_message_type == 0)
-    {
-        return;
-    }
+    struct context *c = dco->c;
 
     /* FreeBSD currently sends us removal notifcation with the old peer-id in
      * p2p mode with the ping timeout reason, so ignore that one to not shoot
@@ -2369,7 +2361,7 @@ process_io(struct context *c, struct link_socket *sock)
     {
         if (!IS_SIG(c))
         {
-            process_incoming_dco(c);
+            dco_read_and_process(&c->c1.tuntap->dco);
         }
     }
 }

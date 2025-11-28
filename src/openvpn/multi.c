@@ -3263,14 +3263,12 @@ process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi, dc
     multi_signal_instance(m, mi, SIGTERM);
 }
 
-bool
-multi_process_incoming_dco(struct multi_context *m)
+void
+multi_process_incoming_dco(dco_context_t *dco)
 {
-    dco_context_t *dco = &m->top.c1.tuntap->dco;
+    ASSERT(dco->c->multi);
 
-    struct multi_instance *mi = NULL;
-
-    int ret = dco_do_read(&m->top.c1.tuntap->dco);
+    struct multi_context *m = dco->c->multi;
 
     int peer_id = dco->dco_message_peer_id;
 
@@ -3279,12 +3277,12 @@ multi_process_incoming_dco(struct multi_context *m)
      */
     if (peer_id < 0)
     {
-        return ret > 0;
+        return;
     }
 
     if ((peer_id < m->max_clients) && (m->instances[peer_id]))
     {
-        mi = m->instances[peer_id];
+        struct multi_instance *mi = m->instances[peer_id];
         set_prefix(mi);
         if (dco->dco_message_type == OVPN_CMD_DEL_PEER)
         {
@@ -3325,11 +3323,6 @@ multi_process_incoming_dco(struct multi_context *m)
             "type %d, del_peer_reason %d",
             peer_id, dco->dco_message_type, dco->dco_del_peer_reason);
     }
-
-    dco->dco_message_type = 0;
-    dco->dco_message_peer_id = -1;
-    dco->dco_del_peer_reason = -1;
-    return ret > 0;
 }
 #endif /* if defined(ENABLE_DCO) */
 

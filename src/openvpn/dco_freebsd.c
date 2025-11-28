@@ -578,7 +578,7 @@ dco_update_peer_stat(struct multi_context *m, uint32_t peerid, const nvlist_t *n
 }
 
 int
-dco_do_read(dco_context_t *dco)
+dco_read_and_process(dco_context_t *dco)
 {
     struct ifdrv drv;
     uint8_t buf[4096];
@@ -684,10 +684,20 @@ dco_do_read(dco_context_t *dco)
 
         default:
             msg(M_WARN, "%s: unknown kernel notification %d", __func__, type);
+            dco->dco_message_type = 0;
             break;
     }
 
     nvlist_destroy(nvl);
+
+    if (dco->c->mode == CM_TOP)
+    {
+        multi_process_incoming_dco(dco);
+    }
+    else
+    {
+        process_incoming_dco(dco);
+    }
 
     return 0;
 }
