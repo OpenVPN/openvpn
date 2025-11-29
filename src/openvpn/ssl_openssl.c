@@ -141,6 +141,8 @@ tls_ctx_free(struct tls_root_ctx *ctx)
     ASSERT(NULL != ctx);
     SSL_CTX_free(ctx->ctx);
     ctx->ctx = NULL;
+    sk_X509_CRL_pop_free(ctx->crls, X509_CRL_free);
+    ctx->crls = NULL;
     unload_xkey_provider(); /* in case it is loaded */
 }
 
@@ -302,6 +304,22 @@ tls_ctx_set_tls_versions(struct tls_root_ctx *ctx, unsigned int ssl_flags)
     return true;
 }
 
+static int
+cert_verify_callback(X509_STORE_CTX *ctx, void *arg)
+{
+    struct tls_session *session;
+    SSL *ssl;
+
+    ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    ASSERT(ssl);
+    session = SSL_get_ex_data(ssl, mydata_index);
+    ASSERT(session);
+
+    /* Configure CRLs. */
+    X509_STORE_CTX_set0_crls(ctx, session->opt->ssl_ctx.crls);
+    return X509_verify_cert(ctx);
+}
+
 bool
 tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
 {
@@ -344,6 +362,7 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
         verify_flags = SSL_VERIFY_PEER;
     }
     SSL_CTX_set_verify(ctx->ctx, verify_flags, verify_callback);
+    SSL_CTX_set_cert_verify_callback(ctx->ctx, cert_verify_callback, NULL);
 
     SSL_CTX_set_info_callback(ctx->ctx, info_callback);
 
@@ -1318,6 +1337,7 @@ void
 backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file, bool crl_inline)
 {
     BIO *in = NULL;
+    STACK_OF(X509_CRL) *crls = NULL;
 
     X509_STORE *store = SSL_CTX_get_cert_store(ssl_ctx->ctx);
     if (!store)
@@ -1325,20 +1345,8 @@ backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file, b
         crypto_msg(M_FATAL, "Cannot get certificate store");
     }
 
-    /* Always start with a cleared CRL list, for that we
-     * we need to manually find the CRL object from the stack
-     * and remove it */
-    STACK_OF(X509_OBJECT) *objs = X509_STORE_get0_objects(store);
-    for (int i = 0; i < sk_X509_OBJECT_num(objs); i++)
-    {
-        X509_OBJECT *obj = sk_X509_OBJECT_value(objs, i);
-        ASSERT(obj);
-        if (X509_OBJECT_get_type(obj) == X509_LU_CRL)
-        {
-            sk_X509_OBJECT_delete(objs, i);
-            X509_OBJECT_free(obj);
-        }
-    }
+    sk_X509_CRL_pop_free(ssl_ctx->crls, X509_CRL_free);
+    ssl_ctx->crls = NULL;
 
     X509_STORE_set_flags(store, X509_V_FLAG_CRL_CHECK | X509_V_FLAG_CRL_CHECK_ALL);
 
@@ -1354,7 +1362,13 @@ backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file, b
     if (in == NULL)
     {
         msg(M_WARN, "CRL: cannot read: %s", print_key_filename(crl_file, crl_inline));
-        goto end;
+        return;
+    }
+
+    crls = sk_X509_CRL_new_null();
+    if (crls == NULL)
+    {
+        crypto_msg(M_FATAL, "CRL: cannot create CRL list");
     }
 
     int num_crls_loaded = 0;
@@ -1380,18 +1394,14 @@ backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file, b
             break;
         }
 
-        if (!X509_STORE_add_crl(store, crl))
+        if (!sk_X509_CRL_push(crls, crl))
         {
-            X509_CRL_free(crl);
-            crypto_msg(M_WARN, "CRL: cannot add %s to store",
-                       print_key_filename(crl_file, crl_inline));
-            break;
+            crypto_msg(M_FATAL, "CRL: cannot add CRL to list");
         }
-        X509_CRL_free(crl);
         num_crls_loaded++;
     }
     msg(M_INFO, "CRL: loaded %d CRLs from file %s", num_crls_loaded, crl_file);
-end:
+    ssl_ctx->crls = crls;
     BIO_free(in);
 }
 
