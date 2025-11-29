@@ -58,7 +58,7 @@ typedef enum
  *
  * @return              \c SUCCESS if verification was successful, \c FAILURE on failure.
  */
-result_t verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_depth);
+result_t verify_cert(struct tls_multi *multi, openvpn_x509_cert_t *cert, int cert_depth);
 
 /*
  * Remember the given certificate hash, allowing the certificate chain to be
@@ -71,8 +71,7 @@ result_t verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int
  * @param cert_depth    Depth of the current certificate
  * @param cert_hash     Hash of the current certificate
  */
-void cert_hash_remember(struct tls_session *session, const int cert_depth,
-                        const struct buffer *cert_hash);
+void cert_hash_remember(struct tls_multi *multi, int cert_depth, const struct buffer *cert_hash);
 
 /*
  * Library-specific functions.

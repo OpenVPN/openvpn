@@ -306,6 +306,9 @@ static const char usage_message[] =
     "                  'maybe' -- Use per-route hints\n"
     "                  'yes'   -- Always DF (Don't Fragment)\n"
     "--mtu-test      : Empirically measure and report MTU.\n"
+    "--bulk-mode     : Use bulk TUN/TCP reads/writes.\n"
+    "--mtio-mode n   : Use multi threaded mode. (optional expire time: n=30)\n"
+    "--dual-mode     : Use dual threads for the link/tunn core operations.\n"
 #ifdef ENABLE_FRAGMENT
     "--fragment max  : Enable internal datagram fragmentation so that no UDP\n"
     "                  datagrams are sent which are larger than max bytes.\n"
@@ -984,17 +987,6 @@ setenv_connection_entry(struct env_set *es, const struct connection_entry *e, co
 {
     setenv_str_i(es, "remote", e->remote, i);
     setenv_str_i(es, "remote_port", e->remote_port, i);
-
-    if (e->http_proxy_options)
-    {
-        setenv_str_i(es, "http_proxy_server", e->http_proxy_options->server, i);
-        setenv_str_i(es, "http_proxy_port", e->http_proxy_options->port, i);
-    }
-    if (e->socks_proxy_server)
-    {
-        setenv_str_i(es, "socks_proxy_server", e->socks_proxy_server, i);
-        setenv_str_i(es, "socks_proxy_port", e->socks_proxy_port, i);
-    }
 }
 
 static void
@@ -1525,37 +1517,6 @@ option_iroute_ipv6(struct options *o, const char *prefix_str, msglvl_t msglevel)
     o->iroutes_ipv6 = ir;
 }
 
-#ifndef ENABLE_SMALL
-static void
-show_http_proxy_options(const struct http_proxy_options *o)
-{
-    int i;
-    msg(D_SHOW_PARMS, "BEGIN http_proxy");
-    SHOW_STR(server);
-    SHOW_STR(port);
-    SHOW_STR(auth_method_string);
-    SHOW_STR(auth_file);
-    SHOW_STR(auth_file_up);
-    SHOW_BOOL(inline_creds);
-    SHOW_BOOL(nocache);
-    SHOW_STR(http_version);
-    SHOW_STR(user_agent);
-    for (i = 0; i < MAX_CUSTOM_HTTP_HEADER && o->custom_headers[i].name; i++)
-    {
-        if (o->custom_headers[i].content)
-        {
-            msg(D_SHOW_PARMS, "  custom_header[%d] = %s: %s", i, o->custom_headers[i].name,
-                o->custom_headers[i].content);
-        }
-        else
-        {
-            msg(D_SHOW_PARMS, "  custom_header[%d] = %s", i, o->custom_headers[i].name);
-        }
-    }
-    msg(D_SHOW_PARMS, "END http_proxy");
-}
-#endif /* ifndef ENABLE_SMALL */
-
 void
 options_detach(struct options *o)
 {
@@ -1618,12 +1579,6 @@ show_connection_entry(const struct connection_entry *o)
     SHOW_INT(connect_retry_seconds);
     SHOW_INT(connect_timeout);
 
-    if (o->http_proxy_options)
-    {
-        show_http_proxy_options(o->http_proxy_options);
-    }
-    SHOW_STR(socks_proxy_server);
-    SHOW_STR(socks_proxy_port);
     SHOW_INT(tun_mtu);
     SHOW_BOOL(tun_mtu_defined);
     SHOW_INT(link_mtu);
@@ -1989,71 +1944,6 @@ show_settings(const struct options *o)
 #undef SHOW_STR
 #undef SHOW_INT
 #undef SHOW_BOOL
-
-#ifdef ENABLE_MANAGEMENT
-
-static struct http_proxy_options *
-parse_http_proxy_override(const char *server, const char *port, const char *flags,
-                          struct gc_arena *gc)
-{
-    if (server && port)
-    {
-        struct http_proxy_options *ho;
-        ALLOC_OBJ_CLEAR_GC(ho, struct http_proxy_options, gc);
-        ho->server = string_alloc(server, gc);
-        ho->port = port;
-        if (flags && !strcmp(flags, "nct"))
-        {
-            ho->auth_retry = PAR_NCT;
-        }
-        else
-        {
-            ho->auth_retry = PAR_ALL;
-        }
-        ho->http_version = "1.0";
-        ho->user_agent = "OpenVPN-Autoproxy/1.0";
-        return ho;
-    }
-    else
-    {
-        return NULL;
-    }
-}
-
-static void
-options_postprocess_http_proxy_override(struct options *o)
-{
-    const struct connection_list *l = o->connection_list;
-    int i;
-    bool succeed = false;
-    for (i = 0; i < l->len; ++i)
-    {
-        struct connection_entry *ce = l->array[i];
-        if (ce->proto == PROTO_TCP_CLIENT || ce->proto == PROTO_TCP)
-        {
-            ce->http_proxy_options = o->http_proxy_override;
-            succeed = true;
-        }
-    }
-    if (succeed)
-    {
-        for (i = 0; i < l->len; ++i)
-        {
-            struct connection_entry *ce = l->array[i];
-            if (ce->proto == PROTO_UDP)
-            {
-                ce->flags |= CE_DISABLED;
-            }
-        }
-    }
-    else
-    {
-        msg(M_WARN,
-            "Note: option http-proxy-override ignored because no TCP-based connection profiles are defined");
-    }
-}
-
-#endif /* ifdef ENABLE_MANAGEMENT */
 
 static struct local_list *
 alloc_local_list_if_undef(struct connection_entry *ce, struct gc_arena *gc)
@@ -2474,27 +2364,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         msg(M_USAGE, "--remote MUST be used in TCP Client mode");
     }
 
-    if ((ce->http_proxy_options) && ce->proto != PROTO_TCP_CLIENT)
-    {
-        msg(M_USAGE, "--http-proxy MUST be used in TCP Client mode (i.e. --proto "
-                     "tcp-client)");
-    }
-
-    if ((ce->http_proxy_options) && !ce->http_proxy_options->server)
-    {
-        msg(M_USAGE, "--http-proxy not specified but other http proxy options present");
-    }
-
-    if (ce->http_proxy_options && ce->socks_proxy_server)
-    {
-        msg(M_USAGE, "--http-proxy can not be used together with --socks-proxy");
-    }
-
-    if (ce->socks_proxy_server && ce->proto == PROTO_TCP_SERVER)
-    {
-        msg(M_USAGE, "--socks-proxy can not be used in TCP Server mode");
-    }
-
     if (ce->proto == PROTO_TCP_SERVER && (options->connection_list->len > 1))
     {
         msg(M_USAGE, "TCP server mode allows at most one --remote address");
@@ -2540,8 +2409,6 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         }
         MUST_BE_FALSE(ce->remote, "remote");
         MUST_BE_FALSE(!ce->bind_local, "nobind");
-        MUST_BE_FALSE(ce->http_proxy_options, "http-proxy");
-        MUST_BE_FALSE(ce->socks_proxy_server, "socks-proxy");
         /* <connection> blocks force to have a remote embedded, so we check
          * for the --remote and bail out if it is present
          */
@@ -2956,7 +2823,7 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
     bool need_bind = ce->local_port_defined || ce->bind_defined || ce->local_list;
 
     /* socks proxy is enabled */
-    bool uses_socks = ce->proto == PROTO_UDP && ce->socks_proxy_server;
+    bool uses_socks = false;
 
     /* If binding is not forced by an explicit option and we have (at least)
      * one of --tcp-client, --pull (or --client), or socks we do not bind
@@ -2977,29 +2844,6 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
     if (o->proto_force >= 0 && o->proto_force != ce->proto)
     {
         ce->flags |= CE_DISABLED;
-    }
-
-    if (ce->http_proxy_options)
-    {
-        ce->http_proxy_options->nocache = ssl_get_auth_nocache();
-    }
-
-    /* our socks code is not fully IPv6 enabled yet (TCP works, UDP not)
-     * so fall back to IPv4-only (trac #1221)
-     */
-    if (ce->socks_proxy_server && proto_is_udp(ce->proto) && ce->af != AF_INET)
-    {
-        if (ce->af == AF_INET6)
-        {
-            msg(M_INFO, "WARNING: '--proto udp6' is not compatible with "
-                        "'--socks-proxy' today.  Forcing IPv4 mode.");
-        }
-        else
-        {
-            msg(M_INFO, "NOTICE: dual-stack mode for '--proto udp' does not "
-                        "work correctly with '--socks-proxy' today.  Forcing IPv4.");
-        }
-        ce->af = AF_INET;
     }
 
     /*
@@ -3298,6 +3142,23 @@ options_postprocess_mutate_invariant(struct options *options)
         options->pkcs11_providers[0] = DEFAULT_PKCS11_MODULE;
     }
 #endif
+
+    if ((options->ce.proto != PROTO_TCP) && (options->ce.proto != PROTO_TCP_SERVER) && (options->ce.proto != PROTO_TCP_CLIENT))
+    {
+        options->ce.bulk_mode = false;
+    }
+
+    options->ce.mtio_conf = false;
+
+    if (options->ce.mtio_mode)
+    {
+        options->ce.mtio_conf = true;
+    }
+
+    if (options->ce.dual_mode)
+    {
+        options->ce.mtio_conf = true;
+    }
 }
 
 static void
@@ -3867,12 +3728,6 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
                     "include this in your server configuration");
         o->dh_file = NULL;
     }
-#if ENABLE_MANAGEMENT
-    if (o->http_proxy_override)
-    {
-        options_postprocess_http_proxy_override(o);
-    }
-#endif
     if (!o->ca_file && !o->ca_path && o->verify_hash && o->verify_hash_depth == 0)
     {
         msg(M_INFO, "Using certificate fingerprint to verify peer (no CA "
@@ -5205,10 +5060,6 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
         }
         o->disable_nbt = 0;
         o->dhcp_options = 0;
-#if defined(TARGET_ANDROID)
-        o->http_proxy_port = 0;
-        o->http_proxy = NULL;
-#endif
     }
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
 #ifdef _WIN32
@@ -5511,10 +5362,6 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             o->dhcp_options = 0;
 
             CLEAR(options->dns_options.from_dhcp);
-#if defined(TARGET_ANDROID)
-            o->http_proxy_port = 0;
-            o->http_proxy = NULL;
-#endif
             *update_options_found |= OPT_P_U_DHCP;
         }
     }
@@ -6091,17 +5938,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
 
         options->ignore_unknown_option[i] = NULL;
     }
-#if ENABLE_MANAGEMENT
-    else if (streq(p[0], "http-proxy-override") && p[1] && p[2] && !p[4])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->http_proxy_override = parse_http_proxy_override(p[1], p[2], p[3], &options->gc);
-        if (!options->http_proxy_override)
-        {
-            goto err;
-        }
-    }
-#endif
     else if (streq(p[0], "remote") && p[1] && !p[4])
     {
         struct remote_entry re;
@@ -6652,140 +6488,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             goto err;
         }
         options->proto_force = proto_force;
-    }
-    else if (streq(p[0], "http-proxy") && p[1] && !p[5])
-    {
-        struct http_proxy_options *ho;
-
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
-
-        {
-            if (!p[2])
-            {
-                msg(msglevel, "http-proxy port number not defined");
-                goto err;
-            }
-
-            ho = init_http_proxy_options_once(&options->ce.http_proxy_options, &options->gc);
-
-            ho->server = p[1];
-            ho->port = p[2];
-        }
-
-        if (p[3])
-        {
-            /* auto -- try to figure out proxy addr, port, and type automatically */
-            /* auto-nct -- disable proxy auth cleartext protocols (i.e. basic auth) */
-            if (streq(p[3], "auto"))
-            {
-                ho->auth_retry = PAR_ALL;
-            }
-            else if (streq(p[3], "auto-nct"))
-            {
-                ho->auth_retry = PAR_NCT;
-            }
-            else
-            {
-                ho->auth_method_string = "basic";
-                ho->auth_file = p[3];
-
-                if (p[4])
-                {
-                    ho->auth_method_string = p[4];
-                }
-            }
-        }
-        else
-        {
-            ho->auth_method_string = "none";
-        }
-    }
-    else if (streq(p[0], "http-proxy-user-pass") && p[1])
-    {
-        struct http_proxy_options *ho;
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_INLINE);
-        ho = init_http_proxy_options_once(&options->ce.http_proxy_options, &options->gc);
-        ho->auth_file_up = p[1];
-        ho->inline_creds = is_inline;
-    }
-    else if (streq(p[0], "http-proxy-retry") || streq(p[0], "socks-proxy-retry"))
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
-        msg(M_WARN, "DEPRECATED OPTION: http-proxy-retry and socks-proxy-retry: "
-                    "In OpenVPN 2.4 proxy connection retries are handled like regular connections. "
-                    "Use connect-retry-max 1 to get a similar behavior as before.");
-    }
-    else if (streq(p[0], "http-proxy-timeout") && p[1] && !p[2])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
-        msg(M_WARN,
-            "DEPRECATED OPTION: http-proxy-timeout: In OpenVPN 2.4 the timeout until a connection to a "
-            "server is established is managed with a single timeout set by connect-timeout");
-    }
-    else if (streq(p[0], "http-proxy-option") && p[1] && !p[4])
-    {
-        struct http_proxy_options *ho;
-
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
-        ho = init_http_proxy_options_once(&options->ce.http_proxy_options, &options->gc);
-
-        if (streq(p[1], "VERSION") && p[2] && !p[3])
-        {
-            ho->http_version = p[2];
-        }
-        else if (streq(p[1], "AGENT") && p[2] && !p[3])
-        {
-            ho->user_agent = p[2];
-        }
-        else if ((streq(p[1], "EXT1") || streq(p[1], "EXT2") || streq(p[1], "CUSTOM-HEADER"))
-                 && p[2])
-        {
-            /* In the wild patched versions use both EXT1/2 and CUSTOM-HEADER
-             * with either two argument or one */
-
-            struct http_custom_header *custom_header = NULL;
-            int i;
-            /* Find the first free header */
-            for (i = 0; i < MAX_CUSTOM_HTTP_HEADER; i++)
-            {
-                if (!ho->custom_headers[i].name)
-                {
-                    custom_header = &ho->custom_headers[i];
-                    break;
-                }
-            }
-            if (!custom_header)
-            {
-                msg(msglevel, "Cannot use more than %d http-proxy-option CUSTOM-HEADER : '%s'",
-                    MAX_CUSTOM_HTTP_HEADER, p[1]);
-            }
-            else
-            {
-                /* We will save p[2] and p[3], the proxy code will detect if
-                 * p[3] is NULL */
-                custom_header->name = p[2];
-                custom_header->content = p[3];
-            }
-        }
-        else
-        {
-            msg(msglevel, "Bad http-proxy-option or missing or extra parameter: '%s'", p[1]);
-        }
-    }
-    else if (streq(p[0], "socks-proxy") && p[1] && !p[4])
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
-
-        if (p[2])
-        {
-            options->ce.socks_proxy_port = p[2];
-        }
-        else
-        {
-            options->ce.socks_proxy_port = "1080";
-        }
-        options->ce.socks_proxy_server = p[1];
-        options->ce.socks_proxy_authfile = p[3]; /* might be NULL */
     }
     else if (streq(p[0], "keepalive") && p[1] && p[2] && !p[3])
     {
@@ -8035,13 +7737,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             o->disable_nbt = 1;
             o->dhcp_options |= DHCP_OPTIONS_DHCP_REQUIRED;
         }
-#if defined(TARGET_ANDROID)
-        else if (streq(p[1], "PROXY_HTTP") && p[3] && !p[4])
-        {
-            o->http_proxy_port = positive_atoi(p[3], msglevel);
-            o->http_proxy = p[2];
-        }
-#endif
         else
         {
             msg(msglevel, "--dhcp-option: unknown option type '%s' or missing or unknown parameter",
@@ -9297,6 +8992,27 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             goto err;
         }
         options->vlan_pvid = (uint16_t)vlan_pvid;
+    }
+    else if (streq(p[0], "bulk-mode"))
+    {
+        options->ce.bulk_mode = true;
+    }
+    else if (streq(p[0], "mtio-mode"))
+    {
+        options->ce.mtio_mode = true;
+        options->ce.mtio_time = 30;
+        if (p[1])
+        {
+            int mtio_time = positive_atoi(p[1], msglevel);
+            if ((5 <= mtio_time) && (mtio_time <= 9995))
+            {
+                options->ce.mtio_time = mtio_time;
+            }
+        }
+    }
+    else if (streq(p[0], "dual-mode"))
+    {
+        options->ce.dual_mode = true;
     }
     else
     {

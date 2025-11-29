@@ -47,6 +47,21 @@
 #include "dns.h"
 
 /*
+    mtio mode commit notes:
+      - maps size hash modp >= 2^14 16384
+      - briefly track and map connection states to a given thread to ensure packet ordering
+      - Use a simple calculation based on src and dst IP address to get a starting list index value
+*/
+
+#define MAX_THREADS 4
+#define MAX_STRLENG 64
+#define MAX_CSTATES 16421
+
+#define THREAD_RTWL (1 << 0)
+#define THREAD_RLWT (1 << 1)
+#define THREAD_MAIN (THREAD_RTWL | THREAD_RLWT)
+
+/*
  * Our global key schedules, packaged thusly
  * to facilitate key persistence.
  */
@@ -112,6 +127,14 @@ struct context_buffers
      */
     struct buffer read_link_buf;
     struct buffer read_tun_buf;
+
+    struct buffer read_tun_bufs[TUN_BAT_MAX];
+    struct buffer read_tun_max;
+    struct buffer send_tun_max;
+    struct buffer to_tun_max;
+
+    int bulk_indx;
+    int bulk_leng;
 };
 
 /*
@@ -185,14 +208,6 @@ struct context_1
     struct status_output *status_output;
     bool status_output_owned;
 
-    /* HTTP proxy object */
-    struct http_proxy_info *http_proxy;
-    bool http_proxy_owned;
-
-    /* SOCKS proxy object */
-    struct socks_proxy_info *socks_proxy;
-    bool socks_proxy_owned;
-
     /* persist --ifconfig-pool db to file */
     struct ifconfig_pool_persist *ifconfig_pool_persist;
     bool ifconfig_pool_persist_owned;
@@ -246,12 +261,6 @@ struct context_2
 
     /* MTU frame parameters */
     struct frame frame; /* Active frame parameters */
-
-#ifdef ENABLE_FRAGMENT
-    /* Object to handle advanced MTU negotiation and datagram fragmentation */
-    struct fragment_master *fragment;
-    struct frame frame_fragment;
-#endif
 
     /*
      * Traffic shaper object.
@@ -373,8 +382,11 @@ struct context_2
      * struct context_buffers.
      */
     struct buffer buf;
+    struct buffer buf2;
     struct buffer to_tun;
     struct buffer to_link;
+
+    struct buffer bufs[TUN_BAT_MAX];
 
     /* should we print R|W|r|w to console on packet transfers? */
     bool log_rw;
@@ -510,12 +522,97 @@ struct context
     bool did_we_daemonize;       /**< Whether demonization has already
                                   *   taken place. */
 
+    int skip_bind;
+
     struct context_persist persist;
     /**< Persistent %context. */
     struct context_0 *c0; /**< Level 0 %context. */
     struct context_1 c1;  /**< Level 1 %context. */
     struct context_2 c2;  /**< Level 2 %context. */
 };
+
+
+#define TEST_ADRS_CONN_MAPS(s, d, i) (((s.v4.addr == i.srca) && (d.v4.addr == i.dsta)) || ((d.v4.addr == i.srca) && (s.v4.addr == i.dsta)))
+#define TEST_ADRS_CONN_NOTS(s, d, i) ((s.v4.addr == i) || (d.v4.addr == i))
+#define TEST_ADRS_CONN_MSKS(s, d, i) (((s.v4.addr & i) == i) && ((d.v4.addr & i) == i))
+#define HASH_PART(a, s, p, q) ((((a >> s) & 0xff) + p) * q)
+
+struct context_pointer
+{
+    int i, h, n, x, z;
+    int s[MAX_THREADS][2];
+    int r[MAX_THREADS][2];
+    struct context *c;
+    struct multi_context **m;
+    struct multi_context *p;
+    struct multi_link *k;
+    pthread_mutex_t *l;
+};
+
+struct thread_pointer
+{
+    int i, n, h;
+    struct context *c;
+    struct context_pointer *p;
+};
+
+struct multi_address
+{
+    char ladr[MAX_STRLENG];
+    char wadr[MAX_STRLENG];
+    char comm[MAX_STRLENG];
+    char user[MAX_STRLENG];
+    char uniq[MAX_STRLENG];
+    time_t last;
+    in_addr_t addr;
+};
+
+struct multi_link
+{
+    int indx;
+    char uniq[MAX_STRLENG];
+    time_t last;
+    struct multi_address adrs[MAX_THREADS];
+};
+
+struct multi_info
+{
+    int maxt, maxc;
+    int *indx, *hold;
+    struct ifconfig_pool *pool;
+    pthread_mutex_t *lock;
+    struct multi_link *link;
+};
+
+struct mtio_args
+{
+    char *pref;
+    int expr;
+    int *thid;
+    uint8_t *busy;
+    int notl;
+    in_addr_t *nots;
+    int mskl;
+    in_addr_t *msks;
+};
+
+struct mtio_cons
+{
+    int thid;
+    time_t last;
+    in_addr_t srca, dsta;
+};
+
+struct dual_args
+{
+    int a, f, t, z;
+    int w[2][2];
+    struct context *c;
+    struct thread_pointer *b;
+};
+
+void *threaded_io_management(void *a);
+
 
 /*
  * Check for a signal when inside an event loop
