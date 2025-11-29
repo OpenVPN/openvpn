@@ -108,4 +108,7 @@ bool apply_pull_filter(const struct options *o, char *line);
  */
 bool check_push_update_option_flags(char *line, int *i, unsigned int *flags);
 
+extern const char *updatable_options[];
+extern const size_t updatable_options_count;
+
 #endif /* ifndef OPTIONS_UTIL_H_ */

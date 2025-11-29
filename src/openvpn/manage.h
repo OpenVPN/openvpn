@@ -198,6 +198,7 @@ struct management_callback
     bool (*remote_entry_get)(void *arg, unsigned int index, char **remote);
     bool (*push_update_broadcast)(void *arg, const char *options);
     bool (*push_update_by_cid)(void *arg, unsigned long cid, const char *options);
+    bool (*reload_push_options)(void *arg, bool sync);
 };
 
 /*

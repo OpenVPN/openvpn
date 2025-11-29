@@ -193,7 +193,7 @@ atoi_constrained(const char *str, int *value, const char *name, int min, int max
     return true;
 }
 
-static const char *updatable_options[] = { "block-ipv6", "block-outside-dns",
+const char *updatable_options[] = { "block-ipv6", "block-outside-dns",
                                            "dhcp-option", "dns",
                                            "ifconfig", "ifconfig-ipv6",
                                            "push-continuation", "redirect-gateway",
@@ -201,6 +201,8 @@ static const char *updatable_options[] = { "block-ipv6", "block-outside-dns",
                                            "route-gateway", "route-ipv6",
                                            "route-metric", "topology",
                                            "tun-mtu", "keepalive" };
+
+const size_t updatable_options_count = sizeof(updatable_options) / sizeof(char *);
 
 bool
 check_push_update_option_flags(char *line, int *i, unsigned int *flags)
@@ -232,8 +234,7 @@ check_push_update_option_flags(char *line, int *i, unsigned int *flags)
     }
 
     size_t len = strlen(&line[*i]);
-    int count = sizeof(updatable_options) / sizeof(char *);
-    for (int j = 0; j < count; ++j)
+    for (size_t j = 0; j < updatable_options_count; ++j)
     {
         size_t opt_len = strlen(updatable_options[j]);
         if (len < opt_len)
