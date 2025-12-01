@@ -517,7 +517,6 @@ apply_push_options(struct context *c, struct options *options, struct buffer *bu
     int line_num = 0;
     const char *file = "[PUSH-OPTIONS]";
     const msglvl_t msglevel = D_PUSH_ERRORS | M_OPTERR;
-    unsigned int update_options_found = 0;
 
     while (buf_parse(buf, ',', line, sizeof(line)))
     {
@@ -564,8 +563,13 @@ apply_push_options(struct context *c, struct options *options, struct buffer *bu
             }
             else
             {
+                /*
+                 * Use persistent push_update_options_found from options struct to track
+                 * which option types have been reset across continuation messages.
+                 * This prevents routes from being reset on each continuation message.
+                 */
                 update_option(c, options, p, false, file, line_num, 0, msglevel, permission_mask,
-                              option_types_found, es, &update_options_found);
+                              option_types_found, es);
             }
         }
     }

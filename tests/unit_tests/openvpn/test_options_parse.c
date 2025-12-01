@@ -60,7 +60,7 @@ void
 update_option(struct context *c, struct options *options, char *p[], bool is_inline,
               const char *file, int line, const int level, const msglvl_t msglevel,
               const unsigned int permission_mask, unsigned int *option_types_found,
-              struct env_set *es, unsigned int *update_options_found)
+              struct env_set *es)
 {
 }
 
