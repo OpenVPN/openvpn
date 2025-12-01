@@ -137,6 +137,8 @@ man_help(void)
     msg(M_CLIENT, "push-update-broad options : Broadcast a message to update the specified options.");
     msg(M_CLIENT, "                            Ex. push-update-broad \"route something, -dns\"");
     msg(M_CLIENT, "push-update-cid CID options : Send an update message to the client identified by CID.");
+    msg(M_CLIENT, "reload-push-options [update-clients] : Reload push options from config file for new clients.");
+    msg(M_CLIENT, "                            With 'update-clients': also update connected clients (add new, remove old).");
     msg(M_CLIENT, "END");
 }
 
@@ -1721,6 +1723,33 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
         if (man_need(man, p, 2, 0))
         {
             man_push_update(man, p, UPT_BY_CID);
+        }
+    }
+    else if (streq(p[0], "reload-push-options"))
+    {
+        if (man->persist.callback.reload_push_options)
+        {
+            bool update_clients = (p[1] && streq(p[1], "update-clients"));
+            bool status = (*man->persist.callback.reload_push_options)(man->persist.callback.arg, update_clients);
+            if (status)
+            {
+                if (update_clients)
+                {
+                    msg(M_CLIENT, "SUCCESS: push options reloaded and sent to all clients");
+                }
+                else
+                {
+                    msg(M_CLIENT, "SUCCESS: push options reloaded from config file");
+                }
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: failed to reload push options");
+            }
+        }
+        else
+        {
+            man_command_unsupported("reload-push-options");
         }
     }
 #if 1

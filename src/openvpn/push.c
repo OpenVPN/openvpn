@@ -540,11 +540,15 @@ incoming_push_message(struct context *c, const struct buffer *buffer)
             }
             else
             {
-                if (!option_types_found)
+                /* Clear push_update_options_found for next PUSH_UPDATE sequence */
+                c->options.push_update_options_found = 0;
+
+                /* Use accumulated option_types_found for the entire PUSH_UPDATE sequence */
+                if (!c->options.push_option_types_found)
                 {
                     msg(M_WARN, "No updatable options found in incoming PUSH_UPDATE message");
                 }
-                else if (!do_update(c, option_types_found))
+                else if (!do_update(c, c->options.push_option_types_found))
                 {
                     msg(D_PUSH_ERRORS, "Failed to update options");
                     goto error;

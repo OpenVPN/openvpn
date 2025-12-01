@@ -15,6 +15,7 @@ out
 .vs
 .deps
 .libs
+.cache
 Makefile
 Makefile.in
 aclocal.m4
