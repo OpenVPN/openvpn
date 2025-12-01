@@ -217,10 +217,11 @@ OpenSSL 1.0.2 support has been removed.
     Support for building with OpenSSL 1.0.2 has been removed. The minimum
     supported OpenSSL version is now 1.1.0.
 
-Support for mbedTLS older than 2.18.0 has been removed.
-    We now require all SSL libraries to have support for exporting
-    keying material. The only previously supported library versions
-    this affects are older mbedTLS releases.
+mbedTLS 2.x support has been removed
+    Support for building with mbedTLS 2.x has been removed (it is out
+    of support since March 2025, and the necessary compatibility code
+    is making maintenance and support for mbedTLS 4.x hard).
+    The minimum supported mbedTLS version is now 3.2.1.
 
 Compression on send has been removed.
     OpenVPN 2.7 will never compress data before sending. Decompression of

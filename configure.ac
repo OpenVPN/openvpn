@@ -913,7 +913,7 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 	if test -z "${MBEDTLS_CFLAGS}" -a -z "${MBEDTLS_LIBS}"; then
 		# if the user did not explicitly specify flags, try to autodetect
 		PKG_CHECK_MODULES([MBEDTLS],
-			[mbedtls >= 2.0.0 mbedx509 >= 2.0.0 mbedcrypto >= 2.0.0],
+			[mbedtls >= 3.2.1 mbedx509 >= 3.2.1 mbedcrypto >= 3.2.1],
 			[have_mbedtls="yes"],
 			[LIBS="${LIBS} -lmbedtls -lmbedx509 -lmbedcrypto"]
 		)
@@ -938,34 +938,16 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 #include <mbedtls/version.h>
 			]],
 			[[
-#if MBEDTLS_VERSION_NUMBER < 0x02000000 || (MBEDTLS_VERSION_NUMBER >= 0x03000000 && MBEDTLS_VERSION_NUMBER < 0x03020100)
+#if MBEDTLS_VERSION_NUMBER < 0x03020100
 #error invalid version
 #endif
 			]]
 		)],
 		[AC_MSG_RESULT([ok])],
-		[AC_MSG_ERROR([mbed TLS version >= 2.0.0 or >= 3.2.1 required])]
+		[AC_MSG_ERROR([mbed TLS version >= 3.2.1 required])]
 	)
 
 	AC_CHECK_HEADERS(psa/crypto.h)
-
-	AC_CHECK_FUNCS([mbedtls_ssl_tls_prf mbedtls_ssl_conf_export_keys_ext_cb])
-
-	if test "x$ac_cv_func_mbedtls_ssl_conf_export_keys_ext_cb" != xyes; then
-		AC_CHECK_FUNCS([mbedtls_ssl_set_export_keys_cb])
-		if test "x$ac_cv_func_mbedtls_ssl_set_export_keys_cb" != xyes; then
-			AC_CHECK_FUNC([mbedtls_ssl_export_keying_material])
-			if test "x$ac_cv_func_mbedtls_ssl_export_keying_material" != xyes; then
-				AC_MSG_ERROR(This version of mbed TLS has no support for exporting key material.)
-			fi
-		fi
-	fi
-
-	AC_CHECK_FUNC(
-		[mbedtls_ctr_drbg_update_ret],
-		AC_DEFINE([HAVE_MBEDTLS_CTR_DRBG_UPDATE_RET], [1],
-			  [Use mbedtls_ctr_drbg_update_ret from mbed TLS]),
-	)
 
 	CFLAGS="${saved_CFLAGS}"
 	LIBS="${saved_LIBS}"

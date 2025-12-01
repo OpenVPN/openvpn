@@ -41,7 +41,6 @@
 #include "integer.h"
 #include "crypto_backend.h"
 #include "otime.h"
-#include "mbedtls_compat.h"
 #include "misc.h"
 
 #include <mbedtls/base64.h>
@@ -987,17 +986,7 @@ memcmp_constant_time(const void *a, const void *b, size_t size)
 
     return diff;
 }
-/* mbedtls-2.18.0 or newer implements tls_prf, but prf_tls1 is removed
- * from recent versions, so we use our own implementation if necessary. */
-#if defined(HAVE_MBEDTLS_SSL_TLS_PRF) && defined(MBEDTLS_SSL_TLS_PRF_TLS1)
-bool
-ssl_tls1_PRF(const uint8_t *seed, size_t seed_len, const uint8_t *secret, size_t secret_len,
-             uint8_t *output, size_t output_len)
-{
-    return mbed_ok(mbedtls_ssl_tls_prf(MBEDTLS_SSL_TLS_PRF_TLS1, secret, secret_len, "", seed,
-                                       seed_len, output, output_len));
-}
-#else /* defined(HAVE_MBEDTLS_SSL_TLS_PRF) && defined(MBEDTLS_SSL_TLS_PRF_TLS1) */
+
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
@@ -1135,6 +1124,5 @@ ssl_tls1_PRF(const uint8_t *label, size_t label_len, const uint8_t *sec, size_t 
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
-#endif /* HAVE_MBEDTLS_SSL_TLS_PRF && defined(MBEDTLS_SSL_TLS_PRF_TLS1) */
 
 #endif /* ENABLE_CRYPTO_MBEDTLS */
