@@ -369,15 +369,15 @@ unsigned int
 p2mp_iow_flags(const struct multi_context *m)
 {
     unsigned int flags = IOW_WAIT_SIGNAL;
-    if (m->pending)
+    if (m->pending || m->pending2)
     {
-        if (TUN_OUT(&m->pending->context))
-        {
-            flags |= IOW_TO_TUN;
-        }
-        if (LINK_OUT(&m->pending->context))
+        if (m->pending && LINK_OUT(&m->pending->context))
         {
             flags |= IOW_TO_LINK;
+        }
+        if (m->pending2 && TUN_OUT(&m->pending2->context))
+        {
+            flags |= IOW_TO_TUN;
         }
     }
     else if (mbuf_defined(m->mbuf))
