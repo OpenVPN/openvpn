@@ -1246,6 +1246,11 @@ do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu, const struc
     bool tun_p2p = is_tun_p2p(tt);
 #endif
 
+    if (tt->skip_bind == -1)
+    {
+        tt->local = htonl(inet_addr("127.1.1.1"));
+    }
+
 #if !defined(TARGET_LINUX)
     const char *ifconfig_local = NULL;
     const char *ifconfig_remote_netmask = NULL;
@@ -1755,7 +1760,7 @@ write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -1952,11 +1957,14 @@ open_tun_dco_generic(const char *dev, const char *dev_type, struct tuntap *tt,
 static void
 close_tun_generic(struct tuntap *tt)
 {
-    if (tt->fd >= 0)
+    if (tt->ff > 1)
+    {
+        close(tt->ff);
+    }
+    else if (tt->fd >= 0)
     {
         close(tt->fd);
     }
-
     free(tt->actual_name);
     clear_tuntap(tt);
 }
@@ -2044,7 +2052,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
@@ -2124,7 +2132,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
          * Use special ioctl that configures tun/tap device with the parms
          * we set in ifr
          */
-        if (ioctl(tt->fd, TUNSETIFF, (void *)&ifr) < 0)
+        if (ioctl((tt->ff > 1) ? tt->ff : tt->fd, TUNSETIFF, (void *)&ifr) < 0)
         {
             msg(M_ERR, "ERROR: Cannot ioctl TUNSETIFF %s", dev);
         }
@@ -2254,7 +2262,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
@@ -2834,7 +2842,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -2980,7 +2988,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -3079,7 +3087,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -3334,7 +3342,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        return write(tt->fe, buf, len);
     }
 }
 
@@ -3480,7 +3488,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
@@ -6532,7 +6540,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
-    return write(tt->fd, buf, len);
+    return write(tt->fe, buf, len);
 }
 
 int
