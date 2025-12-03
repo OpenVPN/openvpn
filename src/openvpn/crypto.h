@@ -298,7 +298,8 @@ struct crypto_options
 
     /** last epoch_key used for generation of the current send data keys.
      * As invariant, the epoch of epoch_key_send is always kept >= the epoch of
-     * epoch_key_recv */
+     * key_ctx_bi.decrypt.epoch
+     */
     struct epoch_key epoch_key_send;
 
     /** epoch_key used for the highest receive epoch keys */
@@ -309,7 +310,8 @@ struct crypto_options
 
     /** The limit for AEAD cipher, this is the sum of packets + blocks
      * that are allowed to be used. Will switch to a new epoch if this
-     * limit is reached*/
+     * limit is reached.
+     */
     uint64_t aead_usage_limit;
 
     /** Keeps the future epoch data keys for decryption. The current one

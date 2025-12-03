@@ -97,6 +97,13 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
         /* IV starts with packet id to make the IV unique for packet */
         if (use_epoch_data_format)
         {
+            /* Note this does not check aead_usage_limit but can overstep it by
+             * a few extra blocks in one extra write. This is not affecting the
+             * security margin as these extra blocks are on a completely
+             * different order of magnitude than the security margin.
+             * The next iteration/call to epoch_check_send_iterate will
+             * iterate the epoch
+             */
             if (!packet_id_write_epoch(&opt->packet_id.send, ctx->epoch, &iv_buffer))
             {
                 msg(D_CRYPT_ERRORS, "ENCRYPT ERROR: packet ID roll over");
