@@ -28,7 +28,17 @@ following features are missing
  * blowfish support (BF-CBC), you must use something like
    cipher AES-128-CBC to avoid trying to use BF-CBC
  * Windows CryptoAPI support
+ * No TLS1.0 PRF support (No compaitbility with OpenVPN 2.5 or older or
+   other build that do not support TLS EKM)
 
+
+*************************************************************************
+Newer wolfSSL versions (5.8.2 and newer) are GPLv3 licensed and this license is not
+compatible with OpenVPN's GPLv2 license.
+
+However wolfSSL Inc has granted an exception to combine the wolfSSL library
+with OpenVPN and OpenVPN-NL (https://github.com/wolfSSL/wolfssl/blob/master/LICENSING)
+with version 5.8.4 and later.
 *************************************************************************
 To build WolfSSL with post-quantum KEMs built in, the following command is used:
 
