@@ -3234,6 +3234,7 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
 
     o->push_continuation = 0;
     o->push_option_types_found = 0;
+    o->push_update_options_found = 0;
     o->imported_protocol_flags = 0;
 }
 
@@ -5409,14 +5410,14 @@ void
 update_option(struct context *c, struct options *options, char *p[], bool is_inline,
               const char *file, int line, const int level, const msglvl_t msglevel,
               const unsigned int permission_mask, unsigned int *option_types_found,
-              struct env_set *es, unsigned int *update_options_found)
+              struct env_set *es)
 {
     const bool pull_mode = BOOL_CAST(permission_mask & OPT_P_PULL_MODE);
     ASSERT(MAX_PARMS >= 7);
 
     if (streq(p[0], "route") && p[1] && !p[5])
     {
-        if (!(*update_options_found & OPT_P_U_ROUTE))
+        if (!(options->push_update_options_found & OPT_P_U_ROUTE))
         {
             VERIFY_PERMISSION(OPT_P_ROUTE);
             if (!check_route_option(options, p, msglevel, pull_mode))
@@ -5429,12 +5430,12 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
                                  es, &c->net_ctx);
                 RESET_OPTION_ROUTES(options->routes, routes);
             }
-            *update_options_found |= OPT_P_U_ROUTE;
+            options->push_update_options_found |= OPT_P_U_ROUTE;
         }
     }
     else if (streq(p[0], "route-ipv6") && p[1] && !p[4])
     {
-        if (!(*update_options_found & OPT_P_U_ROUTE6))
+        if (!(options->push_update_options_found & OPT_P_U_ROUTE6))
         {
             VERIFY_PERMISSION(OPT_P_ROUTE);
             if (!check_route6_option(options, p, msglevel, pull_mode))
@@ -5447,12 +5448,12 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
                                  ROUTE_OPTION_FLAGS(&c->options), es, &c->net_ctx);
                 RESET_OPTION_ROUTES(options->routes_ipv6, routes_ipv6);
             }
-            *update_options_found |= OPT_P_U_ROUTE6;
+            options->push_update_options_found |= OPT_P_U_ROUTE6;
         }
     }
     else if (streq(p[0], "redirect-gateway") || streq(p[0], "redirect-private"))
     {
-        if (!(*update_options_found & OPT_P_U_REDIR_GATEWAY))
+        if (!(options->push_update_options_found & OPT_P_U_REDIR_GATEWAY))
         {
             VERIFY_PERMISSION(OPT_P_ROUTE);
             if (options->routes)
@@ -5465,12 +5466,12 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             }
             env_set_del(es, "route_redirect_gateway_ipv4");
             env_set_del(es, "route_redirect_gateway_ipv6");
-            *update_options_found |= OPT_P_U_REDIR_GATEWAY;
+            options->push_update_options_found |= OPT_P_U_REDIR_GATEWAY;
         }
     }
     else if (streq(p[0], "dns") && p[1])
     {
-        if (!(*update_options_found & OPT_P_U_DNS))
+        if (!(options->push_update_options_found & OPT_P_U_DNS))
         {
             VERIFY_PERMISSION(OPT_P_DHCPDNS);
             if (!check_dns_option(options, p, msglevel, pull_mode))
@@ -5479,13 +5480,13 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             }
             gc_free(&options->dns_options.gc);
             CLEAR(options->dns_options);
-            *update_options_found |= OPT_P_U_DNS;
+            options->push_update_options_found |= OPT_P_U_DNS;
         }
     }
 #if defined(_WIN32) || defined(TARGET_ANDROID)
     else if (streq(p[0], "dhcp-option") && p[1] && !p[3])
     {
-        if (!(*update_options_found & OPT_P_U_DHCP))
+        if (!(options->push_update_options_found & OPT_P_U_DHCP))
         {
             struct tuntap_options *o = &options->tuntap_options;
             VERIFY_PERMISSION(OPT_P_DHCPDNS);
@@ -5515,17 +5516,17 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             o->http_proxy_port = 0;
             o->http_proxy = NULL;
 #endif
-            *update_options_found |= OPT_P_U_DHCP;
+            options->push_update_options_found |= OPT_P_U_DHCP;
         }
     }
 #else  /* if defined(_WIN32) || defined(TARGET_ANDROID) */
     else if (streq(p[0], "dhcp-option") && p[1] && !p[3])
     {
-        if (!(*update_options_found & OPT_P_U_DHCP))
+        if (!(options->push_update_options_found & OPT_P_U_DHCP))
         {
             VERIFY_PERMISSION(OPT_P_DHCPDNS);
             delete_all_dhcp_fo(options, &es->list);
-            *update_options_found |= OPT_P_U_DHCP;
+            options->push_update_options_found |= OPT_P_U_DHCP;
         }
     }
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */

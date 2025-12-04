@@ -558,6 +558,7 @@ struct options
     bool pull; /* client pull of config options from server */
     int push_continuation;
     unsigned int push_option_types_found;
+    unsigned int push_update_options_found; /* tracks which option types have been reset in current PUSH_UPDATE sequence */
     const char *auth_user_pass_file;
     bool auth_user_pass_file_inline;
     struct options_pre_connect *pre_connect;
@@ -863,14 +864,11 @@ void remove_option(struct context *c, struct options *options, char *p[], bool i
  * @param option_types_found A pointer to the variable where the flags corresponding to the options
  * found are stored.
  * @param es The environment set structure.
- * @param update_options_found A pointer to the variable where the flags corresponding to the update
- * options found are stored, used to check if an option of the same type has already been processed
- * by update_option() within the same push-update message.
  */
 void update_option(struct context *c, struct options *options, char *p[], bool is_inline,
                    const char *file, int line, const int level, const msglvl_t msglevel,
                    const unsigned int permission_mask, unsigned int *option_types_found,
-                   struct env_set *es, unsigned int *update_options_found);
+                   struct env_set *es);
 
 void parse_argv(struct options *options, const int argc, char *argv[], const msglvl_t msglevel,
                 const unsigned int permission_mask, unsigned int *option_types_found,

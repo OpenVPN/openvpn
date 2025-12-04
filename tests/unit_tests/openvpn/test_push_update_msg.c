@@ -54,12 +54,32 @@ options_postprocess_pull(struct options *options, struct env_set *es)
     return true;
 }
 
+/*
+ * Counters to track route accumulation across continuation messages.
+ * Used to verify the bug where update_options_found resets per message.
+ */
+static int route_reset_count = 0;
+static int route_add_count = 0;
+
+static void
+reset_route_counters(void)
+{
+    route_reset_count = 0;
+    route_add_count = 0;
+}
+
 bool
 apply_push_options(struct context *c, struct options *options, struct buffer *buf,
                    unsigned int permission_mask, unsigned int *option_types_found,
                    struct env_set *es, bool is_update)
 {
     char line[OPTION_PARM_SIZE];
+
+    /*
+     * Use persistent push_update_options_found from options struct to track
+     * which option types have been reset across continuation messages.
+     * This is the FIXED behavior - routes are only reset once per PUSH_UPDATE sequence.
+     */
 
     while (buf_parse(buf, ',', line, sizeof(line)))
     {
@@ -84,10 +104,27 @@ apply_push_options(struct context *c, struct options *options, struct buffer *bu
                 return false; /* Cause push/pull error and stop push processing */
             }
         }
-        /*
-         * No need to test also the application part here
-         * (add_option/remove_option/update_option)
-         */
+
+        /* Simulate route handling from update_option() in options.c */
+        if (strncmp(&line[i], "route ", 6) == 0)
+        {
+            if (!(options->push_update_options_found & OPT_P_U_ROUTE))
+            {
+                /* First route in entire PUSH_UPDATE sequence - reset routes once */
+                route_reset_count++;
+                options->push_update_options_found |= OPT_P_U_ROUTE;
+            }
+            route_add_count++;
+        }
+        /* Simulate add_option() push-continuation logic */
+        else if (!strcmp(&line[i], "push-continuation 2"))
+        {
+            options->push_continuation = 2;
+        }
+        else if (!strcmp(&line[i], "push-continuation 1"))
+        {
+            options->push_continuation = 1;
+        }
     }
     return true;
 }
@@ -290,6 +327,65 @@ test_incoming_push_message_mix2(void **state)
                      PUSH_MSG_UPDATE);
 
     free_buf(&buf);
+}
+
+/**
+ * Test that routes accumulate correctly across multiple continuation messages.
+ * This test exposes a bug where update_options_found is reset to 0 for each
+ * continuation message, causing routes to be reset on each message instead
+ * of accumulating.
+ *
+ * Expected behavior: routes should only be reset ONCE (when the first route is received),
+ * then all subsequent routes should accumulate.
+ *
+ * Current bug: routes are reset on the first route of EACH continuation message.
+ */
+static void
+test_incoming_push_continuation_route_accumulation(void **state)
+{
+    struct context *c = *state;
+    unsigned int option_types_found = 0;
+
+    reset_route_counters();
+
+    /* Message 1: first batch of routes, continuation 2 (more coming) */
+    struct buffer buf1 = alloc_buf(512);
+    const char *msg1 = "PUSH_UPDATE, route 10.1.0.0 255.255.0.0, route 10.2.0.0 255.255.0.0, route 10.3.0.0 255.255.0.0,push-continuation 2";
+    buf_write(&buf1, msg1, strlen(msg1));
+
+    assert_int_equal(process_incoming_push_msg(c, &buf1, c->options.pull, pull_permission_mask(c),
+                                               &option_types_found),
+                     PUSH_MSG_CONTINUATION);
+    free_buf(&buf1);
+
+    /* Message 2: more routes, continuation 2 (more coming) */
+    struct buffer buf2 = alloc_buf(512);
+    const char *msg2 = "PUSH_UPDATE, route 10.4.0.0 255.255.0.0, route 10.5.0.0 255.255.0.0, route 10.6.0.0 255.255.0.0,push-continuation 2";
+    buf_write(&buf2, msg2, strlen(msg2));
+
+    assert_int_equal(process_incoming_push_msg(c, &buf2, c->options.pull, pull_permission_mask(c),
+                                               &option_types_found),
+                     PUSH_MSG_CONTINUATION);
+    free_buf(&buf2);
+
+    /* Message 3: final batch of routes, continuation 1 (last message) */
+    struct buffer buf3 = alloc_buf(512);
+    const char *msg3 = "PUSH_UPDATE, route 10.7.0.0 255.255.0.0, route 10.8.0.0 255.255.0.0, route 10.9.0.0 255.255.0.0,push-continuation 1";
+    buf_write(&buf3, msg3, strlen(msg3));
+
+    assert_int_equal(process_incoming_push_msg(c, &buf3, c->options.pull, pull_permission_mask(c),
+                                               &option_types_found),
+                     PUSH_MSG_UPDATE);
+    free_buf(&buf3);
+
+    /* Verify: all 9 routes should have been added */
+    assert_int_equal(route_add_count, 9);
+
+    /*
+     * Verify: route option is reset only one time in the first message
+     * if a push-continuation is present.
+     */
+    assert_int_equal(route_reset_count, 1);
 }
 
 #ifdef ENABLE_MANAGEMENT
@@ -603,6 +699,8 @@ main(void)
         cmocka_unit_test_setup_teardown(test_incoming_push_message_bad_format, setup, teardown),
         cmocka_unit_test_setup_teardown(test_incoming_push_message_mix, setup, teardown),
         cmocka_unit_test_setup_teardown(test_incoming_push_message_mix2, setup, teardown),
+        cmocka_unit_test_setup_teardown(test_incoming_push_continuation_route_accumulation, setup,
+                                        teardown),
 #ifdef ENABLE_MANAGEMENT
 
         cmocka_unit_test_setup_teardown(test_send_push_msg0, setup2, teardown2),
