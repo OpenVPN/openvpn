@@ -474,6 +474,18 @@ dco_check_option(msglvl_t msglevel, const struct options *o)
             gc_free(&gc);
             return false;
         }
+        /* FreeBSD supports none as cipher type but requires auth none to be
+         * be also enabled */
+        if (strcmp(token, "none") == 0 && strcmp(o->authname, "none") != 0)
+        {
+            msg(msglevel,
+                "Note: cipher '%s' in --data-ciphers is only supported "
+                "with --auth=none by ovpn-dco, disabling data channel "
+                "offload.",
+                token);
+            gc_free(&gc);
+            return false;
+        }
     }
     gc_free(&gc);
 
