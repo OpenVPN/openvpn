@@ -117,8 +117,7 @@ void send_auth_failed(struct context *c, const char *client_reason);
  * doc/management-notes.txt under client-pending-auth for
  * more details on message format
  */
-bool send_auth_pending_messages(struct tls_multi *tls_multi, struct tls_session *session,
-                                const char *extra, unsigned int timeout);
+bool send_auth_pending_messages(struct tls_multi *multi, struct tls_session *session, struct key_state *ks, const char *extra, unsigned int timeout);
 
 void send_restart(struct context *c, const char *kill_msg);
 

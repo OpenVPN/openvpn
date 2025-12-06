@@ -32,17 +32,6 @@
 #include "misc.h"
 #include "networking.h"
 
-#ifdef _WIN32
-/*
- * Windows route methods
- */
-#define ROUTE_METHOD_ADAPTIVE 0 /* try IP helper first then route.exe */
-#define ROUTE_METHOD_IPAPI    1 /* use IP helper API */
-#define ROUTE_METHOD_EXE      2 /* use route.exe */
-#define ROUTE_METHOD_SERVICE  3 /* use the privileged Windows service */
-#define ROUTE_METHOD_MASK     3
-#endif
-
 /*
  * Route add/delete flags (must stay clear of ROUTE_METHOD bits)
  */
@@ -140,13 +129,12 @@ struct route_ipv6
     int metric;
     int table_id;
     /* gateway interface */
-#ifdef _WIN32
-    DWORD adapter_index; /* interface or ~0 if undefined */
-#else
     char *iface; /* interface name (null terminated) */
-#endif
 };
 
+#ifndef IFNAMSIZ
+#define IFNAMSIZ 16
+#endif
 
 struct route_gateway_address
 {
@@ -165,13 +153,7 @@ struct route_gateway_info
     unsigned int flags;
 
     /* gateway interface */
-#ifdef _WIN32
-    DWORD adapter_index; /* interface or ~0 if undefined */
-#elif defined(TARGET_HAIKU)
-    char iface[PATH_MAX]; /* iface names are full /dev path with driver name */
-#else
-    char iface[16]; /* interface name (null terminated), may be empty */
-#endif
+    char iface[IFNAMSIZ]; /* interface name (null terminated), may be empty */
 
     /* gateway interface hardware address */
     uint8_t hwaddr[6];
@@ -197,20 +179,7 @@ struct route_ipv6_gateway_info
     unsigned int flags;
 
     /* gateway interface */
-#ifdef _WIN32
-    DWORD adapter_index; /* interface or ~0 if undefined */
-#else
-    /* non linux platform don't have this constant defined */
-#ifndef IFNAMSIZ
-#if defined(TARGET_HAIKU)
-/* iface names are full /dev path with driver name */
-#define IFNAMSIZ PATH_MAX
-#else
-#define IFNAMSIZ 16
-#endif
-#endif
     char iface[IFNAMSIZ]; /* interface name (null terminated), may be empty */
-#endif
 
     /* gateway interface hardware address */
     uint8_t hwaddr[6];
@@ -379,19 +348,11 @@ void print_route_options(const struct route_option_list *rol, msglvl_t msglevel)
 
 void print_routes(const struct route_list *rl, msglvl_t msglevel);
 
-#ifdef _WIN32
-
-void show_routes(msglvl_t msglevel);
-
-bool test_routes(const struct route_list *rl, const struct tuntap *tt);
-
-#else /* ifdef _WIN32 */
 static inline bool
 test_routes(const struct route_list *rl, const struct tuntap *tt)
 {
     return true;
 }
-#endif
 
 bool netmask_to_netbits(const in_addr_t network, const in_addr_t netmask, int *netbits);
 

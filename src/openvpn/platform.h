@@ -114,11 +114,7 @@ FILE *platform_fopen(const char *path, const char *mode);
 
 int platform_open(const char *path, int flags, int mode);
 
-#ifdef _WIN32
-typedef struct _stat platform_stat_t;
-#else
 typedef struct stat platform_stat_t;
-#endif
 int platform_stat(const char *path, platform_stat_t *buf);
 
 /**
