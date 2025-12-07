@@ -170,7 +170,10 @@ get_addr_generic(sa_family_t af, unsigned int flags, const char *hostname,
         *sep = '/';
     }
 out:
-    freeaddrinfo(ai);
+    if (ai)
+    {
+        freeaddrinfo(ai);
+    }
     free(var_host);
 
     return ret;
