@@ -68,8 +68,9 @@ jobs:
       fail-fast: false
       matrix:
         arch: [x86, x64]
+        build: [Release, Debug]
 
-    name: "gcc-mingw - ${{ matrix.arch }} - OSSL"
+    name: "gcc-mingw - ${{ matrix.arch }} - ${{matrix.build }} - OSSL"
     runs-on: ubuntu-24.04
     env:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
@@ -91,22 +92,22 @@ jobs:
         with:
           configurePreset: mingw-${{ matrix.arch }}
           buildPreset: mingw-${{ matrix.arch }}
-          buildPresetAdditionalArgs: "['--config Debug']"
+          buildPresetAdditionalArgs: "['--config ${{ matrix.build }}']"
 
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
-          name: openvpn-mingw-${{ matrix.arch }}
+          name: openvpn-mingw-${{ matrix.arch }}-${{ matrix.build }}
           path: |
-            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/**/Debug/*.exe
-            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/**/Debug/*.dll
-            !${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/Debug/test_*.exe
+            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/**/${{ matrix.build }}/*.exe
+            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/**/${{ matrix.build }}/*.dll
+            !${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/${{ matrix.build }}/test_*.exe
 
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
-          name: openvpn-mingw-${{ matrix.arch }}-tests
+          name: openvpn-mingw-${{ matrix.arch }}-${{ matrix.build }}-tests
           path: |
-            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/Debug/test_*.exe
-            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/Debug/*.dll
+            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/${{ matrix.build }}/test_*.exe
+            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/${{ matrix.build }}/*.dll
 
   mingw-unittest:
     needs: [ mingw ]
@@ -115,16 +116,17 @@ jobs:
       matrix:
         arch: [x86, x64]
         test: [argv, auth_token, buffer, cryptoapi, crypto, misc, options_parse, ncp, packet_id, pkt, provider, ssl, tls_crypt, user_pass]
+        build: [Release, Debug]
 
     runs-on: windows-2025
-    name: "mingw unittest ${{ matrix.test }} - ${{ matrix.arch }} - OSSL"
+    name: "mingw unittest ${{ matrix.test }} - ${{ matrix.arch }} - ${{ matrix.build }} - OSSL"
     steps:
       - name: Checkout OpenVPN
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
       - name: Retrieve mingw unittest
         uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6.0.0
         with:
-          name: openvpn-mingw-${{ matrix.arch }}-tests
+          name: openvpn-mingw-${{ matrix.arch }}-${{ matrix.build }}-tests
           path: unittests
       - name: Run ${{ matrix.test }} unit test
         run: ./unittests/test_${{ matrix.test }}.exe
