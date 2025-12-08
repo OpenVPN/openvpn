@@ -50,22 +50,22 @@ int
 verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 {
     int ret = 0;
-    struct tls_session *session;
+    struct tls_multi *multi;
     SSL *ssl;
     struct gc_arena gc = gc_new();
 
     /* get the tls_session pointer */
     ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     ASSERT(ssl);
-    session = (struct tls_session *)SSL_get_ex_data(ssl, mydata_index);
-    ASSERT(session);
+    multi = (struct tls_multi *)SSL_get_ex_data(ssl, mydata_index);
+    ASSERT(multi);
 
     X509 *current_cert = X509_STORE_CTX_get_current_cert(ctx);
     struct buffer cert_hash = x509_get_sha256_fingerprint(current_cert, &gc);
-    cert_hash_remember(session, X509_STORE_CTX_get_error_depth(ctx), &cert_hash);
+    cert_hash_remember(multi, X509_STORE_CTX_get_error_depth(ctx), &cert_hash);
 
     /* did peer present cert which was signed by our root cert? */
-    if (!preverify_ok && !session->opt->verify_hash_no_ca)
+    if (!preverify_ok && !multi->opt.verify_hash_no_ca)
     {
         /* get the X509 name */
         char *subject = x509_get_subject(current_cert, &gc);
@@ -94,11 +94,11 @@ verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 
         ERR_clear_error();
 
-        session->verified = false;
+        multi->verified = false;
         goto cleanup;
     }
 
-    if (SUCCESS != verify_cert(session, current_cert, X509_STORE_CTX_get_error_depth(ctx)))
+    if (SUCCESS != verify_cert(multi, current_cert, X509_STORE_CTX_get_error_depth(ctx)))
     {
         goto cleanup;
     }

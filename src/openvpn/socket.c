@@ -42,13 +42,21 @@
 #include "memdbg.h"
 
 bool
-sockets_read_residual(const struct context *c)
+sockets_read_residual(struct link_socket **links, int num)
 {
-    int i;
-
-    for (i = 0; i < c->c1.link_sockets_num; i++)
+    if (num < 1) { num = 1; }
+    for (int i = 0; i < num; i++)
     {
-        if (c->c2.link_sockets[i]->stream_buf.residual_fully_formed)
+        struct stream_buf *sb = &links[i]->stream_buf;
+        if (links[i]->stream_reset)
+        {
+            return false;
+        }
+        if (sb->len > 0 && sb->buf.len >= sb->len)
+        {
+            return true;
+        }
+        if (sb->residual_fully_formed)
         {
             return true;
         }
@@ -337,7 +345,6 @@ do_preresolve(struct context *c)
     for (int i = 0; i < l->len; ++i)
     {
         int status;
-        const char *remote;
         unsigned int flags = preresolve_flags;
 
         struct connection_entry *ce = l->array[i];
@@ -350,47 +357,6 @@ do_preresolve(struct context *c)
         if (c->options.sockflags & SF_HOST_RANDOMIZE)
         {
             flags |= GETADDR_RANDOMIZE;
-        }
-
-        if (c->options.ip_remote_hint)
-        {
-            remote = c->options.ip_remote_hint;
-        }
-        else
-        {
-            remote = ce->remote;
-        }
-
-        /* HTTP remote hostname does not need to be resolved */
-        if (!ce->http_proxy_options)
-        {
-            status = do_preresolve_host(c, remote, ce->remote_port, ce->af, flags);
-            if (status != 0)
-            {
-                goto err;
-            }
-        }
-
-        /* Preresolve proxy */
-        if (ce->http_proxy_options)
-        {
-            status = do_preresolve_host(c, ce->http_proxy_options->server,
-                                        ce->http_proxy_options->port, ce->af, preresolve_flags);
-
-            if (status != 0)
-            {
-                goto err;
-            }
-        }
-
-        if (ce->socks_proxy_server)
-        {
-            status =
-                do_preresolve_host(c, ce->socks_proxy_server, ce->socks_proxy_port, ce->af, flags);
-            if (status != 0)
-            {
-                goto err;
-            }
         }
 
         if (ce->bind_local)
@@ -507,7 +473,7 @@ socket_set_buffers(socket_descriptor_t fd, const struct socket_buffer_size *sbs,
 static bool
 socket_set_tcp_nodelay(socket_descriptor_t sd, int state)
 {
-#if defined(_WIN32) || (defined(IPPROTO_TCP) && defined(TCP_NODELAY))
+#if (defined(IPPROTO_TCP) && defined(TCP_NODELAY))
     if (setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, (void *)&state, sizeof(state)) != 0)
     {
         msg(M_WARN, "NOTE: setsockopt TCP_NODELAY=%d failed", state);
@@ -518,7 +484,7 @@ socket_set_tcp_nodelay(socket_descriptor_t sd, int state)
         dmsg(D_OSBUF, "Socket flags: TCP_NODELAY=%d succeeded", state);
         return true;
     }
-#else /* if defined(_WIN32) || (defined(IPPROTO_TCP) && defined(TCP_NODELAY)) */
+#else /* if (defined(IPPROTO_TCP) && defined(TCP_NODELAY)) */
     msg(M_WARN, "NOTE: setsockopt TCP_NODELAY=%d failed (No kernel support)", state);
     return false;
 #endif
@@ -593,7 +559,6 @@ create_socket_tcp(struct addrinfo *addrinfo)
         msg(M_ERR, "Cannot create TCP socket");
     }
 
-#ifndef _WIN32 /* using SO_REUSEADDR on Windows will cause bind to succeed on port conflicts! */
     /* set SO_REUSEADDR on socket */
     {
         int on = 1;
@@ -602,7 +567,6 @@ create_socket_tcp(struct addrinfo *addrinfo)
             msg(M_ERR, "TCP: Cannot setsockopt SO_REUSEADDR on TCP socket");
         }
     }
-#endif
 
     /* set socket file descriptor to not pass across execs, so that
      * scripts don't have access to it */
@@ -671,15 +635,7 @@ bind_local(struct link_socket *sock, const sa_family_t ai_family)
     /* bind to local address/port */
     if (sock->bind_local)
     {
-        if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
-        {
-            socket_bind(sock->ctrl_sd, sock->info.lsa->bind_local, ai_family, "SOCKS", false);
-        }
-        else
-        {
-            socket_bind(sock->sd, sock->info.lsa->bind_local, ai_family, "TCP/UDP",
-                        sock->info.bind_ipv6_only);
-        }
+        socket_bind(sock->sd, sock->info.lsa->bind_local, ai_family, "TCP/UDP", sock->info.bind_ipv6_only);
     }
 }
 
@@ -690,19 +646,6 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
     {
         sock->sd = create_socket_udp(addr, sock->sockflags);
         sock->sockflags |= SF_GETADDRINFO_DGRAM;
-
-        /* Assume that control socket and data socket to the socks proxy
-         * are using the same IP family */
-        if (sock->socks_proxy)
-        {
-            /* Construct a temporary addrinfo to create the socket,
-             * currently resolve two remote addresses is not supported,
-             * TODO: Rewrite the whole resolve_remote */
-            struct addrinfo addrinfo_tmp = *addr;
-            addrinfo_tmp.ai_socktype = SOCK_STREAM;
-            addrinfo_tmp.ai_protocol = IPPROTO_TCP;
-            sock->ctrl_sd = create_socket_tcp(&addrinfo_tmp);
-        }
     }
     else if (addr->ai_protocol == IPPROTO_TCP || addr->ai_socktype == SOCK_STREAM)
     {
@@ -722,6 +665,7 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
     /* set socket to --mark packets with given value */
     socket_set_mark(sock->sd, sock->mark);
 
+    if (sock->skip_bind != -1) {
 #if defined(TARGET_LINUX)
     if (sock->bind_dev)
     {
@@ -736,6 +680,11 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
 #endif
 
     bind_local(sock, addr->ai_family);
+    } else {
+        struct sockaddr_in locl = { 0 };
+        locl.sin_family = AF_INET; locl.sin_addr.s_addr = inet_addr("127.0.0.1");
+        bind(sock->sd, (struct sockaddr *)&locl, sizeof(locl));
+    }
 }
 
 #ifdef TARGET_ANDROID
@@ -1019,11 +968,7 @@ openvpn_connect(socket_descriptor_t sd, const struct sockaddr *remote, int conne
         status = openvpn_errno();
     }
     if (
-#ifdef _WIN32
-        status == WSAEWOULDBLOCK
-#else
         status == EINPROGRESS
-#endif
     )
     {
         while (true)
@@ -1062,11 +1007,7 @@ openvpn_connect(socket_descriptor_t sd, const struct sockaddr *remote, int conne
             {
                 if (--connect_timeout < 0)
                 {
-#ifdef _WIN32
-                    status = WSAETIMEDOUT;
-#else
                     status = ETIMEDOUT;
-#endif
                     break;
                 }
                 management_sleep(0);
@@ -1165,12 +1106,9 @@ done:
  * such as TCP.
  */
 
-static void stream_buf_init(struct stream_buf *sb, struct buffer *buf, const unsigned int sockflags,
-                            const int proto);
+static void stream_buf_init(struct stream_buf *sb, struct buffer *buf, const unsigned int sockflags, const int proto);
 
 static void stream_buf_close(struct stream_buf *sb);
-
-static bool stream_buf_added(struct stream_buf *sb, int length_added);
 
 /* For stream protocols, allocate a buffer to build up packet.
  * Called after frame has been finalized. */
@@ -1178,24 +1116,13 @@ static bool stream_buf_added(struct stream_buf *sb, int length_added);
 static void
 socket_frame_init(const struct frame *frame, struct link_socket *sock)
 {
-#ifdef _WIN32
-    overlapped_io_init(&sock->reads, frame, FALSE);
-    overlapped_io_init(&sock->writes, frame, TRUE);
-    sock->rw_handle.read = sock->reads.overlapped.hEvent;
-    sock->rw_handle.write = sock->writes.overlapped.hEvent;
-#endif
-
     if (link_socket_connection_oriented(sock))
     {
-#ifdef _WIN32
-        stream_buf_init(&sock->stream_buf, &sock->reads.buf_init, sock->sockflags,
-                        sock->info.proto);
-#else
-        alloc_buf_sock_tun(&sock->stream_buf_data, frame);
-
-        stream_buf_init(&sock->stream_buf, &sock->stream_buf_data, sock->sockflags,
-                        sock->info.proto);
-#endif
+        struct stream_buf *sb = &sock->stream_buf;
+        alloc_buf_sock_tun(&sock->stream_buf_data[0], frame);
+        alloc_buf_sock_tun(&sock->stream_buf_data[1], frame);
+        stream_buf_init(sb, sock->stream_buf_data, sock->sockflags, sock->info.proto);
+        stream_buf_read_setup(sock);
     }
 }
 
@@ -1424,8 +1351,6 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
     sock->remote_host = remote_host;
     sock->remote_port = remote_port;
     sock->dns_cache = c->c1.dns_cache;
-    sock->http_proxy = c->c1.http_proxy;
-    sock->socks_proxy = c->c1.socks_proxy;
     sock->bind_local = o->ce.bind_local;
     sock->resolve_retry_seconds = o->resolve_retry_seconds;
     sock->mtu_discover_type = o->ce.mtu_discover_type;
@@ -1467,35 +1392,8 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
         sock->info.af = c->c2.accept_from->info.af;
     }
 
-    /* are we running in HTTP proxy mode? */
-    if (sock->http_proxy)
-    {
-        ASSERT(sock->info.proto == PROTO_TCP_CLIENT);
-
-        /* the proxy server */
-        sock->remote_host = c->c1.http_proxy->options.server;
-        sock->remote_port = c->c1.http_proxy->options.port;
-
-        /* the OpenVPN server we will use the proxy to connect to */
-        sock->proxy_dest_host = remote_host;
-        sock->proxy_dest_port = remote_port;
-    }
-    /* or in Socks proxy mode? */
-    else if (sock->socks_proxy)
-    {
-        /* the proxy server */
-        sock->remote_host = c->c1.socks_proxy->server;
-        sock->remote_port = c->c1.socks_proxy->port;
-
-        /* the OpenVPN server we will use the proxy to connect to */
-        sock->proxy_dest_host = remote_host;
-        sock->proxy_dest_port = remote_port;
-    }
-    else
-    {
-        sock->remote_host = remote_host;
-        sock->remote_port = remote_port;
-    }
+    sock->remote_host = remote_host;
+    sock->remote_port = remote_port;
 
     /* bind behavior for TCP server vs. client */
     if (sock->info.proto == PROTO_TCP_SERVER)
@@ -1609,122 +1507,15 @@ phase2_tcp_server(struct link_socket *sock, const char *remote_dynamic,
     }
 }
 
-
 static void
 phase2_tcp_client(struct link_socket *sock, struct signal_info *sig_info)
 {
-    bool proxy_retry = false;
-    do
-    {
-        socket_connect(&sock->sd, sock->info.lsa->current_remote->ai_addr,
-                       get_server_poll_remaining_time(sock->server_poll_timeout), sig_info);
-
-        if (sig_info->signal_received)
-        {
-            return;
-        }
-
-        if (sock->http_proxy)
-        {
-            proxy_retry = establish_http_proxy_passthru(
-                sock->http_proxy, sock->sd, sock->proxy_dest_host, sock->proxy_dest_port,
-                sock->server_poll_timeout, &sock->stream_buf.residual, sig_info);
-        }
-        else if (sock->socks_proxy)
-        {
-            establish_socks_proxy_passthru(sock->socks_proxy, sock->sd, sock->proxy_dest_host,
-                                           sock->proxy_dest_port, sock->server_poll_timeout,
-                                           sig_info);
-        }
-        if (proxy_retry)
-        {
-            openvpn_close_socket(sock->sd);
-            sock->sd = create_socket_tcp(sock->info.lsa->current_remote);
-        }
-
-    } while (proxy_retry);
-}
-
-static void
-phase2_socks_client(struct link_socket *sock, struct signal_info *sig_info)
-{
-    socket_connect(&sock->ctrl_sd, sock->info.lsa->current_remote->ai_addr,
-                   get_server_poll_remaining_time(sock->server_poll_timeout), sig_info);
-
+    socket_connect(&sock->sd, sock->info.lsa->current_remote->ai_addr, get_server_poll_remaining_time(sock->server_poll_timeout), sig_info);
     if (sig_info->signal_received)
     {
         return;
     }
-
-    establish_socks_proxy_udpassoc(sock->socks_proxy, sock->ctrl_sd, &sock->socks_relay.dest,
-                                   sock->server_poll_timeout, sig_info);
-
-    if (sig_info->signal_received)
-    {
-        return;
-    }
-
-    sock->remote_host = sock->proxy_dest_host;
-    sock->remote_port = sock->proxy_dest_port;
-
-    addr_zero_host(&sock->info.lsa->actual.dest);
-    if (sock->info.lsa->remote_list)
-    {
-        freeaddrinfo(sock->info.lsa->remote_list);
-        sock->info.lsa->current_remote = NULL;
-        sock->info.lsa->remote_list = NULL;
-    }
-
-    resolve_remote(sock, 1, NULL, sig_info);
 }
-
-#if defined(_WIN32)
-static void
-create_socket_dco_win(struct context *c, struct link_socket *sock, struct signal_info *sig_info)
-{
-    /* in P2P mode we must have remote resolved at this point */
-    struct addrinfo *remoteaddr = sock->info.lsa->current_remote;
-    if ((c->options.mode == MODE_POINT_TO_POINT) && (!remoteaddr))
-    {
-        return;
-    }
-
-    if (!c->c1.tuntap)
-    {
-        struct tuntap *tt;
-        ALLOC_OBJ_CLEAR(tt, struct tuntap);
-
-        tt->backend_driver = DRIVER_DCO;
-        tt->options.msg_channel = c->options.msg_channel;
-
-        const char *device_guid = NULL; /* not used */
-        tun_open_device(tt, c->options.dev_node, &device_guid, &c->gc);
-
-        /* Ensure we can "safely" cast the handle to a socket */
-        static_assert(sizeof(sock->sd) == sizeof(tt->hand), "HANDLE and SOCKET size differs");
-
-        c->c1.tuntap = tt;
-    }
-
-    if (c->options.mode == MODE_SERVER)
-    {
-        dco_mp_start_vpn(c->c1.tuntap->hand, sock);
-    }
-    else
-    {
-        dco_p2p_new_peer(c->c1.tuntap->hand, &c->c1.tuntap->dco_new_peer_ov, sock, sig_info);
-    }
-    sock->sockflags |= SF_DCO_WIN;
-
-    if (sig_info->signal_received)
-    {
-        return;
-    }
-
-    sock->sd = (SOCKET)c->c1.tuntap->hand;
-    linksock_print_addr(sock);
-}
-#endif /* if defined(_WIN32) */
 
 /* finalize socket initialization */
 void
@@ -1762,13 +1553,6 @@ link_socket_init_phase2(struct context *c, struct link_socket *sock)
     resolve_remote(sock, 2, &remote_dynamic, sig_info);
 
     /* If a valid remote has been found, create the socket with its addrinfo */
-#if defined(_WIN32)
-    if (dco_enabled(&c->options))
-    {
-        create_socket_dco_win(c, sock, sig_info);
-        goto done;
-    }
-#endif
     if (sock->info.lsa->current_remote)
     {
         create_socket(sock, sock->info.lsa->current_remote);
@@ -1790,6 +1574,7 @@ link_socket_init_phase2(struct context *c, struct link_socket *sock)
                     addr_family_name(sock->info.lsa->bind_local->ai_family));
                 sock->info.af = sock->info.lsa->bind_local->ai_family;
             }
+            sock->skip_bind = c->skip_bind;
             create_socket(sock, sock->info.lsa->bind_local);
         }
     }
@@ -1814,10 +1599,6 @@ link_socket_init_phase2(struct context *c, struct link_socket *sock)
     else if (sock->info.proto == PROTO_TCP_CLIENT)
     {
         phase2_tcp_client(sock, sig_info);
-    }
-    else if (sock->info.proto == PROTO_UDP && sock->socks_proxy)
-    {
-        phase2_socks_client(sock, sig_info);
     }
 #ifdef TARGET_ANDROID
     if (sock->sd != -1)
@@ -1861,9 +1642,6 @@ link_socket_close(struct link_socket *sock)
 
         if (socket_defined(sock->sd))
         {
-#ifdef _WIN32
-            close_net_event_win32(&sock->listen_handle, sock->sd, 0);
-#endif
             if (!gremlin)
             {
                 msg(D_LOW, "TCP/UDP: Closing socket");
@@ -1873,13 +1651,6 @@ link_socket_close(struct link_socket *sock)
                 }
             }
             sock->sd = SOCKET_UNDEFINED;
-#ifdef _WIN32
-            if (!gremlin)
-            {
-                overlapped_io_close(&sock->reads);
-                overlapped_io_close(&sock->writes);
-            }
-#endif
         }
 
         if (socket_defined(sock->ctrl_sd))
@@ -1892,7 +1663,8 @@ link_socket_close(struct link_socket *sock)
         }
 
         stream_buf_close(&sock->stream_buf);
-        free_buf(&sock->stream_buf_data);
+        free_buf(&sock->stream_buf_data[0]);
+        free_buf(&sock->stream_buf_data[1]);
         if (!gremlin)
         {
             free(sock);
@@ -2083,16 +1855,10 @@ socket_stat(const struct link_socket *s, unsigned int rwflags, struct gc_arena *
         if (rwflags & EVENT_READ)
         {
             buf_printf(&out, "S%s", (s->rwflags_debug & EVENT_READ) ? "R" : "r");
-#ifdef _WIN32
-            buf_printf(&out, "%s", overlapped_io_state_ascii(&s->reads));
-#endif
         }
         if (rwflags & EVENT_WRITE)
         {
             buf_printf(&out, "S%s", (s->rwflags_debug & EVENT_WRITE) ? "W" : "w");
-#ifdef _WIN32
-            buf_printf(&out, "%s", overlapped_io_state_ascii(&s->writes));
-#endif
         }
     }
     else
@@ -2107,43 +1873,48 @@ socket_stat(const struct link_socket *s, unsigned int rwflags, struct gc_arena *
  * stream connection.
  */
 
-static inline void
+void
 stream_buf_reset(struct stream_buf *sb)
 {
-    dmsg(D_STREAM_DEBUG, "STREAM: RESET");
+    msg(D_STREAM_DEBUG, "STREAM: RESET [%d]", sb->idx);
     sb->residual_fully_formed = false;
-    sb->buf = sb->buf_init;
-    buf_reset(&sb->next);
+    sb->buf = sb->buf_init[sb->idx];
+    ASSERT(buf_init(&sb->buf, sb->off));
     sb->len = -1;
+    sb->idx = ((sb->idx + 1) % 2);
 }
 
 static void
-stream_buf_init(struct stream_buf *sb, struct buffer *buf, const unsigned int sockflags,
-                const int proto)
+stream_buf_init(struct stream_buf *sb, struct buffer *buf, const unsigned int sockflags, const int proto)
 {
-    sb->buf_init = *buf;
-    sb->maxlen = sb->buf_init.len;
-    sb->buf_init.len = 0;
+    sb->off = 150;
+    sb->idx = 0;
+    for (int x = 0; x < 2; ++x)
+    {
+        sb->maxlen = buf[x].len;
+        sb->buf_init[x] = buf[x];
+        ASSERT(buf_init(&sb->buf_init[x], sb->off));
+    }
+    sb->buf = sb->buf_init[sb->idx];
+    ASSERT(buf_init(&sb->buf, sb->off));
     sb->residual = alloc_buf(sb->maxlen);
+    ASSERT(buf_init(&sb->residual, sb->off));
     sb->error = false;
 #if PORT_SHARE
     sb->port_share_state =
         ((sockflags & SF_PORT_SHARE) && (proto == PROTO_TCP_SERVER)) ? PS_ENABLED : PS_DISABLED;
 #endif
-    stream_buf_reset(sb);
-
     dmsg(D_STREAM_DEBUG, "STREAM: INIT maxlen=%d", sb->maxlen);
 }
 
-static inline void
+void
 stream_buf_set_next(struct stream_buf *sb)
 {
     /* set up 'next' for next i/o read */
     sb->next = sb->buf;
     sb->next.offset = sb->buf.offset + sb->buf.len;
-    sb->next.len = (sb->len >= 0 ? sb->len : sb->maxlen) - sb->buf.len;
-    dmsg(D_STREAM_DEBUG, "STREAM: SET NEXT, buf=[%d,%d] next=[%d,%d] len=%d maxlen=%d",
-         sb->buf.offset, sb->buf.len, sb->next.offset, sb->next.len, sb->len, sb->maxlen);
+    sb->next.len = sb->maxlen - sb->next.offset;
+    msg(D_STREAM_DEBUG, "STREAM: SET NEXT, buf=[%d,%d] next=[%d,%d] len=%d maxlen=%d", sb->buf.offset, sb->buf.len, sb->next.offset, sb->next.len, sb->len, sb->maxlen);
     ASSERT(sb->next.len > 0);
     ASSERT(buf_safe(&sb->buf, sb->next.len));
 }
@@ -2167,30 +1938,23 @@ stream_buf_get_next(struct stream_buf *sb, struct buffer *buf)
 bool
 stream_buf_read_setup_dowork(struct link_socket *sock)
 {
-    if (sock->stream_buf.residual.len && !sock->stream_buf.residual_fully_formed)
+    struct stream_buf *sb = &sock->stream_buf;
+    stream_buf_reset(sb);
+    if (sb->residual.len)
     {
-        ASSERT(buf_copy(&sock->stream_buf.buf, &sock->stream_buf.residual));
-        ASSERT(buf_init(&sock->stream_buf.residual, 0));
-        sock->stream_buf.residual_fully_formed = stream_buf_added(&sock->stream_buf, 0);
-        dmsg(D_STREAM_DEBUG, "STREAM: RESIDUAL FULLY FORMED [%s], len=%d",
-             sock->stream_buf.residual_fully_formed ? "YES" : "NO", sock->stream_buf.residual.len);
+        ASSERT(buf_copy(&sb->buf, &sb->residual));
     }
-
-    if (!sock->stream_buf.residual_fully_formed)
-    {
-        stream_buf_set_next(&sock->stream_buf);
-    }
-    return !sock->stream_buf.residual_fully_formed;
+    ASSERT(buf_init(&sb->residual, sb->off));
+    sb->residual_fully_formed = stream_buf_added(sb, 0);
+    msg(D_STREAM_DEBUG, "STREAM: RESIDUAL FULLY FORMED [%s], len=%d", sb->residual_fully_formed ? "YES" : "NO", sb->buf.len);
+    stream_buf_set_next(sb);
+    return true;
 }
 
-static bool
+bool
 stream_buf_added(struct stream_buf *sb, int length_added)
 {
     dmsg(D_STREAM_DEBUG, "STREAM: ADD length_added=%d", length_added);
-    if (length_added > 0)
-    {
-        sb->buf.len += length_added;
-    }
 
     /* if length unknown, see if we can get the length prefix from
      * the head of the buffer */
@@ -2233,19 +1997,17 @@ stream_buf_added(struct stream_buf *sb, int length_added)
     if (sb->len > 0 && sb->buf.len >= sb->len)
     {
         /* save any residual data that's part of the next packet */
-        ASSERT(buf_init(&sb->residual, 0));
+        ASSERT(buf_init(&sb->residual, sb->off));
         if (sb->buf.len > sb->len)
         {
             ASSERT(buf_copy_excess(&sb->residual, &sb->buf, sb->len));
         }
-        dmsg(D_STREAM_DEBUG, "STREAM: ADD returned TRUE, buf_len=%d, residual_len=%d",
-             BLEN(&sb->buf), BLEN(&sb->residual));
+        dmsg(D_STREAM_DEBUG, "STREAM: ADD returned TRUE, buf_len=%d, residual_len=%d", BLEN(&sb->buf), BLEN(&sb->residual));
         return true;
     }
     else
     {
         dmsg(D_STREAM_DEBUG, "STREAM: ADD returned FALSE (have=%d need=%d)", sb->buf.len, sb->len);
-        stream_buf_set_next(sb);
         return false;
     }
 }
@@ -2264,15 +2026,7 @@ stream_buf_close(struct stream_buf *sb)
 event_t
 socket_listen_event_handle(struct link_socket *s)
 {
-#ifdef _WIN32
-    if (!defined_net_event_win32(&s->listen_handle))
-    {
-        init_net_event_win32(&s->listen_handle, FD_ACCEPT, s->sd, 0);
-    }
-    return &s->listen_handle;
-#else /* ifdef _WIN32 */
     return s->sd;
-#endif
 }
 
 
@@ -2295,9 +2049,17 @@ bad_address_length(int actual, int expected)
 int
 link_socket_read_tcp(struct link_socket *sock, struct buffer *buf)
 {
-    int len = 0;
+    int len = 0, low = 5;
+    struct stream_buf *sb = &sock->stream_buf;
 
-    if (!sock->stream_buf.residual_fully_formed)
+    struct buffer frag;
+    stream_buf_get_next(sb, &frag);
+
+    if (!sb->residual_fully_formed)
+    {
+        sb->residual_fully_formed = stream_buf_added(sb, 0);
+    }
+    if (!sb->residual_fully_formed && BLEN(&frag) > low)
     {
         /* with Linux-DCO, we sometimes try to access a socket that is
          * already installed in the kernel and has no valid file descriptor
@@ -2307,43 +2069,51 @@ link_socket_read_tcp(struct link_socket *sock, struct buffer *buf)
         if (sock->sd == SOCKET_UNDEFINED)
         {
             msg(M_INFO, "BUG: link_socket_read_tcp(): sock->sd==-1, reset client instance");
-            sock->stream_reset = true; /* reset client instance */
-            return buf->len = 0;       /* nothing to read */
-        }
-
-#ifdef _WIN32
-        sockethandle_t sh = { .s = sock->sd };
-        len = sockethandle_finalize(sh, &sock->reads, buf, NULL);
-#else
-        struct buffer frag;
-        stream_buf_get_next(&sock->stream_buf, &frag);
-        len = recv(sock->sd, BPTR(&frag), BLEN(&frag), MSG_NOSIGNAL);
-#endif
-
-        if (!len)
-        {
             sock->stream_reset = true;
+            sb->residual.len = 0;
+            buf->len = 0;
+            goto last;
         }
+
+        len = recv(sock->sd, BPTR(&frag), BLEN(&frag) - low, MSG_NOSIGNAL);
+
+        if (len > 0)
+        {
+            sb->buf.len += len;
+            stream_buf_set_next(sb);
+        }
+
+        msg(D_STREAM_DEBUG, "STREAM: READ %d buf=%d size=%d", (int)len, BLEN(&sb->buf), BLEN(&sb->next));
+
         if (len <= 0)
         {
-            return buf->len = len;
+            sock->stream_reset = true;
+            sb->residual.len = 0;
+            buf->len = 0;
+            goto last;
         }
     }
-
-    if (sock->stream_buf.residual_fully_formed
-        || stream_buf_added(&sock->stream_buf, len)) /* packet complete? */
+    if (!sb->residual_fully_formed)
     {
-        stream_buf_get_final(&sock->stream_buf, buf);
-        stream_buf_reset(&sock->stream_buf);
-        return buf->len;
+        sb->residual_fully_formed = stream_buf_added(sb, 0);
+    }
+
+    if (sb->residual_fully_formed) /* packet complete? */
+    {
+        stream_buf_get_final(sb, buf);
+        stream_buf_read_setup(sock);
+        goto last;
     }
     else
     {
-        return buf->len = 0; /* no error, but packet is still incomplete */
+        buf->len = 0; /* no error, but packet is still incomplete */
+        goto last;
     }
+
+last:
+    return buf->len;
 }
 
-#ifndef _WIN32
 
 #if ENABLE_IP_PKTINFO
 
@@ -2426,6 +2196,7 @@ link_socket_read_udp_posix_recvmsg(struct link_socket *sock, struct buffer *buf,
 }
 #endif /* if ENABLE_IP_PKTINFO */
 
+
 int
 link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
                            struct link_socket_actual *from)
@@ -2445,8 +2216,7 @@ link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
     else
 #endif
     {
-        buf->len = recvfrom(sock->sd, BPTR(buf), buf_forward_capacity(buf), 0, &from->dest.addr.sa,
-                            &fromlen);
+        buf->len = recvfrom(sock->sd, BPTR(buf), buf_forward_capacity(buf), 0, &from->dest.addr.sa, &fromlen);
     }
     /* FIXME: won't do anything when sock->info.af == AF_UNSPEC */
     if (buf->len >= 0 && expectedlen && fromlen != expectedlen)
@@ -2456,7 +2226,6 @@ link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
     return buf->len;
 }
 
-#endif /* ifndef _WIN32 */
 
 /*
  * Socket Write Routines
@@ -2466,15 +2235,11 @@ ssize_t
 link_socket_write_tcp(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *to)
 {
     packet_size_type len = BLEN(buf);
-    dmsg(D_STREAM_DEBUG, "STREAM: WRITE %d offset=%d", (int)len, buf->offset);
+    msg(D_STREAM_DEBUG, "STREAM: WRITE %d offset=%d", (int)len, buf->offset);
     ASSERT(len <= sock->stream_buf.maxlen);
     len = htonps(len);
     ASSERT(buf_write_prepend(buf, &len, sizeof(len)));
-#ifdef _WIN32
-    return link_socket_write_win32(sock, buf, to);
-#else
     return link_socket_write_tcp_posix(sock, buf);
-#endif
 }
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -2561,438 +2326,16 @@ link_socket_write_udp_posix_sendmsg(struct link_socket *sock, struct buffer *buf
 #endif /* if ENABLE_IP_PKTINFO */
 
 /*
- * Win32 overlapped socket I/O functions.
- */
-
-#ifdef _WIN32
-
-static int
-socket_get_last_error(const struct link_socket *sock)
-{
-    if (socket_is_dco_win(sock))
-    {
-        return GetLastError();
-    }
-
-    return WSAGetLastError();
-}
-
-int
-socket_recv_queue(struct link_socket *sock, int maxsize)
-{
-    if (sock->reads.iostate == IOSTATE_INITIAL)
-    {
-        WSABUF wsabuf[1];
-        int status;
-
-        /* reset buf to its initial state */
-        if (proto_is_udp(sock->info.proto))
-        {
-            sock->reads.buf = sock->reads.buf_init;
-        }
-        else if (proto_is_tcp(sock->info.proto))
-        {
-            stream_buf_get_next(&sock->stream_buf, &sock->reads.buf);
-        }
-        else
-        {
-            ASSERT(0);
-        }
-
-        /* Win32 docs say it's okay to allocate the wsabuf on the stack */
-        wsabuf[0].buf = BSTR(&sock->reads.buf);
-        wsabuf[0].len = maxsize ? maxsize : BLEN(&sock->reads.buf);
-
-        /* check for buffer overflow */
-        ASSERT(wsabuf[0].len <= BLEN(&sock->reads.buf));
-
-        /* the overlapped read will signal this event on I/O completion */
-        ASSERT(ResetEvent(sock->reads.overlapped.hEvent));
-        sock->reads.flags = 0;
-
-        if (socket_is_dco_win(sock))
-        {
-            status = ReadFile((HANDLE)sock->sd, wsabuf[0].buf, wsabuf[0].len, &sock->reads.size,
-                              &sock->reads.overlapped);
-            /* Readfile status is inverted from WSARecv */
-            status = !status;
-        }
-        else if (proto_is_udp(sock->info.proto))
-        {
-            sock->reads.addr_defined = true;
-            sock->reads.addrlen = sizeof(sock->reads.addr6);
-            status = WSARecvFrom(sock->sd, wsabuf, 1, &sock->reads.size, &sock->reads.flags,
-                                 (struct sockaddr *)&sock->reads.addr, &sock->reads.addrlen,
-                                 &sock->reads.overlapped, NULL);
-        }
-        else if (proto_is_tcp(sock->info.proto))
-        {
-            sock->reads.addr_defined = false;
-            status = WSARecv(sock->sd, wsabuf, 1, &sock->reads.size, &sock->reads.flags,
-                             &sock->reads.overlapped, NULL);
-        }
-        else
-        {
-            status = 0;
-            ASSERT(0);
-        }
-
-        if (!status) /* operation completed immediately? */
-        {
-            /* FIXME: won't do anything when sock->info.af == AF_UNSPEC */
-            int af_len = af_addr_size(sock->info.af);
-            if (sock->reads.addr_defined && af_len && sock->reads.addrlen != af_len)
-            {
-                bad_address_length(sock->reads.addrlen, af_len);
-            }
-            sock->reads.iostate = IOSTATE_IMMEDIATE_RETURN;
-
-            /* since we got an immediate return, we must signal the event object ourselves */
-            ASSERT(SetEvent(sock->reads.overlapped.hEvent));
-            sock->reads.status = 0;
-
-            dmsg(D_WIN32_IO, "WIN32 I/O: Socket Receive immediate return [%d,%d]",
-                 (int)wsabuf[0].len, (int)sock->reads.size);
-        }
-        else
-        {
-            status = socket_get_last_error(sock);
-            if (status == WSA_IO_PENDING) /* operation queued? */
-            {
-                sock->reads.iostate = IOSTATE_QUEUED;
-                sock->reads.status = status;
-                dmsg(D_WIN32_IO, "WIN32 I/O: Socket Receive queued [%d]", (int)wsabuf[0].len);
-            }
-            else /* error occurred */
-            {
-                struct gc_arena gc = gc_new();
-                ASSERT(SetEvent(sock->reads.overlapped.hEvent));
-                sock->reads.iostate = IOSTATE_IMMEDIATE_RETURN;
-                sock->reads.status = status;
-                dmsg(D_WIN32_IO, "WIN32 I/O: Socket Receive error [%d]: %s", (int)wsabuf[0].len,
-                     strerror_win32(status, &gc));
-                gc_free(&gc);
-            }
-        }
-    }
-    return sock->reads.iostate;
-}
-
-int
-socket_send_queue(struct link_socket *sock, struct buffer *buf, const struct link_socket_actual *to)
-{
-    if (sock->writes.iostate == IOSTATE_INITIAL)
-    {
-        WSABUF wsabuf[1];
-        int status;
-
-        /* make a private copy of buf */
-        sock->writes.buf = sock->writes.buf_init;
-        sock->writes.buf.len = 0;
-        ASSERT(buf_copy(&sock->writes.buf, buf));
-
-        /* Win32 docs say it's okay to allocate the wsabuf on the stack */
-        wsabuf[0].buf = BSTR(&sock->writes.buf);
-        wsabuf[0].len = BLEN(&sock->writes.buf);
-
-        /* the overlapped write will signal this event on I/O completion */
-        ASSERT(ResetEvent(sock->writes.overlapped.hEvent));
-        sock->writes.flags = 0;
-
-        if (socket_is_dco_win(sock))
-        {
-            status = WriteFile((HANDLE)sock->sd, wsabuf[0].buf, wsabuf[0].len, &sock->writes.size,
-                               &sock->writes.overlapped);
-
-            /* WriteFile status is inverted from WSASendTo */
-            status = !status;
-        }
-        else if (proto_is_udp(sock->info.proto))
-        {
-            /* set destination address for UDP writes */
-            sock->writes.addr_defined = true;
-            if (to->dest.addr.sa.sa_family == AF_INET6)
-            {
-                sock->writes.addr6 = to->dest.addr.in6;
-                sock->writes.addrlen = sizeof(sock->writes.addr6);
-            }
-            else
-            {
-                sock->writes.addr = to->dest.addr.in4;
-                sock->writes.addrlen = sizeof(sock->writes.addr);
-            }
-
-            status = WSASendTo(sock->sd, wsabuf, 1, &sock->writes.size, sock->writes.flags,
-                               (struct sockaddr *)&sock->writes.addr, sock->writes.addrlen,
-                               &sock->writes.overlapped, NULL);
-        }
-        else if (proto_is_tcp(sock->info.proto))
-        {
-            /* destination address for TCP writes was established on connection initiation */
-            sock->writes.addr_defined = false;
-
-            status = WSASend(sock->sd, wsabuf, 1, &sock->writes.size, sock->writes.flags,
-                             &sock->writes.overlapped, NULL);
-        }
-        else
-        {
-            status = 0;
-            ASSERT(0);
-        }
-
-        if (!status) /* operation completed immediately? */
-        {
-            sock->writes.iostate = IOSTATE_IMMEDIATE_RETURN;
-
-            /* since we got an immediate return, we must signal the event object ourselves */
-            ASSERT(SetEvent(sock->writes.overlapped.hEvent));
-
-            sock->writes.status = 0;
-
-            dmsg(D_WIN32_IO, "WIN32 I/O: Socket Send immediate return [%d,%d]", (int)wsabuf[0].len,
-                 (int)sock->writes.size);
-        }
-        else
-        {
-            status = socket_get_last_error(sock);
-            /* both status code have the identical value */
-            if (status == WSA_IO_PENDING || status == ERROR_IO_PENDING) /* operation queued? */
-            {
-                sock->writes.iostate = IOSTATE_QUEUED;
-                sock->writes.status = status;
-                dmsg(D_WIN32_IO, "WIN32 I/O: Socket Send queued [%d]", (int)wsabuf[0].len);
-            }
-            else /* error occurred */
-            {
-                struct gc_arena gc = gc_new();
-                ASSERT(SetEvent(sock->writes.overlapped.hEvent));
-                sock->writes.iostate = IOSTATE_IMMEDIATE_RETURN;
-                sock->writes.status = status;
-
-                dmsg(D_WIN32_IO, "WIN32 I/O: Socket Send error [%d]: %s", (int)wsabuf[0].len,
-                     strerror_win32(status, &gc));
-
-                gc_free(&gc);
-            }
-        }
-    }
-    return sock->writes.iostate;
-}
-
-void
-read_sockaddr_from_overlapped(struct overlapped_io *io, struct sockaddr *dst, int overlapped_ret)
-{
-    if (overlapped_ret >= 0 && io->addr_defined)
-    {
-        /* TODO(jjo): streamline this mess */
-        /* in this func we don't have relevant info about the PF_ of this
-         * endpoint, as link_socket_actual will be zero for the 1st received packet
-         *
-         * Test for inets PF_ possible sizes
-         */
-        switch (io->addrlen)
-        {
-            case sizeof(struct sockaddr_in):
-            case sizeof(struct sockaddr_in6):
-            /* TODO(jjo): for some reason (?) I'm getting 24,28 for AF_INET6
-             * under _WIN32*/
-            case sizeof(struct sockaddr_in6) - 4:
-                break;
-
-            default:
-                bad_address_length(io->addrlen, af_addr_size(io->addr.sin_family));
-        }
-
-        switch (io->addr.sin_family)
-        {
-            case AF_INET:
-                memcpy(dst, &io->addr, sizeof(struct sockaddr_in));
-                break;
-
-            case AF_INET6:
-                memcpy(dst, &io->addr6, sizeof(struct sockaddr_in6));
-                break;
-        }
-    }
-    else
-    {
-        CLEAR(*dst);
-    }
-}
-
-/**
- * @brief Extracts a sockaddr from a packet payload.
- *
- * Reads a sockaddr structure from the start of the packet buffer and writes it to `dst`.
- *
- * @param[in] buf Packet buffer containing the payload.
- * @param[out] dst Destination buffer for the extracted sockaddr.
- * @return Length of the extracted sockaddr
- */
-static int
-read_sockaddr_from_packet(struct buffer *buf, struct sockaddr *dst)
-{
-    int sa_len = 0;
-
-    const struct sockaddr *sa = (const struct sockaddr *)BPTR(buf);
-    switch (sa->sa_family)
-    {
-        case AF_INET:
-            sa_len = sizeof(struct sockaddr_in);
-            if (buf_len(buf) < sa_len)
-            {
-                msg(M_FATAL,
-                    "ERROR: received incoming packet with too short length of %d -- must be at least %d.",
-                    buf_len(buf), sa_len);
-            }
-            memcpy(dst, sa, sa_len);
-            buf_advance(buf, sa_len);
-            break;
-
-        case AF_INET6:
-            sa_len = sizeof(struct sockaddr_in6);
-            if (buf_len(buf) < sa_len)
-            {
-                msg(M_FATAL,
-                    "ERROR: received incoming packet with too short length of %d -- must be at least %d.",
-                    buf_len(buf), sa_len);
-            }
-            memcpy(dst, sa, sa_len);
-            buf_advance(buf, sa_len);
-            break;
-
-        default:
-            msg(M_FATAL, "ERROR: received incoming packet with invalid address family %d.",
-                sa->sa_family);
-    }
-
-    return sa_len;
-}
-
-/* Returns the number of bytes successfully read */
-int
-sockethandle_finalize(sockethandle_t sh, struct overlapped_io *io, struct buffer *buf,
-                      struct link_socket_actual *from)
-{
-    int ret = -1;
-    BOOL status;
-
-    switch (io->iostate)
-    {
-        case IOSTATE_QUEUED:
-            status = SocketHandleGetOverlappedResult(sh, io);
-            if (status)
-            {
-                /* successful return for a queued operation */
-                if (buf)
-                {
-                    *buf = io->buf;
-                }
-                ret = io->size;
-                io->iostate = IOSTATE_INITIAL;
-                ASSERT(ResetEvent(io->overlapped.hEvent));
-
-                dmsg(D_WIN32_IO, "WIN32 I/O: Completion success [%d]", ret);
-            }
-            else
-            {
-                /* error during a queued operation */
-                ret = -1;
-                if (SocketHandleGetLastError(sh) != ERROR_IO_INCOMPLETE)
-                {
-                    /* if no error (i.e. just not finished yet), then DON'T execute this code */
-                    io->iostate = IOSTATE_INITIAL;
-                    ASSERT(ResetEvent(io->overlapped.hEvent));
-                    msg(D_WIN32_IO | M_ERRNO, "WIN32 I/O: Completion error");
-                }
-            }
-            break;
-
-        case IOSTATE_IMMEDIATE_RETURN:
-            io->iostate = IOSTATE_INITIAL;
-            ASSERT(ResetEvent(io->overlapped.hEvent));
-            if (io->status)
-            {
-                /* error return for a non-queued operation */
-                SocketHandleSetLastError(sh, io->status);
-                ret = -1;
-                msg(D_WIN32_IO | M_ERRNO, "WIN32 I/O: Completion non-queued error");
-            }
-            else
-            {
-                /* successful return for a non-queued operation */
-                if (buf)
-                {
-                    *buf = io->buf;
-                }
-                ret = io->size;
-                dmsg(D_WIN32_IO, "WIN32 I/O: Completion non-queued success [%d]", ret);
-            }
-            break;
-
-        case IOSTATE_INITIAL: /* were we called without proper queueing? */
-            SocketHandleSetInvalError(sh);
-            ret = -1;
-            dmsg(D_WIN32_IO, "WIN32 I/O: Completion BAD STATE");
-            break;
-
-        default:
-            ASSERT(0);
-    }
-
-    if (from && ret > 0 && sh.is_handle && sh.prepend_sa)
-    {
-        ret -= read_sockaddr_from_packet(buf, &from->dest.addr.sa);
-    }
-
-    if (!sh.is_handle && from)
-    {
-        read_sockaddr_from_overlapped(io, &from->dest.addr.sa, ret);
-    }
-
-    if (buf)
-    {
-        buf->len = ret;
-    }
-    return ret;
-}
-
-#endif /* _WIN32 */
-
-/*
  * Socket event notification
  */
 
 unsigned int
-socket_set(struct link_socket *s, struct event_set *es, unsigned int rwflags, void *arg,
-           unsigned int *persistent)
+socket_set(struct link_socket *s, struct event_set *es, unsigned int rwflags, void *arg, unsigned int *persistent)
 {
     if (s)
     {
-        if ((rwflags & EVENT_READ) && !stream_buf_read_setup(s))
-        {
-            ASSERT(!persistent);
-            rwflags &= ~EVENT_READ;
-        }
-
-#ifdef _WIN32
-        if (rwflags & EVENT_READ)
-        {
-            socket_recv_queue(s, 0);
-        }
-#endif
-
-        /* if persistent is defined, call event_ctl only if rwflags has changed since last call */
-        if (!persistent || *persistent != rwflags)
-        {
-            event_ctl(es, socket_event_handle(s), rwflags, arg);
-            if (persistent)
-            {
-                *persistent = rwflags;
-            }
-        }
-
-        s->rwflags_debug = rwflags;
+        rwflags |= EVENT_READ;
+        event_ctl(es, socket_event_handle(s), rwflags, arg);
     }
     return rwflags;
 }

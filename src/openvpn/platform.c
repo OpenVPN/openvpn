@@ -39,10 +39,6 @@
 
 #include "platform.h"
 
-#ifdef _WIN32
-#include <direct.h>
-#endif
-
 #ifdef HAVE_LIBCAPNG
 #include <cap-ng.h>
 #include <sys/prctl.h>
@@ -332,11 +328,7 @@ platform_nice(int niceval)
 unsigned int
 platform_getpid(void)
 {
-#ifdef _WIN32
-    return (unsigned int)GetCurrentProcessId();
-#else
     return (unsigned int)getpid();
-#endif
 }
 
 /* Disable paging */
@@ -391,18 +383,10 @@ platform_mlockall(bool print_msg)
 int
 platform_chdir(const char *dir)
 {
-#ifdef _WIN32
-    int res;
-    struct gc_arena gc = gc_new();
-    res = _wchdir(wide_string(dir, &gc));
-    gc_free(&gc);
-    return res;
-#else /* ifdef _WIN32 */
 #ifdef HAVE_CHDIR
     return chdir(dir);
 #else /* ifdef HAVE_CHDIR */
     return -1;
-#endif
 #endif
 }
 
@@ -412,27 +396,9 @@ platform_chdir(const char *dir)
 bool
 platform_system_ok(int stat)
 {
-#ifdef _WIN32
-    return stat == 0;
-#else
     return stat != -1 && WIFEXITED(stat) && WEXITSTATUS(stat) == 0;
-#endif
 }
 
-#ifdef _WIN32
-int
-platform_ret_code(int stat)
-{
-    if (stat >= 0 && stat < 255)
-    {
-        return stat;
-    }
-    else
-    {
-        return -1;
-    }
-}
-#else  /* ifdef _WIN32 */
 int
 platform_ret_code(int stat)
 {
@@ -451,19 +417,11 @@ platform_ret_code(int stat)
         return -1;
     }
 }
-#endif /* ifdef _WIN32 */
 
 int
 platform_access(const char *path, int mode)
 {
-#ifdef _WIN32
-    struct gc_arena gc = gc_new();
-    int ret = _waccess(wide_string(path, &gc), mode & ~X_OK);
-    gc_free(&gc);
-    return ret;
-#else
     return access(path, mode);
-#endif
 }
 
 /*
@@ -472,67 +430,35 @@ platform_access(const char *path, int mode)
 void
 platform_sleep_milliseconds(unsigned int n)
 {
-#ifdef _WIN32
-    Sleep(n);
-#else
     struct timeval tv;
     tv.tv_sec = n / 1000;
     tv.tv_usec = (n % 1000) * 1000;
     select(0, NULL, NULL, NULL, &tv);
-#endif
 }
 
 /* delete a file, return true if succeeded */
 bool
 platform_unlink(const char *filename)
 {
-#if defined(_WIN32)
-    struct gc_arena gc = gc_new();
-    BOOL ret = DeleteFileW(wide_string(filename, &gc));
-    gc_free(&gc);
-    return (ret != 0);
-#else
     return (unlink(filename) == 0);
-#endif
 }
 
 FILE *
 platform_fopen(const char *path, const char *mode)
 {
-#ifdef _WIN32
-    struct gc_arena gc = gc_new();
-    FILE *f = _wfopen(wide_string(path, &gc), wide_string(mode, &gc));
-    gc_free(&gc);
-    return f;
-#else
     return fopen(path, mode);
-#endif
 }
 
 int
 platform_open(const char *path, int flags, int mode)
 {
-#ifdef _WIN32
-    struct gc_arena gc = gc_new();
-    int fd = _wopen(wide_string(path, &gc), flags, mode);
-    gc_free(&gc);
-    return fd;
-#else
     return open(path, flags, mode);
-#endif
 }
 
 int
 platform_stat(const char *path, platform_stat_t *buf)
 {
-#ifdef _WIN32
-    struct gc_arena gc = gc_new();
-    int res = _wstat(wide_string(path, &gc), buf);
-    gc_free(&gc);
-    return res;
-#else
     return stat(path, buf);
-#endif
 }
 
 /* create a temporary filename in directory */
@@ -591,13 +517,7 @@ platform_create_temp_file(const char *directory, const char *prefix, struct gc_a
 const char *
 platform_gen_path(const char *directory, const char *filename, struct gc_arena *gc)
 {
-#ifdef _WIN32
-    const int CC_PATH_RESERVED = CC_LESS_THAN | CC_GREATER_THAN | CC_COLON | CC_DOUBLE_QUOTE
-                                 | CC_SLASH | CC_BACKSLASH | CC_PIPE | CC_QUESTION_MARK
-                                 | CC_ASTERISK;
-#else
     const int CC_PATH_RESERVED = CC_SLASH;
-#endif
 
     if (!gc)
     {
@@ -606,11 +526,7 @@ platform_gen_path(const char *directory, const char *filename, struct gc_arena *
 
     const char *safe_filename = string_mod_const(filename, CC_PRINT, CC_PATH_RESERVED, '_', gc);
 
-    if (safe_filename && strcmp(safe_filename, ".") && strcmp(safe_filename, "..")
-#ifdef _WIN32
-        && win_safe_filename(safe_filename)
-#endif
-    )
+    if (safe_filename && strcmp(safe_filename, ".") && strcmp(safe_filename, ".."))
     {
         const size_t outsize = strlen(safe_filename) + (directory ? strlen(directory) : 0) + 16;
         struct buffer out = alloc_buf_gc(outsize, gc);
@@ -639,11 +555,7 @@ platform_absolute_pathname(const char *pathname)
     if (pathname)
     {
         const int c = pathname[0];
-#ifdef _WIN32
-        return c == '\\' || (isalpha(c) && pathname[1] == ':' && pathname[2] == '\\');
-#else
         return c == '/';
-#endif
     }
     else
     {

@@ -35,29 +35,9 @@
 #define unlikely(x) (x)
 #endif
 
-#ifdef _WIN32
-#include <windows.h>
-#include <winsock2.h>
-#include <tlhelp32.h>
-#define sleep(x) Sleep((x) * 1000)
-#define random   rand
-#define srandom  srand
-#endif
-
 /* if inttypes.h is included this breaks rc.exe when using the ClangCL
  * Toolchain as it pulls in a inttypes.h variant for clang that rc.exe does
  * not understand (#include_next preprocessor directive) */
-#if defined(_WIN32) && !defined(RC_INVOKED)
-#include <inttypes.h>
-typedef uint32_t in_addr_t;
-typedef uint16_t in_port_t;
-
-#define SIGHUP  1
-#define SIGINT  2
-#define SIGUSR1 10
-#define SIGUSR2 12
-#define SIGTERM 15
-#endif
 
 #if defined(_MSC_VER) && !defined(RC_INVOKED)
 #include <BaseTsd.h>
@@ -92,13 +72,11 @@ typedef SSIZE_T ssize_t;
 #include <sys/wait.h>
 #endif
 
-#ifndef _WIN32
 #ifndef WEXITSTATUS
 #define WEXITSTATUS(stat_val) ((unsigned)(stat_val) >> 8)
 #endif
 #ifndef WIFEXITED
 #define WIFEXITED(stat_val) (((stat_val) & 255) == 0)
-#endif
 #endif
 
 #ifdef HAVE_SYS_TIME_H
@@ -334,23 +312,6 @@ typedef SSIZE_T ssize_t;
 
 #endif /* TARGET_DARWIN */
 
-#ifdef _WIN32
-/* Missing declarations for MinGW 32. */
-#if defined(__MINGW32__)
-typedef int MIB_TCP_STATE;
-#endif
-#include <naptypes.h>
-#include <ntddndis.h>
-#include <iphlpapi.h>
-#include <wininet.h>
-#include <shellapi.h>
-#include <io.h>
-
-/* The following two headers are needed of PF_INET6 */
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#endif
-
 #ifdef HAVE_SYS_MMAN_H
 #ifdef TARGET_DARWIN
 #define _P1003_1B_VISIBLE
@@ -358,9 +319,7 @@ typedef int MIB_TCP_STATE;
 #include <sys/mman.h>
 #endif
 
-#ifndef _WIN32
 #include <sys/utsname.h>
-#endif
 
 /*
  * Pedantic mode is meant to accomplish lint-style program checking,
@@ -428,26 +387,15 @@ typedef unsigned short sa_family_t;
 /*
  * Directory separation char
  */
-#ifdef _WIN32
-#define PATH_SEPARATOR     '\\'
-#define PATH_SEPARATOR_STR "\\"
-#else
 #define PATH_SEPARATOR     '/'
 #define PATH_SEPARATOR_STR "/"
-#endif
 
 /*
  * Our socket descriptor type.
  */
-#ifdef _WIN32
-#define SOCKET_UNDEFINED (INVALID_SOCKET)
-#define SOCKET_PRINTF    "%" PRIxPTR
-typedef SOCKET socket_descriptor_t;
-#else
 #define SOCKET_UNDEFINED (-1)
 #define SOCKET_PRINTF    "%d"
 typedef int socket_descriptor_t;
-#endif
 
 static inline int
 socket_defined(const socket_descriptor_t sd)
@@ -474,24 +422,13 @@ socket_defined(const socket_descriptor_t sd)
 #define PORT_SHARE 0
 #endif
 
-#ifdef ENABLE_CRYPTO_MBEDTLS
-#define ENABLE_PREDICTION_RESISTANCE
-#endif /* ENABLE_CRYPTO_MBEDTLS */
-
 /*
  * Do we support Unix domain sockets?
  */
-#if defined(PF_UNIX) && !defined(_WIN32)
+#if defined(PF_UNIX)
 #define UNIX_SOCK_SUPPORT 1
 #else
 #define UNIX_SOCK_SUPPORT 0
-#endif
-
-/*
- * Should we include NTLM proxy functionality
- */
-#ifdef ENABLE_NTLM
-#define NTLM 1
 #endif
 
 /*
@@ -500,22 +437,11 @@ socket_defined(const socket_descriptor_t sd)
 #define PROXY_DIGEST_AUTH 1
 
 /*
- * Do we have CryptoAPI capability?
- */
-#if defined(_WIN32) && defined(ENABLE_CRYPTO_OPENSSL) && !defined(ENABLE_CRYPTO_WOLFSSL)
-#define ENABLE_CRYPTOAPI
-#endif
-
-/*
  * Is poll available on this platform?
  * (Note: on win32 select is faster than poll and we avoid
  * using poll there)
  */
-#if defined(HAVE_POLL_H) || !defined(_WIN32)
 #define POLL 1
-#else
-#define POLL 0
-#endif
 
 /*
  * Is epoll available on this platform?

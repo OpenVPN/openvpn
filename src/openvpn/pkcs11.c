@@ -45,36 +45,24 @@ __mytime(void)
     return openvpn_time(NULL);
 }
 
-#if !defined(_WIN32)
 static int
 __mygettimeofday(struct timeval *tv)
 {
     return gettimeofday(tv, NULL);
 }
-#endif
 
 static void
 __mysleep(unsigned long usec)
 {
-#if defined(_WIN32)
-    Sleep(usec / 1000);
-#else
     if (usec > UINT_MAX)
     {
         usec = UINT_MAX;
     }
     usleep((useconds_t)usec);
-#endif
 }
 
 
-static pkcs11h_engine_system_t s_pkcs11h_sys_engine = { malloc, free, __mytime, __mysleep,
-#if defined(_WIN32)
-                                                        NULL
-#else
-                                                        __mygettimeofday
-#endif
-};
+static pkcs11h_engine_system_t s_pkcs11h_sys_engine = { malloc, free, __mytime, __mysleep, __mygettimeofday };
 
 static msglvl_t
 _pkcs11_msg_pkcs112openvpn(const unsigned flags)
