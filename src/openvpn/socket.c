@@ -202,7 +202,7 @@ in_addr_t
 getaddr(unsigned int flags, const char *hostname, int resolve_retry_seconds, bool *succeeded,
         struct signal_info *sig_info)
 {
-    in_addr_t addr;
+    in_addr_t addr = { 0 };
     int status;
 
     status = get_addr_generic(AF_INET, flags, hostname, &addr, NULL, resolve_retry_seconds,
