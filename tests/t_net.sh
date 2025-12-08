@@ -7,7 +7,7 @@ LAST_TEST=8
 
 srcdir="${srcdir:-.}"
 top_builddir="${top_builddir:-..}"
-openvpn="${top_builddir}/src/openvpn/openvpn"
+openvpn="${openvpn:-${top_builddir}/src/openvpn/openvpn}"
 
 
 # bail out right away on non-linux. NetLink (the object of this test) is only
