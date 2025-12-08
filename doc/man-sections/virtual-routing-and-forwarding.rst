@@ -35,7 +35,7 @@ Move :code:`eth0` into :code:`vrf_external`
       ip link set master vrf_external dev eth0
 
 Any prefixes configured on :code:`eth0` will be moved from the :code`main`
-routing table into routing table `1023`
+routing table into routing table :code:`1023`
 
 
 VRF setup with ifupdown

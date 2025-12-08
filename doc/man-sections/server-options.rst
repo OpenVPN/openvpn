@@ -509,7 +509,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   ``--rcvbuf``, ``--session-timeout``
 
   Note: using ``--push`` requires OpenVPN to run in ``--mode server`` (or
-  using of one of `--server`, `--server-bridge` helper directives).
+  using of one of ``--server``, ``--server-bridge`` helper directives).
 
 --push-remove opt
   Selectively remove all ``--push`` options matching "opt" from the option

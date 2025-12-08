@@ -149,7 +149,7 @@ SCRIPT HOOKS
   :code:`auth_pending_file`. The first line must be the timeout in
   seconds, the required method on the second line (e.g. crtext) and
   third line must be the EXTRA as documented in the
-  ``client-pending-auth`` section of `doc/management.txt`.
+  ``client-pending-auth`` section of ``doc/management.txt``.
 
   This directive is designed to enable a plugin-style interface for
   extending OpenVPN's authentication capabilities.
@@ -588,7 +588,7 @@ permitted character class for each string:
 
 *--auth-user-pass username*
    Same as Common Name, with one exception:
-   starting with OpenVPN 2.0.1, the username is passed to the
+   The username is passed to the
    :code:`OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY` plugin in its raw form,
    without string remapping.
 
@@ -597,11 +597,9 @@ permitted character class for each string:
    a character which will cause the C library isprint() function to
    return true.
 
-*--client-config-dir filename as derived from common name or`username*
-   Alphanumeric, underbar ('\_'), dash ('-'), and dot ('.') except for "."
-   or ".." as standalone strings. As of v2.0.1-rc6, the at ('@') character
-   has been added as well for compatibility with the common name character
-   class.
+*--client-config-dir filename as derived from common name or username*
+   Alphanumeric, underbar ('\_'), dash ('-'), at ('@'), and dot ('.')
+   except for "." or ".." as standalone strings.
 
 *Environmental variable names*
    Alphanumeric or underbar ('\_').
@@ -620,7 +618,7 @@ Environmental Variables
 Once set, a variable is persisted indefinitely until it is reset by a
 new value or a restart,
 
-As of OpenVPN 2.0-beta12, in server mode, environmental variables set by
+In server mode, environmental variables set by
 OpenVPN are scoped according to the client objects they are associated
 with, so there should not be any issues with scripts having access to
 stale, previously set variables which refer to different client
@@ -861,7 +859,7 @@ instances.
 
 :code:`route_ipv6_{parm}_{n}`
     A set of variables which define each IPv6 route to be added, and are
-    set prior to **--up** script execution.
+    set prior to ``--up`` script execution.
 
     ``parm`` will be one of :code:`network`, :code:`gateway` or
     :code:`metric`. ``route_ipv6_network_{n}`` contains :code:`netmask`
@@ -877,9 +875,9 @@ instances.
 :code:`route_redirect_gateway_ipv4`
 
 :code:`route_redirect_gateway_ipv6`
-    Set to `1` if the corresponding default gateway should be redirected
-    into the tunnel, and to `2` if also the local LAN segment should be
-    blocked (`block-local`).  Not set otherwise.  Set prior to **--up** script
+    Set to :code:`1` if the corresponding default gateway should be redirected
+    into the tunnel, and to :code:`2` if also the local LAN segment should be
+    blocked (:code:`block-local`).  Not set otherwise.  Set prior to ``--up`` script
     execution.
 
 :code:`script_context`

@@ -7,7 +7,7 @@ SIGNALS
     connections.
 
 :code:`SIGUSR1`
-    Like :code:`SIGHUP``, except don't re-read configuration file, and
+    Like :code:`SIGHUP`, except don't re-read configuration file, and
     possibly don't close and reopen TUN/TAP device, re-read key files,
     preserve local IP address/port, or preserve most recently authenticated
     remote IP address/port based on ``--persist-tun``, ``--persist-local-ip``

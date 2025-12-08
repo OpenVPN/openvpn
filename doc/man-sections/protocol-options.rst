@@ -185,7 +185,7 @@ configured in a compatible way between both the local and remote side.
   :code:`AES-192-CBC`.
 
   Cipher negotiation is enabled in client-server mode only. I.e. if
-  ``--mode`` is set to `server` (server-side, implied by setting
+  ``--mode`` is set to ``server`` (server-side, implied by setting
   ``--server`` ), or if ``--pull`` is specified (client-side, implied by
   setting ``--client``).
 

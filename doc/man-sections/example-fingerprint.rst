@@ -12,29 +12,26 @@ Server setup
 ------------
 1. Install openvpn
 
-   Compile from source-code (see `INSTALL` file) or install via a distribution (apt/yum/ports)
+   Compile from source-code (see ``INSTALL`` file) or install via a distribution (apt/yum/ports)
    or via installer (Windows).
 
-2. Generate a self-signed certificate for the server:
-   ::
+2. Generate a self-signed certificate for the server::
 
     openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout server.key -out server.crt -nodes -sha256 -days 3650 -subj '/CN=server'
 
 3. Generate SHA256 fingerprint of the server certificate
 
    Use the OpenSSL command line utility to view the fingerprint of just
-   created certificate:
-   ::
+   created certificate::
 
     openssl x509 -fingerprint -sha256 -in server.crt -noout
 
-   This outputs something similar to:
-   ::
+   This outputs something similar to::
 
      SHA256 Fingerprint=00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99:aa:bb:cc:dd:ee:ff
 
 
-4. Write a server configuration (`server.conf`)::
+4. Write a server configuration (``server.conf``)::
 
     # The server certificate we created in step 1
     cert server.crt
@@ -73,10 +70,8 @@ Server setup
 5. Add at least one client as described in the client section.
 
 6. Start the server.
-    - On systemd based distributions move `server.crt`, `server.key` and
-      `server.conf` to :code:`/etc/openvpn/server` and start it via systemctl
-
-      ::
+    - On systemd based distributions move ``server.crt``, ``server.key`` and
+      ``server.conf`` to ``/etc/openvpn/server`` and start it via systemctl::
 
           sudo mv server.conf server.key server.crt /etc/openvpn/server
 
@@ -94,8 +89,7 @@ Adding a client
       openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout - -nodes -sha256 -days 3650 -subj '/CN=alice'
 
    This generate a certificate and a key for the client. The output of the command will look
-   something like this:
-   ::
+   something like this::
 
       -----BEGIN PRIVATE KEY-----
       [base64 content]
@@ -107,9 +101,7 @@ Adding a client
 
 
 3. Create a new client configuration file. In this example we will name the file
-   `alice.ovpn`:
-
-   ::
+   ``alice.ovpn``::
 
       # The name of your server to connect to
       remote yourserver.example.net
@@ -146,24 +138,19 @@ Adding a client
 
 4. Generate the fingerprint of the client certificate. For that we will
    let OpenSSL read the client configuration file as the x509 command will
-   ignore anything that is not between the begin and end markers of the certificate:
-
-   ::
+   ignore anything that is not between the begin and end markers of the certificate::
 
       openssl x509 -fingerprint -sha256 -noout -in alice.ovpn
 
-   This will again output something like
-   ::
+   This will again output something like::
 
         SHA256 Fingerprint=ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00:ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00
 
-5. Edit the `server.conf` configuration file and add this new client
+5. Edit the ``server.conf`` configuration file and add this new client
    fingerprint as additional line  between :code:`<peer-fingerprint>`
    and :code:`</peer-fingerprint>`
 
-   After adding *two* clients the part of configuration would look like this:
-
-   ::
+   After adding *two* clients the part of configuration would look like this::
 
       <peer-fingerprint>
       ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00:ff:ee:dd:cc:bb:aa:99:88:77:66:55:44:33:22:11:00
@@ -172,15 +159,13 @@ Adding a client
 
 6. (optional) if the client is an older client that does not support the
    :code:`peer-fingerprint` (e.g. OpenVPN 2.5 and older, OpenVPN Connect 3.3
-   and older), the client config `alice.ovpn` can be modified to still work with
+   and older), the client config ``alice.ovpn`` can be modified to still work with
    these clients.
 
    Remove the line starting with :code:`peer-fingerprint`. Then
    add a new :code:`<ca>` section at the end of the configuration file
-   with the contents of the :code:`server.crt` created in step 2 of the
-   server setup. The end of `alice.ovpn` file should like:
-
-   ::
+   with the contents of the ``server.crt`` created in step 2 of the
+   server setup. The end of ``alice.ovpn`` file should look like::
 
       [...]  # Beginning of the file skipped
       </cert>

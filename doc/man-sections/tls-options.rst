@@ -220,7 +220,7 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   Local peer's private key in .pem format or a URI. Use the private key
   which was generated when you built your peer's certificate (see
   ``--cert file`` above). URI is supported only when built with OpenSSL 3.0
-  or later and any required providers are loaded. (See `--cert` for more details).
+  or later and any required providers are loaded. (See ``--cert`` for more details).
 
 --pkcs12 file
   Specify a PKCS #12 file containing local private key, local certificate,
@@ -390,7 +390,7 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
     by using ``--ecdh-curve``, the groups for ecdh will also be picked
     from this list.
 
-    OpenVPN maps the curve name `secp256r1` to `prime256v1` to allow
+    OpenVPN maps the curve name ``secp256r1`` to ``prime256v1`` to allow
     specifying the same tls-groups option for mbedTLS and OpenSSL.
 
     Warning: this option not only affects elliptic curve certificates
@@ -404,7 +404,7 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   The following profiles are supported:
 
   :code:`insecure`
-      Identical for mbed TLS to `legacy`
+      Identical for mbed TLS to :code:`legacy`
 
   :code:`legacy` (default)
       SHA1 and newer, RSA 2048-bit+, any elliptic curve.
@@ -433,7 +433,7 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   OpenVPN will migrate to 'preferred' as default in the future. Please
   ensure that your keys already comply.
 
-*WARNING:* ``--tls-ciphers``, ``--tls-ciphersuites`` and ``tls-groups``
+*WARNING:* ``--tls-cipher``, ``--tls-ciphersuites`` and ``tls-groups``
     These options are expert features, which - if used correctly - can
     improve the security of your VPN connection. But it is also easy to
     unwittingly use them to carefully align a gun with your foot, or just
@@ -442,7 +442,7 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
 --tls-cipher l
   A list ``l`` of allowable TLS ciphers delimited by a colon (":code:`:`").
 
-  These setting can be used to ensure that certain cipher suites are used
+  This setting can be used to ensure that certain cipher suites are used
   (or not used) for the TLS connection. OpenVPN uses TLS to secure the
   control channel, over which the keys that are used to protect the actual
   VPN traffic are exchanged.
@@ -452,7 +452,7 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   OpenSSL and/or mbed TLS documentation for details on the cipher list
   interpretation.
 
-  For OpenSSL, the ``--tls-cipher`` is used for TLS 1.2 and below.
+  For OpenSSL, the ``--tls-cipher`` option is used for TLS 1.2 and below.
 
   Use ``--show-tls`` to see a list of TLS ciphers supported by your crypto
   library.
@@ -466,7 +466,7 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   Same as ``--tls-cipher`` but for TLS 1.3 and up. mbed TLS has no
   TLS 1.3 support yet and only the ``--tls-cipher`` setting is used.
 
-  The default for `--tls-ciphersuites` is to use the crypto library's
+  The default for ``--tls-ciphersuites`` is to use the crypto library's
   default.
 
 --tls-client
