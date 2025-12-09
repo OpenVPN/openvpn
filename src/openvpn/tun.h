@@ -274,9 +274,9 @@ void tun_open_device(struct tuntap *tt, const char *dev_node, const char **devic
 
 void close_tun_handle(struct tuntap *tt);
 
-int write_tun(struct tuntap *tt, uint8_t *buf, int len);
+ssize_t write_tun(struct tuntap *tt, uint8_t *buf, int len);
 
-int read_tun(struct tuntap *tt, uint8_t *buf, int len);
+ssize_t read_tun(struct tuntap *tt, uint8_t *buf, int len);
 
 #ifdef ENABLE_FEATURE_TUN_PERSIST
 void tuncfg(const char *dev, const char *dev_type, const char *dev_node, int persist_mode,

@@ -1706,8 +1706,8 @@ clear_tuntap(struct tuntap *tuntap)
 #include <netinet/ip.h>
 #include <sys/uio.h>
 
-static inline int
-header_modify_read_write_return(int len)
+static inline ssize_t
+header_modify_read_write_return(ssize_t len)
 {
     if (len > 0)
     {
@@ -1719,12 +1719,7 @@ header_modify_read_write_return(int len)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
-static int
+static ssize_t
 write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
 {
     if (tt->type == DEV_TYPE_TUN)
@@ -1755,7 +1750,7 @@ write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
     }
 }
 
-static int
+static ssize_t
 read_tun_header(struct tuntap *tt, uint8_t *buf, int len)
 {
     if (tt->type == DEV_TYPE_TUN)
@@ -1776,30 +1771,25 @@ read_tun_header(struct tuntap *tt, uint8_t *buf, int len)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-
 /* For MacOS this extra handling is conditional on the UTUN driver.
  * So it needs its own read_tun()/write_tun() with the necessary
  * checks. They are located in the macOS-specific section below.
  */
 #if !defined(TARGET_DARWIN)
-int
+ssize_t
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     return write_tun_header(tt, buf, len);
 }
 
-int
+ssize_t
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     return read_tun_header(tt, buf, len);
 }
 #endif
 
-
-#endif /* defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY) || defined(TARGET_NETBSD) || if defined (TARGET_OPENBSD) || defined(TARGET_DARWIN) */
+#endif /* if defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY) || defined(TARGET_NETBSD) || defined (TARGET_OPENBSD) || defined(TARGET_DARWIN) */
 
 bool
 tun_name_is_fixed(const char *dev)
@@ -2056,13 +2046,13 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     free(tt);
 }
 
-int
+ssize_t
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     return write(tt->fd, buf, len);
 }
 
-int
+ssize_t
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     return read(tt->fd, buf, len);
@@ -2261,26 +2251,17 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     free(tt);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
-int
+ssize_t
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     return write(tt->fd, buf, len);
 }
 
-int
+ssize_t
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     return read(tt->fd, buf, len);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #elif defined(TARGET_SOLARIS)
 
@@ -2606,7 +2587,7 @@ solaris_error_close(struct tuntap *tt, const struct env_set *es, const char *act
     argv_free(&argv);
 }
 
-int
+ssize_t
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     struct strbuf sbuf;
@@ -2615,7 +2596,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     return putmsg(tt->fd, NULL, &sbuf, 0) >= 0 ? sbuf.len : -1;
 }
 
-int
+ssize_t
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     struct strbuf sbuf;
@@ -3090,11 +3071,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 void
 close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
@@ -3118,7 +3094,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     gc_free(&gc);
 }
 
-int
+ssize_t
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     if (tt->backend_driver == DRIVER_UTUN)
@@ -3131,7 +3107,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
 }
 
-int
+ssize_t
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     if (tt->backend_driver == DRIVER_UTUN)
@@ -3143,10 +3119,6 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
         return read(tt->fd, buf, len);
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #elif defined(TARGET_AIX)
 
@@ -3270,13 +3242,13 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     argv_free(&argv);
 }
 
-int
+ssize_t
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     return write(tt->fd, buf, len);
 }
 
-int
+ssize_t
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     return read(tt->fd, buf, len);
@@ -6322,13 +6294,13 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     free(tt);
 }
 
-int
+ssize_t
 write_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     return write(tt->fd, buf, len);
 }
 
-int
+ssize_t
 read_tun(struct tuntap *tt, uint8_t *buf, int len)
 {
     return read(tt->fd, buf, len);
