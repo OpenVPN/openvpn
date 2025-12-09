@@ -340,6 +340,11 @@ configuration.
   next remote succeeds. To silently ignore an option pushed by the server,
   use :code:`ignore`.
 
+  *Warning:* ``pull-filter`` cannot be relied upon as a security measure to
+  protect against offending options pushed by a server. For example, the
+  filter could be defeated by pushing options with extra spaces between
+  tokens or other formatting variations.
+
 --push-peer-info
   Push additional information about the client to server. The following
   data is always pushed to the server:
