@@ -1685,10 +1685,10 @@ clear_tuntap(struct tuntap *tuntap)
 #endif
 }
 
-#if defined(TARGET_OPENBSD) || defined(TARGET_DARWIN)
+#if defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY) || defined(TARGET_NETBSD) || defined(TARGET_OPENBSD) || defined(TARGET_DARWIN)
 
 /*
- * OpenBSD and Mac OS X when using utun
+ * BSDs and Mac OS X when using utun
  * have a slightly incompatible TUN device from
  * the rest of the world, in that it prepends a
  * uint32 to the beginning of the IP header
@@ -1699,10 +1699,8 @@ clear_tuntap(struct tuntap *tuntap)
  * We strip off this field on reads and
  * put it back on writes.
  *
- * I have not tested TAP devices on OpenBSD,
- * but I have conditionalized the special
- * TUN handling code described above to
- * go away for TAP devices.
+ * For TAP devices, this is not needed and must
+ * not be done.
  */
 
 #include <netinet/ip.h>
@@ -1733,11 +1731,9 @@ write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
     {
         u_int32_t type;
         struct iovec iv[2];
-        struct openvpn_iphdr *iph;
+        struct ip *iph = (struct ip *)buf;
 
-        iph = (struct openvpn_iphdr *)buf;
-
-        if (OPENVPN_IPH_GET_VER(iph->version_len) == 6)
+        if (iph->ip_v == 6)
         {
             type = htonl(AF_INET6);
         }
@@ -1784,7 +1780,26 @@ read_tun_header(struct tuntap *tt, uint8_t *buf, int len)
 #pragma GCC diagnostic pop
 #endif
 
-#endif /* if defined (TARGET_OPENBSD) || defined(TARGET_DARWIN) */
+/* For MacOS this extra handling is conditional on the UTUN driver.
+ * So it needs its own read_tun()/write_tun() with the necessary
+ * checks. They are located in the macOS-specific section below.
+ */
+#if !defined(TARGET_DARWIN)
+int
+write_tun(struct tuntap *tt, uint8_t *buf, int len)
+{
+    return write_tun_header(tt, buf, len);
+}
+
+int
+read_tun(struct tuntap *tt, uint8_t *buf, int len)
+{
+    return read_tun_header(tt, buf, len);
+}
+#endif
+
+
+#endif /* defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY) || defined(TARGET_NETBSD) || if defined (TARGET_OPENBSD) || defined(TARGET_DARWIN) */
 
 bool
 tun_name_is_fixed(const char *dev)
@@ -2679,18 +2694,6 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     argv_free(&argv);
 }
 
-int
-write_tun(struct tuntap *tt, uint8_t *buf, int len)
-{
-    return write_tun_header(tt, buf, len);
-}
-
-int
-read_tun(struct tuntap *tt, uint8_t *buf, int len)
-{
-    return read_tun_header(tt, buf, len);
-}
-
 #elif defined(TARGET_NETBSD)
 
 /*
@@ -2792,87 +2795,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     argv_free(&argv);
 }
 
-static inline int
-netbsd_modify_read_write_return(int len)
-{
-    if (len > 0)
-    {
-        return len > sizeof(u_int32_t) ? len - sizeof(u_int32_t) : 0;
-    }
-    else
-    {
-        return len;
-    }
-}
-
-int
-write_tun(struct tuntap *tt, uint8_t *buf, int len)
-{
-    if (tt->type == DEV_TYPE_TUN)
-    {
-        u_int32_t type;
-        struct iovec iv[2];
-        struct openvpn_iphdr *iph;
-
-        iph = (struct openvpn_iphdr *)buf;
-
-        if (OPENVPN_IPH_GET_VER(iph->version_len) == 6)
-        {
-            type = htonl(AF_INET6);
-        }
-        else
-        {
-            type = htonl(AF_INET);
-        }
-
-        iv[0].iov_base = (char *)&type;
-        iv[0].iov_len = sizeof(type);
-        iv[1].iov_base = buf;
-        iv[1].iov_len = len;
-
-        return netbsd_modify_read_write_return(writev(tt->fd, iv, 2));
-    }
-    else
-    {
-        return write(tt->fd, buf, len);
-    }
-}
-
-int
-read_tun(struct tuntap *tt, uint8_t *buf, int len)
-{
-    if (tt->type == DEV_TYPE_TUN)
-    {
-        u_int32_t type;
-        struct iovec iv[2];
-
-        iv[0].iov_base = (char *)&type;
-        iv[0].iov_len = sizeof(type);
-        iv[1].iov_base = buf;
-        iv[1].iov_len = len;
-
-        return netbsd_modify_read_write_return(readv(tt->fd, iv, 2));
-    }
-    else
-    {
-        return read(tt->fd, buf, len);
-    }
-}
-
 #elif defined(TARGET_FREEBSD)
-
-static inline int
-freebsd_modify_read_write_return(int len)
-{
-    if (len > 0)
-    {
-        return len > sizeof(u_int32_t) ? len - sizeof(u_int32_t) : 0;
-    }
-    else
-    {
-        return len;
-    }
-}
 
 void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
@@ -2946,83 +2869,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     argv_free(&argv);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
-int
-write_tun(struct tuntap *tt, uint8_t *buf, int len)
-{
-    if (tt->type == DEV_TYPE_TUN)
-    {
-        u_int32_t type;
-        struct iovec iv[2];
-        struct ip *iph;
-
-        iph = (struct ip *)buf;
-
-        if (iph->ip_v == 6)
-        {
-            type = htonl(AF_INET6);
-        }
-        else
-        {
-            type = htonl(AF_INET);
-        }
-
-        iv[0].iov_base = (char *)&type;
-        iv[0].iov_len = sizeof(type);
-        iv[1].iov_base = buf;
-        iv[1].iov_len = len;
-
-        return freebsd_modify_read_write_return(writev(tt->fd, iv, 2));
-    }
-    else
-    {
-        return write(tt->fd, buf, len);
-    }
-}
-
-int
-read_tun(struct tuntap *tt, uint8_t *buf, int len)
-{
-    if (tt->type == DEV_TYPE_TUN)
-    {
-        u_int32_t type;
-        struct iovec iv[2];
-
-        iv[0].iov_base = (char *)&type;
-        iv[0].iov_len = sizeof(type);
-        iv[1].iov_base = buf;
-        iv[1].iov_len = len;
-
-        return freebsd_modify_read_write_return(readv(tt->fd, iv, 2));
-    }
-    else
-    {
-        return read(tt->fd, buf, len);
-    }
-}
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-
 #elif defined(TARGET_DRAGONFLY)
-
-static inline int
-dragonfly_modify_read_write_return(int len)
-{
-    if (len > 0)
-    {
-        return len > sizeof(u_int32_t) ? len - sizeof(u_int32_t) : 0;
-    }
-    else
-    {
-        return len;
-    }
-}
 
 void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
@@ -3048,60 +2895,6 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
     close_tun_generic(tt);
     free(tt);
-}
-
-int
-write_tun(struct tuntap *tt, uint8_t *buf, int len)
-{
-    if (tt->type == DEV_TYPE_TUN)
-    {
-        u_int32_t type;
-        struct iovec iv[2];
-        struct ip *iph;
-
-        iph = (struct ip *)buf;
-
-        if (iph->ip_v == 6)
-        {
-            type = htonl(AF_INET6);
-        }
-        else
-        {
-            type = htonl(AF_INET);
-        }
-
-        iv[0].iov_base = (char *)&type;
-        iv[0].iov_len = sizeof(type);
-        iv[1].iov_base = buf;
-        iv[1].iov_len = len;
-
-        return dragonfly_modify_read_write_return(writev(tt->fd, iv, 2));
-    }
-    else
-    {
-        return write(tt->fd, buf, len);
-    }
-}
-
-int
-read_tun(struct tuntap *tt, uint8_t *buf, int len)
-{
-    if (tt->type == DEV_TYPE_TUN)
-    {
-        u_int32_t type;
-        struct iovec iv[2];
-
-        iv[0].iov_base = (char *)&type;
-        iv[0].iov_len = sizeof(type);
-        iv[1].iov_base = buf;
-        iv[1].iov_len = len;
-
-        return dragonfly_modify_read_write_return(readv(tt->fd, iv, 2));
-    }
-    else
-    {
-        return read(tt->fd, buf, len);
-    }
 }
 
 #elif defined(TARGET_DARWIN)
