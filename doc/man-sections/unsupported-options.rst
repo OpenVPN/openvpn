@@ -44,12 +44,6 @@ longer supported
   VPN tunnel security.  Previously we claimed to have removed this in
   OpenVPN 2.5, but this wasn't actually the case.
 
---ns-cert-type
-  Removed in OpenVPN 2.5.  The ``nsCertType`` field is no longer supported
-  in recent SSL/TLS libraries.  If your certificates does not include *key
-  usage* and *extended key usage* fields, they must be upgraded and the
-  ``--remote-cert-tls`` option should be used instead.
-
 --prng
   Removed in OpenVPN 2.6.  We now always use the PRNG of the SSL library.
 

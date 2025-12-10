@@ -222,6 +222,17 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   ``--cert file`` above). URI is supported only when built with OpenSSL 3.0
   or later and any required providers are loaded. (See ``--cert`` for more details).
 
+--ns-cert-type type
+  **DEPRECATED** The ``--remote-cert-tls`` option should be used instead.
+  The option is still available since it can't be silently ignored and needs
+  updates to certificates and configs on both sides of the connection.
+  However it should not be used for new clients or servers. It depends on the
+  deprecated ``nsCertType`` certificate field.
+
+  Might not work depending on the TLS library used.
+
+  Will be removed in a future release.
+
 --pkcs12 file
   Specify a PKCS #12 file containing local private key, local certificate,
   and root CA certificate. This option can be used instead of ``--ca``,
