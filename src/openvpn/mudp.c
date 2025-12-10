@@ -209,7 +209,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
         /* make sure buffer has enough length to read opcode (1 byte) and peer-id (3 bytes) */
         if (v2)
         {
-            uint32_t peer_id = ntohl(*(uint32_t *)ptr) & 0xFFFFFF;
+            uint32_t peer_id = ((uint32_t)ptr[1] << 16) | ((uint32_t)ptr[2] << 8) | ((uint32_t)ptr[3]);
             peer_id_disabled = (peer_id == MAX_PEER_ID);
 
             if (!peer_id_disabled && (peer_id < m->max_clients) && (m->instances[peer_id]))
