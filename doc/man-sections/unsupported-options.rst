@@ -6,8 +6,15 @@ Options listed in this section have been removed from OpenVPN and are no
 longer supported
 
 --client-cert-not-required
-  Removed in OpenVPN 2.5.  This should be replaxed with
+  Removed in OpenVPN 2.5.  This should be replaced with
   ``--verify-client-cert none``.
+
+--http-proxy-retry
+  Removed in OpenVPN 2.4.  All retries are controlled by ``--max-connect-retry``.
+
+--http-proxy-timeout
+  Removed in OpenVPN 2.4.  Connection timeout is controlled by
+  ``--connect-timeout``.
 
 --ifconfig-pool-linear
   Removed in OpenVPN 2.5.  This should be replaced with ``--topology p2p``.
@@ -20,6 +27,9 @@ longer supported
 --management-client-pf
   Removed in OpenVPN 2.6.  The built-in packet filtering (pf) functionality
   has been removed.
+
+--max-routes
+  Removed in OpenVPN 2.4.  The limit was removed.
 
 --ncp-disable
   Removed in OpenVPN 2.6.  This option mainly served a role as debug option
@@ -49,6 +59,9 @@ longer supported
 --opt-verify
   Removed in OpenVPN 2.7.  This option does not make sense anymore as option
   strings may not match due to the introduction of parameters negotiation.
+
+--socks-proxy-retry
+  Removed in OpenVPN 2.4.  All retries are controlled by ``--max-connect-retry``.
 
 --windows-driver
   Removed in OpenVPN 2.7. OpenVPN will always use ovpn-dco as the default
