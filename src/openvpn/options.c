@@ -3905,16 +3905,7 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     }
     else
     {
-        if (o->windows_driver == DRIVER_DCO)
-        {
-            msg(M_WARN,
-                "Option --windows-driver ovpn-dco is ignored because Data Channel Offload is disabled");
-            o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
-        }
-        else if (o->windows_driver == WINDOWS_DRIVER_UNSPECIFIED)
-        {
-            o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
-        }
+        o->windows_driver = WINDOWS_DRIVER_TAP_WINDOWS6;
     }
 #else  /* _WIN32 */
     if (dco_enabled(o) && o->dev_node)

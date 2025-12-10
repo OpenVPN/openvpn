@@ -89,7 +89,7 @@ routing.
 
   On Windows, only the names :code:`tun` and :code:`tap` are supported.
   Selection among multiple installed drivers or driver instances is done
-  with ``--dev-node`` and ``--windows-driver``.
+  with ``--dev-node``.
 
 --dev-node node
   This is a highly system dependent option to influence tun/tap driver

@@ -5826,7 +5826,7 @@ tun_open_device(struct tuntap *tt, const char *dev_node, const char **device_gui
         if (tt->backend_driver != windows_driver)
         {
             msg(M_FATAL,
-                "Adapter '%s' is using %s driver, %s expected. If you want to use this device, adjust --windows-driver.",
+                "Adapter '%s' is using %s driver, %s expected.",
                 dev_node, print_tun_backend_driver(windows_driver),
                 print_tun_backend_driver(tt->backend_driver));
         }
