@@ -338,6 +338,11 @@ User-visible Changes
   (force egress = ingress interface) can be achieved with the new
   ``--multihome same-interface`` sub-option.
 
+- Windows ``openvpn.exe`` binary manifest now sets code page UTF8 - which
+  has no direct effect on OpenVPN itself, but this repairs OpenSSL file
+  loading for key/cert files with non-ASCII characters in their file names
+  (GH: OpenVPN/openvpn#920).
+
 Deprecated features
 -------------------
 ``--opt-verify`` feature removed

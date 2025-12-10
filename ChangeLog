@@ -1,6 +1,65 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2025.12.17 -- Version 2.7_rc4
+
+Arne Schwabe (4):
+      Clarify some code in epoch with better comments
+      Add a section about wolfSSL GPLv3 and point out missing TLS PRF support
+      Fix dco with null cipher being enabled without auth none
+      Change ssl_ctx in struct tls_options to be a pointer
+
+Frank Lichtenheld (19):
+      Documentation: Various syntax fixes and text improvements
+      CMake: For VS build, switch from /W2 to /W3
+      socket: Initialize struct in_addr_t in getaddr()
+      GHA: Add minGW Release build
+      tun: Refactor BSD write_tun/read_tun
+      tun: Change return type of write_tun/read_tun to ssize_t
+      Remove some obsolete references to --windows-driver
+      options: Remove some verbose error messages for options deprecated in 2.4
+      Correct documentation for --ns-cert-type
+      buffer: Change limits for array_mult_safe
+      mbuf: Add unit tests
+      options: Avoid some conversion warnings
+      schedule: Rework documentation for schedule_add_entry
+      multi: Fix wrong sigma value in multi_push_restart_schedule_exit
+      multi: Fix type handling for hashes, mostly inotify_watchers
+      multi: Fix various conversion warnings
+      manage: Avoid several conversion warnings by using the correct types
+      buffer: Change buf_prepend and buf_advance to accept ssize_t for length
+      multi: Warn about failing read in multi_process_file_closed()
+
+Gianmarco De Gregori (2):
+      mudp: fix unaligned 32-bit read when parsing peer ID
+      Deprecate --fast-io option
+
+Heiko Hund (1):
+      iservice: set adapter DNS only with search domains
+
+Klemens Nanni (1):
+      Prevent crash on invalid server-ipv6 argument
+
+Lev Stipakov (1):
+      tun.c: set IPv4 address temporary on Windows
+
+Max Fillinger (1):
+      Drop Mbed TLS 2.X compatibility
+
+Moritz Fain (1):
+      PUSH_UPDATE: fix option reset logic in continuation messages
+
+Selva Nair (2):
+      Set UTF-8 as the codepage using manifest declaration
+      pull-filter: improve documentation
+
+Simon Matter (1):
+      Add CAP_SYS_NICE to the positive list in systemd service files
+
+Steffan Karger (1):
+      mbedtls: gracefully exit if certificate file is NULL
+
+
 2025.11.28 -- Version 2.7_rc3
 
 Frank Lichtenheld (9):
