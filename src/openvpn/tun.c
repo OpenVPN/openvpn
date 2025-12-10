@@ -5119,8 +5119,8 @@ netsh_ifconfig(const struct tuntap_options *to, DWORD adapter_index, const in_ad
         }
         else
         {
-            /* example: netsh interface ip set address 42 static 10.3.0.1 255.255.255.0 */
-            argv_printf(&argv, "%s%s interface ip set address %lu static %s %s", get_win_sys_path(),
+            /* example: netsh interface ip set address 42 static 10.3.0.1 255.255.255.0 store=active */
+            argv_printf(&argv, "%s%s interface ip set address %lu static %s %s store=active", get_win_sys_path(),
                         NETSH_PATH_SUFFIX, adapter_index, print_in_addr_t(ip, 0, &gc),
                         print_in_addr_t(netmask, 0, &gc));
 
