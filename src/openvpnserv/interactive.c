@@ -2869,11 +2869,19 @@ HandleDNSConfigNrptMessage(const nrpt_dns_cfg_message_t *msg, DWORD ovpn_pid, un
         goto out;
     }
 
-    /* Set name servers */
-    err = SetNameServerAddresses(iid, msg->addresses);
-    if (err)
+    /*
+     * Set DNS on the adapter for search domains to be considered.
+     * If split DNS is configured, do this only when search domains
+     * are given, so that look-ups for other domains do not go over
+     * the VPN all the time.
+     */
+    if (msg->search_domains[0] || !msg->resolve_domains[0])
     {
-        goto out;
+        err = SetNameServerAddresses(iid, msg->addresses);
+        if (err)
+        {
+            goto out;
+        }
     }
 
     /* Set search domains, if any */
