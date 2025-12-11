@@ -285,7 +285,6 @@ static const char usage_message[] =
 #if ENABLE_IP_PKTINFO
     "--multihome     : Configure a multi-homed UDP server.\n"
 #endif
-    "--fast-io       : Optimize TUN/TAP/UDP writes.\n"
     "--remap-usr1 s  : On SIGUSR1 signals, remap signal (s='SIGHUP' or 'SIGTERM').\n"
     "--persist-tun   : Keep tun/tap device open across SIGUSR1 or --ping-restart.\n"
     "--persist-remote-ip : Keep remote IP address across SIGUSR1 or --ping-restart.\n"
@@ -1794,8 +1793,6 @@ show_settings(const struct options *o)
     SHOW_INT(mark);
 #endif
     SHOW_INT(sockflags);
-
-    SHOW_BOOL(fast_io);
 
     SHOW_INT(comp.alg);
     SHOW_INT(comp.flags);
@@ -6592,7 +6589,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "fast-io") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->fast_io = true;
+        msg(M_WARN, "DEPRECATED OPTION: --fast-io option ignored.");
     }
     else if (streq(p[0], "inactive") && p[1] && !p[3])
     {

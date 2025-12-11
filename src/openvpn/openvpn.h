@@ -420,9 +420,6 @@ struct context_2
     struct env_set *es;
     bool es_owned;
 
-    /* don't wait for TUN/TAP/UDP to be ready to accept write */
-    bool fast_io;
-
     /* --ifconfig endpoints to be pushed to client */
     bool push_request_received;
     bool push_ifconfig_defined;

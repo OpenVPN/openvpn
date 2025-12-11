@@ -339,9 +339,7 @@ void
 multi_process_io_udp(struct multi_context *m, struct link_socket *sock)
 {
     const unsigned int status = m->multi_io->udp_flags;
-    const unsigned int mpp_flags = m->top.c2.fast_io
-                                       ? (MPP_CONDITIONAL_PRE_SELECT | MPP_CLOSE_ON_SIGNAL)
-                                       : (MPP_PRE_SELECT | MPP_CLOSE_ON_SIGNAL);
+    const unsigned int mpp_flags = (MPP_PRE_SELECT | MPP_CLOSE_ON_SIGNAL);
 
     /* UDP port ready to accept write */
     if (status & SOCKET_WRITE)

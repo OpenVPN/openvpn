@@ -9,6 +9,10 @@ longer supported
   Removed in OpenVPN 2.5.  This should be replaced with
   ``--verify-client-cert none``.
 
+--fast-io
+  Ignored since OpenVPN 2.7. This option became broken due to changes
+  to the event loop.
+
 --http-proxy-retry
   Removed in OpenVPN 2.4.  All retries are controlled by ``--max-connect-retry``.
 

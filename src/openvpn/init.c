@@ -4139,34 +4139,6 @@ do_env_set_destroy(struct context *c)
     }
 }
 
-/*
- * Fast I/O setup.  Fast I/O is an optimization which only works
- * if all of the following are true:
- *
- * (1) The platform is not Windows
- * (2) --proto udp is enabled
- * (3) --shaper is disabled
- */
-static void
-do_setup_fast_io(struct context *c)
-{
-    if (c->options.fast_io)
-    {
-#ifdef _WIN32
-        msg(M_INFO, "NOTE: --fast-io is disabled since we are running on Windows");
-#else
-        if (c->options.shaper)
-        {
-            msg(M_INFO, "NOTE: --fast-io is disabled since we are using --shaper");
-        }
-        else
-        {
-            c->c2.fast_io = true;
-        }
-#endif
-    }
-}
-
 static void
 do_signal_on_tls_errors(struct context *c)
 {
@@ -4512,12 +4484,6 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         open_plugins(c, false, OPENVPN_PLUGIN_INIT_PRE_DAEMON);
     }
 #endif
-
-    /* should we enable fast I/O? */
-    if (c->mode == CM_P2P || c->mode == CM_TOP)
-    {
-        do_setup_fast_io(c);
-    }
 
     /* should we throw a signal on TLS errors? */
     do_signal_on_tls_errors(c);

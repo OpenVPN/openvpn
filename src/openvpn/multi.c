@@ -3008,8 +3008,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
     bool ret = true;
 
     if (!IS_SIG(&mi->context)
-        && ((flags & MPP_PRE_SELECT)
-            || ((flags & MPP_CONDITIONAL_PRE_SELECT) && !ANY_OUT(&mi->context))))
+        && ((flags & MPP_PRE_SELECT)))
     {
 #if defined(ENABLE_ASYNC_PUSH)
         bool was_unauthenticated = true;

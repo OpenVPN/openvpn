@@ -2154,13 +2154,12 @@ multi_io_process_flags(struct context *c, struct event_set *es, const unsigned i
 }
 
 /*
- * Wait for I/O events.  Used for both TCP & UDP sockets
- * in point-to-point mode and for UDP sockets in
+ * Wait for I/O events.  Used for UDP sockets in
  * point-to-multipoint mode.
  */
 
 void
-get_io_flags_dowork_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags)
+get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags)
 {
     unsigned int out_socket;
 
@@ -2168,33 +2167,12 @@ get_io_flags_dowork_udp(struct context *c, struct multi_io *multi_io, const unsi
     multi_io->udp_flags = (out_socket << SOCKET_SHIFT);
 }
 
+/*
+ * This is the core I/O wait function, used for all I/O waits except
+ * for the top-level server sockets.
+ */
 void
-get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags)
-{
-    multi_io->udp_flags = ES_ERROR;
-    if (c->c2.fast_io && (flags & (IOW_TO_TUN | IOW_TO_LINK | IOW_MBUF)))
-    {
-        /* fast path -- only for TUN/TAP/UDP writes */
-        unsigned int ret = 0;
-        if (flags & IOW_TO_TUN)
-        {
-            ret |= TUN_WRITE;
-        }
-        if (flags & (IOW_TO_LINK | IOW_MBUF))
-        {
-            ret |= SOCKET_WRITE;
-        }
-        multi_io->udp_flags = ret;
-    }
-    else
-    {
-        /* slow path - delegate to io_wait_dowork_udp to calculate flags */
-        get_io_flags_dowork_udp(c, multi_io, flags);
-    }
-}
-
-void
-io_wait_dowork(struct context *c, const unsigned int flags)
+io_wait(struct context *c, const unsigned int flags)
 {
     unsigned int out_socket;
     unsigned int out_tuntap;

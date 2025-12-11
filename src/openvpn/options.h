@@ -406,9 +406,6 @@ struct options
     int status_file_version;
     int status_file_update_freq;
 
-    /* optimize TUN/TAP/UDP writes */
-    bool fast_io;
-
     struct compress_options comp;
 
     /* buffer sizes */

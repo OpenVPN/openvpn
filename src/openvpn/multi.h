@@ -271,10 +271,9 @@ void multi_close_instance(struct multi_context *m, struct multi_instance *mi, bo
 
 bool multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags);
 
-#define MPP_PRE_SELECT             (1 << 0)
-#define MPP_CONDITIONAL_PRE_SELECT (1 << 1)
-#define MPP_CLOSE_ON_SIGNAL        (1 << 2)
-#define MPP_RECORD_TOUCH           (1 << 3)
+#define MPP_PRE_SELECT      (1 << 0)
+#define MPP_CLOSE_ON_SIGNAL (1 << 1)
+#define MPP_RECORD_TOUCH    (1 << 2)
 
 
 /**************************************************************************/
