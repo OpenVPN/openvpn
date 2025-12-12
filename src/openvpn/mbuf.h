@@ -36,6 +36,8 @@
 struct multi_instance;
 
 #define MBUF_INDEX(head, offset, size) (((head) + (offset)) & ((size) - 1))
+/* limited by adjust_power_of_2 and array_mult_safe */
+#define MBUF_SIZE_MAX                  (ALLOC_SIZE_MAX / sizeof(struct mbuf_item))
 
 struct mbuf_buffer
 {

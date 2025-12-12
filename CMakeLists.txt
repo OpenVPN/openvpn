@@ -633,6 +633,7 @@ if (NOT WIN32)
     endif ()
 endif ()
 
+option(UT_ALLOW_BIG_ALLOC "Allow unit-tests to use > 1 GB of memory" ON)
 
 if (BUILD_TESTING)
     find_package(cmocka CONFIG)
@@ -649,6 +650,7 @@ if (BUILD_TESTING)
         "test_buffer"
         "test_crypto"
         "test_dhcp"
+        "test_mbuf"
         "test_misc"
         "test_ncp"
         "test_options_parse"
@@ -739,6 +741,9 @@ if (BUILD_TESTING)
         # for compat with IDEs like Clion that ignore the tests properties
         # for the environment variable srcdir when running tests as fallback
         target_compile_definitions(${test_name} PRIVATE "UNIT_TEST_SOURCEDIR=\"${_UT_SOURCE_DIR}\"")
+        if (UT_ALLOW_BIG_ALLOC)
+            target_compile_definitions(${test_name} PRIVATE UNIT_TEST_ALLOW_BIG_ALLOC)
+        endif ()
 
         if (NOT ${test_name} STREQUAL "test_buffer")
             target_sources(${test_name} PRIVATE
@@ -799,6 +804,12 @@ if (BUILD_TESTING)
             src/openvpn/xkey_helper.c
             src/openvpn/xkey_provider.c
     )
+
+    target_sources(test_mbuf PRIVATE
+        tests/unit_tests/openvpn/mock_get_random.c
+        src/openvpn/buffer.c
+        src/openvpn/mbuf.c
+        )
 
     target_sources(test_misc PRIVATE
         tests/unit_tests/openvpn/mock_get_random.c

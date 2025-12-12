@@ -42,6 +42,8 @@
 struct mbuf_set *
 mbuf_init(unsigned int size)
 {
+    ASSERT(size <= MBUF_SIZE_MAX);
+
     struct mbuf_set *ret;
     ALLOC_OBJ_CLEAR(ret, struct mbuf_set);
     ret->capacity = adjust_power_of_2(size);
@@ -121,6 +123,7 @@ mbuf_extract_item(struct mbuf_set *ms, struct mbuf_item *item)
     bool ret = false;
     if (ms)
     {
+        ASSERT(item);
         while (ms->len)
         {
             *item = ms->array[ms->head];
