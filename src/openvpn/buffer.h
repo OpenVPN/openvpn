@@ -1044,6 +1044,18 @@ gc_reset(struct gc_arena *a)
  * Allocate memory to hold a structure
  */
 
+/* When allocating arrays make sure we do not use a excessive amount
+ * of memory.
+ */
+#if UINTPTR_MAX <= UINT32_MAX
+/* 1 GB on 32bit systems, they usually can only allocate 2 GB for the
+ * whole process.
+ */
+#define ALLOC_SIZE_MAX (1u << 30)
+#else
+#define ALLOC_SIZE_MAX ((size_t)1 << 32) /* 4 GB */
+#endif
+
 #define ALLOC_OBJ(dptr, type)                                       \
     {                                                               \
         check_malloc_return((dptr) = (type *)malloc(sizeof(type))); \
