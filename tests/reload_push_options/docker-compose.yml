@@ -1,0 +1,73 @@
+services:
+  server:
+    build:
+      context: ../..
+      dockerfile: tests/reload_push_options/Dockerfile
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    networks:
+      vpn_net:
+        ipv4_address: 10.100.0.2
+    volumes:
+      - ./keys:/etc/openvpn/keys:ro
+      - ./scripts:/scripts:ro
+    ports:
+      - "7505:7505"  # Management interface
+    command: ["/scripts/server-entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "sh", "-c", "ip link show tun0 >/dev/null 2>&1"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 5s
+
+  client1:
+    build:
+      context: ../..
+      dockerfile: tests/reload_push_options/Dockerfile
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    networks:
+      vpn_net:
+        ipv4_address: 10.100.0.10
+    volumes:
+      - ./configs:/etc/openvpn:ro
+      - ./keys:/etc/openvpn/keys:ro
+      - ./scripts:/scripts:ro
+      - ./results:/results
+    depends_on:
+      server:
+        condition: service_healthy
+    command: ["/scripts/client-entrypoint.sh", "client1"]
+
+  client2:
+    build:
+      context: ../..
+      dockerfile: tests/reload_push_options/Dockerfile
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    networks:
+      vpn_net:
+        ipv4_address: 10.100.0.11
+    volumes:
+      - ./configs:/etc/openvpn:ro
+      - ./keys:/etc/openvpn/keys:ro
+      - ./scripts:/scripts:ro
+      - ./results:/results
+    depends_on:
+      server:
+        condition: service_healthy
+    command: ["/scripts/client-entrypoint.sh", "client2"]
+
+networks:
+  vpn_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.100.0.0/24
