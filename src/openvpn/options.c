@@ -1154,13 +1154,8 @@ ipv6_addr_safe_hexplusbits(const char *ipv6_prefix_spec)
     return get_ipv6_addr(ipv6_prefix_spec, &t_addr, &t_bits, M_WARN);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static char *
-string_substitute(const char *src, int from, int to, struct gc_arena *gc)
+string_substitute(const char *src, char from, char to, struct gc_arena *gc)
 {
     char *ret = (char *)gc_malloc(strlen(src) + 1, true, gc);
     char *dest = ret;
@@ -9305,10 +9300,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
 err:
     gc_free(&gc);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 bool
 has_udp_in_local_list(const struct options *options)
