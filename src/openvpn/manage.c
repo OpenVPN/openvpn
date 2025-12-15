@@ -206,11 +206,6 @@ man_password_needed(struct management *man)
     return man->settings.up.defined && !man->connection.password_verified;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static void
 man_check_password(struct management *man, const char *line)
 {
@@ -220,7 +215,8 @@ man_check_password(struct management *man, const char *line)
          * the attacker choice, it should not give any indication of the real
          * password length, use + 1 to include the NUL byte that terminates the
          * string*/
-        size_t compare_len = min_uint(strlen(line) + 1, sizeof(man->settings.up.password));
+        size_t compare_len =
+            min_size(strlen(line) + 1, sizeof(man->settings.up.password));
         if (memcmp_constant_time(line, man->settings.up.password, compare_len) == 0)
         {
             man->connection.password_verified = true;
@@ -240,10 +236,6 @@ man_check_password(struct management *man, const char *line)
         }
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static void
 man_update_io_state(struct management *man)
@@ -2315,19 +2307,14 @@ managment_android_persisttun_action(struct management *man)
 
 #endif /* ifdef TARGET_ANDROID */
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
-static int
+static ssize_t
 man_read(struct management *man)
 {
     /*
      * read command line from socket
      */
     unsigned char buf[256];
-    int len = 0;
+    ssize_t len = 0;
 
 #ifdef TARGET_ANDROID
     int fd;
@@ -2348,7 +2335,7 @@ man_read(struct management *man)
     {
         bool processed_command = false;
 
-        ASSERT(len <= (int)sizeof(buf));
+        ASSERT(len <= (ssize_t)sizeof(buf));
         command_line_add(man->connection.in, buf, (size_t)len);
 
         /*
@@ -2414,11 +2401,11 @@ man_read(struct management *man)
     return len;
 }
 
-static int
+static ssize_t
 man_write(struct management *man)
 {
     const int size_hint = 1024;
-    int sent = 0;
+    ssize_t sent = 0;
     const struct buffer *buf;
 
     buffer_list_aggregate(man->connection.out, size_hint);
@@ -2435,7 +2422,9 @@ man_write(struct management *man)
         }
         else
 #endif
+        {
             sent = send(man->connection.sd_cli, (const void *)BPTR(buf), len, MSG_NOSIGNAL);
+        }
         if (sent >= 0)
         {
             buffer_list_advance(man->connection.out, sent);
@@ -2456,10 +2445,6 @@ man_write(struct management *man)
 
     return sent;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static void
 man_connection_clear(struct man_connection *mc)
@@ -3222,8 +3207,7 @@ management_io(struct management *man)
 
                 if (net_events & FD_WRITE)
                 {
-                    int status;
-                    status = man_write(man);
+                    ssize_t status = man_write(man);
                     if (status < 0 && WSAGetLastError() == WSAEWOULDBLOCK)
                     {
                         net_event_win32_clear_selected_events(&man->connection.ne32, FD_WRITE);
