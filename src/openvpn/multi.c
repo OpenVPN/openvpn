@@ -257,7 +257,7 @@ static uint32_t
  */
 int_hash_function(const void *key, uint32_t iv)
 {
-    return (unsigned long)key;
+    return (uint32_t)(uintptr_t)key;
 }
 
 static bool
@@ -295,22 +295,23 @@ multi_init(struct context *t)
      * to determine which client sent an incoming packet
      * which is seen on the TCP/UDP socket.
      */
-    m->hash = hash_init(t->options.real_hash_size, get_random(), mroute_addr_hash_function,
-                        mroute_addr_compare_function);
+    m->hash = hash_init(t->options.real_hash_size, (uint32_t)get_random(),
+                        mroute_addr_hash_function, mroute_addr_compare_function);
 
     /*
      * Virtual address hash table.  Used to determine
      * which client to route a packet to.
      */
-    m->vhash = hash_init(t->options.virtual_hash_size, get_random(), mroute_addr_hash_function,
-                         mroute_addr_compare_function);
+    m->vhash = hash_init(t->options.virtual_hash_size, (uint32_t)get_random(),
+                         mroute_addr_hash_function, mroute_addr_compare_function);
 
     /*
      * This hash table is a clone of m->hash but with a
      * bucket size of one so that it can be used
      * for fast iteration through the list.
      */
-    m->iter = hash_init(1, get_random(), mroute_addr_hash_function, mroute_addr_compare_function);
+    m->iter = hash_init(1, (uint32_t)get_random(), mroute_addr_hash_function,
+                        mroute_addr_compare_function);
 
 #ifdef ENABLE_MANAGEMENT
     m->cid_hash = hash_init(t->options.real_hash_size, 0, cid_hash_function, cid_compare_function);
@@ -321,8 +322,8 @@ multi_init(struct context *t)
      * Mapping between inotify watch descriptors and
      * multi_instances.
      */
-    m->inotify_watchers =
-        hash_init(t->options.real_hash_size, get_random(), int_hash_function, int_compare_function);
+    m->inotify_watchers = hash_init(t->options.real_hash_size, (uint32_t)get_random(),
+                                    int_hash_function, int_compare_function);
 #endif
 
     /*
@@ -609,7 +610,7 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
 #ifdef ENABLE_ASYNC_PUSH
         if (mi->inotify_watch != -1)
         {
-            hash_remove(m->inotify_watchers, (void *)(unsigned long)mi->inotify_watch);
+            hash_remove(m->inotify_watchers, (void *)(uintptr_t)mi->inotify_watch);
             mi->inotify_watch = -1;
         }
 #endif
@@ -2821,7 +2822,7 @@ multi_process_file_closed(struct multi_context *m, const unsigned int mpp_flags)
         msg(D_MULTI_DEBUG, "MULTI: modified fd %d, mask %d", pevent->wd, pevent->mask);
 
         struct multi_instance *mi =
-            hash_lookup(m->inotify_watchers, (void *)(unsigned long)pevent->wd);
+            hash_lookup(m->inotify_watchers, (void *)(uintptr_t)pevent->wd);
 
         if (pevent->mask & IN_CLOSE_WRITE)
         {
@@ -2840,7 +2841,7 @@ multi_process_file_closed(struct multi_context *m, const unsigned int mpp_flags)
             /* this event is _always_ fired when watch is removed or file is deleted */
             if (mi)
             {
-                hash_remove(m->inotify_watchers, (void *)(unsigned long)pevent->wd);
+                hash_remove(m->inotify_watchers, (void *)(uintptr_t)pevent->wd);
                 mi->inotify_watch = -1;
             }
         }
@@ -2978,14 +2979,14 @@ add_inotify_file_watch(struct multi_context *m, struct multi_instance *mi, int i
                        const char *file)
 {
     /* watch acf file */
-    long watch_descriptor = inotify_add_watch(inotify_fd, file, IN_CLOSE_WRITE | IN_ONESHOT);
+    int watch_descriptor = inotify_add_watch(inotify_fd, file, IN_CLOSE_WRITE | IN_ONESHOT);
     if (watch_descriptor >= 0)
     {
         if (mi->inotify_watch != -1)
         {
-            hash_remove(m->inotify_watchers, (void *)(unsigned long)mi->inotify_watch);
+            hash_remove(m->inotify_watchers, (void *)(uintptr_t)mi->inotify_watch);
         }
-        hash_add(m->inotify_watchers, (const uintptr_t *)watch_descriptor, mi, true);
+        hash_add(m->inotify_watchers, (void *)(uintptr_t)watch_descriptor, mi, true);
         mi->inotify_watch = watch_descriptor;
     }
     else
