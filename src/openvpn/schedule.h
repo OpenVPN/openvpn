@@ -81,17 +81,26 @@ void schedule_remove_node(struct schedule *s, struct schedule_entry *e);
 
 /* Public inline functions */
 
-/*
- * Add a struct schedule_entry (whose storage is managed by
- * caller) to the btree.  tv signifies the wakeup time for
- * a future event.  sigma is a time interval measured
- * in microseconds -- the event window being represented
- * starts at (tv - sigma) and ends at (tv + sigma).
- * Event signaling can occur anywere within this interval.
- * Making the interval larger makes the scheduler more efficient,
- * while making it smaller results in more precise scheduling.
- * The caller should treat the passed struct schedule_entry as
- * an opaque object.
+/**
+ * Add a struct schedule_entry to the scheduler btree or
+ * update an existing entry with a new wakeup time.
+ *
+ * @p sigma is only used when the entry is already present
+ * in the schedule. If the originally scheduled time and the new
+ * time are within @p sigma microseconds of each other then the
+ * entry is not rescheduled and will occur at the original time.
+ * When adding a new entry @p sigma will be ignored.
+ *
+ * @param s     scheduler tree
+ * @param e     entry to add to the schedule
+ * @param tv    wakeup time for the entry
+ * @param sigma window size for the event in microseconds
+ *
+ * @note The caller should treat @p e as opaque data. Only
+ * the scheduler functions should change the object. The
+ * caller is expected to manage the memory for the object
+ * and must only free it once it has been removed from the
+ * schedule.
  */
 static inline void
 schedule_add_entry(struct schedule *s, struct schedule_entry *e, const struct timeval *tv,
