@@ -245,11 +245,6 @@ cid_compare_function(const void *key1, const void *key2)
 
 #endif
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 #ifdef ENABLE_ASYNC_PUSH
 static uint32_t
 /*
@@ -2809,8 +2804,8 @@ void
 multi_process_file_closed(struct multi_context *m, const unsigned int mpp_flags)
 {
     char buffer[INOTIFY_EVENT_BUFFER_SIZE];
-    size_t buffer_i = 0;
-    int r = read(m->top.c2.inotify_fd, buffer, INOTIFY_EVENT_BUFFER_SIZE);
+    ssize_t buffer_i = 0;
+    ssize_t r = read(m->top.c2.inotify_fd, buffer, INOTIFY_EVENT_BUFFER_SIZE);
 
     while (buffer_i < r)
     {
@@ -2942,21 +2937,23 @@ multi_bcast(struct multi_context *m, const struct buffer *buf,
 static inline unsigned int
 compute_wakeup_sigma(const struct timeval *delta)
 {
+    ASSERT(delta->tv_sec >= 0);
+    ASSERT(delta->tv_usec >= 0);
     if (delta->tv_sec < 1)
     {
         /* if < 1 sec, fuzz = # of microseconds / 8 */
-        return delta->tv_usec >> 3;
+        return (unsigned int)(delta->tv_usec >> 3);
     }
     else
     {
         /* if < 10 minutes, fuzz = 13.1% of timeout */
         if (delta->tv_sec < 600)
         {
-            return delta->tv_sec << 17;
+            return (unsigned int)(delta->tv_sec << 17);
         }
         else
         {
-            return 120000000; /* if >= 10 minutes, fuzz = 2 minutes */
+            return 120 * 1000000; /* if >= 10 minutes, fuzz = 2 minutes */
         }
     }
 }
@@ -3743,7 +3740,7 @@ gremlin_flood_clients(struct multi_context *m)
 
         for (i = 0; i < parm.packet_size; ++i)
         {
-            ASSERT(buf_write_u8(&buf, get_random() & 0xFF));
+            ASSERT(buf_write_u8(&buf, (uint8_t)(get_random() & 0xFF)));
         }
 
         for (i = 0; i < parm.n_packets; ++i)
@@ -3958,10 +3955,6 @@ management_callback_kill_by_addr(void *arg, const in_addr_t addr, const uint16_t
     }
     return count;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static void
 management_delete_event(void *arg, event_t event)
