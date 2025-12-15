@@ -596,7 +596,7 @@ proxy_connection_io_send(struct proxy_connection *pc, int *bytes_sent)
         {
             dmsg(D_PS_PROXY_DEBUG, "PORT SHARE PROXY: partial write[%d], tried=%d got=%zd", (int)sd,
                  pc->buf.len, status);
-            buf_advance(&pc->buf, (int)status);
+            buf_advance(&pc->buf, status);
             return IOSTAT_EAGAIN_ON_WRITE;
         }
         else

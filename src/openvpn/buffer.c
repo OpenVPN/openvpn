@@ -789,7 +789,7 @@ buf_string_compare_advance(struct buffer *src, const char *match)
 {
     if (buf_string_match_head_str(src, match))
     {
-        buf_advance(src, (int)strlen(match));
+        buf_advance(src, strlen(match));
         return true;
     }
     else
@@ -1312,7 +1312,7 @@ buffer_list_pop(struct buffer_list *ol)
 }
 
 void
-buffer_list_advance(struct buffer_list *ol, int n)
+buffer_list_advance(struct buffer_list *ol, ssize_t n)
 {
     if (ol->head)
     {
