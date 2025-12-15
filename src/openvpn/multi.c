@@ -3820,7 +3820,6 @@ multi_push_restart_schedule_exit(struct multi_context *m, bool next_server)
 {
     struct hash_iterator hi;
     struct hash_element *he;
-    struct timeval tv;
 
     /* tell all clients to restart */
     hash_iterator_init(m->iter, &hi);
@@ -3838,15 +3837,14 @@ multi_push_restart_schedule_exit(struct multi_context *m, bool next_server)
 
     /* reschedule signal */
     ASSERT(!openvpn_gettimeofday(&m->deferred_shutdown_signal.wakeup, NULL));
-    tv.tv_sec = 2;
-    tv.tv_usec = 0;
+    struct timeval tv = { .tv_sec = 2, .tv_usec = 0 };
     tv_add(&m->deferred_shutdown_signal.wakeup, &tv);
 
     m->deferred_shutdown_signal.signal_received = m->top.sig->signal_received;
 
     schedule_add_entry(m->schedule, (struct schedule_entry *)&m->deferred_shutdown_signal,
                        &m->deferred_shutdown_signal.wakeup,
-                       compute_wakeup_sigma(&m->deferred_shutdown_signal.wakeup));
+                       compute_wakeup_sigma(&tv));
 
     signal_reset(m->top.sig, 0);
 }
