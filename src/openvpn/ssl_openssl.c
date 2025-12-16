@@ -147,8 +147,10 @@ tls_ctx_free(struct tls_root_ctx *ctx)
 bool
 tls_ctx_initialised(struct tls_root_ctx *ctx)
 {
-    ASSERT(NULL != ctx);
-    return NULL != ctx->ctx;
+    /* either this should be NULL or should be non-null and then have a
+     * valid TLS ctx inside as well */
+    ASSERT(ctx == NULL || ctx->ctx != NULL);
+    return ctx != NULL;
 }
 
 bool

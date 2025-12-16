@@ -572,7 +572,7 @@ bool
 tls_verify_crl_missing(const struct tls_options *opt)
 {
     if (opt->crl_file && !(opt->ssl_flags & SSLF_CRL_VERIFY_DIR)
-        && (opt->ssl_ctx.crl == NULL || opt->ssl_ctx.crl->version == 0))
+        && (opt->ssl_ctx->crl == NULL || opt->ssl_ctx->crl->version == 0))
     {
         return true;
     }

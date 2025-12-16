@@ -157,8 +157,10 @@ tls_ctx_free(struct tls_root_ctx *ctx)
 bool
 tls_ctx_initialised(struct tls_root_ctx *ctx)
 {
-    ASSERT(NULL != ctx);
-    return ctx->initialised;
+    /* either this should be NULL or should be non-null and then have a
+     * valid TLS ctx inside as well */
+    ASSERT(NULL == ctx || ctx->initialised);
+    return ctx != NULL;
 }
 #if !defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT)
 /*

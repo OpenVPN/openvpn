@@ -799,7 +799,7 @@ tls_verify_crl_missing(const struct tls_options *opt)
         return false;
     }
 
-    X509_STORE *store = SSL_CTX_get_cert_store(opt->ssl_ctx.ctx);
+    X509_STORE *store = SSL_CTX_get_cert_store(opt->ssl_ctx->ctx);
     if (!store)
     {
         crypto_msg(M_FATAL, "Cannot get certificate store");

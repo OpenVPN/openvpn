@@ -144,7 +144,7 @@ void free_ssl_lib(void);
  * Build master SSL context object that serves for the whole of OpenVPN
  * instantiation
  */
-void init_ssl(const struct options *options, struct tls_root_ctx *ctx, bool in_chroot);
+struct tls_root_ctx *init_ssl(const struct options *options, bool in_chroot);
 
 /** @addtogroup control_processor
  *  @{ */

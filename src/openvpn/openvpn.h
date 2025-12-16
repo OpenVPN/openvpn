@@ -60,7 +60,7 @@ struct key_schedule
     struct key_ctx_bi static_key;
 
     /* our global SSL context */
-    struct tls_root_ctx ssl_ctx;
+    struct tls_root_ctx *ssl_ctx;
 
     /* optional TLS control channel wrapping */
     struct key_type tls_auth_key_type;
