@@ -2830,8 +2830,13 @@ void
 multi_process_file_closed(struct multi_context *m, const unsigned int mpp_flags)
 {
     char buffer[INOTIFY_EVENT_BUFFER_SIZE];
-    size_t buffer_i = 0;
-    int r = read(m->top.c2.inotify_fd, buffer, INOTIFY_EVENT_BUFFER_SIZE);
+    ssize_t buffer_i = 0;
+    ssize_t r = read(m->top.c2.inotify_fd, buffer, INOTIFY_EVENT_BUFFER_SIZE);
+    if (r < 0)
+    {
+        msg(M_WARN | M_ERRNO, "MULTI: multi_process_file_closed error");
+        return;
+    }
 
     while (buffer_i < r)
     {
