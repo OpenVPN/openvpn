@@ -52,7 +52,7 @@ query_user_exec_builtin(void)
     /* Loop through configured query_user slots */
     for (int i = 0; i < QUERY_USER_NUMSLOTS && query_user[i].response != NULL; i++)
     {
-        check_expected(query_user[i].prompt);
+        check_expected_ptr(query_user[i].prompt);
         strncpy(query_user[i].response, mock_ptr_type(char *), query_user[i].response_len);
     }
 

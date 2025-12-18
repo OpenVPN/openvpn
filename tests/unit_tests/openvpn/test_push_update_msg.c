@@ -171,7 +171,7 @@ send_control_channel_string(struct context *c, const char *str, msglvl_t msgleve
 bool
 send_control_channel_string(struct context *c, const char *str, msglvl_t msglevel)
 {
-    check_expected(str);
+    check_expected_ptr(str);
     return true;
 }
 
