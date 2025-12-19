@@ -71,7 +71,7 @@ bool do_route(const struct options *options, struct route_list *route_list,
 
 void close_instance(struct context *c);
 
-bool do_test_crypto(const struct options *o);
+void do_test_crypto(struct context *o);
 
 void context_gc_free(struct context *c);
 

@@ -2276,11 +2276,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
 
     init_options(&defaults, true);
 
-    if (options->test_crypto)
-    {
-        notnull(options->shared_secret_file, "key file (--secret)");
-    }
-    else
+    if (!options->test_crypto)
     {
         notnull(options->dev, "TUN/TAP device (--dev)");
     }
@@ -2694,7 +2690,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         msg(M_USAGE, "specify only one of --tls-server, --tls-client, or --secret");
     }
 
-    if (!options->tls_server && !options->tls_client)
+    if (!options->tls_server && !options->tls_client && !options->test_crypto)
     {
         msglvl_t msglevel = M_USAGE;
         if (options->allow_deprecated_insecure_static_crypto)

@@ -2998,6 +2998,34 @@ init_crypto_pre(struct context *c, const unsigned int flags)
 #endif
 }
 
+
+static void
+do_init_crypto_test(struct context *c)
+{
+    const struct options *options = &c->options;
+    ASSERT(options->test_crypto);
+
+    init_crypto_pre(c, 0);
+
+    c->c2.crypto_options.flags |= CO_PACKET_ID_LONG_FORM;
+
+    /* Initialize packet ID tracking */
+    packet_id_init(&c->c2.crypto_options.packet_id, options->replay_window, options->replay_time,
+                   "STATIC", 0);
+
+    ASSERT(!key_ctx_bi_defined(&c->c1.ks.static_key));
+
+    /* Init cipher and hash algorithm */
+    init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname,
+                  options->test_crypto, true);
+
+    generate_test_crypto_random_key(&c->c1.ks.key_type, &c->c1.ks.static_key,
+                                    "test crypto key");
+
+    /* Get key schedule */
+    c->c2.crypto_options.key_ctx_bi = c->c1.ks.static_key;
+}
+
 /*
  * Static Key Mode (using a pre-shared key)
  */
@@ -5003,17 +5031,18 @@ remove_pid_file(void)
  * Do a loopback test
  * on the crypto subsystem.
  */
-static void *
-test_crypto_thread(void *arg)
+void
+do_test_crypto(struct context *c)
 {
-    struct context *c = (struct context *)arg;
+    /* print version number */
+    msg(M_INFO, "%s", title_string);
     const struct options *options = &c->options;
 
     ASSERT(options->test_crypto);
     init_verb_mute(c, IVM_LEVEL_1);
     context_init_1(c);
     next_connection_entry(c);
-    do_init_crypto_static(c, 0);
+    do_init_crypto_test(c);
 
     frame_finalize_options(c, options);
 
@@ -5023,25 +5052,4 @@ test_crypto_thread(void *arg)
     packet_id_free(&c->c2.crypto_options.packet_id);
 
     context_gc_free(c);
-    return NULL;
-}
-
-bool
-do_test_crypto(const struct options *o)
-{
-    if (o->test_crypto)
-    {
-        struct context c;
-
-        /* print version number */
-        msg(M_INFO, "%s", title_string);
-
-        context_clear(&c);
-        c.options = *o;
-        options_detach(&c.options);
-        c.first_time = true;
-        test_crypto_thread((void *)&c);
-        return true;
-    }
-    return false;
 }

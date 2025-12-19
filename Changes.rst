@@ -343,6 +343,10 @@ User-visible Changes
   loading for key/cert files with non-ASCII characters in their file names
   (GH: OpenVPN/openvpn#920).
 
+- The ``test-crypto`` option no longer requires a ``--secret`` argument and
+  will automatically generate a random key.
+
+
 Deprecated features
 -------------------
 ``--opt-verify`` feature removed

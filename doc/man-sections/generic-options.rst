@@ -427,19 +427,23 @@ which mode OpenVPN is configured as.
   The typical usage of ``--test-crypto`` would be something like this:
   ::
 
-     openvpn --test-crypto --secret key
+     openvpn --test-crypto
 
   or
 
   ::
 
-     openvpn --test-crypto --secret key --verb 9
+     openvpn --test-crypto --verb 9
 
   This option is very useful to test OpenVPN after it has been ported to a
   new platform, or to isolate problems in the compiler, OpenSSL crypto
   library, or OpenVPN's crypto code. Since it is a self-test mode,
   problems with encryption and authentication can be debugged
   independently of network and tunnel issues.
+
+  Older versions of OpenVPN used the ``--secret`` argument to specify a
+  static key for this test. Newer version generate a random key for the
+  test.
 
 --tmp-dir dir
   Specify a directory ``dir`` for temporary files instead of the default

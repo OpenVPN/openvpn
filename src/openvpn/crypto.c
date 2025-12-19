@@ -1325,6 +1325,18 @@ crypto_read_openvpn_key(const struct key_type *key_type, struct key_ctx_bi *ctx,
     secure_memzero(&key2, sizeof(key2));
 }
 
+void
+generate_test_crypto_random_key(const struct key_type *key_type, struct key_ctx_bi *ctx,
+                                const char *key_name)
+{
+    struct key2 key2;
+    key2.n = 2;
+    generate_key_random(&key2.keys[0]);
+    generate_key_random(&key2.keys[1]);
+    init_key_ctx_bi(ctx, &key2, KEY_DIRECTION_BIDIRECTIONAL, key_type, key_name);
+}
+
+
 /* header and footer for static key file */
 static const char static_key_head[] = "-----BEGIN OpenVPN Static key V1-----";
 static const char static_key_foot[] = "-----END OpenVPN Static key V1-----";

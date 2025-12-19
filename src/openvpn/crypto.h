@@ -632,6 +632,13 @@ void crypto_read_openvpn_key(const struct key_type *key_type, struct key_ctx_bi 
                              const char *key_file, bool key_inline, const int key_direction,
                              const char *key_name, const char *opt_name, struct key2 *keydata);
 
+/**
+ * Generate a random key and initialise ctx to be used the in the crypto random
+ * test
+ */
+void generate_test_crypto_random_key(const struct key_type *key_type, struct key_ctx_bi *ctx,
+                                     const char *key_name);
+
 /*
  * Inline functions
  */

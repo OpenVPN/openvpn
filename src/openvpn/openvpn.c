@@ -258,8 +258,9 @@ openvpn_main(int argc, char *argv[])
             pre_setup(&c.options);
 
             /* test crypto? */
-            if (do_test_crypto(&c.options))
+            if (c.options.test_crypto)
             {
+                do_test_crypto(&c);
                 break;
             }
 
