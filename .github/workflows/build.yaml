@@ -58,7 +58,7 @@ jobs:
             -DCMAKE_SYSTEM_NAME=Android -DCMAKE_SYSTEM_VERSION=28 \
             -DCMAKE_ANDROID_ARCH_ABI=${{ matrix.abi }} \
             -DOPENSSL_ROOT_DIR=${VCPKG_INSTALLED_DIR}/${{ matrix.vcpkg_triplet }} \
-            -DENABLE_PKCS11=false -DBUILD_TESTING=true -DENABLE_LZO=false -DUSE_WERROR=no
+            -DENABLE_PKCS11=false -DBUILD_TESTING=true -DENABLE_LZO=false
       - name: Build OpenVPN Android binary with cmake
         run: cmake --build openvpn-build
 

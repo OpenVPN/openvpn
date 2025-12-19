@@ -1806,7 +1806,7 @@ tun_dco_enabled(struct tuntap *tt)
 #endif
 
 
-#if !(defined(_WIN32) || defined(TARGET_LINUX) || defined(TARGET_SOLARIS))
+#if !(defined(_WIN32) || defined(TARGET_LINUX) || defined(TARGET_SOLARIS) || defined(TARGET_ANDROID))
 static void
 open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
 {
@@ -1973,7 +1973,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
          openvpn_net_ctx_t *ctx)
 {
 #define ANDROID_TUNNAME "vpnservice-tun"
-    struct user_pass up;
     struct gc_arena gc = gc_new();
     bool opentun;
 
