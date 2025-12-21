@@ -304,6 +304,9 @@ epoch_replace_update_recv_key(struct crypto_options *co, uint16_t new_epoch)
         {
             epoch_key_iterate(&co->epoch_key_send);
         }
+
+        msg(M_INFO, "INFO epoch_replace_update_recv_key: epoch < new_epoch");
+
         epoch_init_send_key_ctx(co);
     }
 
@@ -402,14 +405,15 @@ epoch_check_send_iterate(struct crypto_options *opt)
 {
     if (opt->epoch_key_send.epoch == UINT16_MAX)
     {
+        msg(M_INFO, "INFO epoch_check_send_iterate: epoch == UINT16_MAX");
         /* limit of epoch keys reached, cannot move to a newer key anymore */
         return;
     }
     if (opt->aead_usage_limit)
     {
-        if (aead_usage_limit_reached(opt->aead_usage_limit, &opt->key_ctx_bi.encrypt,
-                                     opt->packet_id.send.id))
+        if (aead_usage_limit_reached(opt->aead_usage_limit, &opt->key_ctx_bi.encrypt, opt->packet_id.send.id))
         {
+            msg(M_INFO, "INFO epoch_check_send_iterate: aead_usage_limit_reached");
             /* Send key limit reached */
             epoch_iterate_send_key(opt);
         }
@@ -429,10 +433,10 @@ epoch_check_send_iterate(struct crypto_options *opt)
          * decryption fail warn limit.
          * */
         else if (opt->key_ctx_bi.encrypt.epoch == opt->key_ctx_bi.decrypt.epoch
-                 && (aead_usage_limit_reached(opt->aead_usage_limit, &opt->key_ctx_bi.decrypt,
-                                              opt->packet_id.rec.id)
+                 && (aead_usage_limit_reached(opt->aead_usage_limit, &opt->key_ctx_bi.decrypt, opt->packet_id.rec.id)
                      || cipher_decrypt_verify_fail_warn(&opt->key_ctx_bi.decrypt)))
         {
+            msg(M_INFO, "INFO epoch_check_send_iterate: cipher_decrypt_verify_fail_warn");
             /* Receive key limit reached. Increase our own send key to signal
              * that we want to use a new epoch. Peer should then also move its
              * key but is not required to do this */
@@ -442,6 +446,7 @@ epoch_check_send_iterate(struct crypto_options *opt)
 
     if (opt->packet_id.send.id == PACKET_ID_EPOCH_MAX)
     {
+        msg(M_INFO, "INFO epoch_check_send_iterate: send.id == PACKET_ID_EPOCH_MAX");
         epoch_iterate_send_key(opt);
     }
 }

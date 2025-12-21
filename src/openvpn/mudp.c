@@ -193,6 +193,8 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
     struct mroute_addr real = { 0 };
     struct multi_instance *mi = NULL;
     struct hash *hash = m->hash;
+    struct context_pointer p = { 0 };
+    struct thread_pointer b = { 0 };
     real.proto = sock->info.proto;
     m->hmac_reply_ls = sock;
 
@@ -266,7 +268,8 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
                      * connect-freq but not against connect-freq-initial */
                     reflect_filter_rate_limit_decrease(m->initial_rate_limiter);
 
-                    mi = multi_create_instance(m, &real, sock);
+                    p.p = m; b.p = &p; b.i = -1;
+                    mi = multi_create_instance(&b, &real, sock);
                     if (mi)
                     {
                         hash_add_fast(hash, bucket, &mi->real, hv, mi);
@@ -280,7 +283,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
                         {
                             mi->context.c2.tls_multi->n_sessions++;
                             struct tls_session *session =
-                                &mi->context.c2.tls_multi->session[TM_INITIAL];
+                                &mi->context.c2.tls_multi->session[TM_INIT];
                             session_skip_to_pre_start(session, &state, &m->top.c2.from);
                         }
                     }
@@ -311,32 +314,10 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
 }
 
 /*
- * Send a packet to UDP socket.
- */
-static inline void
-multi_process_outgoing_link(struct multi_context *m, const unsigned int mpp_flags)
-{
-    struct multi_instance *mi = multi_process_outgoing_link_pre(m);
-    if (mi)
-    {
-        multi_process_outgoing_link_dowork(m, mi, mpp_flags);
-    }
-    if (m->hmac_reply_dest && m->hmac_reply.len > 0)
-    {
-        msg_set_prefix("Connection Attempt");
-        m->top.c2.to_link = m->hmac_reply;
-        m->top.c2.to_link_addr = m->hmac_reply_dest;
-        process_outgoing_link(&m->top, m->hmac_reply_ls);
-        m->hmac_reply_ls = NULL;
-        m->hmac_reply_dest = NULL;
-    }
-}
-
-/*
  * Process a UDP socket event.
  */
 void
-multi_process_io_udp(struct multi_context *m, struct link_socket *sock)
+multi_process_io_udp(struct multi_context *m, struct link_socket *sock, int t)
 {
     const unsigned int status = m->multi_io->udp_flags;
     const unsigned int mpp_flags = (MPP_PRE_SELECT | MPP_CLOSE_ON_SIGNAL);
@@ -344,7 +325,7 @@ multi_process_io_udp(struct multi_context *m, struct link_socket *sock)
     /* UDP port ready to accept write */
     if (status & SOCKET_WRITE)
     {
-        multi_process_outgoing_link(m, mpp_flags);
+        multi_process_outgoing_link(m, mpp_flags, t);
     }
     /* Incoming data on UDP port */
     else if (status & SOCKET_READ)
@@ -352,7 +333,7 @@ multi_process_io_udp(struct multi_context *m, struct link_socket *sock)
         read_incoming_link(&m->top, sock);
         if (!IS_SIG(&m->top))
         {
-            multi_process_incoming_link(m, NULL, mpp_flags, sock);
+            multi_process_incoming_link(m, mpp_flags, t);
         }
     }
 
@@ -367,20 +348,16 @@ unsigned int
 p2mp_iow_flags(const struct multi_context *m)
 {
     unsigned int flags = IOW_WAIT_SIGNAL;
-    if (m->pending)
+    if (m->pending || m->pending2)
     {
-        if (TUN_OUT(&m->pending->context))
-        {
-            flags |= IOW_TO_TUN;
-        }
-        if (LINK_OUT(&m->pending->context))
+        if (m->pending && LINK_OUT(&m->pending->context))
         {
             flags |= IOW_TO_LINK;
         }
-    }
-    else if (mbuf_defined(m->mbuf))
-    {
-        flags |= IOW_MBUF;
+        if (m->pending2 && TUN_OUT(&m->pending2->context))
+        {
+            flags |= IOW_TO_TUN;
+        }
     }
     else if (m->hmac_reply_dest)
     {
@@ -388,7 +365,7 @@ p2mp_iow_flags(const struct multi_context *m)
     }
     else
     {
-        flags |= IOW_READ;
+        flags |= (IOW_READ_TUN | IOW_READ_LINK);
     }
     return flags;
 }

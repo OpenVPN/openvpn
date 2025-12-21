@@ -330,7 +330,6 @@ man_delete_unix_socket(struct management *man)
 static void
 man_close_socket(struct management *man, const socket_descriptor_t sd)
 {
-#ifndef _WIN32
     /*
      * Windows doesn't need this because the ne32 event is permanently
      * enabled at struct management scope.
@@ -339,7 +338,6 @@ man_close_socket(struct management *man, const socket_descriptor_t sd)
     {
         (*man->persist.callback.delete_event)(man->persist.callback.arg, sd);
     }
-#endif
     openvpn_close_socket(sd);
 }
 
@@ -1739,36 +1737,6 @@ done:
     gc_free(&gc);
 }
 
-#ifdef _WIN32
-
-static void
-man_start_ne32(struct management *man)
-{
-    switch (man->connection.state)
-    {
-        case MS_LISTEN:
-            net_event_win32_start(&man->connection.ne32, FD_ACCEPT, man->connection.sd_top);
-            break;
-
-        case MS_CC_WAIT_READ:
-        case MS_CC_WAIT_WRITE:
-            net_event_win32_start(&man->connection.ne32, FD_READ | FD_WRITE | FD_CLOSE,
-                                  man->connection.sd_cli);
-            break;
-
-        default:
-            ASSERT(0);
-    }
-}
-
-static void
-man_stop_ne32(struct management *man)
-{
-    net_event_win32_stop(&man->connection.ne32);
-}
-
-#endif /* ifdef _WIN32 */
-
 static void
 man_connection_settings_reset(struct management *man)
 {
@@ -1791,9 +1759,6 @@ man_new_connection_post(struct management *man, const char *description)
 
     man_connection_settings_reset(man);
 
-#ifdef _WIN32
-    man_start_ne32(man);
-#endif
 
 #if UNIX_SOCK_SUPPORT
     if (man->settings.flags & MF_UNIX_SOCK)
@@ -1903,9 +1868,7 @@ man_accept(struct management *man)
 
         if (socket_defined(man->connection.sd_top))
         {
-#ifdef _WIN32
-            man_stop_ne32(man);
-#endif
+            /* no-op */
         }
 
         man_new_connection_post(man, "Client connected from");
@@ -1980,10 +1943,6 @@ man_listen(struct management *man)
                 print_sockaddr(man_addr, &gc));
         }
     }
-
-#ifdef _WIN32
-    man_start_ne32(man);
-#endif
 
     gc_free(&gc);
 }
@@ -2060,9 +2019,6 @@ man_reset_client_socket(struct management *man, const bool exiting)
     if (socket_defined(man->connection.sd_cli))
     {
         man_bytecount_stop(man);
-#ifdef _WIN32
-        man_stop_ne32(man);
-#endif
         man_close_socket(man, man->connection.sd_cli);
         man->connection.sd_cli = SOCKET_UNDEFINED;
         man->connection.state = MS_INITIAL;
@@ -2622,14 +2578,6 @@ man_connection_init(struct management *man)
 {
     if (man->connection.state == MS_INITIAL)
     {
-#ifdef _WIN32
-        /*
-         * This object is a sort of TCP/IP helper
-         * for Windows.
-         */
-        net_event_win32_init(&man->connection.ne32);
-#endif
-
         /*
          * Allocate helper objects for command line input and
          * command output from/to the socket.
@@ -2668,9 +2616,7 @@ man_connection_close(struct management *man)
     struct man_connection *mc = &man->connection;
 
     event_free(mc->es);
-#ifdef _WIN32
-    net_event_win32_close(&mc->ne32);
-#endif
+
     if (socket_defined(mc->sd_top))
     {
         man_close_socket(man, mc->sd_top);
@@ -3131,95 +3077,6 @@ man_persist_state(unsigned int *persistent, const int n)
     return true;
 }
 
-#ifdef _WIN32
-
-void
-management_socket_set(struct management *man, struct event_set *es, void *arg,
-                      unsigned int *persistent)
-{
-    if (man->connection.state != MS_INITIAL)
-    {
-        event_t ev = net_event_win32_get_event(&man->connection.ne32);
-        net_event_win32_reset_write(&man->connection.ne32);
-
-        switch (man->connection.state)
-        {
-            case MS_LISTEN:
-                if (man_persist_state(persistent, 1))
-                {
-                    event_ctl(es, ev, EVENT_READ, arg);
-                }
-                break;
-
-            case MS_CC_WAIT_READ:
-                if (man_persist_state(persistent, 2))
-                {
-                    event_ctl(es, ev, EVENT_READ, arg);
-                }
-                break;
-
-            case MS_CC_WAIT_WRITE:
-                if (man_persist_state(persistent, 3))
-                {
-                    event_ctl(es, ev, EVENT_READ | EVENT_WRITE, arg);
-                }
-                break;
-
-            default:
-                ASSERT(0);
-        }
-    }
-}
-
-void
-management_io(struct management *man)
-{
-    if (man->connection.state != MS_INITIAL)
-    {
-        long net_events;
-        net_event_win32_reset(&man->connection.ne32);
-        net_events = net_event_win32_get_event_mask(&man->connection.ne32);
-
-        if (net_events & FD_CLOSE)
-        {
-            man_reset_client_socket(man, false);
-        }
-        else
-        {
-            if (man->connection.state == MS_LISTEN)
-            {
-                if (net_events & FD_ACCEPT)
-                {
-                    man_accept(man);
-                    net_event_win32_clear_selected_events(&man->connection.ne32, FD_ACCEPT);
-                }
-            }
-            else if (man->connection.state == MS_CC_WAIT_READ
-                     || man->connection.state == MS_CC_WAIT_WRITE)
-            {
-                if (net_events & FD_READ)
-                {
-                    while (man_read(man) > 0)
-                    {
-                    }
-                    net_event_win32_clear_selected_events(&man->connection.ne32, FD_READ);
-                }
-
-                if (net_events & FD_WRITE)
-                {
-                    ssize_t status = man_write(man);
-                    if (status < 0 && WSAGetLastError() == WSAEWOULDBLOCK)
-                    {
-                        net_event_win32_clear_selected_events(&man->connection.ne32, FD_WRITE);
-                    }
-                }
-            }
-        }
-    }
-}
-
-#else  /* ifdef _WIN32 */
-
 void
 management_socket_set(struct management *man, struct event_set *es, void *arg,
                       unsigned int *persistent)
@@ -3279,8 +3136,6 @@ management_io(struct management *man)
             ASSERT(0);
     }
 }
-
-#endif /* ifdef _WIN32 */
 
 static inline bool
 man_standalone_ok(const struct management *man)
@@ -4133,14 +3988,10 @@ management_sleep(const int n)
     }
     else
     {
-#ifdef _WIN32
-        win32_sleep(n);
-#else
         if (n > 0)
         {
             sleep(n);
         }
-#endif
     }
 }
 
@@ -4228,14 +4079,10 @@ man_persist_client_stats(struct management *man, struct context *c)
 void
 management_sleep(const int n)
 {
-#ifdef _WIN32
-    win32_sleep(n);
-#else
     if (n > 0)
     {
         sleep(n);
     }
-#endif /* ifdef _WIN32 */
 }
 
 #endif /* ENABLE_MANAGEMENT */

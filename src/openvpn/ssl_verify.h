@@ -37,9 +37,6 @@
 #ifdef ENABLE_CRYPTO_OPENSSL
 #include "ssl_verify_openssl.h"
 #endif
-#ifdef ENABLE_CRYPTO_MBEDTLS
-#include "ssl_verify_mbedtls.h"
-#endif
 
 #include "ssl_verify_backend.h"
 
@@ -156,7 +153,7 @@ const char *tls_common_name(const struct tls_multi *multi, const bool null);
  * @param session       The session to set the common name for
  * @param common_name   The name to set the common name to
  */
-void set_common_name(struct tls_session *session, const char *common_name);
+void set_common_name(struct tls_multi *multi, const char *common_name);
 
 /**
  * Returns the username field for the given tunnel
@@ -187,7 +184,7 @@ bool cert_hash_compare(const struct cert_hash_set *chs1, const struct cert_hash_
  * @param session       The current TLS session
  *
  */
-void verify_user_pass(struct user_pass *up, struct tls_multi *multi, struct tls_session *session);
+void verify_user_pass(struct user_pass *up, struct tls_multi *multi, struct tls_session *session, struct key_state *ks);
 
 
 /**
@@ -202,7 +199,7 @@ void verify_user_pass(struct user_pass *up, struct tls_multi *multi, struct tls_
  * @return              true if name is under limit or username-as-common-name
  *                      is not active
  */
-bool ssl_verify_username_length(struct tls_session *session, const char *username);
+bool ssl_verify_username_length(struct tls_multi *multi, const char *username);
 
 /**
  * Runs the --client-crresponse script if one is defined.

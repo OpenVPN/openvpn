@@ -43,7 +43,7 @@
 #define P_CONTROL_HARD_RESET_SERVER_V1 2 /* initial key from server, forget previous state */
 #define P_CONTROL_SOFT_RESET_V1        3 /* new key, graceful transition from old to new key */
 #define P_CONTROL_V1                   4 /* control channel packet (usually TLS ciphertext) */
-#define P_ACK_V1                       5 /* acknowledgement for packets received */
+/* acknowledgement for packets received 5 */
 #define P_DATA_V1                      6 /* data channel packet */
 #define P_DATA_V2                      9 /* data channel packet with peer-id */
 
@@ -55,14 +55,15 @@
 #define P_CONTROL_HARD_RESET_CLIENT_V3 10 /* initial key from client, forget previous state */
 
 /* Variant of P_CONTROL_V1 but with appended wrapped key
- * like P_CONTROL_HARD_RESET_CLIENT_V3 */
-#define P_CONTROL_WKC_V1 11
+ * like P_CONTROL_HARD_RESET_CLIENT_V3 11 */
 
 /* define the range of legal opcodes
  * Since we do no longer support key-method 1 we consider
  * the v1 op codes invalid */
 #define P_FIRST_OPCODE 3
 #define P_LAST_OPCODE  11
+
+#define P_KEYS_V1 13
 
 /*
  * Define number of buffers for send and receive in the reliability layer.
@@ -196,9 +197,7 @@ bool check_session_hmac_and_pkt_id(struct tls_pre_decrypt_state *state, const st
 /*
  * Write a control channel authentication record.
  */
-void write_control_auth(struct tls_session *session, struct key_state *ks, struct buffer *buf,
-                        struct link_socket_actual **to_link_addr, int opcode, int max_ack,
-                        bool prepend_ack);
+void write_control_auth(struct tls_multi *multi, struct tls_session *session, struct key_state *ks, struct buffer *buf, struct link_socket_actual **to_link_addr, int opcode, int max_ack, bool prepend_ack);
 
 
 /**
@@ -210,9 +209,7 @@ void write_control_auth(struct tls_session *session, struct key_state *ks, struc
  * @param initial_packet    whether this is the initial packet for the connection
  * @return                  if the packet was successfully processed
  */
-bool read_control_auth(struct buffer *buf, struct tls_wrap_ctx *ctx,
-                       const struct link_socket_actual *from, const struct tls_options *opt,
-                       bool initial_packet);
+bool read_control_auth(struct tls_multi *multi, struct buffer *buf, struct tls_wrap_ctx *ctx, const struct link_socket_actual *from, const struct tls_options *opt, bool initial_packet);
 
 
 /**
@@ -263,12 +260,6 @@ packet_opcode_name(int op)
         case P_CONTROL_V1:
             return "P_CONTROL_V1";
 
-        case P_CONTROL_WKC_V1:
-            return "P_CONTROL_WKC_V1";
-
-        case P_ACK_V1:
-            return "P_ACK_V1";
-
         case P_DATA_V1:
             return "P_DATA_V1";
 
@@ -280,6 +271,31 @@ packet_opcode_name(int op)
     }
 }
 
+static inline struct tls_session *
+tls_select_encryption_session_control(struct tls_multi *multi, struct tls_session *session)
+{
+    time_t secs = time(NULL);
+
+    if (multi)
+    {
+        struct tls_session *sn = &multi->session[TM_MAIN];
+        struct tls_session *sl = &multi->session[TM_LAME];
+        struct key_state *kx = &sn->key[KS_MAIN];
+        struct key_state *kl = &sl->key[KS_MAIN];
+
+        if (kx->keys_stat && (secs - kx->keys_last) >= KEYS_WAIT)
+        {
+            return sn;
+        }
+        else if (kl->keys_stat && (secs - kl->keys_last) >= KEYS_WAIT)
+        {
+            return sl;
+        }
+    }
+
+    return session;
+}
+
 /**
  * Determines if the current session should use the renegotiation tls wrap
  * struct instead the normal one and returns it.
@@ -289,21 +305,15 @@ packet_opcode_name(int op)
  * @return
  */
 static inline struct tls_wrap_ctx *
-tls_session_get_tls_wrap(struct tls_session *session, int key_id)
+tls_session_get_tls_wrap(struct tls_multi *multi, struct tls_session *session)
 {
     /* OpenVPN has the hardcoded assumption in its protocol that
      * key-id 0 is always first session and renegotiations use key-id
      * 1 to 7 and wrap around to 1 after that. So key-id > 0 is equivalent
      * to "this is a renegotiation"
      */
-    if (key_id > 0 && session->tls_wrap_reneg.mode == TLS_WRAP_CRYPT)
-    {
-        return &session->tls_wrap_reneg;
-    }
-    else
-    {
-        return &session->tls_wrap;
-    }
+    struct tls_session *sn = tls_select_encryption_session_control(multi, session);
+    return &sn->tls_wrap;
 }
 
 /* initial packet id (instead of 0) that indicates that the peer supports

@@ -32,10 +32,6 @@
 #include "run_command.h"
 #include "domain_helper.h"
 
-#ifdef _WIN32
-#include "win32.h"
-#include "openvpn-msg.h"
-#endif
 
 /**
  * Parses a string as port and stores it
@@ -359,124 +355,6 @@ transport_value(const enum dns_server_transport transport)
     }
 }
 
-#ifdef _WIN32
-
-static void
-make_domain_list(const char *what, const struct dns_domain *src, bool nrpt_domains, char *dst,
-                 size_t dst_size)
-{
-    /* NRPT domains need two \0 at the end for REG_MULTI_SZ
-     * and a leading '.' added in front of the domain name */
-    size_t term_size = nrpt_domains ? 2 : 1;
-    size_t leading_dot = nrpt_domains ? 1 : 0;
-    size_t offset = 0;
-
-    memset(dst, 0, dst_size);
-
-    while (src)
-    {
-        size_t len = strlen(src->name);
-        if (offset + leading_dot + len + term_size > dst_size)
-        {
-            msg(M_WARN, "WARNING: %s truncated", what);
-            if (offset)
-            {
-                /* Remove trailing comma */
-                *(dst + offset - 1) = '\0';
-            }
-            break;
-        }
-
-        if (leading_dot)
-        {
-            *(dst + offset++) = '.';
-        }
-        strncpy(dst + offset, src->name, len);
-        offset += len;
-
-        src = src->next;
-        if (src)
-        {
-            *(dst + offset++) = ',';
-        }
-    }
-}
-
-static void
-run_up_down_service(bool add, const struct options *o, const struct tuntap *tt)
-{
-    const struct dns_server *server = o->dns_options.servers;
-    const struct dns_domain *search_domains = o->dns_options.search_domains;
-
-    while (true)
-    {
-        if (!server)
-        {
-            if (add)
-            {
-                msg(M_WARN, "WARNING: setting DNS failed, no compatible server profile");
-            }
-            return;
-        }
-
-        bool only_standard_server_ports = true;
-        for (size_t i = 0; i < NRPT_ADDR_NUM; ++i)
-        {
-            if (server->addr[i].port && server->addr[i].port != 53)
-            {
-                only_standard_server_ports = false;
-                break;
-            }
-        }
-        if ((server->transport == DNS_TRANSPORT_UNSET || server->transport == DNS_TRANSPORT_PLAIN)
-            && only_standard_server_ports)
-        {
-            break; /* found compatible server */
-        }
-
-        server = server->next;
-    }
-
-    ack_message_t ack;
-    nrpt_dns_cfg_message_t nrpt = {
-        .header = { (add ? msg_add_nrpt_cfg : msg_del_nrpt_cfg), sizeof(nrpt_dns_cfg_message_t),
-                    0 },
-        .iface = { .index = tt->adapter_index, .name = "" },
-        .flags = server->dnssec == DNS_SECURITY_NO ? 0 : nrpt_dnssec,
-    };
-    strncpynt(nrpt.iface.name, tt->actual_name, sizeof(nrpt.iface.name));
-
-    for (size_t i = 0; i < NRPT_ADDR_NUM; ++i)
-    {
-        if (server->addr[i].family == AF_UNSPEC)
-        {
-            /* No more addresses */
-            break;
-        }
-
-        if (inet_ntop(server->addr[i].family, &server->addr[i].in, nrpt.addresses[i],
-                      NRPT_ADDR_SIZE)
-            == NULL)
-        {
-            msg(M_WARN, "WARNING: could not convert dns server address");
-        }
-    }
-
-    make_domain_list("dns server resolve domains", server->domains, true, nrpt.resolve_domains,
-                     sizeof(nrpt.resolve_domains));
-
-    make_domain_list("dns search domains", search_domains, false, nrpt.search_domains,
-                     sizeof(nrpt.search_domains));
-
-    msg(D_LOW, "%s NRPT DNS%s%s on '%s' (if_index = %d) using service",
-        (add ? "Setting" : "Deleting"), nrpt.resolve_domains[0] != 0 ? ", resolve domains" : "",
-        nrpt.search_domains[0] != 0 ? ", search domains" : "", nrpt.iface.name, nrpt.iface.index);
-
-    send_msg_iservice(o->msg_channel, &nrpt, sizeof(nrpt), &ack, "DNS");
-}
-
-#else  /* ifdef _WIN32 */
-
 static void
 setenv_dns_option(struct env_set *es, const char *format, int i, int j, const char *value)
 {
@@ -774,8 +652,6 @@ out_free:
     msg(M_INFO, "dns %s command exited with status %d", up ? "up" : "down", status);
 }
 
-#endif /* _WIN32 */
-
 void
 show_dns_options(const struct dns_options *o)
 {
@@ -863,14 +739,6 @@ run_dns_up_down(bool up, struct options *o, const struct tuntap *tt,
     {
         return;
     }
-#ifdef _WIN32
-    /* Don't use iservice in DHCP mode */
-    struct tuntap_options *tto = &o->tuntap_options;
-    if (tto->ip_win32_type == IPW32_SET_DHCP_MASQ || tto->ip_win32_type == IPW32_SET_ADAPTIVE)
-    {
-        return;
-    }
-#endif
 
     /* Warn about adding servers of unsupported AF */
     const struct dns_server *s = o->dns_options.servers;
@@ -902,9 +770,5 @@ run_dns_up_down(bool up, struct options *o, const struct tuntap *tt,
         s = s->next;
     }
 
-#ifdef _WIN32
-    run_up_down_service(up, o, tt);
-#else
     run_up_down_command(up, o, tt, duri);
-#endif /* ifdef _WIN32 */
 }

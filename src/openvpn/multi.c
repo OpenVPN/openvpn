@@ -160,10 +160,15 @@ multi_ifconfig_pool_persist(struct multi_context *m, bool force)
 static void
 multi_reap_range(const struct multi_context *m, uint32_t start_bucket, uint32_t end_bucket)
 {
-    struct gc_arena gc = gc_new();
     struct hash_iterator hi;
     struct hash_element *he;
 
+    /*if (m->top.options.ce.mtio_conf)
+    {
+        return;
+    }*/
+
+    struct gc_arena gc = gc_new();
     dmsg(D_MULTI_DEBUG, "MULTI: REAP range %d -> %d", start_bucket, end_bucket);
     hash_iterator_init_range(m->vhash, &hi, start_bucket, end_bucket);
     while ((he = hash_iterator_next(&hi)) != NULL)
@@ -171,12 +176,13 @@ multi_reap_range(const struct multi_context *m, uint32_t start_bucket, uint32_t 
         struct multi_route *r = (struct multi_route *)he->value;
         if (!multi_route_defined(m, r))
         {
-            dmsg(D_MULTI_DEBUG, "MULTI: REAP DEL %s", mroute_addr_print(&r->addr, &gc));
+            msg(M_INFO, "MULTI: REAP DEL %s", mroute_addr_print(&r->addr, &gc));
             learn_address_script(m, NULL, "delete", &r->addr);
             multi_route_del(r);
             hash_iterator_delete_element(&hi);
         }
     }
+
     hash_iterator_free(&hi);
     gc_free(&gc);
 }
@@ -245,22 +251,6 @@ cid_compare_function(const void *key1, const void *key2)
 
 #endif
 
-#ifdef ENABLE_ASYNC_PUSH
-static uint32_t
-/*
- * inotify watcher descriptors are used as hash value
- */
-int_hash_function(const void *key, uint32_t iv)
-{
-    return (uint32_t)(uintptr_t)key;
-}
-
-static bool
-int_compare_function(const void *key1, const void *key2)
-{
-    return (unsigned long)key1 == (unsigned long)key2;
-}
-#endif
 
 /*
  * Main initialization function, init multi_context object.
@@ -312,15 +302,6 @@ multi_init(struct context *t)
     m->cid_hash = hash_init(t->options.real_hash_size, 0, cid_hash_function, cid_compare_function);
 #endif
 
-#ifdef ENABLE_ASYNC_PUSH
-    /*
-     * Mapping between inotify watch descriptors and
-     * multi_instances.
-     */
-    m->inotify_watchers = hash_init(t->options.real_hash_size, (uint32_t)get_random(),
-                                    int_hash_function, int_compare_function);
-#endif
-
     /*
      * This is our scheduler, for time-based wakeup
      * events.
@@ -334,11 +315,6 @@ multi_init(struct context *t)
     m->new_connection_limiter = frequency_limit_init(t->options.cf_max, t->options.cf_per);
     m->initial_rate_limiter =
         initial_rate_limit_init(t->options.cf_initial_max, t->options.cf_initial_per);
-
-    /*
-     * Allocate broadcast/multicast buffer list
-     */
-    m->mbuf = mbuf_init(t->options.n_bcast_buf);
 
     /*
      * Different status file format options are available
@@ -401,7 +377,10 @@ multi_init(struct context *t)
     /*
      * Initialize multi-socket I/O wait object
      */
-    m->multi_io = multi_io_init(m->max_clients);
+    for (int x = 0; x < MAX_THREADS; ++x)
+    {
+        m->multi_io[x] = multi_io_init(m->max_clients);
+    }
     m->tcp_queue_limit = t->options.tcp_queue_limit;
 
     /*
@@ -420,6 +399,20 @@ multi_init(struct context *t)
     }
 
     m->deferred_shutdown_signal.signal_received = 0;
+
+    for (int x = 0; x < MAX_THREADS; ++x)
+    {
+        m->post[x] = false;
+        m->last[x] = 0;
+    }
+
+    m->inst_indx = -1;
+    m->inst_leng = -1;
+    m->inst_list = calloc(TUN_BAT_MAX, sizeof(struct multi_instance *));
+
+    m->mtio_stat = 1;
+    m->mtio_idno = 1;
+    bzero(&(m->mtio_info), sizeof(struct multi_info));
 }
 
 const char *
@@ -567,7 +560,6 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
 {
     ASSERT(!mi->halt);
     mi->halt = true;
-    bool is_dgram = proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto);
 
     dmsg(D_MULTI_DEBUG, "MULTI: multi_close_instance called");
 
@@ -578,7 +570,11 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
     /* prevent dangling pointers */
     if (m->pending == mi)
     {
-        multi_set_pending(m, NULL);
+        m->pending = NULL;
+    }
+    if (m->pending2 == mi)
+    {
+        m->pending2 = NULL;
     }
     if (m->earliest_wakeup == mi)
     {
@@ -602,14 +598,6 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
         }
 #endif
 
-#ifdef ENABLE_ASYNC_PUSH
-        if (mi->inotify_watch != -1)
-        {
-            hash_remove(m->inotify_watchers, (void *)(uintptr_t)mi->inotify_watch);
-            mi->inotify_watch = -1;
-        }
-#endif
-
         if (mi->context.c2.tls_multi->peer_id != MAX_PEER_ID)
         {
             m->instances[mi->context.c2.tls_multi->peer_id] = NULL;
@@ -617,21 +605,18 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
 
         schedule_remove_entry(m->schedule, (struct schedule_entry *)mi);
 
-        ifconfig_pool_release(m->ifconfig_pool, mi->vaddr_handle, false);
+        ifconfig_pool_release(m->mtio_info.pool, mi->vaddr_handle, false);
 
         if (mi->did_iroutes)
         {
             multi_del_iroutes(m, mi);
             mi->did_iroutes = false;
         }
-
-        if (!is_dgram)
-        {
-            multi_tcp_dereference_instance(m->multi_io, mi);
-        }
-
-        mbuf_dereference_instance(m->mbuf, mi);
     }
+
+    mi->mtio_stat = 1;
+    mi->mtio_idno = m->mtio_idno;
+    bzero(&(mi->mtio_addr), sizeof(struct multi_address));
 
 #ifdef ENABLE_MANAGEMENT
     set_cc_config(mi, NULL);
@@ -688,31 +673,183 @@ multi_uninit(struct multi_context *m)
 
         free(m->instances);
 
-#ifdef ENABLE_ASYNC_PUSH
-        hash_free(m->inotify_watchers);
-        m->inotify_watchers = NULL;
-#endif
-
         schedule_free(m->schedule);
-        mbuf_free(m->mbuf);
         ifconfig_pool_free(m->ifconfig_pool);
         frequency_limit_free(m->new_connection_limiter);
         initial_rate_limit_free(m->initial_rate_limiter);
         multi_reap_free(m->reaper);
         mroute_helper_free(m->route_helper);
         multi_io_free(m->multi_io);
+
+        m->inst_indx = -1;
+        m->inst_leng = -1;
+        free(m->inst_list);
+
+        m->mtio_stat = 1;
+        m->mtio_idno = 1;
+        bzero(&(m->mtio_info), sizeof(struct multi_info));
     }
+}
+
+bool multi_context_switch_addr(struct multi_context *m, struct multi_instance *i, bool s, bool l)
+{
+    struct gc_arena g = gc_new();
+
+    in_addr_t ladr_objc = i->context.c2.push_ifconfig_local;
+    struct sockaddr_in *wadr_objc = (struct sockaddr_in *)&i->context.c2.link_sockets[0]->info.lsa->actual.dest.addr.sa;
+
+    const char *ladr = print_in_addr_t(ladr_objc, IA_EMPTY_IF_UNDEF, &g);
+    if ((strcmp(i->mtio_addr.ladr, "") == 0) && ladr)
+    {
+        bzero(i->mtio_addr.ladr, MAX_STRLENG * sizeof(char));
+        strncpy(i->mtio_addr.ladr, ladr, MAX_STRLENG-5);
+    }
+
+    const char *wadr = inet_ntoa(wadr_objc->sin_addr);
+    if ((strcmp(i->mtio_addr.wadr, "") == 0) && wadr)
+    {
+        bzero(i->mtio_addr.wadr, MAX_STRLENG * sizeof(char));
+        strncpy(i->mtio_addr.wadr, wadr, MAX_STRLENG-5);
+    }
+
+    const char *comm = tls_common_name(i->context.c2.tls_multi, true);
+    if ((strcmp(i->mtio_addr.comm, "") == 0) && comm)
+    {
+        bzero(i->mtio_addr.comm, MAX_STRLENG * sizeof(char));
+        strncpy(i->mtio_addr.comm, comm, MAX_STRLENG-5);
+    }
+
+    const char *conn = tls_username(i->context.c2.tls_multi, true);
+    if ((strcmp(i->mtio_addr.user, "") == 0) && conn)
+    {
+        bzero(i->mtio_addr.user, MAX_STRLENG * sizeof(char));
+        strncpy(i->mtio_addr.user, conn, MAX_STRLENG-5);
+    }
+
+    const char *uniq = i->mtio_addr.uniq;
+    if ((strcmp(i->mtio_addr.uniq, "") == 0) && wadr)
+    {
+        bzero(i->mtio_addr.uniq, MAX_STRLENG * sizeof(char));
+        snprintf(i->mtio_addr.uniq, MAX_STRLENG-5, "%s", wadr);
+    }
+
+    i->mtio_addr.addr = ladr_objc;
+
+    if (strcmp(uniq, "") == 0)
+    {
+        goto last;
+    }
+
+    if (m)
+    {
+        pthread_mutex_lock(m->mtio_info.lock);
+        for (int x = 0; x < m->mtio_info.maxc; ++x)
+        {
+            struct multi_link *l = &(m->mtio_info.link[x]);
+            if (strcmp(l->uniq, uniq) == 0)
+            {
+                if (s)
+                {
+                    int indx = (i->mtio_idno % MAX_THREADS);
+                    l->adrs[indx] = i->mtio_addr;
+                }
+                if (l)
+                {
+                    for (int y = 0; y < MAX_THREADS; ++y)
+                    {
+                        struct multi_address *a = &(l->adrs[y]);
+                        if (strcmp(a->uniq, "") != 0)
+                        {
+                            multi_learn_in_addr_t(m, i, a->addr, -1, true);
+                        }
+                    }
+                }
+            }
+        }
+        pthread_mutex_unlock(m->mtio_info.lock);
+    }
+
+last:
+    gc_free(&g);
+
+    return true;
+}
+
+struct multi_context *multi_context_switch_conn(struct thread_pointer *b, struct multi_context *m, struct multi_instance *i)
+{
+    if (b->i <= 0)
+    {
+        b->p->p = m;
+        return m;
+    }
+
+    int indx = -1, fidx = 0;
+    time_t secs = time(NULL);
+    time_t last = b->p->k[fidx].last;
+    struct multi_link *link;
+
+    struct sockaddr_in *wadr_objc = (struct sockaddr_in *)&i->context.c2.link_sockets[0]->info.lsa->actual.dest.addr.sa;
+    const char *wadr = inet_ntoa(wadr_objc->sin_addr);
+
+    char uniq[MAX_STRLENG];
+    bzero(uniq, MAX_STRLENG * sizeof(char));
+    if (strcmp(wadr, "") != 0)
+    {
+        snprintf(uniq, MAX_STRLENG-5, "%s", wadr);
+    }
+
+    if (strcmp(uniq, "") == 0)
+    {
+        goto last;
+    }
+
+    for (int x = 0; x < b->p->x; ++x)
+    {
+        link = &(b->p->k[x]);
+        if ((link->last < 1) || (link->last < last))
+        {
+            fidx = x;
+            last = link->last;
+        }
+        if (strcmp(link->uniq, uniq) == 0)
+        {
+            indx = x;
+            break;
+        }
+    }
+
+    pthread_mutex_lock(m->mtio_info.lock);
+    if (indx < 0)
+    {
+        indx = fidx;
+        link = &(b->p->k[indx]);
+        bzero(link, sizeof(struct multi_link));
+        strncpy(link->uniq, uniq, MAX_STRLENG-5);
+    }
+    pthread_mutex_unlock(m->mtio_info.lock);
+
+    link = &(b->p->k[indx]);
+    m = b->p->m[link->indx];
+    b->p->p = b->p->m[link->indx];
+    i->mtio_idno = m->mtio_idno;
+    link->indx = ((link->indx + 1) % b->p->n);
+    link->last = secs;
+
+last:
+    msg(M_INFO, "TCPv4_SERVER MTIO conn [%s][%p] [%d][%d] {%d}{%d}", uniq, m, indx, fidx, i->mtio_idno, m->mtio_idno);
+
+    return m;
 }
 
 /*
  * Create a client instance object for a newly connected client.
  */
 struct multi_instance *
-multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
-                      struct link_socket *sock)
+multi_create_instance(struct thread_pointer *b, const struct mroute_addr *real, struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
     struct multi_instance *mi;
+    struct multi_context *m = (b->i > 0) ? b->p->m[b->i-1] : b->p->p;
 
     msg(D_MULTI_MEDIUM, "MULTI: multi_create_instance called");
 
@@ -735,6 +872,7 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
     {
         goto err;
     }
+    m = multi_context_switch_conn(b, m, mi);
 
     mi->context.c2.tls_multi->multi_state = CAS_NOT_CONNECTED;
 
@@ -772,18 +910,25 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
 #endif
 
     mi->context.c2.push_request_received = false;
-#ifdef ENABLE_ASYNC_PUSH
-    mi->inotify_watch = -1;
-#endif
 
-    if (!multi_process_post(m, mi, MPP_PRE_SELECT))
+    if (!multi_process_post(m, mi, MPP_PRE_SELECT | MPP_THREAD_RTWL))
     {
         msg(D_MULTI_ERRORS, "MULTI: signal occurred during client instance initialization");
         goto err;
     }
 
+    for (int x = 0; x < MAX_THREADS; ++x)
+    {
+        mi->post[x] = false;
+        mi->last[x] = 0;
+    }
+
     mi->ev_arg.type = EVENT_ARG_MULTI_INSTANCE;
     mi->ev_arg.u.mi = mi;
+
+    mi->mtio_stat = 1;
+    mi->mtio_idno = m->mtio_idno;
+    bzero(&(mi->mtio_addr), sizeof(struct multi_address));
 
     gc_free(&gc);
     return mi;
@@ -873,10 +1018,6 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
             hash_iterator_free(&hi);
 
             status_printf(so, "GLOBAL STATS");
-            if (m->mbuf)
-            {
-                status_printf(so, "Max bcast/mcast queue length,%d", mbuf_maximum_queued(m->mbuf));
-            }
 
             status_printf(so, "END");
         }
@@ -964,12 +1105,6 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
             }
             hash_iterator_free(&hi);
 
-            if (m->mbuf)
-            {
-                status_printf(so, "GLOBAL_STATS%cMax bcast/mcast queue length%c%d", sep, sep,
-                              mbuf_maximum_queued(m->mbuf));
-            }
-
             status_printf(so, "GLOBAL_STATS%cdco_enabled%c%d", sep, sep,
                           dco_enabled(&m->top.options));
             status_printf(so, "END");
@@ -1007,13 +1142,6 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
         status_flush(so);
         gc_free(&gc_top);
     }
-
-#ifdef ENABLE_ASYNC_PUSH
-    if (m->inotify_watchers)
-    {
-        msg(D_MULTI_DEBUG, "inotify watchers count: %d", hash_n_elements(m->inotify_watchers));
-    }
-#endif
 }
 
 /*
@@ -1025,8 +1153,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
  * or NULL if none.
  */
 static struct multi_instance *
-multi_learn_addr(struct multi_context *m, struct multi_instance *mi, const struct mroute_addr *addr,
-                 const unsigned int flags)
+multi_learn_addr(struct multi_context *m, struct multi_instance *mi, const struct mroute_addr *addr, const unsigned int flags)
 {
     struct hash_element *he;
     const uint32_t hv = hash_value(m->vhash, addr);
@@ -1034,6 +1161,18 @@ multi_learn_addr(struct multi_context *m, struct multi_instance *mi, const struc
     struct multi_route *oldroute = NULL;
     struct multi_instance *owner = NULL;
     struct gc_arena gc = gc_new();
+
+    struct sockaddr_in *wadr_objc = (struct sockaddr_in *)&mi->context.c2.link_sockets[0]->info.lsa->actual.dest.addr.sa;
+    const char *ladr = print_in_addr_t(mi->context.c2.push_ifconfig_local, IA_EMPTY_IF_UNDEF, &gc);
+    const char *madr = mroute_addr_print(addr, &gc);
+    const char *wadr = inet_ntoa(wadr_objc->sin_addr);
+
+    if (strcmp(ladr, "") == 0)
+    {
+        goto last;
+    }
+
+    msg(M_INFO, "TCPv4_SERVER MTIO addr [%s][%s] [%s][%d] {%d}{%d}", ladr, madr, wadr, mi->mtio_stat, m->mtio_idno, mi->mtio_idno);
 
     /* if route currently exists, get the instance which owns it */
     he = hash_lookup_fast(m->vhash, bucket, addr, hv);
@@ -1105,6 +1244,8 @@ multi_learn_addr(struct multi_context *m, struct multi_instance *mi, const struc
             free(newroute);
         }
     }
+
+last:
     gc_free(&gc);
 
     return owner;
@@ -1156,7 +1297,10 @@ multi_get_instance_by_virtual_addr(struct multi_context *m, const struct mroute_
             {
                 /* found an applicable route, cache host route */
                 struct multi_instance *mi = route->instance;
-                multi_learn_addr(m, mi, addr, MULTI_ROUTE_CACHE | MULTI_ROUTE_AGEABLE);
+                if (!m->top.options.ce.mtio_conf)
+                {
+                    multi_learn_addr(m, mi, addr, 0);
+                }
                 ret = mi;
                 break;
             }
@@ -1187,11 +1331,10 @@ multi_get_instance_by_virtual_addr(struct multi_context *m, const struct mroute_
 
 /*
  * Helper function to multi_learn_addr().
+ * netbits: -1 if host route, otherwise # of network bits in address
  */
-static struct multi_instance *
-multi_learn_in_addr_t(struct multi_context *m, struct multi_instance *mi, in_addr_t a,
-                      int netbits, /* -1 if host route, otherwise # of network bits in address */
-                      bool primary)
+struct multi_instance *
+multi_learn_in_addr_t(struct multi_context *m, struct multi_instance *mi, in_addr_t a, int netbits, bool primary)
 {
     struct openvpn_sockaddr remote_si;
     struct mroute_addr addr = { 0 };
@@ -1311,7 +1454,10 @@ multi_add_iroutes(struct multi_context *m, struct multi_instance *mi)
 
             mroute_helper_add_iroute46(m->route_helper, ir->netbits);
 
-            multi_learn_in_addr_t(m, mi, ir->network, ir->netbits, false);
+            if (!m->top.options.ce.mtio_conf)
+            {
+                multi_learn_in_addr_t(m, mi, ir->network, ir->netbits, false);
+            }
         }
         for (ir6 = mi->context.options.iroutes_ipv6; ir6 != NULL; ir6 = ir6->next)
         {
@@ -1334,6 +1480,11 @@ multi_add_iroutes(struct multi_context *m, struct multi_instance *mi)
 static void
 multi_delete_dup(struct multi_context *m, struct multi_instance *new_mi)
 {
+    if (m->top.options.ce.mtio_conf)
+    {
+        return;
+    }
+
     if (new_mi)
     {
         const char *new_cn = tls_common_name(new_mi->context.c2.tls_multi, true);
@@ -1352,6 +1503,7 @@ multi_delete_dup(struct multi_context *m, struct multi_instance *new_mi)
                     const char *cn = tls_common_name(mi->context.c2.tls_multi, true);
                     if (cn && !strcmp(cn, new_cn))
                     {
+                        msg(M_INFO, "MULTI: DEL DUP %s -> %s", cn, new_cn);
                         mi->did_iter = false;
                         multi_close_instance(m, mi, false);
                         hash_iterator_delete_element(&hi);
@@ -1378,6 +1530,11 @@ check_stale_routes(struct multi_context *m)
     struct hash_iterator hi;
     struct hash_element *he;
 
+    if (m->top.options.ce.mtio_conf)
+    {
+        return;
+    }
+
     dmsg(D_MULTI_DEBUG, "MULTI: Checking stale routes");
     hash_iterator_init_range(m->vhash, &hi, 0, hash_n_buckets(m->vhash));
     while ((he = hash_iterator_next(&hi)) != NULL)
@@ -1386,13 +1543,13 @@ check_stale_routes(struct multi_context *m)
         if (multi_route_defined(m, r)
             && difftime(now, r->last_reference) >= m->top.options.stale_routes_ageing_time)
         {
-            dmsg(D_MULTI_DEBUG, "MULTI: Deleting stale route for address '%s'",
-                 mroute_addr_print(&r->addr, &gc));
+            msg(M_INFO, "MULTI: Deleting stale route for address '%s'", mroute_addr_print(&r->addr, &gc));
             learn_address_script(m, NULL, "delete", &r->addr);
             multi_route_del(r);
             hash_iterator_delete_element(&hi);
         }
     }
+
     hash_iterator_free(&hi);
     gc_free(&gc);
 }
@@ -1436,7 +1593,7 @@ multi_select_virtual_addr(struct multi_context *m, struct multi_instance *mi)
          * release dynamic allocation */
         if (mi->vaddr_handle >= 0)
         {
-            ifconfig_pool_release(m->ifconfig_pool, mi->vaddr_handle, true);
+            ifconfig_pool_release(m->mtio_info.pool, mi->vaddr_handle, true);
             mi->vaddr_handle = -1;
         }
 
@@ -1457,20 +1614,21 @@ multi_select_virtual_addr(struct multi_context *m, struct multi_instance *mi)
                 "MULTI_sva: WARNING: if --ifconfig-push is used for IPv4, automatic IPv6 assignment from --ifconfig-ipv6-pool does not work.  Use --ifconfig-ipv6-push for IPv6 then.");
         }
     }
-    else if (m->ifconfig_pool && mi->vaddr_handle < 0) /* otherwise, choose a pool address */
+    else if (m->mtio_info.pool && mi->vaddr_handle < 0) /* otherwise, choose a pool address */
     {
         in_addr_t local = 0, remote = 0;
         struct in6_addr remote_ipv6;
         const char *cn = NULL;
 
-        if (!mi->context.options.duplicate_cn)
+        if ((!mi->context.options.duplicate_cn) && (!(m->top.options.ce.mtio_mode)))
         {
             cn = tls_common_name(mi->context.c2.tls_multi, true);
         }
 
         CLEAR(remote_ipv6);
-        mi->vaddr_handle =
-            ifconfig_pool_acquire(m->ifconfig_pool, &local, &remote, &remote_ipv6, cn);
+        pthread_mutex_lock(m->mtio_info.lock);
+        mi->vaddr_handle = ifconfig_pool_acquire(m->mtio_info.pool, &local, &remote, &remote_ipv6, cn);
+        pthread_mutex_unlock(m->mtio_info.lock);
         if (mi->vaddr_handle >= 0)
         {
             const int tunnel_type = TUNNEL_TYPE(mi->context.c1.tuntap);
@@ -1739,22 +1897,22 @@ multi_client_connect_setenv(struct multi_instance *mi)
 static bool
 multi_client_set_protocol_options(struct context *c)
 {
-    struct tls_multi *tls_multi = c->c2.tls_multi;
-    const char *const peer_info = tls_multi->peer_info;
+    struct tls_multi *multi = c->c2.tls_multi;
+    const char *const peer_info = multi->peer_info;
     struct options *o = &c->options;
 
 
     unsigned int proto = extract_iv_proto(peer_info);
     if (proto & IV_PROTO_DATA_V2)
     {
-        tls_multi->use_peer_id = true;
+        multi->use_peer_id = true;
         o->use_peer_id = true;
     }
     else if (dco_enabled(o))
     {
         msg(M_INFO, "Client does not support DATA_V2. Data channel offloading "
                     "requires DATA_V2. Dropping client.");
-        auth_set_client_reason(tls_multi, "Data channel negotiation "
+        auth_set_client_reason(multi, "Data channel negotiation "
                                           "failed (missing DATA_V2)");
         return false;
     }
@@ -1781,7 +1939,7 @@ multi_client_set_protocol_options(struct context *c)
     {
         msg(M_INFO, "PUSH: client does not support TLS Keying Material "
                     "Exporters but --force-tls-key-material-export is enabled.");
-        auth_set_client_reason(tls_multi, "Client incompatible with this "
+        auth_set_client_reason(multi, "Client incompatible with this "
                                           "server. Keying Material Exporters (RFC 5705) "
                                           "support missing. Upgrade to a client that "
                                           "supports this feature (OpenVPN 2.6.0+).");
@@ -1803,7 +1961,8 @@ multi_client_set_protocol_options(struct context *c)
      * cipher -> so log the fact and push the "what we have now" cipher
      * (so the client is always told what we expect it to use)
      */
-    if (get_primary_key(tls_multi)->crypto_options.key_ctx_bi.initialized)
+    struct key_state *ks = tls_select_encryption_key_init(multi);
+    if (ks && ks->crypto_options.key_ctx_bi.initialized)
     {
         msg(M_INFO,
             "PUSH: client wants to negotiate cipher (NCP), but "
@@ -1817,13 +1976,11 @@ multi_client_set_protocol_options(struct context *c)
      * Push the first cipher from --data-ciphers to the client that
      * the client announces to be supporting.
      */
-    char *push_cipher =
-        ncp_get_best_cipher(o->ncp_ciphers, peer_info, tls_multi->remote_ciphername, &o->gc);
+    char *push_cipher = ncp_get_best_cipher(o->ncp_ciphers, peer_info, multi->remote_ciphername, &o->gc);
     if (push_cipher)
     {
         /* Enable epoch data key format if supported and AEAD cipher in use */
-        if (tls_multi->session[TM_ACTIVE].opt->data_epoch_supported && (proto & IV_PROTO_DATA_EPOCH)
-            && cipher_kt_mode_aead(push_cipher))
+        if (multi->opt.data_epoch_supported && (proto & IV_PROTO_DATA_EPOCH) && cipher_kt_mode_aead(push_cipher))
         {
             o->imported_protocol_flags |= CO_EPOCH_DATA_KEY_FORMAT;
         }
@@ -1849,18 +2006,18 @@ multi_client_set_protocol_options(struct context *c)
             "Server data-ciphers: '%s'%s, client supported ciphers '%s'",
             o->ncp_ciphers_conf, ncp_expanded_ciphers(o, &gc), peer_ciphers);
     }
-    else if (tls_multi->remote_ciphername)
+    else if (multi->remote_ciphername)
     {
         msg(M_INFO,
             "PUSH: No common cipher between server and client. "
             "Server data-ciphers: '%s'%s, client supports cipher '%s'",
-            o->ncp_ciphers_conf, ncp_expanded_ciphers(o, &gc), tls_multi->remote_ciphername);
+            o->ncp_ciphers_conf, ncp_expanded_ciphers(o, &gc), multi->remote_ciphername);
     }
     else
     {
         msg(M_INFO, "PUSH: No NCP or OCC cipher data received from peer.");
 
-        if (o->enable_ncp_fallback && !tls_multi->remote_ciphername)
+        if (o->enable_ncp_fallback && !multi->remote_ciphername)
         {
             msg(M_INFO,
                 "Using data channel cipher '%s' since "
@@ -1876,7 +2033,7 @@ multi_client_set_protocol_options(struct context *c)
     }
     if (!ret)
     {
-        auth_set_client_reason(tls_multi, "Data channel cipher negotiation "
+        auth_set_client_reason(multi, "Data channel cipher negotiation "
                                           "failed (no shared cipher)");
     }
 
@@ -2302,35 +2459,9 @@ multi_client_setup_dco_initial(struct multi_context *m, struct multi_instance *m
     return true;
 }
 
-/**
- * Generates the data channel keys
- */
-static bool
-multi_client_generate_tls_keys(struct context *c)
-{
-    struct frame *frame_fragment = NULL;
-#ifdef ENABLE_FRAGMENT
-    if (c->options.ce.fragment)
-    {
-        frame_fragment = &c->c2.frame_fragment;
-    }
-#endif
-    struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-    if (!tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame,
-                                          frame_fragment, get_link_socket_info(c),
-                                          &c->c1.tuntap->dco))
-    {
-        msg(D_TLS_ERRORS, "TLS Error: initializing data channel failed");
-        register_signal(c->sig, SIGUSR1, "process-push-msg-failed");
-        return false;
-    }
-
-    return true;
-}
 
 static void
-multi_client_connect_late_setup(struct multi_context *m, struct multi_instance *mi,
-                                const unsigned int option_types_found)
+multi_client_connect_late_setup(struct multi_context *m, struct multi_instance *mi, const unsigned int option_types_found)
 {
     ASSERT(m);
     ASSERT(mi);
@@ -2375,6 +2506,12 @@ multi_client_connect_late_setup(struct multi_context *m, struct multi_instance *
     mi->reporting_addr = mi->context.c2.push_ifconfig_local;
     mi->reporting_addr_ipv6 = mi->context.c2.push_ifconfig_ipv6_local;
 
+    if (mi->mtio_stat <= 1)
+    {
+        mi->mtio_stat = 3;
+        m->mtio_stat = 3;
+    }
+
     /* set context-level authentication flag */
     mi->context.c2.tls_multi->multi_state = CAS_CONNECT_DONE;
 
@@ -2393,7 +2530,7 @@ multi_client_connect_late_setup(struct multi_context *m, struct multi_instance *
     }
     /* Generate data channel keys only if setting protocol options
      * and DCO initial setup has not failed */
-    else if (!multi_client_generate_tls_keys(&mi->context))
+    else if (!do_deferred_options_part2(&mi->context))
     {
         mi->context.c2.tls_multi->multi_state = CAS_FAILED;
     }
@@ -2406,7 +2543,7 @@ multi_client_connect_late_setup(struct multi_context *m, struct multi_instance *
      */
     if (TUNNEL_TYPE(mi->context.c1.tuntap) == DEV_TYPE_TUN)
     {
-        if (mi->context.c2.push_ifconfig_defined)
+        if (mi->context.c2.push_ifconfig_defined && !m->top.options.ce.mtio_conf)
         {
             multi_learn_in_addr_t(m, mi, mi->context.c2.push_ifconfig_local, -1, true);
             msg(D_MULTI_LOW, "MULTI: primary virtual IP for %s: %s",
@@ -2426,7 +2563,11 @@ multi_client_connect_late_setup(struct multi_context *m, struct multi_instance *
 
         /* add routes locally, pointing to new client, if
          * --iroute options have been specified */
-        multi_add_iroutes(m, mi);
+        if (!mi->did_iroutes)
+        {
+            multi_add_iroutes(m, mi);
+            mi->did_iroutes = true;
+        }
 
         /*
          * iroutes represent subnets which are "owned" by a particular
@@ -2592,7 +2733,6 @@ override_locked_username(struct multi_instance *mi)
 {
     struct tls_multi *multi = mi->context.c2.tls_multi;
     struct options *options = &mi->context.options;
-    struct tls_session *session = &multi->session[TM_ACTIVE];
 
     if (!multi->locked_username)
     {
@@ -2607,7 +2747,7 @@ override_locked_username(struct multi_instance *mi)
         && strcmp(multi->locked_username, options->override_username) != 0)
     {
         /* Check if the username length is acceptable */
-        if (!ssl_verify_username_length(session, options->override_username))
+        if (!ssl_verify_username_length(multi, options->override_username))
         {
             return false;
         }
@@ -2617,9 +2757,9 @@ override_locked_username(struct multi_instance *mi)
 
         /* Override also the common name if username should be set as common
          * name */
-        if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME))
+        if ((multi->opt.ssl_flags & SSLF_USERNAME_AS_COMMON_NAME))
         {
-            set_common_name(session, multi->locked_username);
+            set_common_name(multi, multi->locked_username);
             free(multi->locked_cn);
             multi->locked_cn = NULL;
             tls_lock_common_name(multi);
@@ -2793,140 +2933,6 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
 #endif
 }
 
-#ifdef ENABLE_ASYNC_PUSH
-/*
- * Called when inotify event is fired, which happens when acf
- * or connect-status file is closed or deleted.
- * Continues authentication and sends push_reply
- * (or be deferred again by client-connect)
- */
-void
-multi_process_file_closed(struct multi_context *m, const unsigned int mpp_flags)
-{
-    char buffer[INOTIFY_EVENT_BUFFER_SIZE];
-    ssize_t buffer_i = 0;
-    ssize_t r = read(m->top.c2.inotify_fd, buffer, INOTIFY_EVENT_BUFFER_SIZE);
-    if (r < 0)
-    {
-        msg(M_WARN | M_ERRNO, "MULTI: multi_process_file_closed error");
-        return;
-    }
-
-    while (buffer_i < r)
-    {
-        /* parse inotify events */
-        struct inotify_event *pevent = (struct inotify_event *)&buffer[buffer_i];
-        size_t event_size = sizeof(struct inotify_event) + pevent->len;
-        buffer_i += event_size;
-
-        msg(D_MULTI_DEBUG, "MULTI: modified fd %d, mask %d", pevent->wd, pevent->mask);
-
-        struct multi_instance *mi =
-            hash_lookup(m->inotify_watchers, (void *)(uintptr_t)pevent->wd);
-
-        if (pevent->mask & IN_CLOSE_WRITE)
-        {
-            if (mi)
-            {
-                /* continue authentication, perform NCP negotiation and send push_reply */
-                multi_process_post(m, mi, mpp_flags);
-            }
-            else
-            {
-                msg(D_MULTI_ERRORS, "MULTI: multi_instance not found!");
-            }
-        }
-        else if (pevent->mask & IN_IGNORED)
-        {
-            /* this event is _always_ fired when watch is removed or file is deleted */
-            if (mi)
-            {
-                hash_remove(m->inotify_watchers, (void *)(uintptr_t)pevent->wd);
-                mi->inotify_watch = -1;
-            }
-        }
-        else
-        {
-            msg(D_MULTI_ERRORS, "MULTI: unknown mask %d", pevent->mask);
-        }
-    }
-}
-#endif /* ifdef ENABLE_ASYNC_PUSH */
-
-/*
- * Add a mbuf buffer to a particular
- * instance.
- */
-void
-multi_add_mbuf(struct multi_context *m, struct multi_instance *mi, struct mbuf_buffer *mb)
-{
-    if (multi_output_queue_ready(m, mi))
-    {
-        struct mbuf_item item;
-        item.buffer = mb;
-        item.instance = mi;
-        mbuf_add_item(m->mbuf, &item);
-    }
-    else
-    {
-        msg(D_MULTI_DROPPED, "MULTI: packet dropped due to output saturation (multi_add_mbuf)");
-    }
-}
-
-/*
- * Add a packet to a client instance output queue.
- */
-static inline void
-multi_unicast(struct multi_context *m, const struct buffer *buf, struct multi_instance *mi)
-{
-    struct mbuf_buffer *mb;
-
-    if (BLEN(buf) > 0)
-    {
-        mb = mbuf_alloc_buf(buf);
-        mb->flags = MF_UNICAST;
-        multi_add_mbuf(m, mi, mb);
-        mbuf_free_buf(mb);
-    }
-}
-
-/*
- * Broadcast a packet to all clients.
- */
-static void
-multi_bcast(struct multi_context *m, const struct buffer *buf,
-            const struct multi_instance *sender_instance, uint16_t vid)
-{
-    struct hash_iterator hi;
-    struct hash_element *he;
-    struct multi_instance *mi;
-    struct mbuf_buffer *mb;
-
-    if (BLEN(buf) > 0)
-    {
-#ifdef MULTI_DEBUG_EVENT_LOOP
-        printf("BCAST len=%d\n", BLEN(buf));
-#endif
-        mb = mbuf_alloc_buf(buf);
-        hash_iterator_init(m->iter, &hi);
-
-        while ((he = hash_iterator_next(&hi)))
-        {
-            mi = (struct multi_instance *)he->value;
-            if (mi != sender_instance && !mi->halt)
-            {
-                if (vid != 0 && vid != mi->context.options.vlan_pvid)
-                {
-                    continue;
-                }
-                multi_add_mbuf(m, mi, mb);
-            }
-        }
-
-        hash_iterator_free(&hi);
-        mbuf_free_buf(mb);
-    }
-}
 
 /*
  * Given a time delta, indicating that we wish to be
@@ -2975,29 +2981,6 @@ multi_schedule_context_wakeup(struct multi_context *m, struct multi_instance *mi
                        compute_wakeup_sigma(&mi->context.c2.timeval));
 }
 
-#if defined(ENABLE_ASYNC_PUSH)
-static void
-add_inotify_file_watch(struct multi_context *m, struct multi_instance *mi, int inotify_fd,
-                       const char *file)
-{
-    /* watch acf file */
-    int watch_descriptor = inotify_add_watch(inotify_fd, file, IN_CLOSE_WRITE | IN_ONESHOT);
-    if (watch_descriptor >= 0)
-    {
-        if (mi->inotify_watch != -1)
-        {
-            hash_remove(m->inotify_watchers, (void *)(uintptr_t)mi->inotify_watch);
-        }
-        hash_add(m->inotify_watchers, (void *)(uintptr_t)watch_descriptor, mi, true);
-        mi->inotify_watch = watch_descriptor;
-    }
-    else
-    {
-        msg(M_NONFATAL | M_ERRNO, "MULTI: inotify_add_watch error");
-    }
-}
-#endif /* if defined(ENABLE_ASYNC_PUSH) */
-
 /*
  * Figure instance-specific timers, convert
  * earliest to absolute time in mi->wakeup,
@@ -3010,40 +2993,12 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
 {
     bool ret = true;
 
-    if (!IS_SIG(&mi->context)
-        && ((flags & MPP_PRE_SELECT)))
+    if (!IS_SIG(&mi->context) && ((flags & MPP_THREAD_RTWL) != 0)
+        && (flags & MPP_PRE_SELECT) && (!LINK_OUT(&mi->context) && !REKEY_OUT(&mi->context)))
     {
-#if defined(ENABLE_ASYNC_PUSH)
-        bool was_unauthenticated = true;
-        struct key_state *ks = NULL;
-        if (mi->context.c2.tls_multi)
-        {
-            ks = &mi->context.c2.tls_multi->session[TM_ACTIVE].key[KS_PRIMARY];
-            was_unauthenticated = (ks->authenticated == KS_AUTH_FALSE);
-        }
-#endif
-
         /* figure timeouts and fetch possible outgoing
          * to_link packets (such as ping or TLS control) */
         pre_select(&mi->context);
-
-#if defined(ENABLE_ASYNC_PUSH)
-        /*
-         * if we see the state transition from unauthenticated to deferred
-         * and an auth_control_file, we assume it got just added and add
-         * inotify watch to that file
-         */
-        if (ks && ks->plugin_auth.auth_control_file && was_unauthenticated
-            && (ks->authenticated == KS_AUTH_DEFERRED))
-        {
-            add_inotify_file_watch(m, mi, m->top.c2.inotify_fd, ks->plugin_auth.auth_control_file);
-        }
-        if (ks && ks->script_auth.auth_control_file && was_unauthenticated
-            && (ks->authenticated == KS_AUTH_DEFERRED))
-        {
-            add_inotify_file_watch(m, mi, m->top.c2.inotify_fd, ks->script_auth.auth_control_file);
-        }
-#endif
 
         if (!IS_SIG(&mi->context))
         {
@@ -3054,43 +3009,16 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
             {
                 multi_connection_established(m, mi);
             }
-#if defined(ENABLE_ASYNC_PUSH)
-            if (is_cas_pending(mi->context.c2.tls_multi->multi_state)
-                && mi->client_connect_defer_state.deferred_ret_file)
-            {
-                add_inotify_file_watch(m, mi, m->top.c2.inotify_fd,
-                                       mi->client_connect_defer_state.deferred_ret_file);
-            }
-#endif
+
             /* tell scheduler to wake us up at some point in the future */
             multi_schedule_context_wakeup(m, mi);
         }
     }
 
-    if (IS_SIG(&mi->context))
+    if (IS_SIG(&mi->context) && ((flags & MPP_THREAD_RLWT) != 0))
     {
-        if (flags & MPP_CLOSE_ON_SIGNAL)
-        {
-            multi_close_instance_on_signal(m, mi);
-            ret = false;
-        }
-    }
-    else
-    {
-        /* continue to pend on output? */
-        multi_set_pending(m, ANY_OUT(&mi->context) ? mi : NULL);
-
-#ifdef MULTI_DEBUG_EVENT_LOOP
-        printf("POST %s[%d] to=%d lo=%d/%d w=%" PRIi64 "/%ld\n", id(mi), (int)(mi == m->pending),
-               mi ? mi->context.c2.to_tun.len : -1, mi ? mi->context.c2.to_link.len : -1,
-               (mi && mi->context.c2.fragment) ? mi->context.c2.fragment->outgoing.len : -1,
-               (int64_t)mi->context.c2.timeval.tv_sec, (long)mi->context.c2.timeval.tv_usec);
-#endif
-    }
-
-    if ((flags & MPP_RECORD_TOUCH) && m->mpp_touched)
-    {
-        *m->mpp_touched = mi;
+        multi_close_instance_on_signal(m, mi);
+        ret = false;
     }
 
     return ret;
@@ -3140,7 +3068,7 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi, struct l
             msg(D_MULTI_LOW, "Disallow float to an address taken by another client %s",
                 multi_instance_string(ex_mi, false, &gc));
 
-            mi->context.c2.buf.len = 0;
+            mi->context.c2.buf2.len = 0;
 
             goto done;
         }
@@ -3328,202 +3256,47 @@ multi_process_incoming_dco(dco_context_t *dco)
 }
 #endif /* if defined(ENABLE_DCO) */
 
-/*
- * Process packets in the TCP/UDP socket -> TUN/TAP interface direction,
- * i.e. client -> server direction.
- */
-bool
-multi_process_incoming_link(struct multi_context *m, struct multi_instance *instance,
-                            const unsigned int mpp_flags, struct link_socket *sock)
+struct multi_instance *multi_learn_peer_addr(struct multi_context *m, struct multi_instance *i, struct mroute_addr *p)
 {
-    struct gc_arena gc = gc_new();
-
-    struct context *c;
-    struct mroute_addr src, dest;
-    unsigned int mroute_flags;
-    struct multi_instance *mi;
-    bool ret = true;
-    bool floated = false;
-
-    if (m->pending)
+    struct multi_instance *r = NULL;
+    in_addr_t b = ntohl(p->v4.addr);
+    if (i)
     {
-        return true;
-    }
-
-    if (!instance)
-    {
-#ifdef MULTI_DEBUG_EVENT_LOOP
-        printf("TCP/UDP -> TUN [%d]\n", BLEN(&m->top.c2.buf));
-#endif
-        multi_set_pending(m, multi_get_create_instance_udp(m, &floated, sock));
+        multi_context_switch_addr(m, i, false, true);
+        r = i;
     }
     else
     {
-        multi_set_pending(m, instance);
-    }
-
-    if (m->pending)
-    {
-        set_prefix(m->pending);
-
-        /* get instance context */
-        c = &m->pending->context;
-
-        if (!instance)
+        for (int z = 0; z < m->max_clients; ++z)
         {
-            /* transfer packet pointer from top-level context buffer to instance */
-            c->c2.buf = m->top.c2.buf;
-
-            /* transfer from-addr from top-level context buffer to instance */
-            if (!floated)
+            struct multi_instance *j = m->instances[z];
+            if (!j) { continue; }
+            for (int x = 0; x < m->mtio_info.maxc; ++x)
             {
-                c->c2.from = m->top.c2.from;
-            }
-        }
-
-        if (BLEN(&c->c2.buf) > 0)
-        {
-            struct link_socket_info *lsi;
-            const uint8_t *orig_buf;
-
-            /* decrypt in instance context */
-
-            lsi = &sock->info;
-            orig_buf = c->c2.buf.data;
-            if (process_incoming_link_part1(c, lsi, floated))
-            {
-                /* nonzero length means that we have a valid, decrypted packed */
-                if (floated && c->c2.buf.len > 0)
+                struct multi_link *l = &(m->mtio_info.link[x]);
+                if (strcmp(l->uniq, "") != 0)
                 {
-                    multi_process_float(m, m->pending, sock);
-                }
-
-                process_incoming_link_part2(c, lsi, orig_buf);
-            }
-
-            if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TUN)
-            {
-                /* extract packet source and dest addresses */
-                mroute_flags =
-                    mroute_extract_addr_from_packet(&src, &dest, 0, &c->c2.to_tun, DEV_TYPE_TUN);
-
-                /* drop packet if extract failed */
-                if (!(mroute_flags & MROUTE_EXTRACT_SUCCEEDED))
-                {
-                    c->c2.to_tun.len = 0;
-                }
-                /* make sure that source address is associated with this client */
-                else if (multi_get_instance_by_virtual_addr(m, &src, true) != m->pending)
-                {
-                    /* IPv6 link-local address (fe80::xxx)? */
-                    if ((src.type & MR_ADDR_MASK) == MR_ADDR_IPV6
-                        && IN6_IS_ADDR_LINKLOCAL(&src.v6.addr))
+                    for (int y = 0; y < MAX_THREADS; ++y)
                     {
-                        /* do nothing, for now.  TODO: add address learning */
-                    }
-                    else
-                    {
-                        msg(D_MULTI_DROPPED,
-                            "MULTI: bad source address from client [%s], packet dropped",
-                            mroute_addr_print(&src, &gc));
-                    }
-                    c->c2.to_tun.len = 0;
-                }
-                /* client-to-client communication enabled? */
-                else if (m->enable_c2c)
-                {
-                    /* multicast? */
-                    if (mroute_flags & MROUTE_EXTRACT_MCAST)
-                    {
-                        /* for now, treat multicast as broadcast */
-                        multi_bcast(m, &c->c2.to_tun, m->pending, 0);
-                    }
-                    else /* possible client to client routing */
-                    {
-                        ASSERT(!(mroute_flags & MROUTE_EXTRACT_BCAST));
-                        mi = multi_get_instance_by_virtual_addr(m, &dest, true);
-
-                        /* if dest addr is a known client, route to it */
-                        if (mi)
+                        struct multi_address *a = &(l->adrs[y]);
+                        if (a->addr == b)
                         {
-                            {
-                                multi_unicast(m, &c->c2.to_tun, mi);
-                                register_activity(c, BLEN(&c->c2.to_tun));
-                            }
-                            c->c2.to_tun.len = 0;
+                            multi_context_switch_addr(m, j, false, true);
+                            break;
                         }
                     }
                 }
             }
-            else if (TUNNEL_TYPE(m->top.c1.tuntap) == DEV_TYPE_TAP)
-            {
-                uint16_t vid = 0;
-
-                if (m->top.options.vlan_tagging)
-                {
-                    if (vlan_is_tagged(&c->c2.to_tun))
-                    {
-                        /* Drop VLAN-tagged frame. */
-                        msg(D_VLAN_DEBUG, "dropping incoming VLAN-tagged frame");
-                        c->c2.to_tun.len = 0;
-                    }
-                    else
-                    {
-                        vid = c->options.vlan_pvid;
-                    }
-                }
-                /* extract packet source and dest addresses */
-                mroute_flags =
-                    mroute_extract_addr_from_packet(&src, &dest, vid, &c->c2.to_tun, DEV_TYPE_TAP);
-
-                if (mroute_flags & MROUTE_EXTRACT_SUCCEEDED)
-                {
-                    if (multi_learn_addr(m, m->pending, &src, 0) == m->pending)
-                    {
-                        /* check for broadcast */
-                        if (m->enable_c2c)
-                        {
-                            if (mroute_flags & (MROUTE_EXTRACT_BCAST | MROUTE_EXTRACT_MCAST))
-                            {
-                                multi_bcast(m, &c->c2.to_tun, m->pending, vid);
-                            }
-                            else /* try client-to-client routing */
-                            {
-                                mi = multi_get_instance_by_virtual_addr(m, &dest, false);
-
-                                /* if dest addr is a known client, route to it */
-                                if (mi)
-                                {
-                                    multi_unicast(m, &c->c2.to_tun, mi);
-                                    register_activity(c, BLEN(&c->c2.to_tun));
-                                    c->c2.to_tun.len = 0;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        msg(D_MULTI_DROPPED,
-                            "MULTI: bad source address from client [%s], packet dropped",
-                            mroute_addr_print(&src, &gc));
-                        c->c2.to_tun.len = 0;
-                    }
-                }
-                else
-                {
-                    c->c2.to_tun.len = 0;
-                }
-            }
         }
-
-        /* postprocess and set wakeup */
-        ret = multi_process_post(m, m->pending, mpp_flags);
-
-        clear_prefix();
     }
+    return r;
+}
 
-    gc_free(&gc);
-    return ret;
+int min_max(int a, int b, int c)
+{
+    if (a > c) { return c; }
+    if (a < b) { return b; }
+    return a;
 }
 
 /*
@@ -3531,7 +3304,7 @@ multi_process_incoming_link(struct multi_context *m, struct multi_instance *inst
  * i.e. server -> client direction.
  */
 bool
-multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags)
+multi_process_incoming_tun_part2(struct multi_context *m, const unsigned int mpp_flags)
 {
     bool ret = true;
 
@@ -3541,24 +3314,6 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
         struct mroute_addr src = { 0 }, dest = { 0 };
         const int dev_type = TUNNEL_TYPE(m->top.c1.tuntap);
         int16_t vid = 0;
-
-#ifdef MULTI_DEBUG_EVENT_LOOP
-        printf("TUN -> TCP/UDP [%d]\n", BLEN(&m->top.c2.buf));
-#endif
-
-        if (m->pending)
-        {
-            return true;
-        }
-
-        if (dev_type == DEV_TYPE_TAP && m->top.options.vlan_tagging)
-        {
-            vid = vlan_decapsulate(&m->top, &m->top.c2.buf);
-            if (vid < 0)
-            {
-                return false;
-            }
-        }
 
         /*
          * Route an incoming tun/tap packet to
@@ -3570,88 +3325,178 @@ multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags
         if (mroute_flags & MROUTE_EXTRACT_SUCCEEDED)
         {
             struct context *c;
+            struct multi_instance *i = multi_get_instance_by_virtual_addr(m, &dest, dev_type == DEV_TYPE_TUN);
+
+            if (!i)
+            {
+                multi_learn_peer_addr(m, i, &dest);
+                i = multi_get_instance_by_virtual_addr(m, &dest, dev_type == DEV_TYPE_TUN);
+            }
 
             /* broadcast or multicast dest addr? */
             if (mroute_flags & (MROUTE_EXTRACT_BCAST | MROUTE_EXTRACT_MCAST))
             {
-                /* for now, treat multicast as broadcast */
-                multi_bcast(m, &m->top.c2.buf, NULL, vid);
+                /* no-op */
+            }
+            else if (m->inst_indx == -9)
+            {
+                if (i)
+                {
+                    int leng = m->inst_leng;
+                    for (int x = 0; x < leng; ++x)
+                    {
+                        if (m->inst_list[x] == i)
+                        {
+                            m->inst_indx = x;
+                            return true;
+                        }
+                    }
+                    leng = min_max(leng, 0, TUN_BAT_MIN - 1);
+                    m->inst_list[leng] = i;
+                    m->inst_indx = leng;
+                    m->inst_leng = (leng + 1);
+                }
+                return true;
             }
             else
             {
-                multi_set_pending(
-                    m, multi_get_instance_by_virtual_addr(m, &dest, dev_type == DEV_TYPE_TUN));
-
-                if (m->pending)
+                if (i)
                 {
                     /* get instance context */
-                    c = &m->pending->context;
+                    c = &i->context;
 
-                    set_prefix(m->pending);
+                    set_prefix(i);
 
                     {
-                        if (multi_output_queue_ready(m, m->pending))
-                        {
-                            /* transfer packet pointer from top-level context buffer to instance */
-                            c->c2.buf = m->top.c2.buf;
-                        }
-                        else
-                        {
-                            /* drop packet */
-                            msg(D_MULTI_DROPPED,
-                                "MULTI: packet dropped due to output saturation (multi_process_incoming_tun)");
-                            buf_reset_len(&c->c2.buf);
-                        }
+                        /* transfer packet pointer from top-level context buffer to instance */
+                        c->c2.buf = m->top.c2.buf;
                     }
 
                     /* encrypt in instance context */
                     process_incoming_tun(c, c->c2.link_sockets[0]);
 
                     /* postprocess and set wakeup */
-                    ret = multi_process_post(m, m->pending, mpp_flags);
+                    //m->top.c2.to_link = c->c2.to_link;
 
                     clear_prefix();
                 }
             }
         }
     }
+
     return ret;
 }
 
-/*
- * Process a possible client-to-client/bcast/mcast message in the
- * queue.
- */
-struct multi_instance *
-multi_get_queue(struct mbuf_set *ms)
+bool multi_process_inp_tun_post(struct multi_context *m, const unsigned int mpp_flags, int t)
 {
-    struct mbuf_item item;
-
-    if (mbuf_extract_item(ms, &item)) /* cleartext IP packet */
+    if (!INST_LENG(m))
     {
-        unsigned int pip_flags = PIPV4_PASSTOS | PIPV6_ICMP_NOHOST_SERVER;
-
-        set_prefix(item.instance);
-        item.instance->context.c2.buf = item.buffer->buf;
-        if (item.buffer->flags
-            & MF_UNICAST) /* --mssfix doesn't make sense for broadcast or multicast */
+        return false;
+    }
+    while (m->inst_indx < m->inst_leng)
+    {
+        struct multi_instance *i = m->inst_list[m->inst_indx];
+        if (!i)
         {
-            pip_flags |= PIP_MSSFIX;
+            m->inst_indx += 1;
+            continue;
         }
-        process_ip_header(&item.instance->context, pip_flags, &item.instance->context.c2.buf,
-                          item.instance->context.c2.link_sockets[0]);
-        encrypt_sign(&item.instance->context, true);
-        mbuf_free_buf(item.buffer);
-
-        dmsg(D_MULTI_DEBUG, "MULTI: C2C/MCAST/BCAST");
-
+        struct context *c = &m->top;
+        struct context *d = &i->context;
+        set_prefix(i);
+        process_outgoing_link(d, d->c2.link_sockets[0]);
+        i->post[t] = true;
+        m->post[t] = true;
         clear_prefix();
-        return item.instance;
+        c->c2.to_link.len = 0;
+        d->c2.to_link.len = 0;
+        m->inst_list[m->inst_indx] = NULL;
+        m->inst_indx += 1;
+    }
+    return true;
+}
+
+bool multi_process_incoming_tun_part3(struct multi_context *m, const unsigned int mpp_flags, int t)
+{
+    struct context *c, *b = &(m->top);
+    struct multi_instance *i;
+    int leng = b->c2.buffers->bulk_leng;
+    m->inst_indx = -1;
+    m->inst_leng = -1;
+    for (int x = 0; x < leng; ++x)
+    {
+        m->inst_indx = -9;
+        b->c2.buf = b->c2.bufs[x];
+        multi_process_incoming_tun_part2(m, mpp_flags);
+        if (m->inst_indx > -1)
+        {
+            i = m->inst_list[m->inst_indx];
+            c = &(i->context);
+            int y = min_max(c->c2.buffers->bulk_leng, 0, TUN_BAT_MIN - 1);
+            c->c2.buffers->read_tun_bufs[y].offset = TUN_BAT_OFF;
+            c->c2.buffers->read_tun_bufs[y].len = BLEN(&b->c2.bufs[x]);
+            bcopy(BPTR(&b->c2.bufs[x]), BPTR(&c->c2.buffers->read_tun_bufs[y]), BLEN(&b->c2.bufs[x]));
+            c->c2.bufs[y] = c->c2.buffers->read_tun_bufs[y];
+            c->c2.buffers->bulk_indx = 0;
+            c->c2.buffers->bulk_leng = (y + 1);
+        }
+    }
+    leng = m->inst_leng;
+    b->c2.buffers->bulk_indx = -1;
+    b->c2.buffers->bulk_leng = -1;
+    for (int x = 0; x < leng; ++x)
+    {
+        i = m->inst_list[x];
+        c = &(i->context);
+        c->c2.buf = c->c2.bufs[0];
+        process_incoming_tun(c, c->c2.link_sockets[0]);
+    }
+    m->inst_indx = 0;
+    b->c2.buf.len = 0;
+    buf_reset(&b->c2.to_link);
+    return true;
+}
+
+bool multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags, int t)
+{
+    if (!(m->top.options.ce.bulk_mode))
+    {
+        return multi_process_incoming_tun_part2(m, mpp_flags);
     }
     else
     {
-        return NULL;
+        return multi_process_incoming_tun_part3(m, mpp_flags, t);
     }
+}
+
+bool threaded_multi_inp_intf(struct multi_context *m, const unsigned int mpp_flags, int t)
+{
+    if (INST_LENG(m))
+    {
+        multi_process_inp_tun_post(m, mpp_flags, t);
+    }
+    else
+    {
+        struct context *c = &(m->top);
+        if (*(m->mtio_info.hold) == m->mtio_info.maxt)
+        {
+            ssize_t size;
+            uint8_t temp[1];
+            size = read(c->c1.tuntap->fd, temp, 1);
+            if (size < 1) { /* no-op */ }
+            if (!IS_SIG(c))
+            {
+                multi_process_incoming_tun(m, mpp_flags, t);
+            }
+            if (!IS_SIG(c))
+            {
+                multi_process_inp_tun_post(m, mpp_flags, t);
+            }
+            size = write(c->c1.tuntap->fz, temp, 1);
+            return true;
+        }
+    }
+    return false;
 }
 
 /*
@@ -3659,21 +3504,16 @@ multi_get_queue(struct mbuf_set *ms)
  * client instance object needs timer-based service.
  */
 bool
-multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags)
+multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags, int t)
 {
     bool ret = true;
-
-#ifdef MULTI_DEBUG_EVENT_LOOP
-    printf("%s -> TIMEOUT\n", id(m->earliest_wakeup));
-#endif
 
     /* instance marked for wakeup? */
     if (m->earliest_wakeup)
     {
         if (m->earliest_wakeup == (struct multi_instance *)&m->deferred_shutdown_signal)
         {
-            schedule_remove_entry(m->schedule,
-                                  (struct schedule_entry *)&m->deferred_shutdown_signal);
+            schedule_remove_entry(m->schedule, (struct schedule_entry *)&m->deferred_shutdown_signal);
             throw_signal(m->deferred_shutdown_signal.signal_received);
         }
         else
@@ -3684,28 +3524,8 @@ multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags)
         }
         m->earliest_wakeup = NULL;
     }
+
     return ret;
-}
-
-/*
- * Drop a TUN/TAP outgoing packet..
- */
-void
-multi_process_drop_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags)
-{
-    struct multi_instance *mi = m->pending;
-
-    ASSERT(mi);
-
-    set_prefix(mi);
-
-    msg(D_MULTI_ERRORS, "MULTI: Outgoing TUN queue full, dropped packet len=%d",
-        mi->context.c2.to_tun.len);
-
-    buf_reset(&mi->context.c2.to_tun);
-
-    multi_process_post(m, mi, mpp_flags);
-    clear_prefix();
 }
 
 /*
@@ -3746,11 +3566,6 @@ gremlin_flood_clients(struct multi_context *m)
         for (i = 0; i < parm.packet_size; ++i)
         {
             ASSERT(buf_write_u8(&buf, (uint8_t)(get_random() & 0xFF)));
-        }
-
-        for (i = 0; i < parm.n_packets; ++i)
-        {
-            multi_bcast(m, &buf, NULL, 0);
         }
 
         gc_free(&gc);
@@ -3965,9 +3780,12 @@ static void
 management_delete_event(void *arg, event_t event)
 {
     struct multi_context *m = (struct multi_context *)arg;
-    if (m->multi_io)
+    if (m->multi_io->es)
     {
-        multi_tcp_delete_event(m->multi_io, event);
+        for (int x = 0; x < MAX_THREADS; ++x)
+        {
+            multi_tcp_delete_event(&(m->multi_io[x]), event);
+        }
     }
 }
 
@@ -4014,13 +3832,17 @@ management_client_pending_auth(void *arg, const unsigned long cid, const unsigne
         struct tls_multi *multi = mi->context.c2.tls_multi;
         struct tls_session *session;
 
-        if (multi->session[TM_INITIAL].key[KS_PRIMARY].mda_key_id == mda_key_id)
+        if (multi->session[TM_INIT].key[KS_MAIN].mda_key_id == mda_key_id)
         {
-            session = &multi->session[TM_INITIAL];
+            session = &multi->session[TM_INIT];
         }
-        else if (multi->session[TM_ACTIVE].key[KS_PRIMARY].mda_key_id == mda_key_id)
+        else if (multi->session[TM_MAIN].key[KS_MAIN].mda_key_id == mda_key_id)
         {
-            session = &multi->session[TM_ACTIVE];
+            session = &multi->session[TM_MAIN];
+        }
+        else if (multi->session[TM_LAME].key[KS_MAIN].mda_key_id == mda_key_id)
+        {
+            session = &multi->session[TM_LAME];
         }
         else
         {
@@ -4028,7 +3850,8 @@ management_client_pending_auth(void *arg, const unsigned long cid, const unsigne
         }
 
         /* sends INFO_PRE and AUTH_PENDING messages to client */
-        bool ret = send_auth_pending_messages(multi, session, extra, timeout);
+        struct key_state *ks = tls_select_encryption_key_init(multi);
+        bool ret = send_auth_pending_messages(multi, session, ks, extra, timeout);
         reschedule_multi_process(&mi->context);
         multi_schedule_context_wakeup(m, mi);
         return ret;
@@ -4150,7 +3973,7 @@ multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
  * @param timeval   Pointer to the timeval structure to be updated with the
  *                  next wakeup time
  */
-static void
+void
 multi_get_timeout(struct multi_context *multi, struct timeval *timeval)
 {
     multi_get_timeout_instance(multi, timeval);
@@ -4163,6 +3986,17 @@ multi_get_timeout(struct multi_context *multi, struct timeval *timeval)
 #endif /* ENABLE_MANAGEMENT */
 }
 
+void multi_copy_events(struct multi_context *m, int t)
+{
+    struct multi_io *multi_io = &(m->multi_io[THREAD_MAIN]);
+    struct multi_io *multi_io_dest = &(m->multi_io[t]);
+    for (int i = 0; i < multi_io->n_esr; ++i)
+    {
+        multi_io_dest->esr[i] = multi_io->esr[i];
+    }
+    multi_io_dest->n_esr = multi_io->n_esr;
+}
+
 /**************************************************************************/
 /**
  * Main event loop for OpenVPN in point-to-multipoint server mode.
@@ -4170,13 +4004,95 @@ multi_get_timeout(struct multi_context *multi, struct timeval *timeval)
  *
  * @param multi context structure
  */
-static void
-tunnel_server_loop(struct multi_context *multi)
+static void tunnel_server_loop(struct thread_pointer *b)
 {
     int status;
+    struct context_pointer *p = b->p;
+
+    status = 0;
+    while (status == 0)
+    {
+        status = 1;
+        for (int x = 0; x < p->n; ++x)
+        {
+            if (p->m[x] == NULL)
+            {
+                status = 0;
+            }
+        }
+        sleep(1);
+    }
+
+    struct multi_context *multi = p->m[b->i-1];
+    struct context *c = &(p->m[b->i-1]->top);
+    struct context *d = &(p->m[0]->top);
+
+    multi->mtio_idno = b->i;
+    multi->mtio_info.maxt = b->n;
+    multi->mtio_info.maxc = p->x;
+    multi->mtio_info.link = p->k;
+    multi->mtio_info.lock = p->l;
+    multi->mtio_info.indx = &(p->i);
+    multi->mtio_info.hold = &(p->h);
+    multi->mtio_info.pool = p->m[0]->ifconfig_pool;
+
+    if (b->i == 1)
+    {
+        while (p->h < p->n)
+        {
+            if (p->z == -1) { break; } else { sleep(1); }
+        }
+        p->z = 1;
+    }
+    else
+    {
+        b->h += 1; p->h += 1;
+        while ((p->z != 1) || (!(d->c1.tuntap)) || (d->c1.tuntap->ff <= 1))
+        {
+            if (p->z == -1) { break; } else { sleep(1); }
+        }
+    }
+
+    bool dual_mode = d->options.ce.dual_mode;
+    int t = THREAD_MAIN;
+    unsigned int f = MPP_THREAD_MAIN;
+    uint8_t buff[5];
+    size_t leng;
+    struct dual_args link, intf;
+    pthread_t thrl, thri;
+
+    if (dual_mode)
+    {
+        socketpair(AF_UNIX, SOCK_DGRAM, 0, intf.w[0]);
+        socketpair(AF_UNIX, SOCK_DGRAM, 0, intf.w[1]);
+        intf.c = c; intf.b = b; intf.f = MPP_THREAD_RTWL; intf.t = THREAD_RTWL; intf.z = 0;
+        bzero(&(thri), sizeof(pthread_t));
+        pthread_create(&(thri), NULL, threaded_process_io, &(intf));
+
+        socketpair(AF_UNIX, SOCK_DGRAM, 0, link.w[0]);
+        socketpair(AF_UNIX, SOCK_DGRAM, 0, link.w[1]);
+        link.c = c; link.b = b; link.f = MPP_THREAD_RLWT; link.t = THREAD_RLWT; link.z = 0;
+        bzero(&(thrl), sizeof(pthread_t));
+        pthread_create(&(thrl), NULL, threaded_process_io, &(link));
+    }
+
+    msg(M_INFO, "TCPv4_SERVER MTIO init [%d][%d] [%d][%d] {%d}{%d}", b->h, b->n, p->h, p->n, p->z, b->i);
 
     while (true)
     {
+        if (p->z != 1) { break; }
+        if (c->c1.tuntap && (c->c1.tuntap->fd > 1) && (c->c1.tuntap->ff <= 1))
+        {
+            socketpair(AF_UNIX, SOCK_DGRAM, 0, p->s[b->i-1]);
+            socketpair(AF_UNIX, SOCK_DGRAM, 0, p->r[b->i-1]);
+            c->c1.tuntap->ff = c->c1.tuntap->fd;
+            c->c1.tuntap->fe = (b->i == 1) ? c->c1.tuntap->ff : d->c1.tuntap->ff;
+            //c->c1.tuntap->fd = (b->i == 1) ? c->c1.tuntap->ff : d->c1.tuntap->ff;
+            c->c1.tuntap->fd = p->s[b->i-1][0];
+            c->c1.tuntap->fz = p->r[b->i-1][1];
+            msg(M_INFO, "TCPv4_SERVER MTIO fdno [%d][%d][%d][%d] {%d}", c->c1.tuntap->fd, c->c1.tuntap->fe, c->c1.tuntap->ff, c->c1.tuntap->fz, b->i);
+        }
+
         /* wait on tun/socket list */
         multi_get_timeout(multi, &multi->top.c2.timeval);
         status = multi_io_wait(multi);
@@ -4185,30 +4101,98 @@ tunnel_server_loop(struct multi_context *multi)
         /* check on status of coarse timers */
         multi_process_per_second_timers(multi);
 
+        if (dual_mode)
+        {
+            intf.a = -1; link.a = -1;
+        }
+
         /* timeout? */
         if (status > 0)
         {
             /* process the I/O which triggered select */
-            multi_io_process_io(multi);
+            if (dual_mode)
+            {
+                intf.a = TA_UNDEF; link.a = TA_UNDEF;
+            }
+            else
+            {
+                multi_io_process_io(b, f, t);
+            }
         }
         else if (status == 0)
         {
-            multi_io_action(multi, NULL, TA_TIMEOUT, false);
+            if (dual_mode)
+            {
+                intf.a = TA_TIMEOUT; link.a = TA_TIMEOUT;
+            }
+            else
+            {
+                multi_io_action(multi, TA_TIMEOUT, false, f, t);
+            }
         }
 
+        if (dual_mode)
+        {
+            if (intf.a != -1 && link.a != -1)
+            {
+                if (intf.z == 0)
+                {
+                    intf.z = 1;
+                    multi_copy_events(multi, intf.t);
+                    leng = write(intf.w[0][1], buff, 1);
+                    if (leng < 1) { /* no-op */ }
+                }
+                if (link.z == 0)
+                {
+                    link.z = 1;
+                    multi_copy_events(multi, link.t);
+                    leng = write(link.w[0][1], buff, 1);
+                    if (leng < 1) { /* no-op */ }
+                }
+                leng = read(intf.w[1][0], buff, 1);
+                leng = read(link.w[1][0], buff, 1);
+            }
+        }
+
+        multi->multi_io[t].n_esr = 0;
         MULTI_CHECK_SIG(multi);
+    }
+
+    msg(M_INFO, "TCPv4_SERVER MTIO fins [%d][%d] [%d][%d] {%d}{%d}", b->h, b->n, p->h, p->n, p->z, b->i);
+
+    p->z = -1;
+
+    if (c->c1.tuntap && (c->c1.tuntap->ff > 1))
+    {
+        close(p->s[b->i-1][0]); close(p->s[b->i-1][1]);
+        close(p->r[b->i-1][0]); close(p->r[b->i-1][1]);
+        c->c1.tuntap->fd = c->c1.tuntap->ff;
+        c->c1.tuntap->ff = -1;
+    }
+
+    if (dual_mode)
+    {
+        close(intf.w[0][0]); close(intf.w[0][1]);
+        close(intf.w[1][0]); close(intf.w[1][1]);
+        close(link.w[0][0]); close(link.w[0][1]);
+        close(link.w[1][0]); close(link.w[1][1]);
+        pthread_join(thri, NULL); pthread_join(thrl, NULL);
     }
 }
 
 /*
  * Top level event loop.
  */
-void
-tunnel_server(struct context *top)
+void *tunnel_server(void *args)
 {
-    ASSERT(top->options.mode == MODE_SERVER);
-
+    struct thread_pointer *arg = (struct thread_pointer *)args;
+    struct context_pointer *ptr = arg->p;
+    struct context *top = (arg->i == 1) ? ptr->c : arg->c;
     struct multi_context multi;
+
+    if (arg->i == 1) { sleep(1); }
+
+    ASSERT(top->options.mode == MODE_SERVER);
 
     top->mode = CM_TOP;
     top->multi = &multi;
@@ -4218,7 +4202,7 @@ tunnel_server(struct context *top)
     init_instance_handle_signals(top, top->es, CC_HARD_USR1_TO_HUP);
     if (IS_SIG(top))
     {
-        return;
+        return NULL;
     }
 
     /* initialize global multi_context object */
@@ -4233,19 +4217,10 @@ tunnel_server(struct context *top)
     /* finished with initialization */
     initialization_sequence_completed(top, ISC_SERVER); /* --mode server --proto tcp-server */
 
-#ifdef ENABLE_ASYNC_PUSH
-    multi.top.c2.inotify_fd = inotify_init();
-    if (multi.top.c2.inotify_fd < 0)
-    {
-        msg(D_MULTI_ERRORS | M_ERRNO, "MULTI: inotify_init error");
-    }
-#endif
+    bzero(&(multi.mtio_info), sizeof(struct multi_info));
+    ptr->m[arg->i-1] = &multi;
 
-    tunnel_server_loop(&multi);
-
-#ifdef ENABLE_ASYNC_PUSH
-    close(top->c2.inotify_fd);
-#endif
+    tunnel_server_loop(arg);
 
     /* shut down management interface */
     uninit_management_callback();
@@ -4257,6 +4232,54 @@ tunnel_server(struct context *top)
     multi_uninit(&multi);
     multi_top_free(&multi);
     close_instance(top);
+
+    return NULL;
+}
+
+void threaded_tunnel_server(struct context *c, struct context *d)
+{
+    int maxt = (c->options.ce.mtio_mode) ? MAX_THREADS : 1;
+    int maxc = c->options.max_clients;
+    struct thread_pointer b[MAX_THREADS];
+    struct context_pointer p;
+    struct multi_link k[maxc];
+    pthread_mutex_t lock;
+    pthread_t thrm, thrd[MAX_THREADS];
+
+    bzero(&(p), sizeof(struct context_pointer));
+    p.i = 1; p.h = 1; p.n = maxt; p.x = maxc; p.z = 0;
+    p.c = c; p.k = k; p.l = &(lock); p.p = NULL;
+    p.m = calloc(MAX_THREADS, sizeof(struct multi_context *));
+    bzero(p.k, maxc * sizeof(struct multi_link));
+    bzero(p.l, sizeof(pthread_mutex_t));
+    pthread_mutex_init(p.l, NULL);
+
+    c->skip_bind = 0;
+    b[0].p = &(p); b[0].c = c; b[0].i = 1; b[0].n = p.n; b[0].h = 0;
+    bzero(&(thrd[0]), sizeof(pthread_t));
+    pthread_create(&(thrd[0]), NULL, tunnel_server, &(b[0]));
+
+    bzero(&(thrm), sizeof(pthread_t));
+    pthread_create(&(thrm), NULL, threaded_io_management, &(b[0]));
+
+    for (int x = 1; x < p.n; ++x)
+    {
+        d[x].skip_bind = -1;
+        b[x].p = &(p); b[x].c = &(d[x]); b[x].i = (x + 1); b[x].n = p.n; b[x].h = 1;
+        bzero(&(thrd[x]), sizeof(pthread_t));
+        pthread_create(&(thrd[x]), NULL, tunnel_server, &(b[x]));
+    }
+
+    pthread_join(thrd[0], NULL);
+
+    for (int x = 1; x < p.n; ++x)
+    {
+        pthread_join(thrd[x], NULL);
+    }
+
+    pthread_join(thrm, NULL);
+
+    free(p.m);
 }
 
 /* Searches for the address and deletes it if it is owned by the multi_instance */
@@ -4267,6 +4290,11 @@ multi_unlearn_addr(struct multi_context *m, struct multi_instance *mi, const str
     const uint32_t hv = hash_value(m->vhash, addr);
     struct hash_bucket *bucket = hash_bucket(m->vhash, hv);
     struct multi_route *r = NULL;
+
+    if (m->top.options.ce.mtio_conf)
+    {
+        return;
+    }
 
     /* if route currently exists, get the instance which owns it */
     he = hash_lookup_fast(m->vhash, bucket, addr, hv);
@@ -4282,7 +4310,7 @@ multi_unlearn_addr(struct multi_context *m, struct multi_instance *mi, const str
     }
 
     struct gc_arena gc = gc_new();
-    msg(D_MULTI_LOW, "MULTI: Unlearn: %s -> %s", mroute_addr_print(&r->addr, &gc), multi_instance_string(mi, false, &gc));
+    msg(M_INFO, "MULTI: Unlearn: %s -> %s", mroute_addr_print(&r->addr, &gc), multi_instance_string(mi, false, &gc));
     learn_address_script(m, NULL, "delete", &r->addr);
     hash_remove_by_value(m->vhash, r);
     multi_route_del(r);
@@ -4364,22 +4392,33 @@ unlearn_ifconfig_ipv6(struct multi_context *m, struct multi_instance *mi)
 void
 update_vhash(struct multi_context *m, struct multi_instance *mi, const char *new_ip, const char *new_ipv6)
 {
+    if (m->top.options.ce.mtio_conf)
+    {
+        return;
+    }
+
     if (new_ip)
     {
+        in_addr_t old_addr_t = mi->context.c2.push_ifconfig_local;
+
+        struct in_addr new_addr;
+        CLEAR(new_addr);
+        int addr_stat = inet_pton(AF_INET, new_ip, &new_addr);
+        in_addr_t new_addr_t = ntohl(new_addr.s_addr);
+
         /* Remove old IP */
-        if (mi->context.c2.push_ifconfig_defined)
+        if ((addr_stat != 1 || new_addr_t != old_addr_t)
+            && mi->context.c2.push_ifconfig_defined)
         {
             unlearn_ifconfig(m, mi);
         }
 
         /* Add new IP */
-        struct in_addr new_addr;
-        CLEAR(new_addr);
-        if (inet_pton(AF_INET, new_ip, &new_addr) == 1
-            && multi_learn_in_addr_t(m, mi, ntohl(new_addr.s_addr), -1, true))
+        if ((addr_stat == 1 && new_addr_t != old_addr_t)
+            && multi_learn_in_addr_t(m, mi, new_addr_t, -1, true))
         {
             mi->context.c2.push_ifconfig_defined = true;
-            mi->context.c2.push_ifconfig_local = ntohl(new_addr.s_addr);
+            mi->context.c2.push_ifconfig_local = new_addr_t;
             /* set our client's VPN endpoint for status reporting purposes */
             mi->reporting_addr = mi->context.c2.push_ifconfig_local;
         }
@@ -4387,16 +4426,21 @@ update_vhash(struct multi_context *m, struct multi_instance *mi, const char *new
 
     if (new_ipv6)
     {
+        struct in6_addr old_addr6 = mi->context.c2.push_ifconfig_ipv6_local;
+
+        struct in6_addr new_addr6;
+        CLEAR(new_addr6);
+        int addr6_stat = inet_pton(AF_INET6, new_ipv6, &new_addr6);
+
         /* Remove old IPv6 */
-        if (mi->context.c2.push_ifconfig_ipv6_defined)
+        if ((addr6_stat != 1 || memcmp(&new_addr6, &old_addr6, sizeof(old_addr6)) != 0)
+            && mi->context.c2.push_ifconfig_ipv6_defined)
         {
             unlearn_ifconfig_ipv6(m, mi);
         }
 
         /* Add new IPv6 */
-        struct in6_addr new_addr6;
-        CLEAR(new_addr6);
-        if (inet_pton(AF_INET6, new_ipv6, &new_addr6) == 1
+        if ((addr6_stat == 1 && memcmp(&new_addr6, &old_addr6, sizeof(old_addr6)) != 0)
             && multi_learn_in6_addr(m, mi, new_addr6, -1, true))
         {
             mi->context.c2.push_ifconfig_ipv6_defined = true;
