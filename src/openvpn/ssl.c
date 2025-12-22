@@ -1023,7 +1023,14 @@ tls_session_init(struct tls_multi *multi, struct tls_session *session)
     /* load most recent packet-id to replay protect on --tls-auth */
     packet_id_persist_load_obj(session->tls_wrap.opt.pid_persist, &session->tls_wrap.opt.packet_id);
 
-    key_state_init(session, &session->key[KS_PRIMARY]);
+    for (size_t i = 0; i < KS_SIZE; ++i)
+    {
+        key_state_init(session, &session->key[i]);
+        if (i != KS_PRIMARY)
+        {
+            session->key[i].state = S_UNDEF;
+        }
+    }
 
     dmsg(D_TLS_DEBUG, "TLS: tls_session_init: new session object, sid=%s",
          session_id_print(&session->session_id, &gc));
