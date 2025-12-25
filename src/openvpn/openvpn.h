@@ -46,6 +46,9 @@
 #include "plugin.h"
 #include "manage.h"
 
+/* Forward declaration for multi-client context */
+struct multi_context;
+
 /*
  * Our global key schedules, packaged thusly
  * to facilitate --persist-key.
@@ -515,6 +518,9 @@ struct context
     struct context_0 *c0;       /**< Level 0 %context. */
     struct context_1 c1;        /**< Level 1 %context. */
     struct context_2 c2;        /**< Level 2 %context. */
+
+    struct multi_context *multi; /**< Pointer to the main P2MP context.
+                                  *   Non-NULL only when mode == CM_TOP. */
 };
 
 /*

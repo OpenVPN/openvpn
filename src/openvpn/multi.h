@@ -40,6 +40,7 @@
 #include "perf.h"
 #include "vlan.h"
 #include "reflect_filter.h"
+#include "dco.h"
 
 #define MULTI_PREFIX_MAX_LENGTH 256
 
@@ -317,13 +318,13 @@ bool multi_process_post(struct multi_context *m, struct multi_instance *mi, cons
 /**
  * Process an incoming DCO message (from kernel space).
  *
- * @param m            - The single \c multi_context structur.e
+ * Called immediately from the netlink callback ovpn_handle_msg() to process
+ * each message as it arrives. This prevents message loss when multiple
+ * DEL_PEER notifications arrive simultaneously.
  *
- * @return
- *  - True, if the message was received correctly.
- *  - False, if there was an error while reading the message.
+ * @param dco          - The DCO context containing the parsed message.
  */
-bool multi_process_incoming_dco(struct multi_context *m);
+void multi_process_incoming_dco(dco_context_t *dco);
 
 /**************************************************************************/
 /**

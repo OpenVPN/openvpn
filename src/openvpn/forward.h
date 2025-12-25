@@ -50,6 +50,7 @@
 #include "openvpn.h"
 #include "occ.h"
 #include "ping.h"
+#include "dco.h"
 
 #define IOW_TO_TUN          (1<<0)
 #define IOW_TO_LINK         (1<<1)
@@ -247,6 +248,17 @@ void read_incoming_tun(struct context *c);
  *     packet.
  */
 void process_incoming_tun(struct context *c);
+
+/**
+ * Process an incoming DCO message (from kernel space) for P2P mode.
+ *
+ * Called immediately from the netlink callback ovpn_handle_msg() to process
+ * each message as it arrives. This prevents message loss when multiple
+ * DEL_PEER notifications arrive simultaneously.
+ *
+ * @param dco - The DCO context containing the parsed message.
+ */
+void process_incoming_dco(dco_context_t *dco);
 
 
 /**
