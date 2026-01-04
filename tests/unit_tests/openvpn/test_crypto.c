@@ -870,6 +870,35 @@ crypto_test_epoch_key_overflow(void **state)
 }
 
 void
+crypto_test_epoch_edge(void **state)
+{
+    struct epoch_test_state *data = *state;
+    struct crypto_options *co = &data->co;
+
+    for (uint16_t i = 1; i <= 13; i++)
+    {
+        uint16_t current_epoch = co->key_ctx_bi.decrypt.epoch;
+        uint16_t target_epoch = current_epoch + i;
+
+        struct key_ctx *decrypt_key = epoch_lookup_decrypt_key(co, target_epoch);
+        assert_non_null(decrypt_key);
+
+        assert_int_equal(decrypt_key->epoch, target_epoch);
+
+        epoch_replace_update_recv_key(co, target_epoch);
+
+        assert_int_equal(co->key_ctx_bi.decrypt.epoch, target_epoch);
+    }
+
+    /* Check that 14 is not valid anymnore */
+    uint16_t current_epoch = co->key_ctx_bi.decrypt.epoch;
+    uint16_t target_epoch = current_epoch + 14;
+
+    struct key_ctx *decrypt_key = epoch_lookup_decrypt_key(co, target_epoch);
+    assert_null(decrypt_key);
+}
+
+void
 epoch_test_derive_data_key(void **state)
 {
     struct epoch_key e17 = { .epoch = 17, .epoch_key = { 19, 12 } };
@@ -928,6 +957,9 @@ main(void)
         cmocka_unit_test_prestate_setup_teardown(crypto_test_epoch_key_overflow,
                                                  crypto_test_epoch_setup,
                                                  crypto_test_epoch_teardown, &prestate_num32),
+        cmocka_unit_test_prestate_setup_teardown(crypto_test_epoch_edge,
+                                                 crypto_test_epoch_setup,
+                                                 crypto_test_epoch_teardown, &prestate_num13),
         cmocka_unit_test(epoch_test_derive_data_key)
     };
 
