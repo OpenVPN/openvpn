@@ -3351,6 +3351,11 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.crl_file = options->crl_file;
     to.crl_file_inline = options->crl_file_inline;
     to.ssl_flags = options->ssl_flags;
+
+    /* SNI (Server Name Indication) for TLS handshake */
+    to.sni = options->sni;
+    to.remote = options->ce.remote;
+
     to.ns_cert_type = options->ns_cert_type;
     memcpy(to.remote_cert_ku, options->remote_cert_ku, sizeof(to.remote_cert_ku));
     to.remote_cert_eku = options->remote_cert_eku;

@@ -625,6 +625,9 @@ struct options
     bool verify_hash_no_ca;
     unsigned int ssl_flags; /* set to SSLF_x flags from ssl.h */
 
+    /* TLS SNI (Server Name Indication) - NULL=off, "auto"=use remote, otherwise explicit hostname */
+    const char *sni;
+
 #ifdef ENABLE_PKCS11
     const char *pkcs11_providers[MAX_PARMS];
     unsigned pkcs11_private_mode[MAX_PARMS];

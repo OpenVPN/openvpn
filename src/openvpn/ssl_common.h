@@ -437,6 +437,12 @@ struct tls_options
 #define SSLF_TLS_DEBUG_ENABLED        (1u << 14)
     unsigned int ssl_flags;
 
+    /* SNI (Server Name Indication) - NULL=off, "auto"=use remote, or explicit hostname */
+    const char *sni;
+
+    /* Remote hostname from connection entry, used when sni="auto" */
+    const char *remote;
+
 #ifdef ENABLE_MANAGEMENT
     struct man_def_auth_context *mda_context;
 #endif

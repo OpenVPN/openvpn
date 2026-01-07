@@ -408,6 +408,28 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
     but also the key exchange in TLS 1.3 and using this option improperly
     will disable TLS 1.3.
 
+--sni hostname
+    Set the TLS Server Name Indication (SNI) for the control channel TLS
+    handshake.
+
+    Valid syntax:
+    ::
+
+       sni auto
+       sni hostname
+
+    When set to :code:`auto`, the hostname from the ``--remote`` option is
+    used as the SNI hostname. Alternatively, an explicit hostname can be
+    specified.
+
+    SNI is a TLS extension that allows the client to indicate to the server
+    which hostname it is trying to connect to. This is useful when connecting
+    through proxies or load balancers that use SNI to route connections, or
+    when the server requires a specific SNI value to present the correct
+    certificate.
+
+    By default, no SNI is sent (for backwards compatibility).
+
 --tls-cert-profile profile
   Set the allowed cryptographic algorithms for certificates according to
   ``profile``.

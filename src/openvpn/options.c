@@ -609,6 +609,8 @@ static const char usage_message[] =
     "--tls-cipher l  : A list l of allowable TLS ciphers separated by : (optional).\n"
     "--tls-ciphersuites l: A list of allowed TLS 1.3 cipher suites separated by : (optional)\n"
     "                : Use --show-tls to see a list of supported TLS ciphers (suites).\n"
+    "--sni host      : Set TLS SNI (Server Name Indication) for the control channel.\n"
+    "                  Use 'auto' to use the remote hostname, or specify a hostname.\n"
     "--tls-cert-profile p : Set the allowed certificate crypto algorithm profile\n"
     "                  (default=legacy).\n"
     "--providers l   : A list l of OpenSSL providers to load.\n"
@@ -8803,6 +8805,11 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->tls_groups = p[1];
+    }
+    else if (streq(p[0], "sni") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        options->sni = p[1];
     }
     else if (streq(p[0], "crl-verify") && p[1] && ((p[2] && streq(p[2], "dir")) || !p[2]))
     {

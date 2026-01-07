@@ -1161,10 +1161,26 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_
     ALLOC_OBJ_CLEAR(ks_ssl->ctx, mbedtls_ssl_context);
     mbedtls_ssl_init(ks_ssl->ctx);
     mbed_ok(mbedtls_ssl_setup(ks_ssl->ctx, ks_ssl->ssl_config));
-    /* We do verification in our own callback depending on the
+    /* Set SNI (Server Name Indication) if configured for client mode.
+     * We do verification in our own callback depending on the
      * exact configuration. We do not rely on the default hostname
      * verification. */
-    ASSERT(mbed_ok(mbedtls_ssl_set_hostname(ks_ssl->ctx, NULL)));
+    if (!is_server && session->opt->sni)
+    {
+        const char *sni_hostname = session->opt->sni;
+
+        /* If sni is "auto", use the remote hostname */
+        if (streq(sni_hostname, "auto"))
+        {
+            sni_hostname = session->opt->remote;
+        }
+
+        ASSERT(mbed_ok(mbedtls_ssl_set_hostname(ks_ssl->ctx, sni_hostname)));
+    }
+    else
+    {
+        ASSERT(mbed_ok(mbedtls_ssl_set_hostname(ks_ssl->ctx, NULL)));
+    }
 
 #if !defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT)
     /* Initialize the keying material exporter callback. */
