@@ -1830,14 +1830,22 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
      * but for link-local destinations, we MUST specify the interface, so
      * we build a combined "$gateway%$interface" gateway string
      */
-    if (r6->iface != NULL && gateway_needed
-        && IN6_IS_ADDR_LINKLOCAL(&r6->gateway)) /* fe80::...%intf */
-    {
-        int len = strlen(gateway) + 1 + strlen(r6->iface) + 1;
-        char *tmp = gc_malloc(len, true, &gc);
-        snprintf(tmp, len, "%s%%%s", gateway, r6->iface);
-        gateway = tmp;
+    if (IN6_IS_ADDR_LINKLOCAL(&r6->gateway)) {       /* fe80::...%intf */
+
+            if (r6->iface != NULL && gateway_needed) {
+                int len = strlen(gateway) + 1 + strlen(r6->iface)+1;
+                char *tmp = gc_malloc( len, true, &gc );
+                snprintf( tmp, len, "%s%%%s", gateway, r6->iface );
+                gateway = tmp;
+
+            } else if (device) {
+                        int len = strlen(gateway) + 1 + strlen(device)+1;
+                        char *tmp = gc_malloc( len, true, &gc );
+                        snprintf( tmp, len, "%s%%%s", gateway, device );
+                        gateway = tmp;
+                   }
     }
+
 #endif
 
 #ifndef _WIN32
