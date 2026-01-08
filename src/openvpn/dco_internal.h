@@ -5,8 +5,8 @@
  *             packet encryption, packet authentication, and
  *             packet compression.
  *
- *  Copyright (C) 2022-2025 Antonio Quartulli <a@unstable.cc>
- *  Copyright (C) 2022-2025 OpenVPN Inc <sales@openvpn.net>
+ *  Copyright (C) 2022-2026 Antonio Quartulli <a@unstable.cc>
+ *  Copyright (C) 2022-2026 OpenVPN Inc <sales@openvpn.net>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2

@@ -5,7 +5,7 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2017-2021 Sentyron B.V. <openvpn@sentyron.com>
+#  Copyright (C) 2017-2026 Sentyron B.V. <openvpn@sentyron.com>
 #
 
 MAINTAINERCLEANFILES = \

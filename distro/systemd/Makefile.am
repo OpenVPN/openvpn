@@ -5,7 +5,7 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2017-2025 OpenVPN Inc <sales@openvpn.net>
+#  Copyright (C) 2017-2026 OpenVPN Inc <sales@openvpn.net>
 #
 
 %.service: %.service.in Makefile

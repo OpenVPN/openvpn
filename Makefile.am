@@ -5,8 +5,8 @@
 #             packet encryption, packet authentication, and
 #             packet compression.
 #
-#  Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
-#  Copyright (C) 2010-2025 David Sommerseth <dazo@eurephia.org>
+#  Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
+#  Copyright (C) 2010-2026 David Sommerseth <dazo@eurephia.org>
 #  Copyright (C) 2006-2012 Alon Bar-Lev <alon.barlev@gmail.com>
 #
 #  This program is free software; you can redistribute it and/or modify
