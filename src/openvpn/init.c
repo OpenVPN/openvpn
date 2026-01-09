@@ -1545,7 +1545,7 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
 #else
 #ifdef ENABLE_SYSTEMD
         sd_notifyf(0, "STATUS=Failed to start up: %s With Errors\nERRNO=1", message);
-#endif /* HAVE_SYSTEMD_SD_DAEMON_H */
+#endif
         msg(M_INFO, "%s With Errors", message);
 #endif
     }

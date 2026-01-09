@@ -1139,28 +1139,14 @@ dnl Check for systemd
 dnl
 AM_CONDITIONAL([ENABLE_SYSTEMD], [test "${enable_systemd}" = "yes"])
 if test "$enable_systemd" = "yes" ; then
-    PKG_CHECK_MODULES([libsystemd], [systemd libsystemd],
+    PKG_CHECK_MODULES([libsystemd], [libsystemd > 216],
                       [],
-                      [PKG_CHECK_MODULES([libsystemd], [libsystemd-daemon])]
+                      [AC_MSG_ERROR([systemd enabled but libsystemd is missing])]
                       )
 
-    PKG_CHECK_EXISTS([libsystemd > 216],
-                     [AC_DEFINE([SYSTEMD_NEWER_THAN_216], [1],
-                           [systemd is newer than v216])]
-                    )
-
-    AC_CHECK_HEADERS(systemd/sd-daemon.h,
-       ,
-       [
-	   AC_MSG_ERROR([systemd development headers not found.])
-       ])
-
-    saved_LIBS="${LIBS}"
-    LIBS="${LIBS} ${libsystemd_LIBS}"
-    AC_CHECK_FUNCS([sd_booted], [], [AC_MSG_ERROR([systemd library is missing sd_booted()])])
+    OPTIONAL_SYSTEMD_CFLAGS="${libsystemd_CFLAGS}"
     OPTIONAL_SYSTEMD_LIBS="${libsystemd_LIBS}"
     AC_DEFINE(ENABLE_SYSTEMD, 1, [Enable systemd integration])
-    LIBS="${saved_LIBS}"
 
     if test -n "${SYSTEMD_UNIT_DIR}"; then
         systemdunitdir="${SYSTEMD_UNIT_DIR}"
@@ -1377,6 +1363,7 @@ AC_SUBST([OPTIONAL_LZO_CFLAGS])
 AC_SUBST([OPTIONAL_LZO_LIBS])
 AC_SUBST([OPTIONAL_LZ4_CFLAGS])
 AC_SUBST([OPTIONAL_LZ4_LIBS])
+AC_SUBST([OPTIONAL_SYSTEMD_CFLAGS])
 AC_SUBST([OPTIONAL_SYSTEMD_LIBS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_CFLAGS])
 AC_SUBST([OPTIONAL_PKCS11_HELPER_LIBS])

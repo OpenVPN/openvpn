@@ -61,13 +61,10 @@ get_console_input_systemd(const char *prompt, const bool echo, char *input, cons
     struct argv argv = argv_new();
 
     argv_printf(&argv, SYSTEMD_ASK_PASSWORD_PATH);
-#ifdef SYSTEMD_NEWER_THAN_216
-    /* the --echo support arrived in upstream systemd 217 */
     if (echo)
     {
         argv_printf_cat(&argv, "--echo");
     }
-#endif
     argv_printf_cat(&argv, "--icon network-vpn");
     argv_printf_cat(&argv, "--timeout=0");
     argv_printf_cat(&argv, "%s", prompt);

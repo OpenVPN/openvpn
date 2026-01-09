@@ -284,9 +284,6 @@
 /* Define to 1 if you have the <syslog.h> header file. */
 #cmakedefine HAVE_SYSLOG_H
 
-/* Define to 1 if you have the <systemd/sd-daemon.h> header file. */
-#undef HAVE_SYSTEMD_SD_DAEMON_H
-
 /* Define to 1 if you have the <sys/epoll.h> header file. */
 #cmakedefine HAVE_SYS_EPOLL_H
 
@@ -373,9 +370,6 @@
 
 /* Path to systemd-ask-password tool */
 #undef SYSTEMD_ASK_PASSWORD_PATH
-
-/* systemd is newer than v216 */
-#define SYSTEMD_NEWER_THAN_216
 
 /* The tap-windows id */
 #define TAP_WIN_COMPONENT_ID "tap0901"
