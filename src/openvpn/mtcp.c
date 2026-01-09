@@ -46,15 +46,18 @@ struct ta_iow_flags
 };
 
 struct multi_instance *
-multi_create_instance_tcp(struct multi_context *m, struct link_socket *sock)
+multi_create_instance_tcp(struct thread_pointer *b, struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
+    struct multi_context *m = b->p->m[b->i-1];
     struct multi_instance *mi = NULL;
     struct hash *hash = m->hash;
 
-    mi = multi_create_instance(m, NULL, sock);
+    mi = multi_create_instance(b, NULL, sock);
     if (mi)
     {
+        m = b->p->p;
+        hash = m->hash;
         mi->real.proto = sock->info.proto;
         struct hash_element *he;
         const uint32_t hv = hash_value(hash, &mi->real);

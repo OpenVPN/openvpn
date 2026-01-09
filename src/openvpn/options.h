@@ -177,6 +177,14 @@ struct connection_entry
 
     /* Allow only client that support resending the wrapped client key */
     bool tls_crypt_v2_force_cookie;
+
+    /* Bulk mode allows for multiple tun reads + larger tcp writes */
+    bool bulk_mode;
+
+    /* Multi threaded IO mode operates on a primary tun interface + multiple tcp connections */
+    bool mtio_conf;
+    bool mtio_mode;
+    int mtio_time;
 };
 
 struct remote_entry
