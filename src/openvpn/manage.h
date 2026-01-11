@@ -50,7 +50,7 @@
 #include "socket_util.h"
 #include "mroute.h"
 
-#define MANAGEMENT_VERSION                  5
+#define MANAGEMENT_VERSION                  6
 #define MANAGEMENT_N_PASSWORD_RETRIES       3
 #define MANAGEMENT_LOG_HISTORY_INITIAL_SIZE 100
 #define MANAGEMENT_ECHO_BUFFER_SIZE         100
@@ -198,6 +198,7 @@ struct management_callback
     bool (*remote_entry_get)(void *arg, unsigned int index, char **remote);
     bool (*push_update_broadcast)(void *arg, const char *options);
     bool (*push_update_by_cid)(void *arg, unsigned long cid, const char *options);
+    bool (*reload_push_options)(void *arg, bool update_clients);
 };
 
 /*

@@ -34,6 +34,7 @@
 #include "forward.h"
 #include "multi.h"
 #include "push.h"
+#include "options_util.h"
 #include "run_command.h"
 #include "otime.h"
 #include "gremlin.h"
@@ -4089,6 +4090,284 @@ management_get_peer_info(void *arg, const unsigned long cid)
     return ret;
 }
 
+/**
+ * Check if an option string exists in a push_list.
+ */
+static bool
+push_option_exists(const struct push_list *list, const char *option)
+{
+    const struct push_entry *e = list->head;
+    while (e)
+    {
+        if (e->enable && e->option && strcmp(e->option, option) == 0)
+        {
+            return true;
+        }
+        e = e->next;
+    }
+    return false;
+}
+
+/*
+ * Helper to append to push list using specific GC.
+ */
+static void
+push_list_add(struct push_list *list, const char *opt, struct gc_arena *gc)
+{
+    struct push_entry *e;
+    ALLOC_OBJ_CLEAR_GC(e, struct push_entry, gc);
+    e->enable = true;
+    e->option = opt;
+
+    if (list->tail)
+    {
+        list->tail->next = e;
+        list->tail = e;
+    }
+    else
+    {
+        list->head = e;
+        list->tail = e;
+    }
+}
+
+/**
+ * Find the index of an updatable option type for a given option string.
+ * @param option  The option string to check (e.g., "route 10.0.0.0 255.0.0.0")
+ * @return        Index into updatable_options[] or -1 if not found
+ */
+static ssize_t
+find_updatable_option_index(const char *option)
+{
+    size_t len = strlen(option);
+    for (size_t i = 0; i < updatable_options_count; ++i)
+    {
+        size_t opt_len = strlen(updatable_options[i]);
+        if (len >= opt_len
+            && strncmp(option, updatable_options[i], opt_len) == 0
+            && (option[opt_len] == '\0' || option[opt_len] == ' '))
+        {
+            return (ssize_t)i;
+        }
+    }
+    return -1;
+}
+
+/**
+ * Reload push options from the configuration file.
+ * This function re-reads the config file and updates the push_list
+ * that will be sent to new connecting clients.
+ *
+ * Thread safety: OpenVPN uses a single-threaded event loop, so this
+ * function runs sequentially with all other operations.
+ *
+ * @param arg   Pointer to multi_context
+ * @param update_clients  If true, update connected clients (add new, remove old)
+ * @return true on success, false on failure
+ */
+static bool
+management_callback_reload_push_options(void *arg, bool update_clients)
+{
+    struct multi_context *m = (struct multi_context *)arg;
+    struct gc_arena gc = gc_new();
+    bool ret = false;
+
+    msg(M_INFO, "MANAGEMENT: Reloading push options from config file");
+
+    /* Check if we have a config file to reload from */
+    if (!m->top.options.config)
+    {
+        msg(M_WARN, "MANAGEMENT: Cannot reload push options - no config file specified");
+        goto cleanup;
+    }
+
+    /* Save reference to old push_list for update comparison */
+    struct push_list old_push_list = m->top.options.push_list;
+
+    /* Create a temporary options structure to parse the config */
+    struct options new_options;
+    CLEAR(new_options);
+
+    /* Initialize the gc_arena for the new options */
+    new_options.gc = gc_new();
+
+    /* Set up environment for config parsing */
+    struct env_set *es = env_set_create(&gc);
+    unsigned int option_types_found = 0;
+
+    /* Re-read the configuration file */
+    read_config_file(&new_options, m->top.options.config, 0,
+                     m->top.options.config, 0, M_WARN,
+                     OPT_P_DEFAULT, &option_types_found, es);
+
+    /* Validate we got a sensible result - if old list had entries but new is empty,
+     * this likely indicates a parsing error */
+    if (old_push_list.head && !new_options.push_list.head)
+    {
+        msg(M_WARN, "MANAGEMENT: Config reload returned empty push list - aborting");
+        gc_free(&new_options.gc);
+        goto cleanup;
+    }
+
+    /* Create a new GC arena for the new push list */
+    struct gc_arena new_push_list_gc = gc_new();
+    struct push_list new_push_list = { NULL, NULL };
+
+    /* Copy each push entry from the parsed config to the new push_list
+     * using the new dedicated push_list_gc */
+    const struct push_entry *e = new_options.push_list.head;
+    while (e)
+    {
+        if (e->enable && e->option)
+        {
+            /* Copy the option string to the new dedicated gc_arena */
+            const char *opt = string_alloc(e->option, &new_push_list_gc);
+            push_list_add(&new_push_list, opt, &new_push_list_gc);
+        }
+        e = e->next;
+    }
+
+    /* Free the temporary options gc_arena (parsed config) */
+    gc_free(&new_options.gc);
+
+    /* Update connected clients if requested */
+    /* We do this BEFORE swapping the lists so we can compare old vs new */
+    if (update_clients)
+    {
+        /* Calculate required buffer size: sum of all option lengths + separators */
+        size_t opts_size = 0;
+        const struct push_entry *size_e = new_push_list.head;
+        while (size_e)
+        {
+            if (size_e->enable && size_e->option)
+            {
+                opts_size += strlen(size_e->option) + 2; /* option + ", " */
+            }
+            size_e = size_e->next;
+        }
+        /* Add space for removal commands: "-type, " for each updatable option type */
+        opts_size += updatable_options_count * 32;
+        /* Minimum size to avoid edge cases */
+        if (opts_size < PUSH_BUNDLE_SIZE)
+        {
+            opts_size = PUSH_BUNDLE_SIZE;
+        }
+
+        struct buffer opts = alloc_buf_gc(opts_size, &gc);
+        bool first = true;
+        int added = 0, removed = 0;
+
+        /* Set of option types that have been removed/modified */
+        bool *type_removed = gc_malloc(updatable_options_count * sizeof(bool), true, &gc);
+
+        /* 1. Detect removed options and mark their types */
+        const struct push_entry *old_e = old_push_list.head;
+        while (old_e)
+        {
+            if (old_e->enable && old_e->option)
+            {
+                if (!push_option_exists(&new_push_list, old_e->option))
+                {
+                    ssize_t type_idx = find_updatable_option_index(old_e->option);
+                    if (type_idx >= 0)
+                    {
+                        type_removed[type_idx] = true;
+                        removed++;
+                        msg(D_PUSH, "MANAGEMENT: Removing: %s", old_e->option);
+                    }
+                    else
+                    {
+                        msg(M_WARN, "MANAGEMENT: Cannot remove option '%s' (not updatable)", old_e->option);
+                    }
+                }
+            }
+            old_e = old_e->next;
+        }
+
+        /* 2. Add removal commands for all marked types */
+        for (size_t i = 0; i < updatable_options_count; ++i)
+        {
+            if (type_removed[i])
+            {
+                if (!first)
+                {
+                    buf_printf(&opts, ", ");
+                }
+                /* Send -type to remove all options of that type */
+                buf_printf(&opts, "-%s", updatable_options[i]);
+                first = false;
+            }
+        }
+
+        /* 3. Add new options AND re-add options belonging to removed types */
+        const struct push_entry *new_e = new_push_list.head;
+        while (new_e)
+        {
+            if (new_e->enable && new_e->option)
+            {
+                bool should_send = false;
+                bool is_existing = push_option_exists(&old_push_list, new_e->option);
+
+                /* Check if this option belongs to a type that was reset */
+                bool type_was_reset = false;
+                ssize_t type_idx = find_updatable_option_index(new_e->option);
+                if (type_idx >= 0 && type_removed[type_idx])
+                {
+                    type_was_reset = true;
+                }
+
+                /* Always send new options */
+                if (!is_existing)
+                {
+                    should_send = true;
+                    added++;
+                    msg(D_PUSH, "MANAGEMENT: Adding: %s", new_e->option);
+                }
+                /* Also resend options if their type was reset (because we sent -type) */
+                else if (type_was_reset)
+                {
+                    should_send = true;
+                    msg(D_PUSH, "MANAGEMENT: Re-adding (type reset): %s", new_e->option);
+                }
+
+                if (should_send)
+                {
+                    if (!first)
+                    {
+                        buf_printf(&opts, ", ");
+                    }
+                    buf_printf(&opts, "%s", new_e->option);
+                    first = false;
+                }
+            }
+            new_e = new_e->next;
+        }
+
+        if (BLEN(&opts) > 0)
+        {
+            msg(M_INFO, "MANAGEMENT: Updating clients with push options (added=%d, removed=%d)",
+                added, removed);
+            management_callback_send_push_update_broadcast(m, BSTR(&opts));
+        }
+        else
+        {
+            msg(M_INFO, "MANAGEMENT: No changes to send to clients");
+        }
+    }
+
+    /* Now replace the old push_list with the new one and free old memory */
+    gc_free(&m->top.options.push_list_gc);
+    m->top.options.push_list_gc = new_push_list_gc;
+    m->top.options.push_list = new_push_list;
+
+    msg(M_INFO, "MANAGEMENT: Push options reloaded successfully");
+    ret = true;
+
+cleanup:
+    gc_free(&gc);
+    return ret;
+}
+
 #endif /* ifdef ENABLE_MANAGEMENT */
 
 
@@ -4114,6 +4393,7 @@ init_management_callback_multi(struct multi_context *m)
         cb.get_peer_info = management_get_peer_info;
         cb.push_update_broadcast = management_callback_send_push_update_broadcast;
         cb.push_update_by_cid = management_callback_send_push_update_by_cid;
+        cb.reload_push_options = management_callback_reload_push_options;
         management_set_callback(management, &cb);
     }
 #endif /* ifdef ENABLE_MANAGEMENT */
