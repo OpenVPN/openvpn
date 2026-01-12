@@ -143,7 +143,7 @@ socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
     }
 
     /* VER = 5, SUCCESS = 0 --> auth success */
-    if (buf[0] != 5 && buf[1] != 0)
+    if (buf[0] != 5 || buf[1] != 0)
     {
         msg(D_LINK_ERRORS, "socks_username_password_auth: server refused the authentication");
         goto cleanup;
