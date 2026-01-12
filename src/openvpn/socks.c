@@ -434,7 +434,7 @@ error:
 }
 
 /*
- * Remove the 10 byte socks5 header from an incoming
+ * Remove the socks5 header from an incoming
  * UDP packet, setting *from to the source address.
  *
  * Run after UDP read.
@@ -444,7 +444,7 @@ socks_process_incoming_udp(struct buffer *buf, struct link_socket_actual *from)
 {
     int atyp;
 
-    if (BLEN(buf) < 10)
+    if (BLEN(buf) < SOCKS_UDPv4_HEADROOM)
     {
         goto error;
     }
@@ -471,7 +471,7 @@ error:
 }
 
 /*
- * Add a 10 byte socks header prior to UDP write.
+ * Add a socks header prior to UDP write.
  * *to is the destination address.
  *
  * Run before UDP write.
@@ -481,11 +481,11 @@ int
 socks_process_outgoing_udp(struct buffer *buf, const struct link_socket_actual *to)
 {
     /*
-     * Get a 10 byte subset buffer prepended to buf --
+     * Get a subset buffer prepended to buf --
      * we expect these bytes will be here because
      * we always allocate space for these bytes
      */
-    struct buffer head = buf_sub(buf, 10, true);
+    struct buffer head = buf_sub(buf, SOCKS_UDPv4_HEADROOM, true);
 
     /* crash if not enough headroom in buf */
     ASSERT(buf_defined(&head));
@@ -496,5 +496,5 @@ socks_process_outgoing_udp(struct buffer *buf, const struct link_socket_actual *
     buf_write(&head, &to->dest.addr.in4.sin_addr, sizeof(to->dest.addr.in4.sin_addr));
     buf_write(&head, &to->dest.addr.in4.sin_port, sizeof(to->dest.addr.in4.sin_port));
 
-    return 10;
+    return SOCKS_UDPv4_HEADROOM;
 }

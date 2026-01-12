@@ -66,11 +66,11 @@ frame_calculate_protocol_header_size(const struct key_type *kt, const struct opt
 
     bool tlsmode = options->tls_server || options->tls_client;
 
-    /* A socks proxy adds 10 byte of extra header to each packet
+    /* A socks proxy adds extra header to each packet
      * (we only support Socks with IPv4, this value is different for IPv6) */
     if (options->ce.socks_proxy_server && proto_is_udp(options->ce.proto))
     {
-        header_size += 10;
+        header_size += SOCKS_UDPv4_HEADROOM;
     }
 
     /* TCP stream based packets have a 16 bit length field */

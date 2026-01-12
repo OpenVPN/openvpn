@@ -2927,7 +2927,7 @@ frame_finalize_options(struct context *c, const struct options *o)
     headroom += 4;
 
     /* socks proxy header */
-    headroom += 10;
+    headroom += SOCKS_UDPv4_HEADROOM;
 
     /* compression header and fragment header (part of the encrypted payload) */
     headroom += 1 + 1;

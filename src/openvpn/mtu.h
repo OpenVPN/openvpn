@@ -94,6 +94,11 @@
  */
 #define PAYLOAD_ALIGN 4
 
+/*
+ * How many bytes we prepend for a SOCKS UDP proxy.
+ * This only handles IPv4 right now.
+ */
+#define SOCKS_UDPv4_HEADROOM 10
 
 /**************************************************************************/
 /**
