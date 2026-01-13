@@ -61,7 +61,10 @@ tun_afunix_exec_child(const char *dev_node, struct tuntap *tt, struct env_set *e
 
     argv_printf(&argv, "%s", program);
 
-    tt->afunix.childprocess = openvpn_execve_check(&argv, env, S_NOWAITPID, msgprefix);
+    /* exit when executing fails to easier spot errors here and treat this
+     * command like an external script */
+    int flags = S_NOWAITPID | S_SCRIPT | S_FATAL;
+    tt->afunix.childprocess = openvpn_execve_check(&argv, env, flags, msgprefix);
     if (!openvpn_waitpid_check(tt->afunix.childprocess, msgprefix, M_WARN))
     {
         tt->afunix.childprocess = 0;
