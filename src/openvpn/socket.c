@@ -867,12 +867,10 @@ tcp_connection_established(const struct link_socket_actual *act)
 
 static socket_descriptor_t
 socket_listen_accept(socket_descriptor_t sd, struct link_socket_actual *act,
-                     const char *remote_dynamic, const struct addrinfo *local, bool do_listen,
+                     const struct addrinfo *local, bool do_listen,
                      bool nowait, volatile int *signal_received)
 {
     struct gc_arena gc = gc_new();
-    /* struct openvpn_sockaddr *remote = &act->dest; */
-    struct openvpn_sockaddr remote_verify = act->dest;
     socket_descriptor_t new_sd = SOCKET_UNDEFINED;
 
     CLEAR(*act);
@@ -913,31 +911,7 @@ socket_listen_accept(socket_descriptor_t sd, struct link_socket_actual *act,
 
         if (socket_defined(new_sd))
         {
-            struct addrinfo *ai = NULL;
-            if (remote_dynamic)
-            {
-                openvpn_getaddrinfo(0, remote_dynamic, NULL, 1, NULL,
-                                    remote_verify.addr.sa.sa_family, &ai);
-            }
-
-            if (ai && !addrlist_match(&remote_verify, ai))
-            {
-                msg(M_WARN, "TCP NOTE: Rejected connection attempt from %s due to --remote setting",
-                    print_link_socket_actual(act, &gc));
-                if (openvpn_close_socket(new_sd))
-                {
-                    msg(M_ERR, "TCP: close socket failed (new_sd)");
-                }
-                freeaddrinfo(ai);
-            }
-            else
-            {
-                if (ai)
-                {
-                    freeaddrinfo(ai);
-                }
-                break;
-            }
+            break;
         }
         management_sleep(1);
     }
@@ -1255,8 +1229,7 @@ resolve_bind_local(struct link_socket *sock, const sa_family_t af)
 }
 
 static void
-resolve_remote(struct link_socket *sock, int phase, const char **remote_dynamic,
-               struct signal_info *sig_info)
+resolve_remote(struct link_socket *sock, int phase, struct signal_info *sig_info)
 {
     volatile int *signal_received = sig_info ? &sig_info->signal_received : NULL;
     struct gc_arena gc = gc_new();
@@ -1351,10 +1324,6 @@ resolve_remote(struct link_socket *sock, int phase, const char **remote_dynamic,
     {
         msg(M_INFO, "TCP/UDP: Preserving recently used remote address: %s",
             print_link_socket_actual(&sock->info.lsa->actual, &gc));
-        if (remote_dynamic)
-        {
-            *remote_dynamic = NULL;
-        }
     }
     else
     {
@@ -1516,7 +1485,7 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
         {
             resolve_bind_local(sock, sock->info.af);
         }
-        resolve_remote(sock, 1, NULL, NULL);
+        resolve_remote(sock, 1, NULL);
     }
 }
 
@@ -1577,8 +1546,7 @@ linksock_print_addr(struct link_socket *sock)
 }
 
 static void
-phase2_tcp_server(struct link_socket *sock, const char *remote_dynamic,
-                  struct signal_info *sig_info)
+phase2_tcp_server(struct link_socket *sock, struct signal_info *sig_info)
 {
     ASSERT(sig_info);
     volatile int *signal_received = &sig_info->signal_received;
@@ -1586,8 +1554,9 @@ phase2_tcp_server(struct link_socket *sock, const char *remote_dynamic,
     {
         case LS_MODE_DEFAULT:
             sock->sd =
-                socket_listen_accept(sock->sd, &sock->info.lsa->actual, remote_dynamic,
-                                     sock->info.lsa->bind_local, true, false, signal_received);
+                socket_listen_accept(sock->sd, &sock->info.lsa->actual,
+                                     sock->info.lsa->bind_local, true, false,
+                                     signal_received);
             break;
 
         case LS_MODE_TCP_LISTEN:
@@ -1675,7 +1644,7 @@ phase2_socks_client(struct link_socket *sock, struct signal_info *sig_info)
         sock->info.lsa->remote_list = NULL;
     }
 
-    resolve_remote(sock, 1, NULL, sig_info);
+    resolve_remote(sock, 1, sig_info);
 }
 
 #if defined(_WIN32)
@@ -1733,7 +1702,6 @@ link_socket_init_phase2(struct context *c, struct link_socket *sock)
     const struct frame *frame = &c->c2.frame;
     struct signal_info *sig_info = c->sig;
 
-    const char *remote_dynamic = NULL;
     struct signal_info sig_save = { 0 };
 
     ASSERT(sock);
@@ -1748,18 +1716,8 @@ link_socket_init_phase2(struct context *c, struct link_socket *sock)
     /* initialize buffers */
     socket_frame_init(frame, sock);
 
-    /*
-     * Pass a remote name to connect/accept so that
-     * they can test for dynamic IP address changes
-     * and throw a SIGUSR1 if appropriate.
-     */
-    if (sock->resolve_retry_seconds)
-    {
-        remote_dynamic = sock->remote_host;
-    }
-
     /* Second chance to resolv/create socket */
-    resolve_remote(sock, 2, &remote_dynamic, sig_info);
+    resolve_remote(sock, 2, sig_info);
 
     /* If a valid remote has been found, create the socket with its addrinfo */
 #if defined(_WIN32)
@@ -1809,7 +1767,7 @@ link_socket_init_phase2(struct context *c, struct link_socket *sock)
 
     if (sock->info.proto == PROTO_TCP_SERVER)
     {
-        phase2_tcp_server(sock, remote_dynamic, sig_info);
+        phase2_tcp_server(sock, sig_info);
     }
     else if (sock->info.proto == PROTO_TCP_CLIENT)
     {
