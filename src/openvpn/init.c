@@ -3358,11 +3358,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.verify_hash_algo = options->verify_hash_algo;
     to.verify_hash_depth = options->verify_hash_depth;
     to.verify_hash_no_ca = options->verify_hash_no_ca;
-#ifdef ENABLE_X509ALTUSERNAME
     memcpy(to.x509_username_field, options->x509_username_field, sizeof(to.x509_username_field));
-#else
-    to.x509_username_field[0] = X509_USERNAME_FIELD_DEFAULT;
-#endif
     to.es = c->c2.es;
     to.net_ctx = &c->net_ctx;
 

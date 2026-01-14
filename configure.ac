@@ -88,13 +88,6 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
-	[x509-alt-username],
-	[AS_HELP_STRING([--enable-x509-alt-username], [enable the --x509-username-field feature @<:@default=no@:>@])],
-	,
-	[enable_x509_alt_username="no"]
-)
-
-AC_ARG_ENABLE(
 	[dns-updown-by-default],
 	[AS_HELP_STRING([--disable-dns-updown-by-default], [disable running --dns-updown by default @<:@default=yes@:>@])],
 	,
@@ -1171,15 +1164,6 @@ if test -n "${GIT}"; then
 	fi
 fi
 AC_MSG_RESULT([${GIT_CHECKOUT}])
-
-dnl enable --x509-username-field feature if requested
-if test "${enable_x509_alt_username}" = "yes"; then
-	if test "${with_crypto_library}" = "mbedtls" ; then
-		AC_MSG_ERROR([mbed TLS does not support the --x509-username-field feature])
-	fi
-
-	AC_DEFINE([ENABLE_X509ALTUSERNAME], [1], [Enable --x509-username-field feature])
-fi
 
 test "${enable_management}" = "yes" && AC_DEFINE([ENABLE_MANAGEMENT], [1], [Enable management server capability])
 test "${enable_debug}" = "yes" && AC_DEFINE([ENABLE_DEBUG], [1], [Enable debugging support])

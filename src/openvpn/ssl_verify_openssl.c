@@ -111,7 +111,6 @@ cleanup:
     return ret;
 }
 
-#ifdef ENABLE_X509ALTUSERNAME
 bool
 x509_username_field_ext_supported(const char *fieldname)
 {
@@ -180,7 +179,6 @@ extract_x509_extension(X509 *cert, char *fieldname, char *out, size_t size)
     }
     return retval;
 }
-#endif /* ENABLE_X509ALTUSERNAME */
 
 /*
  * Extract a field from an X509 subject name.
@@ -252,7 +250,6 @@ extract_x509_field_ssl(X509_NAME *x509, const char *field_name, char *out, size_
 result_t
 backend_x509_get_username(char *common_name, size_t cn_len, char *x509_username_field, X509 *peer_cert)
 {
-#ifdef ENABLE_X509ALTUSERNAME
     if (strncmp("ext:", x509_username_field, 4) == 0)
     {
         if (!extract_x509_extension(peer_cert, x509_username_field + 4, common_name, cn_len))
@@ -275,7 +272,6 @@ backend_x509_get_username(char *common_name, size_t cn_len, char *x509_username_
         gc_free(&gc);
     }
     else
-#endif /* ifdef ENABLE_X509ALTUSERNAME */
     {
         X509_NAME *x509_subject_name = X509_get_subject_name(peer_cert);
         if (x509_subject_name == NULL)

@@ -595,8 +595,6 @@ static const char usage_message[] =
 #ifndef ENABLE_CRYPTO_MBEDTLS
     "--pkcs12 file   : PKCS#12 file containing local private key, local certificate\n"
     "                  and optionally the root CA certificate.\n"
-#endif
-#ifdef ENABLE_X509ALTUSERNAME
     "--x509-username-field : Field in x509 certificate containing the username.\n"
     "                        Default is CN in the Subject field.\n"
 #endif
@@ -885,9 +883,7 @@ init_options(struct options *o, const bool init_gc)
     o->transition_window = 3600;
     o->tls_cert_profile = NULL;
     o->ecdh_curve = NULL;
-#ifdef ENABLE_X509ALTUSERNAME
     o->x509_username_field[0] = X509_USERNAME_FIELD_DEFAULT;
-#endif
 #ifdef ENABLE_PKCS11
     o->pkcs11_pin_cache_period = -1;
 #endif /* ENABLE_PKCS11 */
@@ -9069,7 +9065,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         VERIFY_PERMISSION(OPT_P_GENERAL);
         x509_track_add(&options->x509_track, p[1], msglevel, &options->gc);
     }
-#ifdef ENABLE_X509ALTUSERNAME
     else if (streq(p[0], "x509-username-field") && p[1])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
@@ -9084,7 +9079,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             options->x509_username_field[j - 1] = p[j];
         }
     }
-#endif /* ENABLE_X509ALTUSERNAME */
 #ifdef ENABLE_PKCS11
     else if (streq(p[0], "show-pkcs11-ids") && !p[3])
     {

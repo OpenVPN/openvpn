@@ -113,7 +113,7 @@ struct buffer x509_get_sha256_fingerprint(openvpn_x509_cert_t *cert, struct gc_a
 /*
  * Retrieve the certificate's username from the specified field.
  *
- * If the field is prepended with ext: and ENABLE_X509ALTUSERNAME is enabled,
+ * If the field is prepended with ext: is enabled,
  * it will be loaded from an X.509 extension
  *
  * @param cn                    Buffer to return the common name in.
@@ -126,14 +126,11 @@ struct buffer x509_get_sha256_fingerprint(openvpn_x509_cert_t *cert, struct gc_a
 result_t backend_x509_get_username(char *common_name, size_t cn_len, char *x509_username_field,
                                    openvpn_x509_cert_t *peer_cert);
 
-#ifdef ENABLE_X509ALTUSERNAME
 /**
  * Return true iff the supplied extension field is supported by the
  * --x509-username-field option.
  */
 bool x509_username_field_ext_supported(const char *extname);
-
-#endif
 
 /*
  * Return the certificate's serial number in decimal string representation.

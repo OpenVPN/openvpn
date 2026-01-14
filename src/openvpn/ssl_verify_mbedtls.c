@@ -123,9 +123,12 @@ verify_callback(void *session_obj, mbedtls_x509_crt *cert, int cert_depth, uint3
     return 0;
 }
 
-#ifdef ENABLE_X509ALTUSERNAME
-#warning "X509 alt user name not yet supported for mbed TLS"
-#endif
+/* not supported for mbedTLS yet */
+bool
+x509_username_field_ext_supported(const char *fieldname)
+{
+    return false;
+}
 
 result_t
 backend_x509_get_username(char *cn, size_t cn_len, char *x509_username_field, mbedtls_x509_crt *cert)

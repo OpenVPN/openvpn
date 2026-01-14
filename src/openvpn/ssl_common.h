@@ -362,11 +362,7 @@ struct tls_options
     int verify_hash_depth;
     bool verify_hash_no_ca;
     hash_algo_type verify_hash_algo;
-#ifdef ENABLE_X509ALTUSERNAME
     char *x509_username_field[MAX_PARMS];
-#else
-    char *x509_username_field[2];
-#endif
 
     /* struct crypto_option flags */
     unsigned int crypto_flags;

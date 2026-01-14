@@ -346,6 +346,9 @@ User-visible Changes
 - The ``test-crypto`` option no longer requires a ``--secret`` argument and
   will automatically generate a random key.
 
+- The configure-time option ``--enable-x509-alt-username`` is no longer
+  conditional, and always-on (GH: OpenVPN/openvpn#917).
+
 
 Deprecated features
 -------------------
