@@ -412,8 +412,7 @@ establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
             send(ctrl_sd, "\x05\x03\x00\x01\x00\x00\x00\x00\x00\x00", 10, MSG_NOSIGNAL);
         if (size != 10)
         {
-            msg(D_LINK_ERRORS | M_ERRNO,
-                "establish_socks_proxy_passthru: TCP port write failed on send()");
+            msg(D_LINK_ERRORS | M_ERRNO, "%s: TCP port write failed on send()", __func__);
             goto error;
         }
     }
@@ -422,6 +421,11 @@ establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
     CLEAR(*relay_addr);
     if (!recv_socks_reply(ctrl_sd, relay_addr, server_poll_timeout, &sig_info->signal_received))
     {
+        goto error;
+    }
+    if (!relay_addr->addr.in4.sin_addr.s_addr)
+    {
+        msg(D_LINK_ERRORS, "%s: Socks proxy did not answer with IPv4 address", __func__);
         goto error;
     }
 
