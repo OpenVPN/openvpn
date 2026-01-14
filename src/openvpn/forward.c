@@ -2213,7 +2213,7 @@ io_wait_dowork(struct context *c, const unsigned int flags)
     socket_set(c->c2.link_socket, c->c2.event_set, socket, (void *)&socket_shift, NULL);
     tun_set(c->c1.tuntap, c->c2.event_set, tuntap, (void *)&tun_shift, NULL);
 #if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
-    if (socket & EVENT_READ && c->c2.did_open_tun)
+    if (c->c1.tuntap)
     {
         dco_event_set(&c->c1.tuntap->dco, c->c2.event_set, (void *)&dco_shift);
     }
