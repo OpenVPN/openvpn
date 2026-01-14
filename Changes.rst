@@ -242,6 +242,9 @@ Using ``--push`` in a mode that is not ``--mode server`` will now print a
 ``--reneg-bytes`` and ``--reneg-packets`` do not work in DCO mode, and will
     now print an appropriate warning.
 
+On-connect resolving of ``--remote`` addresses in ``--tcp-server`` mode
+    was not working since 2.4, so the code was completely removed.
+
 
 User-visible Changes
 --------------------

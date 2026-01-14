@@ -1,6 +1,35 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
 
+2026.01.15 -- Version 2.7_rc5
+
+Arne Schwabe (5):
+      Ensure wolfSSL uses old pre 1.1.0 OpenSSL path for getting ciphers
+      Allow test-crypto to work without the --secret argument
+      Fix warnings on Android about unused variables/methods
+      Require script-security 2 when using unix: tun
+      Correctly handle sender jumping exactly epoch_data_keys_future_count
+
+Frank Lichtenheld (12):
+      tests/unit_tests: Port to cmocka 2.0.0 API
+      GHA: Maintenance update January 2026
+      Update Copyright statements to 2026
+      Fix building test_tls_crypt with cmocka 2.0
+      configure.ac: Clean up systemd support
+      socks: Replace magic "10" for socks header with macro
+      socks: Fix wrong success check in socks_username_password_auth
+      socket: Remove old 'dynamic remote' feature
+      socks: In establish_socks_proxy_udpassoc check result of recv_socks_reply
+      ssl_verify: Fix parsing of timeout from auth pending file
+      error: Remove our implementation of static_assert
+      forward: Avoid conversion warning in ipv6_send_icmp_unreachable
+
+Gert Doering (3):
+      remove ENABLE_X509ALTUSERNAME conditional
+      Repair interaction between DCO and persist-tun after reconnection
+      OpenVPN Release 2.7_rc5
+
+
 2025.12.17 -- Version 2.7_rc4
 
 Arne Schwabe (4):
