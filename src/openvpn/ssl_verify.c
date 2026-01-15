@@ -874,11 +874,6 @@ check_auth_pending_method(const char *peer_info, const char *method)
     return supported;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /**
  *  Checks if the deferred state should also send auth pending
  *  request to the client. Also removes the auth_pending control file
@@ -888,7 +883,8 @@ check_auth_pending_method(const char *peer_info, const char *method)
  *  @returns false  The file had an invlaid format or another error occured
  */
 static bool
-key_state_check_auth_pending_file(struct auth_deferred_status *ads, struct tls_multi *multi,
+key_state_check_auth_pending_file(struct auth_deferred_status *ads,
+                                  struct tls_multi *multi,
                                   struct tls_session *session)
 {
     bool ret = true;
@@ -916,7 +912,7 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads, struct tls_m
             buf_chomp(extra_buf);
 
             long timeout = strtol(BSTR(timeout_buf), NULL, 10);
-            if (timeout == 0)
+            if (timeout <= 0)
             {
                 msg(M_WARN, "could not parse auth pending file timeout");
                 buffer_list_free(lines);
@@ -933,14 +929,14 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads, struct tls_m
                          pending_method);
                 auth_set_client_reason(multi, buf);
                 msg(M_INFO,
-                    "Client does not supported auth pending method "
-                    "'%s'",
+                    "Client does not supported auth pending method '%s'",
                     pending_method);
                 ret = false;
             }
             else
             {
-                send_auth_pending_messages(multi, session, BSTR(extra_buf), timeout);
+                send_auth_pending_messages(multi, session, BSTR(extra_buf),
+                                           (unsigned int)timeout);
             }
         }
 
@@ -949,10 +945,6 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads, struct tls_m
     key_state_rm_auth_pending_file(ads);
     return ret;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /**
  *  Removes auth_pending and auth_control files from file system
