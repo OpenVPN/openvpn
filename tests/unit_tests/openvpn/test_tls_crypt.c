@@ -112,8 +112,8 @@ bool
 __wrap_buffer_write_file(const char *filename, const struct buffer *buf)
 {
     const char *pem = BSTR(buf);
-    check_expected(filename);
-    check_expected(pem);
+    check_expected_ptr(filename);
+    check_expected_ptr(pem);
 
     return mock_type(bool);
 }
@@ -121,7 +121,7 @@ __wrap_buffer_write_file(const char *filename, const struct buffer *buf)
 struct buffer
 __wrap_buffer_read_from_file(const char *filename, struct gc_arena *gc)
 {
-    check_expected(filename);
+    check_expected_ptr(filename);
 
     const char *pem_str = mock_ptr_type(const char *);
     struct buffer ret = alloc_buf_gc(strlen(pem_str) + 1, gc);
