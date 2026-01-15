@@ -1352,11 +1352,6 @@ read_incoming_tun(struct context *c)
     check_status(c->c2.buf.len, "read from TUN/TAP", NULL, c->c1.tuntap);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /**
  * Drops UDP packets which OS decided to route via tun.
  *
@@ -1483,8 +1478,6 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
 void
 process_incoming_tun(struct context *c, struct link_socket *out_sock)
 {
-    struct gc_arena gc = gc_new();
-
     if (c->c2.buf.len > 0)
     {
         c->c2.tun_read_bytes += c->c2.buf.len;
@@ -1528,7 +1521,6 @@ process_incoming_tun(struct context *c, struct link_socket *out_sock)
     {
         buf_reset(&c->c2.to_link);
     }
-    gc_free(&gc);
 }
 
 /**
@@ -1593,7 +1585,7 @@ ipv6_send_icmp_unreachable(struct context *c, struct buffer *buf, bool client)
     icmp6out.icmp6_type = OPENVPN_ICMP6_DESTINATION_UNREACHABLE;
     icmp6out.icmp6_code = OPENVPN_ICMP6_DU_NOROUTE;
 
-    int icmpheader_len = sizeof(struct openvpn_ipv6hdr) + sizeof(struct openvpn_icmp6hdr);
+    const int icmpheader_len = sizeof(struct openvpn_ipv6hdr) + sizeof(struct openvpn_icmp6hdr);
     int totalheader_len = icmpheader_len;
 
     if (TUNNEL_TYPE(c->c1.tuntap) == DEV_TYPE_TAP)
@@ -1606,10 +1598,11 @@ ipv6_send_icmp_unreachable(struct context *c, struct buffer *buf, bool client)
      * frame should be <= 1280 and have as much as possible of the original
      * packet
      */
-    int max_payload_size = min_int(MAX_ICMPV6LEN, c->c2.frame.tun_mtu - icmpheader_len);
-    int payload_len = min_int(max_payload_size, BLEN(&inputipbuf));
+    const int max_payload_size = min_int(MAX_ICMPV6LEN, c->c2.frame.tun_mtu - icmpheader_len);
+    const int payload_len = min_int(max_payload_size, BLEN(&inputipbuf));
+    const uint16_t icmp_len = (uint16_t)(sizeof(struct openvpn_icmp6hdr) + payload_len);
 
-    pip6out.payload_len = htons(sizeof(struct openvpn_icmp6hdr) + payload_len);
+    pip6out.payload_len = htons(icmp_len);
 
     /* Construct the packet as outgoing packet back to the client */
     struct buffer *outbuf;
@@ -1664,10 +1657,6 @@ ipv6_send_icmp_unreachable(struct context *c, struct buffer *buf, bool client)
     }
 #undef MAX_ICMPV6LEN
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 process_ip_header(struct context *c, unsigned int flags, struct buffer *buf,
