@@ -35,6 +35,7 @@
 #include <cmocka.h>
 
 #include "ssl_ncp.c"
+#include "test_common.h"
 
 /* Defines for use in the tests and the mock parse_line() */
 
@@ -272,6 +273,7 @@ const struct CMUnitTest ncp_tests[] = {
 int
 main(void)
 {
+    openvpn_unit_test_setup();
 #if defined(ENABLE_CRYPTO_OPENSSL)
     OpenSSL_add_all_algorithms();
 #endif

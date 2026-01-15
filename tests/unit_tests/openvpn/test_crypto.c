@@ -39,6 +39,7 @@
 #include "ssl_backend.h"
 
 #include "mss.h"
+#include "test_common.h"
 
 static const char testtext[] = "Dummy text to test PEM encoding";
 
@@ -479,6 +480,7 @@ test_mssfix_mtu_calculation(void **state)
 int
 main(void)
 {
+    openvpn_unit_test_setup();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(crypto_pem_encode_decode_loopback),
         cmocka_unit_test(crypto_translate_cipher_names),

@@ -36,6 +36,7 @@
 
 #include "ssl_util.h"
 #include "options_util.h"
+#include "test_common.h"
 
 static void
 test_compat_lzo_string(void **state)
@@ -117,5 +118,6 @@ const struct CMUnitTest misc_tests[] = {
 int
 main(void)
 {
+    openvpn_unit_test_setup();
     return cmocka_run_group_tests(misc_tests, NULL, NULL);
 }

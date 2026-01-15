@@ -35,6 +35,7 @@
 
 #include "packet_id.h"
 #include "reliable.h"
+#include "test_common.h"
 
 struct test_packet_id_write_data {
     struct {
@@ -273,6 +274,7 @@ test_copy_acks_to_lru(void **state)
 int
 main(void)
 {
+    openvpn_unit_test_setup();
     const struct CMUnitTest tests[] = {
         cmocka_unit_test_setup_teardown(test_packet_id_write_short,
                                         test_packet_id_write_setup,

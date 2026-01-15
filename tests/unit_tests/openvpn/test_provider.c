@@ -40,6 +40,8 @@
 #include <openssl/core_names.h>
 #include <openssl/evp.h>
 
+#include "test_common.h"
+
 struct management *management; /* global */
 static int mgmt_callback_called;
 
@@ -119,6 +121,7 @@ load_pubkey(const char *pem)
 static void
 init_test()
 {
+    openvpn_unit_test_setup();
     prov[0] = OSSL_PROVIDER_load(NULL, "default");
     OSSL_PROVIDER_add_builtin(NULL, prov_name, xkey_provider_init);
     prov[1] = OSSL_PROVIDER_load(NULL, prov_name);
