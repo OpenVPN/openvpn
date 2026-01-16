@@ -896,11 +896,6 @@ cipher_ctx_mode(const EVP_CIPHER_CTX *ctx)
     return EVP_CIPHER_CTX_mode(ctx);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 bool
 cipher_ctx_mode_cbc(const cipher_ctx_t *ctx)
 {
@@ -909,7 +904,7 @@ cipher_ctx_mode_cbc(const cipher_ctx_t *ctx)
         return false;
     }
 
-    int flags = EVP_CIPHER_CTX_flags(ctx);
+    unsigned long flags = EVP_CIPHER_CTX_flags(ctx);
     int mode = EVP_CIPHER_CTX_mode(ctx);
 
     return mode == EVP_CIPH_CBC_MODE
@@ -940,7 +935,7 @@ cipher_ctx_mode_aead(const cipher_ctx_t *ctx)
 {
     if (ctx)
     {
-        int flags = EVP_CIPHER_CTX_flags(ctx);
+        unsigned long flags = EVP_CIPHER_CTX_flags(ctx);
         if (flags & EVP_CIPH_FLAG_AEAD_CIPHER)
         {
             return true;
@@ -995,18 +990,14 @@ int
 cipher_ctx_final_check_tag(EVP_CIPHER_CTX *ctx, uint8_t *dst, int *dst_len, uint8_t *tag,
                            size_t tag_len)
 {
-    ASSERT(tag_len < SIZE_MAX);
-    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, tag_len, tag))
+    ASSERT(tag_len < INT_MAX);
+    if (!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_SET_TAG, (int)tag_len, tag))
     {
         return 0;
     }
 
     return cipher_ctx_final(ctx, dst, dst_len);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /*
  *
