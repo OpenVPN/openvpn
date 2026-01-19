@@ -486,7 +486,7 @@ x509_verify_ns_cert_type(mbedtls_x509_crt *cert, const int usage)
 }
 
 result_t
-x509_verify_cert_ku(mbedtls_x509_crt *cert, const unsigned *const expected_ku, int expected_len)
+x509_verify_cert_ku(mbedtls_x509_crt *cert, const unsigned int *const expected_ku, size_t expected_len)
 {
     msg(D_HANDSHAKE, "Validating certificate key usage");
 

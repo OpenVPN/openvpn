@@ -240,7 +240,7 @@ result_t x509_verify_ns_cert_type(openvpn_x509_cert_t *cert, const int usage);
  *                      if key usage is not enabled, or the values do not match.
  */
 result_t x509_verify_cert_ku(openvpn_x509_cert_t *x509, const unsigned *const expected_ku,
-                             int expected_len);
+                             size_t expected_len);
 
 /*
  * Verify X.509 extended key usage extension field.
