@@ -1431,6 +1431,7 @@ AC_CONFIG_FILES([
         tests/unit_tests/Makefile
         tests/unit_tests/example_test/Makefile
         tests/unit_tests/openvpn/Makefile
+        tests/unit_tests/openvpnserv/Makefile
         tests/unit_tests/plugins/Makefile
         tests/unit_tests/plugins/auth-pam/Makefile
 	sample/Makefile

@@ -20,8 +20,9 @@
  *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
 #include <setjmp.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <cmocka.h>
 
 /* Do we use cmocka < 2.0.0? */

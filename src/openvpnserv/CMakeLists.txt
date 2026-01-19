@@ -10,13 +10,29 @@ include(CheckSymbolExists)
 
 set(MC_GEN_DIR ${CMAKE_CURRENT_BINARY_DIR}/mc)
 
-target_include_directories(openvpnserv PRIVATE
-    ${CMAKE_CURRENT_BINARY_DIR}/../../
-    ../../include/
-    ../openvpn/
-    ../compat/
-    ${MC_GEN_DIR}
+function(add_common_options target)
+    target_include_directories(${target} PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/../../
+        ../../include/
+        ../openvpn/
+        ../compat/
+        ${MC_GEN_DIR}
     )
+    target_compile_options(${target} PRIVATE
+        -D_UNICODE
+        -UNTDDI_VERSION
+        -D_WIN32_WINNT=_WIN32_WINNT_VISTA
+    )
+    target_link_libraries(${target} PRIVATE
+        advapi32.lib userenv.lib iphlpapi.lib fwpuclnt.lib rpcrt4.lib
+        shlwapi.lib netapi32.lib ws2_32.lib ntdll.lib ole32.lib pathcch.lib)
+    if (MINGW)
+        target_compile_options(${target} PRIVATE -municode)
+        target_link_options(${target} PRIVATE -municode)
+    endif ()
+endfunction()
+
+add_common_options(openvpnserv)
 target_sources(openvpnserv PRIVATE
     common.c
     interactive.c
@@ -26,18 +42,6 @@ target_sources(openvpnserv PRIVATE
     ../openvpn/wfp_block.c ../openvpn/wfp_block.h
     openvpnserv_resources.rc
     )
-target_compile_options(openvpnserv PRIVATE
-    -D_UNICODE
-    -UNTDDI_VERSION
-    -D_WIN32_WINNT=_WIN32_WINNT_VISTA
-    )
-target_link_libraries(openvpnserv
-    advapi32.lib userenv.lib iphlpapi.lib fwpuclnt.lib rpcrt4.lib
-    shlwapi.lib netapi32.lib ws2_32.lib ntdll.lib ole32.lib pathcch.lib)
-if (MINGW)
-    target_compile_options(openvpnserv PRIVATE -municode)
-    target_link_options(openvpnserv PRIVATE -municode)
-endif ()
 
 # below we generate a DLL which contains an event source for event log messages from eventmsg.mc template
 file(MAKE_DIRECTORY ${MC_GEN_DIR})
@@ -74,3 +78,30 @@ else()
 endif()
 
 add_dependencies(openvpnserv msg_mc_gen)
+
+if (BUILD_TESTING)
+    set(unit_tests
+        "test_openvpnserv"
+    )
+
+    foreach (test_name ${unit_tests})
+        add_test(${test_name} ${test_name})
+        add_executable(${test_name}
+            ../../tests/unit_tests/openvpnserv/${test_name}.c
+            ${MC_GEN_DIR}/eventmsg.h
+        )
+
+        add_common_options(${test_name})
+        target_link_libraries(${test_name} PUBLIC ${CMOCKA_LIBRARIES})
+        target_include_directories(${test_name} PRIVATE
+            .
+            ../../tests/unit_tests/openvpn
+        )
+    endforeach()
+
+    target_sources(test_openvpnserv PRIVATE
+        common.c
+        validate.c
+        ../openvpn/wfp_block.c ../openvpn/wfp_block.h
+    )
+endif ()

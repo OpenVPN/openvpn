@@ -1,5 +1,5 @@
 AUTOMAKE_OPTIONS = foreign
 
 if ENABLE_UNITTESTS
-SUBDIRS = example_test openvpn plugins
+SUBDIRS = example_test openvpn openvpnserv plugins
 endif
