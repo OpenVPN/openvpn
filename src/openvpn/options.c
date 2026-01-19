@@ -1144,10 +1144,7 @@ get_ipv6_addr_no_netbits(const char *addr, struct gc_arena *gc)
 static bool
 ipv6_addr_safe_hexplusbits(const char *ipv6_prefix_spec)
 {
-    struct in6_addr t_addr;
-    unsigned int t_bits;
-
-    return get_ipv6_addr(ipv6_prefix_spec, &t_addr, &t_bits, M_WARN);
+    return get_ipv6_addr(ipv6_prefix_spec, NULL, NULL, M_WARN);
 }
 
 static char *

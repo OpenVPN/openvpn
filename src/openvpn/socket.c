@@ -72,11 +72,6 @@ sf2gaf(const unsigned int getaddr_flags, const unsigned int sockflags)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /*
  * Functions related to the translation of DNS names to IP addresses.
  */
@@ -180,7 +175,7 @@ get_addr_generic(sa_family_t af, unsigned int flags, const char *hostname, void 
 
     if (netbits)
     {
-        *netbits = bits;
+        *netbits = (unsigned int)bits;
     }
 
     /* restore '/' separator, if any */
@@ -683,6 +678,11 @@ bind_local(struct link_socket *sock, const sa_family_t ai_family)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 static void
 create_socket(struct link_socket *sock, struct addrinfo *addr)
 {
@@ -737,6 +737,10 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
 
     bind_local(sock, addr->ai_family);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #ifdef TARGET_ANDROID
 static void
@@ -860,10 +864,6 @@ tcp_connection_established(const struct link_socket_actual *act)
     msg(M_INFO, "TCP connection established with %s", print_link_socket_actual(act, &gc));
     gc_free(&gc);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static socket_descriptor_t
 socket_listen_accept(socket_descriptor_t sd, struct link_socket_actual *act,
