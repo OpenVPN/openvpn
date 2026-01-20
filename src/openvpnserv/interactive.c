@@ -1383,10 +1383,20 @@ InitialSearchListExists(HKEY key)
     return TRUE;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
+/**
+ * Return correct size for registry value to set for string
+ *
+ */
+static DWORD
+RegWStringSize(PCWSTR string)
+{
+    size_t length = (wcslen(string) + 1) * sizeof(wchar_t);
+    if (length > UINT_MAX)
+    {
+        length = UINT_MAX;
+    }
+    return (DWORD)length;
+}
 
 /**
  * Prepare DNS domain "SearchList" registry value, so additional
@@ -1413,7 +1423,7 @@ StoreInitialDnsSearchList(HKEY key, PCWSTR list)
         return TRUE;
     }
 
-    DWORD size = (wcslen(list) + 1) * sizeof(*list);
+    DWORD size = RegWStringSize(list);
     LSTATUS err = RegSetValueExW(key, L"InitialSearchList", 0, REG_SZ, (PBYTE)list, size);
     if (err)
     {
@@ -1474,7 +1484,7 @@ AddDnsSearchDomains(HKEY key, BOOL have_list, PCWSTR domains)
         wcsncpy(list, domains, wcslen(domains) + 1);
     }
 
-    size = (wcslen(list) + 1) * sizeof(list[0]);
+    size = RegWStringSize(list);
     err = RegSetValueExW(key, L"SearchList", 0, REG_SZ, (PBYTE)list, size);
     if (err)
     {
@@ -1515,7 +1525,7 @@ ResetDnsSearchDomains(HKEY key)
         goto out;
     }
 
-    size = (wcslen(list) + 1) * sizeof(list[0]);
+    size = RegWStringSize(list);
     err = RegSetValueExW(key, L"SearchList", 0, REG_SZ, (PBYTE)list, size);
     if (err)
     {
@@ -1579,14 +1589,14 @@ RemoveDnsSearchDomains(HKEY key, PCWSTR domains)
         }
 
         /* If the search list is back to its initial state reset it */
-        if (wcsncmp(list, initial, wcslen(list)) == 0)
+        if (wcsncmp(list, initial, list_len) == 0)
         {
             ResetDnsSearchDomains(key);
             return;
         }
     }
 
-    size = (list_len + 1) * sizeof(list[0]);
+    size = RegWStringSize(list);
     err = RegSetValueExW(key, L"SearchList", 0, REG_SZ, (PBYTE)list, size);
     if (err)
     {
@@ -1751,7 +1761,7 @@ SetNameServersValue(PCWSTR itf_id, short family, PCSTR value)
         goto out;
     }
 
-    err = RegSetValueExA(itf, "NameServer", 0, REG_SZ, (PBYTE)value, strlen(value) + 1);
+    err = RegSetValueExA(itf, "NameServer", 0, REG_SZ, (PBYTE)value, (DWORD)strlen(value) + 1);
     if (err)
     {
         MsgToEventLog(M_SYSERR, L"%S: could not set name servers '%S' for %s family %d (%lu)",
@@ -1807,7 +1817,7 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
     int addr_len = msg->addr_len;
 
     /* sanity check */
-    const size_t max_addrs = _countof(msg->addr);
+    const int max_addrs = _countof(msg->addr);
     if (addr_len > max_addrs)
     {
         addr_len = max_addrs;
@@ -1949,7 +1959,7 @@ SetNameServerAddresses(PWSTR itf_id, const nrpt_address_t *addresses)
         short family = families[i];
 
         /* Create a comma sparated list of addresses of this family */
-        int offset = 0;
+        size_t offset = 0;
         char addr_list[NRPT_ADDR_SIZE * NRPT_ADDR_NUM];
         for (int j = 0; j < NRPT_ADDR_NUM && addresses[j][0]; j++)
         {
@@ -2085,9 +2095,9 @@ GetItfDnsServersV6(HKEY itf_key, PSTR addrs, PDWORD size)
 
             size_t addr_len = strlen(pos);
             pos += addr_len;
-            s -= addr_len;
+            s -= (DWORD)addr_len;
         }
-        s = strlen(addrs) + 1;
+        s = (DWORD)strlen(addrs) + 1;
     }
 
     if (strchr(addrs, ':'))
@@ -2163,7 +2173,8 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
 
     LSTATUS err = ERROR_FILE_NOT_FOUND;
     const DWORD buf_size = *size;
-    const size_t glyph_size = sizeof(*domains);
+    const DWORD glyph_size = sizeof(*domains);
+    const DWORD buf_len = buf_size / glyph_size;
     PWSTR values[] = { L"SearchList", L"Domain", L"DhcpDomainSearchList", L"DhcpDomain", NULL };
 
     for (int i = 0; values[i]; i++)
@@ -2178,7 +2189,6 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
              *   - convert comma separated list to MULTI_SZ
              */
             PWCHAR pos = domains;
-            const DWORD buf_len = buf_size / glyph_size;
             while (TRUE)
             {
                 /* Terminate the domain at the next comma */
@@ -2188,9 +2198,9 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
                     *comma = '\0';
                 }
 
-                size_t domain_len = wcslen(pos);
-                size_t domain_size = domain_len * glyph_size;
-                size_t converted_size = (pos - domains) * glyph_size;
+                DWORD domain_len = (DWORD)wcslen(pos);
+                DWORD domain_size = domain_len * glyph_size;
+                DWORD converted_size = (DWORD)(pos - domains) * glyph_size;
 
                 /* Ignore itf domains which match a pushed search domain */
                 if (ListContainsDomain(search_domains, pos, domain_len))
@@ -2216,7 +2226,7 @@ GetItfDnsDomains(HKEY itf, PCWSTR search_domains, PWSTR domains, PDWORD size)
                 domain_size += glyph_size;
 
                 /* Space for the terminating zeros */
-                size_t extra_size = 2 * glyph_size;
+                const DWORD extra_size = 2 * glyph_size;
 
                 /* Check for enough space to convert this domain */
                 if (converted_size + domain_size + extra_size > buf_size)
@@ -2450,7 +2460,7 @@ SetNrptRule(HKEY nrpt_key, PCWSTR subkey, PCSTR address, PCWSTR domains, DWORD d
 
     /* Set DNS Server address */
     err = RegSetValueExA(rule_key, "GenericDNSServers", 0, REG_SZ, (PBYTE)address,
-                         strlen(address) + 1);
+                         (DWORD)strlen(address) + 1);
     if (err)
     {
         goto out;
@@ -2571,7 +2581,7 @@ SetNrptRules(HKEY nrpt_key, const nrpt_address_t *addresses, const char *domains
     if (domains[0])
     {
         size_t domains_len = strlen(domains);
-        dom_size = domains_len + 2; /* len + the trailing NULs */
+        dom_size = (DWORD)domains_len + 2; /* len + the trailing NULs */
 
         wide_domains = utf8to16_size(domains, dom_size);
         dom_size *= sizeof(*wide_domains);
@@ -2627,10 +2637,6 @@ SetNrptRules(HKEY nrpt_key, const nrpt_address_t *addresses, const char *domains
     }
     return err;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /**
  * Return the registry key where NRPT rules are stored
