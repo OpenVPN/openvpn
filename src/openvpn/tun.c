@@ -3558,7 +3558,13 @@ get_tap_reg(struct gc_arena *gc)
             msg(M_FATAL, "Error enumerating registry subkeys of key: %s", ADAPTER_KEY);
         }
 
-        snprintf(unit_string, sizeof(unit_string), "%s\\%s", ADAPTER_KEY, enum_name);
+        int ret = snprintf(unit_string, sizeof(unit_string), "%s\\%s", ADAPTER_KEY, enum_name);
+
+        if (ret < 0 || ret >= sizeof(unit_string))
+        {
+            msg(M_WARN, "Error constructing unit string for %s", enum_name);
+            continue;
+        }
 
         status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, unit_string, 0, KEY_READ, &unit_key);
 
@@ -3667,8 +3673,15 @@ get_panel_reg(struct gc_arena *gc)
             msg(M_FATAL, "Error enumerating registry subkeys of key: %s", NETWORK_CONNECTIONS_KEY);
         }
 
-        snprintf(connection_string, sizeof(connection_string), "%s\\%s\\Connection",
-                 NETWORK_CONNECTIONS_KEY, enum_name);
+        int ret = snprintf(connection_string, sizeof(connection_string), "%s\\%s\\Connection",
+                           NETWORK_CONNECTIONS_KEY, enum_name);
+
+        if (ret < 0 || ret >= sizeof(connection_string))
+        {
+            msg(M_WARN, "Error constructing connection string for %s", enum_name);
+            continue;
+        }
+
 
         status = RegOpenKeyEx(HKEY_LOCAL_MACHINE, connection_string, 0, KEY_READ, &connection_key);
 
