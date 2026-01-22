@@ -206,11 +206,6 @@ status_close(struct status_output *so)
     return ret;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 #define STATUS_PRINTF_MAXLEN 512
 
 void
@@ -243,7 +238,7 @@ status_printf(struct status_output *so, const char *format, ...)
             size_t len = strlen(buf);
             if (len > 0)
             {
-                if (write(so->fd, buf, len) != len)
+                if (write(so->fd, buf, (unsigned int)len) != len)
                 {
                     so->errors = true;
                 }
@@ -274,16 +269,14 @@ status_read(struct status_output *so, struct buffer *buf)
             /* read more of file into buffer */
             if (c == -1)
             {
-                int len;
-
                 ASSERT(buf_init(&so->read_buf, 0));
-                len = read(so->fd, BPTR(&so->read_buf), BCAP(&so->read_buf));
+                ssize_t len = read(so->fd, BPTR(&so->read_buf), BCAP(&so->read_buf));
                 if (len <= 0)
                 {
                     break;
                 }
 
-                ASSERT(buf_inc_len(&so->read_buf, len));
+                ASSERT(buf_inc_len(&so->read_buf, (int)len));
                 continue;
             }
 
@@ -299,7 +292,7 @@ status_read(struct status_output *so, struct buffer *buf)
                 break;
             }
 
-            buf_write_u8(buf, c);
+            buf_write_u8(buf, (uint8_t)c);
         }
 
         buf_null_terminate(buf);
@@ -307,7 +300,3 @@ status_read(struct status_output *so, struct buffer *buf)
 
     return ret;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
