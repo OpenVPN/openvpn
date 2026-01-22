@@ -534,11 +534,6 @@ check_session_cipher(struct tls_session *session, struct options *options)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 /**
  * Replaces the string DEFAULT with the string \c replace.
  *
@@ -549,12 +544,13 @@ static void
 replace_default_in_ncp_ciphers_option(struct options *o, const char *replace)
 {
     const char *search = "DEFAULT";
-    const int ncp_ciphers_len = strlen(o->ncp_ciphers) + strlen(replace) - strlen(search) + 1;
+    const size_t ncp_ciphers_len = strlen(o->ncp_ciphers) + strlen(replace) - strlen(search) + 1;
 
     uint8_t *ncp_ciphers = gc_malloc(ncp_ciphers_len, true, &o->gc);
 
     struct buffer ncp_ciphers_buf;
-    buf_set_write(&ncp_ciphers_buf, ncp_ciphers, ncp_ciphers_len);
+    ASSERT(ncp_ciphers_len <= INT_MAX);
+    buf_set_write(&ncp_ciphers_buf, ncp_ciphers, (int)ncp_ciphers_len);
 
     const char *def = strstr(o->ncp_ciphers, search);
 
@@ -570,10 +566,6 @@ replace_default_in_ncp_ciphers_option(struct options *o, const char *replace)
 
     o->ncp_ciphers = (char *)ncp_ciphers;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /**
  * Checks for availibility of Chacha20-Poly1305 and sets
