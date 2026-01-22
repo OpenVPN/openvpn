@@ -2005,13 +2005,14 @@ man_reset_client_socket(struct management *man, const bool exiting)
     }
     if (!exiting)
     {
-        if (man->settings.flags & MF_FORGET_DISCONNECT)
+        if (man->settings.flags & MF_FORGET_DISCONNECT && !man_password_needed(man))
         {
+            msg(D_MANAGEMENT, "MANAGEMENT: Reset authentication on disconnect");
             ssl_purge_auth(false);
             (void)ssl_clean_auth_token();
         }
 
-        if (man->settings.flags & MF_SIGNAL)
+        if (man->settings.flags & MF_SIGNAL && !man_password_needed(man))
         {
             int mysig = man_mod_signal(man, SIGUSR1);
             if (mysig >= 0)
