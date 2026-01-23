@@ -112,11 +112,13 @@ struct tls_key_cache
  */
 struct tls_root_ctx
 {
-    bool initialised;                      /**< True if the context has been initialised */
+    bool initialised; /**< True if the context has been initialised */
 
-    int endpoint;                          /**< Whether or not this is a server or a client */
+    int endpoint;     /**< Whether or not this is a server or a client */
 
+#if MBEDTLS_VERSION_NUMBER < 0x04000000
     mbedtls_dhm_context *dhm_ctx;          /**< Diffie-Helmann-Merkle context */
+#endif
     mbedtls_x509_crt *crt_chain;           /**< Local Certificate chain */
     mbedtls_x509_crt *ca_chain;            /**< CA chain for remote verification */
     mbedtls_pk_context *priv_key;          /**< Local private key */

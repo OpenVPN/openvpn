@@ -34,13 +34,22 @@
 
 #if defined(ENABLE_CRYPTO_MBEDTLS)
 
+#include <mbedtls/version.h>
+
+#if MBEDTLS_VERSION_NUMBER < 0x04000000
+#include "crypto_mbedtls_legacy.h"
+#include <mbedtls/bignum.h>
+#include <mbedtls/sha1.h>
+#else
 #include "crypto_mbedtls.h"
+#endif
+
+#include "mbedtls_compat.h"
+
 #include "ssl_verify.h"
 #include <mbedtls/asn1.h>
 #include <mbedtls/error.h>
-#include <mbedtls/bignum.h>
 #include <mbedtls/oid.h>
-#include <mbedtls/sha1.h>
 
 #define MAX_SUBJECT_LENGTH 256
 
@@ -171,11 +180,139 @@ backend_x509_get_username(char *cn, size_t cn_len, char *x509_username_field, mb
     return SUCCESS;
 }
 
+#if MBEDTLS_VERSION_NUMBER >= 0x04000000
+/* Mbed TLS 4 has no function to print the certificate serial number and does
+ * not expose the bignum functions anymore. So in order to write the serial
+ * number as a decimal string, we implement bignum % 10 and bignum / 10. */
+static char
+bignum_mod_10(const uint8_t *bignum, size_t bignum_length)
+{
+    int result = 0;
+    for (size_t i = 0; i < bignum_length; i++)
+    {
+        result = (result * 256) % 10;
+        result = (result + bignum[i]) % 10;
+    }
+    return (char)result;
+}
+
+/* Divide bignum by 10 rounded down, in place. */
+static void
+bignum_div_10(uint8_t *bignum, size_t *bignum_length)
+{
+    /*
+     * Some intuition for the algorithm below:
+     *
+     * We want to calculate
+     *
+     *     (bignum[0] * 256^n + bignum[1] * 256^(n-1) + ... + bignum[n]) / 10.
+     *
+     * Let remainder = bignum[0] % 10 and carry = remainder * 256.
+     * Then we can write the above as
+     *
+     *     (bignum[0] / 10) * 256^n
+     *       + ((carry + bignum[1]) * 256^(n-1) + ... + bignum[n]) / 10.
+     *
+     * So now we have the first byte of our result. The second byte will be
+     * (carry + bignum[1]) / 10. Note that this fits into one byte because
+     * 0 <= remainder < 10. We calculate the next remainder and carry as
+     * remainder = (carry + bignum[1]) % 10 and carry = remainder * 256 and
+     * move on to the next byte until we are done.
+     */
+    size_t new_length = 0;
+    int carry = 0;
+    for (size_t i = 0; i < *bignum_length; i++)
+    {
+        uint8_t next_byte = (uint8_t)((bignum[i] + carry) / 10);
+        int remainder = (bignum[i] + carry) % 10;
+        carry = remainder * 256;
+
+        /* Write the byte unless it's a leading zero. */
+        if (new_length != 0 || next_byte != 0)
+        {
+            bignum[new_length++] = next_byte;
+        }
+    }
+    *bignum_length = new_length;
+}
+
+/* Write the decimal representation of bignum to out, if enough space is available.
+ * Returns the number of bytes needed in out, or 0 on error. To calculate the
+ * necessary buffer size, the function can be called with out = NULL. */
+static size_t
+write_bignum(char *out, size_t out_size, const uint8_t *bignum, size_t bignum_length)
+{
+    if (bignum_length == 0)
+    {
+        /* We want out to be "0". */
+        if (out != NULL)
+        {
+            if (out_size >= 2)
+            {
+                out[0] = '0';
+                out[1] = '\0';
+            }
+            else if (out_size > 0)
+            {
+                out[0] = '\0';
+            }
+        }
+        return 2;
+    }
+
+    uint8_t *bignum_copy = malloc(bignum_length);
+    if (bignum_copy == NULL)
+    {
+        return 0;
+    }
+    memcpy(bignum_copy, bignum, bignum_length);
+
+    size_t bytes_needed = 0;
+    size_t bytes_written = 0;
+    while (bignum_length > 0)
+    {
+        /* We're writing the digits in reverse order. We put them in the right order later. */
+        char digit = bignum_mod_10(bignum_copy, bignum_length);
+        if (out != NULL && bytes_written < out_size - 1)
+        {
+            out[bytes_written++] = '0' + (char)digit;
+        }
+        bytes_needed += 1;
+        bignum_div_10(bignum_copy, &bignum_length);
+    }
+
+    if (out != NULL)
+    {
+        if (bytes_written == bytes_needed)
+        {
+            /* We had space for all digits. Now reverse them. */
+            for (size_t i = 0; i < bytes_written / 2; i++)
+            {
+                char tmp = out[i];
+                out[i] = out[bytes_written - 1 - i];
+                out[bytes_written - 1 - i] = tmp;
+            }
+            out[bytes_written] = '\0';
+        }
+        else if (out_size > 0)
+        {
+            out[0] = '\0';
+        }
+    }
+    bytes_needed += 1;
+
+    free(bignum_copy);
+    return bytes_needed;
+}
+#endif /* MBEDTLS_VERSION_NUMBER >= 0x04000000 */
+
 char *
 backend_x509_get_serial(mbedtls_x509_crt *cert, struct gc_arena *gc)
 {
     char *buf = NULL;
     size_t buflen = 0;
+
+#if MBEDTLS_VERSION_NUMBER < 0x04000000
     mbedtls_mpi serial_mpi = { 0 };
 
     /* Transform asn1 integer serial into mbed TLS MPI */
@@ -201,6 +338,21 @@ backend_x509_get_serial(mbedtls_x509_crt *cert, struct gc_arena *gc)
 end:
     mbedtls_mpi_free(&serial_mpi);
     return buf;
+#else
+    buflen = write_bignum(NULL, 0, cert->serial.p, cert->serial.len);
+    if (buflen == 0)
+    {
+        msg(M_WARN, "Failed to write serial to string.");
+        return NULL;
+    }
+    buf = gc_malloc(buflen, true, gc);
+    if (write_bignum(buf, buflen, cert->serial.p, cert->serial.len) != buflen)
+    {
+        msg(M_WARN, "Failed to write serial to string.");
+        return NULL;
+    }
+    return buf;
+#endif /* MBEDTLS_VERSION_NUMBER < 0x04000000 */
 }
 
 char *
