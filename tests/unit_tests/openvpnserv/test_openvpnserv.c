@@ -21,6 +21,10 @@
  *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <setjmp.h>
 #include <cmocka.h>
 #include "test_common.h"
