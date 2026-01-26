@@ -100,13 +100,13 @@ jobs:
           path: |
             ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/**/${{ matrix.build }}/*.exe
             ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/**/${{ matrix.build }}/*.dll
-            !${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/${{ matrix.build }}/test_*.exe
+            !${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/**/${{ matrix.build }}/test_*.exe
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: openvpn-mingw-${{ matrix.arch }}-${{ matrix.build }}-tests
           path: |
-            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/${{ matrix.build }}/test_*.exe
+            ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/**/${{ matrix.build }}/test_*.exe
             ${{ github.workspace }}/out/build/mingw/${{ matrix.arch }}/${{ matrix.build }}/*.dll
 
   mingw-unittest:
@@ -115,7 +115,7 @@ jobs:
       fail-fast: false
       matrix:
         arch: [x86, x64]
-        test: [argv, auth_token, buffer, cryptoapi, crypto, misc, options_parse, ncp, packet_id, pkt, provider, ssl, tls_crypt, user_pass]
+        test: [argv, auth_token, buffer, cryptoapi, crypto, misc, options_parse, ncp, openvpnserv, packet_id, pkt, provider, ssl, tls_crypt, user_pass]
         build: [Release, Debug]
 
     runs-on: windows-2025
@@ -129,7 +129,9 @@ jobs:
           name: openvpn-mingw-${{ matrix.arch }}-${{ matrix.build }}-tests
           path: unittests
       - name: Run ${{ matrix.test }} unit test
-        run: ./unittests/test_${{ matrix.test }}.exe
+        run: |
+          $test_file=(Get-ChildItem -Path unittests -Filter test_${{ matrix.test }}.exe -Recurse).fullname
+          & $test_file
         env:
           srcdir: "${{ github.workspace }}/tests/unit_tests/openvpn"
 
