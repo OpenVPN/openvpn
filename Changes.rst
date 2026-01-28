@@ -181,6 +181,10 @@ New option ``--tls-crypt-v2-max-age n`` to check tls-crypt-v2 timestamps
    (When a client is older than n days or has no timestamp, the server
     will reject it)
 
+mbedTLS 4 support has been added.  Algorithms need to be translated to
+   mbedTLS 4 internal IDs, and these tables are only very basic right now
+   (but AES-GCM and ChaCha-Poly are in).
+
 
 Deprecated features
 -------------------

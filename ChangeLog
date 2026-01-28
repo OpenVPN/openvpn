@@ -1,6 +1,39 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
 
+2026.01.28 -- Version 2.7_rc6
+
+Arne Schwabe (1):
+      Silence compiler truncation warning by checking snprintf return value
+
+Frank Lichtenheld (16):
+      crypto_openssl: Fix various conversion warnings
+      cryptoapi: Avoid conversion warnings
+      ssl_verify_openssl: Avoid conversion warning in x509_verify_cert_ku
+      socket: Avoid conversion warning in get_addr_generic
+      ssl_ncp: Avoid conversion warning in replace_default_in_ncp_ciphers_option
+      port-share: Check return value of fork()
+      openvpnserv: Fix conversion warnings in interactive.c
+      openvpnserv: Factor out the string conversion from GetItfDnsDomains
+      openvpnserv: Add a first unit test
+      GHA: Update mbedtls to v4
+      route: Fix conversion warnings on BSDs
+      socket: Remove ifdef for SO_{RCV, SND}BUF
+      test_openvpnserv: Make sure to include config.h
+      GHA: Run openvpnserv UT for MinGW builds
+      status: Avoid conversion warnings in status_read/status_printf
+      manage: Do not trigger actions on management disconnect if not authenticated
+
+Gert Doering (1):
+      tunnel_server(): close correct inotify fd
+
+Heiko Hund (1):
+      Prevent NULL pointer dereference with --dns-updown
+
+Max Fillinger (1):
+      Add support for Mbed TLS 4
+
+
 2026.01.15 -- Version 2.7_rc5
 
 Arne Schwabe (5):
