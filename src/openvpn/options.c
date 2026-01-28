@@ -7890,7 +7890,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         }
         else
         {
-            if (streq(dns->updown, DEFAULT_DNS_UPDOWN))
+            if (dns->updown && streq(dns->updown, DEFAULT_DNS_UPDOWN))
             {
                 /* Unset the default command to prevent warnings */
                 dns->updown = NULL;
