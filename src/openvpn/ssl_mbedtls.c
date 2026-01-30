@@ -356,15 +356,54 @@ tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
 
 #if MBEDTLS_VERSION_NUMBER >= 0x04000000
 static const mbedtls_ecp_curve_info ecp_curve_info_table[] = {
-    /* TODO: Fill out the table. */
+/* secp curves. */
+#if defined(PSA_WANT_ECC_SECP_R1_256)
     { "secp256r1", MBEDTLS_SSL_IANA_TLS_GROUP_SECP256R1 },
+#endif
+#if defined(PSA_WANT_ECC_SECP_R1_384)
     { "secp384r1", MBEDTLS_SSL_IANA_TLS_GROUP_SECP384R1 },
+#endif
+#if defined(PSA_WANT_ECC_SECP_R1_521)
+    { "secp521r1", MBEDTLS_SSL_IANA_TLS_GROUP_SECP521R1 },
+#endif
+
+/* Curve25519. */
+#if defined(PSA_WANT_ECC_MONTGOMERY_255)
     { "X25519", MBEDTLS_SSL_IANA_TLS_GROUP_X25519 },
+#endif
+
+/* Curve448. */
+#if defined(PSA_WANT_ECC_MONTGOMERY_448)
+    { "X448", MBEDTLS_SSL_IANA_TLS_GROUP_X448 },
+#endif
+
+/* Brainpool curves. */
+#if defined(PSA_WANT_ECC_BRAINPOOL_P_R1_256)
+    { "brainpoolP256r1", MBEDTLS_SSL_IANA_TLS_GROUP_BP256R1 },
+#endif
+#if defined(PSA_WANT_ECC_BRAINPOOL_P_R1_384)
+    { "brainpoolP384r1", MBEDTLS_SSL_IANA_TLS_GROUP_BP384R1 },
+#endif
+#if defined(PSA_WANT_ECC_BRAINPOOL_P_R1_512)
+    { "brainpoolP512r1", MBEDTLS_SSL_IANA_TLS_GROUP_BP512R1 },
+#endif
+
+/* Named Diffie-Hellman groups. */
+#if defined(PSA_WANT_DH_RFC7919_2048)
     { "ffdhe2048", MBEDTLS_SSL_IANA_TLS_GROUP_FFDHE2048 },
+#endif
+#if defined(PSA_WANT_DH_RFC7919_3072)
     { "ffdhe3072", MBEDTLS_SSL_IANA_TLS_GROUP_FFDHE3072 },
+#endif
+#if defined(PSA_WANT_DH_RFC7919_4096)
     { "ffdhe4096", MBEDTLS_SSL_IANA_TLS_GROUP_FFDHE4096 },
+#endif
+#if defined(PSA_WANT_DH_RFC7919_6144)
     { "ffdhe6144", MBEDTLS_SSL_IANA_TLS_GROUP_FFDHE6144 },
+#endif
+#if defined(PSA_WANT_DH_RFC7919_8192)
     { "ffdhe8192", MBEDTLS_SSL_IANA_TLS_GROUP_FFDHE8192 },
+#endif
 };
 static const size_t ecp_curve_info_table_items = sizeof(ecp_curve_info_table) / sizeof(mbedtls_ecp_curve_info);
 
@@ -1523,7 +1562,11 @@ show_available_curves(void)
         pcurve++;
     }
 #else
-    msg(M_FATAL, "Mbed TLS 4 has no mechanism to list supported curves.");
+    printf("Available elliptic curves:\n\n");
+    for (size_t i = 0; i < ecp_curve_info_table_items; i++)
+    {
+        printf("%s\n", ecp_curve_info_table[i].name);
+    }
 #endif /* MBEDTLS_VERSION_NUMBER < 0x04000000 */
 }
 
