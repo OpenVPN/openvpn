@@ -1,3 +1,61 @@
+Overview of changes in 2.6.18
+=============================
+
+New features / User visible changes
+-----------------------------------
+- disable DCO if ``--bind-dev`` option is given (no support for this in
+  the old out-of-kernel Linux DCO implementation)
+
+- on Windows, if using ``--ip-win32 netsh`` and not using the interactive
+  service, IPv4 addresses would be installed as "permanent", possibly
+  causing problems later on with using that IPv4 address on a different
+  interface.  Change to "store=active".  (GH: #915)
+
+
+Code maintenance / Compat changes
+---------------------------------
+- backport fixes needed to build unit tests with cmocka 2.0.0 and -Werror
+  (some parts of the old API have been deprecated and would raise warnings)
+
+- backport "ensure that all unit tests use unbuffered stdout+stderr" change,
+  otherwise we get no output at all if a unit test crashes
+
+- add explicit error message for failing read in multi_process_file_closed()
+  (reported by SRL)
+
+- test framework: permit overriding the openvpn binary called
+
+- configure.ac: remove use of PKCS11_HELPER_LIBS in mbedTLS checks
+  (old code, purpose unclear, effects non-useful)
+
+- configure.ac: try to use pkg-config to detect mbedTLS
+
+
+Documentation updates
+---------------------
+- improve pull-filter documentation, emphasizing possible problems if
+  used as a naive security measure (reported by SRLabs).
+
+
+Bugfixes
+--------
+- p2mp server: fix incorrect file descriptor handling on "inotify" FD
+  during a SIGUSR1 restart (GH: #966)
+
+- management interface: fix bug where ``--management-forget-disconnect``
+  and ``--management-signal`` could be executed even if password authentication
+  to managment interface was still pending (Zeropath finding)
+
+- repair client-side interaction on reconnect between DCO event handling
+  and ``--persist-tun`` - after a ping timeout and reconnect, the DCO
+  event handler would not be armed, and the next ping timeout would not
+  be received by userland, causing non-working connections with nothing
+  in the openvpn log (Linux and FreeBSD only, GH: #947)
+
+- prevent crash on invalid server-ipv6 argument, calling freeaddrinfo()
+  with a NULL pointer.  This only affects OpenBSD.  (Klemens Nanni).
+
+
 Overview of changes in 2.6.17
 =============================
 Bugfixes

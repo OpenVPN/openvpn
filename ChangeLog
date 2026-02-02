@@ -1,6 +1,36 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2026.02.04 -- Version 2.6.18
+
+Arne Schwabe (1):
+      Ensure that all unit tests use unbuffered stdout and stderr
+
+Brandon Currell (1):
+      Add check for bind-dev in DCO options
+
+Frank Lichtenheld (6):
+      configure: Try to use pkg-config to detect mbedTLS
+      configure.ac: Remove use of PKCS11_HELPER_LIBS in mbedTLS checks
+      tests: Allow to override openvpn binary used
+      multi: Warn about failing read in multi_process_file_closed()
+      tests/unit_tests: Port to cmocka 2.0.0 API
+      manage: Do not trigger actions on management disconnect if not authenticated
+
+Gert Doering (2):
+      Repair interaction between DCO and persist-tun after reconnection
+      tunnel_server_*(): close correct inotify fd
+
+Klemens Nanni (1):
+      Prevent crash on invalid server-ipv6 argument
+
+Lev Stipakov (1):
+      tun.c: set IPv4 address temporary on Windows
+
+Selva Nair (1):
+      pull-filter: improve documentation
+
+
 2025.11.28 -- Version 2.6.17
 
 Lev Stipakov (1):
