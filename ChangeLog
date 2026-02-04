@@ -1,6 +1,11 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2026.02.04 -- Version 2.6.19
+
+Arne Schwabe (1):
+      Add missing header in unit tests Makefile.am
+
 2026.02.04 -- Version 2.6.18
 
 Arne Schwabe (1):

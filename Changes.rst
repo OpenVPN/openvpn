@@ -1,3 +1,10 @@
+Overview of changes in 2.6.19
+=============================
+Bugfixes
+--------
+- ``make dist`` would fail to pack unit_tests/openvpn/test_common.h,
+  breaking ``make check`` on the tarball if cmocka is installed.  Fix.
+
 Overview of changes in 2.6.18
 =============================
 
