@@ -1,6 +1,17 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
 
+2026.02.11 -- Version 2.7.0
+
+Frank Lichtenheld (3):
+      crypto: Do not claim we will remove support for BF-CBC in 2.7
+      Update the clang-format reference version to 21.1.8
+      Review Changes.rst for 2.7.0 release
+
+Max Fillinger (1):
+      Mbed TLS 4: Add more algorithms
+
+
 2026.01.28 -- Version 2.7_rc6
 
 Arne Schwabe (1):
