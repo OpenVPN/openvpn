@@ -609,7 +609,8 @@ command_delete(int argc, LPCWSTR argv[], BOOL *bRebootRequired)
 /**
  * Program entry point
  */
-int __cdecl wmain(int argc, LPCWSTR argv[])
+int __cdecl
+wmain(int argc, LPCWSTR argv[])
 {
     int iResult;
     BOOL bRebootRequired = FALSE;

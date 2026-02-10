@@ -308,7 +308,8 @@ cleanup_pAdapterList:
 }
 
 
-UINT __stdcall FindSystemInfo(_In_ MSIHANDLE hInstall)
+UINT __stdcall
+FindSystemInfo(_In_ MSIHANDLE hInstall)
 {
 #ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
@@ -335,7 +336,8 @@ UINT __stdcall FindSystemInfo(_In_ MSIHANDLE hInstall)
 }
 
 
-UINT __stdcall CloseOpenVPNGUI(_In_ MSIHANDLE hInstall)
+UINT __stdcall
+CloseOpenVPNGUI(_In_ MSIHANDLE hInstall)
 {
 #ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
@@ -359,7 +361,8 @@ UINT __stdcall CloseOpenVPNGUI(_In_ MSIHANDLE hInstall)
 }
 
 
-UINT __stdcall StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
+UINT __stdcall
+StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
 {
 #ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
@@ -620,7 +623,8 @@ schedule_adapter_delete(_Inout_ struct msica_arg_seq *seq,
 }
 
 
-UINT __stdcall EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
+UINT __stdcall
+EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
 {
 #ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
@@ -963,7 +967,8 @@ CreateRebootFile(_In_z_ LPCWSTR szTmpDir)
     }
 }
 
-UINT __stdcall ProcessDeferredAction(_In_ MSIHANDLE hInstall)
+UINT __stdcall
+ProcessDeferredAction(_In_ MSIHANDLE hInstall)
 {
 #ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
@@ -1166,7 +1171,8 @@ cleanup_CoInitialize:
     return uiResult;
 }
 
-UINT __stdcall CheckAndScheduleReboot(_In_ MSIHANDLE hInstall)
+UINT __stdcall
+CheckAndScheduleReboot(_In_ MSIHANDLE hInstall)
 {
 #ifdef DLLEXP_EXPORT
 #pragma comment(linker, DLLEXP_EXPORT)
