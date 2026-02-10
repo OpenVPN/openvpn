@@ -90,7 +90,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   password from a script).
 
   **Note:** the username for ``--auth-gen-token`` can be overridden by
-  ``--override-user``. In this case the client will be pushed also the
+  ``--override-username``. In this case the client will be pushed also the
   ``--auth-token-user`` option and an auth token that is valid for that
   username instead of the original username that the client authenticated
   with.
