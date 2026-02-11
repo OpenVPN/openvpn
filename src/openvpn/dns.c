@@ -611,13 +611,13 @@ run_updown_runner(bool up, struct options *o, const struct tuntap *tt,
     int ack_pipe_fd[2];
     if (pipe(dns_pipe_fd) != 0 || pipe(ack_pipe_fd) != 0)
     {
-        msg(M_ERR | M_ERRNO, "run_dns_up_down: unable to create pipes");
+        msg(M_WARN | M_ERRNO, "run_dns_up_down: unable to create pipes");
         return false;
     }
     updown_runner->pid = fork();
     if (updown_runner->pid == -1)
     {
-        msg(M_ERR | M_ERRNO, "run_dns_up_down: unable to fork");
+        msg(M_WARN | M_ERRNO, "run_dns_up_down: unable to fork");
         close(dns_pipe_fd[0]);
         close(dns_pipe_fd[1]);
         close(ack_pipe_fd[0]);
@@ -747,7 +747,7 @@ run_up_down_command(bool up, struct options *o, const struct tuntap *tt,
                 {
                     continue;
                 }
-                msg(M_ERR | M_ERRNO, "could not send dns vars filename");
+                msg(M_WARN | M_ERRNO, "could not send dns vars filename");
             }
             break;
         }
@@ -762,7 +762,7 @@ run_up_down_command(bool up, struct options *o, const struct tuntap *tt,
                 {
                     continue;
                 }
-                msg(M_ERR | M_ERRNO, "could not receive dns updown status");
+                msg(M_WARN | M_ERRNO, "could not receive dns updown status");
             }
             break;
         }
