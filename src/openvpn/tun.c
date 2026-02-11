@@ -3011,7 +3011,7 @@ open_darwin_utun(const char *dev, const char *dev_type, const char *dev_node, st
     /* Retrieve the assigned interface name. */
     if (getsockopt(fd, SYSPROTO_CONTROL, UTUN_OPT_IFNAME, utunname, &utunname_len))
     {
-        msg(M_ERR | M_ERRNO, "Error retrieving utun interface name");
+        msg(M_ERR, "Error retrieving utun interface name");
     }
 
     tt->actual_name = string_alloc(utunname, NULL);
