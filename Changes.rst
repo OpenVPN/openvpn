@@ -1,3 +1,7 @@
+Overview of changes in 2.8
+==========================
+
+
 Overview of changes in 2.7
 ==========================
 New features
