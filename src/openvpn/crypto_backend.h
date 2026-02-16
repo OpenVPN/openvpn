@@ -557,9 +557,9 @@ unsigned char md_kt_size(const char *mdname);
  * @param src_len       The length of the incoming buffer.
  * @param dst           Buffer to write the message digest to. May not be NULL.
  *
- * @return              \c 1 on success, \c 0 on failure
+ * @return              true on success, false on failure
  */
-int md_full(const char *mdname, const uint8_t *src, int src_len, uint8_t *dst);
+bool md_full(const char *mdname, const uint8_t *src, size_t src_len, uint8_t *dst);
 
 /*
  * Allocate a new message digest context

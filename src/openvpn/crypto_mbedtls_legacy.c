@@ -825,8 +825,8 @@ md_kt_size(const char *mdname)
  *
  */
 
-int
-md_full(const char *mdname, const uint8_t *src, int src_len, uint8_t *dst)
+bool
+md_full(const char *mdname, const uint8_t *src, size_t src_len, uint8_t *dst)
 {
     const mbedtls_md_info_t *kt = md_get(mdname);
     return 0 == mbedtls_md(kt, src, src_len, dst);
