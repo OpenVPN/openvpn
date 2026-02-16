@@ -2989,13 +2989,6 @@ init_crypto_pre(struct context *c, const unsigned int flags)
             packet_id_persist_load(&c->c1.pid_persist, c->options.packet_id_file);
         }
     }
-
-#ifdef ENABLE_PREDICTION_RESISTANCE
-    if (c->options.use_prediction_resistance)
-    {
-        rand_ctx_enable_prediction_resistance();
-    }
-#endif
 }
 
 

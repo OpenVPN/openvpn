@@ -65,3 +65,8 @@ longer supported
   Removed in OpenVPN 2.7. OpenVPN will always use ovpn-dco as the default
   driver on Windows. It will fall back to tap-windows6 if options are used
   that are incompatible with ovpn-dco.
+
+--use-prediction-resistance
+  Removed in OpenVPN 2.8. This option caused the Mbed TLS 3 random number
+  generator to be reseeded on every call. It has been removed because this
+  is excessive.

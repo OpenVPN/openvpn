@@ -89,14 +89,6 @@ typedef mbedtls_operation_t crypto_operation_t;
  */
 mbedtls_ctr_drbg_context *rand_ctx_get(void);
 
-#ifdef ENABLE_PREDICTION_RESISTANCE
-/**
- * Enable prediction resistance on the random number generator.
- */
-void rand_ctx_enable_prediction_resistance(void);
-
-#endif
-
 /**
  * Log the supplied mbed TLS error, prefixed by supplied prefix.
  *

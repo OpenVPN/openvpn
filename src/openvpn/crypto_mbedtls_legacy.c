@@ -366,16 +366,6 @@ rand_ctx_get(void)
     return &cd_ctx;
 }
 
-#ifdef ENABLE_PREDICTION_RESISTANCE
-void
-rand_ctx_enable_prediction_resistance(void)
-{
-    mbedtls_ctr_drbg_context *cd_ctx = rand_ctx_get();
-
-    mbedtls_ctr_drbg_set_prediction_resistance(cd_ctx, 1);
-}
-#endif /* ENABLE_PREDICTION_RESISTANCE */
-
 int
 rand_bytes(uint8_t *output, int len)
 {

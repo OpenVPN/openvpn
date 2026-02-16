@@ -584,9 +584,6 @@ struct options
     int replay_time;
     const char *packet_id_file;
     bool test_crypto;
-#ifdef ENABLE_PREDICTION_RESISTANCE
-    bool use_prediction_resistance;
-#endif
 
     /* TLS (control channel) parms */
     bool tls_server;

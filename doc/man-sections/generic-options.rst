@@ -462,16 +462,6 @@ which mode OpenVPN is configured as.
     success/failure via :code:`auth_control_file` when using deferred auth
     method and pending authentication via :code:`auth_pending_file`.
 
---use-prediction-resistance
-  Enable prediction resistance on mbed TLS's RNG.
-
-  Enabling prediction resistance causes the RNG to reseed in each call for
-  random. Reseeding this often can quickly deplete the kernel entropy
-  pool.
-
-  If you need this option, please consider running a daemon that adds
-  entropy to the kernel pool.
-
 --user user
   Change the user ID of the OpenVPN process to ``user`` after
   initialization, dropping privileges in the process. This option is
