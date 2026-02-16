@@ -582,7 +582,7 @@ add_block_local_routes(struct route_list *rl)
     add_block_local_item(rl, &rl->rgi.gateway, rl->spec.remote_endpoint);
 
     /* process additional subnets on gateway interface */
-    for (size_t i = 0; i < rl->rgi.n_addrs; ++i)
+    for (int i = 0; i < rl->rgi.n_addrs; ++i)
     {
         const struct route_gateway_address *gwa = &rl->rgi.addrs[i];
         /* omit the add/subnet in &rl->rgi which we processed above */
@@ -1452,8 +1452,7 @@ local_route(in_addr_t network, in_addr_t netmask, in_addr_t gateway,
         else
         {
             /* examine additional subnets on gateway interface */
-            size_t i;
-            for (i = 0; i < rgi->n_addrs; ++i)
+            for (int i = 0; i < rgi->n_addrs; ++i)
             {
                 const struct route_gateway_address *gwa = &rgi->addrs[i];
                 if (((network ^ gwa->addr) & gwa->netmask) == 0)

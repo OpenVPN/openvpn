@@ -101,7 +101,7 @@ test_cipher_names(const char *ciphername, const char *openvpn_name)
     char *lower = string_alloc(ciphername, &gc);
     char *random_case = string_alloc(ciphername, &gc);
 
-    for (int i = 0; i < strlen(ciphername); i++)
+    for (size_t i = 0; i < strlen(ciphername); i++)
     {
         upper[i] = (char)toupper((unsigned char)ciphername[i]);
         lower[i] = (char)tolower((unsigned char)ciphername[i]);

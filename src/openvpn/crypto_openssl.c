@@ -411,7 +411,7 @@ show_available_ciphers(void)
 
     printf("\nThe following ciphers have a block size of less than 128 bits, \n"
            "and are therefore deprecated.  Do not use unless you have to.\n\n");
-    for (int i = 0; i < cipher_list.num; i++)
+    for (size_t i = 0; i < cipher_list.num; i++)
     {
         if (cipher_kt_insecure(EVP_CIPHER_get0_name(cipher_list.list[i])))
         {

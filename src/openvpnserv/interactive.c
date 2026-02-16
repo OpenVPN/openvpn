@@ -1269,7 +1269,7 @@ HasValidSearchList(HKEY key)
     if (!err || err == ERROR_MORE_DATA)
     {
         data[sizeof(data) - 1] = '\0';
-        for (int i = 0; i < strlen(data); ++i)
+        for (size_t i = 0; i < strlen(data); ++i)
         {
             if (isalnum(data[i]) || data[i] == '-' || data[i] == '.')
             {
@@ -1954,7 +1954,7 @@ static LSTATUS
 SetNameServerAddresses(PWSTR itf_id, const nrpt_address_t *addresses)
 {
     const short families[] = { AF_INET, AF_INET6 };
-    for (int i = 0; i < _countof(families); i++)
+    for (size_t i = 0; i < _countof(families); i++)
     {
         short family = families[i];
 
@@ -2436,7 +2436,7 @@ GetNrptExcludeData(PCWSTR search_domains, nrpt_exclude_data_t *data, size_t data
         if (v4_addrs_size || v6_addrs_size)
         {
             /* Replace delimiters with semicolons, as required by NRPT */
-            for (int j = 0; j < sizeof(data[0].addresses) && data[i].addresses[j]; j++)
+            for (size_t j = 0; j < sizeof(data[0].addresses) && data[i].addresses[j]; j++)
             {
                 if (data[i].addresses[j] == ',' || data[i].addresses[j] == ' ')
                 {
@@ -2567,7 +2567,7 @@ SetNrptExcludeRules(HKEY nrpt_key, DWORD ovpn_pid, PCWSTR search_domains)
     GetNrptExcludeData(search_domains, data, _countof(data));
 
     unsigned n = 0;
-    for (int i = 0; i < _countof(data); ++i)
+    for (size_t i = 0; i < _countof(data); ++i)
     {
         nrpt_exclude_data_t *d = &data[i];
         if (d->domains_size == 0)

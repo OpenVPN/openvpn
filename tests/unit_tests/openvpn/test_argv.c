@@ -120,7 +120,6 @@ argv_printf__empty_parameter__argc_correct(void **state)
 static void
 argv_printf__long_args__data_correct(void **state)
 {
-    int i;
     struct argv a = argv_new();
     const char *args[] = {
         "good_tools_have_good_names_even_though_it_might_impair_typing",
@@ -131,7 +130,7 @@ argv_printf__long_args__data_correct(void **state)
 
     argv_printf(&a, "%s %s %s %s", args[0], args[1], args[2], args[3]);
     assert_int_equal(a.argc, 4);
-    for (i = 0; i < a.argc; i++)
+    for (size_t i = 0; i < a.argc; i++)
     {
         assert_string_equal(a.argv[i], args[i]);
     }
@@ -229,12 +228,11 @@ argv_insert_head__non_empty_argv__head_added(void **state)
 {
     struct argv a = argv_new();
     struct argv b;
-    int i;
 
     argv_printf(&a, "%s", PATH2);
     b = argv_insert_head(&a, PATH1);
     assert_int_equal(b.argc, a.argc + 1);
-    for (i = 0; i < b.argc; i++)
+    for (size_t i = 0; i < b.argc; i++)
     {
         if (i == 0)
         {

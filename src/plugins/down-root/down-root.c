@@ -318,7 +318,7 @@ openvpn_plugin_open_v1(unsigned int *type_mask, const char *argv[], const char *
     }
 
     /* Ignore argv[0], as it contains just the plug-in file name */
-    for (int i = 1; i < string_array_len(argv); i++)
+    for (size_t i = 1; i < string_array_len(argv); i++)
     {
         context->command[i - 1] = (char *)argv[i];
     }

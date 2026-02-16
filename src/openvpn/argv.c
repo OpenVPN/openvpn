@@ -293,7 +293,7 @@ argv_prep_format(const char *format, const char delim, size_t *count, struct gc_
 
     bool in_token = false;
     char *f = gc_malloc(strlen(format) + 1, true, gc);
-    for (int i = 0, j = 0; i < strlen(format); i++)
+    for (size_t i = 0, j = 0; i < strlen(format); i++)
     {
         if (format[i] == ' ')
         {

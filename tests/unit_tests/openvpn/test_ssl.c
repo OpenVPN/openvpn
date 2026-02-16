@@ -620,7 +620,7 @@ create_key(void)
      * Statickey but XOR it to not repeat it */
     uint8_t keydata[sizeof(key2.keys)];
 
-    for (int i = 0; i < sizeof(key2.keys); i++)
+    for (size_t i = 0; i < sizeof(key2.keys); i++)
     {
         keydata[i] = (uint8_t)(key[i % sizeof(key)] ^ i);
     }

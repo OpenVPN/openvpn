@@ -236,7 +236,7 @@ test_tls_decrypt_lite_crypt(void **ut_state)
     free_tls_pre_decrypt_state(&state);
 
     /* flip a byte in various places */
-    for (int i = 0; i < sizeof(client_reset_v2_tls_crypt); i++)
+    for (size_t i = 0; i < sizeof(client_reset_v2_tls_crypt); i++)
     {
         buf_reset_len(&buf);
         buf_write(&buf, client_reset_v2_tls_crypt, sizeof(client_reset_v2_tls_crypt));

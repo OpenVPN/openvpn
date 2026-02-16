@@ -575,7 +575,6 @@ x509_setenv_track(const struct x509_track *xt, struct env_set *es, const int dep
 void
 x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
 {
-    int i;
     unsigned char c;
     const mbedtls_x509_name *name;
     char s[128] = { 0 };
@@ -596,9 +595,10 @@ x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
             snprintf(name_expand, sizeof(name_expand), "X509_%d_\?\?", cert_depth);
         }
 
+        size_t i;
         for (i = 0; i < name->val.len; i++)
         {
-            if (i >= (int)sizeof(s) - 1)
+            if (i >= sizeof(s) - 1)
             {
                 break;
             }

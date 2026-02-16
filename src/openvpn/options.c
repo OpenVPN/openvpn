@@ -3536,7 +3536,7 @@ tuntap_options_postprocess_dns(struct options *o)
     while (s)
     {
         bool non_standard_server_port = false;
-        for (int i = 0; i < s->addr_count; ++i)
+        for (size_t i = 0; i < s->addr_count; ++i)
         {
             if (s->addr[i].port && s->addr[i].port != 53)
             {
@@ -3553,7 +3553,7 @@ tuntap_options_postprocess_dns(struct options *o)
         else
         {
             bool overflow = false;
-            for (int i = 0; i < s->addr_count; ++i)
+            for (size_t i = 0; i < s->addr_count; ++i)
             {
                 if (s->addr[i].family == AF_INET && tt->dns_len + 1 < N_DHCP_ADDR)
                 {
@@ -3653,7 +3653,7 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
             new->name = dhcp->domain;
             entry = &new->next;
 
-            for (size_t i = 0; i < dhcp->domain_search_list_len; ++i)
+            for (int i = 0; i < dhcp->domain_search_list_len; ++i)
             {
                 ALLOC_OBJ_CLEAR_GC(*entry, struct dns_domain, &dns->gc);
                 struct dns_domain *new = *entry;
@@ -3663,13 +3663,13 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
 
             struct dns_server *server = dns_server_get(&dns->servers, 0, &dns->gc);
             const size_t max_addrs = SIZE(server->addr);
-            for (size_t i = 0; i < dhcp->dns_len && server->addr_count < max_addrs; ++i)
+            for (int i = 0; i < dhcp->dns_len && server->addr_count < max_addrs; ++i)
             {
                 server->addr[server->addr_count].in.a4.s_addr = htonl(dhcp->dns[i]);
                 server->addr[server->addr_count].family = AF_INET;
                 server->addr_count += 1;
             }
-            for (size_t i = 0; i < dhcp->dns6_len && server->addr_count < max_addrs; ++i)
+            for (int i = 0; i < dhcp->dns6_len && server->addr_count < max_addrs; ++i)
             {
                 server->addr[server->addr_count].in.a6 = dhcp->dns6[i];
                 server->addr[server->addr_count].family = AF_INET6;
@@ -3691,7 +3691,7 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
         while (s)
         {
             bool non_standard_server_port = false;
-            for (int i = 0; i < s->addr_count; ++i)
+            for (size_t i = 0; i < s->addr_count; ++i)
             {
                 if (s->addr[i].port && s->addr[i].port != 53)
                 {
@@ -3707,7 +3707,7 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
             }
             else
             {
-                for (int i = 0; i < s->addr_count; ++i)
+                for (size_t i = 0; i < s->addr_count; ++i)
                 {
                     const char *option;
                     const char *value;

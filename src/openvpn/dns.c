@@ -787,7 +787,7 @@ show_dns_options(const struct dns_options *o)
     {
         msg(D_SHOW_PARMS, "  DNS server #%d:", i++);
 
-        for (int j = 0; j < server->addr_count; ++j)
+        for (size_t j = 0; j < server->addr_count; ++j)
         {
             const char *addr;
             const char *fmt_port;
