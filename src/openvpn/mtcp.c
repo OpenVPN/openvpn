@@ -792,6 +792,7 @@ tunnel_server_tcp(struct context *top)
     int status;
 
     top->mode = CM_TOP;
+    top->multi = &multi;
     context_clear_2(top);
 
     /* initialize top-tunnel instance */
@@ -802,10 +803,10 @@ tunnel_server_tcp(struct context *top)
     }
 
     /* initialize global multi_context object */
-    multi_init(&multi, top, true);
+    multi_init(top, true);
 
     /* initialize our cloned top object */
-    multi_top_init(&multi, top);
+    multi_top_init(top);
 
     /* initialize management interface */
     init_management_callback_multi(&multi);

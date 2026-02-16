@@ -289,8 +289,9 @@ int_compare_function(const void *key1, const void *key2)
  * Main initialization function, init multi_context object.
  */
 void
-multi_init(struct multi_context *m, struct context *t, bool tcp_mode)
+multi_init(struct context *t, bool tcp_mode)
 {
+    struct multi_context *m = t->multi;
     int dev = DEV_TYPE_UNDEF;
 
     msg(D_MULTI_LOW, "MULTI: multi_init called, r=%d v=%d",
@@ -3843,10 +3844,10 @@ multi_process_per_second_timers_dowork(struct multi_context *m)
 }
 
 void
-multi_top_init(struct multi_context *m, struct context *top)
+multi_top_init(struct context *top)
 {
-    inherit_context_top(&m->top, top);
-    m->top.c2.buffers = init_context_buffers(&top->c2.frame);
+    inherit_context_top(&top->multi->top, top);
+    top->multi->top.c2.buffers = init_context_buffers(&top->c2.frame);
 }
 
 void

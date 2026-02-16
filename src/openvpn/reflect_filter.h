@@ -72,4 +72,5 @@ initial_rate_limit_init(int max_per_period, int period_length);
  * free the initial-packet rate limiter structure
  */
 void initial_rate_limit_free(struct initial_packet_rate_limit *irl);
+
 #endif /* ifndef REFLECT_FILTER_H */
