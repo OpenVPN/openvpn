@@ -35,9 +35,6 @@
 /* Enable dns-updown script hook */
 #cmakedefine ENABLE_DNS_UPDOWN
 
-/* Enable NTLMv2 proxy support */
-#define ENABLE_NTLM 1
-
 /* Enable management server capability */
 #define ENABLE_MANAGEMENT 1
 

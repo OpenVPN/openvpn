@@ -101,7 +101,6 @@ openvpn_SOURCES = \
 	networking_iproute2.c networking_iproute2.h \
 	networking_sitnl.c networking_sitnl.h \
 	networking.h \
-	ntlm.c ntlm.h \
 	occ.c occ.h \
 	openssl_compat.h \
 	pkcs11.c pkcs11.h pkcs11_backend.h \

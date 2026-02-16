@@ -31,7 +31,7 @@
 #define HTTP_AUTH_BASIC  1
 #define HTTP_AUTH_DIGEST 2
 /* #define HTTP_AUTH_NTLM   3 removed in OpenVPN 2.7 */
-#define HTTP_AUTH_NTLM2  4
+/* #define HTTP_AUTH_NTLM2  4 removed in OpenVPN 2.8 */
 #define HTTP_AUTH_N      5 /* number of HTTP_AUTH methods */
 
 struct http_custom_header

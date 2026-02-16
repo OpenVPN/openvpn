@@ -7,7 +7,7 @@
   ``--http-proxy-user-pass`` option (See `INLINE FILE SUPPORT`_).
 
   The last optional argument is an ``auth-method`` which should be one
-  of :code:`none`, :code:`basic`, or :code:`ntlm2`.
+  of :code:`none`, :code:`basic`.
 
   HTTP Digest authentication is supported as well, but only via the
   :code:`auto` or :code:`auto-nct` flags (below).  This must replace
@@ -31,8 +31,6 @@
      http-proxy proxy.example.net 3128 authfile.txt
      # basic authentication, ask user for credentials
      http-proxy proxy.example.net 3128 stdin
-     # NTLM authentication, load credentials from file
-     http-proxy proxy.example.net 3128 authfile.txt ntlm2
      # determine which authentication is required, ask user for credentials
      http-proxy proxy.example.net 3128 auto
      # determine which authentication is required, but reject basic
@@ -47,9 +45,8 @@
      password
      </http-proxy-user-pass>
 
-  Note that support for NTLMv1 proxies was removed with OpenVPN 2.7.
-  :code:`ntlm` now is an alias for :code:`ntlm2`; i.e. OpenVPN will always
-  attempt to use NTLMv2 authentication.
+  Note that support for NTLMv1 proxies was removed with OpenVPN 2.7
+  and support for NTLMv2 proxies was removed with OpenVPN 2.8.
 
 --http-proxy-user-pass userpass
   Overwrite the username/password information for ``--http-proxy``. If specified

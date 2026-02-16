@@ -35,7 +35,6 @@
 #include "proxy.h"
 #include "base64.h"
 #include "httpdigest.h"
-#include "ntlm.h"
 #include "memdbg.h"
 #include "forward.h"
 
@@ -348,14 +347,6 @@ get_proxy_authenticate(socket_descriptor_t sd, int timeout, char **data,
                 ret = HTTP_AUTH_DIGEST;
             }
 #endif
-#if NTLM
-            else if (!strncmp(buf + 20, "NTLM", 4))
-            {
-                msg(D_PROXY, "PROXY AUTH NTLM: '%s'", buf);
-                *data = NULL;
-                ret = HTTP_AUTH_NTLM2;
-            }
-#endif
         }
     }
 }
@@ -511,39 +502,19 @@ http_proxy_new(const struct http_proxy_options *o)
         {
             p->auth_method = HTTP_AUTH_BASIC;
         }
-#if NTLM
-        else if (!strcmp(o->auth_method_string, "ntlm"))
-        {
-            msg(M_WARN,
-                "NTLM v1 authentication has been removed in OpenVPN 2.7. Will try to use NTLM v2 authentication.");
-            p->auth_method = HTTP_AUTH_NTLM2;
-        }
-        else if (!strcmp(o->auth_method_string, "ntlm2"))
-        {
-            p->auth_method = HTTP_AUTH_NTLM2;
-        }
-#endif
         else
         {
             msg(M_FATAL, "ERROR: unknown HTTP authentication method: '%s'", o->auth_method_string);
         }
     }
 
-    /* When basic or NTLMv2 authentication is requested, get credentials now.
+    /* When basic authentication is requested, get credentials now.
      * In case of "auto" negotiation credentials will be retrieved later once
      * we know whether we need any. */
-    if (p->auth_method == HTTP_AUTH_BASIC || p->auth_method == HTTP_AUTH_NTLM2)
+    if (p->auth_method == HTTP_AUTH_BASIC)
     {
         get_user_pass_http(p, p->options.first_time);
     }
-
-#if !NTLM
-    if (p->auth_method == HTTP_AUTH_NTLM2)
-    {
-        msg(M_FATAL,
-            "Sorry, this version of " PACKAGE_NAME " was built without NTLM Proxy support.");
-    }
-#endif
 
     p->defined = true;
     return p;
@@ -638,8 +609,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
     volatile int *signal_received = &sig_info->signal_received;
 
     /* get user/pass if not previously given */
-    if (p->auth_method == HTTP_AUTH_BASIC || p->auth_method == HTTP_AUTH_DIGEST
-        || p->auth_method == HTTP_AUTH_NTLM2)
+    if (p->auth_method == HTTP_AUTH_BASIC || p->auth_method == HTTP_AUTH_DIGEST)
     {
         get_user_pass_http(p, false);
 
@@ -692,25 +662,6 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 }
                 break;
 
-#if NTLM
-            case HTTP_AUTH_NTLM2:
-                /* keep-alive connection */
-                snprintf(buf, sizeof(buf), "Proxy-Connection: Keep-Alive");
-                if (!send_line_crlf(sd, buf))
-                {
-                    goto error;
-                }
-
-                snprintf(buf, sizeof(buf), "Proxy-Authorization: NTLM %s", ntlm_phase_1(p, &gc));
-                msg(D_PROXY, "Attempting NTLM Proxy-Authorization phase 1");
-                dmsg(D_SHOW_KEYS, "Send to HTTP proxy: '%s'", buf);
-                if (!send_line_crlf(sd, buf))
-                {
-                    goto error;
-                }
-                break;
-#endif
-
             default:
                 ASSERT(0);
         }
@@ -748,112 +699,6 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
         if (p->auth_method == HTTP_AUTH_BASIC && !processed)
         {
             processed = true;
-        }
-        else if (p->auth_method == HTTP_AUTH_NTLM2 && !processed) /* check for NTLM */
-        {
-#if NTLM
-            /* look for the phase 2 response */
-            char buf2[512];
-            while (true)
-            {
-                if (!recv_line(sd, buf, sizeof(buf),
-                               get_server_poll_remaining_time(server_poll_timeout), true, NULL,
-                               signal_received))
-                {
-                    goto error;
-                }
-                chomp(buf);
-                msg(D_PROXY, "HTTP proxy returned: '%s'", buf);
-
-                char get[80];
-                CLEAR(buf2);
-                snprintf(get, sizeof(get), "%%*s NTLM %%%zus", sizeof(buf2) - 1);
-                nparms = sscanf(buf, get, buf2);
-
-                /* check for "Proxy-Authenticate: NTLM TlRM..." */
-                if (nparms == 1)
-                {
-                    /* parse buf2 */
-                    msg(D_PROXY, "auth string: '%s'", buf2);
-                    break;
-                }
-            }
-            /* if we are here then auth string was got */
-            msg(D_PROXY, "Received NTLM Proxy-Authorization phase 2 response");
-
-            /* receive and discard everything else */
-            while (recv_line(sd, NULL, 0, 2, true, NULL, signal_received))
-            {
-            }
-
-            /* now send the phase 3 reply */
-
-            /* format HTTP CONNECT message */
-            snprintf(buf, sizeof(buf), "CONNECT %s:%s HTTP/%s", host, port,
-                     p->options.http_version);
-
-            msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
-
-            /* send HTTP CONNECT message to proxy */
-            if (!send_line_crlf(sd, buf))
-            {
-                goto error;
-            }
-
-            /* keep-alive connection */
-            snprintf(buf, sizeof(buf), "Proxy-Connection: Keep-Alive");
-            if (!send_line_crlf(sd, buf))
-            {
-                goto error;
-            }
-
-            /* send HOST etc, */
-            if (!add_proxy_headers(p, sd, host))
-            {
-                goto error;
-            }
-
-            msg(D_PROXY, "Attempting NTLM Proxy-Authorization phase 3");
-            {
-                const char *np3 = ntlm_phase_3(p, buf2, &gc);
-                if (!np3)
-                {
-                    msg(D_PROXY,
-                        "NTLM Proxy-Authorization phase 3 failed: received corrupted data from proxy server");
-                    goto error;
-                }
-                snprintf(buf, sizeof(buf), "Proxy-Authorization: NTLM %s", np3);
-            }
-
-            msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
-            if (!send_line_crlf(sd, buf))
-            {
-                goto error;
-            }
-            /* ok so far... */
-            /* send empty CR, LF */
-            if (!send_crlf(sd))
-            {
-                goto error;
-            }
-
-            /* receive reply from proxy */
-            if (!recv_line(sd, buf, sizeof(buf),
-                           get_server_poll_remaining_time(server_poll_timeout), true, NULL,
-                           signal_received))
-            {
-                goto error;
-            }
-
-            /* remove trailing CR, LF */
-            chomp(buf);
-
-            msg(D_PROXY, "HTTP proxy returned: '%s'", buf);
-
-            /* parse return string */
-            nparms = sscanf(buf, "%*s %d", &status);
-            processed = true;
-#endif /* if NTLM */
         }
 #if PROXY_DIGEST_AUTH
         else if (p->auth_method == HTTP_AUTH_DIGEST && !processed)

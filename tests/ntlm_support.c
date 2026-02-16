@@ -26,30 +26,10 @@
 
 #include "syshead.h"
 
-#include "crypto.h"
 #include "error.h"
 
 int
 main(void)
 {
-#ifdef NTLM
-#if defined(ENABLE_CRYPTO_OPENSSL)
-    provider_t *legacy = crypto_load_provider("legacy");
-    provider_t *def = crypto_load_provider("default");
-#endif
-    if (!md_valid("MD4"))
-    {
-        msg(M_FATAL, "MD4 not supported");
-    }
-    if (!md_valid("MD5"))
-    {
-        msg(M_FATAL, "MD5 not supported");
-    }
-#if defined(ENABLE_CRYPTO_OPENSSL)
-    crypto_unload_provider("legacy", legacy);
-    crypto_unload_provider("default", def);
-#endif
-#else /* ifdef NTLM */
     msg(M_FATAL, "NTLM support not compiled in");
-#endif
 }

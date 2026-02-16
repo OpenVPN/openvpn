@@ -2212,7 +2212,6 @@ INCLUDE_FILE_PATTERNS  =
 # This tag requires that the tag ENABLE_PREPROCESSING is set to YES.
 
 PREDEFINED             = _WIN32 \
-                         NTLM \
                          USE_LZO \
                          ENABLE_FRAGMENT \
                          P2MP \
