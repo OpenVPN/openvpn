@@ -44,9 +44,7 @@
 bool
 sockets_read_residual(const struct context *c)
 {
-    int i;
-
-    for (i = 0; i < c->c1.link_sockets_num; i++)
+    for (int i = 0; i < c->c1.link_sockets_num; i++)
     {
         if (c->c2.link_sockets[i]->stream_buf.residual_fully_formed)
         {
@@ -2053,13 +2051,19 @@ socket_stat(const struct link_socket *s, unsigned int rwflags, struct gc_arena *
  * stream connection.
  */
 
+/**
+ * resets the stream buffer to be set up for the next round of
+ * reassembling a packet
+ *
+ * But still leaves the current packet in \c sb->buf to be potentially
+ * read.
+ */
 static inline void
 stream_buf_reset(struct stream_buf *sb)
 {
     dmsg(D_STREAM_DEBUG, "STREAM: RESET");
     sb->residual_fully_formed = false;
     sb->buf = sb->buf_init;
-    buf_reset(&sb->next);
     sb->len = -1;
 }
 
@@ -2081,33 +2085,41 @@ stream_buf_init(struct stream_buf *sb, struct buffer *buf, const unsigned int so
     dmsg(D_STREAM_DEBUG, "STREAM: INIT maxlen=%d", sb->maxlen);
 }
 
-static inline void
-stream_buf_set_next(struct stream_buf *sb)
+/**
+ * Return a buffer that is backed by the same backend as sb->buf that
+ * determines where the next read should be done by also having the
+ * right offset into \c sb->buf.
+ * @param sb the stream buffer from which to construct the next buffer
+ */
+static inline struct buffer
+stream_buf_get_next(struct stream_buf *sb)
 {
     /* set up 'next' for next i/o read */
-    sb->next = sb->buf;
-    sb->next.offset = sb->buf.offset + sb->buf.len;
-    sb->next.len = (sb->len >= 0 ? sb->len : sb->maxlen) - sb->buf.len;
-    dmsg(D_STREAM_DEBUG, "STREAM: SET NEXT, buf=[%d,%d] next=[%d,%d] len=%d maxlen=%d",
-         sb->buf.offset, sb->buf.len, sb->next.offset, sb->next.len, sb->len, sb->maxlen);
-    ASSERT(sb->next.len > 0);
-    ASSERT(buf_safe(&sb->buf, sb->next.len));
+    struct buffer next;
+    next = sb->buf;
+    next.offset = sb->buf.offset + sb->buf.len;
+    next.len = (sb->len >= 0 ? sb->len : sb->maxlen) - sb->buf.len;
+    dmsg(D_STREAM_DEBUG, "STREAM: GET NEXT, buf=[%d,%d] next=[%d,%d] len=%d maxlen=%d",
+         sb->buf.offset, sb->buf.len, next.offset, next.len, sb->len, sb->maxlen);
+    ASSERT(next.len > 0);
+    ASSERT(buf_safe(&sb->buf, next.len));
+    return next;
 }
 
+/**
+ * Sets the parameter buf to the current buffer of \c sb->buf.
+ * This function assumes that caller already checked if the packet in \c sb->buf
+ * is fully assembled.
+ *
+ * @param sb    stream buffer to operate on
+ * @param buf   buffer to point to the contents of buf
+ */
 static inline void
 stream_buf_get_final(struct stream_buf *sb, struct buffer *buf)
 {
     dmsg(D_STREAM_DEBUG, "STREAM: GET FINAL len=%d", buf_defined(&sb->buf) ? sb->buf.len : -1);
     ASSERT(buf_defined(&sb->buf));
     *buf = sb->buf;
-}
-
-static inline void
-stream_buf_get_next(struct stream_buf *sb, struct buffer *buf)
-{
-    dmsg(D_STREAM_DEBUG, "STREAM: GET NEXT len=%d", buf_defined(&sb->next) ? sb->next.len : -1);
-    ASSERT(buf_defined(&sb->next));
-    *buf = sb->next;
 }
 
 bool
@@ -2122,13 +2134,30 @@ stream_buf_read_setup_dowork(struct stream_buf *sb)
              sb->residual_fully_formed ? "YES" : "NO", sb->residual.len);
     }
 
-    if (!sb->residual_fully_formed)
-    {
-        stream_buf_set_next(sb);
-    }
     return !sb->residual_fully_formed;
 }
 
+/**
+ * This will determine if \c sb->buf contains a full packet. It will also
+ * move anything in \c sb->buf beyond a full packet to \c sb->residual.
+ *
+ * The first time the function is called with a valid buffer and port sharing
+ * is enabled, the function will also determine if the buffer contains
+ * OpenVPN protocol data and store the result in \c sb->port_share_state.
+ *
+ * If a packet outside the allowed range is detected, the error state
+ * on \c sb is set.
+ *
+ * Since the buffer in \c sb->buf is modified from the outside (via
+ * \c stream_buf_get_next) the parameter \p length_added needs to be set
+ * to the amount of bytes that have been written to this buffer. If the
+ * buffer was not modified but should still be analysed and potentially
+ * split to \c sb->residual, the parameter \p length_added should be 0.
+ *
+ * @param sb the stream buffer
+ * @param length_added The length that has been added to \c sb->buf
+ * @return true if \c sb->buf contains fully reassembled packet
+ */
 static bool
 stream_buf_added(struct stream_buf *sb, int length_added)
 {
@@ -2191,7 +2220,6 @@ stream_buf_added(struct stream_buf *sb, int length_added)
     else
     {
         dmsg(D_STREAM_DEBUG, "STREAM: ADD returned FALSE (have=%d need=%d)", sb->buf.len, sb->len);
-        stream_buf_set_next(sb);
         return false;
     }
 }
@@ -2261,8 +2289,7 @@ link_socket_read_tcp(struct link_socket *sock, struct buffer *buf)
         sockethandle_t sh = { .s = sock->sd };
         len = sockethandle_finalize(sh, &sock->reads, buf, NULL);
 #else
-        struct buffer frag;
-        stream_buf_get_next(&sock->stream_buf, &frag);
+        struct buffer frag = stream_buf_get_next(&sock->stream_buf);
         len = recv(sock->sd, BPTR(&frag), BLEN(&frag), MSG_NOSIGNAL);
 #endif
 
@@ -2538,7 +2565,7 @@ socket_recv_queue(struct link_socket *sock, int maxsize)
         }
         else if (proto_is_tcp(sock->info.proto))
         {
-            stream_buf_get_next(&sock->stream_buf, &sock->reads.buf);
+            sock->reads.buf = stream_buf_get_next(&sock->stream_buf);
         }
         else
         {
