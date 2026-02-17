@@ -1,0 +1,16 @@
+dev tun
+proto udp
+port 1194
+server 10.8.0.0 255.255.255.0
+ca /etc/openvpn/keys/ca.crt
+cert /etc/openvpn/keys/server.crt
+key /etc/openvpn/keys/server.key
+dh /etc/openvpn/keys/dh.pem
+keepalive 10 120
+persist-key
+persist-tun
+management 0.0.0.0 7505
+verb 4
+log /var/log/openvpn.log
+${PUSH_OPTIONS}
+

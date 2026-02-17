@@ -484,6 +484,7 @@ struct options
     in_addr_t server_bridge_pool_end;
 
     struct push_list push_list;
+    struct gc_arena push_list_gc;
     bool ifconfig_pool_defined;
     in_addr_t ifconfig_pool_start;
     in_addr_t ifconfig_pool_end;
