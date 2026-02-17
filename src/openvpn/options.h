@@ -254,7 +254,6 @@ struct verify_hash_list
 struct options
 {
     struct gc_arena gc;
-    bool gc_owned;
 
     /* first config file */
     const char *config;
@@ -893,7 +892,7 @@ void show_windows_version(const unsigned int flags);
 
 void show_dco_version(const unsigned int flags);
 
-void init_options(struct options *o, const bool init_gc);
+void init_options(struct options *o);
 
 void uninit_options(struct options *o);
 

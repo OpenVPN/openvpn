@@ -248,7 +248,6 @@ test_read_config(void **state)
     CLEAR(o); /* NB: avoiding init_options to limit dependencies */
     gc_init(&o.gc);
     gc_init(&o.dns_options.gc);
-    o.gc_owned = true;
 
     char *p_expect_someopt[MAX_PARMS];
     char *p_expect_otheropt[MAX_PARMS];

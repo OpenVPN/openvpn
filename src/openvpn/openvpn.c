@@ -202,7 +202,7 @@ openvpn_main(int argc, char *argv[])
 #endif
 
             /* initialize options to default state */
-            init_options(&c.options, true);
+            init_options(&c.options);
 
             /* parse command line options, and read configuration file */
             parse_argv(&c.options, argc, argv, M_USAGE, OPT_P_DEFAULT, NULL, c.es);

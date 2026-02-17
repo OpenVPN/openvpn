@@ -797,15 +797,12 @@ static const char usage_message[] =
  * will be set to 0.
  */
 void
-init_options(struct options *o, const bool init_gc)
+init_options(struct options *o)
 {
     CLEAR(*o);
-    if (init_gc)
-    {
-        gc_init(&o->gc);
-        gc_init(&o->dns_options.gc);
-        o->gc_owned = true;
-    }
+    gc_init(&o->gc);
+    gc_init(&o->dns_options.gc);
+
     o->mode = MODE_POINT_TO_POINT;
     o->topology = TOP_UNDEF;
     o->ce.proto = PROTO_UDP;
@@ -933,11 +930,9 @@ uninit_options(struct options *o)
     {
         CLEAR(*o->remote_list);
     }
-    if (o->gc_owned)
-    {
-        gc_free(&o->gc);
-        gc_free(&o->dns_options.gc);
-    }
+
+    gc_free(&o->gc);
+    gc_free(&o->dns_options.gc);
 }
 
 #ifndef ENABLE_SMALL
@@ -2267,7 +2262,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     int dev = DEV_TYPE_UNDEF;
     bool pull = false;
 
-    init_options(&defaults, true);
+    init_options(&defaults);
 
     if (!options->test_crypto)
     {
@@ -4842,7 +4837,7 @@ usage(void)
 #else
 
     struct options o;
-    init_options(&o, true);
+    init_options(&o);
 
     fprintf(fp, usage_message, title_string, o.ce.connect_retry_seconds,
             o.ce.connect_retry_seconds_max, o.ce.local_port, o.ce.remote_port, TUN_MTU_DEFAULT,
@@ -5997,7 +5992,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             struct options sub;
             struct connection_entry *e;
 
-            init_options(&sub, true);
+            init_options(&sub);
             sub.ce = options->ce;
             read_config_string("[CONNECTION-OPTIONS]", &sub, p[1], msglevel, OPT_P_CONNECTION,
                                option_types_found, es);
