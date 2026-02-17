@@ -700,7 +700,7 @@ bool
 md_full(const char *mdname, const uint8_t *src, size_t src_len, uint8_t *dst)
 {
     const md_info_t *md = md_get(mdname);
-    if (md == NULL || src_len < 0)
+    if (md == NULL)
     {
         return false;
     }
