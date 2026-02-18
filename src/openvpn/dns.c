@@ -45,7 +45,7 @@
  * @return              True if parsing was successful
  */
 static bool
-dns_server_port_parse(in_port_t *port, char *port_str)
+dns_server_port_parse(in_port_t *port, const char *port_str)
 {
     char *endptr;
     errno = 0;
@@ -71,8 +71,8 @@ dns_server_addr_parse(struct dns_server *server, const char *addr)
     in_port_t port = 0;
     sa_family_t af;
 
-    char *first_colon = strchr(addr, ':');
-    char *last_colon = strrchr(addr, ':');
+    const char *first_colon = strchr(addr, ':');
+    const char *last_colon = strrchr(addr, ':');
 
     if (!first_colon || first_colon == last_colon)
     {
@@ -93,7 +93,7 @@ dns_server_addr_parse(struct dns_server *server, const char *addr)
         if (addr[0] == '[')
         {
             addr += 1;
-            char *bracket = last_colon - 1;
+            const char *bracket = last_colon - 1;
             if (*bracket != ']' || bracket == addr || !dns_server_port_parse(&port, last_colon + 1))
             {
                 return false;
