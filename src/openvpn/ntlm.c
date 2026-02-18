@@ -230,7 +230,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2,
 
     char domain[128];
     char username[128];
-    char *separator;
+    const char *separator;
 
     bool ntlmv2_enabled = (p->auth_method == HTTP_AUTH_NTLM2);
 
