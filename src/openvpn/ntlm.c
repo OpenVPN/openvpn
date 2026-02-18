@@ -218,7 +218,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
 
     char domain[128];
     char username[128];
-    char *separator;
+    const char *separator;
 
     ASSERT(strlen(p->up.username) > 0);
     ASSERT(strlen(p->up.password) > 0);
