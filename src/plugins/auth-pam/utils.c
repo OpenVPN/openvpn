@@ -66,12 +66,11 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
     /* state: all parameters are valid */
 
     const char *searching = tosearch;
-    char *scratch;
 
     char temp[templen+1];
     temp[0] = 0;
 
-    scratch = strstr(searching, searchfor);
+    const char *scratch = strstr(searching, searchfor);
     if (!scratch)
     {
         return strdup(tosearch);
