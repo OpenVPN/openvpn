@@ -4368,20 +4368,26 @@ update_vhash(struct multi_context *m, struct multi_instance *mi, const char *new
 {
     if (new_ip)
     {
+        in_addr_t old_addr_t = mi->context.c2.push_ifconfig_local;
+
+        struct in_addr new_addr;
+        CLEAR(new_addr);
+        int addr_stat = inet_pton(AF_INET, new_ip, &new_addr);
+        in_addr_t new_addr_t = ntohl(new_addr.s_addr);
+
         /* Remove old IP */
-        if (mi->context.c2.push_ifconfig_defined)
+        if ((addr_stat != 1 || new_addr_t != old_addr_t)
+            && mi->context.c2.push_ifconfig_defined)
         {
             unlearn_ifconfig(m, mi);
         }
 
         /* Add new IP */
-        struct in_addr new_addr;
-        CLEAR(new_addr);
-        if (inet_pton(AF_INET, new_ip, &new_addr) == 1
-            && multi_learn_in_addr_t(m, mi, ntohl(new_addr.s_addr), -1, true))
+        if ((addr_stat == 1 && new_addr_t != old_addr_t)
+            && multi_learn_in_addr_t(m, mi, new_addr_t, -1, true))
         {
             mi->context.c2.push_ifconfig_defined = true;
-            mi->context.c2.push_ifconfig_local = ntohl(new_addr.s_addr);
+            mi->context.c2.push_ifconfig_local = new_addr_t;
             /* set our client's VPN endpoint for status reporting purposes */
             mi->reporting_addr = mi->context.c2.push_ifconfig_local;
         }
@@ -4389,16 +4395,21 @@ update_vhash(struct multi_context *m, struct multi_instance *mi, const char *new
 
     if (new_ipv6)
     {
+        struct in6_addr old_addr6 = mi->context.c2.push_ifconfig_ipv6_local;
+
+        struct in6_addr new_addr6;
+        CLEAR(new_addr6);
+        int addr6_stat = inet_pton(AF_INET6, new_ipv6, &new_addr6);
+
         /* Remove old IPv6 */
-        if (mi->context.c2.push_ifconfig_ipv6_defined)
+        if ((addr6_stat != 1 || memcmp(&new_addr6, &old_addr6, sizeof(old_addr6)) != 0)
+            && mi->context.c2.push_ifconfig_ipv6_defined)
         {
             unlearn_ifconfig_ipv6(m, mi);
         }
 
         /* Add new IPv6 */
-        struct in6_addr new_addr6;
-        CLEAR(new_addr6);
-        if (inet_pton(AF_INET6, new_ipv6, &new_addr6) == 1
+        if ((addr6_stat == 1 && memcmp(&new_addr6, &old_addr6, sizeof(old_addr6)) != 0)
             && multi_learn_in6_addr(m, mi, new_addr6, -1, true))
         {
             mi->context.c2.push_ifconfig_ipv6_defined = true;
