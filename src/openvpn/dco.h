@@ -129,12 +129,15 @@ int open_tun_dco(struct tuntap *tt, openvpn_net_ctx_t *ctx, const char *dev);
 void close_tun_dco(struct tuntap *tt, openvpn_net_ctx_t *ctx);
 
 /**
- * Read data from the DCO communication channel (i.e. a control packet)
+ * Read and process DCO messages from the kernel.
+ *
+ * Each message is processed immediately inside the netlink callback
+ * to prevent message loss when multiple notifications arrive simultaneously.
  *
  * @param dco       the DCO context
  * @return          0 on success or a negative error code otherwise
  */
-int dco_do_read(dco_context_t *dco);
+int dco_read_and_process(dco_context_t *dco);
 
 /**
  * Install a DCO in the main event loop
@@ -301,7 +304,7 @@ close_tun_dco(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 }
 
 static inline int
-dco_do_read(dco_context_t *dco)
+dco_read_and_process(dco_context_t *dco)
 {
     ASSERT(false);
     return 0;

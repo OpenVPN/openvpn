@@ -409,11 +409,8 @@ multi_process_io_udp(struct multi_context *m)
     {
         if (!IS_SIG(&m->top))
         {
-            bool ret = true;
-            while (ret)
-            {
-                ret = multi_process_incoming_dco(m);
-            }
+            /* Single call handles all pending messages (processing in callback) */
+            dco_read_and_process(&m->top.c1.tuntap->dco);
         }
     }
 #endif
@@ -477,6 +474,9 @@ tunnel_server_udp(struct context *top)
 
     /* initialize global multi_context object */
     multi_init(&multi, top, false);
+
+    /* Link top context back to multi_context for DCO immediate processing */
+    top->multi = &multi;
 
     /* initialize our cloned top object */
     multi_top_init(&multi, top);

@@ -423,7 +423,7 @@ dco_version_string(struct gc_arena *gc)
 }
 
 int
-dco_do_read(dco_context_t *dco)
+dco_read_and_process(dco_context_t *dco)
 {
     /* no-op on windows */
     ASSERT(0);
