@@ -492,6 +492,10 @@ Command examples:
   version 2  -- Change management version of client to 2 (default = 1)
   version    -- Show the version of OpenVPN and its Management Interface
 
+Note: Until version 3, no response was generated when client sets its
+version. This was fixed starting version 4: clients should expect
+"SUCCESS: .. " message only when setting the version to >= 4.
+
 COMMAND -- auth-retry
 ---------------------
 

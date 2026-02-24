@@ -1333,6 +1333,15 @@ set_client_version(struct management *man, const char *version)
     if (version)
     {
         man->connection.client_version = atoi(version);
+        /* Prior to version 3, we missed to respond to this command. Acknowledge only if version >= 4 */
+        if (man->connection.client_version >= 4)
+        {
+            msg(M_CLIENT, "SUCCESS: Management client version set to %d", man->connection.client_version);
+        }
+    }
+    else
+    {
+        msg(M_CLIENT, "ERROR: Invalid value specified for management client version");
     }
 }
 
