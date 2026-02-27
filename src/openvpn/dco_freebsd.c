@@ -202,7 +202,7 @@ open_fd(dco_context_t *dco)
         return -1;
     }
 
-    dco->fd = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+    dco->fd = socket(AF_LOCAL, SOCK_DGRAM | SOCK_CLOEXEC, 0);
     if (dco->fd != -1)
     {
         dco->open = true;
@@ -668,9 +668,10 @@ dco_available(int msglevel)
      * loaded, or built into the kernel. */
     (void)kldload("if_ovpn");
 
-    fd = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+    fd = socket(AF_LOCAL, SOCK_DGRAM | SOCK_CLOEXEC, 0);
     if (fd < 0)
     {
+        msg(M_WARN | M_ERRNO, "%s: socket() failed, disabling data channel offload", __func__);
         return false;
     }
 
