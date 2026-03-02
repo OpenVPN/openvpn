@@ -747,7 +747,7 @@ multi_tcp_process_io(struct multi_context *m)
             /* incoming data on DCO? */
             else if (e->arg == MTCP_DCO)
             {
-                multi_process_incoming_dco(m);
+                dco_read_and_process(&m->top.c1.tuntap->dco);
             }
 #endif
             /* signal received? */
@@ -803,6 +803,9 @@ tunnel_server_tcp(struct context *top)
 
     /* initialize global multi_context object */
     multi_init(&multi, top, true);
+
+    /* Link top context back to multi_context for DCO immediate processing */
+    top->multi = &multi;
 
     /* initialize our cloned top object */
     multi_top_init(&multi, top);

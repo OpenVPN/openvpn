@@ -36,6 +36,9 @@
 typedef enum ovpn_key_slot dco_key_slot_t;
 typedef enum ovpn_cipher_alg dco_cipher_t;
 
+/* Forward declarations for callback context */
+struct multi_context;
+struct context;
 
 typedef struct
 {
@@ -47,6 +50,7 @@ typedef struct
 
     int ovpn_dco_id;
     int ovpn_dco_mcast_id;
+    int ctrlid;                      /* NLCTRL family ID for message routing */
 
     unsigned int ifindex;
 
@@ -55,6 +59,10 @@ typedef struct
     int dco_del_peer_reason;
     uint64_t dco_read_bytes;
     uint64_t dco_write_bytes;
+
+    /* Callback context for stats handlers */
+    struct multi_context *m;         /* For multi-peer stats */
+    struct context *c;               /* For single-peer stats */
 } dco_context_t;
 
 #endif /* defined(ENABLE_DCO) && defined(TARGET_LINUX) */
