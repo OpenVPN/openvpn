@@ -471,6 +471,13 @@ man_status(struct management *man, const int version, struct status_output *so)
 }
 
 static void
+man_bytecount_stop(struct management *man)
+{
+    man->connection.bytecount_update_seconds = 0;
+    event_timeout_clear(&man->connection.bytecount_update_interval);
+}
+
+static void
 man_bytecount(struct management *man, const int update_seconds)
 {
     if (update_seconds > 0)
@@ -482,8 +489,7 @@ man_bytecount(struct management *man, const int update_seconds)
     }
     else
     {
-        man->connection.bytecount_update_seconds = 0;
-        event_timeout_clear(&man->connection.bytecount_update_interval);
+        man_bytecount_stop(man);
     }
     msg(M_CLIENT, "SUCCESS: bytecount interval changed");
 }
@@ -1992,6 +1998,7 @@ man_reset_client_socket(struct management *man, const bool exiting)
 {
     if (socket_defined(man->connection.sd_cli))
     {
+        man_bytecount_stop(man);
 #ifdef _WIN32
         man_stop_ne32(man);
 #endif
