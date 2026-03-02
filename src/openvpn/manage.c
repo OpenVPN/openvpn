@@ -61,6 +61,17 @@
 /* tag for blank username/password */
 static const char blank_up[] = "[[BLANK]]";
 
+/*
+ * Management client versions indicating feature support in client.
+ * Append new values as needed but do not change exisiting ones.
+ */
+enum mcv
+{
+    MCV_DEFAULT = 1,
+    MCV_PKSIGN = 2,
+    MCV_PKSIGN_ALG = 3,
+};
+
 struct management *management; /* GLOBAL */
 
 /* static forward declarations */
@@ -1333,8 +1344,8 @@ set_client_version(struct management *man, const char *version)
     if (version)
     {
         man->connection.client_version = atoi(version);
-        /* Prior to version 3, we missed to respond to this command. Acknowledge only if version >= 4 */
-        if (man->connection.client_version >= 4)
+        /* Until MCV_PKSIGN_ALG, we missed to respond to this command. Acknowledge only if version is newer */
+        if (man->connection.client_version > MCV_PKSIGN_ALG)
         {
             msg(M_CLIENT, "SUCCESS: Management client version set to %d", man->connection.client_version);
         }
@@ -2656,7 +2667,7 @@ man_connection_init(struct management *man)
             man->connection.es = event_set_init(&maxevents, EVENT_METHOD_FAST);
         }
 
-        man->connection.client_version = 1; /* default version */
+        man->connection.client_version = MCV_DEFAULT; /* default version */
 
         /*
          * Listen/connect socket
@@ -3776,14 +3787,14 @@ management_query_pk_sig(struct management *man, const char *b64_data, const char
     const char *desc = "pk-sign";
     struct buffer buf_data = alloc_buf(strlen(b64_data) + strlen(algorithm) + 20);
 
-    if (man->connection.client_version <= 1)
+    if (man->connection.client_version <= MCV_DEFAULT)
     {
         prompt = "RSA_SIGN";
         desc = "rsa-sign";
     }
 
     buf_write(&buf_data, b64_data, (int)strlen(b64_data));
-    if (man->connection.client_version > 2)
+    if (man->connection.client_version >= MCV_PKSIGN_ALG)
     {
         buf_write(&buf_data, ",", (int)strlen(","));
         buf_write(&buf_data, algorithm, (int)strlen(algorithm));
