@@ -123,10 +123,23 @@ test_check_ncp_ciphers_list(void **state)
     assert_ptr_equal(mutate_ncp_cipher_list("AES-256-GCM:vollbit", &gc), NULL);
     assert_ptr_equal(mutate_ncp_cipher_list("", &gc), NULL);
 
-    assert_ptr_equal(mutate_ncp_cipher_list("ChaCha20-Poly1305:ChaCha20-Poly1305:ChaCha20-Poly1305:"
-                                            "ChaCha20-Poly1305:ChaCha20-Poly1305:ChaCha20-Poly1305:"
-                                            "ChaCha20-Poly1305",
-                                            &gc),
+    const char long_string[MAX_NCP_CIPHERS_LENGTH] =
+        "CHACHA20-POLY1305:CHACHA20-POLY1305:CHACHA20-POLY1305:"
+        "CHACHA20-POLY1305:CHACHA20-POLY1305:CHACHA20-POLY1305:"
+        "CHACHA20-POLY1305";
+    const char longer_string[MAX_NCP_CIPHERS_LENGTH + 1] =
+        "CHACHA20-POLY1305:CHACHA20-POLY1305:CHACHA20-POLY1305:"
+        "CHACHA20-POLY1305:CHACHA20-POLY1305:CHACHA20-POLY1305:"
+        "CHACHA20-POLY1305:";
+    const char longest_string[] =
+        "CHACHA20-POLY1305:CHACHA20-POLY1305:CHACHA20-POLY1305:"
+        "CHACHA20-POLY1305:CHACHA20-POLY1305:CHACHA20-POLY1305:"
+        "CHACHA20-POLY1305:CHACHA20-POLY1305";
+    assert_string_equal(mutate_ncp_cipher_list(long_string, &gc),
+                        long_string);
+    assert_string_equal(mutate_ncp_cipher_list(longer_string, &gc),
+                        long_string);
+    assert_ptr_equal(mutate_ncp_cipher_list(longest_string, &gc),
                      NULL);
 
 #ifdef ENABLE_CRYPTO_OPENSSL

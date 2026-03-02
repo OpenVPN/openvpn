@@ -92,11 +92,6 @@ tls_peer_supports_ncp(const char *peer_info)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 char *
 mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
 {
@@ -168,7 +163,7 @@ mutate_ncp_cipher_list(const char *list, struct gc_arena *gc)
             }
 
             /* Ensure buffer has capacity for cipher name + : + \0 */
-            if (!(buf_forward_capacity(&new_list) > strlen(ovpn_cipher_name) + 2))
+            if (buf_forward_capacity(&new_list) < (int)strlen(ovpn_cipher_name) + 2)
             {
                 msg(M_WARN, "Length of --data-ciphers is over the "
                             "limit of 127 chars");
@@ -206,10 +201,6 @@ append_cipher_to_ncp_list(struct options *o, const char *ciphername)
     ASSERT(checked_snprintf(ncp_ciphers, newlen, "%s:%s", o->ncp_ciphers, ciphername));
     o->ncp_ciphers = ncp_ciphers;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 bool
 tls_item_in_cipher_list(const char *item, const char *list)
