@@ -496,6 +496,10 @@ Note: Until version 3, no response was generated when client sets its
 version. This was fixed starting version 4: clients should expect
 "SUCCESS: .. " message only when setting the version to >= 4.
 
+Minimum client version required for certain features is listed below:
+    >PK_SIGN:[base64]           -- version 2 or greater
+    >PK_SIGN:[base64],[alg]     -- version 3 or greater
+
 COMMAND -- auth-retry
 ---------------------
 
