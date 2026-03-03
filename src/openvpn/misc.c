@@ -215,7 +215,6 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
         {
             msg(M_WARN, "Note: previous '%s' credentials failed", prefix);
         }
-
 #ifdef ENABLE_MANAGEMENT
         /*
          * Get username/password from management interface?
@@ -389,7 +388,7 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
                     query_user_add(BSTR(&user_prompt), up->username, USER_PASS_LEN, true);
                 }
 
-                if (password_from_stdin)
+                if (password_from_stdin && !(flags & GET_USER_PASS_USERNAME_ONLY))
                 {
                     query_user_add(BSTR(&pass_prompt), up->password, USER_PASS_LEN, false);
                 }
@@ -449,6 +448,12 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
                 }
 #endif /* ifdef ENABLE_MANAGEMENT */
             }
+        }
+
+        /* Use tag for blank password if we are not prompting for one */
+        if (flags & GET_USER_PASS_USERNAME_ONLY)
+        {
+            strncpy(up->password, blank_up, sizeof(up->password));
         }
 
         string_mod(up->username, CC_PRINT, CC_CRLF, 0);

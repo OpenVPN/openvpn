@@ -389,7 +389,7 @@ void enable_auth_user_pass(void);
  * credentials stored in the file, however, if is_inline is true then auth_file
  * contains the username/password inline.
  */
-void auth_user_pass_setup(const char *auth_file, bool is_inline,
+void auth_user_pass_setup(const char *auth_file, bool is_inline, bool username_only,
                           const struct static_challenge_info *sc_info);
 
 /*

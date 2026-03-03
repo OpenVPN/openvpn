@@ -68,7 +68,9 @@ configuration.
       auth-user-pass up
 
   If ``up`` is present, it must be a file containing username/password on 2
-  lines. If the password line is missing, OpenVPN will prompt for one.
+  lines or a flag named :code:`username-only` to indicate no password
+  should be prompted for. In the former case, if the password line is missing
+  in the file, OpenVPN will prompt for one.
 
   If ``up`` is omitted, username/password will be prompted from the
   console.
@@ -83,6 +85,20 @@ configuration.
 
   where password is optional, and will be prompted from the console if
   missing.
+
+  The :code:`username-only` flag is meant to be used with SSO authentication.
+  In this case the user will be asked for a username but not password. Instead,
+  a dummy password :code:`[[BLANK]]` is generated internally and submitted to
+  the server. See management-notes.txt for how this option affects username/password
+  prompt via the management interface. For the console, it simply eliminates
+  the password prompt.
+
+  The :code:`username-only` flag cannot be used along with embedding username and/or
+  password in the config file, or while reading them from an external file. In
+  such cases, if only username is relevant and no password prompt is desired, a
+  dummy password like 'no_passsword' should be embedded as well. This flag is also
+  incompatible with the ``--static-challenge`` option and legacy ``dynamic challenge``
+  protocol.
 
   The server configuration must specify an ``--auth-user-pass-verify``
   script to verify the username/password provided by the client.

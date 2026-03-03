@@ -511,7 +511,8 @@ static const char usage_message[] =
     "                  up is a file containing the username on the first line,\n"
     "                  and a password on the second. If either the password or both\n"
     "                  the username and the password are omitted OpenVPN will prompt\n"
-    "                  for them from console.\n"
+    "                  for them from console. If [up] is 'username-only', only username\n"
+    "                  will be prompted for from console or management interface.\n"
     "--pull           : Accept certain config file options from the peer as if they\n"
     "                  were part of the local config file.  Must be specified\n"
     "                  when connecting to a '--mode server' remote host.\n"
@@ -3939,6 +3940,12 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     {
         o->auth_token_renewal = o->renegotiate_seconds;
     }
+#if ENABLE_MANAGEMENT
+    if (o->auth_user_pass_username_only && o->sc_info.challenge_text)
+    {
+        msg(M_USAGE, "'auth-user-pass username-only' cannot be used with static challenge");
+    }
+#endif
     pre_connect_save(o);
 }
 
@@ -7742,7 +7749,13 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "auth-user-pass") && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_INLINE);
-        if (p[1])
+        options->auth_user_pass_username_only = false;
+        if (p[1] && streq(p[1], "username-only"))
+        {
+            options->auth_user_pass_username_only = true;
+            options->auth_user_pass_file = "stdin";
+        }
+        else if (p[1])
         {
             options->auth_user_pass_file = p[1];
             options->auth_user_pass_file_inline = is_inline;
