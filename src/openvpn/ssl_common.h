@@ -396,6 +396,7 @@ struct tls_options
     const char *export_peer_cert_dir;
     const char *auth_user_pass_file;
     bool auth_user_pass_file_inline;
+    bool auth_user_pass_username_only;
 
     bool auth_token_generate;  /**< Generate auth-tokens on successful
                                 * user/pass auth,seet via

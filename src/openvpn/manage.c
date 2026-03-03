@@ -58,9 +58,6 @@
 #define MANAGEMENT_ECHO_FLAGS 0
 #endif
 
-/* tag for blank username/password */
-static const char blank_up[] = "[[BLANK]]";
-
 /*
  * Management client versions indicating feature support in client.
  * Append new values as needed but do not change exisiting ones.
@@ -70,6 +67,7 @@ enum mcv
     MCV_DEFAULT = 1,
     MCV_PKSIGN = 2,
     MCV_PKSIGN_ALG = 3,
+    MCV_USERNAME_ONLY = 4,
 };
 
 struct management *management; /* GLOBAL */
@@ -740,6 +738,13 @@ man_up_finalize(struct management *man)
 {
     switch (man->connection.up_query_mode)
     {
+        case UP_QUERY_USERNAME:
+            if (strlen(man->connection.up_query.username))
+            {
+                man->connection.up_query.defined = true;
+            }
+            break;
+
         case UP_QUERY_USER_PASS:
             if (!strlen(man->connection.up_query.username))
             {
@@ -794,7 +799,9 @@ static void
 man_query_username(struct management *man, const char *type, const char *string)
 {
     const bool needed =
-        ((man->connection.up_query_mode == UP_QUERY_USER_PASS) && man->connection.up_query_type);
+        ((man->connection.up_query_mode == UP_QUERY_USER_PASS
+          || man->connection.up_query_mode == UP_QUERY_USERNAME)
+         && man->connection.up_query_type);
     man_query_user_pass(man, type, string, needed, "username", man->connection.up_query.username,
                         USER_PASS_LEN);
 }
@@ -3557,6 +3564,12 @@ management_query_user_pass(struct management *man, struct user_pass *up, const c
             up_query_mode = UP_QUERY_PASS;
             prefix = "PASSWORD";
             alert_type = "password";
+        }
+        else if ((man->connection.client_version >= MCV_USERNAME_ONLY) && (flags & GET_USER_PASS_USERNAME_ONLY))
+        {
+            up_query_mode = UP_QUERY_USERNAME;
+            prefix = "PASSWORD";
+            alert_type = "username";
         }
         else
         {

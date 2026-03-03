@@ -665,10 +665,10 @@ init_query_passwords(const struct context *c)
         enable_auth_user_pass();
 #ifdef ENABLE_MANAGEMENT
         auth_user_pass_setup(c->options.auth_user_pass_file, c->options.auth_user_pass_file_inline,
-                             &c->options.sc_info);
+                             c->options.auth_user_pass_username_only, &c->options.sc_info);
 #else
         auth_user_pass_setup(c->options.auth_user_pass_file, c->options.auth_user_pass_file_inline,
-                             NULL);
+                             c->options.auth_user_pass_username_only, NULL);
 #endif
     }
 }
@@ -3386,6 +3386,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     }
     to.auth_user_pass_file = options->auth_user_pass_file;
     to.auth_user_pass_file_inline = options->auth_user_pass_file_inline;
+    to.auth_user_pass_username_only = options->auth_user_pass_username_only;
     to.auth_token_generate = options->auth_token_generate;
     to.auth_token_lifetime = options->auth_token_lifetime;
     to.auth_token_renewal = options->auth_token_renewal;

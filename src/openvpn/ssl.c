@@ -290,13 +290,18 @@ enable_auth_user_pass(void)
 }
 
 void
-auth_user_pass_setup(const char *auth_file, bool is_inline, const struct static_challenge_info *sci)
+auth_user_pass_setup(const char *auth_file, bool is_inline, bool username_only,
+                     const struct static_challenge_info *sci)
 {
     unsigned int flags = GET_USER_PASS_MANAGEMENT;
 
     if (is_inline)
     {
         flags |= GET_USER_PASS_INLINE_CREDS;
+    }
+    if (username_only)
+    {
+        flags |= GET_USER_PASS_USERNAME_ONLY;
     }
 
     if (!auth_user_pass.defined && !auth_token.defined)
@@ -2099,10 +2104,12 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
     {
 #ifdef ENABLE_MANAGEMENT
         auth_user_pass_setup(session->opt->auth_user_pass_file,
-                             session->opt->auth_user_pass_file_inline, session->opt->sci);
+                             session->opt->auth_user_pass_file_inline,
+                             session->opt->auth_user_pass_username_only, session->opt->sci);
 #else
         auth_user_pass_setup(session->opt->auth_user_pass_file,
-                             session->opt->auth_user_pass_file_inline, NULL);
+                             session->opt->auth_user_pass_file_inline,
+                             session->opt->auth_user_pass_username_only, NULL);
 #endif
         struct user_pass *up = &auth_user_pass;
 
