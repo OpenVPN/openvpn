@@ -469,7 +469,7 @@ test_parse_hexstring(void **state)
 
     for (size_t i = 0; i < _countof(valid_str); i++)
     {
-        int len = parse_hexstring(valid_str[i], hash, _countof(hash));
+        DWORD len = parse_hexstring(valid_str[i], hash, _countof(hash));
         assert_int_equal(len, sizeof(test_hash));
         assert_memory_equal(hash, test_hash, sizeof(test_hash));
         memset(hash, 0, _countof(hash));
@@ -477,7 +477,7 @@ test_parse_hexstring(void **state)
 
     for (size_t i = 0; i < _countof(invalid_str); i++)
     {
-        int len = parse_hexstring(invalid_str[i], hash, _countof(hash));
+        DWORD len = parse_hexstring(invalid_str[i], hash, _countof(hash));
         assert_int_equal(len, 0);
     }
 }
