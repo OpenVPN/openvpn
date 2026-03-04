@@ -209,7 +209,7 @@ port_share_sendmsg(const socket_descriptor_t sd, const char command, const struc
         if (head)
         {
             iov[1].iov_base = BPTR(head);
-            iov[1].iov_len = BLEN(head);
+            iov[1].iov_len = BLENZ(head);
             mesg.msg_iovlen = 2;
         }
 
@@ -582,7 +582,7 @@ static int
 proxy_connection_io_send(struct proxy_connection *pc, int *bytes_sent)
 {
     const socket_descriptor_t sd = pc->counterpart->sd;
-    const ssize_t status = send(sd, BPTR(&pc->buf), BLEN(&pc->buf), MSG_NOSIGNAL);
+    const ssize_t status = send(sd, BPTR(&pc->buf), BLENZ(&pc->buf), MSG_NOSIGNAL);
 
     if (status < 0)
     {

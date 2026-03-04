@@ -152,7 +152,7 @@ mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest, const 
         switch (OPENVPN_IPH_GET_VER(*BPTR(buf)))
         {
             case 4:
-                if (BLEN(buf) >= (int)sizeof(struct openvpn_iphdr))
+                if (BLENZ(buf) >= sizeof(struct openvpn_iphdr))
                 {
                     const struct openvpn_iphdr *ip = (const struct openvpn_iphdr *)BPTR(buf);
 
@@ -176,7 +176,7 @@ mroute_extract_addr_ip(struct mroute_addr *src, struct mroute_addr *dest, const 
                 break;
 
             case 6:
-                if (BLEN(buf) >= (int)sizeof(struct openvpn_ipv6hdr))
+                if (BLENZ(buf) >= sizeof(struct openvpn_ipv6hdr))
                 {
                     const struct openvpn_ipv6hdr *ipv6 = (const struct openvpn_ipv6hdr *)BPTR(buf);
 #if 0 /* very basic debug */

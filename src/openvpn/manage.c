@@ -3737,9 +3737,9 @@ management_query_multiline_flatten_newline(struct management *man, const char *b
         buf = buffer_list_peek(*input);
         if (buf && BLEN(buf) > 0)
         {
-            result = (char *)malloc(BLEN(buf) + 1);
+            result = (char *)malloc(BLENZ(buf) + 1);
             check_malloc_return(result);
-            memcpy(result, buf->data, BLEN(buf));
+            memcpy(result, buf->data, BLENZ(buf));
             result[BLEN(buf)] = '\0';
         }
     }
@@ -3766,9 +3766,9 @@ management_query_multiline_flatten(struct management *man, const char *b64_data,
         buf = buffer_list_peek(*input);
         if (buf && BLEN(buf) > 0)
         {
-            result = (char *)malloc(BLEN(buf) + 1);
+            result = (char *)malloc(BLENZ(buf) + 1);
             check_malloc_return(result);
-            memcpy(result, buf->data, BLEN(buf));
+            memcpy(result, buf->data, BLENZ(buf));
             result[BLEN(buf)] = '\0';
         }
     }

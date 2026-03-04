@@ -510,14 +510,14 @@ is_ip_packet_valid(const struct buffer *buf)
 
     if (OPENVPN_IPH_GET_VER(ih->version_len) == 4)
     {
-        if (BLEN(buf) < sizeof(struct openvpn_iphdr))
+        if (BLENZ(buf) < sizeof(struct openvpn_iphdr))
         {
             return false;
         }
     }
     else if (OPENVPN_IPH_GET_VER(ih->version_len) == 6)
     {
-        if (BLEN(buf) < sizeof(struct openvpn_ipv6hdr))
+        if (BLENZ(buf) < sizeof(struct openvpn_ipv6hdr))
         {
             return false;
         }

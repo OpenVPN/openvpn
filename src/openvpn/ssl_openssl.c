@@ -2085,9 +2085,10 @@ bio_write(BIO *bio, const uint8_t *data, int size, const char *desc)
 static void
 bio_write_post(const int status, struct buffer *buf)
 {
-    if (status == 1)                     /* success status return from bio_write? */
+    /* success status return from bio_write? */
+    if (status == 1)
     {
-        memset(BPTR(buf), 0, BLEN(buf)); /* erase data just written */
+        memset(BPTR(buf), 0, BLENZ(buf)); /* erase data just written */
         buf->len = 0;
     }
 }

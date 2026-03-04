@@ -324,9 +324,9 @@ do_data_channel_round_trip(struct crypto_options *co)
 
         /* copy source to input buf */
         buf = work;
-        buf_p = buf_write_alloc(&buf, BLEN(&src));
+        buf_p = buf_write_alloc(&buf, BLENZ(&src));
         ASSERT(buf_p);
-        memcpy(buf_p, BPTR(&src), BLEN(&src));
+        memcpy(buf_p, BPTR(&src), BLENZ(&src));
 
         /* initialize work buffer with buf.headroom bytes of prepend capacity */
         ASSERT(buf_init(&encrypt_workspace, frame.buf.headroom));
@@ -370,9 +370,9 @@ encrypt_one_packet(struct crypto_options *co, int len)
 
     /* copy source to input buf */
     buf = work;
-    buf_p = buf_write_alloc(&buf, BLEN(&src));
+    buf_p = buf_write_alloc(&buf, BLENZ(&src));
     ASSERT(buf_p);
-    memcpy(buf_p, BPTR(&src), BLEN(&src));
+    memcpy(buf_p, BPTR(&src), BLENZ(&src));
 
     ASSERT(buf_init(&encrypt_workspace, frame.buf.headroom));
     openvpn_encrypt(&buf, encrypt_workspace, co);
@@ -668,9 +668,9 @@ test_data_channel_known_vectors_run(bool epoch)
 
     /* copy source to input buf */
     buf = work;
-    buf_p = buf_write_alloc(&buf, BLEN(&src));
+    buf_p = buf_write_alloc(&buf, BLENZ(&src));
     ASSERT(buf_p);
-    memcpy(buf_p, BPTR(&src), BLEN(&src));
+    memcpy(buf_p, BPTR(&src), BLENZ(&src));
 
     /* initialize work buffer with buf.headroom bytes of prepend capacity */
     ASSERT(buf_init(&encrypt_workspace, frame.buf.headroom));

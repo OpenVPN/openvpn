@@ -1320,7 +1320,7 @@ openvpn_PRF(const uint8_t *secret, size_t secret_len, const char *label, const u
     }
 
     /* compute PRF */
-    bool ret = ssl_tls1_PRF(BPTR(&seed), BLEN(&seed), secret, secret_len, output, output_len);
+    bool ret = ssl_tls1_PRF(BPTR(&seed), BLENZ(&seed), secret, secret_len, output, output_len);
 
     buf_clear(&seed);
     free_buf(&seed);

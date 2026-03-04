@@ -665,7 +665,7 @@ test_generate_reset_packet_plain(void **ut_state)
     struct buffer buf2 =
         tls_reset_standalone(&tas.tls_wrap, &tas, &client_id, &server_id, header, false);
     assert_int_equal(BLEN(&buf), BLEN(&buf2));
-    assert_memory_equal(BPTR(&buf), BPTR(&buf2), BLEN(&buf));
+    assert_memory_equal(BPTR(&buf), BPTR(&buf2), BLENZ(&buf));
 
     free_tls_pre_decrypt_state(&state);
     free_buf(&tas.workbuf);
@@ -702,7 +702,7 @@ test_generate_reset_packet_tls_auth(void **ut_state)
     struct buffer buf2 = tls_reset_standalone(&tas_client.tls_wrap, &tas_client, &client_id,
                                               &server_id, header, false);
     assert_int_equal(BLEN(&buf), BLEN(&buf2));
-    assert_memory_equal(BPTR(&buf), BPTR(&buf2), BLEN(&buf));
+    assert_memory_equal(BPTR(&buf), BPTR(&buf2), BLENZ(&buf));
 
     free_tls_pre_decrypt_state(&state);
 

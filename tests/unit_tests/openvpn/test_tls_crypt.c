@@ -225,7 +225,7 @@ tls_crypt_loopback(void **state)
     assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
     assert_true(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
     assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
-    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped), BLEN(&ctx->source));
+    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped), BLENZ(&ctx->source));
 }
 
 
@@ -259,7 +259,7 @@ test_tls_crypt_secure_reneg_key(void **state)
                                       0x33, 0x7b, 0x9c, 0xfb, 0x56, 0xe1, 0xf1, 0x3a, 0x87, 0x0e,
                                       0x66, 0x47, 0xdf, 0xa1, 0x95, 0xc9, 0x2c, 0x17, 0xa0, 0x15,
                                       0xba, 0x49, 0x67, 0xa1, 0x1d, 0x55, 0xea, 0x1a, 0x06, 0xa7 };
-    assert_memory_equal(BPTR(&rctx->work), expected_ciphertext, buf_len(&rctx->work));
+    assert_memory_equal(BPTR(&rctx->work), expected_ciphertext, BLENZ(&rctx->work));
     tls_wrap_free(&session.tls_wrap_reneg);
 
     /* Use previous tls-crypt key as 0x00, with xor we should have the same key
@@ -273,7 +273,7 @@ test_tls_crypt_secure_reneg_key(void **state)
     tls_crypt_wrap(&ctx->source, &rctx->work, &rctx->opt);
     assert_int_equal(buf_len(&ctx->source) + 40, buf_len(&rctx->work));
 
-    assert_memory_equal(BPTR(&rctx->work), expected_ciphertext, buf_len(&rctx->work));
+    assert_memory_equal(BPTR(&rctx->work), expected_ciphertext, BLENZ(&rctx->work));
     tls_wrap_free(&session.tls_wrap_reneg);
 
     /* XOR should not force a different key */
@@ -289,7 +289,7 @@ test_tls_crypt_secure_reneg_key(void **state)
 
     /* Skip packet id */
     buf_advance(&rctx->work, 8);
-    assert_memory_not_equal(BPTR(&rctx->work), expected_ciphertext, buf_len(&rctx->work));
+    assert_memory_not_equal(BPTR(&rctx->work), expected_ciphertext, BLENZ(&rctx->work));
     tls_wrap_free(&session.tls_wrap_reneg);
 
 
@@ -312,7 +312,7 @@ tls_crypt_loopback_zero_len(void **state)
     assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
     assert_true(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
     assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
-    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped), BLEN(&ctx->source));
+    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped), BLENZ(&ctx->source));
 }
 
 /**
@@ -333,7 +333,7 @@ tls_crypt_loopback_max_len(void **state)
     assert_true(BLEN(&ctx->source) < BLEN(&ctx->ciphertext));
     assert_true(tls_crypt_unwrap(&ctx->ciphertext, &ctx->unwrapped, &ctx->co));
     assert_int_equal(BLEN(&ctx->source), BLEN(&ctx->unwrapped));
-    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped), BLEN(&ctx->source));
+    assert_memory_equal(BPTR(&ctx->source), BPTR(&ctx->unwrapped), BLENZ(&ctx->source));
 }
 
 /**

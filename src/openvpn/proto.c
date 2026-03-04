@@ -45,7 +45,7 @@ is_ipv_X(int tunnel_type, struct buffer *buf, int ip_ver)
     verify_align_4(buf);
     if (tunnel_type == DEV_TYPE_TUN)
     {
-        if (BLEN(buf) < sizeof(struct openvpn_iphdr))
+        if (BLENZ(buf) < sizeof(struct openvpn_iphdr))
         {
             return false;
         }
@@ -54,7 +54,7 @@ is_ipv_X(int tunnel_type, struct buffer *buf, int ip_ver)
     else if (tunnel_type == DEV_TYPE_TAP)
     {
         const struct openvpn_ethhdr *eh;
-        if (BLEN(buf) < (sizeof(struct openvpn_ethhdr) + sizeof(struct openvpn_iphdr)))
+        if (BLENZ(buf) < sizeof(struct openvpn_ethhdr) + sizeof(struct openvpn_iphdr))
         {
             return false;
         }
@@ -70,7 +70,7 @@ is_ipv_X(int tunnel_type, struct buffer *buf, int ip_ver)
         if (proto == htons(OPENVPN_ETH_P_8021Q))
         {
             const struct openvpn_8021qhdr *evh;
-            if (BLEN(buf) < (sizeof(struct openvpn_ethhdr) + sizeof(struct openvpn_iphdr)))
+            if (BLENZ(buf) < sizeof(struct openvpn_ethhdr) + sizeof(struct openvpn_iphdr))
             {
                 return false;
             }
@@ -185,7 +185,7 @@ ipv4_packet_size_verify(const uint8_t *data, const int size, const int tunnel_ty
             const char *msgstr = "PACKET SIZE INFO";
             msglvl_t msglevel = D_PACKET_TRUNC_DEBUG;
 
-            if (BLEN(&buf) < (int)sizeof(struct openvpn_iphdr))
+            if (BLENZ(&buf) < sizeof(struct openvpn_iphdr))
             {
                 return;
             }

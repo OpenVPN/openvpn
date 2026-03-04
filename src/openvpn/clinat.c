@@ -249,14 +249,14 @@ client_nat_transform(const struct client_nat_option_list *list, struct buffer *i
 
         if (h->ip.protocol == OPENVPN_IPPROTO_TCP)
         {
-            if (BLEN(ipbuf) >= sizeof(struct openvpn_iphdr) + sizeof(struct openvpn_tcphdr))
+            if (BLENZ(ipbuf) >= sizeof(struct openvpn_iphdr) + sizeof(struct openvpn_tcphdr))
             {
                 ADJUST_CHECKSUM(accumulate, h->u.tcp.check);
             }
         }
         else if (h->ip.protocol == OPENVPN_IPPROTO_UDP)
         {
-            if (BLEN(ipbuf) >= sizeof(struct openvpn_iphdr) + sizeof(struct openvpn_udphdr))
+            if (BLENZ(ipbuf) >= sizeof(struct openvpn_iphdr) + sizeof(struct openvpn_udphdr))
             {
                 ADJUST_CHECKSUM(accumulate, h->u.udp.check);
             }

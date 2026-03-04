@@ -692,7 +692,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
 
         while (current_hash)
         {
-            if (memcmp_constant_time(BPTR(&cert_fp), current_hash->hash, BLEN(&cert_fp)) == 0)
+            if (memcmp_constant_time(BPTR(&cert_fp), current_hash->hash, BLENZ(&cert_fp)) == 0)
             {
                 break;
             }

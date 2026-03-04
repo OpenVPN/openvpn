@@ -85,7 +85,7 @@ vlan_decapsulate(const struct context *c, struct buffer *buf)
     uint16_t vid;
 
     /* assume untagged frame */
-    if (BLEN(buf) < sizeof(*ethhdr))
+    if (BLENZ(buf) < sizeof(*ethhdr))
     {
         goto drop;
     }
@@ -109,7 +109,7 @@ vlan_decapsulate(const struct context *c, struct buffer *buf)
     }
 
     /* tagged frame */
-    if (BLEN(buf) < sizeof(*vlanhdr))
+    if (BLENZ(buf) < sizeof(*vlanhdr))
     {
         goto drop;
     }
@@ -184,7 +184,7 @@ vlan_encapsulate(const struct context *c, struct buffer *buf)
     const struct openvpn_ethhdr *ethhdr;
     struct openvpn_8021qhdr *vlanhdr;
 
-    if (BLEN(buf) < sizeof(*ethhdr))
+    if (BLENZ(buf) < sizeof(*ethhdr))
     {
         goto drop;
     }
@@ -197,7 +197,7 @@ vlan_encapsulate(const struct context *c, struct buffer *buf)
          */
 
         /* Frame too small for header type? */
-        if (BLEN(buf) < sizeof(*vlanhdr))
+        if (BLENZ(buf) < sizeof(*vlanhdr))
         {
             goto drop;
         }
@@ -216,7 +216,7 @@ vlan_encapsulate(const struct context *c, struct buffer *buf)
         /* Untagged frame. */
 
         /* Not enough head room for VLAN tag? */
-        if (buf_reverse_capacity(buf) < SIZE_ETH_TO_8021Q_HDR)
+        if (buf_reverse_capacity(buf) < (int)SIZE_ETH_TO_8021Q_HDR)
         {
             goto drop;
         }
@@ -263,7 +263,7 @@ vlan_is_tagged(const struct buffer *buf)
     const struct openvpn_8021qhdr *vlanhdr;
     uint16_t vid;
 
-    if (BLEN(buf) < sizeof(struct openvpn_8021qhdr))
+    if (BLENZ(buf) < sizeof(struct openvpn_8021qhdr))
     {
         /* frame too small to be VLAN-tagged */
         return false;

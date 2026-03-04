@@ -388,7 +388,7 @@ sitnl_send(struct nlmsghdr *payload, pid_t peer, unsigned int groups, sitnl_pars
             if (h->nlmsg_type == NLMSG_ERROR)
             {
                 err = (struct nlmsgerr *)NLMSG_DATA(h);
-                if (rem_len < sizeof(struct nlmsgerr))
+                if (rem_len < (int)sizeof(struct nlmsgerr))
                 {
                     msg(M_WARN, "%s: ERROR truncated", __func__);
                     ret = -EIO;

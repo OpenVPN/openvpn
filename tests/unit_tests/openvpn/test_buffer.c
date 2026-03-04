@@ -49,9 +49,9 @@ test_buffer_strprefix(void **state)
 #define teststr2  "two"
 #define teststr3  "three"
 
-#define assert_buf_equals_str(buf, str)       \
-    assert_int_equal(BLEN(buf), strlen(str)); \
-    assert_memory_equal(BPTR(buf), str, BLEN(buf));
+#define assert_buf_equals_str(buf, str)        \
+    assert_int_equal(BLENZ(buf), strlen(str)); \
+    assert_memory_equal(BPTR(buf), str, BLENZ(buf));
 
 static void
 test_buffer_printf_catrunc(void **state)

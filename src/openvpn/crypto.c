@@ -119,7 +119,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
             }
         }
         /* Write packet id part of IV to work buffer */
-        ASSERT(buf_write(&work, iv, buf_len(&iv_buffer)));
+        ASSERT(buf_write(&work, iv, BLENZ(&iv_buffer)));
 
         /* This generates the IV by XORing the implicit part of the IV
          * with the packet id already written to the iv buffer */
@@ -1243,9 +1243,9 @@ test_crypto(struct crypto_options *co, struct frame *frame)
 
         /* copy source to input buf */
         buf = work;
-        buf_p = buf_write_alloc(&buf, BLEN(&src));
+        buf_p = buf_write_alloc(&buf, BLENZ(&src));
         ASSERT(buf_p);
-        memcpy(buf_p, BPTR(&src), BLEN(&src));
+        memcpy(buf_p, BPTR(&src), BLENZ(&src));
 
         /* initialize work buffer with buf.headroom bytes of prepend capacity */
         ASSERT(buf_init(&encrypt_workspace, frame->buf.headroom));

@@ -2290,7 +2290,7 @@ link_socket_read_tcp(struct link_socket *sock, struct buffer *buf)
         len = sockethandle_finalize(sh, &sock->reads, buf, NULL);
 #else
         struct buffer frag = stream_buf_get_next(&sock->stream_buf);
-        len = recv(sock->sd, BPTR(&frag), BLEN(&frag), MSG_NOSIGNAL);
+        len = recv(sock->sd, BPTR(&frag), BLENZ(&frag), MSG_NOSIGNAL);
 #endif
 
         if (!len)
@@ -2438,8 +2438,8 @@ link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
 ssize_t
 link_socket_write_tcp(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *to)
 {
-    packet_size_type len = BLEN(buf);
-    dmsg(D_STREAM_DEBUG, "STREAM: WRITE %d offset=%d", (int)len, buf->offset);
+    packet_size_type len = (packet_size_type)BLENZ(buf);
+    dmsg(D_STREAM_DEBUG, "STREAM: WRITE %u offset=%d", len, buf->offset);
     ASSERT(len <= sock->stream_buf.maxlen);
     len = htonps(len);
     ASSERT(buf_write_prepend(buf, &len, sizeof(len)));
@@ -2466,7 +2466,7 @@ link_socket_write_udp_posix_sendmsg(struct link_socket *sock, struct buffer *buf
     uint8_t pktinfo_buf[PKTINFO_BUF_SIZE];
 
     iov.iov_base = BPTR(buf);
-    iov.iov_len = BLEN(buf);
+    iov.iov_len = BLENZ(buf);
     mesg.msg_iov = &iov;
     mesg.msg_iovlen = 1;
     switch (to->dest.addr.sa.sa_family)

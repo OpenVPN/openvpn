@@ -1386,8 +1386,8 @@ drop_if_recursive_routing(struct context *c, struct buffer *buf)
         struct openvpn_iphdr *pip = (struct openvpn_iphdr *)(BPTR(buf) + ip_hdr_offset);
         const int ip_hlen = OPENVPN_IPH_GET_LEN(pip->version_len);
         /* Reject malformed or truncated headers */
-        if (ip_hlen < sizeof(struct openvpn_iphdr)
-            || BLEN(buf) < (int)(ip_hdr_offset + ip_hlen + sizeof(uint16_t) * 2))
+        if (ip_hlen < (int)sizeof(struct openvpn_iphdr)
+            || BLENZ(buf) < ip_hdr_offset + ip_hlen + sizeof(uint16_t) * 2)
         {
             return;
         }

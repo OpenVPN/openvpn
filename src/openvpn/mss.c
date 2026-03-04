@@ -48,7 +48,7 @@ mss_fixup_ipv4(struct buffer *buf, uint16_t maxmss)
     const struct openvpn_iphdr *pip;
     int hlen;
 
-    if (BLEN(buf) < (int)sizeof(struct openvpn_iphdr))
+    if (BLENZ(buf) < sizeof(struct openvpn_iphdr))
     {
         return;
     }
@@ -85,7 +85,7 @@ mss_fixup_ipv6(struct buffer *buf, uint16_t maxmss)
     const struct openvpn_ipv6hdr *pip6;
     struct buffer newbuf;
 
-    if (BLEN(buf) < (int)sizeof(struct openvpn_ipv6hdr))
+    if (BLENZ(buf) < sizeof(struct openvpn_ipv6hdr))
     {
         return;
     }
@@ -96,7 +96,7 @@ mss_fixup_ipv6(struct buffer *buf, uint16_t maxmss)
     /* do we have the full IPv6 packet?
      * "payload_len" does not include IPv6 header (+40 bytes)
      */
-    if (BLEN(buf) != (int)ntohs(pip6->payload_len) + 40)
+    if (BLEN(buf) != ntohs(pip6->payload_len) + 40)
     {
         return;
     }
@@ -120,7 +120,7 @@ mss_fixup_ipv6(struct buffer *buf, uint16_t maxmss)
      * verify remainder is large enough to contain a full TCP header
      */
     newbuf = *buf;
-    if (buf_advance(&newbuf, 40) && BLEN(&newbuf) >= (int)sizeof(struct openvpn_tcphdr))
+    if (buf_advance(&newbuf, 40) && BLENZ(&newbuf) >= sizeof(struct openvpn_tcphdr))
     {
         struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *)BPTR(&newbuf);
         if (tc->flags & OPENVPN_TCPH_SYN_MASK)
@@ -141,7 +141,7 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
     int olen, optlen;
     uint8_t *opt;
 
-    if (BLEN(buf) < (int)sizeof(struct openvpn_tcphdr))
+    if (BLENZ(buf) < sizeof(struct openvpn_tcphdr))
     {
         return;
     }

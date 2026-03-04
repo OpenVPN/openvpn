@@ -126,7 +126,7 @@ clone_buf(const struct buffer *buf)
     ret.data = (uint8_t *)malloc(buf->capacity);
 #endif
     check_malloc_return(ret.data);
-    memcpy(BPTR(&ret), BPTR(buf), BLEN(buf));
+    memcpy(BPTR(&ret), BPTR(buf), BLENZ(buf));
     return ret;
 }
 
@@ -177,7 +177,7 @@ buf_assign(struct buffer *dest, const struct buffer *src)
     {
         return false;
     }
-    return buf_write(dest, BPTR(src), BLEN(src));
+    return buf_write(dest, BPTR(src), BLENZ(src));
 }
 
 void
@@ -308,7 +308,7 @@ buffer_write_file(const char *filename, const struct buffer *buf)
         return false;
     }
 
-    const ssize_t size = write(fd, BPTR(buf), BLEN(buf));
+    const ssize_t size = write(fd, BPTR(buf), (unsigned int)BLEN(buf));
     if (size != BLEN(buf))
     {
         msg(M_ERRNO, "Write error on file '%s'", filename);
@@ -1259,9 +1259,9 @@ buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max_len, co
     struct buffer_entry *more = bl->head;
     size_t size = 0;
     int count = 0;
-    for (count = 0; more; ++count)
+    for (; more; ++count)
     {
-        size_t extra_len = BLEN(&more->buf) + sep_len;
+        size_t extra_len = BLENZ(&more->buf) + sep_len;
         if (size + extra_len > max_len)
         {
             break;

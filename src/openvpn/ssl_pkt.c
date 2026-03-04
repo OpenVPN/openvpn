@@ -298,7 +298,7 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas, struct tls_pre_decry
 {
     struct gc_arena gc = gc_new();
     /* A packet needs to have at least an opcode and session id */
-    if (buf->len < (1 + SID_SIZE))
+    if (BLENZ(buf) < 1 + SID_SIZE)
     {
         dmsg(D_TLS_STATE_ERRORS, "TLS State Error: Too short packet (length  %d) received from %s",
              buf->len, print_link_socket_actual(from, &gc));
@@ -568,7 +568,7 @@ extract_command_buffer(struct buffer *buf, struct gc_arena *gc)
 {
     /* commands on the control channel are seperated by 0x00 bytes.
      * cmdlen does not include the 0 byte of the string */
-    int cmdlen = (int)strnlen(BSTR(buf), BLEN(buf));
+    int cmdlen = (int)strnlen(BSTR(buf), BLENZ(buf));
 
     if (cmdlen >= BLEN(buf))
     {

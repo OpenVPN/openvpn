@@ -829,7 +829,7 @@ send_push_reply(struct context *c, struct push_list *per_client_push_list)
         buf_printf(&buf, ",push-continuation 1");
     }
 
-    if (BLEN(&buf) > sizeof(push_reply_cmd) - 1)
+    if (BLENZ(&buf) >= sizeof(push_reply_cmd))
     {
         const bool status = send_control_channel_string(c, BSTR(&buf), D_PUSH);
         if (!status)
