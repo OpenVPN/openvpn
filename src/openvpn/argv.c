@@ -263,11 +263,6 @@ argv_msg_prefix(const msglvl_t msglevel, const struct argv *a, const char *prefi
     gc_free(&gc);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 /**
  *  Prepares argv format string for further processing
  *
@@ -389,7 +384,7 @@ argv_printf_arglist(struct argv *argres, const char *format, va_list arglist)
      *  Do the actual vsnprintf() operation, which expands the format
      *  string with the provided arguments.
      */
-    size_t size = len + 1;
+    int size = len + 1;
     char *buf = gc_malloc(size, false, &argres->gc);
     len = vsnprintf(buf, size, f, arglist);
     if (len < 0 || len >= size)
@@ -422,10 +417,6 @@ argv_printf_arglist(struct argv *argres, const char *format, va_list arglist)
 out:
     return res;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /**
  *  printf() variant which populates a struct argv.  It processes the
