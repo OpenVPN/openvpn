@@ -1491,17 +1491,11 @@ get_sig_from_man(const unsigned char *dgst, unsigned int dgstlen, unsigned char 
     return len;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 /* sign arbitrary data */
 static int
 rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, int padding)
 {
-    unsigned int len = RSA_size(rsa);
-    int ret = -1;
+    int len = RSA_size(rsa);
 
     if (padding != RSA_PKCS1_PADDING && padding != RSA_NO_PADDING)
     {
@@ -1509,14 +1503,10 @@ rsa_priv_enc(int flen, const unsigned char *from, unsigned char *to, RSA *rsa, i
         return -1;
     }
 
-    ret = get_sig_from_man(from, flen, to, len, get_rsa_padding_name(padding));
+    int ret = get_sig_from_man(from, flen, to, len, get_rsa_padding_name(padding));
 
     return (ret == len) ? ret : -1;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static int
 tls_ctx_use_external_rsa_key(struct tls_root_ctx *ctx, EVP_PKEY *pkey)
