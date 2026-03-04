@@ -263,6 +263,11 @@ argv_msg_prefix(const msglvl_t msglevel, const struct argv *a, const char *prefi
     gc_free(&gc);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 /**
  *  Prepares argv format string for further processing
  *
@@ -417,6 +422,10 @@ argv_printf_arglist(struct argv *argres, const char *format, va_list arglist)
 out:
     return res;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  *  printf() variant which populates a struct argv.  It processes the

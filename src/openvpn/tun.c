@@ -112,6 +112,11 @@ static void exec_command(const char *prefix, const struct argv *a, int n, msglvl
 
 static const char *netsh_get_id(const char *dev_node, struct gc_arena *gc);
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 static bool
 do_address_service(const bool add, const short family, const struct tuntap *tt)
 {
@@ -362,6 +367,10 @@ do_wins_service(bool add, const struct tuntap *tt)
 out:
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static bool
 do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
@@ -1706,6 +1715,11 @@ clear_tuntap(struct tuntap *tuntap)
 #include <netinet/ip.h>
 #include <sys/uio.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 static inline ssize_t
 header_modify_read_write_return(ssize_t len)
 {
@@ -1718,6 +1732,10 @@ header_modify_read_write_return(ssize_t len)
         return len;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static ssize_t
 write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
@@ -3254,6 +3272,11 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
 }
 
 #elif defined(_WIN32)
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
 
 int
 tun_read_queue(struct tuntap *tt, int maxsize)
@@ -5594,6 +5617,10 @@ tuntap_set_ip_addr(struct tuntap *tt, const char *device_guid, bool dhcp_masq_po
 
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static void
 tuntap_set_connected(const struct tuntap *tt)

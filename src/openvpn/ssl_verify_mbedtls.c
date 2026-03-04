@@ -565,6 +565,11 @@ x509_setenv_track(const struct x509_track *xt, struct env_set *es, const int dep
     gc_free(&gc);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 /*
  * Save X509 fields to environment, using the naming convention:
  *
@@ -672,6 +677,10 @@ x509_verify_cert_ku(mbedtls_x509_crt *cert, const unsigned int *const expected_k
 
     return fFound;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 result_t
 x509_verify_cert_eku(mbedtls_x509_crt *cert, const char *const expected_oid)

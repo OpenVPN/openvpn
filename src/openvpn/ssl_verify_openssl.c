@@ -118,6 +118,11 @@ x509_username_field_ext_supported(const char *fieldname)
     return nid == NID_subject_alt_name || nid == NID_issuer_alt_name;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 static bool
 extract_x509_extension(X509 *cert, char *fieldname, char *out, size_t size)
 {
@@ -179,6 +184,10 @@ extract_x509_extension(X509 *cert, char *fieldname, char *out, size_t size)
     }
     return retval;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Extract a field from an X509 subject name.

@@ -327,6 +327,11 @@ proxy_list_housekeeping(struct proxy_connection **list)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 /*
  * Record IP/port of client in filesystem, so that server receiving
  * the proxy can determine true client origin.
@@ -367,6 +372,10 @@ journal_add(const char *journal_dir, struct proxy_connection *pc, struct proxy_c
         gc_free(&gc);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Cleanup function, on proxy process exit.

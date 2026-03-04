@@ -325,6 +325,11 @@ management_callback_remote_entry_count(void *arg)
     return l->len;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 static bool
 management_callback_remote_entry_get(void *arg, unsigned int index, char **remote)
 {
@@ -358,6 +363,10 @@ management_callback_remote_entry_get(void *arg, unsigned int index, char **remot
 
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static bool
 management_callback_remote_cmd(void *arg, const char **p)
@@ -457,6 +466,7 @@ ce_management_query_remote(struct context *c)
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 
 /*

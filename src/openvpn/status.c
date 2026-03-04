@@ -206,6 +206,11 @@ status_close(struct status_output *so)
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 #define STATUS_PRINTF_MAXLEN 512
 
 void
@@ -252,6 +257,10 @@ status_printf(struct status_output *so, const char *format, ...)
         }
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 bool
 status_read(struct status_output *so, struct buffer *buf)

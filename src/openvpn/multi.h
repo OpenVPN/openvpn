@@ -380,6 +380,11 @@ void multi_process_file_closed(struct multi_context *m, const unsigned int mpp_f
 
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 /*
  * Return true if our output queue is not full
  */
@@ -395,6 +400,10 @@ multi_output_queue_ready(const struct multi_context *m, const struct multi_insta
         return true;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Determine which instance has pending output

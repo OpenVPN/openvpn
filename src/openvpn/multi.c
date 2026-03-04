@@ -704,6 +704,11 @@ multi_uninit(struct multi_context *m)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 /*
  * Create a client instance object for a newly connected client.
  */
@@ -793,6 +798,10 @@ err:
     gc_free(&gc);
     return NULL;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Dump tables -- triggered by SIGUSR2.
@@ -4119,6 +4128,11 @@ init_management_callback_multi(struct multi_context *m)
 #endif /* ifdef ENABLE_MANAGEMENT */
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 void
 multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
 {
@@ -4139,6 +4153,10 @@ multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
      * if amount of clients exceeds max_clients */
     ASSERT(mi->context.c2.tls_multi->peer_id < m->max_clients);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  * @brief Determines the earliest wakeup interval based on periodic operations.

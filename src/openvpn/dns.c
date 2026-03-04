@@ -475,7 +475,12 @@ run_up_down_service(bool add, const struct options *o, const struct tuntap *tt)
     send_msg_iservice(o->msg_channel, &nrpt, sizeof(nrpt), &ack, "DNS");
 }
 
-#else  /* ifdef _WIN32 */
+#else /* ifdef _WIN32 */
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
 
 static void
 setenv_dns_option(struct env_set *es, const char *format, int i, int j, const char *value)
@@ -559,6 +564,10 @@ setenv_dns_options(const struct dns_options *o, struct env_set *es)
 
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static void
 updown_env_set(bool up, const struct dns_options *o, const struct tuntap *tt, struct env_set *es)

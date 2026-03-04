@@ -2550,6 +2550,11 @@ socket_get_last_error(const struct link_socket *sock)
     return WSAGetLastError();
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 int
 socket_recv_queue(struct link_socket *sock, int maxsize)
 {
@@ -2650,6 +2655,10 @@ socket_recv_queue(struct link_socket *sock, int maxsize)
     }
     return sock->reads.iostate;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 int
 socket_send_queue(struct link_socket *sock, struct buffer *buf, const struct link_socket_actual *to)

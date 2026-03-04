@@ -1247,6 +1247,11 @@ out:
     return err;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 /**
  * Check for a valid search list in a certain key of the registry
  *
@@ -2999,6 +3004,10 @@ HandleWINSConfigMessage(const wins_cfg_message_t *msg, undo_lists_t *lists)
 out:
     return err;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static DWORD
 HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)

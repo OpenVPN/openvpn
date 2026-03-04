@@ -39,6 +39,11 @@
 
 #include "memdbg.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 /*
  * Encryption and Compression Routines.
  *
@@ -1274,6 +1279,10 @@ test_crypto(struct crypto_options *co, struct frame *frame)
     msg(M_INFO, PACKAGE_NAME " crypto self-test mode SUCCEEDED.");
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 const char *
 print_key_filename(const char *str, bool is_inline)

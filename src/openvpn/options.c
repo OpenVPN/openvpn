@@ -4673,6 +4673,11 @@ options_string_version(const char *s, struct gc_arena *gc)
     return BSTR(&out);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 char *
 options_string_extract_option(const char *options_string, const char *opt_name, struct gc_arena *gc)
 {
@@ -4701,6 +4706,10 @@ options_string_extract_option(const char *options_string, const char *opt_name, 
     }
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * parse/print topology coding
@@ -5540,6 +5549,11 @@ key_is_external(const struct options *options)
 
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
 
 void
 add_option(struct options *options, char *p[], bool is_inline, const char *file, int line,
@@ -9257,6 +9271,10 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
 err:
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 bool
 has_udp_in_local_list(const struct options *options)

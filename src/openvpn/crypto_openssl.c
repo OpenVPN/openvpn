@@ -1190,6 +1190,11 @@ hmac_ctx_free(HMAC_CTX *ctx)
     HMAC_CTX_free(ctx);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 void
 hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, const char *mdname)
 {
@@ -1206,6 +1211,10 @@ hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, const char *mdname)
     /* make sure we used a big enough key */
     ASSERT(HMAC_size(ctx) <= key_len);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 hmac_ctx_cleanup(HMAC_CTX *ctx)

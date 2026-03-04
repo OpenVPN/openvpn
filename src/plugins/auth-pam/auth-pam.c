@@ -184,6 +184,11 @@ recv_string(int fd, char *buffer, size_t len)
     return -1;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 static ssize_t
 send_string(int fd, const char *string)
 {
@@ -198,6 +203,10 @@ send_string(int fd, const char *string)
         return -1;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #ifdef DO_DAEMONIZE
 

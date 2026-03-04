@@ -280,6 +280,11 @@ buf_puts(struct buffer *buf, const char *str)
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 /*
  * write a string to the end of a buffer that was
  * truncated by buf_printf
@@ -1307,6 +1312,10 @@ buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max_len, co
         }
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 buffer_list_aggregate(struct buffer_list *bl, const size_t max)

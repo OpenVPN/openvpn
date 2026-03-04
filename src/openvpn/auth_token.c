@@ -287,6 +287,11 @@ check_hmac_token(hmac_ctx_t *ctx, const uint8_t *b64decoded, const char *usernam
     return memcmp_constant_time(&hmac_output, hmac, 32) == 0;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 unsigned int
 verify_auth_token(struct user_pass *up, struct tls_multi *multi, struct tls_session *session)
 {
@@ -390,6 +395,10 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi, struct tls_sess
     }
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 wipe_auth_token(struct tls_multi *multi)

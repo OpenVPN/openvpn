@@ -627,6 +627,7 @@ tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file, bool
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 
 #if MBEDTLS_VERSION_NUMBER < 0x04000000

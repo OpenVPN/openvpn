@@ -570,6 +570,11 @@ add_block_local_item(struct route_list *rl, const struct route_gateway_address *
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 static void
 add_block_local_routes(struct route_list *rl)
 {
@@ -601,6 +606,10 @@ block_local_needed(const struct route_list *rl)
     return (rl->flags & RG_BLOCK_LOCAL) && (rl->rgi.flags & rgi_needed) == rgi_needed
            && (rl->spec.flags & RTSA_REMOTE_ENDPOINT) && rl->spec.remote_host_local != TLA_LOCAL;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 bool
 init_route_list(struct route_list *rl, const struct route_option_list *opt,
@@ -1436,6 +1445,11 @@ setenv_routes_ipv6(struct env_set *es, const struct route_ipv6_list *rl6)
 #define LR_MATCH   1 /* route is local */
 #define LR_ERROR   2 /* caller should abort adding route */
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 static int
 local_route(in_addr_t network, in_addr_t netmask, in_addr_t gateway,
             const struct route_gateway_info *rgi)
@@ -1464,6 +1478,10 @@ local_route(in_addr_t network, in_addr_t netmask, in_addr_t gateway,
     }
     return LR_NOMATCH;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /* Return true if the "on-link" form of the route should be used.  This is when the gateway for
  * a route is specified as an interface rather than an address. */
@@ -2869,6 +2887,11 @@ out:
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#endif
+
 /* Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error */
 static int
 do_route_ipv4_service(const bool add, const struct route_ipv4 *r, const struct tuntap *tt)
@@ -3017,6 +3040,10 @@ do_route_ipv6_service(const bool add, const struct route_ipv6 *r, const struct t
     }
     return status;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /* Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error */
 static int
