@@ -485,13 +485,11 @@ setenv_dns_option(struct env_set *es, const char *format, int i, int j, const ch
 
     if (j < 0)
     {
-        const int ret = snprintf(name, sizeof(name), format, i);
-        name_ok = (ret > 0 && ret < sizeof(name));
+        name_ok = checked_snprintf(name, sizeof(name), format, i);
     }
     else
     {
-        const int ret = snprintf(name, sizeof(name), format, i, j);
-        name_ok = (ret > 0 && ret < sizeof(name));
+        name_ok = checked_snprintf(name, sizeof(name), format, i, j);
     }
 
     if (!name_ok)

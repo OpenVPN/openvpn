@@ -130,7 +130,7 @@ mbed_log_func_line(unsigned int flags, int errval, const char *func, int line)
 {
     char prefix[256];
 
-    if (snprintf(prefix, sizeof(prefix), "%s:%d", func, line) >= sizeof(prefix))
+    if (!checked_snprintf(prefix, sizeof(prefix), "%s:%d", func, line))
     {
         return mbed_log_err(flags, errval, func);
     }
@@ -246,11 +246,11 @@ crypto_pem_encode(const char *name, struct buffer *dst, const struct buffer *src
     char header[1000 + 1] = { 0 };
     char footer[1000 + 1] = { 0 };
 
-    if (snprintf(header, sizeof(header), "-----BEGIN %s-----\n", name) >= sizeof(header))
+    if (!checked_snprintf(header, sizeof(header), "-----BEGIN %s-----\n", name))
     {
         return false;
     }
-    if (snprintf(footer, sizeof(footer), "-----END %s-----\n", name) >= sizeof(footer))
+    if (!checked_snprintf(footer, sizeof(footer), "-----END %s-----\n", name))
     {
         return false;
     }
@@ -283,11 +283,11 @@ crypto_pem_decode(const char *name, struct buffer *dst, const struct buffer *src
     char header[1000 + 1] = { 0 };
     char footer[1000 + 1] = { 0 };
 
-    if (snprintf(header, sizeof(header), "-----BEGIN %s-----", name) >= sizeof(header))
+    if (!checked_snprintf(header, sizeof(header), "-----BEGIN %s-----", name))
     {
         return false;
     }
-    if (snprintf(footer, sizeof(footer), "-----END %s-----", name) >= sizeof(footer))
+    if (!checked_snprintf(footer, sizeof(footer), "-----END %s-----", name))
     {
         return false;
     }

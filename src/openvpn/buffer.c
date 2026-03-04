@@ -1134,6 +1134,17 @@ string_replace_leading(char *str, const char match, const char replace)
     }
 }
 
+bool
+checked_snprintf(char *str, size_t size, const char *format, ...)
+{
+    va_list arglist;
+    va_start(arglist, format);
+    ASSERT(size < INT_MAX);
+    int len = vsnprintf(str, size, format, arglist);
+    va_end(arglist);
+    return (len >= 0 && len < (ssize_t)size);
+}
+
 #ifdef VERIFY_ALIGNMENT
 void
 valign4(const struct buffer *buf, const char *file, const int line)
