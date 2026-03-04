@@ -146,11 +146,6 @@ win_safe_filename(const char *fn)
     return true;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 const char *
 win_get_tempdir(void)
 {
@@ -162,7 +157,14 @@ win_get_tempdir(void)
         return NULL;
     }
 
-    if (WideCharToMultiByte(CP_UTF8, 0, wtmpdir, -1, NULL, 0, NULL, NULL) > sizeof(tmpdir))
+    int ret = WideCharToMultiByte(CP_UTF8, 0, wtmpdir, -1, NULL, 0, NULL, NULL);
+    /* According to documentation ret is never < 0, but include it here just in case */
+    if (ret <= 0)
+    {
+        msg(M_WARN | M_ERRNO, "Conversion of path name failed.");
+        return NULL;
+    }
+    if ((unsigned int)ret > sizeof(tmpdir))
     {
         msg(M_WARN, "Could not get temporary directory. Path is too long."
                     "  Consider using --tmp-dir");
@@ -173,7 +175,4 @@ win_get_tempdir(void)
     return tmpdir;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 #endif /* _WIN32 */
