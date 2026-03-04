@@ -926,11 +926,10 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 }
 
                 /* send digest response */
-                int sret = snprintf(
-                    buf, sizeof(buf),
-                    "Proxy-Authorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", qop=%s, nc=%s, cnonce=\"%s\", response=\"%s\"%s",
-                    username, realm, nonce, uri, qop, nonce_count, cnonce, response, opaque_kv);
-                if (sret >= sizeof(buf))
+                if (!checked_snprintf(
+                        buf, sizeof(buf),
+                        "Proxy-Authorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", qop=%s, nc=%s, cnonce=\"%s\", response=\"%s\"%s",
+                        username, realm, nonce, uri, qop, nonce_count, cnonce, response, opaque_kv))
                 {
                     goto error;
                 }

@@ -119,10 +119,9 @@ socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
         goto cleanup;
     }
 
-    int sret = snprintf(to_send, sizeof(to_send), "\x01%c%s%c%s", (int)strlen(creds.username),
-                        creds.username, (int)strlen(creds.password), creds.password);
-    ASSERT(sret >= 0 && sret <= sizeof(to_send));
-
+    ASSERT(checked_snprintf(to_send, sizeof(to_send), "\x01%c%s%c%s",
+                            (int)strlen(creds.username), creds.username,
+                            (int)strlen(creds.password), creds.password));
     if (!proxy_send(sd, to_send, strlen(to_send)))
     {
         goto cleanup;
