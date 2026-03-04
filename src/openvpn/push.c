@@ -800,11 +800,6 @@ send_push_reply_auth_token(struct tls_multi *multi)
     gc_free(&gc);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 bool
 send_push_reply(struct context *c, struct push_list *per_client_push_list)
 {
@@ -936,17 +931,13 @@ push_option_fmt(struct gc_arena *gc, struct push_list *push_list,
     va_start(arglist, format);
     len = vsnprintf(tmp, sizeof(tmp), format, arglist);
     va_end(arglist);
-    if (len > sizeof(tmp) - 1)
+    if (len < 0 || len >= (int)sizeof(tmp))
     {
         return false;
     }
     push_option_ex(gc, push_list, string_alloc(tmp, gc), true, msglevel);
     return true;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 push_reset(struct options *o)
