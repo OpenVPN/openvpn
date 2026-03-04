@@ -559,7 +559,7 @@ buf_chomp(struct buffer *buf)
         {
             break;
         }
-        if (char_class(*last, CC_CRLF | CC_NULL))
+        if (char_class((unsigned char)*last, CC_CRLF | CC_NULL))
         {
             if (!buf_inc_len(buf, -1))
             {
@@ -876,6 +876,14 @@ np(const char *str)
  * Classify and mutate strings based on character types.
  */
 
+/* Note 1: This functions depends on getting an unsigned
+   char. Both the is*() functions and our own checks expect it
+   this way.
+   Note 2: For CC_PRINT we just accept everything >= 32, so
+   if we ingest non-ASCII UTF-8 we will classify it as
+   printable since it will be >= 128. Other encodings are
+   not officially supported.
+*/
 bool
 char_class(const unsigned char c, const unsigned int flags)
 {
@@ -1019,7 +1027,8 @@ char_class(const unsigned char c, const unsigned int flags)
 static inline bool
 char_inc_exc(const char c, const unsigned int inclusive, const unsigned int exclusive)
 {
-    return char_class(c, inclusive) && !char_class(c, exclusive);
+    return char_class((unsigned char)c, inclusive)
+           && !char_class((unsigned char)c, exclusive);
 }
 
 bool
