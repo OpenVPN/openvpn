@@ -1905,7 +1905,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
                 long peer_index = strtol(feth_peer_name, NULL, 0);
                 if (peer_index || dev[4] == '0')
                 {
-                    sprintf(feth_peer_name, "feth%ld", peer_index + 1000);
+                    snprintf(feth_peer_name, 9, "feth%ld", peer_index + 1000);
                     msg(M_INFO, "Peer interface for %s is expected to be %s", dev, feth_peer_name);
                 }
                 else
@@ -1945,7 +1945,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
 
             for (int i = 0; i < 99; i++)
             {
-                sprintf(buf, "/dev/bpf%i", i);
+                snprintf(buf, 11, "/dev/bpf%i", i);
                 bpf = open(buf, O_RDONLY);
 
                 if (bpf != -1)
