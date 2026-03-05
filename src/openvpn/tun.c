@@ -56,8 +56,8 @@
 #include <string.h>
 
 #ifdef TARGET_DARWIN
-    #include <ndrv.h>
-    #include <bpf.h>
+    #include <net/ndrv.h>
+    #include <net/bpf.h>
 #endif
 
 const char *

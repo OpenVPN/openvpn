@@ -46,7 +46,7 @@
 #include "memdbg.h"
 
 #ifdef TARGET_DARWIN
-    #include <bpf.h>
+    #include <net/bpf.h>
 #endif
 
 counter_type link_read_bytes_global;  /* GLOBAL */

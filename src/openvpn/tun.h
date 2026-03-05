@@ -41,7 +41,7 @@
 #include "dco.h"
 
 #ifdef TARGET_DARWIN
-    #include <ndrv.h>
+    #include <net/ndrv.h>
 #endif
 
 enum tun_driver_type
