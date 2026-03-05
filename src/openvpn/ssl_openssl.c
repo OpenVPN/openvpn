@@ -796,7 +796,7 @@ ui_reader(UI *ui, UI_STRING *uis)
         }
         else /* use our generic 'Private Key' passphrase callback */
         {
-            char password[64];
+            char password[USER_PASS_LEN];
             pem_password_cb *cb = SSL_CTX_get_default_passwd_cb(ctx);
             void *d = SSL_CTX_get_default_passwd_cb_userdata(ctx);
 
