@@ -40,7 +40,9 @@
 #include "networking.h"
 #include "dco.h"
 
-#include <ndrv.h>
+#ifdef TARGET_DARWIN
+    #include <ndrv.h>
+#endif
 
 enum tun_driver_type
 {

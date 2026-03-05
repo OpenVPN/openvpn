@@ -54,8 +54,11 @@
 #endif
 
 #include <string.h>
-#include <ndrv.h>
-#include <bpf.h>
+
+#ifdef TARGET_DARWIN
+    #include <ndrv.h>
+    #include <bpf.h>
+#endif
 
 const char *
 print_tun_backend_driver(enum tun_driver_type driver)
