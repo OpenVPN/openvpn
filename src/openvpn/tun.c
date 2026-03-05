@@ -1889,7 +1889,8 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
             msg(M_INFO, "TUN/TAP device %s exists previously, keep at program end", dev);
             tt->persistent_if = true;
         }
-#if defined(TARGET_DARWIN)
+
+        #if defined(TARGET_DARWIN)
         if (strncmp(dev, "feth", 4) == 0)
         {
 
@@ -1919,15 +1920,13 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
                 msg(M_ERR, "Cannot open writing socket for TAP dev %s", tunname);
             }
 
-            struct sockaddr_ndrv ndrv_sockaddr;
+            memset(&tt->ndrv_sockaddr,0, sizeof(tt->ndrv_sockaddr));
+            tt->ndrv_sockaddr.snd_family = AF_NDRV;
 
-            memset(&ndrv_sockaddr,0, sizeof(ndrv_sockaddr));
-            ndrv_sockaddr.snd_family = AF_NDRV;
+            strcpy((char*)tt->ndrv_sockaddr.snd_name, (char*)feth_peer_name);
+            msg(M_INFO, "ndrv_sockaddr.snd_name = %s", tt->ndrv_sockaddr.snd_name);
 
-            strcpy((char*)ndrv_sockaddr.snd_name, (char*)feth_peer_name);
-            msg(M_INFO, "ndrv_sockaddr.snd_name = %s", ndrv_sockaddr.snd_name);
-
-            if (bind(tt->wfd, (struct sockaddr*)&ndrv_sockaddr, sizeof(ndrv_sockaddr)) < 0)
+            if (bind(tt->wfd, (struct sockaddr*)&tt->ndrv_sockaddr, sizeof(tt->ndrv_sockaddr)) < 0)
             {
                 msg(M_ERR, "Cannot bind writing socket %d for TAP %s", tt->wfd, tunname);
             }
@@ -3255,11 +3254,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
         /* feth TAP interface */
         if (tt->actual_peer_name)
         {
-            struct sockaddr_ndrv ndrv_sockaddr;
-            memset(&ndrv_sockaddr,0, sizeof(ndrv_sockaddr));
-            ndrv_sockaddr.snd_family = AF_NDRV;
-            strcpy((char*)ndrv_sockaddr.snd_name, (char*) tt->actual_peer_name);
-            return sendto(tt->wfd, buf, len, 0, (const struct sockaddr*)&ndrv_sockaddr, sizeof(ndrv_sockaddr));
+            return sendto(tt->wfd, buf, len, 0, (const struct sockaddr*)&tt->ndrv_sockaddr, sizeof(tt->ndrv_sockaddr));
         }
         else
         {

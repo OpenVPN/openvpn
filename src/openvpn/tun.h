@@ -40,6 +40,8 @@
 #include "networking.h"
 #include "dco.h"
 
+#include <ndrv.h>
+
 enum tun_driver_type
 {
     WINDOWS_DRIVER_UNSPECIFIED,
@@ -208,6 +210,7 @@ struct tuntap
 
 #ifdef TARGET_DARWIN
     char *actual_peer_name; /* actual name of macOS TAP feth dev peer interface, with original unit number + 1000) */
+    struct sockaddr_ndrv ndrv_sockaddr; /* write socket for feth TAP interface */
 #endif
 
     /* ifconfig parameters */
