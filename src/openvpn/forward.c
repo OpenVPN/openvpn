@@ -1340,14 +1340,14 @@ read_incoming_tun(struct context *c)
             memcpy(c->c2.buffers->read_tun_bpf_buf.data, c->c2.buffers->read_tun_aux_buf.data,  c->c2.buffers->read_tun_aux_buf.len);
             c->c2.buffers->read_tun_bpf_buf.len=c->c2.buffers->read_tun_aux_buf.len;
 
-            /* As we will refill the buffer only if there are still another packets, zero len for the moment */
+            /* as we will refill the buffer only if there are still another packets, zero len for the moment */
             c->c2.buffers->read_tun_aux_buf.len = 0;
         }
 
-        /* This is the current bpf packet */
+        /* this is the current bpf packet */
         struct bpf_hdr *hdr = (struct bpf_hdr *)BPTR(&c->c2.buffers->read_tun_bpf_buf);
 
-        /* Need to split bpf packets */
+        /* need to split bpf packets */
         if ((unsigned int)c->c2.buffers->read_tun_bpf_buf.len > hdr->bh_hdrlen + hdr->bh_caplen)
         {
             ASSERT(buf_init(&c->c2.buffers->read_tun_aux_buf, 0));
