@@ -45,6 +45,8 @@
 
 #include "memdbg.h"
 
+#include <bpf.h>
+
 counter_type link_read_bytes_global;  /* GLOBAL */
 counter_type link_write_bytes_global; /* GLOBAL */
 
@@ -1306,15 +1308,76 @@ read_incoming_tun(struct context *c)
 
     c->c2.buf = c->c2.buffers->read_tun_buf;
 
-#ifdef _WIN32
-    /* we cannot end up here when using dco */
-    ASSERT(!dco_enabled(&c->options));
+#ifndef _WIN32
+        ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
+        ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
+#endif
 
-    sockethandle_t sh = { .is_handle = true, .h = c->c1.tuntap->hand, .prepend_sa = false };
-    sockethandle_finalize(sh, &c->c1.tuntap->reads, &c->c2.buf, NULL);
-#else  /* ifdef _WIN32 */
-    ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
-    ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
+#if defined (TARGET_DARWIN)
+    if (c->c1.tuntap->actual_peer_name)
+    {
+        int next_bpf_packet_offset = 0;
+
+        ASSERT(buf_init(&c->c2.buffers->read_tun_bpf_buf, 0));
+        ASSERT(buf_safe(&c->c2.buffers->read_tun_bpf_buf, TUN_BPF_BUF_SIZE));
+
+        /* no data remaining in aux tun read buf, so read from bpf */
+        if (!(c->c2.buffers->read_tun_aux_buf.len))
+        {
+            if (c->c1.tuntap->backend_driver == DRIVER_AFUNIX)
+            {
+                c->c2.buffers->read_tun_bpf_buf.len =
+                    (int)read_tun_afunix(c->c1.tuntap, BPTR(&c->c2.buffers->read_tun_bpf_buf), TUN_BPF_BUF_SIZE);
+            }
+            else
+            {
+                c->c2.buffers->read_tun_bpf_buf.len = (int)read_tun(c->c1.tuntap, BPTR(&c->c2.buffers->read_tun_bpf_buf), TUN_BPF_BUF_SIZE);
+            }
+        }
+        else
+        {
+            /* data remaining in aux tun read buf, copy it to bpf buf instead of real read */
+            memcpy(c->c2.buffers->read_tun_bpf_buf.data, c->c2.buffers->read_tun_aux_buf.data,  c->c2.buffers->read_tun_aux_buf.len);
+            c->c2.buffers->read_tun_bpf_buf.len=c->c2.buffers->read_tun_aux_buf.len;
+
+            /* As we will refill the buffer only if there are still another packets, zero len for the moment */
+            c->c2.buffers->read_tun_aux_buf.len = 0;
+        }
+
+        /* This is the current bpf packet */
+        struct bpf_hdr *hdr = (struct bpf_hdr *)BPTR(&c->c2.buffers->read_tun_bpf_buf);
+
+        /* Need to split bpf packets */
+        if ((unsigned int)c->c2.buffers->read_tun_bpf_buf.len > hdr->bh_hdrlen + hdr->bh_caplen)
+        {
+            ASSERT(buf_init(&c->c2.buffers->read_tun_aux_buf, 0));
+            ASSERT(buf_safe(&c->c2.buffers->read_tun_aux_buf, TUN_BPF_BUF_SIZE));
+
+            next_bpf_packet_offset = BPF_WORDALIGN(hdr->bh_hdrlen + hdr->bh_caplen);
+
+            memcpy(BPTR(&c->c2.buffers->read_tun_aux_buf),(char*)hdr+next_bpf_packet_offset, c->c2.buffers->read_tun_bpf_buf.len - next_bpf_packet_offset);
+            c->c2.buffers->read_tun_aux_buf.len = c->c2.buffers->read_tun_bpf_buf.len - next_bpf_packet_offset;
+        }
+
+        /* fill standard read_tun_buf with data from current bpf packet */
+        memcpy(BPTR(&c->c2.buf), (char*)hdr + hdr->bh_hdrlen, hdr->bh_caplen);
+        c->c2.buf.len=hdr->bh_caplen;
+    }
+    else
+    {
+        if (c->c1.tuntap->backend_driver == DRIVER_AFUNIX)
+        {
+            c->c2.buf.len =
+                (int)read_tun_afunix(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
+        }
+        else
+        {
+            c->c2.buf.len = (int)read_tun(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
+        }
+    }
+#else /* TARGET_DARWIN */
+
+#ifndef _WIN32
     if (c->c1.tuntap->backend_driver == DRIVER_AFUNIX)
     {
         c->c2.buf.len =
@@ -1324,7 +1387,15 @@ read_incoming_tun(struct context *c)
     {
         c->c2.buf.len = (int)read_tun(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
     }
-#endif /* ifdef _WIN32 */
+
+#else /* ifndef _WIN32 */
+    /* we cannot end up here when using dco */
+    ASSERT(!dco_enabled(&c->options));
+
+    sockethandle_t sh = { .is_handle = true, .h = c->c1.tuntap->hand, .prepend_sa = false };
+    sockethandle_finalize(sh, &c->c1.tuntap->reads, &c->c2.buf, NULL);
+
+#endif /* ifndef _WIN32 */
 
 #ifdef PACKET_TRUNCATION_CHECK
     ipv4_packet_size_verify(BPTR(&c->c2.buf), BLEN(&c->c2.buf), TUNNEL_TYPE(c->c1.tuntap),
@@ -2156,6 +2227,14 @@ get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned in
     multi_io->udp_flags = (out_socket << SOCKET_SHIFT);
 }
 
+#ifdef TARGET_DARWIN
+static inline bool
+tun_read_residual(const struct context *c)
+{
+    return c->c2.buffers->read_tun_aux_buf.len > 0;
+}
+#endif /* TARGET_DARWIN */
+
 /*
  * This is the core I/O wait function, used for all I/O waits except
  * for the top-level server sockets.
@@ -2213,7 +2292,24 @@ io_wait(struct context *c, const unsigned int flags)
 
     if (!c->sig->signal_received)
     {
+
+#ifdef TARGET_DARWIN
+        if (flags & IOW_CHECK_RESIDUAL)
+        {
+            if (sockets_read_residual(c))
+            {
+                c->c2.event_set_status = SOCKET_READ;
+            }
+            else if ( (!(flags & IOW_TO_LINK)) && tun_read_residual(c) )
+            {
+                c->c2.event_set_status = TUN_READ;
+            }
+        }
+
+        if (!(flags & IOW_CHECK_RESIDUAL) || !((c->c2.event_set_status == SOCKET_READ ) || (c->c2.event_set_status == TUN_READ)))
+#else /* TARGET_DARWIN */
         if (!(flags & IOW_CHECK_RESIDUAL) || !sockets_read_residual(c))
+#endif /* TARGET_DARWIN */
         {
             int status;
 

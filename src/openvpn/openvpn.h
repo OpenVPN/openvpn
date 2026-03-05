@@ -112,8 +112,19 @@ struct context_buffers
      */
     struct buffer read_link_buf;
     struct buffer read_tun_buf;
+
+#ifdef TARGET_DARWIN
+    struct buffer read_tun_aux_buf;
+    struct buffer read_tun_bpf_buf;
 };
 
+#define TUN_BPF_BUF_SIZE 32768
+
+#else
+};
+
+#endif
+    
 /*
  * always-persistent context variables
  */

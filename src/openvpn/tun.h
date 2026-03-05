@@ -206,6 +206,10 @@ struct tuntap
 
     char *actual_name;             /* actual name of TUN/TAP dev, usually including unit number */
 
+#ifdef TARGET_DARWIN
+    char *actual_peer_name; /* actual name of macOS TAP feth dev peer interface, with original unit number + 1000) */
+#endif
+
     /* ifconfig parameters */
     in_addr_t local;
     in_addr_t remote_netmask;
@@ -238,6 +242,10 @@ struct tuntap
 #else  /* ifdef _WIN32 */
     int fd; /* file descriptor for TUN/TAP dev */
 #endif /* ifdef _WIN32 */
+
+#ifdef TARGET_DARWIN
+    int wfd; /* file descriptor for feth tap emulated dev write */
+#endif
 
 #ifdef TARGET_SOLARIS
     int ip_fd;
