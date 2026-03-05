@@ -1399,6 +1399,8 @@ read_incoming_tun(struct context *c)
 
 #endif /* ifndef _WIN32 */
 
+#endif /* TARGET_DARWIN */
+
 #ifdef PACKET_TRUNCATION_CHECK
     ipv4_packet_size_verify(BPTR(&c->c2.buf), BLEN(&c->c2.buf), TUNNEL_TYPE(c->c1.tuntap),
                             "READ_TUN", &c->c2.n_trunc_tun_read);
