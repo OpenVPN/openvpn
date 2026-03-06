@@ -1363,7 +1363,7 @@ read_incoming_tun(struct context *c)
 
         /* fill standard read_tun_buf with data from current bpf packet */
         memcpy(BPTR(&c->c2.buf), (char *)hdr + hdr->bh_hdrlen, hdr->bh_caplen);
-        c->c2.buf.len=hdr->bh_caplen;
+        c->c2.buf.len = hdr->bh_caplen;
     }
     else
     {
