@@ -2000,7 +2000,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
 
             value = 0;
 
-            if (ioctl( bpf, BIOCSSEESENT , &value) == -1)
+            if (ioctl( bpf, BIOCSSEESENT, &value) == -1)
             {
                 msg(M_ERR, "Cannot block bpf reception of our outgoing packets on %s", buf);
             }
