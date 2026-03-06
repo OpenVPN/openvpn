@@ -124,7 +124,7 @@ struct context_buffers
 };
 
 #endif
-    
+
 /*
  * always-persistent context variables
  */

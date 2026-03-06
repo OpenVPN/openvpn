@@ -56,8 +56,8 @@
 #include <string.h>
 
 #ifdef TARGET_DARWIN
-    #include <net/ndrv.h>
-    #include <net/bpf.h>
+#include <net/ndrv.h>
+#include <net/bpf.h>
 #endif
 
 const char *
@@ -1893,10 +1893,9 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
             tt->persistent_if = true;
         }
 
-        #if defined(TARGET_DARWIN)
+#if defined(TARGET_DARWIN)
         if (strncmp(dev, "feth", 4) == 0)
         {
-
             char feth_peer_name[256];
 
             strncpy(feth_peer_name, dev + 4, strlen(dev) - 4);
@@ -1915,7 +1914,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
             }
             else
             {
-                    msg(M_ERR, "No valid feth name %s", tunname);
+                msg(M_ERR, "No valid feth name %s", tunname);
             }
 
             if ((tt->wfd = socket(AF_NDRV, SOCK_RAW, 0)) < 0)
@@ -1923,13 +1922,13 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
                 msg(M_ERR, "Cannot open writing socket for TAP dev %s", tunname);
             }
 
-            memset(&tt->ndrv_sockaddr,0, sizeof(tt->ndrv_sockaddr));
+            memset(&tt->ndrv_sockaddr, 0, sizeof(tt->ndrv_sockaddr));
             tt->ndrv_sockaddr.snd_family = AF_NDRV;
 
-            strcpy((char*)tt->ndrv_sockaddr.snd_name, (char*)feth_peer_name);
+            strcpy((char *)tt->ndrv_sockaddr.snd_name, (char *)feth_peer_name);
             msg(M_INFO, "ndrv_sockaddr.snd_name = %s", tt->ndrv_sockaddr.snd_name);
 
-            if (bind(tt->wfd, (struct sockaddr*)&tt->ndrv_sockaddr, sizeof(tt->ndrv_sockaddr)) < 0)
+            if (bind(tt->wfd, (struct sockaddr *)&tt->ndrv_sockaddr, sizeof(tt->ndrv_sockaddr)) < 0)
             {
                 msg(M_ERR, "Cannot bind writing socket %d for TAP %s", tt->wfd, tunname);
             }
@@ -1940,7 +1939,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
             msg(M_INFO, "Writing socket for TAP device peer %s opened", feth_peer_name);
 
             // Creating a read fd with bpf
-            char buf[11] = {0};
+            char buf[11] = { 0 };
             int bpf = 0;
 
             for (int i = 0; i < 99; i++)
@@ -1949,9 +1948,11 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
                 bpf = open(buf, O_RDONLY);
 
                 if (bpf != -1)
+                {
                     break;
+                }
             }
-                    if (bpf == -1)
+            if (bpf == -1)
             {
                 msg(M_ERR, "Cannot find free bpf for dev %s TAP", tunname);
             }
@@ -1994,12 +1995,12 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
 
             if (ioctl(bpf, BIOCPROMISC, &value) == -1)
             {
-                msg(M_ERR, "Cannot enable promiscuous mode for %s TAP bpf %s", tunname,  buf);
+                msg(M_ERR, "Cannot enable promiscuous mode for %s TAP bpf %s", tunname, buf);
             }
 
             value = 0;
 
-            if( ioctl( bpf, BIOCSSEESENT , &value ) == -1 )
+            if (ioctl( bpf, BIOCSSEESENT , &value ) == -1)
             {
                 msg(M_ERR, "Cannot block bpf reception of our outgoing packets on %s", buf);
             }
@@ -2020,7 +2021,6 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
             set_nonblock(tt->fd);
             set_cloexec(tt->fd); /* don't pass fd to scripts */
             msg(M_INFO, "TUN/TAP device %s opened", tunname);
-
         }
     }
 
@@ -2106,7 +2106,7 @@ close_tun_generic(struct tuntap *tt)
         close(tt->fd);
     }
 
-#if defined (TARGET_DARWIN)
+#if defined(TARGET_DARWIN)
     if (tt->actual_peer_name)
     {
         close(tt->wfd);
@@ -3257,7 +3257,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
         /* feth TAP interface */
         if (tt->actual_peer_name)
         {
-            return sendto(tt->wfd, buf, len, 0, (const struct sockaddr*)&tt->ndrv_sockaddr, sizeof(tt->ndrv_sockaddr));
+            return sendto(tt->wfd, buf, len, 0, (const struct sockaddr *)&tt->ndrv_sockaddr, sizeof(tt->ndrv_sockaddr));
         }
         else
         {

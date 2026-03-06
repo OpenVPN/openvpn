@@ -3724,7 +3724,7 @@ free_context_buffers(struct context_buffers *b)
 #if defined(TARGET_DARWIN)
         free_buf(&b->read_tun_aux_buf);
         free_buf(&b->read_tun_bpf_buf);
-#endif      
+#endif
 
 #ifdef USE_COMP
         free_buf(&b->compress_buf);

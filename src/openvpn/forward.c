@@ -46,7 +46,7 @@
 #include "memdbg.h"
 
 #ifdef TARGET_DARWIN
-    #include <net/bpf.h>
+#include <net/bpf.h>
 #endif
 
 counter_type link_read_bytes_global;  /* GLOBAL */
@@ -1311,11 +1311,11 @@ read_incoming_tun(struct context *c)
     c->c2.buf = c->c2.buffers->read_tun_buf;
 
 #ifndef _WIN32
-        ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
-        ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
+    ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
+    ASSERT(buf_safe(&c->c2.buf, c->c2.frame.buf.payload_size));
 #endif
 
-#if defined (TARGET_DARWIN)
+#if defined(TARGET_DARWIN)
     if (c->c1.tuntap->actual_peer_name)
     {
         int next_bpf_packet_offset = 0;
@@ -1339,8 +1339,8 @@ read_incoming_tun(struct context *c)
         else
         {
             /* data remaining in aux tun read buf, copy it to bpf buf instead of real read */
-            memcpy(c->c2.buffers->read_tun_bpf_buf.data, c->c2.buffers->read_tun_aux_buf.data,  c->c2.buffers->read_tun_aux_buf.len);
-            c->c2.buffers->read_tun_bpf_buf.len=c->c2.buffers->read_tun_aux_buf.len;
+            memcpy(c->c2.buffers->read_tun_bpf_buf.data, c->c2.buffers->read_tun_aux_buf.data, c->c2.buffers->read_tun_aux_buf.len);
+            c->c2.buffers->read_tun_bpf_buf.len = c->c2.buffers->read_tun_aux_buf.len;
 
             /* as we will refill the buffer only if there are still another packets, zero len for the moment */
             c->c2.buffers->read_tun_aux_buf.len = 0;
@@ -1357,12 +1357,12 @@ read_incoming_tun(struct context *c)
 
             next_bpf_packet_offset = BPF_WORDALIGN(hdr->bh_hdrlen + hdr->bh_caplen);
 
-            memcpy(BPTR(&c->c2.buffers->read_tun_aux_buf),(char*)hdr+next_bpf_packet_offset, c->c2.buffers->read_tun_bpf_buf.len - next_bpf_packet_offset);
+            memcpy(BPTR(&c->c2.buffers->read_tun_aux_buf), (char *)hdr + next_bpf_packet_offset, c->c2.buffers->read_tun_bpf_buf.len - next_bpf_packet_offset);
             c->c2.buffers->read_tun_aux_buf.len = c->c2.buffers->read_tun_bpf_buf.len - next_bpf_packet_offset;
         }
 
         /* fill standard read_tun_buf with data from current bpf packet */
-        memcpy(BPTR(&c->c2.buf), (char*)hdr + hdr->bh_hdrlen, hdr->bh_caplen);
+        memcpy(BPTR(&c->c2.buf), (char *)hdr + hdr->bh_hdrlen, hdr->bh_caplen);
         c->c2.buf.len=hdr->bh_caplen;
     }
     else
@@ -1390,7 +1390,7 @@ read_incoming_tun(struct context *c)
         c->c2.buf.len = (int)read_tun(c->c1.tuntap, BPTR(&c->c2.buf), c->c2.frame.buf.payload_size);
     }
 
-#else /* ifndef _WIN32 */
+#else  /* ifndef _WIN32 */
     /* we cannot end up here when using dco */
     ASSERT(!dco_enabled(&c->options));
 
@@ -2296,7 +2296,6 @@ io_wait(struct context *c, const unsigned int flags)
 
     if (!c->sig->signal_received)
     {
-
 #ifdef TARGET_DARWIN
         if (flags & IOW_CHECK_RESIDUAL)
         {
@@ -2304,14 +2303,14 @@ io_wait(struct context *c, const unsigned int flags)
             {
                 c->c2.event_set_status = SOCKET_READ;
             }
-            else if ( (!(flags & IOW_TO_LINK)) && tun_read_residual(c) )
+            else if ((!(flags & IOW_TO_LINK)) && tun_read_residual(c))
             {
                 c->c2.event_set_status = TUN_READ;
             }
         }
 
-        if (!(flags & IOW_CHECK_RESIDUAL) || !((c->c2.event_set_status == SOCKET_READ ) || (c->c2.event_set_status == TUN_READ)))
-#else /* TARGET_DARWIN */
+        if (!(flags & IOW_CHECK_RESIDUAL) || !((c->c2.event_set_status == SOCKET_READ) || (c->c2.event_set_status == TUN_READ)))
+#else  /* TARGET_DARWIN */
         if (!(flags & IOW_CHECK_RESIDUAL) || !sockets_read_residual(c))
 #endif /* TARGET_DARWIN */
         {
