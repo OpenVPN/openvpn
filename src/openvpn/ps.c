@@ -327,11 +327,6 @@ proxy_list_housekeeping(struct proxy_connection **list)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 /*
  * Record IP/port of client in filesystem, so that server receiving
  * the proxy can determine true client origin.
@@ -357,7 +352,8 @@ journal_add(const char *journal_dir, struct proxy_connection *pc, struct proxy_c
         int fd = platform_open(jfn, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP);
         if (fd != -1)
         {
-            if (write(fd, f, strlen(f)) != strlen(f))
+            ssize_t write_len = strlen(f);
+            if (write(fd, f, write_len) != write_len)
             {
                 msg(M_WARN, "PORT SHARE: writing to journal file (%s) failed", jfn);
             }
@@ -372,10 +368,6 @@ journal_add(const char *journal_dir, struct proxy_connection *pc, struct proxy_c
         gc_free(&gc);
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /*
  * Cleanup function, on proxy process exit.
