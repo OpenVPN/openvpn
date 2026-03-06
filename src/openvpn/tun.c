@@ -1925,7 +1925,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
             memset(&tt->ndrv_sockaddr, 0, sizeof(tt->ndrv_sockaddr));
             tt->ndrv_sockaddr.snd_family = AF_NDRV;
 
-            strcpy((char *)tt->ndrv_sockaddr.snd_name, (char *)feth_peer_name);
+            strcpy((char *)&tt->ndrv_sockaddr.snd_name, (char *)feth_peer_name);
             msg(M_INFO, "ndrv_sockaddr.snd_name = %s", tt->ndrv_sockaddr.snd_name);
 
             if (bind(tt->wfd, (struct sockaddr *)&tt->ndrv_sockaddr, sizeof(tt->ndrv_sockaddr)) < 0)

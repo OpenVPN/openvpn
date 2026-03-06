@@ -2364,10 +2364,12 @@ io_wait(struct context *c, const unsigned int flags)
                 c->c2.event_set_status = ES_TIMEOUT;
             }
         }
+#if !defined(TARGET_DARWIN)
         else
         {
             c->c2.event_set_status = SOCKET_READ;
         }
+#endif
     }
 
     /* 'now' should always be a reasonably up-to-date timestamp */
