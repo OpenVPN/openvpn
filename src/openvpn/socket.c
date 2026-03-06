@@ -2550,11 +2550,6 @@ socket_get_last_error(const struct link_socket *sock)
     return WSAGetLastError();
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 int
 socket_recv_queue(struct link_socket *sock, int maxsize)
 {
@@ -2579,10 +2574,9 @@ socket_recv_queue(struct link_socket *sock, int maxsize)
 
         /* Win32 docs say it's okay to allocate the wsabuf on the stack */
         wsabuf[0].buf = BSTR(&sock->reads.buf);
+        /* make sure maxsize is sane */
+        ASSERT(maxsize <= BLEN(&sock->reads.buf));
         wsabuf[0].len = maxsize ? maxsize : BLEN(&sock->reads.buf);
-
-        /* check for buffer overflow */
-        ASSERT(wsabuf[0].len <= BLEN(&sock->reads.buf));
 
         /* the overlapped read will signal this event on I/O completion */
         ASSERT(ResetEvent(sock->reads.overlapped.hEvent));
@@ -2655,10 +2649,6 @@ socket_recv_queue(struct link_socket *sock, int maxsize)
     }
     return sock->reads.iostate;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 int
 socket_send_queue(struct link_socket *sock, struct buffer *buf, const struct link_socket_actual *to)
