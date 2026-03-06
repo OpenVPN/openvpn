@@ -3273,24 +3273,18 @@ read_tun(struct tuntap *tt, uint8_t *buf, int len)
 
 #elif defined(_WIN32)
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 int
 tun_read_queue(struct tuntap *tt, int maxsize)
 {
     if (tt->reads.iostate == IOSTATE_INITIAL)
     {
-        DWORD len;
         BOOL status;
         int err;
 
         /* reset buf to its initial state */
         tt->reads.buf = tt->reads.buf_init;
 
-        len = maxsize ? maxsize : BLEN(&tt->reads.buf);
+        int len = maxsize ? maxsize : BLEN(&tt->reads.buf);
         ASSERT(len <= BLEN(&tt->reads.buf));
 
         /* the overlapped read will signal this event on I/O completion */
@@ -3307,8 +3301,8 @@ tun_read_queue(struct tuntap *tt, int maxsize)
             tt->reads.iostate = IOSTATE_IMMEDIATE_RETURN;
             tt->reads.status = 0;
 
-            dmsg(D_WIN32_IO, "WIN32 I/O: TAP Read immediate return [%d,%d]", (int)len,
-                 (int)tt->reads.size);
+            dmsg(D_WIN32_IO, "WIN32 I/O: TAP Read immediate return [%d,%lu]", len,
+                 tt->reads.size);
         }
         else
         {
@@ -3317,7 +3311,7 @@ tun_read_queue(struct tuntap *tt, int maxsize)
             {
                 tt->reads.iostate = IOSTATE_QUEUED;
                 tt->reads.status = err;
-                dmsg(D_WIN32_IO, "WIN32 I/O: TAP Read queued [%d]", (int)len);
+                dmsg(D_WIN32_IO, "WIN32 I/O: TAP Read queued [%d]", len);
             }
             else /* error occurred */
             {
@@ -3325,7 +3319,7 @@ tun_read_queue(struct tuntap *tt, int maxsize)
                 ASSERT(SetEvent(tt->reads.overlapped.hEvent));
                 tt->reads.iostate = IOSTATE_IMMEDIATE_RETURN;
                 tt->reads.status = err;
-                dmsg(D_WIN32_IO, "WIN32 I/O: TAP Read error [%d] : %s", (int)len,
+                dmsg(D_WIN32_IO, "WIN32 I/O: TAP Read error [%d] : %s", len,
                      strerror_win32(status, &gc));
                 gc_free(&gc);
             }
@@ -3362,8 +3356,8 @@ tun_write_queue(struct tuntap *tt, struct buffer *buf)
 
             tt->writes.status = 0;
 
-            dmsg(D_WIN32_IO, "WIN32 I/O: TAP Write immediate return [%d,%d]", BLEN(&tt->writes.buf),
-                 (int)tt->writes.size);
+            dmsg(D_WIN32_IO, "WIN32 I/O: TAP Write immediate return [%d,%lu]", BLEN(&tt->writes.buf),
+                 tt->writes.size);
         }
         else
         {
@@ -5457,14 +5451,14 @@ tuntap_get_version_info(const struct tuntap *tt)
     if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_VERSION, &info, sizeof(info), &info,
                         sizeof(info), &len, NULL))
     {
-        msg(D_TUNTAP_INFO, "TAP-Windows Driver Version %d.%d %s", (int)info[0], (int)info[1],
+        msg(D_TUNTAP_INFO, "TAP-Windows Driver Version %lu.%lu %s", info[0], info[1],
             (info[2] ? "(DEBUG)" : ""));
     }
     if (!(info[0] == TAP_WIN_MIN_MAJOR && info[1] >= TAP_WIN_MIN_MINOR))
     {
         msg(M_FATAL,
             "ERROR:  This version of " PACKAGE_NAME
-            " requires a TAP-Windows driver that is at least version %d.%d -- If you recently upgraded your " PACKAGE_NAME
+            " requires a TAP-Windows driver that is at least version %u.%u -- If you recently upgraded your " PACKAGE_NAME
             " distribution, a reboot is probably required at this point to get Windows to see the new driver.",
             TAP_WIN_MIN_MAJOR, TAP_WIN_MIN_MINOR);
     }
@@ -5475,8 +5469,8 @@ tuntap_get_version_info(const struct tuntap *tt)
     if (tt->type == DEV_TYPE_TUN && info[0] == 9 && info[1] < 8)
     {
         msg(M_INFO,
-            "WARNING:  Tap-Win32 driver version %d.%d does not support IPv6 in TUN mode. IPv6 will not work. Upgrade your Tap-Win32 driver.",
-            (int)info[0], (int)info[1]);
+            "WARNING:  Tap-Win32 driver version %lu.%lu does not support IPv6 in TUN mode. IPv6 will not work. Upgrade your Tap-Win32 driver.",
+            info[0], info[1]);
     }
 
     /* tap driver 9.8 (2.2.0 and 2.2.1 release) is buggy
@@ -5484,8 +5478,7 @@ tuntap_get_version_info(const struct tuntap *tt)
     if (tt->type == DEV_TYPE_TUN && info[0] == 9 && info[1] == 8)
     {
         msg(M_FATAL,
-            "ERROR:  Tap-Win32 driver version %d.%d is buggy regarding small IPv4 packets in TUN mode. Upgrade your Tap-Win32 driver.",
-            (int)info[0], (int)info[1]);
+            "ERROR:  Tap-Win32 driver version 9.8 is buggy regarding small IPv4 packets in TUN mode. Upgrade your Tap-Win32 driver.");
     }
 }
 
@@ -5497,7 +5490,7 @@ tuntap_get_mtu(struct tuntap *tt)
     if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_MTU, &mtu, sizeof(mtu), &mtu, sizeof(mtu), &len,
                         NULL))
     {
-        msg(D_MTU_INFO, "TAP-Windows MTU=%d", (int)mtu);
+        msg(D_MTU_INFO, "TAP-Windows MTU=%lu", mtu);
     }
 }
 
@@ -5617,10 +5610,6 @@ tuntap_set_ip_addr(struct tuntap *tt, const char *device_guid, bool dhcp_masq_po
 
     gc_free(&gc);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static void
 tuntap_set_connected(const struct tuntap *tt)
