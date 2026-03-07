@@ -37,8 +37,13 @@
 #include "event.h"
 #include "proto.h"
 #include "misc.h"
-#include "networking.h"
 #include "dco.h"
+#include "networking.h"
+
+
+#ifdef TARGET_DARWIN
+#include <net/ndrv.h>
+#endif
 
 enum tun_driver_type
 {
@@ -206,6 +211,11 @@ struct tuntap
 
     char *actual_name;             /* actual name of TUN/TAP dev, usually including unit number */
 
+#ifdef TARGET_DARWIN
+    char *actual_peer_name;             /* actual name of macOS TAP feth dev peer interface, with original unit number + 1000) */
+    struct sockaddr_ndrv ndrv_sockaddr; /* write socket for feth TAP interface */
+#endif
+
     /* ifconfig parameters */
     in_addr_t local;
     in_addr_t remote_netmask;
@@ -238,6 +248,10 @@ struct tuntap
 #else  /* ifdef _WIN32 */
     int fd; /* file descriptor for TUN/TAP dev */
 #endif /* ifdef _WIN32 */
+
+#ifdef TARGET_DARWIN
+    int wfd; /* file descriptor for feth tap emulated dev write */
+#endif
 
 #ifdef TARGET_SOLARIS
     int ip_fd;
