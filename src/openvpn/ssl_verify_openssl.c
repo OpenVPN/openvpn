@@ -122,7 +122,6 @@ static bool
 extract_x509_extension(X509 *cert, char *fieldname, char *out, size_t size)
 {
     bool retval = false;
-    char *buf = 0;
 
     if (!x509_username_field_ext_supported(fieldname))
     {
@@ -134,29 +133,28 @@ extract_x509_extension(X509 *cert, char *fieldname, char *out, size_t size)
     GENERAL_NAMES *extensions = X509_get_ext_d2i(cert, nid, NULL, NULL);
     if (extensions)
     {
-        int numalts;
-        int i;
         /* get amount of alternatives,
          * RFC2459 claims there MUST be at least
          * one, but we don't depend on it...
          */
 
-        numalts = sk_GENERAL_NAME_num(extensions);
+        int numalts = sk_GENERAL_NAME_num(extensions);
 
         /* loop through all alternatives */
-        for (i = 0; i < numalts; i++)
+        for (int i = 0; i < numalts; i++)
         {
             /* get a handle to alternative name number i */
             const GENERAL_NAME *name = sk_GENERAL_NAME_value(extensions, i);
+            char *buf = NULL;
 
             switch (name->type)
             {
                 case GEN_EMAIL:
-                    if (ASN1_STRING_to_UTF8((unsigned char **)&buf, name->d.ia5) < 0)
+                    if (ASN1_STRING_to_UTF8((unsigned char **)&buf, name->d.rfc822Name) < 0)
                     {
                         continue;
                     }
-                    if (strlen(buf) != name->d.ia5->length)
+                    if ((ssize_t)strlen(buf) != ASN1_STRING_length(name->d.rfc822Name))
                     {
                         msg(D_TLS_ERRORS, "ASN1 ERROR: string contained terminating zero");
                         OPENSSL_free(buf);
@@ -170,7 +168,7 @@ extract_x509_extension(X509 *cert, char *fieldname, char *out, size_t size)
                     break;
 
                 default:
-                    msg(D_TLS_DEBUG, "%s: ignoring general name field type %i", __func__,
+                    msg(D_TLS_DEBUG, "%s: ignoring general name field type %d", __func__,
                         name->type);
                     break;
             }
