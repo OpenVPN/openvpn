@@ -132,16 +132,21 @@ configuration.
   ifconfig settings pushed to the client would create an IP numbering
   conflict.
 
+  Valid syntax:
+  ::
+
+      client-nat snat|dnat network netmask alias
+
   Examples:
   ::
 
-      client-nat snat 192.168.0.0/255.255.0.0
-      client-nat dnat 10.64.0.0/255.255.0.0
+      client-nat snat 192.168.0.0 255.255.0.0 10.64.0.0
+      client-nat dnat 10.64.0.0 255.255.0.0 192.168.0.0
 
-  ``network/netmask`` (for example :code:`192.168.0.0/255.255.0.0`) defines
-  the local view of a resource from the client perspective, while
-  ``alias/netmask`` (for example :code:`10.64.0.0/255.255.0.0`) defines the
-  remote view from the server perspective.
+  ``network`` and ``netmask`` (for example :code:`192.168.0.0
+  255.255.0.0`) define the local view of a resource from the client
+  perspective, while ``alias`` (for example :code:`10.64.0.0`) defines the
+  remote view from the server perspective using the same netmask.
 
   Use :code:`snat` (source NAT) for resources owned by the client and
   :code:`dnat` (destination NAT) for remote resources.
