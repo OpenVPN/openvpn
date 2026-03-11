@@ -99,14 +99,14 @@ struct dns_updown_runner_info
 struct dhcp_options
 {
     in_addr_t dns[N_DHCP_ADDR];
-    int dns_len;
+    unsigned int dns_len;
 
     struct in6_addr dns6[N_DHCP_ADDR];
-    int dns6_len;
+    unsigned int dns6_len;
 
     const char *domain;
     const char *domain_search_list[N_SEARCH_LIST_LEN];
-    int domain_search_list_len;
+    unsigned int domain_search_list_len;
 };
 
 struct dns_options

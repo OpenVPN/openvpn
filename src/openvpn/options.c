@@ -1258,23 +1258,21 @@ parse_hash_fingerprint_multiline(const char *str, int nbytes, msglvl_t msglevel,
 #ifndef ENABLE_SMALL
 
 static void
-show_dhcp_option_list(const char *name, const char *const *array, int len)
+show_dhcp_option_list(const char *name, const char *const *array, unsigned int len)
 {
-    int i;
-    for (i = 0; i < len; ++i)
+    for (unsigned int i = 0; i < len; ++i)
     {
-        msg(D_SHOW_PARMS, "  %s[%d] = %s", name, i, array[i]);
+        msg(D_SHOW_PARMS, "  %s[%u] = %s", name, i, array[i]);
     }
 }
 
 static void
-show_dhcp_option_addrs(const char *name, const in_addr_t *array, int len)
+show_dhcp_option_addrs(const char *name, const in_addr_t *array, unsigned int len)
 {
     struct gc_arena gc = gc_new();
-    int i;
-    for (i = 0; i < len; ++i)
+    for (unsigned int i = 0; i < len; ++i)
     {
-        msg(D_SHOW_PARMS, "  %s[%d] = %s", name, i, print_in_addr_t(array[i], 0, &gc));
+        msg(D_SHOW_PARMS, "  %s[%u] = %s", name, i, print_in_addr_t(array[i], 0, &gc));
     }
     gc_free(&gc);
 }
@@ -1306,12 +1304,12 @@ show_tuntap_options(const struct tuntap_options *o)
 #endif /* ifdef _WIN32 */
 
 static void
-dhcp_option_dns6_parse(const char *parm, struct in6_addr *dns6_list, int *len, msglvl_t msglevel)
+dhcp_option_dns6_parse(const char *parm, struct in6_addr *dns6_list, unsigned int *len, msglvl_t msglevel)
 {
     struct in6_addr addr;
     if (*len >= N_DHCP_ADDR)
     {
-        msg(msglevel, "--dhcp-option DNS: maximum of %d IPv6 dns servers can be specified",
+        msg(msglevel, "--dhcp-option DNS: maximum of %u IPv6 dns servers can be specified",
             N_DHCP_ADDR);
     }
     else if (get_ipv6_addr(parm, &addr, NULL, msglevel))
@@ -1320,12 +1318,12 @@ dhcp_option_dns6_parse(const char *parm, struct in6_addr *dns6_list, int *len, m
     }
 }
 static void
-dhcp_option_address_parse(const char *name, const char *parm, in_addr_t *array, int *len,
+dhcp_option_address_parse(const char *name, const char *parm, in_addr_t *array, unsigned int *len,
                           msglvl_t msglevel)
 {
     if (*len >= N_DHCP_ADDR)
     {
-        msg(msglevel, "--dhcp-option %s: maximum of %d %s servers can be specified", name,
+        msg(msglevel, "--dhcp-option %s: maximum of %u %s servers can be specified", name,
             N_DHCP_ADDR, name);
     }
     else
@@ -3648,7 +3646,7 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
             new->name = dhcp->domain;
             entry = &new->next;
 
-            for (int i = 0; i < dhcp->domain_search_list_len; ++i)
+            for (unsigned int i = 0; i < dhcp->domain_search_list_len; ++i)
             {
                 ALLOC_OBJ_CLEAR_GC(*entry, struct dns_domain, &dns->gc);
                 struct dns_domain *new = *entry;
@@ -3658,13 +3656,13 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
 
             struct dns_server *server = dns_server_get(&dns->servers, 0, &dns->gc);
             const size_t max_addrs = SIZE(server->addr);
-            for (int i = 0; i < dhcp->dns_len && server->addr_count < max_addrs; ++i)
+            for (unsigned int i = 0; i < dhcp->dns_len && server->addr_count < max_addrs; ++i)
             {
                 server->addr[server->addr_count].in.a4.s_addr = htonl(dhcp->dns[i]);
                 server->addr[server->addr_count].family = AF_INET;
                 server->addr_count += 1;
             }
-            for (int i = 0; i < dhcp->dns6_len && server->addr_count < max_addrs; ++i)
+            for (unsigned int i = 0; i < dhcp->dns6_len && server->addr_count < max_addrs; ++i)
             {
                 server->addr[server->addr_count].in.a6 = dhcp->dns6[i];
                 server->addr[server->addr_count].family = AF_INET6;

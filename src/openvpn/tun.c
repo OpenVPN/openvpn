@@ -103,7 +103,7 @@ static void netsh_ifconfig(const struct tuntap_options *to, DWORD adapter_index,
 
 static void windows_set_mtu(const int iface_index, const short family, const int mtu);
 
-static void netsh_set_dns6_servers(const struct in6_addr *addr_list, const int addr_len,
+static void netsh_set_dns6_servers(const struct in6_addr *addr_list, const unsigned int addr_len,
                                    DWORD adapter_index);
 
 static void netsh_command(const struct argv *a, int n, msglvl_t msglevel);
@@ -111,11 +111,6 @@ static void netsh_command(const struct argv *a, int n, msglvl_t msglevel);
 static void exec_command(const char *prefix, const struct argv *a, int n, msglvl_t msglevel);
 
 static const char *netsh_get_id(const char *dev_node, struct gc_arena *gc);
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
 
 static bool
 do_address_service(const bool add, const short family, const struct tuntap *tt)
@@ -247,8 +242,8 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
     ack_message_t ack;
     struct gc_arena gc = gc_new();
     HANDLE pipe = tt->options.msg_channel;
-    int len = family == AF_INET6 ? tt->options.dns6_len : tt->options.dns_len;
-    int addr_len = add ? len : 0;
+    unsigned int len = family == AF_INET6 ? tt->options.dns6_len : tt->options.dns_len;
+    unsigned int addr_len = add ? len : 0;
     const char *ip_proto_name = family == AF_INET6 ? "IPv6" : "IPv4";
 
     if (len == 0)
@@ -273,11 +268,11 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
     {
         addr_len = _countof(dns.addr);
         dns.addr_len = addr_len;
-        msg(M_WARN, "Number of %s DNS addresses sent to service truncated to %d", ip_proto_name,
-            addr_len);
+        msg(M_WARN, "Number of %s DNS addresses sent to service truncated to %u",
+            ip_proto_name, addr_len);
     }
 
-    for (int i = 0; i < addr_len; ++i)
+    for (unsigned int i = 0; i < addr_len; ++i)
     {
         if (family == AF_INET6)
         {
@@ -317,7 +312,7 @@ do_wins_service(bool add, const struct tuntap *tt)
     ack_message_t ack;
     struct gc_arena gc = gc_new();
     HANDLE pipe = tt->options.msg_channel;
-    int addr_len = add ? tt->options.wins_len : 0;
+    unsigned int addr_len = add ? tt->options.wins_len : 0;
 
     if (tt->options.wins_len == 0)
     {
@@ -338,10 +333,10 @@ do_wins_service(bool add, const struct tuntap *tt)
     {
         addr_len = _countof(wins.addr);
         wins.addr_len = addr_len;
-        msg(M_WARN, "Number of WINS addresses sent to service truncated to %d", addr_len);
+        msg(M_WARN, "Number of WINS addresses sent to service truncated to %u", addr_len);
     }
 
-    for (int i = 0; i < addr_len; ++i)
+    for (unsigned int i = 0; i < addr_len; ++i)
     {
         wins.addr[i].ipv4.s_addr = htonl(tt->options.wins[i]);
     }
@@ -367,10 +362,6 @@ do_wins_service(bool add, const struct tuntap *tt)
 out:
     gc_free(&gc);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static bool
 do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
@@ -1998,13 +1989,13 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
 
     /* Prefer IPv6 DNS servers,
      * Android will use the DNS server in the order we specify*/
-    for (int i = 0; i < tt->options.dns6_len; i++)
+    for (unsigned int i = 0; i < tt->options.dns6_len; i++)
     {
         management_android_control(management, "DNS6SERVER",
                                    print_in6_addr(tt->options.dns6[i], 0, &gc));
     }
 
-    for (int i = 0; i < tt->options.dns_len; i++)
+    for (unsigned int i = 0; i < tt->options.dns_len; i++)
     {
         management_android_control(management, "DNSSERVER",
                                    print_in_addr_t(tt->options.dns[i], 0, &gc));
@@ -4916,10 +4907,10 @@ ipconfig_register_dns(const struct env_set *es)
     msg(D_TUNTAP_INFO, "End ipconfig commands for register-dns...");
 }
 
-void
-ip_addr_string_to_array(in_addr_t *dest, int *dest_len, const IP_ADDR_STRING *src)
+static void
+ip_addr_string_to_array(in_addr_t *dest, unsigned int *dest_len, const IP_ADDR_STRING *src)
 {
-    int i = 0;
+    unsigned int i = 0;
     while (src)
     {
         const unsigned int getaddr_flags = GETADDR_HOST_ORDER;
@@ -4961,11 +4952,11 @@ ip_addr_string_to_array(in_addr_t *dest, int *dest_len, const IP_ADDR_STRING *sr
 }
 
 static bool
-ip_addr_one_to_one(const in_addr_t *a1, const int a1len, const IP_ADDR_STRING *ias)
+ip_addr_one_to_one(const in_addr_t *a1, const unsigned int a1len, const IP_ADDR_STRING *ias)
 {
-    in_addr_t a2[8];
-    int a2len = SIZE(a2);
-    int i;
+#define MAX_ADDRS 8
+    in_addr_t a2[MAX_ADDRS];
+    unsigned int a2len = MAX_ADDRS;
 
     ip_addr_string_to_array(a2, &a2len, ias);
     /*msg (M_INFO, "a1len=%d a2len=%d", a1len, a2len);*/
@@ -4974,7 +4965,7 @@ ip_addr_one_to_one(const in_addr_t *a1, const int a1len, const IP_ADDR_STRING *i
         return false;
     }
 
-    for (i = 0; i < a1len; ++i)
+    for (unsigned int i = 0; i < a1len; ++i)
     {
         if (a1[i] != a2[i])
         {
@@ -4987,12 +4978,11 @@ ip_addr_one_to_one(const in_addr_t *a1, const int a1len, const IP_ADDR_STRING *i
 static bool
 ip_addr_member_of(const in_addr_t addr, const IP_ADDR_STRING *ias)
 {
-    in_addr_t aa[8];
-    int len = SIZE(aa);
-    int i;
+    in_addr_t aa[MAX_ADDRS];
+    unsigned int len = MAX_ADDRS;
 
     ip_addr_string_to_array(aa, &len, ias);
-    for (i = 0; i < len; ++i)
+    for (unsigned int i = 0; i < len; ++i)
     {
         if (addr == aa[i])
         {
@@ -5001,6 +4991,7 @@ ip_addr_member_of(const in_addr_t addr, const IP_ADDR_STRING *ias)
     }
     return false;
 }
+#undef MAX_ADDRS
 
 /**
  * Set the ipv6 dns servers on the specified interface.
@@ -5008,7 +4999,7 @@ ip_addr_member_of(const in_addr_t addr, const IP_ADDR_STRING *ias)
  * are cleared first.
  */
 static void
-netsh_set_dns6_servers(const struct in6_addr *addr_list, const int addr_len, DWORD adapter_index)
+netsh_set_dns6_servers(const struct in6_addr *addr_list, const unsigned int addr_len, DWORD adapter_index)
 {
     struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
@@ -5018,7 +5009,7 @@ netsh_set_dns6_servers(const struct in6_addr *addr_list, const int addr_len, DWO
                 NETSH_PATH_SUFFIX, adapter_index);
     netsh_command(&argv, 2, M_FATAL);
 
-    for (int i = 0; i < addr_len; ++i)
+    for (unsigned int i = 0; i < addr_len; ++i)
     {
         const char *fmt = (i == 0) ? "%s%s interface ipv6 set dns %lu static %s"
                                    : "%s%s interface ipv6 add dns %lu %s";
@@ -5037,7 +5028,7 @@ netsh_set_dns6_servers(const struct in6_addr *addr_list, const int addr_len, DWO
 }
 
 static void
-netsh_ifconfig_options(const char *type, const in_addr_t *addr_list, const int addr_len,
+netsh_ifconfig_options(const char *type, const in_addr_t *addr_list, const unsigned int addr_len,
                        const IP_ADDR_STRING *current, DWORD adapter_index, const bool test_first)
 {
     struct gc_arena gc = gc_new();
@@ -5068,14 +5059,13 @@ netsh_ifconfig_options(const char *type, const in_addr_t *addr_list, const int a
 
     /* add new DNS/WINS settings to TAP interface */
     {
-        int count = 0;
-        int i;
-        for (i = 0; i < addr_len; ++i)
+        bool first = true;
+        for (unsigned int i = 0; i < addr_len; ++i)
         {
             if (delete_first || !test_first || !ip_addr_member_of(addr_list[i], current))
             {
-                const char *fmt = count ? "%s%s interface ip add %s %lu %s"
-                                        : "%s%s interface ip set %s %lu static %s";
+                const char *fmt = first ? "%s%s interface ip set %s %lu static %s"
+                                        : "%s%s interface ip add %s %lu %s";
 
                 argv_printf(&argv, fmt, get_win_sys_path(), NETSH_PATH_SUFFIX, type, adapter_index,
                             print_in_addr_t(addr_list[i], 0, &gc));
@@ -5088,7 +5078,7 @@ netsh_ifconfig_options(const char *type, const in_addr_t *addr_list, const int a
 
                 netsh_command(&argv, 2, M_FATAL);
 
-                ++count;
+                first = false;
             }
             else
             {
@@ -6083,7 +6073,7 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
     struct argv argv = argv_new();
 
     /* delete ipvX dns servers if any were set */
-    int len = ipv6 ? tt->options.dns6_len : tt->options.dns_len;
+    unsigned int len = ipv6 ? tt->options.dns6_len : tt->options.dns_len;
     if (len > 0)
     {
         argv_printf(&argv, "%s%s interface %s delete dns %lu all", get_win_sys_path(),

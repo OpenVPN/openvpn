@@ -109,25 +109,25 @@ struct tuntap_options
 
     /* DNS (6) */
     in_addr_t dns[N_DHCP_ADDR];
-    int dns_len;
+    unsigned int dns_len;
 
     /* WINS (44) */
     in_addr_t wins[N_DHCP_ADDR];
-    int wins_len;
+    unsigned int wins_len;
 
     /* NTP (42) */
     in_addr_t ntp[N_DHCP_ADDR];
-    int ntp_len;
+    unsigned int ntp_len;
 
     /* NBDD (45) */
     in_addr_t nbdd[N_DHCP_ADDR];
-    int nbdd_len;
+    unsigned int nbdd_len;
 
 #define N_SEARCH_LIST_LEN 10 /* Max # of entries in domin-search list */
 
     /* SEARCH (119), MacOS, Linux, Win10 1809+ */
     const char *domain_search_list[N_SEARCH_LIST_LEN];
-    int domain_search_list_len;
+    unsigned int domain_search_list_len;
 
     /* DISABLE_NBT (43, Vendor option 001) */
     bool disable_nbt;
@@ -138,7 +138,7 @@ struct tuntap_options
     bool register_dns;
 
     struct in6_addr dns6[N_DHCP_ADDR];
-    int dns6_len;
+    unsigned int dns6_len;
 #if defined(TARGET_ANDROID)
     const char *http_proxy;
     int http_proxy_port;

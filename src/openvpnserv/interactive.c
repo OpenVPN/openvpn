@@ -1814,10 +1814,10 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
 {
     DWORD err = 0;
     undo_type_t undo_type = (msg->family == AF_INET6) ? undo_dns6 : undo_dns4;
-    int addr_len = msg->addr_len;
+    unsigned int addr_len = msg->addr_len;
 
     /* sanity check */
-    const int max_addrs = _countof(msg->addr);
+    const unsigned int max_addrs = _countof(msg->addr);
     if (addr_len > max_addrs)
     {
         addr_len = max_addrs;
@@ -1875,7 +1875,7 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
          * time constant by all compilers and constexpr is C23 */
         CHAR addrs[_countof(msg->addr) * 64]; /* 64 is enough for one IPv4/6 address */
         size_t offset = 0;
-        for (int i = 0; i < addr_len; ++i)
+        for (unsigned int i = 0; i < addr_len; ++i)
         {
             if (i != 0)
             {
@@ -2936,14 +2936,10 @@ HandleWINSConfigMessage(const wins_cfg_message_t *msg, undo_lists_t *lists)
 {
     DWORD err = NO_ERROR;
     wchar_t addr[16]; /* large enough to hold string representation of an ipv4 */
-    int addr_len = msg->addr_len;
+    unsigned int addr_len = msg->addr_len;
 
     /* sanity check */
-    if (addr_len < 0)
-    {
-        addr_len = 0;
-    }
-    if ((unsigned int)addr_len > _countof(msg->addr))
+    if (addr_len > _countof(msg->addr))
     {
         addr_len = _countof(msg->addr);
     }
@@ -2971,7 +2967,7 @@ HandleWINSConfigMessage(const wins_cfg_message_t *msg, undo_lists_t *lists)
         goto out; /* job done */
     }
 
-    for (int i = 0; i < addr_len; ++i)
+    for (unsigned int i = 0; i < addr_len; ++i)
     {
         RtlIpv4AddressToStringW(&msg->addr[i].ipv4, addr);
         err = netsh_wins_cmd(i == 0 ? L"set" : L"add", msg->iface.index, addr);

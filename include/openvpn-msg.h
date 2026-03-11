@@ -103,7 +103,7 @@ typedef struct
     interface_t iface;
     char domains[512];
     short family;
-    int addr_len;
+    unsigned int addr_len;
     inet_address_t addr[4]; /* support up to 4 dns addresses */
 } dns_cfg_message_t;
 
@@ -130,7 +130,7 @@ typedef struct
 {
     message_header_t header;
     interface_t iface;
-    int addr_len;
+    unsigned int addr_len;
     inet_address_t addr[4]; /* support up to 4 dns addresses */
 } wins_cfg_message_t;
 
