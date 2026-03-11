@@ -2389,8 +2389,8 @@ get_windows_routing_table(struct gc_arena *gc)
         status = GetIpForwardTable(rt, &size, TRUE);
         if (status != NO_ERROR)
         {
-            msg(D_ROUTE, "NOTE: GetIpForwardTable returned error: %s (code=%u)",
-                strerror_win32(status, gc), (unsigned int)status);
+            msg(D_ROUTE, "NOTE: GetIpForwardTable returned error: %s (code=%lu)",
+                strerror_win32(status, gc), status);
             rt = NULL;
         }
     }
@@ -2470,8 +2470,8 @@ test_routes(const struct route_list *rl, const struct tuntap *tt)
         }
     }
 
-    msg(D_ROUTE, "TEST ROUTES: %d/%d succeeded len=%d ret=%d a=%d u/d=%s", good, count, len,
-        (int)ret, ambig, adapter_up ? "up" : "down");
+    msg(D_ROUTE, "TEST ROUTES: %d/%d succeeded len=%d ret=%u a=%d u/d=%s",
+        good, count, len, ret, ambig, adapter_up ? "up" : "down");
 
     gc_free(&gc);
     return ret;
@@ -2495,9 +2495,9 @@ get_default_gateway_row(const MIB_IPFORWARDTABLE *routes)
             const DWORD index = row->dwForwardIfIndex;
             const DWORD metric = row->dwForwardMetric1;
 
-            dmsg(D_ROUTE_DEBUG, "GDGR: route[%lu] %s/%s i=%d m=%d", i,
+            dmsg(D_ROUTE_DEBUG, "GDGR: route[%lu] %s/%s i=%lu m=%lu", i,
                  print_in_addr_t((in_addr_t)net, 0, &gc), print_in_addr_t((in_addr_t)mask, 0, &gc),
-                 (int)index, (int)metric);
+                 index, metric);
 
             if (!net && !mask && metric < lowest_metric)
             {
@@ -2508,7 +2508,7 @@ get_default_gateway_row(const MIB_IPFORWARDTABLE *routes)
         }
     }
 
-    dmsg(D_ROUTE_DEBUG, "GDGR: best=%d lm=%u", best, (unsigned int)lowest_metric);
+    dmsg(D_ROUTE_DEBUG, "GDGR: best=%d lm=%lu", best, lowest_metric);
 
     gc_free(&gc);
     return ret;
@@ -2537,12 +2537,12 @@ get_best_route(struct gc_arena *gc, SOCKADDR_INET *dest, MIB_IPFORWARD_ROW2 *bes
     status = GetBestInterfaceEx((struct sockaddr *)dest, &best_if_index);
     if (status != NO_ERROR)
     {
-        msg(D_ROUTE, "NOTE: GetBestInterfaceEx returned error: %s (code=%u)",
-            strerror_win32(status, gc), (unsigned int)status);
+        msg(D_ROUTE, "NOTE: GetBestInterfaceEx returned error: %s (code=%lu)",
+            strerror_win32(status, gc), status);
         goto done;
     }
 
-    msg(D_ROUTE_DEBUG, "GetBestInterfaceEx() returned if=%d", (int)best_if_index);
+    msg(D_ROUTE_DEBUG, "GetBestInterfaceEx() returned if=%lu", best_if_index);
 
     /* get the routing information (such as NextHop) for the destination and interface */
     NET_LUID luid;
@@ -2552,8 +2552,8 @@ get_best_route(struct gc_arena *gc, SOCKADDR_INET *dest, MIB_IPFORWARD_ROW2 *bes
     status = GetBestRoute2(&luid, best_if_index, NULL, dest, 0, best_route, &best_src);
     if (status != NO_ERROR)
     {
-        msg(D_ROUTE, "NOTE: GetIpForwardEntry2 returned error: %s (code=%u)",
-            strerror_win32(status, gc), (unsigned int)status);
+        msg(D_ROUTE, "NOTE: GetIpForwardEntry2 returned error: %s (code=%lu)",
+            strerror_win32(status, gc), status);
         goto done;
     }
 
@@ -2647,15 +2647,14 @@ windows_route_find_if_index(const struct route_ipv4 *r, const struct tuntap *tt)
             print_in_addr_t(r->gateway, 0, &gc), count);
     }
 
-    dmsg(D_ROUTE_DEBUG, "DEBUG: route find if: on_tun=%d count=%d index=%d", on_tun, count,
-         (int)ret);
+    dmsg(D_ROUTE_DEBUG, "DEBUG: route find if: on_tun=%d count=%d index=%lu",
+         on_tun, count, ret);
 
     gc_free(&gc);
     return ret;
 }
 
 /* IPv6 implementation using GetBestRoute2()
- *   (TBD: dynamic linking so the binary can still run on XP?)
  * https://msdn.microsoft.com/en-us/library/windows/desktop/aa365922(v=vs.85).aspx
  * https://msdn.microsoft.com/en-us/library/windows/desktop/aa814411(v=vs.85).aspx
  */
@@ -2687,8 +2686,8 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6, const struct in6_
         print_in6_addr(BestRoute.DestinationPrefix.Prefix.Ipv6.sin6_addr, 0, &gc),
         BestRoute.DestinationPrefix.PrefixLength,
         print_in6_addr(BestRoute.NextHop.Ipv6.sin6_addr, 0, &gc));
-    msg(D_ROUTE, "GDG6: Metric=%d, Loopback=%d, AA=%d, I=%d", (int)BestRoute.Metric,
-        (int)BestRoute.Loopback, (int)BestRoute.AutoconfigureAddress, (int)BestRoute.Immortal);
+    msg(D_ROUTE, "GDG6: Metric=%lu, Loopback=%u, AA=%u, I=%u", BestRoute.Metric,
+        BestRoute.Loopback, BestRoute.AutoconfigureAddress, BestRoute.Immortal);
 
     rgi6->gateway.addr_ipv6 = BestRoute.NextHop.Ipv6.sin6_addr;
     rgi6->adapter_index = BestRoute.InterfaceIndex;
@@ -2753,8 +2752,8 @@ add_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt, DWORD adapt
         else
         {
             /* failed, try increasing the metric to work around Vista issue */
-            const unsigned int forward_metric_limit =
-                2048; /* iteratively retry higher metrics up to this limit */
+            /* iteratively retry higher metrics up to this limit */
+            const DWORD forward_metric_limit = 2048;
 
             for (; fr.dwForwardMetric1 <= forward_metric_limit; ++fr.dwForwardMetric1)
             {
@@ -2767,8 +2766,8 @@ add_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt, DWORD adapt
                     if (status == NO_ERROR)
                     {
                         msg(D_ROUTE,
-                            "ROUTE: CreateIpForwardEntry succeeded with dwForwardMetric1=%u and dwForwardType=%u",
-                            (unsigned int)fr.dwForwardMetric1, (unsigned int)fr.dwForwardType);
+                            "ROUTE: CreateIpForwardEntry succeeded with dwForwardMetric1=%lu and dwForwardType=%lu",
+                            fr.dwForwardMetric1, fr.dwForwardType);
                         ret = RTA_SUCCESS;
                         goto doublebreak;
                     }
@@ -2790,8 +2789,8 @@ doublebreak:
                 {
                     msg(M_WARN,
                         "ERROR: route addition failed using CreateIpForwardEntry: "
-                        "%s [status=%u if_index=%u]",
-                        strerror_win32(status, &gc), (unsigned int)status, (unsigned int)if_index);
+                        "%s [status=%lu if_index=%lu]",
+                        strerror_win32(status, &gc), status, if_index);
                 }
             }
         }
@@ -2855,7 +2854,7 @@ do_route_service(const bool add, const route_message_t *rt, const DWORD size, HA
         ret = (ack.error_number == ERROR_OBJECT_ALREADY_EXISTS) ? RTA_EEXIST : RTA_ERROR;
         if (ret == RTA_ERROR)
         {
-            msg(M_WARN, "ERROR: route %s failed using service: %s [status=%u if_index=%d]",
+            msg(M_WARN, "ERROR: route %s failed using service: %s [status=%u if_index=%lu]",
                 (add ? "addition" : "deletion"), strerror_win32(ack.error_number, &gc),
                 ack.error_number, rt->iface.index);
         }
@@ -2869,17 +2868,12 @@ out:
     return ret;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 /* Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error */
 static int
 do_route_ipv4_service(const bool add, const struct route_ipv4 *r, const struct tuntap *tt)
 {
     DWORD if_index = windows_route_find_if_index(r, tt);
-    if (if_index == ~0)
+    if (if_index == TUN_ADAPTER_INDEX_INVALID)
     {
         return RTA_ERROR;
     }
@@ -3023,10 +3017,6 @@ do_route_ipv6_service(const bool add, const struct route_ipv6 *r, const struct t
     return status;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-
 /* Returns RTA_SUCCESS on success, RTA_EEXIST if route exists, RTA_ERROR on error */
 static int
 add_route_service(const struct route_ipv4 *r, const struct tuntap *tt)
@@ -3057,14 +3047,14 @@ static const char *
 format_route_entry(const MIB_IPFORWARDROW *r, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(256, gc);
-    buf_printf(&out, "%s %s %s p=%d i=%d t=%d pr=%d a=%d h=%d m=%d/%d/%d/%d/%d",
+    buf_printf(&out, "%s %s %s p=%lu i=%lu t=%lu pr=%lu a=%lu h=%lu m=%lu/%lu/%lu/%lu/%lu",
                print_in_addr_t(r->dwForwardDest, IA_NET_ORDER, gc),
                print_in_addr_t(r->dwForwardMask, IA_NET_ORDER, gc),
-               print_in_addr_t(r->dwForwardNextHop, IA_NET_ORDER, gc), (int)r->dwForwardPolicy,
-               (int)r->dwForwardIfIndex, (int)r->dwForwardType, (int)r->dwForwardProto,
-               (int)r->dwForwardAge, (int)r->dwForwardNextHopAS, (int)r->dwForwardMetric1,
-               (int)r->dwForwardMetric2, (int)r->dwForwardMetric3, (int)r->dwForwardMetric4,
-               (int)r->dwForwardMetric5);
+               print_in_addr_t(r->dwForwardNextHop, IA_NET_ORDER, gc), r->dwForwardPolicy,
+               r->dwForwardIfIndex, r->dwForwardType, r->dwForwardProto,
+               r->dwForwardAge, r->dwForwardNextHopAS, r->dwForwardMetric1,
+               r->dwForwardMetric2, r->dwForwardMetric3, r->dwForwardMetric4,
+               r->dwForwardMetric5);
     return BSTR(&out);
 }
 

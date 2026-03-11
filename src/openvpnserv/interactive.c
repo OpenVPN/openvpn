@@ -96,7 +96,7 @@ typedef list_item_t *undo_lists_t[_undo_type_max];
 typedef struct
 {
     HANDLE engine;
-    int index;
+    DWORD index;
     int metric_v4;
     int metric_v6;
 } wfp_block_data_t;
@@ -584,7 +584,7 @@ HandleAddressMessage(address_message_t *msg, undo_lists_t *lists)
     addr_row->Address = sockaddr_inet(msg->family, &msg->address);
     addr_row->OnLinkPrefixLength = (UINT8)msg->prefix_len;
 
-    if (msg->iface.index != -1)
+    if (msg->iface.index != TUN_ADAPTER_INDEX_INVALID)
     {
         addr_row->InterfaceIndex = msg->iface.index;
     }
@@ -667,7 +667,7 @@ HandleRouteMessage(route_message_t *msg, undo_lists_t *lists)
     fwd_row->DestinationPrefix.PrefixLength = (UINT8)msg->prefix_len;
     fwd_row->NextHop = sockaddr_inet(msg->family, &msg->gateway);
 
-    if (msg->iface.index != -1)
+    if (msg->iface.index != TUN_ADAPTER_INDEX_INVALID)
     {
         fwd_row->InterfaceIndex = msg->iface.index;
     }
@@ -1010,7 +1010,7 @@ HandleRegisterDNSMessage(void)
  * if action = "set" then "static" is added before $addr
  */
 static DWORD
-netsh_wins_cmd(const wchar_t *action, int if_index, const wchar_t *addr)
+netsh_wins_cmd(const wchar_t *action, DWORD if_index, const wchar_t *addr)
 {
     DWORD err = 0;
     int timeout = 30000; /* in msec */
@@ -1036,7 +1036,7 @@ netsh_wins_cmd(const wchar_t *action, int if_index, const wchar_t *addr)
     /* cmd template:
      * netsh interface ip $action wins $if_name $static $addr
      */
-    const wchar_t *fmt = L"netsh interface ip %ls wins %d %ls %ls";
+    const wchar_t *fmt = L"netsh interface ip %ls wins %lu %ls %ls";
 
     /* max cmdline length in wchars -- include room for worst case and some */
     size_t ncmdline = wcslen(fmt) + 11 /*if_index*/ + wcslen(action) + wcslen(addr)
@@ -2984,7 +2984,7 @@ HandleWINSConfigMessage(const wins_cfg_message_t *msg, undo_lists_t *lists)
          */
     }
 
-    int *if_index = malloc(sizeof(msg->iface.index));
+    PDWORD if_index = malloc(sizeof(msg->iface.index));
     if (if_index)
     {
         *if_index = msg->iface.index;
@@ -3017,7 +3017,7 @@ HandleEnableDHCPMessage(const enable_dhcp_message_t *dhcp)
     /* cmd template:
      * netsh interface ipv4 set address name=$if_index source=dhcp
      */
-    const wchar_t *fmt = L"netsh interface ipv4 set address name=\"%d\" source=dhcp";
+    const wchar_t *fmt = L"netsh interface ipv4 set address name=\"%lu\" source=dhcp";
 
     /* max cmdline length in wchars -- include room for if index:
      * 10 chars for 32 bit int in decimal and +1 for NUL
@@ -3250,7 +3250,7 @@ Undo(undo_lists_t *lists)
                     break;
 
                 case undo_wins:
-                    netsh_wins_cmd(L"delete", *(int *)item->data, NULL);
+                    netsh_wins_cmd(L"delete", *(PDWORD)item->data, NULL);
                     break;
 
                 case wfp_block:

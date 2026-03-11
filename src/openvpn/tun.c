@@ -158,7 +158,7 @@ do_address_service(const bool add, const short family, const struct tuntap *tt)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_WARN, "TUN: %s address failed using service: %s [status=%u if_index=%d]",
+        msg(M_WARN, "TUN: %s address failed using service: %s [status=%u if_index=%lu]",
             (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc), ack.error_number,
             addr.iface.index);
         goto out;
@@ -220,7 +220,7 @@ do_dns_domain_service(bool add, const struct tuntap *tt)
         strncpy(dns.domains + dstlen, o->domain_search_list[i], srclen + 1);
     }
 
-    msg(D_LOW, "%s DNS domains on '%s' (if_index = %d) using service",
+    msg(D_LOW, "%s DNS domains on '%s' (if_index = %lu) using service",
         (add ? "Setting" : "Deleting"), dns.iface.name, dns.iface.index);
     if (!send_msg_iservice(o->msg_channel, &dns, sizeof(dns), &ack, "TUN"))
     {
@@ -289,7 +289,7 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
         }
     }
 
-    msg(D_LOW, "%s %s dns servers on '%s' (if_index = %d) using service",
+    msg(D_LOW, "%s %s dns servers on '%s' (if_index = %lu) using service",
         (add ? "Setting" : "Deleting"), ip_proto_name, dns.iface.name, dns.iface.index);
 
     if (!send_msg_iservice(pipe, &dns, sizeof(dns), &ack, "TUN"))
@@ -346,7 +346,7 @@ do_wins_service(bool add, const struct tuntap *tt)
         wins.addr[i].ipv4.s_addr = htonl(tt->options.wins[i]);
     }
 
-    msg(D_LOW, "%s WINS servers on '%s' (if_index = %d) using service",
+    msg(D_LOW, "%s WINS servers on '%s' (if_index = %lu) using service",
         (add ? "Setting" : "Deleting"), wins.iface.name, wins.iface.index);
 
     if (!send_msg_iservice(pipe, &wins, sizeof(wins), &ack, "TUN"))
@@ -357,8 +357,8 @@ do_wins_service(bool add, const struct tuntap *tt)
     if (ack.error_number != NO_ERROR)
     {
         msg(M_WARN, "TUN: %s WINS failed using service: %s [status=%u if_name=%s]",
-            (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc), ack.error_number,
-            wins.iface.name);
+            (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc),
+            ack.error_number, wins.iface.name);
         goto out;
     }
 
@@ -398,13 +398,13 @@ do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_NONFATAL, "TUN: setting %s mtu using service failed: %s [status=%u if_index=%d]",
+        msg(M_NONFATAL, "TUN: setting %s mtu using service failed: %s [status=%u if_index=%lu]",
             family_name, strerror_win32(ack.error_number, &gc), ack.error_number,
             mtu_msg.iface.index);
     }
     else
     {
-        msg(M_INFO, "%s MTU set to %d on interface %d using service", family_name, mtu,
+        msg(M_INFO, "%s MTU set to %d on interface %lu using service", family_name, mtu,
             mtu_msg.iface.index);
         ret = true;
     }
@@ -3422,7 +3422,7 @@ get_device_instance_id_interface(struct gc_arena *gc)
     if (dev_info_set == INVALID_HANDLE_VALUE)
     {
         err = GetLastError();
-        msg(M_FATAL, "Error [%u] opening device information set key: %s", (unsigned int)err,
+        msg(M_FATAL, "Error [%lu] opening device information set key: %s", err,
             strerror_win32(err, gc));
     }
 
@@ -4105,7 +4105,7 @@ get_adapter_info_list(struct gc_arena *gc)
 
     if ((status = GetAdaptersInfo(NULL, &size)) != ERROR_BUFFER_OVERFLOW)
     {
-        msg(M_INFO, "GetAdaptersInfo #1 failed (status=%u) : %s", (unsigned int)status,
+        msg(M_INFO, "GetAdaptersInfo #1 failed (status=%lu) : %s", status,
             strerror_win32(status, gc));
     }
     else
@@ -4113,7 +4113,7 @@ get_adapter_info_list(struct gc_arena *gc)
         pi = (PIP_ADAPTER_INFO)gc_malloc(size, false, gc);
         if ((status = GetAdaptersInfo(pi, &size)) != NO_ERROR)
         {
-            msg(M_INFO, "GetAdaptersInfo #2 failed (status=%u) : %s", (unsigned int)status,
+            msg(M_INFO, "GetAdaptersInfo #2 failed (status=%lu) : %s", status,
                 strerror_win32(status, gc));
             pi = NULL;
         }
@@ -4132,19 +4132,19 @@ get_per_adapter_info(const DWORD index, struct gc_arena *gc)
     {
         if ((status = GetPerAdapterInfo(index, NULL, &size)) != ERROR_BUFFER_OVERFLOW)
         {
-            msg(M_INFO, "GetPerAdapterInfo #1 failed (status=%u) : %s", (unsigned int)status,
+            msg(M_INFO, "GetPerAdapterInfo #1 failed (status=%lu) : %s", status,
                 strerror_win32(status, gc));
         }
         else
         {
             pi = (PIP_PER_ADAPTER_INFO)gc_malloc(size, false, gc);
-            if ((status = GetPerAdapterInfo((ULONG)index, pi, &size)) == ERROR_SUCCESS)
+            if ((status = GetPerAdapterInfo(index, pi, &size)) == ERROR_SUCCESS)
             {
                 return pi;
             }
             else
             {
-                msg(M_INFO, "GetPerAdapterInfo #2 failed (status=%u) : %s", (unsigned int)status,
+                msg(M_INFO, "GetPerAdapterInfo #2 failed (status=%lu) : %s", status,
                     strerror_win32(status, gc));
             }
         }
@@ -4161,7 +4161,7 @@ get_interface_info_list(struct gc_arena *gc)
 
     if ((status = GetInterfaceInfo(NULL, &size)) != ERROR_INSUFFICIENT_BUFFER)
     {
-        msg(M_INFO, "GetInterfaceInfo #1 failed (status=%u) : %s", (unsigned int)status,
+        msg(M_INFO, "GetInterfaceInfo #1 failed (status=%lu) : %s", status,
             strerror_win32(status, gc));
     }
     else
@@ -4173,7 +4173,7 @@ get_interface_info_list(struct gc_arena *gc)
         }
         else
         {
-            msg(M_INFO, "GetInterfaceInfo #2 failed (status=%u) : %s", (unsigned int)status,
+            msg(M_INFO, "GetInterfaceInfo #2 failed (status=%lu) : %s", status,
                 strerror_win32(status, gc));
         }
     }
@@ -4450,8 +4450,8 @@ adapter_index_of_ip(const IP_ADAPTER_INFO *list, const in_addr_t ip, int *count,
         list = list->Next;
     }
 
-    dmsg(D_ROUTE_DEBUG, "DEBUG: IP Locate: ip=%s nm=%s index=%d count=%d metric=%d",
-         print_in_addr_t(ip, 0, &gc), print_in_addr_t(highest_netmask, 0, &gc), (int)ret,
+    dmsg(D_ROUTE_DEBUG, "DEBUG: IP Locate: ip=%s nm=%s index=%lu count=%d metric=%d",
+         print_in_addr_t(ip, 0, &gc), print_in_addr_t(highest_netmask, 0, &gc), ret,
          count ? *count : -1, lowest_metric);
 
     if (ret == TUN_ADAPTER_INDEX_INVALID && count)
@@ -4520,7 +4520,7 @@ delete_temp_addresses(DWORD index)
             DWORD status;
             const DWORD context = ip->Context;
 
-            if ((status = DeleteIPAddress((ULONG)context)) == NO_ERROR)
+            if ((status = DeleteIPAddress(context)) == NO_ERROR)
             {
                 msg(M_INFO, "Successfully deleted previously set dynamic IP/netmask: %s/%s",
                     ip->IpAddress.String, ip->IpMask.String);
@@ -4531,8 +4531,8 @@ delete_temp_addresses(DWORD index)
                 if (strcmp(ip->IpAddress.String, empty) || strcmp(ip->IpMask.String, empty))
                 {
                     msg(M_INFO,
-                        "NOTE: could not delete previously set dynamic IP/netmask: %s/%s (status=%u)",
-                        ip->IpAddress.String, ip->IpMask.String, (unsigned int)status);
+                        "NOTE: could not delete previously set dynamic IP/netmask: %s/%s (status=%lu)",
+                        ip->IpAddress.String, ip->IpMask.String, status);
                 }
             }
             ip = ip->Next;
@@ -4628,7 +4628,7 @@ static void
 show_adapter(msglvl_t msglevel, const IP_ADAPTER_INFO *a, struct gc_arena *gc)
 {
     msg(msglevel, "%s", a->Description);
-    msg(msglevel, "  Index = %d", (int)a->Index);
+    msg(msglevel, "  Index = %lu", a->Index);
     msg(msglevel, "  GUID = %s", a->AdapterName);
     msg(msglevel, "  IP = %s", format_ip_addr_string(&a->IpAddressList, gc));
     msg(msglevel, "  MAC = %s", format_hex_ex(a->Address, a->AddressLength, 0, 1, ":", gc));
@@ -4804,8 +4804,8 @@ dhcp_release_by_adapter_index(const DWORD adapter_index)
         else
         {
             msg(M_WARN,
-                "NOTE: Release of DHCP-assigned IP address lease on TAP-Windows adapter failed: %s (code=%u)",
-                strerror_win32(status, &gc), (unsigned int)status);
+                "NOTE: Release of DHCP-assigned IP address lease on TAP-Windows adapter failed: %s (code=%lu)",
+                strerror_win32(status, &gc), status);
         }
     }
 
@@ -4845,8 +4845,8 @@ dhcp_renew_by_adapter_index(const DWORD adapter_index)
         else
         {
             msg(M_WARN,
-                "WARNING: Failed to renew DHCP IP address lease on TAP-Windows adapter: %s (code=%u)",
-                strerror_win32(status, &gc), (unsigned int)status);
+                "WARNING: Failed to renew DHCP IP address lease on TAP-Windows adapter: %s (code=%lu)",
+                strerror_win32(status, &gc), status);
         }
     }
     gc_free(&gc);
@@ -5209,12 +5209,12 @@ service_enable_dhcp(const struct tuntap *tt)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_NONFATAL, "TUN: enabling dhcp using service failed: %s [status=%u if_index=%d]",
+        msg(M_NONFATAL, "TUN: enabling dhcp using service failed: %s [status=%u if_index=%lu]",
             strerror_win32(ack.error_number, &gc), ack.error_number, dhcp.iface.index);
     }
     else
     {
-        msg(M_INFO, "DHCP enabled on interface %d using service", dhcp.iface.index);
+        msg(M_INFO, "DHCP enabled on interface %lu using service", dhcp.iface.index);
         ret = true;
     }
 
@@ -5503,7 +5503,7 @@ tuntap_set_ip_addr(struct tuntap *tt, const char *device_guid, bool dhcp_masq_po
     /* flush arp cache */
     if (tt->backend_driver == WINDOWS_DRIVER_TAP_WINDOWS6 && index != TUN_ADAPTER_INDEX_INVALID)
     {
-        DWORD status = -1;
+        DWORD status = (DWORD)-1;
 
         if (tt->options.msg_channel)
         {
@@ -5527,7 +5527,7 @@ tuntap_set_ip_addr(struct tuntap *tt, const char *device_guid, bool dhcp_masq_po
         {
             msg(M_INFO, "Successful ARP Flush on interface [%lu] %s", index, device_guid);
         }
-        else if (status != -1)
+        else if (status != (DWORD)-1)
         {
             msg(D_TUNTAP_INFO,
                 "NOTE: FlushIpNetTable failed on interface [%lu] %s (status=%lu) : %s", index,
@@ -6221,11 +6221,12 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     if (tt->ipapi_context_defined)
     {
         DWORD status;
+
         if ((status = DeleteIPAddress(tt->ipapi_context)) != NO_ERROR)
         {
             msg(M_WARN,
-                "Warning: DeleteIPAddress[%u] failed on TAP-Windows adapter, status=%u : %s",
-                (unsigned int)tt->ipapi_context, (unsigned int)status, strerror_win32(status, &gc));
+                "Warning: DeleteIPAddress[%lu] failed on TAP-Windows adapter, status=%lu : %s",
+                tt->ipapi_context, status, strerror_win32(status, &gc));
         }
     }
 

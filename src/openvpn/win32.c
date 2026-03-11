@@ -1185,7 +1185,7 @@ win_wfp_block_service(bool add, bool dns_only, int index, const HANDLE pipe)
     if (ack.error_number != NO_ERROR)
     {
         msg(M_WARN,
-            "WFP block: %s block filters using service failed: %s [status=0x%x if_index=%d]",
+            "WFP block: %s block filters using service failed: %s [status=0x%x if_index=%lu]",
             (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc), ack.error_number,
             data.iface.index);
         goto out;
