@@ -97,15 +97,10 @@ msg_forked(void)
     forked = true;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 bool
 set_debug_level(const int level, const unsigned int flags)
 {
-    if (level >= 0 && level <= M_DEBUG_LEVEL)
+    if (level >= 0 && (unsigned int)level <= M_DEBUG_LEVEL)
     {
         x_debug_level = (msglvl_t)level;
         return true;
@@ -117,10 +112,6 @@ set_debug_level(const int level, const unsigned int flags)
     }
     return false;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 bool
 set_mute_cutoff(const int cutoff)
@@ -621,11 +612,6 @@ set_check_status(unsigned int info_level, unsigned int verbose_level)
     x_cs_verbose_level = verbose_level;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 /*
  * Called after most socket or tun/tap operations, via the inline
  * function check_status().
@@ -674,15 +660,22 @@ x_check_status(ssize_t status, const char *description, struct link_socket *sock
         {
             if (extended_msg)
             {
-                msg(x_cs_info_level, "%s %s [%s]: %s (fd=" SOCKET_PRINTF ",code=%d)", description,
-                    sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "", extended_msg,
-                    openvpn_strerror(my_errno, crt_error, &gc), sock ? sock->sd : -1, my_errno);
+                msg(x_cs_info_level, "%s %s [%s]: %s (fd=" SOCKET_PRINTF ",code=%d)",
+                    description,
+                    sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
+                    extended_msg,
+                    openvpn_strerror(my_errno, crt_error, &gc),
+                    sock ? sock->sd : SOCKET_UNDEFINED,
+                    my_errno);
             }
             else
             {
-                msg(x_cs_info_level, "%s %s: %s (fd=" SOCKET_PRINTF ",code=%d)", description,
+                msg(x_cs_info_level, "%s %s: %s (fd=" SOCKET_PRINTF ",code=%d)",
+                    description,
                     sock ? proto2ascii(sock->info.proto, sock->info.af, true) : "",
-                    openvpn_strerror(my_errno, crt_error, &gc), sock ? sock->sd : -1, my_errno);
+                    openvpn_strerror(my_errno, crt_error, &gc),
+                    sock ? sock->sd : SOCKET_UNDEFINED,
+                    my_errno);
             }
 
             if (x_cs_err_delay_ms)
@@ -693,10 +686,6 @@ x_check_status(ssize_t status, const char *description, struct link_socket *sock
         gc_free(&gc);
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /*
  * In multiclient mode, put a client-specific prefix
