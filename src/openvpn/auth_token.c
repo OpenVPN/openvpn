@@ -287,11 +287,6 @@ check_hmac_token(hmac_ctx_t *ctx, const uint8_t *b64decoded, const char *usernam
     return memcmp_constant_time(&hmac_output, hmac, 32) == 0;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 unsigned int
 verify_auth_token(struct user_pass *up, struct tls_multi *multi, struct tls_session *session)
 {
@@ -318,7 +313,7 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi, struct tls_sess
 
     const uint8_t *sessid = b64decoded;
     const uint8_t *tstamp_initial = sessid + AUTH_TOKEN_SESSION_ID_LEN;
-    const uint8_t *tstamp = tstamp_initial + sizeof(int64_t);
+    const uint8_t *tstamp = tstamp_initial + sizeof(uint64_t);
 
     /* tstamp, tstamp_initial might not be aligned to an uint64, use memcpy
      * to avoid unaligned access */
@@ -348,9 +343,11 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi, struct tls_sess
     }
 
     /* Accept session tokens only if their timestamp is in the acceptable range
-     * for renegotiations */
-    bool in_renegotiation_time =
-        now >= timestamp && now < timestamp + 2 * session->opt->auth_token_renewal;
+     * for renegotiations.
+     * Cast is required for systems with 32bit time_t, e.g. Windows x86.
+     */
+    const time_t token_reneg_deadline = (time_t)timestamp + 2 * session->opt->auth_token_renewal;
+    bool in_renegotiation_time = now >= (time_t)timestamp && now < token_reneg_deadline;
 
     if (!in_renegotiation_time)
     {
@@ -369,7 +366,8 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi, struct tls_sess
         ret |= AUTH_TOKEN_EXPIRED;
     }
 
-    if (multi->opt.auth_token_lifetime && now > timestamp_initial + multi->opt.auth_token_lifetime)
+    const time_t token_eol = (time_t)timestamp_initial + multi->opt.auth_token_lifetime;
+    if (multi->opt.auth_token_lifetime && now > token_eol)
     {
         ret |= AUTH_TOKEN_EXPIRED;
     }
@@ -395,10 +393,6 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi, struct tls_sess
     }
     return ret;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 wipe_auth_token(struct tls_multi *multi)
