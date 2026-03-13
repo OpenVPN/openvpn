@@ -1,6 +1,12 @@
 Windows-Specific Options
 -------------------------
 
+These options are considered unknown on non-Windows platforms, resulting
+in fatal error (except ``--route-method``). You may want to use
+``--setenv opt`` or ``--ignore-unknown-option`` to ignore said error.
+Note that pushing unknown options from server does not trigger fatal
+errors.
+
 --allow-nonadmin TAP-adapter
   (Standalone) Set ``TAP-adapter`` to allow access from non-administrative
   accounts. If ``TAP-adapter`` is omitted, all TAP adapters on the system
@@ -15,12 +21,6 @@ Windows-Specific Options
   option prevents any application from accessing TCP or UDP port 53 except
   one inside the tunnel. It uses Windows Filtering Platform (WFP) and
   works on Windows Vista or later.
-
-  This option is considered unknown on non-Windows platforms and
-  unsupported on Windows XP, resulting in fatal error. You may want to use
-  ``--setenv opt`` or ``--ignore-unknown-option`` (not suitable for
-  Windows XP) to ignore said error. Note that pushing unknown options from
-  server does not trigger fatal errors.
 
 --cryptoapicert select-string
   *(Windows/OpenSSL Only)* Load the certificate and private key from the
