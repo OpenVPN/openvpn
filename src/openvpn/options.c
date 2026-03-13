@@ -4430,7 +4430,7 @@ options_string(const struct options *o, const struct frame *frame, struct tuntap
         /* Skip resolving BF-CBC to allow SSL libraries without BF-CBC
          * to work here in the default configuration */
         const char *ciphername = o->ciphername;
-        int keysize = 0;
+        size_t keysize = 0;
 
         if (strcmp(o->ciphername, "BF-CBC") == 0)
         {
@@ -4453,7 +4453,7 @@ options_string(const struct options *o, const struct frame *frame, struct tuntap
             buf_printf(&out, ",cipher %s", ciphername);
         }
         buf_printf(&out, ",auth %s", md_kt_name(kt.digest));
-        buf_printf(&out, ",keysize %d", keysize);
+        buf_printf(&out, ",keysize %zu", keysize);
         if (o->shared_secret_file)
         {
             buf_printf(&out, ",secret");

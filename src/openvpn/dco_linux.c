@@ -612,7 +612,8 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t s
     msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s, epoch %d", __func__, slot, keyid, peerid,
         ciphername, epoch);
 
-    const int key_len = cipher_kt_key_size(ciphername);
+    const size_t key_len = cipher_kt_key_size(ciphername);
+    ASSERT(key_len <= INT_MAX);
     const int nonce_tail_len = 8;
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_KEY_NEW);
@@ -634,7 +635,7 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t s
     struct nlattr *key_enc = nla_nest_start(nl_msg, OVPN_A_KEYCONF_ENCRYPT_DIR);
     if (dco_cipher != OVPN_CIPHER_ALG_NONE)
     {
-        NLA_PUT(nl_msg, OVPN_A_KEYDIR_CIPHER_KEY, key_len, encrypt_key);
+        NLA_PUT(nl_msg, OVPN_A_KEYDIR_CIPHER_KEY, (int)key_len, encrypt_key);
         NLA_PUT(nl_msg, OVPN_A_KEYDIR_NONCE_TAIL, nonce_tail_len, encrypt_iv);
     }
     nla_nest_end(nl_msg, key_enc);
@@ -642,7 +643,7 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t s
     struct nlattr *key_dec = nla_nest_start(nl_msg, OVPN_A_KEYCONF_DECRYPT_DIR);
     if (dco_cipher != OVPN_CIPHER_ALG_NONE)
     {
-        NLA_PUT(nl_msg, OVPN_A_KEYDIR_CIPHER_KEY, key_len, decrypt_key);
+        NLA_PUT(nl_msg, OVPN_A_KEYDIR_CIPHER_KEY, (int)key_len, decrypt_key);
         NLA_PUT(nl_msg, OVPN_A_KEYDIR_NONCE_TAIL, nonce_tail_len, decrypt_iv);
     }
     nla_nest_end(nl_msg, key_dec);

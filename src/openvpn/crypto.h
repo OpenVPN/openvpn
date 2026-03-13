@@ -165,13 +165,13 @@ struct key_parameters
     uint8_t cipher[MAX_CIPHER_KEY_LENGTH];
 
     /** Number of bytes set in the cipher key material */
-    int cipher_size;
+    unsigned int cipher_size;
 
     /** %Key material for HMAC operations. */
     uint8_t hmac[MAX_HMAC_KEY_LENGTH];
 
     /** Number of bytes set in the HMac key material */
-    int hmac_size;
+    unsigned int hmac_size;
 
     /** the epoch of the key. Only defined/non zero if key parameters
      * represent a data channel epoch key parameters.
@@ -549,8 +549,8 @@ bool crypto_check_replay(struct crypto_options *opt, const struct packet_id_net 
  *                      incorrect way as all previous OpenVPN versions did, to
  *                      end up with identical numbers for OCC compatibility
  */
-unsigned int calculate_crypto_overhead(const struct key_type *kt, unsigned int pkt_id_size,
-                                       bool occ);
+size_t calculate_crypto_overhead(const struct key_type *kt, unsigned int pkt_id_size,
+                                 bool occ);
 
 /** Return the worst-case OpenVPN crypto overhead (in bytes) */
 unsigned int crypto_max_overhead(void);

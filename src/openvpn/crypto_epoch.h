@@ -38,8 +38,8 @@
  *  @param out      output keying material
  *  @param out_len  length of output keying material
  */
-void ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, int info_len, uint8_t *out,
-                      int out_len);
+void ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, size_t info_len,
+                      uint8_t *out, size_t out_len);
 
 /**
  * Variant of the RFC 8446 TLS 1.3  HKDF-Expand-Label function with the
@@ -59,8 +59,8 @@ void ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, int info_len, 
  * @return
  */
 bool ovpn_expand_label(const uint8_t *secret, size_t secret_len, const uint8_t *label,
-                       size_t label_len, const uint8_t *context, size_t context_len, uint8_t *out,
-                       int out_len);
+                       size_t label_len, const uint8_t *context, size_t context_len,
+                       uint8_t *out, size_t out_len);
 
 /**
  * Generate a data channel key pair from the epoch key

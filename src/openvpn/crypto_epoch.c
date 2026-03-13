@@ -39,17 +39,18 @@
 #include "integer.h"
 
 void
-ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, int info_len, uint8_t *out,
-                 int out_len)
+ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, size_t info_len,
+                 uint8_t *out, size_t out_len)
 {
     hmac_ctx_t *hmac_ctx = hmac_ctx_new();
     hmac_ctx_init(hmac_ctx, secret, "SHA256");
 
-    const int digest_size = SHA256_DIGEST_LENGTH;
+    ASSERT(info_len <= INT_MAX);
+    const unsigned int digest_size = SHA256_DIGEST_LENGTH;
 
     /* T(0) = empty string */
     uint8_t t_prev[SHA256_DIGEST_LENGTH];
-    int t_prev_len = 0;
+    unsigned int t_prev_len = 0;
 
     for (uint8_t block = 1; (block - 1) * digest_size < out_len; block++)
     {
@@ -57,14 +58,14 @@ ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, int info_len, uint8
 
         /* calculate T(block) */
         hmac_ctx_update(hmac_ctx, t_prev, t_prev_len);
-        hmac_ctx_update(hmac_ctx, info, info_len);
+        hmac_ctx_update(hmac_ctx, info, (int)info_len);
         hmac_ctx_update(hmac_ctx, &block, 1);
         hmac_ctx_final(hmac_ctx, t_prev);
         t_prev_len = digest_size;
 
         /* Copy a full hmac output or remaining bytes */
-        int out_offset = (block - 1) * digest_size;
-        int copylen = min_int(digest_size, out_len - out_offset);
+        size_t out_offset = (block - 1) * digest_size;
+        size_t copylen = min_size(digest_size, out_len - out_offset);
 
         memcpy(out + out_offset, t_prev, copylen);
     }
@@ -72,14 +73,9 @@ ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, int info_len, uint8
     hmac_ctx_free(hmac_ctx);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 bool
 ovpn_expand_label(const uint8_t *secret, size_t secret_len, const uint8_t *label, size_t label_len,
-                  const uint8_t *context, size_t context_len, uint8_t *out, int out_len)
+                  const uint8_t *context, size_t context_len, uint8_t *out, size_t out_len)
 {
     if (secret_len != 32 || label_len > 250 || context_len > 255 || label_len < 1)
     {
@@ -89,7 +85,7 @@ ovpn_expand_label(const uint8_t *secret, size_t secret_len, const uint8_t *label
          * need need to be in range */
         return false;
     }
-    ASSERT(out_len >= 0 && out_len <= UINT16_MAX);
+    ASSERT(out_len <= UINT16_MAX);
 
     struct gc_arena gc = gc_new();
     /* 2 byte for the outlen encoded as uint16, 5 bytes for "ovpn ",
@@ -111,17 +107,13 @@ ovpn_expand_label(const uint8_t *secret, size_t secret_len, const uint8_t *label
         buf_write(&hkdf_label, context, context_len);
     }
 
-    ASSERT(buf_len(&hkdf_label) == hkdf_label_len);
+    ASSERT(buf_len(&hkdf_label) == (int)hkdf_label_len);
 
-    ovpn_hkdf_expand(secret, buf_bptr(&hkdf_label), buf_len(&hkdf_label), out, out_len);
+    ovpn_hkdf_expand(secret, buf_bptr(&hkdf_label), hkdf_label_len, out, out_len);
 
     gc_free(&gc);
     return true;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /**
  * Iterates the epoch key to make it E_n+1, ie increase the epoch by one

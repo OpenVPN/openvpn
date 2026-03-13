@@ -251,7 +251,7 @@ const char *cipher_kt_name(const char *ciphername);
  *
  * @return              (Default) size of keys used by the cipher, in bytes.
  */
-int cipher_kt_key_size(const char *ciphername);
+unsigned int cipher_kt_key_size(const char *ciphername);
 
 /**
  * Returns the size of the IV used by the cipher, in bytes, or 0 if no IV is
@@ -262,7 +262,7 @@ int cipher_kt_key_size(const char *ciphername);
  * @return              Size of the IV, in bytes, or 0 if the cipher does not
  *                      use an IV.
  */
-int cipher_kt_iv_size(const char *ciphername);
+unsigned int cipher_kt_iv_size(const char *ciphername);
 
 /**
  * Returns the block size of the cipher, in bytes.
@@ -271,7 +271,7 @@ int cipher_kt_iv_size(const char *ciphername);
  *
  * @return              Block size, in bytes.
  */
-int cipher_kt_block_size(const char *ciphername);
+unsigned int cipher_kt_block_size(const char *ciphername);
 
 /**
  * Returns the MAC tag size of the cipher, in bytes.
@@ -281,7 +281,7 @@ int cipher_kt_block_size(const char *ciphername);
  * @return              Tag size in bytes, or 0 if the tag size could not be
  *                      determined.
  */
-int cipher_kt_tag_size(const char *ciphername);
+unsigned int cipher_kt_tag_size(const char *ciphername);
 
 /**
  * Returns true if we consider this cipher to be insecure.
@@ -358,7 +358,7 @@ void cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key, const char *cipherna
  * @return              Size of the IV, in bytes, or \c 0 if the cipher does not
  *                      use an IV.
  */
-int cipher_ctx_iv_length(const cipher_ctx_t *ctx);
+unsigned int cipher_ctx_iv_length(const cipher_ctx_t *ctx);
 
 /**
  * Gets the computed message authenticated code (MAC) tag for this cipher.
@@ -376,7 +376,7 @@ int cipher_ctx_get_tag(cipher_ctx_t *ctx, uint8_t *tag, int tag_len);
  *
  * @return              Block size, in bytes, or 0 if ctx was NULL.
  */
-int cipher_ctx_block_size(const cipher_ctx_t *ctx);
+unsigned int cipher_ctx_block_size(const cipher_ctx_t *ctx);
 
 /**
  * Returns the mode that the cipher runs in.

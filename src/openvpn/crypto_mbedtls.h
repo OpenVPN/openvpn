@@ -70,9 +70,9 @@ typedef struct cipher_info
     const char *name;
     psa_key_type_t psa_key_type;
     psa_algorithm_t psa_alg;
-    int key_bytes;
-    int iv_bytes;
-    int block_size;
+    unsigned int key_bytes;
+    unsigned int iv_bytes;
+    unsigned int block_size;
 } cipher_info_t;
 
 typedef union psa_cipher_or_aead_operation

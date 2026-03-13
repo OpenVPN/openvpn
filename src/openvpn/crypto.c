@@ -39,11 +39,6 @@
 
 #include "memdbg.h"
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 /*
  * Encryption and Compression Routines.
  *
@@ -93,7 +88,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     {
         struct buffer iv_buffer;
         uint8_t iv[OPENVPN_MAX_IV_LENGTH] = { 0 };
-        const int iv_len = cipher_ctx_iv_length(ctx->cipher);
+        const unsigned int iv_len = cipher_ctx_iv_length(ctx->cipher);
 
         ASSERT(iv_len >= OPENVPN_AEAD_MIN_IV_LEN && iv_len <= OPENVPN_MAX_IV_LENGTH);
 
@@ -128,7 +123,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
 
         /* This generates the IV by XORing the implicit part of the IV
          * with the packet id already written to the iv buffer */
-        for (int i = 0; i < iv_len; i++)
+        for (unsigned int i = 0; i < iv_len; i++)
         {
             iv[i] = iv[i] ^ ctx->implicit_iv[i];
         }
@@ -214,8 +209,7 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
         if (ctx->cipher)
         {
             uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH] = { 0 };
-            const int iv_size = cipher_ctx_iv_length(ctx->cipher);
-            int outlen;
+            const unsigned int iv_size = cipher_ctx_iv_length(ctx->cipher);
 
             /* Reserve space for HMAC */
             if (ctx->hmac)
@@ -274,6 +268,7 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
             }
 
             /* Encrypt packet ID, payload */
+            int outlen;
             ASSERT(cipher_ctx_update(ctx->cipher, BEND(&work), &outlen, BPTR(buf), BLEN(buf)));
             ASSERT(buf_inc_len(&work, outlen));
 
@@ -282,7 +277,7 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
             ASSERT(buf_inc_len(&work, outlen));
 
             /* For all CBC mode ciphers, check the last block is complete */
-            ASSERT(cipher_ctx_mode(ctx->cipher) != OPENVPN_MODE_CBC || outlen == iv_size);
+            ASSERT(cipher_ctx_mode(ctx->cipher) != OPENVPN_MODE_CBC || outlen == (int)iv_size);
         }
         else /* No Encryption */
         {
@@ -486,7 +481,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     /* Combine IV from explicit part from packet and implicit part from context */
     {
         uint8_t iv[OPENVPN_MAX_IV_LENGTH] = { 0 };
-        const int iv_len = cipher_ctx_iv_length(ctx->cipher);
+        const unsigned int iv_len = cipher_ctx_iv_length(ctx->cipher);
 
         /* Read packet id. For epoch data format also lookup the epoch key
          * to be able to use the implicit IV of the correct decryption key */
@@ -526,7 +521,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
 
         /* This generates the IV by XORing the implicit part of the IV
          * with the packet id already written to the iv buffer */
-        for (int i = 0; i < iv_len; i++)
+        for (unsigned int i = 0; i < iv_len; i++)
         {
             iv[i] = iv[i] ^ ctx->implicit_iv[i];
         }
@@ -666,7 +661,7 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
 
         if (ctx->cipher)
         {
-            const int iv_size = cipher_ctx_iv_length(ctx->cipher);
+            const unsigned int iv_size = cipher_ctx_iv_length(ctx->cipher);
             uint8_t iv_buf[OPENVPN_MAX_IV_LENGTH] = { 0 };
             int outlen;
 
@@ -674,7 +669,7 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
             ASSERT(buf_init(&work, frame->buf.headroom));
 
             /* read the IV from the packet */
-            if (buf->len < iv_size)
+            if (buf->len < (int)iv_size)
             {
                 CRYPT_ERROR("missing IV info");
             }
@@ -804,10 +799,10 @@ openvpn_decrypt(struct buffer *buf, struct buffer work, struct crypto_options *o
     return ret;
 }
 
-unsigned int
+size_t
 calculate_crypto_overhead(const struct key_type *kt, unsigned int pkt_id_size, bool occ)
 {
-    unsigned int crypto_overhead = 0;
+    size_t crypto_overhead = 0;
 
     if (!cipher_kt_mode_cbc(kt->cipher))
     {
@@ -865,7 +860,7 @@ warn_insecure_key_type(const char *ciphername)
     {
         msg(M_WARN,
             "WARNING: INSECURE cipher (%s) with block size less than 128"
-            " bit (%d bit).  This allows attacks like SWEET32.  Mitigate by "
+            " bit (%u bit).  This allows attacks like SWEET32.  Mitigate by "
             "using a --cipher with a larger block size (e.g. AES-256-CBC). "
             "Support for these insecure ciphers will be removed in "
             "OpenVPN 2.8.",
@@ -1010,12 +1005,12 @@ init_key_ctx(struct key_ctx *ctx, const struct key_parameters *key, const struct
         cipher_ctx_init(ctx->cipher, key->cipher, kt->cipher, enc);
 
         const char *ciphername = cipher_kt_name(kt->cipher);
-        msg(D_CIPHER_INIT, "%s: Cipher '%s' initialized with %d bit key", prefix, ciphername,
+        msg(D_CIPHER_INIT, "%s: Cipher '%s' initialized with %u bit key", prefix, ciphername,
             cipher_kt_key_size(kt->cipher) * 8);
 
         dmsg(D_SHOW_KEYS, "%s: CIPHER KEY: %s", prefix,
              format_hex(key->cipher, cipher_kt_key_size(kt->cipher), 0, &gc));
-        dmsg(D_CRYPTO_DEBUG, "%s: CIPHER block_size=%d iv_size=%d", prefix,
+        dmsg(D_CRYPTO_DEBUG, "%s: CIPHER block_size=%u iv_size=%u", prefix,
              cipher_kt_block_size(kt->cipher), cipher_kt_iv_size(kt->cipher));
         warn_insecure_key_type(ciphername);
     }
@@ -1112,8 +1107,8 @@ free_key_ctx_bi(struct key_ctx_bi *ctx)
 static bool
 key_is_zero(struct key *key, const struct key_type *kt)
 {
-    int cipher_length = cipher_kt_key_size(kt->cipher);
-    for (int i = 0; i < cipher_length; ++i)
+    size_t cipher_length = cipher_kt_key_size(kt->cipher);
+    for (size_t i = 0; i < cipher_length; ++i)
     {
         if (key->cipher[i])
         {
@@ -1171,7 +1166,7 @@ static void
 key_print(const struct key *key, const struct key_type *kt, const char *prefix)
 {
     struct gc_arena gc = gc_new();
-    dmsg(D_SHOW_KEY_SOURCE, "%s (cipher, %s, %d bits): %s", prefix, cipher_kt_name(kt->cipher),
+    dmsg(D_SHOW_KEY_SOURCE, "%s (cipher, %s, %u bits): %s", prefix, cipher_kt_name(kt->cipher),
          cipher_kt_key_size(kt->cipher) * 8,
          format_hex(key->cipher, cipher_kt_key_size(kt->cipher), 0, &gc));
     dmsg(D_SHOW_KEY_SOURCE, "%s (hmac, %s, %d bits): %s", prefix, md_kt_name(kt->digest),
@@ -1279,10 +1274,6 @@ test_crypto(struct crypto_options *co, struct frame *frame)
     msg(M_INFO, PACKAGE_NAME " crypto self-test mode SUCCEEDED.");
     gc_free(&gc);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 const char *
 print_key_filename(const char *str, bool is_inline)
@@ -1756,7 +1747,7 @@ get_random(void)
 void
 print_cipher(const char *ciphername)
 {
-    printf("%s  (%d bit key, ", cipher_kt_name(ciphername), cipher_kt_key_size(ciphername) * 8);
+    printf("%s  (%u bit key, ", cipher_kt_name(ciphername), cipher_kt_key_size(ciphername) * 8);
 
     if (cipher_kt_block_size(ciphername) == 1)
     {
@@ -1764,7 +1755,7 @@ print_cipher(const char *ciphername)
     }
     else
     {
-        printf("%d bit block", cipher_kt_block_size(ciphername) * 8);
+        printf("%u bit block", cipher_kt_block_size(ciphername) * 8);
     }
 
     if (!cipher_kt_mode_cbc(ciphername))

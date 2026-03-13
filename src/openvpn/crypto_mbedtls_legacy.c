@@ -236,7 +236,6 @@ show_available_engines(void)
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 
 bool
@@ -446,7 +445,7 @@ cipher_kt_name(const char *ciphername)
     return translate_cipher_name_to_openvpn(mbedtls_cipher_info_get_name(cipher_kt));
 }
 
-int
+unsigned int
 cipher_kt_key_size(const char *ciphername)
 {
     const mbedtls_cipher_info_t *cipher_kt = cipher_get(ciphername);
@@ -456,10 +455,10 @@ cipher_kt_key_size(const char *ciphername)
         return 0;
     }
 
-    return (int)mbedtls_cipher_info_get_key_bitlen(cipher_kt) / 8;
+    return mbedtls_cipher_info_get_key_bitlen(cipher_kt) / 8;
 }
 
-int
+unsigned int
 cipher_kt_iv_size(const char *ciphername)
 {
     const mbedtls_cipher_info_t *cipher_kt = cipher_get(ciphername);
@@ -468,10 +467,10 @@ cipher_kt_iv_size(const char *ciphername)
     {
         return 0;
     }
-    return (int)mbedtls_cipher_info_get_iv_size(cipher_kt);
+    return mbedtls_cipher_info_get_iv_size(cipher_kt);
 }
 
-int
+unsigned int
 cipher_kt_block_size(const char *ciphername)
 {
     const mbedtls_cipher_info_t *cipher_kt = cipher_get(ciphername);
@@ -479,10 +478,10 @@ cipher_kt_block_size(const char *ciphername)
     {
         return 0;
     }
-    return (int)mbedtls_cipher_info_get_block_size(cipher_kt);
+    return mbedtls_cipher_info_get_block_size(cipher_kt);
 }
 
-int
+unsigned int
 cipher_kt_tag_size(const char *ciphername)
 {
     if (cipher_kt_mode_aead(ciphername))
@@ -595,10 +594,10 @@ cipher_ctx_init(mbedtls_cipher_context_t *ctx, const uint8_t *key, const char *c
     }
 
     /* make sure we used a big enough key */
-    ASSERT(mbedtls_cipher_get_key_bitlen(ctx) <= key_bitlen);
+    ASSERT((size_t)mbedtls_cipher_get_key_bitlen(ctx) <= key_bitlen);
 }
 
-int
+unsigned int
 cipher_ctx_iv_length(const mbedtls_cipher_context_t *ctx)
 {
     return mbedtls_cipher_get_iv_size(ctx);
@@ -607,7 +606,7 @@ cipher_ctx_iv_length(const mbedtls_cipher_context_t *ctx)
 int
 cipher_ctx_get_tag(cipher_ctx_t *ctx, uint8_t *tag, int tag_len)
 {
-    if (tag_len > SIZE_MAX)
+    if (tag_len < 0)
     {
         return 0;
     }
@@ -620,10 +619,10 @@ cipher_ctx_get_tag(cipher_ctx_t *ctx, uint8_t *tag, int tag_len)
     return 1;
 }
 
-int
+unsigned int
 cipher_ctx_block_size(const mbedtls_cipher_context_t *ctx)
 {
-    return (int)mbedtls_cipher_get_block_size(ctx);
+    return mbedtls_cipher_get_block_size(ctx);
 }
 
 int
@@ -679,7 +678,7 @@ cipher_ctx_reset(mbedtls_cipher_context_t *ctx, const uint8_t *iv_buf)
 int
 cipher_ctx_update_ad(cipher_ctx_t *ctx, const uint8_t *src, int src_len)
 {
-    if (src_len > SIZE_MAX)
+    if (src_len < 0)
     {
         return 0;
     }

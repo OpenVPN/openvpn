@@ -160,7 +160,7 @@ cipher_valid_reason(const char *ciphername, const char **reason)
     if (cipher_info->key_bytes > MAX_CIPHER_KEY_LENGTH)
     {
         msg(D_LOW,
-            "Cipher algorithm '%s' uses a default key size (%d bytes) "
+            "Cipher algorithm '%s' uses a default key size (%u bytes) "
             "which is larger than " PACKAGE_NAME "'s current maximum key size "
             "(%d bytes)",
             ciphername, cipher_info->key_bytes, MAX_CIPHER_KEY_LENGTH);
@@ -183,7 +183,7 @@ cipher_kt_name(const char *ciphername)
     return cipher_info->name;
 }
 
-int
+unsigned int
 cipher_kt_key_size(const char *ciphername)
 {
     const cipher_info_t *cipher_info = cipher_get(ciphername);
@@ -194,7 +194,7 @@ cipher_kt_key_size(const char *ciphername)
     return cipher_info->key_bytes;
 }
 
-int
+unsigned int
 cipher_kt_iv_size(const char *ciphername)
 {
     const cipher_info_t *cipher_info = cipher_get(ciphername);
@@ -206,7 +206,7 @@ cipher_kt_iv_size(const char *ciphername)
     return cipher_info->iv_bytes;
 }
 
-int
+unsigned int
 cipher_kt_block_size(const char *ciphername)
 {
     const cipher_info_t *cipher_info = cipher_get(ciphername);
@@ -217,7 +217,7 @@ cipher_kt_block_size(const char *ciphername)
     return cipher_info->block_size;
 }
 
-int
+unsigned int
 cipher_kt_tag_size(const char *ciphername)
 {
     if (cipher_kt_mode_aead(ciphername))
@@ -310,20 +310,20 @@ cipher_ctx_init(cipher_ctx_t *ctx, const uint8_t *key, const char *ciphername,
 
     psa_set_key_type(&ctx->key_attributes, ctx->cipher_info->psa_key_type);
     psa_set_key_algorithm(&ctx->key_attributes, ctx->cipher_info->psa_alg);
-    psa_set_key_bits(&ctx->key_attributes, (size_t)ctx->cipher_info->key_bytes * 8);
+    psa_set_key_bits(&ctx->key_attributes, ctx->cipher_info->key_bytes * 8);
     psa_set_key_usage_flags(&ctx->key_attributes,
                             enc == OPENVPN_OP_ENCRYPT ? PSA_KEY_USAGE_ENCRYPT : PSA_KEY_USAGE_DECRYPT);
 
-    if (psa_import_key(&ctx->key_attributes, key, (size_t)ctx->cipher_info->key_bytes, &ctx->key) != PSA_SUCCESS)
+    if (psa_import_key(&ctx->key_attributes, key, ctx->cipher_info->key_bytes, &ctx->key) != PSA_SUCCESS)
     {
         msg(M_FATAL, "psa_import_key failed");
     }
 
     /* make sure we used a big enough key */
-    ASSERT(psa_get_key_bits(&ctx->key_attributes) == (size_t)(8 * ctx->cipher_info->key_bytes));
+    ASSERT(psa_get_key_bits(&ctx->key_attributes) == (8 * ctx->cipher_info->key_bytes));
 }
 
-int
+unsigned int
 cipher_ctx_iv_length(const cipher_ctx_t *ctx)
 {
     return ctx->cipher_info->iv_bytes;
@@ -341,7 +341,7 @@ cipher_ctx_get_tag(cipher_ctx_t *ctx, uint8_t *tag, int tag_len)
     return 1;
 }
 
-int
+unsigned int
 cipher_ctx_block_size(const cipher_ctx_t *ctx)
 {
     return ctx->cipher_info->block_size;

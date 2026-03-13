@@ -669,25 +669,27 @@ cipher_kt_name(const char *ciphername)
     return translate_cipher_name_to_openvpn(name);
 }
 
-int
+unsigned int
 cipher_kt_key_size(const char *ciphername)
 {
     evp_cipher_type *cipher = cipher_get(ciphername);
     int size = EVP_CIPHER_key_length(cipher);
+    ASSERT(size >= 0);
     EVP_CIPHER_free(cipher);
     return size;
 }
 
-int
+unsigned int
 cipher_kt_iv_size(const char *ciphername)
 {
     evp_cipher_type *cipher = cipher_get(ciphername);
     int ivsize = EVP_CIPHER_iv_length(cipher);
+    ASSERT(ivsize >= 0);
     EVP_CIPHER_free(cipher);
     return ivsize;
 }
 
-int
+unsigned int
 cipher_kt_block_size(const char *ciphername)
 {
     /*
@@ -733,10 +735,11 @@ cleanup:
     EVP_CIPHER_free(cbc_cipher);
     EVP_CIPHER_free(cipher);
     free(name);
+    ASSERT(block_size >= 0);
     return block_size;
 }
 
-int
+unsigned int
 cipher_kt_tag_size(const char *ciphername)
 {
     if (cipher_kt_mode_aead(ciphername))
@@ -872,7 +875,7 @@ cipher_ctx_init(EVP_CIPHER_CTX *ctx, const uint8_t *key, const char *ciphername,
     EVP_CIPHER_free(kt);
 }
 
-int
+unsigned int
 cipher_ctx_iv_length(const EVP_CIPHER_CTX *ctx)
 {
     return EVP_CIPHER_CTX_iv_length(ctx);
@@ -884,7 +887,7 @@ cipher_ctx_get_tag(EVP_CIPHER_CTX *ctx, uint8_t *tag_buf, int tag_size)
     return EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_AEAD_GET_TAG, tag_size, tag_buf);
 }
 
-int
+unsigned int
 cipher_ctx_block_size(const EVP_CIPHER_CTX *ctx)
 {
     return EVP_CIPHER_CTX_block_size(ctx);
@@ -1190,11 +1193,6 @@ hmac_ctx_free(HMAC_CTX *ctx)
     HMAC_CTX_free(ctx);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 void
 hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, const char *mdname)
 {
@@ -1209,12 +1207,8 @@ hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, const char *mdname)
     }
 
     /* make sure we used a big enough key */
-    ASSERT(HMAC_size(ctx) <= key_len);
+    ASSERT((ssize_t)HMAC_size(ctx) <= key_len);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 hmac_ctx_cleanup(HMAC_CTX *ctx)
