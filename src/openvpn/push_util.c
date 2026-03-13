@@ -316,15 +316,12 @@ send_push_update(struct multi_context *m, const void *target, const char *msg, c
     }
 
     int count = 0;
-    struct hash_iterator hi;
-    const struct hash_element *he;
 
-    hash_iterator_init(m->iter, &hi);
-    while ((he = hash_iterator_next(&hi)))
+    for (int i = 0; i < m->max_clients; i++)
     {
-        struct multi_instance *curr_mi = he->value;
+        struct multi_instance *curr_mi = m->instances[i];
 
-        if (curr_mi->halt || !support_push_update(curr_mi))
+        if (!curr_mi || curr_mi->halt || !support_push_update(curr_mi))
         {
             continue;
         }
@@ -338,7 +335,6 @@ send_push_update(struct multi_context *m, const void *target, const char *msg, c
         count++;
     }
 
-    hash_iterator_free(&hi);
     buffer_list_free(msgs);
     gc_free(&gc);
     return count;

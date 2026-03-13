@@ -132,7 +132,6 @@ struct multi_instance
     struct in6_addr reporting_addr_ipv6; /* IPv6 address in status listing */
 
     bool did_real_hash;
-    bool did_iter;
 #ifdef ENABLE_MANAGEMENT
     bool did_cid_hash;
     struct buffer_list *cc_config;
@@ -168,9 +167,6 @@ struct multi_context
                                         *   address of the remote peer. */
     struct hash *vhash;                /**< VPN tunnel instances indexed by
                                         *   virtual address of remote hosts. */
-    struct hash *iter;                 /**< VPN tunnel instances indexed by real
-                                        *   address of the remote peer, optimized
-                                        *   for iteration. */
     struct schedule *schedule;
     struct mbuf_set *mbuf;             /**< Set of buffers for passing data
                                         *   channel packets between VPN tunnel

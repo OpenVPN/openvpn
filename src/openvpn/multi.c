@@ -300,14 +300,6 @@ multi_init(struct context *t)
     m->vhash = hash_init(t->options.virtual_hash_size, (uint32_t)get_random(),
                          mroute_addr_hash_function, mroute_addr_compare_function);
 
-    /*
-     * This hash table is a clone of m->hash but with a
-     * bucket size of one so that it can be used
-     * for fast iteration through the list.
-     */
-    m->iter = hash_init(1, (uint32_t)get_random(), mroute_addr_hash_function,
-                        mroute_addr_compare_function);
-
 #ifdef ENABLE_MANAGEMENT
     m->cid_hash = hash_init(t->options.real_hash_size, 0, cid_hash_function, cid_compare_function);
 #endif
@@ -591,10 +583,6 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
         {
             ASSERT(hash_remove(m->hash, &mi->real));
         }
-        if (mi->did_iter)
-        {
-            ASSERT(hash_remove(m->iter, &mi->real));
-        }
 #ifdef ENABLE_MANAGEMENT
         if (mi->did_cid_hash)
         {
@@ -664,23 +652,19 @@ multi_uninit(struct multi_context *m)
 {
     if (m->hash)
     {
-        struct hash_iterator hi;
-        struct hash_element *he;
-
-        hash_iterator_init(m->iter, &hi);
-        while ((he = hash_iterator_next(&hi)))
+        for (int i = 0; i < m->max_clients; i++)
         {
-            struct multi_instance *mi = (struct multi_instance *)he->value;
-            mi->did_iter = false;
-            multi_close_instance(m, mi, true);
+            struct multi_instance *mi = m->instances[i];
+            if (mi)
+            {
+                multi_close_instance(m, mi, true);
+            }
         }
-        hash_iterator_free(&hi);
 
         multi_reap_all(m);
 
         hash_free(m->hash);
         hash_free(m->vhash);
-        hash_free(m->iter);
 #ifdef ENABLE_MANAGEMENT
         hash_free(m->cid_hash);
 #endif
@@ -759,14 +743,6 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
         }
         generate_prefix(mi);
     }
-
-    if (!hash_add(m->iter, &mi->real, mi, false))
-    {
-        msg(D_MULTI_LOW, "MULTI: unable to add real address [%s] to iterator hash table",
-            mroute_addr_print(&mi->real, &gc));
-        goto err;
-    }
-    mi->did_iter = true;
 
 #ifdef ENABLE_MANAGEMENT
     do
@@ -1348,27 +1324,21 @@ multi_delete_dup(struct multi_context *m, struct multi_instance *new_mi)
         const char *new_cn = tls_common_name(new_mi->context.c2.tls_multi, true);
         if (new_cn)
         {
-            struct hash_iterator hi;
-            struct hash_element *he;
             int count = 0;
 
-            hash_iterator_init(m->iter, &hi);
-            while ((he = hash_iterator_next(&hi)))
+            for (int i = 0; i < m->max_clients; i++)
             {
-                struct multi_instance *mi = (struct multi_instance *)he->value;
-                if (mi != new_mi && !mi->halt)
+                struct multi_instance *mi = m->instances[i];
+                if (mi && mi != new_mi && !mi->halt)
                 {
                     const char *cn = tls_common_name(mi->context.c2.tls_multi, true);
                     if (cn && !strcmp(cn, new_cn))
                     {
-                        mi->did_iter = false;
                         multi_close_instance(m, mi, false);
-                        hash_iterator_delete_element(&hi);
                         ++count;
                     }
                 }
             }
-            hash_iterator_free(&hi);
 
             if (count)
             {
@@ -2906,9 +2876,6 @@ static void
 multi_bcast(struct multi_context *m, const struct buffer *buf,
             const struct multi_instance *sender_instance, uint16_t vid)
 {
-    struct hash_iterator hi;
-    struct hash_element *he;
-    struct multi_instance *mi;
     struct mbuf_buffer *mb;
 
     if (BLEN(buf) > 0)
@@ -2917,12 +2884,12 @@ multi_bcast(struct multi_context *m, const struct buffer *buf,
         printf("BCAST len=%d\n", BLEN(buf));
 #endif
         mb = mbuf_alloc_buf(buf);
-        hash_iterator_init(m->iter, &hi);
 
-        while ((he = hash_iterator_next(&hi)))
+        for (int i = 0; i < m->max_clients; i++)
         {
-            mi = (struct multi_instance *)he->value;
-            if (mi != sender_instance && !mi->halt)
+            struct multi_instance *mi = m->instances[i];
+
+            if (mi && mi != sender_instance && !mi->halt)
             {
                 if (vid != 0 && vid != mi->context.options.vlan_pvid)
                 {
@@ -2931,8 +2898,6 @@ multi_bcast(struct multi_context *m, const struct buffer *buf,
                 multi_add_mbuf(m, mi, mb);
             }
         }
-
-        hash_iterator_free(&hi);
         mbuf_free_buf(mb);
     }
 }
@@ -3182,7 +3147,6 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi, struct l
 
     /* remove old address from hash table before changing address */
     ASSERT(hash_remove(m->hash, &mi->real));
-    ASSERT(hash_remove(m->iter, &mi->real));
 
     /* change external network address of the remote peer */
     mi->real = real;
@@ -3198,7 +3162,6 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi, struct l
     tls_update_remote_addr(mi->context.c2.tls_multi, &mi->context.c2.from);
 
     ASSERT(hash_add(m->hash, &mi->real, mi, false));
-    ASSERT(hash_add(m->iter, &mi->real, mi, false));
 
 #ifdef ENABLE_MANAGEMENT
     ASSERT(hash_add(m->cid_hash, &mi->context.c2.mda_context.cid, mi, true));
@@ -3830,22 +3793,17 @@ is_exit_restart(int sig)
 static void
 multi_push_restart_schedule_exit(struct multi_context *m, bool next_server)
 {
-    struct hash_iterator hi;
-    struct hash_element *he;
-
     /* tell all clients to restart */
-    hash_iterator_init(m->iter, &hi);
-    while ((he = hash_iterator_next(&hi)))
+    for (int i = 0; i < m->max_clients; i++)
     {
-        struct multi_instance *mi = (struct multi_instance *)he->value;
-        if (!mi->halt && proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto))
+        struct multi_instance *mi = m->instances[i];
+        if (mi && !mi->halt && proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto))
         {
             send_control_channel_string(&mi->context, next_server ? "RESTART,[N]" : "RESTART",
                                         D_PUSH);
             multi_schedule_context_wakeup(m, mi);
         }
     }
-    hash_iterator_free(&hi);
 
     /* reschedule signal */
     ASSERT(!openvpn_gettimeofday(&m->deferred_shutdown_signal.wakeup, NULL));
@@ -3916,15 +3874,12 @@ static int
 management_callback_kill_by_cn(void *arg, const char *del_cn)
 {
     struct multi_context *m = (struct multi_context *)arg;
-    struct hash_iterator hi;
-    struct hash_element *he;
     int count = 0;
 
-    hash_iterator_init(m->iter, &hi);
-    while ((he = hash_iterator_next(&hi)))
+    for (int i = 0; i < m->max_clients; i++)
     {
-        struct multi_instance *mi = (struct multi_instance *)he->value;
-        if (!mi->halt)
+        struct multi_instance *mi = m->instances[i];
+        if (mi && !mi->halt)
         {
             const char *cn = tls_common_name(mi->context.c2.tls_multi, false);
             if (cn && !strcmp(cn, del_cn))
@@ -3934,7 +3889,6 @@ management_callback_kill_by_cn(void *arg, const char *del_cn)
             }
         }
     }
-    hash_iterator_free(&hi);
     return count;
 }
 
@@ -3942,8 +3896,6 @@ static int
 management_callback_kill_by_addr(void *arg, const in_addr_t addr, const uint16_t port, const uint8_t proto)
 {
     struct multi_context *m = (struct multi_context *)arg;
-    struct hash_iterator hi;
-    struct hash_element *he;
     struct openvpn_sockaddr saddr;
     struct mroute_addr maddr;
     int count = 0;
@@ -3955,17 +3907,15 @@ management_callback_kill_by_addr(void *arg, const in_addr_t addr, const uint16_t
     maddr.proto = proto;
     if (mroute_extract_openvpn_sockaddr(&maddr, &saddr, true))
     {
-        hash_iterator_init(m->iter, &hi);
-        while ((he = hash_iterator_next(&hi)))
+        for (int i = 0; i < m->max_clients; i++)
         {
-            struct multi_instance *mi = (struct multi_instance *)he->value;
-            if (!mi->halt && mroute_addr_equal(&maddr, &mi->real))
+            struct multi_instance *mi = m->instances[i];
+            if (mi && !mi->halt && mroute_addr_equal(&maddr, &mi->real))
             {
                 multi_signal_instance(m, mi, SIGTERM);
                 ++count;
             }
         }
-        hash_iterator_free(&hi);
     }
     return count;
 }
