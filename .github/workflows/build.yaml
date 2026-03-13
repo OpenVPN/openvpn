@@ -363,6 +363,10 @@ jobs:
         run: ./configure --with-crypto-library=openssl ${{matrix.configureflags}} --enable-werror
       - name: make all
         run: make -j3
+      - name: Ensure the build uses LibreSSL
+        run: |
+          ./src/openvpn/openvpn --version
+          ./src/openvpn/openvpn --version | grep -q "library versions: LibreSSL"
       - name: configure checks
         run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
       - name: make check
@@ -422,6 +426,10 @@ jobs:
         run: ./configure --with-crypto-library=mbedtls --enable-werror
       - name: make all
         run: make -j3
+      - name: Ensure the build uses mbed TLS 4.x
+        run: |
+          ./src/openvpn/openvpn --version
+          ./src/openvpn/openvpn --version | grep -q "library versions: mbed TLS 4."
       - name: configure checks
         run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
       - name: make check
@@ -486,6 +494,10 @@ jobs:
           ./configure --with-crypto-library=openssl
       - name: make all
         run: make -j3
+      - name: Ensure the build uses AWS-LC
+        run: |
+          ./src/openvpn/openvpn --version
+          ./src/openvpn/openvpn --version | grep -q "library versions: AWS-LC"
       - name: configure checks
         run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
       - name: make check
