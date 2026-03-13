@@ -219,7 +219,7 @@ which mode OpenVPN is configured as.
   Valid syntax:
   ::
 
-     ignore-unknown-options opt1 opt2 opt3 ... optN
+     ignore-unknown-option opt1 opt2 opt3 ... optN
 
   When one of options ``opt1 ... optN`` is encountered in the configuration
   file the configuration file parsing does not fail if this OpenVPN version
