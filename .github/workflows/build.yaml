@@ -454,7 +454,7 @@ jobs:
       CC: ${{matrix.cc}}
       CXX: ${{matrix.cxx}}
       UBSAN_OPTIONS: print_stacktrace=1
-      AWS_LC_INSTALL: ${{ github.workspace }}/aws-lc/aws-lc-install
+      AWS_LC_INSTALL: /opt/aws-lc
 
     steps:
       - name: Install dependencies
@@ -465,7 +465,7 @@ jobs:
           path: aws-lc
           # versioning=semver-coerced
           repository: aws/aws-lc
-          ref: v1.67.0
+          ref: v1.70.0
       - uses: lukka/get-cmake@f176ccd3f28bda569c43aae4894f06b2435a3375 # v4.2.3
       - name: "AWS-LC: build"
         run: |
@@ -480,10 +480,10 @@ jobs:
         run: autoreconf -fvi
       - name: configure with AWS-LC
         run: |
-          OPENSSL_CFLAGS="-I/${{ env.AWS_LC_INSTALL }}/include" \
-          OPENSSL_LIBS="-L/${{ env.AWS_LC_INSTALL }}/lib -lssl -lcrypto" \
-          LDFLAGS="-Wl,-rpath=/${{ env.AWS_LC_INSTALL }}/lib" \
-          ./configure --with-crypto-library=openssl --enable-werror
+          OPENSSL_CFLAGS="-I${{ env.AWS_LC_INSTALL }}/include" \
+          OPENSSL_LIBS="-L${{ env.AWS_LC_INSTALL }}/lib -lssl -lcrypto" \
+          LDFLAGS="-Wl,-rpath=${{ env.AWS_LC_INSTALL }}/lib" \
+          ./configure --with-crypto-library=openssl
       - name: make all
         run: make -j3
       - name: configure checks
