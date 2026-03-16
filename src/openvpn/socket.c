@@ -1357,6 +1357,13 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
         proto = o->ce.proto;
     }
 
+    /* If --lport is specified in a client connection block,
+     * it takes precedence over the global setting. */
+    if (o->mode == MODE_POINT_TO_POINT && o->ce.local_port_defined)
+    {
+        port = o->ce.local_port;
+    }
+
     if (c->mode == CM_CHILD_TCP || c->mode == CM_CHILD_UDP)
     {
         struct link_socket *tmp_sock = NULL;
