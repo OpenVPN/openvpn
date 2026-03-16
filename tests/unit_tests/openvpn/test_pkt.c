@@ -765,15 +765,5 @@ main(void)
         cmocka_unit_test(test_extract_control_message)
     };
 
-#if defined(ENABLE_CRYPTO_OPENSSL)
-    OpenSSL_add_all_algorithms();
-#endif
-
-    int ret = cmocka_run_group_tests_name("pkt tests", tests, NULL, NULL);
-
-#if defined(ENABLE_CRYPTO_OPENSSL)
-    EVP_cleanup();
-#endif
-
-    return ret;
+    return cmocka_run_group_tests_name("pkt tests", tests, NULL, NULL);
 }

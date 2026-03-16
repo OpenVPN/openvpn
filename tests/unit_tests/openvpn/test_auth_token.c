@@ -428,11 +428,5 @@ main(void)
         cmocka_unit_test_setup_teardown(auth_token_test_session_mismatch, setup, teardown)
     };
 
-#if defined(ENABLE_CRYPTO_OPENSSL)
-    OpenSSL_add_all_algorithms();
-#endif
-
-    int ret = cmocka_run_group_tests_name("auth-token tests", tests, NULL, NULL);
-
-    return ret;
+    return cmocka_run_group_tests_name("auth-token tests", tests, NULL, NULL);
 }

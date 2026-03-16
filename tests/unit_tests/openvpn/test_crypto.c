@@ -963,15 +963,5 @@ main(void)
         cmocka_unit_test(epoch_test_derive_data_key)
     };
 
-#if defined(ENABLE_CRYPTO_OPENSSL)
-    OpenSSL_add_all_algorithms();
-#endif
-
-    int ret = cmocka_run_group_tests_name("crypto tests", tests, NULL, NULL);
-
-#if defined(ENABLE_CRYPTO_OPENSSL)
-    EVP_cleanup();
-#endif
-
-    return ret;
+    return cmocka_run_group_tests_name("crypto tests", tests, NULL, NULL);
 }

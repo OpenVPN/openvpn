@@ -673,15 +673,5 @@ main(void)
         cmocka_unit_test(test_tls_crypt_v2_write_client_key_file_metadata),
     };
 
-#if defined(ENABLE_CRYPTO_OPENSSL)
-    OpenSSL_add_all_algorithms();
-#endif
-
-    int ret = cmocka_run_group_tests_name("tls-crypt tests", tests, NULL, NULL);
-
-#if defined(ENABLE_CRYPTO_OPENSSL)
-    EVP_cleanup();
-#endif
-
-    return ret;
+    return cmocka_run_group_tests_name("tls-crypt tests", tests, NULL, NULL);
 }
