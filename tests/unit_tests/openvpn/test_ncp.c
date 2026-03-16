@@ -394,8 +394,6 @@ int
 main(void)
 {
     openvpn_unit_test_setup();
-#if defined(ENABLE_CRYPTO_OPENSSL)
-    OpenSSL_add_all_algorithms();
-#endif
+
     return cmocka_run_group_tests(ncp_tests, NULL, NULL);
 }
