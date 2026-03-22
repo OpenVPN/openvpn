@@ -45,6 +45,15 @@
 #include <openssl/x509.h>
 #include <openssl/err.h>
 
+/* Define the type of error. This is something that is less
+ * intrusive than casts everywhere */
+#if defined(OPENSSL_IS_AWSLC)
+typedef uint32_t openssl_err_t;
+#else
+typedef unsigned long openssl_err_t;
+#endif
+
+
 /* Functionality missing in 1.1.0 */
 #if OPENSSL_VERSION_NUMBER < 0x10101000L && !defined(ENABLE_CRYPTO_WOLFSSL)
 #define SSL_CTX_set1_groups SSL_CTX_set1_curves
@@ -157,12 +166,12 @@ EVP_MD_free(const EVP_MD *md)
     /* OpenSSL 1.1.1 and lower use only const EVP_MD, nothing to free */
 }
 
-static inline unsigned long
+static inline openssl_err_t
 ERR_get_error_all(const char **file, int *line, const char **func, const char **data, int *flags)
 {
     static const char *empty = "";
     *func = empty;
-    unsigned long err = ERR_get_error_line_data(file, line, data, flags);
+    openssl_err_t err = ERR_get_error_line_data(file, line, data, flags);
     return err;
 }
 
