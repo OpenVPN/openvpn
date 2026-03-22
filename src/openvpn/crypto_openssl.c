@@ -229,7 +229,7 @@ crypto_clear_error(void)
 void
 crypto_print_openssl_errors(const unsigned int flags)
 {
-    unsigned long err = 0;
+    openssl_err_t err = 0;
     int line, errflags;
     const char *file, *data, *func;
 
