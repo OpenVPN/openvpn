@@ -245,6 +245,12 @@ epoch_generate_future_receive_keys(struct crypto_options *co)
     uint16_t desired_highest_key = current_decrypt_epoch + co->epoch_data_keys_future_count;
     uint16_t num_keys_generate = desired_highest_key - current_highest_key;
 
+    /* Clamp to array bounds to prevent OOB access from large epoch jumps */
+    if (num_keys_generate > co->epoch_data_keys_future_count)
+    {
+        num_keys_generate = co->epoch_data_keys_future_count;
+    }
+
     /* Move the old keys out of the way so the order of keys stays strictly
      * monotonic and consecutive. */
     /* first check that the destination we are going to overwrite is freed */
