@@ -366,13 +366,13 @@
 #undef SYSTEMD_ASK_PASSWORD_PATH
 
 /* The tap-windows id */
-#define TAP_WIN_COMPONENT_ID "tap0901"
+#define TAP_WIN_COMPONENT_ID "@TAP_WIN_COMPONENT_ID@"
 
 /* The tap-windows version number is required for OpenVPN */
-#define TAP_WIN_MIN_MAJOR 9
+#define TAP_WIN_MIN_MAJOR @TAP_WIN_MIN_MAJOR@
 
 /* The tap-windows version number is required for OpenVPN */
-#define TAP_WIN_MIN_MINOR 9
+#define TAP_WIN_MIN_MINOR @TAP_WIN_MIN_MINOR@
 
 /* Are we running on Mac OS X? */
 #cmakedefine TARGET_DARWIN
