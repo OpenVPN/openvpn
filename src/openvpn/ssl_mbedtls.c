@@ -35,6 +35,7 @@
 
 #if defined(ENABLE_CRYPTO_MBEDTLS)
 
+#include "crypto.h"
 #include "errlevel.h"
 #include "ssl_backend.h"
 #include "base64.h"
@@ -1035,7 +1036,7 @@ tls_ctx_personalise_random(struct tls_root_ctx *ctx)
             msg(M_WARN, "WARNING: failed to personalise random");
         }
 
-        if (0 != memcmp(old_sha256_hash, sha256_hash, sizeof(sha256_hash)))
+        if (0 != memcmp_constant_time(old_sha256_hash, sha256_hash, sizeof(sha256_hash)))
         {
             if (!mbed_ok(mbedtls_ctr_drbg_update(cd_ctx, sha256_hash, 32)))
             {

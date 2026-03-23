@@ -31,6 +31,7 @@
 #endif
 
 #include "win32.h"
+#include "crypto.h"
 #include "init.h"
 #include "run_command.h"
 #include "sig.h"
@@ -2164,8 +2165,8 @@ static bool
 options_hash_changed_or_zero(const struct sha256_digest *a, const struct sha256_digest *b)
 {
     const struct sha256_digest zero = { { 0 } };
-    return memcmp(a, b, sizeof(struct sha256_digest))
-           || !memcmp(a, &zero, sizeof(struct sha256_digest));
+    return memcmp_constant_time(a, b, sizeof(struct sha256_digest))
+           || !memcmp_constant_time(a, &zero, sizeof(struct sha256_digest));
 }
 
 /**

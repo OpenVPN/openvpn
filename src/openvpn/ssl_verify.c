@@ -37,6 +37,7 @@
 #include "manage.h"
 #include "otime.h"
 #include "run_command.h"
+#include "crypto.h"
 #include "ssl_verify.h"
 #include "ssl_verify_backend.h"
 
@@ -241,7 +242,7 @@ cert_hash_compare(const struct cert_hash_set *chs1, const struct cert_hash_set *
                 continue;
             }
             else if (ch1 && ch2
-                     && !memcmp(ch1->sha256_hash, ch2->sha256_hash, sizeof(ch1->sha256_hash)))
+                     && !memcmp_constant_time(ch1->sha256_hash, ch2->sha256_hash, sizeof(ch1->sha256_hash)))
             {
                 continue;
             }
