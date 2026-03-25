@@ -70,7 +70,7 @@ reset_route_counters(void)
 
 bool
 apply_push_options(struct context *c, struct options *options, struct buffer *buf,
-                   unsigned int permission_mask, unsigned int *option_types_found,
+                   uint64_t permission_mask, uint64_t *option_types_found,
                    struct env_set *es, bool is_update)
 {
     char line[OPTION_PARM_SIZE];
@@ -83,7 +83,7 @@ apply_push_options(struct context *c, struct options *options, struct buffer *bu
 
     while (buf_parse(buf, ',', line, sizeof(line)))
     {
-        unsigned int push_update_option_flags = 0;
+        uint64_t push_update_option_flags = 0;
         int i = 0;
 
         if (is_update || options->pull_filter_list)
@@ -131,8 +131,8 @@ apply_push_options(struct context *c, struct options *options, struct buffer *bu
 
 int
 process_incoming_push_msg(struct context *c, const struct buffer *buffer,
-                          bool honor_received_options, unsigned int permission_mask,
-                          unsigned int *option_types_found)
+                          bool honor_received_options, uint64_t permission_mask,
+                          uint64_t *option_types_found)
 {
     struct buffer buf = *buffer;
 
@@ -206,7 +206,7 @@ test_incoming_push_message_basic(void **state)
     const char *update_msg =
         "PUSH_UPDATE,dhcp-option DNS 8.8.8.8, route 0.0.0.0 0.0.0.0 10.10.10.1";
     buf_write(&buf, update_msg, strlen(update_msg));
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
 
     assert_int_equal(process_incoming_push_msg(c, &buf, c->options.pull, pull_permission_mask(c),
                                                &option_types_found),
@@ -222,7 +222,7 @@ test_incoming_push_message_error1(void **state)
     struct buffer buf = alloc_buf(256);
     const char *update_msg = "PUSH_UPDATEerr,dhcp-option DNS 8.8.8.8";
     buf_write(&buf, update_msg, strlen(update_msg));
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
 
     assert_int_equal(process_incoming_push_msg(c, &buf, c->options.pull, pull_permission_mask(c),
                                                &option_types_found),
@@ -238,7 +238,7 @@ test_incoming_push_message_error2(void **state)
     struct buffer buf = alloc_buf(256);
     const char *update_msg = "PUSH_UPDATE ,dhcp-option DNS 8.8.8.8";
     buf_write(&buf, update_msg, strlen(update_msg));
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
 
     assert_int_equal(process_incoming_push_msg(c, &buf, c->options.pull, pull_permission_mask(c),
                                                &option_types_found),
@@ -254,7 +254,7 @@ test_incoming_push_message_1(void **state)
     struct buffer buf = alloc_buf(256);
     const char *update_msg = "PUSH_UPDATE, -?dns, route something, ?dhcp-option DNS 8.8.8.8";
     buf_write(&buf, update_msg, strlen(update_msg));
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
 
     assert_int_equal(process_incoming_push_msg(c, &buf, c->options.pull, pull_permission_mask(c),
                                                &option_types_found),
@@ -270,7 +270,7 @@ test_incoming_push_message_bad_format(void **state)
     struct buffer buf = alloc_buf(256);
     const char *update_msg = "PUSH_UPDATE, -dhcp-option, ?-dns";
     buf_write(&buf, update_msg, strlen(update_msg));
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
 
     assert_int_equal(process_incoming_push_msg(c, &buf, c->options.pull, pull_permission_mask(c),
                                                &option_types_found),
@@ -286,7 +286,7 @@ test_incoming_push_message_not_updatable_option(void **state)
     struct buffer buf = alloc_buf(256);
     const char *update_msg = "PUSH_UPDATE, dev tun";
     buf_write(&buf, update_msg, strlen(update_msg));
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
 
     assert_int_equal(process_incoming_push_msg(c, &buf, c->options.pull, pull_permission_mask(c),
                                                &option_types_found),
@@ -303,7 +303,7 @@ test_incoming_push_message_mix(void **state)
     const char *update_msg =
         "PUSH_UPDATE,-dhcp-option, route 10.10.10.0, dhcp-option DNS 1.1.1.1, route 10.11.12.0, dhcp-option DOMAIN corp.local, keepalive 10 60";
     buf_write(&buf, update_msg, strlen(update_msg));
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
 
     assert_int_equal(process_incoming_push_msg(c, &buf, c->options.pull, pull_permission_mask(c),
                                                &option_types_found),
@@ -320,7 +320,7 @@ test_incoming_push_message_mix2(void **state)
     const char *update_msg =
         "PUSH_UPDATE,-dhcp-option,dhcp-option DNS 8.8.8.8,redirect-gateway local,route 192.168.1.0 255.255.255.0";
     buf_write(&buf, update_msg, strlen(update_msg));
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
 
     assert_int_equal(process_incoming_push_msg(c, &buf, c->options.pull, pull_permission_mask(c),
                                                &option_types_found),
@@ -344,7 +344,7 @@ static void
 test_incoming_push_continuation_route_accumulation(void **state)
 {
     struct context *c = *state;
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
 
     reset_route_counters();
 

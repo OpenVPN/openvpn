@@ -505,7 +505,7 @@ void
 incoming_push_message(struct context *c, const struct buffer *buffer)
 {
     struct gc_arena gc = gc_new();
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
 
     msg(D_PUSH, "PUSH: Received control message: '%s'",
         sanitize_control_message(BSTR(buffer), &gc));
@@ -1060,8 +1060,8 @@ push_update_digest(md_ctx_t *ctx, struct buffer *buf, const struct options *opt)
 }
 
 static int
-process_incoming_push_reply(struct context *c, unsigned int permission_mask,
-                            unsigned int *option_types_found, struct buffer *buf)
+process_incoming_push_reply(struct context *c, uint64_t permission_mask,
+                            uint64_t *option_types_found, struct buffer *buf)
 {
     int ret = PUSH_MSG_ERROR;
     const int ch = buf_read_u8(buf);
@@ -1110,8 +1110,8 @@ process_incoming_push_reply(struct context *c, unsigned int permission_mask,
 
 int
 process_incoming_push_msg(struct context *c, const struct buffer *buffer,
-                          bool honor_received_options, unsigned int permission_mask,
-                          unsigned int *option_types_found)
+                          bool honor_received_options, uint64_t permission_mask,
+                          uint64_t *option_types_found)
 {
     struct buffer buf = *buffer;
 

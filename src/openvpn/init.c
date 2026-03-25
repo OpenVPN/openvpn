@@ -2339,7 +2339,7 @@ do_deferred_options_part2(struct context *c)
 }
 
 bool
-do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
+do_up(struct context *c, bool pulled_options, uint64_t option_types_found)
 {
     int error_flags = 0;
     if (!c->c2.do_up_ran)
@@ -2474,7 +2474,7 @@ do_up(struct context *c, bool pulled_options, unsigned int option_types_found)
 }
 
 bool
-do_update(struct context *c, unsigned int option_types_found)
+do_update(struct context *c, uint64_t option_types_found)
 {
     /* Not necessary since to receive the update the openvpn
      * instance must be up and running but just in case
@@ -2588,7 +2588,7 @@ do_deferred_p2p_ncp(struct context *c)
 }
 
 bool
-do_deferred_options(struct context *c, const unsigned int found, const bool is_update)
+do_deferred_options(struct context *c, const uint64_t found, const bool is_update)
 {
     if (found & OPT_P_MESSAGES)
     {
@@ -4209,7 +4209,7 @@ open_plugins(struct context *c, const bool import_options, int init_point)
                 int i;
                 for (i = 0; i < config.n; ++i)
                 {
-                    unsigned int option_types_found = 0;
+                    uint64_t option_types_found = 0;
                     if (config.list[i] && config.list[i]->value)
                     {
                         options_string_import(

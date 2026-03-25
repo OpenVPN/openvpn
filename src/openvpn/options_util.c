@@ -203,7 +203,7 @@ static const char *updatable_options[] = { "block-ipv6", "block-outside-dns",
                                            "tun-mtu", "keepalive" };
 
 bool
-check_push_update_option_flags(char *line, int *i, unsigned int *flags)
+check_push_update_option_flags(char *line, int *i, uint64_t *flags)
 {
     *flags = 0;
     bool opt_is_updatable = false;

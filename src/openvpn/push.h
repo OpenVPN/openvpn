@@ -76,12 +76,12 @@ int process_incoming_push_request(struct context *c);
  * - `PUSH_MSG_ERROR`: An error occurred during message processing, or the message is invalid.
  */
 
-int process_push_update(struct context *c, struct options *o, unsigned int permission_mask,
-                        unsigned int *option_types_found, struct buffer *buf, bool msg_sender);
+int process_push_update(struct context *c, struct options *o, uint64_t permission_mask,
+                        uint64_t *option_types_found, struct buffer *buf, bool msg_sender);
 
 int process_incoming_push_msg(struct context *c, const struct buffer *buffer,
-                              bool honor_received_options, unsigned int permission_mask,
-                              unsigned int *option_types_found);
+                              bool honor_received_options, uint64_t permission_mask,
+                              uint64_t *option_types_found);
 
 bool send_push_request(struct context *c);
 

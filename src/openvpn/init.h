@@ -75,7 +75,7 @@ void do_test_crypto(struct context *o);
 
 void context_gc_free(struct context *c);
 
-bool do_up(struct context *c, bool pulled_options, unsigned int option_types_found);
+bool do_up(struct context *c, bool pulled_options, uint64_t option_types_found);
 
 /**
  * @brief A simplified version of the do_up() function. This function is called
@@ -87,7 +87,7 @@ bool do_up(struct context *c, bool pulled_options, unsigned int option_types_fou
  * @return true on success.
  * @return false on error.
  */
-bool do_update(struct context *c, unsigned int option_types_found);
+bool do_update(struct context *c, uint64_t option_types_found);
 
 unsigned int pull_permission_mask(const struct context *c);
 
@@ -99,7 +99,7 @@ void reset_coarse_timers(struct context *c);
  * Handle non-tun-related pulled options.
  * Set `is_update` param to true to skip NCP check.
  */
-bool do_deferred_options(struct context *c, const unsigned int found, const bool is_update);
+bool do_deferred_options(struct context *c, const uint64_t found, const bool is_update);
 
 void inherit_context_child(struct context *dest, const struct context *src,
                            struct link_socket *sock);

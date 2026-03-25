@@ -40,7 +40,7 @@
 void
 add_option(struct options *options, char *p[], bool is_inline, const char *file,
            int line, const int level, const msglvl_t msglevel,
-           const unsigned int permission_mask, unsigned int *option_types_found,
+           const uint64_t permission_mask, uint64_t *option_types_found,
            struct env_set *es)
 {
     function_called();
@@ -51,7 +51,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
 void
 remove_option(struct context *c, struct options *options, char *p[], bool is_inline,
               const char *file, int line, const msglvl_t msglevel,
-              const unsigned int permission_mask, unsigned int *option_types_found,
+              const uint64_t permission_mask, uint64_t *option_types_found,
               struct env_set *es)
 {
 }
@@ -59,7 +59,7 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
 void
 update_option(struct context *c, struct options *options, char *p[], bool is_inline,
               const char *file, int line, const int level, const msglvl_t msglevel,
-              const unsigned int permission_mask, unsigned int *option_types_found,
+              const uint64_t permission_mask, uint64_t *option_types_found,
               struct env_set *es)
 {
 }
@@ -191,7 +191,7 @@ test_parse_line(void **state)
 static void
 read_single_config(struct options *options, const char *config)
 {
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
     struct env_set es;
     CLEAR(es);
     read_config_string("test_options_parse", options, config, M_INFO, OPT_P_DEFAULT,

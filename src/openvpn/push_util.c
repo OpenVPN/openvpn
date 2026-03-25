@@ -11,8 +11,8 @@
 #endif
 
 int
-process_push_update(struct context *c, struct options *o, unsigned int permission_mask,
-                    unsigned int *option_types_found, struct buffer *buf, bool msg_sender)
+process_push_update(struct context *c, struct options *o, uint64_t permission_mask,
+                    uint64_t *option_types_found, struct buffer *buf, bool msg_sender)
 {
     int ret = PUSH_MSG_ERROR;
     const int ch = buf_read_u8(buf);
@@ -146,7 +146,7 @@ send_single_push_update(struct multi_context *m, struct multi_instance *mi, stru
         return false;
     }
 
-    unsigned int option_types_found = 0;
+    uint64_t option_types_found = 0;
     struct context *c = &mi->context;
     struct options o;
     CLEAR(o);

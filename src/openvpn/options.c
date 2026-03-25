@@ -4972,8 +4972,8 @@ atou(const char *str)
     }
 
 static bool
-verify_permission(const char *name, const char *file, int line, const unsigned int type,
-                  const unsigned int allowed, unsigned int *found, const msglvl_t msglevel,
+verify_permission(const char *name, const char *file, int line, const uint64_t type,
+                  const uint64_t allowed, uint64_t *found, const msglvl_t msglevel,
                   struct options *options, bool is_inline)
 {
     if (!(type & allowed))
@@ -5065,7 +5065,7 @@ msglevel_forward_compatible(struct options *options, const msglvl_t msglevel)
 void
 remove_option(struct context *c, struct options *options, char *p[], bool is_inline,
               const char *file, int line, const msglvl_t msglevel,
-              const unsigned int permission_mask, unsigned int *option_types_found,
+              const uint64_t permission_mask, uint64_t *option_types_found,
               struct env_set *es)
 {
     msglvl_t msglevel_fc = msglevel_forward_compatible(options, msglevel);
@@ -5385,7 +5385,7 @@ check_dns_option(struct options *options, char *p[], const msglvl_t msglevel, bo
 void
 update_option(struct context *c, struct options *options, char *p[], bool is_inline,
               const char *file, int line, const int level, const msglvl_t msglevel,
-              const unsigned int permission_mask, unsigned int *option_types_found,
+              const uint64_t permission_mask, uint64_t *option_types_found,
               struct env_set *es)
 {
     const bool pull_mode = BOOL_CAST(permission_mask & OPT_P_PULL_MODE);
@@ -5574,8 +5574,8 @@ key_is_external(const struct options *options)
 
 void
 add_option(struct options *options, char *p[], bool is_inline, const char *file, int line,
-           const int level, const msglvl_t msglevel, const unsigned int permission_mask,
-           unsigned int *option_types_found, struct env_set *es)
+           const int level, const msglvl_t msglevel, const uint64_t permission_mask,
+           uint64_t *option_types_found, struct env_set *es)
 {
     struct gc_arena gc = gc_new();
     const bool pull_mode = BOOL_CAST(permission_mask & OPT_P_PULL_MODE);

@@ -73,7 +73,7 @@ struct client_connect_defer_state
     int cur_handler_index;
     /* Remember which option classes where processed for delayed option
      * handling. */
-    unsigned int option_types_found;
+    uint64_t option_types_found;
 
     /**
      * The temporary file name that contains the return status of the

@@ -106,6 +106,6 @@ bool apply_pull_filter(const struct options *o, char *line);
  *         - The `line` parameter is empty or `NULL`.
  *         - The `?` flag is absent and the option is not updatable.
  */
-bool check_push_update_option_flags(char *line, int *i, unsigned int *flags);
+bool check_push_update_option_flags(char *line, int *i, uint64_t *flags);
 
 #endif /* ifndef OPTIONS_UTIL_H_ */

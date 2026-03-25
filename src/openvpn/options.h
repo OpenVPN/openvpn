@@ -553,8 +553,8 @@ struct options
     bool client;
     bool pull; /* client pull of config options from server */
     int push_continuation;
-    unsigned int push_option_types_found;
-    unsigned int push_update_options_found; /* tracks which option types have been reset in current PUSH_UPDATE sequence */
+    uint64_t push_option_types_found;
+    uint64_t push_update_options_found; /* tracks which option types have been reset in current PUSH_UPDATE sequence */
     const char *auth_user_pass_file;
     bool auth_user_pass_file_inline;
     struct options_pre_connect *pre_connect;
@@ -808,7 +808,7 @@ struct pull_filter_list
 
 void add_option(struct options *options, char *p[], bool is_inline, const char *file,
                 int line, const int level, const msglvl_t msglevel,
-                const unsigned int permission_mask, unsigned int *option_types_found,
+                const uint64_t permission_mask, uint64_t *option_types_found,
                 struct env_set *es);
 
 /**
@@ -833,7 +833,7 @@ void add_option(struct options *options, char *p[], bool is_inline, const char *
  */
 void remove_option(struct context *c, struct options *options, char *p[], bool is_inline,
                    const char *file, int line, const msglvl_t msglevel,
-                   const unsigned int permission_mask, unsigned int *option_types_found,
+                   const uint64_t permission_mask, uint64_t *option_types_found,
                    struct env_set *es);
 
 /**
@@ -858,21 +858,21 @@ void remove_option(struct context *c, struct options *options, char *p[], bool i
  */
 void update_option(struct context *c, struct options *options, char *p[], bool is_inline,
                    const char *file, int line, const int level, const msglvl_t msglevel,
-                   const unsigned int permission_mask, unsigned int *option_types_found,
+                   const uint64_t permission_mask, uint64_t *option_types_found,
                    struct env_set *es);
 
 void parse_argv(struct options *options, const int argc, char *argv[], const msglvl_t msglevel,
-                const unsigned int permission_mask, unsigned int *option_types_found,
+                const uint64_t permission_mask, uint64_t *option_types_found,
                 struct env_set *es);
 
 void read_config_file(struct options *options, const char *file, int level, const char *top_file,
                       const int top_line, const msglvl_t msglevel,
-                      const unsigned int permission_mask, unsigned int *option_types_found,
+                      const uint64_t permission_mask, uint64_t *option_types_found,
                       struct env_set *es);
 
 void read_config_string(const char *prefix, struct options *options, const char *config,
-                        const msglvl_t msglevel, const unsigned int permission_mask,
-                        unsigned int *option_types_found, struct env_set *es);
+                        const msglvl_t msglevel, const uint64_t permission_mask,
+                        uint64_t *option_types_found, struct env_set *es);
 
 void notnull(const char *arg, const char *description);
 
@@ -933,13 +933,13 @@ bool options_postprocess_pull(struct options *o, struct env_set *es);
 void pre_connect_restore(struct options *o, struct gc_arena *gc);
 
 bool apply_push_options(struct context *c, struct options *options, struct buffer *buf,
-                        unsigned int permission_mask, unsigned int *option_types_found,
+                        uint64_t permission_mask, uint64_t *option_types_found,
                         struct env_set *es, bool is_update);
 
 void options_detach(struct options *o);
 
 void options_server_import(struct options *o, const char *filename, msglvl_t msglevel,
-                           unsigned int permission_mask, unsigned int *option_types_found,
+                           uint64_t permission_mask, uint64_t *option_types_found,
                            struct env_set *es);
 
 void pre_pull_default(struct options *o);
@@ -972,7 +972,7 @@ bool auth_retry_set(const msglvl_t msglevel, const char *option);
 const char *auth_retry_print(void);
 
 void options_string_import(struct options *options, const char *config, const msglvl_t msglevel,
-                           const unsigned int permission_mask, unsigned int *option_types_found,
+                           const uint64_t permission_mask, uint64_t *option_types_found,
                            struct env_set *es);
 
 bool key_is_external(const struct options *options);

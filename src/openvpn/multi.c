@@ -1619,7 +1619,7 @@ multi_set_virtual_addr_env(struct multi_instance *mi)
  */
 static void
 multi_client_connect_post(struct multi_context *m, struct multi_instance *mi, const char *dc_file,
-                          unsigned int *option_types_found)
+                          uint64_t *option_types_found)
 {
     /* Did script generate a dynamic config file? */
     if (platform_test_file(dc_file))
@@ -1645,7 +1645,7 @@ multi_client_connect_post(struct multi_context *m, struct multi_instance *mi, co
  */
 static void
 multi_client_connect_post_plugin(struct multi_context *m, struct multi_instance *mi,
-                                 const struct plugin_return *pr, unsigned int *option_types_found)
+                                 const struct plugin_return *pr, uint64_t *option_types_found)
 {
     struct plugin_return config;
 
@@ -1684,7 +1684,7 @@ multi_client_connect_post_plugin(struct multi_context *m, struct multi_instance 
  */
 enum client_connect_return
 multi_client_connect_mda(struct multi_context *m, struct multi_instance *mi, bool deferred,
-                         unsigned int *option_types_found)
+                         uint64_t *option_types_found)
 {
     /* We never return CC_RET_DEFERRED */
     ASSERT(!deferred);
@@ -2055,7 +2055,7 @@ ccs_gen_config_file(struct multi_instance *mi)
 
 static enum client_connect_return
 multi_client_connect_call_plugin_v1(struct multi_context *m, struct multi_instance *mi,
-                                    bool deferred, unsigned int *option_types_found)
+                                    bool deferred, uint64_t *option_types_found)
 {
     enum client_connect_return ret = CC_RET_SKIPPED;
 #ifdef ENABLE_PLUGIN
@@ -2145,7 +2145,7 @@ cleanup:
 
 static enum client_connect_return
 multi_client_connect_call_plugin_v2(struct multi_context *m, struct multi_instance *mi,
-                                    bool deferred, unsigned int *option_types_found)
+                                    bool deferred, uint64_t *option_types_found)
 {
     enum client_connect_return ret = CC_RET_SKIPPED;
 #ifdef ENABLE_PLUGIN
@@ -2194,7 +2194,7 @@ multi_client_connect_call_plugin_v2(struct multi_context *m, struct multi_instan
 
 static enum client_connect_return
 multi_client_connect_script_deferred(struct multi_context *m, struct multi_instance *mi,
-                                     unsigned int *option_types_found)
+                                     uint64_t *option_types_found)
 {
     ASSERT(mi);
     ASSERT(option_types_found);
@@ -2235,7 +2235,7 @@ multi_client_connect_script_deferred(struct multi_context *m, struct multi_insta
  */
 static enum client_connect_return
 multi_client_connect_call_script(struct multi_context *m, struct multi_instance *mi, bool deferred,
-                                 unsigned int *option_types_found)
+                                 uint64_t *option_types_found)
 {
     if (deferred)
     {
@@ -2339,7 +2339,7 @@ multi_client_generate_tls_keys(struct context *c)
 
 static void
 multi_client_connect_late_setup(struct multi_context *m, struct multi_instance *mi,
-                                const unsigned int option_types_found)
+                                const uint64_t option_types_found)
 {
     ASSERT(m);
     ASSERT(mi);
@@ -2497,7 +2497,7 @@ multi_client_connect_early_setup(struct multi_context *m, struct multi_instance 
  */
 static enum client_connect_return
 multi_client_connect_compress_migrate(struct multi_context *m, struct multi_instance *mi,
-                                      bool deferred, unsigned int *option_types_found)
+                                      bool deferred, uint64_t *option_types_found)
 {
 #ifdef USE_COMP
     struct options *o = &mi->context.options;
@@ -2529,7 +2529,7 @@ multi_client_connect_compress_migrate(struct multi_context *m, struct multi_inst
  */
 static enum client_connect_return
 multi_client_connect_source_ccd(struct multi_context *m, struct multi_instance *mi, bool deferred,
-                                unsigned int *option_types_found)
+                                uint64_t *option_types_found)
 {
     /* Since we never return a CC_RET_DEFERRED, this indicates a serious
      * problem */
@@ -2580,7 +2580,7 @@ multi_client_connect_source_ccd(struct multi_context *m, struct multi_instance *
 
 typedef enum client_connect_return (*multi_client_connect_handler)(
     struct multi_context *m, struct multi_instance *mi, bool from_deferred,
-    unsigned int *option_types_found);
+    uint64_t *option_types_found);
 
 static const multi_client_connect_handler client_connect_handlers[] = {
     multi_client_connect_compress_migrate,
@@ -2678,7 +2678,7 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
     bool from_deferred = (mi->context.c2.tls_multi->multi_state != CAS_PENDING);
 
     int *cur_handler_index = &mi->client_connect_defer_state.cur_handler_index;
-    unsigned int *option_types_found = &mi->client_connect_defer_state.option_types_found;
+    uint64_t *option_types_found = &mi->client_connect_defer_state.option_types_found;
 
     /* We are called for the first time */
     if (!from_deferred)

@@ -346,7 +346,7 @@ check_inline_file_via_buf(struct buffer *multiline, char *p[], struct gc_arena *
 void
 read_config_file(struct options *options, const char *file, int level, const char *top_file,
                  const int top_line, const msglvl_t msglevel,
-                 const unsigned int permission_mask, unsigned int *option_types_found,
+                 const uint64_t permission_mask, uint64_t *option_types_found,
                  struct env_set *es)
 {
     const int max_recursive_levels = 10;
@@ -419,8 +419,8 @@ read_config_file(struct options *options, const char *file, int level, const cha
 
 void
 read_config_string(const char *prefix, struct options *options, const char *config,
-                   const msglvl_t msglevel, const unsigned int permission_mask,
-                   unsigned int *option_types_found, struct env_set *es)
+                   const msglvl_t msglevel, const uint64_t permission_mask,
+                   uint64_t *option_types_found, struct env_set *es)
 {
     char line[OPTION_LINE_SIZE];
     struct buffer multiline;
@@ -448,7 +448,7 @@ read_config_string(const char *prefix, struct options *options, const char *conf
 
 void
 parse_argv(struct options *options, const int argc, char *argv[], const msglvl_t msglevel,
-           const unsigned int permission_mask, unsigned int *option_types_found, struct env_set *es)
+           const uint64_t permission_mask, uint64_t *option_types_found, struct env_set *es)
 {
     /* usage message */
     if (argc <= 1)
@@ -510,7 +510,7 @@ parse_argv(struct options *options, const int argc, char *argv[], const msglvl_t
 
 bool
 apply_push_options(struct context *c, struct options *options, struct buffer *buf,
-                   unsigned int permission_mask, unsigned int *option_types_found,
+                   uint64_t permission_mask, uint64_t *option_types_found,
                    struct env_set *es, bool is_update)
 {
     char line[OPTION_PARM_SIZE];
@@ -523,7 +523,7 @@ apply_push_options(struct context *c, struct options *options, struct buffer *bu
         char *p[MAX_PARMS + 1];
         CLEAR(p);
         ++line_num;
-        unsigned int push_update_option_flags = 0;
+        uint64_t push_update_option_flags = 0;
         int i = 0;
 
         /* skip leading spaces matching the behaviour of parse_line */
@@ -578,7 +578,7 @@ apply_push_options(struct context *c, struct options *options, struct buffer *bu
 
 void
 options_server_import(struct options *o, const char *filename, msglvl_t msglevel,
-                      unsigned int permission_mask, unsigned int *option_types_found,
+                      const uint64_t permission_mask, uint64_t *option_types_found,
                       struct env_set *es)
 {
     msg(D_PUSH, "OPTIONS IMPORT: reading client specific options from: %s", filename);
@@ -588,7 +588,7 @@ options_server_import(struct options *o, const char *filename, msglvl_t msglevel
 
 void
 options_string_import(struct options *options, const char *config, const msglvl_t msglevel,
-                      const unsigned int permission_mask, unsigned int *option_types_found,
+                      const uint64_t permission_mask, uint64_t *option_types_found,
                       struct env_set *es)
 {
     read_config_string("[CONFIG-STRING]", options, config, msglevel, permission_mask,
