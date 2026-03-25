@@ -849,8 +849,6 @@ init_options(struct options *o)
 #endif
     o->vlan_accept = VLAN_ALL;
     o->vlan_pvid = 1;
-    o->real_hash_size = 256;
-    o->virtual_hash_size = 256;
     o->n_bcast_buf = 256;
     o->tcp_queue_limit = 64;
     o->max_clients = 1024;
@@ -3724,6 +3722,22 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
     gc_free(&gc);
 }
 #endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+/**
+ * Sets the internal hash maps sizes according to the max_clients
+ *
+ */
+static void
+helper_hashmap_sizes(struct options *o)
+{
+    if (!o->real_hash_size)
+    {
+        o->real_hash_size = 4 * o->max_clients;
+    }
+    if (!o->virtual_hash_size)
+    {
+        o->virtual_hash_size = 4 * o->max_clients;
+    }
+}
 
 static void
 options_postprocess_mutate(struct options *o, struct env_set *es)
@@ -3738,6 +3752,11 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     helper_setdefault_topology(o);
     helper_keepalive(o);
     helper_tcp_nodelay(o);
+
+    if (o->mode == MODE_SERVER)
+    {
+        helper_hashmap_sizes(o);
+    }
 
     options_postprocess_setdefault_ncpciphers(o);
     options_set_backwards_compatible_options(o);

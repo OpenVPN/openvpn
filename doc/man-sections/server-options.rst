@@ -414,7 +414,7 @@ fast hardware. SSL/TLS authentication must be used in this mode.
      iroute-ipv6 ipv6addr/bits
 
 --max-clients n
-  Limit server to a maximum of ``n`` concurrent clients.
+  Limit server to a maximum of ``n`` concurrent clients. Defaults to 1024.
 
 --max-routes-per-client n
   Allow a maximum of ``n`` internal routes per client (default
