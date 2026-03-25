@@ -36,7 +36,8 @@ used when debugging or testing out special usage scenarios.
 
      hash-size r v
 
-  By default, both tables are sized at 256 buckets.
+  By default, both tables are sized at 4 times ``--max-clients`` buckets.
+  With the default of 1024 of ``--max-clients`` this gives 4096 buckets.
 
 --bcast-buffers n
   Allocate ``n`` buffers for broadcast datagrams (default :code:`256`).
