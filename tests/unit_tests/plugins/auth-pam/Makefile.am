@@ -4,7 +4,9 @@ AM_TESTSUITE_SUMMARY_HEADER = ' for $(PACKAGE_STRING) auth_pam Plugin Unit-Tests
 
 if ENABLE_PLUGIN_AUTH_PAM
 check_PROGRAMS = auth_pam_testdriver
+if !CROSS_COMPILING
 TESTS = $(check_PROGRAMS)
+endif
 endif
 
 auth_pam_testdriver_SOURCES = test_search_and_replace.c  $(top_srcdir)/src/plugins/auth-pam/utils.h $(top_srcdir)/src/plugins/auth-pam/utils.c
