@@ -195,8 +195,6 @@ extract_x509_field_ssl(X509_NAME *x509, const char *field_name, char *out, size_
 {
     int lastpos = -1;
     int tmp = -1;
-    X509_NAME_ENTRY *x509ne = NULL;
-    ASN1_STRING *asn1 = NULL;
     unsigned char *buf = NULL;
 
     ASN1_OBJECT *field_name_obj = OBJ_txt2obj(field_name, 0);
@@ -222,13 +220,13 @@ extract_x509_field_ssl(X509_NAME *x509, const char *field_name, char *out, size_
         return FAILURE;
     }
 
-    x509ne = X509_NAME_get_entry(x509, lastpos);
+    const X509_NAME_ENTRY *x509ne = X509_NAME_get_entry(x509, lastpos);
     if (!x509ne)
     {
         return FAILURE;
     }
 
-    asn1 = X509_NAME_ENTRY_get_data(x509ne);
+    const ASN1_STRING *asn1 = X509_NAME_ENTRY_get_data(x509ne);
     if (!asn1)
     {
         return FAILURE;
