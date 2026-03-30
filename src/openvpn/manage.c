@@ -31,6 +31,7 @@
 #include "error.h"
 #include "fdmisc.h"
 #include "options.h"
+#include "base64.h"
 #include "sig.h"
 #include "event.h"
 #include "otime.h"
@@ -68,6 +69,7 @@ enum mcv
     MCV_PKSIGN = 2,
     MCV_PKSIGN_ALG = 3,
     MCV_USERNAME_ONLY = 4,
+    MCV_MULTILINE_PASSWORD = 5,
 };
 
 struct management *management; /* GLOBAL */
@@ -105,6 +107,8 @@ man_help(void)
     msg(M_CLIENT, "                         where action is reply string.");
     msg(M_CLIENT, "net                    : (Windows only) Show network info and routing table.");
     msg(M_CLIENT, "password type p        : Enter password p for a queried OpenVPN password.");
+    msg(M_CLIENT, "password type          : (version >=5) Enter password base64-encoded on");
+    msg(M_CLIENT, "                         subsequent lines followed by END.");
     msg(M_CLIENT, "remote type [host port] : Override remote directive, type=ACCEPT|MOD|SKIP.");
     msg(M_CLIENT, "remote-entry-count     : Get number of available remote entries.");
     msg(M_CLIENT, "remote-entry-get  i|all [j]: Get remote entry at index = i to to j-1 or all.");
@@ -1019,6 +1023,41 @@ in_extra_reset(struct man_connection *mc, const int mode)
     }
 }
 
+/**
+ * Enter multi-line base64 mode for receiving a password that exceeds the
+ * single-line parameter size limit. The management client sends:
+ *
+ *  password TYPE
+ *  <base64-encoded password line 1>
+ *  <base64-encoded password line 2>
+ *  ...
+ *  END
+ *
+ * @param man           The management interface struct
+ * @param type          The type of password being entered (e.g. "Auth", "Private Key", etc)
+ */
+static void
+man_query_password_base64(struct management *man, const char *type)
+{
+    const bool needed = ((man->connection.up_query_mode == UP_QUERY_PASS
+                          || man->connection.up_query_mode == UP_QUERY_USER_PASS)
+                         && man->connection.up_query_type);
+    if (!needed)
+    {
+        msg(M_CLIENT, "ERROR: no password is currently needed at this time");
+        return;
+    }
+    if (!man->connection.up_query_type || !streq(man->connection.up_query_type, type))
+    {
+        msg(M_CLIENT, "ERROR: password of type '%s' entered, but we need one of type '%s'",
+            type, man->connection.up_query_type);
+        return;
+    }
+    struct man_connection *mc = &man->connection;
+    mc->in_extra_cmd = IEC_PASSWORD;
+    in_extra_reset(mc, IER_NEW);
+}
+
 static void
 in_extra_dispatch(struct management *man)
 {
@@ -1052,6 +1091,41 @@ in_extra_dispatch(struct management *man)
             man->connection.ext_cert_input = man->connection.in_extra;
             man->connection.in_extra = NULL;
             return;
+
+        case IEC_PASSWORD:
+        {
+            char decoded[USER_PASS_LEN];
+            CLEAR(decoded);
+
+            buffer_list_aggregate(man->connection.in_extra,
+                                  OPENVPN_BASE64_LENGTH(USER_PASS_LEN) + 1024);
+            struct buffer *buf = buffer_list_peek(man->connection.in_extra);
+
+            if (buf && BLEN(buf) > 0)
+            {
+                if (OPENVPN_BASE64_DECODED_LENGTH(BLEN(buf)) >= USER_PASS_LEN)
+                {
+                    msg(M_CLIENT, "ERROR: password too long");
+                    buf_clear(buf);
+                    break;
+                }
+                int len = openvpn_base64_decode(BSTR(buf), decoded,
+                                                USER_PASS_LEN - 1);
+                if (len < 0)
+                {
+                    msg(M_CLIENT, "ERROR: could not base64-decode password");
+                    buf_clear(buf);
+                    break;
+                }
+                decoded[len] = '\0';
+                buf_clear(buf);
+            }
+
+            man_query_password(man, man->connection.up_query_type,
+                               decoded);
+            secure_memzero(decoded, sizeof(decoded));
+            break;
+        }
     }
     in_extra_reset(&man->connection, IER_RESET);
 }
@@ -1598,9 +1672,20 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "password"))
     {
-        if (man_need(man, p, 2, 0))
+        if (man_need(man, p, 1, MN_AT_LEAST))
         {
-            man_query_password(man, p[1], p[2]);
+            if (p[2])
+            {
+                man_query_password(man, p[1], p[2]);
+            }
+            else if (man->connection.client_version >= MCV_MULTILINE_PASSWORD)
+            {
+                man_query_password_base64(man, p[1]);
+            }
+            else
+            {
+                msg(M_CLIENT, "ERROR: the 'password' command requires 2 parameters");
+            }
         }
     }
     else if (streq(p[0], "forget-passwords"))
