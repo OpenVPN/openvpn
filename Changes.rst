@@ -1,3 +1,72 @@
+Overview of changes in 2.7.1
+============================
+Bugfixes
+--------
+- Fix usage of ``--lport`` inside a ``<connection>`` block - this got
+  broken with the multi-socket patchset (GH OpenVPN/openvpn#995)
+
+- Do not try to run auto-pam unit test when cross-compiling.
+
+- Do not break private-key passphrases of length >= 64
+  (GH OpenVPN/openvpn#993)
+
+- Fix obscure ASSERT() crash on TCP connects with TAP and no ip config.
+
+- Make DCO work on FreeBSD systems that have no IPv4 support in kernel
+  (FreeBSD PR 286263)
+
+- Make DCO work on Linux on big endian systems (namely, MIPS and PowerPC)
+  (GH OpenVPN/ovpn-dco#96)
+
+New features
+------------
+- Add a new ``username-only`` flag argument to ``--auth-user-pass`` which
+  will now make OpenVPN only query for username and send a dummy password
+  to the server.  This is only useful if auth schemes are used on the
+  server side that will do some sort of external challenge base on username,
+  and not password authentication.  See discussion in GH OpenVPN/openvpn#501
+  (starting Jan 30, 2024).
+
+- Increase default sizing of internal hash maps to ``4 * --max-clients``.
+  The default used to be ``256`` with a ``--max-clients`` default of
+  1024 - this is bad for performance, while the memory savings are
+  minimal.  On a very memory constrained system, reduce ``--max-clients``.
+
+Long-term code maintenance
+--------------------------
+- Work on OpenSSL 4.0 API support, reducing use of ASN1_STRING members.
+
+- Remove obsolete OpenSSL 1.0.x support code from unit tests.
+
+- Improve documentation of management client versioning, replace magic
+  numbers in the code with an enum type.
+
+- Fixup responses to management interface ``version`` command (for >= 4).
+
+- Make ``--enable-async-push`` work on FreeBSD 15 (which has native
+  inotify support, and consequently no libinotify.pc anymore)
+
+- Adjust some code parts to new "const" handling on string function
+  returns (ISO C23, as implemented by glibc 2.43 and newer).
+
+- Remove erroneous usage of ``M_ERR | M_ERRNO`` throughout the code.
+
+
+User-visible Changes
+--------------------
+- When compiled with the AWS-LC SSL library, using ``--tls-cert-profile``
+  will now print a run-time warning - the library does not support it,
+  so it would silently do nothing.
+
+- Systemd unit files: change LimitNPROC to TasksMax and increase limit
+  (GH: OpenVPN/openvpn#929)
+
+- Documentation improvements.
+
+- port-share: log incoming connections at ``verb 3``, not on ``error``
+  level anymore (GH: OpenVPN/openvpn#976).
+
+
 Overview of changes in 2.7
 ==========================
 New features

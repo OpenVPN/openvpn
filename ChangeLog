@@ -1,6 +1,68 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
 
+2026.03.31 -- Version 2.7.1
+
+Antonio Quartulli (1):
+      options: drop useless init_gc param for init_options()
+
+Arne Schwabe (12):
+      Change stream_buf_read_setup_dowork parameter to struct steam_buf
+      DCO Linux: Fix setting DCO ifmode failing on big endian archs
+      Merge stream_buf_get_next and stream_buf_set_next
+      AWS-LC: Add missing return and cast in ssl_tls1_PRF
+      GHA: Install aws-lc under /opt/aws-lc
+      Show version and double check we use the right TLS library in Github Actions
+      Remove unnecessary OpenSSL init and cleanup commands in unit tests
+      GHA: Cache built crypto libraries
+      Use openssl_err_t typedef to deal with difference between TLS libraries
+      Do not support tls_ctx_set_cert_profile on AWS-LC
+      Use const specifices in extract_x509_field_ssl
+      Increase default size of internal hash maps to 4 * --max-clients
+
+Frank Lichtenheld (7):
+      clang-format: Add missing InsertBraces: true
+      auth-pam: fix discards 'const' qualifier from pointer target type
+      GHA: Maintenance update February 2026
+      buffer: Add checked_snprintf function and use it in the code
+      vcpkg-ports: Review pkcs11-helper port
+      systemd: Change LimitNPROC to TasksMax and increase limit
+      ssl_verify_openssl: Clean up extract_x509_extension
+
+Gert Doering (4):
+      port-share: log incoming connections at verb 3 only
+      rework all occurrences of 'M_ERR | M_ERRNO'
+      configure.ac: adjust to native inotify support for FreeBSD 15+
+      dco_freebsd: use AF_LOCAL sockets for ioctl() communication with DCO driver
+
+Gianmarco De Gregori (1):
+      socket: restore per-connection lport override over global default
+
+Haixiao Yan (1):
+      tests: skip test execution when cross-compiling
+
+Heiko Hund (2):
+      doc: improve Windows-specific options section
+      doc: fix typo with --ingore-unknown-option
+
+Max Fillinger (1):
+      Avoid unbounded allocations in pkcs11_mbedtls.c
+
+Ralf Lici (1):
+      doc: fix client-nat syntax and examples
+
+Rudi Heitbaum (3):
+      dns: fix discards 'const' qualifier from pointer target type
+      ntlm: fix discards 'const' qualifier from pointer target type
+      ssl_verify_openssl: use official ASN1_STRING_ API
+
+Selva Nair (4):
+      Fixup version command on management interface
+      Document management client versions
+      Use USER_PASS_LEN for private key password buffer size
+      Add an optional username-only flag for auth-user-pass
+
+
 2026.02.11 -- Version 2.7.0
 
 Frank Lichtenheld (3):
