@@ -175,42 +175,6 @@ _pkcs11_openvpn_log(void *const global_data, unsigned flags, const char *const s
     msg(_pkcs11_msg_pkcs112openvpn(flags), "%s", Buffer);
 }
 
-static
-PKCS11H_BOOL
-pkcs11_password_setup(
-    const char *pkcs11_pin_file,
-    struct user_pass *token_pass
-    )
-{
-    if (!token_pass)
-    {
-        return false;
-    }
-    if (pkcs11_pin_file)
-    {
-        msg(M_INFO, "pkcs11_password_setup - pkcs11_pin_file='%s'", pkcs11_pin_file);
-    }
-    else
-    {
-        /* If pin file is not provided, clear the token_pass and continue */
-        CLEAR(token_pass);
-        return true;
-    }
-    token_pass->defined = false;
-    token_pass->nocache = true;
-
-    if (!strlen(token_pass->password))
-    {
-        get_user_pass(
-            token_pass,
-            pkcs11_pin_file,
-            UP_TYPE_PRIVATE_KEY,
-            GET_USER_PASS_MANAGEMENT|GET_USER_PASS_PASSWORD_ONLY
-            );
-    }
-
-    return true;
-}
 
 static
 PKCS11H_BOOL
