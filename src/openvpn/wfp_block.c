@@ -131,11 +131,6 @@ out:
     return err;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 /*
  * Block outgoing local traffic, possibly DNS only, except for
  * (i) adapter with the specified index (and loopback, if all is blocked)
@@ -198,7 +193,7 @@ add_wfp_block_filters(HANDLE *engine_handle, int index, const WCHAR *exe_path,
        * do not treat "already exists" as an error */
         err = add_sublayer(OPENVPN_WFP_BLOCK_SUBLAYER);
 
-        if (err == FWP_E_ALREADY_EXISTS || err == ERROR_SUCCESS)
+        if (err == (DWORD)FWP_E_ALREADY_EXISTS || err == ERROR_SUCCESS)
         {
             msg_handler(0, "WFP Block: Added a persistent sublayer with pre-defined UUID");
         }
@@ -344,10 +339,6 @@ out:
 
     return err;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 DWORD
 delete_wfp_block_filters(HANDLE engine_handle)
