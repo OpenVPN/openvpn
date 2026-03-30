@@ -50,7 +50,7 @@
 #include "socket_util.h"
 #include "mroute.h"
 
-#define MANAGEMENT_VERSION                  5
+#define MANAGEMENT_VERSION                  6
 #define MANAGEMENT_N_PASSWORD_RETRIES       3
 #define MANAGEMENT_LOG_HISTORY_INITIAL_SIZE 100
 #define MANAGEMENT_ECHO_BUFFER_SIZE         100
@@ -297,6 +297,7 @@ struct man_connection
 #define IEC_RSA_SIGN    3
 #define IEC_CERTIFICATE 4
 #define IEC_PK_SIGN     5
+#define IEC_PASSWORD    6
     int in_extra_cmd;
     struct buffer_list *in_extra;
     unsigned long in_extra_cid;
