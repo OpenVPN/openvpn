@@ -46,7 +46,9 @@
 #include "test_common.h"
 #include "ssl.h"
 #include "buffer.h"
+#include "cert_data.h"
 #include "packet_id.h"
+#include "ssl_verify.h"
 
 /* Mock function to be allowed to include win32.c which is required for
  * getting the temp directory */
@@ -750,6 +752,83 @@ test_data_channel_known_vectors_shortpktid(void **state)
     test_data_channel_known_vectors_run(false);
 }
 
+#if defined(ENABLE_CRYPTO_MBEDTLS)
+static openvpn_x509_cert_t *
+get_certificate(const char *cert_str)
+{
+    mbedtls_x509_crt *cert;
+    ALLOC_OBJ_CLEAR(cert, mbedtls_x509_crt);
+    int ret = mbedtls_x509_crt_parse(cert, (const unsigned char *)cert_str,
+                                     strlen(cert_str) + 1);
+
+    assert_int_equal(ret, 0);
+    return cert;
+}
+
+static void
+free_certificate(openvpn_x509_cert_t *cert)
+{
+    mbedtls_x509_crt_free(cert);
+    free(cert);
+}
+#else
+static openvpn_x509_cert_t *
+get_certificate(const char *cert_str)
+{
+    BIO *in = BIO_new_mem_buf((char *)cert1, -1);
+    assert_non_null(in);
+    X509 *cert = PEM_read_bio_X509(in, NULL, NULL, NULL);
+    assert_non_null(cert);
+    BIO_free(in);
+    return cert;
+}
+
+static void
+free_certificate(openvpn_x509_cert_t *cert)
+{
+    X509_free(cert);
+}
+#endif
+
+void
+crypto_test_print_cert_details(void **state)
+{
+    openvpn_x509_cert_t *cert = get_certificate(cert1);
+    struct gc_arena gc = gc_new();
+
+    const char *fp = backend_x509_get_serial_hex(cert, &gc);
+
+    /* we messed this up between TLS libraries. But let's at least notice in
+     * the future ...*/
+#if defined(ENABLE_CRYPTO_MBEDTLS)
+    assert_string_equal(fp, "82:6B:DD:CC:BD:E5:5E:B7:08:F1:2D:68:00:3C:24:DE");
+#else
+    assert_string_equal(fp, "82:6b:dd:cc:bd:e5:5e:b7:08:f1:2d:68:00:3c:24:de");
+#endif
+
+    const char *sn = backend_x509_get_serial(cert, &gc);
+    assert_string_equal(sn, "173359713849739808110610111821055272158");
+
+    char username[TLS_USERNAME_LEN + 1] = { 0 }; /* null-terminated */
+
+    int ret = backend_x509_get_username(username, sizeof(username), "CN",
+                                        cert);
+
+    assert_string_equal(username, "ovpn-test-ec1");
+    assert_int_equal(ret, SUCCESS);
+
+#ifndef ENABLE_CRYPTO_MBEDTLS
+    /* mbed TLS does not implement this */
+    ret = backend_x509_get_username(username, sizeof(username), "serialNumber",
+                                    cert);
+    assert_int_equal(ret, SUCCESS);
+    assert_string_equal(username, "0x826BDDCCBDE55EB708F12D68003C24DE");
+#endif
+
+    gc_free(&gc);
+    free_certificate(cert);
+}
+
 
 int
 main(void)
@@ -773,7 +852,9 @@ main(void)
         cmocka_unit_test(test_data_channel_roundtrip_aes_256_cbc),
         cmocka_unit_test(test_data_channel_roundtrip_bf_cbc),
         cmocka_unit_test(test_data_channel_known_vectors_epoch),
-        cmocka_unit_test(test_data_channel_known_vectors_shortpktid)
+        cmocka_unit_test(test_data_channel_known_vectors_shortpktid),
+        cmocka_unit_test(crypto_test_print_cert_details)
+
     };
 
 #if defined(ENABLE_CRYPTO_OPENSSL)
