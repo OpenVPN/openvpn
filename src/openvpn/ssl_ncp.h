@@ -49,7 +49,7 @@ struct context;
  *
  * @return  Wether the client NCP process suceeded or failed
  */
-bool check_pull_client_ncp(struct context *c, unsigned int found);
+bool check_pull_client_ncp(struct context *c, uint64_t found);
 
 /**
  * Iterates through the ciphers in server_list and return the first
