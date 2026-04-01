@@ -115,10 +115,10 @@ void
 init_cert_data(void)
 {
     struct test_cert certs_local[] = {
-        { cert1, key1, cname1, "OVPN TEST CA1", "OVPN Test Cert 1", hash1, 1 },
-        { cert2, key2, cname2, "OVPN TEST CA2", "OVPN Test Cert 2", hash2, 1 },
-        { cert3, key3, cname3, "OVPN TEST CA1", "OVPN Test Cert 3", hash3, 1 },
-        { cert4, key4, cname4, "OVPN TEST CA2", "OVPN Test Cert 4", hash4, 0 },
+        { cert1, privkey1, cname1, "OVPN TEST CA1", "OVPN Test Cert 1", hash1, 1 },
+        { cert2, privkey2, cname2, "OVPN TEST CA2", "OVPN Test Cert 2", hash2, 1 },
+        { cert3, privkey3, cname3, "OVPN TEST CA1", "OVPN Test Cert 3", hash3, 1 },
+        { cert4, privkey4, cname4, "OVPN TEST CA2", "OVPN Test Cert 4", hash4, 0 },
         { 0 }
     };
     assert_int_equal(sizeof(certs_local), sizeof(certs));
