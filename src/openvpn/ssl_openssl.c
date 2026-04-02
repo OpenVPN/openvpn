@@ -1790,7 +1790,6 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inli
     STACK_OF(X509_NAME) *cert_names = NULL;
     X509_LOOKUP *lookup = NULL;
     X509_STORE *store = NULL;
-    X509_NAME *xn = NULL;
     BIO *in = NULL;
     int i, added = 0, prev = 0;
 
@@ -1854,21 +1853,26 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inli
                         }
                     }
 
-                    xn = X509_get_subject_name(info->x509);
+                    /* OpenSSL 4.0 has made X509_get_subject_name return const
+                     * but not adjusted the other functions to take const
+                     * arguments, and other libraries do not have const
+                     * arguments, so just ignore const here */
+                    X509_NAME *xn = (X509_NAME *)X509_get_subject_name(info->x509);
                     if (!xn)
                     {
                         continue;
                     }
 
+
                     /* Don't add duplicate CA names */
-                    if (sk_X509_NAME_find(cert_names, xn) == -1)
+                    if (sk_X509_NAME_find(cert_names, (X509_NAME *)xn) == -1)
                     {
-                        xn = X509_NAME_dup(xn);
-                        if (!xn)
+                        X509_NAME *xn_dup = X509_NAME_dup(xn);
+                        if (!xn_dup)
                         {
                             continue;
                         }
-                        sk_X509_NAME_push(cert_names, xn);
+                        sk_X509_NAME_push(cert_names, xn_dup);
                     }
                 }
 
