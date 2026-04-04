@@ -609,22 +609,27 @@ x509_verify_ns_cert_type(openvpn_x509_cert_t *peer_cert, const int usage)
     if (usage == NS_CERT_CHECK_CLIENT)
     {
         /*
-         * Unfortunately, X509_check_purpose() does some weird thing that
+         * Unfortunately, X509_check_purpose() before OpenSSL 4.0 does some weird thing that
          * prevent it to take a const argument
          */
         result_t result =
             X509_check_purpose(peer_cert, X509_PURPOSE_SSL_CLIENT, 0) ? SUCCESS : FAILURE;
-
         /*
-         * old versions of OpenSSL allow us to make the less strict check we used to
-         * do. If this less strict check pass, warn user that this might not be the
-         * case when its distribution will update to OpenSSL 1.1
+         * Note that we did not check for netscape certificate type here but
+         * instead a general SSL/TLS client purpose. These nscert attributes
+         * might stop being accepted by TLS libraries in the future.
+         * Currently, OpenSSL 4.0 and aws-lc 1.9.0 still consider nscert client
+         * as acceptable.
+         *
+         * So in case that this check failed, we now check if this is caused
+         * by the check above no longer recognising nscert attributes.
          */
         if (result == FAILURE)
         {
             ASN1_BIT_STRING *ns;
             ns = X509_get_ext_d2i(peer_cert, NID_netscape_cert_type, NULL, NULL);
-            result = (ns && ASN1_STRING_length(ns) > 0 && (ASN1_STRING_get0_data(ns)[0] & NS_SSL_CLIENT)) ? SUCCESS : FAILURE;
+            // bit 0 is to check if certificate is the client certificate
+            result = ASN1_BIT_STRING_get_bit(ns, 0) ? SUCCESS : FAILURE;
             if (result == SUCCESS)
             {
                 msg(M_WARN, "X509: Certificate is a client certificate yet it's purpose "
@@ -637,22 +642,27 @@ x509_verify_ns_cert_type(openvpn_x509_cert_t *peer_cert, const int usage)
     if (usage == NS_CERT_CHECK_SERVER)
     {
         /*
-         * Unfortunately, X509_check_purpose() does some weird thing that
+         * Unfortunately, X509_check_purpose() before OpenSSL 4.0 does some weird thing that
          * prevent it to take a const argument
          */
         result_t result =
             X509_check_purpose(peer_cert, X509_PURPOSE_SSL_SERVER, 0) ? SUCCESS : FAILURE;
 
         /*
-         * old versions of OpenSSL allow us to make the less strict check we used to
-         * do. If this less strict check pass, warn user that this might not be the
-         * case when its distribution will update to OpenSSL 1.1
+         * Note that we did not check for netscape certificate type here but
+         * instead a general SSL/TLS server purpose. These nscert attributes
+         * might stop being accepted by TLS libraries in the future.
+         * Currently, OpenSSL 4.0 and aws-lc 1.9.0 still consider nscert server
+         * as acceptable.
+         *
+         * So in case that this check failed, we now check if this is caused
+         * by the check above no longer recognising nscert attributes.
          */
         if (result == FAILURE)
         {
-            ASN1_BIT_STRING *ns;
-            ns = X509_get_ext_d2i(peer_cert, NID_netscape_cert_type, NULL, NULL);
-            result = (ns && ASN1_STRING_length(ns) > 0 && (ASN1_STRING_get0_data(ns)[0] & NS_SSL_SERVER)) ? SUCCESS : FAILURE;
+            ASN1_BIT_STRING *ns = X509_get_ext_d2i(peer_cert, NID_netscape_cert_type, NULL, NULL);
+            // Server bit is 1 for ASN1_BIT_STRING_get_bit
+            result = ASN1_BIT_STRING_get_bit(ns, 1) ? SUCCESS : FAILURE;
             if (result == SUCCESS)
             {
                 msg(M_WARN, "X509: Certificate is a server certificate yet it's purpose "
