@@ -37,14 +37,6 @@
 #include <sys/inotify.h>
 #endif
 
-struct ta_iow_flags
-{
-    unsigned int flags;
-    unsigned int ret;
-    unsigned int tun;
-    unsigned int sock;
-};
-
 struct multi_instance *
 multi_create_instance_tcp(struct multi_context *m, struct link_socket *sock)
 {

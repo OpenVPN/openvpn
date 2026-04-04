@@ -124,15 +124,6 @@ struct sitnl_route_req
 typedef int (*sitnl_parse_reply_cb)(struct nlmsghdr *msg, void *arg);
 
 /**
- * Object returned by route request operation
- */
-struct sitnl_route_data_cb
-{
-    unsigned int iface;
-    inet_address_t gw;
-};
-
-/**
  * Helper function used to easily add attributes to a rtnl message
  */
 static int
