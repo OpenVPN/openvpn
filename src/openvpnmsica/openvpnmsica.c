@@ -620,7 +620,7 @@ schedule_adapter_delete(
                 msica_arg_seq_add_tail(seq, szArgument);
             }
 
-            iTicks += MSICA_ADAPTER_TICK_SIZE;
+            *iTicks += MSICA_ADAPTER_TICK_SIZE;
             break; /* Adapter names are unique. There should be no other adapter with this name. */
         }
     }
