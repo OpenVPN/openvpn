@@ -155,10 +155,6 @@ multi_tcp_process_outgoing_link_ready(struct multi_context *m, struct multi_inst
         ASSERT(mi == item.instance);
         mi->context.c2.to_link = item.buffer->buf;
         ret = multi_process_outgoing_link_dowork(m, mi, mpp_flags);
-        if (!ret)
-        {
-            mi = NULL;
-        }
         mbuf_free_buf(item.buffer);
     }
     return ret;
