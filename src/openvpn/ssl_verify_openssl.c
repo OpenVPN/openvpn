@@ -260,17 +260,19 @@ backend_x509_get_username(char *common_name, size_t cn_len, char *x509_username_
     }
     else if (strcmp(LN_serialNumber, x509_username_field) == 0)
     {
-        ASN1_INTEGER *asn1_i = X509_get_serialNumber(peer_cert);
-        struct gc_arena gc = gc_new();
-        char *serial = format_hex_ex(ASN1_STRING_get0_data(asn1_i), ASN1_STRING_length(asn1_i), 0, 1 | FHE_CAPS, NULL, &gc);
+        const ASN1_INTEGER *asn1_i = X509_get_serialNumber(peer_cert);
+
+        BIGNUM *bn_serial = ASN1_INTEGER_to_BN(asn1_i, NULL);
+        char *serial = BN_bn2hex(bn_serial);
+        BN_free(bn_serial);
 
         if (!serial || cn_len <= strlen(serial) + 2)
         {
-            gc_free(&gc);
+            OPENSSL_free(serial);
             return FAILURE;
         }
         snprintf(common_name, cn_len, "0x%s", serial);
-        gc_free(&gc);
+        OPENSSL_free(serial);
     }
     else
     {
@@ -315,8 +317,16 @@ char *
 backend_x509_get_serial_hex(openvpn_x509_cert_t *cert, struct gc_arena *gc)
 {
     const ASN1_INTEGER *asn1_i = X509_get_serialNumber(cert);
+    BIGNUM *bn_serial = ASN1_INTEGER_to_BN(asn1_i, NULL);
+    int len_serial = BN_num_bytes(bn_serial);
+    unsigned char *buf = malloc(len_serial);
+    BN_bn2binpad(bn_serial, buf, len_serial);
 
-    return format_hex_ex(ASN1_STRING_get0_data(asn1_i), ASN1_STRING_length(asn1_i), 0, 1, ":", gc);
+    char *ret = format_hex_ex(buf, len_serial, 0, 1, ":", gc);
+    free(buf);
+    BN_free(bn_serial);
+
+    return ret;
 }
 
 result_t
