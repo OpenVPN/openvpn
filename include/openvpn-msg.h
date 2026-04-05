@@ -109,7 +109,7 @@ typedef struct
 
 typedef enum
 {
-    nrpt_dnssec
+    nrpt_dnssec = 1 << 0,
 } nrpt_flags_t;
 
 #define NRPT_ADDR_NUM  8  /* Max. number of addresses */
