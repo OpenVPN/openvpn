@@ -1107,17 +1107,6 @@ md_kt_size(const char *mdname)
  *
  */
 
-bool
-md_full(const char *mdname, const uint8_t *src, size_t src_len, uint8_t *dst)
-{
-    unsigned int in_md_len = 0;
-    evp_md_type *kt = md_get(mdname);
-
-    int ret = EVP_Digest(src, src_len, dst, &in_md_len, kt, NULL);
-    EVP_MD_free(kt);
-    return ret == 1;
-}
-
 EVP_MD_CTX *
 md_ctx_new(void)
 {

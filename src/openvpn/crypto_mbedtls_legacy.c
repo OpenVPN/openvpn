@@ -769,7 +769,7 @@ cipher_ctx_final_check_tag(mbedtls_cipher_context_t *ctx, uint8_t *dst, int *dst
  */
 
 
-static const mbedtls_md_info_t *
+const mbedtls_md_info_t *
 md_get(const char *digest)
 {
     const mbedtls_md_info_t *md = NULL;
@@ -824,13 +824,6 @@ md_kt_size(const char *mdname)
  * Generic message digest functions
  *
  */
-
-bool
-md_full(const char *mdname, const uint8_t *src, size_t src_len, uint8_t *dst)
-{
-    const mbedtls_md_info_t *kt = md_get(mdname);
-    return 0 == mbedtls_md(kt, src, src_len, dst);
-}
 
 mbedtls_md_context_t *
 md_ctx_new(void)

@@ -696,28 +696,6 @@ md_ctx_new(void)
     return ctx;
 }
 
-bool
-md_full(const char *mdname, const uint8_t *src, size_t src_len, uint8_t *dst)
-{
-    const md_info_t *md = md_get(mdname);
-    if (md == NULL)
-    {
-        return false;
-    }
-
-    /* We depend on the caller to ensure that dst has enough room for the hash,
-     * so we just tell PSA that it can hold the appropriate amount of bytes. */
-    size_t dst_size = PSA_HASH_LENGTH(md->psa_alg);
-    size_t hash_length = 0;
-
-    psa_status_t status = psa_hash_compute(md->psa_alg, src, src_len, dst, dst_size, &hash_length);
-    if (status != PSA_SUCCESS || hash_length != dst_size)
-    {
-        return false;
-    }
-    return true;
-}
-
 void
 md_ctx_free(md_ctx_t *ctx)
 {

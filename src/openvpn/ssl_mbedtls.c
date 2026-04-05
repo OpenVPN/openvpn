@@ -1029,8 +1029,9 @@ tls_ctx_personalise_random(struct tls_root_ctx *ctx)
     if (NULL != ctx->crt_chain)
     {
         mbedtls_x509_crt *cert = ctx->crt_chain;
+        const mbedtls_md_info_t *kt = md_get("SHA256");
 
-        if (!md_full("SHA256", cert->tbs.p, cert->tbs.len, sha256_hash))
+        if (0 != mbedtls_md(kt, cert->tbs.p, cert->tbs.len, sha256_hash))
         {
             msg(M_WARN, "WARNING: failed to personalise random");
         }
