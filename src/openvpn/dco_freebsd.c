@@ -559,7 +559,7 @@ dco_set_peer(dco_context_t *dco, unsigned int peerid,
 }
 
 int
-dco_do_read(dco_context_t *dco)
+dco_read_and_process(dco_context_t *dco)
 {
     struct ifdrv drv;
     uint8_t buf[4096];
