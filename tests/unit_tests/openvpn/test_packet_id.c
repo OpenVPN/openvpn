@@ -164,6 +164,7 @@ static void
 test_get_num_output_sequenced_available(void **state)
 {
     struct reliable *rel = malloc(sizeof(struct reliable));
+    assert_non_null(rel);
     reliable_init(rel, 100, 50, 8, false);
 
     rel->array[5].active = true;
