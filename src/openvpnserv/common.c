@@ -276,7 +276,7 @@ MsgToEventLog(DWORD flags, LPCWSTR format, ...)
 
         const WCHAR *mesg[] = { msg[0], msg[1] };
         ReportEvent(hEventSource,
-                    flags & MSG_FLAGS_ERROR ? EVENTLOG_ERROR_TYPE : EVENTLOG_INFORMATION_TYPE,
+                    (flags & MSG_FLAGS_ERROR) ? EVENTLOG_ERROR_TYPE : EVENTLOG_INFORMATION_TYPE,
                     0,
                     EVT_TEXT_2,
                     NULL,
