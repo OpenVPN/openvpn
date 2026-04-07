@@ -859,11 +859,6 @@ dco_update_peer_stat(struct context_2 *c2, struct nlattr *tb[], uint32_t id)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 static int
 ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
 {
@@ -890,7 +885,7 @@ ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
     if (dco->ifmode == OVPN_MODE_P2P)
     {
         c2 = &dco->c->c2;
-        if (c2->tls_multi->dco_peer_id != peer_id)
+        if (c2->tls_multi->dco_peer_id != (int)peer_id)
         {
             return NL_SKIP;
         }
@@ -918,10 +913,6 @@ ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
 
     return NL_OK;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static bool
 ovpn_iface_check(dco_context_t *dco, struct nlattr *attrs[])

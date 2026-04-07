@@ -559,11 +559,6 @@ dco_set_peer(dco_context_t *dco, unsigned int peerid, int keepalive_interval, in
     return ret;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 static void
 dco_update_peer_stat(struct multi_context *m, uint32_t peerid, const nvlist_t *nvl)
 {
@@ -581,10 +576,6 @@ dco_update_peer_stat(struct multi_context *m, uint32_t peerid, const nvlist_t *n
     msg(D_DCO_DEBUG, "%s: peer-id %u, dco_read_bytes: " counter_format " dco_write_bytes: " counter_format,
         __func__, peerid, mi->context.c2.dco_read_bytes, mi->context.c2.dco_write_bytes);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 int
 dco_read_and_process(dco_context_t *dco)

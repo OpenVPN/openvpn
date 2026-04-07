@@ -739,11 +739,6 @@ dco_read_and_process(dco_context_t *dco)
     return 0;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 int
 dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
 {
@@ -838,9 +833,9 @@ dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
     {
         OVPN_PEER_STATS *stat = &peer_stats[i];
 
-        if (stat->PeerId >= dco->c->multi->max_clients)
+        if (stat->PeerId >= (int)dco->c->multi->max_clients)
         {
-            msg(M_WARN, "%s: received out of bound peer_id %u (max=%u)", __func__, stat->PeerId,
+            msg(M_WARN, "%s: received out of bound peer_id %d (max=%u)", __func__, stat->PeerId,
                 dco->c->multi->max_clients);
             continue;
         }
@@ -870,10 +865,6 @@ done:
 
     return ret;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 int
 dco_get_peer_stats_fallback(struct context *c, const bool raise_sigusr1_on_err)

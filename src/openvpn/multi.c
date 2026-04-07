@@ -695,11 +695,6 @@ multi_uninit(struct multi_context *m)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 /*
  * Create a client instance object for a newly connected client.
  */
@@ -781,10 +776,6 @@ err:
     gc_free(&gc);
     return NULL;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /*
  * Dump tables -- triggered by SIGUSR2.
@@ -3261,7 +3252,7 @@ multi_process_incoming_dco(dco_context_t *dco)
         return;
     }
 
-    if ((peer_id < m->max_clients) && (m->instances[peer_id]))
+    if (((uint32_t)peer_id < m->max_clients) && m->instances[peer_id])
     {
         struct multi_instance *mi = m->instances[peer_id];
         set_prefix(mi);
@@ -4085,18 +4076,13 @@ init_management_callback_multi(struct multi_context *m)
 #endif /* ifdef ENABLE_MANAGEMENT */
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 void
 multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
 {
     /* max_clients must be less then max peer-id value */
     ASSERT(m->max_clients < MAX_PEER_ID);
 
-    for (int i = 0; i < m->max_clients; ++i)
+    for (uint32_t i = 0; i < m->max_clients; ++i)
     {
         if (!m->instances[i])
         {
@@ -4116,10 +4102,6 @@ multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
         m->max_peerid = mi->context.c2.tls_multi->peer_id;
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /**
  * @brief Determines the earliest wakeup interval based on periodic operations.

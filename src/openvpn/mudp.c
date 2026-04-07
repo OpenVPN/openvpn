@@ -180,11 +180,6 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
     return false;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 /*
  * Get a client instance based on real address.  If
  * the instance doesn't exist, create it while
@@ -217,7 +212,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
             uint32_t peer_id = ((uint32_t)ptr[1] << 16) | ((uint32_t)ptr[2] << 8) | ((uint32_t)ptr[3]);
             peer_id_disabled = (peer_id == MAX_PEER_ID);
 
-            if (!peer_id_disabled && (peer_id < m->max_clients) && (m->instances[peer_id]))
+            if (!peer_id_disabled && (peer_id < m->max_clients) && m->instances[peer_id])
             {
                 /* Floating on TCP will never be possible, so ensure we only process
                  * UDP clients */
@@ -314,10 +309,6 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
     ASSERT(!(mi && mi->halt));
     return mi;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /*
  * Send a packet to UDP socket.
