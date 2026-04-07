@@ -476,20 +476,15 @@ run_up_down_service(bool add, const struct options *o, const struct tuntap *tt)
     send_msg_iservice(o->msg_channel, &nrpt, sizeof(nrpt), &ack, "DNS");
 }
 
-#else /* ifdef _WIN32 */
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
+#else  /* ifdef _WIN32 */
 
 static void
-setenv_dns_option(struct env_set *es, const char *format, int i, int j, const char *value)
+setenv_dns_option(struct env_set *es, const char *format, size_t i, size_t j, const char *value)
 {
     char name[64];
     bool name_ok = false;
 
-    if (j < 0)
+    if (j == 0)
     {
         name_ok = checked_snprintf(name, sizeof(name), format, i);
     }
@@ -512,11 +507,11 @@ setenv_dns_options(const struct dns_options *o, struct env_set *es)
     struct gc_arena gc = gc_new();
     const struct dns_server *s;
     const struct dns_domain *d;
-    int i, j;
+    size_t i, j;
 
     for (i = 1, d = o->search_domains; d != NULL; i++, d = d->next)
     {
-        setenv_dns_option(es, "dns_search_domain_%d", i, -1, d->name);
+        setenv_dns_option(es, "dns_search_domain_%zu", i, 0, d->name);
     }
 
     for (i = 1, s = o->servers; s != NULL; i++, s = s->next)
@@ -525,17 +520,17 @@ setenv_dns_options(const struct dns_options *o, struct env_set *es)
         {
             if (s->addr[j].family == AF_INET)
             {
-                setenv_dns_option(es, "dns_server_%d_address_%d", i, j + 1,
+                setenv_dns_option(es, "dns_server_%zu_address_%zu", i, j + 1,
                                   print_in_addr_t(s->addr[j].in.a4.s_addr, IA_NET_ORDER, &gc));
             }
             else
             {
-                setenv_dns_option(es, "dns_server_%d_address_%d", i, j + 1,
+                setenv_dns_option(es, "dns_server_%zu_address_%zu", i, j + 1,
                                   print_in6_addr(s->addr[j].in.a6, 0, &gc));
             }
             if (s->addr[j].port)
             {
-                setenv_dns_option(es, "dns_server_%d_port_%d", i, j + 1,
+                setenv_dns_option(es, "dns_server_%zu_port_%zu", i, j + 1,
                                   print_in_port_t(s->addr[j].port, &gc));
             }
         }
@@ -544,31 +539,27 @@ setenv_dns_options(const struct dns_options *o, struct env_set *es)
         {
             for (j = 1, d = s->domains; d != NULL; j++, d = d->next)
             {
-                setenv_dns_option(es, "dns_server_%d_resolve_domain_%d", i, j, d->name);
+                setenv_dns_option(es, "dns_server_%zu_resolve_domain_%zu", i, j, d->name);
             }
         }
 
         if (s->dnssec)
         {
-            setenv_dns_option(es, "dns_server_%d_dnssec", i, -1, dnssec_value(s->dnssec));
+            setenv_dns_option(es, "dns_server_%zu_dnssec", i, 0, dnssec_value(s->dnssec));
         }
 
         if (s->transport)
         {
-            setenv_dns_option(es, "dns_server_%d_transport", i, -1, transport_value(s->transport));
+            setenv_dns_option(es, "dns_server_%zu_transport", i, 0, transport_value(s->transport));
         }
         if (s->sni)
         {
-            setenv_dns_option(es, "dns_server_%d_sni", i, -1, s->sni);
+            setenv_dns_option(es, "dns_server_%zu_sni", i, 0, s->sni);
         }
     }
 
     gc_free(&gc);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static void
 updown_env_set(bool up, const struct dns_options *o, const struct tuntap *tt, struct env_set *es)
