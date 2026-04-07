@@ -3410,7 +3410,7 @@ RunOpenvpn(LPVOID p)
     ea[0].Trustee.TrusteeForm = TRUSTEE_IS_SID;
     ea[0].Trustee.TrusteeType = TRUSTEE_IS_UNKNOWN;
     ea[0].Trustee.ptstrName = (LPWSTR)svc_user->User.Sid;
-    ea[1].grfAccessPermissions = READ_CONTROL | SYNCHRONIZE | PROCESS_VM_READ | SYNCHRONIZE
+    ea[1].grfAccessPermissions = READ_CONTROL | PROCESS_VM_READ | SYNCHRONIZE
                                  | PROCESS_TERMINATE | PROCESS_QUERY_INFORMATION;
     ea[1].grfAccessMode = SET_ACCESS;
     ea[1].grfInheritance = NO_INHERITANCE;
