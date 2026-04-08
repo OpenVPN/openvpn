@@ -1351,7 +1351,7 @@ err:
     return ret;
 }
 
-static int
+static void
 sitnl_parse_rtattr_flags(struct rtattr *tb[], size_t max, struct rtattr *rta, size_t len,
                          unsigned short flags)
 {
@@ -1375,14 +1375,12 @@ sitnl_parse_rtattr_flags(struct rtattr *tb[], size_t max, struct rtattr *rta, si
     {
         msg(D_ROUTE, "%s: %zu bytes not parsed! (rta_len=%u)", __func__, len, rta->rta_len);
     }
-
-    return 0;
 }
 
-static int
+static void
 sitnl_parse_rtattr(struct rtattr *tb[], size_t max, struct rtattr *rta, size_t len)
 {
-    return sitnl_parse_rtattr_flags(tb, max, rta, len, 0);
+    sitnl_parse_rtattr_flags(tb, max, rta, len, 0);
 }
 
 #define sitnl_parse_rtattr_nested(tb, max, rta) \
@@ -1394,23 +1392,14 @@ sitnl_type_save(struct nlmsghdr *n, void *arg)
     char *type = arg;
     struct ifinfomsg *ifi = NLMSG_DATA(n);
     struct rtattr *tb[IFLA_MAX + 1];
-    int ret;
 
-    ret = sitnl_parse_rtattr(tb, IFLA_MAX, IFLA_RTA(ifi), IFLA_PAYLOAD(n));
-    if (ret < 0)
-    {
-        return ret;
-    }
+    sitnl_parse_rtattr(tb, IFLA_MAX, IFLA_RTA(ifi), IFLA_PAYLOAD(n));
 
     if (tb[IFLA_LINKINFO])
     {
         struct rtattr *tb_link[IFLA_INFO_MAX + 1];
 
-        ret = sitnl_parse_rtattr_nested(tb_link, IFLA_INFO_MAX, tb[IFLA_LINKINFO]);
-        if (ret < 0)
-        {
-            return ret;
-        }
+        sitnl_parse_rtattr_nested(tb_link, IFLA_INFO_MAX, tb[IFLA_LINKINFO]);
 
         if (!tb_link[IFLA_INFO_KIND])
         {
