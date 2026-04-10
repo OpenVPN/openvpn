@@ -3373,6 +3373,7 @@ tls_multi_process(struct tls_multi *multi,
                     && ks_lame->state >= S_GENERATED_KEYS
                     && !multi->opt.single_session)
                 {
+                    check_session_buf_not_used(to_link, session);
                     move_session(multi, TM_LAME_DUCK, TM_ACTIVE, true);
                 }
                 else
@@ -3445,6 +3446,7 @@ tls_multi_process(struct tls_multi *multi,
      */
     if (TLS_AUTHENTICATED(multi, &multi->session[TM_INITIAL].key[KS_PRIMARY]))
     {
+        check_session_buf_not_used(to_link, &multi->session[TM_ACTIVE]);
         move_session(multi, TM_ACTIVE, TM_INITIAL, true);
         tas = tls_authentication_status(multi);
         msg(D_TLS_DEBUG_LOW, "TLS: tls_multi_process: initial untrusted "
