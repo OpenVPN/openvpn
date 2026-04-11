@@ -119,11 +119,12 @@ Windows automatic service now runs as an unpriviledged user
     are not readable for ``NT SERVICE\OpenVPNService``.
 
 Support for new version of Linux DCO module
-    OpenVPN DCO module is moving upstream and being merged into the
-    main Linux kernel. For this process some API changes were required.
-    OpenVPN 2.7 will only support the new API. The new module is called
-    ``ovpn``. Out-of-tree builds for older kernels are available. Please
-    see the release announcements for futher information.
+    The OpenVPN DCO module has been merged into the Linux kernel as of
+    6.16.  This required some API changes and OpenVPN 2.7 only supports
+    the new API. The new module is called ``ovpn``. Out-of-tree builds
+    for older kernels are available from
+    https://github.com/OpenVPN/ovpn-backports. Please
+    see the release announcements for further information.
 
 Support for server mode in win-dco driver
     On Windows the win-dco driver can now be used in server setups.

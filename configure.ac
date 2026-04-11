@@ -738,7 +738,7 @@ if test "$enable_dco" != "no"; then
 				OPTIONAL_LIBNL_GENL_LIBS="${LIBNL_GENL_LIBS}"
 
 				AC_DEFINE(ENABLE_DCO, 1, [Enable shared data channel offload])
-				AC_MSG_NOTICE([Enabled ovpn-dco support for Linux])
+				AC_MSG_NOTICE([Enabled ovpn-dco (via ovpn kernel module) support for Linux])
 			fi
 			;;
 		*-*-freebsd*)
