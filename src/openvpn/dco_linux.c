@@ -159,7 +159,7 @@ ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
             break;
 
         case -NLE_OBJ_NOTFOUND:
-            msg(M_INFO, "%s: netlink reports object not found, ovpn-dco unloaded?", prefix);
+            msg(M_INFO, "%s: netlink reports object not found, ovpn kernel module unloaded?", prefix);
             break;
 
         default:
@@ -1249,7 +1249,10 @@ dco_available(msglvl_t msglevel)
 {
     if (resolve_ovpn_netlink_id(D_DCO_DEBUG) < 0)
     {
-        msg(msglevel, "Note: Kernel support for ovpn-dco missing, disabling data channel offload.");
+        msg(msglevel, "Note: Kernel support for ovpn interfaces missing, "
+                      "disabling data channel offload. Use Linux 6.16.0 or "
+                      "newer with ovpn support or use ovpn-backports for "
+                      "interface support.");
         return false;
     }
 

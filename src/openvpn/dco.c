@@ -376,9 +376,10 @@ dco_check_startup_option(msglvl_t msglevel, const struct options *o)
          * don't need to have the net_ctx percolate all the way here
          */
         int ret = net_iface_type(NULL, o->dev, iftype);
-        if ((ret == 0) && (strcmp(iftype, "ovpn-dco") != 0))
+        if ((ret == 0) && (strcmp(iftype, "ovpn") != 0))
         {
-            msg(msglevel, "Interface %s exists and is non-DCO. Disabling data channel offload",
+            msg(msglevel, "Interface %s exists and is not using the "
+                          "ovpn DCO driver. Disabling data channel offload",
                 o->dev);
             return false;
         }
