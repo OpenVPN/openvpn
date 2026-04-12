@@ -518,7 +518,16 @@ tls_crypt_v2_wrap_unwrap_max_metadata(void **state)
         .mode = TLS_WRAP_CRYPT,
         .tls_crypt_v2_server_key = ctx->server_keys.encrypt,
     };
-    assert_true(tls_crypt_v2_extract_client_key(&ctx->wkc, &wrap_ctx, NULL, true));
+
+    /* a buffer that only contains the wrapped key should fail */
+    assert_false(tls_crypt_v2_extract_client_key(&ctx->wkc, &wrap_ctx, NULL, true));
+
+    /* add a opcode in front of the key to make it valid to extract */
+    struct buffer wkcop = alloc_buf_gc(buf_len(&ctx->wkc) + 1, &ctx->gc);
+    buf_write_u8(&wkcop, 0x50);
+    buf_copy(&wkcop, &ctx->wkc);
+    assert_true(tls_crypt_v2_extract_client_key(&wkcop, &wrap_ctx, NULL, true));
+
     tls_wrap_free(&wrap_ctx);
 }
 
