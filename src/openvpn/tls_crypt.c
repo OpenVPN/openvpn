@@ -216,7 +216,6 @@ tls_crypt_unwrap(const struct buffer *src, struct buffer *dst, struct crypto_opt
     gc_init(&gc);
 
     ASSERT(opt);
-    ASSERT(src->len > 0);
     ASSERT(ctx->cipher);
     ASSERT(packet_id_initialized(&opt->packet_id) || (opt->flags & CO_IGNORE_PACKET_ID));
 
@@ -619,7 +618,8 @@ tls_crypt_v2_extract_client_key(struct buffer *buf, struct tls_wrap_ctx *ctx,
     struct buffer wrapped_client_key = *buf;
     uint16_t net_len = 0;
 
-    if (BLEN(&wrapped_client_key) < sizeof(net_len))
+    if (!buf_advance(&wrapped_client_key, 1)
+        || BLEN(&wrapped_client_key) < 1 + sizeof(net_len))
     {
         msg(D_TLS_ERRORS, "Can not read tls-crypt-v2 client key length");
         return false;
