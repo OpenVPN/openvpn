@@ -317,7 +317,7 @@ send_push_update(struct multi_context *m, const void *target, const char *msg, c
 
     int count = 0;
 
-    for (int i = 0; i < m->max_clients; i++)
+    for (uint32_t i = 0; i <= m->max_peerid; i++)
     {
         struct multi_instance *curr_mi = m->instances[i];
 

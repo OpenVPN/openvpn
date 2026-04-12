@@ -601,6 +601,13 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
         if (mi->context.c2.tls_multi->peer_id != MAX_PEER_ID)
         {
             m->instances[mi->context.c2.tls_multi->peer_id] = NULL;
+
+            /* Adjust the max_peerid as this might have been the highest
+             * peer id instance */
+            while (m->max_peerid > 0 && m->instances[m->max_peerid] == NULL)
+            {
+                m->max_peerid--;
+            }
         }
 
         schedule_remove_entry(m->schedule, (struct schedule_entry *)mi);
@@ -652,7 +659,7 @@ multi_uninit(struct multi_context *m)
 {
     if (m->hash)
     {
-        for (int i = 0; i < m->max_clients; i++)
+        for (uint32_t i = 0; i <= m->max_peerid; i++)
         {
             struct multi_instance *mi = m->instances[i];
             if (mi)
@@ -1326,7 +1333,7 @@ multi_delete_dup(struct multi_context *m, struct multi_instance *new_mi)
         {
             int count = 0;
 
-            for (int i = 0; i < m->max_clients; i++)
+            for (uint32_t i = 0; i <= m->max_peerid; i++)
             {
                 struct multi_instance *mi = m->instances[i];
                 if (mi && mi != new_mi && !mi->halt)
@@ -2885,7 +2892,7 @@ multi_bcast(struct multi_context *m, const struct buffer *buf,
 #endif
         mb = mbuf_alloc_buf(buf);
 
-        for (int i = 0; i < m->max_clients; i++)
+        for (uint32_t i = 0; i <= m->max_peerid; i++)
         {
             struct multi_instance *mi = m->instances[i];
 
@@ -3794,7 +3801,7 @@ static void
 multi_push_restart_schedule_exit(struct multi_context *m, bool next_server)
 {
     /* tell all clients to restart */
-    for (int i = 0; i < m->max_clients; i++)
+    for (uint32_t i = 0; i <= m->max_peerid; i++)
     {
         struct multi_instance *mi = m->instances[i];
         if (mi && !mi->halt && proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto))
@@ -3876,7 +3883,7 @@ management_callback_kill_by_cn(void *arg, const char *del_cn)
     struct multi_context *m = (struct multi_context *)arg;
     int count = 0;
 
-    for (int i = 0; i < m->max_clients; i++)
+    for (uint32_t i = 0; i <= m->max_peerid; i++)
     {
         struct multi_instance *mi = m->instances[i];
         if (mi && !mi->halt)
@@ -3907,7 +3914,7 @@ management_callback_kill_by_addr(void *arg, const in_addr_t addr, const uint16_t
     maddr.proto = proto;
     if (mroute_extract_openvpn_sockaddr(&maddr, &saddr, true))
     {
-        for (int i = 0; i < m->max_clients; i++)
+        for (uint32_t i = 0; i <= m->max_peerid; i++)
         {
             struct multi_instance *mi = m->instances[i];
             if (mi && !mi->halt && mroute_addr_equal(&maddr, &mi->real))
@@ -4100,8 +4107,14 @@ multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
     }
 
     /* should not really end up here, since multi_create_instance returns null
-     * if amount of clients exceeds max_clients */
+     * if amount of clients exceeds max_clients and this method would then
+     * also not have been called */
     ASSERT(mi->context.c2.tls_multi->peer_id < m->max_clients);
+
+    if (mi->context.c2.tls_multi->peer_id > m->max_peerid)
+    {
+        m->max_peerid = mi->context.c2.tls_multi->peer_id;
+    }
 }
 
 #if defined(__GNUC__) || defined(__clang__)

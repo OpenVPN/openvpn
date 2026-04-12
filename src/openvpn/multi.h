@@ -160,9 +160,12 @@ struct multi_instance
  */
 struct multi_context
 {
-    struct multi_instance **instances; /**< Array of multi_instances. An instance can be
+    struct multi_instance **instances; /**< Array of multi_instances with the size of
+                                        *  max_clients.  An instance can be
                                         * accessed using peer-id as an index. */
-
+    uint32_t max_peerid;               /**< highest currently allocated peer-id
+                                        * and maximum allocated/valid index in
+                                        * instances */
     struct hash *hash;                 /**< VPN tunnel instances indexed by real
                                         *   address of the remote peer. */
     struct hash *vhash;                /**< VPN tunnel instances indexed by
