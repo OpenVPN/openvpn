@@ -305,24 +305,6 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
                 {
                     strncpy(up->password, password_buf, USER_PASS_LEN);
                 }
-                /* The auth-file does not have the password: get both username
-                 * and password from the management interface if possible.
-                 * Otherwise set to read password from console.
-                 */
-#if defined(ENABLE_MANAGEMENT)
-                else if (management && (flags & GET_USER_PASS_MANAGEMENT)
-                         && management_query_user_pass_enabled(management))
-                {
-                    msg(D_LOW,
-                        "No password found in %s authfile '%s'. Querying the management interface",
-                        prefix, auth_file);
-                    if (!auth_user_pass_mgmt(up, prefix, flags, auth_challenge))
-                    {
-                        fclose(fp);
-                        return false;
-                    }
-                }
-#endif
                 else
                 {
                     password_from_stdin = 1;
@@ -348,7 +330,23 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
         if (username_from_stdin || password_from_stdin || response_from_stdin)
         {
 #ifdef ENABLE_MANAGEMENT
-            if (auth_challenge && (flags & GET_USER_PASS_DYNAMIC_CHALLENGE) && response_from_stdin)
+            /* If management-query-passwords is true, we could be here because
+             * of no password present in auth-file or inline. In that case
+             * query via the management interface instead of stdin/console.
+             */
+            if (management && (flags & GET_USER_PASS_MANAGEMENT)
+                && management_query_user_pass_enabled(management)
+                && !(flags & GET_USER_PASS_USERNAME_ONLY))
+            {
+                msg(D_LOW,
+                    "No '%s' password found in authfile or inline. Querying the management interface",
+                    prefix);
+                if (!auth_user_pass_mgmt(up, prefix, flags, auth_challenge))
+                {
+                    return false;
+                }
+            }
+            else if (auth_challenge && (flags & GET_USER_PASS_DYNAMIC_CHALLENGE) && response_from_stdin)
             {
                 struct auth_challenge_info *ac = parse_auth_challenge(auth_challenge, &gc);
                 if (ac)
