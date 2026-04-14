@@ -2125,10 +2125,12 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
 
         if (!write_string(buf, up->username, -1))
         {
+            msg(M_WARN, "WARNING: Failed to write auth username to TLS buffer");
             goto error;
         }
         else if (!write_string(buf, up->password, -1))
         {
+            msg(M_WARN, "WARNING: Failed to write auth password to TLS buffer");
             goto error;
         }
         /* save username for auth-token which may get pushed later */
