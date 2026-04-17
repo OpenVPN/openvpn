@@ -634,6 +634,7 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
 #endif /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
 }
 
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
 void
 tls_ctx_check_cert_time(const struct tls_root_ctx *ctx)
 {
@@ -669,6 +670,60 @@ tls_ctx_check_cert_time(const struct tls_root_ctx *ctx)
         msg(M_WARN, "WARNING: Your certificate has expired!");
     }
 }
+#else
+void
+tls_ctx_check_cert_time(const struct tls_root_ctx *ctx)
+{
+    const X509 *cert;
+    ASSERT(ctx);
+
+    cert = SSL_CTX_get0_certificate(ctx->ctx);
+
+    if (cert == NULL)
+    {
+        return; /* Nothing to check if there is no certificate */
+    }
+
+    X509_VERIFY_PARAM *vpm = X509_VERIFY_PARAM_new();
+
+    if (vpm == NULL)
+    {
+        msg(D_TLS_DEBUG_MED, "Failed to initialise certificate verification parameters.");
+        return;
+    }
+
+    X509_VERIFY_PARAM_set_flags(vpm, X509_V_FLAG_USE_CHECK_TIME);
+    X509_VERIFY_PARAM_set_time(vpm, now);
+
+    int error = 0;
+    int ret = X509_check_certificate_times(vpm, cert, &error);
+    X509_VERIFY_PARAM_free(vpm);
+
+    if (ret == 1)
+    {
+        return;
+    }
+
+    switch (error)
+    {
+        case X509_V_ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD:
+            msg(D_TLS_DEBUG_MED, "Failed to read certificate notBefore field.");
+            break;
+
+        case X509_V_ERR_CERT_NOT_YET_VALID:
+            msg(M_WARN, "WARNING: Your certificate is not yet valid!");
+            break;
+
+        case X509_V_ERR_ERROR_IN_CERT_NOT_AFTER_FIELD:
+            msg(D_TLS_DEBUG_MED, "Failed to read certificate notAfter field.");
+            break;
+
+        case X509_V_ERR_CERT_HAS_EXPIRED:
+            msg(M_WARN, "WARNING: Your certificate has expired!");
+            break;
+    }
+}
+#endif
 
 void
 tls_ctx_load_dh_params(struct tls_root_ctx *ctx, const char *dh_file, bool dh_file_inline)
