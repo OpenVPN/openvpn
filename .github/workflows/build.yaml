@@ -390,6 +390,87 @@ jobs:
       - name: make check
         run: make -j3 check VERBOSE=1
 
+  openssl:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04]
+        ssllib: [openssl]
+        build: [ normal, asan ]
+        configureflags: ["--with-openssl-engine=no"]
+        include:
+          - build: asan
+            cflags: "-fsanitize=address -fno-sanitize-recover=all  -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -O1"
+            ldflags: -fsanitize=address -fno-sanitize-recover=all
+            cc: clang
+          - build: normal
+            cflags: "-O2 -g"
+            ldflags: ""
+            cc: gcc
+
+    name: "${{matrix.cc}} ${{matrix.build}} - ${{matrix.os}} - ${{matrix.ssllib}} - 4.0"
+    runs-on: ${{matrix.os}}
+    env:
+      CFLAGS: ${{ matrix.cflags }}
+      LDFLAGS: ${{ matrix.ldflags }}
+      CC: ${{matrix.cc}}
+      UBSAN_OPTIONS: print_stacktrace=1
+      # versioning=semver-coerced
+      OPENSSL_REPO: openssl/openssl
+      OPENSSL_VERSION: openssl-4.0.0-beta1
+      OPENSSL_INSTALL: /opt/openssl
+
+    steps:
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html clang libcmocka-dev python3-docutils libtool automake autoconf pkg-config libcap-ng-dev libnl-genl-3-dev
+      - name: Restore OpenSSL 4.0 from cache
+        uses: actions/cache@v5
+        id: openssl-cache
+        with:
+          path: ${{ env.OPENSSL_INSTALL }}
+          key: ${{ matrix.os }}-openssl-${{matrix.build }}-${{ env.OPENSSL_VERSION }}
+      - name: "openssl: checkout"
+        if: steps.openssl-cache.outputs.cache-hit != 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          path: openssl
+          repository: ${{ env.OPENSSL_REPO }}
+          ref: ${{ env.OPENSSL_VERSION }}
+      - name: "openssl: configure"
+        if: steps.openssl-cache.outputs.cache-hit != 'true'
+        run: ./Configure  --prefix=${{ env.OPENSSL_INSTALL }} --libdir=${{ env.OPENSSL_INSTALL }}/lib --openssldir=${{ env.OPENSSL_INSTALL }} -g
+        working-directory: openssl
+      - name: "openssl: make all"
+        if: steps.openssl-cache.outputs.cache-hit != 'true'
+        run: make -j3
+        working-directory: openssl
+      - name: "openssl: make install"
+        if: steps.openssl-cache.outputs.cache-hit != 'true'
+        run: sudo make install
+        working-directory: openssl
+      - name: "ldconfig"
+        run: sudo ldconfig
+      - name: Checkout OpenVPN
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: autoconf
+        run: autoreconf -fvi
+      - name: configure
+        run: |
+          OPENSSL_CFLAGS="-I${{ env.OPENSSL_INSTALL }}/include" \
+          OPENSSL_LIBS="-L${{ env.OPENSSL_INSTALL }}/lib -lssl -lcrypto" \
+          LDFLAGS="-Wl,-rpath=${{ env.OPENSSL_INSTALL }}/lib" \
+          ./configure --with-crypto-library=openssl --enable-werror ${{matrix.configureflags}}
+      - name: make all
+        run: make -j3
+      - name: Ensure the build uses Openssl
+        run: |
+          ./src/openvpn/openvpn --version
+          ./src/openvpn/openvpn --version | grep -q "library versions: OpenSSL 4.0"
+      - name: configure checks
+        run: echo 'RUN_SUDO="sudo -E"' >tests/t_server_null.rc
+      - name: make check
+        run: make -j3 check VERBOSE=1
+
   mbedtls4:
     strategy:
       fail-fast: false
