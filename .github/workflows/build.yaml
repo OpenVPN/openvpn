@@ -498,7 +498,7 @@ jobs:
       PKG_CONFIG_PATH: /opt/mbedtls4/lib/pkgconfig
       # versioning=semver-coerced
       MBEDTLS_REPO: Mbed-TLS/mbedtls
-      MBEDTLS_VERSION: v4.0.0
+      MBEDTLS_VERSION: v4.1.0
       MBEDTLS_INSTALL: /opt/mbedtls4
 
     steps:
