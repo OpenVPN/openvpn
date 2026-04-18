@@ -578,7 +578,7 @@ jobs:
       AWS_LC_INSTALL: /opt/aws-lc
       # versioning=semver-coerced
       AWS_LC_REPO: aws/aws-lc
-      AWS_LC_VERSION: v1.70.0
+      AWS_LC_VERSION: v1.72.0
 
     steps:
       - name: Install dependencies
