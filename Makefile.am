@@ -89,3 +89,10 @@ config-version.h:
 
 doxygen:
 	$(MAKE) -C doc/doxygen doxygen
+
+.PHONY: cppcheck
+cppcheck:
+	BUILD_DIR="$(abs_top_builddir)" \
+	SOURCE_DIR="$(abs_top_srcdir)" \
+	INCLUDE_FLAGS="$(LIBNL_GENL_CFLAGS)" \
+		"$(top_srcdir)/dev-tools/run-cppcheck.sh"
