@@ -1,6 +1,46 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
 
+2026.04.22 -- Version 2.7.2
+
+Arne Schwabe (9):
+      Use ASN1_BIT_STRING_get_bit to check for netscape certificate usage
+      Rename key* to privkey* in cert_data.h
+      Add unit test for printing various details of certificates
+      OpenSSL 4.0: Make X509 objects const
+      Do not access internals of ASN1_INTEGER to print hex of serial
+      Try to emphasise the transition from old ovpn-dco to new ovpn module
+      OpenSSL 4.0: Use X509_check_certificate_times instead of X509_cmp_time
+      GHA: Add OpenSSL 4.0 build
+      Ensure that buffer of freed session are not used
+
+David Benjamin (1):
+      ssl_openssl: Fix some CRL mixups
+
+Frank Lichtenheld (3):
+      doc: Remove some explanations for pre-2.3 configurations
+      openvpnmsica: Fix setting of iTicks in schedule_adapter_delete
+      win: Fix nrpt_dnssec flag handling
+
+Greg Cox (1):
+      Update --learn-address man page with ipv6 information
+
+Luca Boccassi (1):
+      management: add base64 multi-line input for passwords
+
+Luis Cruz (1):
+      build: Use info fetched from version.m4
+
+Selva Nair (4):
+      Log when writing username/password to TLS buffer fails
+      Add unit tests for 'auth-user-pass username-only'
+      verify_x509_name: Improve the error message on failure
+      Inlined credentials: read missing password from management interface
+
+Steffan Karger (1):
+      tls-crypt-v2: Avoid interpreting opcode as part of WKc
+
+
 2026.03.31 -- Version 2.7.1
 
 Antonio Quartulli (1):
