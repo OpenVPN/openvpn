@@ -109,11 +109,11 @@ check_debug_level(unsigned int level)
     return (level & M_DEBUG_LEVEL) <= x_debug_level;
 }
 
-/** Return true if flags represent and enabled, not muted log level */
+/** Return true if flags represent */
 static inline bool
 msg_test(unsigned int flags)
 {
-    return check_debug_level(flags) && dont_mute(flags);
+    return check_debug_level(flags);
 }
 
 #endif /* ifndef ERROR_H */

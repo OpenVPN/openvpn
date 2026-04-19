@@ -686,15 +686,6 @@ quit:
 }
 
 
-bool
-dont_mute(unsigned int flags)
-{
-    UNREFERENCED_PARAMETER(flags);
-
-    return true;
-}
-
-
 void
 x_msg_va(const unsigned int flags, const char *format, va_list arglist)
 {
