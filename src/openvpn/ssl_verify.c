@@ -906,7 +906,7 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads,
         {
             /* Must have at least three lines. further lines are ignored for
              * forward compatibility */
-            if (!lines->head || !lines->head->next || !lines->head->next->next)
+            if (!lines->head->next || !lines->head->next->next)
             {
                 msg(M_WARN, "auth pending control file is not at least "
                             "three lines long.");

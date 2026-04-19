@@ -572,7 +572,7 @@ platform_create_temp_file(const char *directory, const char *prefix, struct gc_a
             close(fd);
             return retfname;
         }
-        else if (fd == -1 && errno != EEXIST)
+        else if (errno != EEXIST)
         {
             /* Something else went wrong, no need to retry.  */
             msg(M_WARN | M_ERRNO, "Could not create temporary file '%s'", retfname);

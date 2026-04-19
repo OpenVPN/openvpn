@@ -486,7 +486,7 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     sud->directory = data;
     len = wcslen(sud->directory) + 1;
     size -= len;
-    if (size <= 0)
+    if (size == 0)
     {
         MsgToEventLog(M_ERR, L"Startup data ends at working directory");
         ReturnError(pipe, ERROR_STARTUP_DATA, L"GetStartupData", 1, &exit_event);
@@ -496,7 +496,7 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     sud->options = sud->directory + len;
     len = wcslen(sud->options) + 1;
     size -= len;
-    if (size <= 0)
+    if (size == 0)
     {
         MsgToEventLog(M_ERR, L"Startup data ends at command line options");
         ReturnError(pipe, ERROR_STARTUP_DATA, L"GetStartupData", 1, &exit_event);

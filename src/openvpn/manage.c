@@ -1625,10 +1625,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
         }
         else
         {
-            if (p[1])
-            {
-                man_state(man, p[1]);
-            }
+            man_state(man, p[1]);
             if (p[2])
             {
                 man_state(man, p[2]);
@@ -2542,7 +2539,7 @@ man_write(struct management *man)
         {
             buffer_list_advance(man->connection.out, sent);
         }
-        else if (sent < 0)
+        else
         {
             if (man_io_error(man, "send"))
             {

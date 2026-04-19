@@ -5304,7 +5304,7 @@ check_dns_option(struct options *options, char *p[], const msglvl_t msglevel, bo
         struct dns_server *server =
             dns_server_get(&options->dns_options.servers, priority, &options->dns_options.gc);
 
-        if (streq(p[3], "address") && p[4])
+        if (streq(p[3], "address"))
         {
             for (int i = 4; p[i]; ++i)
             {

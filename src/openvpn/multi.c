@@ -1837,7 +1837,7 @@ multi_client_set_protocol_options(struct context *c)
     {
         msg(M_INFO, "PUSH: No NCP or OCC cipher data received from peer.");
 
-        if (o->enable_ncp_fallback && !tls_multi->remote_ciphername)
+        if (o->enable_ncp_fallback)
         {
             msg(M_INFO,
                 "Using data channel cipher '%s' since "
