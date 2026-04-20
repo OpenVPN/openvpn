@@ -466,6 +466,7 @@ tunnel_server_udp(struct context *top)
     struct multi_context multi;
 
     top->mode = CM_TOP;
+    top->multi = &multi;
     context_clear_2(top);
 
     /* initialize top-tunnel instance */

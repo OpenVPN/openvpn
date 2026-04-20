@@ -792,6 +792,7 @@ tunnel_server_tcp(struct context *top)
     int status;
 
     top->mode = CM_TOP;
+    top->multi = &multi;
     context_clear_2(top);
 
     /* initialize top-tunnel instance */

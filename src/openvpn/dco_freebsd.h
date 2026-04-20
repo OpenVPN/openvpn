@@ -57,6 +57,7 @@ typedef struct dco_context {
     int dco_message_peer_id;
     int dco_del_peer_reason;
     struct sockaddr_storage dco_float_peer_ss;
+    struct context *c;
     uint64_t dco_read_bytes;
     uint64_t dco_write_bytes;
 } dco_context_t;
