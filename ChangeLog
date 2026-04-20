@@ -1,6 +1,37 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2026.04.22 -- Version 2.6.20
+
+Arne Schwabe (2):
+      DCO Linux: Fix setting DCO ifmode failing on big endian archs
+      Ensure that buffer of freed session are not used
+
+Frank Lichtenheld (2):
+      auth-pam: fix discards 'const' qualifier from pointer target type
+      openvpnmsica: Fix setting of iTicks in schedule_adapter_delete
+
+Gert Doering (4):
+      configure.ac: adjust to native inotify support for FreeBSD 15+
+      dco_freebsd: use AF_LOCAL sockets for ioctl() communication with DCO driver
+      Fix copyright line in README
+      OpenVPN Release 2.6.20
+
+Ralf Lici (5):
+      management: stop bytecount on client disconnection
+      doc: fix client-nat syntax and examples
+      dco: port core/context infrastructure needed for backport of commit 7791f53
+      dco: backport immediate notification processing on Linux and FreeBSD
+      dco-linux: enforce ifindex only for DEL_PEER notifications
+
+Rudi Heitbaum (2):
+      ntlm: fix discards 'const' qualifier from pointer target type
+      dns: fix discards 'const' qualifier from pointer target type
+
+Steffan Karger (1):
+      tls-crypt-v2: Avoid interpreting opcode as part of WKc
+
+
 2026.02.04 -- Version 2.6.19
 
 Arne Schwabe (1):

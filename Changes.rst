@@ -1,3 +1,47 @@
+Overview of changes in 2.6.20
+=============================
+Security fixes
+--------------
+- fix race condition in TLS handshake that could lead to leaking of
+  packet data from a previous handshake under specific circumstances
+  (CVE-2026-40215)
+
+  (Bug found by XlabAI Team of Tencent Xuanwu Lab (xlabai@tencent.com))
+
+- fix server ASSERT() on receiving a suitably malformed packet with
+  a valid tls-crypt-v2 key (CVE-2026-35058)
+
+  (Bug found by XlabAI Team of Tencent Xuanwu Lab (xlabai@tencent.com),
+   and independently by Emma Reuter of Cisco ASIG (TALOS-2026-2381))
+
+Bugfixes
+--------
+- management: stop periodic bytecount output on mgmt client disconnection
+
+- FreeBSD: make DCO work on systems with no IPv4 support
+
+- FreeBSD: fix compilation with --enable-async-push on FreeBSD 15
+
+- Linux: make DCO work on big endian architectures (MIPS, PowerPC)
+
+- Windows: fix deinstallation progress bar on adapter deletion.
+
+- Linux: fix problem with DCO kernel notifications getting lost, leading
+  to overcounting of number of connected clients and general confusion
+  between kernel and userland regarding peer status (Github #900, #918,
+  #931, #919, #945) - this is a backport of the fixes in 2.7 plus the
+  infrastructural changes around DCO needed to support it.
+
+Documentation updates
+---------------------
+- fix ``client-nat`` syntax and examples
+
+Code maintenance / Compat changes
+---------------------------------
+- adjust some 'const' qualifiers to ISO C23 updates in glibc-2.43
+  (namely some strstr(), strchr() and strrchr() uses)
+
+
 Overview of changes in 2.6.19
 =============================
 Bugfixes
