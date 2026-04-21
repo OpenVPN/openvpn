@@ -33,6 +33,8 @@ typedef enum ovpn_key_slot dco_key_slot_t;
 typedef enum ovpn_key_cipher dco_cipher_t;
 
 enum ovpn_message_type_t {
+    /* message type #0 is treated as magic number by process_incoming_dco() */
+    OVPN_CMD_NO_MESSAGE = 0,
     OVPN_CMD_DEL_PEER,
     OVPN_CMD_PACKET,
     OVPN_CMD_SWAP_KEYS,
@@ -57,9 +59,8 @@ typedef struct dco_context {
     int dco_message_peer_id;
     int dco_del_peer_reason;
     struct sockaddr_storage dco_float_peer_ss;
+
     struct context *c;
-    uint64_t dco_read_bytes;
-    uint64_t dco_write_bytes;
 } dco_context_t;
 
 #endif /* defined(ENABLE_DCO) && defined(TARGET_FREEBSD) */

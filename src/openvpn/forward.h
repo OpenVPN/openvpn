@@ -50,6 +50,7 @@
 #include "openvpn.h"
 #include "occ.h"
 #include "ping.h"
+#include "dco.h"
 
 #define IOW_TO_TUN          (1<<0)
 #define IOW_TO_LINK         (1<<1)
@@ -248,6 +249,12 @@ void read_incoming_tun(struct context *c);
  */
 void process_incoming_tun(struct context *c);
 
+/**
+ * Process an incoming DCO message (from kernel space).
+ *
+ * @param dco - Pointer to the structure representing the DCO context.
+ */
+void process_incoming_dco(dco_context_t *dco);
 
 /**
  * Write a packet to the virtual tun/tap network interface.
