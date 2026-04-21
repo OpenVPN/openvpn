@@ -450,6 +450,12 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
         }
     }
 
+    /* Check if any groups were valid. */
+    if (i == 0)
+    {
+        msg(M_FATAL, "Error: All groups in \"%s\" are invalid or unsupported.", groups);
+    }
+
     /* Recent mbedtls versions state that the list of groups must be terminated
      * with 0. Older versions state that it must be terminated with MBEDTLS_ECP_DP_NONE
      * which is also 0, so this works either way. */
