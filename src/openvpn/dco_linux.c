@@ -857,6 +857,23 @@ ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
 static int
 ovpn_handle_del_peer(dco_context_t *dco, struct nlattr *attrs[])
 {
+    /* we must know which interface this message is referring to in order to
+     * avoid mixing messages for other instances
+     */
+    if (!attrs[OVPN_ATTR_IFINDEX])
+    {
+        msg(D_DCO, "ovpn-dco: Received message without ifindex");
+        return NL_STOP;
+    }
+
+    uint32_t ifindex = nla_get_u32(attrs[OVPN_ATTR_IFINDEX]);
+    if (ifindex != dco->ifindex)
+    {
+        msg(D_DCO_DEBUG, "ovpn-dco: ignoring message for foreign ifindex %d",
+            ifindex);
+        return NL_SKIP;
+    }
+
     if (!attrs[OVPN_ATTR_DEL_PEER])
     {
         msg(D_DCO, "ovpn-dco: no attributes in OVPN_DEL_PEER message");
@@ -928,23 +945,6 @@ ovpn_handle_msg(struct nl_msg *msg, void *arg)
     {
         msg(D_DCO, "received bogus data from ovpn-dco");
         return NL_STOP;
-    }
-
-    /* we must know which interface this message is referring to in order to
-     * avoid mixing messages for other instances
-     */
-    if (!attrs[OVPN_ATTR_IFINDEX])
-    {
-        msg(D_DCO, "ovpn-dco: Received message without ifindex");
-        return NL_STOP;
-    }
-
-    uint32_t ifindex = nla_get_u32(attrs[OVPN_ATTR_IFINDEX]);
-    if (ifindex != dco->ifindex)
-    {
-        msg(D_DCO_DEBUG, "ovpn-dco: ignoring message for foreign ifindex %d",
-            ifindex);
-        return NL_SKIP;
     }
 
     /* based on the message type, we parse the subobject contained in the
