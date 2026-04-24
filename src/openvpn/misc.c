@@ -336,6 +336,7 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
              */
             if (management && (flags & GET_USER_PASS_MANAGEMENT)
                 && management_query_user_pass_enabled(management)
+                && password_from_stdin
                 && !(flags & GET_USER_PASS_USERNAME_ONLY))
             {
                 msg(D_LOW,
