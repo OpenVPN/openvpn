@@ -1,3 +1,13 @@
+Overview of changes in 2.7.3
+============================
+Bugfixes
+--------
+- in combination with ``--management-query-passwords``, setups using
+  ``--auth-user-pass file`` or inline ``auth-user-pass`` would no longer
+  use the configured passwords and prompt on the management interface
+  instead (OpenVPN GUI would then provide an empty user/password prompt)
+  (Github: OpenVPN/openpvn#1021).
+
 Overview of changes in 2.7.2
 ============================
 Security fixes

@@ -1,6 +1,12 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
 
+2026.04.27 -- Version 2.7.3
+
+Selva Nair (1):
+      Fixup: prompting password from management
+
+
 2026.04.22 -- Version 2.7.2
 
 Arne Schwabe (9):
