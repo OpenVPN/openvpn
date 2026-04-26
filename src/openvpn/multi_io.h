@@ -44,6 +44,7 @@
 #define TA_INITIAL               8
 #define TA_TIMEOUT               9
 #define TA_TUN_WRITE_TIMEOUT     10
+#define TA_INST_LENG             11
 
 /*
  * I/O state and events tracker
@@ -67,7 +68,7 @@ void multi_io_free(struct multi_io *multi_io);
 
 int multi_io_wait(struct multi_context *m);
 
-void multi_io_process_io(struct multi_context *m);
+void multi_io_process_io(struct thread_pointer *b);
 
 void multi_io_set_global_rw_flags(struct multi_context *m, struct multi_instance *mi);
 
