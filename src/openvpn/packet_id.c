@@ -77,8 +77,7 @@ packet_id_debug(msglvl_t msglevel, const struct packet_id_rec *p,
 #endif
 
 static void
-packet_id_init_recv(struct packet_id_rec *rec, int seq_backtrack, int time_backtrack,
-                    const char *name, int unit)
+packet_id_init_recv(struct packet_id_rec *rec, int seq_backtrack, int time_backtrack, const char *name, int unit)
 {
     rec->name = name;
     rec->unit = unit;
@@ -93,8 +92,7 @@ packet_id_init_recv(struct packet_id_rec *rec, int seq_backtrack, int time_backt
     rec->initialized = true;
 }
 void
-packet_id_init(struct packet_id *p, int seq_backtrack, int time_backtrack, const char *name,
-               int unit)
+packet_id_init(struct packet_id *p, int seq_backtrack, int time_backtrack, const char *name, int unit)
 {
     dmsg(D_PID_DEBUG, "PID packet_id_init seq_backtrack=%d time_backtrack=%d", seq_backtrack,
          time_backtrack);
@@ -103,6 +101,12 @@ packet_id_init(struct packet_id *p, int seq_backtrack, int time_backtrack, const
     CLEAR(*p);
 
     packet_id_init_recv(&p->rec, seq_backtrack, time_backtrack, name, unit);
+
+    struct packet_id_net pin;
+    pin.id = PAID_INIT;
+    pin.time = 0;
+    reset_packet_id_send(&p->send);
+    packet_id_add(&p->rec, &pin);
 }
 
 void
@@ -221,12 +225,11 @@ packet_id_test(struct packet_id_rec *p, const struct packet_id_net *pin)
 {
     uint64_t diff;
 
-    packet_id_debug(D_PID_DEBUG, p, pin, "PID_TEST", 0);
-
     ASSERT(p->initialized);
 
     if (!pin->id)
     {
+        packet_id_debug(D_PID_DEBUG_LOW, p, pin, "PID_ERR !pin->id", 0);
         return false;
     }
 
@@ -253,8 +256,7 @@ packet_id_test(struct packet_id_rec *p, const struct packet_id_net *pin)
             if (diff > p->max_backtrack_stat)
             {
                 p->max_backtrack_stat = diff;
-                packet_id_debug(D_PID_DEBUG_LOW, p, pin, "PID_ERR replay-window backtrack occurred",
-                                p->max_backtrack_stat);
+                packet_id_debug(D_PID_DEBUG_LOW, p, pin, "PID_ERR replay-window backtrack occurred", p->max_backtrack_stat);
             }
 
             if (diff >= (packet_id_type)CIRC_LIST_SIZE(p->seq_list))
@@ -297,14 +299,17 @@ packet_id_test(struct packet_id_rec *p, const struct packet_id_net *pin)
          */
         if (pin->time == p->time)
         {
+            packet_id_debug(D_PID_DEBUG_LOW, p, pin, "PID_TEST pin->time == p->time", 0);
             return !p->id || pin->id == p->id + 1;
         }
         else if (pin->time < p->time) /* if time goes back, reject */
         {
+            packet_id_debug(D_PID_DEBUG_LOW, p, pin, "PID_ERR pin->time < p->time", 0);
             return false;
         }
         else /* time moved forward */
         {
+            packet_id_debug(D_PID_DEBUG_LOW, p, pin, "PID_TEST pin->id == 1", 0);
             return pin->id == 1;
         }
     }

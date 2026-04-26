@@ -27,13 +27,8 @@
 #include "integer.h"
 #include "buffer.h"
 
-#ifdef _WIN32
-typedef long tv_sec_t;
-typedef long tv_usec_t;
-#else
 typedef time_t tv_sec_t;
 typedef suseconds_t tv_usec_t;
-#endif
 
 struct frequency_limit
 {
@@ -83,14 +78,8 @@ openvpn_gettimeofday(struct timeval *tv, void *tz)
 static inline void
 update_time(void)
 {
-#ifdef _WIN32
-    /* on _WIN32, gettimeofday is faster than time(NULL) */
-    struct timeval tv;
-    openvpn_gettimeofday(&tv, NULL);
-#else
     update_now(time(NULL));
     now_usec = 0;
-#endif
 }
 
 static inline time_t

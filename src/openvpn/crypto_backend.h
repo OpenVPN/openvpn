@@ -33,15 +33,6 @@
 #include "crypto_openssl.h"
 #endif
 
-#ifdef ENABLE_CRYPTO_MBEDTLS
-#include <mbedtls/version.h>
-#if MBEDTLS_VERSION_NUMBER < 0x04000000
-#include "crypto_mbedtls_legacy.h"
-#else
-#include "crypto_mbedtls.h"
-#endif
-#endif
-
 #include "basic.h"
 #include "buffer.h"
 
