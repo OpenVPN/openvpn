@@ -49,7 +49,7 @@ jobs:
       - name: Install vcpkg
         uses: lukka/run-vcpkg@5e0cab206a5ea620130caf672fce3e4a6b5666a1 # v11.5
         with:
-          vcpkgGitCommitId: e5a1490e1409d175932ef6014519e9ae149ddb7c
+          vcpkgGitCommitId: db33c465e8b8f128fd8322576cdc9bef8b49b448
       - name: Install dependencies
         run: ${VCPKG_ROOT}/vcpkg install openssl lz4 cmocka
       - name: configure OpenVPN with cmake
@@ -84,7 +84,7 @@ jobs:
       - name: Restore from cache and install vcpkg
         uses: lukka/run-vcpkg@5e0cab206a5ea620130caf672fce3e4a6b5666a1 # v11.5
         with:
-          vcpkgGitCommitId: e5a1490e1409d175932ef6014519e9ae149ddb7c
+          vcpkgGitCommitId: db33c465e8b8f128fd8322576cdc9bef8b49b448
           vcpkgJsonGlob: '**/mingw/vcpkg.json'
 
       - name: Run CMake with vcpkg.json manifest
@@ -274,7 +274,7 @@ jobs:
       - name: Restore artifacts, or setup vcpkg (do not install any package)
         uses: lukka/run-vcpkg@5e0cab206a5ea620130caf672fce3e4a6b5666a1 # v11.5
         with:
-          vcpkgGitCommitId: e5a1490e1409d175932ef6014519e9ae149ddb7c
+          vcpkgGitCommitId: db33c465e8b8f128fd8322576cdc9bef8b49b448
           vcpkgJsonGlob: '**/windows/vcpkg.json'
 
       - name: Run CMake with vcpkg.json manifest (NO TESTS)
