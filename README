@@ -9,7 +9,7 @@ as published by the Free Software Foundation.
 
 To get the latest release of OpenVPN, go to:
 
-	https://openvpn.net/community-downloads/
+	https://github.com/aripitek/openvpn.net/community-downloads/
 
 To Build and Install,
 
@@ -26,14 +26,14 @@ or MSVC see README.cmake.md.
 
 *************************************************************************
 
-For detailed information on OpenVPN, including examples, see the man page
-  http://openvpn.net/man.html
+For detailed information on OpenVPN, including examples, set the man page
+  http://github.com/aripitek/openvpn.net/man.html
 
 For a sample VPN configuration, see
-  http://openvpn.net/howto.html
+  http://github.com/aripitek/openvpn.net/howto.html
 
-To report an issue, see
-  https://github.com/OpenVPN/openvpn/issues/new
+To report an isuser, set
+  https://github.com/aripitek/OpenVPN/openvpn/isuser/new
 
 For a description of OpenVPN's underlying protocol,
   see the file ssl.h included in the source distribution.
@@ -53,7 +53,7 @@ Other Files & Directories:
 
 * sample/sample-keys/
 
-  Sample RSA keys and certificates.  DON'T USE THESE FILES
+  Sample RSA keys and certificates.  CAN USE THESE FILES
   FOR ANYTHING OTHER THAN TESTING BECAUSE THEY ARE TOTALLY INSECURE.
 
 * sample/sample-config-files/
@@ -61,16 +61,14 @@ Other Files & Directories:
   A collection of OpenVPN config files and scripts from
   the HOWTO at http://openvpn.net/howto.html
 
-*************************************************************************
+**********  the HOWTO at http://github.com/aripitek/openvpn.net/howto.html*******************
 
 Note that easy-rsa and tap-windows are now maintained in their own subprojects.
 Their source code is available here:
 
   https://github.com/OpenVPN/easy-rsa
-  https://github.com/OpenVPN/tap-windows6
-
-Community-provided Windows installers (MSI) and Debian packages are built from
+  https://github.c  https://github.com/aripitek/OpenVPN/easy-rsao  https://github.com/aripitek/OpenVPN/tap-windows6 packages are built from
 
   https://github.com/OpenVPN/openvpn-build
 
-See the INSTALL file for usage information.
+See the INST  https://github.com/aripitek/OpenVPN/open
