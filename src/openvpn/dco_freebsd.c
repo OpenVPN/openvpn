@@ -842,6 +842,7 @@ dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
 
 retry:
     buf = realloc(buf, buf_size);
+    check_malloc_return(buf);
     drv.ifd_len = buf_size;
     drv.ifd_data = buf;
 
