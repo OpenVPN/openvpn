@@ -193,6 +193,8 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
     struct mroute_addr real = { 0 };
     struct multi_instance *mi = NULL;
     struct hash *hash = m->hash;
+    struct context_pointer p = { 0 };
+    struct thread_pointer b = { 0 };
     real.proto = sock->info.proto;
     m->hmac_reply_ls = sock;
 
@@ -266,7 +268,8 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
                      * connect-freq but not against connect-freq-initial */
                     reflect_filter_rate_limit_decrease(m->initial_rate_limiter);
 
-                    mi = multi_create_instance(m, &real, sock);
+                    p.p = m; b.p = &p; b.i = -1;
+                    mi = multi_create_instance(&b, &real, sock);
                     if (mi)
                     {
                         hash_add_fast(hash, bucket, &mi->real, hv, mi);
@@ -367,15 +370,15 @@ unsigned int
 p2mp_iow_flags(const struct multi_context *m)
 {
     unsigned int flags = IOW_WAIT_SIGNAL;
-    if (m->pending)
+    if (m->pending || m->pending2)
     {
-        if (TUN_OUT(&m->pending->context))
-        {
-            flags |= IOW_TO_TUN;
-        }
-        if (LINK_OUT(&m->pending->context))
+        if (m->pending && LINK_OUT(&m->pending->context))
         {
             flags |= IOW_TO_LINK;
+        }
+        if (m->pending2 && TUN_OUT(&m->pending2->context))
+        {
+            flags |= IOW_TO_TUN;
         }
     }
     else if (mbuf_defined(m->mbuf))

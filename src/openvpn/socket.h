@@ -251,6 +251,8 @@ struct link_socket
 #ifdef ENABLE_DEBUG
     int gremlin; /* --gremlin bits */
 #endif
+
+    int skip_bind;
 };
 
 /*
