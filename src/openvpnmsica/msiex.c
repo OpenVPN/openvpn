@@ -51,7 +51,7 @@ msi_get_string(_In_ MSIHANDLE hInstall, _In_z_ LPCWSTR szName, _Out_ LPWSTR *psz
         *pszValue = (LPWSTR)malloc(++dwLength * sizeof(WCHAR));
         if (*pszValue == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", dwLength * sizeof(WCHAR));
+            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
             return ERROR_OUTOFMEMORY;
         }
 

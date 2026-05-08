@@ -487,8 +487,8 @@ get_reg_string(_In_ HKEY hKey, _In_ LPCWSTR szName, _Out_ LPWSTR *pszValue)
         }
 
         default:
-            msg(M_NONFATAL, "%s: \"%ls\" registry value is not string (type %u)", __FUNCTION__,
-                dwValueType);
+            msg(M_NONFATAL, "%s: \"%ls\" registry value is not string (type %u)",
+                __FUNCTION__, szName, dwValueType);
             return ERROR_UNSUPPORTED_TYPE;
     }
 }
