@@ -1868,7 +1868,7 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
         return err; /* job done */
     }
 
-    if (msg->addr_len > 0)
+    if (addr_len > 0)
     {
         /* prepare the comma separated address list */
         /* cannot use max_addrs here as that is not considered compile
@@ -2639,25 +2639,28 @@ SetNrptRules(HKEY nrpt_key, const nrpt_address_t *addresses, const char *domains
         free(wide_search_domains);
     }
 
-    /* Create address string list */
-    CHAR addr_list[NRPT_ADDR_NUM * NRPT_ADDR_SIZE];
-    PSTR pos = addr_list;
-    for (int i = 0; i < NRPT_ADDR_NUM && addresses[i][0]; ++i)
+    if (addresses[0][0])
     {
-        if (i != 0)
+        /* Create address string list */
+        CHAR addr_list[NRPT_ADDR_NUM * NRPT_ADDR_SIZE];
+        PSTR pos = addr_list;
+        for (int i = 0; i < NRPT_ADDR_NUM && addresses[i][0]; ++i)
         {
-            *pos++ = ';';
+            if (i != 0)
+            {
+                *pos++ = ';';
+            }
+            strcpy(pos, addresses[i]);
+            pos += strlen(pos);
         }
-        strcpy(pos, addresses[i]);
-        pos += strlen(pos);
-    }
 
-    WCHAR subkey[MAX_PATH];
-    swprintf(subkey, _countof(subkey), L"OpenVPNDNSRouting-%lu", ovpn_pid);
-    err = SetNrptRule(nrpt_key, subkey, addr_list, wide_domains, dom_size, dnssec);
-    if (err)
-    {
-        MsgToEventLog(M_ERR, L"%S: failed to set rule %s (%lu)", __func__, subkey, err);
+        WCHAR subkey[MAX_PATH];
+        swprintf(subkey, _countof(subkey), L"OpenVPNDNSRouting-%lu", ovpn_pid);
+        err = SetNrptRule(nrpt_key, subkey, addr_list, wide_domains, dom_size, dnssec);
+        if (err)
+        {
+            MsgToEventLog(M_ERR, L"%S: failed to set rule %s (%lu)", __func__, subkey, err);
+        }
     }
 
     if (domains[0])
