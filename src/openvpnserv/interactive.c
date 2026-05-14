@@ -1071,6 +1071,7 @@ ApplyGpolSettings32(void)
     publish_fn_t RtlPublishWnfStateData;
     const DWORD WNF_GPOL_SYSTEM_CHANGES_HI = 0x0D891E2A;
     const DWORD WNF_GPOL_SYSTEM_CHANGES_LO = 0xA3BC0875;
+    BOOL ret = FALSE;
 
     HMODULE ntdll = LoadLibraryA("ntdll.dll");
     if (ntdll == NULL)
@@ -1081,16 +1082,19 @@ ApplyGpolSettings32(void)
     RtlPublishWnfStateData = (publish_fn_t)GetProcAddress(ntdll, "RtlPublishWnfStateData");
     if (RtlPublishWnfStateData == NULL)
     {
-        return FALSE;
+        goto cleanup;
     }
 
     if (RtlPublishWnfStateData(WNF_GPOL_SYSTEM_CHANGES_LO, WNF_GPOL_SYSTEM_CHANGES_HI, 0, 0, 0, 0)
         != ERROR_SUCCESS)
     {
-        return FALSE;
+        goto cleanup;
     }
 
-    return TRUE;
+    ret = TRUE;
+cleanup:
+    FreeLibrary(ntdll);
+    return ret;
 }
 
 /**
@@ -1106,6 +1110,7 @@ ApplyGpolSettings64(void)
                                      unsigned int Length, INT64 ExplicitScope);
     publish_fn_t RtlPublishWnfStateData;
     const INT64 WNF_GPOL_SYSTEM_CHANGES = 0x0D891E2AA3BC0875;
+    BOOL ret = FALSE;
 
     HMODULE ntdll = LoadLibraryA("ntdll.dll");
     if (ntdll == NULL)
@@ -1116,15 +1121,18 @@ ApplyGpolSettings64(void)
     RtlPublishWnfStateData = (publish_fn_t)GetProcAddress(ntdll, "RtlPublishWnfStateData");
     if (RtlPublishWnfStateData == NULL)
     {
-        return FALSE;
+        goto cleanup;
     }
 
     if (RtlPublishWnfStateData(WNF_GPOL_SYSTEM_CHANGES, 0, 0, 0, 0) != ERROR_SUCCESS)
     {
-        return FALSE;
+        goto cleanup;
     }
 
-    return TRUE;
+    ret = TRUE;
+cleanup:
+    FreeLibrary(ntdll);
+    return ret;
 }
 
 /**
