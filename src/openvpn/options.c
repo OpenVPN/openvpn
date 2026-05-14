@@ -6777,8 +6777,8 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "keepalive") && p[1] && p[2] && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->keepalive_ping = atoi_warn(p[1], msglevel);
-        options->keepalive_timeout = atoi_warn(p[2], msglevel);
+        atoi_constrained(p[1], &options->keepalive_ping, "keepalive ping", 1, INT_MAX, msglevel);
+        atoi_constrained(p[2], &options->keepalive_timeout, "keepalive timeout", 1, INT_MAX, msglevel);
     }
     else if (streq(p[0], "ping") && p[1] && !p[2])
     {

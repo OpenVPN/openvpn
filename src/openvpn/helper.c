@@ -552,14 +552,10 @@ helper_keepalive(struct options *o)
         /*
          * Sanity checks.
          */
-        if (o->keepalive_ping <= 0 || o->keepalive_timeout <= 0)
-        {
-            msg(M_USAGE, "--keepalive parameters must be > 0");
-        }
         if (o->keepalive_ping * 2 > o->keepalive_timeout)
         {
             msg(M_USAGE,
-                "the second parameter to --keepalive (restart timeout=%d) must be at least twice the value of the first parameter (ping interval=%d).  A ratio of 1:5 or 1:6 would be even better.  Recommended setting is --keepalive 10 60.",
+                "The second parameter to --keepalive (restart timeout=%d) must be at least twice the value of the first parameter (ping interval=%d).  A ratio of 1:5 or 1:6 would be even better.  Recommended setting is --keepalive 10 60.",
                 o->keepalive_timeout, o->keepalive_ping);
         }
         if (o->ping_send_timeout || o->ping_rec_timeout)
