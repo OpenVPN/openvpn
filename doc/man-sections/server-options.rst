@@ -87,7 +87,9 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   external-auth option unless the client could authenticate in another
   acceptable way (e.g. client certificate), otherwise returning success
   will lead to authentication bypass (as does returning success on a wrong
-  password from a script).
+  password from a script). In the case that Expired token is accepted
+  the token will keep the session id and start time from the original
+  (expired) token.
 
 --auth-gen-token-secret file
   Specifies a file that holds a secret for the HMAC used in
