@@ -1650,10 +1650,10 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi, struct tls_sessi
     {
         ks->auth_token_state_flags = verify_auth_token(up, multi, session);
 
-        /* If this is the first time we see an auth-token in this multi session,
-         * save it as initial auth token. This ensures using the
-         * same session ID and initial timestamp in new tokens */
-        if (!multi->auth_token_initial)
+        /* If this is a valid token and the first time we see an auth-token
+         * in this multi session, save it as initial auth token. This ensures
+         * using the same session ID and initial timestamp in new tokens */
+        if (!multi->auth_token_initial && (ks->auth_token_state_flags & AUTH_TOKEN_HMAC_OK))
         {
             multi->auth_token_initial = strdup(up->password);
         }

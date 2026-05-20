@@ -117,11 +117,8 @@ void wipe_auth_token(struct tls_multi *multi);
  * @param password
  * @return whether the password string starts with the session token prefix
  */
-static inline bool
-is_auth_token(const char *password)
-{
-    return (memcmp_constant_time(SESSION_ID_PREFIX, password, strlen(SESSION_ID_PREFIX)) == 0);
-}
+bool
+is_auth_token(const char *password);
 /**
  * Checks if a client should be sent a new auth token to update its
  * current auth-token

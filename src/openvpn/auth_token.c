@@ -19,14 +19,33 @@
 const char *auth_token_pem_name = "OpenVPN auth-token server key";
 
 #define AUTH_TOKEN_SESSION_ID_LEN        12
-#define AUTH_TOKEN_SESSION_ID_BASE64_LEN (AUTH_TOKEN_SESSION_ID_LEN * 8 / 6)
+#define AUTH_TOKEN_SESSION_ID_BASE64_LEN (OPENVPN_BASE64_LENGTH(AUTH_TOKEN_SESSION_ID_LEN))
 
-#if AUTH_TOKEN_SESSION_ID_LEN % 3
-#error AUTH_TOKEN_SESSION_ID_LEN needs to be multiple a 3
-#endif
+/* We want our token to be a multiple of 3 bytes to avoid the base64 padding */
+static_assert(AUTH_TOKEN_SESSION_ID_LEN % 3 == 0, "AUTH_TOKEN_SESSION_ID_LEN needs to be multiple a 3");
 
+#define AUTH_TOKEN_HMAC_LEN   SHA256_DIGEST_LENGTH
 /* Size of the data of the token (not b64 encoded and without prefix) */
-#define TOKEN_DATA_LEN (2 * sizeof(int64_t) + AUTH_TOKEN_SESSION_ID_LEN + 32)
+#define TOKEN_DATA_LEN        (2 * sizeof(int64_t) + AUTH_TOKEN_SESSION_ID_LEN + AUTH_TOKEN_HMAC_LEN)
+#define TOKEN_DATA_BASE64_LEN (OPENVPN_BASE64_LENGTH(TOKEN_DATA_LEN))
+
+
+#define TOTAL_SESSION_TOKEN_LEN (strlen(SESSION_ID_PREFIX) + TOKEN_DATA_BASE64_LEN)
+
+/* Ensure that TOKEN_DATA_LEN is a multiple of 3 so the we avoid the base64
+ * padding */
+static_assert(TOKEN_DATA_LEN % 3 == 0, "TOKEN_DATA_BASE64_LEN is not a multiple of 3");
+
+bool
+is_auth_token(const char *password)
+{
+    if (strlen(password) != TOTAL_SESSION_TOKEN_LEN)
+    {
+        return false;
+    }
+
+    return (memcmp_constant_time(SESSION_ID_PREFIX, password, strlen(SESSION_ID_PREFIX)) == 0);
+}
 
 static struct key_type
 auth_token_kt(void)
@@ -106,7 +125,6 @@ add_session_token_env(struct tls_session *session, struct tls_multi *multi,
      * and being a multiple of 4 ensure that it a multiple of bytes
      * in the encoding
      */
-
     char session_id[AUTH_TOKEN_SESSION_ID_LEN * 2] = { 0 };
     memcpy(session_id, session_id_source + strlen(SESSION_ID_PREFIX),
            AUTH_TOKEN_SESSION_ID_LEN * 8 / 6);
@@ -172,7 +190,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
 
     if (multi->auth_token_initial)
     {
-        /* Just enough space to fit 8 bytes+ 1 extra to decode a non-padded
+        /* Just enough space to fit 8 bytes + 1 extra to decode a non-padded
          * base64 string (multiple of 3 bytes). 9 bytes => 12 bytes base64
          * bytes
          */
@@ -182,7 +200,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
         char *initial_token_copy = string_alloc(multi->auth_token_initial, &gc);
 
         char *old_sessid = initial_token_copy + strlen(SESSION_ID_PREFIX);
-        char *old_tstamp_initial = old_sessid + AUTH_TOKEN_SESSION_ID_LEN * 8 / 6;
+        char *old_tstamp_initial = old_sessid + AUTH_TOKEN_SESSION_ID_BASE64_LEN;
 
         /*
          * We null terminate the old token just after the session ID to let
@@ -284,7 +302,7 @@ check_hmac_token(hmac_ctx_t *ctx, const uint8_t *b64decoded, const char *usernam
     hmac_ctx_final(ctx, hmac_output);
 
     const uint8_t *hmac = b64decoded + TOKEN_DATA_LEN - 256 / 8;
-    return memcmp_constant_time(&hmac_output, hmac, 32) == 0;
+    return memcmp_constant_time(&hmac_output, hmac, AUTH_TOKEN_HMAC_LEN) == 0;
 }
 
 unsigned int

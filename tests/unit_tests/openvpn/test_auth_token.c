@@ -83,6 +83,8 @@ static const char *random_key =
 static const char *random_token =
     "SESS_ID_AT_ThhRItzOKNKrh3dfAAAAAFwzHpwAAAAAXDMenDdrq0RoH3dkA1f7O3wO+7kZcx2DusVZrRmFlWQM9HOb";
 
+static const char *last_session_state_value;
+static char last_session_id_value[64];
 
 static int
 setup(void **state)
@@ -113,6 +115,10 @@ setup(void **state)
     init_key_ctx(&ctx->multi.opt.auth_token_key, &key, &ctx->kt, false, "TEST");
 
     now = 0;
+
+    CLEAR(last_session_id_value);
+    last_session_state_value = NULL;
+
     return 0;
 }
 
@@ -257,13 +263,17 @@ auth_token_test_known_keys(void **state)
     assert_int_equal(verify_auth_token(&ctx->up, &ctx->multi, ctx->session), AUTH_TOKEN_HMAC_OK);
 }
 
-static const char *lastsesion_statevalue;
+
 void
 setenv_str(struct env_set *es, const char *name, const char *value)
 {
     if (streq(name, "session_state"))
     {
-        lastsesion_statevalue = value;
+        last_session_state_value = value;
+    }
+    else if (streq(name, "session_id"))
+    {
+        strncpy(last_session_id_value, value, sizeof(last_session_id_value));
     }
 }
 
@@ -337,29 +347,50 @@ auth_token_test_env(void **state)
     ks->auth_token_state_flags = 0;
     ctx->multi.auth_token = NULL;
     add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
-    assert_string_equal(lastsesion_statevalue, "Initial");
+    assert_string_equal(last_session_state_value, "Initial");
 
+    /* This generated a fresh token with a new session ID,
+     * check that this session id is part of the multi initial token and
+     * found at the right index */
+    char *idx = strstr(ctx->multi.auth_token_initial, last_session_id_value);
+    assert_non_null(idx);
+
+    ptrdiff_t offset = idx - ctx->multi.auth_token_initial;
+    assert_int_equal(offset, 11);
+
+    CLEAR(last_session_id_value);
     ks->auth_token_state_flags = 0;
-    strcpy(ctx->up.password, now0key0);
+    strcpy(ctx->up.password, "somepassword");
+
+    free(ctx->multi.auth_token_initial);
+    ctx->multi.auth_token_initial = strdup(now0key0);
+
     add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
-    assert_string_equal(lastsesion_statevalue, "Invalid");
+    assert_string_equal(last_session_state_value, "Initial");
+    assert_string_equal(last_session_id_value, "0123456789abcdef");
+
+    CLEAR(last_session_id_value);
+    free(ctx->multi.auth_token_initial);
+    ctx->multi.auth_token_initial = NULL;
 
     ks->auth_token_state_flags = AUTH_TOKEN_HMAC_OK;
+    strcpy(ctx->up.password, now0key0);
     add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
-    assert_string_equal(lastsesion_statevalue, "Authenticated");
+    assert_string_equal(last_session_state_value, "Authenticated");
+    assert_string_equal(last_session_id_value, "0123456789abcdef");
 
     ks->auth_token_state_flags = AUTH_TOKEN_HMAC_OK | AUTH_TOKEN_EXPIRED;
     add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
-    assert_string_equal(lastsesion_statevalue, "Expired");
+    assert_string_equal(last_session_state_value, "Expired");
 
     ks->auth_token_state_flags = AUTH_TOKEN_HMAC_OK | AUTH_TOKEN_VALID_EMPTYUSER;
     add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
-    assert_string_equal(lastsesion_statevalue, "AuthenticatedEmptyUser");
+    assert_string_equal(last_session_state_value, "AuthenticatedEmptyUser");
 
     ks->auth_token_state_flags =
         AUTH_TOKEN_HMAC_OK | AUTH_TOKEN_EXPIRED | AUTH_TOKEN_VALID_EMPTYUSER;
     add_session_token_env(ctx->session, &ctx->multi, &ctx->up);
-    assert_string_equal(lastsesion_statevalue, "ExpiredEmptyUser");
+    assert_string_equal(last_session_state_value, "ExpiredEmptyUser");
 }
 
 static void
@@ -386,6 +417,45 @@ auth_token_test_random_keys(void **state)
     assert_true(verify_auth_token(&ctx->up, &ctx->multi, ctx->session));
 }
 
+
+static void
+auth_token_test_is_auth_token(void **state)
+{
+    /* Known-good tokens are recognised */
+    assert_true(is_auth_token(now0key0));
+    assert_true(is_auth_token(random_token));
+
+    /* Empty and clearly too-short strings are rejected */
+    assert_false(is_auth_token(""));
+    assert_false(is_auth_token("foobar"));
+    assert_false(is_auth_token(SESSION_ID_PREFIX));
+    assert_false(is_auth_token("SESS_ID_AT_Something_wild"));
+
+    /* Since all auth token have the same length, get the length from
+     * now0key0 */
+    const size_t auth_token_len = strlen(now0key0);
+
+    /* Right length, incorrect prefix */
+    char buf[256] = { 0 };
+    assert_true(auth_token_len < sizeof(buf));
+    memset(buf, 'A', auth_token_len);
+    buf[auth_token_len] = '\0';
+    assert_false(is_auth_token(buf));
+
+    /* Correct prefix to ensure the previous test is valid */
+    memcpy(buf, "SESS_ID_AT_", strlen("SESS_ID_AT_"));
+    assert_true(is_auth_token(buf));
+
+    /* Correct prefix, one byte too short */
+    buf[auth_token_len - 1] = '\0';
+    assert_false(is_auth_token(buf));
+
+    /* Correct prefix, one byte too long */
+    strcpy(buf, now0key0);
+    buf[auth_token_len] = 'A';
+    buf[auth_token_len + 1] = '\0';
+    assert_false(is_auth_token(buf));
+}
 
 static void
 auth_token_test_key_load(void **state)
@@ -415,7 +485,8 @@ main(void)
         cmocka_unit_test_setup_teardown(auth_token_test_random_keys, setup, teardown),
         cmocka_unit_test_setup_teardown(auth_token_test_key_load, setup, teardown),
         cmocka_unit_test_setup_teardown(auth_token_test_timeout, setup, teardown),
-        cmocka_unit_test_setup_teardown(auth_token_test_session_mismatch, setup, teardown)
+        cmocka_unit_test_setup_teardown(auth_token_test_session_mismatch, setup, teardown),
+        cmocka_unit_test(auth_token_test_is_auth_token),
     };
 
     return cmocka_run_group_tests_name("auth-token tests", tests, NULL, NULL);
