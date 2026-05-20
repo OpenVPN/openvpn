@@ -2503,8 +2503,13 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
             msg(M_USAGE, USAGE_VALID_SERVER_PROTOS);
         }
 #if PORT_SHARE
+        bool has_tcp = false;
+        for (int i = 0; i < ce->local_list->len && !has_tcp; i++)
+        {
+            has_tcp = (ce->local_list->array[i]->proto == PROTO_TCP_SERVER);
+        }
         if ((options->port_share_host || options->port_share_port)
-            && (ce->proto != PROTO_TCP_SERVER))
+            && !has_tcp)
         {
             msg(M_USAGE, "--port-share only works in TCP server mode "
                          "(--proto values of tcp-server, tcp4-server, or tcp6-server)");
