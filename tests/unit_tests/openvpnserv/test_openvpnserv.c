@@ -153,6 +153,114 @@ test_convert_itf_dns_domains(void **state)
     assert_int_equal(err, ERROR_MORE_DATA);
 }
 
+static void
+test_append_search_list(void **state)
+{
+    WCHAR list[64];
+
+    /* append to an empty list */
+    wcscpy(list, L"");
+    assert_true(AppendSearchList(list, _countof(list), L"a.com"));
+    assert_int_equal(wcscmp(list, L"a.com"), 0);
+
+    /* append to a non-empty list */
+    wcscpy(list, L"x.com");
+    assert_true(AppendSearchList(list, _countof(list), L"a.com,b.com"));
+    assert_int_equal(wcscmp(list, L"x.com,a.com,b.com"), 0);
+
+    /* appending an empty string is a no-op */
+    wcscpy(list, L"x.com");
+    assert_true(AppendSearchList(list, _countof(list), L""));
+    assert_int_equal(wcscmp(list, L"x.com"), 0);
+
+    /* duplicates are allowed -- relied on by the multiset-aware remove */
+    wcscpy(list, L"x.com");
+    assert_true(AppendSearchList(list, _countof(list), L"x.com"));
+    assert_int_equal(wcscmp(list, L"x.com,x.com"), 0);
+
+    /* overflow: the list is left unchanged */
+    WCHAR tiny[8];
+    wcscpy(tiny, L"abc");
+    assert_false(AppendSearchList(tiny, _countof(tiny), L"long.example.com"));
+    assert_int_equal(wcscmp(tiny, L"abc"), 0);
+}
+
+static void
+test_remove_search_list_tokens(void **state)
+{
+    WCHAR list[256];
+
+    /* substring rejection: removing "vpn.corp.local" does NOT touch
+     * "test.vpn.corp.local" -- the original wcsstr-based code did. */
+    wcscpy(list, L"test.vpn.corp.local,other.com,vpn.corp.local");
+    assert_int_equal(RemoveSearchListTokens(list, L"vpn.corp.local"), 1);
+    assert_int_equal(wcscmp(list, L"test.vpn.corp.local,other.com"), 0);
+
+    /* multiset semantics: one undo token removes one occurrence */
+    wcscpy(list, L"corp.local,corp.local");
+    assert_int_equal(RemoveSearchListTokens(list, L"corp.local"), 1);
+    assert_int_equal(wcscmp(list, L"corp.local"), 0);
+
+    /* removal targets the LAST occurrence so a pre-existing prefix is
+     * preserved: with initial list "a,b" a VPN append yields "a,b,a";
+     * removing "a" must restore "a,b" (not "b,a") so the result matches
+     * the stored initial snapshot and a full reset can be triggered */
+    wcscpy(list, L"a,b,a");
+    assert_int_equal(RemoveSearchListTokens(list, L"a"), 1);
+    assert_int_equal(wcscmp(list, L"a,b"), 0);
+
+    /* multiple removes, mixed positions */
+    wcscpy(list, L"a,b,c,d");
+    assert_int_equal(RemoveSearchListTokens(list, L"b,d"), 2);
+    assert_int_equal(wcscmp(list, L"a,c"), 0);
+
+    /* no matches: list unchanged */
+    wcscpy(list, L"a,b,c");
+    assert_int_equal(RemoveSearchListTokens(list, L"x,y"), 0);
+    assert_int_equal(wcscmp(list, L"a,b,c"), 0);
+
+    /* head removal */
+    wcscpy(list, L"a,b,c");
+    assert_int_equal(RemoveSearchListTokens(list, L"a"), 1);
+    assert_int_equal(wcscmp(list, L"b,c"), 0);
+
+    /* tail removal */
+    wcscpy(list, L"a,b,c");
+    assert_int_equal(RemoveSearchListTokens(list, L"c"), 1);
+    assert_int_equal(wcscmp(list, L"a,b"), 0);
+
+    /* remove every token */
+    wcscpy(list, L"a,b");
+    assert_int_equal(RemoveSearchListTokens(list, L"a,b"), 2);
+    assert_int_equal(wcscmp(list, L""), 0);
+
+    /* duplicate undo tokens drain multiple occurrences */
+    wcscpy(list, L"x,x,x");
+    assert_int_equal(RemoveSearchListTokens(list, L"x,x"), 2);
+    assert_int_equal(wcscmp(list, L"x"), 0);
+
+    /* asking to remove more than is present only removes what's there */
+    wcscpy(list, L"x");
+    assert_int_equal(RemoveSearchListTokens(list, L"x,x,x"), 1);
+    assert_int_equal(wcscmp(list, L""), 0);
+
+    /* empty list */
+    wcscpy(list, L"");
+    assert_int_equal(RemoveSearchListTokens(list, L"a"), 0);
+    assert_int_equal(wcscmp(list, L""), 0);
+
+    /* empty remove */
+    wcscpy(list, L"a,b");
+    assert_int_equal(RemoveSearchListTokens(list, L""), 0);
+    assert_int_equal(wcscmp(list, L"a,b"), 0);
+
+    /* stray empty tokens in the list are tolerated -- the splice only
+     * touches the token being removed (and one adjacent comma) */
+    wcscpy(list, L"a,,b");
+    assert_int_equal(RemoveSearchListTokens(list, L"b"), 1);
+    assert_int_equal(wcscmp(list, L"a,"), 0);
+}
+
 int
 wmain(void)
 {
@@ -160,6 +268,8 @@ wmain(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_list_contains_domain),
         cmocka_unit_test(test_convert_itf_dns_domains),
+        cmocka_unit_test(test_append_search_list),
+        cmocka_unit_test(test_remove_search_list_tokens),
     };
 
     int ret = cmocka_run_group_tests_name("openvpnserv tests", tests, NULL, NULL);
