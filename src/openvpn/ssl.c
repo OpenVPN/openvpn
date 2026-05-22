@@ -3203,6 +3203,12 @@ check_session_buf_not_used(struct buffer *to_link, struct tls_session *session)
                 goto used;
             }
         }
+        if (ks->ack_write_buf.data == dataptr)
+        {
+            msg(M_INFO, "Warning buffer of freed TLS session is still in use (session->key[%d].ack_write_buf)", i);
+
+            goto used;
+        }
     }
     return;
 
