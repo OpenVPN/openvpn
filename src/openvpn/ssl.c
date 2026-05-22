@@ -3164,6 +3164,12 @@ check_session_buf_not_used(struct buffer *to_link, struct tls_session *session)
                     "still in use (tls_wrap.work.data)");
         goto used;
     }
+    if (session->tls_wrap_reneg.work.data == dataptr)
+    {
+        msg(M_INFO, "Warning buffer of freed TLS session is "
+                    "still in use (tls_wrap_reneg.work.data)");
+        goto used;
+    }
 
     for (int i = 0; i < KS_SIZE; i++)
     {
