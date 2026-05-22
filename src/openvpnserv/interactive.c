@@ -1444,24 +1444,149 @@ StoreInitialDnsSearchList(HKEY key, PCWSTR list)
 }
 
 /**
- * Append domain suffixes to an existing search list
+ * Append a comma-separated list of domains to another comma-separated
+ * list, in place. No deduplication: if a domain in @p add is already
+ * present in @p list it is appended again.
+ *
+ * @param  list      mutable wide string holding the current list (must
+ *                   be NUL-terminated). Modified on success.
+ * @param  list_cap  capacity of @p list in wide characters, including
+ *                   the NUL terminator.
+ * @param  add       comma-separated list of domains to append.
+ *
+ * @return TRUE on success, FALSE if appending would exceed @p list_cap
+ *         (in which case @p list is left unchanged).
+ */
+static BOOL
+AppendSearchList(PWSTR list, size_t list_cap, PCWSTR add)
+{
+    size_t list_len = wcslen(list);
+    size_t add_len = wcslen(add);
+    if (add_len == 0)
+    {
+        return TRUE;
+    }
+
+    size_t sep_len = (list_len > 0) ? 1 : 0;
+    if (list_len + sep_len + add_len + 1 > list_cap)
+    {
+        return FALSE;
+    }
+
+    if (sep_len)
+    {
+        list[list_len++] = L',';
+    }
+    wmemcpy(list + list_len, add, add_len + 1);
+    return TRUE;
+}
+
+/**
+ * Remove tokens from a comma-separated search list with multiset
+ * semantics: for each comma-separated token in @p remove, splice the
+ * last remaining matching token out of @p list. Comparison is on full
+ * tokens (case-sensitive). Empty tokens in @p remove are skipped.
+ *
+ * Removal targets the last occurrence to mirror AppendSearchList, which
+ * always appends. This keeps any pre-existing prefix intact, so once
+ * every pushed domain has been removed the list can again match the
+ * stored initial snapshot and trigger a full reset.
+ *
+ * Concretely, if a domain appears K times in @p list and L times in
+ * @p remove, min(K, L) instances are removed. That is the property that
+ * lets multiple VPN sessions, or a VPN and a pre-existing user entry,
+ * share a domain without one side's disconnect deleting the other
+ * side's claim on it.
+ *
+ * @param  list    mutable wide string holding the current list.
+ *                 Modified in place.
+ * @param  remove  comma-separated list of tokens to delete.
+ *
+ * @return number of tokens actually removed from @p list.
+ */
+static size_t
+RemoveSearchListTokens(PWSTR list, PCWSTR remove)
+{
+    size_t removed = 0;
+    PCWSTR domain = remove;
+    while (*domain)
+    {
+        PCWSTR comma = wcschr(domain, L',');
+        size_t domain_len = comma ? (size_t)(comma - domain) : wcslen(domain);
+        if (domain_len > 0)
+        {
+            /* Find the last token in @p list that exactly equals @p domain. */
+            PWSTR match = NULL;
+            PWSTR match_end = NULL;
+            for (PWSTR p = list; *p;)
+            {
+                PWSTR tok_end = wcschr(p, L',');
+                size_t tok_len = tok_end ? (size_t)(tok_end - p) : wcslen(p);
+                if (tok_len == domain_len && wcsncmp(p, domain, domain_len) == 0)
+                {
+                    match = p;
+                    match_end = tok_end;
+                }
+                if (!tok_end)
+                {
+                    break;
+                }
+                p = tok_end + 1;
+            }
+            if (match)
+            {
+                /* Splice the token out, eating its leading comma if it has
+                 * one, otherwise its trailing comma. */
+                PWSTR cut_start, cut_end;
+                if (match == list)
+                {
+                    cut_start = match;
+                    cut_end = match_end ? match_end + 1 : match + domain_len;
+                }
+                else
+                {
+                    cut_start = match - 1;
+                    cut_end = match + domain_len;
+                }
+                wmemmove(cut_start, cut_end, wcslen(cut_end) + 1);
+                removed++;
+            }
+        }
+        if (!comma)
+        {
+            break;
+        }
+        domain = comma + 1;
+    }
+    return removed;
+}
+
+/**
+ * Append domain suffixes to an existing search list.
+ *
+ * Pushed domains are always appended -- including ones that already
+ * appear in the list. Paired with the multiset-aware
+ * RemoveDnsSearchDomains, this lets overlapping VPN sessions (or VPN
+ * vs. pre-existing user entries) refcount their entries naturally:
+ * each Add records one occurrence, each Remove consumes one.
  *
  * @param  key          HKEY the list is stored at
- * @param  have_list    BOOL to indicate if a search list already exists
- * @param  domains      domain suffixes as comma separated string
+ * @param  have_list    BOOL indicating whether the key already has a
+ *                      non-empty SearchList value
+ * @param  domains      domain suffixes to append, comma-separated
  *
- * @return BOOL to indicate success or failure
+ * @return BOOL indicating success or failure
  */
 static BOOL
 AddDnsSearchDomains(HKEY key, BOOL have_list, PCWSTR domains)
 {
-    LSTATUS err;
     WCHAR list[2048] = { 0 };
-    DWORD size = sizeof(list);
 
     if (have_list)
     {
-        err = RegGetValueW(key, NULL, L"SearchList", RRF_RT_REG_SZ, NULL, list, &size);
+        DWORD size = sizeof(list);
+        LSTATUS err =
+            RegGetValueW(key, NULL, L"SearchList", RRF_RT_REG_SZ, NULL, list, &size);
         if (err)
         {
             MsgToEventLog(M_SYSERR, L"%S: could not get SearchList from registry (%lu)", __func__,
@@ -1473,28 +1598,16 @@ AddDnsSearchDomains(HKEY key, BOOL have_list, PCWSTR domains)
         {
             return FALSE;
         }
-
-        size_t listlen = (size / sizeof(list[0])) - 1; /* returned size is in bytes */
-        size_t domlen = wcslen(domains);
-        if (listlen + domlen + 2 > _countof(list))
-        {
-            MsgToEventLog(M_SYSERR, L"%S: not enough space in list for search domains (len=%lu)",
-                          __func__, domlen);
-            return FALSE;
-        }
-
-        /* Append to end of the search list */
-        PWSTR pos = list + listlen;
-        *pos = ',';
-        wcsncpy(pos + 1, domains, domlen + 1);
     }
-    else
+
+    if (!AppendSearchList(list, _countof(list), domains))
     {
-        wcsncpy(list, domains, wcslen(domains) + 1);
+        MsgToEventLog(M_SYSERR, L"%S: not enough space in list for search domains", __func__);
+        return FALSE;
     }
 
-    size = RegWStringSize(list);
-    err = RegSetValueExW(key, L"SearchList", 0, REG_SZ, (PBYTE)list, size);
+    DWORD size = RegWStringSize(list);
+    LSTATUS err = RegSetValueExW(key, L"SearchList", 0, REG_SZ, (PBYTE)list, size);
     if (err)
     {
         MsgToEventLog(M_SYSERR, L"%S: could not set SearchList to registry (%lu)", __func__, err);
@@ -1550,57 +1663,54 @@ out:
 }
 
 /**
- * Remove domain suffixes from an existing search list
+ * Remove domain suffixes from an existing search list.
+ *
+ * Delegates to RemoveSearchListTokens for the actual string surgery,
+ * which uses multiset semantics: each token in @p domains drops one
+ * occurrence in the registry SearchList. This means VPN sessions never
+ * delete more entries than they actually added, even when they pushed
+ * a domain that was already in the pre-existing list or in another
+ * session's add. Comparison is on full tokens, so unrelated entries
+ * that happen to contain a removed name as a substring are preserved.
  *
  * @param  key      HKEY the list is stored at
- * @param  domains  domain suffixes to remove as comma separated string
+ * @param  domains  domain suffixes to remove, comma-separated
  */
 static void
 RemoveDnsSearchDomains(HKEY key, PCWSTR domains)
 {
-    LSTATUS err;
     WCHAR list[2048];
     DWORD size = sizeof(list);
-
-    err = RegGetValueW(key, NULL, L"SearchList", RRF_RT_REG_SZ, NULL, list, &size);
+    LSTATUS err = RegGetValueW(key, NULL, L"SearchList", RRF_RT_REG_SZ, NULL, list, &size);
     if (err)
     {
         MsgToEventLog(M_SYSERR, L"%S: could not get SearchList from registry (%lu)", __func__, err);
         return;
     }
 
-    PWSTR dst = wcsstr(list, domains);
-    if (!dst)
+    if (RemoveSearchListTokens(list, domains) == 0)
     {
         MsgToEventLog(M_ERR, L"%S: could not find domains in search list", __func__);
         return;
     }
 
-    /* Cut out domains from list */
-    size_t domlen = wcslen(domains);
-    PCWSTR src = dst + domlen;
-    /* Also remove the leading comma, if there is one */
-    dst = dst > list ? dst - 1 : dst;
-    wmemmove(dst, src, domlen);
-
-    size_t list_len = wcslen(list);
-    if (list_len)
+    if (list[0] != L'\0')
     {
-        /* Now check if the shortened list equals the initial search list */
+        /* If the shortened list equals the snapshot we took at first
+         * touch, the user's pre-VPN state is fully restored -- wipe both
+         * SearchList and InitialSearchList. */
         WCHAR initial[2048];
         size = sizeof(initial);
         err = RegGetValueW(key, NULL, L"InitialSearchList", RRF_RT_REG_SZ, NULL, initial, &size);
-        if (err)
+        if (!err && wcscmp(list, initial) == 0)
+        {
+            ResetDnsSearchDomains(key);
+            return;
+        }
+        if (err && err != ERROR_FILE_NOT_FOUND)
         {
             MsgToEventLog(M_SYSERR, L"%S: could not get InitialSearchList from registry (%lu)",
                           __func__, err);
-            return;
-        }
-
-        /* If the search list is back to its initial state reset it */
-        if (wcsncmp(list, initial, list_len) == 0)
-        {
-            ResetDnsSearchDomains(key);
             return;
         }
     }
