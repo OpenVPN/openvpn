@@ -1623,9 +1623,9 @@ tls_session_update_crypto_params_do_work(struct tls_multi *multi, struct tls_ses
 
     if (dco_enabled(options))
     {
-        /* dco_set_peer() must be called if either keepalive or
-         * mssfix are set to update in-kernel config */
-        if (options->ping_send_timeout || frame->mss_fix)
+        /* dco_set_peer() must be called if either keepalive, ping, ping-restart,
+         * ping-exit or mssfix are set to update in-kernel config */
+        if (options->ping_send_timeout || options->ping_rec_timeout || frame->mss_fix)
         {
             int ret = dco_set_peer(dco, multi->dco_peer_id, options->ping_send_timeout,
                                    options->ping_rec_timeout, frame->mss_fix);
