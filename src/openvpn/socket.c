@@ -2814,37 +2814,30 @@ read_sockaddr_from_packet(struct buffer *buf, struct sockaddr *dst)
 {
     int sa_len = 0;
 
+    /* In dco-win multipeer mode the kernel driver always prepends a full
+     * sockaddr_in or sockaddr_in6 in front of the control-packet payload,
+     * so the buffer must hold at least sizeof(struct sockaddr_in) bytes
+     * before we may inspect sa_family. */
+    ASSERT(buf_len(buf) >= (int)sizeof(struct sockaddr_in));
+
     const struct sockaddr *sa = (const struct sockaddr *)BPTR(buf);
     switch (sa->sa_family)
     {
         case AF_INET:
             sa_len = sizeof(struct sockaddr_in);
-            if (buf_len(buf) < sa_len)
-            {
-                msg(M_FATAL,
-                    "ERROR: received incoming packet with too short length of %d -- must be at least %d.",
-                    buf_len(buf), sa_len);
-            }
-            memcpy(dst, sa, sa_len);
-            buf_advance(buf, sa_len);
             break;
 
         case AF_INET6:
             sa_len = sizeof(struct sockaddr_in6);
-            if (buf_len(buf) < sa_len)
-            {
-                msg(M_FATAL,
-                    "ERROR: received incoming packet with too short length of %d -- must be at least %d.",
-                    buf_len(buf), sa_len);
-            }
-            memcpy(dst, sa, sa_len);
-            buf_advance(buf, sa_len);
+            ASSERT(buf_len(buf) >= sa_len);
             break;
 
         default:
-            msg(M_FATAL, "ERROR: received incoming packet with invalid address family %d.",
-                sa->sa_family);
+            ASSERT(0); /* driver validates the family before writing */
     }
+
+    memcpy(dst, sa, sa_len);
+    buf_advance(buf, sa_len);
 
     return sa_len;
 }
