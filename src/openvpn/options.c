@@ -6409,26 +6409,28 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "tun-mtu") && p[1] && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_PUSH_MTU | OPT_P_CONNECTION);
-        options->ce.tun_mtu = positive_atoi(p[1], msglevel);
-        options->ce.tun_mtu_defined = true;
-        if (p[2])
+        if (atoi_constrained(p[1], &options->ce.tun_mtu, "tun-mtu", TUN_MTU_MIN, TUN_MTU_MAX, msglevel))
         {
-            options->ce.occ_mtu = positive_atoi(p[2], msglevel);
-        }
-        else
-        {
-            options->ce.occ_mtu = 0;
+            options->ce.tun_mtu_defined = true;
+            if (p[2])
+            {
+                atoi_constrained(p[2], &options->ce.occ_mtu, "tun-mtu occ-mtu", TUN_MTU_MIN, TUN_MTU_MAX, msglevel);
+            }
+            else
+            {
+                options->ce.occ_mtu = 0;
+            }
         }
     }
     else if (streq(p[0], "tun-mtu-max") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_MTU | OPT_P_CONNECTION);
-        atoi_constrained(p[1], &options->ce.tun_mtu_max, p[0], TUN_MTU_MAX_MIN, 65536, msglevel);
+        atoi_constrained(p[1], &options->ce.tun_mtu_max, p[0], TUN_MTU_MAX_MIN, TUN_MTU_MAX, msglevel);
     }
     else if (streq(p[0], "tun-mtu-extra") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_MTU | OPT_P_CONNECTION);
-        if (atoi_constrained(p[1], &options->ce.tun_mtu_extra, p[0], 0, 65536, msglevel))
+        if (atoi_constrained(p[1], &options->ce.tun_mtu_extra, p[0], 0, TUN_MTU_MAX, msglevel))
         {
             options->ce.tun_mtu_extra_defined = true;
         }
