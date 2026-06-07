@@ -5,6 +5,9 @@ constParameterCallback
 constParameterPointer
 constVariable
 constVariablePointer
+invalidPrintfArgType_sint
+invalidPrintfArgType_uint
+usleepCalled
 variableScope
 # We have a lot of library includes, not all of them are really required,
 # so ignore them
@@ -16,29 +19,44 @@ nullPointerArithmeticOutOfMemory
 # These are specific false-positives (FP) or ignored (IGN) issues
 # We might want to move some of them to inline-suppression to avoid
 # the static line-numbers
+# IGN: posix.cfg: We are not threadsafe
+getgrnamCalled
+getpwnamCalled
+getservbynameCalled
+localtimeCalled
+strtokCalled
+# FP: posix.cfg claims suseconds_t is unsigned for some reason
+unsignedLessThanZero:src/openvpn/otime.h:235
 # IGN: multi code does weird things with pointers to local variables...
 autoVariables:src/openvpn/multi.c:4177
 autoVariables:src/openvpn/multi_io.c:280
 # IGN: the code header = 0 | (OPCODE << P_OPCODE_SHIFT) is used intentionally
 badBitmaskCheck:src/openvpn/mudp.c
 badBitmaskCheck:tests/unit_tests/openvpn/test_pkt.c
+# IGN: we store integers in pointers
+CastAddressToIntegerAtReturn:src/openvpn/multi.c
 # IGN: event code uses a pointer to store integers
-intToPointerCast:src/openvpn/multi_io.c
 intToPointerCast:src/openvpn/forward.c
-# FP: crt_error is always true on Unix, but not Windows
+intToPointerCast:src/openvpn/multi_io.c
+intToPointerCast:src/openvpn/ps.c
+# FP: constant but differs between platforms
 knownConditionTrueFalse:src/openvpn/error.h:380
+knownConditionTrueFalse:src/openvpn/fdmisc.c:80
+knownConditionTrueFalse:src/openvpn/lladdr.c:65
+knownConditionTrueFalse:src/openvpn/platform.c
 # FP: code needs to accomodate many different defines
+knownConditionTrueFalse:src/openvpn/event.c:1139
 knownConditionTrueFalse:src/openvpn/event.c:1148
 # FP: dco_win support has "false" stubs
 knownConditionTrueFalse:src/openvpn/forward.c
 knownConditionTrueFalse:src/openvpn/init.c
 knownConditionTrueFalse:src/openvpn/multi_io.c:163
-# FP: cppcheck thinks that management_query_user_pass is always true,
-# but no idea why
+# FP: cppcheck thinks that some functions always return true, but they don't
 knownConditionTrueFalse:src/openvpn/misc.c:97
+knownConditionTrueFalse:src/openvpn/sig.h:116
 # FP: cert_uri_supported is a wrapper around defines, so it's
 # always constant but differs depending on OpenSSL version
-knownConditionTrueFalse:src/openvpn/ssl_openssl.c:1258
+knownConditionTrueFalse:src/openvpn/ssl_openssl.c:1332
 # FP: cppcheck doesn't understand that the function changes szErrMessage
 knownConditionTrueFalse:src/tapctl/main.c:704
 knownConditionTrueFalse:src/openvpnmsica/dllmain.c:164
@@ -50,9 +68,13 @@ memleakOnRealloc:src/openvpn/dco_freebsd.c:845
 missingInclude:src/openvpnserv/common.c:25
 # IGN: strlen(NULL) is not nice code, but seems to work
 nullPointerRedundantCheck:src/openvpn/init.c:299
+# FP: cppcheck doesn't understand ZeroMemory
+redundantAssignment:src/openvpnserv/interactive.c:203
 # IGN: We reuse the same variable name due to macro usage
 shadowVariable:src/openvpn/options.c:2580
 shadowVariable:src/openvpn/options.c:2598
+# FP: this file is never compiled on _WIN32
+umaskCalled:tests/unit_tests/openvpn/test_pkcs11.c
 # FP: yes, t_prev is unitialized, but t_prev_len is 0, so that's handled
 uninitvar:src/openvpn/crypto_epoch.c:60
 # FP: yes, parm is unitialized, but parm_len is 0, so that's handled
@@ -61,6 +83,10 @@ uninitvar:src/openvpn/options_parse.c:148
 ctuuninitvar:src/openvpn/crypto_mbedtls_legacy.c:698
 uninitvar:src/openvpnserv/interactive.c:1935
 uninitvar:src/tapctl/main.c:566
+# FP: we added a check but cppcheck is not convinced
+uninitvar:src/openvpnserv/interactive.c:2667
+# FP: weird parse error, the macro is fine in the rest of the file
+unknownMacro:src/openvpnserv/interactive.c:3488
 # FP: cppcheck doesn't account for short-circuiting
 unreadVariable:src/openvpn/manage.c:682
 unusedFunction:src/openvpn/siphash_reference.c
