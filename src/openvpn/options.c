@@ -6552,7 +6552,15 @@ add_option(struct options *options,
     else if (streq(p[0], "tun-mtu") && p[1] && !p[3])
     {
         VERIFY_PERMISSION(OPT_P_PUSH_MTU|OPT_P_CONNECTION);
-        options->ce.tun_mtu = positive_atoi(p[1]);
+        int mtu = positive_atoi(p[1]);
+        if (mtu < TUN_MTU_MIN || mtu > TUN_MTU_MAX)
+        {
+            msg(msglevel, "--mtu parm must be between %d and %d.", TUN_MTU_MIN,
+                TUN_MTU_MAX);
+            goto err;
+        }
+
+        options->ce.tun_mtu = mtu;
         options->ce.tun_mtu_defined = true;
         if (p[2])
         {
