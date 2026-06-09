@@ -771,9 +771,10 @@ tls_crypt_v2_write_client_key_file(const char *filename,
 
     if (!filename || streq(filename, ""))
     {
-        printf("%.*s\n", BLEN(&client_key_pem), BPTR(&client_key_pem));
+        buf_null_terminate(&client_key_pem);
         client_file = (const char *)BPTR(&client_key_pem);
         client_inline = true;
+        printf("%s\n", client_file);
     }
     else if (!buffer_write_file(filename, &client_key_pem))
     {
