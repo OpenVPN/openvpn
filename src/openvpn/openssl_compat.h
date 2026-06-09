@@ -49,8 +49,12 @@
  * intrusive than casts everywhere */
 #if defined(OPENSSL_IS_AWSLC)
 typedef uint32_t openssl_err_t;
+typedef size_t openssl_stack_size_t;
+#define PRI_OPENSSL_STACK "zu"
 #else
 typedef unsigned long openssl_err_t;
+typedef int openssl_stack_size_t;
+#define PRI_OPENSSL_STACK "d"
 #endif
 
 

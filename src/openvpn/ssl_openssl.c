@@ -981,7 +981,6 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file, bool pkcs
     X509 *cert;
     STACK_OF(X509) *ca = NULL;
     PKCS12 *p12;
-    int i;
     char password[256];
 
     ASSERT(NULL != ctx);
@@ -1065,7 +1064,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file, bool pkcs
          */
         if (ca && sk_X509_num(ca))
         {
-            for (i = 0; i < sk_X509_num(ca); i++)
+            for (openssl_stack_size_t i = 0; i < sk_X509_num(ca); i++)
             {
                 X509_STORE *cert_store = SSL_CTX_get_cert_store(ctx->ctx);
                 if (!X509_STORE_add_cert(cert_store, sk_X509_value(ca, i)))
@@ -1090,7 +1089,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file, bool pkcs
          */
         if (ca && sk_X509_num(ca))
         {
-            for (i = 0; i < sk_X509_num(ca); i++)
+            for (openssl_stack_size_t i = 0; i < sk_X509_num(ca); i++)
             {
                 if (!SSL_CTX_add_extra_chain_cert(ctx->ctx, sk_X509_value(ca, i)))
                 {
@@ -1855,7 +1854,7 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inli
     X509_LOOKUP *lookup = NULL;
     X509_STORE *store = NULL;
     BIO *in = NULL;
-    int i, added = 0, prev = 0;
+    openssl_stack_size_t added = 0, prev = 0;
 
     ASSERT(NULL != ctx);
 
@@ -1884,7 +1883,7 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inli
 
         if (info_stack)
         {
-            for (i = 0; i < sk_X509_INFO_num(info_stack); i++)
+            for (openssl_stack_size_t i = 0; i < sk_X509_INFO_num(info_stack); i++)
             {
                 X509_INFO *info = sk_X509_INFO_value(info_stack, i);
                 if (info->crl)
@@ -1942,11 +1941,11 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inli
 
                 if (tls_server)
                 {
-                    int cnum = sk_X509_NAME_num(cert_names);
+                    openssl_stack_size_t cnum = sk_X509_NAME_num(cert_names);
                     if (cnum != (prev + 1))
                     {
                         crypto_msg(M_WARN,
-                                   "Cannot load CA certificate file %s (entry %d did not validate)",
+                                   "Cannot load CA certificate file %s (entry %" PRI_OPENSSL_STACK " did not validate)",
                                    print_key_filename(ca_file, ca_file_inline), added);
                     }
                     prev = cnum;
@@ -1954,7 +1953,7 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inli
             }
             sk_X509_INFO_pop_free(info_stack, X509_INFO_free);
         }
-        int cnum;
+        openssl_stack_size_t cnum;
         if (tls_server)
         {
             cnum = sk_X509_NAME_num(cert_names);
@@ -1972,8 +1971,8 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inli
             if (cnum != added)
             {
                 crypto_msg(M_FATAL,
-                           "Cannot load CA certificate file %s (only %d "
-                           "of %d entries were valid X509 names)",
+                           "Cannot load CA certificate file %s (only %" PRI_OPENSSL_STACK
+                           "of %" PRI_OPENSSL_STACK "entries were valid X509 names)",
                            print_key_filename(ca_file, ca_file_inline), cnum, added);
             }
         }
@@ -2622,7 +2621,7 @@ show_available_tls_ciphers_list(const char *cipher_list, const char *tls_cert_pr
 #else
     STACK_OF(SSL_CIPHER) *sk = SSL_get1_supported_ciphers(ssl);
 #endif
-    for (int i = 0; i < sk_SSL_CIPHER_num(sk); i++)
+    for (openssl_stack_size_t i = 0; i < sk_SSL_CIPHER_num(sk); i++)
     {
         const SSL_CIPHER *c = sk_SSL_CIPHER_value(sk, i);
 

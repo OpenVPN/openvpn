@@ -138,10 +138,10 @@ extract_x509_extension(X509 *cert, char *fieldname, char *out, size_t size)
          * one, but we don't depend on it...
          */
 
-        int numalts = sk_GENERAL_NAME_num(extensions);
+        openssl_stack_size_t numalts = sk_GENERAL_NAME_num(extensions);
 
         /* loop through all alternatives */
-        for (int i = 0; i < numalts; i++)
+        for (openssl_stack_size_t i = 0; i < numalts; i++)
         {
             /* get a handle to alternative name number i */
             const GENERAL_NAME *name = sk_GENERAL_NAME_value(extensions, i);
@@ -763,10 +763,8 @@ x509_verify_cert_eku(X509 *x509, const char *const expected_oid)
     }
     else
     {
-        int i;
-
         msg(D_HANDSHAKE, "Validating certificate extended key usage");
-        for (i = 0; SUCCESS != fFound && i < sk_ASN1_OBJECT_num(eku); i++)
+        for (openssl_stack_size_t i = 0; SUCCESS != fFound && i < sk_ASN1_OBJECT_num(eku); i++)
         {
             ASN1_OBJECT *oid = sk_ASN1_OBJECT_value(eku, i);
             char szOid[1024];
