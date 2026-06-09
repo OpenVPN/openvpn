@@ -425,7 +425,7 @@ void
 print_digest(EVP_MD *digest, void *unused)
 {
     printf("%s %d bit digest size\n", md_kt_name(EVP_MD_get0_name(digest)),
-           EVP_MD_size(digest) * 8);
+           (int)EVP_MD_size(digest) * 8);
 }
 
 void
@@ -1025,7 +1025,7 @@ md_get(const char *digest)
                    "Message hash algorithm '%s' uses a default hash "
                    "size (%d bytes) which is larger than " PACKAGE_NAME "'s current "
                    "maximum hash size (%d bytes)",
-                   digest, EVP_MD_size(md), MAX_HMAC_KEY_LENGTH);
+                   digest, (int)EVP_MD_size(md), MAX_HMAC_KEY_LENGTH);
     }
     return md;
 }
@@ -1144,7 +1144,7 @@ md_ctx_cleanup(EVP_MD_CTX *ctx)
 int
 md_ctx_size(const EVP_MD_CTX *ctx)
 {
-    return EVP_MD_CTX_size(ctx);
+    return (int)EVP_MD_CTX_size(ctx);
 }
 
 void
@@ -1188,7 +1188,7 @@ hmac_ctx_init(HMAC_CTX *ctx, const uint8_t *key, const char *mdname)
     evp_md_type *kt = md_get(mdname);
     ASSERT(NULL != kt && NULL != ctx);
 
-    int key_len = EVP_MD_size(kt);
+    int key_len = (int)EVP_MD_size(kt);
     HMAC_CTX_reset(ctx);
     if (!HMAC_Init_ex(ctx, key, key_len, kt, NULL))
     {

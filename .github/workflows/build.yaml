@@ -382,5 +382,3 @@ jobs:
       libconfigure: cmake -B build -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$LIBPREFIX" -DBUILD_SHARED_LIBS=1
       libmake: cmake --build build
       libinstall: sudo cmake --install build
-      # not ready for --enable-werror
-      ovpnconfigureflags:

@@ -357,7 +357,7 @@ x509_get_sha1_fingerprint(X509 *cert, struct gc_arena *gc)
     const EVP_MD *sha1 = EVP_sha1();
     struct buffer hash = alloc_buf_gc((size_t)EVP_MD_size(sha1), gc);
     X509_digest(cert, EVP_sha1(), BPTR(&hash), NULL);
-    ASSERT(buf_inc_len(&hash, EVP_MD_size(sha1)));
+    ASSERT(buf_inc_len(&hash, (int)EVP_MD_size(sha1)));
     return hash;
 }
 
@@ -367,7 +367,7 @@ x509_get_sha256_fingerprint(X509 *cert, struct gc_arena *gc)
     const EVP_MD *sha256 = EVP_sha256();
     struct buffer hash = alloc_buf_gc((size_t)EVP_MD_size(sha256), gc);
     X509_digest(cert, EVP_sha256(), BPTR(&hash), NULL);
-    ASSERT(buf_inc_len(&hash, EVP_MD_size(sha256)));
+    ASSERT(buf_inc_len(&hash, (int)EVP_MD_size(sha256)));
     return hash;
 }
 

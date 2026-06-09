@@ -51,10 +51,14 @@
 typedef uint32_t openssl_err_t;
 typedef size_t openssl_stack_size_t;
 #define PRI_OPENSSL_STACK "zu"
+typedef uint32_t openssl_opt_t;
 #else
 typedef unsigned long openssl_err_t;
 typedef int openssl_stack_size_t;
 #define PRI_OPENSSL_STACK "d"
+/* OpenSSL 4.0 actually uses bits in the upper half of the uint64_t (e.g.
+ * SSL_OP_PREFER_NO_DHE_KEX), so we really should use an uint64_t here */
+typedef uint64_t openssl_opt_t;
 #endif
 
 

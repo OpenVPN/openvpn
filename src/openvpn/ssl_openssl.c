@@ -328,7 +328,7 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
     ASSERT(NULL != ctx);
 
     /* process SSL options */
-    uint64_t sslopt = SSL_OP_SINGLE_DH_USE | SSL_OP_NO_TICKET;
+    openssl_opt_t sslopt = SSL_OP_SINGLE_DH_USE | SSL_OP_NO_TICKET;
 #ifdef SSL_OP_CIPHER_SERVER_PREFERENCE
     sslopt |= SSL_OP_CIPHER_SERVER_PREFERENCE;
 #endif
@@ -1656,7 +1656,7 @@ static int
 ecdsa_sign(int type, const unsigned char *dgst, int dgstlen, unsigned char *sig,
            unsigned int *siglen, const BIGNUM *kinv, const BIGNUM *r, EC_KEY *ec)
 {
-    int capacity = ECDSA_size(ec);
+    int capacity = (int)ECDSA_size(ec);
     /*
      * ECDSA does not seem to have proper constants for paddings since
      * there are only signatures without padding at the moment, use
@@ -1672,12 +1672,14 @@ ecdsa_sign(int type, const unsigned char *dgst, int dgstlen, unsigned char *sig,
     return 0;
 }
 
+#ifndef OPENSSL_IS_AWSLC
 /* EC_KEY_METHOD callback: sign_setup(). We do no precomputations */
 static int
 ecdsa_sign_setup(EC_KEY *ec, BN_CTX *ctx_in, BIGNUM **kinvp, BIGNUM **rp)
 {
     return 1;
 }
+#endif
 
 /* EC_KEY_METHOD callback: sign_sig().
  * Sign the hash and return the result as a newly allocated ECDS_SIG
@@ -1688,7 +1690,7 @@ ecdsa_sign_sig(const unsigned char *dgst, int dgstlen, const BIGNUM *in_kinv, co
                EC_KEY *ec)
 {
     ECDSA_SIG *ecsig = NULL;
-    unsigned int len = ECDSA_size(ec);
+    unsigned int len = (unsigned int)ECDSA_size(ec);
     struct gc_arena gc = gc_new();
 
     unsigned char *buf = gc_malloc(len, false, &gc);
