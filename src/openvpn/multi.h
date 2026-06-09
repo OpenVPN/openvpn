@@ -202,10 +202,6 @@ struct multi_context
     struct context top; /**< Storage structure for process-wide
                          *   configuration. */
 
-    struct buffer hmac_reply;
-    struct link_socket_actual *hmac_reply_dest;
-    struct link_socket *hmac_reply_ls;
-
     /*
      * Timer object for stale route check
      */

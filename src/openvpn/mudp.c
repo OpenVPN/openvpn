@@ -40,7 +40,7 @@
 static void
 send_hmac_reset_packet(struct multi_context *m, struct tls_pre_decrypt_state *state,
                        struct tls_auth_standalone *tas, struct session_id *sid,
-                       bool request_resend_wkc)
+                       bool request_resend_wkc, struct link_socket *sock)
 {
     reset_packet_id_send(&state->tls_wrap_tmp.opt.packet_id.send);
     state->tls_wrap_tmp.opt.packet_id.rec.initialized = true;
@@ -54,16 +54,30 @@ send_hmac_reset_packet(struct multi_context *m, struct tls_pre_decrypt_state *st
     ASSERT(buf_init(&c->c2.buffers->aux_buf, buf.offset));
 
     buf_copy(&c->c2.buffers->aux_buf, &buf);
-    m->hmac_reply = c->c2.buffers->aux_buf;
-    m->hmac_reply_dest = &m->top.c2.from;
+
+    /*
+     * We do not want to keep any state here, so we send the reply to the
+     * initial packet synchronously without queueing anything.
+     *
+     * If we hit EAGAIN on a busy socket, the packet will be lost and the
+     * client will have to retransmit its HARD_RESET. This is considered an
+     * acceptable compromise to avoid consuming server resources under attack.
+     */
+    msg_set_prefix("Connection Attempt");
+    c->c2.to_link = c->c2.buffers->aux_buf;
+    c->c2.to_link_addr = &c->c2.from;
     msg(D_MULTI_DEBUG, "Reset packet from client, sending HMAC based reset challenge");
+    process_outgoing_link(c, sock);
+    c->c2.to_link.len = 0;
+    c->c2.to_link_addr = NULL;
+    msg_set_prefix(NULL);
 }
 
 
 /* Returns true if this packet should create a new session */
 static bool
 do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *state,
-                     struct mroute_addr addr)
+                     struct mroute_addr addr, struct link_socket *sock)
 {
     ASSERT(m->top.c2.tls_auth_standalone);
 
@@ -106,7 +120,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
             /* Calculate the session ID HMAC for our reply and create reset packet */
             struct session_id sid =
                 calculate_session_id_hmac(state->peer_session_id, from, hmac, handwindow, 0);
-            send_hmac_reset_packet(m, state, tas, &sid, true);
+            send_hmac_reset_packet(m, state, tas, &sid, true, sock);
 
             return false;
         }
@@ -139,7 +153,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
         struct session_id sid =
             calculate_session_id_hmac(state->peer_session_id, from, hmac, handwindow, 0);
 
-        send_hmac_reset_packet(m, state, tas, &sid, false);
+        send_hmac_reset_packet(m, state, tas, &sid, false, sock);
 
         /* We have a reply do not create a new session */
         return false;
@@ -194,7 +208,6 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
     struct multi_instance *mi = NULL;
     struct hash *hash = m->hash;
     real.proto = sock->info.proto;
-    m->hmac_reply_ls = sock;
 
     if (mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true) && m->top.c2.buf.len > 0)
     {
@@ -253,7 +266,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
                     "shutting down",
                     mroute_addr_print(&real, &gc));
             }
-            else if (do_pre_decrypt_check(m, &state, real))
+            else if (do_pre_decrypt_check(m, &state, real, sock))
             {
                 /* This is an unknown session but with valid tls-auth/tls-crypt
                  * (or no auth at all).  If this is the initial packet of a
@@ -321,15 +334,6 @@ multi_process_outgoing_link(struct multi_context *m, const unsigned int mpp_flag
     {
         multi_process_outgoing_link_dowork(m, mi, mpp_flags);
     }
-    if (m->hmac_reply_dest && m->hmac_reply.len > 0)
-    {
-        msg_set_prefix("Connection Attempt");
-        m->top.c2.to_link = m->hmac_reply;
-        m->top.c2.to_link_addr = m->hmac_reply_dest;
-        process_outgoing_link(&m->top, m->hmac_reply_ls);
-        m->hmac_reply_ls = NULL;
-        m->hmac_reply_dest = NULL;
-    }
 }
 
 /*
@@ -381,10 +385,6 @@ p2mp_iow_flags(const struct multi_context *m)
     else if (mbuf_defined(m->mbuf))
     {
         flags |= IOW_MBUF;
-    }
-    else if (m->hmac_reply_dest)
-    {
-        flags |= IOW_TO_LINK;
     }
     else
     {
