@@ -446,10 +446,14 @@ send_auth_pending_messages(struct tls_multi *tls_multi, struct tls_session *sess
     unsigned int proto = extract_iv_proto(peer_info);
 
 
-    /* Calculate the maximum timeout and subtract the time we already waited */
+    /* Calculate the maximum timeout and subtract the time we already waited.
+     * Guard against unsigned underflow: if more time has already elapsed
+     * than max_timeout allows, clamp to zero so the caller's timeout is
+     * also reduced to zero rather than wrapping to UINT_MAX. */
     unsigned int max_timeout =
         max_uint(tls_multi->opt.renegotiate_seconds / 2, tls_multi->opt.handshake_window);
-    max_timeout = max_timeout - (now - ks->initial);
+    unsigned int elapsed = (unsigned int)(now - ks->initial);
+    max_timeout = (elapsed < max_timeout) ? (max_timeout - elapsed) : 0;
     timeout = min_uint(max_timeout, timeout);
 
     struct gc_arena gc = gc_new();
