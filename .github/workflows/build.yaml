@@ -365,7 +365,7 @@ jobs:
       ovpnlibdesc: mbed TLS 4.
       # versioning=semver-coerced
       ghrepo: Mbed-TLS/mbedtls
-      gitref: v4.0.0
+      gitref: v4.1.0
       libconfigure: cmake -B build -DCMAKE_INSTALL_PREFIX=$LIBPREFIX
       libmake: cmake --build build
       libinstall: sudo cmake --install build
