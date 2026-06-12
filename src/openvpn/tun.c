@@ -55,6 +55,11 @@
 
 #include <string.h>
 
+#ifdef TARGET_DARWIN
+#include <net/ndrv.h>
+#include <net/bpf.h>
+#endif
+
 const char *
 print_tun_backend_driver(enum tun_driver_type driver)
 {
@@ -1879,15 +1884,136 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
             tt->persistent_if = true;
         }
 
-        if ((tt->fd = open(tunname, O_RDWR)) < 0)
+#if defined(TARGET_DARWIN)
+        if (strncmp(dev, "feth", 4) == 0)
         {
-            msg(M_ERR, "Cannot open TUN/TAP dev %s", tunname);
+            char feth_peer_name[256];
+
+            strncpy(feth_peer_name, dev + 4, strlen(dev) - 4);
+            if (strlen(feth_peer_name))
+            {
+                long peer_index = strtol(feth_peer_name, NULL, 0);
+                if (peer_index || dev[4] == '0')
+                {
+                    snprintf(feth_peer_name, 9, "feth%ld", peer_index + 1000);
+                    msg(M_INFO, "Peer interface for %s is expected to be %s", dev, feth_peer_name);
+                }
+                else
+                {
+                    msg(M_ERR, "Cannot calculate feth peer interface number for TAP dev %s", tunname);
+                }
+            }
+            else
+            {
+                msg(M_ERR, "No valid feth name %s", tunname);
+            }
+
+            if ((tt->wfd = socket(AF_NDRV, SOCK_RAW, 0)) < 0)
+            {
+                msg(M_ERR, "Cannot open writing socket for TAP dev %s", tunname);
+            }
+
+            memset(&tt->ndrv_sockaddr, 0, sizeof(tt->ndrv_sockaddr));
+            tt->ndrv_sockaddr.snd_family = AF_NDRV;
+
+            strcpy((char *)&tt->ndrv_sockaddr.snd_name, (char *)feth_peer_name);
+            msg(M_INFO, "ndrv_sockaddr.snd_name = %s", tt->ndrv_sockaddr.snd_name);
+
+            if (bind(tt->wfd, (struct sockaddr *)&tt->ndrv_sockaddr, sizeof(tt->ndrv_sockaddr)) < 0)
+            {
+                msg(M_ERR, "Cannot bind writing socket %d for TAP %s", tt->wfd, tunname);
+            }
+
+            set_nonblock(tt->wfd);
+            set_cloexec(tt->wfd); /* don't pass fd to scripts */
+
+            msg(M_INFO, "Writing socket for TAP device peer %s opened", feth_peer_name);
+
+            // Creating a read fd with bpf
+            char buf[11] = { 0 };
+            int bpf = 0;
+
+            for (int i = 0; i < 99; i++)
+            {
+                snprintf(buf, 11, "/dev/bpf%i", i);
+                bpf = open(buf, O_RDONLY);
+
+                if (bpf != -1)
+                {
+                    break;
+                }
+            }
+            if (bpf == -1)
+            {
+                msg(M_ERR, "Cannot find free bpf for dev %s TAP", tunname);
+            }
+            else
+            {
+                tt->fd = bpf;
+            }
+
+            int value = 1;
+
+            if (ioctl(bpf, BIOCIMMEDIATE, &value) == -1)
+            {
+                msg(M_ERR, "Cannot disable buffering for %s TAP bpf %s", tunname, buf);
+            }
+
+            int buf_len = TUN_BPF_BUF_SIZE;
+
+            if (ioctl(bpf, BIOCSBLEN, &buf_len) == -1)
+            {
+                msg(M_ERR, "Cannot set buffer size to %d for %s TAP bpf %s", buf_len, tunname, buf);
+            }
+
+            struct ifreq bound_if;
+
+            strcpy(bound_if.ifr_name, feth_peer_name);
+
+            if (ioctl(bpf, BIOCSETIF, &bound_if) > 0)
+            {
+                msg(M_ERR, "Cannot set interface %s in TAP %s bpf %s properties", feth_peer_name, tunname, buf);
+            }
+
+            value = 1;
+
+            if (ioctl(bpf, BIOCSHDRCMPLT, &value) == -1)
+            {
+                msg(M_ERR, "Cannot disable lladdr completion for %s TAP bpf %s", tunname, buf);
+            }
+
+            value = 1;
+
+            if (ioctl(bpf, BIOCPROMISC, &value) == -1)
+            {
+                msg(M_ERR, "Cannot enable promiscuous mode for %s TAP bpf %s", tunname, buf);
+            }
+
+            value = 0;
+
+            if (ioctl(bpf, BIOCSSEESENT, &value) == -1)
+            {
+                msg(M_ERR, "Cannot block bpf reception of our outgoing packets on %s", buf);
+            }
+
+            set_nonblock(tt->fd);
+            set_cloexec(tt->fd); /* don't pass fd to scripts */
+            msg(M_INFO, "Reading bpf for TAP device peer %s opened", feth_peer_name);
+
+            tt->actual_peer_name = string_alloc(feth_peer_name, NULL);
+        }
+        else
+#endif /* TARGET_DARWIN */
+        {
+            if ((tt->fd = open(tunname, O_RDWR)) < 0)
+            {
+                msg(M_ERR, "Cannot open TUN/TAP dev %s", tunname);
+            }
+            set_nonblock(tt->fd);
+            set_cloexec(tt->fd); /* don't pass fd to scripts */
+            msg(M_INFO, "TUN/TAP device %s opened", tunname);
         }
     }
-
-    set_nonblock(tt->fd);
-    set_cloexec(tt->fd); /* don't pass fd to scripts */
-    msg(M_INFO, "TUN/TAP device %s opened", tunname);
 
     /* tt->actual_name is passed to up and down scripts and used as the ifconfig dev name */
     tt->actual_name = string_alloc(dynamic_opened ? dynamic_name : dev, NULL);
@@ -1970,6 +2096,14 @@ close_tun_generic(struct tuntap *tt)
     {
         close(tt->fd);
     }
+
+#if defined(TARGET_DARWIN)
+    if (tt->actual_peer_name)
+    {
+        close(tt->wfd);
+        free(tt->actual_peer_name);
+    }
+#endif /* TARGET_DARWIN */
 
     free(tt->actual_name);
     clear_tuntap(tt);
@@ -3111,7 +3245,15 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
     }
     else
     {
-        return write(tt->fd, buf, len);
+        /* feth TAP interface */
+        if (tt->actual_peer_name)
+        {
+            return sendto(tt->wfd, buf, len, 0, (const struct sockaddr *)&tt->ndrv_sockaddr, sizeof(tt->ndrv_sockaddr));
+        }
+        else
+        {
+            return write(tt->fd, buf, len);
+        }
     }
 }
 

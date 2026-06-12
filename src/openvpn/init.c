@@ -3695,6 +3695,11 @@ init_context_buffers(const struct frame *frame)
     b->read_link_buf = alloc_buf(buf_size);
     b->read_tun_buf = alloc_buf(buf_size);
 
+#if defined(TARGET_DARWIN)
+    b->read_tun_aux_buf = alloc_buf(TUN_BPF_BUF_SIZE);
+    b->read_tun_bpf_buf = alloc_buf(TUN_BPF_BUF_SIZE);
+#endif
+
     b->aux_buf = alloc_buf(buf_size);
 
     b->encrypt_buf = alloc_buf(buf_size);
@@ -3716,6 +3721,11 @@ free_context_buffers(struct context_buffers *b)
         free_buf(&b->read_link_buf);
         free_buf(&b->read_tun_buf);
         free_buf(&b->aux_buf);
+
+#if defined(TARGET_DARWIN)
+        free_buf(&b->read_tun_aux_buf);
+        free_buf(&b->read_tun_bpf_buf);
+#endif
 
 #ifdef USE_COMP
         free_buf(&b->compress_buf);
