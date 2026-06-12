@@ -429,11 +429,6 @@ send_auth_failed(struct context *c, const char *client_reason)
     gc_free(&gc);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 bool
 send_auth_pending_messages(struct tls_multi *tls_multi, struct tls_session *session,
                            const char *extra, unsigned int timeout)
@@ -449,7 +444,12 @@ send_auth_pending_messages(struct tls_multi *tls_multi, struct tls_session *sess
     /* Calculate the maximum timeout and subtract the time we already waited */
     unsigned int max_timeout =
         max_uint(tls_multi->opt.renegotiate_seconds / 2, tls_multi->opt.handshake_window);
-    max_timeout = max_timeout - (now - ks->initial);
+    time_t time_elapsed = now - ks->initial;
+    if (time_elapsed < 0 || time_elapsed >= (time_t)max_timeout)
+    {
+        return false;
+    }
+    max_timeout -= (unsigned int)time_elapsed;
     timeout = min_uint(max_timeout, timeout);
 
     struct gc_arena gc = gc_new();
@@ -733,6 +733,11 @@ prepare_push_reply(struct context *c, struct gc_arena *gc, struct push_list *pus
         }
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
 
 static bool
 send_push_options(struct context *c, struct buffer *buf, struct push_list *push_list, int safe_cap,

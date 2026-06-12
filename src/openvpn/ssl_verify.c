@@ -922,8 +922,9 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads,
             buf_chomp(iv_buf);
             buf_chomp(extra_buf);
 
+            errno = 0;
             long timeout = strtol(BSTR(timeout_buf), NULL, 10);
-            if (timeout <= 0)
+            if (timeout <= 0 || (unsigned long)timeout > UINT_MAX || errno)
             {
                 msg(M_WARN, "could not parse auth pending file timeout");
                 buffer_list_free(lines);
