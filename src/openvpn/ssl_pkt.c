@@ -273,7 +273,6 @@ void
 free_tls_pre_decrypt_state(struct tls_pre_decrypt_state *state)
 {
     free_buf(&state->newbuf);
-    free_buf(&state->tls_wrap_tmp.tls_crypt_v2_metadata);
     if (state->tls_wrap_tmp.cleanup_key_ctx)
     {
         free_key_ctx_bi(&state->tls_wrap_tmp.opt.key_ctx_bi);
