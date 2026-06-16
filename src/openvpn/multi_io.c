@@ -162,6 +162,40 @@ multi_io_free(struct multi_io *multi_io)
     }
 }
 
+/*
+ * Return the io flags appropriate for
+ * a point-to-multipoint tunnel.
+ */
+static unsigned int
+p2mp_iow_flags(const struct multi_context *m, struct link_socket *sock)
+{
+    unsigned int flags = IOW_WAIT_SIGNAL;
+
+    if (m->pending)
+    {
+        if (TUN_OUT(&m->pending->context))
+        {
+            flags |= IOW_TO_TUN;
+        }
+
+        /* If the to be processed socket happens to be the same one on the pending
+         * UDP client instance, we set that socket ready for write */
+        if (LINK_OUT(&m->pending->context) && m->pending->context.c2.link_sockets[0] == sock)
+        {
+            flags |= IOW_TO_LINK;
+        }
+    }
+    else if (mbuf_defined(m->mbuf))
+    {
+        flags |= IOW_MBUF;
+    }
+    else
+    {
+        flags |= IOW_READ;
+    }
+    return flags;
+}
+
 int
 multi_io_wait(struct multi_context *m)
 {
@@ -179,7 +213,17 @@ multi_io_wait(struct multi_context *m)
 
     if (has_udp_in_local_list(&m->top.options))
     {
-        get_io_flags_udp(&m->top, m->multi_io, p2mp_iow_flags(m));
+        for (int i = 0; i < m->top.c1.link_sockets_num; i++)
+        {
+            struct link_socket *sock = m->top.c2.link_sockets[i];
+
+            if ((m->top.options.mode == MODE_SERVER) && proto_is_dgram(sock->info.proto))
+            {
+                unsigned int flags = p2mp_iow_flags(m, sock);
+
+                multi_io_process_flags(&m->top, m->multi_io->es, sock, flags);
+            }
+        }
     }
 
     tun_set(m->top.c1.tuntap, m->multi_io->es, EVENT_READ, MULTI_IO_TUN, persistent);
@@ -465,7 +509,7 @@ multi_io_process_io(struct multi_context *m)
                     }
                     else
                     {
-                        multi_process_io_udp(m, ev_arg->u.sock);
+                        multi_process_io_udp(m, ev_arg->u.sock, e->rwflags);
                         mi = m->pending;
                     }
                     /* monitor and/or handle events that are

@@ -30,9 +30,7 @@
 struct context;
 struct multi_context;
 
-unsigned int p2mp_iow_flags(const struct multi_context *m);
-
-void multi_process_io_udp(struct multi_context *m, struct link_socket *sock);
+void multi_process_io_udp(struct multi_context *m, struct link_socket *sock, unsigned int rwflags);
 /**************************************************************************/
 /**
  * Get, and if necessary create, the multi_instance associated with a
