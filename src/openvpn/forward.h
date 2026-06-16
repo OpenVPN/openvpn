@@ -68,7 +68,22 @@ extern counter_type link_read_bytes_global;
 
 extern counter_type link_write_bytes_global;
 
-void get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags);
+/**
+ * @brief Processes I/O flags to configure socket and TUN/TAP event monitors.
+ *
+ * Evaluates the current I/O state (`flags`) and context mode to determine
+ * which READ or WRITE events to register in the event loop.
+ *
+ * @note This function gets called from client instances from @c io_wait()
+ * and from p2mp (Point-to-multipoint) instances in @c multi_io_wait().
+ *
+ * @param c      Pointer to the core context.
+ * @param es     The event set where descriptors are registered.
+ * @param sock   The link socket to configure.
+ * @param flags  Bitmask of active I/O operation requests (e.g., @ref IOW_TO_LINK,
+ * @ref IOW_READ_TUN, @ref IOW_TO_TUN, @ref IOW_SHAPER).
+ */
+void multi_io_process_flags(struct context *c, struct event_set *es, struct link_socket *sock, const unsigned int flags);
 
 void io_wait(struct context *c, const unsigned int flags);
 

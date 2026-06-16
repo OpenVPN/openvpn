@@ -2030,9 +2030,8 @@ pre_select(struct context *c)
     check_timeout_random_component(c);
 }
 
-static void
-multi_io_process_flags(struct context *c, struct event_set *es, const unsigned int flags,
-                       unsigned int *out_socket, unsigned int *out_tuntap)
+void
+multi_io_process_flags(struct context *c, struct event_set *es, struct link_socket *sock, const unsigned int flags)
 {
     unsigned int socket = 0;
     unsigned int tuntap = 0;
@@ -2123,50 +2122,19 @@ multi_io_process_flags(struct context *c, struct event_set *es, const unsigned i
      * (for TCP server sockets this happens in
      *  socket_set_listen_persistent()).
      */
-    for (int i = 0; i < c->c1.link_sockets_num; i++)
-    {
-        if ((c->options.mode != MODE_SERVER) || (proto_is_dgram(c->c2.link_sockets[i]->info.proto)))
-        {
-            socket_set(c->c2.link_sockets[i], es, socket, &c->c2.link_sockets[i]->ev_arg, NULL);
-        }
-    }
-
+    socket_set(sock, es, socket, &sock->ev_arg, NULL);
     tun_set(c->c1.tuntap, es, tuntap, (void *)tun_shift, NULL);
-
-    if (out_socket)
-    {
-        *out_socket = socket;
-    }
-
-    if (out_tuntap)
-    {
-        *out_tuntap = tuntap;
-    }
 }
 
 /*
- * Wait for I/O events.  Used for UDP sockets in
- * point-to-multipoint mode.
- */
-
-void
-get_io_flags_udp(struct context *c, struct multi_io *multi_io, const unsigned int flags)
-{
-    unsigned int out_socket;
-
-    multi_io_process_flags(c, multi_io->es, flags, &out_socket, NULL);
-    multi_io->udp_flags = (out_socket << SOCKET_SHIFT);
-}
-
-/*
- * This is the core I/O wait function, used for all I/O waits except
- * for the top-level server sockets.
+ * This is the core I/O wait function, used for all I/O waits.
+ *
+ * Invoked by P2P instances in tunnel_point_to_point() or by P2MP
+ * instances within the per-client context in multi_io.c.
  */
 void
 io_wait(struct context *c, const unsigned int flags)
 {
-    unsigned int out_socket;
-    unsigned int out_tuntap;
     struct event_set_return esr[4];
 
     /* These shifts all depend on EVENT_READ and EVENT_WRITE */
@@ -2185,7 +2153,7 @@ io_wait(struct context *c, const unsigned int flags)
      */
     event_reset(c->c2.event_set);
 
-    multi_io_process_flags(c, c->c2.event_set, flags, &out_socket, &out_tuntap);
+    multi_io_process_flags(c, c->c2.event_set, c->c2.link_sockets[0], flags);
 
 #if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
     if (c->c1.tuntap)
