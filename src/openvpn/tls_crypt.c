@@ -608,7 +608,7 @@ cleanup:
 
 bool
 tls_crypt_v2_extract_client_key(struct buffer *buf, struct tls_wrap_ctx *ctx,
-                                const struct tls_options *opt, bool initial_packet)
+                                const struct tls_options *opt)
 {
     if (!ctx->tls_crypt_v2_server_key.cipher)
     {
@@ -636,7 +636,8 @@ tls_crypt_v2_extract_client_key(struct buffer *buf, struct tls_wrap_ctx *ctx,
         return false;
     }
 
-    if (!initial_packet)
+    /* Check if this context already owns an initialised key */
+    if (ctx->cleanup_key_ctx == true)
     {
         /* This might be a harmless resend of the packet but it is better to
          * just ignore the WKC part than trying to setup tls-crypt keys again.
@@ -649,7 +650,7 @@ tls_crypt_v2_extract_client_key(struct buffer *buf, struct tls_wrap_ctx *ctx,
          * and this is resend. So return the normal part of the packet,
          * basically transforming the CONTROL_WKC_V1 into a normal CONTROL_V1
          * packet*/
-        msg(D_TLS_ERRORS, "control channel security already setup ignoring "
+        msg(D_TLS_ERRORS, "Control channel security already setup. Ignoring "
                           "wrapped key part of packet.");
 
         /* Remove client key from buffer so tls-crypt code can unwrap message */
