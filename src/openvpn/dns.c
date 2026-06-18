@@ -114,13 +114,13 @@ dns_server_addr_parse(struct dns_server *server, const char *addr)
         addr = addrcopy;
     }
 
-    struct addrinfo *ai = NULL;
-    if (openvpn_getaddrinfo(0, addr, NULL, 0, NULL, af, &ai) != 0)
+    if (server->addr_count >= SIZE(server->addr))
     {
         return false;
     }
 
-    if (server->addr_count >= SIZE(server->addr))
+    struct addrinfo *ai = NULL;
+    if (openvpn_getaddrinfo(0, addr, NULL, 0, NULL, af, &ai) != 0)
     {
         return false;
     }
