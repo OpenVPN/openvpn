@@ -317,7 +317,7 @@ ntlm_phase_3(const struct http_proxy_info *p, const char *phase_2, struct gc_are
     if ((flags & 0x00800000) == 0x00800000)
     {
         tib_len = buf2[0x28]; /* Get Target Information block size */
-        if (tib_len + 0x1c + 16 > sizeof(ntlmv2_response))
+        if (tib_len + 0x1c + 16 >= sizeof(ntlmv2_response))
         {
             msg(M_WARN, "NTLM: target information buffer too long for response (len=%d)", tib_len);
             return NULL;
