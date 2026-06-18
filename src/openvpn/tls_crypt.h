@@ -201,14 +201,10 @@ void tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct key2 *original_
  * @param ctx   tls-wrap context to be initialized with the client key.
  * @param opt   TLS options, used for \c tls-crypt-v2-verify script.
  *
- * @param initial_packet    whether this is the initial packet of the
- *                          connection. Only in these scenarios unwrapping
- *                          of a tls-crypt-v2 key is allowed
- *
  * @returns true if a key was successfully extracted.
  */
 bool tls_crypt_v2_extract_client_key(struct buffer *buf, struct tls_wrap_ctx *ctx,
-                                     const struct tls_options *opt, bool initial_packet);
+                                     const struct tls_options *opt);
 
 /**
  * Generate a tls-crypt-v2 server key, and write to file.
