@@ -3812,7 +3812,7 @@ tls_pre_decrypt(struct tls_multi *multi,
         }
 
         if (!read_control_auth(buf, tls_session_get_tls_wrap(session, key_id), from,
-                               session->opt, true))
+                               session->opt))
         {
             goto error;
         }
@@ -3881,7 +3881,7 @@ tls_pre_decrypt(struct tls_multi *multi,
         if (op == P_CONTROL_SOFT_RESET_V1 && ks->state >= S_GENERATED_KEYS)
         {
             if (!read_control_auth(buf, tls_session_get_tls_wrap(session, key_id),
-                                   from, session->opt, false))
+                                   from, session->opt))
             {
                 goto error;
             }
@@ -3912,7 +3912,7 @@ tls_pre_decrypt(struct tls_multi *multi,
             }
 
             if (!read_control_auth(buf, tls_session_get_tls_wrap(session, key_id),
-                                   from, session->opt, initial_packet))
+                                   from, session->opt))
             {
                 /* if an initial packet in read_control_auth, we rather
                  * error out than anything else */

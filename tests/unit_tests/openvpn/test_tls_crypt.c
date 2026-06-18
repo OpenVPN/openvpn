@@ -561,13 +561,13 @@ tls_crypt_v2_wrap_unwrap_max_metadata(void **state)
     };
 
     /* a buffer that only contains the wrapped key should fail */
-    assert_false(tls_crypt_v2_extract_client_key(&ctx->wkc, &wrap_ctx, NULL, true));
+    assert_false(tls_crypt_v2_extract_client_key(&ctx->wkc, &wrap_ctx, NULL));
 
     /* add a opcode in front of the key to make it valid to extract */
     struct buffer wkcop = alloc_buf_gc(buf_len(&ctx->wkc) + 1, &ctx->gc);
     buf_write_u8(&wkcop, 0x50);
     buf_copy(&wkcop, &ctx->wkc);
-    assert_true(tls_crypt_v2_extract_client_key(&wkcop, &wrap_ctx, NULL, true));
+    assert_true(tls_crypt_v2_extract_client_key(&wkcop, &wrap_ctx, NULL));
 
     tls_wrap_free(&wrap_ctx);
 }
@@ -715,7 +715,7 @@ tls_crypt_v2_wrap_unwrap_invalid(void **state)
     /* Make the wrapped key invalid by flipping a few bits */
     buf_bptr(&tmp)[buf_len(&tmp) - 20] ^= 0x55;
 
-    assert_false(tls_crypt_v2_extract_client_key(&tmp, &wrap_ctx, NULL, true));
+    assert_false(tls_crypt_v2_extract_client_key(&tmp, &wrap_ctx, NULL));
     tls_wrap_free(&wrap_ctx);
 }
 
@@ -737,7 +737,7 @@ tls_crypt_v2_unwrap_checks(void **state)
 
     /* without extra checks, this should just work */
     struct buffer tmp = create_client_key_input(ctx, 29);
-    assert_true(tls_crypt_v2_extract_client_key(&tmp, &wrap_ctx, &tls_options, true));
+    assert_true(tls_crypt_v2_extract_client_key(&tmp, &wrap_ctx, &tls_options));
     tls_wrap_free(&wrap_ctx);
 
     /* Use /bin/true as verify script */
@@ -766,7 +766,7 @@ tls_crypt_v2_unwrap_checks(void **state)
     will_return(__wrap_buffer_write_file, true);
 
     tmp = create_client_key_input(ctx, 29);
-    assert_true(tls_crypt_v2_extract_client_key(&tmp, &wrap_ctx, &tls_options, true));
+    assert_true(tls_crypt_v2_extract_client_key(&tmp, &wrap_ctx, &tls_options));
     tls_wrap_free(&wrap_ctx);
 
     tls_options.tls_crypt_v2_verify_script = "/usr/bin/false";
@@ -781,7 +781,7 @@ tls_crypt_v2_unwrap_checks(void **state)
     will_return(__wrap_buffer_write_file, true);
 
     tmp = create_client_key_input(ctx, 29);
-    assert_false(tls_crypt_v2_extract_client_key(&tmp, &wrap_ctx, &tls_options, true));
+    assert_false(tls_crypt_v2_extract_client_key(&tmp, &wrap_ctx, &tls_options));
     tls_wrap_free(&wrap_ctx);
 
     script_security_set(0);
