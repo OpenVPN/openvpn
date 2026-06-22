@@ -1541,7 +1541,18 @@ show_http_proxy_options(const struct http_proxy_options *o)
 void
 options_detach(struct options *o)
 {
+    /* The options struct carries two gc_arena's (one generic and one specific
+     * to the DNS settings), which the by-value options
+     * copy in inherit_context_child()/inherit_context_top() shares with the
+     * source.
+     *
+     * Detach both (i.e. re-initialize them), otherwise child's call of
+     * gc_free() (or context teardown) would free allocations the source
+     * context still references, leading to a use-after-free (and subsequent
+     * double-free).
+     */
     gc_detach(&o->gc);
+    gc_detach(&o->dns_options.gc);
     o->routes = NULL;
     o->client_nat = NULL;
     clone_push_list(o);
