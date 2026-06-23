@@ -36,6 +36,7 @@
 #include "run_command.h"
 #include "session_id.h"
 #include "ssl.h"
+#include "buffer.h"
 
 #include "tls_crypt.h"
 
@@ -508,13 +509,14 @@ error_exit:
 }
 
 static bool
-tls_crypt_v2_verify_metadata(const struct tls_wrap_ctx *ctx,
-                             const struct tls_options *opt)
+tls_crypt_v2_verify_metadata(const struct buffer *tls_crypt_v2_metadata, const struct tls_options *opt)
 {
     bool ret = false;
     struct gc_arena gc = gc_new();
     const char *tmp_file = NULL;
-    struct buffer metadata = ctx->tls_crypt_v2_metadata;
+
+    struct buffer metadata = *tls_crypt_v2_metadata;
+
     int metadata_type = buf_read_u8(&metadata);
     if (metadata_type < 0)
     {
@@ -599,16 +601,21 @@ tls_crypt_v2_extract_client_key(struct buffer *buf,
     }
 
     struct key2 client_key = { 0 };
-    ctx->tls_crypt_v2_metadata = alloc_buf(TLS_CRYPT_V2_MAX_METADATA_LEN);
+    struct buffer tls_crypt_v2_metadata = alloc_buf(TLS_CRYPT_V2_MAX_METADATA_LEN);
     if (!tls_crypt_v2_unwrap_client_key(&client_key,
-                                        &ctx->tls_crypt_v2_metadata,
+                                        &tls_crypt_v2_metadata,
                                         wrapped_client_key,
                                         &ctx->tls_crypt_v2_server_key))
     {
         msg(D_TLS_ERRORS, "Can not unwrap tls-crypt-v2 client key");
-        secure_memzero(&client_key, sizeof(client_key));
-        return false;
+        goto error;
     }
+
+    if (opt && opt->tls_crypt_v2_verify_script && !tls_crypt_v2_verify_metadata(&tls_crypt_v2_metadata, opt))
+    {
+        goto error;
+    }
+    free_buf(&tls_crypt_v2_metadata);
 
     /* Load the decrypted key */
     ctx->mode = TLS_WRAP_CRYPT;
@@ -621,12 +628,10 @@ tls_crypt_v2_extract_client_key(struct buffer *buf,
     /* Remove client key from buffer so tls-crypt code can unwrap message */
     ASSERT(buf_inc_len(buf, -(BLEN(&wrapped_client_key))));
 
-    if (opt && opt->tls_crypt_v2_verify_script)
-    {
-        return tls_crypt_v2_verify_metadata(ctx, opt);
-    }
-
     return true;
+error:
+    free_buf(&tls_crypt_v2_metadata);
+    return false;
 }
 
 void

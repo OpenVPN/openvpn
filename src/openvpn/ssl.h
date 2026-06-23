@@ -529,7 +529,6 @@ tls_wrap_free(struct tls_wrap_ctx *tls_wrap)
         free_key_ctx_bi(&tls_wrap->opt.key_ctx_bi);
     }
 
-    free_buf(&tls_wrap->tls_crypt_v2_metadata);
     free_buf(&tls_wrap->work);
 }
 

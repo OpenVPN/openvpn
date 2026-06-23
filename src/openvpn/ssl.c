@@ -3759,7 +3759,6 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas,
     /* HMAC test, if --tls-auth was specified */
     bool status = read_control_auth(&newbuf, &tls_wrap_tmp, from, NULL);
     free_buf(&newbuf);
-    free_buf(&tls_wrap_tmp.tls_crypt_v2_metadata);
     if (tls_wrap_tmp.cleanup_key_ctx)
     {
         free_key_ctx_bi(&tls_wrap_tmp.opt.key_ctx_bi);
