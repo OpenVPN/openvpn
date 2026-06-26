@@ -1731,11 +1731,12 @@ prng_bytes(uint8_t *output, int len)
     ASSERT(rand_bytes(output, len));
 }
 
-/* an analogue to the random() function, but use prng_bytes */
-long int
+/* an analogue to the random() function, but use prng_bytes and
+ * also int64_t instead of long to avoid LLP64 vs LP64 */
+int64_t
 get_random(void)
 {
-    long int l;
+    int64_t l;
     prng_bytes((unsigned char *)&l, sizeof(l));
     if (l < 0)
     {
