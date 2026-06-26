@@ -491,8 +491,13 @@ void prng_bytes(uint8_t *output, int len);
 
 void prng_uninit(void);
 
-/* an analogue to the random() function, but use prng_bytes */
-long int get_random(void);
+/**
+ * an analogue to the random() function, but use prng_bytes and
+ * also int64_t instead of long to avoid LLP64 vs LP64
+ *
+ * @return Returns a random positive 63 bit integer
+ */
+int64_t get_random(void);
 
 /** Print a cipher list entry */
 void print_cipher(const cipher_kt_t *cipher);
