@@ -568,6 +568,17 @@ configuration.
   By default, ``--resolv-retry infinite`` is enabled. You can disable by
   setting n=0.
 
+--preresolve
+  Resolve configured ``--remote``, ``--local``, ``--http-proxy``, and
+  ``--socks-proxy`` hostnames at startup before opening the connection.
+
+  The resolved addresses are cached and reused for reconnects, so OpenVPN
+  will not re-resolve these hostnames after the initial connection attempt.
+  This can help configurations where DNS is unavailable while the VPN is
+  down, but can be counter-productive for dynamic DNS names or when roaming
+  between networks where address family availability changes, such as
+  DNS64/NAT64.
+
 --single-session
   After initially connecting to a remote peer, disallow any new
   connections. Using this option means that a remote peer cannot connect,
