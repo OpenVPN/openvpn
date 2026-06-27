@@ -175,6 +175,7 @@ static const char usage_message[] =
     "--resolv-retry n: If hostname resolve fails for --remote, retry\n"
     "                  resolve for n seconds before failing (disabled by default).\n"
     "                  Set n=\"infinite\" to retry indefinitely.\n"
+    "--preresolve    : Resolve configured --remote, --local, and proxy hostnames at startup.\n"
     "--float         : Allow remote to change its IP address/port, such as through\n"
     "                  DHCP (this is the default if --remote is not used).\n"
     "--ipchange cmd  : Run command cmd on remote ip address initial\n"
