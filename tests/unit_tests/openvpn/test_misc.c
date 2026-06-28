@@ -124,7 +124,7 @@ struct word
 };
 
 
-static uint32_t
+static uint64_t
 word_hash_function(const void *key, uint32_t iv)
 {
     const char *str = (const char *)key;

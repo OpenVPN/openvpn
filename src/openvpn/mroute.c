@@ -354,7 +354,7 @@ mroute_addr_mask_host_bits(struct mroute_addr *ma)
  * address type, number of bits in the network address,
  * and the actual address.
  */
-uint32_t
+uint64_t
 mroute_addr_hash_function(const void *key, uint32_t iv)
 {
     return hash_func(mroute_addr_hash_ptr((const struct mroute_addr *)key),

@@ -281,7 +281,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
     if (mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true) && m->top.c2.buf.len > 0)
     {
         struct hash_element *he;
-        const uint32_t hv = hash_value(hash, &real);
+        const uint64_t hv = hash_value(hash, &real);
         struct hash_bucket *bucket = hash_bucket(hash, hv);
         uint8_t *ptr = BPTR(&m->top.c2.buf);
         uint8_t op = ptr[0] >> P_OPCODE_SHIFT;

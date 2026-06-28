@@ -228,11 +228,11 @@ reap_buckets_per_pass(uint32_t n_buckets)
 
 #ifdef ENABLE_MANAGEMENT
 
-static uint32_t
+static uint64_t
 cid_hash_function(const void *key, uint32_t iv)
 {
     const unsigned long *k = (const unsigned long *)key;
-    return (uint32_t)*k;
+    return (uint64_t)*k;
 }
 
 static bool
@@ -246,19 +246,19 @@ cid_compare_function(const void *key1, const void *key2)
 #endif
 
 #ifdef ENABLE_ASYNC_PUSH
-static uint32_t
+static uint64_t
 /*
  * inotify watcher descriptors are used as hash value
  */
 int_hash_function(const void *key, uint32_t iv)
 {
-    return (uint32_t)(uintptr_t)key;
+    return (uintptr_t)key;
 }
 
 static bool
 int_compare_function(const void *key1, const void *key2)
 {
-    return (unsigned long)key1 == (unsigned long)key2;
+    return (uintptr_t)key1 == (uintptr_t)key2;
 }
 #endif
 
@@ -1012,7 +1012,7 @@ multi_learn_addr(struct multi_context *m, struct multi_instance *mi, const struc
                  const unsigned int flags)
 {
     struct hash_element *he;
-    const uint32_t hv = hash_value(m->vhash, addr);
+    const uint64_t hv = hash_value(m->vhash, addr);
     struct hash_bucket *bucket = hash_bucket(m->vhash, hv);
     struct multi_route *oldroute = NULL;
     struct multi_instance *owner = NULL;
@@ -3094,7 +3094,7 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi, struct l
         goto done;
     }
 
-    const uint32_t hv = hash_value(hash, &real);
+    const uint64_t hv = hash_value(hash, &real);
     struct hash_bucket *bucket = hash_bucket(hash, hv);
 
     /* make sure that we don't float to an address taken by another client */
@@ -4230,7 +4230,7 @@ static void
 multi_unlearn_addr(struct multi_context *m, struct multi_instance *mi, const struct mroute_addr *addr)
 {
     struct hash_element *he;
-    const uint32_t hv = hash_value(m->vhash, addr);
+    const uint64_t hv = hash_value(m->vhash, addr);
     struct hash_bucket *bucket = hash_bucket(m->vhash, hv);
     struct multi_route *r = NULL;
 
