@@ -33,6 +33,7 @@
 #include <shellapi.h>
 #include <mstcpip.h>
 #include <inttypes.h>
+#include <malloc.h>
 
 #include <versionhelpers.h>
 
@@ -2130,22 +2131,20 @@ GetItfDnsServersV6(HKEY itf_key, PSTR addrs, PDWORD size)
 static BOOL
 ListContainsDomain(PCWSTR list, PCWSTR domain, size_t len)
 {
-    PCWSTR match = list;
-    while (match)
+    PCWSTR entry = list;
+    while (entry && *entry)
     {
-        match = wcsstr(match, domain);
-        if (!match)
+        PCWSTR comma = wcschr(entry, L',');
+        size_t entry_len = comma ? (size_t)(comma - entry) : wcslen(entry);
+        if (entry_len == len && wcsncmp(entry, domain, len) == 0)
         {
-            /* Domain has not matched */
-            break;
-        }
-        if ((match == list || *(match - 1) == ',')
-            && (*(match + len) == ',' || *(match + len) == '\0'))
-        {
-            /* Domain has matched fully */
             return TRUE;
         }
-        match += len;
+        if (!comma)
+        {
+            break;
+        }
+        entry = comma + 1;
     }
     return FALSE;
 }
@@ -2159,95 +2158,94 @@ ListContainsDomain(PCWSTR list, PCWSTR domain, size_t len)
  * are invalid.
  * Note that domains are deleted from the string if they match a search domain.
  *
- * @param[in]     search_domains  optional list of search domains
+ * @param[in]     search_domains  optional string of comma separated search domains
  * @param[in,out] domains         buffer that contains the input comma-separated
  *                                string and will contain the MULTI_SZ output string
  * @param[in,out] size            pointer to size of the input string in bytes. Will be
  *                                set to the size of the string returned, including
  *                                the terminating zeros or 0.
- * @param[in]     buf_size        size of the \p domains buffer
+ * @param[in]     capacity        capacity of the \p domains buffer in bytes
  *
- * @return LSTATUS NO_ERROR if the domain suffix(es) were read successfully,
- *         ERROR_FILE_NOT_FOUND if no domain was found for the interface,
- *         ERROR_MORE_DATA if the list did not fit into the buffer
+ * @return LSTATUS NO_ERROR if all domain suffix(es) were converted successfully,
+ *         ERROR_FILE_NOT_FOUND if no domain was left after the conversion,
+ *         ERROR_MORE_DATA if not all converted domains did fit into the buffer.
+ *         ERROR_OUTOFMEMORY if the temporary buffer could not be allocated.
  */
 static LSTATUS
-ConvertItfDnsDomains(PCWSTR search_domains, PWSTR domains, PDWORD size, const DWORD buf_size)
+ConvertItfDnsDomains(PCWSTR search_domains, PWSTR domains, PDWORD size, const DWORD capacity)
 {
-    const DWORD glyph_size = sizeof(*domains);
-    const DWORD buf_len = buf_size / glyph_size;
+    const size_t glyph_size = sizeof(*domains);
+    const size_t max_len = (size_t)capacity / glyph_size;
 
-    /*
-     * Found domain(s), now convert them:
-     *   - prefix each domain with a dot
-     *   - convert comma separated list to MULTI_SZ
-     */
-    PWCHAR pos = domains;
-    while (TRUE)
+    /* Space required for leading dot and two terminating zeros */
+    const size_t dot_len = 1;
+    const size_t term_len = 2;
+
+    LSTATUS ret = NO_ERROR;
+    size_t tmp_len = 0;
+    WCHAR *tmp = malloc(capacity);
+    if (tmp == NULL)
     {
-        /* Terminate the domain at the next comma */
-        PWCHAR comma = wcschr(pos, ',');
-        if (comma)
+        ret = ERROR_OUTOFMEMORY;
+        goto done;
+    }
+
+    PWCHAR tmp_pos = tmp;
+    PCWCHAR domain = domains;
+
+    while (domain && *domain)
+    {
+        PWCHAR comma = wcschr(domain, L',');
+        size_t domain_len = comma ? (size_t)(comma - domain) : wcslen(domain);
+
+        if (ListContainsDomain(search_domains, domain, domain_len))
         {
-            *comma = '\0';
+            /* Skip this domain */
+            domain = comma ? comma + 1 : domain + domain_len;
+            continue;
         }
-
-        DWORD domain_len = (DWORD)wcslen(pos);
-        DWORD domain_size = domain_len * glyph_size;
-        DWORD converted_size = (DWORD)(pos - domains) * glyph_size;
-
-        /* Ignore itf domains which match a pushed search domain */
-        if (ListContainsDomain(search_domains, pos, domain_len))
-        {
-            if (comma)
-            {
-                /* Overwrite the ignored domain with remaining one(s) */
-                memmove(pos, comma + 1, buf_size - converted_size);
-                *size -= domain_size + glyph_size;
-                continue;
-            }
-            else
-            {
-                /* This was the last domain */
-                *pos = '\0';
-                *size -= domain_size;
-                return wcslen(domains) ? NO_ERROR : ERROR_FILE_NOT_FOUND;
-            }
-        }
-
-        /* Add space for the leading dot */
-        domain_len += 1;
-        domain_size += glyph_size;
-
-        /* Space for the terminating zeros */
-        const DWORD extra_size = 2 * glyph_size;
 
         /* Check for enough space to convert this domain */
-        if (converted_size + domain_size + extra_size > buf_size)
+        if (tmp_len + dot_len + domain_len + term_len > max_len)
         {
             /* Domain doesn't fit, bad luck if it's the first one */
-            *pos = '\0';
-            *size = converted_size == 0 ? 0 : converted_size + glyph_size;
-            return ERROR_MORE_DATA;
+            *tmp_pos = L'\0';
+            if (tmp_len > 0)
+            {
+                tmp_len += 1;
+            }
+            ret = ERROR_MORE_DATA;
+            goto done;
         }
 
-        /* Prefix domain at pos with the dot */
-        memmove(pos + 1, pos, buf_size - converted_size - glyph_size);
-        domains[buf_len - 1] = '\0';
-        *pos = '.';
-        *size += glyph_size;
+        /* Write leading dot and domain into tmp buffer */
+        *tmp_pos++ = L'.';
+        wcsncpy(tmp_pos, domain, domain_len);
+        tmp_pos += domain_len;
+        *tmp_pos++ = L'\0';
+        tmp_len += dot_len + domain_len + 1;
 
-        if (!comma)
-        {
-            /* Conversion is done */
-            *(pos + domain_len) = '\0';
-            *size += glyph_size;
-            return NO_ERROR;
-        }
-
-        /* Comma pos is now +1 after adding leading dot */
-        pos = comma + 2;
+        domain = comma ? comma + 1 : domain + domain_len;
     }
+
+    if (tmp_len == 0)
+    {
+        ret = ERROR_FILE_NOT_FOUND;
+        goto done;
+    }
+
+    /* REG_MULTI_SZ second zero terminator */
+    *tmp_pos = L'\0';
+    tmp_len += 1;
+
+done:
+    if (tmp)
+    {
+        wmemcpy(domains, tmp, tmp_len);
+        free(tmp);
+    }
+    *size = (DWORD)(tmp_len * glyph_size);
+    return ret;
 }
 
 /**
