@@ -100,7 +100,7 @@ get_console_input_win32(const char *prompt, const bool echo, char *input, const 
 
     if (is_console)
     {
-        winput = malloc(capacity * sizeof(WCHAR));
+        winput = calloc(capacity, sizeof(WCHAR));
         if (winput == NULL)
         {
             return false;
@@ -240,6 +240,7 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
     if (fgets(input, capacity, fp) != NULL)
     {
         chomp(input);
+        string_mod(input, CC_PRINT, CC_CRLF, 0);
         ret = true;
     }
 
