@@ -13,6 +13,7 @@
 
 /* Use wolfSSL crypto library */
 #cmakedefine ENABLE_CRYPTO_WOLFSSL
+#cmakedefine EXTERNAL_OPTS_OPENVPN
 
 /* Enable shared data channel offload */
 #cmakedefine ENABLE_DCO
