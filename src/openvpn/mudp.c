@@ -194,12 +194,81 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
     return false;
 }
 
-/*
+/**
+ * Handles a packet if no existing session exists for this incoming packet.
+ *
+ * It will either send a reply with a hmac cookie if this is the first
+ * packet of a three-way handshake or create a multi_instance if it is a
+ * packet that completes the three-way handshake.
+ */
+static struct multi_instance *
+handle_connection_attempt(struct multi_context *m,
+                          struct link_socket *sock,
+                          struct mroute_addr *real,
+                          const uint64_t hv,
+                          struct hash_bucket *bucket)
+{
+    struct hash *hash = m->hash;
+    struct tls_pre_decrypt_state state = { 0 };
+    struct multi_instance *mi = NULL;
+    struct gc_arena gc = gc_new();
+
+    if (m->deferred_shutdown_signal.signal_received)
+    {
+        msg(D_MULTI_ERRORS,
+            "MULTI: Connection attempt from %s ignored while server is "
+            "shutting down",
+            mroute_addr_print(real, &gc));
+    }
+    else if (do_pre_decrypt_check(m, &state, *real, sock))
+    {
+        /* This is an unknown session but with valid tls-auth/tls-crypt
+         * (or no auth at all).  If this is the initial packet of a
+         * session, we just send a reply with a HMAC session id and
+         * do not generate a session slot */
+
+        if (frequency_limit_event_allowed(m->new_connection_limiter))
+        {
+            /* a successful three-way handshake only counts against
+             * connect-freq but not against connect-freq-initial */
+            reflect_filter_rate_limit_decrease(m->initial_rate_limiter);
+
+            mi = multi_create_instance(m, real, sock);
+            if (mi)
+            {
+                hash_add_fast(hash, bucket, &mi->real, hv, mi);
+                mi->did_real_hash = true;
+                multi_assign_peer_id(m, mi);
+
+                /* If we have a session id already, ensure that the
+                 * state is using the same */
+                if (session_id_defined(&state.server_session_id)
+                    && session_id_defined((&state.peer_session_id)))
+                {
+                    mi->context.c2.tls_multi->n_sessions++;
+                    struct tls_session *session =
+                        &mi->context.c2.tls_multi->session[TM_INITIAL];
+                    session_skip_to_pre_start(session, &state, &m->top.c2.from);
+                }
+            }
+        }
+        else
+        {
+            msg(D_MULTI_ERRORS,
+                "MULTI: Connection from %s would exceed new connection frequency limit as controlled by --connect-freq",
+                mroute_addr_print(real, &gc));
+        }
+    }
+    free_tls_pre_decrypt_state(&state);
+    gc_free(&gc);
+    return mi;
+}
+
+/**
  * Get a client instance based on real address.  If
  * the instance doesn't exist, create it while
  * maintaining real address hash table atomicity.
  */
-
 struct multi_instance *
 multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct link_socket *sock)
 {
@@ -258,54 +327,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
         /* we have no existing multi instance for this connection */
         if (!mi)
         {
-            struct tls_pre_decrypt_state state = { 0 };
-            if (m->deferred_shutdown_signal.signal_received)
-            {
-                msg(D_MULTI_ERRORS,
-                    "MULTI: Connection attempt from %s ignored while server is "
-                    "shutting down",
-                    mroute_addr_print(&real, &gc));
-            }
-            else if (do_pre_decrypt_check(m, &state, real, sock))
-            {
-                /* This is an unknown session but with valid tls-auth/tls-crypt
-                 * (or no auth at all).  If this is the initial packet of a
-                 * session, we just send a reply with a HMAC session id and
-                 * do not generate a session slot */
-
-                if (frequency_limit_event_allowed(m->new_connection_limiter))
-                {
-                    /* a successful three-way handshake only counts against
-                     * connect-freq but not against connect-freq-initial */
-                    reflect_filter_rate_limit_decrease(m->initial_rate_limiter);
-
-                    mi = multi_create_instance(m, &real, sock);
-                    if (mi)
-                    {
-                        hash_add_fast(hash, bucket, &mi->real, hv, mi);
-                        mi->did_real_hash = true;
-                        multi_assign_peer_id(m, mi);
-
-                        /* If we have a session id already, ensure that the
-                         * state is using the same */
-                        if (session_id_defined(&state.server_session_id)
-                            && session_id_defined((&state.peer_session_id)))
-                        {
-                            mi->context.c2.tls_multi->n_sessions++;
-                            struct tls_session *session =
-                                &mi->context.c2.tls_multi->session[TM_INITIAL];
-                            session_skip_to_pre_start(session, &state, &m->top.c2.from);
-                        }
-                    }
-                }
-                else
-                {
-                    msg(D_MULTI_ERRORS,
-                        "MULTI: Connection from %s would exceed new connection frequency limit as controlled by --connect-freq",
-                        mroute_addr_print(&real, &gc));
-                }
-            }
-            free_tls_pre_decrypt_state(&state);
+            mi = handle_connection_attempt(m, sock, &real, hv, bucket);
         }
 
 #ifdef ENABLE_DEBUG
