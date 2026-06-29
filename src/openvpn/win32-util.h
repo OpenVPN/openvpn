@@ -42,5 +42,17 @@ bool win_safe_filename(const char *fn);
 /* Find temporary directory */
 const char *win_get_tempdir(void);
 
+/**
+ * Check whether @p path resides within directory @p dir.
+ *
+ * Unlike a plain string prefix match, this requires the match to end on a
+ * path-component boundary, so that "C:\\foo_evil\\bar" is not considered to be
+ * inside "C:\\foo". Both arguments are expected to be normalized absolute
+ * paths. The comparison is case-insensitive.
+ *
+ * @return true if @p path is inside @p dir, false otherwise.
+ */
+bool win_path_in_dir(const WCHAR *path, const WCHAR *dir);
+
 #endif /* OPENVPN_WIN32_UTIL_H */
 #endif /* ifdef _WIN32 */

@@ -167,4 +167,31 @@ win_get_tempdir(void)
     WideCharToMultiByte(CP_UTF8, 0, wtmpdir, -1, tmpdir, sizeof(tmpdir), NULL, NULL);
     return tmpdir;
 }
+
+bool
+win_path_in_dir(const WCHAR *path, const WCHAR *dir)
+{
+    size_t dir_len = wcslen(dir);
+    /* dir_len <= 1 guards the dir[dir_len - 1] access below and rejects a
+     * degenerate single-character directory (a normalized absolute path is
+     * always longer). */
+    if (dir_len <= 1 || wcsnicmp(dir, path, dir_len) != 0)
+    {
+        return false;
+    }
+
+    /* A plain prefix match is not sufficient: if dir is "C:\foo" then
+     * "C:\foo_evil\bar.dll" shares the prefix but is not inside "C:\foo".
+     * Require that the matched prefix ends on a path separator, i.e. either
+     * dir already ends with a separator or the character following the prefix
+     * in path is one. */
+    if (dir[dir_len - 1] == L'\\' || dir[dir_len - 1] == L'/')
+    {
+        return true;
+    }
+
+    WCHAR next = path[dir_len];
+    return next == L'\\' || next == L'/';
+}
+
 #endif /* _WIN32 */

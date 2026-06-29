@@ -38,6 +38,9 @@
 #include "test_common.h"
 #include "list.h"
 #include "mock_msg.h"
+#ifdef _WIN32
+#include "win32-util.h"
+#endif
 
 static void
 test_compat_lzo_string(void **state)
@@ -445,12 +448,48 @@ test_atoi_variants(void **state)
     mock_set_debug_level(saved_log_level);
 }
 
-const struct CMUnitTest misc_tests[] = { cmocka_unit_test(test_compat_lzo_string),
-                                         cmocka_unit_test(test_auth_fail_temp_no_flags),
-                                         cmocka_unit_test(test_auth_fail_temp_flags),
-                                         cmocka_unit_test(test_auth_fail_temp_flags_msg),
-                                         cmocka_unit_test(test_list),
-                                         cmocka_unit_test(test_atoi_variants) };
+#ifdef _WIN32
+static void
+test_win_path_in_dir(void **state)
+{
+    /* plugin/install dir without trailing separator */
+    assert_true(win_path_in_dir(L"C:\\openvpn_plugins\\foo.dll", L"C:\\openvpn_plugins"));
+
+    /* the bug being fixed: a sibling dir sharing the prefix must NOT match */
+    assert_false(win_path_in_dir(L"C:\\openvpn_plugins_evil\\foo.dll", L"C:\\openvpn_plugins"));
+
+    /* trusted dir with trailing separator */
+    assert_true(win_path_in_dir(L"C:\\openvpn_plugins\\foo.dll", L"C:\\openvpn_plugins\\"));
+    assert_false(win_path_in_dir(L"C:\\openvpn_plugins_evil\\foo.dll", L"C:\\openvpn_plugins\\"));
+
+    /* forward slash separator in the candidate path is accepted */
+    assert_true(win_path_in_dir(L"C:\\openvpn_plugins/foo.dll", L"C:\\openvpn_plugins"));
+
+    /* comparison is case-insensitive */
+    assert_true(win_path_in_dir(L"c:\\OPENVPN_PLUGINS\\foo.dll", L"C:\\openvpn_plugins"));
+
+    /* the directory itself (no trailing component) is not "in" the directory */
+    assert_false(win_path_in_dir(L"C:\\openvpn_plugins", L"C:\\openvpn_plugins"));
+
+    /* nested subdirectories are still inside */
+    assert_true(win_path_in_dir(L"C:\\openvpn_plugins\\sub\\foo.dll", L"C:\\openvpn_plugins"));
+
+    /* an empty trusted dir never matches */
+    assert_false(win_path_in_dir(L"C:\\openvpn_plugins\\foo.dll", L""));
+}
+#endif /* _WIN32 */
+
+const struct CMUnitTest misc_tests[] = {
+#ifdef _WIN32
+    cmocka_unit_test(test_win_path_in_dir),
+#endif
+    cmocka_unit_test(test_compat_lzo_string),
+    cmocka_unit_test(test_auth_fail_temp_no_flags),
+    cmocka_unit_test(test_auth_fail_temp_flags),
+    cmocka_unit_test(test_auth_fail_temp_flags_msg),
+    cmocka_unit_test(test_list),
+    cmocka_unit_test(test_atoi_variants)
+};
 
 int
 main(void)
