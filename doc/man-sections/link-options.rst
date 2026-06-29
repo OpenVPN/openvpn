@@ -12,7 +12,9 @@ the local and the remote host.
 
 --float
   Allow remote peer to change its IP address and/or port number, such as
-  due to DHCP (this is the default if ``--remote`` is not used).
+  due to DHCP or NAT mappings changing. ``--float`` only works when
+  using UDP transport.
+
   ``--float`` when specified with ``--remote`` allows an OpenVPN session
   to initially connect to a peer at a known address, however if packets
   arrive from a new address and pass all authentication tests, the new
