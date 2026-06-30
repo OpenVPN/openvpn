@@ -1,3 +1,160 @@
+Overview of changes in 2.7.5
+============================
+Security fixes
+--------------
+- openvpnserv (windows): fix DNS SearchList state pollution on (dis)connect.
+  specific combinations of ``--dns`` config entries plus local DNS config
+  could lead to corruption of pre-openvpn DNS config (CVE-2026-13379)
+
+  (Bug found by 章鱼哥 (www.aipyaipy.com), tracked
+   in Github: OpenVPN/openvpn-private-issues#123)
+
+- Fix use-after-free bug in ack_write_buf(), triggerable by a well-timed
+  sequence of control channel + authentication packets (CVE-2026-12996)
+
+  (Bug found by multiple researchers:
+     章鱼哥 (www.aipyaipy.com)
+     Haiyang Huang <huanghaiyang83@gmail.com>
+     Haruki Oyama (Waseda University)
+   tracked in Github: OpenVPN/openvpn-private-issues#121, #131, #132)
+
+- Fix use-after-free bug in tls_wrap_reneg(), triggerable by suitable
+  sequence of dynamic tls-crypt control-channel packets (CVE-2026-13117)
+
+  (Bug found by multiple researchers:
+     Trace37 Labs (https://github.com/trace37labs)
+     Haiyang Huang <huanghaiyang83@gmail.com>
+   tracked in Github: OpenVPN/openvpn-private-issues#119, #131)
+
+- Fix server crash on reception of suitably malformed auth-token, if
+  ```--auth-gen-token external-auth`` is active (CVE-2026-13122)
+
+  (Bug found by Haiyang Huang <huanghaiyang83@gmail.com>, tracked in
+   Github: OpenVPN/openvpn-private-issues#118)
+
+- Fix memory-leak in tls-crypt-v2 client key handling that could lead
+  to out-of-memory situations and subsequent server crashes (CVE-2026-12932)
+
+  (Bug found by Valton Tahiri <valton.taa@gmail.com>, tracked in
+   Github: OpenVPN/openvpn-private-issues#133)
+
+- Fix possible 1-byte buffer overrun on NTLMv2 proxy responses.
+  (CVE-2026-11771)
+
+  (Bug found by Tristan Madani (@TristanInSec), tracked in
+   Github: OpenVPN/openvpn-private-issues#116)
+
+- Fix another memory leak on reception of suitable tls-crypt-v2 packets
+  that could lead to an out of memory situation and server crash
+  (CVE-2026-13698)
+
+  (Bug found by Max Fillinger <maximilian.fillinger@sentyron.com>, tracked
+   in Github: OpenVPN/openvpn-private-issues#137.  Overlaps with a report
+   from Valton Tahiri <valton.taa@gmail.com> in #138 that we believe to
+   be fixed by this bugfix as well)
+
+Bugfixes
+--------
+- Windows: fix plugin trusted-dir check prefix bypass
+  (this fixes a bug in the path checking logic we do on Windows for
+   "is loading a plugin from this path allowed?", but since we could
+   not find a way to exploit this unless starting with admin privs or
+   a social engineering attack, not classified as a security fix)
+
+- Windows: openvpnserv: rework ConvertItfDnsDomains and tests
+  (this fixes a buffer overread that is not exploitable and as such
+   not classified as security fix)
+
+- options: fix use-after-free of DNS options on client connect
+  (using suitable ``--dns`` or ``--dhcp-option DNS`` options in a server
+   config - not pushed, but applying to the server itself - triggers a
+   double free() and use-after-free condition, possibly crashing the
+   server)  (Github: openvpn/OpenVPN#1060)
+
+- dns: Fix memory leak in dns_server_addr_parse, if too many server
+  addresses are configured (Github: OpenVPN/openvpn#1055)
+
+- improve multi-socket event handling further - multiple open UDP sockets
+  with concurrent traffic could lead to inefficient processing, and the
+  old code was also very hard to follow.
+
+  (This was initially triggered by a report from Joshua Rogers using ZeroPath,
+   but turned out to be "just bad code" not a security vulnerability)
+
+- Null-terminate tls-crypt client keys when testing - non-exploitable
+  strlen() on a buffer that is not null-terminated
+
+- mudp: send HMAC reset reply synchronously
+  this fixes a bug where multiple incoming tls-crypt-v2 RESET packets
+  on different sockets could end up overwriting each other's control
+  structures, leading to initial handshake packets (HMAC reset reply)
+  being sent to the wrong client IP, or on a non-suitable socket
+  ("v4 packet on a v6 socket").  Since the overall flow here is stateless
+  by nature, do not artificially create state by creating elaborate
+  queues, just send-or-drop.
+
+- fix port-share and multi-socket interaction - port-share needs TCP
+  listeners, but the check was wrong.  So "as long as any of the listening
+  sockets is TCP, port-share can be used" (Github: OpenVPN/openvpn#1027)
+
+- Ensure pushed tun-mtu is no lower than TUN_MTU_MIN - this fixes a bug
+  where a server can push a suitable combination of options and make the
+  client ASSERT().
+
+  (Reported as security issue by Haiyang Huang <huanghaiyang83@gmail.com>,
+   but it was decided that the server always has means to make the client
+   "not function properly", and it can not be exploited beyond that)
+
+- Windows: socket: assert buffer length before reading prepended sockaddr
+  family - a misbehaviour in the windows DCO driver could trigger an
+  overread in the userland client.  No such bug exists, which this was
+  not treated as a security vulnerability
+
+  (tracked in Github: OpenVPN/openvpn-private-issues#105)
+
+- Windows: openvpnserv: Fix memory leak when loading DLLs
+  (identified by cppcheck, non-exploitable)
+
+- Windows: openvpnserv: Address some uninitVariable warnings from cppcheck
+  (identified by cppcheck)
+
+- Windows: Fix some msg() calls with wrong number of arguments in
+  Windows-only code (in error-handling paths, so not normally visited)
+  (identified by cppcheck)
+
+- dco_freebsd: Add check_malloc_return after realloc
+  (identified by cppcheck)
+
+- dco_linux: fix debug logging of "epoch" and "dco_keys_installed" values
+
+
+Building improvements
+---------------------
+- Github actions: change windows builds to using Visual Studio 2026
+
+- Github actions: June 2026 updates (vcpkg, aws-lc, libressl)
+
+- renovate: fix typo in regex manager
+
+
+User-visible Changes
+--------------------
+- Make get_random return int64 instead of long - this is a no-op on 64bit
+  platforms, but will create consistency in temp file names created on
+  32bit and 64bit platforms (= user visible change on 32bit platforms).
+
+- dco_linux: allow passing KEEPALIVE_TIMEOUT without KEEPALIVE_INTERVAL
+
+
+Documentation improvements
+--------------------------
+- improve documentation for ``--float`` (Github: OpenVPN/openvpn#358)
+
+- add documentation for ``--preresolve`` (Github: OpenVPN/openvpn#532)
+
+- impove documentation around DNS config (Github: OpenVPN/openvpn#937)
+
+
 Overview of changes in 2.7.4
 ============================
 Bugfixes

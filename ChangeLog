@@ -1,6 +1,66 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
 
+2026.07.01 -- Version 2.7.5
+
+Antonio Quartulli (2):
+      mudp: send HMAC reset reply synchronously
+      options: fix use-after-free of DNS options on client connect
+
+Arne Schwabe (5):
+      Ensure pushed tun-mtu is no lower than TUN_MTU_MIN
+      Make get_random return int64 instead of long
+      Clean up metadata handling in tls_crypt_v2_extract_client_key
+      Ensure we only get the session from valid tokens for external-auth
+      Ensure tls-crypt keys are not setup twice
+
+Frank Lichtenheld (7):
+      dco_freebsd: Add check_malloc_return after realloc
+      Fix some msg() calls with wrong number of arguments in Windows-only code
+      openvpnserv: Address some uninitVariable warnings from cppcheck
+      openvpnserv: Fix memory leak when loading DLLs
+      renovate: Fix typo in regex manager
+      GHA: Maintenance update June 2026
+      GHA: Switch to using VS 2026
+
+Gert Doering (2):
+      Fix 1-byte buffer overrun on NTLMv2 proxy responses.
+      OpenVPN Release 2.7.5
+
+Gianmarco De Gregori (2):
+      Fix: port-share and multi-socket interaction
+      Multisocket: use event engine rwflags for UDP I/O
+
+Heiko Hund (1):
+      openvpnserv: rework ConvertItfDnsDomains and tests
+
+Lev Stipakov (3):
+      socket: assert buffer length before reading prepended sockaddr family
+      win32: fix plugin trusted-dir check prefix bypass
+      openvpnserv: fix DNS SearchList state pollution on (dis)connect
+
+Marco Baffo (1):
+      dco_linux: allow passing KEEPALIVE_TIMEOUT without KEEPALIVE_INTERVAL
+
+Max Fillinger (3):
+      Null-terminate tls-crypt client keys when testing
+      Fix tls_wrap_reneg use after free
+      Fix ack_write_buf use after free
+
+Ralf Lici (1):
+      dco.c: fix argument order in dco_install_key() log string
+
+Sami Rusani (2):
+      Document --preresolve option
+      doc: clarify that --float only applies to UDP
+
+Selva Nair (1):
+      DNS server documentation update
+
+saddamr3e (1):
+      dns: Fix memory leak in dns_server_addr_parse
+
+
 2026.04.30 -- Version 2.7.4
 
 Frank Lichtenheld (4):
