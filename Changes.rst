@@ -1,3 +1,39 @@
+Overview of changes since 2.5.11
+================================
+There are no further formal releases for the 2.5 branch, but a number
+of bugfixes have been backported to this branch, including security
+fixes.
+
+Security fixes
+--------------
+- interactive.c: harden pipe handling against misbehaving clients.
+  A malicious local user could make the interacive service exit on
+  error. (CVE-2025-13751)
+
+- fix race condition in TLS handshake that could lead to leaking of
+  packet data from a previous handshake under specific circumstances
+  (CVE-2026-40215)
+
+  (Bug found by XlabAI Team of Tencent Xuanwu Lab (xlabai@tencent.com))
+
+- fix server ASSERT() on receiving a suitably malformed packet with
+  a valid tls-crypt-v2 key (CVE-2026-35058)
+
+  (Bug found by XlabAI Team of Tencent Xuanwu Lab (xlabai@tencent.com),
+   and independently by Emma Reuter of Cisco ASIG (TALOS-2026-2381))
+
+- Clean up metadata handling in tls_crypt_v2_extract_client_key.
+  An attacker could repeatedly trigger a memory leak on servers that
+  use tls-crypt-v2 and cause the server to crash. (CVE-2026-12932)
+
+- Ensure tls-crypt keys are not setup twice.  An attacker with a valid
+  tls-crypt-v2 client key could repeatedly trigger a memory leak on
+  the server and cause it to crash. (CVE-2026-13698)
+
+- Fix ack_write_buf use after free.  A race-condition could trigger an
+  use-after-free error. (CVE-2026-12996)
+
+
 Overview of changes in 2.5.11
 =============================
 Security fixes
