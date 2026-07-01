@@ -3,6 +3,9 @@ on:
   push:
     branches: ["master"]
   workflow_dispatch:
+permissions:
+  contents: read
+
 concurrency:
   group: "pages"
   cancel-in-progress: false
