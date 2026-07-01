@@ -57,8 +57,8 @@ dco_install_key(struct tls_multi *multi, struct key_state *ks, const uint8_t *en
 
 {
     bool epoch = ks->crypto_options.flags & CO_EPOCH_DATA_KEY_FORMAT;
-    msg(D_DCO_DEBUG, "%s: peer_id=%d keyid=%d epoch=%d, currently %d keys installed", __func__,
-        multi->dco_peer_id, ks->key_id, multi->dco_keys_installed, epoch);
+    msg(D_DCO_DEBUG, "%s: peer_id=%d keyid=%d epoch=%d, currently %d keys installed",
+        __func__, multi->dco_peer_id, ks->key_id, epoch, multi->dco_keys_installed);
 
     /* Install a key in the PRIMARY slot only when no other key exist.
      * From that moment on, any new key will be installed in the SECONDARY
