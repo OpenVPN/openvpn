@@ -1,3 +1,92 @@
+Overview of changes in 2.6.21
+=============================
+Security fixes
+--------------
+- Fix use-after-free bug in tls_wrap_reneg(), triggerable by suitable
+  sequence of dynamic tls-crypt control-channel packets (CVE-2026-13117)
+
+  (Bug found by multiple researchers:
+     Trace37 Labs (https://github.com/trace37labs)
+     Haiyang Huang <huanghaiyang83@gmail.com>
+   tracked in Github: OpenVPN/openvpn-private-issues#119, #131)
+
+- Fix another memory leak on reception of suitable tls-crypt-v2 packets
+  that could lead to an out of memory situation and server crash
+  (CVE-2026-13698)
+
+  (Bug found by Max Fillinger <maximilian.fillinger@sentyron.com>, tracked
+   in Github: OpenVPN/openvpn-private-issues#137.  Overlaps with a report
+   from Valton Tahiri <valton.taa@gmail.com> in #138 that we believe to
+   be fixed by this bugfix as well)
+
+- Fix use-after-free bug in ack_write_buf(), triggerable by a well-timed
+  sequence of control channel + authentication packets (CVE-2026-12996)
+
+  (Bug found by multiple researchers:
+     章鱼哥 (www.aipyaipy.com)
+     Haiyang Huang <huanghaiyang83@gmail.com>
+     Haruki Oyama (Waseda University)
+   tracked in Github: OpenVPN/openvpn-private-issues#121, #131, #132)
+
+- Fix server crash on reception of suitably malformed auth-token, if
+  ```--auth-gen-token external-auth`` is active (CVE-2026-13122)
+
+  (Bug found by Haiyang Huang <huanghaiyang83@gmail.com>, tracked in
+   Github: OpenVPN/openvpn-private-issues#118)
+
+- Fix memory-leak in tls-crypt-v2 client key handling that could lead
+  to out-of-memory situations and subsequent server crashes (CVE-2026-12932)
+
+  (Bug found by Valton Tahiri <valton.taa@gmail.com>, tracked in
+   Github: OpenVPN/openvpn-private-issues#133)
+
+- Fix possible 1-byte buffer overrun on NTLMv2 proxy responses.
+  (CVE-2026-11771)
+
+  (Bug found by Tristan Madani (@TristanInSec), tracked in
+   Github: OpenVPN/openvpn-private-issues#116)
+
+
+
+Bugfixes
+--------
+- Windows: fix plugin trusted-dir check prefix bypass
+  (this fixes a bug in the path checking logic we do on Windows for
+   "is loading a plugin from this path allowed?", but since we could
+   not find a way to exploit this unless starting with admin privs or
+   a social engineering attack, not classified as a security fix)
+
+- options: fix use-after-free of DNS options on client connect
+  (using suitable ``--dns`` or ``--dhcp-option DNS`` options in a server
+   config - not pushed, but applying to the server itself - triggers a
+   double free() and use-after-free condition, possibly crashing the
+   server)  (Github: openvpn/OpenVPN#1060)
+
+- Ensure pushed tun-mtu is no lower than TUN_MTU_MIN - this fixes a bug
+  where a server can push a suitable combination of options and make the
+  client ASSERT().
+
+  (Reported as security issue by Haiyang Huang <huanghaiyang83@gmail.com>,
+   but it was decided that the server always has means to make the client
+   "not function properly", and it can not be exploited beyond that)
+
+- Null-terminate tls-crypt client keys when testing - non-exploitable
+  strlen() on a buffer that is not null-terminated
+
+
+Building improvements
+---------------------
+- Github actions: chery-pick relevant changes from master to make
+  GHA building of release/2.6 work again
+
+
+User-visible Changes
+--------------------
+- Make get_random return int64 instead of long - this is a no-op on 64bit
+  platforms, but will create consistency in temp file names created on
+  32bit and 64bit platforms (= user visible change on 32bit platforms).
+
+
 Overview of changes in 2.6.20
 =============================
 Security fixes

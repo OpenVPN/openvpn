@@ -1,6 +1,33 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2026.07.01 -- Version 2.6.21
+
+Antonio Quartulli (1):
+      options: fix use-after-free of DNS options on client connect
+
+Arne Schwabe (5):
+      Ensure pushed tun-mtu is no lower than TUN_MTU_MIN
+      Make get_random return int64 instead of long
+      Clean up metadata handling in tls_crypt_v2_extract_client_key
+      Ensure we only get the session from valid tokens for external-auth
+      Ensure tls-crypt keys are not setup twice
+
+Frank Lichtenheld (1):
+      GHA: Cherry-pick changes from master to keep working
+
+Gert Doering (1):
+      Fix 1-byte buffer overrun on NTLMv2 proxy responses.
+
+Lev Stipakov (1):
+      win32: fix plugin trusted-dir check prefix bypass
+
+Max Fillinger (3):
+      Null-terminate tls-crypt client keys when testing
+      Fix ack_write_buf use after free
+      Fix tls_wrap_reneg use after free
+
+
 2026.04.22 -- Version 2.6.20
 
 Arne Schwabe (2):
