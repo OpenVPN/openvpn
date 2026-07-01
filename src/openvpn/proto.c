@@ -70,7 +70,7 @@ is_ipv_X(int tunnel_type, struct buffer *buf, int ip_ver)
         if (proto == htons(OPENVPN_ETH_P_8021Q))
         {
             const struct openvpn_8021qhdr *evh;
-            if (BLENZ(buf) < sizeof(struct openvpn_ethhdr) + sizeof(struct openvpn_iphdr))
+            if (BLENZ(buf) < sizeof(struct openvpn_8021qhdr) + sizeof(struct openvpn_iphdr))
             {
                 return false;
             }
