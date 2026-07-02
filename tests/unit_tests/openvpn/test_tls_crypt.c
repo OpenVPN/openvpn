@@ -722,8 +722,13 @@ tls_crypt_v2_unwrap_checks(void **state)
 
     tls_options.tmp_dir = "/tmp";
 
-    /* Since we override rand_bytes the tmpfile name is non-random as well */
-    const char *non_random_tmpfile = "/tmp/openvpn_tls_crypt_v2_metadata__706050403020100706050403020100.tmp";
+    /* Since we override rand_bytes the tmpfile name is non-random as well.
+     * Build the expected name via the same code path as
+     * platform_create_temp_file() */
+    char non_random_tmpfile[128];
+    snprintf(non_random_tmpfile, sizeof(non_random_tmpfile),
+             "%s/" PACKAGE "_tls_crypt_v2_metadata__%08" PRIx64 "%08" PRIx64 ".tmp",
+             tls_options.tmp_dir, get_random(), get_random());
     unlink(non_random_tmpfile);
 
     expect_string(__wrap_buffer_write_file, filename, non_random_tmpfile);
