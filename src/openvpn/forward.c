@@ -929,14 +929,12 @@ read_incoming_link(struct context *c, struct link_socket *sock)
      * Set up for recvfrom call to read datagram
      * sent to our TCP/UDP port.
      */
-    int status;
-
     /*ASSERT (!c->c2.to_tun.len);*/
 
     c->c2.buf = c->c2.buffers->read_link_buf;
     ASSERT(buf_init(&c->c2.buf, c->c2.frame.buf.headroom));
 
-    status = link_socket_read(sock, &c->c2.buf, &c->c2.from);
+    ssize_t status = link_socket_read(sock, &c->c2.buf, &c->c2.from);
 
     if (socket_connection_reset(sock, status))
     {
@@ -955,14 +953,14 @@ read_incoming_link(struct context *c, struct link_socket *sock)
             if (event_timeout_defined(&c->c2.explicit_exit_notification_interval))
             {
                 msg(D_STREAM_ERRORS,
-                    "Connection reset during exit notification period, ignoring [%d]", status);
+                    "Connection reset during exit notification period, ignoring [%zd]", status);
                 management_sleep(1);
             }
             else
             {
                 register_signal(c->sig, SIGUSR1,
                                 "connection-reset"); /* SOFT-SIGUSR1 -- TCP connection reset */
-                msg(D_STREAM_ERRORS, "Connection reset, restarting [%d]", status);
+                msg(D_STREAM_ERRORS, "Connection reset, restarting [%zd]", status);
             }
         }
         return;
@@ -1026,7 +1024,7 @@ process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, boo
      * Good, non-zero length packet received.
      * Commence multi-stage processing of packet,
      * such as authenticate, decrypt, decompress.
-     * If any stage fails, it sets buf.len to 0 or -1,
+     * If any stage fails, it sets buf.len to 0,
      * telling downstream stages to ignore the packet.
      */
     if (c->c2.buf.len > 0)

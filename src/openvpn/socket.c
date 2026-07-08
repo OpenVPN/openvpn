@@ -1102,7 +1102,7 @@ static void stream_buf_init(struct stream_buf *sb, struct buffer *buf, const uns
 
 static void stream_buf_close(struct stream_buf *sb);
 
-static bool stream_buf_added(struct stream_buf *sb, int length_added);
+static bool stream_buf_added(struct stream_buf *sb, ssize_t length_added);
 
 /* For stream protocols, allocate a buffer to build up packet.
  * Called after frame has been finalized. */
@@ -1775,6 +1775,10 @@ done:
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 void
 link_socket_close(struct link_socket *sock)
 {
@@ -2142,12 +2146,13 @@ stream_buf_read_setup_dowork(struct stream_buf *sb)
  * @return true if \c sb->buf contains fully reassembled packet
  */
 static bool
-stream_buf_added(struct stream_buf *sb, int length_added)
+stream_buf_added(struct stream_buf *sb, ssize_t length_added)
 {
-    dmsg(D_STREAM_DEBUG, "STREAM: ADD length_added=%d", length_added);
+    dmsg(D_STREAM_DEBUG, "STREAM: ADD length_added=%zd", length_added);
     if (length_added > 0)
     {
-        sb->buf.len += length_added;
+        ASSERT(sb->buf.len + length_added <= INT_MAX);
+        sb->buf.len += (int)length_added;
     }
 
     /* if length unknown, see if we can get the length prefix from
@@ -2249,10 +2254,10 @@ bad_address_length(int actual, int expected)
  * Socket Read Routines
  */
 
-int
+ssize_t
 link_socket_read_tcp(struct link_socket *sock, struct buffer *buf)
 {
-    int len = 0;
+    ssize_t len = 0;
 
     if (!sock->stream_buf.residual_fully_formed)
     {
@@ -2282,7 +2287,8 @@ link_socket_read_tcp(struct link_socket *sock, struct buffer *buf)
         }
         if (len <= 0)
         {
-            return buf->len = len;
+            buf->len = 0;
+            return len;
         }
     }
 
@@ -2314,14 +2320,14 @@ link_socket_read_tcp(struct link_socket *sock, struct buffer *buf)
     max_int(CMSG_SPACE(sizeof(struct in6_pktinfo)), CMSG_SPACE(sizeof(struct in_addr)))
 #endif
 
-static socklen_t
+static ssize_t
 link_socket_read_udp_posix_recvmsg(struct link_socket *sock, struct buffer *buf,
-                                   struct link_socket_actual *from)
+                                   struct link_socket_actual *from, socklen_t *fromlen)
 {
     struct iovec iov;
     uint8_t pktinfo_buf[PKTINFO_BUF_SIZE];
     struct msghdr mesg = { 0 };
-    socklen_t fromlen = sizeof(from->dest.addr);
+    *fromlen = sizeof(from->dest.addr);
 
     ASSERT(sock->sd >= 0); /* can't happen */
 
@@ -2330,62 +2336,67 @@ link_socket_read_udp_posix_recvmsg(struct link_socket *sock, struct buffer *buf,
     mesg.msg_iov = &iov;
     mesg.msg_iovlen = 1;
     mesg.msg_name = &from->dest.addr;
-    mesg.msg_namelen = fromlen;
+    mesg.msg_namelen = *fromlen;
     mesg.msg_control = pktinfo_buf;
-    mesg.msg_controllen = sizeof pktinfo_buf;
-    buf->len = recvmsg(sock->sd, &mesg, 0);
-    if (buf->len >= 0)
+    mesg.msg_controllen = (socklen_t)sizeof(pktinfo_buf);
+    ssize_t len = recvmsg(sock->sd, &mesg, 0);
+    if (len < 0)
     {
-        struct cmsghdr *cmsg;
-        fromlen = mesg.msg_namelen;
-        cmsg = CMSG_FIRSTHDR(&mesg);
-        if (cmsg != NULL && CMSG_NXTHDR(&mesg, cmsg) == NULL
+        buf->len = 0;
+        return len;
+    }
+    ASSERT(len <= INT_MAX);
+    buf->len = (int)len;
+    struct cmsghdr *cmsg;
+    *fromlen = mesg.msg_namelen;
+    cmsg = CMSG_FIRSTHDR(&mesg);
+    if (cmsg != NULL && CMSG_NXTHDR(&mesg, cmsg) == NULL
 #if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
-            && cmsg->cmsg_level == SOL_IP && cmsg->cmsg_type == IP_PKTINFO
-            && cmsg->cmsg_len >= CMSG_LEN(sizeof(struct in_pktinfo)))
+        && cmsg->cmsg_level == SOL_IP && cmsg->cmsg_type == IP_PKTINFO
+        && cmsg->cmsg_len >= CMSG_LEN(sizeof(struct in_pktinfo)))
 #elif defined(IP_RECVDSTADDR)
-            && cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_RECVDSTADDR
-            && cmsg->cmsg_len >= CMSG_LEN(sizeof(struct in_addr)))
+        && cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_RECVDSTADDR
+        && cmsg->cmsg_len >= CMSG_LEN(sizeof(struct in_addr)))
 #else /* if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST) */
 #error ENABLE_IP_PKTINFO is set without IP_PKTINFO xor IP_RECVDSTADDR (fix syshead.h)
 #endif
-        {
+    {
 #if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST)
-            struct in_pktinfo *pkti = (struct in_pktinfo *)CMSG_DATA(cmsg);
-            from->pi.in4.ipi_ifindex =
-                (sock->sockflags & SF_PKTINFO_COPY_IIF) ? pkti->ipi_ifindex : 0;
-            from->pi.in4.ipi_spec_dst = pkti->ipi_spec_dst;
+        struct in_pktinfo *pkti = (struct in_pktinfo *)CMSG_DATA(cmsg);
+        from->pi.in4.ipi_ifindex =
+            (sock->sockflags & SF_PKTINFO_COPY_IIF) ? pkti->ipi_ifindex : 0;
+        from->pi.in4.ipi_spec_dst = pkti->ipi_spec_dst;
 #elif defined(IP_RECVDSTADDR)
-            from->pi.in4 = *(struct in_addr *)CMSG_DATA(cmsg);
+        from->pi.in4 = *(struct in_addr *)CMSG_DATA(cmsg);
 #else /* if defined(HAVE_IN_PKTINFO) && defined(HAVE_IPI_SPEC_DST) */
 #error ENABLE_IP_PKTINFO is set without IP_PKTINFO xor IP_RECVDSTADDR (fix syshead.h)
 #endif
-        }
-        else if (cmsg != NULL && CMSG_NXTHDR(&mesg, cmsg) == NULL
-                 && cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_PKTINFO
-                 && cmsg->cmsg_len >= CMSG_LEN(sizeof(struct in6_pktinfo)))
-        {
-            struct in6_pktinfo *pkti6 = (struct in6_pktinfo *)CMSG_DATA(cmsg);
-            from->pi.in6.ipi6_ifindex =
-                (sock->sockflags & SF_PKTINFO_COPY_IIF) ? pkti6->ipi6_ifindex : 0;
-            from->pi.in6.ipi6_addr = pkti6->ipi6_addr;
-        }
-        else if (cmsg != NULL)
-        {
-            msg(M_WARN,
-                "CMSG received that cannot be parsed (cmsg_level=%d, cmsg_type=%d, cmsg=len=%d)",
-                (int)cmsg->cmsg_level, (int)cmsg->cmsg_type, (int)cmsg->cmsg_len);
-        }
+    }
+    else if (cmsg != NULL && CMSG_NXTHDR(&mesg, cmsg) == NULL
+             && cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_PKTINFO
+             && cmsg->cmsg_len >= CMSG_LEN(sizeof(struct in6_pktinfo)))
+    {
+        struct in6_pktinfo *pkti6 = (struct in6_pktinfo *)CMSG_DATA(cmsg);
+        from->pi.in6.ipi6_ifindex =
+            (sock->sockflags & SF_PKTINFO_COPY_IIF) ? pkti6->ipi6_ifindex : 0;
+        from->pi.in6.ipi6_addr = pkti6->ipi6_addr;
+    }
+    else if (cmsg != NULL)
+    {
+        msg(M_WARN,
+            "CMSG received that cannot be parsed (cmsg_level=%d, cmsg_type=%d, cmsg=len=%d)",
+            (int)cmsg->cmsg_level, (int)cmsg->cmsg_type, (int)cmsg->cmsg_len);
     }
 
-    return fromlen;
+    return buf->len;
 }
 #endif /* if ENABLE_IP_PKTINFO */
 
-int
+ssize_t
 link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
                            struct link_socket_actual *from)
 {
+    ssize_t recvlen;
     socklen_t fromlen = sizeof(from->dest.addr);
     socklen_t expectedlen = af_addr_size(sock->info.af);
     addr_zero_host(&from->dest);
@@ -2396,16 +2407,23 @@ link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
     /* Both PROTO_UDPv4 and PROTO_UDPv6 */
     if (sock->info.proto == PROTO_UDP && sock->sockflags & SF_USE_IP_PKTINFO)
     {
-        fromlen = link_socket_read_udp_posix_recvmsg(sock, buf, from);
+        recvlen = link_socket_read_udp_posix_recvmsg(sock, buf, from, &fromlen);
     }
     else
 #endif
     {
-        buf->len = recvfrom(sock->sd, BPTR(buf), buf_forward_capacity(buf), 0, &from->dest.addr.sa,
-                            &fromlen);
+        recvlen = recvfrom(sock->sd, BPTR(buf), buf_forward_capacity(buf), 0,
+                           &from->dest.addr.sa, &fromlen);
     }
+    if (recvlen < 0)
+    {
+        buf->len = 0;
+        return recvlen;
+    }
+    ASSERT(recvlen <= INT_MAX);
+    buf->len = (int)recvlen;
     /* FIXME: won't do anything when sock->info.af == AF_UNSPEC */
-    if (buf->len >= 0 && expectedlen && fromlen != expectedlen)
+    if (expectedlen && fromlen != expectedlen)
     {
         bad_address_length(fromlen, expectedlen);
     }
@@ -2421,7 +2439,9 @@ link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
 ssize_t
 link_socket_write_tcp(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *to)
 {
-    packet_size_type len = (packet_size_type)BLENZ(buf);
+    const int blen = BLEN(buf);
+    ASSERT(blen >= 0 && blen <= PACKET_SIZE_MAX);
+    packet_size_type len = (packet_size_type)blen;
     dmsg(D_STREAM_DEBUG, "STREAM: WRITE %u offset=%d", len, buf->offset);
     ASSERT(len <= sock->stream_buf.maxlen);
     len = htonps(len);
@@ -2432,10 +2452,6 @@ link_socket_write_tcp(struct link_socket *sock, struct buffer *buf, struct link_
     return link_socket_write_tcp_posix(sock, buf);
 #endif
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #if ENABLE_IP_PKTINFO
 

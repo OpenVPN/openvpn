@@ -535,7 +535,7 @@ tuntap_is_dco_win(struct tuntap *tt)
 }
 
 static inline bool
-tuntap_is_dco_win_timeout(struct tuntap *tt, int status)
+tuntap_is_dco_win_timeout(struct tuntap *tt, ssize_t status)
 {
     return tuntap_is_dco_win(tt) && (status < 0) && (openvpn_errno() == ERROR_NETNAME_DELETED);
 }
@@ -573,7 +573,7 @@ tuntap_is_dco_win(struct tuntap *tt)
 }
 
 static inline bool
-tuntap_is_dco_win_timeout(struct tuntap *tt, int status)
+tuntap_is_dco_win_timeout(struct tuntap *tt, ssize_t status)
 {
     return false;
 }
