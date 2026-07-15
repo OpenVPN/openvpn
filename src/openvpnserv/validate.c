@@ -308,8 +308,9 @@ IsUserInGroup(PSID sid, const PTOKEN_GROUPS token_groups, const WCHAR *group_nam
 }
 
 /*
- * Check whether option argv[0] is white-listed. If argv[0] == "--config",
- * also check that argv[1], if present, passes CheckConfigPath().
+ * Check whether option argv[0] is white-listed. If argv[0] == "--config", also
+ * check that argv[1], if present, passes CheckConfigPath(). If argv[0] is "--setenv",
+ * check that we do not allow random options to be passed via "--setenv opt ...".
  * The caller should set argc to the number of valid elements in argv[] array.
  */
 BOOL
@@ -324,6 +325,12 @@ CheckOption(const WCHAR *workdir, int argc, WCHAR *argv[], const settings_t *s)
 
     /* option name starts at 2 characters from argv[i] */
     if (OptionLookup(argv[0] + 2, white_list) == -1) /* not found */
+    {
+        return FALSE;
+    }
+
+    /* Do not allow "--setenv opt ..." */
+    if (wcscmp(argv[0], L"--setenv") == 0 && argc > 1 && wcscmp(argv[1], L"opt") == 0)
     {
         return FALSE;
     }
