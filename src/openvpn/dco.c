@@ -71,9 +71,12 @@ dco_install_key(struct tls_multi *multi, struct key_state *ks,
                           encrypt_key, encrypt_iv,
                           decrypt_key, decrypt_iv,
                           ciphername);
-    if ((ret == 0) && (multi->dco_keys_installed < 2))
+    if (ret == 0)
     {
-        multi->dco_keys_installed++;
+        if (multi->dco_keys_installed < 2)
+        {
+            multi->dco_keys_installed++;
+        }
         ks->dco_status = (slot == OVPN_KEY_SLOT_PRIMARY) ? DCO_INSTALLED_PRIMARY :
                          DCO_INSTALLED_SECONDARY;
     }
@@ -168,7 +171,13 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
     /* if we have a primary key, it must have been installed already (keys
      * are installed upon generation in the TLS code)
      */
-    ASSERT(primary->dco_status != DCO_NOT_INSTALLED);
+    if (primary->dco_status == DCO_NOT_INSTALLED)
+    {
+        msg(D_DCO, "DCO key state mismatch: selected primary key is not installed "
+            "(peer_id=%d, key_id=%d, dco_keys_installed=%d)",
+            multi->dco_peer_id, primary->key_id, multi->dco_keys_installed);
+        return false;
+    }
 
     struct key_state *secondary = dco_get_secondary_key(multi, primary);
     /* if the current primary key was installed as secondary in DCO,
@@ -190,6 +199,14 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
                 primary->key_id);
         }
 
+        if (secondary && secondary->dco_status != DCO_INSTALLED_PRIMARY)
+        {
+            msg(D_DCO, "DCO key state mismatch: expected old primary key is not installed as DCO primary before swap "
+                "(peer_id=%d, new_primary_key_id=%d, old_primary_key_id=%d, old_primary_dco_status=%d, dco_keys_installed=%d)",
+                multi->dco_peer_id, primary->key_id, secondary->key_id, secondary->dco_status, multi->dco_keys_installed);
+            return false;
+        }
+
         int ret = dco_swap_keys(dco, multi->dco_peer_id);
         if (ret < 0)
         {
@@ -200,7 +217,6 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
         primary->dco_status = DCO_INSTALLED_PRIMARY;
         if (secondary)
         {
-            ASSERT(secondary->dco_status == DCO_INSTALLED_PRIMARY);
             secondary->dco_status = DCO_INSTALLED_SECONDARY;
         }
     }
