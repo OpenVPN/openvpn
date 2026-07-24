@@ -50,6 +50,10 @@ routing.
   :code:`null` or an arbitrary name string (:code:`X` can be omitted for
   a dynamic device.)
 
+  If neither ``--dev`` nor ``--dev-type`` is specified, OpenVPN defaults to
+  :code:`tun`, i.e. it creates a dynamically-named :code:`tunX` device and
+  runs a layer-3 tunnel.
+
   See examples section below for an example on setting up a TUN device.
 
   You must use either tun devices on both ends of the connection or tap

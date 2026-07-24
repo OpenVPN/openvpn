@@ -190,7 +190,8 @@ static const char usage_message[] =
     " or --socks-proxy"
     " is used).\n"
     "--nobind        : Do not bind to local address and port.\n"
-    "--dev tunX|tapX : tun/tap device (X can be omitted for dynamic device.\n"
+    "--dev tunX|tapX : tun/tap device (X can be omitted for dynamic device).\n"
+    "                  Defaults to \"tun\" if neither --dev nor --dev-type is given.\n"
     "--dev-type dt   : Which device type are we using? (dt = tun or tap) Use\n"
     "                  this option only if the tun/tap device used with --dev\n"
     "                  does not begin with \"tun\" or \"tap\".\n"
@@ -808,6 +809,7 @@ init_options(struct options *o)
     gc_init(&o->dns_options.gc);
 
     o->mode = MODE_POINT_TO_POINT;
+    o->dev = "tun";
     o->topology = TOP_UNDEF;
     o->ce.proto = PROTO_UDP;
     o->ce.af = AF_UNSPEC;
