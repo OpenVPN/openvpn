@@ -697,6 +697,9 @@ struct options
     enum tun_driver_type windows_driver;
 #endif
 
+    /** Whether the data channel uses the DATA_V2 header (peer-id).
+     *  Mirror of tls_multi->use_peer_id, needed by the MTU/frame calculation
+     *  which only has access to struct options. */
     bool use_peer_id;
     uint32_t peer_id;
 

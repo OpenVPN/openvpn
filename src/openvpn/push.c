@@ -661,9 +661,9 @@ prepare_push_reply(struct context *c, struct gc_arena *gc, struct push_list *pus
                         print_in_addr_t(c->c2.push_ifconfig_remote_netmask, 0, gc));
     }
 
-    if (tls_multi->use_peer_id)
+    if (tls_multi->use_peer_id && !tls_multi->use_asymmetric_peer_id)
     {
-        push_option_fmt(gc, push_list, M_USAGE, "peer-id %d", tls_multi->peer_id);
+        push_option_fmt(gc, push_list, M_USAGE, "peer-id %d", tls_multi->rx_peer_id);
     }
     /*
      * If server uses --auth-gen-token and we have an auth token

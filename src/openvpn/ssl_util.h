@@ -53,6 +53,15 @@ char *extract_var_peer_info(const char *peer_info, const char *var, struct gc_ar
  */
 unsigned int extract_iv_proto(const char *peer_info);
 
+
+/**
+ * Extracts the ID variable and returns its value or
+ * MAX_PEER_ID if it cannot be extracted.
+ *
+ * @param peer_info     peer info string to search for ID
+ */
+uint32_t extract_asymmetric_peer_id(const char *peer_info);
+
 /**
  * Takes a locally produced OCC string for TLS server mode and modifies as
  * if the option comp-lzo was enabled. This is to send a client in

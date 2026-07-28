@@ -2203,9 +2203,10 @@ tls_print_deferred_options_results(struct context *c)
                    md_kt_name(o->authname));
     }
 
-    if (o->use_peer_id)
+    if (c->c2.tls_multi && c->c2.tls_multi->use_peer_id)
     {
-        buf_printf(&out, ", peer-id: %d", o->peer_id);
+        buf_printf(&out, ", rx-peer-id: %u, tx-peer-id: %u", c->c2.tls_multi->rx_peer_id,
+                   c->c2.tls_multi->tx_peer_id);
     }
 
 #ifdef USE_COMP
@@ -2321,6 +2322,11 @@ do_deferred_options_part2(struct context *c)
         frame_fragment = &c->c2.frame_fragment;
     }
 #endif
+
+    /* The peer-id can also be negotiated without being pushed, so sync the
+     * option before the frame is recalculated: it decides whether the
+     * DATA_V2 header is accounted for */
+    c->options.use_peer_id = c->c2.tls_multi->use_peer_id;
 
     struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
     if (!tls_session_update_crypto_params(c->c2.tls_multi, session, &c->options, &c->c2.frame,
@@ -2675,7 +2681,8 @@ do_deferred_options(struct context *c, const uint64_t found, const bool is_updat
     {
         msg(D_PUSH_DEBUG, "OPTIONS IMPORT: peer-id set");
         c->c2.tls_multi->use_peer_id = true;
-        c->c2.tls_multi->peer_id = c->options.peer_id;
+        c->c2.tls_multi->tx_peer_id = c->options.peer_id;
+        c->c2.tls_multi->rx_peer_id = c->options.peer_id;
     }
 
     /* process (potentially) pushed options */
@@ -2702,7 +2709,7 @@ do_deferred_options(struct context *c, const uint64_t found, const bool is_updat
     /* Ensure that for epoch data format is only enabled if also data v2
      * is enabled */
     bool epoch_data = c->options.imported_protocol_flags & CO_EPOCH_DATA_KEY_FORMAT;
-    bool datav2_enabled = c->options.use_peer_id && c->options.peer_id < MAX_PEER_ID;
+    bool datav2_enabled = c->c2.tls_multi->use_peer_id && c->c2.tls_multi->tx_peer_id < MAX_PEER_ID;
 
     if (epoch_data && !datav2_enabled)
     {

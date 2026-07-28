@@ -24,7 +24,7 @@
 #endif
 
 #include "syshead.h"
-
+#include "openvpn.h"
 #include "ssl_util.h"
 
 char *
@@ -70,6 +70,25 @@ extract_iv_proto(const char *peer_info)
         }
     }
     return 0;
+}
+
+uint32_t
+extract_asymmetric_peer_id(const char *peer_info)
+{
+    for (const char *p = peer_info; p && (p = strstr(p, "ID=")); p += 3)
+    {
+        /* only accept "ID=" at the start of a line, so it does not match
+         * substrings like "UV_ID=" or "GUID=" */
+        if (p == peer_info || p[-1] == '\n')
+        {
+            uint32_t peer_id = 0;
+            if (sscanf(p, "ID=%x", &peer_id) == 1 && peer_id < MAX_PEER_ID)
+            {
+                return peer_id;
+            }
+        }
+    }
+    return MAX_PEER_ID;
 }
 
 const char *
