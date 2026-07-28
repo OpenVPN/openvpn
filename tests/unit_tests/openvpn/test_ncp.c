@@ -110,7 +110,7 @@ test_check_ncp_ciphers_list(void **state)
     assert_string_equal(mutate_ncp_cipher_list("AES-256-GCM:?AES-128-CCM:AES-128-GCM", &gc),
                         aes_ciphers);
 
-    /* For testing that with OpenSSL 1.1.0+ that also accepts ciphers in
+    /* For testing that with OpenSSL that also accepts ciphers in
      * a different spelling the normalised cipher output is the same */
     bool have_chacha_mixed_case = cipher_valid("ChaCha20-Poly1305");
     if (have_chacha_mixed_case)

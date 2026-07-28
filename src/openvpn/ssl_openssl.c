@@ -200,42 +200,12 @@ info_callback(INFO_CALLBACK_SSL_CONST SSL *s, int where, int ret)
 
 /*
  * Return maximum TLS version supported by local OpenSSL library.
- * Assume that presence of SSL_OP_NO_TLSvX macro indicates that
- * TLSvX is supported.
+ * We only support OpenSSL versions that support TLS 1.3.
  */
 int
 tls_version_max(void)
 {
-#if defined(TLS1_3_VERSION)
-    /* If this is defined we can safely assume TLS 1.3 support */
     return TLS_VER_1_3;
-#elif OPENSSL_VERSION_NUMBER >= 0x10100000L
-    /*
-     * If TLS_VER_1_3 is not defined, we were compiled against a version that
-     * did not support TLS 1.3.
-     *
-     * However, the library we are *linked* against might be OpenSSL 1.1.1
-     * and therefore supports TLS 1.3. This needs to be checked at runtime
-     * since we can be compiled against 1.1.0 and then the library can be
-     * upgraded to 1.1.1.
-     * We only need to check this for OpenSSL versions that can be
-     * upgraded to 1.1.1 without recompile (>= 1.1.0)
-     */
-    if (OpenSSL_version_num() >= 0x1010100fL)
-    {
-        return TLS_VER_1_3;
-    }
-    else
-    {
-        return TLS_VER_1_2;
-    }
-#elif defined(TLS1_2_VERSION) || defined(SSL_OP_NO_TLSv1_2)
-    return TLS_VER_1_2;
-#elif defined(TLS1_1_VERSION) || defined(SSL_OP_NO_TLSv1_1)
-    return TLS_VER_1_1;
-#else /* if defined(TLS1_3_VERSION) */
-    return TLS_VER_1_0;
-#endif
 }
 
 /** Convert internal version number to openssl version number */
@@ -256,22 +226,7 @@ openssl_tls_version(unsigned int ver)
     }
     else if (ver == TLS_VER_1_3)
     {
-        /*
-         * Supporting the library upgraded to TLS1.3 without recompile
-         * is enough to support here with a simple constant that the same
-         * as in the TLS 1.3, so spec it is very unlikely that OpenSSL
-         * will change this constant
-         */
-#ifndef TLS1_3_VERSION
-        /*
-         * We do not want to define TLS_VER_1_3 if not defined
-         * since other parts of the code use the existance of this macro
-         * as proxy for TLS 1.3 support
-         */
-        return 0x0304;
-#else
         return TLS1_3_VERSION;
-#endif
     }
     return 0;
 }
@@ -491,8 +446,8 @@ convert_tls13_list_to_openssl(char *openssl_ciphers, size_t len, const char *cip
      */
     if (strlen(ciphers) >= (len - 1))
     {
-        msg(M_FATAL, "Failed to set restricted TLS 1.3 cipher list, too long (>%d).",
-            (int)(len - 1));
+        msg(M_FATAL, "Failed to set restricted TLS 1.3 cipher list, too long (>%zd).",
+            len - 1);
     }
 
     strncpy(openssl_ciphers, ciphers, len);
@@ -511,17 +466,11 @@ tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)
 {
     if (ciphers == NULL)
     {
-        /* default cipher list of OpenSSL 1.1.1 is sane, do not set own
+        /* default cipher list of OpenSSL is sane, do not set own
          * default as we do with tls-cipher */
         return;
     }
 
-#if !defined(TLS1_3_VERSION)
-    crypto_msg(M_WARN,
-               "Not compiled with OpenSSL 1.1.1 or higher. "
-               "Ignoring TLS 1.3 only tls-ciphersuites '%s' setting.",
-               ciphers);
-#else
     ASSERT(NULL != ctx);
 
     char openssl_ciphers[4096];
@@ -531,14 +480,12 @@ tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)
     {
         crypto_msg(M_FATAL, "Failed to set restricted TLS 1.3 cipher list: %s", openssl_ciphers);
     }
-#endif
 }
 
 void
 tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
 {
-#if OPENSSL_VERSION_NUMBER > 0x10100000L                                            \
-    && (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER > 0x3060000fL) \
+#if (!defined(LIBRESSL_VERSION_NUMBER) || LIBRESSL_VERSION_NUMBER > 0x3060000fL) \
     && !defined(OPENSSL_IS_AWSLC)
     /* OpenSSL does not have certificate profiles, but a complex set of
      * callbacks that we could try to implement to achieve something similar.
@@ -565,7 +512,7 @@ tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
     {
         msg(M_FATAL, "ERROR: Invalid cert profile: %s", profile);
     }
-#else  /* if OPENSSL_VERSION_NUMBER > 0x10100000L */
+#else
     if (profile)
     {
         msg(M_WARN,
@@ -573,7 +520,7 @@ tls_ctx_set_cert_profile(struct tls_root_ctx *ctx, const char *profile)
             "support --tls-cert-profile, ignoring user-set profile: '%s'",
             profile);
     }
-#endif /* if OPENSSL_VERSION_NUMBER > 0x10100000L */
+#endif
 }
 
 void
@@ -2597,14 +2544,12 @@ show_available_tls_ciphers_list(const char *cipher_list, const char *tls_cert_pr
         crypto_msg(M_FATAL, "Cannot create SSL_CTX object");
     }
 
-#if defined(TLS1_3_VERSION)
     if (tls13)
     {
         SSL_CTX_set_min_proto_version(tls_ctx.ctx, TLS1_3_VERSION);
         tls_ctx_restrict_ciphers_tls13(&tls_ctx, cipher_list);
     }
     else
-#endif
     {
         SSL_CTX_set_max_proto_version(tls_ctx.ctx, TLS1_2_VERSION);
         tls_ctx_restrict_ciphers(&tls_ctx, cipher_list);
@@ -2618,7 +2563,7 @@ show_available_tls_ciphers_list(const char *cipher_list, const char *tls_cert_pr
         crypto_msg(M_FATAL, "Cannot create SSL object");
     }
 
-#if OPENSSL_VERSION_NUMBER < 0x1010000fL || defined(OPENSSL_IS_AWSLC) || defined(ENABLE_CRYPTO_WOLFSSL)
+#if defined(OPENSSL_IS_AWSLC) || defined(ENABLE_CRYPTO_WOLFSSL)
     STACK_OF(SSL_CIPHER) *sk = SSL_get_ciphers(ssl);
 #else
     STACK_OF(SSL_CIPHER) *sk = SSL_get1_supported_ciphers(ssl);
@@ -2646,9 +2591,7 @@ show_available_tls_ciphers_list(const char *cipher_list, const char *tls_cert_pr
             printf("%s\n", pair->iana_name);
         }
     }
-#if (OPENSSL_VERSION_NUMBER >= 0x1010000fL)
     sk_SSL_CIPHER_free(sk);
-#endif
     SSL_free(ssl);
     SSL_CTX_free(tls_ctx.ctx);
 }

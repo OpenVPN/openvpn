@@ -66,10 +66,10 @@ SYSTEM REQUIREMENTS:
   (1) TUN and/or TAP driver to allow user-space programs to control
       a virtual point-to-point IP or Ethernet device.
       See TUN/TAP Driver References section below for more info.
-  (2a) OpenSSL library, necessary for encryption, version 1.1.0 or higher
+  (2a) OpenSSL library, necessary for encryption, version 1.1.1 or higher
       required, available from https://www.openssl.org/
       or
-  (2b) mbed TLS library, an alternative for encryption, version 2.0 or higher
+  (2b) mbed TLS library, an alternative for encryption, version 3.2.1 or higher
       required, available from https://tls.mbed.org/
   (3) on Linux, "libnl-gen" is required for kernel netlink support
   (4) on Linux, "libcap-ng" is required for Linux capability handling
