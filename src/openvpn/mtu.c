@@ -35,6 +35,7 @@
 #include "crypto.h"
 
 #include "memdbg.h"
+#include "ssl_common.h"
 
 /* allocate a buffer for socket or tun layer */
 void
@@ -51,6 +52,13 @@ unsigned int
 calc_packet_id_size_dc(const struct options *options, const struct key_type *kt)
 {
     bool tlsmode = options->tls_server || options->tls_client;
+    bool epoch = options->imported_protocol_flags & CO_EPOCH_DATA_KEY_FORMAT;
+
+    /* epoch format uses a 64-bit packet id: 16 bit epoch + 48 bit per-epoch counter */
+    if (epoch)
+    {
+        return sizeof(uint64_t);
+    }
 
     bool packet_id_long_form = !tlsmode || cipher_kt_mode_ofb_cfb(kt->cipher);
 
