@@ -11,6 +11,10 @@ launch_server() {
     # Allow reading this file even umask values are strict
     touch "$log"
 
+    # limit CPU time of processes to "5 minutes"
+    # (so a stuck-and-looping process will auto-terminate)
+    ulimit -t 300
+
     # Try to launch the server
     $RUN_SUDO "${server_exec}" \
                $server_conf \
