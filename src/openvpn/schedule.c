@@ -33,20 +33,6 @@
 
 #include "memdbg.h"
 
-#ifdef SCHEDULE_TEST
-
-struct status
-{
-    int sru;
-    int ins;
-    int coll;
-    int lsteps;
-};
-
-static struct status z;
-
-#endif
-
 #ifdef ENABLE_DEBUG
 static void
 schedule_entry_debug_info(const char *caller, const struct schedule_entry *e)
@@ -75,12 +61,7 @@ schedule_set_pri(struct schedule_entry *e)
     }
 }
 
-/* This is the master key comparison routine.  A key is
- * simply a struct timeval containing the absolute time for
- * an event.  The unique treap priority (pri) is used to ensure
- * that keys do not collide.
- */
-static inline int
+int
 schedule_entry_compare(const struct schedule_entry *e1, const struct schedule_entry *e2)
 {
     if (e1->tv.tv_sec < e2->tv.tv_sec)
@@ -226,10 +207,6 @@ schedule_rotate_up(struct schedule *s, struct schedule_entry *e)
             /* parent <-> child linkage is corrupted */
             ASSERT(0);
         }
-
-#ifdef SCHEDULE_TEST
-        ++z.sru;
-#endif
     }
 }
 
@@ -284,10 +261,6 @@ schedule_insert(struct schedule *s, struct schedule_entry *e)
     {
         const int comp = schedule_entry_compare(e, c);
 
-#ifdef SCHEDULE_TEST
-        ++z.ins;
-#endif
-
         if (comp == -1)
         {
             if (c->lt)
@@ -320,9 +293,6 @@ schedule_insert(struct schedule *s, struct schedule_entry *e)
         {
             /* rare key/priority collision -- no big deal,
              * just choose another priority and retry */
-#ifdef SCHEDULE_TEST
-            ++z.coll;
-#endif
             schedule_set_pri(e);
             /* msg (M_INFO, "PRI COLLISION pri=%u", e->pri); */
             c = s->root;
@@ -381,9 +351,6 @@ schedule_find_least(struct schedule_entry *e)
     {
         while (e->lt)
         {
-#ifdef SCHEDULE_TEST
-            ++z.lsteps;
-#endif
             e = e->lt;
         }
     }
@@ -423,279 +390,3 @@ schedule_remove_entry(struct schedule *s, struct schedule_entry *e)
     s->earliest_wakeup = NULL; /* invalidate cache */
     schedule_remove_node(s, e);
 }
-
-/*
- *  Debug functions below this point
- */
-
-#ifdef SCHEDULE_TEST
-
-static inline struct schedule_entry *
-schedule_find_earliest_wakeup(struct schedule *s)
-{
-    return schedule_find_least(s->root);
-}
-
-/*
- * Recursively check that the treap (btree) is
- * internally consistent.
- */
-int
-schedule_debug_entry(const struct schedule_entry *e, int depth, int *count, struct timeval *least,
-                     const struct timeval *min, const struct timeval *max)
-{
-    struct gc_arena gc = gc_new();
-    int maxdepth = depth;
-    if (e)
-    {
-        int d;
-
-        ASSERT(e != e->lt);
-        ASSERT(e != e->gt);
-        ASSERT(e != e->parent);
-        ASSERT(!e->parent || e->parent != e->lt);
-        ASSERT(!e->parent || e->parent != e->gt);
-        ASSERT(!e->lt || e->lt != e->gt);
-
-        if (e->lt)
-        {
-            ASSERT(e->lt->parent == e);
-            ASSERT(schedule_entry_compare(e->lt, e) == -1);
-            ASSERT(e->lt->pri >= e->pri);
-        }
-
-        if (e->gt)
-        {
-            ASSERT(e->gt->parent == e);
-            ASSERT(schedule_entry_compare(e->gt, e));
-            ASSERT(e->gt->pri >= e->pri);
-        }
-
-        ASSERT(tv_le(min, &e->tv));
-        ASSERT(tv_le(&e->tv, max));
-
-        if (count)
-        {
-            ++(*count);
-        }
-
-        if (least && tv_lt(&e->tv, least))
-        {
-            *least = e->tv;
-        }
-
-        d = schedule_debug_entry(e->lt, depth + 1, count, least, min, &e->tv);
-        if (d > maxdepth)
-        {
-            maxdepth = d;
-        }
-
-        d = schedule_debug_entry(e->gt, depth + 1, count, least, &e->tv, max);
-        if (d > maxdepth)
-        {
-            maxdepth = d;
-        }
-    }
-    gc_free(&gc);
-    return maxdepth;
-}
-
-int
-schedule_debug(struct schedule *s, int *count, struct timeval *least)
-{
-    struct timeval min;
-    struct timeval max;
-
-    min.tv_sec = 0;
-    min.tv_usec = 0;
-    max.tv_sec = 0x7FFFFFFF;
-    max.tv_usec = 0x7FFFFFFF;
-
-    if (s->root)
-    {
-        ASSERT(s->root->parent == NULL);
-    }
-    return schedule_debug_entry(s->root, 0, count, least, &min, &max);
-}
-
-#if 1
-
-void
-tv_randomize(struct timeval *tv)
-{
-    tv->tv_sec += random() % 100;
-    tv->tv_usec = random() % 100;
-}
-
-#else  /* if 1 */
-
-void
-tv_randomize(struct timeval *tv)
-{
-    struct gc_arena gc = gc_new();
-    long int choice = get_random();
-    if ((choice & 0xFF) == 0)
-    {
-        tv->tv_usec += ((choice >> 8) & 0xFF);
-    }
-    else
-    {
-        prng_bytes((uint8_t *)tv, sizeof(struct timeval));
-    }
-    gc_free(&gc);
-}
-
-#endif /* if 1 */
-
-void
-schedule_verify(struct schedule *s)
-{
-    struct gc_arena gc = gc_new();
-    struct timeval least;
-    int count;
-    int maxlev;
-    struct schedule_entry *e;
-    const struct status zz = z;
-
-    least.tv_sec = least.tv_usec = 0x7FFFFFFF;
-
-    count = 0;
-
-    maxlev = schedule_debug(s, &count, &least);
-
-    e = schedule_find_earliest_wakeup(s);
-
-    if (e)
-    {
-        printf("Verification Phase  count=%d maxlev=%d sru=%d ins=%d coll=%d ls=%d l=%s", count,
-               maxlev, zz.sru, zz.ins, zz.coll, zz.lsteps, tv_string(&e->tv, &gc));
-
-        if (!tv_eq(&least, &e->tv))
-        {
-            printf(" [COMPUTED DIFFERENT MIN VALUES!]");
-        }
-
-        printf("\n");
-    }
-
-    CLEAR(z);
-    gc_free(&gc);
-}
-
-void
-schedule_randomize_array(struct schedule_entry **array, int size)
-{
-    int i;
-    for (i = 0; i < size; ++i)
-    {
-        const int src = get_random() % size;
-        struct schedule_entry *tmp = array[i];
-        if (i != src)
-        {
-            array[i] = array[src];
-            array[src] = tmp;
-        }
-    }
-}
-
-void
-schedule_print_work(struct schedule_entry *e, int indent)
-{
-    struct gc_arena gc = gc_new();
-    int i;
-    for (i = 0; i < indent; ++i)
-    {
-        printf(" ");
-    }
-    if (e)
-    {
-        printf("%s [%u] e=" ptr_format ", p=" ptr_format " lt=" ptr_format " gt=" ptr_format "\n",
-               tv_string(&e->tv, &gc), e->pri, (ptr_type)e, (ptr_type)e->parent, (ptr_type)e->lt,
-               (ptr_type)e->gt);
-        schedule_print_work(e->lt, indent + 1);
-        schedule_print_work(e->gt, indent + 1);
-    }
-    else
-    {
-        printf("NULL\n");
-    }
-    gc_free(&gc);
-}
-
-void
-schedule_print(struct schedule *s)
-{
-    printf("*************************\n");
-    schedule_print_work(s->root, 0);
-}
-
-void
-schedule_test(void)
-{
-    struct gc_arena gc = gc_new();
-    int n = 1000;
-    int n_mod = 25;
-
-    int i, j;
-    struct schedule_entry **array;
-    struct schedule *s = schedule_init();
-    struct schedule_entry *e;
-
-    CLEAR(z);
-    ALLOC_ARRAY(array, struct schedule_entry *, n);
-
-    printf("Creation/Insertion Phase\n");
-
-    for (i = 0; i < n; ++i)
-    {
-        ALLOC_OBJ_CLEAR(array[i], struct schedule_entry);
-        tv_randomize(&array[i]->tv);
-        /*schedule_print (s);*/
-        /*schedule_verify (s);*/
-        schedule_add_modify(s, array[i]);
-    }
-
-    schedule_randomize_array(array, n);
-
-    /*schedule_print (s);*/
-    schedule_verify(s);
-
-    for (j = 1; j <= n_mod; ++j)
-    {
-        printf("Modification Phase Pass %d\n", j);
-
-        for (i = 0; i < n; ++i)
-        {
-            e = schedule_find_earliest_wakeup(s);
-            /*printf ("BEFORE %s\n", tv_string (&e->tv, &gc));*/
-            tv_randomize(&e->tv);
-            /*printf ("AFTER %s\n", tv_string (&e->tv, &gc));*/
-            schedule_add_modify(s, e);
-            /*schedule_verify (s);*/
-            /*schedule_print (s);*/
-        }
-        schedule_verify(s);
-        /*schedule_print (s);*/
-    }
-
-    /*printf ("INS=%d\n", z.ins);*/
-
-    while ((e = schedule_find_earliest_wakeup(s)))
-    {
-        schedule_remove_node(s, e);
-        /*schedule_verify (s);*/
-    }
-    schedule_verify(s);
-
-    printf("S->ROOT is %s\n", s->root ? "NOT NULL" : "NULL");
-
-    for (i = 0; i < n; ++i)
-    {
-        free(array[i]);
-    }
-    free(array);
-    free(s);
-    gc_free(&gc);
-}
-
-#endif /* ifdef SCHEDULE_TEST */

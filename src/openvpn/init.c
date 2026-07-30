@@ -53,6 +53,7 @@
 #include "mudp.h"
 #include "dco.h"
 #include "tun_afunix.h"
+#include "schedule.h"
 
 #include "memdbg.h"
 
@@ -875,11 +876,6 @@ init_static(void)
     update_time();
 
     init_ssl_lib();
-
-#ifdef SCHEDULE_TEST
-    schedule_test();
-    return false;
-#endif
 
 #ifdef IFCONFIG_POOL_TEST
     ifconfig_pool_test(0x0A010004, 0x0A0100FF);

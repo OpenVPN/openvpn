@@ -78,7 +78,7 @@ openvpn_unit_test_setup(void)
  * @param filename      name of the filename to retrieve relative to the
  *                      unit test source directory
  */
-void
+static inline void
 openvpn_test_get_srcdir_dir(char *buf, size_t bufsize, const char *filename)
 {
     const char *srcdir = getenv("srcdir");

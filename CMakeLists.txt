@@ -828,10 +828,14 @@ if (BUILD_TESTING)
 
     target_sources(test_misc PRIVATE
         tests/unit_tests/openvpn/mock_get_random.c
+        tests/unit_tests/openvpn/test_schedule.c
         src/openvpn/options_util.c
+        src/openvpn/otime.c
         src/openvpn/ssl_util.c
         src/openvpn/list.c
-        )
+        src/openvpn/session_id.c
+        src/openvpn/schedule.c
+    )
 
     target_sources(test_ncp PRIVATE
         src/openvpn/crypto_epoch.c

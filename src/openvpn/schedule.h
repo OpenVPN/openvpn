@@ -34,9 +34,6 @@
  * a ping or scheduling a TLS renegotiation.
  */
 
-/* define to enable a special test mode */
-/*#define SCHEDULE_TEST*/
-
 #include "otime.h"
 #include "error.h"
 
@@ -62,11 +59,6 @@ struct schedule *schedule_init(void);
 void schedule_free(struct schedule *s);
 
 void schedule_remove_entry(struct schedule *s, struct schedule_entry *e);
-
-#ifdef SCHEDULE_TEST
-void schedule_test(void);
-
-#endif
 
 /* Private Functions */
 
@@ -139,4 +131,14 @@ schedule_get_earliest_wakeup(struct schedule *s, struct timeval *wakeup)
     return ret;
 }
 
+/**
+ * This method compares two schedule entries and return which one is
+ * earlier,later or equal.
+ *
+ * A key is simply a struct timeval containing the absolute time for
+ * an event.  The unique treap priority (pri) is used to ensure
+ * that keys do not collide.
+ */
+int
+schedule_entry_compare(const struct schedule_entry *e1, const struct schedule_entry *e2);
 #endif /* ifndef SCHEDULE_H */

@@ -41,6 +41,8 @@
 #ifdef _WIN32
 #include "win32-util.h"
 #endif
+#include "test_schedule.h"
+
 
 static void
 test_compat_lzo_string(void **state)
@@ -488,7 +490,8 @@ const struct CMUnitTest misc_tests[] = {
     cmocka_unit_test(test_auth_fail_temp_flags),
     cmocka_unit_test(test_auth_fail_temp_flags_msg),
     cmocka_unit_test(test_list),
-    cmocka_unit_test(test_atoi_variants)
+    cmocka_unit_test(test_atoi_variants),
+    cmocka_unit_test(schedule_test)
 };
 
 int
