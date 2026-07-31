@@ -1208,7 +1208,7 @@ multi_learn_in_addr_t(struct multi_context *m, struct multi_instance *mi, in_add
         addr.netbits = (uint8_t)netbits;
     }
 
-    struct multi_instance *owner = multi_learn_addr(m, mi, &addr, 0);
+    struct multi_instance *owner = multi_learn_addr(m, mi, &addr, MULTI_ROUTE_PERMANENT);
 #ifdef ENABLE_MANAGEMENT
     if (management && owner)
     {
@@ -1253,7 +1253,7 @@ multi_learn_in6_addr(struct multi_context *m, struct multi_instance *mi, struct 
         mroute_addr_mask_host_bits(&addr);
     }
 
-    struct multi_instance *owner = multi_learn_addr(m, mi, &addr, 0);
+    struct multi_instance *owner = multi_learn_addr(m, mi, &addr, MULTI_ROUTE_PERMANENT);
 #ifdef ENABLE_MANAGEMENT
     if (management && owner)
     {
@@ -1383,7 +1383,7 @@ check_stale_routes(struct multi_context *m)
     while ((he = hash_iterator_next(&hi)) != NULL)
     {
         struct multi_route *r = (struct multi_route *)he->value;
-        if (multi_route_defined(m, r)
+        if (multi_route_defined(m, r) && !(r->flags & MULTI_ROUTE_PERMANENT)
             && difftime(now, r->last_reference) >= m->top.options.stale_routes_ageing_time)
         {
             dmsg(D_MULTI_DEBUG, "MULTI: Deleting stale route for address '%s'",
