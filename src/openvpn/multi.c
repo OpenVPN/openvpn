@@ -3111,6 +3111,18 @@ multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi
         goto done;
     }
 
+    /* do not allow if target address has a different username */
+    if (m1->locked_username || m2->locked_username)
+    {
+        if (!m1->locked_username || !m2->locked_username
+            || strcmp(m1->locked_username, m2->locked_username) != 0)
+        {
+            msg(D_MULTI_LOW, "Disallow float to an address taken by another client %s",
+                multi_instance_string(ex_mi, false, &gc));
+            goto done;
+        }
+    }
+
     /* It doesn't make sense to let a peer float to the address it already
      * has, so we disallow it. This can happen if a DCO netlink notification
      * gets lost and we miss a floating step.
@@ -3127,7 +3139,7 @@ multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi
 
     msg(D_MULTI_LOW,
         "closing instance %s due to float collision with %s "
-        "using the same certificate",
+        "using the same certificate and username",
         multi_instance_string(ex_mi, false, &gc), multi_instance_string(mi, false, &gc));
     multi_close_instance(m, ex_mi, false);
     ret = true;
