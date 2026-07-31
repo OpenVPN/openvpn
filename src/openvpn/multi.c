@@ -3068,6 +3068,76 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
 }
 
 /**
+ * This methods checks if a client instance is allowed to use an address
+ *
+ * Reasons for disallowing a specific address are that a client might be
+ * already using that address. In that case the method needs to decide
+ * if this instance can kick out the other instance.
+ *
+ * The method will then terminate the other instance if that check was
+ * positive.
+ */
+static bool
+multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi, struct mroute_addr *real)
+{
+    struct hash *hash = m->hash;
+    const uint64_t hv = hash_value(hash, real);
+    struct hash_bucket *bucket = hash_bucket(hash, hv);
+
+    /* make sure that we don't assign the client to an address taken by
+     * another client */
+    struct hash_element *he = hash_lookup_fast(hash, bucket, real, hv);
+    if (!he)
+    {
+        /* Address is not taken, everything is fine. */
+        return true;
+    }
+
+    struct multi_instance *ex_mi = he->value;
+
+    struct tls_multi *m1 = mi->context.c2.tls_multi;
+    struct tls_multi *m2 = ex_mi->context.c2.tls_multi;
+
+    struct gc_arena gc = gc_new();
+    int ret = false;
+
+    /* do not allow if target address is taken by client with another cert */
+    if (!cert_hash_compare(m1->locked_cert_hash_set, m2->locked_cert_hash_set))
+    {
+        msg(D_MULTI_LOW, "Disallow float to an address taken by another client %s",
+            multi_instance_string(ex_mi, false, &gc));
+
+        mi->context.c2.buf.len = 0;
+        goto done;
+    }
+
+    /* It doesn't make sense to let a peer float to the address it already
+     * has, so we disallow it. This can happen if a DCO netlink notification
+     * gets lost and we miss a floating step.
+     */
+    if (m1->rx_peer_id == m2->rx_peer_id)
+    {
+        msg(M_WARN,
+            "disallowing peer %" PRIu32 " (%s) from floating to "
+            "its own address (%s)",
+            m1->rx_peer_id, tls_common_name(mi->context.c2.tls_multi, false),
+            mroute_addr_print(&mi->real, &gc));
+        goto done;
+    }
+
+    msg(D_MULTI_LOW,
+        "closing instance %s due to float collision with %s "
+        "using the same certificate",
+        multi_instance_string(ex_mi, false, &gc), multi_instance_string(mi, false, &gc));
+    multi_close_instance(m, ex_mi, false);
+    ret = true;
+
+done:
+    gc_free(&gc);
+    return ret;
+}
+
+/**
  * Handles peer floating.
  *
  * If peer is floated to a taken address, either drops packet
@@ -3079,8 +3149,6 @@ static void
 multi_process_float(struct multi_context *m, struct multi_instance *mi, struct link_socket *sock)
 {
     struct mroute_addr real = { 0 };
-    struct hash *hash = m->hash;
-    struct gc_arena gc = gc_new();
 
     if (mi->real.type & MR_WITH_PROTO)
     {
@@ -3090,52 +3158,15 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi, struct l
 
     if (!mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true))
     {
-        goto done;
+        return;
     }
 
-    const uint64_t hv = hash_value(hash, &real);
-    struct hash_bucket *bucket = hash_bucket(hash, hv);
-
-    /* make sure that we don't float to an address taken by another client */
-    struct hash_element *he = hash_lookup_fast(hash, bucket, &real, hv);
-    if (he)
+    if (!multi_check_dest_addr_allowed(m, mi, &real))
     {
-        struct multi_instance *ex_mi = (struct multi_instance *)he->value;
-
-        struct tls_multi *m1 = mi->context.c2.tls_multi;
-        struct tls_multi *m2 = ex_mi->context.c2.tls_multi;
-
-        /* do not float if target address is taken by client with another cert */
-        if (!cert_hash_compare(m1->locked_cert_hash_set, m2->locked_cert_hash_set))
-        {
-            msg(D_MULTI_LOW, "Disallow float to an address taken by another client %s",
-                multi_instance_string(ex_mi, false, &gc));
-
-            mi->context.c2.buf.len = 0;
-
-            goto done;
-        }
-
-        /* It doesn't make sense to let a peer float to the address it already
-         * has, so we disallow it. This can happen if a DCO netlink notification
-         * gets lost and we miss a floating step.
-         */
-        if (m1->rx_peer_id == m2->rx_peer_id)
-        {
-            msg(M_WARN,
-                "disallowing peer %" PRIu32 " (%s) from floating to "
-                "its own address (%s)",
-                m1->rx_peer_id, tls_common_name(mi->context.c2.tls_multi, false),
-                mroute_addr_print(&mi->real, &gc));
-            goto done;
-        }
-
-        msg(D_MULTI_LOW,
-            "closing instance %s due to float collision with %s "
-            "using the same certificate",
-            multi_instance_string(ex_mi, false, &gc), multi_instance_string(mi, false, &gc));
-        multi_close_instance(m, ex_mi, false);
+        return;
     }
+
+    struct gc_arena gc = gc_new();
 
     msg(D_MULTI_MEDIUM, "peer %" PRIu32 " (%s) floated from %s to %s",
         mi->context.c2.tls_multi->rx_peer_id,
@@ -3165,7 +3196,6 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi, struct l
     ASSERT(hash_add(m->cid_hash, &mi->context.c2.mda_context.cid, mi, true));
 #endif
 
-done:
     gc_free(&gc);
 }
 
