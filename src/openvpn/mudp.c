@@ -219,7 +219,6 @@ static struct multi_instance *
 handle_connection_attempt(struct multi_context *m,
                           struct link_socket *sock,
                           struct mroute_addr *real,
-                          const uint64_t hv,
                           struct hash_bucket *bucket)
 {
     struct hash *hash = m->hash;
@@ -250,6 +249,7 @@ handle_connection_attempt(struct multi_context *m,
             mi = multi_create_instance(m, real, sock);
             if (mi)
             {
+                const uint64_t hv = hash_value(hash, real);
                 hash_add_fast(hash, bucket, &mi->real, hv, mi);
                 mi->did_real_hash = true;
                 multi_assign_peer_id(m, mi);
@@ -279,6 +279,28 @@ handle_connection_attempt(struct multi_context *m,
 }
 
 /**
+ * Looks up an multi instance by its real address (IP and port)
+ * @param m     multi context
+ * @param real  Address to look up
+ * @return      instance matching the address, NULL otherwise
+ */
+static struct multi_instance *
+multi_get_instance_udp_real(struct multi_context *m, struct mroute_addr *real)
+{
+    struct hash *hash = m->hash;
+    struct hash_element *he;
+    const uint64_t hv = hash_value(hash, real);
+    struct hash_bucket *bucket = hash_bucket(hash, hv);
+    he = hash_lookup_fast(hash, bucket, real, hv);
+    if (he)
+    {
+        return he->value;
+    }
+    return NULL;
+}
+
+
+/**
  * Get a client instance based on real address.  If
  * the instance doesn't exist, create it while
  * maintaining real address hash table atomicity.
@@ -294,7 +316,6 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
 
     if (mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true) && m->top.c2.buf.len > 0)
     {
-        struct hash_element *he;
         const uint64_t hv = hash_value(hash, &real);
         struct hash_bucket *bucket = hash_bucket(hash, hv);
         uint8_t *ptr = BPTR(&m->top.c2.buf);
@@ -331,17 +352,13 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
         }
         if (!v2 || peer_id_disabled)
         {
-            he = hash_lookup_fast(hash, bucket, &real, hv);
-            if (he)
-            {
-                mi = (struct multi_instance *)he->value;
-            }
+            mi = multi_get_instance_udp_real(m, &real);
         }
 
         /* we have no existing multi instance for this connection */
         if (!mi)
         {
-            mi = handle_connection_attempt(m, sock, &real, hv, bucket);
+            mi = handle_connection_attempt(m, sock, &real, bucket);
         }
 
 #ifdef ENABLE_DEBUG
