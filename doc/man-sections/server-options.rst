@@ -673,6 +673,11 @@ fast hardware. SSL/TLS authentication must be used in this mode.
 
   If ``t`` is not present it defaults to ``n``.
 
+  Only dynamically learned routes are subject to this check. Routes added from
+  configuration, such as ``--iroute`` entries and a client's pushed ifconfig
+  address, are never removed by it; they are dropped only when the client
+  disconnects.
+
   This option helps to keep the dynamic routing table small. See also
   ``--max-routes-per-client``
 
