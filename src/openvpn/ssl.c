@@ -3886,8 +3886,22 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
         /* Extract the packet ID from the packet */
         if (reliable_ack_read_packet_id(buf, &id))
         {
+            /* A hard reset always is the first packet of a session, so it
+             * always must use packet id 0. Ignore it if it claims another id.
+             * In a specific existing bug these packets were replays of an
+             * already handled reset, so ignoring it is better than aborting
+             * the connection attempt.
+             */
+            if (is_hard_reset_method2(op) && id != 0)
+            {
+                msg(D_TLS_ERRORS,
+                    "TLS Error: received %s with packet id " packet_id_format
+                    " from %s -- 0 was expected, ignoring packet",
+                    packet_opcode_name(op), (packet_id_print_type)id,
+                    print_link_socket_actual(from, &gc));
+            }
             /* Avoid deadlock by rejecting packet that would de-sequentialize receive buffer */
-            if (reliable_wont_break_sequentiality(ks->rec_reliable, id))
+            else if (reliable_wont_break_sequentiality(ks->rec_reliable, id))
             {
                 if (reliable_not_replay(ks->rec_reliable, id))
                 {
