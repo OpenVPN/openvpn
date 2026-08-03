@@ -1,3 +1,47 @@
+Overview of changes in 2.6.22
+=============================
+Security fixes
+--------------
+- openvpnserv (windows): better scrutinize command line passed in
+  from the control socket to openvpn.  This would lead to circumventing
+  admin restrictions on allowed openvpn config directories (but never
+  to "read files the user has no permissions for")  (CVE-2026-63649)
+
+  (Bug found by 章鱼哥 (www.aipyaipy.com), tracked
+   in Github: OpenVPN/openvpn-private-issues#142)
+
+- dco: make key state desync recoverable
+
+  This was reported as a "with suitable timing, a key-update de-sync between
+  OpenVPN and the kernel could trigger an ASSERT()", and was initially
+  handled as security report.  It turned out to be not exploitable, but the
+  state machine was not very robust and so the opportunity was used to
+  improve the code.
+
+  (Bug found by 章鱼哥 (www.aipyaipy.com), tracked
+   in Github: OpenVPN/openvpn-private-issues#143)
+
+Bugfixes
+--------
+- refuse incoming HARD RESET packets with a sequence ID != 0
+  (this is basically making an OpenVPN server ignore and log a
+   "should never happen" client-side misbehaviour, which could lead to
+   TLS handshake establishment failures in p2p TLS setups)
+
+- correct minimum packet length check for 802.1q tagged packets
+  (Github: OpenVPN/openvpn#1044).
+
+  This was also reported (twice) as a security bug, as technically
+  OpenVPN with ``--client-nat`` would read and write up to 4 bytes
+  "after the end of the packet" - but due to the OpenVPN packet buffer
+  layouts, which are always full-frame-sized this is fully safe and has
+  no adverse consequences.
+
+Building/Testing improvements
+-----------------------------
+- fix test_tls_crypt test failures on Windows.
+
+
 Overview of changes in 2.6.21
 =============================
 Security fixes

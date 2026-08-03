@@ -1,6 +1,22 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2026.08.05 -- Version 2.6.22
+
+Frank Lichtenheld (2):
+      test_tls_crypt: Fix test failure on Windows
+      ssl: Ignore hard reset packets with a non-zero packet id
+
+Heiko Hund (1):
+      interactive: forbid "--setenv opt" in startup data
+
+Ralf Lici (1):
+      dco: make key state desync recoverable
+
+rootvector2 (1):
+      proto: correct 802.1Q length check in is_ipv_X
+
+
 2026.07.01 -- Version 2.6.21
 
 Antonio Quartulli (1):
