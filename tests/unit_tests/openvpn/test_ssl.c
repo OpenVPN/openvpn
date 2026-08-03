@@ -324,7 +324,7 @@ do_data_channel_round_trip(struct crypto_options *co)
         ASSERT(buf_init(&src, 0));
         ASSERT(i <= src.capacity);
         src.len = i;
-        ASSERT(rand_bytes(BPTR(&src), BLEN(&src)));
+        prng_bytes(BPTR(&src), BLEN(&src));
 
         /* copy source to input buf */
         buf = work;
@@ -370,7 +370,7 @@ encrypt_one_packet(struct crypto_options *co, int len)
     ASSERT(buf_init(&src, 0));
     ASSERT(len <= src.capacity);
     src.len = len;
-    ASSERT(rand_bytes(BPTR(&src), BLEN(&src)));
+    prng_bytes(BPTR(&src), BLEN(&src));
 
     /* copy source to input buf */
     buf = work;
@@ -455,10 +455,10 @@ init_crypto_options(const char *cipher, const char *auth, bool epoch, struct key
     }
     else
     {
-        ASSERT(rand_bytes(key2.keys[0].cipher, sizeof(key2.keys[0].cipher)));
-        ASSERT(rand_bytes(key2.keys[0].hmac, sizeof(key2.keys[0].hmac)));
-        ASSERT(rand_bytes(key2.keys[1].cipher, sizeof(key2.keys[1].cipher)));
-        ASSERT(rand_bytes(key2.keys[1].hmac, sizeof(key2.keys)[1].hmac));
+        prng_bytes(key2.keys[0].cipher, sizeof(key2.keys[0].cipher));
+        prng_bytes(key2.keys[0].hmac, sizeof(key2.keys[0].hmac));
+        prng_bytes(key2.keys[1].cipher, sizeof(key2.keys[1].cipher));
+        prng_bytes(key2.keys[1].hmac, sizeof(key2.keys)[1].hmac);
     }
 
     struct crypto_options co = { 0 };
