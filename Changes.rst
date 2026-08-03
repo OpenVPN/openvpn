@@ -1,3 +1,94 @@
+Overview of changes in 2.7.6
+============================
+Security fixes
+--------------
+- openvpnserv (windows): better scrutinize command line passed in
+  from the control socket to openvpn.  This would lead to circumventing
+  admin restrictions on allowed openvpn config directories (but never
+  to "read files the user has no permissions for")  (CVE-2026-63649)
+
+  (Bug found by 章鱼哥 (www.aipyaipy.com), tracked
+   in Github: OpenVPN/openvpn-private-issues#142)
+
+- dco: make key state desync recoverable
+
+  This was reported as a "with suitable timing, a key-update de-sync between
+  OpenVPN and the kernel could trigger an ASSERT()", and was initially
+  handled as security report.  It turned out to be not exploitable, but the
+  state machine was not very robust and so the opportunity was used to
+  improve the code.
+
+  (Bug found by 章鱼哥 (www.aipyaipy.com), tracked
+   in Github: OpenVPN/openvpn-private-issues#143)
+
+- make ``--x509-username-field`` work with mbedTLS.
+
+  In very particular setups, together with a CA creating matching certificates,
+  this could lead to unintentionally permitting a certificate that should
+  not have.  This is why this was considered a (low-prio) security bug and a
+  CVE ID was assigned  (CVE-2026-63650)
+
+  (Bug found by 章鱼哥 (www.aipyaipy.com), tracked
+   in Github: OpenVPN/openvpn-private-issues#144)
+
+Bugfixes
+--------
+- refuse incoming HARD RESET packets with a sequence ID != 0
+  (this is basically making an OpenVPN server ignore and log a
+   "should never happen" client-side misbehaviour, which could lead to
+   TLS handshake establishment failures in p2p TLS setups)
+
+- correctly calculate packet id size if epoch packet format is in use
+  - this was off by 4, for connections openvpn 2.7+ to openvpn 2.7+,
+  exceeding "mssfix mtu" headroom by those 4 bytes
+  (Github: OpenVPN/openvpn#1074)
+
+- correct minimum packet length check for 802.1q tagged packets
+  (Github: OpenVPN/openvpn#1044).
+
+  This was also reported (twice) as a security bug, as technically
+  OpenVPN with ``--client-nat`` would read and write up to 4 bytes
+  "after the end of the packet" - but due to the OpenVPN packet buffer
+  layouts, which are always full-frame-sized this is fully safe and has
+  no adverse consequences.
+
+User-visible Changes
+--------------------
+- if ``--dev`` is not specified, default to ``--dev tun`` - so for the
+  tun case, this option can now be left out of the openvpn config.
+
+- ``--ping`` and ``--keepalive`` settings are now limited to 24 hours
+  maximum - the primary reason for that is to avoid lots of extra code
+  in the DCO kernel to handle arbitrarily large values without overflowing
+  32 bit integers.  24h is considered much higher than any reasonable use.
+
+- The ``TCP_NODELAY`` socket flag is now "always on". The ``--tcp-nodelay``
+  option is kept, because setting it on a p2mp server also enables pushing
+  of ``socket-flags TCP_NODELAY`` to clients, which might not have this
+  code change yet.
+
+- Remove ``--providers`` from ``--help`` output on mbedTLS builds.
+
+Building/Testing improvements
+-----------------------------
+- no longer use C99 ``hh`` scanf() length modifier, as it's not portable
+  across all MinGW variants.
+
+- fix test_tls_crypt test failures on Windows.
+
+- t_client.sh: do not run resolvectl to query DNS settings if systemd is
+  not running (= do not pollute log files with nonsensical errors).
+
+- CMake builds: detect cmocka_version.h via include path, not by linking
+
+- test_tls_crypt: Fix issue with temp file name on big endian systems
+  (encountered trying to build 2.7.5 on Fedora s390x build instances).
+
+Documentation improvements
+--------------------------
+- ssl_pkt: Fix doxygen warning about read_control_auth
+
+
 Overview of changes in 2.7.5
 ============================
 Security fixes
@@ -27,7 +118,7 @@ Security fixes
    tracked in Github: OpenVPN/openvpn-private-issues#119, #131)
 
 - Fix server crash on reception of suitably malformed auth-token, if
-  ```--auth-gen-token external-auth`` is active (CVE-2026-13122)
+  ``--auth-gen-token external-auth`` is active (CVE-2026-13122)
 
   (Bug found by Haiyang Huang <huanghaiyang83@gmail.com>, tracked in
    Github: OpenVPN/openvpn-private-issues#118)

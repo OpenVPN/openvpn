@@ -1,6 +1,43 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
 
+2026.08.05 -- Version 2.7.6
+
+Antonio Quartulli (2):
+      Enable TCP_NODELAY by default and push it to clients
+      options: make 'tun' the default for '--dev'
+
+Arne Schwabe (1):
+      Correctly calculate packet id size when epoch packet format is in use
+
+Frank Lichtenheld (5):
+      test_tls_crypt: Fix issue with temp file name on big endian systems
+      ssl_pkt: Fix doxygen warning about read_control_auth
+      t_client.sh.in: Do not run resolvectl if systemd is not running
+      test_tls_crypt: Fix test failure on Windows
+      ssl: Ignore hard reset packets with a non-zero packet id
+
+Heiko Hund (2):
+      mingw: avoid C99 "hh" scanf length modifier
+      interactive: forbid "--setenv opt" in startup data
+
+Lev Stipakov (1):
+      CMake: detect cmocka_version.h via include path, not by linking
+
+Marco Baffo (1):
+      options: limit ping and keepalive values to one day
+
+Max Fillinger (2):
+      Make --x509-username-field work with Mbed TLS
+      Remove --providers from --help output for Mbed TLS
+
+Ralf Lici (1):
+      dco: make key state desync recoverable
+
+rootvector2 (1):
+      proto: correct 802.1Q length check in is_ipv_X
+
+
 2026.07.01 -- Version 2.7.5
 
 Antonio Quartulli (2):
