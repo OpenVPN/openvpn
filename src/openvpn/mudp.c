@@ -37,6 +37,41 @@
 #include <sys/inotify.h>
 #endif
 
+/**
+ * Send an already-built standalone control packet back to the peer that just
+ * contacted us (c2.from), synchronously and without keeping any state.
+ *
+ * We do not want to keep state for a reply to an initial/out-of-band packet, so
+ * we send it without queueing. If we hit EAGAIN on a busy socket the packet is
+ * lost and the client simply retries -- an acceptable compromise that avoids
+ * consuming server resources under attack.
+ *
+ * @param m       the server's multi_context
+ * @param buf     the packet to send (built by a tls_*_standalone() helper)
+ * @param prefix  msg() prefix to set for the duration of the send
+ * @param detail  D_MULTI_DEBUG message describing the reply
+ * @param sock    the socket to send the reply on
+ */
+static void
+send_standalone_reply(struct multi_context *m, struct buffer *buf, const char *prefix,
+                      const char *detail, struct link_socket *sock)
+{
+    struct context *c = &m->top;
+
+    /* dco-win server requires prepend with sockaddr, so preserve offset */
+    ASSERT(buf_init(&c->c2.buffers->aux_buf, buf->offset));
+    buf_copy(&c->c2.buffers->aux_buf, buf);
+
+    msg_set_prefix(prefix);
+    c->c2.to_link = c->c2.buffers->aux_buf;
+    c->c2.to_link_addr = &c->c2.from;
+    msg(D_MULTI_DEBUG, "%s", detail);
+    process_outgoing_link(c, sock);
+    c->c2.to_link.len = 0;
+    c->c2.to_link_addr = NULL;
+    msg_set_prefix(NULL);
+}
+
 static void
 send_hmac_reset_packet(struct multi_context *m, struct tls_pre_decrypt_state *state,
                        struct tls_auth_standalone *tas, struct session_id *sid,
@@ -48,29 +83,8 @@ send_hmac_reset_packet(struct multi_context *m, struct tls_pre_decrypt_state *st
     struct buffer buf = tls_reset_standalone(&state->tls_wrap_tmp, tas, sid,
                                              &state->peer_session_id, header, request_resend_wkc);
 
-    struct context *c = &m->top;
-
-    /* dco-win server requires prepend with sockaddr, so preserve offset */
-    ASSERT(buf_init(&c->c2.buffers->aux_buf, buf.offset));
-
-    buf_copy(&c->c2.buffers->aux_buf, &buf);
-
-    /*
-     * We do not want to keep any state here, so we send the reply to the
-     * initial packet synchronously without queueing anything.
-     *
-     * If we hit EAGAIN on a busy socket, the packet will be lost and the
-     * client will have to retransmit its HARD_RESET. This is considered an
-     * acceptable compromise to avoid consuming server resources under attack.
-     */
-    msg_set_prefix("Connection Attempt");
-    c->c2.to_link = c->c2.buffers->aux_buf;
-    c->c2.to_link_addr = &c->c2.from;
-    msg(D_MULTI_DEBUG, "Reset packet from client, sending HMAC based reset challenge");
-    process_outgoing_link(c, sock);
-    c->c2.to_link.len = 0;
-    c->c2.to_link_addr = NULL;
-    msg_set_prefix(NULL);
+    send_standalone_reply(m, &buf, "Connection Attempt",
+                          "Reset packet from client, sending HMAC based reset challenge", sock);
 }
 
 
