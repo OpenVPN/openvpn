@@ -38,6 +38,7 @@
 #include "test_common.h"
 #include "list.h"
 #include "mock_msg.h"
+#include "crypto.h"
 #ifdef _WIN32
 #include "win32-util.h"
 #endif
@@ -141,13 +142,6 @@ static bool
 word_compare_function(const void *key1, const void *key2)
 {
     return strcmp((const char *)key1, (const char *)key2) == 0;
-}
-
-static uint32_t
-get_random(void)
-{
-    /* rand() is not very random, but it's C99 and this is just for testing */
-    return (uint32_t)rand();
 }
 
 static struct hash_element *
@@ -266,7 +260,7 @@ test_list(void **state)
         {
             struct hash_iterator hi;
             struct hash_element *he;
-            inc = (get_random() % 3) + 1;
+            inc = ((uint32_t)get_random() % 3) + 1;
             hash_iterator_init_range(hash, &hi, base, base + inc);
 
             while ((he = hash_iterator_next(&hi)))

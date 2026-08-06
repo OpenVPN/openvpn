@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <cmocka.h>
 
-unsigned long
+int64_t
 get_random(void)
 {
     /* rand() is not very random, but it's C99 and this is just for testing */
