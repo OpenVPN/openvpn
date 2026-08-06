@@ -170,8 +170,8 @@ test_list(void **state)
      */
 
     struct gc_arena gc = gc_new();
-    struct hash *hash = hash_init(10000, get_random(), word_hash_function, word_compare_function);
-    struct hash *nhash = hash_init(256, get_random(), word_hash_function, word_compare_function);
+    struct hash *hash = hash_init(10000, (uint32_t)get_random(), word_hash_function, word_compare_function);
+    struct hash *nhash = hash_init(256, (uint32_t)get_random(), word_hash_function, word_compare_function);
 
     printf("hash_init n_buckets=%u mask=0x%08x\n", hash->n_buckets, hash->mask);
 
