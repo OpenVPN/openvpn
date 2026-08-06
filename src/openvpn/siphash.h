@@ -18,12 +18,26 @@
 #ifndef SIPHASH_H
 #define SIPHASH_H
 
-#include <inttypes.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdbool.h>
 
 /* siphash always uses 128-bit keys */
 #define SIPHASH_KEY_SIZE 16
 
-int siphash(const void *in, size_t inlen, const void *k, uint8_t *out,
-            size_t outlen);
+/**
+ * Calculates SIPHASH using the reference implementation
+ */
+int
+siphash_reference(const void *in, size_t inlen, const void *k,
+                  uint8_t *out, size_t outlen);
 
-#endif
+
+static inline int
+siphash(const void *in, size_t inlen, const void *k,
+        uint8_t *out, size_t outlen)
+{
+    return siphash_reference(in, inlen, k, out, outlen);
+}
+
+#endif /* ifndef SIPHASH_H */

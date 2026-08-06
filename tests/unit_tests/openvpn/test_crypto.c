@@ -31,12 +31,15 @@
 #include <stdarg.h>
 #include <string.h>
 #include <setjmp.h>
+#include <inttypes.h>
 #include <cmocka.h>
 
 #include "crypto.h"
 #include "crypto_epoch.h"
 #include "options.h"
 #include "ssl_backend.h"
+#include "siphash.h"
+#include "siphash_openssl.h"
 
 #include "mss.h"
 #include "test_common.h"
@@ -923,6 +926,69 @@ epoch_test_derive_data_key(void **state)
     assert_memory_equal(key_parameters.hmac, exp_impl_iv, sizeof(exp_impl_iv));
 }
 
+/* Use a define here since some c compilers don't like array initialisation
+ * with an integer */
+#define UT_SIPHASH_HASH_SIZE 16
+
+static const char *ut_message = "Look behind you, a Three-Headed Monkey!";
+static const uint8_t ut_key[SIPHASH_KEY_SIZE] = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66 };
+const uint8_t expected_hash[UT_SIPHASH_HASH_SIZE] = { 0x3e, 0xea, 0x95, 0xb2, 0x6d, 0x5c, 0x4e, 0xfa,
+                                                      0x20, 0x47, 0x65, 0x7e, 0xdd, 0xcd, 0x62, 0x51 };
+
+static void
+test_siphash(void **state)
+{
+    uint8_t out[UT_SIPHASH_HASH_SIZE] = { 0 };
+    siphash_reference(ut_message, strlen(ut_message), ut_key, out, UT_SIPHASH_HASH_SIZE);
+    assert_memory_equal(out, expected_hash, UT_SIPHASH_HASH_SIZE);
+}
+
+static void
+test_siphash_openssl(void **state)
+{
+    void *sipctx = siphash_openssl_init(UT_SIPHASH_HASH_SIZE);
+
+    if (!siphash_openssl_available(sipctx))
+    {
+        siphash_openssl_uninit(sipctx);
+        skip();
+    }
+
+    uint8_t out[UT_SIPHASH_HASH_SIZE] = { 0 };
+
+    siphash_openssl(sipctx, ut_message, strlen(ut_message), ut_key, out,
+                    UT_SIPHASH_HASH_SIZE);
+    assert_memory_equal(out, expected_hash, UT_SIPHASH_HASH_SIZE);
+
+    /* check that calling the function twice is safe */
+    siphash_openssl(sipctx, ut_message, strlen(ut_message), ut_key, out,
+                    UT_SIPHASH_HASH_SIZE);
+    assert_memory_equal(out, expected_hash, UT_SIPHASH_HASH_SIZE);
+
+    /* Test a few random strings and ensure that our implementation behave the
+     * same */
+    for (int i = 0; i < 1000; i++)
+    {
+        size_t len = random() % 1000u;
+        uint8_t buf[1024] = { 0 };
+        uint8_t key[SIPHASH_KEY_SIZE] = { 0 };
+
+        assert_true(rand_bytes(buf, (int)len));
+        assert_true(rand_bytes(key, sizeof(key)));
+
+
+        siphash_openssl(sipctx, buf, len, key, out, UT_SIPHASH_HASH_SIZE);
+
+        uint8_t outref[UT_SIPHASH_HASH_SIZE] = { 0 };
+        siphash_reference(buf, len, key, outref, UT_SIPHASH_HASH_SIZE);
+
+        assert_memory_equal(out, outref, UT_SIPHASH_HASH_SIZE);
+    }
+
+    siphash_openssl_uninit(sipctx);
+}
+
+
 int
 main(void)
 {
@@ -960,7 +1026,9 @@ main(void)
         cmocka_unit_test_prestate_setup_teardown(crypto_test_epoch_edge,
                                                  crypto_test_epoch_setup,
                                                  crypto_test_epoch_teardown, &prestate_num13),
-        cmocka_unit_test(epoch_test_derive_data_key)
+        cmocka_unit_test(epoch_test_derive_data_key),
+        cmocka_unit_test(test_siphash),
+        cmocka_unit_test(test_siphash_openssl)
     };
 
     return cmocka_run_group_tests_name("crypto tests", tests, NULL, NULL);

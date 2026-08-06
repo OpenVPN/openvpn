@@ -128,6 +128,7 @@ openvpn_SOURCES = \
 	session_id.c session_id.h \
 	shaper.c shaper.h \
 	sig.c sig.h \
+	siphash_reference.c siphash.h \
 	socket.c socket.h \
 	socket_util.c socket_util.h \
 	socks.c socks.h \

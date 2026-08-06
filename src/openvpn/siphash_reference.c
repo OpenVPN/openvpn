@@ -100,8 +100,8 @@
  *  outlen: length of the output in bytes, must be 8 or 16
  */
 int
-siphash(const void *in, const size_t inlen, const void *k, uint8_t *out,
-        const size_t outlen)
+siphash_reference(const void *in, const size_t inlen, const void *k, uint8_t *out,
+                  const size_t outlen)
 {
     const unsigned char *ni = (const unsigned char *)in;
     const unsigned char *kk = (const unsigned char *)k;

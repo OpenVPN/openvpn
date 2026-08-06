@@ -572,6 +572,8 @@ set(SOURCE_FILES
     src/openvpn/shaper.h
     src/openvpn/sig.c
     src/openvpn/sig.h
+    src/openvpn/siphash.h
+    src/openvpn/siphash_reference.c
     src/openvpn/socket.c
     src/openvpn/socket.h
     src/openvpn/socket_util.c
@@ -784,6 +786,7 @@ if (BUILD_TESTING)
         )
 
     target_sources(test_crypto PRIVATE
+        tests/unit_tests/openvpn/siphash_openssl.c
         src/openvpn/crypto_mbedtls.c
         src/openvpn/crypto_openssl.c
         src/openvpn/crypto_epoch.c
@@ -792,6 +795,7 @@ if (BUILD_TESTING)
         src/openvpn/packet_id.c
         src/openvpn/mtu.c
         src/openvpn/mss.c
+        src/openvpn/siphash_reference.c
         )
 
     target_sources(test_ssl PRIVATE
