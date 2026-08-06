@@ -842,6 +842,8 @@ if (BUILD_TESTING)
         src/openvpn/crypto_mbedtls.c
         src/openvpn/crypto_openssl.c
         src/openvpn/crypto.c
+        src/openvpn/mss.c
+        src/openvpn/mtu.c
         src/openvpn/otime.c
         src/openvpn/packet_id.c
         src/openvpn/ssl_util.c

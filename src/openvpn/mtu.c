@@ -49,10 +49,11 @@ alloc_buf_sock_tun(struct buffer *buf, const struct frame *frame)
 }
 
 unsigned int
-calc_packet_id_size_dc(const struct options *options, const struct key_type *kt)
+calc_packet_id_size_dc(const struct options *options, const struct key_type *kt,
+                       unsigned int crypto_flags)
 {
     bool tlsmode = options->tls_server || options->tls_client;
-    bool epoch = options->imported_protocol_flags & CO_EPOCH_DATA_KEY_FORMAT;
+    bool epoch = crypto_flags & CO_EPOCH_DATA_KEY_FORMAT;
 
     /* epoch format uses a 64-bit packet id: 16 bit epoch + 48 bit per-epoch counter */
     if (epoch)
@@ -67,7 +68,7 @@ calc_packet_id_size_dc(const struct options *options, const struct key_type *kt)
 
 size_t
 frame_calculate_protocol_header_size(const struct key_type *kt, const struct options *options,
-                                     bool occ)
+                                     unsigned int crypto_flags, bool occ)
 {
     /* Sum of all the overhead that reduces the usable packet size */
     size_t header_size = 0;
@@ -93,7 +94,7 @@ frame_calculate_protocol_header_size(const struct key_type *kt, const struct opt
         header_size += options->use_peer_id ? 4 : 1;
     }
 
-    unsigned int pkt_id_size = calc_packet_id_size_dc(options, kt);
+    unsigned int pkt_id_size = calc_packet_id_size_dc(options, kt, crypto_flags);
 
     /* For figuring out the crypto overhead, we need the size of the payload
      * including all headers that also get encrypted as part of the payload */
@@ -104,7 +105,7 @@ frame_calculate_protocol_header_size(const struct key_type *kt, const struct opt
 
 size_t
 frame_calculate_payload_overhead(size_t extra_tun, const struct options *options,
-                                 const struct key_type *kt)
+                                 const struct key_type *kt, unsigned int crypto_flags)
 {
     size_t overhead = 0;
 
@@ -136,7 +137,7 @@ frame_calculate_payload_overhead(size_t extra_tun, const struct options *options
         /* The packet id is part of the plain text payload instead of the
          * cleartext protocol header and needs to be included in the payload
          * overhead instead of the protocol header */
-        overhead += calc_packet_id_size_dc(options, kt);
+        overhead += calc_packet_id_size_dc(options, kt, crypto_flags);
     }
 
     return overhead;
@@ -147,7 +148,8 @@ frame_calculate_payload_size(const struct frame *frame, const struct options *op
                              const struct key_type *kt)
 {
     size_t payload_size = options->ce.tun_mtu;
-    payload_size += frame_calculate_payload_overhead(frame->extra_tun, options, kt);
+    payload_size += frame_calculate_payload_overhead(frame->extra_tun, options, kt,
+                                                     options->imported_protocol_flags);
     return payload_size;
 }
 
@@ -189,7 +191,7 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
     init_key_type(&occ_kt, ciphername, o->authname, true, false);
 
     size_t payload = frame_calculate_payload_size(frame, o, &occ_kt);
-    overhead += frame_calculate_protocol_header_size(&occ_kt, o, true);
+    overhead += frame_calculate_protocol_header_size(&occ_kt, o, o->imported_protocol_flags, true);
 
     return payload + overhead;
 }
