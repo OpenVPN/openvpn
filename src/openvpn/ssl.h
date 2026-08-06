@@ -231,6 +231,8 @@ void tls_multi_free(struct tls_multi *multi, bool clear);
 #define TLSMP_ACTIVE    1
 #define TLSMP_KILL      2
 #define TLSMP_RECONNECT 3
+/** the session cannot recover on its own and has to be restarted */
+#define TLSMP_RESTART   4
 
 /*
  * Called by the top-level event loop.
@@ -553,15 +555,6 @@ bool is_hard_reset_method2(int op);
  */
 void show_available_tls_ciphers(const char *cipher_list, const char *cipher_list_tls13,
                                 const char *tls_cert_profile);
-
-
-/**
- * Generate data channel keys for the supplied TLS session.
- *
- * This erases the source material used to generate the data channel keys, and
- * can thus be called only once per session.
- */
-bool tls_session_generate_data_channel_keys(struct tls_multi *multi, struct tls_session *session);
 
 void tls_session_soft_reset(struct tls_multi *multi);
 

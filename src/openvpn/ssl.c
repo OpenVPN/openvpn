@@ -1395,7 +1395,22 @@ init_epoch_keys(struct key_state *ks, struct tls_multi *multi, const struct key_
     secure_memzero(&e1_recv, sizeof(e1_recv));
 }
 
-static void
+/**
+ * Outcome of generating the data channel keys of a session.
+ *
+ * \c KEY_GEN_DCO_DESYNC is kept distinct from \c KEY_GEN_FAILED because it
+ * means userspace and kernel disagree about the DCO peer: the session cannot
+ * recover on its own and the connection has to be restarted, while any other
+ * failure only invalidates the affected key state.
+ */
+enum key_gen_status
+{
+    KEY_GEN_OK,         /**< keys were generated and installed */
+    KEY_GEN_FAILED,     /**< generation failed, invalidate the key state */
+    KEY_GEN_DCO_DESYNC, /**< the DCO peer is gone from the kernel */
+};
+
+static enum key_gen_status
 init_key_contexts(struct key_state *ks, struct tls_multi *multi, const struct key_type *key_type,
                   bool server, struct key2 *key2, bool dco_enabled)
 {
@@ -1414,7 +1429,16 @@ init_key_contexts(struct key_state *ks, struct tls_multi *multi, const struct ke
         int ret = init_key_dco_bi(multi, ks, key2, key_direction, key_type->cipher, server);
         if (ret < 0)
         {
-            msg(M_FATAL, "Impossible to install key material in DCO: %s", strerror(-ret));
+            /* This normally means the DCO peer is gone from the kernel while
+             * userspace still believes it exists. Do not take the whole
+             * process down over a single peer: report the desync so that the
+             * connection is restarted and the peer re-created from scratch */
+            msg(M_WARN,
+                "Impossible to install key material in DCO: %s. The underlying "
+                "DCO peer may have been deleted from the kernel without "
+                "notifying userspace. Restarting the session.",
+                strerror(-ret));
+            return KEY_GEN_DCO_DESYNC;
         }
 
         /* encrypt/decrypt context are unused with DCO */
@@ -1437,6 +1461,8 @@ init_key_contexts(struct key_state *ks, struct tls_multi *multi, const struct ke
     {
         init_key_ctx_bi(key, key2, key_direction, key_type, "Data Channel");
     }
+
+    return KEY_GEN_OK;
 }
 
 static bool
@@ -1497,11 +1523,11 @@ generate_key_expansion_openvpn_prf(const struct tls_session *session, struct key
  * Using source entropy from local and remote hosts, mix into
  * master key.
  */
-static bool
+static enum key_gen_status
 generate_key_expansion(struct tls_multi *multi, struct key_state *ks, struct tls_session *session)
 {
     struct key_ctx_bi *key = &ks->crypto_options.key_ctx_bi;
-    bool ret = false;
+    enum key_gen_status ret = KEY_GEN_FAILED;
     struct key2 key2;
 
     if (key->initialized)
@@ -1546,8 +1572,8 @@ generate_key_expansion(struct tls_multi *multi, struct key_state *ks, struct tls
         }
     }
 
-    init_key_contexts(ks, multi, &session->opt->key_type, server, &key2, session->opt->dco_enabled);
-    ret = true;
+    ret = init_key_contexts(ks, multi, &session->opt->key_type, server, &key2,
+                            session->opt->dco_enabled);
 
 exit:
     secure_memzero(&key2, sizeof(key2));
@@ -1561,10 +1587,10 @@ exit:
  * This erases the source material used to generate the data channel keys, and
  * can thus be called only once per session.
  */
-bool
+static enum key_gen_status
 tls_session_generate_data_channel_keys(struct tls_multi *multi, struct tls_session *session)
 {
-    bool ret = false;
+    enum key_gen_status ret = KEY_GEN_FAILED;
     struct key_state *ks = &session->key[KS_PRIMARY]; /* primary key */
 
     if (ks->authenticated <= KS_AUTH_FALSE)
@@ -1575,7 +1601,8 @@ tls_session_generate_data_channel_keys(struct tls_multi *multi, struct tls_sessi
 
     ks->crypto_options.flags = session->opt->crypto_flags;
 
-    if (!generate_key_expansion(multi, ks, session))
+    ret = generate_key_expansion(multi, ks, session);
+    if (ret != KEY_GEN_OK)
     {
         msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
         goto cleanup;
@@ -1587,7 +1614,6 @@ tls_session_generate_data_channel_keys(struct tls_multi *multi, struct tls_sessi
     /* set the state of the keys for the session to generated */
     ks->state = S_GENERATED_KEYS;
 
-    ret = true;
 cleanup:
     secure_memzero(ks->key_src, sizeof(*ks->key_src));
     return ret;
@@ -1659,7 +1685,10 @@ tls_session_update_crypto_params_do_work(struct tls_multi *multi, struct tls_ses
             }
         }
     }
-    return tls_session_generate_data_channel_keys(multi, session);
+    /* A DCO desync is reported as a plain failure here: every caller of this
+     * function already turns a failure into a SIGUSR1, which is exactly the
+     * recovery a desync needs */
+    return tls_session_generate_data_channel_keys(multi, session) == KEY_GEN_OK;
 }
 
 bool
@@ -3277,6 +3306,9 @@ tls_multi_process(struct tls_multi *multi, struct buffer *to_link,
     struct gc_arena gc = gc_new();
     int active = TLSMP_INACTIVE;
     bool error = false;
+    /* kept separate from 'active' on purpose: a restart request must not be
+     * overwritten by a later TLSMP_ACTIVE/TLSMP_RECONNECT assignment */
+    bool restart = false;
 
     tls_clear_error();
 
@@ -3377,12 +3409,22 @@ tls_multi_process(struct tls_multi *multi, struct buffer *to_link,
             /* Session is now fully authenticated.
              * tls_session_generate_data_channel_keys will move ks->state
              * from S_ACTIVE to S_GENERATED_KEYS */
-            if (!tls_session_generate_data_channel_keys(multi, session))
+            enum key_gen_status status = tls_session_generate_data_channel_keys(multi, session);
+            if (status != KEY_GEN_OK)
             {
                 msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
                 ks->authenticated = KS_AUTH_FALSE;
                 key_state_ssl_shutdown(&ks->ks_ssl);
                 ks->state = S_ERROR_PRE;
+
+                /* Invalidating the key state is not enough to recover from a
+                 * DCO desync: the kernel peer has to be re-created, and the
+                 * key state we just invalidated will never be retried, so ask
+                 * for a restart right away */
+                if (status == KEY_GEN_DCO_DESYNC)
+                {
+                    restart = true;
+                }
             }
 
             /* Update auth token on the client if needed on renegotiation
@@ -3470,7 +3512,17 @@ nohard:
 
     gc_free(&gc);
 
-    return (tas == TLS_AUTHENTICATION_FAILED) ? TLSMP_KILL : active;
+    /* strongest outcome wins: killing the session supersedes restarting it,
+     * and restarting supersedes whatever 'active' ended up being */
+    if (tas == TLS_AUTHENTICATION_FAILED)
+    {
+        return TLSMP_KILL;
+    }
+    if (restart)
+    {
+        return TLSMP_RESTART;
+    }
+    return active;
 }
 
 /**

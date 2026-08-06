@@ -206,6 +206,12 @@ check_tls(struct context *c)
                 register_signal(c->sig, SIGTERM, "auth-control-exit");
             }
         }
+        else if (tmp_status == TLSMP_RESTART)
+        {
+            /* The session cannot recover on its own. Kill the connection so
+             * that it is set up again from scratch */
+            register_signal(c->sig, SIGUSR1, "dco key state desync");
+        }
 
         interval_future_trigger(&c->c2.tmp_int, wakeup);
     }
