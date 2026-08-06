@@ -18,9 +18,18 @@
 #ifndef SIPHASH_H
 #define SIPHASH_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
+
+/* We need to include this to check for the OPENSSL_IS_AWSLC macro */
+#ifdef ENABLE_CRYPTO_OPENSSL
+#include <openssl/opensslv.h>
+#endif
 
 /* siphash always uses 128-bit keys */
 #define SIPHASH_KEY_SIZE 16
@@ -28,16 +37,44 @@
 /**
  * Calculates SIPHASH using the reference implementation
  */
-int
+void
 siphash_reference(const void *in, size_t inlen, const void *k,
                   uint8_t *out, size_t outlen);
 
 
-static inline int
+#if defined(OPENSSL_IS_AWSLC)
+#define USE_CRYPOTOLIB_SIPHASH
+#include <openssl/siphash.h>
+#include <string.h>
+#include "error.h"
+/**
+ *  Computes a SipHash value
+ * @param   in      pointer to input data (read-only)
+ * @param   inlen   input data length in bytes (any size_t value)
+ * @param   k       pointer to the key data (read-only), must be 16 bytes
+ * @param   out     pointer to output data (write-only), outlen bytes must be allocated
+ * @param   outlen  length of the output in bytes, must be 8
+ */
+static inline void
+siphash_cryptolib(const void *in, const size_t inlen,
+                  const void *k, uint8_t *out, const size_t outlen)
+{
+    ASSERT(outlen == sizeof(uint64_t));
+    uint64_t sipout = SIPHASH_24(k, in, inlen);
+
+    memcpy(out, &sipout, sizeof(uint64_t));
+}
+#endif
+
+static inline void
 siphash(const void *in, size_t inlen, const void *k,
         uint8_t *out, size_t outlen)
 {
-    return siphash_reference(in, inlen, k, out, outlen);
+#if defined(USE_CRYPOTOLIB_SIPHASH)
+    siphash_cryptolib(in, inlen, k, out, outlen);
+#else
+    siphash_reference(in, inlen, k, out, outlen);
+#endif
 }
 
 #endif /* ifndef SIPHASH_H */
