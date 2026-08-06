@@ -229,7 +229,7 @@ reap_buckets_per_pass(uint32_t n_buckets)
 #ifdef ENABLE_MANAGEMENT
 
 static uint64_t
-cid_hash_function(const void *key, uint32_t iv)
+cid_hash_function(const void *key, const uint8_t hash_key[HASH_KEY_LEN])
 {
     const unsigned long *k = (const unsigned long *)key;
     return (uint64_t)*k;
@@ -250,7 +250,7 @@ static uint64_t
 /*
  * inotify watcher descriptors are used as hash value
  */
-int_hash_function(const void *key, uint32_t iv)
+int_hash_function(const void *key, const uint8_t hash_key[HASH_KEY_LEN])
 {
     return (uintptr_t)key;
 }
@@ -290,18 +290,18 @@ multi_init(struct context *t)
      * to determine which client sent an incoming packet
      * which is seen on the TCP/UDP socket.
      */
-    m->hash = hash_init(t->options.real_hash_size, (uint32_t)get_random(),
+    m->hash = hash_init(t->options.real_hash_size,
                         mroute_addr_hash_function, mroute_addr_compare_function);
 
     /*
      * Virtual address hash table.  Used to determine
      * which client to route a packet to.
      */
-    m->vhash = hash_init(t->options.virtual_hash_size, (uint32_t)get_random(),
+    m->vhash = hash_init(t->options.virtual_hash_size,
                          mroute_addr_hash_function, mroute_addr_compare_function);
 
 #ifdef ENABLE_MANAGEMENT
-    m->cid_hash = hash_init(t->options.real_hash_size, 0, cid_hash_function, cid_compare_function);
+    m->cid_hash = hash_init(t->options.real_hash_size, cid_hash_function, cid_compare_function);
 #endif
 
 #ifdef ENABLE_ASYNC_PUSH
@@ -309,8 +309,8 @@ multi_init(struct context *t)
      * Mapping between inotify watch descriptors and
      * multi_instances.
      */
-    m->inotify_watchers = hash_init(t->options.real_hash_size, (uint32_t)get_random(),
-                                    int_hash_function, int_compare_function);
+    m->inotify_watchers =
+        hash_init(t->options.real_hash_size, int_hash_function, int_compare_function);
 #endif
 
     /*

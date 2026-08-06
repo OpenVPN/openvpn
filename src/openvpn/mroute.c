@@ -355,10 +355,10 @@ mroute_addr_mask_host_bits(struct mroute_addr *ma)
  * and the actual address.
  */
 uint64_t
-mroute_addr_hash_function(const void *key, uint32_t iv)
+mroute_addr_hash_function(const void *key, const uint8_t hash_key[HASH_KEY_LEN])
 {
     return hash_func(mroute_addr_hash_ptr((const struct mroute_addr *)key),
-                     mroute_addr_hash_len((const struct mroute_addr *)key), iv);
+                     mroute_addr_hash_len((const struct mroute_addr *)key), *(uint32_t *)hash_key);
 }
 
 bool

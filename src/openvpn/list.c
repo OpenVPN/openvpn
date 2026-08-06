@@ -29,13 +29,15 @@
 
 #include "integer.h"
 #include "list.h"
+
+#include "crypto.h"
 #include "misc.h"
 
 #include "memdbg.h"
 
 struct hash *
-hash_init(const uint32_t n_buckets, const uint32_t iv,
-          uint64_t (*hash_function)(const void *key, uint32_t iv),
+hash_init(const uint32_t n_buckets,
+          uint64_t (*hash_function)(const void *key, const uint8_t hash_key[HASH_KEY_LEN]),
           bool (*compare_function)(const void *key1, const void *key2))
 {
     struct hash *h;
@@ -46,7 +48,10 @@ hash_init(const uint32_t n_buckets, const uint32_t iv,
     h->mask = h->n_buckets - 1;
     h->hash_function = hash_function;
     h->compare_function = compare_function;
-    h->iv = iv;
+
+    /* create random hash key */
+    prng_bytes(h->hash_key, sizeof(h->hash_key));
+
     ALLOC_ARRAY(h->buckets, struct hash_bucket, h->n_buckets);
     for (uint32_t i = 0; i < h->n_buckets; ++i)
     {

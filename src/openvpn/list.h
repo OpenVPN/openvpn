@@ -49,19 +49,24 @@ struct hash_bucket
     struct hash_element *list;
 };
 
+
+#define HASH_KEY_LEN 4
+
 struct hash
 {
     uint32_t n_buckets;
     uint32_t n_elements;
     uint32_t mask;
-    uint32_t iv;
-    uint64_t (*hash_function)(const void *key, uint32_t iv);
+    /** key/iv used for the hash function. No to be confused with the (key, value)
+     * keys for the actual hash map entries */
+    uint8_t hash_key[HASH_KEY_LEN];
+    uint64_t (*hash_function)(const void *key, const uint8_t hash_key[HASH_KEY_LEN]);
     bool (*compare_function)(const void *key1, const void *key2); /* return true if equal */
     struct hash_bucket *buckets;
 };
 
-struct hash *hash_init(const uint32_t n_buckets, const uint32_t iv,
-                       uint64_t (*hash_function)(const void *key, uint32_t iv),
+struct hash *hash_init(const uint32_t n_buckets,
+                       uint64_t (*hash_function)(const void *key, const uint8_t hash_key[HASH_KEY_LEN]),
                        bool (*compare_function)(const void *key1, const void *key2));
 
 void hash_free(struct hash *hash);
@@ -103,7 +108,7 @@ uint64_t hash_func(const uint8_t *k, uint32_t length, uint32_t initval);
 static inline uint64_t
 hash_value(const struct hash *hash, const void *key)
 {
-    return (*hash->hash_function)(key, hash->iv);
+    return (*hash->hash_function)(key, hash->hash_key);
 }
 
 static inline uint32_t

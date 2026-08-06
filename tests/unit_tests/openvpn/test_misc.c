@@ -131,11 +131,11 @@ struct word
 
 
 static uint64_t
-word_hash_function(const void *key, uint32_t iv)
+word_hash_function(const void *key, const uint8_t hash_key[HASH_KEY_LEN])
 {
     const char *str = (const char *)key;
     const uint32_t len = (uint32_t)strlen(str);
-    return hash_func((const uint8_t *)str, len, iv);
+    return hash_func((const uint8_t *)str, len, *(uint32_t *)(hash_key));
 }
 
 static bool
@@ -170,10 +170,9 @@ test_list(void **state)
      * Test the hash code by implementing a simple
      * word frequency algorithm.
      */
-
     struct gc_arena gc = gc_new();
-    struct hash *hash = hash_init(10000, get_random(), word_hash_function, word_compare_function);
-    struct hash *nhash = hash_init(256, get_random(), word_hash_function, word_compare_function);
+    struct hash *hash = hash_init(10000, word_hash_function, word_compare_function);
+    struct hash *nhash = hash_init(256, word_hash_function, word_compare_function);
 
     printf("hash_init n_buckets=%u mask=0x%08x\n", hash->n_buckets, hash->mask);
 

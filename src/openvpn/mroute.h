@@ -144,7 +144,7 @@ bool mroute_extract_openvpn_sockaddr(struct mroute_addr *addr,
 
 bool mroute_learnable_address(const struct mroute_addr *addr, struct gc_arena *gc);
 
-uint64_t mroute_addr_hash_function(const void *key, uint32_t iv);
+uint64_t mroute_addr_hash_function(const void *key, const uint8_t hash_key[HASH_KEY_LEN]);
 
 bool mroute_addr_compare_function(const void *key1, const void *key2);
 
