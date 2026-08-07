@@ -1592,7 +1592,8 @@ tls_session_update_crypto_params_do_work(struct tls_multi *multi, struct tls_ses
         session->opt->crypto_flags |= CO_PACKET_ID_LONG_FORM;
     }
 
-    frame_calculate_dynamic(frame, &session->opt->key_type, options, lsi);
+    frame_calculate_dynamic(frame, &session->opt->key_type, options, session->opt->crypto_flags,
+                            lsi);
 
     frame_print(frame, D_MTU_INFO, "Data Channel MTU parms");
 
@@ -1605,7 +1606,8 @@ tls_session_update_crypto_params_do_work(struct tls_multi *multi, struct tls_ses
 
     if (frame_fragment)
     {
-        frame_calculate_dynamic(frame_fragment, &session->opt->key_type, options, lsi);
+        frame_calculate_dynamic(frame_fragment, &session->opt->key_type, options,
+                                session->opt->crypto_flags, lsi);
         frame_print(frame_fragment, D_MTU_INFO, "Fragmentation MTU parms");
     }
 

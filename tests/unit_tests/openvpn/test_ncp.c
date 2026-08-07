@@ -34,6 +34,7 @@
 #include <cmocka.h>
 
 #include "ssl_ncp.c"
+#include "mss.h"
 #include "test_common.h"
 
 /* Defines for use in the tests and the mock parse_line() */
@@ -392,6 +393,45 @@ test_ncp_expand(void **state)
     gc_free(&gc);
 }
 
+static void
+test_p2p_epoch_mssfix_mtu(void **state)
+{
+    struct tls_options tls_options = { .data_epoch_supported = true };
+    struct tls_session session = { .opt = &tls_options };
+    struct tls_multi multi = { 0 };
+    struct options o = { .mode = MODE_POINT_TO_POINT };
+    char peer_info[32];
+
+    snprintf(peer_info, sizeof(peer_info), "IV_PROTO=%u",
+             IV_PROTO_DATA_V2 | IV_PROTO_NCP_P2P | IV_PROTO_DATA_EPOCH);
+    multi.peer_info = peer_info;
+
+    p2p_ncp_set_options(&multi, &session, "AES-256-GCM");
+    assert_true(session.opt->crypto_flags & CO_EPOCH_DATA_KEY_FORMAT);
+    assert_false(o.imported_protocol_flags & CO_EPOCH_DATA_KEY_FORMAT);
+
+    o.ce.tun_mtu = 1400;
+    o.ce.mssfix = 1000;
+    o.ce.proto = PROTO_UDP;
+    o.ciphername = "AES-256-GCM";
+    o.authname = "SHA1";
+    o.tls_client = true;
+    o.use_peer_id = true;
+
+    struct key_type kt;
+    init_key_type(&kt, o.ciphername, o.authname, true, false);
+
+    struct frame frame = { 0 };
+    frame_calculate_dynamic(&frame, &kt, &o, session.opt->crypto_flags, NULL);
+
+    /* opcode/peer-id + epoch packet-id + tag + TCP/IP headers */
+    assert_int_equal(frame.mss_fix, 1000 - 4 - 8 - 16 - 40);
+
+    session.opt->crypto_flags &= ~CO_EPOCH_DATA_KEY_FORMAT;
+    frame_calculate_dynamic(&frame, &kt, &o, session.opt->crypto_flags, NULL);
+    assert_int_equal(frame.mss_fix, 1000 - 4 - 4 - 16 - 40);
+}
+
 
 const struct CMUnitTest ncp_tests[] = {
     cmocka_unit_test(test_check_ncp_ciphers_list),
@@ -400,6 +440,7 @@ const struct CMUnitTest ncp_tests[] = {
     cmocka_unit_test(test_ncp_best),
     cmocka_unit_test(test_ncp_default),
     cmocka_unit_test(test_ncp_expand),
+    cmocka_unit_test(test_p2p_epoch_mssfix_mtu),
 };
 
 

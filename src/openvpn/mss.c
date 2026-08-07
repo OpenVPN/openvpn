@@ -240,12 +240,12 @@ get_ip_encap_overhead(const struct options *options, const struct link_socket_in
 
 static void
 frame_calculate_fragment(struct frame *frame, struct key_type *kt, const struct options *options,
-                         struct link_socket_info *lsi)
+                         unsigned int crypto_flags, struct link_socket_info *lsi)
 {
 #if defined(ENABLE_FRAGMENT)
     size_t overhead;
 
-    overhead = frame_calculate_protocol_header_size(kt, options, false);
+    overhead = frame_calculate_protocol_header_size(kt, options, crypto_flags, false);
 
     if (options->ce.fragment_encap)
     {
@@ -263,14 +263,14 @@ frame_calculate_fragment(struct frame *frame, struct key_type *kt, const struct 
     {
         /* The packet id gets added to *each* fragment in CBC mode, so we need
          * to account for it */
-        frame->max_fragment_size -= calc_packet_id_size_dc(options, kt);
+        frame->max_fragment_size -= calc_packet_id_size_dc(options, kt, crypto_flags);
     }
 #endif
 }
 
 static void
 frame_calculate_mssfix(struct frame *frame, struct key_type *kt, const struct options *options,
-                       struct link_socket_info *lsi)
+                       unsigned int crypto_flags, struct link_socket_info *lsi)
 {
     if (options->ce.mssfix_fixed)
     {
@@ -282,11 +282,12 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt, const struct op
 
     size_t overhead, payload_overhead;
 
-    overhead = frame_calculate_protocol_header_size(kt, options, false);
+    overhead = frame_calculate_protocol_header_size(kt, options, crypto_flags, false);
 
     /* Calculate the number of bytes that the payload differs from the payload
      * MTU. This are fragment/compression/ethernet headers */
-    payload_overhead = frame_calculate_payload_overhead(frame->extra_tun, options, kt);
+    payload_overhead =
+        frame_calculate_payload_overhead(frame->extra_tun, options, kt, crypto_flags);
 
     /* We are in a "liberal" position with respect to MSS,
      * i.e. we assume that MSS can be calculated from MTU
@@ -315,16 +316,16 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt, const struct op
 
 void
 frame_calculate_dynamic(struct frame *frame, struct key_type *kt, const struct options *options,
-                        struct link_socket_info *lsi)
+                        unsigned int crypto_flags, struct link_socket_info *lsi)
 {
     if (options->ce.fragment > 0)
     {
-        frame_calculate_fragment(frame, kt, options, lsi);
+        frame_calculate_fragment(frame, kt, options, crypto_flags, lsi);
     }
 
     if (options->ce.mssfix > 0)
     {
-        frame_calculate_mssfix(frame, kt, options, lsi);
+        frame_calculate_mssfix(frame, kt, options, crypto_flags, lsi);
     }
 }
 
@@ -354,7 +355,8 @@ frame_adjust_path_mtu(struct context *c)
             o->ce.mssfix, mtustr, pmtu);
         o->ce.mssfix = pmtu;
         o->ce.mssfix_encap = true;
-        frame_calculate_dynamic(&c->c2.frame, &c->c1.ks.key_type, o, lsi);
+        frame_calculate_dynamic(&c->c2.frame, &c->c1.ks.key_type, o,
+                                c->c2.crypto_options.flags, lsi);
     }
 
 #if defined(ENABLE_FRAGMENT)
@@ -367,7 +369,8 @@ frame_adjust_path_mtu(struct context *c)
             o->ce.fragment, mtustr, pmtu);
         o->ce.fragment = pmtu;
         o->ce.fragment_encap = true;
-        frame_calculate_dynamic(&c->c2.frame_fragment, &c->c1.ks.key_type, o, lsi);
+        frame_calculate_dynamic(&c->c2.frame_fragment, &c->c1.ks.key_type, o,
+                                c->c2.crypto_options.flags, lsi);
     }
 #endif
 }
