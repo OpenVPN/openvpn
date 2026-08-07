@@ -110,6 +110,7 @@ else
 fi
 
 LOGDIR=t_client-`hostname`-`date +%Y%m%d-%H%M%S`
+LOGDIR_ABS="$PWD/$LOGDIR"
 if mkdir $LOGDIR
 then :
 else
@@ -363,7 +364,7 @@ do
 	printf "$outbuf" ; continue
     fi
 
-    pidfile="${top_builddir}/tests/$LOGDIR/openvpn-$SUF.pid"
+    pidfile="$LOGDIR_ABS/openvpn-$SUF.pid"
     openvpn_conf="$openvpn_conf --writepid $pidfile $up"
     output " run openvpn $openvpn_conf"
     echo "# ${openvpn} $openvpn_conf" >$LOGDIR/$SUF:openvpn.log
