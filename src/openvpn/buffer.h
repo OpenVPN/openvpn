@@ -147,32 +147,6 @@ char *print_argv(const char **p, struct gc_arena *gc, const unsigned int flags);
 
 void buf_size_error(const size_t size);
 
-/* for dmalloc debugging */
-
-#ifdef DMALLOC
-
-#define alloc_buf(size)               alloc_buf_debug(size, __FILE__, __LINE__)
-#define alloc_buf_gc(size, gc)        alloc_buf_gc_debug(size, gc, __FILE__, __LINE__);
-#define clone_buf(buf)                clone_buf_debug(buf, __FILE__, __LINE__);
-#define gc_malloc(size, clear, arena) gc_malloc_debug(size, clear, arena, __FILE__, __LINE__)
-#define string_alloc(str, gc)         string_alloc_debug(str, gc, __FILE__, __LINE__)
-#define string_alloc_buf(str, gc)     string_alloc_buf_debug(str, gc, __FILE__, __LINE__)
-
-struct buffer alloc_buf_debug(size_t size, const char *file, int line);
-
-struct buffer alloc_buf_gc_debug(size_t size, struct gc_arena *gc, const char *file, int line);
-
-struct buffer clone_buf_debug(const struct buffer *buf, const char *file, int line);
-
-void *gc_malloc_debug(size_t size, bool clear, struct gc_arena *a, const char *file, int line);
-
-char *string_alloc_debug(const char *str, struct gc_arena *gc, const char *file, int line);
-
-struct buffer string_alloc_buf_debug(const char *str, struct gc_arena *gc, const char *file,
-                                     int line);
-
-#else  /* ifdef DMALLOC */
-
 struct buffer alloc_buf(size_t size);
 
 struct buffer alloc_buf_gc(size_t size,
@@ -185,8 +159,6 @@ void *gc_malloc(size_t size, bool clear, struct gc_arena *a);
 char *string_alloc(const char *str, struct gc_arena *gc);
 
 struct buffer string_alloc_buf(const char *str, struct gc_arena *gc);
-
-#endif /* ifdef DMALLOC */
 
 void gc_addspecial(void *addr, void (*free_function)(void *), struct gc_arena *a);
 

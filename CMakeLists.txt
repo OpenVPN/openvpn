@@ -260,7 +260,6 @@ endif ()
 
 check_include_files(arpa/inet.h HAVE_ARPA_INET_H)
 check_include_files(dlfcn.h HAVE_DLFCN_H)
-check_include_files(dmalloc.h HAVE_DMALLOC_H)
 check_include_files(fcntl.h HAVE_FCNTL_H)
 check_include_files(err.h HAVE_ERR_H)
 check_include_files(netdb.h HAVE_NETDB_H)

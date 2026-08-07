@@ -139,14 +139,6 @@ mbed_log_func_line(unsigned int flags, int errval, const char *func, int line)
 }
 
 
-#ifdef DMALLOC
-void
-crypto_init_dmalloc(void)
-{
-    msg(M_ERR, "Error: dmalloc support is not available for mbed TLS.");
-}
-#endif /* DMALLOC */
-
 const cipher_name_pair cipher_name_translation_table[] = {
     { "BF-CBC", "BLOWFISH-CBC" },
     { "BF-CFB", "BLOWFISH-CFB64" },

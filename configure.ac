@@ -245,10 +245,10 @@ AC_ARG_WITH(
 
 AC_ARG_WITH(
 	[mem-check],
-	[AS_HELP_STRING([--with-mem-check=TYPE], [build with debug memory checking, TYPE=no|dmalloc|valgrind|ssl @<:@default=no@:>@])],
+	[AS_HELP_STRING([--with-mem-check=TYPE], [build with debug memory checking, TYPE=no|valgrind|ssl @<:@default=no@:>@])],
 	[
 		case "${withval}" in
-			dmalloc|valgrind|ssl|no) ;;
+			valgrind|ssl|no) ;;
 			*) AC_MSG_ERROR([bad value ${withval} for --mem-check]) ;;
 		esac
 	],
@@ -650,25 +650,6 @@ case "${with_mem_check}" in
 				)
 			],
 			[AC_MSG_ERROR([valgrind headers not found.])]
-		)
-		;;
-	dmalloc)
-		AC_CHECK_HEADERS(
-			[dmalloc.h],
-			[AC_CHECK_LIB(
-				[dmalloc],
-				[malloc],
-				[
-					LIBS="${LIBS} -ldmalloc"
-					AC_DEFINE(
-						[DMALLOC],
-						[1],
-						[Use dmalloc memory debugging library]
-					)
-				],
-				[AC_MSG_ERROR([dmalloc library not found.])]
-			)],
-			[AC_MSG_ERROR([dmalloc headers not found.])]
 		)
 		;;
 	ssl)

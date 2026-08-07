@@ -838,11 +838,6 @@ init_port_share(struct context *c)
 bool
 init_static(void)
 {
-#if defined(DMALLOC)
-    crypto_init_dmalloc();
-#endif
-
-
     /*
      * Initialize random number seed.  random() is only used
      * when "weak" random numbers are acceptable.

@@ -39,6 +39,7 @@
 #include "integer.h"
 #include "crypto.h"
 #include "crypto_backend.h"
+#include "memdbg.h"
 #include "openssl_compat.h"
 
 #include <openssl/conf.h>
@@ -272,40 +273,6 @@ crypto_print_openssl_errors(const unsigned int flags)
     }
 }
 
-
-/*
- *
- * OpenSSL memory debugging.  If dmalloc debugging is enabled, tell
- * OpenSSL to use our private malloc/realloc/free functions so that
- * we can dispatch them to dmalloc.
- *
- */
-
-#ifdef DMALLOC
-static void *
-crypto_malloc(size_t size, const char *file, int line)
-{
-    return dmalloc_malloc(file, line, size, DMALLOC_FUNC_MALLOC, 0, 0);
-}
-
-static void *
-crypto_realloc(void *ptr, size_t size, const char *file, int line)
-{
-    return dmalloc_realloc(file, line, ptr, size, DMALLOC_FUNC_REALLOC, 0);
-}
-
-static void
-crypto_free(void *ptr)
-{
-    dmalloc_free(__FILE__, __LINE__, ptr, DMALLOC_FUNC_FREE);
-}
-
-void
-crypto_init_dmalloc(void)
-{
-    CRYPTO_set_mem_ex_functions(crypto_malloc, crypto_realloc, crypto_free);
-}
-#endif /* DMALLOC */
 
 const cipher_name_pair cipher_name_translation_table[] = {
     { "AES-128-GCM", "id-aes128-GCM" },
