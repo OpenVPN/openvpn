@@ -8,9 +8,13 @@
 # define these - if empty, no tests will run
 #
 top_srcdir="${top_srcdir:-..}"
+
+# PKI args
 CA_CERT="${top_srcdir}/sample/sample-keys/ca.crt"
 CLIENT_KEY="${top_srcdir}/sample/sample-keys/client.key"
 CLIENT_CERT="${top_srcdir}/sample/sample-keys/client.crt"
+
+# Customize ping tests
 #FPING_EXTRA_ARGS="-t 1000"
 
 # Load EXPECT_IFCONFIG* parameters from cache
@@ -48,8 +52,8 @@ OPENVPN_BASE_P2P="..."
 
 #
 #
-# now define the individual tests - all variables suffixed with _1, _2 etc
-# will be used in test run "1", "2", etc.
+# now define the individual tests - all variables suffixed with _1, _2, _2n etc
+# will be used in test run "1", "2", "2n" etc.
 #
 # if something is not defined here, the corresponding test is not run
 #
@@ -64,6 +68,7 @@ OPENVPN_BASE_P2P="..."
 #
 # hook test options:
 #
+# FPING_ARGS_x      = "arguments to append to the fping command line"
 # CHECK_SKIP_x      = "commands to execute before openvpn, skip test on failure"
 # PREPARE_x         = "commands to execute before openvpn"
 # POSTINIT_CMD_x    = "commands to execute after openvpn but before ping"
