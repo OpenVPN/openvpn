@@ -24,6 +24,7 @@ openvpn="${openvpn:-${top_builddir}/src/openvpn/openvpn}"
 trap "rm -f log.$$ log.$$.signal ; trap 0 ; exit 77" 1 2 15
 trap "rm -f log.$$ log.$$.signal ; exit 1" 0 3
 addopts=
+mssfix_opts="--mssfix 1000 mtu --verb 4"
 case `uname -s` in
     FreeBSD)
     # FreeBSD jails map the outgoing IP to the jail IP - we need to
@@ -54,8 +55,8 @@ success=0
 for i in 1 2 3 ; do
   set +e
   (
-  "${openvpn}" --script-security 2 --cd "${root}" ${addopts} --setenv role srv --down "${downscript}" --tls-exit --ping-exit 180 --config "sample-config-files/loopback-server" &
-  "${openvpn}" --script-security 2 --cd "${top_srcdir}/sample" ${addopts} --setenv role clt --down "${downscript}" --tls-exit --ping-exit 180 --config "sample-config-files/loopback-client"
+  "${openvpn}" --script-security 2 --cd "${root}" ${addopts} --setenv role srv --down "${downscript}" --tls-exit --ping-exit 180 --config "sample-config-files/loopback-server" ${mssfix_opts} &
+  "${openvpn}" --script-security 2 --cd "${top_srcdir}/sample" ${addopts} --setenv role clt --down "${downscript}" --tls-exit --ping-exit 180 --config "sample-config-files/loopback-client" ${mssfix_opts}
   ) 3>log.$$.signal >log.$$ 2>&1
   e1=$?
   wait $!
@@ -81,6 +82,14 @@ if [ $success != 1 ] ; then
   ec=77
 elif [ $e1 != 0 ] || [ $e2 != 0 ] ; then
   # failure -- fail test
+  cat log.$$
+  ec=1
+  # AES-GCM P2P uses peer-id (4), epoch packet-id (8), tag (16), and
+  # TCP/IP headers (40), leaving an MSS of 884 from the 1000-byte MTU.
+elif [ "$(grep -c 'Data Channel MTU parms.*mss_fix:884' log.$$ || true)" -lt 2 ] \
+  || grep 'Data Channel MTU parms.*mss_fix:' log.$$ \
+     | grep -v 'mss_fix:0 ' | grep -qv 'mss_fix:884 ' ; then
+  echo "P2P epoch negotiation did not use the expected mss_fix:884" >&2
   cat log.$$
   ec=1
 fi
