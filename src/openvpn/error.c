@@ -84,18 +84,20 @@ static char *pgmname_syslog; /* GLOBAL */
 /* If non-null, messages should be written here (used for debugging only) */
 static FILE *msgfp; /* GLOBAL */
 
-/* If true, we forked from main OpenVPN process */
-static bool forked; /* GLOBAL */
-
 /* our default output targets */
 static FILE *default_out; /* GLOBAL */
 static FILE *default_err; /* GLOBAL */
 
+/* If true, we forked from main OpenVPN process */
+static bool forked; /* GLOBAL */
+
+#if PORT_SHARE
 void
 msg_forked(void)
 {
     forked = true;
 }
+#endif
 
 bool
 set_debug_level(const int level, const unsigned int flags)

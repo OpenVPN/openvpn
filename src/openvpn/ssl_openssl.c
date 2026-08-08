@@ -436,6 +436,7 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
     }
 }
 
+#ifdef TLS1_3_VERSION
 static void
 convert_tls13_list_to_openssl(char *openssl_ciphers, size_t len, const char *ciphers)
 {
@@ -460,6 +461,7 @@ convert_tls13_list_to_openssl(char *openssl_ciphers, size_t len, const char *cip
         }
     }
 }
+#endif
 
 void
 tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)

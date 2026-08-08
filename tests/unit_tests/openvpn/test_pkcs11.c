@@ -45,6 +45,7 @@
 
 struct management *management; /* global */
 
+#if defined(ENABLE_CRYPTO_OPENSSL)
 /* replacement for crypto_print_openssl_errors() */
 void
 crypto_print_openssl_errors(const unsigned int flags)
@@ -55,6 +56,7 @@ crypto_print_openssl_errors(const unsigned int flags)
         msg(flags, "OpenSSL error %lu: %s", e, ERR_error_string(e, NULL));
     }
 }
+#endif
 
 /* stubs for some unused functions instead of pulling in too many dependencies */
 int

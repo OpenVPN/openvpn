@@ -470,7 +470,9 @@ void rm_trailing_chars(char *str, const char *what_to_delete);
 
 const char *skip_leading_whitespace(const char *str);
 
+#ifdef _WIN32
 void string_null_terminate(char *str, int len, int capacity);
+#endif
 
 /**
  * Write buffer contents to file.

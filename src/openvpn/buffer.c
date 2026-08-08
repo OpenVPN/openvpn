@@ -594,6 +594,7 @@ skip_leading_whitespace(const char *str)
     return str;
 }
 
+#ifdef _WIN32
 /*
  * like buf_null_terminate, but operate on strings
  */
@@ -610,6 +611,7 @@ string_null_terminate(char *str, int len, int capacity)
         *(str + len - 1) = '\0';
     }
 }
+#endif
 
 /*
  * Remove trailing \r and \n chars.

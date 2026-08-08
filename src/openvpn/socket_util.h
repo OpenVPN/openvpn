@@ -250,6 +250,7 @@ addr_defined(const struct openvpn_sockaddr *addr)
     }
 }
 
+#ifdef TARGET_ANDROID
 static inline bool
 addr_local(const struct sockaddr *addr)
 {
@@ -269,12 +270,12 @@ addr_local(const struct sockaddr *addr)
             return false;
     }
 }
+#endif
 
-
+#if ENABLE_IP_PKTINFO
 static inline bool
 addr_defined_ipi(const struct link_socket_actual *lsa)
 {
-#if ENABLE_IP_PKTINFO
     if (!lsa)
     {
         return 0;
@@ -296,11 +297,9 @@ addr_defined_ipi(const struct link_socket_actual *lsa)
         default:
             return 0;
     }
-#else /* if ENABLE_IP_PKTINFO */
-    ASSERT(0);
-#endif
     return false;
 }
+#endif
 
 /*
  * Overhead added to packets by various protocols.
