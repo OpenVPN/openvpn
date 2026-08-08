@@ -188,12 +188,6 @@ mroute_extract_openvpn_sockaddr(struct mroute_addr *addr,
 {
     return true;
 }
-
-unsigned int
-extract_iv_proto(const char *peer_info)
-{
-    return IV_PROTO_PUSH_UPDATE;
-}
 #endif /* ifdef ENABLE_MANAGEMENT */
 
 /* tests */
@@ -650,6 +644,7 @@ setup2(void **state)
     m->instances = calloc(1, sizeof(struct multi_instance *));
     struct multi_instance *mi = calloc(1, sizeof(struct multi_instance));
     mi->context.c2.tls_multi = calloc(1, sizeof(struct tls_multi));
+    mi->context.c2.tls_multi->peer_info = "IV_PROTO=4096";  // IV_PROTO_PUSH_UPDATE
     *(m->instances) = mi;
     m->top.options.disable_dco = true;
     *state = m;

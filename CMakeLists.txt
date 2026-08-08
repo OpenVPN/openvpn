@@ -916,7 +916,8 @@ if (BUILD_TESTING)
         src/openvpn/options_util.c
         src/openvpn/otime.c
         src/openvpn/list.c
-        )
+        src/openvpn/ssl_util.c
+    )
 
     target_sources(test_argv PRIVATE
         tests/unit_tests/openvpn/mock_get_random.c

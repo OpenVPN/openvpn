@@ -55,20 +55,10 @@
  * Return the Negotiable Crypto Parameters version advertised in the peer info
  * string, or 0 if none specified.
  */
-static int
+static unsigned int
 tls_peer_info_ncp_ver(const char *peer_info)
 {
-    const char *ncpstr = peer_info ? strstr(peer_info, "IV_NCP=") : NULL;
-    if (ncpstr)
-    {
-        int ncp = 0;
-        int r = sscanf(ncpstr, "IV_NCP=%d", &ncp);
-        if (r == 1)
-        {
-            return ncp;
-        }
-    }
-    return 0;
+    return peer_info_extract_uint(peer_info, "IV_NCP=");
 }
 
 /**
