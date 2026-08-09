@@ -132,21 +132,20 @@ output_start()
 {
     case $V in
 	0) outbuf="" ;;			# no per-test output at all
-	1) echo -e "$@"			# compact, details only on failure
+	1) printf "$@\n"			# compact, details only on failure
            outbuf="\n" ;;
-	*) echo -e "\n$@\n" ;;		# print all, with a bit formatting
+	*) printf "\n$@\n" ;;		# print all, with a bit formatting
     esac
 }
 
 output()
 {
-    NO_NL=''; if [ "X$1" = "X-n" ] ; then NO_NL=$1 ; shift ; fi
+    END_NL="\n"; if [ "X$1" = "X-n" ] ; then END_NL="" ; shift ; fi
     case $V in
 	0) ;;				# no per-test output at all
-	1) outbuf="$outbuf$@" 		# print details only on failure
-	   test -z "$NO_NL" && outbuf="$outbuf\n"
+	1) outbuf="$outbuf$@${END_NL}"	# print details only on failure
            ;;
-	*) echo -e $NO_NL "$@" ;;	# print everything
+	*) printf "$@${END_NL}" ;;	# print everything
     esac
 }
 
@@ -340,7 +339,7 @@ do
         else
             output "skip check failed, SKIP test $SUF."
 	    SUMMARY_SKIP="$SUMMARY_SKIP $SUF"
-	    echo -e "$outbuf" ; continue
+	    printf "$outbuf" ; continue
         fi
     fi
 
@@ -361,7 +360,7 @@ do
 	fail "make sure that ping hosts are ONLY reachable via VPN, SKIP test $SUF."
 	SUMMARY_FAIL="$SUMMARY_FAIL $SUF"
 	exit_code=31
-	echo -e "$outbuf" ; continue
+	printf "$outbuf" ; continue
     fi
 
     pidfile="${top_builddir}/tests/$LOGDIR/openvpn-$SUF.pid"
@@ -407,7 +406,7 @@ do
 	trap - 0 1 2 3 15
 	SUMMARY_FAIL="$SUMMARY_FAIL $SUF"
 	exit_code=30
-	echo -e "$outbuf" ; continue
+	printf "$outbuf" ; continue
     fi
 
     # make sure openvpn client is terminated in case shell exits
@@ -470,15 +469,15 @@ do
 	SUMMARY_OK="$SUMMARY_OK $SUF"
     else
 	if [ "$V" -gt 0 ] ; then
-	    echo -e -n "$outbuf"
-	    echo -e "test run $SUF: $fail_count test failures. FAIL.\n"
+	    printf "$outbuf"
+	    echo "test run $SUF: $fail_count test failures. FAIL."
         fi
 	SUMMARY_FAIL="$SUMMARY_FAIL $SUF"
 	exit_code=30
     fi
 
     if [ -n "$test_cleanup" ]; then
-        echo -e "cleaning up: '$test_cleanup'"
+        echo "cleaning up: '$test_cleanup'"
         eval $test_cleanup
     fi
 
