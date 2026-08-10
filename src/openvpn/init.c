@@ -3331,7 +3331,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
 
     /* should we not xmit any packets until we get an initial
      * response from client? */
-    if (to.server && c->mode == CM_CHILD_TCP)
+    if (to.server && (c->mode == CM_CHILD_TCP || (c->mode == CM_P2P && options->ce.proto == PROTO_TCP_SERVER)))
     {
         to.xmit_hold = true;
     }
