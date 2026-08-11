@@ -999,9 +999,7 @@ process_incoming_push_request(struct context *c)
     else if (tls_authentication_status(c->c2.tls_multi) == TLS_AUTHENTICATION_SUCCEEDED
              && c->c2.tls_multi->multi_state >= CAS_CONNECT_DONE)
     {
-        time_t now;
-
-        openvpn_time(&now);
+        update_time();
         if (c->c2.sent_push_reply_expiry > now)
         {
             ret = PUSH_MSG_ALREADY_REPLIED;
