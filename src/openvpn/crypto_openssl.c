@@ -1242,7 +1242,7 @@ hmac_ctx_final(HMAC_CTX *ctx, uint8_t *dst)
 
     HMAC_Final(ctx, dst, &in_hmac_len);
 }
-#else  /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
+#else /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
 hmac_ctx_t *
 hmac_ctx_new(void)
 {
