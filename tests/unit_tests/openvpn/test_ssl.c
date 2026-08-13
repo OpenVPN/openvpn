@@ -177,7 +177,7 @@ crypto_pem_encode_certificate(void **state)
     struct gc_arena gc = gc_new();
 
     struct tls_root_ctx ctx = { 0 };
-    tls_ctx_client_new(&ctx);
+    tls_ctx_new(&ctx);
     tls_ctx_load_cert_file(&ctx, unittest_cert, true);
 
     openvpn_x509_cert_t *cert = NULL;
@@ -210,13 +210,13 @@ test_load_certificate_and_key(void **state)
     /* test loading of inlined cert and key.
      * loading the key also checks that it matches the loaded certificate
      */
-    tls_ctx_client_new(&ctx);
+    tls_ctx_new(&ctx);
     tls_ctx_load_cert_file(&ctx, unittest_cert, true);
     assert_int_equal(tls_ctx_load_priv_file(&ctx, unittest_key, true), 0);
     tls_ctx_free(&ctx);
 
     /* test loading of cert and key from file */
-    tls_ctx_client_new(&ctx);
+    tls_ctx_new(&ctx);
     tls_ctx_load_cert_file(&ctx, global_state.certfile, false);
     assert_int_equal(tls_ctx_load_priv_file(&ctx, global_state.keyfile, false), 0);
     tls_ctx_free(&ctx);
@@ -254,7 +254,7 @@ test_load_certificate_and_key_uri(void **state)
     string_mod(BSTR(&keyuri), CC_ANY, CC_BACKSLASH, '/');
 #endif /* _WIN32 */
 
-    tls_ctx_client_new(&ctx);
+    tls_ctx_new(&ctx);
     tls_ctx_load_cert_file(&ctx, BSTR(&certuri), false);
     assert_int_equal(tls_ctx_load_priv_file(&ctx, BSTR(&keyuri), false), 0);
     tls_ctx_free(&ctx);

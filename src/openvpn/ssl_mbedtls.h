@@ -114,8 +114,6 @@ struct tls_root_ctx
 {
     bool initialised; /**< True if the context has been initialised */
 
-    int endpoint;     /**< Whether or not this is a server or a client */
-
 #if MBEDTLS_VERSION_NUMBER < 0x04000000
     mbedtls_dhm_context *dhm_ctx;          /**< Diffie-Helmann-Merkle context */
 #endif

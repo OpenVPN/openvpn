@@ -525,18 +525,11 @@ init_ssl(const struct options *options, bool in_chroot)
     struct tls_root_ctx *new_ctx;
     ALLOC_OBJ_CLEAR(new_ctx, struct tls_root_ctx);
 
-    if (options->tls_server)
-    {
-        tls_ctx_server_new(new_ctx);
+    tls_ctx_new(new_ctx);
 
-        if (options->dh_file)
-        {
-            tls_ctx_load_dh_params(new_ctx, options->dh_file, options->dh_file_inline);
-        }
-    }
-    else /* if client */
+    if (options->tls_server && options->dh_file)
     {
-        tls_ctx_client_new(new_ctx);
+        tls_ctx_load_dh_params(new_ctx, options->dh_file, options->dh_file_inline);
     }
 
     /* Restrict allowed certificate crypto algorithms */
