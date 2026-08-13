@@ -24,7 +24,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include <stdbool.h>
+#include "crypto.h"
 
 /* We need to include this to check for the OPENSSL_IS_AWSLC macro */
 #ifdef ENABLE_CRYPTO_OPENSSL
@@ -75,6 +75,16 @@ siphash(const void *in, size_t inlen, const void *k,
 #else
     siphash_reference(in, inlen, k, out, outlen);
 #endif
+}
+
+/**
+ * Initialises a SIPHASH key with a random value
+ * @param key the key to be initialised
+ */
+static inline void
+siphash_key_init(uint8_t *key)
+{
+    prng_bytes(key, SIPHASH_KEY_SIZE);
 }
 
 #endif /* ifndef SIPHASH_H */

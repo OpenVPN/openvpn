@@ -172,6 +172,7 @@ pkt_testdriver_SOURCES = test_pkt.c mock_msg.c mock_msg.h mock_win32_execve.c te
 	$(top_srcdir)/src/openvpn/reliable.c \
 	$(top_srcdir)/src/openvpn/run_command.c \
 	$(top_srcdir)/src/openvpn/session_id.c \
+	$(top_srcdir)/src/openvpn/siphash_reference.c \
 	$(top_srcdir)/src/openvpn/ssl_pkt.c \
 	$(top_srcdir)/src/openvpn/win32-util.c \
 	$(top_srcdir)/src/openvpn/tls_crypt.c

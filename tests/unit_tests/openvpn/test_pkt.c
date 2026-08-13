@@ -42,6 +42,7 @@
 
 #include "mss.h"
 #include "reliable.h"
+#include "siphash.h"
 
 int
 parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
@@ -403,7 +404,8 @@ test_parse_ack(void **ut_state)
 static void
 test_verify_hmac_tls_auth(void **ut_state)
 {
-    hmac_ctx_t *hmac = session_id_hmac_init();
+    uint8_t key[SIPHASH_KEY_SIZE] = { 0 };
+    siphash_key_init(key);
 
     struct link_socket_actual from = { 0 };
     from.dest.addr.sa.sa_family = AF_INET;
@@ -422,21 +424,20 @@ test_verify_hmac_tls_auth(void **ut_state)
     assert_int_equal(verdict, VERDICT_VALID_CONTROL_V1);
 
     /* This is a valid packet but containing a random id instead of an HMAC id*/
-    bool valid = check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, false);
+    bool valid = check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, false);
     assert_false(valid);
 
     free_tls_pre_decrypt_state(&state);
     free_buf(&buf);
     free_tas(&tas);
-    hmac_ctx_cleanup(hmac);
-    hmac_ctx_free(hmac);
 }
 
 static void
 test_verify_hmac_none(void **ut_state)
 {
     now = 1000;
-    hmac_ctx_t *hmac = session_id_hmac_init();
+    uint8_t key[SIPHASH_KEY_SIZE] = { 0 };
+    siphash_key_init(key);
 
     struct link_socket_actual from = { 0 };
     from.dest.addr.sa.sa_family = AF_INET;
@@ -456,13 +457,13 @@ test_verify_hmac_none(void **ut_state)
     assert_int_equal(verdict, VERDICT_VALID_ACK_V1);
 
     /* This packet has a random hmac, so it should fail to validate */
-    bool valid = check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true);
+    bool valid = check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true);
     assert_false(valid);
 
     struct session_id client_id = { { 0xae, 0xb9, 0xaf, 0xe1, 0xf0, 0x1d, 0x79, 0xc8 } };
     assert_memory_equal(&client_id, &state.peer_session_id, sizeof(struct session_id));
 
-    struct session_id expected_id = calculate_session_id_hmac(client_id, &from.dest, hmac, 30, 0);
+    struct session_id expected_id = calculate_session_id_hmac(client_id, &from.dest, key, 30, 0);
 
     free_tls_pre_decrypt_state(&state);
     buf_reset_len(&buf);
@@ -474,7 +475,7 @@ test_verify_hmac_none(void **ut_state)
 
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
     assert_int_equal(verdict, VERDICT_VALID_ACK_V1);
-    valid = check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true);
+    valid = check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true);
 
     assert_true(valid);
 
@@ -483,23 +484,23 @@ test_verify_hmac_none(void **ut_state)
      * So setting time to the two future ones should work
      */
     now = 980;
-    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true));
     now = 1040;
-    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true));
     now = 1002;
-    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true));
     now = 1022;
-    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true));
     now = 1010;
-    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true));
 
     /* Changing the IP address should make this invalid */
     from.dest.addr.in4.sin_addr.s_addr = ntohl(0x01020305);
-    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true));
 
     /* Change to the correct one again */
     from.dest.addr.in4.sin_addr.s_addr = ntohl(0x01020304);
-    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    assert_true(check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true));
 
     /* Modify the peer id, should now fail hmac verification */
     buf_inc_len(&buf, -4);
@@ -508,18 +509,17 @@ test_verify_hmac_none(void **ut_state)
     free_tls_pre_decrypt_state(&state);
     verdict = tls_pre_decrypt_lite(&tas, &state, &from, &buf);
     assert_int_equal(verdict, VERDICT_VALID_ACK_V1);
-    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true));
+    assert_false(check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true));
 
     free_tls_pre_decrypt_state(&state);
     free_buf(&buf);
-    hmac_ctx_cleanup(hmac);
-    hmac_ctx_free(hmac);
 }
 
 static void
 test_verify_hmac_none_out_of_range_ack(void **ut_state)
 {
-    hmac_ctx_t *hmac = session_id_hmac_init();
+    uint8_t key[SIPHASH_KEY_SIZE] = { 0 };
+    siphash_key_init(key);
 
     struct link_socket_actual from = { 0 };
     from.dest.addr.sa.sa_family = AF_INET;
@@ -540,7 +540,7 @@ test_verify_hmac_none_out_of_range_ack(void **ut_state)
     assert_int_equal(verdict, VERDICT_VALID_ACK_V1);
 
     /* should fail because it acks 2 */
-    bool valid = check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true);
+    bool valid = check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true);
     assert_false(valid);
     free_tls_pre_decrypt_state(&state);
 
@@ -552,31 +552,17 @@ test_verify_hmac_none_out_of_range_ack(void **ut_state)
     assert_int_equal(verdict, VERDICT_VALID_CONTROL_V1);
 
     /* should fail because it has message id 2 */
-    valid = check_session_hmac_and_pkt_id(&state, &from.dest, hmac, 30, true);
+    valid = check_session_hmac_and_pkt_id(&state, &from.dest, key, 30, true);
     assert_false(valid);
 
     free_tls_pre_decrypt_state(&state);
     free_buf(&buf);
-    hmac_ctx_cleanup(hmac);
-    hmac_ctx_free(hmac);
-}
-
-static hmac_ctx_t *
-init_static_hmac(void)
-{
-    ASSERT(md_valid("SHA256"));
-    hmac_ctx_t *hmac_ctx = hmac_ctx_new();
-
-    uint8_t key[SHA256_DIGEST_LENGTH] = { 1, 2, 3, 0 };
-
-    hmac_ctx_init(hmac_ctx, key, "SHA256");
-    return hmac_ctx;
 }
 
 static void
 test_calc_session_id_hmac_static(void **ut_state)
 {
-    hmac_ctx_t *hmac = init_static_hmac();
+    uint8_t key[SIPHASH_KEY_SIZE] = { 1, 2, 3, 0 };
     static const int handwindow = 100;
 
     struct openvpn_sockaddr addr = { 0 };
@@ -588,27 +574,27 @@ test_calc_session_id_hmac_static(void **ut_state)
     struct session_id client_id = { { 0, 1, 2, 3, 4, 5, 6, 7 } };
 
     now = 1005;
-    struct session_id server_id = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 0);
+    struct session_id server_id = calculate_session_id_hmac(client_id, &addr, key, handwindow, 0);
 
 
-    struct session_id expected_server_id = { { 0x84, 0x73, 0x52, 0x2b, 0x5b, 0xa9, 0x2a, 0x70 } };
+    struct session_id expected_server_id = { { 0xec, 0xa3, 0xd5, 0xcc, 0xb4, 0x7c, 0xa1, 0xee } };
     /* We have to deal with different structs here annoyingly */
     /* Linux has an unsigned short int as family_t and this is field is always
      * stored in host endianness even though the rest of the struct isn't...,
      * so Linux little endian differs from all BSD and Linux big endian */
     if (sizeof(addr.addr.in4.sin_family) == sizeof(unsigned short int) && ntohs(AF_INET) != AF_INET)
     {
-        struct session_id linuxle = { { 0x8b, 0xeb, 0x3d, 0x20, 0x14, 0x53, 0xbe, 0x0a } };
+        struct session_id linuxle = { { 0x70, 0x04, 0x8c, 0x0f, 0xfe, 0x30, 0x85, 0x12 } };
         expected_server_id = linuxle;
     }
     assert_memory_equal(expected_server_id.id, server_id.id, SID_SIZE);
 
     struct session_id server_id_m1 =
-        calculate_session_id_hmac(client_id, &addr, hmac, handwindow, -1);
+        calculate_session_id_hmac(client_id, &addr, key, handwindow, -1);
     struct session_id server_id_p1 =
-        calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 1);
+        calculate_session_id_hmac(client_id, &addr, key, handwindow, 1);
     struct session_id server_id_p2 =
-        calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 2);
+        calculate_session_id_hmac(client_id, &addr, key, handwindow, 2);
 
     assert_memory_not_equal(expected_server_id.id, server_id_m1.id, SID_SIZE);
     assert_memory_not_equal(expected_server_id.id, server_id_p1.id, SID_SIZE);
@@ -618,20 +604,17 @@ test_calc_session_id_hmac_static(void **ut_state)
     now = 1062;
 
     struct session_id server_id2_m2 =
-        calculate_session_id_hmac(client_id, &addr, hmac, handwindow, -2);
+        calculate_session_id_hmac(client_id, &addr, key, handwindow, -2);
     struct session_id server_id2_m1 =
-        calculate_session_id_hmac(client_id, &addr, hmac, handwindow, -1);
-    struct session_id server_id2 = calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 0);
+        calculate_session_id_hmac(client_id, &addr, key, handwindow, -1);
+    struct session_id server_id2 = calculate_session_id_hmac(client_id, &addr, key, handwindow, 0);
     struct session_id server_id2_p1 =
-        calculate_session_id_hmac(client_id, &addr, hmac, handwindow, 1);
+        calculate_session_id_hmac(client_id, &addr, key, handwindow, 1);
 
     assert_memory_equal(server_id2_m2.id, server_id_m1.id, SID_SIZE);
     assert_memory_equal(server_id2_m1.id, expected_server_id.id, SID_SIZE);
     assert_memory_equal(server_id2.id, server_id_p1.id, SID_SIZE);
     assert_memory_equal(server_id2_p1.id, server_id_p2.id, SID_SIZE);
-
-    hmac_ctx_cleanup(hmac);
-    hmac_ctx_free(hmac);
 }
 
 static void

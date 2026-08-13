@@ -3464,7 +3464,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     if (flags & CF_INIT_TLS_AUTH_STANDALONE)
     {
         c->c2.tls_auth_standalone = tls_auth_standalone_init(&to, &c->c2.gc);
-        c->c2.session_id_hmac = session_id_hmac_init();
+        siphash_key_init(c->c2.session_id_key);
     }
 }
 

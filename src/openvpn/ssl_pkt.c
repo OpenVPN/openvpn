@@ -31,6 +31,7 @@
 #include "crypto.h"
 #include "session_id.h"
 #include "reliable.h"
+#include "siphash.h"
 #include "tls_crypt.h"
 
 /*
@@ -442,64 +443,53 @@ tls_reset_standalone(struct tls_wrap_ctx *ctx, struct tls_auth_standalone *tas,
     return buf;
 }
 
-hmac_ctx_t *
-session_id_hmac_init(void)
-{
-    /* We assume that SHA256 is always available */
-    ASSERT(md_valid("SHA256"));
-    hmac_ctx_t *hmac_ctx = hmac_ctx_new();
-
-    uint8_t key[SHA256_DIGEST_LENGTH];
-    ASSERT(rand_bytes(key, sizeof(key)));
-
-    hmac_ctx_init(hmac_ctx, key, "SHA256");
-    return hmac_ctx;
-}
-
 struct session_id
 calculate_session_id_hmac(struct session_id client_sid, const struct openvpn_sockaddr *from,
-                          hmac_ctx_t *hmac, int handwindow, int offset)
+                          const uint8_t *key, int handwindow, int offset)
 {
-    union
-    {
-        uint8_t hmac_result[SHA256_DIGEST_LENGTH];
-        struct session_id sid;
-    } result;
-
     /* Get the valid time quantisation for our hmac,
      * we divide time by handwindow/2 and allow the previous
      * and future session time if specified by offset */
     uint32_t session_id_time = ntohl((uint32_t)(now / ((handwindow + 1) / 2) + offset));
 
-    hmac_ctx_reset(hmac);
+    uint8_t input[64];
+
+    /* ensure input array is large enough */
+    static_assert(sizeof(input) >= sizeof(struct sockaddr_in6) + sizeof(session_id_time) + sizeof(client_sid.id), "input buffer not sized correctly");
+    static_assert(sizeof(input) >= sizeof(struct sockaddr_in) + sizeof(session_id_time) + sizeof(client_sid.id), "input buffer not sized correctly");
+
+    struct buffer in = { 0 };
+    buf_set_write(&in, input, sizeof(input));
+
     /* We do not care about endian here since it does not need to be
      * portable */
-    hmac_ctx_update(hmac, (const uint8_t *)&session_id_time, sizeof(session_id_time));
+    buf_write(&in, (const uint8_t *)&session_id_time, sizeof(session_id_time));
 
     /* add client IP and port */
     switch (from->addr.sa.sa_family)
     {
         case AF_INET:
-            hmac_ctx_update(hmac, (const uint8_t *)&from->addr.in4, sizeof(struct sockaddr_in));
+            buf_write(&in, (const uint8_t *)&from->addr.in4, sizeof(struct sockaddr_in));
             break;
 
         case AF_INET6:
-            hmac_ctx_update(hmac, (const uint8_t *)&from->addr.in6, sizeof(struct sockaddr_in6));
+            buf_write(&in, (const uint8_t *)&from->addr.in6, sizeof(struct sockaddr_in6));
             break;
     }
 
     /* add session id of client */
-    hmac_ctx_update(hmac, client_sid.id, SID_SIZE);
+    buf_write(&in, client_sid.id, SID_SIZE);
 
-    hmac_ctx_final(hmac, result.hmac_result);
+    struct session_id sid;
+    siphash(buf_bptr(&in), buf_len(&in), key, sid.id, sizeof(sid.id));
 
-    return result.sid;
+    return sid;
 }
 
 bool
 check_session_hmac_and_pkt_id(struct tls_pre_decrypt_state *state,
                               const struct openvpn_sockaddr *from,
-                              hmac_ctx_t *hmac,
+                              uint8_t *key,
                               int handwindow,
                               bool pkt_is_ack)
 {
@@ -551,7 +541,7 @@ check_session_hmac_and_pkt_id(struct tls_pre_decrypt_state *state,
     for (int offset = -2; offset <= 0; offset++)
     {
         struct session_id expected_id =
-            calculate_session_id_hmac(state->peer_session_id, from, hmac, handwindow, offset);
+            calculate_session_id_hmac(state->peer_session_id, from, key, handwindow, offset);
 
         if (memcmp_constant_time(&expected_id, &state->server_session_id, SID_SIZE) == 0)
         {

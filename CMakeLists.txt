@@ -878,6 +878,7 @@ if (BUILD_TESTING)
         src/openvpn/packet_id.c
         src/openvpn/reliable.c
         src/openvpn/run_command.c
+        src/openvpn/siphash_reference.c
         src/openvpn/session_id.c
         src/openvpn/ssl_pkt.c
         src/openvpn/tls_crypt.c

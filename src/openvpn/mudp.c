@@ -101,7 +101,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
 
     verdict = tls_pre_decrypt_lite(tas, state, &m->top.c2.from, &m->top.c2.buf);
 
-    hmac_ctx_t *hmac = m->top.c2.session_id_hmac;
+    uint8_t *hmac_key = m->top.c2.session_id_key;
     struct openvpn_sockaddr *from = &m->top.c2.from.dest;
     int handwindow = m->top.options.handshake_window;
 
@@ -133,7 +133,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
         {
             /* Calculate the session ID HMAC for our reply and create reset packet */
             struct session_id sid =
-                calculate_session_id_hmac(state->peer_session_id, from, hmac, handwindow, 0);
+                calculate_session_id_hmac(state->peer_session_id, from, hmac_key, handwindow, 0);
             send_hmac_reset_packet(m, state, tas, &sid, true, sock);
 
             return false;
@@ -165,7 +165,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
     {
         /* Calculate the session ID HMAC for our reply and create reset packet */
         struct session_id sid =
-            calculate_session_id_hmac(state->peer_session_id, from, hmac, handwindow, 0);
+            calculate_session_id_hmac(state->peer_session_id, from, hmac_key, handwindow, 0);
 
         send_hmac_reset_packet(m, state, tas, &sid, false, sock);
 
@@ -180,7 +180,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
         struct gc_arena gc = gc_new();
 
         bool pkt_is_ack = (verdict == VERDICT_VALID_ACK_V1);
-        bool ret = check_session_hmac_and_pkt_id(state, from, hmac, handwindow, pkt_is_ack);
+        bool ret = check_session_hmac_and_pkt_id(state, from, hmac_key, handwindow, pkt_is_ack);
 
         const char *peer = print_link_socket_actual(&m->top.c2.from, &gc);
         uint8_t pkt_firstbyte = *BPTR(&m->top.c2.buf);
