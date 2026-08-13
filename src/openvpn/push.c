@@ -717,10 +717,9 @@ prepare_push_reply(struct context *c, struct gc_arena *gc, struct push_list *pus
     }
 
     /* Push our mtu to the peer if it supports pushable MTUs */
-    int client_max_mtu = 0;
-    unsigned int iv_mtu = peer_info_extract_uint(tls_multi->peer_info, "IV_MTU=");
+    int client_max_mtu = peer_info_extract_uint(tls_multi->peer_info, "IV_MTU=");
 
-    if (iv_mtu != 0)
+    if (client_max_mtu != 0)
     {
         push_option_fmt(gc, push_list, M_USAGE, "tun-mtu %d", o->ce.tun_mtu);
         if (client_max_mtu < o->ce.tun_mtu)
