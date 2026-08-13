@@ -64,7 +64,7 @@ pkcs11_get_x509_cert(pkcs11h_certificate_t pkcs11_cert, mbedtls_x509_crt *cert)
 
     if (cert_blob_size > max_cert_size)
     {
-        msg(M_WARN, "PKCS#11: Certificate too large: %lu bytes, maximum is %lu", cert_blob_size, max_cert_size);
+        msg(M_WARN, "PKCS#11: Certificate too large: %zu bytes, maximum is %zu", cert_blob_size, max_cert_size);
         goto cleanup;
     }
 
