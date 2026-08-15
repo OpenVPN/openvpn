@@ -326,11 +326,6 @@ management_callback_remote_entry_count(void *arg)
     return l->len;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 static bool
 management_callback_remote_entry_get(void *arg, unsigned int index, char **remote)
 {
@@ -341,7 +336,7 @@ management_callback_remote_entry_get(void *arg, unsigned int index, char **remot
     struct connection_list *l = c->options.connection_list;
     bool ret = true;
 
-    if (index < l->len)
+    if (l->len > 0 && index < (unsigned int)l->len)
     {
         struct connection_entry *ce = l->array[index];
         const char *proto = proto2ascii(ce->proto, ce->af, false);
@@ -364,10 +359,6 @@ management_callback_remote_entry_get(void *arg, unsigned int index, char **remot
 
     return ret;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static bool
 management_callback_remote_cmd(void *arg, const char **p)
@@ -467,7 +458,6 @@ ce_management_query_remote(struct context *c)
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 
 /*
@@ -639,8 +629,8 @@ next_connection_entry(struct context *c)
     } while (!ce_defined);
 
     /* Check if this connection attempt would bring us over the limit */
-    if (c->options.connect_retry_max > 0
-        && c->options.unsuccessful_attempts > (l->len * c->options.connect_retry_max))
+    int max_attempts = l->len * c->options.connect_retry_max;
+    if (max_attempts > 0 && c->options.unsuccessful_attempts > (unsigned int)max_attempts)
     {
         msg(M_FATAL, "All connections have been connect-retry-max (%d) times unsuccessful, exiting",
             c->options.connect_retry_max);
@@ -2167,7 +2157,7 @@ options_hash_changed_or_zero(const struct sha256_digest *a, const struct sha256_
 static void
 add_delim_if_non_empty(struct buffer *buf, const char *header)
 {
-    if (buf_len(buf) > strlen(header))
+    if (BLENZ(buf) > strlen(header))
     {
         buf_printf(buf, ", ");
     }
@@ -2256,7 +2246,7 @@ tls_print_deferred_options_results(struct context *c)
         buf_printf(&out, "session-timeout %d", o->session_timeout);
     }
 
-    if (buf_len(&out) > strlen(header))
+    if (BLENZ(&out) > strlen(header))
     {
         msg(D_HANDSHAKE, "%s", BSTR(&out));
     }
@@ -2293,7 +2283,7 @@ tls_print_deferred_options_results(struct context *c)
         }
     }
 
-    if (buf_len(&out) > strlen(header))
+    if (BLENZ(&out) > strlen(header))
     {
         msg(D_HANDSHAKE, "%s", BSTR(&out));
     }
