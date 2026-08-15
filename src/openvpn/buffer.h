@@ -1605,17 +1605,17 @@ bool buf_string_match_head_str(const struct buffer *src, const char *match);
 bool buf_string_compare_advance(struct buffer *src, const char *match);
 
 /**
- * Return the length of the next token in a buffer up to a delimiter.
+ * Return the number of bytes in a buffer up to and including a delimiter.
  *
- * Scans the buffer content for \c delim and returns the number of bytes
- * up to (but not including) the delimiter, or the full buffer length if
- * the delimiter is not found.
+ * The count includes the delimiter byte, so it can be passed straight to
+ * \c buf_copy_excess() to split off a complete record, keeping the
+ * delimiter with it.
  *
  * @param buf    The buffer to scan.
  * @param delim  Delimiter byte to search for.
  *
- * @return Number of bytes before the first occurrence of \c delim, or -1
- *         if the buffer is empty.
+ * @return Byte count including the first \c delim, or -1 if the buffer
+ *         contains no \c delim.
  */
 int buf_substring_len(const struct buffer *buf, int delim);
 
