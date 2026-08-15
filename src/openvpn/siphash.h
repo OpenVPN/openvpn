@@ -87,4 +87,15 @@ siphash_key_init(uint8_t *key)
     prng_bytes(key, SIPHASH_KEY_SIZE);
 }
 
+/**
+ * Wrapper of the siphash function to be able to use it in the
+ * hash map.
+ *
+ * @param k the data to hash
+ * @param length length of the data to hash
+ * @param hash_key   the siphash key
+ * @return a uint64_t containing the result of the hashing
+ */
+uint64_t
+siphash_hash_func(const uint8_t *k, uint32_t length, const uint8_t hash_key[SIPHASH_KEY_SIZE]);
 #endif /* ifndef SIPHASH_H */

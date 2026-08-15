@@ -50,7 +50,7 @@ struct hash_bucket
 };
 
 
-#define HASH_KEY_LEN 4
+#define HASH_KEY_LEN 16
 
 struct hash
 {
@@ -102,8 +102,6 @@ struct hash_element *hash_iterator_next(struct hash_iterator *hi);
 void hash_iterator_delete_element(struct hash_iterator *hi);
 
 void hash_iterator_free(struct hash_iterator *hi);
-
-uint64_t hash_func(const uint8_t *k, uint32_t length, uint32_t initval);
 
 static inline uint64_t
 hash_value(const struct hash *hash, const void *key)

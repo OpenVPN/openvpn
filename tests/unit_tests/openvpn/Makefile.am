@@ -86,6 +86,7 @@ crypto_testdriver_SOURCES = test_crypto.c \
 	$(top_srcdir)/src/openvpn/mtu.c \
 	$(top_srcdir)/src/openvpn/win32-util.c \
 	$(top_srcdir)/src/openvpn/mss.c \
+	$(top_srcdir)/src/openvpn/siphash.c \
 	$(top_srcdir)/src/openvpn/siphash_reference.c
 
 dhcp_testdriver_CFLAGS  = -I$(top_srcdir)/src/openvpn -I$(top_srcdir)/src/compat @TEST_CFLAGS@ -DDHCP_UNIT_TEST
@@ -383,7 +384,9 @@ misc_testdriver_SOURCES = test_misc.c \
 	$(top_srcdir)/src/openvpn/platform.c \
 	$(top_srcdir)/src/openvpn/list.c \
 	$(top_srcdir)/src/openvpn/otime.c \
-	$(top_srcdir)/src/openvpn/schedule.c
+	$(top_srcdir)/src/openvpn/schedule.c \
+	$(top_srcdir)/src/openvpn/siphash.c \
+	$(top_srcdir)/src/openvpn/siphash_reference.c
 
 push_update_msg_testdriver_CFLAGS = -I$(top_srcdir)/src/openvpn \
 	-I$(top_srcdir)/src/compat \

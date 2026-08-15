@@ -32,6 +32,7 @@
 #include <string.h>
 #include <setjmp.h>
 #include <cmocka.h>
+#include <siphash.h>
 
 #include "ssl_util.h"
 #include "options_util.h"
@@ -135,7 +136,7 @@ word_hash_function(const void *key, const uint8_t hash_key[HASH_KEY_LEN])
 {
     const char *str = (const char *)key;
     const uint32_t len = (uint32_t)strlen(str);
-    return hash_func((const uint8_t *)str, len, *(uint32_t *)(hash_key));
+    return siphash_hash_func((const uint8_t *)str, len, hash_key);
 }
 
 static bool
