@@ -117,19 +117,6 @@ static const char *const unittest_key =
     "-----END PRIVATE KEY-----\n";
 
 
-static const char *
-get_tmp_dir(void)
-{
-    const char *ret;
-#ifdef _WIN32
-    ret = win_get_tempdir();
-#else
-    ret = "/tmp";
-#endif
-    assert_non_null(ret);
-    return ret;
-}
-
 static struct
 {
     struct gc_arena gc;
@@ -142,8 +129,8 @@ init(void **state)
 {
     (void)state;
     global_state.gc = gc_new();
-    global_state.certfile = platform_create_temp_file(get_tmp_dir(), "cert", &global_state.gc);
-    global_state.keyfile = platform_create_temp_file(get_tmp_dir(), "key", &global_state.gc);
+    global_state.certfile = platform_create_temp_file(platform_get_tmp_dir(), "cert", &global_state.gc);
+    global_state.keyfile = platform_create_temp_file(platform_get_tmp_dir(), "key", &global_state.gc);
 
     int certfd = open(global_state.certfile, O_RDWR);
     int keyfd = open(global_state.keyfile, O_RDWR);
@@ -190,7 +177,7 @@ crypto_pem_encode_certificate(void **state)
     cert = ctx.crt_chain;
 #endif
 
-    const char *tmpfile = platform_create_temp_file(get_tmp_dir(), "ut_pem", &gc);
+    const char *tmpfile = platform_create_temp_file(platform_get_tmp_dir(), "ut_pem", &gc);
     backend_x509_write_pem(cert, tmpfile);
 
     struct buffer exported_pem = buffer_read_from_file(tmpfile, &gc);

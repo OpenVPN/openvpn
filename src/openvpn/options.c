@@ -885,25 +885,8 @@ init_options(struct options *o)
     o->auth_token_generate = false;
 
     /* Set default --tmp-dir */
-#ifdef _WIN32
-    /* On Windows, find temp dir via environment variables */
-    o->tmp_dir = win_get_tempdir();
+    o->tmp_dir = platform_get_tmp_dir();
 
-    if (!o->tmp_dir)
-    {
-        /* Error out if we can't find a valid temporary directory, which should
-         * be very unlikely. */
-        msg(M_USAGE, "Could not find a suitable temporary directory."
-                     " (GetTempPath() failed).  Consider using --tmp-dir");
-    }
-#else  /* ifdef _WIN32 */
-    /* Non-windows platforms use $TMPDIR, and if not set, default to '/tmp' */
-    o->tmp_dir = getenv("TMPDIR");
-    if (!o->tmp_dir)
-    {
-        o->tmp_dir = "/tmp";
-    }
-#endif /* _WIN32 */
     o->allow_recursive_routing = false;
 
 #ifndef ENABLE_DCO

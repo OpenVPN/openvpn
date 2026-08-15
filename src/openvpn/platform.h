@@ -128,6 +128,13 @@ int platform_stat(const char *path, platform_stat_t *buf);
 const char *platform_create_temp_file(const char *directory, const char *prefix,
                                       struct gc_arena *gc);
 
+/**
+ * Get a directory for temporary files
+ *
+ * @return path to a directory
+ */
+const char *platform_get_tmp_dir(void);
+
 /** Put a directory and filename together. */
 const char *platform_gen_path(const char *directory, const char *filename, struct gc_arena *gc);
 

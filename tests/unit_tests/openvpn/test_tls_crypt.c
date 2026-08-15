@@ -720,7 +720,7 @@ tls_crypt_v2_unwrap_checks(void **state)
         tls_options.tls_crypt_v2_verify_script = "/bin/true";
     }
 
-    tls_options.tmp_dir = "/tmp";
+    tls_options.tmp_dir = platform_get_tmp_dir();
 
     /* Since we override rand_bytes the tmpfile name is non-random as well.
      * Build the expected name via the same code path as
