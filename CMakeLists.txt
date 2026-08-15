@@ -452,6 +452,8 @@ set(SOURCE_FILES
     src/openvpn/crypto_openssl.h
     src/openvpn/crypto_mbedtls.c
     src/openvpn/crypto_mbedtls.h
+    src/openvpn/crypto_mbedtls_legacy.c
+    src/openvpn/crypto_mbedtls_legacy.h
     src/openvpn/cryptoapi.c
     src/openvpn/cryptoapi.h
     src/openvpn/dco.c
@@ -774,6 +776,7 @@ if (BUILD_TESTING)
         src/openvpn/base64.c
         src/openvpn/crypto_epoch.c
         src/openvpn/crypto_mbedtls.c
+        src/openvpn/crypto_mbedtls_legacy.c
         src/openvpn/crypto_openssl.c
         src/openvpn/crypto.c
         src/openvpn/otime.c
@@ -787,6 +790,7 @@ if (BUILD_TESTING)
     target_sources(test_crypto PRIVATE
         tests/unit_tests/openvpn/siphash_openssl.c
         src/openvpn/crypto_mbedtls.c
+        src/openvpn/crypto_mbedtls_legacy.c
         src/openvpn/crypto_openssl.c
         src/openvpn/crypto_epoch.c
         src/openvpn/crypto.c
@@ -805,6 +809,7 @@ if (BUILD_TESTING)
             src/openvpn/base64.c
             src/openvpn/crypto_epoch.c
             src/openvpn/crypto_mbedtls.c
+            src/openvpn/crypto_mbedtls_legacy.c
             src/openvpn/crypto_openssl.c
             src/openvpn/crypto.c
             src/openvpn/cryptoapi.c
@@ -843,6 +848,7 @@ if (BUILD_TESTING)
     target_sources(test_ncp PRIVATE
         src/openvpn/crypto_epoch.c
         src/openvpn/crypto_mbedtls.c
+        src/openvpn/crypto_mbedtls_legacy.c
         src/openvpn/crypto_openssl.c
         src/openvpn/crypto.c
         src/openvpn/otime.c
@@ -871,6 +877,7 @@ if (BUILD_TESTING)
         src/openvpn/base64.c
         src/openvpn/crypto_epoch.c
         src/openvpn/crypto_mbedtls.c
+        src/openvpn/crypto_mbedtls_legacy.c
         src/openvpn/crypto_openssl.c
         src/openvpn/crypto.c
         src/openvpn/env_set.c
@@ -947,6 +954,7 @@ if (BUILD_TESTING)
             src/openvpn/networking_sitnl.c
             src/openvpn/crypto_epoch.c
             src/openvpn/crypto_mbedtls.c
+            src/openvpn/crypto_mbedtls_legacy.c
             src/openvpn/crypto_openssl.c
             src/openvpn/crypto.c
             src/openvpn/crypto_epoch.c
@@ -968,6 +976,7 @@ if (BUILD_TESTING)
             src/openvpn/base64.c
             src/openvpn/crypto_epoch.c
             src/openvpn/crypto_mbedtls.c
+            src/openvpn/crypto_mbedtls_legacy.c
             src/openvpn/crypto_openssl.c
             src/openvpn/crypto.c
             src/openvpn/env_set.c
