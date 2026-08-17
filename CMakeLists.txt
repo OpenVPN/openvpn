@@ -529,6 +529,8 @@ set(SOURCE_FILES
     src/openvpn/options_util.c
     src/openvpn/options_util.h
     src/openvpn/options_parse.c
+    src/openvpn/options_show.c
+    src/openvpn/options_show.h
     src/openvpn/otime.c
     src/openvpn/otime.h
     src/openvpn/ovpn_dco_win.h

@@ -901,8 +901,6 @@ void uninit_options(struct options *o);
 
 void setenv_settings(struct env_set *es, const struct options *o);
 
-void show_settings(const struct options *o);
-
 bool string_defined_equal(const char *s1, const char *s2);
 
 const char *options_string_version(const char *s, struct gc_arena *gc);
