@@ -366,7 +366,7 @@ test_mssfix_mtu_calculation(void **state)
     init_key_type(&kt, o.ciphername, o.authname, false, false);
 
     /* No encryption, just packet id (8) + TCP payload(20) + IP payload(20) */
-    frame_calculate_dynamic(&f, &kt, &o, NULL);
+    frame_calculate_dynamic(&f, &kt, &o, o.imported_protocol_flags, NULL);
     assert_int_equal(f.mss_fix, 952);
 
     /* Static key OCC examples */
@@ -376,7 +376,7 @@ test_mssfix_mtu_calculation(void **state)
     o.ciphername = "none";
     o.authname = "none";
     init_key_type(&kt, o.ciphername, o.authname, false, false);
-    frame_calculate_dynamic(&f, &kt, &o, NULL);
+    frame_calculate_dynamic(&f, &kt, &o, o.imported_protocol_flags, NULL);
     assert_int_equal(f.mss_fix, 952);
 
     /* secret, cipher AES-128-CBC, auth none */
@@ -390,7 +390,7 @@ test_mssfix_mtu_calculation(void **state)
          * all result in the same CBC block size/padding and <= 991 and >=1008
          * should be one block less and more respectively */
         o.ce.mssfix = i;
-        frame_calculate_dynamic(&f, &kt, &o, NULL);
+        frame_calculate_dynamic(&f, &kt, &o, o.imported_protocol_flags, NULL);
         if (i <= 991)
         {
             assert_int_equal(f.mss_fix, 911);
@@ -416,7 +416,7 @@ test_mssfix_mtu_calculation(void **state)
          * all result in the same CBC block size/padding and <= 991 and >=1008
          * should be one block less and more respectively */
         o.ce.mssfix = i;
-        frame_calculate_dynamic(&f, &kt, &o, NULL);
+        frame_calculate_dynamic(&f, &kt, &o, o.imported_protocol_flags, NULL);
         if (i <= 991)
         {
             assert_int_equal(f.mss_fix, 910);
@@ -446,7 +446,7 @@ test_mssfix_mtu_calculation(void **state)
         /* For stream ciphers, the value should not be influenced by block
          * sizes or similar but always have the same difference */
         o.ce.mssfix = i;
-        frame_calculate_dynamic(&f, &kt, &o, NULL);
+        frame_calculate_dynamic(&f, &kt, &o, o.imported_protocol_flags, NULL);
 
         /* 4 byte opcode/peerid, 4 byte pkt ID, 16 byte tag, 40 TCP+IP */
         assert_int_equal(f.mss_fix, i - 4 - 4 - 16 - 40);

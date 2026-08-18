@@ -2848,7 +2848,8 @@ get_frame_mtu(struct context *c, const struct options *o)
         ASSERT(o->ce.link_mtu_defined);
         /* if we have a link mtu defined we calculate what the old code
          * would have come up with as tun-mtu */
-        size_t overhead = frame_calculate_protocol_header_size(&c->c1.ks.key_type, o, true);
+        size_t overhead = frame_calculate_protocol_header_size(
+            &c->c1.ks.key_type, o, o->imported_protocol_flags, true);
         mtu = o->ce.link_mtu - overhead;
     }
     else
@@ -3737,7 +3738,7 @@ do_init_fragment(struct context *c)
     c->c2.frame_fragment = c->c2.frame;
 
     frame_calculate_dynamic(&c->c2.frame_fragment, &c->c1.ks.key_type, &c->options,
-                            get_link_socket_info(c));
+                            c->options.imported_protocol_flags, get_link_socket_info(c));
     fragment_frame_init(c->c2.fragment, &c->c2.frame_fragment);
 }
 #endif
@@ -4648,6 +4649,7 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         for (int i = 0; i < c->c1.link_sockets_num; i++)
         {
             frame_calculate_dynamic(&c->c2.frame, &c->c1.ks.key_type, &c->options,
+                                    c->options.imported_protocol_flags,
                                     &c->c2.link_sockets[i]->info);
         }
     }

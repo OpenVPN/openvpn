@@ -229,7 +229,7 @@ size_t frame_calculate_payload_size(const struct frame *frame, const struct opti
  * *  [IP][UDP][OPENVPN PROTOCOL HEADER][ **PAYLOAD incl compression header** ]
  */
 size_t frame_calculate_payload_overhead(size_t extra_tun, const struct options *options,
-                                        const struct key_type *kt);
+                                        const struct key_type *kt, unsigned int crypto_flags);
 
 
 /**
@@ -244,11 +244,13 @@ size_t frame_calculate_payload_overhead(size_t extra_tun, const struct options *
  *
  * @param kt            the key_type to use to calculate the crypto overhead
  * @param options       the options struct to be used to calculate
+ * @param crypto_flags  the active data-channel crypto flags
  * @param occ           Use the calculation for the OCC link-mtu
  * @return              size of the overhead in bytes
  */
 size_t frame_calculate_protocol_header_size(const struct key_type *kt,
-                                            const struct options *options, bool occ);
+                                            const struct options *options,
+                                            unsigned int crypto_flags, bool occ);
 
 /**
  * Calculate the link-mtu to advertise to our peer.  The actual value is not
@@ -260,10 +262,11 @@ size_t frame_calculate_protocol_header_size(const struct key_type *kt,
 size_t calc_options_string_link_mtu(const struct options *options, const struct frame *frame);
 
 /**
- * Return the size of the packet ID size that is currently in use by cipher and
- * options for the data channel.
+ * Return the packet ID size currently in use by the cipher, options, and active
+ * data-channel crypto flags.
  */
-unsigned int calc_packet_id_size_dc(const struct options *options, const struct key_type *kt);
+unsigned int calc_packet_id_size_dc(const struct options *options, const struct key_type *kt,
+                                    unsigned int crypto_flags);
 
 /*
  * allocate a buffer for socket or tun layer
