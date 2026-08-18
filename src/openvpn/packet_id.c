@@ -71,11 +71,6 @@ packet_id_debug(msglvl_t msglevel, const struct packet_id_rec *p,
 #endif
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static void
 packet_id_init_recv(struct packet_id_rec *rec, int seq_backtrack, int time_backtrack,
                     const char *name, int unit)
@@ -119,7 +114,7 @@ packet_id_move_recv(struct packet_id_rec *dest, struct packet_id_rec *src)
 
     /* Reinitalise the source */
     CLEAR(*src);
-    packet_id_init_recv(src, dest->seq_backtrack, dest->time_backtrack, dest->name, dest->unit);
+    packet_id_init_recv(src, (int)dest->seq_backtrack, dest->time_backtrack, dest->name, dest->unit);
 }
 
 void
@@ -170,7 +165,7 @@ packet_id_add(struct packet_id_rec *p, const struct packet_id_net *pin)
         diff = p->id - pin->id;
         if (diff < CIRC_LIST_SIZE(p->seq_list) && local_now > SEQ_EXPIRED)
         {
-            CIRC_LIST_ITEM(p->seq_list, diff) = local_now;
+            CIRC_LIST_ITEM(p->seq_list, (int)diff) = local_now;
         }
     }
     else
@@ -261,18 +256,16 @@ packet_id_test(struct packet_id_rec *p, const struct packet_id_net *pin)
                 return false;
             }
 
+            const time_t v = CIRC_LIST_ITEM(p->seq_list, (int)diff);
+            if (v == 0)
             {
-                const time_t v = CIRC_LIST_ITEM(p->seq_list, diff);
-                if (v == 0)
-                {
-                    return true;
-                }
-                else
-                {
-                    /* raised from D_PID_DEBUG_LOW to reduce verbosity */
-                    packet_id_debug(D_PID_DEBUG_MEDIUM, p, pin, "PID_ERR replay", diff);
-                    return false;
-                }
+                return true;
+            }
+            else
+            {
+                /* raised from D_PID_DEBUG_LOW to reduce verbosity */
+                packet_id_debug(D_PID_DEBUG_MEDIUM, p, pin, "PID_ERR replay", diff);
+                return false;
             }
         }
         else if (pin->time < p->time) /* if time goes back, reject */
@@ -384,7 +377,7 @@ packet_id_write(struct packet_id_send *p, struct buffer *buf, bool long_form, bo
         return false;
     }
 
-    const packet_id_type net_id = htonpid(p->id);
+    const packet_id_type net_id = htonpid((packet_id_type)p->id);
     const net_time_t net_time = htontime(p->time);
     if (prepend)
     {
@@ -636,7 +629,7 @@ packet_id_debug_print(msglvl_t msglevel, const struct packet_id_rec *p,
                p->seq_backtrack, p->time_backtrack, p->max_backtrack_stat, (int)p->initialized);
     if (sl != NULL)
     {
-        buf_printf(&out, " sl=[%d,%d,%d,%d]", sl->x_head, sl->x_size, sl->x_cap, sl->x_sizeof);
+        buf_printf(&out, " sl=[%d,%d,%d,%zu]", sl->x_head, sl->x_size, sl->x_cap, sl->x_sizeof);
     }
 
 
@@ -651,7 +644,6 @@ packet_id_read_epoch(struct packet_id_net *pin, struct buffer *buf)
 {
     uint64_t packet_id;
 
-
     if (!buf_read(buf, &packet_id, sizeof(packet_id)))
     {
         return 0;
@@ -659,15 +651,11 @@ packet_id_read_epoch(struct packet_id_net *pin, struct buffer *buf)
 
     uint64_t id = ntohll(packet_id);
     /* top most 16 bits */
-    uint16_t epoch = id >> 48;
+    uint16_t epoch = (uint16_t)(id >> 48);
 
     pin->id = id & PACKET_ID_MASK;
     return epoch;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 bool
 packet_id_write_epoch(struct packet_id_send *p, uint16_t epoch, struct buffer *buf)

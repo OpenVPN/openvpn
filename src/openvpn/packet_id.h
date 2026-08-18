@@ -280,25 +280,19 @@ packet_id_persist_enabled(const struct packet_id_persist *p)
     return p->fd >= 0;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
-/* transfer packet_id -> packet_id_persist */
+/* transfer packet_id -> packet_id_persist
+   Note: Only supported for non-epoch format (i.e. 32bit ID, not 64bit format),
+   must be enforced at the caller.
+ */
 static inline void
 packet_id_persist_save_obj(struct packet_id_persist *p, const struct packet_id *pid)
 {
-    if (packet_id_persist_enabled(p) && pid->rec.time)
+    if (packet_id_persist_enabled(p) && pid->rec.time && pid->rec.id <= PACKET_ID_MAX)
     {
         p->time = pid->rec.time;
-        p->id = pid->rec.id;
+        p->id = (packet_id_type)pid->rec.id;
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /**
  * Reset the current send packet id to its initial state.

@@ -33,7 +33,7 @@
         int x_head;           \
         int x_size;           \
         int x_cap;            \
-        int x_sizeof;         \
+        size_t x_sizeof;      \
         type x_list[];        \
     }
 
@@ -58,14 +58,14 @@
         (obj)->x_size = 0;   \
     }
 
-#define CIRC_LIST_ALLOC(dest, list_type, size)                                 \
-    {                                                                          \
-        const int so = sizeof(list_type) + sizeof((dest)->x_list[0]) * (size); \
-        (dest) = (list_type *)malloc(so);                                      \
-        check_malloc_return(dest);                                             \
-        memset((dest), 0, so);                                                 \
-        (dest)->x_cap = size;                                                  \
-        (dest)->x_sizeof = so;                                                 \
+#define CIRC_LIST_ALLOC(dest, list_type, size)                                    \
+    {                                                                             \
+        const size_t so = sizeof(list_type) + sizeof((dest)->x_list[0]) * (size); \
+        (dest) = (list_type *)malloc(so);                                         \
+        check_malloc_return(dest);                                                \
+        memset((dest), 0, so);                                                    \
+        (dest)->x_cap = size;                                                     \
+        (dest)->x_sizeof = so;                                                    \
     }
 
 #define CIRC_LIST_FREE(dest) free(dest)
