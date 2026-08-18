@@ -500,7 +500,7 @@ buf_rmtail(struct buffer *buf, uint8_t remove)
 void
 buf_null_terminate(struct buffer *buf)
 {
-    const char *last = (char *)BLAST(buf);
+    const uint8_t *last = BLAST(buf);
     if (last && *last == '\0') /* already terminated? */
     {
         return;
@@ -523,12 +523,12 @@ buf_chomp(struct buffer *buf)
 {
     while (true)
     {
-        const char *last = (char *)BLAST(buf);
+        const uint8_t *last = BLAST(buf);
         if (!last)
         {
             break;
         }
-        if (char_class((unsigned char)*last, CC_CRLF | CC_NULL))
+        if (char_class(*last, CC_CRLF | CC_NULL))
         {
             if (!buf_inc_len(buf, -1))
             {
