@@ -431,6 +431,8 @@ set(SOURCE_FILES
     src/openvpn/basic.h
     src/openvpn/buffer.c
     src/openvpn/buffer.h
+    src/openvpn/check_file_access.c
+    src/openvpn/check_file_access.h
     src/openvpn/circ_list.h
     src/openvpn/clinat.c
     src/openvpn/clinat.h

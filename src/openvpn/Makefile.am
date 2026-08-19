@@ -47,6 +47,7 @@ openvpn_SOURCES = \
 	base64.c base64.h \
 	basic.h \
 	buffer.c buffer.h \
+	check_file_access.c check_file_access.h \
 	circ_list.h \
 	clinat.c clinat.h \
 	common.h \
