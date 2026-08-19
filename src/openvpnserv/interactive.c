@@ -541,19 +541,19 @@ sockaddr_inet(short family, inet_address_t *addr)
 static DWORD
 InterfaceLuid(const char *iface_name, PNET_LUID luid)
 {
-    NETIO_STATUS status;
+    NETIO_STATUS convert_status;
     LPWSTR wide_name = utf8to16(iface_name);
 
     if (wide_name)
     {
-        status = ConvertInterfaceAliasToLuid(wide_name, luid);
+        convert_status = ConvertInterfaceAliasToLuid(wide_name, luid);
         free(wide_name);
     }
     else
     {
-        status = ERROR_OUTOFMEMORY;
+        convert_status = ERROR_OUTOFMEMORY;
     }
-    return status;
+    return convert_status;
 }
 
 static BOOL
@@ -1183,8 +1183,8 @@ ApplyDnsSettings(BOOL apply_gpol)
         goto out;
     }
 
-    SERVICE_STATUS status;
-    if (ControlService(dnssvc, SERVICE_CONTROL_PARAMCHANGE, &status) == 0)
+    SERVICE_STATUS control_status;
+    if (ControlService(dnssvc, SERVICE_CONTROL_PARAMCHANGE, &control_status) == 0)
     {
         MsgToEventLog(M_ERR, L"%S: ControlService call failed (%lu)", __func__, GetLastError());
         goto out;
@@ -3763,12 +3763,12 @@ out:
 static DWORD WINAPI
 ServiceCtrlInteractive(DWORD ctrl_code, DWORD event, LPVOID data, LPVOID ctx)
 {
-    SERVICE_STATUS *status = ctx;
+    SERVICE_STATUS *svc_status = ctx;
     switch (ctrl_code)
     {
         case SERVICE_CONTROL_STOP:
-            status->dwCurrentState = SERVICE_STOP_PENDING;
-            ReportStatusToSCMgr(service, status);
+            svc_status->dwCurrentState = SERVICE_STOP_PENDING;
+            ReportStatusToSCMgr(service, svc_status);
             if (exit_event)
             {
                 SetEvent(exit_event);

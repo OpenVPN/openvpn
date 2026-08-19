@@ -2081,12 +2081,12 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
                     "may accept clients which do not present a certificate");
     }
 
-    const unsigned int tls_version_max =
+    const unsigned int tls_ver_max =
         (options->ssl_flags >> SSLF_TLS_VERSION_MAX_SHIFT) & SSLF_TLS_VERSION_MAX_MASK;
-    const unsigned int tls_version_min =
+    const unsigned int tls_ver_min =
         (options->ssl_flags >> SSLF_TLS_VERSION_MIN_SHIFT) & SSLF_TLS_VERSION_MIN_MASK;
 
-    if (tls_version_max > 0 && tls_version_max < tls_version_min)
+    if (tls_ver_max > 0 && tls_ver_max < tls_ver_min)
     {
         msg(M_USAGE, "--tls-version-min bigger than --tls-version-max");
     }
@@ -3033,16 +3033,16 @@ dhcp_options_postprocess_dns(struct options *o, struct env_set *es)
         {
             struct dns_domain **entry = &dns->search_domains;
             ALLOC_OBJ_CLEAR_GC(*entry, struct dns_domain, &dns->gc);
-            struct dns_domain *new = *entry;
-            new->name = dhcp->domain;
-            entry = &new->next;
+            struct dns_domain *domain = *entry;
+            domain->name = dhcp->domain;
+            entry = &domain->next;
 
             for (unsigned int i = 0; i < dhcp->domain_search_list_len; ++i)
             {
                 ALLOC_OBJ_CLEAR_GC(*entry, struct dns_domain, &dns->gc);
-                struct dns_domain *new = *entry;
-                new->name = dhcp->domain_search_list[i];
-                entry = &new->next;
+                struct dns_domain *search_domain = *entry;
+                search_domain->name = dhcp->domain_search_list[i];
+                entry = &search_domain->next;
             }
 
             struct dns_server *server = dns_server_get(&dns->servers, 0, &dns->gc);
@@ -3135,7 +3135,6 @@ helper_hashmap_sizes(struct options *o)
 static void
 options_postprocess_mutate(struct options *o, struct env_set *es)
 {
-    int i;
     /*
      * Process helper-type options which map to other, more complex
      * sequences of options.
@@ -3168,7 +3167,7 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
          * Convert remotes into connection list
          */
         const struct remote_list *rl = o->remote_list;
-        for (i = 0; i < rl->len; ++i)
+        for (int i = 0; i < rl->len; ++i)
         {
             const struct remote_entry *re = rl->array[i];
             struct connection_entry ce = o->ce;
@@ -3190,14 +3189,14 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     }
 
     ASSERT(o->connection_list);
-    for (i = 0; i < o->connection_list->len; ++i)
+    for (int i = 0; i < o->connection_list->len; ++i)
     {
         options_postprocess_mutate_ce(o, o->connection_list->array[i]);
     }
 
     if (o->ce.local_list)
     {
-        for (i = 0; i < o->ce.local_list->len; i++)
+        for (int i = 0; i < o->ce.local_list->len; i++)
         {
             options_postprocess_mutate_le(&o->ce, o->ce.local_list->array[i], o->mode);
         }
@@ -3225,7 +3224,7 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     }
 
     /* use the same listen list for every outgoing connection */
-    for (i = 0; i < o->connection_list->len; ++i)
+    for (int i = 0; i < o->connection_list->len; ++i)
     {
         o->connection_list->array[i]->local_list = o->ce.local_list;
     }
