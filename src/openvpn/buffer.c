@@ -1086,6 +1086,38 @@ string_replace_leading(char *str, const char match, const char replace)
 }
 
 bool
+string_defined_equal(const char *s1, const char *s2)
+{
+    if (s1 && s2)
+    {
+        return !strcmp(s1, s2);
+    }
+    else
+    {
+        return false;
+    }
+}
+
+char *
+string_substitute(const char *src, char from, char to, struct gc_arena *gc)
+{
+    char *ret = (char *)gc_malloc(strlen(src) + 1, true, gc);
+    char *dest = ret;
+    char c;
+
+    do
+    {
+        c = *src++;
+        if (c == from)
+        {
+            c = to;
+        }
+        *dest++ = c;
+    } while (c);
+    return ret;
+}
+
+bool
 checked_snprintf(char *str, size_t size, const char *format, ...)
 {
     va_list arglist;

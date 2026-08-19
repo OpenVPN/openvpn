@@ -1087,25 +1087,6 @@ ipv6_addr_safe_hexplusbits(const char *ipv6_prefix_spec)
     return get_ipv6_addr(ipv6_prefix_spec, NULL, NULL, M_WARN);
 }
 
-static char *
-string_substitute(const char *src, char from, char to, struct gc_arena *gc)
-{
-    char *ret = (char *)gc_malloc(strlen(src) + 1, true, gc);
-    char *dest = ret;
-    char c;
-
-    do
-    {
-        c = *src++;
-        if (c == from)
-        {
-            c = to;
-        }
-        *dest++ = c;
-    } while (c);
-    return ret;
-}
-
 /**
  * Parses a hexstring and checks if the string has the correct length. Return
  * a verify_hash_list containing the parsed hash string.
@@ -3562,19 +3543,6 @@ notnull(const char *arg, const char *description)
     if (!arg)
     {
         msg(M_USAGE, "You must define %s", description);
-    }
-}
-
-bool
-string_defined_equal(const char *s1, const char *s2)
-{
-    if (s1 && s2)
-    {
-        return !strcmp(s1, s2);
-    }
-    else
-    {
-        return false;
     }
 }
 

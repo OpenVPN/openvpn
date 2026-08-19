@@ -1766,6 +1766,9 @@ strprefix(const char *str, const char *prefix)
     return 0 == strncmp(str, prefix, strlen(prefix));
 }
 
+bool string_defined_equal(const char *s1, const char *s2);
+char *string_substitute(const char *src, char from, char to, struct gc_arena *gc);
+
 /**
  * Like snprintf() but returns an boolean.
  *
