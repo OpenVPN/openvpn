@@ -54,6 +54,7 @@
 #include "dco.h"
 #include "tun_afunix.h"
 #include "schedule.h"
+#include "options_string.h"
 
 #include "memdbg.h"
 

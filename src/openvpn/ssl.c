@@ -62,6 +62,7 @@
 #include "auth_token.h"
 #include "mss.h"
 #include "dco.h"
+#include "options_string.h"
 
 #include "memdbg.h"
 #include "openvpn.h"

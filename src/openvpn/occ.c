@@ -29,7 +29,7 @@
 #include "occ.h"
 #include "forward.h"
 #include "memdbg.h"
-
+#include "options_string.h"
 
 /*
  * This random string identifies an OpenVPN

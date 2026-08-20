@@ -110,6 +110,7 @@ openvpn_SOURCES = \
 	openvpn.c openvpn.h \
 	options.c options.h \
 	options_show.c options_show.h \
+	options_string.c options_string.h \
 	options_util.c options_util.h \
 	options_parse.c \
 	otime.c otime.h \

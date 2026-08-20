@@ -903,33 +903,6 @@ void setenv_settings(struct env_set *es, const struct options *o);
 
 bool string_defined_equal(const char *s1, const char *s2);
 
-const char *options_string_version(const char *s, struct gc_arena *gc);
-
-char *options_string(const struct options *o, const struct frame *frame, struct tuntap *tt,
-                     openvpn_net_ctx_t *ctx, bool remote, struct gc_arena *gc);
-
-bool options_cmp_equal_safe(char *actual, const char *expected, size_t actual_n);
-
-void options_warning_safe(char *actual, const char *expected, size_t actual_n);
-
-bool options_cmp_equal(char *actual, const char *expected);
-
-void options_warning(char *actual, const char *expected);
-
-/**
- * Given an OpenVPN options string, extract the value of an option.
- *
- * @param options_string        Zero-terminated, comma-separated options string
- * @param opt_name              The name of the option to extract
- * @param gc                    The gc to allocate the return value
- *
- * @return gc-allocated value of option with name opt_name if option was found,
- *         or NULL otherwise.
- */
-char *options_string_extract_option(const char *options_string, const char *opt_name,
-                                    struct gc_arena *gc);
-
-
 void options_postprocess(struct options *options, struct env_set *es);
 
 bool options_postprocess_pull(struct options *o, struct env_set *es);
