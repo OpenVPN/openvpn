@@ -20,24 +20,23 @@ COMMON_ARGS="-j$(nproc) -q \
  --check-level=exhaustive --max-configs=10 \
  --error-exitcode=1"
 
-
 set -x
 
 mkdir -p "$CPPCHECK_DIR"
 cd "${SOURCE_DIR}"
 cppcheck $COMMON_ARGS $INCLUDE_FLAGS \
-         --platform=unix64 \
-         --library=posix.cfg --library=bsd.cfg --library=gnu.cfg \
-         -U_WIN32 \
-         src/openvpn/ src/compat/ src/plugins/ sample/ \
-         tests/unit_tests/example_test/ tests/unit_tests/openvpn/ \
-         tests/unit_tests/plugins/
+    --platform=unix64 \
+    --library=posix.cfg --library=bsd.cfg --library=gnu.cfg \
+    -U_WIN32 \
+    src/openvpn/ src/compat/ src/plugins/ sample/ \
+    tests/unit_tests/example_test/ tests/unit_tests/openvpn/ \
+    tests/unit_tests/plugins/
 cppcheck $COMMON_ARGS \
-         --platform=win64 \
-         --library=windows.cfg \
-         -D_WIN32 \
-         -UTARGET_LINUX -UTARGET_FREEBSD -UTARGET_OPENBSD -UTARGET_NETBSD \
-         -UTARGET_DARWIN -UTARGET_ANDROID -UTARGET_SOLARIS -UTARGET_DRAGONFLY \
-         -UTARGET_AIX \
-         src/openvpn* src/compat/ \
-         tests/unit_tests/example_test/ tests/unit_tests/openvpn*
+    --platform=win64 \
+    --library=windows.cfg \
+    -D_WIN32 \
+    -UTARGET_LINUX -UTARGET_FREEBSD -UTARGET_OPENBSD -UTARGET_NETBSD \
+    -UTARGET_DARWIN -UTARGET_ANDROID -UTARGET_SOLARIS -UTARGET_DRAGONFLY \
+    -UTARGET_AIX \
+    src/openvpn* src/compat/ \
+    tests/unit_tests/example_test/ tests/unit_tests/openvpn*

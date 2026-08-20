@@ -34,8 +34,7 @@ UPDATE_COPYRIGHT_LINES="@openvpn\.net\|@sentyron\.com\|@sophos.com\|@eurephia\.o
 COPY_YEAR="$1"
 
 cd "$(git rev-parse --show-toplevel)"
-for file in $(git ls-files | grep -v vendor/);
-do
+for file in $(git ls-files | grep -v vendor/); do
     echo -n "Updating $file ..."
     # The first sed operation covers 20xx-20yy copyright lines,
     # The second sed operation changes 20xx -> 20xx-20yy

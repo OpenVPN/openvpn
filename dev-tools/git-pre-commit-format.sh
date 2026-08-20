@@ -26,7 +26,6 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 # git pre-commit hook that runs a stylecheck.
 # Features:
 #  - abort commit when commit does not comply with the style guidelines
@@ -43,12 +42,11 @@
 # exit on error
 set -e
 
-
 # If called so, install this script as pre-commit hook
-if [ "$1" = "install" ] ; then
+if [ "$1" = "install" ]; then
     TARGET="$(git rev-parse --git-path hooks)/pre-commit"
 
-    if [ -e "$TARGET" ] ; then
+    if [ -e "$TARGET" ]; then
         printf "$TARGET file exists. Won't overwrite.\n"
         printf "Aborting installation.\n"
         exit 1
@@ -62,18 +60,19 @@ if [ "$1" = "install" ] ; then
 fi
 
 # check whether the given file matches any of the set extensions
-matches_extension() {
+matches_extension()
+{
     local filename="$(basename -- "$1")"
     local extension=".${filename##*.}"
     local ext
 
-    for ext in .c .h ; do [ "$ext" = "$extension" ] && return 0; done
+    for ext in .c .h; do [ "$ext" = "$extension" ] && return 0; done
 
     return 1
 }
 
 # necessary check for initial commit
-if git rev-parse --verify HEAD >/dev/null 2>&1 ; then
+if git rev-parse --verify HEAD >/dev/null 2>&1; then
     against=HEAD
 else
     # Initial commit: diff against an empty tree object
@@ -88,8 +87,8 @@ if [ -e "${TOPDIR}/.clang-format" ]; then
 
     # Allow to use in parallel with pre-commit
     if [ $(basename "$0") = "pre-commit.legacy" ]; then
-       echo "Skipping clang-format check in favor of pre-commit"
-       exit 0
+        echo "Skipping clang-format check in favor of pre-commit"
+        exit 0
     fi
 else
     TOOL=uncrustify
@@ -98,7 +97,7 @@ else
     TOOL_CMD="$TOOL_BIN -q -l C -c $UNCRUST_CONFIG"
 
     # make sure the config file is correctly set
-    if [ ! -f "$UNCRUST_CONFIG" ] ; then
+    if [ ! -f "$UNCRUST_CONFIG" ]; then
         printf "Error: uncrustify config file not found.\n"
         printf "Expected to find it at $UNCRUST_CONFIG.\n"
         printf "Aborting commit.\n"
@@ -106,7 +105,7 @@ else
     fi
 fi
 
-if [ -z "$TOOL_BIN" ] ; then
+if [ -z "$TOOL_BIN" ]; then
     printf "Error: $TOOL executable not found.\n"
     printf "Is it installed and in your \$PATH?\n"
     printf "Aborting commit.\n"
@@ -120,44 +119,43 @@ tmpout=$(mktemp /tmp/ovpn-fmt-tmp-XXXXXX)
 # create one patch containing all changes to the files
 # sed to remove quotes around the filename, if inserted by the system
 # (done sometimes, if the filename contains special characters, like the quote itself)
-git diff-index --cached --diff-filter=ACMR --name-only $against -- | \
-sed -e 's/^"\(.*\)"$/\1/' | \
-while read file
-do
-    # ignore file if we do check for file extensions and the file
-    # does not match the extensions .c or .h
-    if ! matches_extension "$file"; then
-        continue;
-    fi
+git diff-index --cached --diff-filter=ACMR --name-only $against -- |
+    sed -e 's/^"\(.*\)"$/\1/' |
+    while read file; do
+        # ignore file if we do check for file extensions and the file
+        # does not match the extensions .c or .h
+        if ! matches_extension "$file"; then
+            continue
+        fi
 
-    # escape special characters in the target filename:
-    # phase 1 (characters escaped in the output diff):
-    #     - '\': backslash needs to be escaped in the output diff
-    #     - '"': quote needs to be escaped in the output diff if present inside
-    #            of the filename, as it used to bracket the entire filename part
-    # phase 2 (characters escaped in the match replacement):
-    #     - '\': backslash needs to be escaped again for sed itself
-    #            (i.e. double escaping after phase 1)
-    #     - '&': would expand to matched string
-    #     - '|': used as sed split char instead of '/'
-    # printf %s particularly important if the filename contains the % character
-    file_escaped_target=$(printf "%s" "$file" | sed -e 's/[\"]/\\&/g' -e 's/[\&|]/\\&/g')
+        # escape special characters in the target filename:
+        # phase 1 (characters escaped in the output diff):
+        #     - '\': backslash needs to be escaped in the output diff
+        #     - '"': quote needs to be escaped in the output diff if present inside
+        #            of the filename, as it used to bracket the entire filename part
+        # phase 2 (characters escaped in the match replacement):
+        #     - '\': backslash needs to be escaped again for sed itself
+        #            (i.e. double escaping after phase 1)
+        #     - '&': would expand to matched string
+        #     - '|': used as sed split char instead of '/'
+        # printf %s particularly important if the filename contains the % character
+        file_escaped_target=$(printf "%s" "$file" | sed -e 's/[\"]/\\&/g' -e 's/[\&|]/\\&/g')
 
-    # uncrustify our sourcefile, create a patch with diff and append it to our $patch
-    # The sed call is necessary to transform the patch from
-    #    --- - timestamp
-    #    +++ $tmpout timestamp
-    # to both lines working on the same file and having a a/ and b/ prefix.
-    # Else it can not be applied with 'git apply'.
-    git show ":$file" | $TOOL_CMD > "$tmpout"
-    git show ":$file" | diff -u -- - "$tmpout" | \
-        sed -e "1s|--- -|--- \"b/$file_escaped_target\"|" -e "2s|+++ $tmpout|+++ \"a/$file_escaped_target\"|" >> "$patch"
-done
+        # uncrustify our sourcefile, create a patch with diff and append it to our $patch
+        # The sed call is necessary to transform the patch from
+        #    --- - timestamp
+        #    +++ $tmpout timestamp
+        # to both lines working on the same file and having a a/ and b/ prefix.
+        # Else it can not be applied with 'git apply'.
+        git show ":$file" | $TOOL_CMD >"$tmpout"
+        git show ":$file" | diff -u -- - "$tmpout" |
+            sed -e "1s|--- -|--- \"b/$file_escaped_target\"|" -e "2s|+++ $tmpout|+++ \"a/$file_escaped_target\"|" >>"$patch"
+    done
 
 rm -f "$tmpout"
 
 # if no patch has been generated all is ok, clean up the file stub and exit
-if [ ! -s "$patch" ] ; then
+if [ ! -s "$patch" ]; then
     rm -f "$patch"
     exit 0
 fi
@@ -165,7 +163,7 @@ fi
 # a patch has been created, notify the user and exit
 printf "Formatting of some code does not follow the project guidelines.\n"
 
-if [ $(wc -l < $patch) -gt 80 ] ; then
+if [ $(wc -l <$patch) -gt 80 ]; then
     printf "The file $patch contains the necessary fixes.\n"
 else
     printf "Here's the patch that fixes the formatting:\n\n"
