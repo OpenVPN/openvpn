@@ -155,7 +155,7 @@ output()
 fail()
 {
     output "FAIL: $@\n"
-    fail_count=$(($fail_count + 1))
+    fail_count=$((fail_count + 1))
 }
 
 # print "all interface IP addresses" + "all routes"
@@ -386,7 +386,7 @@ for SUF in $TEST_RUN_LIST; do
             ovpn_init_check=0
             ovpn_init_success=1
         fi
-        ovpn_init_check=$(($ovpn_init_check - 1))
+        ovpn_init_check=$((ovpn_init_check - 1))
     done
 
     opid=$(cat $pidfile)

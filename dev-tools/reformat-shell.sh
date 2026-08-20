@@ -5,7 +5,7 @@
 
 set -u
 
-FORMAT_ARGS="--indent=4 --func-next-line --case-indent"
+FORMAT_ARGS="--simplify --indent=4 --func-next-line --case-indent"
 FORMAT_CMD="shfmt --list --write"
 
 # hardcoded to --posix due to .in filename and invalid shebang

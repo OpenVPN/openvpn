@@ -162,7 +162,7 @@ done
 # remove interface for good
 $RUN_SUDO ip link del $IFACE
 
-for i in $(seq $(($LAST_AUTO_TEST + 1)) ${LAST_TEST}); do
+for i in $(seq $((LAST_AUTO_TEST + 1)) ${LAST_TEST}); do
     $RUN_SUDO $UNIT_TEST $i
     if [ $? -ne 0 ]; then
         echo "unit-test $i errored out"

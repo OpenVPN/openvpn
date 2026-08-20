@@ -164,7 +164,7 @@ while [ $count -lt $server_max_wait ]; do
             continue
         fi
         if $RUN_SUDO kill -0 $server_pid >/dev/null 2>&1; then
-            servers_up=$(($servers_up + 1))
+            servers_up=$((servers_up + 1))
         fi
     done
 

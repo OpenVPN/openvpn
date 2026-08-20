@@ -59,13 +59,13 @@ test_end()
                 ;;
         esac
         e=1
-        tests_failed=$(($tests_failed + 1))
+        tests_failed=$((tests_failed + 1))
     else
         case $V in
             0 | 1) ;;       # no per-test output for 'OK'
             *) echo "OK" ;; # print all
         esac
-        tests_passed=$(($tests_passed + 1))
+        tests_passed=$((tests_passed + 1))
     fi
 }
 
