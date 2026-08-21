@@ -376,6 +376,7 @@ case "$host" in
 esac
 
 AM_CONDITIONAL([CROSS_COMPILING], test "${cross_compiling}" = "yes")
+AM_CONDITIONAL([TARGET_LINUX], [case $host in *-*-linux*) true;; *) false;; esac])
 
 PKG_PROG_PKG_CONFIG
 # Add variable to print if pkg-config is found or not. Users often miss that
