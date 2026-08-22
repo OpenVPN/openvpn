@@ -258,7 +258,22 @@ client_nat_transform(const struct client_nat_option_list *list, struct buffer *i
         {
             if (BLENZ(ipbuf) >= sizeof(struct openvpn_iphdr) + sizeof(struct openvpn_udphdr))
             {
-                ADJUST_CHECKSUM(accumulate, h->u.udp.check);
+                /* RFC 768: a UDP checksum of 0 means "no checksum computed".
+                 * Do not run the incremental adjustment over a non-checksum,
+                 * or we will write a bogus non-zero value into the field. */
+        
+                if (h->u.udp.check != 0)
+                {
+                    ADJUST_CHECKSUM(accumulate, h->u.udp.check);
+        
+                    /* RFC 768: a computed checksum of 0 must be transmitted
+                     * as 0xFFFF, because 0 is reserved to mean "no checksum". */
+        
+                    if (h->u.udp.check == 0)
+                    {
+                        h->u.udp.check = 0xFFFF;
+                    }
+                }
             }
         }
     }
