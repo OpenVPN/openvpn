@@ -43,67 +43,10 @@
  */
 
 #ifdef USE_VALGRIND
-
 #include <valgrind/memcheck.h>
-
-#define VALGRIND_MAKE_READABLE(addr, len)
-
-#else /* ifdef USE_VALGRIND */
-
-#define VALGRIND_MAKE_READABLE(addr, len)
-
 #endif
 
-#ifdef DMALLOC /* see ./configure options to enable */
-
-/*
- * See ./configure options to enable dmalloc
- * support for memory leak checking.
- *
- * The dmalloc package can be downloaded from:
- *
- *     https://dmalloc.com/
- *
- * When dmalloc is installed and enabled,
- * use this command prior to running openvpn:
- *
- *    dmalloc -l dlog -i 100 low -p log-unknown
- *
- * Also, put this in your .bashrc file:
- *
- *    function dmalloc { eval `command dmalloc -b $*`; }
- *
- * Or take a more low-level approach:
- *
- *    export DMALLOC_OPTIONS="debug=0x4e48503,inter=100,log=dlog"
- *
- *  NOTE: When building dmalloc you need to add something
- *  like this to dmalloc's settings.h -- it will allocate a static
- *  buffer to be used as the malloc arena:
- *
- *  #define INTERNAL_MEMORY_SPACE (1024 * 1024 * 50)
- */
-
-#include <dmalloc.h>
-
-#define openvpn_dmalloc(file, line, size) \
-    dmalloc_malloc((file), (line), (size), DMALLOC_FUNC_MALLOC, 0, 0)
-
-/*
- * This #define will put the line number of the log
- * file position where leaked memory was allocated instead
- * of the source code file and line number.  Make sure
- * to increase the size of dmalloc's info tables,
- * (MEMORY_TABLE_SIZE in settings.h)
- * otherwise it might get overwhelmed by the large
- * number of unique file/line combinations.
- */
-#if 0
-#undef malloc
-#define malloc(size) openvpn_dmalloc("logfile", x_msg_line_num, (size))
-#endif
-
-#endif /* DMALLOC */
+#define VALGRIND_MAKE_READABLE(addr, len)
 
 /*
  * Force buffers to be zeroed after allocation.

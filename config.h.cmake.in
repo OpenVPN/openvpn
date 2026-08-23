@@ -96,9 +96,6 @@
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #cmakedefine HAVE_DLFCN_H
 
-/* Define to 1 if you have the <dmalloc.h> header file. */
-#cmakedefine HAVE_DMALLOC_H
-
 /* Define to 1 if you have the `dup' function. */
 #cmakedefine HAVE_DUP
 

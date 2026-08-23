@@ -366,7 +366,9 @@ void do_preresolve(struct context *c);
 
 void link_socket_close(struct link_socket *sock);
 
+#ifdef ENABLE_MANAGEMENT
 void sd_close(socket_descriptor_t *sd);
+#endif
 
 void bad_address_length(int actual, int expected);
 

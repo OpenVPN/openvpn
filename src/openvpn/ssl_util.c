@@ -24,29 +24,59 @@
 #endif
 
 #include "syshead.h"
-
+#include "openvpn.h"
 #include "ssl_util.h"
 
-char *
-extract_var_peer_info(const char *peer_info, const char *var, struct gc_arena *gc)
+/**
+ * Looks for the string field at the start of peer_info or
+ * after any new line and returns a pointer to the start of the field
+ * or NULL if not found.
+ */
+static const char *
+peer_info_extract_varstr(const char *peer_info, const char *field)
 {
     if (!peer_info)
     {
         return NULL;
     }
 
-    const char *var_start = strstr(peer_info, var);
+    while (peer_info)
+    {
+        /* peer info starts with this field */
+        if (strncmp(peer_info, field, strlen(field)) == 0)
+        {
+            return peer_info;
+        }
+
+        /* skip to the next line */
+        peer_info = strchr(peer_info, '\n');
+        if (peer_info)
+        {
+            /* skip the '\n' itself */
+            peer_info++;
+        }
+    }
+    return NULL;
+}
+
+char *
+extract_var_peer_info(const char *peer_info, const char *var, struct gc_arena *gc)
+{
+    const char *var_start = peer_info_extract_varstr(peer_info, var);
     if (!var_start)
     {
-        /* variable not found in peer info */
+        /* variable hasn't been found in peer info */
         return NULL;
     }
 
+    /* skip over the variable name (includes the = as per API)*/
     var_start += strlen(var);
-    const char *var_end = strstr(var_start, "\n");
+
+    /* returns the location of the next '\n' or the end of the
+     * string if the variable is already on the last line */
+    const char *var_end = strchr(var_start, '\n');
     if (!var_end)
     {
-        /* var is at end of the peer_info list and no '\n' follows */
         var_end = var_start + strlen(var_start);
     }
 
@@ -56,20 +86,41 @@ extract_var_peer_info(const char *peer_info, const char *var, struct gc_arena *g
     return var_value;
 }
 
+
 unsigned int
-extract_iv_proto(const char *peer_info)
+peer_info_extract_int(const char *peer_info, const char *field, const char *format, unsigned int default_value)
 {
-    const char *optstr = peer_info ? strstr(peer_info, "IV_PROTO=") : NULL;
+    const char *optstr = peer_info_extract_varstr(peer_info, field);
     if (optstr)
     {
-        int proto = 0;
-        int r = sscanf(optstr, "IV_PROTO=%d", &proto);
-        if (r == 1 && proto > 0)
+        optstr += strlen(field);
+
+        int value = 0;
+        int r = sscanf(optstr, format, &value);
+        if (r == 1 && value >= 0)
         {
-            return proto;
+            return value;
         }
     }
-    return 0;
+    return default_value;
+}
+
+unsigned int
+peer_info_extract_uint(const char *peer_info, const char *field)
+{
+    return peer_info_extract_int(peer_info, field, "%u", 0);
+}
+
+uint32_t
+extract_asymmetric_peer_id(const char *peer_info)
+{
+    uint32_t peer_id = peer_info_extract_int(peer_info, "ID=", "%x", MAX_PEER_ID);
+    if (peer_id < MAX_PEER_ID)
+    {
+        return peer_id;
+    }
+
+    return MAX_PEER_ID;
 }
 
 const char *

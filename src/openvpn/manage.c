@@ -1329,8 +1329,6 @@ man_certificate(struct management *man)
 static void
 man_load_stats(struct management *man)
 {
-    extern counter_type link_read_bytes_global;
-    extern counter_type link_write_bytes_global;
     int nclients = 0;
 
     if (man->persist.callback.n_clients)

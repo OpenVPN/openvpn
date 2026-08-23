@@ -32,7 +32,10 @@ IndentGotoLabels: false
 IndentWidth: '4'
 IndentWrappedFunctionNames: false
 InsertBraces: true
-KeepEmptyLinesAtTheStartOfBlocks: false
+KeepEmptyLines:
+  AtEndOfFile: false
+  AtStartOfBlock: false
+  AtStartOfFile: false
 MaxEmptyLinesToKeep: '2'
 PointerAlignment: Right
 ReflowComments: true

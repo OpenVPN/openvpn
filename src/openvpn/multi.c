@@ -229,7 +229,7 @@ reap_buckets_per_pass(uint32_t n_buckets)
 #ifdef ENABLE_MANAGEMENT
 
 static uint64_t
-cid_hash_function(const void *key, uint32_t iv)
+cid_hash_function(const void *key, const uint8_t hash_key[HASH_KEY_LEN])
 {
     const unsigned long *k = (const unsigned long *)key;
     return (uint64_t)*k;
@@ -250,7 +250,7 @@ static uint64_t
 /*
  * inotify watcher descriptors are used as hash value
  */
-int_hash_function(const void *key, uint32_t iv)
+int_hash_function(const void *key, const uint8_t hash_key[HASH_KEY_LEN])
 {
     return (uintptr_t)key;
 }
@@ -290,18 +290,18 @@ multi_init(struct context *t)
      * to determine which client sent an incoming packet
      * which is seen on the TCP/UDP socket.
      */
-    m->hash = hash_init(t->options.real_hash_size, (uint32_t)get_random(),
+    m->hash = hash_init(t->options.real_hash_size,
                         mroute_addr_hash_function, mroute_addr_compare_function);
 
     /*
      * Virtual address hash table.  Used to determine
      * which client to route a packet to.
      */
-    m->vhash = hash_init(t->options.virtual_hash_size, (uint32_t)get_random(),
+    m->vhash = hash_init(t->options.virtual_hash_size,
                          mroute_addr_hash_function, mroute_addr_compare_function);
 
 #ifdef ENABLE_MANAGEMENT
-    m->cid_hash = hash_init(t->options.real_hash_size, 0, cid_hash_function, cid_compare_function);
+    m->cid_hash = hash_init(t->options.real_hash_size, cid_hash_function, cid_compare_function);
 #endif
 
 #ifdef ENABLE_ASYNC_PUSH
@@ -309,8 +309,8 @@ multi_init(struct context *t)
      * Mapping between inotify watch descriptors and
      * multi_instances.
      */
-    m->inotify_watchers = hash_init(t->options.real_hash_size, (uint32_t)get_random(),
-                                    int_hash_function, int_compare_function);
+    m->inotify_watchers =
+        hash_init(t->options.real_hash_size, int_hash_function, int_compare_function);
 #endif
 
     /*
@@ -430,7 +430,7 @@ multi_instance_string(const struct multi_instance *mi, bool null, struct gc_aren
         if (mi->context.c2.tls_multi && check_debug_level(D_DCO_DEBUG)
             && dco_enabled(&mi->context.options))
         {
-            buf_printf(&out, " peer-id=%d", mi->context.c2.tls_multi->peer_id);
+            buf_printf(&out, " rx-peer-id=%d", mi->context.c2.tls_multi->rx_peer_id);
         }
         return BSTR(&out);
     }
@@ -598,9 +598,9 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
         }
 #endif
 
-        if (mi->context.c2.tls_multi->peer_id != MAX_PEER_ID)
+        if (mi->context.c2.tls_multi->rx_peer_id != MAX_PEER_ID)
         {
-            m->instances[mi->context.c2.tls_multi->peer_id] = NULL;
+            m->instances[mi->context.c2.tls_multi->rx_peer_id] = NULL;
 
             /* Adjust the max_peerid as this might have been the highest
              * peer id instance */
@@ -908,8 +908,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 #else
                         sep,
 #endif
-                        sep,
-                        mi->context.c2.tls_multi ? mi->context.c2.tls_multi->peer_id : UINT32_MAX,
+                        sep, mi->context.c2.tls_multi ? mi->context.c2.tls_multi->rx_peer_id : MAX_PEER_ID,
                         sep, translate_cipher_name_to_openvpn(mi->context.options.ciphername));
                 }
                 gc_free(&gc);
@@ -3069,6 +3068,88 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
 }
 
 /**
+ * This methods checks if a client instance is allowed to use an address
+ *
+ * Reasons for disallowing a specific address are that a client might be
+ * already using that address. In that case the method needs to decide
+ * if this instance can kick out the other instance.
+ *
+ * The method will then terminate the other instance if that check was
+ * positive.
+ */
+static bool
+multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi, struct mroute_addr *real)
+{
+    struct hash *hash = m->hash;
+    const uint64_t hv = hash_value(hash, real);
+    struct hash_bucket *bucket = hash_bucket(hash, hv);
+
+    /* make sure that we don't assign the client to an address taken by
+     * another client */
+    struct hash_element *he = hash_lookup_fast(hash, bucket, real, hv);
+    if (!he)
+    {
+        /* Address is not taken, everything is fine. */
+        return true;
+    }
+
+    struct multi_instance *ex_mi = he->value;
+
+    struct tls_multi *m1 = mi->context.c2.tls_multi;
+    struct tls_multi *m2 = ex_mi->context.c2.tls_multi;
+
+    struct gc_arena gc = gc_new();
+    int ret = false;
+
+    /* do not allow if target address is taken by client with another cert */
+    if (!cert_hash_compare(m1->locked_cert_hash_set, m2->locked_cert_hash_set))
+    {
+        msg(D_MULTI_LOW, "Disallow float to an address taken by another client %s",
+            multi_instance_string(ex_mi, false, &gc));
+
+        mi->context.c2.buf.len = 0;
+        goto done;
+    }
+
+    /* do not allow if target address has a different username */
+    if (m1->locked_username || m2->locked_username)
+    {
+        if (!m1->locked_username || !m2->locked_username
+            || strcmp(m1->locked_username, m2->locked_username) != 0)
+        {
+            msg(D_MULTI_LOW, "Disallow float to an address taken by another client %s",
+                multi_instance_string(ex_mi, false, &gc));
+            goto done;
+        }
+    }
+
+    /* It doesn't make sense to let a peer float to the address it already
+     * has, so we disallow it. This can happen if a DCO netlink notification
+     * gets lost and we miss a floating step.
+     */
+    if (m1->rx_peer_id == m2->rx_peer_id)
+    {
+        msg(M_WARN,
+            "disallowing peer %" PRIu32 " (%s) from floating to "
+            "its own address (%s)",
+            m1->rx_peer_id, tls_common_name(mi->context.c2.tls_multi, false),
+            mroute_addr_print(&mi->real, &gc));
+        goto done;
+    }
+
+    msg(D_MULTI_LOW,
+        "closing instance %s due to float collision with %s "
+        "using the same certificate and username",
+        multi_instance_string(ex_mi, false, &gc), multi_instance_string(mi, false, &gc));
+    multi_close_instance(m, ex_mi, false);
+    ret = true;
+
+done:
+    gc_free(&gc);
+    return ret;
+}
+
+/**
  * Handles peer floating.
  *
  * If peer is floated to a taken address, either drops packet
@@ -3080,8 +3161,6 @@ static void
 multi_process_float(struct multi_context *m, struct multi_instance *mi, struct link_socket *sock)
 {
     struct mroute_addr real = { 0 };
-    struct hash *hash = m->hash;
-    struct gc_arena gc = gc_new();
 
     if (mi->real.type & MR_WITH_PROTO)
     {
@@ -3091,55 +3170,19 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi, struct l
 
     if (!mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true))
     {
-        goto done;
+        return;
     }
 
-    const uint64_t hv = hash_value(hash, &real);
-    struct hash_bucket *bucket = hash_bucket(hash, hv);
-
-    /* make sure that we don't float to an address taken by another client */
-    struct hash_element *he = hash_lookup_fast(hash, bucket, &real, hv);
-    if (he)
+    if (!multi_check_dest_addr_allowed(m, mi, &real))
     {
-        struct multi_instance *ex_mi = (struct multi_instance *)he->value;
-
-        struct tls_multi *m1 = mi->context.c2.tls_multi;
-        struct tls_multi *m2 = ex_mi->context.c2.tls_multi;
-
-        /* do not float if target address is taken by client with another cert */
-        if (!cert_hash_compare(m1->locked_cert_hash_set, m2->locked_cert_hash_set))
-        {
-            msg(D_MULTI_LOW, "Disallow float to an address taken by another client %s",
-                multi_instance_string(ex_mi, false, &gc));
-
-            mi->context.c2.buf.len = 0;
-
-            goto done;
-        }
-
-        /* It doesn't make sense to let a peer float to the address it already
-         * has, so we disallow it. This can happen if a DCO netlink notification
-         * gets lost and we miss a floating step.
-         */
-        if (m1->peer_id == m2->peer_id)
-        {
-            msg(M_WARN,
-                "disallowing peer %" PRIu32 " (%s) from floating to "
-                "its own address (%s)",
-                m1->peer_id, tls_common_name(mi->context.c2.tls_multi, false),
-                mroute_addr_print(&mi->real, &gc));
-            goto done;
-        }
-
-        msg(D_MULTI_LOW,
-            "closing instance %s due to float collision with %s "
-            "using the same certificate",
-            multi_instance_string(ex_mi, false, &gc), multi_instance_string(mi, false, &gc));
-        multi_close_instance(m, ex_mi, false);
+        return;
     }
+
+    struct gc_arena gc = gc_new();
 
     msg(D_MULTI_MEDIUM, "peer %" PRIu32 " (%s) floated from %s to %s",
-        mi->context.c2.tls_multi->peer_id, tls_common_name(mi->context.c2.tls_multi, false),
+        mi->context.c2.tls_multi->rx_peer_id,
+        tls_common_name(mi->context.c2.tls_multi, false),
         mroute_addr_print_ex(&mi->real, MAPF_SHOW_FAMILY, &gc),
         mroute_addr_print_ex(&real, MAPF_SHOW_FAMILY, &gc));
 
@@ -3165,7 +3208,6 @@ multi_process_float(struct multi_context *m, struct multi_instance *mi, struct l
     ASSERT(hash_add(m->cid_hash, &mi->context.c2.mda_context.cid, mi, true));
 #endif
 
-done:
     gc_free(&gc);
 }
 
@@ -4099,7 +4141,7 @@ multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
     {
         if (!m->instances[i])
         {
-            mi->context.c2.tls_multi->peer_id = i;
+            mi->context.c2.tls_multi->rx_peer_id = i;
             m->instances[i] = mi;
             break;
         }
@@ -4108,11 +4150,11 @@ multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
     /* should not really end up here, since multi_create_instance returns null
      * if amount of clients exceeds max_clients and this method would then
      * also not have been called */
-    ASSERT(mi->context.c2.tls_multi->peer_id < m->max_clients);
+    ASSERT(mi->context.c2.tls_multi->rx_peer_id < m->max_clients);
 
-    if (mi->context.c2.tls_multi->peer_id > m->max_peerid)
+    if (mi->context.c2.tls_multi->rx_peer_id > m->max_peerid)
     {
-        m->max_peerid = mi->context.c2.tls_multi->peer_id;
+        m->max_peerid = mi->context.c2.tls_multi->rx_peer_id;
     }
 }
 

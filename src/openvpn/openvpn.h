@@ -45,6 +45,7 @@
 #include "plugin.h"
 #include "manage.h"
 #include "dns.h"
+#include "siphash.h"
 
 /*
  * Our global key schedules, packaged thusly
@@ -335,10 +336,9 @@ struct context_2
      *   \c --tls-auth commandline option. */
 
 
-    hmac_ctx_t *session_id_hmac;
-    /**< the HMAC we use to generate and verify our syn cookie like
-     * session ids from the server.
-     */
+    uint8_t session_id_key[SIPHASH_KEY_SIZE];
+    /**< the siphash secret we use to generate and verify our syn cookie like
+     * session ids from the server. */
 
     /* used to optimize calls to tls_multi_process */
     struct interval tmp_int;

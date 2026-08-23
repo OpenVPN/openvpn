@@ -1706,27 +1706,18 @@ clear_tuntap(struct tuntap *tuntap)
 #include <netinet/ip.h>
 #include <sys/uio.h>
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-compare"
-#endif
-
 static inline ssize_t
 header_modify_read_write_return(ssize_t len)
 {
     if (len > 0)
     {
-        return len > sizeof(u_int32_t) ? len - sizeof(u_int32_t) : 0;
+        return (size_t)len > sizeof(u_int32_t) ? len - sizeof(u_int32_t) : 0;
     }
     else
     {
         return len;
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static ssize_t
 write_tun_header(struct tuntap *tt, uint8_t *buf, int len)

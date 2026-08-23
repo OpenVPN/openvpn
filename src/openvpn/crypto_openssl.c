@@ -39,6 +39,7 @@
 #include "integer.h"
 #include "crypto.h"
 #include "crypto_backend.h"
+#include "memdbg.h"
 #include "openssl_compat.h"
 
 #include <openssl/conf.h>
@@ -272,40 +273,6 @@ crypto_print_openssl_errors(const unsigned int flags)
     }
 }
 
-
-/*
- *
- * OpenSSL memory debugging.  If dmalloc debugging is enabled, tell
- * OpenSSL to use our private malloc/realloc/free functions so that
- * we can dispatch them to dmalloc.
- *
- */
-
-#ifdef DMALLOC
-static void *
-crypto_malloc(size_t size, const char *file, int line)
-{
-    return dmalloc_malloc(file, line, size, DMALLOC_FUNC_MALLOC, 0, 0);
-}
-
-static void *
-crypto_realloc(void *ptr, size_t size, const char *file, int line)
-{
-    return dmalloc_realloc(file, line, ptr, size, DMALLOC_FUNC_REALLOC, 0);
-}
-
-static void
-crypto_free(void *ptr)
-{
-    dmalloc_free(__FILE__, __LINE__, ptr, DMALLOC_FUNC_FREE);
-}
-
-void
-crypto_init_dmalloc(void)
-{
-    CRYPTO_set_mem_ex_functions(crypto_malloc, crypto_realloc, crypto_free);
-}
-#endif /* DMALLOC */
 
 const cipher_name_pair cipher_name_translation_table[] = {
     { "AES-128-GCM", "id-aes128-GCM" },
@@ -1242,7 +1209,7 @@ hmac_ctx_final(HMAC_CTX *ctx, uint8_t *dst)
 
     HMAC_Final(ctx, dst, &in_hmac_len);
 }
-#else  /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
+#else /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
 hmac_ctx_t *
 hmac_ctx_new(void)
 {
@@ -1308,10 +1275,14 @@ hmac_ctx_size(hmac_ctx_t *ctx)
 void
 hmac_ctx_reset(hmac_ctx_t *ctx)
 {
-    /* The OpenSSL MAC API lacks a reset method and passing NULL as params
-     * does not reset it either, so use the params array to reinitialise it the
-     * same way as before */
-    if (!EVP_MAC_init(ctx->ctx, NULL, 0, ctx->params))
+    /* OpenSSL 3.0.3 fixed EVP_MAC reinitialization with an existing key.
+     * Older versions need the parameters, including the key, to reset. */
+#if OPENSSL_VERSION_NUMBER >= 0x30000030L
+    const OSSL_PARAM *params = NULL;
+#else
+    const OSSL_PARAM *params = ctx->params;
+#endif
+    if (!EVP_MAC_init(ctx->ctx, NULL, 0, params))
     {
         crypto_msg(M_FATAL, "EVP_MAC_init failed");
     }

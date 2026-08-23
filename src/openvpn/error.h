@@ -260,8 +260,10 @@ msg_test(msglvl_t flags)
     return check_debug_level(flags) && dont_mute(flags);
 }
 
+#if PORT_SHARE
 /* Call if we forked */
 void msg_forked(void);
+#endif
 
 /* syslog output */
 
@@ -393,12 +395,14 @@ ignore_sys_error(const int err, bool crt_error)
     return false;
 }
 
+#if defined(ENABLE_CRYPTO_OPENSSL)
 /** Convert fatal errors to nonfatal, don't touch other errors */
 static inline msglvl_t
 nonfatal(const msglvl_t err)
 {
     return (err & M_FATAL) ? (err ^ M_FATAL) | M_NONFATAL : err;
 }
+#endif
 
 static inline int
 openvpn_errno_maybe_crt(bool *crt_error)

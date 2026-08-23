@@ -102,16 +102,6 @@ provider_t *crypto_load_provider(const char *provider);
  */
 void crypto_unload_provider(const char *provname, provider_t *provider);
 
-#ifdef DMALLOC
-/*
- * OpenSSL memory debugging.  If dmalloc debugging is enabled, tell
- * OpenSSL to use our private malloc/realloc/free functions so that
- * we can dispatch them to dmalloc.
- */
-void crypto_init_dmalloc(void);
-
-#endif /* DMALLOC */
-
 void show_available_ciphers(void);
 
 void show_available_digests(void);

@@ -67,6 +67,7 @@ dist_noinst_DATA = \
 	.gitignore \
 	.gitattributes \
 	CONTRIBUTING.rst \
+	CODE_CHECKLIST.md \
 	PORTS \
 	README.cmake.md \
 	README.dco.md \

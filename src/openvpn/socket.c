@@ -2961,6 +2961,8 @@ socket_set(struct link_socket *s, struct event_set *es, unsigned int rwflags, vo
     return rwflags;
 }
 
+#if UNIX_SOCK_SUPPORT
+
 void
 sd_close(socket_descriptor_t *sd)
 {
@@ -2970,8 +2972,6 @@ sd_close(socket_descriptor_t *sd)
         *sd = SOCKET_UNDEFINED;
     }
 }
-
-#if UNIX_SOCK_SUPPORT
 
 /*
  * code for unix domain sockets

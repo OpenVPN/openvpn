@@ -734,7 +734,7 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                 }
 
                 /* generate a client nonce */
-                ASSERT(rand_bytes(cnonce_raw, sizeof(cnonce_raw)));
+                prng_bytes(cnonce_raw, sizeof(cnonce_raw));
                 cnonce = make_base64_string2(cnonce_raw, sizeof(cnonce_raw), &gc);
 
 

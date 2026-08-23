@@ -188,12 +188,6 @@ mroute_extract_openvpn_sockaddr(struct mroute_addr *addr,
 {
     return true;
 }
-
-unsigned int
-extract_iv_proto(const char *peer_info)
-{
-    return IV_PROTO_PUSH_UPDATE;
-}
 #endif /* ifdef ENABLE_MANAGEMENT */
 
 /* tests */
@@ -350,8 +344,8 @@ test_incoming_push_continuation_route_accumulation(void **state)
 
     /* Message 1: first batch of routes, continuation 2 (more coming) */
     struct buffer buf1 = alloc_buf(512);
-    const char *msg1 = "PUSH_UPDATE, route 10.1.0.0 255.255.0.0, route 10.2.0.0 255.255.0.0, route 10.3.0.0 255.255.0.0,push-continuation 2";
-    buf_write(&buf1, msg1, strlen(msg1));
+    const char *cont_msg1 = "PUSH_UPDATE, route 10.1.0.0 255.255.0.0, route 10.2.0.0 255.255.0.0, route 10.3.0.0 255.255.0.0,push-continuation 2";
+    buf_write(&buf1, cont_msg1, strlen(cont_msg1));
 
     assert_int_equal(process_incoming_push_msg(c, &buf1, c->options.pull, pull_permission_mask(c),
                                                &option_types_found),
@@ -360,8 +354,8 @@ test_incoming_push_continuation_route_accumulation(void **state)
 
     /* Message 2: more routes, continuation 2 (more coming) */
     struct buffer buf2 = alloc_buf(512);
-    const char *msg2 = "PUSH_UPDATE, route 10.4.0.0 255.255.0.0, route 10.5.0.0 255.255.0.0, route 10.6.0.0 255.255.0.0,push-continuation 2";
-    buf_write(&buf2, msg2, strlen(msg2));
+    const char *cont_msg2 = "PUSH_UPDATE, route 10.4.0.0 255.255.0.0, route 10.5.0.0 255.255.0.0, route 10.6.0.0 255.255.0.0,push-continuation 2";
+    buf_write(&buf2, cont_msg2, strlen(cont_msg2));
 
     assert_int_equal(process_incoming_push_msg(c, &buf2, c->options.pull, pull_permission_mask(c),
                                                &option_types_found),
@@ -370,8 +364,8 @@ test_incoming_push_continuation_route_accumulation(void **state)
 
     /* Message 3: final batch of routes, continuation 1 (last message) */
     struct buffer buf3 = alloc_buf(512);
-    const char *msg3 = "PUSH_UPDATE, route 10.7.0.0 255.255.0.0, route 10.8.0.0 255.255.0.0, route 10.9.0.0 255.255.0.0,push-continuation 1";
-    buf_write(&buf3, msg3, strlen(msg3));
+    const char *cont_msg3 = "PUSH_UPDATE, route 10.7.0.0 255.255.0.0, route 10.8.0.0 255.255.0.0, route 10.9.0.0 255.255.0.0,push-continuation 1";
+    buf_write(&buf3, cont_msg3, strlen(cont_msg3));
 
     assert_int_equal(process_incoming_push_msg(c, &buf3, c->options.pull, pull_permission_mask(c),
                                                &option_types_found),
@@ -650,6 +644,7 @@ setup2(void **state)
     m->instances = calloc(1, sizeof(struct multi_instance *));
     struct multi_instance *mi = calloc(1, sizeof(struct multi_instance));
     mi->context.c2.tls_multi = calloc(1, sizeof(struct tls_multi));
+    mi->context.c2.tls_multi->peer_info = "IV_PROTO=4096";  // IV_PROTO_PUSH_UPDATE
     *(m->instances) = mi;
     m->top.options.disable_dco = true;
     *state = m;

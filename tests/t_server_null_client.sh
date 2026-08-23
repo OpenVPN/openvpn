@@ -1,9 +1,10 @@
 #!/bin/sh
 
-should_run_test() {
+should_run_test()
+{
     test_name="$1"
 
-    if echo "$test_name"|grep -q _lwip; then
+    if echo "$test_name" | grep -q _lwip; then
         if [ "$has_lwipovpn" = "no" ]; then
             return 1
         fi
@@ -12,7 +13,8 @@ should_run_test() {
     return 0
 }
 
-launch_client() {
+launch_client()
+{
     test_name=$1
     log="${test_name}.log"
     pid="${test_name}.pid"
@@ -30,7 +32,8 @@ launch_client() {
         --log "${t_server_null_logdir}/${log}" &
 }
 
-ping_and_kill() {
+ping_and_kill()
+{
     if fping -q -c 5 $1; then
         echo "PASS: fping lwipovpn client $target"
     else
@@ -46,9 +49,10 @@ ping_and_kill() {
     kill -15 $2
 }
 
-ping_lwip_clients() {
+ping_lwip_clients()
+{
     if [ "$has_lwipovpn" = "yes" ]; then
-        lwip_client_count=$(echo "$lwip_test_names"|wc -w|tr -d " ")
+        lwip_client_count=$(echo "$lwip_test_names" | wc -w | tr -d " ")
     else
         lwip_client_count=0
     fi
@@ -60,10 +64,10 @@ ping_lwip_clients() {
     count=0
     maxcount=10
     while [ $count -le $maxcount ]; do
-        lwip_client_ips=$(cat ./*.lwip 2>/dev/null|wc -l)
+        lwip_client_ips=$(cat ./*.lwip 2>/dev/null | wc -l)
         if [ $lwip_client_ips -lt $lwip_client_count ]; then
             echo "Waiting for LWIP clients to start up ($count/$maxcount)"
-            count=$(( count + 1))
+            count=$((count + 1))
             sleep 1
         else
             echo "$lwip_client_ips/$lwip_client_count LWIP clients up"
@@ -73,8 +77,8 @@ ping_lwip_clients() {
 
     wait_pids=""
     for line in $(cat ./*.lwip 2>/dev/null); do
-        target_ip=$(echo $line|cut -d "," -f 1)
-        client_pid=$(echo $line|cut -d "," -f 2)
+        target_ip=$(echo $line | cut -d "," -f 1)
+        client_pid=$(echo $line | cut -d "," -f 2)
         ping_and_kill $target_ip $client_pid &
         wait_pids="$wait_pids $!"
     done
@@ -84,7 +88,8 @@ ping_lwip_clients() {
     test -e ./lwip_failed && return 1 || return 0
 }
 
-wait_for_results() {
+wait_for_results()
+{
     tests_running="yes"
 
     # Wait a bit to allow an OpenVPN client process to create a pidfile to
@@ -106,12 +111,13 @@ wait_for_results() {
     done
 }
 
-get_client_test_result() {
+get_client_test_result()
+{
     test_name=$1
     should_pass=$2
     log="${test_name}.log"
 
-    grep "Initialization Sequence Completed" "${t_server_null_logdir}/${log}" > /dev/null
+    grep "Initialization Sequence Completed" "${t_server_null_logdir}/${log}" >/dev/null
     exit_code=$?
 
     if [ $exit_code -eq 0 ] && [ "${should_pass}" = "yes" ]; then
@@ -144,7 +150,7 @@ count=0
 server_max_wait=15
 while [ $count -lt $server_max_wait ]; do
     servers_up=0
-    server_count=$(echo "$TEST_SERVER_LIST"|wc -w|tr -d " ")
+    server_count=$(echo "$TEST_SERVER_LIST" | wc -w | tr -d " ")
 
     # We need to trim single-quotes because some shells return quoted values
     # and some don't. Using "set -o posix" which would resolve this problem is
@@ -152,13 +158,13 @@ while [ $count -lt $server_max_wait ]; do
     #
     # While inactive server configurations may get checked they won't increase
     # the active server count as the processes won't be running.
-    for i in $(set|grep 'SERVER_NAME_'|cut -d "=" -f 2|tr -d "[\']"); do
-        server_pid=$(cat "$i.pid" 2> /dev/null)
-        if [ -z "$server_pid" ] ; then
+    for i in $(set | grep 'SERVER_NAME_' | cut -d "=" -f 2 | tr -d "[\']"); do
+        server_pid=$(cat "$i.pid" 2>/dev/null)
+        if [ -z "$server_pid" ]; then
             continue
         fi
-        if $RUN_SUDO kill -0 $server_pid > /dev/null 2>&1; then
-            servers_up=$(( $servers_up + 1 ))
+        if $RUN_SUDO kill -0 $server_pid >/dev/null 2>&1; then
+            servers_up=$((servers_up + 1))
         fi
     done
 
@@ -168,7 +174,7 @@ while [ $count -lt $server_max_wait ]; do
         retval=0
         break
     else
-        count=$(( count + 1))
+        count=$((count + 1))
         sleep 1
     fi
 
@@ -199,15 +205,14 @@ sleep 1
 # safe to check the test results.
 test_names=""
 lwip_test_names=""
-for SUF in $TEST_RUN_LIST
-do
+for SUF in $TEST_RUN_LIST; do
     eval test_name=\"\$TEST_NAME_$SUF\"
     eval client_exec=\"\$CLIENT_EXEC_$SUF\"
     eval client_conf=\"\$CLIENT_CONF_$SUF\"
 
     test_names="${test_names} ${test_name}"
 
-    if echo "$test_name"|grep -q _lwip; then
+    if echo "$test_name" | grep -q _lwip; then
         lwip_test_names="${lwip_test_names} ${test_name}"
     fi
 
@@ -219,13 +224,11 @@ done
 ping_lwip_clients
 retval=$?
 
-
 # Wait until all OpenVPN clients have exited
 (wait_for_results)
 
 # Check test results
-for SUF in $TEST_RUN_LIST
-do
+for SUF in $TEST_RUN_LIST; do
     eval test_name=\"\$TEST_NAME_$SUF\"
     eval should_pass=\"\$SHOULD_PASS_$SUF\"
 

@@ -99,9 +99,9 @@
  * out: pointer to output data (write-only), outlen bytes must be allocated
  *  outlen: length of the output in bytes, must be 8 or 16
  */
-int
-siphash(const void *in, const size_t inlen, const void *k, uint8_t *out,
-        const size_t outlen)
+void
+siphash_reference(const void *in, const size_t inlen, const void *k, uint8_t *out,
+                  const size_t outlen)
 {
     const unsigned char *ni = (const unsigned char *)in;
     const unsigned char *kk = (const unsigned char *)k;
@@ -206,7 +206,7 @@ siphash(const void *in, const size_t inlen, const void *k, uint8_t *out,
 
     if (outlen == 8)
     {
-        return 0;
+        return;
     }
 
     v1 ^= 0xdd;
@@ -219,6 +219,4 @@ siphash(const void *in, const size_t inlen, const void *k, uint8_t *out,
 
     b = v0 ^ v1 ^ v2 ^ v3;
     U64TO8_LE(out + 8, b);
-
-    return 0;
 }

@@ -55,8 +55,8 @@ test_write_dhcp_search_str(void **state)
 {
     struct gc_arena gc = gc_new();
     struct buffer out_buf = alloc_buf_gc(512, &gc);
-    struct buffer clear_buf = alloc_buf_gc(512, &gc);
-    buf_clear(&clear_buf);
+    struct buffer clean_buf = alloc_buf_gc(512, &gc);
+    buf_clear(&clean_buf);
     bool error = false;
 
 #define LONGDOMAIN "a-reaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaally-long-domain"
@@ -79,7 +79,7 @@ test_write_dhcp_search_str(void **state)
     struct buffer small_buf = alloc_buf_gc(sizeof(output_1) - 1, &gc);
     buf_clear(&small_buf);
     write_dhcp_search_str(&small_buf, DHCP_DOMAIN_SEARCH, search_list, 2, &error);
-    assert_memory_equal(BPTR(&small_buf), BPTR(&clear_buf), buf_forward_capacity_total(&small_buf));
+    assert_memory_equal(BPTR(&small_buf), BPTR(&clean_buf), buf_forward_capacity_total(&small_buf));
     assert_true(error);
     error = false;
 
@@ -103,13 +103,13 @@ test_write_dhcp_search_str(void **state)
 
     buf_clear(&out_buf);
     write_dhcp_search_str(&out_buf, DHCP_DOMAIN_SEARCH, search_list + 5, 1, &error);
-    assert_memory_equal(BPTR(&out_buf), BPTR(&clear_buf), buf_forward_capacity_total(&clear_buf));
+    assert_memory_equal(BPTR(&out_buf), BPTR(&clean_buf), buf_forward_capacity_total(&clean_buf));
     assert_true(error);
     error = false;
 
     buf_clear(&out_buf);
     write_dhcp_search_str(&out_buf, DHCP_DOMAIN_SEARCH, search_list, 3, &error);
-    assert_memory_equal(BPTR(&out_buf), BPTR(&clear_buf), buf_forward_capacity_total(&clear_buf));
+    assert_memory_equal(BPTR(&out_buf), BPTR(&clean_buf), buf_forward_capacity_total(&clean_buf));
     assert_true(error);
     error = false;
 

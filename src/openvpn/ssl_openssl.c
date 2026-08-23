@@ -100,37 +100,19 @@ tls_free_lib(void)
 }
 
 void
-tls_ctx_server_new(struct tls_root_ctx *ctx)
+tls_ctx_new(struct tls_root_ctx *ctx)
 {
     ASSERT(NULL != ctx);
 
-    ctx->ctx = SSL_CTX_new_ex(tls_libctx, NULL, SSLv23_server_method());
+    ctx->ctx = SSL_CTX_new_ex(tls_libctx, NULL, TLS_method());
 
     if (ctx->ctx == NULL)
     {
-        crypto_msg(M_FATAL, "SSL_CTX_new SSLv23_server_method");
+        crypto_msg(M_FATAL, "SSL_CTX_new TLS_method");
     }
     if (ERR_peek_error() != 0)
     {
-        crypto_msg(M_WARN, "Warning: TLS server context initialisation "
-                           "has warnings.");
-    }
-}
-
-void
-tls_ctx_client_new(struct tls_root_ctx *ctx)
-{
-    ASSERT(NULL != ctx);
-
-    ctx->ctx = SSL_CTX_new_ex(tls_libctx, NULL, SSLv23_client_method());
-
-    if (ctx->ctx == NULL)
-    {
-        crypto_msg(M_FATAL, "SSL_CTX_new SSLv23_client_method");
-    }
-    if (ERR_peek_error() != 0)
-    {
-        crypto_msg(M_WARN, "Warning: TLS client context initialisation "
+        crypto_msg(M_WARN, "Warning: TLS context initialisation "
                            "has warnings.");
     }
 }
@@ -436,6 +418,7 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
     }
 }
 
+#ifdef TLS1_3_VERSION
 static void
 convert_tls13_list_to_openssl(char *openssl_ciphers, size_t len, const char *ciphers)
 {
@@ -460,6 +443,7 @@ convert_tls13_list_to_openssl(char *openssl_ciphers, size_t len, const char *cip
         }
     }
 }
+#endif
 
 void
 tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)

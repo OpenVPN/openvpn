@@ -93,17 +93,6 @@ update_time(void)
 #endif
 }
 
-static inline time_t
-openvpn_time(time_t *t)
-{
-    update_time();
-    if (t)
-    {
-        *t = now;
-    }
-    return now;
-}
-
 static inline void
 tv_clear(struct timeval *tv)
 {

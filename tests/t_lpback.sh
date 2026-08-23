@@ -37,51 +37,56 @@ tests_failed=0
 test_start()
 {
     case $V in
-        0) outbuf="" ;;                  # no per-test output at all
-        1) outbuf="$@" ;;                # compact, details only on failure
-        *) printf "$@" ;;                # print all
+        0) outbuf="" ;;   # no per-test output at all
+        1) outbuf="$@" ;; # compact, details only on failure
+        *) printf "$@" ;; # print all
     esac
 }
 test_end()
 {
-    RC=$1 ; LOG=$2
-    if [ $RC != 0 ]
-    then
+    RC=$1
+    LOG=$2
+    if [ $RC != 0 ]; then
         case $V in
-            0) ;;                                # no per-test output
-            1) echo "$outbuf" "FAIL (RC=$RC)"; cat $LOG ;;
-            *) echo "FAIL (RC=$RC)"; cat $LOG ;;
+            0) ;; # no per-test output
+            1)
+                echo "$outbuf" "FAIL (RC=$RC)"
+                cat $LOG
+                ;;
+            *)
+                echo "FAIL (RC=$RC)"
+                cat $LOG
+                ;;
         esac
         e=1
-        tests_failed=$(( $tests_failed + 1 ))
+        tests_failed=$((tests_failed + 1))
     else
         case $V in
-            0|1) ;;                              # no per-test output for 'OK'
-            *) echo "OK"                         # print all
+            0 | 1) ;;       # no per-test output for 'OK'
+            *) echo "OK" ;; # print all
         esac
-        tests_passed=$(( $tests_passed + 1 ))
+        tests_passed=$((tests_passed + 1))
     fi
 }
 
 # if running with V=1, give an indication what test runs now
-if [ "$V" = 1  ] ; then
+if [ "$V" = 1 ]; then
     echo "$0: running with V=$V, only printing test fails"
 fi
 
-
 # Get list of supported ciphers from openvpn --show-ciphers output
-CIPHERS=$(${openvpn} --show-ciphers | \
-            sed -e '/The following/,/^$/d' -e s'/ .*//' -e '/^[[:space:]]*$/d')
+CIPHERS=$(${openvpn} --show-ciphers |
+    sed -e '/The following/,/^$/d' -e s'/ .*//' -e '/^[[:space:]]*$/d')
 
 # SK, 2014-06-04: currently the DES-EDE3-CFB1 implementation of OpenSSL is
 # broken (see http://rt.openssl.org/Ticket/Display.html?id=2867), so exclude
 # that cipher from this test.
 # GD, 2014-07-06 so is DES-CFB1
 # GD, 2014-07-06 do not test RC5-* either (fails on NetBSD w/o libcrypto_rc5)
-CIPHERS=$(echo "$CIPHERS" | egrep -v '^(DES-EDE3-CFB1|DES-CFB1|RC5-)' )
+CIPHERS=$(echo "$CIPHERS" | egrep -v '^(DES-EDE3-CFB1|DES-CFB1|RC5-)')
 
 e=0
-if [ -z "$CIPHERS" ] ; then
+if [ -z "$CIPHERS" ]; then
     echo "'openvpn --show-ciphers' FAILED (empty list)"
     e=1
 fi
@@ -91,10 +96,9 @@ CIPHERS=${CIPHERS}$(printf "\nnone")
 
 set +e
 
-for cipher in ${CIPHERS}
-do
+for cipher in ${CIPHERS}; do
     test_start "Testing cipher ${cipher}... "
-    ( "${openvpn}" --test-crypto --cipher ${cipher} ) >log.$$ 2>&1
+    ("${openvpn}" --test-crypto --cipher ${cipher}) >log.$$ 2>&1
     test_end $? log.$$
 done
 
@@ -121,7 +125,7 @@ test_start "Testing tls-crypt-v2 key generation (max length metadata)... "
     >log.$$ 2>&1
 test_end $? log.$$
 
-if [ "$V" -ge 1  ] ; then
+if [ "$V" -ge 1 ]; then
     echo "$0: tests passed: $tests_passed  failed: $tests_failed"
 fi
 

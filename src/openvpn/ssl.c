@@ -62,6 +62,7 @@
 #include "auth_token.h"
 #include "mss.h"
 #include "dco.h"
+#include "options_string.h"
 
 #include "memdbg.h"
 #include "openvpn.h"
@@ -525,18 +526,11 @@ init_ssl(const struct options *options, bool in_chroot)
     struct tls_root_ctx *new_ctx;
     ALLOC_OBJ_CLEAR(new_ctx, struct tls_root_ctx);
 
-    if (options->tls_server)
-    {
-        tls_ctx_server_new(new_ctx);
+    tls_ctx_new(new_ctx);
 
-        if (options->dh_file)
-        {
-            tls_ctx_load_dh_params(new_ctx, options->dh_file, options->dh_file_inline);
-        }
-    }
-    else /* if client */
+    if (options->tls_server && options->dh_file)
     {
-        tls_ctx_client_new(new_ctx);
+        tls_ctx_load_dh_params(new_ctx, options->dh_file, options->dh_file_inline);
     }
 
     /* Restrict allowed certificate crypto algorithms */
@@ -1168,7 +1162,10 @@ tls_multi_init(struct tls_options *tls_options)
     /* get command line derived options */
     ret->opt = *tls_options;
     ret->dco_peer_id = -1;
-    ret->peer_id = MAX_PEER_ID;
+    ret->use_asymmetric_peer_id = false;
+    /* The rx_peer_id is also used to identify DCO clients */
+    ret->rx_peer_id = MAX_PEER_ID;
+    ret->tx_peer_id = MAX_PEER_ID;
 
     return ret;
 }
@@ -1181,6 +1178,15 @@ tls_multi_init_finalize(struct tls_multi *multi, int tls_mtu)
 
     tls_session_init(multi, &multi->session[TM_ACTIVE]);
     tls_session_init(multi, &multi->session[TM_INITIAL]);
+
+    if (!multi->opt.dco_enabled)
+    {
+        /* Calculate the asymmetric peer-id */
+        if (multi->rx_peer_id == MAX_PEER_ID && multi->session[TM_INITIAL].opt->mode != MODE_SERVER)
+        {
+            multi->rx_peer_id = (uint32_t)(get_random() % (MAX_PEER_ID - 1));
+        }
+    }
 }
 
 /*
@@ -1338,10 +1344,14 @@ static void
 init_epoch_keys(struct key_state *ks, struct tls_multi *multi, const struct key_type *key_type,
                 bool server, struct key2 *key2)
 {
-    /* For now we hardcode this to be 16 for the software based data channel
+    /* For now we hardcode this to be 4 for the software based data channel
      * DCO based implementations/HW implementation might adjust this number
-     * based on their expected speed */
-    const uint8_t future_key_count = 16;
+     * based on their expected speed.
+     *
+     * One epoch lasts 910 GiB with 128 byte packets or 78s at 100 GBit/s.
+     * (respectively 1011 GiB and 86s with 1280 byte packets).
+     */
+    const uint8_t future_key_count = 4;
 
     int key_direction = server ? KEY_DIRECTION_INVERSE : KEY_DIRECTION_NORMAL;
     struct key_direction_state kds;
@@ -1858,6 +1868,25 @@ read_string_alloc(struct buffer *buf)
     return str;
 }
 
+static bool
+push_peer_info_peerid(struct buffer *out, struct tls_multi *multi, struct tls_session *session)
+{
+    if (multi->rx_peer_id == MAX_PEER_ID || session->opt->dco_enabled)
+    {
+        /* No valid peer id or DCO is enabled. Cannot use this feature */
+        return true;
+    }
+
+    /* In server mode we only add this when the client has announced its
+     * support for the feature */
+    if (session->opt->mode != MODE_SERVER || multi->use_asymmetric_peer_id)
+    {
+        return buf_printf(out, "ID=%x\n", multi->rx_peer_id);
+    }
+
+    return true;
+}
+
 /**
  * Prepares the IV_ and UV_ variables that are part of the
  * exchange to signal the peer's capabilities. The amount
@@ -1871,14 +1900,21 @@ read_string_alloc(struct buffer *buf)
  *
  * @param buf       the buffer to write these variables to
  * @param session   the TLS session object
+ * @param multi     the TLS multi object
  * @return          true if no error was encountered
  */
 static bool
-push_peer_info(struct buffer *buf, struct tls_session *session)
+push_peer_info(struct buffer *buf, struct tls_multi *multi, struct tls_session *session)
 {
     struct gc_arena gc = gc_new();
     bool ret = false;
     struct buffer out = alloc_buf_gc(512 * 3, &gc);
+
+    /* The asymmetric peer-id is always written when enabled */
+    if (!push_peer_info_peerid(&out, multi, session))
+    {
+        goto error;
+    }
 
     if (session->opt->push_peer_info_detail > 1)
     {
@@ -2019,7 +2055,11 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
                 }
             }
         }
+    }
 
+    /* write peer info string if there is anything in it, empty string otherwise */
+    if (BLEN(&out) > 0)
+    {
         if (!write_string(buf, BSTR(&out), -1))
         {
             goto error;
@@ -2027,7 +2067,7 @@ push_peer_info(struct buffer *buf, struct tls_session *session)
     }
     else
     {
-        if (!write_empty_string(buf)) /* no peer info */
+        if (!write_empty_string(buf))
         {
             goto error;
         }
@@ -2156,7 +2196,7 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
         }
     }
 
-    if (!push_peer_info(buf, session))
+    if (!push_peer_info(buf, multi, session))
     {
         goto error;
     }
@@ -2269,6 +2309,19 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
     if (multi->peer_info)
     {
         output_peer_info_env(session->opt->es, multi->peer_info);
+        uint32_t peer_id = extract_asymmetric_peer_id(multi->peer_info);
+        if (peer_id != MAX_PEER_ID && !session->opt->dco_enabled)
+        {
+            multi->tx_peer_id = peer_id;
+            multi->use_asymmetric_peer_id = true;
+            multi->use_peer_id = true;
+        }
+        else
+        {
+            /* Peer has no support for asymmetric peer-id, and DCO currently
+             * can only handle symmetric peer IDs */
+            multi->tx_peer_id = multi->rx_peer_id;
+        }
     }
 
     free(multi->remote_ciphername);
@@ -2714,8 +2767,15 @@ write_outgoing_tls_ciphertext(struct tls_session *session, bool *continue_tls_pr
 
 static bool
 check_outgoing_ciphertext(struct key_state *ks, struct tls_session *session,
-                          bool *continue_tls_process)
+                          struct buffer *to_link, bool *continue_tls_process)
 {
+    if (to_link->len)
+    {
+        dmsg(D_TLS_DEBUG,
+             "Deferring outgoing ciphertext, previous packet not written out yet");
+        return true;
+    }
+
     /* Outgoing Ciphertext to reliable buffer */
     if (ks->state >= S_START)
     {
@@ -2895,7 +2955,7 @@ tls_process_state(struct tls_multi *multi, struct tls_session *session, struct b
             dmsg(D_TLS_DEBUG, "Outgoing Plaintext -> TLS");
         }
     }
-    if (!check_outgoing_ciphertext(ks, session, &continue_tls_process))
+    if (!check_outgoing_ciphertext(ks, session, to_link, &continue_tls_process))
     {
         goto error;
     }
@@ -2907,7 +2967,7 @@ error:
     /* Shut down the TLS session but do a last read from the TLS
      * object to be able to read potential TLS alerts */
     key_state_ssl_shutdown(&ks->ks_ssl);
-    check_outgoing_ciphertext(ks, session, &continue_tls_process);
+    check_outgoing_ciphertext(ks, session, to_link, &continue_tls_process);
 
     /* Put ourselves in the pre error state that will only send out the
      * control channel packets but nothing else */
@@ -4030,8 +4090,8 @@ tls_prepend_opcode_v2(const struct tls_multi *multi, struct buffer *buf)
     msg(D_TLS_DEBUG, __func__);
 
     ASSERT(ks);
-
-    peer = htonl(((P_DATA_V2 << P_OPCODE_SHIFT) | ks->key_id) << 24 | (multi->peer_id & 0xFFFFFF));
+    peer = htonl(((P_DATA_V2 << P_OPCODE_SHIFT) | ks->key_id) << 24
+                 | (multi->tx_peer_id & 0xFFFFFF));
     ASSERT(buf_write_prepend(buf, &peer, 4));
 }
 

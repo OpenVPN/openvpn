@@ -42,7 +42,8 @@
 static time_t
 __mytime(void)
 {
-    return openvpn_time(NULL);
+    update_time();
+    return now;
 }
 
 #if !defined(_WIN32)

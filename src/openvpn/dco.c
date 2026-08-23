@@ -544,14 +544,15 @@ dco_p2p_add_new_peer(struct context *c)
         c->c2.tls_multi->dco_peer_id = -1;
     }
 #endif
-    int ret = dco_new_peer(&c->c1.tuntap->dco, multi->peer_id, sock->sd, NULL,
-                           proto_is_dgram(sock->info.proto) ? remoteaddr : NULL, NULL, NULL);
+    int ret = dco_new_peer(&c->c1.tuntap->dco, multi->rx_peer_id, sock->sd, NULL,
+                           proto_is_dgram(sock->info.proto) ? remoteaddr : NULL,
+                           NULL, NULL);
     if (ret < 0)
     {
         return ret;
     }
 
-    c->c2.tls_multi->dco_peer_id = multi->peer_id;
+    c->c2.tls_multi->dco_peer_id = multi->rx_peer_id;
 
     return 0;
 }
@@ -626,7 +627,7 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
 {
     struct context *c = &mi->context;
 
-    int peer_id = c->c2.tls_multi->peer_id;
+    int peer_id = c->c2.tls_multi->rx_peer_id;
     struct sockaddr *remoteaddr, *localaddr = NULL;
     struct sockaddr_storage local = { 0 };
     const socket_descriptor_t sd = c->c2.link_sockets[0]->sd;
@@ -706,7 +707,7 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi, struct mr
     {
 #if defined(_WIN32)
         dco_win_add_iroute_ipv6(&c->c1.tuntap->dco, addr->v6.addr, addr->netbits,
-                                c->c2.tls_multi->peer_id);
+                                c->c2.tls_multi->rx_peer_id);
 #else
         const struct in6_addr *gateway = &mi->context.c2.push_ifconfig_ipv6_local;
         if (addr->type & MR_ONLINK_DCO_ADDR)
@@ -723,7 +724,7 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi, struct mr
     {
 #if defined(_WIN32)
         dco_win_add_iroute_ipv4(&c->c1.tuntap->dco, addr->v4.addr, addr->netbits,
-                                c->c2.tls_multi->peer_id);
+                                c->c2.tls_multi->rx_peer_id);
 #else
         in_addr_t dest = htonl(addr->v4.addr);
         const in_addr_t *gateway = &mi->context.c2.push_ifconfig_local;

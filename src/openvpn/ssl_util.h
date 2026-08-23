@@ -33,11 +33,33 @@
 #include "buffer.h"
 
 /**
+ * Extracts the named integer variable and returns its value or default_value
+ * if it cannot be extracted.
+ *
+ * @param peer_info     peer info string to search in
+ * @param field         name of the field to be extracted including the =
+ * @param format        sscanf/printf format string of the type to extract
+ * @param default_value default value to return if the field cannot be extracted
+ */
+unsigned int
+peer_info_extract_int(const char *peer_info, const char *field, const char *format, unsigned int default_value);
+
+/**
+ * Extracts the named integer variable and returns its value or 0
+ * if it cannot be extracted.
+ *
+ * @param peer_info     peer info string to search in
+ * @param field          name of the field to be extracted
+ */
+unsigned int
+peer_info_extract_uint(const char *peer_info, const char *field);
+
+/**
  * Extracts a variable from peer info, the returned string will be allocated
  * using the supplied gc_arena
  *
  * @param peer_info     The peer's peer_info
- * @param var           The variable *including* =, e.g. IV_CIPHERS=
+ * @param var           The variable including =, e.g. IV_CIPHERS=
  * @param gc            GC arena to allocate return value in
  *
  * @return  The content of the variable as NULL terminated string or NULL if the
@@ -51,7 +73,19 @@ char *extract_var_peer_info(const char *peer_info, const char *var, struct gc_ar
  *
  * @param peer_info     peer info string to search for IV_PROTO
  */
-unsigned int extract_iv_proto(const char *peer_info);
+static inline unsigned int
+extract_iv_proto(const char *peer_info)
+{
+    return peer_info_extract_uint(peer_info, "IV_PROTO=");
+}
+
+/**
+ * Extracts the ID variable and returns its value or
+ * MAX_PEER_ID if it cannot be extracted.
+ *
+ * @param peer_info     peer info string to search for ID
+ */
+uint32_t extract_asymmetric_peer_id(const char *peer_info);
 
 /**
  * Takes a locally produced OCC string for TLS server mode and modifies as

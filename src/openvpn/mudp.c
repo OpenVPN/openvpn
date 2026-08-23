@@ -37,6 +37,41 @@
 #include <sys/inotify.h>
 #endif
 
+/**
+ * Send an already-built standalone control packet back to the peer that just
+ * contacted us (c2.from), synchronously and without keeping any state.
+ *
+ * We do not want to keep state for a reply to an initial/out-of-band packet, so
+ * we send it without queueing. If we hit EAGAIN on a busy socket the packet is
+ * lost and the client simply retries -- an acceptable compromise that avoids
+ * consuming server resources under attack.
+ *
+ * @param m       the server's multi_context
+ * @param buf     the packet to send (built by a tls_*_standalone() helper)
+ * @param prefix  msg() prefix to set for the duration of the send
+ * @param detail  D_MULTI_DEBUG message describing the reply
+ * @param sock    the socket to send the reply on
+ */
+static void
+send_standalone_reply(struct multi_context *m, struct buffer *buf, const char *prefix,
+                      const char *detail, struct link_socket *sock)
+{
+    struct context *c = &m->top;
+
+    /* dco-win server requires prepend with sockaddr, so preserve offset */
+    ASSERT(buf_init(&c->c2.buffers->aux_buf, buf->offset));
+    buf_copy(&c->c2.buffers->aux_buf, buf);
+
+    msg_set_prefix(prefix);
+    c->c2.to_link = c->c2.buffers->aux_buf;
+    c->c2.to_link_addr = &c->c2.from;
+    msg(D_MULTI_DEBUG, "%s", detail);
+    process_outgoing_link(c, sock);
+    c->c2.to_link.len = 0;
+    c->c2.to_link_addr = NULL;
+    msg_set_prefix(NULL);
+}
+
 static void
 send_hmac_reset_packet(struct multi_context *m, struct tls_pre_decrypt_state *state,
                        struct tls_auth_standalone *tas, struct session_id *sid,
@@ -48,29 +83,8 @@ send_hmac_reset_packet(struct multi_context *m, struct tls_pre_decrypt_state *st
     struct buffer buf = tls_reset_standalone(&state->tls_wrap_tmp, tas, sid,
                                              &state->peer_session_id, header, request_resend_wkc);
 
-    struct context *c = &m->top;
-
-    /* dco-win server requires prepend with sockaddr, so preserve offset */
-    ASSERT(buf_init(&c->c2.buffers->aux_buf, buf.offset));
-
-    buf_copy(&c->c2.buffers->aux_buf, &buf);
-
-    /*
-     * We do not want to keep any state here, so we send the reply to the
-     * initial packet synchronously without queueing anything.
-     *
-     * If we hit EAGAIN on a busy socket, the packet will be lost and the
-     * client will have to retransmit its HARD_RESET. This is considered an
-     * acceptable compromise to avoid consuming server resources under attack.
-     */
-    msg_set_prefix("Connection Attempt");
-    c->c2.to_link = c->c2.buffers->aux_buf;
-    c->c2.to_link_addr = &c->c2.from;
-    msg(D_MULTI_DEBUG, "Reset packet from client, sending HMAC based reset challenge");
-    process_outgoing_link(c, sock);
-    c->c2.to_link.len = 0;
-    c->c2.to_link_addr = NULL;
-    msg_set_prefix(NULL);
+    send_standalone_reply(m, &buf, "Connection Attempt",
+                          "Reset packet from client, sending HMAC based reset challenge", sock);
 }
 
 
@@ -87,7 +101,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
 
     verdict = tls_pre_decrypt_lite(tas, state, &m->top.c2.from, &m->top.c2.buf);
 
-    hmac_ctx_t *hmac = m->top.c2.session_id_hmac;
+    uint8_t *hmac_key = m->top.c2.session_id_key;
     struct openvpn_sockaddr *from = &m->top.c2.from.dest;
     int handwindow = m->top.options.handshake_window;
 
@@ -119,7 +133,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
         {
             /* Calculate the session ID HMAC for our reply and create reset packet */
             struct session_id sid =
-                calculate_session_id_hmac(state->peer_session_id, from, hmac, handwindow, 0);
+                calculate_session_id_hmac(state->peer_session_id, from, hmac_key, handwindow, 0);
             send_hmac_reset_packet(m, state, tas, &sid, true, sock);
 
             return false;
@@ -151,7 +165,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
     {
         /* Calculate the session ID HMAC for our reply and create reset packet */
         struct session_id sid =
-            calculate_session_id_hmac(state->peer_session_id, from, hmac, handwindow, 0);
+            calculate_session_id_hmac(state->peer_session_id, from, hmac_key, handwindow, 0);
 
         send_hmac_reset_packet(m, state, tas, &sid, false, sock);
 
@@ -166,7 +180,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
         struct gc_arena gc = gc_new();
 
         bool pkt_is_ack = (verdict == VERDICT_VALID_ACK_V1);
-        bool ret = check_session_hmac_and_pkt_id(state, from, hmac, handwindow, pkt_is_ack);
+        bool ret = check_session_hmac_and_pkt_id(state, from, hmac_key, handwindow, pkt_is_ack);
 
         const char *peer = print_link_socket_actual(&m->top.c2.from, &gc);
         uint8_t pkt_firstbyte = *BPTR(&m->top.c2.buf);
@@ -204,9 +218,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
 static struct multi_instance *
 handle_connection_attempt(struct multi_context *m,
                           struct link_socket *sock,
-                          struct mroute_addr *real,
-                          const uint64_t hv,
-                          struct hash_bucket *bucket)
+                          struct mroute_addr *real)
 {
     struct hash *hash = m->hash;
     struct tls_pre_decrypt_state state = { 0 };
@@ -236,7 +248,10 @@ handle_connection_attempt(struct multi_context *m,
             mi = multi_create_instance(m, real, sock);
             if (mi)
             {
+                const uint64_t hv = hash_value(hash, real);
+                struct hash_bucket *bucket = hash_bucket(hash, hv);
                 hash_add_fast(hash, bucket, &mi->real, hv, mi);
+
                 mi->did_real_hash = true;
                 multi_assign_peer_id(m, mi);
 
@@ -265,82 +280,141 @@ handle_connection_attempt(struct multi_context *m,
 }
 
 /**
+ * Looks up an multi instance by its real address (IP and port)
+ * @param m     multi context
+ * @param real  Address to look up
+ * @return      instance matching the address, NULL otherwise
+ */
+static struct multi_instance *
+multi_get_instance_udp_real(struct multi_context *m, struct mroute_addr *real)
+{
+    struct hash *hash = m->hash;
+    struct hash_element *he;
+    const uint64_t hv = hash_value(hash, real);
+    struct hash_bucket *bucket = hash_bucket(hash, hv);
+    he = hash_lookup_fast(hash, bucket, real, hv);
+    if (he)
+    {
+        return he->value;
+    }
+    return NULL;
+}
+
+struct multi_instance *
+multi_get_instance_udp_control(struct multi_context *m, struct link_socket *sock)
+{
+    struct mroute_addr real = { 0 };
+    real.proto = sock->info.proto;
+
+    if (mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true) && m->top.c2.buf.len > 0)
+    {
+        return multi_get_instance_udp_real(m, &real);
+    }
+
+    return NULL;
+}
+
+/**
  * Get a client instance based on real address.  If
  * the instance doesn't exist, create it while
  * maintaining real address hash table atomicity.
  */
 struct multi_instance *
+multi_get_instance_udp_data(struct multi_context *m, bool *floated, struct mroute_addr *real, struct link_socket *sock)
+{
+    struct multi_instance *mi = NULL;
+
+    uint8_t *ptr = BPTR(&m->top.c2.buf);
+    uint8_t op = ptr[0] >> P_OPCODE_SHIFT;
+    bool v2 = (op == P_DATA_V2) && (m->top.c2.buf.len >= (1 + 3));
+    bool peer_id_disabled = false;
+
+    /* make sure buffer has enough length to read opcode (1 byte) and peer-id (3 bytes) */
+    if (v2)
+    {
+        uint32_t peer_id = ((uint32_t)ptr[1] << 16) | ((uint32_t)ptr[2] << 8) | ((uint32_t)ptr[3]);
+        peer_id_disabled = (peer_id == MAX_PEER_ID);
+
+        if (!peer_id_disabled && (peer_id < m->max_clients) && (m->instances[peer_id]))
+        {
+            /* Floating on TCP will never be possible, so ensure we only process
+             * UDP clients */
+            if (m->instances[peer_id]->context.c2.link_sockets[0]->info.proto
+                == sock->info.proto)
+            {
+                mi = m->instances[peer_id];
+                *floated = !link_socket_actual_match(&mi->context.c2.from, &m->top.c2.from);
+
+                if (*floated)
+                {
+                    /* reset prefix, since here we are not sure peer is the one it claims to be
+                     */
+                    ungenerate_prefix(mi);
+                    struct gc_arena gc = gc_new();
+                    msg(D_MULTI_MEDIUM, "Float requested for peer %" PRIu32 " to %s", peer_id,
+                        mroute_addr_print(real, &gc));
+                    gc_free(&gc);
+                }
+                return mi;
+            }
+        }
+    }
+    if (!v2 || peer_id_disabled)
+    {
+        return multi_get_instance_udp_real(m, real);
+    }
+    return NULL;
+}
+
+struct multi_instance *
 multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct link_socket *sock)
 {
-    struct gc_arena gc = gc_new();
-    struct mroute_addr real = { 0 };
-    struct multi_instance *mi = NULL;
-    struct hash *hash = m->hash;
-    real.proto = sock->info.proto;
-
-    if (mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true) && m->top.c2.buf.len > 0)
+    /* If the buffer is empty, the packet has no op code and can be neither
+     * a (valid) data nor control packet */
+    if (m->top.c2.buf.len <= 0)
     {
-        struct hash_element *he;
-        const uint64_t hv = hash_value(hash, &real);
-        struct hash_bucket *bucket = hash_bucket(hash, hv);
-        uint8_t *ptr = BPTR(&m->top.c2.buf);
-        uint8_t op = ptr[0] >> P_OPCODE_SHIFT;
-        bool v2 = (op == P_DATA_V2) && (m->top.c2.buf.len >= (1 + 3));
-        bool peer_id_disabled = false;
-
-        /* make sure buffer has enough length to read opcode (1 byte) and peer-id (3 bytes) */
-        if (v2)
-        {
-            uint32_t peer_id = ((uint32_t)ptr[1] << 16) | ((uint32_t)ptr[2] << 8) | ((uint32_t)ptr[3]);
-            peer_id_disabled = (peer_id == MAX_PEER_ID);
-
-            if (!peer_id_disabled && (peer_id < m->max_clients) && m->instances[peer_id])
-            {
-                /* Floating on TCP will never be possible, so ensure we only process
-                 * UDP clients */
-                if (m->instances[peer_id]->context.c2.link_sockets[0]->info.proto
-                    == sock->info.proto)
-                {
-                    mi = m->instances[peer_id];
-                    *floated = !link_socket_actual_match(&mi->context.c2.from, &m->top.c2.from);
-
-                    if (*floated)
-                    {
-                        /* reset prefix, since here we are not sure peer is the one it claims to be
-                         */
-                        ungenerate_prefix(mi);
-                        msg(D_MULTI_MEDIUM, "Float requested for peer %" PRIu32 " to %s", peer_id,
-                            mroute_addr_print(&real, &gc));
-                    }
-                }
-            }
-        }
-        if (!v2 || peer_id_disabled)
-        {
-            he = hash_lookup_fast(hash, bucket, &real, hv);
-            if (he)
-            {
-                mi = (struct multi_instance *)he->value;
-            }
-        }
-
-        /* we have no existing multi instance for this connection */
-        if (!mi)
-        {
-            mi = handle_connection_attempt(m, sock, &real, hv, bucket);
-        }
-
-#ifdef ENABLE_DEBUG
-        if (check_debug_level(D_MULTI_DEBUG))
-        {
-            const char *status = mi ? "[ok]" : "[failed]";
-
-            dmsg(D_MULTI_DEBUG, "GET INST BY REAL: %s %s", mroute_addr_print(&real, &gc), status);
-        }
-#endif
+        return NULL;
     }
 
-    gc_free(&gc);
+    uint8_t *ptr = BPTR(&m->top.c2.buf);
+    uint8_t op = ptr[0] >> P_OPCODE_SHIFT;
+
+    struct mroute_addr real = { 0 };
+    real.proto = sock->info.proto;
+
+    if (!mroute_extract_openvpn_sockaddr(&real, &m->top.c2.from.dest, true))
+    {
+        return NULL;
+    }
+
+    struct multi_instance *mi = NULL;
+    if (op == P_DATA_V1 || op == P_DATA_V2)
+    {
+        mi = multi_get_instance_udp_data(m, floated, &real, sock);
+    }
+    else
+    {
+        mi = multi_get_instance_udp_control(m, sock);
+
+        /* we have no existing multi instance for this connection, control
+         * packets can create a session. Data packets cannot */
+        if (!mi)
+        {
+            mi = handle_connection_attempt(m, sock, &real);
+        }
+    }
+
+#ifdef ENABLE_DEBUG
+    if (check_debug_level(D_MULTI_DEBUG))
+    {
+        struct gc_arena gc = gc_new();
+        const char *status = mi ? "[ok]" : "[failed]";
+
+        dmsg(D_MULTI_DEBUG, "GET INST BY REAL/SID: %s %s", mroute_addr_print(&real, &gc), status);
+        gc_free(&gc);
+    }
+#endif
+
     ASSERT(!(mi && mi->halt));
     return mi;
 }

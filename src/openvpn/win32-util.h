@@ -24,11 +24,7 @@
 #ifndef OPENVPN_WIN32_UTIL_H
 #define OPENVPN_WIN32_UTIL_H
 
-#include <winioctl.h>
-
-#include "mtu.h"
-#include "openvpn-msg.h"
-#include "argv.h"
+#include "buffer.h"
 
 /* Convert a string from UTF-8 to UCS-2 */
 WCHAR *wide_string(const char *utf8, struct gc_arena *gc);

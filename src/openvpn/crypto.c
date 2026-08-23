@@ -1219,7 +1219,7 @@ test_crypto(struct crypto_options *co, struct frame *frame)
             ASSERT(cipher_ctx_iv_length(cipher) >= OPENVPN_AEAD_MIN_IV_LEN);
 
             /* Generate dummy implicit IV */
-            ASSERT(rand_bytes(co->key_ctx_bi.encrypt.implicit_iv, OPENVPN_MAX_IV_LENGTH));
+            prng_bytes(co->key_ctx_bi.encrypt.implicit_iv, OPENVPN_MAX_IV_LENGTH);
 
             memcpy(co->key_ctx_bi.decrypt.implicit_iv, co->key_ctx_bi.encrypt.implicit_iv,
                    OPENVPN_MAX_IV_LENGTH);
@@ -1239,7 +1239,7 @@ test_crypto(struct crypto_options *co, struct frame *frame)
         ASSERT(buf_init(&src, 0));
         ASSERT(i <= src.capacity);
         src.len = i;
-        ASSERT(rand_bytes(BPTR(&src), BLEN(&src)));
+        prng_bytes(BPTR(&src), BLEN(&src));
 
         /* copy source to input buf */
         buf = work;

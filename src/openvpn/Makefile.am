@@ -47,6 +47,7 @@ openvpn_SOURCES = \
 	base64.c base64.h \
 	basic.h \
 	buffer.c buffer.h \
+	check_file_access.c check_file_access.h \
 	circ_list.h \
 	clinat.c clinat.h \
 	common.h \
@@ -108,6 +109,8 @@ openvpn_SOURCES = \
 	pkcs11_mbedtls.c \
 	openvpn.c openvpn.h \
 	options.c options.h \
+	options_show.c options_show.h \
+	options_string.c options_string.h \
 	options_util.c options_util.h \
 	options_parse.c \
 	otime.c otime.h \
@@ -128,6 +131,8 @@ openvpn_SOURCES = \
 	session_id.c session_id.h \
 	shaper.c shaper.h \
 	sig.c sig.h \
+	siphash_reference.c \
+	siphash.c siphash.h \
 	socket.c socket.h \
 	socket_util.c socket_util.h \
 	socks.c socks.h \

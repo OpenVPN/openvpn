@@ -661,9 +661,9 @@ prepare_push_reply(struct context *c, struct gc_arena *gc, struct push_list *pus
                         print_in_addr_t(c->c2.push_ifconfig_remote_netmask, 0, gc));
     }
 
-    if (tls_multi->use_peer_id)
+    if (tls_multi->use_peer_id && !tls_multi->use_asymmetric_peer_id)
     {
-        push_option_fmt(gc, push_list, M_USAGE, "peer-id %d", tls_multi->peer_id);
+        push_option_fmt(gc, push_list, M_USAGE, "peer-id %d", tls_multi->rx_peer_id);
     }
     /*
      * If server uses --auth-gen-token and we have an auth token
@@ -717,10 +717,9 @@ prepare_push_reply(struct context *c, struct gc_arena *gc, struct push_list *pus
     }
 
     /* Push our mtu to the peer if it supports pushable MTUs */
-    int client_max_mtu = 0;
-    const char *iv_mtu = extract_var_peer_info(tls_multi->peer_info, "IV_MTU=", gc);
+    int client_max_mtu = peer_info_extract_uint(tls_multi->peer_info, "IV_MTU=");
 
-    if (iv_mtu && sscanf(iv_mtu, "%d", &client_max_mtu) == 1)
+    if (client_max_mtu != 0)
     {
         push_option_fmt(gc, push_list, M_USAGE, "tun-mtu %d", o->ce.tun_mtu);
         if (client_max_mtu < o->ce.tun_mtu)
@@ -999,9 +998,7 @@ process_incoming_push_request(struct context *c)
     else if (tls_authentication_status(c->c2.tls_multi) == TLS_AUTHENTICATION_SUCCEEDED
              && c->c2.tls_multi->multi_state >= CAS_CONNECT_DONE)
     {
-        time_t now;
-
-        openvpn_time(&now);
+        update_time();
         if (c->c2.sent_push_reply_expiry > now)
         {
             ret = PUSH_MSG_ALREADY_REPLIED;

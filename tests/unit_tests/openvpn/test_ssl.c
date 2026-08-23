@@ -48,7 +48,9 @@
 #include "buffer.h"
 #include "cert_data.h"
 #include "packet_id.h"
+#include "ssl_util.h"
 #include "ssl_verify.h"
+#include "openvpn.h"
 
 /* Mock function to be allowed to include win32.c which is required for
  * getting the temp directory */
@@ -115,19 +117,6 @@ static const char *const unittest_key =
     "-----END PRIVATE KEY-----\n";
 
 
-static const char *
-get_tmp_dir(void)
-{
-    const char *ret;
-#ifdef _WIN32
-    ret = win_get_tempdir();
-#else
-    ret = "/tmp";
-#endif
-    assert_non_null(ret);
-    return ret;
-}
-
 static struct
 {
     struct gc_arena gc;
@@ -140,8 +129,8 @@ init(void **state)
 {
     (void)state;
     global_state.gc = gc_new();
-    global_state.certfile = platform_create_temp_file(get_tmp_dir(), "cert", &global_state.gc);
-    global_state.keyfile = platform_create_temp_file(get_tmp_dir(), "key", &global_state.gc);
+    global_state.certfile = platform_create_temp_file(platform_get_tmp_dir(), "cert", &global_state.gc);
+    global_state.keyfile = platform_create_temp_file(platform_get_tmp_dir(), "key", &global_state.gc);
 
     int certfd = open(global_state.certfile, O_RDWR);
     int keyfd = open(global_state.keyfile, O_RDWR);
@@ -175,7 +164,7 @@ crypto_pem_encode_certificate(void **state)
     struct gc_arena gc = gc_new();
 
     struct tls_root_ctx ctx = { 0 };
-    tls_ctx_client_new(&ctx);
+    tls_ctx_new(&ctx);
     tls_ctx_load_cert_file(&ctx, unittest_cert, true);
 
     openvpn_x509_cert_t *cert = NULL;
@@ -188,7 +177,7 @@ crypto_pem_encode_certificate(void **state)
     cert = ctx.crt_chain;
 #endif
 
-    const char *tmpfile = platform_create_temp_file(get_tmp_dir(), "ut_pem", &gc);
+    const char *tmpfile = platform_create_temp_file(platform_get_tmp_dir(), "ut_pem", &gc);
     backend_x509_write_pem(cert, tmpfile);
 
     struct buffer exported_pem = buffer_read_from_file(tmpfile, &gc);
@@ -208,13 +197,13 @@ test_load_certificate_and_key(void **state)
     /* test loading of inlined cert and key.
      * loading the key also checks that it matches the loaded certificate
      */
-    tls_ctx_client_new(&ctx);
+    tls_ctx_new(&ctx);
     tls_ctx_load_cert_file(&ctx, unittest_cert, true);
     assert_int_equal(tls_ctx_load_priv_file(&ctx, unittest_key, true), 0);
     tls_ctx_free(&ctx);
 
     /* test loading of cert and key from file */
-    tls_ctx_client_new(&ctx);
+    tls_ctx_new(&ctx);
     tls_ctx_load_cert_file(&ctx, global_state.certfile, false);
     assert_int_equal(tls_ctx_load_priv_file(&ctx, global_state.keyfile, false), 0);
     tls_ctx_free(&ctx);
@@ -252,7 +241,7 @@ test_load_certificate_and_key_uri(void **state)
     string_mod(BSTR(&keyuri), CC_ANY, CC_BACKSLASH, '/');
 #endif /* _WIN32 */
 
-    tls_ctx_client_new(&ctx);
+    tls_ctx_new(&ctx);
     tls_ctx_load_cert_file(&ctx, BSTR(&certuri), false);
     assert_int_equal(tls_ctx_load_priv_file(&ctx, BSTR(&keyuri), false), 0);
     tls_ctx_free(&ctx);
@@ -322,7 +311,7 @@ do_data_channel_round_trip(struct crypto_options *co)
         ASSERT(buf_init(&src, 0));
         ASSERT(i <= src.capacity);
         src.len = i;
-        ASSERT(rand_bytes(BPTR(&src), BLEN(&src)));
+        prng_bytes(BPTR(&src), BLEN(&src));
 
         /* copy source to input buf */
         buf = work;
@@ -368,7 +357,7 @@ encrypt_one_packet(struct crypto_options *co, int len)
     ASSERT(buf_init(&src, 0));
     ASSERT(len <= src.capacity);
     src.len = len;
-    ASSERT(rand_bytes(BPTR(&src), BLEN(&src)));
+    prng_bytes(BPTR(&src), BLEN(&src));
 
     /* copy source to input buf */
     buf = work;
@@ -453,10 +442,10 @@ init_crypto_options(const char *cipher, const char *auth, bool epoch, struct key
     }
     else
     {
-        ASSERT(rand_bytes(key2.keys[0].cipher, sizeof(key2.keys[0].cipher)));
-        ASSERT(rand_bytes(key2.keys[0].hmac, sizeof(key2.keys[0].hmac)));
-        ASSERT(rand_bytes(key2.keys[1].cipher, sizeof(key2.keys[1].cipher)));
-        ASSERT(rand_bytes(key2.keys[1].hmac, sizeof(key2.keys)[1].hmac));
+        prng_bytes(key2.keys[0].cipher, sizeof(key2.keys[0].cipher));
+        prng_bytes(key2.keys[0].hmac, sizeof(key2.keys[0].hmac));
+        prng_bytes(key2.keys[1].cipher, sizeof(key2.keys[1].cipher));
+        prng_bytes(key2.keys[1].hmac, sizeof(key2.keys)[1].hmac);
     }
 
     struct crypto_options co = { 0 };
@@ -884,6 +873,68 @@ crypto_test_print_cert_details(void **state)
     free_certificate(cert);
 }
 
+void
+ssl_test_extract_peer_info(void **state)
+{
+    const char *peer_info_normal =
+        "IV_VER=2.6_git\nIV_PLAT=mac\nIV_TCPNL=1\nIV_NCP=2\n"
+        "IV_CIPHERS=AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305\n"
+        "IV_PROTO=94\nIV_LZO_STUB=1\nIV_COMP_STUB=1\nP=78\nIV_COMP_STUBv2=1\n"
+        "IV_SSL=OpenSSL_3.0.5_5_Jul_2022\nIV_LZ4v2=1";
+
+    const char *empty = "";
+    const char *invalid_proto = "IV_PROTO=seven\nIV_SSL=7\nP=300\nID=xyz";
+    const char *test_prefix = "UV_IV_PROTO=773\nNP=112\nPD=8\n";
+
+
+    assert_int_equal(extract_iv_proto(peer_info_normal), 94);
+    assert_int_equal(extract_iv_proto(empty), 0);
+    assert_int_equal(extract_iv_proto(invalid_proto), 0);
+    /* This should not pick up the UV_IV_PROTO that has the extra prefix */
+    assert_int_equal(extract_iv_proto(test_prefix), 0);
+
+    assert_int_equal(peer_info_extract_uint(peer_info_normal, "IV_COMP_STUB="), 1);
+    assert_int_equal(peer_info_extract_int(empty, "IV_COMP_STUB=", "%d", 0xfe0d0d), 0xfe0d0d);
+    assert_int_equal(peer_info_extract_uint(invalid_proto, "IV_COMP_STUB="), 0);
+
+    assert_int_equal(peer_info_extract_int(test_prefix, "NP=", "%d", 23), 112);
+    assert_int_equal(peer_info_extract_uint(test_prefix, "PD="), 8);
+    assert_int_equal(peer_info_extract_int(test_prefix, "P=", "%x", 0xfe0d0d), 0xfe0d0d);
+    assert_int_equal(peer_info_extract_uint(peer_info_normal, "P="), 78);
+    assert_int_equal(peer_info_extract_uint(test_prefix, "UV_IV_PROTO="), 773);
+
+    struct gc_arena gc = gc_new();
+
+    const char *peer_ciphers = extract_var_peer_info(peer_info_normal, "IV_CIPHERS=", &gc);
+    assert_string_equal(peer_ciphers, "AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305");
+
+    /* with the extra = this should not extract anything */
+    const char *proto = extract_var_peer_info(peer_info_normal, "IV_PROTO==", &gc);
+    assert_null(proto);
+
+    proto = extract_var_peer_info(peer_info_normal, "IV_PROTO=", &gc);
+    assert_string_equal(proto, "94");
+
+
+    const char *double_eq_info = "FOO=7\nFOO==new";
+    const char *foo_eq = extract_var_peer_info(double_eq_info, "FOO=", &gc);
+    const char *foo = extract_var_peer_info(double_eq_info, "FOO", &gc);
+    const char *foo_2eq = extract_var_peer_info(double_eq_info, "FOO==", &gc);
+
+    assert_string_equal(foo, "=7");
+    assert_string_equal(foo_eq, "7");
+    assert_string_equal(foo_2eq, "new");
+
+    assert_int_equal(extract_asymmetric_peer_id(double_eq_info), MAX_PEER_ID);
+    assert_int_equal(extract_asymmetric_peer_id(peer_info_normal), MAX_PEER_ID);
+    assert_int_equal(extract_asymmetric_peer_id(invalid_proto), MAX_PEER_ID);
+    assert_int_equal(extract_asymmetric_peer_id("ID=f7"), 0xf7);
+    assert_int_equal(extract_asymmetric_peer_id("X=foo\nID=12ab"), 0x12ab);
+    assert_int_equal(extract_asymmetric_peer_id("X=foo\nID=34dd\nY=bar"), 0x34dd);
+    assert_int_equal(extract_asymmetric_peer_id("X=foo\nID=12345678"), MAX_PEER_ID);
+
+    gc_free(&gc);
+}
 
 int
 main(void)
@@ -908,7 +959,8 @@ main(void)
         cmocka_unit_test(test_data_channel_roundtrip_bf_cbc),
         cmocka_unit_test(test_data_channel_known_vectors_epoch),
         cmocka_unit_test(test_data_channel_known_vectors_shortpktid),
-        cmocka_unit_test(crypto_test_print_cert_details)
+        cmocka_unit_test(crypto_test_print_cert_details),
+        cmocka_unit_test(ssl_test_extract_peer_info)
 
     };
 

@@ -260,7 +260,6 @@ endif ()
 
 check_include_files(arpa/inet.h HAVE_ARPA_INET_H)
 check_include_files(dlfcn.h HAVE_DLFCN_H)
-check_include_files(dmalloc.h HAVE_DMALLOC_H)
 check_include_files(fcntl.h HAVE_FCNTL_H)
 check_include_files(err.h HAVE_ERR_H)
 check_include_files(netdb.h HAVE_NETDB_H)
@@ -432,6 +431,8 @@ set(SOURCE_FILES
     src/openvpn/basic.h
     src/openvpn/buffer.c
     src/openvpn/buffer.h
+    src/openvpn/check_file_access.c
+    src/openvpn/check_file_access.h
     src/openvpn/circ_list.h
     src/openvpn/clinat.c
     src/openvpn/clinat.h
@@ -453,6 +454,8 @@ set(SOURCE_FILES
     src/openvpn/crypto_openssl.h
     src/openvpn/crypto_mbedtls.c
     src/openvpn/crypto_mbedtls.h
+    src/openvpn/crypto_mbedtls_legacy.c
+    src/openvpn/crypto_mbedtls_legacy.h
     src/openvpn/cryptoapi.c
     src/openvpn/cryptoapi.h
     src/openvpn/dco.c
@@ -528,6 +531,10 @@ set(SOURCE_FILES
     src/openvpn/options_util.c
     src/openvpn/options_util.h
     src/openvpn/options_parse.c
+    src/openvpn/options_show.c
+    src/openvpn/options_show.h
+    src/openvpn/options_string.c
+    src/openvpn/options_string.h
     src/openvpn/otime.c
     src/openvpn/otime.h
     src/openvpn/ovpn_dco_win.h
@@ -572,6 +579,9 @@ set(SOURCE_FILES
     src/openvpn/shaper.h
     src/openvpn/sig.c
     src/openvpn/sig.h
+    src/openvpn/siphash.c
+    src/openvpn/siphash.h
+    src/openvpn/siphash_reference.c
     src/openvpn/socket.c
     src/openvpn/socket.h
     src/openvpn/socket_util.c
@@ -773,6 +783,7 @@ if (BUILD_TESTING)
         src/openvpn/base64.c
         src/openvpn/crypto_epoch.c
         src/openvpn/crypto_mbedtls.c
+        src/openvpn/crypto_mbedtls_legacy.c
         src/openvpn/crypto_openssl.c
         src/openvpn/crypto.c
         src/openvpn/otime.c
@@ -784,7 +795,9 @@ if (BUILD_TESTING)
         )
 
     target_sources(test_crypto PRIVATE
+        tests/unit_tests/openvpn/siphash_openssl.c
         src/openvpn/crypto_mbedtls.c
+        src/openvpn/crypto_mbedtls_legacy.c
         src/openvpn/crypto_openssl.c
         src/openvpn/crypto_epoch.c
         src/openvpn/crypto.c
@@ -792,6 +805,7 @@ if (BUILD_TESTING)
         src/openvpn/packet_id.c
         src/openvpn/mtu.c
         src/openvpn/mss.c
+        src/openvpn/siphash_reference.c
         )
 
     target_sources(test_ssl PRIVATE
@@ -802,6 +816,7 @@ if (BUILD_TESTING)
             src/openvpn/base64.c
             src/openvpn/crypto_epoch.c
             src/openvpn/crypto_mbedtls.c
+            src/openvpn/crypto_mbedtls_legacy.c
             src/openvpn/crypto_openssl.c
             src/openvpn/crypto.c
             src/openvpn/cryptoapi.c
@@ -835,11 +850,15 @@ if (BUILD_TESTING)
         src/openvpn/list.c
         src/openvpn/session_id.c
         src/openvpn/schedule.c
+        src/openvpn/siphash.h
+        src/openvpn/siphash.c
+        src/openvpn/siphash_reference.c
     )
 
     target_sources(test_ncp PRIVATE
         src/openvpn/crypto_epoch.c
         src/openvpn/crypto_mbedtls.c
+        src/openvpn/crypto_mbedtls_legacy.c
         src/openvpn/crypto_openssl.c
         src/openvpn/crypto.c
         src/openvpn/otime.c
@@ -868,6 +887,7 @@ if (BUILD_TESTING)
         src/openvpn/base64.c
         src/openvpn/crypto_epoch.c
         src/openvpn/crypto_mbedtls.c
+        src/openvpn/crypto_mbedtls_legacy.c
         src/openvpn/crypto_openssl.c
         src/openvpn/crypto.c
         src/openvpn/env_set.c
@@ -875,6 +895,7 @@ if (BUILD_TESTING)
         src/openvpn/packet_id.c
         src/openvpn/reliable.c
         src/openvpn/run_command.c
+        src/openvpn/siphash_reference.c
         src/openvpn/session_id.c
         src/openvpn/ssl_pkt.c
         src/openvpn/tls_crypt.c
@@ -912,7 +933,8 @@ if (BUILD_TESTING)
         src/openvpn/options_util.c
         src/openvpn/otime.c
         src/openvpn/list.c
-        )
+        src/openvpn/ssl_util.c
+    )
 
     target_sources(test_argv PRIVATE
         tests/unit_tests/openvpn/mock_get_random.c
@@ -942,6 +964,7 @@ if (BUILD_TESTING)
             src/openvpn/networking_sitnl.c
             src/openvpn/crypto_epoch.c
             src/openvpn/crypto_mbedtls.c
+            src/openvpn/crypto_mbedtls_legacy.c
             src/openvpn/crypto_openssl.c
             src/openvpn/crypto.c
             src/openvpn/crypto_epoch.c
@@ -963,6 +986,7 @@ if (BUILD_TESTING)
             src/openvpn/base64.c
             src/openvpn/crypto_epoch.c
             src/openvpn/crypto_mbedtls.c
+            src/openvpn/crypto_mbedtls_legacy.c
             src/openvpn/crypto_openssl.c
             src/openvpn/crypto.c
             src/openvpn/env_set.c

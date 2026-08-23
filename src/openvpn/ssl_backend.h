@@ -117,18 +117,11 @@ int tls_version_parse(const char *vstr, const char *extra);
 int tls_version_max(void);
 
 /**
- * Initialise a library-specific TLS context for a server.
+ * Initialise a library-specific TLS context.
  *
  * @param ctx           TLS context to initialise
  */
-void tls_ctx_server_new(struct tls_root_ctx *ctx);
-
-/**
- * Initialises a library-specific TLS context for a client.
- *
- * @param ctx           TLS context to initialise
- */
-void tls_ctx_client_new(struct tls_root_ctx *ctx);
+void tls_ctx_new(struct tls_root_ctx *ctx);
 
 /**
  * Frees the library-specific TLSv1 context

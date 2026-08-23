@@ -584,6 +584,34 @@ platform_create_temp_file(const char *directory, const char *prefix, struct gc_a
     return NULL;
 }
 
+const char *
+platform_get_tmp_dir(void)
+{
+    const char *ret;
+#ifdef _WIN32
+    /* On Windows, find temp dir via environment variables */
+    ret = win_get_tempdir();
+
+    if (!ret)
+    {
+        /* Error out if we can't find a valid temporary directory, which should
+         * be very unlikely. */
+        msg(M_USAGE, "Could not find a suitable temporary directory."
+                     " (GetTempPath() failed).  Consider using --tmp-dir");
+    }
+#else
+    /* Non-windows platforms use $TMPDIR, and if not set, default to '/tmp' */
+    ret = getenv("TMPDIR");
+    if (!ret)
+    {
+        ret = "/tmp";
+    }
+#endif
+
+    return ret;
+}
+
+
 /*
  * Put a directory and filename together.
  */
