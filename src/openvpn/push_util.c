@@ -185,7 +185,7 @@ send_single_push_update(struct multi_context *m, struct multi_instance *mi, stru
          */
         struct buffer tmp_msg = e->buf;
         buf_string_compare_advance(&tmp_msg, push_update_cmd);
-        unsigned int permission_mask = pull_permission_mask(c);
+        uint64_t permission_mask = pull_permission_mask(c);
         if (process_push_update(c, &o, permission_mask, &option_types_found, &tmp_msg, true) == PUSH_MSG_ERROR)
         {
             msg(M_WARN, "Failed to process push update message sent to client ID: %u", c->c2.tls_multi->rx_peer_id);

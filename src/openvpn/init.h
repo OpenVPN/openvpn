@@ -89,7 +89,7 @@ bool do_up(struct context *c, bool pulled_options, uint64_t option_types_found);
  */
 bool do_update(struct context *c, uint64_t option_types_found);
 
-unsigned int pull_permission_mask(const struct context *c);
+uint64_t pull_permission_mask(const struct context *c);
 
 const char *format_common_name(struct context *c, struct gc_arena *gc);
 
