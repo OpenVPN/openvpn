@@ -889,7 +889,7 @@ env_block(const struct env_set *es)
 
     if (es)
     {
-        struct env_item *e;
+        const struct env_item *e;
         char *ret;
         char *p;
         size_t nchars = 1;

@@ -321,8 +321,8 @@ static unsigned int
 management_callback_remote_entry_count(void *arg)
 {
     ASSERT(arg);
-    struct context *c = (struct context *)arg;
-    struct connection_list *l = c->options.connection_list;
+    const struct context *c = (struct context *)arg;
+    const struct connection_list *l = c->options.connection_list;
 
     return l->len;
 }
@@ -339,7 +339,7 @@ management_callback_remote_entry_get(void *arg, unsigned int index, char **remot
 
     if (l->len > 0 && index < (unsigned int)l->len)
     {
-        struct connection_entry *ce = l->array[index];
+        const struct connection_entry *ce = l->array[index];
         const char *proto = proto2ascii(ce->proto, ce->af, false);
         const char *status = (ce->flags & CE_DISABLED) ? "disabled" : "enabled";
 
@@ -517,7 +517,7 @@ next_connection_entry(struct context *c)
 {
     struct connection_list *l = c->options.connection_list;
     bool ce_defined;
-    struct connection_entry *ce;
+    const struct connection_entry *ce;
     int n_cycles = 0;
 
     do
@@ -1563,10 +1563,10 @@ initialization_sequence_completed(struct context *c, const unsigned int flags)
     /* Tell management interface that we initialized */
     if (management)
     {
-        in_addr_t *tun_local = NULL;
-        struct in6_addr *tun_local6 = NULL;
+        const in_addr_t *tun_local = NULL;
+        const struct in6_addr *tun_local6 = NULL;
         struct openvpn_sockaddr local, remote;
-        struct link_socket_actual *actual;
+        const struct link_socket_actual *actual;
         socklen_t sa_len = sizeof(local);
         const char *detail = "SUCCESS";
         if (flags & ISC_ERRORS)
@@ -4282,7 +4282,7 @@ management_callback_network_change(void *arg, bool samenetwork)
     /* On some newer Android handsets, changing to a different network
      * often does not trigger a TCP reset but continue using the old
      * connection (e.g. using mobile connection when WiFi becomes available */
-    struct link_socket_info *lsi = get_link_socket_info(c);
+    const struct link_socket_info *lsi = get_link_socket_info(c);
     if (lsi && proto_is_tcp(lsi->proto) && !samenetwork)
     {
         return -2;

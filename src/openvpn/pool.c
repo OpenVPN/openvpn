@@ -63,7 +63,7 @@ ifconfig_pool_find(struct ifconfig_pool *pool, const char *common_name)
 
     for (i = 0; i < pool->size; ++i)
     {
-        struct ifconfig_pool_entry *ipe = &pool->list[i];
+        const struct ifconfig_pool_entry *ipe = &pool->list[i];
         if (!ipe->in_use)
         {
             /*

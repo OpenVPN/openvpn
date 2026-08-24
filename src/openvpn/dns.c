@@ -132,7 +132,7 @@ dns_server_addr_parse(struct dns_server *server, const char *addr)
     }
     else
     {
-        struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)ai->ai_addr;
+        const struct sockaddr_in6 *sin6 = (struct sockaddr_in6 *)ai->ai_addr;
         server->addr[server->addr_count].in.a6 = sin6->sin6_addr;
     }
 
@@ -156,7 +156,7 @@ dns_domain_list_append(struct dns_domain **entry, char **domains, struct gc_aren
     /* Append all domains to the end of the list */
     while (*domains)
     {
-        char *domain = *domains++;
+        const char *domain = *domains++;
         if (!validate_domain(domain))
         {
             return false;
@@ -699,7 +699,7 @@ static void
 run_up_down_command(bool up, struct options *o, const struct tuntap *tt,
                     struct dns_updown_runner_info *updown_runner)
 {
-    struct dns_options *dns = &o->dns_options;
+    const struct dns_options *dns = &o->dns_options;
     if (!dns->updown || (o->up_script && !dns_updown_user_set(dns) && !dns_updown_forced(dns)))
     {
         return;
@@ -864,7 +864,7 @@ run_dns_up_down(bool up, struct options *o, const struct tuntap *tt,
     }
 #ifdef _WIN32
     /* Don't use iservice in DHCP mode */
-    struct tuntap_options *tto = &o->tuntap_options;
+    const struct tuntap_options *tto = &o->tuntap_options;
     if (tto->ip_win32_type == IPW32_SET_DHCP_MASQ || tto->ip_win32_type == IPW32_SET_ADAPTIVE)
     {
         return;

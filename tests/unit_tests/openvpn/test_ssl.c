@@ -676,7 +676,7 @@ test_data_channel_known_vectors_run(bool epoch)
     openvpn_encrypt(&buf, encrypt_workspace, &co);
 
     /* separate buffer in authenticated data and encrypted data */
-    uint8_t *ad_start = BPTR(&buf);
+    const uint8_t *ad_start = BPTR(&buf);
     buf_advance(&buf, 4);
 
     if (epoch)

@@ -557,7 +557,7 @@ static void
 ep_del(struct event_set *es, event_t event)
 {
     struct epoll_event ev;
-    struct ep_set *eps = (struct ep_set *)es;
+    const struct ep_set *eps = (struct ep_set *)es;
 
     dmsg(D_EVENT_WAIT, "EP_DEL ev=%d", (int)event);
 
@@ -572,7 +572,7 @@ ep_del(struct event_set *es, event_t event)
 static void
 ep_ctl(struct event_set *es, event_t event, unsigned int rwflags, void *arg)
 {
-    struct ep_set *eps = (struct ep_set *)es;
+    const struct ep_set *eps = (struct ep_set *)es;
     struct epoll_event ev;
 
     CLEAR(ev);

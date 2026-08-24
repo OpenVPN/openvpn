@@ -92,7 +92,7 @@ msica_arg_seq_join(_In_ const struct msica_arg_seq *seq)
 {
     /* Count required space. */
     size_t size = 2 /*x + zero-terminator*/;
-    for (struct msica_arg *p = seq->head; p != NULL; p = p->next)
+    for (const struct msica_arg *p = seq->head; p != NULL; p = p->next)
     {
         size += wcslen(p->val) + 1 /*space delimiter|zero-terminator*/;
     }
@@ -119,7 +119,7 @@ msica_arg_seq_join(_In_ const struct msica_arg_seq *seq)
 
     /* Join. */
     LPWSTR s = str + 1 /*x*/;
-    for (struct msica_arg *p = seq->head; p != NULL; p = p->next)
+    for (const struct msica_arg *p = seq->head; p != NULL; p = p->next)
     {
         /* Convert zero-terminator into space delimiter. */
         s[0] = L' ';

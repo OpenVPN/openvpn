@@ -233,7 +233,7 @@ cleanup(void **state)
         const CERT_CONTEXT *ctx = NULL;
         while ((ctx = CertEnumCertificatesInStore(user_store, ctx)))
         {
-            char *friendly_name = get_cert_name(ctx, &gc);
+            const char *friendly_name = get_cert_name(ctx, &gc);
             if (!lookup_cert(friendly_name)) /* not our cert */
             {
                 continue;
@@ -310,7 +310,7 @@ test_find_cert_byname(void **state)
          */
         assert_non_null(ctx);
 
-        char *friendly_name = get_cert_name(ctx, &gc);
+        const char *friendly_name = get_cert_name(ctx, &gc);
         struct test_cert *found = lookup_cert(friendly_name);
         assert_non_null(found);
         assert_string_equal(found->cname, c->cname);
@@ -343,7 +343,7 @@ test_find_cert_byissuer(void **state)
          */
         assert_non_null(ctx);
 
-        char *friendly_name = get_cert_name(ctx, &gc);
+        const char *friendly_name = get_cert_name(ctx, &gc);
         struct test_cert *found = lookup_cert(friendly_name);
         assert_non_null(found);
         assert_string_equal(found->issuer, c->issuer);

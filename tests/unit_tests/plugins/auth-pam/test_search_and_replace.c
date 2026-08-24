@@ -12,7 +12,7 @@
 static void
 pass_any_null_param__returns_null(void **state)
 {
-    char DUMMY[] = "DUMMY";
+    const char DUMMY[] = "DUMMY";
 
     assert_null(searchandreplace(NULL, DUMMY, DUMMY));
     assert_null(searchandreplace(DUMMY, NULL, DUMMY));
@@ -22,8 +22,8 @@ pass_any_null_param__returns_null(void **state)
 static void
 pass_any_empty_string__returns_null(void **state)
 {
-    char DUMMY[] = "DUMMY";
-    char EMPTY[] = "";
+    const char DUMMY[] = "DUMMY";
+    const char EMPTY[] = "";
 
     assert_null(searchandreplace(EMPTY, DUMMY, DUMMY));
     assert_null(searchandreplace(DUMMY, EMPTY, DUMMY));

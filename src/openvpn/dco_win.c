@@ -285,8 +285,8 @@ dco_mp_start_vpn(HANDLE handle, struct link_socket *sock)
     msg(D_DCO_DEBUG, "%s", __func__);
 
     int ai_family = sock->info.lsa->bind_local->ai_family;
-    struct addrinfo *local = sock->info.lsa->bind_local;
-    struct addrinfo *cur = NULL;
+    const struct addrinfo *local = sock->info.lsa->bind_local;
+    const struct addrinfo *cur = NULL;
 
     for (cur = local; cur; cur = cur->ai_next)
     {
@@ -334,7 +334,7 @@ dco_p2p_new_peer(HANDLE handle, OVERLAPPED *ov, struct link_socket *sock,
     struct addrinfo *remoteaddr = sock->info.lsa->current_remote;
 
     struct sockaddr *local = NULL;
-    struct sockaddr *remote = remoteaddr->ai_addr;
+    const struct sockaddr *remote = remoteaddr->ai_addr;
 
     if (remoteaddr->ai_protocol == IPPROTO_TCP || remoteaddr->ai_socktype == SOCK_STREAM)
     {
@@ -348,7 +348,7 @@ dco_p2p_new_peer(HANDLE handle, OVERLAPPED *ov, struct link_socket *sock,
     if (sock->bind_local)
     {
         /* Use first local address with correct address family */
-        struct addrinfo *bind = sock->info.lsa->bind_local;
+        const struct addrinfo *bind = sock->info.lsa->bind_local;
         while (bind && !local)
         {
             if (bind->ai_family == remote->sa_family)
@@ -415,8 +415,9 @@ dco_p2p_new_peer(HANDLE handle, OVERLAPPED *ov, struct link_socket *sock,
 }
 
 int
-dco_new_peer(dco_context_t *dco, unsigned int peerid, socket_descriptor_t sd, struct sockaddr *localaddr,
-             struct sockaddr *remoteaddr, struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6)
+dco_new_peer(dco_context_t *dco, unsigned int peerid, socket_descriptor_t sd,
+             struct sockaddr *localaddr, struct sockaddr *remoteaddr,
+             const struct in_addr *vpn_ipv4, const struct in6_addr *vpn_ipv6)
 {
     msg(D_DCO_DEBUG, "%s: peer-id %d, fd " SOCKET_PRINTF, __func__, peerid, sd);
 
@@ -745,7 +746,7 @@ dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
     struct gc_arena gc = gc_new();
 
     int ret = 0;
-    struct tuntap *tt = dco->tt;
+    const struct tuntap *tt = dco->tt;
 
     if (!tuntap_defined(tt))
     {
@@ -869,7 +870,7 @@ done:
 int
 dco_get_peer_stats_fallback(struct context *c, const bool raise_sigusr1_on_err)
 {
-    struct tuntap *tt = c->c1.tuntap;
+    const struct tuntap *tt = c->c1.tuntap;
 
     if (!tuntap_defined(tt))
     {
@@ -898,7 +899,7 @@ dco_get_peer_stats_fallback(struct context *c, const bool raise_sigusr1_on_err)
 int
 dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)
 {
-    struct tuntap *tt = c->c1.tuntap;
+    const struct tuntap *tt = c->c1.tuntap;
 
     if (!tuntap_defined(tt))
     {

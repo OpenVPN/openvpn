@@ -761,7 +761,7 @@ link_socket_extract_tos(struct link_socket *sock, const struct buffer *ipbuf)
 {
     if (sock && ipbuf)
     {
-        struct openvpn_iphdr *iph = (struct openvpn_iphdr *)BPTR(ipbuf);
+        const struct openvpn_iphdr *iph = (struct openvpn_iphdr *)BPTR(ipbuf);
         sock->ptos = iph->tos;
         sock->ptos_defined = true;
     }

@@ -871,7 +871,7 @@ init_tun(const char *dev,                          /* --dev option */
          */
         if (strict_warn)
         {
-            struct addrinfo *curele;
+            const struct addrinfo *curele;
             ifconfig_sanity_check(tun_p2p, tt->remote_netmask);
 
             /*
@@ -1726,7 +1726,7 @@ write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
     {
         u_int32_t type;
         struct iovec iv[2];
-        struct ip *iph = (struct ip *)buf;
+        const struct ip *iph = (struct ip *)buf;
 
         if (iph->ip_v == 6)
         {
@@ -3414,7 +3414,7 @@ get_device_instance_id_interface(struct gc_arena *gc)
         SP_DEVINFO_DATA device_info_data;
         BOOL res;
         HKEY dev_key;
-        char net_cfg_instance_id_string[] = "NetCfgInstanceId";
+        const char net_cfg_instance_id_string[] = "NetCfgInstanceId";
         BYTE net_cfg_instance_id[256];
         char device_instance_id[256];
         DWORD len;
@@ -3542,7 +3542,7 @@ get_tap_reg(struct gc_arena *gc)
         HKEY unit_key;
         char component_id_string[] = "ComponentId";
         char component_id[256];
-        char net_cfg_instance_id_string[] = "NetCfgInstanceId";
+        const char net_cfg_instance_id_string[] = "NetCfgInstanceId";
         BYTE net_cfg_instance_id[256];
         DWORD data_type;
 

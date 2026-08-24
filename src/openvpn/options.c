@@ -1696,7 +1696,7 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
 
     for (int i = 0; i < ce->local_list->len; i++)
     {
-        struct local_entry *le = ce->local_list->array[i];
+        const struct local_entry *le = ce->local_list->array[i];
 
         if (proto_is_net(le->proto) && string_defined_equal(le->local, ce->remote)
             && string_defined_equal(le->port, ce->remote_port))
@@ -7693,7 +7693,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
 #ifdef ENABLE_PKCS11
     else if (streq(p[0], "show-pkcs11-ids") && !p[3])
     {
-        char *provider = p[1];
+        const char *provider = p[1];
         bool cert_private = (p[2] == NULL ? false : (atoi_warn(p[2], msglevel) != 0));
 
 #ifdef DEFAULT_PKCS11_MODULE

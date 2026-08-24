@@ -1318,7 +1318,7 @@ buf_copy(struct buffer *dest, const struct buffer *src)
 static inline bool
 buf_copy_n(struct buffer *dest, struct buffer *src, int n)
 {
-    uint8_t *cp = buf_read_alloc(src, n);
+    const uint8_t *cp = buf_read_alloc(src, n);
     if (!cp)
     {
         return false;
@@ -1409,7 +1409,7 @@ buf_copy_excess(struct buffer *dest, struct buffer *src, int len)
 static inline bool
 buf_read(struct buffer *src, void *dest, int size)
 {
-    uint8_t *cp = buf_read_alloc(src, size);
+    const uint8_t *cp = buf_read_alloc(src, size);
     if (!cp)
     {
         return false;

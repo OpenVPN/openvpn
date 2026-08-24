@@ -381,7 +381,7 @@ openvpn_plugin_func_v3(const int v3structver, struct openvpn_plugin_args_func_in
     }
     const char **argv = args->argv;
     const char **envp = args->envp;
-    struct plugin_context *context = (struct plugin_context *)args->handle;
+    const struct plugin_context *context = (struct plugin_context *)args->handle;
     struct plugin_per_client_context *pcc =
         (struct plugin_per_client_context *)args->per_client_context;
     switch (args->type)
@@ -399,7 +399,7 @@ openvpn_plugin_func_v3(const int v3structver, struct openvpn_plugin_args_func_in
 OPENVPN_EXPORT void *
 openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
 {
-    struct plugin_context *context = (struct plugin_context *)handle;
+    const struct plugin_context *context = (struct plugin_context *)handle;
     plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_client_constructor_v1");
     return calloc(1, sizeof(struct plugin_per_client_context));
 }
@@ -407,7 +407,7 @@ openvpn_plugin_client_constructor_v1(openvpn_plugin_handle_t handle)
 OPENVPN_EXPORT void
 openvpn_plugin_client_destructor_v1(openvpn_plugin_handle_t handle, void *per_client_context)
 {
-    struct plugin_context *context = (struct plugin_context *)handle;
+    const struct plugin_context *context = (struct plugin_context *)handle;
     plog(context, PLOG_NOTE, "FUNC: openvpn_plugin_client_destructor_v1");
     free(per_client_context);
 }

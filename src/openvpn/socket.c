@@ -393,7 +393,7 @@ do_preresolve(struct context *c)
 
             for (int j = 0; j < ce->local_list->len; j++)
             {
-                struct local_entry *le = ce->local_list->array[j];
+                const struct local_entry *le = ce->local_list->array[j];
 
                 if (!le->local)
                 {
@@ -898,12 +898,10 @@ socket_bind(socket_descriptor_t sd, struct addrinfo *local, int ai_family, const
      * What is the correct way to deal with it?
      */
 
-    struct addrinfo *cur;
-
     ASSERT(local);
 
-
     /* find the first addrinfo with correct ai_family */
+    const struct addrinfo *cur;
     for (cur = local; cur; cur = cur->ai_next)
     {
         if (cur->ai_family == ai_family)
@@ -1490,7 +1488,7 @@ linksock_print_addr(struct link_socket *sock)
         /* Socket is always bound on the first matching address,
          * For bound sockets with no remote addr this is the element of
          * the list */
-        struct addrinfo *cur;
+        const struct addrinfo *cur;
         for (cur = sock->info.lsa->bind_local; cur; cur = cur->ai_next)
         {
             if (!ai_family || ai_family == cur->ai_family)
@@ -1621,7 +1619,7 @@ static void
 create_socket_dco_win(struct context *c, struct link_socket *sock, struct signal_info *sig_info)
 {
     /* in P2P mode we must have remote resolved at this point */
-    struct addrinfo *remoteaddr = sock->info.lsa->current_remote;
+    const struct addrinfo *remoteaddr = sock->info.lsa->current_remote;
     if ((c->options.mode == MODE_POINT_TO_POINT) && (!remoteaddr))
     {
         return;
@@ -1910,7 +1908,7 @@ link_socket_bad_incoming_addr(struct buffer *buf, const struct link_socket_info 
                               const struct link_socket_actual *from_addr)
 {
     struct gc_arena gc = gc_new();
-    struct addrinfo *ai;
+    const struct addrinfo *ai;
 
     switch (from_addr->dest.addr.sa.sa_family)
     {

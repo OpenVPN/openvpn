@@ -196,7 +196,7 @@ find_adapters(_In_ MSIHANDLE hInstall, _In_z_ LPCWSTR szzHardwareIDs,
 
     /* Count adapters. */
     size_t adapter_count = 0;
-    for (struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
+    for (const struct tap_adapter_node *pAdapter = pAdapterList; pAdapter; pAdapter = pAdapter->pNext)
     {
         adapter_count++;
     }

@@ -667,7 +667,7 @@ init_route_list(struct route_list *rl, const struct route_option_list *opt,
 
     /* parse the routes from opt to rl */
     {
-        struct route_option *ro;
+        const struct route_option *ro;
         for (ro = opt->routes; ro; ro = ro->next)
         {
             struct addrinfo *netlist = NULL;
@@ -679,7 +679,7 @@ init_route_list(struct route_list *rl, const struct route_option_list *opt,
             }
             else
             {
-                struct addrinfo *curele;
+                const struct addrinfo *curele;
                 for (curele = netlist; curele; curele = curele->ai_next)
                 {
                     struct route_ipv4 *new;
@@ -799,7 +799,7 @@ init_route_ipv6_list(struct route_ipv6_list *rl6, const struct route_ipv6_option
     need_remote_ipv6_route = false;
 
     {
-        struct route_ipv6_option *ro6;
+        const struct route_ipv6_option *ro6;
         for (ro6 = opt6->routes_ipv6; ro6; ro6 = ro6->next)
         {
             struct route_ipv6 *r6;
@@ -1187,7 +1187,7 @@ delete_routes_v6(struct route_ipv6_list *rl6, const struct tuntap *tt, unsigned 
 {
     if (rl6 && (rl6->iflags & RL_ROUTES_ADDED))
     {
-        struct route_ipv6 *r6;
+        const struct route_ipv6 *r6;
         for (r6 = rl6->routes_ipv6; r6; r6 = r6->next)
         {
             delete_route_ipv6(r6, tt, es, ctx);
@@ -1226,7 +1226,7 @@ print_route_option(const struct route_option *ro, msglvl_t msglevel)
 void
 print_route_options(const struct route_option_list *rol, msglvl_t msglevel)
 {
-    struct route_option *ro;
+    const struct route_option *ro;
     if (rol->flags & RG_ENABLE)
     {
         msg(msglevel, "  [redirect_default_gateway local=%d]", (rol->flags & RG_LOCAL) != 0);
@@ -1335,7 +1335,7 @@ void
 setenv_routes(struct env_set *es, const struct route_list *rl)
 {
     int i = 1;
-    struct route_ipv4 *r;
+    const struct route_ipv4 *r;
     for (r = rl->routes; r; r = r->next)
     {
         setenv_route(es, r, i++);
@@ -1372,7 +1372,7 @@ void
 setenv_routes_ipv6(struct env_set *es, const struct route_ipv6_list *rl6)
 {
     int i = 1;
-    struct route_ipv6 *r6;
+    const struct route_ipv6 *r6;
     for (r6 = rl6->routes_ipv6; r6; r6 = r6->next)
     {
         setenv_route_ipv6(es, r6, i++);
@@ -2423,7 +2423,7 @@ test_routes(const struct route_list *rl, const struct tuntap *tt)
          */
         if (rl && tt->did_ifconfig_setup)
         {
-            struct route_ipv4 *r;
+            const struct route_ipv4 *r;
             for (r = rl->routes, len = 0; r; r = r->next, ++len)
             {
                 test_route_helper(&ret, &count, &good, &ambig, adapters, r->gateway);
@@ -3110,7 +3110,8 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
     /* scan adapter list */
     if (rgi->flags & RGI_ADDR_DEFINED)
     {
-        struct ifreq *ifr, *ifend;
+        const struct ifreq *ifr;
+        const struct ifreq *ifend;
         in_addr_t addr, netmask;
         struct ifreq ifreq;
         struct ifconf ifc;

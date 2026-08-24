@@ -1212,7 +1212,7 @@ test_crypto(struct crypto_options *co, struct frame *frame)
 
     /* init implicit IV */
     {
-        cipher_ctx_t *cipher = co->key_ctx_bi.encrypt.cipher;
+        const cipher_ctx_t *cipher = co->key_ctx_bi.encrypt.cipher;
         if (cipher_ctx_mode_aead(cipher))
         {
             ASSERT(cipher_ctx_iv_length(cipher) <= OPENVPN_MAX_IV_LENGTH);
@@ -1922,7 +1922,7 @@ check_tls_prf_working(void)
     const char *seed = "tls1-prf-test";
     const char *secret = "tls1-prf-test-secret";
     uint8_t out[8];
-    uint8_t expected_out[] = { 'q', 'D', 0xfe, '%', '@', 's', 'u', 0x95 };
+    const uint8_t expected_out[] = { 'q', 'D', 0xfe, '%', '@', 's', 'u', 0x95 };
 
     int ret = ssl_tls1_PRF((uint8_t *)seed, strlen(seed), (uint8_t *)secret,
                            strlen(secret), out, sizeof(out));

@@ -273,7 +273,7 @@ apply_pull_filter(const struct options *o, char *line)
         return true;
     }
 
-    struct pull_filter *f;
+    const struct pull_filter *f;
 
     for (f = o->pull_filter_list->head; f; f = f->next)
     {

@@ -271,8 +271,8 @@ receive_cr_response(struct context *c, const struct buffer *buffer)
     }
 #ifdef ENABLE_MANAGEMENT
     struct tls_session *session = &c->c2.tls_multi->session[TM_ACTIVE];
-    struct man_def_auth_context *mda = session->opt->mda_context;
-    struct env_set *es = session->opt->es;
+    const struct man_def_auth_context *mda = session->opt->mda_context;
+    const struct env_set *es = session->opt->es;
     unsigned int mda_key_id = get_primary_key(c->c2.tls_multi)->mda_key_id;
 
     management_notify_client_cr_response(mda_key_id, mda, es, m);
@@ -917,7 +917,7 @@ void
 push_options(struct options *o, char **p, msglvl_t msglevel, struct gc_arena *gc)
 {
     const char **argv = make_extended_arg_array(p, false, gc);
-    char *opt = print_argv(argv, gc, 0);
+    const char *opt = print_argv(argv, gc, 0);
     push_option(o, opt, msglevel);
 }
 
@@ -1199,7 +1199,7 @@ remove_iroutes_from_push_route_list(struct options *o)
                     /* parse route-ipv6 arguments */
                     if (get_ipv6_addr(p[1], &network, &netbits, D_ROUTE_DEBUG))
                     {
-                        struct iroute_ipv6 *ir;
+                        const struct iroute_ipv6 *ir;
 
                         /* does this route-ipv6 match an iroute-ipv6? */
                         for (ir = o->iroutes_ipv6; ir != NULL; ir = ir->next)

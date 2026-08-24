@@ -1488,7 +1488,7 @@ generate_key_expansion_openvpn_prf(const struct tls_session *session, struct key
 static bool
 generate_key_expansion(struct tls_multi *multi, struct key_state *ks, struct tls_session *session)
 {
-    struct key_ctx_bi *key = &ks->crypto_options.key_ctx_bi;
+    const struct key_ctx_bi *key = &ks->crypto_options.key_ctx_bi;
     bool ret = false;
     struct key2 key2;
 
@@ -1750,7 +1750,7 @@ key_source2_read(struct key_source2 *k2, struct buffer *buf, bool server)
 static void
 flush_payload_buffer(struct key_state *ks)
 {
-    struct buffer *b;
+    const struct buffer *b;
 
     while ((b = buffer_list_peek(ks->paybuf)))
     {
@@ -2779,7 +2779,7 @@ check_outgoing_ciphertext(struct key_state *ks, struct tls_session *session,
     /* Outgoing Ciphertext to reliable buffer */
     if (ks->state >= S_START)
     {
-        struct buffer *buf = reliable_get_buf_output_sequenced(ks->send_reliable);
+        const struct buffer *buf = reliable_get_buf_output_sequenced(ks->send_reliable);
         if (buf)
         {
             if (!write_outgoing_tls_ciphertext(session, continue_tls_process))
@@ -2848,7 +2848,7 @@ tls_process_state(struct tls_multi *multi, struct tls_session *session, struct b
     {
         int opcode;
 
-        struct buffer *buf = reliable_send(ks->send_reliable, &opcode);
+        const struct buffer *buf = reliable_send(ks->send_reliable, &opcode);
         ASSERT(buf);
         struct buffer b = *buf;
         INCR_SENT;
@@ -3211,7 +3211,7 @@ tls_process(struct tls_multi *multi, struct tls_session *session, struct buffer 
 static void
 check_session_buf_not_used(struct buffer *to_link, struct tls_session *session)
 {
-    uint8_t *dataptr = to_link->data;
+    const uint8_t *dataptr = to_link->data;
     if (!dataptr)
     {
         return;
@@ -3233,7 +3233,7 @@ check_session_buf_not_used(struct buffer *to_link, struct tls_session *session)
 
     for (int i = 0; i < KS_SIZE; i++)
     {
-        struct key_state *ks = &session->key[i];
+        const struct key_state *ks = &session->key[i];
         if (ks->state == S_UNDEF)
         {
             continue;
@@ -3304,7 +3304,7 @@ tls_multi_process(struct tls_multi *multi, struct buffer *to_link,
     {
         struct tls_session *session = &multi->session[i];
         struct key_state *ks = &session->key[KS_PRIMARY];
-        struct key_state *ks_lame = &session->key[KS_LAME_DUCK];
+        const struct key_state *ks_lame = &session->key[KS_LAME_DUCK];
 
         /* set initial remote address. This triggers connecting with that
          * session. So we only do that if the TM_ACTIVE session is not
@@ -3505,7 +3505,7 @@ print_key_id_not_found_reason(struct tls_multi *multi, const struct link_socket_
 
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
-        struct key_state *ks = get_key_scan(multi, i);
+        const struct key_state *ks = get_key_scan(multi, i);
         if (ks->key_id != key_id)
         {
             continue;
@@ -4070,7 +4070,7 @@ tls_pre_encrypt(struct tls_multi *multi, struct buffer *buf, struct crypto_optio
 void
 tls_prepend_opcode_v1(const struct tls_multi *multi, struct buffer *buf)
 {
-    struct key_state *ks = multi->save_ks;
+    const struct key_state *ks = multi->save_ks;
 
     msg(D_TLS_DEBUG, __func__);
 
@@ -4084,7 +4084,7 @@ tls_prepend_opcode_v1(const struct tls_multi *multi, struct buffer *buf)
 void
 tls_prepend_opcode_v2(const struct tls_multi *multi, struct buffer *buf)
 {
-    struct key_state *ks = multi->save_ks;
+    const struct key_state *ks = multi->save_ks;
     uint32_t peer;
 
     msg(D_TLS_DEBUG, __func__);

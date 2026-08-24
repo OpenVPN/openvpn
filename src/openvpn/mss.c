@@ -65,7 +65,7 @@ mss_fixup_ipv4(struct buffer *buf, uint16_t maxmss)
         struct buffer newbuf = *buf;
         if (buf_advance(&newbuf, hlen))
         {
-            struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *)BPTR(&newbuf);
+            const struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *)BPTR(&newbuf);
             if (tc->flags & OPENVPN_TCPH_SYN_MASK)
             {
                 mss_fixup_dowork(&newbuf, maxmss);
@@ -122,7 +122,7 @@ mss_fixup_ipv6(struct buffer *buf, uint16_t maxmss)
     newbuf = *buf;
     if (buf_advance(&newbuf, 40) && BLENZ(&newbuf) >= sizeof(struct openvpn_tcphdr))
     {
-        struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *)BPTR(&newbuf);
+        const struct openvpn_tcphdr *tc = (struct openvpn_tcphdr *)BPTR(&newbuf);
         if (tc->flags & OPENVPN_TCPH_SYN_MASK)
         {
             mss_fixup_dowork(&newbuf, maxmss - 20);

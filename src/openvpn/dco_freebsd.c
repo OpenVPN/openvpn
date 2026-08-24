@@ -134,7 +134,8 @@ nvlist_to_sockaddr(const nvlist_t *nvl, struct sockaddr_storage *ss)
 
 int
 dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd, struct sockaddr *localaddr,
-             struct sockaddr *remoteaddr, struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6)
+             struct sockaddr *remoteaddr, const struct in_addr *vpn_ipv4,
+             const struct in6_addr *vpn_ipv6)
 {
     struct ifdrv drv;
     nvlist_t *nvl, *local_nvl, *remote_nvl;

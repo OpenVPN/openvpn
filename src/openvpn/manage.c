@@ -3821,7 +3821,7 @@ management_query_multiline_flatten_newline(struct management *man, const char *b
 {
     int ok;
     char *result = NULL;
-    struct buffer *buf;
+    const struct buffer *buf;
 
     ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
     if (ok && buffer_list_defined(*input))
@@ -3850,7 +3850,7 @@ management_query_multiline_flatten(struct management *man, const char *b64_data,
 {
     int ok;
     char *result = NULL;
-    struct buffer *buf;
+    const struct buffer *buf;
 
     ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
     if (ok && buffer_list_defined(*input))

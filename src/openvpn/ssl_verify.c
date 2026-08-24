@@ -409,7 +409,7 @@ verify_cert_set_env(struct env_set *es, openvpn_x509_cert_t *peer_cert, int cert
                     const char *subject, const struct x509_track *x509_track)
 {
     char envname[64];
-    char *serial = NULL;
+    const char *serial = NULL;
     struct gc_arena gc = gc_new();
 
     /* Save X509 fields in environment */
@@ -699,7 +699,7 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
                 goto cleanup;
         }
 
-        struct verify_hash_list *current_hash = opt->verify_hash;
+        const struct verify_hash_list *current_hash = opt->verify_hash;
 
         while (current_hash)
         {
@@ -1532,7 +1532,7 @@ static int
 verify_user_pass_management(struct tls_session *session, const struct user_pass *up)
 {
     int retval = KMDA_ERROR;
-    struct key_state *ks = &session->key[KS_PRIMARY]; /* primary key */
+    const struct key_state *ks = &session->key[KS_PRIMARY]; /* primary key */
 
     /* set username/password in private env space */
     setenv_str(session->opt->es, "password", up->password);

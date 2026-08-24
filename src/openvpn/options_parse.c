@@ -268,7 +268,7 @@ read_inline_file(struct in_src *is, const char *close_tag, int *num_lines, struc
     while (in_src_get(is, line, sizeof(line)))
     {
         (*num_lines)++;
-        char *line_ptr = line;
+        const char *line_ptr = line;
         /* Remove leading spaces */
         while (isspace(*line_ptr))
         {

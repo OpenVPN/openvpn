@@ -86,7 +86,7 @@ learn_address_script(const struct multi_context *m, const struct multi_instance 
     struct gc_arena gc = gc_new();
     struct env_set *es;
     bool ret = true;
-    struct plugin_list *plugins;
+    const struct plugin_list *plugins;
 
     /* get environmental variable source */
     if (mi && mi->context.c2.es)
@@ -1793,7 +1793,7 @@ multi_client_set_protocol_options(struct context *c)
      * Push the first cipher from --data-ciphers to the client that
      * the client announces to be supporting.
      */
-    char *push_cipher =
+    const char *push_cipher =
         ncp_get_best_cipher(o->ncp_ciphers, peer_info, tls_multi->remote_ciphername, &o->gc);
     if (push_cipher)
     {
@@ -1924,7 +1924,7 @@ ccs_gen_deferred_ret_file(struct multi_instance *mi)
 static enum client_connect_return
 ccs_test_deferred_ret_file(struct multi_instance *mi)
 {
-    struct client_connect_defer_state *ccs = &(mi->client_connect_defer_state);
+    const struct client_connect_defer_state *ccs = &(mi->client_connect_defer_state);
     FILE *fp = fopen(ccs->deferred_ret_file, "r");
     if (!fp)
     {
@@ -2165,7 +2165,7 @@ multi_client_connect_script_deferred(struct multi_context *m, struct multi_insta
 {
     ASSERT(mi);
     ASSERT(option_types_found);
-    struct client_connect_defer_state *ccs = &(mi->client_connect_defer_state);
+    const struct client_connect_defer_state *ccs = &(mi->client_connect_defer_state);
     enum client_connect_return ret = CC_RET_SKIPPED;
 
     ret = ccs_test_deferred_ret_file(mi);
@@ -2567,7 +2567,7 @@ static bool
 override_locked_username(struct multi_instance *mi)
 {
     struct tls_multi *multi = mi->context.c2.tls_multi;
-    struct options *options = &mi->context.options;
+    const struct options *options = &mi->context.options;
     struct tls_session *session = &multi->session[TM_ACTIVE];
 
     if (!multi->locked_username)
@@ -2986,7 +2986,7 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
     {
 #if defined(ENABLE_ASYNC_PUSH)
         bool was_unauthenticated = true;
-        struct key_state *ks = NULL;
+        const struct key_state *ks = NULL;
         if (mi->context.c2.tls_multi)
         {
             ks = &mi->context.c2.tls_multi->session[TM_ACTIVE].key[KS_PRIMARY];
@@ -3919,7 +3919,7 @@ management_callback_status(void *arg, const int version, struct status_output *s
 static int
 management_callback_n_clients(void *arg)
 {
-    struct multi_context *m = (struct multi_context *)arg;
+    const struct multi_context *m = (struct multi_context *)arg;
     return m->n_clients;
 }
 
@@ -4430,7 +4430,7 @@ update_vhash(struct multi_context *m, struct multi_instance *mi, const char *new
 bool
 multi_check_push_ifconfig_extra_route(struct multi_instance *mi, in_addr_t dest)
 {
-    struct options *o = &mi->context.options;
+    const struct options *o = &mi->context.options;
     in_addr_t local_addr, local_netmask;
 
     if (!o->ifconfig_local || !o->ifconfig_remote_netmask)
@@ -4452,7 +4452,7 @@ bool
 multi_check_push_ifconfig_ipv6_extra_route(struct multi_instance *mi,
                                            struct in6_addr *dest)
 {
-    struct options *o = &mi->context.options;
+    const struct options *o = &mi->context.options;
 
     if (!o->ifconfig_ipv6_local || !o->ifconfig_ipv6_netbits)
     {

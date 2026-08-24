@@ -245,7 +245,7 @@ OPENVPN_EXPORT int
 openvpn_plugin_func_v3(const int version, struct openvpn_plugin_args_func_in const *args,
                        struct openvpn_plugin_args_func_return *retptr)
 {
-    struct plugin_context *context = (struct plugin_context *)args->handle;
+    const struct plugin_context *context = (struct plugin_context *)args->handle;
 
     printf("\nopenvpn_plugin_func_v3() :::::>> ");
     show(args->type, args->argv, args->envp);

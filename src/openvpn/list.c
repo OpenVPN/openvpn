@@ -167,7 +167,7 @@ void
 hash_remove_by_value(struct hash *hash, void *value)
 {
     struct hash_iterator hi;
-    struct hash_element *he;
+    const struct hash_element *he;
 
     hash_iterator_init(hash, &hi);
     while ((he = hash_iterator_next(&hi)))

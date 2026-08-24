@@ -730,7 +730,7 @@ done:
 static inline size_t
 external_key_len(void *vctx)
 {
-    struct external_context *const ctx = vctx;
+    const struct external_context *const ctx = vctx;
 
     return ctx->signature_length;
 }

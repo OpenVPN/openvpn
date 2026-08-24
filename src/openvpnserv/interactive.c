@@ -2685,7 +2685,7 @@ SetNrptExcludeRules(HKEY nrpt_key, DWORD ovpn_pid, PCWSTR search_domains)
     unsigned n = 0;
     for (size_t i = 0; i < _countof(data); ++i)
     {
-        nrpt_exclude_data_t *d = &data[i];
+        const nrpt_exclude_data_t *d = &data[i];
         if (d->domains_size == 0)
         {
             break;

@@ -164,7 +164,7 @@ lz4v2_decompress(struct buffer *buf, struct buffer work, struct compress_context
     ASSERT(buf_init(&work, frame->buf.headroom));
 
     /* do unframing/swap (assumes buf->len > 0) */
-    uint8_t *head = BPTR(buf);
+    const uint8_t *head = BPTR(buf);
     c = *head;
 
     /* Not compressed */

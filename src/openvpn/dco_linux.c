@@ -222,7 +222,8 @@ mapped_v4_to_v6(struct sockaddr *sock, struct gc_arena *gc)
 
 int
 dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd, struct sockaddr *localaddr,
-             struct sockaddr *remoteaddr, struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6)
+             struct sockaddr *remoteaddr, const struct in_addr *vpn_ipv4,
+             const struct in6_addr *vpn_ipv6)
 {
     struct gc_arena gc = gc_new();
     const char *remotestr = "[undefined]";
@@ -697,7 +698,7 @@ mcast_family_handler(struct nl_msg *msg, void *arg)
 {
     dco_context_t *dco = arg;
     struct nlattr *tb[CTRL_ATTR_MAX + 1];
-    struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
+    const struct genlmsghdr *gnlh = nlmsg_data(nlmsg_hdr(msg));
 
     nla_parse(tb, CTRL_ATTR_MAX, genlmsg_attrdata(gnlh, 0), genlmsg_attrlen(gnlh, 0), NULL);
 
@@ -706,7 +707,7 @@ mcast_family_handler(struct nl_msg *msg, void *arg)
         return NL_SKIP;
     }
 
-    struct nlattr *mcgrp;
+    const struct nlattr *mcgrp;
     int rem_mcgrp;
     nla_for_each_nested(mcgrp, tb[CTRL_ATTR_MCAST_GROUPS], rem_mcgrp)
     {

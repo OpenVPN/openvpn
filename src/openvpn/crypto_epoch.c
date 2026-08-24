@@ -213,7 +213,7 @@ epoch_generate_future_receive_keys(struct crypto_options *co)
      *
      * The last generated key might have been moved to the decrypt key already.
      */
-    struct key_ctx *highest_future_key =
+    const struct key_ctx *highest_future_key =
         &co->epoch_data_keys_future[co->epoch_data_keys_future_count - 1];
 
     ASSERT(co->epoch_key_recv.epoch == 1 || highest_future_key->epoch == co->epoch_key_recv.epoch

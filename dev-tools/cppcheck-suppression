@@ -3,8 +3,6 @@
 constParameter
 constParameterCallback
 constParameterPointer
-constVariable
-constVariablePointer
 invalidPrintfArgType_sint
 invalidPrintfArgType_uint
 usleepCalled

@@ -526,7 +526,7 @@ OPENVPN_EXPORT int
 openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const char *argv[],
                        const char *envp[])
 {
-    struct auth_pam_context *context = (struct auth_pam_context *)handle;
+    const struct auth_pam_context *context = (struct auth_pam_context *)handle;
 
     if (type == OPENVPN_PLUGIN_AUTH_USER_PASS_VERIFY && context->foreground_fd >= 0)
     {

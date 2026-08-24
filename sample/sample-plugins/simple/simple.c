@@ -104,7 +104,7 @@ OPENVPN_EXPORT int
 openvpn_plugin_func_v1(openvpn_plugin_handle_t handle, const int type, const char *argv[],
                        const char *envp[])
 {
-    struct plugin_context *context = (struct plugin_context *)handle;
+    const struct plugin_context *context = (struct plugin_context *)handle;
 
     /* get username/password from envp string array */
     const char *username = get_env("username", envp);

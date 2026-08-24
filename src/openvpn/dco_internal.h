@@ -60,7 +60,7 @@ dco_get_cipher(const char *cipher)
  */
 
 int dco_new_peer(dco_context_t *dco, unsigned int peerid, socket_descriptor_t sd, struct sockaddr *localaddr,
-                 struct sockaddr *remoteaddr, struct in_addr *vpn_ipv4, struct in6_addr *vpn_ipv6);
+                 struct sockaddr *remoteaddr, const struct in_addr *vpn_ipv4, const struct in6_addr *vpn_ipv6);
 
 int dco_del_peer(dco_context_t *dco, unsigned int peerid);
 

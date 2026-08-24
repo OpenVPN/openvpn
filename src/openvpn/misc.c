@@ -131,7 +131,7 @@ parse_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
     struct auth_challenge_info *ac;
     const int len = strlen(auth_challenge);
     char *work = (char *)gc_malloc(len + 1, false, gc);
-    char *cp;
+    const char *cp;
 
     struct buffer b;
     buf_set_read(&b, (const uint8_t *)auth_challenge, len);

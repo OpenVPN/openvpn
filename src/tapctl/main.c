@@ -317,7 +317,7 @@ tap_resolve_adapter_name(LPCWSTR requested_name, LPCWSTR hwid,
             return NULL;
         }
 
-        struct tap_adapter_node *conflict = find_adapter_by_name(requested_name, adapter_list);
+        const struct tap_adapter_node *conflict = find_adapter_by_name(requested_name, adapter_list);
         if (conflict)
         {
             LPOLESTR adapter_id = NULL;

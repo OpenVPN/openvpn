@@ -359,7 +359,7 @@ argv_printf_arglist(struct argv *argres, const char *format, va_list arglist)
      *
      */
     size_t argc = argres->argc;
-    char *f = argv_prep_format(format, delim, &argc, &argres->gc);
+    const char *f = argv_prep_format(format, delim, &argc, &argres->gc);
     if (f == NULL)
     {
         goto out;

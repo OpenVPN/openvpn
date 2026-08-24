@@ -235,7 +235,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
      * a new token with the empty username since we do not want to loose
      * the information that the username cannot be trusted
      */
-    struct key_state *ks = &multi->session[TM_ACTIVE].key[KS_PRIMARY];
+    const struct key_state *ks = &multi->session[TM_ACTIVE].key[KS_PRIMARY];
     if (ks->auth_token_state_flags & AUTH_TOKEN_VALID_EMPTYUSER)
     {
         hmac_ctx_update(ctx, (const uint8_t *)"", 0);

@@ -112,7 +112,7 @@ dco_get_secondary_key(struct tls_multi *multi, const struct key_state *primary)
     for (int i = 0; i < KEY_SCAN_SIZE; ++i)
     {
         struct key_state *ks = get_key_scan(multi, i);
-        struct key_ctx_bi *key = &ks->crypto_options.key_ctx_bi;
+        const struct key_ctx_bi *key = &ks->crypto_options.key_ctx_bi;
 
         if (ks == primary)
         {
@@ -577,7 +577,7 @@ dco_multi_get_localaddr(struct multi_context *m, struct multi_instance *mi,
                         struct sockaddr_storage *local)
 {
 #if ENABLE_IP_PKTINFO
-    struct context *c = &mi->context;
+    const struct context *c = &mi->context;
 
     if (!proto_is_udp(c->c2.link_sockets[0]->info.proto)
         || !(c->options.sockflags & SF_USE_IP_PKTINFO))
@@ -625,7 +625,7 @@ dco_multi_get_localaddr(struct multi_context *m, struct multi_instance *mi,
 int
 dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
 {
-    struct context *c = &mi->context;
+    const struct context *c = &mi->context;
 
     int peer_id = c->c2.tls_multi->rx_peer_id;
     struct sockaddr *remoteaddr, *localaddr = NULL;
@@ -646,14 +646,14 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
 
     /* In server mode we need to fetch the remote addresses from the push config */
     struct in_addr vpn_ip4 = { 0 };
-    struct in_addr *vpn_addr4 = NULL;
+    const struct in_addr *vpn_addr4 = NULL;
     if (c->c2.push_ifconfig_defined)
     {
         vpn_ip4.s_addr = htonl(c->c2.push_ifconfig_local);
         vpn_addr4 = &vpn_ip4;
     }
 
-    struct in6_addr *vpn_addr6 = NULL;
+    const struct in6_addr *vpn_addr6 = NULL;
     if (c->c2.push_ifconfig_ipv6_defined)
     {
         vpn_addr6 = &c->c2.push_ifconfig_ipv6_local;
@@ -702,7 +702,7 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi, struct mr
     }
 #endif
 
-    struct context *c = &mi->context;
+    const struct context *c = &mi->context;
     if (addrtype == MR_ADDR_IPV6)
     {
 #if defined(_WIN32)
@@ -750,7 +750,7 @@ dco_delete_iroutes(struct multi_context *m, struct multi_instance *mi)
     }
     ASSERT(TUNNEL_TYPE(mi->context.c1.tuntap) == DEV_TYPE_TUN);
 
-    struct context *c = &mi->context;
+    const struct context *c = &mi->context;
 
     if (mi->context.c2.push_ifconfig_defined)
     {

@@ -300,7 +300,7 @@ test_list(void **state)
     {
         for (ptr_type i = 1; i <= 16; ++i)
         {
-            struct hash_element *item = hash_lookup_by_value(nhash, (void *)i);
+            const struct hash_element *item = hash_lookup_by_value(nhash, (void *)i);
             hash_remove_by_value(nhash, (void *)i);
             /* check item got removed if it was present before */
             if (item)

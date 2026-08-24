@@ -462,7 +462,7 @@ sitnl_route_save(struct nlmsghdr *n, void *arg)
     struct rtattr *rta = RTM_RTA(r);
     size_t len = n->nlmsg_len - NLMSG_LENGTH(sizeof(*r));
     unsigned int table, ifindex = 0;
-    void *gw = NULL;
+    const void *gw = NULL;
 
     /* filter-out non-zero dst prefixes */
     if (res->default_only && r->rtm_dst_len != 0)
@@ -1179,7 +1179,7 @@ int
 net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen, const in_addr_t *gw,
                  const char *iface, uint32_t table, int metric)
 {
-    in_addr_t *dst_ptr = NULL, *gw_ptr = NULL;
+    const in_addr_t *dst_ptr = NULL, *gw_ptr = NULL;
     in_addr_t dst_be = 0, gw_be = 0;
     char dst_str[INET_ADDRSTRLEN];
     char gw_str[INET_ADDRSTRLEN];
@@ -1326,7 +1326,7 @@ net_iface_new(openvpn_net_ctx_t *ctx, const char *iface, const char *type, void 
 #if defined(ENABLE_DCO)
     if (arg && (strcmp(type, OVPN_FAMILY_NAME) == 0))
     {
-        dco_context_t *dco = arg;
+        const dco_context_t *dco = arg;
         struct rtattr *data = SITNL_NEST(&req.n, sizeof(req), IFLA_INFO_DATA);
 
         /* the netlink format is uint8_t for this and using something
