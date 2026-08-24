@@ -255,47 +255,4 @@ event_timeout_remaining(struct event_timeout *et)
  */
 bool event_timeout_trigger(struct event_timeout *et, struct timeval *tv, int et_const_retry);
 
-/*
- * Measure time intervals in microseconds
- */
-
-#define USEC_TIMER_MAX 60 /* maximum interval size in seconds */
-
-#define USEC_TIMER_MAX_USEC (USEC_TIMER_MAX * 1000000)
-
-struct usec_timer
-{
-    struct timeval start;
-    struct timeval end;
-};
-
-#ifdef HAVE_GETTIMEOFDAY
-
-static inline void
-usec_timer_start(struct usec_timer *obj)
-{
-    CLEAR(*obj);
-    openvpn_gettimeofday(&obj->start, NULL);
-}
-
-static inline void
-usec_timer_end(struct usec_timer *obj)
-{
-    openvpn_gettimeofday(&obj->end, NULL);
-}
-
-#endif /* HAVE_GETTIMEOFDAY */
-
-static inline bool
-usec_timer_interval_defined(struct usec_timer *obj)
-{
-    return obj->start.tv_sec && obj->end.tv_sec;
-}
-
-static inline int
-usec_timer_interval(struct usec_timer *obj)
-{
-    return tv_subtract(&obj->end, &obj->start, USEC_TIMER_MAX);
-}
-
 #endif /* INTERVAL_H */
