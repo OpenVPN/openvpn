@@ -249,24 +249,4 @@ mroute_extract_in_addr_t(struct mroute_addr *dest, const in_addr_t src)
     dest->v4.addr = htonl(src);
 }
 
-static inline in_addr_t
-in_addr_t_from_mroute_addr(const struct mroute_addr *addr)
-{
-    if ((addr->type & MR_ADDR_MASK) == MR_ADDR_IPV4 && addr->netbits == 0 && addr->len == 4)
-    {
-        return ntohl(addr->v4.addr);
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-static inline void
-mroute_addr_reset(struct mroute_addr *ma)
-{
-    ma->len = 0;
-    ma->type = MR_ADDR_NONE;
-}
-
 #endif /* MROUTE_H */
