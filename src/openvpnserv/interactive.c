@@ -1224,19 +1224,25 @@ InterfaceIdString(PCSTR itf_name, PWSTR str, size_t len)
     err = InterfaceLuid(itf_name, &luid);
     if (err)
     {
-        MsgToEventLog(M_ERR, L"%S: failed to convert itf alias '%s'", __func__, itf_name);
+        PWSTR wide_name = utf8to16(itf_name);
+        MsgToEventLog(M_ERR, L"%S: failed to convert itf alias '%s'", __func__, wide_name);
+        free(wide_name);
         goto out;
     }
     err = ConvertInterfaceLuidToGuid(&luid, &guid);
     if (err)
     {
-        MsgToEventLog(M_ERR, L"%S: Failed to convert itf '%s' LUID", __func__, itf_name);
+        PWSTR wide_name = utf8to16(itf_name);
+        MsgToEventLog(M_ERR, L"%S: Failed to convert itf '%s' LUID", __func__, wide_name);
+        free(wide_name);
         goto out;
     }
 
     if (StringFromIID(&guid, &iid_str) != S_OK)
     {
-        MsgToEventLog(M_ERR, L"%S: Failed to convert itf '%s' IID", __func__, itf_name);
+        PWSTR wide_name = utf8to16(itf_name);
+        MsgToEventLog(M_ERR, L"%S: Failed to convert itf '%s' IID", __func__, wide_name);
+        free(wide_name);
         err = ERROR_OUTOFMEMORY;
         goto out;
     }
