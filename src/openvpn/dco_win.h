@@ -65,8 +65,6 @@ void dco_mp_start_vpn(HANDLE handle, struct link_socket *sock);
 void dco_p2p_new_peer(HANDLE handle, OVERLAPPED *ov, struct link_socket *sock,
                       struct signal_info *sig_info);
 
-void dco_start_tun(struct tuntap *tt);
-
 bool dco_win_supports_multipeer(void);
 
 void dco_win_add_iroute_ipv4(dco_context_t *dco, in_addr_t dst, unsigned int netbits,
@@ -78,14 +76,6 @@ void dco_win_add_iroute_ipv6(dco_context_t *dco, struct in6_addr dst, unsigned i
 void dco_win_del_iroute_ipv4(dco_context_t *dco, in_addr_t dst, unsigned int netbits);
 
 void dco_win_del_iroute_ipv6(dco_context_t *dco, struct in6_addr dst, unsigned int netbits);
-
-#else  /* if defined(ENABLE_DCO) && defined(_WIN32) */
-
-static inline void
-dco_start_tun(struct tuntap *tt)
-{
-    ASSERT(false);
-}
 
 #endif /* defined(_WIN32) */
 #endif /* ifndef DCO_H */
