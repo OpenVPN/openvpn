@@ -619,27 +619,22 @@ create_socket_udp(struct addrinfo *addrinfo, const unsigned int flags)
 }
 
 static void
-bind_local(struct link_socket *sock, const sa_family_t ai_family)
+bind_local(struct link_socket *sock)
 {
     /* bind to local address/port */
     if (sock->bind_local)
     {
         if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
         {
-            socket_bind(sock->ctrl_sd, sock->info.lsa->bind_local, ai_family, "SOCKS", false);
+            socket_bind(sock->ctrl_sd, sock->info.lsa->bind_local, sock->info.af, "SOCKS", false);
         }
         else
         {
-            socket_bind(sock->sd, sock->info.lsa->bind_local, ai_family, "TCP/UDP",
+            socket_bind(sock->sd, sock->info.lsa->bind_local, sock->info.af, "TCP/UDP",
                         sock->info.bind_ipv6_only);
         }
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
 
 static void
 create_socket(struct link_socket *sock, struct addrinfo *addr)
@@ -672,7 +667,7 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
     }
     /* Set af field of sock->info, so it always reflects the address family
      * of the created socket */
-    sock->info.af = addr->ai_family;
+    sock->info.af = (sa_family_t)addr->ai_family;
 
     /* set socket buffers based on --sndbuf and --rcvbuf options */
     socket_set_buffers(sock->sd, &sock->socket_buffer_sizes, true);
@@ -684,8 +679,9 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
     if (sock->bind_dev)
     {
         msg(M_INFO, "Using bind-dev %s", sock->bind_dev);
+        /* Note: We verify strlen of bind_dev in options parsing */
         if (setsockopt(sock->sd, SOL_SOCKET, SO_BINDTODEVICE, sock->bind_dev,
-                       strlen(sock->bind_dev) + 1)
+                       (socklen_t)(strlen(sock->bind_dev) + 1))
             != 0)
         {
             msg(M_WARN | M_ERRNO, "WARN: setsockopt SO_BINDTODEVICE=%s failed", sock->bind_dev);
@@ -693,12 +689,8 @@ create_socket(struct link_socket *sock, struct addrinfo *addr)
     }
 #endif
 
-    bind_local(sock, addr->ai_family);
+    bind_local(sock);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #ifdef TARGET_ANDROID
 static void
@@ -1129,13 +1121,8 @@ socket_frame_init(const struct frame *frame, struct link_socket *sock)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static void
-resolve_bind_local(struct link_socket *sock, const sa_family_t af)
+resolve_bind_local(struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
 
@@ -1151,12 +1138,12 @@ resolve_bind_local(struct link_socket *sock, const sa_family_t af)
         }
 
         /* will return AF_{INET|INET6}from local_host */
-        status = get_cached_dns_entry(sock->dns_cache, sock->local_host, sock->local_port, af,
+        status = get_cached_dns_entry(sock->dns_cache, sock->local_host, sock->local_port, sock->info.af,
                                       flags, &sock->info.lsa->bind_local);
 
         if (status)
         {
-            status = openvpn_getaddrinfo(flags, sock->local_host, sock->local_port, 0, NULL, af,
+            status = openvpn_getaddrinfo(flags, sock->local_host, sock->local_port, 0, NULL, sock->info.af,
                                          &sock->info.lsa->bind_local);
         }
 
@@ -1177,7 +1164,7 @@ resolve_bind_local(struct link_socket *sock, const sa_family_t af)
             /* the resolved 'local entry' might have a different family than
              * what was globally configured
              */
-            sock->info.af = sock->info.lsa->bind_local->ai_family;
+            sock->info.af = (sa_family_t)sock->info.lsa->bind_local->ai_family;
         }
     }
 
@@ -1380,7 +1367,8 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
 
     sock->mark = o->mark;
     sock->bind_dev = o->bind_dev;
-    sock->info.proto = proto;
+    ASSERT(proto >= 0 && proto < PROTO_N);
+    sock->info.proto = (uint8_t)proto;
     sock->info.af = o->ce.af;
     sock->info.remote_float = o->ce.remote_float;
     sock->info.lsa = &c->c1.link_socket_addrs[sock_index];
@@ -1446,7 +1434,7 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
     {
         if (sock->bind_local)
         {
-            resolve_bind_local(sock, sock->info.af);
+            resolve_bind_local(sock);
         }
         resolve_remote(sock, 1, NULL);
     }
@@ -1711,9 +1699,9 @@ link_socket_init_phase2(struct context *c, struct link_socket *sock)
              * and we should not connect a remote */
             if (sock->info.af == AF_UNSPEC)
             {
+                sock->info.af = (sa_family_t)sock->info.lsa->bind_local->ai_family;
                 msg(M_WARN, "Could not determine IPv4/IPv6 protocol. Using %s",
-                    addr_family_name(sock->info.lsa->bind_local->ai_family));
-                sock->info.af = sock->info.lsa->bind_local->ai_family;
+                    addr_family_name(sock->info.af));
             }
             create_socket(sock, sock->info.lsa->bind_local);
         }
@@ -1772,10 +1760,6 @@ done:
         }
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 link_socket_close(struct link_socket *sock)
@@ -2382,8 +2366,8 @@ link_socket_read_udp_posix_recvmsg(struct link_socket *sock, struct buffer *buf,
     else if (cmsg != NULL)
     {
         msg(M_WARN,
-            "CMSG received that cannot be parsed (cmsg_level=%d, cmsg_type=%d, cmsg=len=%d)",
-            (int)cmsg->cmsg_level, (int)cmsg->cmsg_type, (int)cmsg->cmsg_len);
+            "CMSG received that cannot be parsed (cmsg_level=%d, cmsg_type=%d, cmsg=len=%zu)",
+            cmsg->cmsg_level, cmsg->cmsg_type, (size_t)cmsg->cmsg_len);
     }
 
     return buf->len;

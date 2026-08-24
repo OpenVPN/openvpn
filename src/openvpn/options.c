@@ -5125,7 +5125,15 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "bind-dev") && p[1])
     {
         VERIFY_PERMISSION(OPT_P_SOCKFLAGS);
-        options->bind_dev = p[1];
+        if (strlen(p[1]) < IFNAMSIZ)
+        {
+            options->bind_dev = p[1];
+        }
+        else
+        {
+            msg(msglevel, "argument to --bind-dev is longer than allowed %u", IFNAMSIZ - 1);
+            goto err;
+        }
     }
 #endif
     else if (streq(p[0], "txqueuelen") && p[1] && !p[2])
@@ -5211,11 +5219,9 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "proto") && p[1] && !p[2])
     {
-        int proto;
-        sa_family_t af;
         VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
-        proto = ascii2proto(p[1]);
-        af = ascii2af(p[1]);
+        int proto = ascii2proto(p[1]);
+        sa_family_t af = ascii2af(p[1]);
         if (proto < 0)
         {
             msg(msglevel, "Bad protocol: '%s'. Allowed protocols with --proto option: %s", p[1],

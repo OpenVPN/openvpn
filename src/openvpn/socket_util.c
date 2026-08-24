@@ -356,7 +356,7 @@ struct proto_names
     const char *short_form;
     const char *display_form;
     sa_family_t proto_af;
-    int proto;
+    uint8_t proto;
 };
 
 /* Indexed by PROTO_x */
