@@ -185,19 +185,6 @@ copy_route_ipv6_option_list(struct route_ipv6_option_list *dest,
     dest->gc = a;
 }
 
-static const char *
-route_string(const struct route_ipv4 *r, struct gc_arena *gc)
-{
-    struct buffer out = alloc_buf_gc(256, gc);
-    buf_printf(&out, "ROUTE network %s netmask %s gateway %s", print_in_addr_t(r->network, 0, gc),
-               print_in_addr_t(r->netmask, 0, gc), print_in_addr_t(r->gateway, 0, gc));
-    if (r->flags & RT_METRIC_DEFINED)
-    {
-        buf_printf(&out, " metric %d", r->metric);
-    }
-    return BSTR(&out);
-}
-
 static bool
 is_route_parm_defined(const char *parm)
 {
@@ -1323,27 +1310,6 @@ print_default_gateway(const msglvl_t msglevel, const struct route_gateway_info *
 }
 
 #endif /* ifndef ENABLE_SMALL */
-
-static void
-print_route(const struct route_ipv4 *r, msglvl_t msglevel)
-{
-    struct gc_arena gc = gc_new();
-    if (r->flags & RT_DEFINED)
-    {
-        msg(msglevel, "%s", route_string(r, &gc));
-    }
-    gc_free(&gc);
-}
-
-void
-print_routes(const struct route_list *rl, msglvl_t msglevel)
-{
-    struct route_ipv4 *r;
-    for (r = rl->routes; r; r = r->next)
-    {
-        print_route(r, msglevel);
-    }
-}
 
 static void
 setenv_route(struct env_set *es, const struct route_ipv4 *r, int i)

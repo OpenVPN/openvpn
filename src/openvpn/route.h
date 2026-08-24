@@ -377,8 +377,6 @@ void print_route_options(const struct route_option_list *rol, msglvl_t msglevel)
 
 #endif
 
-void print_routes(const struct route_list *rl, msglvl_t msglevel);
-
 #ifdef _WIN32
 
 void show_routes(msglvl_t msglevel);
