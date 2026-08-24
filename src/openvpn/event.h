@@ -190,13 +190,6 @@ event_wait(struct event_set *es, const struct timeval *tv, struct event_set_retu
     return ret;
 }
 
-static inline void
-event_set_return_init(struct event_set_return *esr)
-{
-    esr->rwflags = 0;
-    esr->arg = NULL;
-}
-
 #ifdef _WIN32
 
 static inline void
