@@ -60,6 +60,5 @@
  * event loop function is called to drive the event processing.  The
  * following implementations are available:
  * - Client mode using UDP or TCP: \c tunnel_point_to_point()
- * - Server mode using UDP: \c tunnel_server_udp()
- * - Server mode using TCP: \c tunnel_server_tcp()
+ * - Server mode using UDP or TCP: \c tunnel_server()
  */
