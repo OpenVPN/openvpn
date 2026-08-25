@@ -83,8 +83,6 @@ redundantInitialization:src/openvpn/dco_linux.c
 # IGN: We reuse the same variable name due to macro usage
 shadowVariable:src/openvpn/options.c:1948
 shadowVariable:src/openvpn/options.c:1966
-# IGN: sure this is theoretically undefined, but works
-shiftNegativeLHS:tests/unit_tests/openvpn/test_schedule.c:183
 # FP: fun:tls_crypt_v2_wrap_unwrap_invalid: cppcheck is confused
 syntaxError:tests/unit_tests/openvpn/test_tls_crypt.c:684
 # FP: this file is never compiled on _WIN32

@@ -78,15 +78,16 @@ schedule_find_earliest_wakeup(struct schedule *s)
  * Recursively check that the treap (btree) is
  * internally consistent.
  */
-int
-schedule_debug_entry(const struct schedule_entry *e, int depth, int *count, struct timeval *least,
+unsigned int
+schedule_debug_entry(const struct schedule_entry *e, unsigned int depth,
+                     unsigned int *count, struct timeval *least,
                      const struct timeval *min, const struct timeval *max)
 {
     struct gc_arena gc = gc_new();
-    int maxdepth = depth;
+    unsigned int maxdepth = depth;
     if (e)
     {
-        int d;
+        unsigned int d;
 
         assert_ptr_not_equal(e, e->lt);
         assert_ptr_not_equal(e, e->gt);
@@ -138,8 +139,8 @@ schedule_debug_entry(const struct schedule_entry *e, int depth, int *count, stru
     return maxdepth;
 }
 
-int
-schedule_debug(struct schedule *s, int *count, struct timeval *least)
+unsigned int
+schedule_debug(struct schedule *s, unsigned int *count, struct timeval *least)
 {
     struct timeval min;
     struct timeval max;
@@ -164,20 +165,20 @@ tv_randomize(struct timeval *tv)
 }
 
 void
-schedule_verify(struct schedule *s, int n)
+schedule_verify(struct schedule *s, unsigned int n)
 {
     struct gc_arena gc = gc_new();
     struct timeval least;
 
     least.tv_sec = least.tv_usec = 0x7FFFFFFF;
 
-    int count = 0;
-    int maxlev = schedule_debug(s, &count, &least);
+    unsigned int count = 0;
+    unsigned int maxlev = schedule_debug(s, &count, &least);
 
     /* a stupid algorithm to do C23 stdc_bit_ceil_ui/stdc_bit_width
      * calculate roundup(log2 n) */
-    int bit_ceil_n = 1;
-    int log2n = 0;
+    unsigned int bit_ceil_n = 1;
+    unsigned int log2n = 0;
     while (bit_ceil_n < n)
     {
         bit_ceil_n <<= 1;
@@ -198,12 +199,11 @@ schedule_verify(struct schedule *s, int n)
 }
 
 void
-schedule_randomize_array(struct schedule_entry **array, int size)
+schedule_randomize_array(struct schedule_entry **array, unsigned int size)
 {
-    int i;
-    for (i = 0; i < size; ++i)
+    for (unsigned int i = 0; i < size; ++i)
     {
-        const int src = rand() % size;
+        const unsigned int src = (unsigned int)rand() % size;
         struct schedule_entry *tmp = array[i];
         if (i != src)
         {
@@ -214,11 +214,10 @@ schedule_randomize_array(struct schedule_entry **array, int size)
 }
 
 void
-schedule_print_work(struct schedule_entry *e, int indent)
+schedule_print_work(struct schedule_entry *e, unsigned int indent)
 {
     struct gc_arena gc = gc_new();
-    int i;
-    for (i = 0; i < indent; ++i)
+    for (unsigned int i = 0; i < indent; ++i)
     {
         printf(" ");
     }
@@ -248,17 +247,16 @@ void
 schedule_test(void **state)
 {
     struct gc_arena gc = gc_new();
-    int n = 1000;
-    int n_mod = 25;
+    unsigned int n = 1000;
+    unsigned int n_mod = 25;
 
-    int i, j;
     struct schedule_entry **array;
     struct schedule *s = schedule_init();
     struct schedule_entry *e;
 
     ALLOC_ARRAY(array, struct schedule_entry *, n);
 
-    for (i = 0; i < n; ++i)
+    for (unsigned int i = 0; i < n; ++i)
     {
         ALLOC_OBJ_CLEAR(array[i], struct schedule_entry);
         tv_randomize(&array[i]->tv);
@@ -272,11 +270,11 @@ schedule_test(void **state)
     /*schedule_print (s);*/
     schedule_verify(s, n);
 
-    for (j = 1; j <= n_mod; ++j)
+    for (unsigned int j = 1; j <= n_mod; ++j)
     {
         /*printf("Modification Phase Pass %d\n", j);*/
 
-        for (i = 0; i < n; ++i)
+        for (unsigned int i = 0; i < n; ++i)
         {
             e = schedule_find_earliest_wakeup(s);
             /*printf ("BEFORE %s\n", tv_string (&e->tv, &gc));*/
@@ -300,7 +298,7 @@ schedule_test(void **state)
     schedule_verify(s, 0);
     assert_null(s->root);
 
-    for (i = 0; i < n; ++i)
+    for (unsigned int i = 0; i < n; ++i)
     {
         free(array[i]);
     }
