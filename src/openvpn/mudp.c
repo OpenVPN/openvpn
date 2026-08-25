@@ -324,7 +324,7 @@ multi_get_instance_udp_data(struct multi_context *m, bool *floated, struct mrout
 {
     struct multi_instance *mi = NULL;
 
-    uint8_t *ptr = BPTR(&m->top.c2.buf);
+    const uint8_t *ptr = BPTR(&m->top.c2.buf);
     uint8_t op = ptr[0] >> P_OPCODE_SHIFT;
     bool v2 = (op == P_DATA_V2) && (m->top.c2.buf.len >= (1 + 3));
     bool peer_id_disabled = false;
@@ -376,7 +376,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
         return NULL;
     }
 
-    uint8_t *ptr = BPTR(&m->top.c2.buf);
+    const uint8_t *ptr = BPTR(&m->top.c2.buf);
     uint8_t op = ptr[0] >> P_OPCODE_SHIFT;
 
     struct mroute_addr real = { 0 };

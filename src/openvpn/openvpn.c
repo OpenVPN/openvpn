@@ -32,7 +32,6 @@
 #include "win32.h"
 #include "options_show.h"
 #include "platform.h"
-#include "string.h"
 
 #include "memdbg.h"
 

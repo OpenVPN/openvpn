@@ -562,7 +562,7 @@ test_verify_hmac_none_out_of_range_ack(void **ut_state)
 static void
 test_calc_session_id_hmac_static(void **ut_state)
 {
-    uint8_t key[SIPHASH_KEY_SIZE] = { 1, 2, 3, 0 };
+    const uint8_t key[SIPHASH_KEY_SIZE] = { 1, 2, 3, 0 };
     static const int handwindow = 100;
 
     struct openvpn_sockaddr addr = { 0 };

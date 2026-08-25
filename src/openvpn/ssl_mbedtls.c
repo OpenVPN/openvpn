@@ -286,7 +286,7 @@ tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)
 void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
-    char *tmp_ciphers, *tmp_ciphers_orig, *token;
+    char *tmp_ciphers, *tmp_ciphers_orig;
 
     if (NULL == ciphers)
     {
@@ -306,7 +306,7 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
     char *lasts = NULL;
     tmp_ciphers_orig = tmp_ciphers = string_alloc(ciphers, NULL);
 
-    token = strtok_r(tmp_ciphers, ":", &lasts);
+    const char *token = strtok_r(tmp_ciphers, ":", &lasts);
     while (token)
     {
         ctx->allowed_ciphers[i] = mbedtls_ssl_get_ciphersuite_id(tls_translate_cipher_name(token));

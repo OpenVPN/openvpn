@@ -3095,8 +3095,8 @@ multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi
 
     struct multi_instance *ex_mi = he->value;
 
-    struct tls_multi *m1 = mi->context.c2.tls_multi;
-    struct tls_multi *m2 = ex_mi->context.c2.tls_multi;
+    const struct tls_multi *m1 = mi->context.c2.tls_multi;
+    const struct tls_multi *m2 = ex_mi->context.c2.tls_multi;
 
     struct gc_arena gc = gc_new();
     int ret = false;

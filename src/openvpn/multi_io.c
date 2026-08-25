@@ -191,12 +191,12 @@ p2mp_iow_flags(const struct multi_context *m, struct link_socket *sock)
 int
 multi_io_wait(struct multi_context *m)
 {
-    int status, i;
+    int status;
     unsigned int *persistent = &m->multi_io->tun_rwflags;
 
     if (!tuntap_is_dco_win(m->top.c1.tuntap))
     {
-        for (i = 0; i < m->top.c1.link_sockets_num; i++)
+        for (int i = 0; i < m->top.c1.link_sockets_num; i++)
         {
             socket_set_listen_persistent(m->top.c2.link_sockets[i], m->multi_io->es,
                                          &m->top.c2.link_sockets[i]->ev_arg);

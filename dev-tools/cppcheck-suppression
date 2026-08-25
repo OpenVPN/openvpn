@@ -5,6 +5,10 @@ constParameterCallback
 constParameterPointer
 invalidPrintfArgType_sint
 invalidPrintfArgType_uint
+redundantAssignment
+redundantInitialization
+unreadVariable
+unusedFunction
 usleepCalled
 variableScope
 # We have a lot of library includes, not all of them are really required,
@@ -24,15 +28,21 @@ getservbynameCalled
 localtimeCalled
 strtokCalled
 # FP: posix.cfg claims suseconds_t is unsigned for some reason
-unsignedLessThanZero:src/openvpn/otime.h:235
+unsignedLessThanZero:src/openvpn/otime.h:148
 # IGN: multi code does weird things with pointers to local variables...
-autoVariables:src/openvpn/multi.c:4177
-autoVariables:src/openvpn/multi_io.c:280
+autoVariables:src/openvpn/multi.c:4232
+autoVariables:src/openvpn/multi_io.c:324
 # IGN: the code header = 0 | (OPCODE << P_OPCODE_SHIFT) is used intentionally
 badBitmaskCheck:src/openvpn/mudp.c
 badBitmaskCheck:tests/unit_tests/openvpn/test_pkt.c
 # IGN: we store integers in pointers
 CastAddressToIntegerAtReturn:src/openvpn/multi.c
+# IGN: Windows specific (unsigned long == unsigned int)
+compareValueOutOfTypeRangeError:src/openvpn/ssl_verify.c:928
+# FP: cppcheck seems to have wrong signature of DeviceIoControl()
+constVariablePointer:src/openvpn/dco_win.c
+# IGN: test_networking code would break with iproute2 but that is prevented
+ctunullpointer:src/openvpn/networking_iproute2.c
 # IGN: event code uses a pointer to store integers
 intToPointerCast:src/openvpn/forward.c
 intToPointerCast:src/openvpn/multi_io.c
@@ -40,7 +50,7 @@ intToPointerCast:src/openvpn/ps.c
 # FP: constant but differs between platforms
 knownConditionTrueFalse:src/openvpn/error.h:380
 knownConditionTrueFalse:src/openvpn/fdmisc.c:80
-knownConditionTrueFalse:src/openvpn/lladdr.c:65
+knownConditionTrueFalse:src/openvpn/lladdr.c:64
 knownConditionTrueFalse:src/openvpn/platform.c
 # FP: code needs to accomodate many different defines
 knownConditionTrueFalse:src/openvpn/event.c:1139
@@ -48,13 +58,13 @@ knownConditionTrueFalse:src/openvpn/event.c:1148
 # FP: dco_win support has "false" stubs
 knownConditionTrueFalse:src/openvpn/forward.c
 knownConditionTrueFalse:src/openvpn/init.c
-knownConditionTrueFalse:src/openvpn/multi_io.c:163
+knownConditionTrueFalse:src/openvpn/multi_io.c:197
 # FP: cppcheck thinks that some functions always return true, but they don't
 knownConditionTrueFalse:src/openvpn/misc.c:97
 knownConditionTrueFalse:src/openvpn/sig.h:116
 # FP: cert_uri_supported is a wrapper around defines, so it's
 # always constant but differs depending on OpenSSL version
-knownConditionTrueFalse:src/openvpn/ssl_openssl.c:1332
+knownConditionTrueFalse:src/openvpn/ssl_openssl.c:1260
 # FP: cppcheck doesn't understand that the function changes szErrMessage
 knownConditionTrueFalse:src/tapctl/main.c:704
 knownConditionTrueFalse:src/openvpnmsica/dllmain.c:164
@@ -65,12 +75,18 @@ memleakOnRealloc:src/openvpn/dco_freebsd.c:845
 # FP: eventmsg.h is not built on Unix
 missingInclude:src/openvpnserv/common.c:25
 # IGN: strlen(NULL) is not nice code, but seems to work
-nullPointerRedundantCheck:src/openvpn/init.c:299
+nullPointerRedundantCheck:src/openvpn/init.c:301
 # FP: cppcheck doesn't understand ZeroMemory
 redundantAssignment:src/openvpnserv/interactive.c:203
+# FP: cppcheck doesn't know the NLA macros
+redundantInitialization:src/openvpn/dco_linux.c
 # IGN: We reuse the same variable name due to macro usage
-shadowVariable:src/openvpn/options.c:2580
-shadowVariable:src/openvpn/options.c:2598
+shadowVariable:src/openvpn/options.c:1948
+shadowVariable:src/openvpn/options.c:1966
+# IGN: sure this is theoretically undefined, but works
+shiftNegativeLHS:tests/unit_tests/openvpn/test_schedule.c:183
+# FP: fun:tls_crypt_v2_wrap_unwrap_invalid: cppcheck is confused
+syntaxError:tests/unit_tests/openvpn/test_tls_crypt.c:684
 # FP: this file is never compiled on _WIN32
 umaskCalled:tests/unit_tests/openvpn/test_pkcs11.c
 # FP: yes, t_prev is unitialized, but t_prev_len is 0, so that's handled
@@ -78,13 +94,13 @@ uninitvar:src/openvpn/crypto_epoch.c:60
 # FP: yes, parm is unitialized, but parm_len is 0, so that's handled
 uninitvar:src/openvpn/options_parse.c:148
 # FP: uninit is fine when it is a return parameter
-ctuuninitvar:src/openvpn/crypto_mbedtls_legacy.c:698
-uninitvar:src/openvpnserv/interactive.c:1935
+ctuuninitvar:src/openvpn/crypto_mbedtls_legacy.c:690
+uninitvar:src/openvpnserv/interactive.c:2775
 uninitvar:src/tapctl/main.c:566
 # FP: we added a check but cppcheck is not convinced
 uninitvar:src/openvpnserv/interactive.c:2667
 # FP: weird parse error, the macro is fine in the rest of the file
-unknownMacro:src/openvpnserv/interactive.c:3488
+unknownMacro:src/openvpnserv/interactive.c:3596
 # FP: cppcheck doesn't account for short-circuiting
 unreadVariable:src/openvpn/manage.c:682
 unusedFunction:src/openvpn/siphash_reference.c
@@ -101,8 +117,10 @@ unusedFunction:tests/unit_tests/openvpn/mock_msg.c
 # FP: doesn't account for --wrap
 unusedFunction:tests/unit_tests/openvpn/test_tls_crypt.c
 unusedFunction:/usr/include/*
+# FP: cppcheck doesn't know the NLA macros
+unusedLabel:src/openvpn/dco_linux.c
 # IGN: old code that is difficult to test (MSG_ERRQUEUE), ignore for now
-unusedStructMember:src/openvpn/mtu.c:281
+unusedStructMember:src/openvpn/mtu.c:289
 # FP: used implictly by NL macros
 unusedStructMember:src/openvpn/networking_sitnl.c
 # IGN: keep explanatory fields in test data
@@ -111,3 +129,5 @@ unusedStructMember:tests/unit_tests/openvpn/test_pkcs11.c
 variableScope:src/openvpn/networking_sitnl.c:1390
 # IGN: nicer to keep the "variable" earlier
 variableScope:src/openvpnserv/interactive.c:2687
+# FP: fun:platform_create_temp_file: cppcheck is confused
+wrongPrintfScanfArgNum:src/openvpn/platform.c:553
