@@ -65,6 +65,7 @@ OPENVPN_BASE_P2P="..."
 # EXPECT_IFCONFIG6_x = "this IPv6 address needs to show up in ifconfig"
 # PING4_HOSTS_x      = "these hosts musts ping when openvpn is up (IPv4 fping)"
 # PING6_HOSTS_x      = "these hosts musts ping when openvpn is up (IPv6 fping6)"
+# EXPECT_FAIL_x      = "instead of waiting for connection wait for this error message"
 #
 # hook test options:
 #

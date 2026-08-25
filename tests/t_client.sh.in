@@ -321,6 +321,7 @@ for SUF in $TEST_RUN_LIST; do
     eval expect_ifconfig6=\"\$EXPECT_IFCONFIG6_$SUF\"
     eval ping4_hosts=\"\$PING4_HOSTS_$SUF\"
     eval ping6_hosts=\"\$PING6_HOSTS_$SUF\"
+    eval expect_fail=\"\$EXPECT_FAIL_$SUF\"
     eval fping_args=\"\$FPING_EXTRA_ARGS \$FPING_ARGS_$SUF\"
 
     # If EXCEPT_IFCONFIG* variables for this test are missing, run an --up
@@ -332,6 +333,9 @@ for SUF in $TEST_RUN_LIST; do
     fi
 
     output_start "### test run $SUF: '$test_run_title' ###"
+    if [ -n "$expect_fail" ]; then
+        output "### expect failure: '$expect_fail'"
+    fi
     fail_count=0
 
     if [ -n "$test_check_skip" ]; then
@@ -380,23 +384,62 @@ for SUF in $TEST_RUN_LIST; do
     ovpn_init_check=30
     ovpn_init_success=0
     while [ $ovpn_init_check -gt 0 ]; do
-        sleep 1 # Wait for OpenVPN to initialize and have had time to write the pid file
-        grep "Initialization Sequence Completed" $LOGDIR/$SUF:openvpn.log >/dev/null
-        if [ $? -eq 0 ]; then
-            ovpn_init_check=0
-            ovpn_init_success=1
+        sleep 1 # Wait for OpenVPN to initialize and to write the pid file
+        if [ -n "$expect_fail" ]; then
+            grep "$expect_fail" $LOGDIR/$SUF:openvpn.log >/dev/null
+            if [ $? -eq 0 ]; then
+                ovpn_init_check=0
+                ovpn_init_success=1
+                sleep 5 # give openvpn time to quit
+            fi
+        else
+            grep "Initialization Sequence Completed" $LOGDIR/$SUF:openvpn.log >/dev/null
+            if [ $? -eq 0 ]; then
+                ovpn_init_check=0
+                ovpn_init_success=1
+            fi
         fi
         ovpn_init_check=$((ovpn_init_check - 1))
     done
 
-    opid=$(cat $pidfile)
+    opid=$([ -e $pidfile ] && cat $pidfile)
     if [ -n "$opid" ]; then
         output "  OpenVPN running with PID $opid"
     else
-        output "  Could not read OpenVPN PID file"
+        if [ -z "$expect_fail" ]; then # print this only if unexpected
+            output "  Could not read OpenVPN PID file"
+        fi
     fi
 
-    # If OpenVPN did not start
+    # did we expect a failure?
+    if [ -n "$expect_fail" ]; then
+        if [ -n "$opid" ]; then # OpenVPN did start!
+            output "$0: OpenVPN did start up, expected failure"
+            $RUN_SUDO $KILL_EXEC $opid $sudopid
+            output "tail -5 $SUF:openvpn.log"
+            output "$(tail -5 $LOGDIR/$SUF:openvpn.log)"
+            fail "skip rest of sub-tests for test run $SUF."
+            trap - 0 1 2 3 15
+            SUMMARY_FAIL="$SUMMARY_FAIL $SUF"
+            exit_code=32
+            printf "$outbuf"
+            continue
+        elif [ $ovpn_init_success -eq 0 ]; then
+            output "$0: OpenVPN failure did not match expected failure"
+            output "tail -5 $SUF:openvpn.log"
+            output "$(tail -5 $LOGDIR/$SUF:openvpn.log)"
+            SUMMARY_FAIL="$SUMMARY_FAIL $SUF"
+            exit_code=33
+            printf "$outbuf"
+            continue
+        else
+            output "test run $SUF: all tests OK (saw expected failure)."
+            SUMMARY_OK="$SUMMARY_OK $SUF"
+            continue
+        fi
+    fi
+
+    # If OpenVPN did not start but should have
     if [ $ovpn_init_success -ne 1 -o -z "$opid" ]; then
         output "$0:  OpenVPN did not initialize in a reasonable time"
         if [ -n "$opid" ]; then
