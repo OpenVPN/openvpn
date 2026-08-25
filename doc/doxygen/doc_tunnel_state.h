@@ -117,10 +117,10 @@
  * tunnel_point_to_point() or \c tunnel_server().
  *
  * In server-mode, \c main() calls the \c tunnel_server() function, which
- * transfers control to \c tunnel_server_udp() or \c
- * tunnel_server_tcp() depending on the external transport protocol.
+ * drives the event loop for both the UDP and TCP external transport
+ * protocols.
  *
- * These functions receive the \c context created in \c main().  This
+ * This function receives the \c context created in \c main().  This
  * object has a special status in server-mode, as it does not represent an
  * active VPN tunnel, but does contain process-wide configuration
  * parameters.  In the source code, it is often stored in "top" variables.
@@ -130,11 +130,10 @@
  * CM_CHILD_UDP or \c CM_CHILD_TCP, depending on the external transport
  * protocol.
  *
- * Both \c tunnel_server_udp_single_threaded() and \c tunnel_server_tcp()
- * perform similar initialization.  In either case, a \c multi_context
- * structure is created, and it is initialized according to the
- * configuration stored in the top \c context by the \c multi_init() and
- * \c multi_top_init() functions.
+ * During initialization, \c tunnel_server() creates a \c multi_context
+ * structure, which is initialized according to the configuration stored
+ * in the top \c context by the \c multi_init() and \c multi_top_init()
+ * functions.
  *
  * @subsection tunnel_state_server_tunnels Creating and destroying VPN tunnels
  *
@@ -146,8 +145,7 @@
  *
  * @subsection tunnel_state_server_cleanup Final cleanup
  *
- * After the main event loop exits, both \c
- * tunnel_server_udp_single_threaded() and \c tunnel_server_tcp() perform
- * similar cleanup.  They call \c multi_uninit() followed by \c
- * multi_top_free() to clean up the \c multi_context structure.
+ * After the main event loop exits, \c tunnel_server() performs the
+ * cleanup.  It calls \c multi_uninit() followed by \c multi_top_free()
+ * to clean up the \c multi_context structure.
  */
