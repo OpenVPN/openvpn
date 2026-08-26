@@ -456,12 +456,7 @@ ce_management_query_remote(struct context *c)
 }
 #endif /* ENABLE_MANAGEMENT */
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
-/*
+/**
  * Initialize and possibly randomize the connection list.
  *
  * Applies the Fisher-Yates shuffle algorithm to ensure all permutations
@@ -480,10 +475,9 @@ init_connection_list(struct context *c)
     l->current = -1;
     if (c->options.remote_random)
     {
-        int i;
-        for (i = l->len - 1; i > 0; --i)
+        for (int i = l->len - 1; i > 0; --i)
         {
-            const int j = get_random() % (i + 1);
+            const int64_t j = get_random() % (i + 1);
             if (i != j)
             {
                 struct connection_entry *tmp;
@@ -838,7 +832,7 @@ init_static(void)
     struct timeval tv;
     if (!gettimeofday(&tv, NULL))
     {
-        const unsigned int seed = (unsigned int)tv.tv_sec ^ tv.tv_usec;
+        const unsigned int seed = (unsigned int)(tv.tv_sec ^ tv.tv_usec);
         srandom(seed);
     }
 
@@ -2839,7 +2833,7 @@ do_startup_pause(struct context *c)
     }
 }
 
-static size_t
+static int
 get_frame_mtu(struct context *c, const struct options *o)
 {
     size_t mtu;
@@ -2863,7 +2857,12 @@ get_frame_mtu(struct context *c, const struct options *o)
         msg(M_WARN, "TUN MTU value (%zu) must be at least %d", mtu, TUN_MTU_MIN);
         frame_print(&c->c2.frame, M_FATAL, "MTU is too small");
     }
-    return mtu;
+    if (mtu > TUN_MTU_MAX)
+    {
+        msg(M_WARN, "TUN MTU value (%zu) clamped to %d", mtu, TUN_MTU_MAX);
+        mtu = TUN_MTU_MAX;
+    }
+    return (int)mtu;
 }
 
 /*
@@ -2889,11 +2888,11 @@ frame_finalize_options(struct context *c, const struct options *o)
      * space to allow server to push "baby giant" MTU sizes */
     frame->tun_max_mtu = max_int(TUN_MTU_MAX_MIN, frame->tun_max_mtu);
 
-    size_t payload_size = frame->tun_max_mtu;
+    unsigned int payload_size = frame->tun_max_mtu;
 
     /* we need to be also large enough to hold larger control channel packets
      * if configured */
-    payload_size = max_int(payload_size, o->ce.tls_mtu);
+    payload_size = max_uint(payload_size, o->ce.tls_mtu);
 
     /* The extra tun needs to be added to the payload size */
     if (o->ce.tun_mtu_defined)
@@ -2908,7 +2907,7 @@ frame_finalize_options(struct context *c, const struct options *o)
 
     /* the space that is reserved before the payload to add extra headers to it
      * we always reserve the space for the worst case */
-    size_t headroom = 0;
+    unsigned int headroom = 0;
 
     /* includes IV and packet ID */
     headroom += crypto_max_overhead();
@@ -2932,11 +2931,11 @@ frame_finalize_options(struct context *c, const struct options *o)
     /* the space after the payload, this needs some extra buffer space for
      * encryption so headroom is probably too much but we do not really care
      * the few extra bytes */
-    size_t tailroom = headroom;
+    unsigned int tailroom = headroom;
 
 #ifdef USE_COMP
     msg(D_MTU_DEBUG,
-        "MTU: adding %zu buffer tailroom for compression for %zu "
+        "MTU: adding %u buffer tailroom for compression for %u "
         "bytes of payload",
         COMP_EXTRA_BUFFER(payload_size), payload_size);
     tailroom += COMP_EXTRA_BUFFER(payload_size);
@@ -3278,18 +3277,15 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     if (options->renegotiate_seconds_min < 0)
     {
         /* Add 10% jitter to reneg-sec by default (server side only) */
-        int auto_jitter = options->mode != MODE_SERVER
-                              ? 0
-                              : get_random() % max_int(options->renegotiate_seconds / 10, 1);
+        int jitter_max = max_int(options->renegotiate_seconds / 10, 1);
+        int auto_jitter = options->mode != MODE_SERVER ? 0 : (int)(get_random() % jitter_max);
         to.renegotiate_seconds = options->renegotiate_seconds - auto_jitter;
     }
     else
     {
         /* Add user-specified jitter to reneg-sec */
-        to.renegotiate_seconds =
-            options->renegotiate_seconds
-            - (get_random()
-               % max_int(options->renegotiate_seconds - options->renegotiate_seconds_min, 1));
+        int jitter_max = max_int(options->renegotiate_seconds - options->renegotiate_seconds_min, 1);
+        to.renegotiate_seconds = options->renegotiate_seconds - (int)(get_random() % jitter_max);
     }
     to.single_session = options->single_session;
     to.mode = options->mode;
@@ -3481,10 +3477,6 @@ do_init_frame_tls(struct context *c)
         c->c2.tls_auth_standalone->workbuf = alloc_buf_gc(BUF_SIZE(&c->c2.frame), &c->c2.gc);
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /*
  * No encryption or authentication.
