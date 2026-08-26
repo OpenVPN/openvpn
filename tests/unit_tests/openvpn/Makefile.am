@@ -400,6 +400,7 @@ push_update_msg_testdriver_LDFLAGS = \
 push_update_msg_testdriver_SOURCES = test_push_update_msg.c \
 	mock_msg.c \
 	mock_get_random.c \
+	mock_push_dependencies.c \
 	$(top_srcdir)/src/openvpn/buffer.c \
 	$(top_srcdir)/src/openvpn/platform.c \
 	$(top_srcdir)/src/openvpn/options_util.c \

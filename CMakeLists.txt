@@ -930,6 +930,7 @@ if (BUILD_TESTING)
     target_sources(test_push_update_msg PRIVATE
         tests/unit_tests/openvpn/mock_msg.c
         tests/unit_tests/openvpn/mock_get_random.c
+        tests/unit_tests/openvpn/mock_push_dependencies.c
         src/openvpn/options_util.c
         src/openvpn/otime.c
         src/openvpn/list.c
