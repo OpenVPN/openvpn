@@ -36,6 +36,8 @@ void mock_set_debug_level(msglvl_t level);
 
 extern bool fatal_error_triggered;
 extern char mock_msg_buf[MOCK_MSG_BUF];
+extern char mock_managment_buf[MOCK_MSG_BUF];
+
 
 msglvl_t mock_get_debug_level(void);
 

@@ -43,6 +43,7 @@ msglvl_t print_x_debug_level = 0;
 
 
 char mock_msg_buf[MOCK_MSG_BUF];
+char mock_managment_buf[MOCK_MSG_BUF];
 
 
 void
@@ -76,6 +77,14 @@ x_msg_va(const msglvl_t flags, const char *format, va_list arglist)
     {
         printf("FATAL ERROR:");
     }
+
+    if (flags & M_MSG_VIRT_OUT)
+    {
+        CLEAR(mock_managment_buf);
+        vsnprintf(mock_managment_buf, sizeof(mock_managment_buf), format, arglist);
+        return;
+    }
+
     CLEAR(mock_msg_buf);
     vsnprintf(mock_msg_buf, sizeof(mock_msg_buf), format, arglist);
 
