@@ -4014,6 +4014,24 @@ management_kill_by_cid(void *arg, const unsigned long cid, const char *kill_msg)
     }
 }
 
+static struct tls_session *
+lookup_session_by_mda_key_id(struct tls_multi *multi,
+                             const unsigned int mda_key_id)
+{
+    if (multi->session[TM_INITIAL].key[KS_PRIMARY].mda_key_id == mda_key_id)
+    {
+        return &multi->session[TM_INITIAL];
+    }
+    else if (multi->session[TM_ACTIVE].key[KS_PRIMARY].mda_key_id == mda_key_id)
+    {
+        return &multi->session[TM_ACTIVE];
+    }
+    else
+    {
+        return NULL;
+    }
+}
+
 static bool
 management_client_pending_auth(void *arg, const unsigned long cid, const unsigned int mda_key_id,
                                const char *extra, unsigned int timeout)
@@ -4024,17 +4042,9 @@ management_client_pending_auth(void *arg, const unsigned long cid, const unsigne
     if (mi)
     {
         struct tls_multi *multi = mi->context.c2.tls_multi;
-        struct tls_session *session;
+        struct tls_session *session = lookup_session_by_mda_key_id(multi, mda_key_id);
 
-        if (multi->session[TM_INITIAL].key[KS_PRIMARY].mda_key_id == mda_key_id)
-        {
-            session = &multi->session[TM_INITIAL];
-        }
-        else if (multi->session[TM_ACTIVE].key[KS_PRIMARY].mda_key_id == mda_key_id)
-        {
-            session = &multi->session[TM_ACTIVE];
-        }
-        else
+        if (!session)
         {
             return false;
         }
