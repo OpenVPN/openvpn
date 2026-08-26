@@ -407,19 +407,6 @@ netbits_to_netmask(const int netbits)
     return mask;
 }
 
-static inline bool
-route_list_vpn_gateway_needed(const struct route_list *rl)
-{
-    if (!rl)
-    {
-        return false;
-    }
-    else
-    {
-        return !(rl->spec.flags & RTSA_REMOTE_ENDPOINT);
-    }
-}
-
 static inline int
 route_did_redirect_default_gateway(const struct route_list *rl)
 {
