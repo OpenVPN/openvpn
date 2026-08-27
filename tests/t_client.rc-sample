@@ -31,6 +31,21 @@ REMOTE=mytestserver
 #
 # tests to run (list suffixes for config stanzas below)
 #
+# The general idea is to use one number per server, so
+# e.g. use 1 for all tests talking to a UDP server, use
+# 2 for tests talking to a TCP server, and 3 for tests
+# talking to a P2P server.
+#
+# The indivdiual tests should then be indexed by using
+# letters.
+#
+# If you set TEST_RUN_GROUP=<number> then t_client.sh
+# will only run tests starting with that number. So
+# e.g. setting TEST_RUN_GROUP=1 will run 1 and 1a, but
+# not 2. This can be used to excercise only a specific
+# server, or to run tests against separate servers in
+# parallel.
+#
 TEST_RUN_LIST="1 2 2n"
 
 #

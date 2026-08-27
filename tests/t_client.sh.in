@@ -82,6 +82,21 @@ if [ -z "$TEST_RUN_LIST" ]; then
     exit "${TCLIENT_SKIP_RC}"
 fi
 
+if [ -n "$TEST_RUN_GROUP" ]; then
+    FILTERED_LIST=
+    for test in $TEST_RUN_LIST; do
+        group=$(echo $test | sed -E 's/^([0123456789]+).*/\1/')
+        if [ "$group" = "$TEST_RUN_GROUP" ]; then
+            FILTERED_LIST="$FILTERED_LIST $test"
+        fi
+    done
+    if [ -z "$FILTERED_LIST" ]; then
+        echo "Filtered TEST_RUN_LIST empty (group=$TEST_RUN_GROUP), no tests defined.  SKIP test." >&2
+        exit "${TCLIENT_SKIP_RC}"
+    fi
+    TEST_RUN_LIST=$FILTERED_LIST
+fi
+
 # Ensure PREFER_KSU is in a known state
 PREFER_KSU="${PREFER_KSU:-0}"
 
@@ -121,6 +136,9 @@ else
 fi
 
 LOGDIR=t_client-$(hostname)-$(date +%Y%m%d-%H%M%S)
+if [ -n "$TEST_RUN_GROUP" ]; then
+    LOGDIR="${LOGDIR}-${TEST_RUN_GROUP}"
+fi
 LOGDIR_ABS="$PWD/$LOGDIR"
 if mkdir $LOGDIR; then
     :
