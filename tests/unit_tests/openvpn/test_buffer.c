@@ -456,6 +456,35 @@ test_buffer_chomp(void **state)
     /* Check that our own method agrees */
     assert_true(string_check_buf(&buf2, CC_PRINT | CC_NULL, CC_CRLF));
     assert_string_equal(BSTR(&buf2), "CR_RESPONSE,MTIx");
+    gc_free(&gc);
+}
+
+static void
+test_buffer_extract_field(void **state)
+{
+    struct gc_arena gc = gc_new();
+    struct buffer buf = alloc_buf_gc(1000, &gc);
+    assert_null(buf_extract_field(&buf, ',', &gc));
+
+    buf = alloc_buf_gc(5, &gc);
+    buf_write(&buf, "12345", 5);
+    const char *ret = buf_extract_field(&buf, '5', &gc);
+    assert_string_equal(ret, "1234");
+    /* nothing left after the 5 */
+    assert_int_equal(buf_len(&buf), 0);
+
+    buf = alloc_buf_gc(5, &gc);
+    buf_write(&buf, "12345", 5);
+    ret = buf_extract_field(&buf, '4', &gc);
+    assert_string_equal(ret, "123");
+
+    /* 5 should be left */
+    assert_int_equal(buf_len(&buf), 1);
+    assert_memory_equal(buf_bptr(&buf), "5", 1);
+
+    buf = alloc_buf_gc(5, &gc);
+    buf_write(&buf, "12345", 5);
+    assert_null(buf_extract_field(&buf, '6', &gc));
 
     gc_free(&gc);
 }
@@ -567,7 +596,8 @@ main(void)
         cmocka_unit_test(test_checked_snprintf),
         cmocka_unit_test(test_buffer_chomp),
         cmocka_unit_test(test_buffer_null_terminate),
-        cmocka_unit_test(test_buffer_parse)
+        cmocka_unit_test(test_buffer_parse),
+        cmocka_unit_test(test_buffer_extract_field)
     };
 
     return cmocka_run_group_tests_name("buffer", tests, NULL, NULL);

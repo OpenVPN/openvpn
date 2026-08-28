@@ -2243,4 +2243,14 @@ struct buffer buffer_read_from_file(const char *filename, struct gc_arena *gc);
 /**@}*/
 /* End of Buffer Lists */
 
+/**
+ * Extract a field from buf that ends with the \c sep character. The
+ * returned string is allocated in the gc_arena. If the separator character
+ * is not found, the function returns the nullptr.
+ *
+ * The buffer is also forwarded to the point after the separator character.
+ */
+char *
+buf_extract_field(struct buffer *buf, char sep, struct gc_arena *gc);
+
 #endif /* BUFFER_H */

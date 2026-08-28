@@ -1384,3 +1384,27 @@ cleanup:
     fclose(fp);
     return ret;
 }
+
+char *
+buf_extract_field(struct buffer *buf, char sep, struct gc_arena *gc)
+{
+    if (!buf_valid(buf))
+    {
+        return NULL;
+    }
+
+    const uint8_t *seppos = memchr(BPTR(buf), sep, buf_len(buf));
+    if (!seppos)
+    {
+        return NULL;
+    }
+    size_t field_len = seppos - BPTR(buf);
+
+    char *field = gc_malloc(field_len + 1, false, gc);
+
+    memcpy(field, BPTR(buf), field_len);
+    field[field_len] = 0;
+
+    buf_advance(buf, field_len + 1);
+    return field;
+}
