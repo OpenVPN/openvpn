@@ -22,14 +22,16 @@ openvpn="${openvpn:-${top_builddir}/src/openvpn/openvpn}"
 t_client_ips_rc="${t_client_ips_rc:-${top_builddir}/t_client_ips.rc}"
 update_t_client_ips="${update_t_client_ips:-${srcdir}/update_t_client_ips.sh}"
 
-if [ -r "${top_builddir}"/t_client.rc ]; then
-    . "${top_builddir}"/t_client.rc
-elif [ -r "${srcdir}"/t_client.rc ]; then
-    . "${srcdir}"/t_client.rc
-else
-    echo "$0: cannot find 't_client.rc' in build dir ('${top_builddir}')" >&2
-    echo "$0: or source directory ('${srcdir}'). SKIPPING TEST." >&2
-    exit "${TCLIENT_SKIP_RC}"
+if [ -z "${t_client_rc}" ]; then
+    if [ -r "${top_builddir}"/t_client.rc ]; then
+        t_client_rc="${top_builddir}"/t_client.rc
+    elif [ -r "${srcdir}"/t_client.rc ]; then
+        t_client_rc="${srcdir}"/t_client.rc
+    else
+        echo "$0: cannot find 't_client.rc' in build dir ('${top_builddir}')" >&2
+        echo "$0: or source directory ('${srcdir}'). SKIPPING TEST." >&2
+        exit "${TCLIENT_SKIP_RC}"
+    fi
 fi
 
 # Check for external dependencies
@@ -62,6 +64,18 @@ if [ ! -w . ]; then
     echo "current directory is not writable (required for logging). FAIL." >&2
     exit 1
 fi
+
+openvpn_version=$(${openvpn} --version | head -n 1 | cut -f2 -d" " | sed -E 's/^2\.([0123456789]+).*$/2\1/')
+
+needs_openvpn()
+{
+    needs_version=$1
+
+    [ "$openvpn_version" -ge "$needs_version" ]
+    return $?
+}
+
+. "${t_client_rc}"
 
 if [ -z "$TEST_RUN_LIST" ]; then
     echo "TEST_RUN_LIST empty, no tests defined.  SKIP test." >&2
