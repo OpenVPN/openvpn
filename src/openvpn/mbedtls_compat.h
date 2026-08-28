@@ -42,6 +42,7 @@
 #include "crypto_mbedtls_legacy.h"
 #else
 #include <mbedtls/oid.h>
+#include "crypto_mbedtls.h"
 #endif /* MBEDTLS_VERSION_NUMBER < 0x04000000 */
 
 #ifdef HAVE_PSA_CRYPTO_H
@@ -227,6 +228,18 @@ static inline int
 mbedtls_compat_pk_check_pair(const mbedtls_pk_context *pub, const mbedtls_pk_context *prv)
 {
 #if MBEDTLS_VERSION_NUMBER >= 0x04000000
+    /* work around bug in mbedtls 4.1.0 by adding missing public key information in prv
+     * cf. https://github.com/Mbed-TLS/TF-PSA-Crypto/issues/807 */
+#if MBEDTLS_VERSION_NUMBER >= 0x04010000
+    if (prv->MBEDTLS_PRIVATE(pub_raw_len) == 0)
+    {
+        mbedtls_pk_context *mut_prv = (mbedtls_pk_context *)prv; /* remove const */
+        ASSERT(mbed_ok(psa_export_public_key(mut_prv->MBEDTLS_PRIVATE(priv_id),
+                                             mut_prv->MBEDTLS_PRIVATE(pub_raw),
+                                             sizeof(mut_prv->MBEDTLS_PRIVATE(pub_raw)),
+                                             &mut_prv->MBEDTLS_PRIVATE(pub_raw_len))));
+    }
+#endif
     return mbedtls_pk_check_pair(pub, prv);
 #else
     return mbedtls_pk_check_pair(pub, prv, mbedtls_ctr_drbg_random, rand_ctx_get());
