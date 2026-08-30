@@ -56,7 +56,9 @@ static PTOKEN_GROUPS GetTokenGroups(const HANDLE token);
 
 /*
  * Check workdir\fname is inside config_dir
- * The logic here is simple: we may reject some valid paths if ..\ is in any of the strings
+ * The logic here is simple:
+ *      we may reject some valid paths if ".." is in the filename
+ *      or if there's no "\" after the config directory
  */
 static BOOL
 CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
@@ -82,9 +84,18 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
     }
 
     config_dir = s->config_dir;
+    size_t config_dir_len = wcslen(config_dir);
 
-    if (wcsncmp(config_dir, config_file, wcslen(config_dir)) == 0
-        && wcsstr(config_file + wcslen(config_dir), L"..") == NULL)
+    /* check for a path separator after config_dir */
+    if (config_dir_len && config_dir_len < wcslen(config_file)
+        && config_dir[config_dir_len - 1] != L'\\'
+        && config_file[config_dir_len] != L'\\')
+    {
+        return FALSE;
+    }
+
+    if (wcsncmp(config_dir, config_file, config_dir_len) == 0
+        && wcsstr(config_file + config_dir_len, L"..") == NULL)
     {
         return TRUE;
     }
