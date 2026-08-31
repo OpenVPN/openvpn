@@ -68,6 +68,11 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
     {
         return FALSE;
     }
+    /* do not accept forward slashes in paths, as PathCch* functions do not handle these */
+    if (wcschr(workdir, L'/') || wcschr(fname, L'/'))
+    {
+        return FALSE;
+    }
     /* convert fname to full canonical path */
     if (PathIsRelativeW(fname))
     {
