@@ -277,7 +277,9 @@ write_dhcp_search_str(struct buffer *buf, const uint8_t type, const char *const 
     {
         const char *ptr = str_array[i];
 
-        if (strlen(ptr) + len + 1 > sizeof(tmp_buf))
+        /* Each entry consumes strlen(ptr) + 2 bytes: one leading label length
+         * byte and one trailing NUL. */
+        if (strlen(ptr) + len + 2 > sizeof(tmp_buf))
         {
             *error = true;
             msg(M_WARN, "write_dhcp_search_str: temp buffer overflow building DHCP options");
