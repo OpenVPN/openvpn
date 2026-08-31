@@ -62,7 +62,13 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
 {
     HRESULT res;
     WCHAR config_path[MAX_PATH];
+    const size_t config_dir_len = wcslen(s->config_dir);
 
+    /* config_dir must end with a '\' or the prefix check below could be satisfied by a sibling directory */
+    if (config_dir_len == 0 || s->config_dir[config_dir_len - 1] != L'\\')
+    {
+        return FALSE;
+    }
     /* fname = stdin is special: do not treat it as a relative path */
     if (wcscmp(fname, L"stdin") == 0)
     {
@@ -83,7 +89,7 @@ CheckConfigPath(const WCHAR *workdir, const WCHAR *fname, const settings_t *s)
         res = PathCchCanonicalize(config_path, _countof(config_path), fname);
     }
 
-    return res == S_OK && wcsnicmp(config_path, s->config_dir, wcslen(s->config_dir)) == 0;
+    return res == S_OK && wcsnicmp(config_path, s->config_dir, config_dir_len) == 0;
 }
 
 
