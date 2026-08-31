@@ -2959,7 +2959,7 @@ HandleDNSConfigNrptMessage(const nrpt_dns_cfg_message_t *msg, DWORD ovpn_pid, un
         const char *rdom = msg->resolve_domains;
         size_t rdom_size = sizeof(msg->resolve_domains);
         size_t rdom_len = strlen(rdom);
-        if (rdom_len && (rdom_len + 1 >= rdom_size || rdom[rdom_len + 2] != 0))
+        if (rdom_len && (rdom_len + 1 >= rdom_size || rdom[rdom_len + 1] != 0))
         {
             return ERROR_MESSAGE_DATA;
         }
