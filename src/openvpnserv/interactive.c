@@ -2735,11 +2735,13 @@ SetNrptRules(HKEY nrpt_key, const nrpt_address_t *addresses, const char *domains
         dom_size = (DWORD)domains_len + 2; /* len + the trailing NULs */
 
         wide_domains = utf8to16_size(domains, dom_size);
-        dom_size *= sizeof(*wide_domains);
         if (!wide_domains)
         {
             return ERROR_OUTOFMEMORY;
         }
+        domains_len = wcslen(wide_domains);
+        dom_size = (DWORD)(domains_len + 2) * sizeof(*wide_domains);
+
         /* Make a MULTI_SZ from a comma separated list */
         for (size_t i = 0; i < domains_len; ++i)
         {
