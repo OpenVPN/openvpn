@@ -324,6 +324,53 @@ test_copy_acks_to_lru(void **state)
     assert_memory_equal(mru_ack.packet_id, expected_ack.packet_id, sizeof(expected_ack.packet_id));
 }
 
+static void
+test_packet_id_window(void **state)
+{
+    struct reliable rel = { 0 };
+    rel.packet_id = 1;
+
+    assert_true(validate_packet_id_window(&rel, 0));
+
+    /* packet id 1 is outside the window as it is the *next* packet id */
+    assert_false(validate_packet_id_window(&rel, 1));
+
+    /* wrapped around packet id, "-2" */
+    assert_true(validate_packet_id_window(&rel, 0xFFFFFFFD));
+
+    /* wrapped around packet id, "-10" */
+    assert_true(validate_packet_id_window(&rel, 0xFFFFFFF6));
+
+    /* wrapped around packet id, "-11" */
+    assert_false(validate_packet_id_window(&rel, 0xFFFFFFF5));
+    assert_false(validate_packet_id_window(&rel, 0x80000000));
+
+    rel.packet_id = 0x80000000;
+
+    /* near the signed/usigned integer area */
+    assert_false(validate_packet_id_window(&rel, 0x80000001));
+    assert_true(validate_packet_id_window(&rel, 0x7fffffff));
+    assert_true(validate_packet_id_window(&rel, 0x7ffffff5));
+    assert_false(validate_packet_id_window(&rel, 0x7ffffff4));
+
+    rel.packet_id = 0xFFFFFFFD;
+    assert_false(validate_packet_id_window(&rel, 0xFFFFFFFD));
+    assert_false(validate_packet_id_window(&rel, 0));
+    assert_false(validate_packet_id_window(&rel, 1));
+    assert_false(validate_packet_id_window(&rel, 0xFFFFFFFE));
+    assert_false(validate_packet_id_window(&rel, 0xFFFFFFFF));
+    assert_true(validate_packet_id_window(&rel, 0xFFFFFFF3));
+    assert_true(validate_packet_id_window(&rel, 0xFFFFFFF2));
+    assert_false(validate_packet_id_window(&rel, 0xFFFFFFF1));
+
+    rel.packet_id = 500;
+    assert_false(validate_packet_id_window(&rel, 501));
+    assert_true(validate_packet_id_window(&rel, 497));
+    assert_true(validate_packet_id_window(&rel, 500 - (RELIABLE_CAPACITY - 1)));
+    assert_false(validate_packet_id_window(&rel, 500 - RELIABLE_CAPACITY));
+}
+
+
 int
 main(void)
 {
@@ -345,7 +392,8 @@ main(void)
                                         test_packet_id_write_teardown),
 
         cmocka_unit_test(test_get_num_output_sequenced_available),
-        cmocka_unit_test(test_copy_acks_to_lru)
+        cmocka_unit_test(test_copy_acks_to_lru),
+        cmocka_unit_test(test_packet_id_window)
 
     };
 

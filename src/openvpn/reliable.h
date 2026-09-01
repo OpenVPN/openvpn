@@ -105,9 +105,9 @@ struct reliable
 {
     int size;
     interval_t initial_timeout;
-    packet_id_type packet_id;
-    int offset; /**< Offset of the bufs in the reliable_entry array */
-    bool hold;  /* don't xmit until reliable_schedule_now is called */
+    packet_id_type packet_id; /**< Packet ID for the next packet to be sent out. */
+    int offset;               /**< Offset of the bufs in the reliable_entry array */
+    bool hold;                /* don't xmit until reliable_schedule_now is called */
     struct reliable_entry array[RELIABLE_CAPACITY];
 };
 
@@ -188,6 +188,17 @@ reliable_ack_empty(struct reliable_ack *ack)
 {
     return !ack->len;
 }
+
+/**
+ * check that pid is inside the window of possible outstanding packets
+ * of size RELIABLE_CAPACITY, ie inside the range
+ * [rel->packet_id - RELIABLE_CAPACITY, rel->packet_id).
+ *
+ * rel->packet is the *next* packet id to be sent out, so it is not
+ * included in the valid range.
+ */
+int
+validate_packet_id_window(struct reliable *rel, packet_id_type pid);
 
 /**
  * Returns the number of packets that need to be acked.
