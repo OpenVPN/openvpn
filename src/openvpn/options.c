@@ -8986,7 +8986,14 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "tls-timeout") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_TLS_PARMS);
-        options->tls_timeout = positive_atoi(p[1], msglevel);
+        /* Constrain the timeout to not have problems with
+         * RELIABLE_MAX_TIMEOUT_SHIFT creating an overflow. 65k seconds
+         * timeout is already way too much anyway */
+        if (!atoi_constrained(p[1], &options->tls_timeout, "tls-timeout", 1,
+                              RELIABLE_MAX_INITIAL_TIMEOUT, msglevel))
+        {
+            goto err;
+        }
     }
     else if (streq(p[0], "reneg-bytes") && p[1] && !p[2])
     {

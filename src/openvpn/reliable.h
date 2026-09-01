@@ -40,21 +40,32 @@
  *  @{ */
 
 
-#define RELIABLE_ACK_SIZE                       \
-    8 /**< The maximum number of packet IDs     \
-       *   waiting to be acknowledged which can \
-       *   be stored in one \c reliable_ack     \
-       *   structure. */
+#define RELIABLE_ACK_SIZE 8
+/**< The maximum number of packet IDs
+ *   waiting to be acknowledged which can
+ *   be stored in one \c reliable_ack
+ *   structure. */
 
-#define RELIABLE_CAPACITY                      \
-    12 /**< The maximum number of packets that \
-        *   the reliability layer for one VPN  \
-        *   tunnel in one direction can store. */
+#define RELIABLE_CAPACITY 12
+/**< The maximum number of packets that
+ *   the reliability layer for one VPN
+ *   tunnel in one direction can store. */
 
-#define N_ACK_RETRANSMIT                      \
-    3 /**< We retry sending a packet early if \
-       *   this many later packets have been  \
-       *   ACKed. */
+#define N_ACK_RETRANSMIT 3
+/**< We retry sending a packet early if
+ *   this many later packets have been
+ *   ACKed. */
+
+#define RELIABLE_MAX_TIMEOUT_SHIFT 6
+/**< Maximum shift or doubling in exponential backoff
+ * we allow. This is a safeguard against an unbounded
+ * exponential backoff. With the default timeout of 2s this
+ * equals 128s */
+
+#define RELIABLE_MAX_INITIAL_TIMEOUT (1 << 16)
+/**< Maximum initial timeout (--tls-timeout) we accept.
+ * Bounded so that shifting it by RELIABLE_MAX_TIMEOUT_SHIFT
+ * cannot overflow an int. */
 
 /**
  * The acknowledgment structure in which packet IDs are stored for later
