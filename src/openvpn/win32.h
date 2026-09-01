@@ -63,6 +63,7 @@ struct security_attributes
 {
     SECURITY_ATTRIBUTES sa;
     SECURITY_DESCRIPTOR sd;
+    PACL dacl;
 };
 
 #define HANDLE_DEFINED(h) ((h) != NULL && (h) != INVALID_HANDLE_VALUE)
@@ -262,6 +263,11 @@ void semaphore_close(struct semaphore *s);
  *
  * It seems you can't run more than one instance
  * of netsh on the same machine at the same time.
+ *
+ * Its DACL is restricted to the creating user to prevent an unprivileged
+ * local user from starving it and DoS'ing running instances. This means
+ * different user accounts running OpenVPN directly, not via the interactive
+ * service, will make all but the first user's instances exit.
  */
 
 extern struct semaphore netcmd_semaphore;
