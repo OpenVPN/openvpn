@@ -655,11 +655,22 @@ reliable_send(struct reliable *rel, int *opcode)
             }
         }
     }
+
     if (best)
     {
+        /* The initial timeout is bounded by RELIABLE_MAX_INITIAL_TIMEOUT, so
+         * shifting it cannot overflow. */
+        static_assert(RELIABLE_MAX_INITIAL_TIMEOUT <= (INT_MAX >> RELIABLE_MAX_TIMEOUT_SHIFT),
+                      "initial reliable timeout overflows when shifted");
+        const interval_t max_timeout = rel->initial_timeout << RELIABLE_MAX_TIMEOUT_SHIFT;
+
         /* exponential backoff */
         best->next_try = local_now + best->timeout;
-        best->timeout *= 2;
+        if (best->timeout < max_timeout)
+        {
+            best->timeout *= 2;
+        }
+
         best->n_acks = 0;
         *opcode = best->opcode;
         dmsg(D_REL_DEBUG, "ACK reliable_send ID " packet_id_format " (size=%d to=%d)",
