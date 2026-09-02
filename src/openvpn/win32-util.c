@@ -45,6 +45,73 @@ wide_string(const char *utf8, struct gc_arena *gc)
     return ucs16;
 }
 
+/* special to cmd.exe, which CreateProcess() uses to run .bat/.cmd (VU#123335) */
+#define CMD_QUOTE_TRIGGERS " &|<>^%()!"
+
+static bool
+argv_element_needs_quotes(const char *str)
+{
+    for (const char *c = str; *c != '\0'; ++c)
+    {
+        if (strchr(CMD_QUOTE_TRIGGERS, *c) != NULL)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+WCHAR *
+wide_cmd_line(const struct argv *a, struct gc_arena *gc)
+{
+    size_t nchars = 1;
+    size_t maxlen = 0;
+    size_t i;
+    struct buffer buf;
+    char *work = NULL;
+
+    if (!a)
+    {
+        return NULL;
+    }
+
+    for (i = 0; i < a->argc; ++i)
+    {
+        const char *arg = a->argv[i];
+        const size_t len = strlen(arg);
+        nchars += len + 3;
+        if (len > maxlen)
+        {
+            maxlen = len;
+        }
+    }
+
+    work = gc_malloc(maxlen + 1, false, gc);
+    check_malloc_return(work);
+    buf = alloc_buf_gc(nchars, gc);
+
+    for (i = 0; i < a->argc; ++i)
+    {
+        const char *arg = a->argv[i];
+        strcpy(work, arg);
+        string_mod(work, CC_PRINT, CC_DOUBLE_QUOTE | CC_CRLF, '_');
+        if (i)
+        {
+            buf_printf(&buf, " ");
+        }
+        if (argv_element_needs_quotes(work))
+        {
+            buf_printf(&buf, "\"%s\"", work);
+        }
+        else
+        {
+            buf_printf(&buf, "%s", work);
+        }
+    }
+
+    return wide_string(BSTR(&buf), gc);
+}
+
 char *
 utf16to8(const wchar_t *utf16, struct gc_arena *gc)
 {

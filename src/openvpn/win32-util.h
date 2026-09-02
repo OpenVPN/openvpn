@@ -24,10 +24,14 @@
 #ifndef OPENVPN_WIN32_UTIL_H
 #define OPENVPN_WIN32_UTIL_H
 
+#include "argv.h"
 #include "buffer.h"
 
 /* Convert a string from UTF-8 to UCS-2 */
 WCHAR *wide_string(const char *utf8, struct gc_arena *gc);
+
+/* Build a CreateProcess() command line from argv */
+WCHAR *wide_cmd_line(const struct argv *a, struct gc_arena *gc);
 
 /* Convert a string from UTF-16 to UTF-8 */
 char *utf16to8(const wchar_t *utf16, struct gc_arena *gc);
