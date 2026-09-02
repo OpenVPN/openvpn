@@ -1,6 +1,60 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
 
+2026.09.03 -- Version 2.7.7
+
+Antonio Quartulli (3):
+      clinat: do not adjust UDP checksum if zero
+      multi: don't let stale-routes-check delete permanent routes
+      networking_sitnl: validate netlink replies against the request
+
+Arne Schwabe (7):
+      Remove local get_random in test_misc.c
+      Make test_misc compile with -Werror again.
+      Reenable xmit_hold when using p2p tcp-server and tls-server
+      Reduce number of future epoch keys from 16 to 4
+      Move check_session_buf_not_used method into the method that free the buffer
+      Avoid unbounded reliable TLS timeout
+      Ignore acks for packets that cannot be outstanding
+
+Frank Lichtenheld (7):
+      t_client.rc-sample: Add missing documentation for FPING_ARGS_x
+      t_client.sh.in: Use printf instead of echo -e
+      ssl: Do not queue control ciphertext while a packet is still queued
+      win32-util.h: Fix includes
+      t_client.sh.in: Do not try to guess the absolute path to LOGDIR
+      .clang-format: Convert deprecated setting KeepEmptyLinesAtTheStartOfBlocks
+      mbedtls: Work-around bug in mbedtls 4.1.0 and 4.2.0
+
+Gert Doering (1):
+      OpenVPN Release 2.7.7
+
+Gleb Pesin (1):
+      OpenSSL: avoid resetting the HMAC key on every packet
+
+Heiko Hund (7):
+      openvpnserv: fix log lines format string
+      openvpnserv: don't allow '/' in config paths
+      openvpnserv: harden CheckConfigPath() a bit more
+      openvpnserv: pass correct NRPT domains size
+      openvpnserv: fix off-by-one input validation
+      win: don't use NULL DACL with system objects
+      tapctl: prevent binary planting with netsh
+
+Lev Stipakov (2):
+      win32: quote arguments that cmd.exe would reinterpret
+      win32: unit-test the CreateProcess() command line quoting
+
+Max Fillinger (1):
+      Fix format string specifier for size_t
+
+Nexory (1):
+      dhcp: Fix off-by-one in write_dhcp_search_str() temp buffer guard
+
+Razvan Cojocaru (1):
+      doc: Update doxygen references to removed tunnel_server_{udp, tcp}()
+
+
 2026.08.05 -- Version 2.7.6
 
 Antonio Quartulli (2):

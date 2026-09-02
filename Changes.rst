@@ -1,3 +1,128 @@
+Overview of changes in 2.7.7
+============================
+Security fixes
+--------------
+- reliability layer: Avoid unbounded reliable TLS timeout (CVE-2026-84732)
+
+- reliability layer: Ignore acks for packets that cannot be outstanding
+  (CVE-2026-84732)
+
+  (both reliability layer bugs found by Mark Bregman <mark.bregman@fox-it.com>,
+   tracked in Github: OpenVPN/openvpn-private-issues#161)
+
+- Windows: fix ``CreateProcess()`` command line quoting for characters that
+  are special to ``cmd.exe`` and where a combination of validation script
+  plus rogue CA could lead to misbehavior (CVE-2026-84256)
+
+  (Bug found by Clouditera Security <security@clouditera.com>, tracked
+   in Github: OpenVPN/openvpn-private-issues#159)
+
+- Windows: fix ``tapctl`` to always call ``netsh.exe`` with full path
+  (as we do elsewhere) (CVE-2026-84226)
+
+  (Bug found by BreachX Zero Day Labs, using Typhon AI Mil v2, tracked
+   in Github: OpenVPN/openvpn-private-issues#164)
+
+- Windows: don't use NULL DACL with system objects, namely the
+  ``--service`` exit event and the ``netsh.exe`` guard semaphore.  The
+  old approach was prone to a local DoS where one user could interfere
+  with other users' openvpn processes by blocking the netsh semaphore
+  or sending events.  This only affects setups not using the iservice,
+  or using the automatic service to start/stop openvpn (CVE-2026-82312).
+
+  (Bug found by DEBRAJ BASAK <https://in.linkedin.com/in/debrajbasak>,
+   tracked in Github: OpenVPN/openvpn-private-issues#167)
+
+- Linux Netlink: validate netlink replies against the request
+
+  (Suggested by Joshua Rogers <contact@joshua.hu> as a security improvement,
+   tracked in Github: OpenVPN/openvpn-private-issues#9)
+
+- Windows: fix off-by-one on input validation in openvpnserv
+  (discovered while fixing CVE-2026-78221)
+
+- Windows: openvpnserv: pass correct NRPT domains size - when IDN domains
+  with UTF8 encoding were involved, a buffer overread could be achieved
+  (CVE-2026-78221).
+
+  (Bug found by BreachX Zero Day Labs, using Typhon AI Mil v2,
+   in Github: OpenVPN/openvpn-private-issues#162)
+
+- Windows: harden CheckConfigPath() a bit more
+  (another improvement while working on CVE-2026-78043)
+
+- Windows: openvpnserv: don't allow '/' in config paths
+  (the APIs windows uses for path validation do not handle '/' as path
+   separator, while the file open APIs do, so this could be used to
+   circumvent our config path validation, leading to openvpn.exe
+   starting a user-controlled config file even if administatively not
+   allowed.  CVE-2026-78043)
+
+  (Bug found by BreachX Zero Day Labs, using Typhon AI Mil v2,
+   in Github: OpenVPN/openvpn-private-issues#162)
+
+- Windows: dhcp: Fix off-by-one in write_dhcp_search_str() temp buffer guard
+  (suitable DHCP options could lead to a single-byte overflow of a temp
+   buffer, CVE-2026-81738)
+
+  (Bug found by Andre Kropp (Nexory) and ChinhNguyen, tracked
+   in Github: OpenVPN/openvpn-private-issues#165)
+
+Bugfixes
+--------
+- work around a pubkey-handling bug in mbedTLS 4.1.0 and 4.2.0
+  (supposedly fixed in 4.3.0)
+
+- multi: don't let stale-routes-check delete permanent routes
+  (the ``--stale-routes-check`` did not delete dynamic cached routes,
+   but also routes installed by ``--iroute`` and ``--ifconfig-push``
+   - fix by introducing route flags and restraining the check on them)
+  (Github: #1063)
+
+- Windows: openvpnserv: fix log lines format string
+  interface names with international characters printed in some error
+  messages need to be converted from UTF8 to UCS16 first.
+
+- clinat: do not adjust UDP checksum if zero (as per RFC768)
+  (Github: #1037)
+
+- OpenSSL: avoid resetting the HMAC key on every packet
+  (Github: #1088)
+
+- fix format string specifier for size_t (%zu)
+
+- ssl: Do not queue control ciphertext while a packet is still queued
+  (fixes problems in TCP p2p handshake when both sides try to handshake
+   at the same time)
+  (Github: #1089)
+
+- Reenable xmit_hold when using p2p tcp-server and tls-server
+  (in TCP server mode, the server is not expected to initiate the TLS
+   handshake - bug introduced by the multisocket code, checking the
+   wrong variable for socket protocol)
+  (Github: #1089)
+
+- fix test_misc compile issues with -Werror
+
+User-visible Changes
+--------------------
+- when using EPOCH data channel format, reduce number of future keys
+  from 16 to 4 (calculation was wrong, 4 spare keys are sufficient
+  for 100+ Gbit/s links, less log spam in userland and less resources
+  used in in-kernel implementations)
+
+Building/Testing improvements
+-----------------------------
+- clang-format: Convert deprecated setting KeepEmptyLinesAtTheStartOfBlocks
+
+- t_client.sh: various improvements
+
+Documentation improvements
+--------------------------
+- doc: Update doxygen references to removed tunnel_server_{udp, tcp}()
+  (those functions do not exist in 2.7+ anymore)
+
+
 Overview of changes in 2.7.6
 ============================
 Security fixes
