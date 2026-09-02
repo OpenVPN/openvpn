@@ -1041,6 +1041,22 @@ env_block(const struct env_set *es)
     }
 }
 
+/* special to cmd.exe, which CreateProcess() uses to run .bat/.cmd (VU#123335) */
+#define CMD_QUOTE_TRIGGERS " &|<>^%()!"
+
+static bool
+argv_element_needs_quotes(const char *str)
+{
+    for (const char *c = str; *c != '\0'; ++c)
+    {
+        if (strchr(CMD_QUOTE_TRIGGERS, *c) != NULL)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 static WCHAR *
 wide_cmd_line(const struct argv *a, struct gc_arena *gc)
 {
@@ -1079,13 +1095,13 @@ wide_cmd_line(const struct argv *a, struct gc_arena *gc)
         {
             buf_printf(&buf, " ");
         }
-        if (string_class(work, CC_ANY, CC_SPACE))
+        if (argv_element_needs_quotes(work))
         {
-            buf_printf(&buf, "%s", work);
+            buf_printf(&buf, "\"%s\"", work);
         }
         else
         {
-            buf_printf(&buf, "\"%s\"", work);
+            buf_printf(&buf, "%s", work);
         }
     }
 
