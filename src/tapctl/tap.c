@@ -921,32 +921,38 @@ tap_enable_adapter(_In_opt_ HWND hwndParent, _In_ LPCGUID pguidAdapter, _In_ BOO
                                     bEnable ? enable_device : disable_device, pbRebootRequired);
 }
 
-/* stripped version of ExecCommand in interactive.c */
 static DWORD
-ExecCommand(const WCHAR *cmdline)
+ExecNetsh(PWSTR cmdline)
 {
     DWORD exit_code;
     STARTUPINFOW si;
     PROCESS_INFORMATION pi;
     DWORD proc_flags = CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT;
-    WCHAR *cmdline_dup = NULL;
 
     ZeroMemory(&si, sizeof(si));
     ZeroMemory(&pi, sizeof(pi));
-
     si.cb = sizeof(si);
 
-    /* CreateProcess needs a modifiable cmdline: make a copy */
-    cmdline_dup = _wcsdup(cmdline);
-    if (cmdline_dup
-        && CreateProcessW(NULL, cmdline_dup, NULL, NULL, FALSE, proc_flags, NULL, NULL, &si, &pi))
+    WCHAR appName[MAX_PATH];
+    WCHAR netsh_exe[] = L"\\netsh.exe";
+    UINT sysdir_len = GetSystemDirectoryW(appName, _countof(appName));
+    if (sysdir_len == 0)
+    {
+        wcscpy_s(appName, _countof(appName), L"C:\\Windows\\system32");
+    }
+    else if (sysdir_len + _countof(netsh_exe) > _countof(appName))
+    {
+        return ERROR_INSUFFICIENT_BUFFER;
+    }
+    wcscat_s(appName, _countof(appName), netsh_exe);
+
+    if (CreateProcessW(appName, cmdline, NULL, NULL, FALSE, proc_flags, NULL, NULL, &si, &pi))
     {
         WaitForSingleObject(pi.hProcess, INFINITE);
         if (!GetExitCodeProcess(pi.hProcess, &exit_code))
         {
             exit_code = GetLastError();
         }
-
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
     }
@@ -955,7 +961,6 @@ ExecCommand(const WCHAR *cmdline)
         exit_code = GetLastError();
     }
 
-    free(cmdline_dup);
     return exit_code;
 }
 
@@ -1013,7 +1018,7 @@ tap_set_adapter_name(_In_ LPCGUID pguidAdapter, _In_ LPCWSTR szName, _In_ BOOL b
 
     free(szOldName);
 
-    dwResult = ExecCommand(szCmdLine);
+    dwResult = ExecNetsh(szCmdLine);
     free(szCmdLine);
 
     if (dwResult != ERROR_SUCCESS)
