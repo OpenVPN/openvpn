@@ -1606,10 +1606,10 @@ add_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
 
     argv_printf(&argv, "%s add", ROUTE_PATH);
 
-#if 0
+#if __FreeBSD_version >= 1600019
     if (r->flags & RT_METRIC_DEFINED)
     {
-        argv_printf_cat(&argv, "-rtt %d", r->metric);
+        argv_printf_cat(&argv, "-metric %d", r->metric);
     }
 #endif
 
@@ -1911,6 +1911,13 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
     {
         argv_printf_cat(&argv, "-iface %s", device);
     }
+
+#if defined(TARGET_FREEBSD) && __FreeBSD_version >= 1600019
+    if (r6->flags & RT_METRIC_DEFINED)
+    {
+        argv_printf_cat(&argv, "-metric %d", r6->metric);
+    }
+#endif
 
     argv_msg(D_ROUTE, &argv);
     bool ret = openvpn_execve_check(&argv, es, 0, "ERROR: *BSD route add -inet6 command failed");
