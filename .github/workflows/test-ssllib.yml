@@ -70,14 +70,14 @@ jobs:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y liblzo2-dev libpam0g-dev liblz4-dev linux-libc-dev man2html clang libcmocka-dev python3-docutils libtool automake autoconf pkg-config libcap-ng-dev libnl-genl-3-dev
       - name: Restore ${{inputs.libname}} from cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: ssllib-cache
         with:
           path: ${{env.LIBPREFIX}}
           key: ${{matrix.os}}-${{inputs.libname}}-${{matrix.build }}-${{inputs.gitref}}
       - name: "${{inputs.libname}}: checkout"
         if: steps.ssllib-cache.outputs.cache-hit != 'true'
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: recursive
           path: ${{inputs.libname}}
@@ -98,7 +98,7 @@ jobs:
       - name: Run ldconfig
         run: sudo ldconfig
       - name: "OpenVPN: checkout"
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: "OpenVPN: autoreconf"
         run: autoreconf -fvi
       - name: "OpenVPN: configure"
