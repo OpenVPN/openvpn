@@ -96,4 +96,5 @@ cppcheck:
 	BUILD_DIR="$(abs_top_builddir)" \
 	SOURCE_DIR="$(abs_top_srcdir)" \
 	INCLUDE_FLAGS="$(LIBNL_GENL_CFLAGS)" \
+	CPPCHECK_VERBOSE="$(AM_V_P)" \
 		"$(top_srcdir)/dev-tools/run-cppcheck.sh"

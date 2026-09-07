@@ -2,22 +2,37 @@
 
 set -eu
 
+: ${CPPCHECK_VERBOSE:=false}
+: ${CPPCHECK_CHECK_LEVEL:=exhaustive}
+
+if "${CPPCHECK_VERBOSE}"; then
+    verbosity_arg="-v"
+else
+    verbosity_arg="-q"
+fi
+
+disable_arg=
+if [ "${CPPCHECK_CHECK_LEVEL}" != exhaustive ]; then
+    # suppress all the information that we should use exhaustive
+    disable_arg="--disable=information"
+fi
+
 SCRIPT_DIR=$(dirname $(readlink -e "${BASH_SOURCE[0]}"))
 : ${SOURCE_DIR:=$SCRIPT_DIR/..}
 : ${BUILD_DIR:=$PWD}
 : ${INCLUDE_FLAGS:=}
 CPPCHECK_DIR="${BUILD_DIR}/cppcheck_build_dir"
-COMMON_ARGS="-j$(nproc) -q \
+COMMON_ARGS="-j$(nproc) ${verbosity_arg} \
  -DMBEDTLS_SSL_PROTO_TLS1_3 -DMBEDTLS_SSL_KEYING_MATERIAL_EXPORT \
  -I./include/ -I./tests/unit_tests/openvpn/ \
  -I./src/compat/ -I./src/openvpn/ -I./src/openvpnserv/ -I./src/plugins/auth-pam/ \
  -I${BUILD_DIR} -I${BUILD_DIR}/include/ \
- --enable=all \
+ --enable=all ${disable_arg} \
  --library=${SCRIPT_DIR}/openvpn-cppcheck-library.cfg \
  --library=openssl.cfg \
  --suppressions-list=${SCRIPT_DIR}/cppcheck-suppression \
  --cppcheck-build-dir=${CPPCHECK_DIR} \
- --check-level=exhaustive --max-configs=10 \
+ --check-level=${CPPCHECK_CHECK_LEVEL} --max-configs=10 \
  --error-exitcode=1"
 
 set -x
