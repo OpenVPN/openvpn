@@ -901,8 +901,8 @@ const char *np(const char *str);
 #define CC_SINGLE_QUOTE  (1 << 21) /**< single quote */
 #define CC_DOUBLE_QUOTE  (1 << 22) /**< double quote */
 #define CC_REVERSE_QUOTE (1 << 23) /**< reverse quote */
-#define CC_AT            (1 << 24) /**< at sign */
-#define CC_EQUAL         (1 << 25) /**< equal sign */
+#define CC_PERCENT       (1 << 24) /**< percent sign */
+#define CC_EXCLAMATION   (1 << 25) /**< exclamation mark */
 #define CC_LESS_THAN     (1 << 26) /**< less than sign */
 #define CC_GREATER_THAN  (1 << 27) /**< greater than sign */
 #define CC_PIPE          (1 << 28) /**< pipe */

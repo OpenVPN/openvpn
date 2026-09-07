@@ -984,11 +984,11 @@ char_class(const unsigned char c, const unsigned int flags)
     {
         return true;
     }
-    if ((flags & CC_AT) && c == '@')
+    if ((flags & CC_PERCENT) && c == '%')
     {
         return true;
     }
-    if ((flags & CC_EQUAL) && c == '=')
+    if ((flags & CC_EXCLAMATION) && c == '!')
     {
         return true;
     }
