@@ -94,7 +94,10 @@ wide_cmd_line(const struct argv *a, struct gc_arena *gc)
     {
         const char *arg = a->argv[i];
         strcpy(work, arg);
-        string_mod(work, CC_PRINT, CC_DOUBLE_QUOTE | CC_CRLF, '_');
+        /* cmd.exe expands %VAR% and !VAR! even inside quotes, so a value like
+         * %X509_0_O% could turn back into a quote and start a new command.
+         * Replace those along with the double quotes and CRLF. */
+        string_mod(work, CC_PRINT, CC_DOUBLE_QUOTE | CC_CRLF | CC_PERCENT | CC_EXCLAMATION, '_');
         if (i)
         {
             buf_printf(&buf, " ");
