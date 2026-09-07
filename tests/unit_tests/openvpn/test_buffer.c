@@ -79,6 +79,26 @@ test_buffer_printf_catrunc(void **state)
 }
 
 static void
+test_buffer_puts(void **state)
+{
+    struct gc_arena gc = gc_new();
+    struct buffer buf = alloc_buf_gc(5, &gc);
+
+    assert_true(buf_puts(&buf, "1234"));
+    assert_string_equal(BSTR(&buf), "1234");
+
+    buf_reset_len(&buf);
+    assert_false(buf_puts(&buf, "12345"));
+    assert_string_equal(BSTR(&buf), "1234");
+
+    struct buffer one_byte_buf = alloc_buf_gc(1, &gc);
+    assert_false(buf_puts(&one_byte_buf, "x"));
+    assert_string_equal(BSTR(&one_byte_buf), "");
+
+    gc_free(&gc);
+}
+
+static void
 test_buffer_format_hex_ex(void **state)
 {
     const int input_size = 10;
@@ -572,6 +592,7 @@ main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_buffer_strprefix),
         cmocka_unit_test(test_buffer_printf_catrunc),
+        cmocka_unit_test(test_buffer_puts),
         cmocka_unit_test(test_buffer_format_hex_ex),
         cmocka_unit_test_setup_teardown(test_buffer_list_aggregate_separator_empty,
                                         test_buffer_list_setup, test_buffer_list_teardown),
