@@ -4,6 +4,9 @@ on:
     - cron: '0 20 * * *' # Daily at 20:00 UTC
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   latest:
     # Running coverity requires the secrets.COVERITY_SCAN_TOKEN token
