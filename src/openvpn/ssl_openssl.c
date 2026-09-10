@@ -1360,6 +1360,19 @@ backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file, b
     }
 
     int num_crls_loaded = 0;
+    /*
+     * The EOF test below must only see errors raised by
+     * PEM_read_bio_X509_CRL(). Anything already queued was left by an
+     * earlier operation in this thread and would otherwise be what
+     * ERR_peek_error() returns, turning a clean EOF into "cannot read CRL".
+     * Report it, since that is a bug elsewhere, then start from an empty
+     * queue (crypto_msg() drains the queue while printing it).
+     */
+    if (ERR_peek_error() != 0)
+    {
+        crypto_msg(D_LOW, "CRL: OpenSSL error queue not empty on CRL load");
+    }
+    ERR_clear_error();
     while (true)
     {
         X509_CRL *crl = PEM_read_bio_X509_CRL(in, NULL, NULL, NULL);
@@ -1367,13 +1380,15 @@ backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file, b
         {
             /*
              * PEM_R_NO_START_LINE can be considered equivalent to EOF.
+             * ERR_peek_last_error() is the error PEM_read_bio_X509_CRL()
+             * raised last; ERR_peek_error() would be the oldest queued one.
              */
-            bool eof = ERR_GET_REASON(ERR_peek_error()) == PEM_R_NO_START_LINE;
+            bool eof = ERR_GET_REASON(ERR_peek_last_error()) == PEM_R_NO_START_LINE;
             /* but warn if no CRLs have been loaded */
             if (num_crls_loaded > 0 && eof)
             {
                 /* remove that error from error stack */
-                (void)ERR_get_error();
+                ERR_clear_error();
                 break;
             }
 
