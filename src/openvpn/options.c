@@ -9180,6 +9180,15 @@ add_option(struct options *options,
     {
         VERIFY_PERMISSION(OPT_P_TLS_PARMS);
         options->tls_timeout = positive_atoi(p[1]);
+        /* Constrain the timeout to not have problems with
+         * RELIABLE_MAX_TIMEOUT_SHIFT creating an overflow. 65k seconds
+         * timeout is already way too much anyway */
+        if (options->tls_timeout < 1 || options->tls_timeout > RELIABLE_MAX_INITIAL_TIMEOUT)
+        {
+            msg(msglevel, "tls_timeout: Must be an integer between %d and %d, not %d",
+                1, RELIABLE_MAX_INITIAL_TIMEOUT, options->tls_timeout);
+            goto err;
+        }
     }
     else if (streq(p[0], "reneg-bytes") && p[1] && !p[2])
     {
