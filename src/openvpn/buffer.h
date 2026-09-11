@@ -70,13 +70,13 @@
  */
 struct buffer
 {
-    int capacity;  /**< Size in bytes of memory allocated by
-                    *   \c malloc(). Capacity companion for
-                    *   \c data under optional -fbounds-safety. */
-    int offset;    /**< Offset in bytes of the actual content
-                    *   within the allocated memory. */
-    int len;       /**< Length in bytes of the actual content
-                    *   within the allocated memory. */
+    int capacity; /**< Size in bytes of memory allocated by
+                   *   \c malloc(). Capacity companion for
+                   *   \c data under optional -fbounds-safety. */
+    int offset;   /**< Offset in bytes of the actual content
+                   *   within the allocated memory. */
+    int len;      /**< Length in bytes of the actual content
+                   *   within the allocated memory. */
     /* Field order already has capacity before data; alloc / set
      * paths assign capacity before the pointer so sized-by
      * invariants hold under optional -fbounds-safety builds.

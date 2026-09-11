@@ -39,24 +39,24 @@
 
 #ifdef OVPN_SUPPORT_FBOUNDS_SAFETY
 
-#  include <ptrcheck.h>
+#include <ptrcheck.h>
 /* Non-ABI-breaking sized-by annotations for byte buffers whose companion
  * field / argument is a capacity in bytes (e.g. buffer.capacity).
  * Prefer OVPN_SIZED_BY for buffers that are non-NULL when live; use
  * *_OR_NULL when the pointer may be NULL while the companion capacity
  * is zero (struct buffer.data may be NULL after buf_reset / CLEAR).
  */
-#  define OVPN_SIZED_BY(n) __sized_by(n)
-#  define OVPN_SIZED_BY_OR_NULL(n) __sized_by_or_null(n)
-#  define OVPN_COUNTED_BY(n) __counted_by(n)
-#  define OVPN_COUNTED_BY_OR_NULL(n) __counted_by_or_null(n)
+#define OVPN_SIZED_BY(n)           __sized_by(n)
+#define OVPN_SIZED_BY_OR_NULL(n)   __sized_by_or_null(n)
+#define OVPN_COUNTED_BY(n)         __counted_by(n)
+#define OVPN_COUNTED_BY_OR_NULL(n) __counted_by_or_null(n)
 
 #else /* !OVPN_SUPPORT_FBOUNDS_SAFETY */
 
-#  define OVPN_SIZED_BY(n)
-#  define OVPN_SIZED_BY_OR_NULL(n)
-#  define OVPN_COUNTED_BY(n)
-#  define OVPN_COUNTED_BY_OR_NULL(n)
+#define OVPN_SIZED_BY(n)
+#define OVPN_SIZED_BY_OR_NULL(n)
+#define OVPN_COUNTED_BY(n)
+#define OVPN_COUNTED_BY_OR_NULL(n)
 
 #endif /* OVPN_SUPPORT_FBOUNDS_SAFETY */
 
