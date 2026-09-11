@@ -66,6 +66,7 @@ alloc_buf(size_t size)
     {
         buf_size_error(size);
     }
+    /* Capacity before pointer so sized_by invariants hold under -fbounds-safety. */
     buf.capacity = (int)size;
     buf.data = calloc(1, size);
     check_malloc_return(buf.data);
@@ -83,6 +84,7 @@ alloc_buf_gc(size_t size, struct gc_arena *gc)
     {
         buf_size_error(size);
     }
+    /* Capacity before pointer so sized_by invariants hold under -fbounds-safety. */
     buf.capacity = (int)size;
     buf.data = (uint8_t *)gc_malloc(size, false, gc);
     if (size)
@@ -100,6 +102,7 @@ clone_buf(const struct buffer *buf)
 #endif
 {
     struct buffer ret;
+    /* Capacity before pointer so sized_by invariants hold under -fbounds-safety. */
     ret.capacity = buf->capacity;
     ret.offset = buf->offset;
     ret.len = buf->len;
@@ -213,6 +216,7 @@ buf_sub(struct buffer *buf, int size, bool prepend)
     data = prepend ? buf_prepend(buf, size) : buf_write_alloc(buf, size);
     if (data)
     {
+        /* Capacity before pointer so sized_by invariants hold under -fbounds-safety. */
         ret.capacity = size;
         ret.data = data;
     }
