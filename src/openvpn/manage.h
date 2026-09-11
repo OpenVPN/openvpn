@@ -384,10 +384,10 @@ void management_event_loop_n_seconds(struct management *man, int sec);
 
 void management_up_down(struct management *man, const char *updown, const struct env_set *es);
 
-void management_notify(struct management *man, const char *severity, const char *type,
+void management_notify(const char *severity, const char *type,
                        const char *text);
 
-void management_notify_generic(struct management *man, const char *str);
+void management_notify_generic(const char *str);
 
 void management_notify_client_needing_auth(struct management *management,
                                            const unsigned int auth_id,
@@ -400,7 +400,7 @@ void management_connection_established(struct management *management,
 void management_notify_client_close(struct management *management,
                                     struct man_def_auth_context *mdac, const struct env_set *es);
 
-void management_learn_addr(struct management *management, struct man_def_auth_context *mdac,
+void management_learn_addr(struct man_def_auth_context *mdac,
                            const struct mroute_addr *addr, const bool primary);
 
 void management_notify_client_cr_response(unsigned mda_key_id,
@@ -487,7 +487,7 @@ void management_auth_failure(struct management *man, const char *type, const cha
 /*
  * Echo an authentication token to management interface
  */
-void management_auth_token(struct management *man, const char *token);
+void management_auth_token(const char *token);
 
 /*
  * These functions drive the bytecount in/out counters.

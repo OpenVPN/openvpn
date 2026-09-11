@@ -843,7 +843,7 @@ man_query_need_str(struct management *man, const char *type, const char *action)
 }
 
 static void
-man_forget_passwords(struct management *man)
+man_forget_passwords(void)
 {
     ssl_purge_auth(false);
     (void)ssl_clean_auth_token();
@@ -1344,18 +1344,16 @@ man_load_stats(struct management *man)
  * Checks if the correct number of arguments to a management command are present
  * and otherwise prints an error and returns false.
  *
- * @param man       The management interface struct
  * @param p         pointer to the parameter array
  * @param n         number of arguments required
  * @param flags     if MN_AT_LEAST require at least n parameters and not exactly n
  * @return          Return whether p has n (or at least n) parameters
  */
 static bool
-man_need(struct management *man, const char **p, const int n, unsigned int flags)
+man_need(const char **p, const int n, unsigned int flags)
 {
-    int i;
     ASSERT(p[0]);
-    for (i = 1; i <= n; ++i)
+    for (int i = 1; i <= n; ++i)
     {
         if (!p[i])
         {
@@ -1522,7 +1520,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "signal"))
     {
-        if (man_need(man, p, 1, 0))
+        if (man_need(p, 1, 0))
         {
             man_signal(man, p[1]);
         }
@@ -1554,7 +1552,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "kill"))
     {
-        if (man_need(man, p, 1, 0))
+        if (man_need(p, 1, 0))
         {
             man_kill(man, p[1]);
         }
@@ -1632,7 +1630,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "log"))
     {
-        if (man_need(man, p, 1, MN_AT_LEAST))
+        if (man_need(p, 1, MN_AT_LEAST))
         {
             if (p[1])
             {
@@ -1646,7 +1644,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "echo"))
     {
-        if (man_need(man, p, 1, MN_AT_LEAST))
+        if (man_need(p, 1, MN_AT_LEAST))
         {
             if (p[1])
             {
@@ -1660,14 +1658,14 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "username"))
     {
-        if (man_need(man, p, 2, 0))
+        if (man_need(p, 2, 0))
         {
             man_query_username(man, p[1], p[2]);
         }
     }
     else if (streq(p[0], "password"))
     {
-        if (man_need(man, p, 1, MN_AT_LEAST))
+        if (man_need(p, 1, MN_AT_LEAST))
         {
             if (p[2])
             {
@@ -1685,25 +1683,25 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "forget-passwords"))
     {
-        man_forget_passwords(man);
+        man_forget_passwords();
     }
     else if (streq(p[0], "needok"))
     {
-        if (man_need(man, p, 2, 0))
+        if (man_need(p, 2, 0))
         {
             man_query_need_ok(man, p[1], p[2]);
         }
     }
     else if (streq(p[0], "needstr"))
     {
-        if (man_need(man, p, 2, 0))
+        if (man_need(p, 2, 0))
         {
             man_query_need_str(man, p[1], p[2]);
         }
     }
     else if (streq(p[0], "cr-response"))
     {
-        if (man_need(man, p, 1, 0))
+        if (man_need(p, 1, 0))
         {
             man_send_cc_message(man, "CR_RESPONSE", p[1]);
         }
@@ -1718,42 +1716,42 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "bytecount"))
     {
-        if (man_need(man, p, 1, 0))
+        if (man_need(p, 1, 0))
         {
             man_bytecount(man, atoi(p[1]));
         }
     }
     else if (streq(p[0], "client-kill"))
     {
-        if (man_need(man, p, 1, MN_AT_LEAST))
+        if (man_need(p, 1, MN_AT_LEAST))
         {
             man_client_kill(man, p[1], p[2]);
         }
     }
     else if (streq(p[0], "client-deny"))
     {
-        if (man_need(man, p, 3, MN_AT_LEAST))
+        if (man_need(p, 3, MN_AT_LEAST))
         {
             man_client_deny(man, p[1], p[2], p[3], p[4]);
         }
     }
     else if (streq(p[0], "client-auth-nt"))
     {
-        if (man_need(man, p, 2, 0))
+        if (man_need(p, 2, 0))
         {
             man_client_auth(man, p[1], p[2], false);
         }
     }
     else if (streq(p[0], "client-auth"))
     {
-        if (man_need(man, p, 2, 0))
+        if (man_need(p, 2, 0))
         {
             man_client_auth(man, p[1], p[2], true);
         }
     }
     else if (streq(p[0], "client-pending-auth"))
     {
-        if (man_need(man, p, 4, 0))
+        if (man_need(p, 4, 0))
         {
             man_client_pending_auth(man, p[1], p[2], p[3], p[4]);
         }
@@ -1777,7 +1775,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "pkcs11-id-get"))
     {
-        if (man_need(man, p, 1, 0))
+        if (man_need(p, 1, 0))
         {
             man_pkcs11_id_get(man, atoi(p[1]));
         }
@@ -1789,35 +1787,35 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "remote-entry-get"))
     {
-        if (man_need(man, p, 1, MN_AT_LEAST))
+        if (man_need(p, 1, MN_AT_LEAST))
         {
             man_remote_entry_get(man, p[1], p[2]);
         }
     }
     else if (streq(p[0], "proxy"))
     {
-        if (man_need(man, p, 1, MN_AT_LEAST))
+        if (man_need(p, 1, MN_AT_LEAST))
         {
             man_proxy(man, p);
         }
     }
     else if (streq(p[0], "remote"))
     {
-        if (man_need(man, p, 1, MN_AT_LEAST))
+        if (man_need(p, 1, MN_AT_LEAST))
         {
             man_remote(man, p);
         }
     }
     else if (streq(p[0], "push-update-broad"))
     {
-        if (man_need(man, p, 1, 0))
+        if (man_need(p, 1, 0))
         {
             man_push_update(man, p, UPT_BROADCAST);
         }
     }
     else if (streq(p[0], "push-update-cid"))
     {
-        if (man_need(man, p, 2, 0))
+        if (man_need(p, 2, 0))
         {
             man_push_update(man, p, UPT_BY_CID);
         }
@@ -1825,7 +1823,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
 #if 1
     else if (streq(p[0], "test"))
     {
-        if (man_need(man, p, 1, 0))
+        if (man_need(p, 1, 0))
         {
             int i;
             const int n = atoi(p[1]);
@@ -3024,13 +3022,13 @@ management_up_down(struct management *man, const char *updown, const struct env_
 }
 
 void
-management_notify(struct management *man, const char *severity, const char *type, const char *text)
+management_notify(const char *severity, const char *type, const char *text)
 {
     msg(M_CLIENT, ">NOTIFY:%s,%s,%s", severity, type, text);
 }
 
 void
-management_notify_generic(struct management *man, const char *str)
+management_notify_generic(const char *str)
 {
     msg(M_CLIENT, "%s", str);
 }
@@ -3128,7 +3126,7 @@ management_notify_client_close(struct management *management, struct man_def_aut
 }
 
 void
-management_learn_addr(struct management *management, struct man_def_auth_context *mdac,
+management_learn_addr(struct man_def_auth_context *mdac,
                       const struct mroute_addr *addr, const bool primary)
 {
     struct gc_arena gc = gc_new();
@@ -3220,7 +3218,7 @@ management_auth_failure(struct management *man, const char *type, const char *re
 }
 
 void
-management_auth_token(struct management *man, const char *token)
+management_auth_token(const char *token)
 {
     msg(M_CLIENT, ">PASSWORD:Auth-Token:%s", token);
 }

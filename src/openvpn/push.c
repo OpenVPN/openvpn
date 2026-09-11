@@ -179,7 +179,7 @@ server_pushed_signal(struct context *c, const struct buffer *buffer, const bool 
 #ifdef ENABLE_MANAGEMENT
         if (management)
         {
-            management_notify(management, "info", c->sig->signal_text, m);
+            management_notify("info", c->sig->signal_text, m);
         }
 #endif
     }
@@ -215,7 +215,7 @@ receive_exit_message(struct context *c)
 #ifdef ENABLE_MANAGEMENT
     if (management)
     {
-        management_notify(management, "info", "remote-exit", "EXIT");
+        management_notify("info", "remote-exit", "EXIT");
     }
 #endif
 }
@@ -245,7 +245,7 @@ server_pushed_info(const struct buffer *buffer, const int adv)
         struct buffer out = alloc_buf_gc(256, &gc);
         if (buf_printf(&out, ">%s:%s", "INFOMSG", m))
         {
-            management_notify_generic(management, BSTR(&out));
+            management_notify_generic(BSTR(&out));
         }
         else
         {

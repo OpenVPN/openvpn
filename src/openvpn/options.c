@@ -7373,7 +7373,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
 #ifdef ENABLE_MANAGEMENT
         if (management)
         {
-            management_auth_token(management, p[1]);
+            management_auth_token(p[1]);
         }
 #endif
     }

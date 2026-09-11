@@ -1194,7 +1194,7 @@ multi_learn_in_addr_t(struct multi_context *m, struct multi_instance *mi, in_add
 #ifdef ENABLE_MANAGEMENT
     if (management && owner)
     {
-        management_learn_addr(management, &mi->context.c2.mda_context, &addr, primary);
+        management_learn_addr(&mi->context.c2.mda_context, &addr, primary);
     }
 #endif
     if (primary && multi_check_push_ifconfig_extra_route(mi, addr.v4.addr))
@@ -1239,7 +1239,7 @@ multi_learn_in6_addr(struct multi_context *m, struct multi_instance *mi, struct 
 #ifdef ENABLE_MANAGEMENT
     if (management && owner)
     {
-        management_learn_addr(management, &mi->context.c2.mda_context, &addr, primary);
+        management_learn_addr(&mi->context.c2.mda_context, &addr, primary);
     }
 #endif
     if (primary && multi_check_push_ifconfig_ipv6_extra_route(mi, &addr.v6.addr))
