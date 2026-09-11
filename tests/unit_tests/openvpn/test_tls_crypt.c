@@ -130,7 +130,7 @@ __wrap_parse_line(const char *line, char **p, const int n, const char *file, con
 bool
 __wrap_buffer_write_file(const char *filename, const struct buffer *buf)
 {
-    const char *pem = BSTR(buf);
+    const char *pem = CBSTR(buf);
     check_expected_ptr(filename);
     check_expected_ptr(pem);
 

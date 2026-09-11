@@ -504,7 +504,7 @@ int tun_write_win32(struct tuntap *tt, struct buffer *buf);
 static inline bool
 is_ip_packet_valid(const struct buffer *buf)
 {
-    const struct openvpn_iphdr *ih = (const struct openvpn_iphdr *)BPTR(buf);
+    const struct openvpn_iphdr *ih = (const struct openvpn_iphdr *)CBPTR(buf);
 
     if (OPENVPN_IPH_GET_VER(ih->version_len) == 4)
     {

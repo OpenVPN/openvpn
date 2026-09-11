@@ -2278,7 +2278,7 @@ man_io_error(struct management *man, const char *prefix)
 
 #ifdef TARGET_ANDROID
 static ssize_t
-man_send_with_fd(int fd, void *ptr, size_t nbytes, int flags, int sendfd)
+man_send_with_fd(int fd, const void *ptr, size_t nbytes, int flags, int sendfd)
 {
     struct msghdr msg = { 0 };
     struct iovec iov[1];
@@ -2302,12 +2302,14 @@ man_send_with_fd(int fd, void *ptr, size_t nbytes, int flags, int sendfd)
     msg.msg_name = NULL;
     msg.msg_namelen = 0;
 
-    iov[0].iov_base = ptr;
+    /* sendmsg takes a const msghdr, but we can't construct that here
+       directly, so cast */
+    iov[0].iov_base = (void *)ptr;
     iov[0].iov_len = nbytes;
     msg.msg_iov = iov;
     msg.msg_iovlen = 1;
 
-    return (sendmsg(fd, &msg, flags));
+    return sendmsg(fd, &msg, flags);
 }
 
 static ssize_t
@@ -2512,24 +2514,23 @@ man_write(struct management *man)
 {
     const int size_hint = 1024;
     ssize_t sent = 0;
-    const struct buffer *buf;
 
     buffer_list_aggregate(man->connection.out, size_hint);
-    buf = buffer_list_peek(man->connection.out);
+    const struct buffer *buf = buffer_list_peek(man->connection.out);
     if (buf && BLEN(buf))
     {
         const int len = min_int(size_hint, BLEN(buf));
 #ifdef TARGET_ANDROID
         if (man->connection.fdtosend > 0)
         {
-            sent = man_send_with_fd(man->connection.sd_cli, BPTR(buf), len, MSG_NOSIGNAL,
+            sent = man_send_with_fd(man->connection.sd_cli, CBPTR(buf), len, MSG_NOSIGNAL,
                                     man->connection.fdtosend);
             man->connection.fdtosend = -1;
         }
         else
 #endif
         {
-            sent = send(man->connection.sd_cli, (const void *)BPTR(buf), len, MSG_NOSIGNAL);
+            sent = send(man->connection.sd_cli, CBSTR(buf), len, MSG_NOSIGNAL);
         }
         if (sent >= 0)
         {

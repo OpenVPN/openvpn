@@ -47,7 +47,7 @@
 void
 receive_auth_failed(struct context *c, const struct buffer *buffer)
 {
-    msg(M_VERB0, "AUTH: Received control message: %s", BSTR(buffer));
+    msg(M_VERB0, "AUTH: Received control message: %s", CBSTR(buffer));
     c->options.no_advance = true;
 
     if (!c->options.pull)
@@ -64,7 +64,7 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
     const char *reason = NULL;
     if (authfail_extended && BLEN(&buf))
     {
-        reason = BSTR(&buf);
+        reason = CBSTR(&buf);
     }
 
     if (authfail_extended && buf_string_match_head_str(&buf, "TEMP"))
@@ -116,7 +116,7 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
      */
     if (authfail_extended && buf_string_match_head_str(&buf, "CRV1:") && BLEN(&buf))
     {
-        ssl_put_auth_challenge(BSTR(&buf));
+        ssl_put_auth_challenge(CBSTR(&buf));
     }
 #endif /* ifdef ENABLE_MANAGEMENT */
 }
@@ -508,7 +508,7 @@ incoming_push_message(struct context *c, const struct buffer *buffer)
     uint64_t option_types_found = 0;
 
     msg(D_PUSH, "PUSH: Received control message: '%s'",
-        sanitize_control_message(BSTR(buffer), &gc));
+        sanitize_control_message(CBSTR(buffer), &gc));
 
     int status = process_incoming_push_msg(c, buffer, c->options.pull, pull_permission_mask(c),
                                            &option_types_found);
@@ -516,7 +516,7 @@ incoming_push_message(struct context *c, const struct buffer *buffer)
     if (status == PUSH_MSG_ERROR)
     {
         msg(D_PUSH_ERRORS, "WARNING: Received bad push/pull message: %s",
-            sanitize_control_message(BSTR(buffer), &gc));
+            sanitize_control_message(CBSTR(buffer), &gc));
     }
     else if (status == PUSH_MSG_REPLY || status == PUSH_MSG_UPDATE
              || status == PUSH_MSG_CONTINUATION)

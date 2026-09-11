@@ -208,7 +208,9 @@ port_share_sendmsg(const socket_descriptor_t sd, const char command, const struc
 
         if (head)
         {
-            iov[1].iov_base = BPTR(head);
+            /* sendmsg takes a const msghdr, but we can't construct that here
+               directly, so cast */
+            iov[1].iov_base = (char *)CBPTR(head);
             iov[1].iov_len = BLENZ(head);
             mesg.msg_iovlen = 2;
         }
@@ -964,7 +966,7 @@ port_share_abort(struct port_share *ps)
 bool
 is_openvpn_protocol(const struct buffer *buf)
 {
-    const unsigned char *p = (const unsigned char *)BSTR(buf);
+    const unsigned char *p = (const unsigned char *)CBSTR(buf);
     const int len = BLEN(buf);
     if (len >= 3)
     {

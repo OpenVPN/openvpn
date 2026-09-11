@@ -136,21 +136,29 @@ struct gc_arena
 
 
 /** Return a pointer to the start of the buffer content. @see buf_bptr() */
-#define BPTR(buf)  (buf_bptr(buf))
+#define BPTR(buf)   (buf_bptr(buf))
+/** Return a const pointer to the start of the buffer content. @see buf_cbptr() */
+#define CBPTR(buf)  (buf_cbptr(buf))
 /** Return a pointer one past the end of the buffer content. @see buf_bend() */
-#define BEND(buf)  (buf_bend(buf))
+#define BEND(buf)   (buf_bend(buf))
+/** Return a const pointer one past the end of the buffer content. @see buf_cbend() */
+#define CBEND(buf)  (buf_cbend(buf))
 /** Return a pointer to the last byte of the buffer content, or NULL if empty. @see buf_blast() */
-#define BLAST(buf) (buf_blast(buf))
+#define BLAST(buf)  (buf_blast(buf))
+/** Return a const pointer to the last byte of the buffer content, or NULL if empty. @see buf_cblast() */
+#define CBLAST(buf) (buf_cblast(buf))
 /** Return the length of the buffer content in bytes. @see buf_len() */
-#define BLEN(buf)  (buf_len(buf))
+#define BLEN(buf)   (buf_len(buf))
 /** Return the length of the buffer content as a \c size_t. @see buf_len() */
-#define BLENZ(buf) ((size_t)buf_len(buf))
+#define BLENZ(buf)  ((size_t)buf_len(buf))
 /** Return true iff the buffer is defined (has non-NULL data pointer). @see buf_defined() */
-#define BDEF(buf)  (buf_defined(buf))
+#define BDEF(buf)   (buf_defined(buf))
 /** Return the buffer content pointer cast to \c char *. @see buf_str() */
-#define BSTR(buf)  (buf_str(buf))
+#define BSTR(buf)   (buf_str(buf))
+/** Return the buffer content pointer cast to \c const char *. @see buf_cstr() */
+#define CBSTR(buf)  (buf_cstr(buf))
 /** Return the number of bytes available for appending to the buffer. @see buf_forward_capacity() */
-#define BCAP(buf)  (buf_forward_capacity(buf))
+#define BCAP(buf)   (buf_forward_capacity(buf))
 
 /**
  * Zeroise and reset a buffer.
@@ -407,15 +415,15 @@ buf_valid(const struct buffer *buf)
 }
 
 /**
- * Return a pointer to the start of the buffer content.
+ * Return a const pointer to the start of the buffer content.
  *
  * @param buf   The buffer to query.
  *
  * @return Pointer to \c buf->data + \c buf->offset, or NULL if \c buf is
  *         not valid.
  */
-static inline uint8_t *
-buf_bptr(const struct buffer *buf)
+static inline const uint8_t *
+buf_cbptr(const struct buffer *buf)
 {
     if (buf_valid(buf))
     {
@@ -425,6 +433,20 @@ buf_bptr(const struct buffer *buf)
     {
         return NULL;
     }
+}
+
+/**
+ * Return a pointer to the start of the buffer content.
+ *
+ * @param buf   The buffer to query.
+ *
+ * @return Pointer to \c buf->data + \c buf->offset, or NULL if \c buf is
+ *         not valid.
+ */
+static inline uint8_t *
+buf_bptr(struct buffer *buf)
+{
+    return (uint8_t *)buf_cbptr(buf);
 }
 
 /**
@@ -455,9 +477,43 @@ buf_len(const struct buffer *buf)
  * @return Pointer to the byte immediately after the last content byte.
  */
 static inline uint8_t *
-buf_bend(const struct buffer *buf)
+buf_bend(struct buffer *buf)
 {
     return buf_bptr(buf) + buf_len(buf);
+}
+
+/**
+ * Return a const pointer one past the end of the buffer content.
+ *
+ * @param buf   The buffer to query.
+ *
+ * @return Pointer to the byte immediately after the last content byte.
+ */
+static inline const uint8_t *
+buf_cbend(const struct buffer *buf)
+{
+    return buf_cbptr(buf) + buf_len(buf);
+}
+
+/**
+ * Return a const pointer to the last byte of the buffer content.
+ *
+ * @param buf   The buffer to query.
+ *
+ * @return Pointer to the last byte, or NULL if the buffer is empty or
+ *         invalid.
+ */
+static inline const uint8_t *
+buf_cblast(const struct buffer *buf)
+{
+    if (buf_len(buf) > 0)
+    {
+        return buf_cbptr(buf) + buf_len(buf) - 1;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 /**
@@ -469,16 +525,9 @@ buf_bend(const struct buffer *buf)
  *         invalid.
  */
 static inline uint8_t *
-buf_blast(const struct buffer *buf)
+buf_blast(struct buffer *buf)
 {
-    if (buf_len(buf) > 0)
-    {
-        return buf_bptr(buf) + buf_len(buf) - 1;
-    }
-    else
-    {
-        return NULL;
-    }
+    return (uint8_t *)buf_cblast(buf);
 }
 
 /**
@@ -518,9 +567,22 @@ buf_size_valid_signed(const int size)
  * @return The content pointer as a \c char *, or NULL if \c buf is invalid.
  */
 static inline char *
-buf_str(const struct buffer *buf)
+buf_str(struct buffer *buf)
 {
     return (char *)buf_bptr(buf);
+}
+
+/**
+ * Return the buffer content pointer cast to \c const char *.
+ *
+ * @param buf   The buffer to query.
+ *
+ * @return The content pointer as a \c const char *, or NULL if \c buf is invalid.
+ */
+static inline const char *
+buf_cstr(const struct buffer *buf)
+{
+    return (const char *)buf_cbptr(buf);
 }
 
 /**
@@ -1300,7 +1362,7 @@ buf_write_u64(struct buffer *dest, uint64_t data)
 static inline bool
 buf_copy(struct buffer *dest, const struct buffer *src)
 {
-    return buf_write(dest, BPTR(src), BLENZ(src));
+    return buf_write(dest, CBPTR(src), BLENZ(src));
 }
 
 /**
@@ -1427,14 +1489,14 @@ buf_read(struct buffer *src, void *dest, int size)
  *         is empty.
  */
 static inline int
-buf_peek_u8(struct buffer *buf)
+buf_peek_u8(const struct buffer *buf)
 {
     int ret;
     if (BLEN(buf) < 1)
     {
         return -1;
     }
-    ret = *BPTR(buf);
+    ret = *CBPTR(buf);
     return ret;
 }
 
@@ -1547,7 +1609,7 @@ buf_read_u64(struct buffer *buf, bool *good)
 static inline bool
 buf_equal(const struct buffer *a, const struct buffer *b)
 {
-    return BLEN(a) == BLEN(b) && 0 == memcmp(BPTR(a), BPTR(b), BLENZ(a));
+    return BLEN(a) == BLEN(b) && 0 == memcmp(CBPTR(a), CBPTR(b), BLENZ(a));
 }
 
 /**
@@ -1561,7 +1623,7 @@ buf_string_match(const struct buffer *src, const void *match, int size)
     {
         return false;
     }
-    return memcmp(BPTR(src), match, size) == 0;
+    return memcmp(CBPTR(src), match, size) == 0;
 }
 
 /**
@@ -1575,7 +1637,7 @@ buf_string_match_head(const struct buffer *src, const void *match, int size)
     {
         return false;
     }
-    return memcmp(BPTR(src), match, size) == 0;
+    return memcmp(CBPTR(src), match, size) == 0;
 }
 
 /**
@@ -1720,7 +1782,7 @@ bool string_mod(char *str, const unsigned int inclusive, const unsigned int excl
  * @param exclusive Character classes that are not allowed even if they are also in inclusive.
  * @return True if the string consists only of allowed characters, false otherwise.
  */
-bool string_check_buf(struct buffer *buf, const unsigned int inclusive,
+bool string_check_buf(const struct buffer *buf, const unsigned int inclusive,
                       const unsigned int exclusive);
 
 /**

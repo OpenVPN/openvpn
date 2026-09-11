@@ -2446,7 +2446,9 @@ link_socket_write_udp_posix_sendmsg(struct link_socket *sock, struct buffer *buf
     struct cmsghdr *cmsg;
     uint8_t pktinfo_buf[PKTINFO_BUF_SIZE];
 
-    iov.iov_base = BPTR(buf);
+    /* sendmsg takes a const msghdr, but we can't construct that here
+       directly, so cast */
+    iov.iov_base = (char *)CBPTR(buf);
     iov.iov_len = BLENZ(buf);
     mesg.msg_iov = &iov;
     mesg.msg_iovlen = 1;

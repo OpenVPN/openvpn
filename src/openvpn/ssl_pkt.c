@@ -305,7 +305,7 @@ tls_pre_decrypt_lite(const struct tls_auth_standalone *tas, struct tls_pre_decry
     }
 
     /* get opcode and key ID */
-    uint8_t pkt_firstbyte = *BPTR(buf);
+    uint8_t pkt_firstbyte = *CBPTR(buf);
     int op = pkt_firstbyte >> P_OPCODE_SHIFT;
     int key_id = pkt_firstbyte & P_KEY_ID_MASK;
 

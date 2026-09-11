@@ -258,7 +258,7 @@ get_tun_ip_ver(int tunnel_type, struct buffer *buf, int *ip_hdr_offset)
         *ip_hdr_offset = 0;
         if (likely(BLEN(buf) >= (int)sizeof(struct openvpn_iphdr)))
         {
-            ip_ver = OPENVPN_IPH_GET_VER(*BPTR(buf));
+            ip_ver = OPENVPN_IPH_GET_VER(*CBPTR(buf));
         }
     }
     else if (tunnel_type == DEV_TYPE_TAP)
@@ -267,7 +267,7 @@ get_tun_ip_ver(int tunnel_type, struct buffer *buf, int *ip_hdr_offset)
         /* for tap get ip version from eth header */
         if (likely(BLEN(buf) >= *ip_hdr_offset))
         {
-            const struct openvpn_ethhdr *eh = (const struct openvpn_ethhdr *)BPTR(buf);
+            const struct openvpn_ethhdr *eh = (const struct openvpn_ethhdr *)CBPTR(buf);
             uint16_t proto = ntohs(eh->proto);
             if (proto == OPENVPN_ETH_P_IPV6)
             {

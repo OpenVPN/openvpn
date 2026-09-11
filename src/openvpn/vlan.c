@@ -269,7 +269,7 @@ vlan_is_tagged(const struct buffer *buf)
         return false;
     }
 
-    vlanhdr = (const struct openvpn_8021qhdr *)BPTR(buf);
+    vlanhdr = (const struct openvpn_8021qhdr *)CBPTR(buf);
 
     if (ntohs(vlanhdr->tpid) != OPENVPN_ETH_P_8021Q)
     {

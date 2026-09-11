@@ -148,7 +148,7 @@ tls_crypt_wrap(const struct buffer *src, struct buffer *dst, struct crypto_optio
 
     gc_init(&gc);
 
-    dmsg(D_PACKET_CONTENT, "TLS-CRYPT WRAP FROM: %s", format_hex(BPTR(src), BLEN(src), 80, &gc));
+    dmsg(D_PACKET_CONTENT, "TLS-CRYPT WRAP FROM: %s", format_hex(CBPTR(src), BLEN(src), 80, &gc));
 
     /* Get packet ID */
     if (!packet_id_write(&opt->packet_id.send, dst, true, false))
@@ -157,7 +157,7 @@ tls_crypt_wrap(const struct buffer *src, struct buffer *dst, struct crypto_optio
         goto err;
     }
 
-    dmsg(D_PACKET_CONTENT, "TLS-CRYPT WRAP AD: %s", format_hex(BPTR(dst), BLEN(dst), 0, &gc));
+    dmsg(D_PACKET_CONTENT, "TLS-CRYPT WRAP AD: %s", format_hex(CBPTR(dst), BLEN(dst), 0, &gc));
 
     /* Buffer overflow check */
     if (!buf_safe(dst, BLENZ(src) + TLS_CRYPT_BLOCK_SIZE + TLS_CRYPT_TAG_SIZE))
@@ -173,8 +173,8 @@ tls_crypt_wrap(const struct buffer *src, struct buffer *dst, struct crypto_optio
     {
         uint8_t *tag = NULL;
         hmac_ctx_reset(ctx->hmac);
-        hmac_ctx_update(ctx->hmac, BPTR(dst), BLEN(dst));
-        hmac_ctx_update(ctx->hmac, BPTR(src), BLEN(src));
+        hmac_ctx_update(ctx->hmac, CBPTR(dst), BLEN(dst));
+        hmac_ctx_update(ctx->hmac, CBPTR(src), BLEN(src));
 
         ASSERT(tag = buf_write_alloc(dst, TLS_CRYPT_TAG_SIZE));
         hmac_ctx_final(ctx->hmac, tag);
@@ -189,7 +189,7 @@ tls_crypt_wrap(const struct buffer *src, struct buffer *dst, struct crypto_optio
     /* Encrypt src */
     {
         int outlen = 0;
-        ASSERT(cipher_ctx_update(ctx->cipher, BEND(dst), &outlen, BPTR(src), BLEN(src)));
+        ASSERT(cipher_ctx_update(ctx->cipher, BEND(dst), &outlen, CBPTR(src), BLEN(src)));
         ASSERT(buf_inc_len(dst, outlen));
         ASSERT(cipher_ctx_final(ctx->cipher, BPTR(dst), &outlen));
         ASSERT(buf_inc_len(dst, outlen));
@@ -220,7 +220,7 @@ tls_crypt_unwrap(const struct buffer *src, struct buffer *dst, struct crypto_opt
     ASSERT(ctx->cipher);
     ASSERT(packet_id_initialized(&opt->packet_id) || (opt->flags & CO_IGNORE_PACKET_ID));
 
-    dmsg(D_PACKET_CONTENT, "TLS-CRYPT UNWRAP FROM: %s", format_hex(BPTR(src), BLEN(src), 80, &gc));
+    dmsg(D_PACKET_CONTENT, "TLS-CRYPT UNWRAP FROM: %s", format_hex(CBPTR(src), BLEN(src), 80, &gc));
 
     if (BLENZ(src) < TLS_CRYPT_OFF_CT)
     {
@@ -237,11 +237,11 @@ tls_crypt_unwrap(const struct buffer *src, struct buffer *dst, struct crypto_opt
             CRYPT_ERROR("potential buffer overflow");
         }
 
-        if (!cipher_ctx_reset(ctx->cipher, BPTR(src) + TLS_CRYPT_OFF_TAG))
+        if (!cipher_ctx_reset(ctx->cipher, CBPTR(src) + TLS_CRYPT_OFF_TAG))
         {
             CRYPT_ERROR("cipher reset failed");
         }
-        if (!cipher_ctx_update(ctx->cipher, BPTR(dst), &outlen, BPTR(src) + TLS_CRYPT_OFF_CT,
+        if (!cipher_ctx_update(ctx->cipher, BPTR(dst), &outlen, CBPTR(src) + TLS_CRYPT_OFF_CT,
                                BLEN(src) - (int)TLS_CRYPT_OFF_CT))
         {
             CRYPT_ERROR("cipher update failed");
@@ -256,17 +256,17 @@ tls_crypt_unwrap(const struct buffer *src, struct buffer *dst, struct crypto_opt
 
     /* Check authentication */
     {
-        const uint8_t *tag = BPTR(src) + TLS_CRYPT_OFF_TAG;
+        const uint8_t *tag = CBPTR(src) + TLS_CRYPT_OFF_TAG;
         uint8_t tag_check[TLS_CRYPT_TAG_SIZE] = { 0 };
 
         dmsg(D_PACKET_CONTENT, "TLS-CRYPT UNWRAP AD: %s",
-             format_hex(BPTR(src), TLS_CRYPT_OFF_TAG, 0, &gc));
+             format_hex(CBPTR(src), TLS_CRYPT_OFF_TAG, 0, &gc));
         dmsg(D_PACKET_CONTENT, "TLS-CRYPT UNWRAP TO: %s",
-             format_hex(BPTR(dst), BLEN(dst), 80, &gc));
+             format_hex(CBPTR(dst), BLEN(dst), 80, &gc));
 
         hmac_ctx_reset(ctx->hmac);
-        hmac_ctx_update(ctx->hmac, BPTR(src), TLS_CRYPT_OFF_TAG);
-        hmac_ctx_update(ctx->hmac, BPTR(dst), BLEN(dst));
+        hmac_ctx_update(ctx->hmac, CBPTR(src), TLS_CRYPT_OFF_TAG);
+        hmac_ctx_update(ctx->hmac, CBPTR(dst), BLEN(dst));
         hmac_ctx_final(ctx->hmac, tag_check);
 
         if (memcmp_constant_time(tag, tag_check, sizeof(tag_check)))
@@ -384,7 +384,7 @@ tls_crypt_v2_wrap_client_key(struct buffer *wkc, const struct key2 *src_key,
     hmac_ctx_reset(hmac_ctx);
     hmac_ctx_update(hmac_ctx, (void *)&net_len, sizeof(net_len));
     hmac_ctx_update(hmac_ctx, (void *)src_key->keys, sizeof(src_key->keys));
-    hmac_ctx_update(hmac_ctx, BPTR(src_metadata), BLEN(src_metadata));
+    hmac_ctx_update(hmac_ctx, CBPTR(src_metadata), BLEN(src_metadata));
     hmac_ctx_final(hmac_ctx, tag);
 
     dmsg(D_CRYPTO_DEBUG, "TLS-CRYPT WRAP TAG: %s", format_hex(tag, TLS_CRYPT_TAG_SIZE, 0, gc));
@@ -405,7 +405,7 @@ tls_crypt_v2_wrap_client_key(struct buffer *wkc, const struct key2 *src_key,
     ASSERT(cipher_ctx_update(cipher_ctx, BEND(&work), &outlen, (void *)src_key->keys,
                              sizeof(src_key->keys)));
     ASSERT(buf_inc_len(&work, outlen));
-    ASSERT(cipher_ctx_update(cipher_ctx, BEND(&work), &outlen, BPTR(src_metadata),
+    ASSERT(cipher_ctx_update(cipher_ctx, BEND(&work), &outlen, CBPTR(src_metadata),
                              BLEN(src_metadata)));
     ASSERT(buf_inc_len(&work, outlen));
     ASSERT(cipher_ctx_final(cipher_ctx, BEND(&work), &outlen));
@@ -529,7 +529,7 @@ tls_crypt_v2_check_client_key_age(const struct buffer *tls_crypt_v2_metadata, in
         return false;
     }
 
-    const uint8_t *metadata = buf_bptr(tls_crypt_v2_metadata);
+    const uint8_t *metadata = CBPTR(tls_crypt_v2_metadata);
     if (*metadata != TLS_CRYPT_METADATA_TYPE_TIMESTAMP)
     {
         msg(M_WARN, "ERROR: Client key does not have a timestamp.");

@@ -445,7 +445,7 @@ int cipher_ctx_update_ad(cipher_ctx_t *ctx, const uint8_t *src, int src_len);
  *
  * @return              \c 0 on failure, \c 1 on success.
  */
-int cipher_ctx_update(cipher_ctx_t *ctx, uint8_t *dst, int *dst_len, uint8_t *src, int src_len);
+int cipher_ctx_update(cipher_ctx_t *ctx, uint8_t *dst, int *dst_len, const uint8_t *src, int src_len);
 
 /**
  * Pads the final cipher block using PKCS padding, and output to the destination

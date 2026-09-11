@@ -465,7 +465,7 @@ crypto_pem_encode(const char *name, struct buffer *dst, const struct buffer *src
 {
     bool ret = false;
     BIO *bio = BIO_new(BIO_s_mem());
-    if (!bio || !PEM_write_bio(bio, name, "", BPTR(src), BLEN(src)))
+    if (!bio || !PEM_write_bio(bio, name, "", CBPTR(src), BLEN(src)))
     {
         ret = false;
         goto cleanup;
@@ -492,7 +492,7 @@ crypto_pem_decode(const char *name, struct buffer *dst, const struct buffer *src
 {
     bool ret = false;
 
-    BIO *bio = BIO_new_mem_buf((char *)BPTR(src), BLEN(src));
+    BIO *bio = BIO_new_mem_buf(CBPTR(src), BLEN(src));
     if (!bio)
     {
         crypto_msg(M_FATAL, "Cannot open memory BIO for PEM decode");
@@ -941,7 +941,7 @@ cipher_ctx_update_ad(EVP_CIPHER_CTX *ctx, const uint8_t *src, int src_len)
 }
 
 int
-cipher_ctx_update(EVP_CIPHER_CTX *ctx, uint8_t *dst, int *dst_len, uint8_t *src, int src_len)
+cipher_ctx_update(EVP_CIPHER_CTX *ctx, uint8_t *dst, int *dst_len, const uint8_t *src, int src_len)
 {
     if (!EVP_CipherUpdate(ctx, dst, dst_len, src, src_len))
     {

@@ -207,7 +207,7 @@ cert_hash_remember(struct tls_session *session, const int error_depth,
 
         struct cert_hash *ch = session->cert_hash_set->ch[error_depth];
         ASSERT(sizeof(ch->sha256_hash) == BLEN(cert_hash));
-        memcpy(ch->sha256_hash, BPTR(cert_hash), sizeof(ch->sha256_hash));
+        memcpy(ch->sha256_hash, CBPTR(cert_hash), sizeof(ch->sha256_hash));
     }
 }
 

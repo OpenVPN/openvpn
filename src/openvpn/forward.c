@@ -271,7 +271,7 @@ parse_incoming_control_channel_command(struct context *c, struct buffer *buf)
     }
     else
     {
-        msg(D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", BSTR(buf));
+        msg(D_PUSH_ERRORS, "WARNING: Received unknown control message: %s", CBSTR(buf));
     }
 }
 
@@ -1646,7 +1646,7 @@ ipv6_send_icmp_unreachable(struct context *c, struct buffer *buf, bool client)
             return;
         }
 
-        const struct openvpn_ethhdr *orig_ethhdr = (struct openvpn_ethhdr *)BPTR(buf);
+        const struct openvpn_ethhdr *orig_ethhdr = (const struct openvpn_ethhdr *)CBPTR(buf);
 
         /* Copy frametype and reverse source/destination for the response */
         struct openvpn_ethhdr ethhdr;

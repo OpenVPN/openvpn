@@ -109,7 +109,7 @@ clone_buf(const struct buffer *buf)
 #endif
     ret.data = (uint8_t *)malloc(buf->capacity);
     check_malloc_return(ret.data);
-    memcpy(BPTR(&ret), BPTR(buf), BLENZ(buf));
+    memcpy(BPTR(&ret), CBPTR(buf), BLENZ(buf));
     return ret;
 }
 
@@ -162,7 +162,7 @@ buf_assign(struct buffer *dest, const struct buffer *src)
     {
         return false;
     }
-    return buf_write(dest, BPTR(src), BLENZ(src));
+    return buf_write(dest, CBPTR(src), BLENZ(src));
 }
 
 void
@@ -293,7 +293,7 @@ buffer_write_file(const char *filename, const struct buffer *buf)
         return false;
     }
 
-    const ssize_t size = write(fd, BPTR(buf), (unsigned int)BLEN(buf));
+    const ssize_t size = write(fd, CBPTR(buf), (unsigned int)BLEN(buf));
     if (size != BLEN(buf))
     {
         msg(M_ERRNO, "Write error on file '%s'", filename);
@@ -732,7 +732,7 @@ buf_string_match_head_str(const struct buffer *src, const char *match)
     {
         return false;
     }
-    return memcmp(BPTR(src), match, size) == 0;
+    return memcmp(CBPTR(src), match, size) == 0;
 }
 
 bool
@@ -1035,13 +1035,13 @@ string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive
 }
 
 bool
-string_check_buf(struct buffer *buf, const unsigned int inclusive, const unsigned int exclusive)
+string_check_buf(const struct buffer *buf, const unsigned int inclusive, const unsigned int exclusive)
 {
     ASSERT(buf);
 
     for (int i = 0; i < BLEN(buf); i++)
     {
-        char c = BSTR(buf)[i];
+        char c = CBSTR(buf)[i];
 
         if (!char_inc_exc(c, inclusive, exclusive))
         {
@@ -1135,7 +1135,7 @@ valign4(const struct buffer *buf, const char *file, const int line)
     if (buf && buf->len)
     {
         msglvl_t msglevel = D_ALIGN_DEBUG;
-        const uintptr_t u = (uintptr_t)BPTR(buf);
+        const uintptr_t u = (uintptr_t)CBPTR(buf);
 
         if (u & (PAYLOAD_ALIGN - 1))
         {
@@ -1393,16 +1393,16 @@ buf_extract_field(struct buffer *buf, char sep, struct gc_arena *gc)
         return NULL;
     }
 
-    const uint8_t *seppos = memchr(BPTR(buf), sep, buf_len(buf));
+    const uint8_t *seppos = memchr(CBPTR(buf), sep, buf_len(buf));
     if (!seppos)
     {
         return NULL;
     }
-    size_t field_len = seppos - BPTR(buf);
+    size_t field_len = seppos - CBPTR(buf);
 
     char *field = gc_malloc(field_len + 1, false, gc);
 
-    memcpy(field, BPTR(buf), field_len);
+    memcpy(field, CBPTR(buf), field_len);
     field[field_len] = 0;
 
     buf_advance(buf, field_len + 1);
