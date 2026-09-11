@@ -753,9 +753,9 @@ x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
 /* Dummy function because Netscape certificate types are not supported in OpenVPN with mbedtls.
  * Returns SUCCESS if usage is NS_CERT_CHECK_NONE, FAILURE otherwise. */
 result_t
-x509_verify_ns_cert_type(mbedtls_x509_crt *cert, const int usage)
+x509_verify_ns_cert_type(mbedtls_x509_crt *cert, const int cert_type)
 {
-    if (usage == NS_CERT_CHECK_NONE)
+    if (cert_type == NS_CERT_CHECK_NONE)
     {
         return SUCCESS;
     }

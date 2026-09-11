@@ -220,14 +220,14 @@ void x509_setenv_track(const struct x509_track *xt, struct env_set *es, const in
  * Check X.509 Netscape certificate type field, if available.
  *
  * @param cert          Certificate to check.
- * @param usage         One of \c NS_CERT_CHECK_CLIENT, \c NS_CERT_CHECK_SERVER,
+ * @param cert_type     One of \c NS_CERT_CHECK_CLIENT, \c NS_CERT_CHECK_SERVER,
  *                      or \c NS_CERT_CHECK_NONE.
  *
  * @return              \c SUCCESS if NS_CERT_CHECK_NONE or if the certificate has
  *                      the expected bit set. \c FAILURE if the certificate does
  *                      not have NS cert type verification or the wrong bit set.
  */
-result_t x509_verify_ns_cert_type(openvpn_x509_cert_t *cert, const int usage);
+result_t x509_verify_ns_cert_type(openvpn_x509_cert_t *cert, const int cert_type);
 
 /*
  * Verify X.509 key usage extension field.

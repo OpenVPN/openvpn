@@ -137,7 +137,7 @@ static char softhsm2_tokens_path[] = "softhsm2_tokens_XXXXXX";
 static char softhsm2_conf_path[] = "softhsm2_conf_XXXXXX";
 int num_certs;
 static const char *pkcs11_id_current;
-struct env_set *es;
+struct env_set *test_set;
 
 /* Fill-in certs[] array */
 void
@@ -218,15 +218,15 @@ init(void **state)
 
     /* environment */
     setenv("SOFTHSM2_CONF", softhsm2_conf_path, 1);
-    es = env_set_create(NULL);
-    setenv_str(es, "SOFTHSM2_CONF", softhsm2_conf_path);
-    setenv_str(es, "GNUTLS_PIN", PIN);
+    test_set = env_set_create(NULL);
+    setenv_str(test_set, "SOFTHSM2_CONF", softhsm2_conf_path);
+    setenv_str(test_set, "GNUTLS_PIN", PIN);
 
     /* init the token using the temporary location as storage */
     struct argv a = argv_new();
     argv_printf(&a, "%s --init-token --free --label \"%s\" --so-pin %s --pin %s",
                 SOFTHSM2_UTIL_PATH, token_name, PIN, PIN);
-    assert_true(openvpn_execve_check(&a, es, 0, "Failed to initialize token"));
+    assert_true(openvpn_execve_check(&a, test_set, 0, "Failed to initialize token"));
 
     /* Import certificates and keys in our test database into the token */
     char cert[] = "cert_XXXXXX";
@@ -263,14 +263,14 @@ init(void **state)
         argv_printf(
             &a, "%s --provider %s --load-certificate %s --label \"%s\" --id %08x --login --write",
             P11TOOL_PATH, SOFTHSM2_MODULE_PATH, cert, c->friendly_name, num_certs + 1);
-        assert_true(openvpn_execve_check(&a, es, 0, "Failed to upload certificate into token"));
+        assert_true(openvpn_execve_check(&a, test_set, 0, "Failed to upload certificate into token"));
 
         argv_free(&a);
         a = argv_new();
         argv_printf(&a,
                     "%s --provider %s --load-privkey %s --label \"%s\" --id %08x --login --write",
                     P11TOOL_PATH, SOFTHSM2_MODULE_PATH, key, c->friendly_name, num_certs + 1);
-        assert_true(openvpn_execve_check(&a, es, 0, "Failed to upload key into token"));
+        assert_true(openvpn_execve_check(&a, test_set, 0, "Failed to upload key into token"));
 
         assert_int_equal(ftruncate(cert_fd, 0), 0);
         assert_int_equal(ftruncate(key_fd, 0), 0);
@@ -294,7 +294,7 @@ cleanup(void **state)
     struct argv a = argv_new();
 
     argv_printf(&a, "%s --delete-token --token \"%s\"", SOFTHSM2_UTIL_PATH, token_name);
-    assert_true(openvpn_execve_check(&a, es, 0, "Failed to delete token"));
+    assert_true(openvpn_execve_check(&a, test_set, 0, "Failed to delete token"));
     argv_free(&a);
 
     rmdir(softhsm2_tokens_path); /* this must be empty after delete token */
@@ -304,7 +304,7 @@ cleanup(void **state)
         free(c->p11_id);
         c->p11_id = NULL;
     }
-    env_set_destroy(es);
+    env_set_destroy(test_set);
     return 0;
 }
 

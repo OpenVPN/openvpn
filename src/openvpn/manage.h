@@ -389,15 +389,15 @@ void management_notify(const char *severity, const char *type,
 
 void management_notify_generic(const char *str);
 
-void management_notify_client_needing_auth(struct management *management,
+void management_notify_client_needing_auth(struct management *man,
                                            const unsigned int auth_id,
                                            struct man_def_auth_context *mdac,
                                            const struct env_set *es);
 
-void management_connection_established(struct management *management,
+void management_connection_established(struct management *man,
                                        struct man_def_auth_context *mdac, const struct env_set *es);
 
-void management_notify_client_close(struct management *management,
+void management_notify_client_close(const struct management *man,
                                     struct man_def_auth_context *mdac, const struct env_set *es);
 
 void management_learn_addr(struct man_def_auth_context *mdac,

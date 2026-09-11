@@ -396,12 +396,12 @@ options_string_version(const char *s, struct gc_arena *gc)
 #endif
 
 char *
-options_string_extract_option(const char *options_string, const char *opt_name, struct gc_arena *gc)
+options_string_extract_option(const char *option_string, const char *opt_name, struct gc_arena *gc)
 {
     char *ret = NULL;
     const size_t opt_name_len = strlen(opt_name);
 
-    const char *p = options_string;
+    const char *p = option_string;
     while (p)
     {
         if (0 == strncmp(p, opt_name, opt_name_len) && strlen(p) > (opt_name_len + 1)

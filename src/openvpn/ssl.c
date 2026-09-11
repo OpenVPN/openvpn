@@ -1360,7 +1360,7 @@ openvpn_PRF(const uint8_t *secret, size_t secret_len, const char *label, const u
 
 static void
 init_epoch_keys(struct key_state *ks, struct tls_multi *multi, const struct key_type *key_type,
-                bool server, struct key2 *key2)
+                bool server, const struct key2 *key2)
 {
     /* For now we hardcode this to be 4 for the software based data channel
      * DCO based implementations/HW implementation might adjust this number
@@ -1403,14 +1403,14 @@ init_epoch_keys(struct key_state *ks, struct tls_multi *multi, const struct key_
 
 static void
 init_key_contexts(struct key_state *ks, struct tls_multi *multi, const struct key_type *key_type,
-                  bool server, struct key2 *key2, bool dco_enabled)
+                  bool server, const struct key2 *key2, bool dco)
 {
     struct key_ctx_bi *key = &ks->crypto_options.key_ctx_bi;
 
     /* Initialize key contexts */
     int key_direction = server ? KEY_DIRECTION_INVERSE : KEY_DIRECTION_NORMAL;
 
-    if (dco_enabled)
+    if (dco)
     {
         if (key->encrypt.hmac)
         {

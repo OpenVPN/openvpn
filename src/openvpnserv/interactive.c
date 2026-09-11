@@ -3848,8 +3848,8 @@ CreateClientPipeInstance(VOID)
 
 
 static DWORD
-UpdateWaitHandles(LPHANDLE *handles_ptr, LPDWORD count, HANDLE io_event, HANDLE exit_event,
-                  list_item_t *threads)
+UpdateWaitHandles(LPHANDLE *handles_ptr, LPDWORD count, HANDLE io_event,
+                  const list_item_t *threads)
 {
     static DWORD size = 10;
     static LPHANDLE handles = NULL;
@@ -3998,7 +3998,7 @@ ServiceStartInteractive(DWORD dwArgc, LPWSTR *lpszArgv)
         goto out;
     }
 
-    error = UpdateWaitHandles(&handles, &handle_count, io_event, exit_event, threads);
+    error = UpdateWaitHandles(&handles, &handle_count, io_event, threads);
     if (error != NO_ERROR)
     {
         goto out;
@@ -4065,7 +4065,7 @@ ServiceStartInteractive(DWORD dwArgc, LPWSTR *lpszArgv)
                 if (!error)
                 {
                     error =
-                        UpdateWaitHandles(&handles, &handle_count, io_event, exit_event, threads);
+                        UpdateWaitHandles(&handles, &handle_count, io_event, threads);
                 }
                 if (error)
                 {
@@ -4073,7 +4073,7 @@ ServiceStartInteractive(DWORD dwArgc, LPWSTR *lpszArgv)
                                 &exit_event);
                     /* Update wait handles again after removing the last worker thread */
                     RemoveListItem(&threads, CmpHandle, thread);
-                    UpdateWaitHandles(&handles, &handle_count, io_event, exit_event, threads);
+                    UpdateWaitHandles(&handles, &handle_count, io_event, threads);
                     TerminateThread(thread, 1);
                     CloseHandleEx(&thread);
                     CloseHandleEx(&pipe);
@@ -4113,7 +4113,7 @@ ServiceStartInteractive(DWORD dwArgc, LPWSTR *lpszArgv)
 
             /* Worker thread ended */
             HANDLE thread = RemoveListItem(&threads, CmpHandle, handles[error]);
-            UpdateWaitHandles(&handles, &handle_count, io_event, exit_event, threads);
+            UpdateWaitHandles(&handles, &handle_count, io_event, threads);
             CloseHandleEx(&thread);
         }
     }

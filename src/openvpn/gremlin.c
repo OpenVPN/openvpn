@@ -112,9 +112,9 @@ roll(int low, int high)
     return ret;
 }
 
-static bool initialized; /* GLOBAL */
-static bool up;          /* GLOBAL */
-static time_t next;      /* GLOBAL */
+static bool gremlin_initialized; /* GLOBAL */
+static bool gremlin_up;          /* GLOBAL */
+static time_t gremlin_next;      /* GLOBAL */
 
 /*
  * Return false if we should drop a packet.
@@ -125,54 +125,54 @@ ask_gremlin(int flags)
     const int up_down_level = GREMLIN_UP_DOWN_LEVEL(flags);
     const int drop_level = GREMLIN_DROP_LEVEL(flags);
 
-    if (!initialized)
+    if (!gremlin_initialized)
     {
-        initialized = true;
+        gremlin_initialized = true;
 
         if (up_down_level)
         {
-            up = false;
+            gremlin_up = false;
         }
         else
         {
-            up = true;
+            gremlin_up = true;
         }
 
-        next = now;
+        gremlin_next = now;
     }
 
     if (up_down_level) /* change up/down state? */
     {
-        if (now >= next)
+        if (now >= gremlin_next)
         {
             int delta;
-            if (up)
+            if (gremlin_up)
             {
                 delta = roll(down_low[up_down_level - 1], down_high[up_down_level - 1]);
-                up = false;
+                gremlin_up = false;
             }
             else
             {
                 delta = roll(up_low[up_down_level - 1], up_high[up_down_level - 1]);
-                up = true;
+                gremlin_up = true;
             }
 
-            msg(D_GREMLIN, "GREMLIN: CONNECTION GOING %s FOR %d SECONDS", (up ? "UP" : "DOWN"),
+            msg(D_GREMLIN, "GREMLIN: CONNECTION GOING %s FOR %d SECONDS", (gremlin_up ? "UP" : "DOWN"),
                 delta);
-            next = now + delta;
+            gremlin_next = now + delta;
         }
     }
 
     if (drop_level)
     {
-        if (up && flip(drop_freq[drop_level - 1]))
+        if (gremlin_up && flip(drop_freq[drop_level - 1]))
         {
             dmsg(D_GREMLIN_VERBOSE, "GREMLIN: Random packet drop");
             return false;
         }
     }
 
-    return up;
+    return gremlin_up;
 }
 
 /*

@@ -629,13 +629,13 @@ x509_setenv(struct env_set *es, int cert_depth, openvpn_x509_cert_t *peer_cert)
 }
 
 result_t
-x509_verify_ns_cert_type(openvpn_x509_cert_t *peer_cert, const int usage)
+x509_verify_ns_cert_type(openvpn_x509_cert_t *peer_cert, const int cert_type)
 {
-    if (usage == NS_CERT_CHECK_NONE)
+    if (cert_type == NS_CERT_CHECK_NONE)
     {
         return SUCCESS;
     }
-    if (usage == NS_CERT_CHECK_CLIENT)
+    if (cert_type == NS_CERT_CHECK_CLIENT)
     {
         /*
          * Unfortunately, X509_check_purpose() before OpenSSL 4.0 does some weird thing that
@@ -668,7 +668,7 @@ x509_verify_ns_cert_type(openvpn_x509_cert_t *peer_cert, const int usage)
         }
         return result;
     }
-    if (usage == NS_CERT_CHECK_SERVER)
+    if (cert_type == NS_CERT_CHECK_SERVER)
     {
         /*
          * Unfortunately, X509_check_purpose() before OpenSSL 4.0 does some weird thing that

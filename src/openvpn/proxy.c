@@ -184,10 +184,10 @@ recv_line(socket_descriptor_t sd, char *buf, int len, const int timeout_sec, con
 }
 
 bool
-proxy_send(socket_descriptor_t sd, const void *buf, size_t buf_len)
+proxy_send(socket_descriptor_t sd, const void *buf, size_t len)
 {
-    const ssize_t size = openvpn_send(sd, buf, buf_len, MSG_NOSIGNAL);
-    if (size != (ssize_t)buf_len)
+    const ssize_t size = openvpn_send(sd, buf, len, MSG_NOSIGNAL);
+    if (size != (ssize_t)len)
     {
         msg(D_LINK_ERRORS | M_ERRNO, "proxy_send: TCP port write failed on send()");
         return false;

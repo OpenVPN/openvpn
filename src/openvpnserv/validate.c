@@ -27,7 +27,7 @@
 #include <pathcch.h>
 #include <lm.h>
 
-static const WCHAR *white_list[] = {
+static const WCHAR *global_white_list[] = {
     L"auth-retry",
     L"config",
     L"log",
@@ -335,7 +335,7 @@ CheckOption(const WCHAR *workdir, int argc, WCHAR *argv[], const settings_t *s)
     }
 
     /* option name starts at 2 characters from argv[i] */
-    if (OptionLookup(argv[0] + 2, white_list) == -1) /* not found */
+    if (OptionLookup(argv[0] + 2, global_white_list) == -1) /* not found */
     {
         return FALSE;
     }

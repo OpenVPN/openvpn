@@ -35,7 +35,7 @@
 #include "interactive.c"
 
 BOOL
-ReportStatusToSCMgr(SERVICE_STATUS_HANDLE service, SERVICE_STATUS *status)
+ReportStatusToSCMgr(SERVICE_STATUS_HANDLE svc_handle, SERVICE_STATUS *svc_status)
 {
     return TRUE;
 }
