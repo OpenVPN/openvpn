@@ -42,6 +42,16 @@ option(USE_WERROR "Treat compiler warnings as errors (-Werror)" ON)
 option(FAKE_ANDROID "Target Android but do not use actual cross compile/Android cmake to build for simple compile checks on Linux")
 
 option(ENABLE_DNS_UPDOWN_BY_DEFAULT "Run --dns-updown hook by default" ON)
+
+# Optional Clang -fbounds-safety. Default OFF: OVPN_*SIZED_BY* / OVPN_*COUNTED_BY*
+# macros in src/openvpn/buffer_bounds_safety.h are inert and the ABI/build is unchanged.
+# When ON, requires a Clang that provides -fbounds-safety / <ptrcheck.h>.
+option(ENABLE_FBOUNDS_SAFETY "Enable experimental Clang -fbounds-safety annotations (OFF by default)" OFF)
+if(ENABLE_FBOUNDS_SAFETY)
+    message(STATUS "ENABLE_FBOUNDS_SAFETY enabled")
+else()
+    message(STATUS "ENABLE_FBOUNDS_SAFETY disabled")
+endif()
 set(DNS_UPDOWN_PATH "${CMAKE_INSTALL_PREFIX}/libexec/openvpn/dns-updown" CACHE STRING "Default location for the DNS up/down script")
 
 set(PLUGIN_DIR "${CMAKE_INSTALL_PREFIX}/lib/openvpn/plugins" CACHE FILEPATH "Location of the plugin directory")
@@ -431,6 +441,7 @@ set(SOURCE_FILES
     src/openvpn/basic.h
     src/openvpn/buffer.c
     src/openvpn/buffer.h
+    src/openvpn/buffer_bounds_safety.h
     src/openvpn/check_file_access.c
     src/openvpn/check_file_access.h
     src/openvpn/circ_list.h
@@ -636,6 +647,12 @@ set(SOURCE_FILES
 add_executable(openvpn ${SOURCE_FILES})
 
 add_library_deps(openvpn)
+
+# Optional -fbounds-safety (inert macros unless ENABLE_FBOUNDS_SAFETY)
+if(ENABLE_FBOUNDS_SAFETY)
+    target_compile_definitions(openvpn PRIVATE OVPN_SUPPORT_FBOUNDS_SAFETY)
+    target_compile_options(openvpn PRIVATE -fbounds-safety)
+endif()
 
 target_compile_options(openvpn PRIVATE -DDEFAULT_DNS_UPDOWN=\"${DNS_UPDOWN_PATH}\")
 
