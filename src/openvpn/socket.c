@@ -2421,13 +2421,17 @@ link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
 ssize_t
 link_socket_write_tcp(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *to)
 {
-    const int blen = BLEN(buf);
-    ASSERT(blen >= 0 && blen <= PACKET_SIZE_MAX);
-    packet_size_type len = (packet_size_type)blen;
-    dmsg(D_STREAM_DEBUG, "STREAM: WRITE %u offset=%d", len, buf->offset);
-    ASSERT(len <= sock->stream_buf.maxlen);
-    len = htonps(len);
-    ASSERT(buf_write_prepend(buf, &len, sizeof(len)));
+    if (!sock->stream_partial_write)
+    {
+        /* prepend the length of the packet to the buffer */
+        const int blen = BLEN(buf);
+        ASSERT(blen >= 0 && blen <= PACKET_SIZE_MAX);
+        packet_size_type len = (packet_size_type)blen;
+        dmsg(D_STREAM_DEBUG, "STREAM: WRITE %u offset=%d", len, buf->offset);
+        ASSERT(len <= sock->stream_buf.maxlen);
+        len = htonps(len);
+        ASSERT(buf_write_prepend(buf, &len, sizeof(len)));
+    }
 #ifdef _WIN32
     return link_socket_write_win32(sock, buf, to);
 #else

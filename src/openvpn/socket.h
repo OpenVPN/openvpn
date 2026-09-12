@@ -223,6 +223,7 @@ struct link_socket
     struct stream_buf stream_buf;
     struct buffer stream_buf_data;
     bool stream_reset;
+    bool stream_partial_write; /* a partial write is outstanding */
 
     /* HTTP proxy */
     struct http_proxy_info *http_proxy;

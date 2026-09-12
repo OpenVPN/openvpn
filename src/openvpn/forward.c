@@ -1748,7 +1748,11 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
     struct gc_arena gc = gc_new();
     int error_code = 0;
 
-    if (c->c2.to_link.len > 0 && c->c2.to_link.len <= c->c2.frame.buf.payload_size)
+    /* For a partial TCP write, to_link.len includes the prepended size header,
+       so it can be greater than the payload size. */
+    if (c->c2.to_link.len > 0 
+        && (c->c2.to_link.len <= c->c2.frame.buf.payload_size 
+            || sock->stream_partial_write))
     {
         /*
          * Setup for call to send/sendto which will send
@@ -1766,7 +1770,7 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
              * Let the traffic shaper know how many bytes
              * we wrote.
              */
-            if (c->options.shaper)
+            if (c->options.shaper && !sock->stream_partial_write)
             {
                 int overhead =
                     datagram_overhead(c->c2.to_link_addr->dest.addr.sa.sa_family, sock->info.proto);
@@ -1788,7 +1792,7 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
 
             /* Log packet send */
 #ifdef LOG_RW
-            if (c->c2.log_rw)
+            if (c->c2.log_rw && !sock->stream_partial_write)
             {
                 fprintf(stderr, "W");
             }
@@ -1824,19 +1828,43 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
         error_code = openvpn_errno();
         check_status(size, "write", sock, NULL);
 
-        if (size > 0)
+        if (proto_is_tcp(sock->info.proto) && !socket_is_dco_win(sock))
+        {
+            if (size == BLEN(&c->c2.to_link))
+            {
+                /* complete write */
+                sock->stream_partial_write = false;
+            }
+            else if (size > 0 && size < BLEN(&c->c2.to_link))
+            {
+                /* partial write */
+                buf_advance(&c->c2.to_link, size);
+                sock->stream_partial_write = true;
+            }
+            else if (size < 0 && (error_code == EAGAIN || error_code == EWOULDBLOCK))
+            {
+                /* 0 bytes written, but header might have been prepended */
+                sock->stream_partial_write = true;
+            }
+            else
+            {
+                /* error */
+                sock->stream_partial_write = false;
+            }
+        }
+        else
         {
             /* Did we write a different size packet than we intended? */
-            if (size != BLEN(&c->c2.to_link))
+            if (size > 0 &&  size != BLEN(&c->c2.to_link))
             {
                 msg(D_LINK_ERRORS,
-                    "TCP/UDP packet was truncated/expanded on write to %s (tried=%d,actual=%d)",
+                    "Packet was truncated/expanded on write to %s (tried=%d,actual=%d)",
                     print_link_socket_actual(c->c2.to_link_addr, &gc), BLEN(&c->c2.to_link), size);
             }
         }
 
         /* if not a ping/control message, indicate activity regarding --inactive parameter */
-        if (c->c2.buf.len > 0)
+        if (c->c2.buf.len > 0 && size > 0)
         {
             register_activity(c, size);
         }
@@ -1867,7 +1895,10 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
         }
     }
 
-    buf_reset(&c->c2.to_link);
+    if (!sock->stream_partial_write)
+    {
+        buf_reset(&c->c2.to_link);
+    }
 
     gc_free(&gc);
 }
