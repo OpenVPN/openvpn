@@ -99,7 +99,6 @@ message_splitter(const char *s, struct buffer_list *msgs, struct gc_arena *gc, c
     }
 
     char *str = gc_strdup(s, gc);
-    size_t i = 0;
 
     while (*str)
     {
@@ -112,11 +111,11 @@ message_splitter(const char *s, struct buffer_list *msgs, struct gc_arena *gc, c
                 /* if no commas were found go to fail, do not send any message */
                 return false;
             }
+            /* copy from current position to (ci - 1) */
             str[ci] = '\0';
-            /* copy from i to (ci -1) */
             struct buffer tmp = forge_msg(str, ",push-continuation 2", gc);
             buffer_list_push(msgs, BSTR(&tmp));
-            i = ci + 1;
+            str += ci + 1;
         }
         else
         {
@@ -130,9 +129,8 @@ message_splitter(const char *s, struct buffer_list *msgs, struct gc_arena *gc, c
                 struct buffer tmp = forge_msg(str, NULL, gc);
                 buffer_list_push(msgs, BSTR(&tmp));
             }
-            i = strlen(str);
+            break;
         }
-        str = &str[i];
     }
     return true;
 }

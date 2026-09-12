@@ -408,8 +408,8 @@ static inline int
 openvpn_errno_maybe_crt(bool *crt_error)
 {
     int err = 0;
-    *crt_error = false;
 #ifdef _WIN32
+    *crt_error = false;
     err = GetLastError();
     if (err == ERROR_SUCCESS)
     {

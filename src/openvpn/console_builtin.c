@@ -192,7 +192,6 @@ close_tty(FILE *fp)
 static bool
 get_console_input(const char *prompt, const bool echo, char *input, const int capacity)
 {
-    bool ret = false;
     ASSERT(prompt);
     ASSERT(input);
     ASSERT(capacity > 0);
@@ -200,8 +199,11 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
 
 #if defined(_WIN32)
     return get_console_input_win32(prompt, echo, input, capacity);
-#elif defined(HAVE_TERMIOS_H)
+#elif !defined(HAVE_TERMIOS_H)
+    msg(M_FATAL, "Sorry, but I can't get console input on this OS (%s)", prompt);
+#else
     bool restore_tty = false;
+    bool ret = false;
     struct termios tty_tmp, tty_save;
 
     /* did we --daemon'ize before asking for passwords?
@@ -258,10 +260,8 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
     }
 
     close_tty(fp);
-#else  /* if defined(_WIN32) */
-    msg(M_FATAL, "Sorry, but I can't get console input on this OS (%s)", prompt);
-#endif /* if defined(_WIN32) */
     return ret;
+#endif /* if defined(_WIN32) */
 }
 
 /**

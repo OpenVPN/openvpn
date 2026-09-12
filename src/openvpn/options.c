@@ -4157,8 +4157,7 @@ show_compression_warning(struct compress_options *info)
 bool
 key_is_external(const struct options *options)
 {
-    bool ret = false;
-    ret = ret || (options->management_flags & MF_EXTERNAL_KEY);
+    bool ret = options->management_flags & MF_EXTERNAL_KEY;
 #ifdef ENABLE_PKCS11
     ret = ret || (options->pkcs11_providers[0] != NULL);
 #endif
@@ -5697,7 +5696,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             if (streq(p[1], "FORWARD_COMPATIBLE") && p[2] && streq(p[2], "1"))
             {
                 options->forward_compatible = true;
-                msglevel_fc = msglevel_forward_compatible(options, msglevel);
             }
             setenv_str(es, p[1], p[2] ? p[2] : "");
         }

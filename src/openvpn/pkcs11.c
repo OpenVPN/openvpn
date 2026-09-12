@@ -80,6 +80,9 @@ static pkcs11h_engine_system_t s_pkcs11h_sys_engine = { malloc, free, __mytime, 
 static msglvl_t
 _pkcs11_msg_pkcs112openvpn(const unsigned flags)
 {
+#ifdef ENABLE_PKCS11_FORCE_DEBUG
+    return M_INFO;
+#else
     msglvl_t openvpn_flags;
 
     switch (flags)
@@ -109,16 +112,16 @@ _pkcs11_msg_pkcs112openvpn(const unsigned flags)
             break;
     }
 
-#if defined(ENABLE_PKCS11_FORCE_DEBUG)
-    openvpn_flags = M_INFO;
-#endif
-
     return openvpn_flags;
+#endif
 }
 
 static unsigned
 _pkcs11_msg_openvpn2pkcs11(const msglvl_t flags)
 {
+#ifdef ENABLE_PKCS11_FORCE_DEBUG
+    return PKCS11H_LOG_DEBUG2;
+#else
     unsigned pkcs11_flags;
 
     if ((flags & D_PKCS11_DEBUG) != 0)
@@ -146,11 +149,8 @@ _pkcs11_msg_openvpn2pkcs11(const msglvl_t flags)
         pkcs11_flags = PKCS11H_LOG_ERROR;
     }
 
-#if defined(ENABLE_PKCS11_FORCE_DEBUG)
-    pkcs11_flags = PKCS11H_LOG_DEBUG2;
-#endif
-
     return pkcs11_flags;
+#endif
 }
 
 static void

@@ -5,9 +5,6 @@ constParameterCallback
 constParameterPointer
 invalidPrintfArgType_sint
 invalidPrintfArgType_uint
-redundantAssignment
-redundantInitialization
-unreadVariable
 unusedFunction
 usleepCalled
 variableScope
@@ -74,7 +71,7 @@ missingInclude:src/openvpnserv/common.c:25
 # IGN: strlen(NULL) is not nice code, but seems to work
 nullPointerRedundantCheck:src/openvpn/init.c:301
 # FP: cppcheck doesn't understand ZeroMemory
-redundantAssignment:src/openvpnserv/interactive.c:203
+redundantAssignment:src/openvpnserv/interactive.c:204
 # IGN: We reuse the same variable name due to macro usage
 shadowVariable:src/openvpn/options.c:1948
 shadowVariable:src/openvpn/options.c:1966

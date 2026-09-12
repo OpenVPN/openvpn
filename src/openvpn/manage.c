@@ -916,10 +916,9 @@ man_pkcs11_id_get(struct management *man, const int index)
 static void
 man_remote_entry_count(struct management *man)
 {
-    unsigned count = 0;
     if (man->persist.callback.remote_entry_count)
     {
-        count = (*man->persist.callback.remote_entry_count)(man->persist.callback.arg);
+        unsigned int count = (*man->persist.callback.remote_entry_count)(man->persist.callback.arg);
         msg(M_CLIENT, "%u", count);
         msg(M_CLIENT, "END");
     }
@@ -3743,7 +3742,6 @@ management_query_multiline(struct management *man, const char *b64_data, const c
     struct gc_arena gc = gc_new();
     int ret = 0;
     volatile int signal_received = 0;
-    struct buffer alert_msg = clear_buf();
     const bool standalone_disabled_save = man->persist.standalone_disabled;
     struct man_connection *mc = &man->connection;
 
@@ -3755,6 +3753,7 @@ management_query_multiline(struct management *man, const char *b64_data, const c
 
         *state = EKS_SOLICIT;
 
+        struct buffer alert_msg;
         if (b64_data)
         {
             alert_msg = alloc_buf_gc(strlen(b64_data) + strlen(prompt) + 3, &gc);

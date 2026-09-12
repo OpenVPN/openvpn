@@ -473,7 +473,7 @@ get_reg_string(_In_ HKEY hKey, _In_ LPCWSTR szName, _Out_ LPWSTR *pszValue)
                         return ERROR_OUTOFMEMORY;
                     }
 
-                    dwCountExpResult = ExpandEnvironmentStrings(szValue, szValueExp, dwCountExp);
+                    ExpandEnvironmentStrings(szValue, szValueExp, dwCountExp);
                     free(szValue);
                     *pszValue = szValueExp;
                     return ERROR_SUCCESS;
@@ -601,8 +601,6 @@ get_device_reg_property(_In_ HDEVINFO hDeviceInfoSet, _In_ PSP_DEVINFO_DATA pDev
                         _In_ DWORD dwProperty, _Out_opt_ LPDWORD pdwPropertyRegDataType,
                         _Out_ LPVOID *ppData)
 {
-    DWORD dwResult = ERROR_BAD_ARGUMENTS;
-
     if (ppData == NULL)
     {
         return ERROR_BAD_ARGUMENTS;
@@ -628,7 +626,7 @@ get_device_reg_property(_In_ HDEVINFO hDeviceInfoSet, _In_ PSP_DEVINFO_DATA pDev
     }
     else
     {
-        dwResult = GetLastError();
+        DWORD dwResult = GetLastError();
         if (dwResult == ERROR_INSUFFICIENT_BUFFER)
         {
             /* Allocate on heap and retry. */

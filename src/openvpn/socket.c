@@ -790,7 +790,7 @@ socket_do_accept(socket_descriptor_t sd, struct link_socket_actual *act, const b
      */
     socklen_t remote_len_af = af_addr_size(act->dest.addr.sa.sa_family);
     socklen_t remote_len = sizeof(act->dest.addr);
-    socket_descriptor_t new_sd = SOCKET_UNDEFINED;
+    socket_descriptor_t new_sd;
 
     CLEAR(*act);
 

@@ -1204,8 +1204,6 @@ test_crypto(struct crypto_options *co, struct frame *frame)
     struct buffer work = alloc_buf_gc(BUF_SIZE(frame), &gc);
     struct buffer encrypt_workspace = alloc_buf_gc(BUF_SIZE(frame), &gc);
     struct buffer decrypt_workspace = alloc_buf_gc(BUF_SIZE(frame), &gc);
-    struct buffer buf = clear_buf();
-    void *buf_p;
 
     /* init work */
     ASSERT(buf_init(&work, frame->buf.headroom));
@@ -1242,8 +1240,8 @@ test_crypto(struct crypto_options *co, struct frame *frame)
         prng_bytes(BPTR(&src), BLEN(&src));
 
         /* copy source to input buf */
-        buf = work;
-        buf_p = buf_write_alloc(&buf, BLENZ(&src));
+        struct buffer buf = work;
+        void *buf_p = buf_write_alloc(&buf, BLENZ(&src));
         ASSERT(buf_p);
         memcpy(buf_p, BPTR(&src), BLENZ(&src));
 

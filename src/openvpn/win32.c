@@ -1340,9 +1340,6 @@ win32_get_arch(arch_t *process_arch, arch_t *host_arch)
     is_wow64_process2_t is_wow64_process2 =
         (is_wow64_process2_t)GetProcAddress(GetModuleHandle("Kernel32.dll"), "IsWow64Process2");
 
-    USHORT process_machine = 0;
-    USHORT native_machine = 0;
-
 #ifdef _ARM64_
     *process_arch = ARCH_ARM64;
 #elif defined(_WIN64)
@@ -1350,6 +1347,8 @@ win32_get_arch(arch_t *process_arch, arch_t *host_arch)
     if (is_wow64_process2)
     {
         /* this could be amd64 on arm64 */
+        USHORT process_machine = 0;
+        USHORT native_machine = 0;
         BOOL is_wow64 = is_wow64_process2(GetCurrentProcess(), &process_machine, &native_machine);
         if (is_wow64 && native_machine == IMAGE_FILE_MACHINE_ARM64)
         {
@@ -1362,6 +1361,8 @@ win32_get_arch(arch_t *process_arch, arch_t *host_arch)
     if (is_wow64_process2)
     {
         /* check if we're running on arm64 or amd64 machine */
+        USHORT process_machine = 0;
+        USHORT native_machine = 0;
         BOOL is_wow64 = is_wow64_process2(GetCurrentProcess(), &process_machine, &native_machine);
         if (is_wow64)
         {

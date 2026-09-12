@@ -384,7 +384,6 @@ cleanup:
     if (certificate != NULL)
     {
         pkcs11h_certificate_freeCertificate(certificate);
-        certificate = NULL;
     }
 
     /*
@@ -400,7 +399,6 @@ cleanup:
     if (openssl_session != NULL)
     {
         pkcs11h_openssl_freeSession(openssl_session);
-        openssl_session = NULL;
     }
     return ret;
 #endif                                                          /* ifdef HAVE_XKEY_PROVIDER */

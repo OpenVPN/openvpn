@@ -1746,7 +1746,6 @@ void
 process_outgoing_link(struct context *c, struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
-    int error_code = 0;
 
     if (c->c2.to_link.len > 0 && c->c2.to_link.len <= c->c2.frame.buf.payload_size)
     {
@@ -1821,7 +1820,7 @@ process_outgoing_link(struct context *c, struct link_socket *sock)
         }
 
         /* Check return status */
-        error_code = openvpn_errno();
+        int error_code = openvpn_errno();
         check_status(size, "write", sock, NULL);
 
         if (size > 0)

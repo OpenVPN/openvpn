@@ -217,7 +217,7 @@ test_load_certificate_and_key_uri(void **state)
 
 #if !defined(HAVE_OPENSSL_STORE)
     skip();
-#else  /* HAVE_OPENSSL_STORE */
+#else /* HAVE_OPENSSL_STORE */
 
     struct tls_root_ctx ctx = { 0 };
     const char *certfile = global_state.certfile;
@@ -228,9 +228,10 @@ test_load_certificate_and_key_uri(void **state)
     struct buffer keyuri = alloc_buf_gc(6 + strlen(keyfile) + 1, gc);   /* 6 bytes for "file:/" */
 
     /* Windows temp file path starts with drive letter -- add a leading slash for URI */
-    const char *lead = "";
 #ifdef _WIN32
-    lead = "/";
+    const char *lead = "/";
+#else
+    const char *lead = "";
 #endif /* _WIN32 */
     assert_true(buf_printf(&certuri, "file:%s%s", lead, certfile));
     assert_true(buf_printf(&keyuri, "file:%s%s", lead, keyfile));
@@ -292,8 +293,6 @@ do_data_channel_round_trip(struct crypto_options *co)
     struct buffer work = alloc_buf_gc(BUF_SIZE(&frame), &gc);
     struct buffer encrypt_workspace = alloc_buf_gc(BUF_SIZE(&frame), &gc);
     struct buffer decrypt_workspace = alloc_buf_gc(BUF_SIZE(&frame), &gc);
-    struct buffer buf = clear_buf();
-    void *buf_p;
 
     /* init work */
     ASSERT(buf_init(&work, frame.buf.headroom));
@@ -314,8 +313,8 @@ do_data_channel_round_trip(struct crypto_options *co)
         prng_bytes(BPTR(&src), BLEN(&src));
 
         /* copy source to input buf */
-        buf = work;
-        buf_p = buf_write_alloc(&buf, BLENZ(&src));
+        struct buffer buf = work;
+        void *buf_p = buf_write_alloc(&buf, BLENZ(&src));
         ASSERT(buf_p);
         memcpy(buf_p, BPTR(&src), BLENZ(&src));
 
@@ -345,7 +344,6 @@ encrypt_one_packet(struct crypto_options *co, int len)
     struct buffer encrypt_workspace = alloc_buf_gc(BUF_SIZE(&frame), &gc);
     struct buffer decrypt_workspace = alloc_buf_gc(BUF_SIZE(&frame), &gc);
     struct buffer work = alloc_buf_gc(BUF_SIZE(&frame), &gc);
-    struct buffer buf = clear_buf();
     struct buffer src = alloc_buf_gc(frame.buf.payload_size, &gc);
     void *buf_p;
 
@@ -360,7 +358,7 @@ encrypt_one_packet(struct crypto_options *co, int len)
     prng_bytes(BPTR(&src), BLEN(&src));
 
     /* copy source to input buf */
-    buf = work;
+    struct buffer buf = work;
     buf_p = buf_write_alloc(&buf, BLENZ(&src));
     ASSERT(buf_p);
     memcpy(buf_p, BPTR(&src), BLENZ(&src));
@@ -641,7 +639,6 @@ test_data_channel_known_vectors_run(bool epoch)
     struct buffer work = alloc_buf_gc(BUF_SIZE(&frame), &gc);
     struct buffer encrypt_workspace = alloc_buf_gc(BUF_SIZE(&frame), &gc);
     struct buffer decrypt_workspace = alloc_buf_gc(BUF_SIZE(&frame), &gc);
-    struct buffer buf = clear_buf();
     void *buf_p;
 
     /* init work */
@@ -658,7 +655,7 @@ test_data_channel_known_vectors_run(bool epoch)
     ASSERT(buf_write(&src, plaintext, strlen(plaintext)));
 
     /* copy source to input buf */
-    buf = work;
+    struct buffer buf = work;
     buf_p = buf_write_alloc(&buf, BLENZ(&src));
     ASSERT(buf_p);
     memcpy(buf_p, BPTR(&src), BLENZ(&src));

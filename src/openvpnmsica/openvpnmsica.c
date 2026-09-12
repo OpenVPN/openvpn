@@ -711,7 +711,6 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
         uiResult = MsiViewFetch(hViewST, &hRecord);
         if (uiResult == ERROR_NO_MORE_ITEMS)
         {
-            uiResult = ERROR_SUCCESS;
             break;
         }
         else if (uiResult != ERROR_SUCCESS)

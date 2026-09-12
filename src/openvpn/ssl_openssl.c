@@ -2283,13 +2283,13 @@ print_pkey_details(EVP_PKEY *pkey, char *buf, size_t buflen)
     }
 
     int typeid = EVP_PKEY_id(pkey);
+
+#ifndef OPENSSL_NO_EC
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
     bool is_ec = typeid == EVP_PKEY_EC;
 #else
     bool is_ec = EVP_PKEY_is_a(pkey, "EC");
 #endif
-
-#ifndef OPENSSL_NO_EC
     char groupname[64];
     if (is_ec)
     {
@@ -2593,15 +2593,13 @@ show_available_curves(void)
            "builtin EC curves. It does not list additional curves nor X448 or X25519\n");
 #ifndef OPENSSL_NO_EC
     EC_builtin_curve *curves = NULL;
-    size_t crv_len = 0;
-    size_t n = 0;
 
-    crv_len = EC_get_builtin_curves(NULL, 0);
+    size_t crv_len = EC_get_builtin_curves(NULL, 0);
     ALLOC_ARRAY(curves, EC_builtin_curve, crv_len);
     if (EC_get_builtin_curves(curves, crv_len))
     {
         printf("\nAvailable Elliptic curves/groups:\n");
-        for (n = 0; n < crv_len; n++)
+        for (size_t n = 0; n < crv_len; n++)
         {
             const char *sname;
             sname = OBJ_nid2sn(curves[n].nid);
