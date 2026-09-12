@@ -26,17 +26,14 @@ getgrnamCalled
 getpwnamCalled
 getservbynameCalled
 localtimeCalled
-strtokCalled
 # FP: posix.cfg claims suseconds_t is unsigned for some reason
 unsignedLessThanZero:src/openvpn/otime.h:148
 # IGN: multi code does weird things with pointers to local variables...
-autoVariables:src/openvpn/multi.c:4232
+autoVariables:src/openvpn/multi.c:4242
 autoVariables:src/openvpn/multi_io.c:324
 # IGN: the code header = 0 | (OPCODE << P_OPCODE_SHIFT) is used intentionally
 badBitmaskCheck:src/openvpn/mudp.c
 badBitmaskCheck:tests/unit_tests/openvpn/test_pkt.c
-# IGN: we store integers in pointers
-CastAddressToIntegerAtReturn:src/openvpn/multi.c
 # IGN: Windows specific (unsigned long == unsigned int)
 compareValueOutOfTypeRangeError:src/openvpn/ssl_verify.c:928
 # FP: cppcheck seems to have wrong signature of DeviceIoControl()
@@ -78,8 +75,6 @@ missingInclude:src/openvpnserv/common.c:25
 nullPointerRedundantCheck:src/openvpn/init.c:301
 # FP: cppcheck doesn't understand ZeroMemory
 redundantAssignment:src/openvpnserv/interactive.c:203
-# FP: cppcheck doesn't know the NLA macros
-redundantInitialization:src/openvpn/dco_linux.c
 # IGN: We reuse the same variable name due to macro usage
 shadowVariable:src/openvpn/options.c:1948
 shadowVariable:src/openvpn/options.c:1966
@@ -93,12 +88,10 @@ uninitvar:src/openvpn/crypto_epoch.c:60
 uninitvar:src/openvpn/options_parse.c:148
 # FP: uninit is fine when it is a return parameter
 ctuuninitvar:src/openvpn/crypto_mbedtls_legacy.c:690
-uninitvar:src/openvpnserv/interactive.c:2775
+uninitvar:src/openvpnserv/interactive.c:2783
 uninitvar:src/tapctl/main.c:566
-# FP: we added a check but cppcheck is not convinced
-uninitvar:src/openvpnserv/interactive.c:2667
 # FP: weird parse error, the macro is fine in the rest of the file
-unknownMacro:src/openvpnserv/interactive.c:3596
+unknownMacro:src/openvpnserv/interactive.c:3604
 # FP: cppcheck doesn't account for short-circuiting
 unreadVariable:src/openvpn/manage.c:682
 unusedFunction:src/openvpn/siphash_reference.c
@@ -112,8 +105,6 @@ unusedFunction:src/tapctl/main.c:613
 unusedFunction:tests/unit_tests/openvpnserv/test_openvpnserv.c
 # IGN: keep mocking around for future use
 unusedFunction:tests/unit_tests/openvpn/mock_msg.c
-# FP: doesn't account for --wrap
-unusedFunction:tests/unit_tests/openvpn/test_tls_crypt.c
 unusedFunction:/usr/include/*
 # FP: cppcheck doesn't know the NLA macros
 unusedLabel:src/openvpn/dco_linux.c

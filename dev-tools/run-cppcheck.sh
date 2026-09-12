@@ -33,7 +33,7 @@ COMMON_ARGS="-j$(nproc) ${verbosity_arg} \
  --suppressions-list=${SCRIPT_DIR}/cppcheck-suppression \
  --cppcheck-build-dir=${CPPCHECK_DIR} \
  --check-level=${CPPCHECK_CHECK_LEVEL} --max-configs=10 \
- --error-exitcode=1"
+ --error-exitcode=1 --showtime=summary"
 
 set -x
 
@@ -53,5 +53,6 @@ cppcheck $COMMON_ARGS \
     -UTARGET_LINUX -UTARGET_FREEBSD -UTARGET_OPENBSD -UTARGET_NETBSD \
     -UTARGET_DARWIN -UTARGET_ANDROID -UTARGET_SOLARIS -UTARGET_DRAGONFLY \
     -UTARGET_AIX \
+    -UOPENSSL_NO_EC \
     src/openvpn* src/compat/ \
     tests/unit_tests/example_test/ tests/unit_tests/openvpn*

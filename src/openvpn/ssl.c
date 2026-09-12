@@ -3226,7 +3226,7 @@ check_keystate_buf_not_used(struct buffer *to_link, const struct key_state *ks)
         return;
     }
 
-    uint8_t *dataptr = to_link->data;
+    const uint8_t *dataptr = to_link->data;
 
     /* we don't expect send_reliable to be NULL when state is
      * not S_UNDEF, but people have reported crashes nonetheless,
