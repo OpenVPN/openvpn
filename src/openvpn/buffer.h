@@ -35,6 +35,7 @@
 #include "basic.h"
 #include "error.h"
 #include "integer.h"
+#include "buffer_bounds_safety.h" /* optional -fbounds-safety macros */
 
 /** Maximum allowed size (in bytes) for a single buffer allocation. */
 #define BUF_SIZE_MAX 1000000
@@ -69,13 +70,19 @@
  */
 struct buffer
 {
-    int capacity;  /**< Size in bytes of memory allocated by
-                    *   \c malloc(). */
-    int offset;    /**< Offset in bytes of the actual content
-                    *   within the allocated memory. */
-    int len;       /**< Length in bytes of the actual content
-                    *   within the allocated memory. */
-    uint8_t *data; /**< Pointer to the allocated memory. */
+    int capacity; /**< Size in bytes of memory allocated by
+                   *   \c malloc(). Capacity companion for
+                   *   \c data under optional -fbounds-safety. */
+    int offset;   /**< Offset in bytes of the actual content
+                   *   within the allocated memory. */
+    int len;      /**< Length in bytes of the actual content
+                   *   within the allocated memory. */
+    /* Field order already has capacity before data; alloc / set
+     * paths assign capacity before the pointer so sized-by
+     * invariants hold under optional -fbounds-safety builds.
+     * data may be NULL when capacity is zero (buf_reset / CLEAR).
+     */
+    uint8_t *OVPN_SIZED_BY_OR_NULL(capacity) data; /**< Pointer to the allocated memory. */
 
 #ifdef BUF_INIT_TRACKING
     const char *debug_file;
