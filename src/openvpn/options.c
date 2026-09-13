@@ -5220,12 +5220,12 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
         memset(o->ntp, 0, sizeof(o->ntp));
         o->nbdd_len = 0;
         memset(o->nbdd, 0, sizeof(o->nbdd));
-        while (o->domain_search_list_len-- > 0)
-        {
-            o->domain_search_list[o->domain_search_list_len] = NULL;
-        }
+        o->domain_search_list_len = 0;
+        CLEAR(o->domain_search_list);
         o->disable_nbt = 0;
         o->dhcp_options = 0;
+        CLEAR(options->dns_options.from_dhcp);
+
 #if defined(TARGET_ANDROID)
         o->http_proxy_port = 0;
         o->http_proxy = NULL;
@@ -5524,10 +5524,8 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             CLEAR(o->ntp);
             o->nbdd_len = 0;
             CLEAR(o->nbdd);
-            while (o->domain_search_list_len-- > 0)
-            {
-                o->domain_search_list[o->domain_search_list_len] = NULL;
-            }
+            o->domain_search_list_len = 0;
+            CLEAR(o->domain_search_list);
             o->disable_nbt = 0;
             o->dhcp_options = 0;
 
