@@ -87,9 +87,28 @@ send_hmac_reset_packet(struct multi_context *m, struct tls_pre_decrypt_state *st
                           "Reset packet from client, sending HMAC based reset challenge", sock);
 }
 
+/**
+ * Verdict if this packet should create a new session. If a packet is invalid
+ * or we send out an HMAC based challenge, we do not want to create a new
+ * session.
+ */
+enum pre_decrypt_verdict
+{
+    /** This packet should not create a new session */
+    PRE_DECRYPT_NO_ACTION,
+    /** This packet creates a new session on the first packet on the session.
+     * We only do this for legacy tls-crypt-v2 clients that do not work with
+     * the HMAC cookie challenge approach where we need to keep the client
+     * specific tls-crypt key to be able to decrypt the third packet */
+    PRE_DECRYPT_CREATE_SESSION,
+    /** Creates a new session. The HMAC challenge has been already completed
+     * and the first two packets of the three way handshake are skipped in
+     * the session setup */
+    PRE_DECRYPT_CREATE_SESSION_SKIP
+};
 
-/* Returns true if this packet should create a new session */
-static bool
+/** Returns a verdict if this packet should create a new session */
+static enum pre_decrypt_verdict
 do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *state,
                      struct mroute_addr addr, struct link_socket *sock)
 {
@@ -111,7 +130,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
          * responses */
         if (!reflect_filter_rate_limit_check(m->initial_rate_limiter))
         {
-            return false;
+            return PRE_DECRYPT_NO_ACTION;
         }
     }
 
@@ -136,7 +155,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
                 calculate_session_id_hmac(state->peer_session_id, from, hmac_key, handwindow, 0);
             send_hmac_reset_packet(m, state, tas, &sid, true, sock);
 
-            return false;
+            return PRE_DECRYPT_NO_ACTION;
         }
         else
         {
@@ -153,11 +172,11 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
                     "ignoring connection attempt from old client (%s)",
                     peer);
                 gc_free(&gc);
-                return false;
+                return PRE_DECRYPT_NO_ACTION;
             }
             else
             {
-                return true;
+                return PRE_DECRYPT_CREATE_SESSION;
             }
         }
     }
@@ -170,7 +189,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
         send_hmac_reset_packet(m, state, tas, &sid, false, sock);
 
         /* We have a reply do not create a new session */
-        return false;
+        return PRE_DECRYPT_NO_ACTION;
     }
     else if (verdict == VERDICT_VALID_CONTROL_V1 || verdict == VERDICT_VALID_ACK_V1
              || verdict == VERDICT_VALID_WKC_V1)
@@ -181,6 +200,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
 
         bool pkt_is_ack = (verdict == VERDICT_VALID_ACK_V1);
         bool ret = check_session_hmac_and_pkt_id(state, from, hmac_key, handwindow, pkt_is_ack);
+        enum pre_decrypt_verdict action = PRE_DECRYPT_NO_ACTION;
 
         const char *peer = print_link_socket_actual(&m->top.c2.from, &gc);
         uint8_t pkt_firstbyte = *BPTR(&m->top.c2.buf);
@@ -198,14 +218,15 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
                 "Valid packet (%s) with HMAC challenge from peer (%s), "
                 "accepting new connection.",
                 packet_opcode_name(op), peer);
+            action = PRE_DECRYPT_CREATE_SESSION_SKIP;
         }
         gc_free(&gc);
 
-        return ret;
+        return action;
     }
 
     /* VERDICT_INVALID */
-    return false;
+    return PRE_DECRYPT_NO_ACTION;
 }
 
 /**
@@ -220,9 +241,6 @@ handle_connection_attempt(struct multi_context *m,
                           struct link_socket *sock,
                           struct mroute_addr *real)
 {
-    struct hash *hash = m->hash;
-    struct tls_pre_decrypt_state state = { 0 };
-    struct multi_instance *mi = NULL;
     struct gc_arena gc = gc_new();
 
     if (m->deferred_shutdown_signal.signal_received)
@@ -231,8 +249,17 @@ handle_connection_attempt(struct multi_context *m,
             "MULTI: Connection attempt from %s ignored while server is "
             "shutting down",
             mroute_addr_print(real, &gc));
+        gc_free(&gc);
+        return NULL;
     }
-    else if (do_pre_decrypt_check(m, &state, *real, sock))
+
+    struct hash *hash = m->hash;
+    struct tls_pre_decrypt_state state = { 0 };
+    struct multi_instance *mi = NULL;
+
+    enum pre_decrypt_verdict verdict = do_pre_decrypt_check(m, &state, *real, sock);
+
+    if (verdict != PRE_DECRYPT_NO_ACTION)
     {
         /* This is an unknown session but with valid tls-auth/tls-crypt
          * (or no auth at all).  If this is the initial packet of a
@@ -255,14 +282,14 @@ handle_connection_attempt(struct multi_context *m,
                 mi->did_real_hash = true;
                 multi_assign_peer_id(m, mi);
 
-                /* If we have a session id already, ensure that the
-                 * state is using the same */
-                if (session_id_defined(&state.server_session_id)
-                    && session_id_defined((&state.peer_session_id)))
+                struct tls_session *session =
+                    &mi->context.c2.tls_multi->session[TM_INITIAL];
+
+                if (verdict == PRE_DECRYPT_CREATE_SESSION_SKIP)
                 {
+                    /* This verdict is only possible if we have a peer session ID */
+                    ASSERT(session_id_defined(&state.peer_session_id));
                     mi->context.c2.tls_multi->n_sessions++;
-                    struct tls_session *session =
-                        &mi->context.c2.tls_multi->session[TM_INITIAL];
                     session_skip_to_pre_start(session, &state, &m->top.c2.from);
                 }
             }
