@@ -2591,7 +2591,8 @@ session_skip_to_pre_start(struct tls_session *session, struct tls_pre_decrypt_st
  * Parses the TLVs (type, length, value) in the early negotiation
  */
 static bool
-parse_early_negotiation_tlvs(struct buffer *buf, struct key_state *ks)
+parse_early_negotiation_tlvs(struct buffer *buf, const struct tls_session *session,
+                             struct key_state *ks)
 {
     while (buf->len > 0)
     {
@@ -2618,7 +2619,17 @@ parse_early_negotiation_tlvs(struct buffer *buf, struct key_state *ks)
 
                 if (flags & EARLY_NEG_FLAG_RESEND_WKC)
                 {
-                    ks->crypto_options.flags |= CO_RESEND_WKC;
+                    /* Only accept the EARLY_NEG_FLAG_RESEND_WKC flag
+                     * from the server if we are configured with tls-crypt-v2 */
+                    if (session->tls_wrap.tls_crypt_v2_wkc)
+                    {
+                        ks->crypto_options.flags |= CO_RESEND_WKC;
+                    }
+                    else
+                    {
+                        msg(D_TLS_ERRORS, "TLS Error: peer asked us to resend the wrapped "
+                                          "client key, but this is not a tls-crypt-v2 client");
+                    }
                 }
                 break;
 
@@ -2901,7 +2912,7 @@ tls_process_state(struct tls_multi *multi, struct tls_session *session, struct b
          * contains early protocol negotiation */
         if (entry->packet_id == 0 && is_hard_reset_method2(entry->opcode))
         {
-            if (!parse_early_negotiation_tlvs(&entry->buf, ks))
+            if (!parse_early_negotiation_tlvs(&entry->buf, session, ks))
             {
                 goto error;
             }

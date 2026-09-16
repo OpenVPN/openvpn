@@ -695,6 +695,52 @@ test_generate_reset_packet_tls_auth(void **ut_state)
     free_tas(&tas_server);
 }
 
+/* A peer can ask us to append the wrapped client key (WKc) to our next
+ * control packet. Only a tls-crypt-v2 client has one, so check that we
+ * refuse to build such a packet when we have no key instead of walking
+ * into the NULL pointer. */
+static void
+test_wkc_not_appended_without_key(void **ut_state)
+{
+    struct tls_auth_standalone tas = init_tas_crypt(false);
+    struct session_id own_id = { { 1, 2, 3, 4, 5, 6, 7, 8 } };
+    struct session_id remote_id = { { 8, 7, 6, 5, 4, 3, 2, 1 } };
+    struct frame frame = { .buf = { .headroom = 200, .payload_size = 1400 }, 0 };
+    tas.frame = frame;
+
+    packet_id_init(&tas.tls_wrap.opt.packet_id, 5, 5, "UNITTEST", 0);
+    reset_packet_id_send(&tas.tls_wrap.opt.packet_id.send);
+    now = 0x22446688;
+
+    /* no WKc configured, so both opcodes that would append one must fail */
+    assert_null(tas.tls_wrap.tls_crypt_v2_wkc);
+
+    uint8_t header = 0 | (P_CONTROL_WKC_V1 << P_OPCODE_SHIFT);
+    struct buffer buf =
+        tls_reset_standalone(&tas.tls_wrap, &tas, &own_id, &remote_id, header, false);
+    assert_int_equal(BLEN(&buf), 0);
+
+    header = 0 | (P_CONTROL_HARD_RESET_CLIENT_V3 << P_OPCODE_SHIFT);
+    buf = tls_reset_standalone(&tas.tls_wrap, &tas, &own_id, &remote_id, header, false);
+    assert_int_equal(BLEN(&buf), 0);
+
+    /* with a WKc the same packet is built and the key ends up at its end */
+    uint8_t wkc_data[32];
+    memset(wkc_data, 0x5a, sizeof(wkc_data));
+    struct buffer wkc = alloc_buf(sizeof(wkc_data));
+    assert_true(buf_write(&wkc, wkc_data, sizeof(wkc_data)));
+    tas.tls_wrap.tls_crypt_v2_wkc = &wkc;
+
+    header = 0 | (P_CONTROL_WKC_V1 << P_OPCODE_SHIFT);
+    buf = tls_reset_standalone(&tas.tls_wrap, &tas, &own_id, &remote_id, header, false);
+    assert_true(BLEN(&buf) > (int)sizeof(wkc_data));
+    assert_memory_equal(BPTR(&buf) + BLEN(&buf) - sizeof(wkc_data), wkc_data, sizeof(wkc_data));
+
+    free_buf(&wkc);
+    packet_id_free(&tas.tls_wrap.opt.packet_id);
+    free_tas(&tas);
+}
+
 static void
 test_extract_control_message(void **ut_state)
 {
@@ -745,6 +791,7 @@ main(void)
         cmocka_unit_test(test_verify_hmac_none_out_of_range_ack),
         cmocka_unit_test(test_generate_reset_packet_plain),
         cmocka_unit_test(test_generate_reset_packet_tls_auth),
+        cmocka_unit_test(test_wkc_not_appended_without_key),
         cmocka_unit_test(test_extract_control_message)
     };
 
