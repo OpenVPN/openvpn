@@ -22,7 +22,7 @@ const char *auth_token_pem_name = "OpenVPN auth-token server key";
 #define AUTH_TOKEN_SESSION_ID_BASE64_LEN (OPENVPN_BASE64_LENGTH(AUTH_TOKEN_SESSION_ID_LEN))
 
 /* We want our token to be a multiple of 3 bytes to avoid the base64 padding */
-static_assert(AUTH_TOKEN_SESSION_ID_LEN % 3 == 0, "AUTH_TOKEN_SESSION_ID_LEN needs to be multiple a 3");
+static_assert(AUTH_TOKEN_SESSION_ID_LEN % 3 == 0, "AUTH_TOKEN_SESSION_ID_LEN must be multiple of 3");
 
 #define AUTH_TOKEN_HMAC_LEN   SHA256_DIGEST_LENGTH
 /* Size of the data of the token (not b64 encoded and without prefix) */
@@ -34,7 +34,7 @@ static_assert(AUTH_TOKEN_SESSION_ID_LEN % 3 == 0, "AUTH_TOKEN_SESSION_ID_LEN nee
 
 /* Ensure that TOKEN_DATA_LEN is a multiple of 3 so the we avoid the base64
  * padding */
-static_assert(TOKEN_DATA_LEN % 3 == 0, "TOKEN_DATA_BASE64_LEN is not a multiple of 3");
+static_assert(TOKEN_DATA_LEN % 3 == 0, "TOKEN_DATA_LEN is not a multiple of 3");
 
 bool
 is_auth_token(const char *password)
