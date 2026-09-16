@@ -115,18 +115,12 @@ void wipe_auth_token(struct tls_multi *multi);
 #define SESSION_ID_PREFIX "SESS_ID_AT_"
 
 /**
- * Return if the password string has the format of a password.
+ * Return if the password string has the format of an auth token.
  *
- * This fuction will always read as many bytes as SESSION_ID_PREFIX is longer
- * the caller needs ensure that password memory is at least that long (true for
- * calling with struct user_pass)
  * @param password
  * @return whether the password string starts with the session token prefix
  */
-static inline bool
-is_auth_token(const char *password)
-{
-    return (memcmp_constant_time(SESSION_ID_PREFIX, password,
-                                 strlen(SESSION_ID_PREFIX)) == 0);
-}
+bool
+is_auth_token(const char *password);
+
 #endif /* AUTH_TOKEN_H */
