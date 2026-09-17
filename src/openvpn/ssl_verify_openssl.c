@@ -196,12 +196,13 @@ extract_x509_field_ssl(const X509_NAME *x509, const char *field_name, char *out,
     int lastpos = -1;
     int tmp = -1;
     unsigned char *buf = NULL;
+    result_t ret = FAILURE;
 
     ASN1_OBJECT *field_name_obj = OBJ_txt2obj(field_name, 0);
     if (field_name_obj == NULL)
     {
         msg(D_TLS_ERRORS, "Invalid X509 attribute name '%s'", field_name);
-        return FAILURE;
+        goto exit;
     }
 
     ASSERT(size > 0);
@@ -222,28 +223,31 @@ extract_x509_field_ssl(const X509_NAME *x509, const char *field_name, char *out,
     /* Nothing found */
     if (lastpos == -1)
     {
-        return FAILURE;
+        goto exit;
     }
 
     const X509_NAME_ENTRY *x509ne = X509_NAME_get_entry(x509, lastpos);
     if (!x509ne)
     {
-        return FAILURE;
+        goto exit;
     }
 
     const ASN1_STRING *asn1 = X509_NAME_ENTRY_get_data(x509ne);
     if (!asn1)
     {
-        return FAILURE;
+        goto exit;
     }
-    if (ASN1_STRING_to_UTF8(&buf, asn1) < 0)
+    int length = ASN1_STRING_to_UTF8(&buf, asn1);
+    if (length < 0 || (size_t)length != strlen((char *)buf))
     {
-        return FAILURE;
+        goto exit;
     }
 
     strncpynt(out, (char *)buf, size);
 
-    const result_t ret = (strlen((char *)buf) < size) ? SUCCESS : FAILURE;
+    ret = (strlen((char *)buf) < size) ? SUCCESS : FAILURE;
+
+exit:
     OPENSSL_free(buf);
     return ret;
 }
@@ -384,15 +388,34 @@ x509_get_subject(X509 *cert, struct gc_arena *gc)
         goto err;
     }
 
+    /* Get the subject with unescaped control characters so that we can check for null bytes. */
     X509_NAME_print_ex(subject_bio, X509_get_subject_name(cert), 0,
-                       XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN | ASN1_STRFLGS_UTF8_CONVERT
-                           | ASN1_STRFLGS_ESC_CTRL);
+                       XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN | ASN1_STRFLGS_UTF8_CONVERT);
 
     if (BIO_eof(subject_bio))
     {
         goto err;
     }
 
+    BIO_get_mem_ptr(subject_bio, &subject_mem);
+    if (memchr(subject_mem->data, 0, subject_mem->length) != NULL)
+    {
+        msg(M_WARN, "ERROR: Certificate subject contains a '\\0' byte.");
+        goto err;
+    }
+
+    /* Now output the subject with escaped control characters. */
+    if (BIO_reset(subject_bio) != 1)
+    {
+        goto err;
+    }
+    X509_NAME_print_ex(subject_bio, X509_get_subject_name(cert), 0,
+                       XN_FLAG_SEP_CPLUS_SPC | XN_FLAG_FN_SN | ASN1_STRFLGS_UTF8_CONVERT
+                           | ASN1_STRFLGS_ESC_CTRL);
+    if (BIO_eof(subject_bio))
+    {
+        goto err;
+    }
     BIO_get_mem_ptr(subject_bio, &subject_mem);
 
     subject = gc_malloc(subject_mem->length + 1, false, gc);

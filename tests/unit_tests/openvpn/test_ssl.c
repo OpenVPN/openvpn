@@ -884,6 +884,94 @@ crypto_test_print_cert_details(void **state)
     free_certificate(cert);
 }
 
+/* Certificate with two CNs, "foo" and "bar".
+ *
+ * Generated with:
+ * openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -subj "/CN=foo/CN=bar" \
+ * -noenc -out two_cns.crt -keyout two_cns.key
+ */
+static const char *cert_with_two_cns =
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIIByTCCAVCgAwIBAgIUZuvd8Wfnq5jeRc3ohoJ/Vza54wQwCgYIKoZIzj0EAwIw\n"
+    "HDEMMAoGA1UEAwwDZm9vMQwwCgYDVQQDDANiYXIwHhcNMjYwODI4MTU1NjAwWhcN\n"
+    "MjYwOTI3MTU1NjAwWjAcMQwwCgYDVQQDDANmb28xDDAKBgNVBAMMA2JhcjB2MBAG\n"
+    "ByqGSM49AgEGBSuBBAAiA2IABERAfb210NOACy+QVYAu3EXrcGhTJpZDfhpDnE/h\n"
+    "PvPMWGWzqecTYdseArxZc0T/5Xma36IKCjGGsgN9ypZ5oQugQlB/NrVRCJIuHSGA\n"
+    "hGBWFvnUsqdNo765lGwVdBwhY6NTMFEwHQYDVR0OBBYEFPwnD+wK9R81Syk0qyTI\n"
+    "dFT/BNoJMB8GA1UdIwQYMBaAFPwnD+wK9R81Syk0qyTIdFT/BNoJMA8GA1UdEwEB\n"
+    "/wQFMAMBAf8wCgYIKoZIzj0EAwIDZwAwZAIwGxazGb6RRQtXzOWCPLRKId4e+E88\n"
+    "cwoCK3UwzEr8+Ddf54w5cEZC54f5J6AKFUJjAjBpT/JqF41uK57H+8i/16oZkBcm\n"
+    "OyQnlH8W/UzZo3/weTEBTcNW0iuCpIrS6im8pSk=\n"
+    "-----END CERTIFICATE-----\n";
+
+void
+ssl_test_extract_last_matching_field(void **state)
+{
+    /* When there are multiple fields of the same type in the certificate's subject, OpenVPN
+     * should extract the value of the last matching field. This is essentially arbitrary and there
+     * is no correct choice here, but this test exists to make sure that the behavior is consistent
+     * between different backends.
+     */
+    openvpn_x509_cert_t *cert = get_certificate(cert_with_two_cns);
+
+    char username[TLS_USERNAME_LEN + 1] = { 0 };
+    assert_int_equal(backend_x509_get_username(username, sizeof(username), "CN", cert), SUCCESS);
+    assert_string_equal(username, "bar");
+    free_certificate(cert);
+}
+
+/* Certificate with a null-byte embedded in the CN.
+ *
+ * Generated with the following Python script:
+ *
+ * from cryptography import x509
+ * from cryptography.x509.oid import NameOID, ExtensionOID, ExtendedKeyUsageOID
+ * from cryptography.hazmat.primitives import hashes, serialization
+ * from cryptography.hazmat.primitives.asymmetric import ec
+ * import datetime
+ *
+ * private_key = ec.generate_private_key(ec.SECP384R1())
+ * now = datetime.datetime.now(datetime.timezone.utc)
+ * name = "with\x00null"
+ *
+ * cert = (x509.CertificateBuilder()
+ *             .subject_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
+ *             .issuer_name(x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, name)]))
+ *             .public_key(private_key.public_key())
+ *             .serial_number(x509.random_serial_number())
+ *             .not_valid_before(now)
+ *             .not_valid_after(now + datetime.timedelta(days=10 * 365))
+ *             .sign(private_key, hashes.SHA256()))
+ *
+ * print(str(cert.public_bytes(serialization.Encoding.PEM), encoding='utf-8'))
+ **/
+static const char *cert_with_null =
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIIBZTCB66ADAgECAhRLWdNRl+C20KKBG4QC9HFPWlOtBzAKBggqhkjOPQQDAjAU\n"
+    "MRIwEAYDVQQDDAl3aXRoAG51bGwwHhcNMjYwODI4MTQzMDA4WhcNMzYwODI1MTQz\n"
+    "MDA4WjAUMRIwEAYDVQQDDAl3aXRoAG51bGwwdjAQBgcqhkjOPQIBBgUrgQQAIgNi\n"
+    "AAT7PE+vJCBiB4CVHBcvJVF9n5n/dGQIn4C8HeYE8M2iXYCIRW5wg6/mlPaeiJY/\n"
+    "Ywh3pa8zhto1+aczbJKTvLgRwXn6N5vNpME1c5iWMzY0WHe1dJyVtoRBvkNvy5+k\n"
+    "GuEwCgYIKoZIzj0EAwIDaQAwZgIxAP2ekdQ8muG8Nv2o3PsBp0CqiaSNByGiP75i\n"
+    "k099bUFvHp/3LSp8Wf4JK2iWzc5h6gIxAINBGg2xjlmMgpXxROKA9qQqaM3d92Mp\n"
+    "EzZyRyPM3PGR83ZPbIaYDq8lCVxVlbYr/Q==\n"
+    "-----END CERTIFICATE-----\n";
+
+void
+ssl_test_reject_null_in_cert_subject(void **state)
+{
+    openvpn_x509_cert_t *cert = get_certificate(cert_with_null);
+    struct gc_arena gc = gc_new();
+
+    /* Trying to get the subject as a whole should fail. */
+    assert_ptr_equal(x509_get_subject(cert, &gc), NULL);
+
+    /* Trying to extract the common name should fail. */
+    char username[TLS_USERNAME_LEN + 1] = { 0 };
+    assert_int_equal(backend_x509_get_username(username, sizeof(username), "CN", cert), FAILURE);
+    gc_free(&gc);
+    free_certificate(cert);
+}
 
 int
 main(void)
@@ -908,7 +996,9 @@ main(void)
         cmocka_unit_test(test_data_channel_roundtrip_bf_cbc),
         cmocka_unit_test(test_data_channel_known_vectors_epoch),
         cmocka_unit_test(test_data_channel_known_vectors_shortpktid),
-        cmocka_unit_test(crypto_test_print_cert_details)
+        cmocka_unit_test(crypto_test_print_cert_details),
+        cmocka_unit_test(ssl_test_extract_last_matching_field),
+        cmocka_unit_test(ssl_test_reject_null_in_cert_subject)
 
     };
 

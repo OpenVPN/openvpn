@@ -214,6 +214,24 @@ fieldname_to_oid(const char *fieldname)
     }
 }
 
+static bool
+asn1_buf_is_cstr_compatible(const mbedtls_asn1_buf *asn1_buf)
+{
+    if (!(asn1_buf->tag == MBEDTLS_ASN1_UTF8_STRING || asn1_buf->tag == MBEDTLS_ASN1_PRINTABLE_STRING
+          || asn1_buf->tag == MBEDTLS_ASN1_IA5_STRING))
+    {
+        return false;
+    }
+    for (size_t i = 0; i < asn1_buf->len; i++)
+    {
+        if (asn1_buf->p[i] == '\0')
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 result_t
 backend_x509_get_username(char *cn, size_t cn_len, char *x509_username_field, mbedtls_x509_crt *cert)
 {
@@ -259,20 +277,26 @@ backend_x509_get_username(char *cn, size_t cn_len, char *x509_username_field, mb
     }
 
     /* Find field_oid in the subject name. */
-    mbedtls_x509_name *name = &cert->subject;
-    while (name != NULL)
+    mbedtls_x509_name *name = NULL;
+    mbedtls_x509_name *next = &cert->subject;
+    while (next != NULL)
     {
-        if (strlen(field_oid) == name->oid.len
-            && 0 == memcmp(name->oid.p, field_oid, name->oid.len))
+        if (strlen(field_oid) == next->oid.len
+            && 0 == memcmp(next->oid.p, field_oid, next->oid.len))
         {
-            break;
+            name = next;
         }
 
-        name = name->next;
+        next = next->next;
     }
 
     /* Not found, return an error if this is the peer's certificate */
     if (name == NULL)
+    {
+        goto fail;
+    }
+
+    if (!asn1_buf_is_cstr_compatible(&name->val))
     {
         goto fail;
     }
@@ -586,22 +610,11 @@ do_setenv_x509(struct env_set *es, const char *name, char *value, int depth)
 static char *
 asn1_buf_to_c_string(const mbedtls_asn1_buf *orig, struct gc_arena *gc)
 {
-    size_t i;
     char *val;
 
-    if (!(orig->tag == MBEDTLS_ASN1_UTF8_STRING || orig->tag == MBEDTLS_ASN1_PRINTABLE_STRING
-          || orig->tag == MBEDTLS_ASN1_IA5_STRING))
+    if (!asn1_buf_is_cstr_compatible(orig))
     {
-        /* Only support C-string compatible types */
-        return string_alloc("ERROR: unsupported ASN.1 string type", gc);
-    }
-
-    for (i = 0; i < orig->len; ++i)
-    {
-        if (orig->p[i] == '\0')
-        {
-            return string_alloc("ERROR: embedded null value", gc);
-        }
+        return string_alloc("ERROR: Unsupported string type or embedded null bytes.", gc);
     }
     val = gc_malloc(orig->len + 1, false, gc);
     memcpy(val, orig->p, orig->len);
