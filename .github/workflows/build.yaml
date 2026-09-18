@@ -7,7 +7,7 @@ on:
 jobs:
   clang-format:
     name: Check code style with clang-format
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Install dependencies
         run: |
@@ -34,7 +34,7 @@ jobs:
         include:
           - abi: arm64-v8a
             vcpkg_triplet: arm64-android
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     name: "Android - ${{ matrix.abi }}"
     # Github images already setup NDK with ANDROID_NDK_ROOT pointing to the root
     # of the SDK
@@ -80,7 +80,7 @@ jobs:
         build: [Release, Debug]
 
     name: "gcc-mingw - ${{ matrix.arch }} - ${{ matrix.build }} - OSSL"
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
       VCPKG_BINARY_SOURCES: clear;default,readwrite
