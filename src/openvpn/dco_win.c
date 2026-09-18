@@ -459,7 +459,8 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, socket_descriptor_t sd, st
     if (!DeviceIoControl(dco->tt->hand, OVPN_IOCTL_MP_NEW_PEER, &newPeer, sizeof(newPeer), NULL, 0,
                          &bytesReturned, NULL))
     {
-        msg(M_ERR, "DeviceIoControl(OVPN_IOCTL_MP_NEW_PEER) failed");
+        msg(M_WARN | M_ERRNO, "DeviceIoControl(OVPN_IOCTL_MP_NEW_PEER) failed");
+        return -1;
     }
 
     return 0;
@@ -574,7 +575,7 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t s
 
     if (!DeviceIoControl(dco->tt->hand, ioctl, buf, bufSize, NULL, 0, &bytes_returned, NULL))
     {
-        msg(M_ERR, "DeviceIoControl(OVPN_IOCTL_NEW_KEY) failed");
+        msg(M_WARN | M_ERRNO, "DeviceIoControl(OVPN_IOCTL_NEW_KEY) failed");
         return -1;
     }
     return 0;
@@ -608,7 +609,7 @@ dco_swap_keys(dco_context_t *dco, unsigned int peer_id)
     DWORD bytes_returned = 0;
     if (!DeviceIoControl(dco->tt->hand, ioctl, buf, len, NULL, 0, &bytes_returned, NULL))
     {
-        msg(M_ERR, "DeviceIoControl(OVPN_IOCTL_SWAP_KEYS) failed");
+        msg(M_WARN | M_ERRNO, "DeviceIoControl(OVPN_IOCTL_SWAP_KEYS) failed");
         return -1;
     }
     return 0;
