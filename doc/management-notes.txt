@@ -828,10 +828,35 @@ COMMAND -- client-kill  (OpenVPN 2.1 or higher)
 
 Immediately kill a client instance by CID.
 
-  client-kill {CID}
+  client-kill {CID} [M]
 
 CID -- client ID.  See documentation for ">CLIENT:" notification for more
 info.
+
+M -- optional message to send to the client before termination
+(defaults to "RESTART"). The format of M is:
+
+  RESTART|HALT[,[flags]][human-readable-message]
+
+RESTART instructs the client to perform a restart (SIGUSR1).
+HALT instructs the client to exit (SIGTERM).
+
+Optional flags in brackets:
+- [P] -- preserve cached passwords and credentials on client (avoids purging auth).
+- [N] -- advance to the next remote server entry in client configuration.
+
+If a human-readable message string is included after the comma, it is
+logged by the client and forwarded to the client's management interface
+via a ">NOTIFY:" event:
+
+  >NOTIFY:info,server-pushed-connection-reset,<msg>  (for RESTART)
+  >NOTIFY:info,server-pushed-halt,<msg>              (for HALT)
+
+If the message parameter contains spaces, it should be enclosed in double
+quotes, for example:
+
+  client-kill 1 "HALT,Server shutting down for maintenance"
+  client-kill 1 "RESTART,[P]Reconnecting to update configuration"
 
 COMMAND -- remote-entry-count (OpenVPN 2.6+ management version > 3)
 -------------------------------------------------------------------
