@@ -1450,10 +1450,14 @@ init_key_contexts(struct key_state *ks, struct tls_multi *multi, const struct ke
     {
         if (!cipher_kt_mode_aead(key_type->cipher))
         {
-            msg(M_FATAL,
-                "AEAD cipher (currently %s) "
+            /* The pulled options are validated in do_deferred_options(), so
+             * reaching this point means a code path escaped that check. Fail
+             * the session instead of the whole process */
+            msg(D_TLS_ERRORS,
+                "TLS Error: AEAD cipher (currently %s) "
                 "required for epoch data format.",
                 cipher_kt_name(key_type->cipher));
+            return KEY_GEN_FAILED;
         }
         init_epoch_keys(ks, multi, key_type, server, key2);
     }
