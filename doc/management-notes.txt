@@ -836,7 +836,7 @@ info.
 M -- optional message to send to the client before termination
 (defaults to "RESTART"). The format of M is:
 
-  RESTART|HALT[,[flags]][human-readable-message]
+  RESTART|HALT[,[flags][human-readable-message]]
 
 RESTART instructs the client to perform a restart (SIGUSR1).
 HALT instructs the client to exit (SIGTERM).
