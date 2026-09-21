@@ -487,7 +487,7 @@ multi_del_iroutes(struct multi_context *m, struct multi_instance *mi)
     const struct iroute *ir;
     const struct iroute_ipv6 *ir6;
 
-    dco_delete_iroutes(m, mi);
+    dco_delete_iroutes(&m->top.net_ctx, &mi->context);
 
     if (TUNNEL_TYPE(mi->context.c1.tuntap) == DEV_TYPE_TUN)
     {
@@ -1215,7 +1215,7 @@ multi_learn_in_addr_t(struct multi_context *m, struct multi_instance *mi, in_add
         management_learn_addr(management, &mi->context.c2.mda_context, &addr, primary);
     }
 #endif
-    if (primary && multi_check_push_ifconfig_extra_route(mi, addr.v4.addr))
+    if (primary && multi_check_push_ifconfig_extra_route(&mi->context.options, addr.v4.addr))
     {
         /* "primary" is the VPN ifconfig address of the peer */
         /* if it does not fall into the network defined by ifconfig_local
@@ -1260,7 +1260,7 @@ multi_learn_in6_addr(struct multi_context *m, struct multi_instance *mi, struct 
         management_learn_addr(management, &mi->context.c2.mda_context, &addr, primary);
     }
 #endif
-    if (primary && multi_check_push_ifconfig_ipv6_extra_route(mi, &addr.v6.addr))
+    if (primary && multi_check_push_ifconfig_ipv6_extra_route(&mi->context.options, &addr.v6.addr))
     {
         /* "primary" is the VPN ifconfig address of the peer */
         /* if it does not fall into the network defined by ifconfig_local
@@ -4410,9 +4410,8 @@ update_vhash(struct multi_context *m, struct multi_instance *mi, const char *new
 }
 
 bool
-multi_check_push_ifconfig_extra_route(struct multi_instance *mi, in_addr_t dest)
+multi_check_push_ifconfig_extra_route(const struct options *o, in_addr_t dest)
 {
-    struct options *o = &mi->context.options;
     in_addr_t local_addr, local_netmask;
 
     if (!o->ifconfig_local || !o->ifconfig_remote_netmask)
@@ -4431,11 +4430,8 @@ multi_check_push_ifconfig_extra_route(struct multi_instance *mi, in_addr_t dest)
 }
 
 bool
-multi_check_push_ifconfig_ipv6_extra_route(struct multi_instance *mi,
-                                           struct in6_addr *dest)
+multi_check_push_ifconfig_ipv6_extra_route(const struct options *o, const struct in6_addr *dest)
 {
-    struct options *o = &mi->context.options;
-
     if (!o->ifconfig_ipv6_local || !o->ifconfig_ipv6_netbits)
     {
         /* If we do not have a local address, we just return false as
