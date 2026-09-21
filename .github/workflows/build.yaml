@@ -62,6 +62,8 @@ jobs:
       - name: Install dependencies
         run: ${VCPKG_ROOT}/vcpkg install openssl lz4 cmocka
       - name: configure OpenVPN with cmake
+        env:
+          PKG_CONFIG_PATH: "${{ env.VCPKG_INSTALLED_DIR }}/${{ matrix.vcpkg_triplet }}/lib/pkgconfig"
         run: |
           cmake -S . -B openvpn-build -DUNSUPPORTED_BUILDS=yes \
             -DCMAKE_SYSTEM_NAME=Android -DCMAKE_SYSTEM_VERSION=28 \
