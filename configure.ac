@@ -1335,10 +1335,7 @@ AC_ARG_ENABLE(
 	[enable_fbounds_safety="no"]
 )
 if test "${enable_fbounds_safety}" = "yes"; then
-	AC_MSG_NOTICE([ENABLE_FBOUNDS_SAFETY enabled])
 	CFLAGS="${CFLAGS} -DOVPN_SUPPORT_FBOUNDS_SAFETY -fbounds-safety"
-else
-	AC_MSG_NOTICE([ENABLE_FBOUNDS_SAFETY disabled])
 fi
 
 AC_ARG_ENABLE(
