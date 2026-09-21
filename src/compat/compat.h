@@ -66,4 +66,14 @@ char *
 strtok_r(char *s, const char *delim, char **last);
 #endif
 
+/* Optional Clang -fbounds-safety: inert stubs unless OVPN_SUPPORT_FBOUNDS_SAFETY. */
+#ifdef OVPN_SUPPORT_FBOUNDS_SAFETY
+#include <ptrcheck.h>
+#else
+#define __sized_by(n)
+#define __sized_by_or_null(n)
+#define __counted_by(n)
+#define __counted_by_or_null(n)
+#endif
+
 #endif /* COMPAT_H */
