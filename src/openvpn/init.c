@@ -2698,6 +2698,18 @@ do_deferred_options(struct context *c, const uint64_t found, const bool is_updat
         return false;
     }
 
+    /* The epoch data format is defined for AEAD ciphers only. A peer may push
+     * the tag along with a non-AEAD cipher, so this has to be checked here
+     * rather than trusted */
+    if (epoch_data && !cipher_kt_mode_aead(c->options.ciphername))
+    {
+        msg(D_PUSH_ERRORS,
+            "OPTIONS ERROR: Epoch key data format tag requires an AEAD "
+            "cipher, but '%s' was negotiated.",
+            c->options.ciphername);
+        return false;
+    }
+
 
     if (found & OPT_P_PUSH_MTU)
     {
