@@ -21,12 +21,21 @@ if !WIN32
 test_scripts = t_client.sh t_lpback.sh t_cltsrv.sh t_server_null.sh
 
 check_PROGRAMS = ntlm_support
+
+if TARGET_LINUX
+test_scripts += t_short_write.sh
+check_LTLIBRARIES = short_write_shim.la
+short_write_shim_la_SOURCES = short_write_shim.c
+short_write_shim_la_LDFLAGS = -module -shared -avoid-version -no-undefined -rpath $(abs_builddir)
+short_write_shim_la_LIBADD  = -ldl
+endif
+
 if HAVE_SITNL
 test_scripts += t_net.sh
 endif
 endif
 
-TESTS_ENVIRONMENT = top_srcdir="$(top_srcdir)"
+TESTS_ENVIRONMENT = top_srcdir="$(top_srcdir)" top_builddir="$(top_builddir)"
 TEST_EXTENSIONS = .sh
 TESTS = $(test_scripts)
 
@@ -39,9 +48,11 @@ dist_noinst_SCRIPTS = \
 	t_server_null_client.sh \
 	t_server_null_server.sh \
 	t_server_null_default.rc \
+	t_short_write.sh \
 	update_t_client_ips.sh
 
 t_client.log: t_server_null.log
+t_short_write.log: short_write_shim.la
 
 dist_noinst_DATA = \
 	t_client.rc-sample
