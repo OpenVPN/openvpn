@@ -794,6 +794,36 @@ and <challenge_text> fields are used:
 The client should return the response to the crtext challenge
 using the cr-response command.
 
+notify
+======
+This is notification that there might be some activity that potentially takes
+a while to finish is happening beyond the control of the client. This might be
+a server side check or an out-of-band authentication like requiring to have
+to authorise the connection on a mobile phone app. Beyond the control of
+the client is here meant in the strict sense of OpenVPN client program.
+This message still might prompt the user to look at their phone for example.
+
+The syntax of {EXTRA} for notify is:
+
+    NOTIFY:<flags>:<notify_message>
+
+<flags>: a series of optional, comma-separated flags. No flags have
+been defined yet.
+
+<notify_message>: The message to show the user to inform them about the
+ongoing authentication
+
+An example for a notify EXTRA of a server that does some checks against
+well known list of blacklists could be
+
+    NOTIFY::Please wait while your IP is checked against multiple online abuse databases.
+
+to inform the user that there is a delay in the connection attempt.
+
+Since the notify pending auth is not requiring any action on the client side
+that is required to continue the connection (unlike MFA or opening a browser)
+this message is not negotiated but can just be sent as a gratuitous message.
+
 COMMAND -- client-deny  (OpenVPN 2.1 or higher)
 -----------------------------------------------
 
