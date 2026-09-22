@@ -47,6 +47,24 @@
 
 /* Define the type of error. This is something that is less
  * intrusive than casts everywhere */
+#if defined(ENABLE_CRYPTO_WOLFSSL)
+/* wolfSSL's OpenSSL compatibility layer has no error queue marks. The
+ * callers use them to drop what a failed lookup raised, so fall back to
+ * clearing the queue. */
+static inline int
+ERR_set_mark(void)
+{
+    return 1;
+}
+
+static inline int
+ERR_pop_to_mark(void)
+{
+    ERR_clear_error();
+    return 1;
+}
+#endif /* defined(ENABLE_CRYPTO_WOLFSSL) */
+
 #if defined(OPENSSL_IS_AWSLC)
 typedef uint32_t openssl_err_t;
 typedef size_t openssl_stack_size_t;
