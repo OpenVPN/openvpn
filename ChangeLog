@@ -1,6 +1,26 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2025 OpenVPN Inc <sales@openvpn.net>
 
+2026.09.23 -- Version 2.6.23
+
+Arne Schwabe (3):
+      Move check_session_buf_not_used method into the method that free the buffer
+      Avoid unbounded reliable TLS timeout
+      Ignore acks for packets that cannot be outstanding
+
+Heiko Hund (3):
+      openvpnserv: detect sibling dirs in CheckConfigPath
+      win: don't use NULL DACL with system objects
+      tapctl: prevent binary planting with netsh
+
+Lev Stipakov (2):
+      win32: quote arguments that cmd.exe would reinterpret
+      ssl: do not trust the peer's request to resend the wrapped client key
+
+Nexory (1):
+      dhcp: Fix off-by-one in write_dhcp_search_str() temp buffer guard
+
+
 2026.08.05 -- Version 2.6.22
 
 Frank Lichtenheld (2):

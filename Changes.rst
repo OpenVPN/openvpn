@@ -1,3 +1,62 @@
+Overview of changes in 2.6.23
+=============================
+Security fixes
+--------------
+- SSL: do not trust the peer's request to resend the wrapped client key
+  (OpenVPN/openvpn-private-issues#181)
+
+- reliability layer: Avoid unbounded reliable TLS timeout (CVE-2026-84732)
+
+- reliability layer: Ignore acks for packets that cannot be outstanding
+  (CVE-2026-84732)
+
+  (both reliability layer bugs found by Mark Bregman <mark.bregman@fox-it.com>,
+   tracked in Github: OpenVPN/openvpn-private-issues#161)
+
+- improve on check_session_buf_not_used(), catch possible double-free in
+  the lame duck case (CVE-2026-84471).
+
+  (Bug reported by Andreas Gabriel Berbescu <aberbescu@gmail.com>,
+   tracked in Github: openvpn/openvpn-private-issues#157, and by
+   Haruki Oyama (Waseda University), tracked in private-issues#132)
+
+- Windows: fix ``CreateProcess()`` command line quoting for characters that
+  are special to ``cmd.exe`` and where a combination of validation script
+  plus rogue CA could lead to misbehavior (CVE-2026-84256)
+
+  (Bug found by Clouditera Security <security@clouditera.com>, tracked
+   in Github: OpenVPN/openvpn-private-issues#159)
+
+- Windows: fix ``tapctl`` to always call ``netsh.exe`` with full path
+  (as we do elsewhere) (CVE-2026-84226)
+
+  (Bug found by BreachX Zero Day Labs, using Typhon AI Mil v2, tracked
+   in Github: OpenVPN/openvpn-private-issues#164)
+
+- Windows: don't use NULL DACL with system objects, namely the
+  ``--service`` exit event and the ``netsh.exe`` guard semaphore.  The
+  old approach was prone to a local DoS where one user could interfere
+  with other users' openvpn processes by blocking the netsh semaphore
+  or sending events.  This only affects setups not using the iservice,
+  or using the automatic service to start/stop openvpn (CVE-2026-82312).
+
+  (Bug found by DEBRAJ BASAK <https://in.linkedin.com/in/debrajbasak>,
+   tracked in Github: OpenVPN/openvpn-private-issues#167)
+
+- Windows: dhcp: Fix off-by-one in write_dhcp_search_str() temp buffer guard
+  (suitable DHCP options could lead to a single-byte overflow of a temp
+   buffer, CVE-2026-81738)
+
+  (Bug found by Andre Kropp (Nexory) and ChinhNguyen, tracked
+   in Github: OpenVPN/openvpn-private-issues#165)
+
+- Windows: openvpnserv: detect and refuse sibling dirs in CheckConfigPath
+  (CVE-2026-81830)
+
+  (Bug found by Harshit Varu <harshitvaru666@gmail.com>, tracked
+   in Github: OpenVPN/openvpn-private-issues#166)
+
+
 Overview of changes in 2.6.22
 =============================
 Security fixes
