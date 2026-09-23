@@ -767,7 +767,9 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
 
                 char get[80];
                 CLEAR(buf2);
-                snprintf(get, sizeof(get), "%%*s NTLM %%%zus", sizeof(buf2) - 1);
+                /* mingw checks calls to the builtin snprintf() with the
+                 * ms_printf archetype, which does not know the 'z' modifier */
+                snprintf(get, sizeof(get), "%%*s NTLM %%%us", (unsigned int)(sizeof(buf2) - 1));
                 nparms = sscanf(buf, get, buf2);
 
                 /* check for "Proxy-Authenticate: NTLM TlRM..." */
