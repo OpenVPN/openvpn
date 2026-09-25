@@ -354,8 +354,6 @@ void multi_process_drop_outgoing_tun(struct multi_context *m, const unsigned int
 
 struct multi_instance *multi_get_queue(struct mbuf_set *ms);
 
-void multi_add_mbuf(struct multi_context *m, struct multi_instance *mi, struct mbuf_buffer *mb);
-
 void multi_ifconfig_pool_persist(struct multi_context *m, bool force);
 
 bool multi_process_signal(struct multi_context *m);

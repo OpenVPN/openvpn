@@ -2833,7 +2833,7 @@ multi_process_file_closed(struct multi_context *m, const unsigned int mpp_flags)
  * Add a mbuf buffer to a particular
  * instance.
  */
-void
+static void
 multi_add_mbuf(struct multi_context *m, struct multi_instance *mi, struct mbuf_buffer *mb)
 {
     if (multi_output_queue_ready(m, mi))
