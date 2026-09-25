@@ -113,9 +113,16 @@ const char title_string[] = PACKAGE_STRING
 #ifdef ENABLE_DCO
     " [DCO]"
 #endif
+#ifdef ENABLE_SMALL
+    " [SMALL]"
+#endif
+#ifdef ENABLE_DEBUG
+    " [DEBUG]"
+#endif
 #ifdef CONFIGURE_GIT_REVISION
     " built on " __DATE__
 #endif
+
     ;
 
 #ifndef ENABLE_SMALL
@@ -785,7 +792,7 @@ static const char usage_message[] =
 #endif /* ENABLE_PKCS11 */
     "\n"
     "General Standalone Options:\n"
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
     "--show-gateway [address]: Show info about gateway [to v4/v6 address].\n"
 #endif
     ;
@@ -3534,6 +3541,9 @@ usage_version(void)
     msg(M_INFO | M_NOPREFIX, "special build: %s", CONFIGURE_SPECIAL_BUILD);
 #endif
 #endif
+
+    show_debug_warning(M_INFO | M_NOPREFIX);
+
     openvpn_exit(OPENVPN_EXIT_STATUS_GOOD);
 }
 
@@ -4229,7 +4239,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         read_config_file(options, p[1], level, file, line, msglevel, permission_mask,
                          option_types_found, es);
     }
-#if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
+#ifndef ENABLE_SMALL
     else if (streq(p[0], "show-gateway") && !p[2])
     {
         struct route_gateway_info rgi;
@@ -4938,12 +4948,13 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
              * mbed TLS always generating debug level logging */
             options->ssl_flags |= SSLF_TLS_DEBUG_ENABLED;
         }
-#if !defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
+#ifdef ENABLE_SMALL
         /* Warn when a debug verbosity is supplied when built without debug support */
         if (options->verbosity >= 7)
         {
             msg(M_WARN,
-                "NOTE: debug verbosity (--verb %d) is enabled but this build lacks debug support.",
+                "NOTE: debug verbosity (--verb %d) is enabled but this build is "
+                "built with --enable-small that lacks support for high --verb settings",
                 options->verbosity);
         }
 #endif

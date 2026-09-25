@@ -50,7 +50,7 @@ counter_type link_write_bytes_global; /* GLOBAL */
 
 /* show event wait debugging info */
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 
 static const char *
 wait_status_string(struct context *c, struct gc_arena *gc)
@@ -75,7 +75,7 @@ show_wait_status(struct context *c)
     gc_free(&gc);
 }
 
-#endif /* ifdef ENABLE_DEBUG */
+#endif
 
 static void
 check_tls_errors_co(struct context *c)
@@ -2190,7 +2190,7 @@ io_wait(struct context *c, const unsigned int flags)
         {
             int status;
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
             if (check_debug_level(D_EVENT_WAIT))
             {
                 show_wait_status(c);

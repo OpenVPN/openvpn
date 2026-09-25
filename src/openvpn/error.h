@@ -158,7 +158,9 @@ bool dont_mute(msglvl_t flags);
         }                                \
         EXIT_FATAL(flags);               \
     } while (false)
-#ifdef ENABLE_DEBUG
+/* We have DMSG_ALWAYS_AVAILABLE here to able to silence unused warnings for
+ * cppcheck */
+#if !defined(ENABLE_SMALL) || defined(DMSG_ALWAYS_AVAILABLE)
 #define dmsg(flags, ...)                 \
     do                                   \
     {                                    \

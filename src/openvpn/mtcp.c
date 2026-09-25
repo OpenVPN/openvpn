@@ -74,7 +74,7 @@ multi_create_instance_tcp(struct multi_context *m, struct link_socket *sock)
         mi->did_real_hash = true;
     }
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
     if (mi)
     {
         dmsg(D_MULTI_DEBUG, "MULTI TCP: instance added: %s", mroute_addr_print(&mi->real, &gc));

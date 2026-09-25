@@ -125,7 +125,7 @@ stubv2_decompress(struct buffer *buf, struct buffer work, struct compress_contex
         return;
     }
 
-    uint8_t *head = BPTR(buf);
+    const uint8_t *head = BPTR(buf);
 
     /* no compression or packet to short*/
     if (head[0] != COMP_ALGV2_INDICATOR_BYTE)

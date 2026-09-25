@@ -431,7 +431,7 @@ multi_get_create_instance_udp(struct multi_context *m, bool *floated, struct lin
         }
     }
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
     if (check_debug_level(D_MULTI_DEBUG))
     {
         struct gc_arena gc = gc_new();

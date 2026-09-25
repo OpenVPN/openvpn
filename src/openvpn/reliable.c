@@ -462,7 +462,7 @@ reliable_send_purge(struct reliable *rel, const struct reliable_ack *ack)
     }
 }
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 /* print the current sequence of active packet IDs */
 static const char *
 reliable_print_ids(const struct reliable *rel, struct gc_arena *gc)
@@ -480,7 +480,7 @@ reliable_print_ids(const struct reliable *rel, struct gc_arena *gc)
     }
     return BSTR(&out);
 }
-#endif /* ENABLE_DEBUG */
+#endif
 
 /* true if at least one free buffer available */
 bool

@@ -1145,7 +1145,7 @@ multi_get_instance_by_virtual_addr(struct multi_context *m, const struct mroute_
         }
     }
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
     if (check_debug_level(D_MULTI_DEBUG))
     {
         struct gc_arena gc = gc_new();

@@ -52,18 +52,18 @@
 #define SEQ_UNSEEN  ((time_t)0)
 #define SEQ_EXPIRED ((time_t)1)
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 static void packet_id_debug_print(msglvl_t msglevel, const struct packet_id_rec *p,
                                   const struct packet_id_net *pin, const char *message,
                                   packet_id_print_type value);
 
-#endif /* ENABLE_DEBUG */
+#endif
 
 static inline void
 packet_id_debug(msglvl_t msglevel, const struct packet_id_rec *p,
                 const struct packet_id_net *pin, const char *message, uint64_t value)
 {
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
     if (unlikely(check_debug_level(msglevel)))
     {
         packet_id_debug_print(msglevel, p, pin, message, value);
@@ -576,7 +576,7 @@ packet_id_persist_print(const struct packet_id_persist *p, struct gc_arena *gc)
     return (char *)out.data;
 }
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 
 static void
 packet_id_debug_print(msglvl_t msglevel, const struct packet_id_rec *p,
@@ -648,7 +648,7 @@ packet_id_debug_print(msglvl_t msglevel, const struct packet_id_rec *p,
     gc_free(&gc);
 }
 
-#endif /* ifdef ENABLE_DEBUG */
+#endif
 
 uint16_t
 packet_id_read_epoch(struct packet_id_net *pin, struct buffer *buf)

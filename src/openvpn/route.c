@@ -81,7 +81,7 @@ static void delete_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned
 
 static void get_bypass_addresses(struct route_bypass *rb, const unsigned int flags);
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 
 static void
 print_bypass_addresses(const struct route_bypass *rb)
@@ -617,7 +617,7 @@ init_route_list(struct route_list *rl, const struct route_option_list *opt,
     if (rl->ngi.flags & RGI_ADDR_DEFINED)
     {
         setenv_route_addr(es, "net_gateway", rl->ngi.gateway.addr, -1);
-#if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
+#ifndef ENABLE_SMALL
         print_default_gateway(D_ROUTE, &rl->rgi, NULL);
 #endif
     }
@@ -660,7 +660,7 @@ init_route_list(struct route_list *rl, const struct route_option_list *opt,
             add_block_local_routes(rl);
         }
         get_bypass_addresses(&rl->spec.bypass, rl->flags);
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
         print_bypass_addresses(&rl->spec.bypass);
 #endif
     }
@@ -768,7 +768,7 @@ init_route_ipv6_list(struct route_ipv6_list *rl6, const struct route_ipv6_option
     if (rl6->ngi6.flags & RGI_ADDR_DEFINED)
     {
         setenv_str(es, "net_gateway_ipv6", print_in6_addr(rl6->ngi6.gateway.addr_ipv6, 0, &gc));
-#if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
+#ifndef ENABLE_SMALL
         print_default_gateway(D_ROUTE, NULL, &rl6->rgi6);
 #endif
     }

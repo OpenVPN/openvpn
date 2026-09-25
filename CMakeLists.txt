@@ -40,6 +40,7 @@ option(ENABLE_LZO "BUILD with lzo" ON)
 option(ENABLE_PKCS11 "BUILD with pkcs11-helper" ON)
 option(USE_WERROR "Treat compiler warnings as errors (-Werror)" ON)
 option(FAKE_ANDROID "Target Android but do not use actual cross compile/Android cmake to build for simple compile checks on Linux")
+option(ENABLE_DEBUG "Enable building with debug" OFF)
 
 option(ENABLE_DNS_UPDOWN_BY_DEFAULT "Run --dns-updown hook by default" ON)
 set(DNS_UPDOWN_PATH "${CMAKE_INSTALL_PREFIX}/libexec/openvpn/dns-updown" CACHE STRING "Default location for the DNS up/down script")

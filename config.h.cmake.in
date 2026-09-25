@@ -18,8 +18,8 @@
 /* Enable shared data channel offload */
 #cmakedefine ENABLE_DCO
 
-/* Enable debugging support (needed for verb>=4) */
-#define ENABLE_DEBUG 1
+/* Enable debugging support */
+#cmakedefine ENABLE_DEBUG
 
 /* Enable internal fragmentation support */
 #define ENABLE_FRAGMENT 1

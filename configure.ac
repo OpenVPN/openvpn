@@ -130,10 +130,10 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
-	[debug],
-	[AS_HELP_STRING([--disable-debug], [disable debugging support (disable gremlin and verb 7+ messages) @<:@default=yes@:>@])],
-	,
-	[enable_debug="yes"]
+	[developer-debug],
+	[AS_HELP_STRING([--enable-developer-debug], [enable developer debugging support (enable gremlin) @<:@default=no@:>@])],
+	[enable_debug="yes"],
+	[enable_debug="no"]
 )
 
 AC_ARG_ENABLE(
@@ -1393,3 +1393,8 @@ AC_CONFIG_FILES([
 ])
 AC_CONFIG_FILES([tests/t_client.sh], [chmod +x tests/t_client.sh])
 AC_OUTPUT
+
+# Put the warning at the end, so it is better visible
+if test "${enable_debug}" = "yes"; then
+    AC_MSG_WARN([--enable-developer-debug is enabled. This should be only used for test/development builds and not for production usage])
+fi

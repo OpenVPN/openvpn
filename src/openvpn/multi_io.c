@@ -46,7 +46,7 @@
 #define MULTI_IO_FILE_CLOSE_WRITE ((void *)5)
 #define MULTI_IO_DCO              ((void *)6)
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 static const char *
 pract(int action)
 {
@@ -89,7 +89,7 @@ pract(int action)
             return "?";
     }
 }
-#endif /* ENABLE_DEBUG */
+#endif
 
 static inline struct context *
 multi_get_context(struct multi_context *m, struct multi_instance *mi)

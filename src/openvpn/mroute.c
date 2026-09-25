@@ -501,7 +501,7 @@ mroute_helper_regenerate(struct mroute_helper *mh)
     }
     mh->n_net_len = j;
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
     if (check_debug_level(D_MULTI_DEBUG))
     {
         struct gc_arena gc = gc_new();

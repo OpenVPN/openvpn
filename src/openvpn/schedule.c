@@ -33,7 +33,7 @@
 
 #include "memdbg.h"
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 static void
 schedule_entry_debug_info(const char *caller, const struct schedule_entry *e)
 {
@@ -308,7 +308,7 @@ schedule_insert(struct schedule *s, struct schedule_entry *e)
 void
 schedule_add_modify(struct schedule *s, struct schedule_entry *e)
 {
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
     if (check_debug_level(D_SCHEDULER))
     {
         schedule_entry_debug_info("schedule_add_modify", e);
@@ -355,7 +355,7 @@ schedule_find_least(struct schedule_entry *e)
         }
     }
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
     if (check_debug_level(D_SCHEDULER))
     {
         schedule_entry_debug_info("schedule_find_least", e);

@@ -888,6 +888,16 @@ void usage(void);
 
 void show_library_versions(const unsigned int flags);
 
+static inline void
+show_debug_warning(const unsigned int flags)
+{
+#ifdef ENABLE_DEBUG
+    msg(flags, "WARNING: OpenVPN has been compiled with --enable-developer-debug. "
+               "This should be only used for test/development builds and not for "
+               "production usage");
+#endif
+}
+
 #ifdef _WIN32
 void show_windows_version(const unsigned int flags);
 

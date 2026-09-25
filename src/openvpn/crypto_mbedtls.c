@@ -842,8 +842,8 @@ tls1_P_hash(const md_info_t *md_info, const uint8_t *sec, size_t sec_len, const 
     struct gc_arena gc = gc_new();
     uint8_t A1[MAX_HMAC_KEY_LENGTH];
 
-#ifdef ENABLE_DEBUG
-    /* used by the D_SHOW_KEY_SOURCE, guarded with ENABLE_DEBUG to avoid unused
+#ifndef ENABLE_SMALL
+    /* used by the D_SHOW_KEY_SOURCE, guarded with ENABLE_SMALL to avoid unused
      * variables warnings if compiled with --enable-small */
     const size_t olen_orig = olen;
     const uint8_t *out_orig = out;

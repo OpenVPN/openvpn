@@ -83,19 +83,6 @@ bool dont_mute(unsigned int flags);
         }                                \
         EXIT_FATAL(flags);               \
     } while (false)
-#ifdef ENABLE_DEBUG
-#define dmsg(flags, ...)                 \
-    do                                   \
-    {                                    \
-        if (msg_test(flags))             \
-        {                                \
-            x_msg((flags), __VA_ARGS__); \
-        }                                \
-        EXIT_FATAL(flags);               \
-    } while (false)
-#else
-#define dmsg(flags, ...)
-#endif
 
 void x_msg(const unsigned int flags, const char *format, ...); /* should be called via msg above */
 

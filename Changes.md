@@ -23,6 +23,12 @@
   the characters mentioned above were already escaped. However, the behavior of
   Mbed TLS is slightly different from OpenSSL in that it also escapes "=".
 
+## Maintainer-visible changes
+
+- The configure-time option `--enable-debug` is no longer  available
+  and the verbose logging is now always included unless `--enable-small`
+  is enabled.
+
 # Overview of changes in 2.7
 
 ## New features

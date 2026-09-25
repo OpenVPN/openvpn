@@ -993,7 +993,7 @@ plugin_return_free(struct plugin_return *pr)
     pr->n = 0;
 }
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 void
 plugin_return_print(const msglvl_t msglevel, const char *prefix, const struct plugin_return *pr)
 {
@@ -1012,5 +1012,5 @@ plugin_return_print(const msglvl_t msglevel, const char *prefix, const struct pl
         }
     }
 }
-#endif /* ifdef ENABLE_DEBUG */
+#endif
 #endif /* ENABLE_PLUGIN */

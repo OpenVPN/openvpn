@@ -398,7 +398,7 @@ we_wait(struct event_set *es, const struct timeval *tv, struct event_set_return 
 
     dmsg(D_EVENT_WAIT, "WE_WAIT enter n=%d to=%d", wes->n_events, timeout);
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
     if (check_debug_level(D_EVENT_WAIT))
     {
         int i;

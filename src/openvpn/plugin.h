@@ -135,7 +135,7 @@ void plugin_return_get_column(const struct plugin_return *src, struct plugin_ret
 
 void plugin_return_free(struct plugin_return *pr);
 
-#ifdef ENABLE_DEBUG
+#ifndef ENABLE_SMALL
 void plugin_return_print(const msglvl_t msglevel, const char *prefix, const struct plugin_return *pr);
 
 #endif
