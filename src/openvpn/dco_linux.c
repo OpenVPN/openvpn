@@ -134,12 +134,8 @@ nla_put_failure:
 }
 
 static int
-ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
+ovpn_nl_recvmsgs_report(int ret, const char *prefix)
 {
-    __is_locked = true;
-    int ret = nl_recvmsgs(dco->nl_sock, dco->nl_cb);
-    __is_locked = false;
-
     switch (ret)
     {
         case -NLE_INTR:
@@ -172,6 +168,16 @@ ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
     }
 
     return ret;
+}
+
+static int
+ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
+{
+    __is_locked = true;
+    int ret = nl_recvmsgs(dco->nl_sock, dco->nl_cb);
+    __is_locked = false;
+
+    return ovpn_nl_recvmsgs_report(ret, prefix);
 }
 
 /**
@@ -398,9 +404,11 @@ ovpn_dco_register(dco_context_t *dco)
     }
 
     /* Register for ovpn-dco specific multicast messages that the kernel may
-     * send
+     * send. These are subscribed on the dedicated notification socket only, so
+     * that they are never delivered while a request/reply transaction on
+     * dco->nl_sock is being parsed.
      */
-    int ret = nl_socket_add_membership(dco->nl_sock, dco->ovpn_dco_mcast_id);
+    int ret = nl_socket_add_membership(dco->nl_sock_notify, dco->ovpn_dco_mcast_id);
     if (ret)
     {
         msg(M_FATAL, "%s: failed to join groups: %d", __func__, ret);
@@ -449,17 +457,49 @@ ovpn_dco_init_netlink(dco_context_t *dco)
     nl_cb_set(dco->nl_cb, NL_CB_ACK, NL_CB_CUSTOM, ovpn_nl_cb_finish, &dco->status);
     nl_cb_set(dco->nl_cb, NL_CB_VALID, NL_CB_CUSTOM, ovpn_handle_msg, dco);
 
+    /* Set up the dedicated multicast notification socket. It shares the message
+     * handler (ovpn_handle_msg) with the request/reply socket, but is read only
+     * from dco_read_and_process() in the event loop, so notifications never
+     * fire while a request/reply transaction is being parsed. */
+    dco->nl_sock_notify = nl_socket_alloc();
+    if (!dco->nl_sock_notify)
+    {
+        msg(M_FATAL, "Cannot create netlink notification socket");
+    }
+
+    ret = genl_connect(dco->nl_sock_notify);
+    if (ret)
+    {
+        msg(M_FATAL, "Cannot connect to generic netlink (notify): %s", nl_geterror(ret));
+    }
+
+    set_cloexec(nl_socket_get_fd(dco->nl_sock_notify));
+    set_nonblock(nl_socket_get_fd(dco->nl_sock_notify));
+
+    dco->nl_cb_notify = nl_cb_alloc(NL_CB_DEFAULT);
+    if (!dco->nl_cb_notify)
+    {
+        msg(M_FATAL, "failed to allocate netlink notification callback");
+    }
+
+    nl_socket_set_cb(dco->nl_sock_notify, dco->nl_cb_notify);
+    nl_cb_err(dco->nl_cb_notify, NL_CB_CUSTOM, ovpn_nl_cb_error, &dco->status);
+    nl_cb_set(dco->nl_cb_notify, NL_CB_VALID, NL_CB_CUSTOM, ovpn_handle_msg, dco);
+
     ovpn_dco_register(dco);
 
     /* The async PACKET messages confuse libnl and it will drop them with
      * wrong sequence numbers (NLE_SEQ_MISMATCH), so disable libnl's sequence
-     * number check */
+     * number check. Multicast notifications are unsolicited and likewise carry
+     * no matching sequence number, so disable the check on both sockets. */
     nl_socket_disable_seq_check(dco->nl_sock);
+    nl_socket_disable_seq_check(dco->nl_sock_notify);
 
     /* nl library sets the buffer size to 32k/32k by default which is sometimes
      * overrun with very fast connecting/disconnecting clients.
      * TODO: fix this in a better and more reliable way */
     ASSERT(!nl_socket_set_buffer_size(dco->nl_sock, 1024 * 1024, 1024 * 1024));
+    ASSERT(!nl_socket_set_buffer_size(dco->nl_sock_notify, 1024 * 1024, 1024 * 1024));
 }
 
 bool
@@ -495,8 +535,12 @@ ovpn_dco_uninit_netlink(dco_context_t *dco)
     nl_socket_free(dco->nl_sock);
     dco->nl_sock = NULL;
 
+    nl_socket_free(dco->nl_sock_notify);
+    dco->nl_sock_notify = NULL;
+
     /* Decrease reference count */
     nl_cb_put(dco->nl_cb);
+    nl_cb_put(dco->nl_cb_notify);
 
     CLEAR(dco);
 }
@@ -1163,7 +1207,13 @@ dco_read_and_process(dco_context_t *dco)
 {
     msg(D_DCO_DEBUG, __func__);
 
-    return ovpn_nl_recvmsgs(dco, __func__);
+    /* Drain the multicast notification socket. This is the only place where
+     * asynchronous notifications (peer del/float, key swap) are processed, so
+     * the multi_close_instance() they may trigger happens at a safe point in
+     * the event loop rather than re-entrantly inside a request/reply. */
+    int ret = nl_recvmsgs(dco->nl_sock_notify, dco->nl_cb_notify);
+
+    return ovpn_nl_recvmsgs_report(ret, __func__);
 }
 
 static int
@@ -1325,9 +1375,12 @@ dco_version_string(struct gc_arena *gc)
 void
 dco_event_set(dco_context_t *dco, struct event_set *es, void *arg)
 {
-    if (dco && dco->nl_sock)
+    if (dco && dco->nl_sock_notify)
     {
-        event_ctl(es, nl_socket_get_fd(dco->nl_sock), EVENT_READ, arg);
+        /* Only the notification socket is monitored by the event loop. The
+         * request/reply socket (dco->nl_sock) is drained synchronously by
+         * ovpn_nl_msg_send(). */
+        event_ctl(es, nl_socket_get_fd(dco->nl_sock_notify), EVENT_READ, arg);
     }
 }
 
