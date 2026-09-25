@@ -681,6 +681,7 @@ tls_crypt_v2_wrap_unwrap_invalid(void **state)
     struct buffer tmp = create_client_key_input(ctx, 12);
 
     /* Make the wrapped key invalid by flipping a few bits */
+    // cppcheck-suppress syntaxError ; cppcheck is confused by this code
     buf_bptr(&tmp)[buf_len(&tmp) - 20] ^= 0x55;
 
     assert_false(tls_crypt_v2_extract_client_key(&tmp, &wrap_ctx, NULL));

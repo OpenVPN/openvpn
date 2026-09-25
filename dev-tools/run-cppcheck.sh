@@ -30,7 +30,7 @@ COMMON_ARGS="-j$(nproc) ${verbosity_arg} \
  --enable=all ${disable_arg} \
  --library=${SCRIPT_DIR}/openvpn-cppcheck-library.cfg \
  --library=openssl.cfg \
- --suppressions-list=${SCRIPT_DIR}/cppcheck-suppression \
+ --suppress-xml=${SCRIPT_DIR}/cppcheck-suppressions.xml --inline-suppr \
  --cppcheck-build-dir=${CPPCHECK_DIR} \
  --check-level=${CPPCHECK_CHECK_LEVEL} --max-configs=10 \
  --error-exitcode=1 --showtime=summary"
@@ -39,13 +39,14 @@ set -x
 
 mkdir -p "$CPPCHECK_DIR"
 cd "${SOURCE_DIR}"
+ret=0
 cppcheck $COMMON_ARGS $INCLUDE_FLAGS \
     --platform=unix64 \
     --library=posix.cfg --library=bsd.cfg --library=gnu.cfg \
     -U_WIN32 \
     src/openvpn/ src/compat/ src/plugins/ sample/ \
     tests/unit_tests/example_test/ tests/unit_tests/openvpn/ \
-    tests/unit_tests/plugins/
+    tests/unit_tests/plugins/ || ret=$?
 cppcheck $COMMON_ARGS \
     --platform=win64 \
     --library=windows.cfg \
@@ -55,4 +56,6 @@ cppcheck $COMMON_ARGS \
     -UTARGET_AIX \
     -UOPENSSL_NO_EC \
     src/openvpn* src/compat/ \
-    tests/unit_tests/example_test/ tests/unit_tests/openvpn*
+    tests/unit_tests/example_test/ tests/unit_tests/openvpn* || ret=$?
+
+exit $ret

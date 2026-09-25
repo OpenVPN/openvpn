@@ -268,7 +268,7 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
             }
 
             /* Encrypt packet ID, payload */
-            int outlen;
+            int outlen = 0;
             ASSERT(cipher_ctx_update(ctx->cipher, BEND(&work), &outlen, BPTR(buf), BLEN(buf)));
             ASSERT(buf_inc_len(&work, outlen));
 
@@ -566,7 +566,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     dmsg(D_PACKET_CONTENT, "DECRYPT AD: %s", format_hex(ad_start, ad_size, 0, &gc));
 
     /* Decrypt and authenticate packet */
-    int outlen;
+    int outlen = 0;
     if (!cipher_ctx_update(ctx->cipher, BPTR(&work), &outlen, BPTR(buf), data_len))
     {
         CRYPT_ERROR("packet decryption failed");

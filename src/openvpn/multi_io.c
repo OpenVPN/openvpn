@@ -321,6 +321,7 @@ multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int 
 {
     const unsigned int mpp_flags = MPP_PRE_SELECT | MPP_RECORD_TOUCH;
     struct multi_instance *touched = mi;
+    // cppcheck-suppress autoVariables ; yes, we know this is dangerous
     m->mpp_touched = &touched;
 
     dmsg(D_MULTI_DEBUG, "MULTI IO: multi_io_dispatch a=%s mi=" ptr_format, pract(action),

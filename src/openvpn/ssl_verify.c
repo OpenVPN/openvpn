@@ -925,6 +925,7 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads,
 
             errno = 0;
             long timeout = strtol(BSTR(timeout_buf), NULL, 10);
+            // cppcheck-suppress compareValueOutOfTypeRangeError ; ULONG_MAX==UINT_MAX on Windows
             if (timeout <= 0 || (unsigned long)timeout > UINT_MAX || errno)
             {
                 msg(M_WARN, "could not parse auth pending file timeout");

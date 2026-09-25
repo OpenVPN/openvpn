@@ -22,6 +22,7 @@
 
 #include "service.h"
 #include "validate.h"
+// cppcheck-suppress missingInclude ; we run cppcheck on Linux w/o this file
 #include "eventmsg.h"
 
 #include <pathcch.h>

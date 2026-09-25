@@ -4239,6 +4239,7 @@ tunnel_server(struct context *top)
     struct multi_context multi;
 
     top->mode = CM_TOP;
+    // cppcheck-suppress autoVariables ; yes, we know this is dangerous
     top->multi = &multi;
     context_clear_2(top);
 

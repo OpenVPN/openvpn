@@ -1,0 +1,209 @@
+<?xml version="1.0"?>
+<suppressions>
+  <!-- We start with enable=all, but then suppress some issues that have too many
+       occurences right now. They still should be fixed at some point -->
+  <suppress>
+    <id>constParameter</id>
+  </suppress>
+  <suppress>
+    <id>constParameterCallback</id>
+  </suppress>
+  <suppress>
+    <id>constParameterPointer</id>
+  </suppress>
+  <suppress>
+    <id>invalidPrintfArgType_sint</id>
+  </suppress>
+  <suppress>
+    <id>invalidPrintfArgType_uint</id>
+  </suppress>
+  <suppress>
+    <id>unusedFunction</id>
+  </suppress>
+  <suppress>
+    <id>usleepCalled</id>
+  </suppress>
+  <suppress>
+    <id>variableScope</id>
+  </suppress>
+  <!-- We have a lot of library includes, not all of them are really required,
+       so ignore them -->
+  <suppress>
+    <id>missingIncludeSystem</id>
+  </suppress>
+  <!-- cppcheck doesn't understand about check_malloc_return, so these are
+       usually misleading -->
+  <suppress>
+    <id>nullPointerOutOfMemory</id>
+  </suppress>
+  <suppress>
+    <id>nullPointerArithmeticOutOfMemory</id>
+  </suppress>
+  <!-- These are specific false-positives (FP) or ignored (IGN) issues
+       We might want to move some of them to inline-suppression to avoid
+       the static line-numbers -->
+  <!-- IGN: posix.cfg: We are not threadsafe -->
+  <suppress>
+    <id>getgrnamCalled</id>
+  </suppress>
+  <suppress>
+    <id>getpwnamCalled</id>
+  </suppress>
+  <suppress>
+    <id>getservbynameCalled</id>
+  </suppress>
+  <suppress>
+    <id>localtimeCalled</id>
+  </suppress>
+  <!-- IGN: too many false-positives due to platform-specific code -->
+  <suppress>
+    <id>knownConditionTrueFalse</id>
+  </suppress>
+  <!-- FP: posix.cfg claims suseconds_t is unsigned for some reason -->
+  <suppress>
+    <id>unsignedLessThanZero</id>
+    <fileName>src/openvpn/otime.h</fileName>
+    <symbolName>usec</symbolName>
+  </suppress>
+  <!-- IGN: the code header = 0 | (OPCODE << P_OPCODE_SHIFT) is used intentionally -->
+  <suppress>
+    <id>badBitmaskCheck</id>
+    <fileName>src/openvpn/mudp.c</fileName>
+  </suppress>
+  <suppress>
+    <id>badBitmaskCheck</id>
+    <fileName>tests/unit_tests/openvpn/test_pkt.c</fileName>
+  </suppress>
+  <!-- FP: cppcheck seems to have wrong signature of DeviceIoControl() -->
+  <suppress>
+    <id>constVariablePointer</id>
+    <fileName>src/openvpn/dco_win.c</fileName>
+    <symbolName>buf</symbolName>
+  </suppress>
+  <!-- IGN: test_networking code would break with iproute2 but that is prevented -->
+  <suppress>
+    <id>ctunullpointer</id>
+    <fileName>src/openvpn/networking_iproute2.c</fileName>
+  </suppress>
+  <!-- IGN: event code uses a pointer to store integers -->
+  <suppress>
+    <id>intToPointerCast</id>
+    <fileName>src/openvpn/forward.c</fileName>
+  </suppress>
+  <suppress>
+    <id>intToPointerCast</id>
+    <fileName>src/openvpn/multi_io.c</fileName>
+  </suppress>
+  <suppress>
+    <id>intToPointerCast</id>
+    <fileName>src/openvpn/ps.c</fileName>
+  </suppress>
+  <!-- FP: cppcheck seems to be confused since we cast the pointer to integer -->
+  <suppress>
+    <id>memleak</id>
+    <fileName>src/plugins/down-root/down-root.c</fileName>
+    <symbolName>context.command</symbolName>
+  </suppress>
+  <!-- IGN: we just abort instead -->
+  <suppress>
+    <id>memleakOnRealloc</id>
+    <fileName>src/openvpn/dco_freebsd.c</fileName>
+    <symbolName>buf</symbolName>
+  </suppress>
+  <!-- IGN: strlen(NULL) is not nice code, but seems to work -->
+  <suppress>
+    <id>nullPointerRedundantCheck</id>
+    <fileName>src/openvpn/init.c</fileName>
+    <symbolName>parameters</symbolName>
+  </suppress>
+  <!-- FP: cppcheck doesn't understand ZeroMemory -->
+  <suppress>
+    <id>redundantAssignment</id>
+    <fileName>src/openvpnserv/interactive.c</fileName>
+    <symbolName>overlapped-&gt;hEvent</symbolName>
+  </suppress>
+  <!-- IGN: We reuse the same variable name due to macro usage -->
+  <suppress>
+    <id>shadowVariable</id>
+    <fileName>src/openvpn/options.c</fileName>
+    <symbolName>use_err</symbolName>
+  </suppress>
+  <!-- FP: this file is never compiled on _WIN32 -->
+  <suppress>
+    <id>umaskCalled</id>
+    <fileName>tests/unit_tests/openvpn/test_pkcs11.c</fileName>
+  </suppress>
+  <!-- FP: yes, t_prev is unitialized, but t_prev_len is 0, so that's handled -->
+  <suppress>
+    <id>uninitvar</id>
+    <fileName>src/openvpn/crypto_epoch.c</fileName>
+    <symbolName>t_prev</symbolName>
+  </suppress>
+  <!-- FP: yes, parm is unitialized, but parm_len is 0, so that's handled -->
+  <suppress>
+    <id>uninitvar</id>
+    <fileName>src/openvpn/options_parse.c</fileName>
+    <symbolName>parm</symbolName>
+  </suppress>
+  <!-- FP: uninit is fine when it is a return parameter -->
+  <suppress>
+    <id>uninitvar</id>
+    <fileName>src/openvpnserv/interactive.c</fileName>
+    <symbolName>addr_list</symbolName>
+  </suppress>
+  <suppress>
+    <id>uninitvar</id>
+    <fileName>src/tapctl/main.c</fileName>
+    <symbolName>guidAdapter</symbolName>
+  </suppress>
+  <!-- FP: cppcheck doesn't account for short-circuiting -->
+  <suppress>
+    <id>unreadVariable</id>
+    <fileName>src/openvpn/manage.c</fileName>
+    <symbolName>n</symbolName>
+  </suppress>
+  <!-- FP: exported as DLL -->
+  <suppress>
+    <id>unusedFunction</id>
+    <fileName>src/openvpnmsica/*.c</fileName>
+  </suppress>
+  <!-- FP: loaded as plugins -->
+  <suppress>
+    <id>unusedFunction</id>
+    <fileName>src/plugins/*</fileName>
+  </suppress>
+  <suppress>
+    <id>unusedFunction</id>
+    <fileName>sample/sample-plugins/*</fileName>
+  </suppress>
+  <!-- IGN: keep mocking around for future use -->
+  <suppress>
+    <id>unusedFunction</id>
+    <fileName>tests/unit_tests/openvpn/mock_msg.c</fileName>
+  </suppress>
+  <suppress>
+    <id>unusedFunction</id>
+    <fileName>/usr/include/*</fileName>
+  </suppress>
+  <!-- FP: cppcheck doesn't know the NLA macros -->
+  <suppress>
+    <id>unusedLabel</id>
+    <fileName>src/openvpn/dco_linux.c</fileName>
+  </suppress>
+  <!-- IGN: old code that is difficult to test (MSG_ERRQUEUE), ignore for now -->
+  <suppress>
+    <id>unusedStructMember</id>
+    <fileName>src/openvpn/mtu.c</fileName>
+    <symbolName>probehdr::ttl</symbolName>
+  </suppress>
+  <!-- FP: used implictly by NL macros -->
+  <suppress>
+    <id>unusedStructMember</id>
+    <fileName>src/openvpn/networking_sitnl.c</fileName>
+  </suppress>
+  <!-- IGN: keep explanatory fields in test data -->
+  <suppress>
+    <id>unusedStructMember</id>
+    <fileName>tests/unit_tests/openvpn/test_pkcs11.c</fileName>
+  </suppress>
+</suppressions>

@@ -3601,6 +3601,7 @@ RunOpenvpn(LPVOID p)
         goto out;
     }
     swprintf(ovpn_pipe_name, _countof(ovpn_pipe_name),
+             // cppcheck-suppress unknownMacro ; FP, complains about _L only here...
              L"\\\\.\\pipe\\" _L(PACKAGE) L"%ls\\service_%lu_%ls", service_instance,
              GetCurrentThreadId(), pipe_uuid_str);
     RpcStringFreeW(&pipe_uuid_str);
