@@ -569,7 +569,17 @@ cipher_get(const char *ciphername)
     ASSERT(ciphername);
 
     ciphername = translate_cipher_name_from_openvpn(ciphername);
-    return EVP_CIPHER_fetch(NULL, ciphername, NULL);
+
+    /* A failed fetch leaves an EVP "unsupported" error on the thread's
+     * error queue. Callers legitimately probe names OpenSSL does not know
+     * ("none" for the not-yet-negotiated key_type, the CBC sibling of an
+     * AEAD cipher, user supplied names) and only look at the return value,
+     * so drop whatever the fetch raised instead of leaving it for an
+     * unrelated ERR_peek_error() to misinterpret later. */
+    ERR_set_mark();
+    evp_cipher_type *cipher = EVP_CIPHER_fetch(NULL, ciphername, NULL);
+    ERR_pop_to_mark();
+    return cipher;
 }
 
 bool
@@ -692,7 +702,9 @@ cipher_kt_block_size(const char *ciphername)
 
     strcpy(mode_str, "-CBC");
 
+    ERR_set_mark();
     cbc_cipher = EVP_CIPHER_fetch(NULL, translate_cipher_name_from_openvpn(name), NULL);
+    ERR_pop_to_mark();
     if (cbc_cipher)
     {
         block_size = EVP_CIPHER_block_size(cbc_cipher);
@@ -1001,7 +1013,9 @@ md_get(const char *digest)
 bool
 md_valid(const char *digest)
 {
+    ERR_set_mark();
     evp_md_type *md = EVP_MD_fetch(NULL, digest, NULL);
+    ERR_pop_to_mark();
     bool valid = (md != NULL);
     EVP_MD_free(md);
     return valid;
