@@ -62,8 +62,18 @@ enum ovpn_ifla_attrs
 
 typedef struct
 {
+    /* socket used for synchronous request/reply transactions (commands and
+     * stats queries). It is NOT subscribed to the multicast group, so its
+     * recvmsgs never dispatch an asynchronous notification. */
     struct nl_sock *nl_sock;
     struct nl_cb *nl_cb;
+    /* socket dedicated to multicast notifications (peer del/float, key swap).
+     * It is read only at the top-level dco_read_and_process() point, where it
+     * is safe to close instances. Keeping it separate from nl_sock prevents
+     * notifications from being processed re-entrantly while a request/reply is
+     * in flight. */
+    struct nl_sock *nl_sock_notify;
+    struct nl_cb *nl_cb_notify;
     int status;
 
     struct context *c;
