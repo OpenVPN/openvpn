@@ -49,16 +49,6 @@
 #include <netlink/genl/family.h>
 #include <netlink/genl/ctrl.h>
 
-/* When parsing multiple DEL_PEER notifications, openvpn tries to request stats
- * for each DEL_PEER message (see setenv_stats). This triggers a GET_PEER
- * request-reply while we are still parsing the rest of the initial
- * notifications, which can lead to NLE_BUSY or even NLE_NOMEM.
- *
- * This basic lock ensures we don't bite our own tail by issuing a dco_get_peer
- * while still busy receiving and parsing other messages.
- */
-static bool __is_locked = false;
-
 /* libnl < 3.5.0 does not set the NLA_F_NESTED on its own, therefore we
  * have to explicitly do it to prevent the kernel from failing upon
  * parsing of the message
@@ -170,12 +160,16 @@ ovpn_nl_recvmsgs_report(int ret, const char *prefix)
     return ret;
 }
 
+/**
+ * Drain the request/reply socket. Used to read command/stats replies. This
+ * socket is never subscribed to the multicast group, so it cannot deliver an
+ * asynchronous notification: a reply being parsed here can therefore never
+ * trigger an instance close or a re-entrant request on the same socket.
+ */
 static int
 ovpn_nl_recvmsgs(dco_context_t *dco, const char *prefix)
 {
-    __is_locked = true;
     int ret = nl_recvmsgs(dco->nl_sock, dco->nl_cb);
-    __is_locked = false;
 
     return ovpn_nl_recvmsgs_report(ret, prefix);
 }
@@ -1222,12 +1216,6 @@ static int
 dco_get_peer(dco_context_t *dco, int peer_id, const bool raise_sigusr1_on_err)
 {
     ASSERT(dco);
-
-    if (__is_locked)
-    {
-        msg(D_DCO_DEBUG, "%s: cannot request peer stats while parsing other messages", __func__);
-        return 0;
-    }
 
     /* peer_id == -1 means "dump all peers", but this is allowed in MP mode only.
      * If it happens in P2P mode it means that the DCO peer was deleted and we
