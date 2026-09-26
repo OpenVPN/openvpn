@@ -504,37 +504,29 @@ multi_del_iroutes(struct multi_context *m, struct multi_instance *mi)
 }
 
 static void
-setenv_stats(struct multi_context *m, struct context *c)
+setenv_stats(struct context *c)
 {
-    if (dco_enabled(&m->top.options))
-    {
-        if (dco_get_peer_stats_multi(&m->top.c1.tuntap->dco, false) < 0)
-        {
-            return;
-        }
-    }
-
     setenv_counter(c->c2.es, "bytes_received", c->c2.link_read_bytes + c->c2.dco_read_bytes);
     setenv_counter(c->c2.es, "bytes_sent", c->c2.link_write_bytes + c->c2.dco_write_bytes);
 }
 
 static void
-multi_client_disconnect_setenv(struct multi_context *m, struct multi_instance *mi)
+multi_client_disconnect_setenv(struct multi_instance *mi)
 {
     /* setenv client real IP address */
     setenv_trusted(mi->context.c2.es, get_link_socket_info(&mi->context));
 
     /* setenv stats */
-    setenv_stats(m, &mi->context);
+    setenv_stats(&mi->context);
 
     /* setenv connection duration */
     setenv_long_long(mi->context.c2.es, "time_duration", now - mi->created);
 }
 
 static void
-multi_client_disconnect_script(struct multi_context *m, struct multi_instance *mi)
+multi_client_disconnect_script(struct multi_instance *mi)
 {
-    multi_client_disconnect_setenv(m, mi);
+    multi_client_disconnect_setenv(mi);
 
     if (plugin_defined(mi->context.plugins, OPENVPN_PLUGIN_CLIENT_DISCONNECT))
     {
@@ -639,7 +631,7 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
 
     if (mi->context.c2.tls_multi->multi_state >= CAS_CONNECT_DONE)
     {
-        multi_client_disconnect_script(m, mi);
+        multi_client_disconnect_script(mi);
     }
 
     close_context(&mi->context, SIGTERM, CC_GC_FREE);
@@ -666,6 +658,12 @@ multi_uninit(struct multi_context *m)
     {
         struct hash_iterator hi;
         struct hash_element *he;
+
+        /* fetch final stats while all peers can still be mapped to their instances */
+        if (dco_enabled(&m->top.options))
+        {
+            dco_get_peer_stats_multi(&m->top.c1.tuntap->dco, false);
+        }
 
         hash_iterator_init(m->iter, &hi);
         while ((he = hash_iterator_next(&hi)))
@@ -2774,7 +2772,7 @@ multi_connection_established(struct multi_context *m, struct multi_instance *mi)
          * did not fail */
         if (mi->context.c2.tls_multi->multi_state == CAS_PENDING_DEFERRED_PARTIAL)
         {
-            multi_client_disconnect_script(m, mi);
+            multi_client_disconnect_script(mi);
         }
 
         mi->context.c2.tls_multi->multi_state = CAS_FAILED;
