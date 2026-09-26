@@ -43,7 +43,7 @@ jobs:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
       VCPKG_INSTALLED_DIR: ${{ github.workspace }}/vcpkg/installed
       VCPKG_BINARY_SOURCES: clear;default,readwrite
-      VCPKG_GIT_COMMIT_ID: 5f96cd15fd745122cf27e0524606d6c1efc5fd07
+      VCPKG_GIT_COMMIT_ID: ee6a47dac031930715bea2e6dfb9ad60caaa5d83
     steps:
       - name: Checkout OpenVPN
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -86,7 +86,7 @@ jobs:
     env:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
       VCPKG_BINARY_SOURCES: clear;default,readwrite
-      VCPKG_GIT_COMMIT_ID: 5f96cd15fd745122cf27e0524606d6c1efc5fd07
+      VCPKG_GIT_COMMIT_ID: ee6a47dac031930715bea2e6dfb9ad60caaa5d83
     steps:
       - name: Install dependencies
         run: sudo apt update && sudo apt install -y mingw-w64 unzip build-essential wget python3-docutils man2html-base
@@ -285,7 +285,7 @@ jobs:
       env:
         BUILD_CONFIGURATION: Release
         VCPKG_BINARY_SOURCES: clear;default,readwrite
-        VCPKG_GIT_COMMIT_ID: 5f96cd15fd745122cf27e0524606d6c1efc5fd07
+        VCPKG_GIT_COMMIT_ID: ee6a47dac031930715bea2e6dfb9ad60caaa5d83
 
       runs-on: windows-2025-vs2026
       steps:
