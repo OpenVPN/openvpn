@@ -518,6 +518,28 @@ test_buffer_null_terminate(void **state)
 /* for building long texts */
 #define A_TIMES_256 "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAO"
 
+static void
+test_buffer_null_predicates(void **state)
+{
+    struct buffer buf = alloc_buf(16);
+
+    /* The validity predicates must tolerate a NULL buffer pointer rather than
+     * dereferencing it, so that the whole buf_* family is NULL-safe. */
+    assert_false(buf_defined(NULL));
+    assert_false(buf_valid(NULL));
+    assert_int_equal(buf_len(NULL), 0);
+
+    assert_true(buf_defined(&buf));
+    assert_true(buf_valid(&buf));
+
+    free_buf(&buf);
+
+    /* A freed buffer is neither defined nor valid. */
+    assert_false(buf_defined(&buf));
+    assert_false(buf_valid(&buf));
+    assert_int_equal(buf_len(&buf), 0);
+}
+
 void
 test_buffer_parse(void **state)
 {
@@ -596,6 +618,7 @@ main(void)
         cmocka_unit_test(test_checked_snprintf),
         cmocka_unit_test(test_buffer_chomp),
         cmocka_unit_test(test_buffer_null_terminate),
+        cmocka_unit_test(test_buffer_null_predicates),
         cmocka_unit_test(test_buffer_parse),
         cmocka_unit_test(test_buffer_extract_field)
     };

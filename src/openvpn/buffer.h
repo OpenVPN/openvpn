@@ -392,26 +392,28 @@ clear_buf(void)
  * A defined buffer has been allocated but may have zero length or negative
  * len (i.e. it is not necessarily valid).
  *
- * @param buf   The buffer to test.
+ * @param buf   The buffer to test. May be NULL, in which case the buffer is
+ *              not defined.
  */
 static inline bool
 buf_defined(const struct buffer *buf)
 {
-    return buf->data != NULL;
+    return likely(buf != NULL) && buf->data != NULL;
 }
 
 /**
  * Return true iff \c buf is valid.
  *
- * A buffer is valid when its data pointer is non-NULL and its \c len is
- * non-negative.
+ * A buffer is valid when it is non-NULL, its data pointer is non-NULL and its
+ * \c len is non-negative.
  *
- * @param buf   The buffer to test.
+ * @param buf   The buffer to test. May be NULL, in which case the buffer is
+ *              not valid.
  */
 static inline bool
 buf_valid(const struct buffer *buf)
 {
-    return likely(buf->data != NULL) && likely(buf->len >= 0);
+    return likely(buf != NULL) && likely(buf->data != NULL) && likely(buf->len >= 0);
 }
 
 /**
