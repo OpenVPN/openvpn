@@ -1,7 +1,119 @@
+Overview of changes in 2.7.8
+============================
+Security fixes
+--------------
+- Check for NULL-Bytes in certificate subjects - refuse all such certificates
+  now as "invalid" (CVE-2026-84790).
+
+  (Bug reported by Vivek Parikh <vivek.parikh@breachx.ai>, tracked in
+   Github: OpenVPN/openvpn-private-issues#163)
+
+- TLS handshake with tls-crypt-v2: do not try to add a wrapped client key
+  if no key material is available (client bug in response to an ill-behaving
+  server).
+
+  (No CVE assigned as "a malicious server can stop the client from working
+   properly" is not considered a CVE-worthy security issue according to the
+   CRA guidelines)
+
+- options: fix unsigned underflow when clearing domain_search_list
+  (CVE-2026-88964)
+
+  (Bug reported and fix contributed by Cole Munz <Munzzyy1@proton.me>,
+   tracked in Github: OpenVPN/openvpn-private-issues#178)
+
+- win32: stop cmd.exe from expanding variables in quoted arguments
+  (CVE-2026-84256)
+
+  (Bug reported by Darren Carreras, tracked in Github:
+   OpenVPN/openvpn-private-issues#176)
+
+
+Bug fixes
+---------
+- DCO: remove installed iroutes at client exit time, not at delayed
+  multi instance cleanup time - otherwise there is a race with reconnecting
+  clients, possibly ending up having "no iroutes installed in the system
+  at all".  Bug reported by OpenVPN Inc Access Server team.
+
+- DCO Linux: fix remaining races between synchronous netlink operations
+  and incoming asynchronous notifications, by adding a second netlink socket
+  and strictly separating sync/async operations.
+
+- Client: refuse incoming pushed option combination of epoch data format
+  with non-AEAD ciphers (restart session instead of aborting with a fatal
+  error).
+
+- DCO (Linux and Windows): on failures to set up a new peer or install
+  key materials for a peer, do not exit OpenVPN with a fatal error.  Instead,
+  signal the error up the call-chain and restart the (multi) instance.
+
+  The handshake is inherently racy when a peer is removed kernel-side
+  due to transport errors or timeouts, and userland does not yet know this
+  and wants to, for example, install new keys.  This is fatal for the
+  particular client instance, but must not end the whole server process.
+
+- DCO: stop fetching peer stats during client disconnect
+  The intention of the original code was to ensure reported counters
+  are always correct, but it did not work (because at query time, the peer
+  in kernel is already gone, so we only got an error message) - and very
+  inefficiently so (because we queried all the peers all the time).
+  End-of-session final counter values will be implemented properly by a
+  followup patch leveraging counters piggybacked on the kernel's
+  "DEL_PEER" notification message.
+
+- p2mp server: improve handling of mbuf lists in the face of broadcast
+  or multicast traffic, and fix a bug on client exit that could lead
+  to a server queue deadlock in very particular scenarios.
+
+
+User-visible Changes
+--------------------
+- Certificate validation is now stricter regarding NULL bytes in strings
+  (see above).  This might break existing installations if such certificates
+  exist and OpenSSL builds are used.  mbedTLS builds always rejected this.
+
+- On a certificate with duplicate fields (multiple CN, for example) OpenSSL
+  builds would use the last one, mbedTLS builds use the first one - changed
+  in the mbedTLS build so behaviour is identical.
+
+
+Building/Testing improvements
+-----------------------------
+- Github Action maintenance update (mostly: Ubuntu 26.04 and AWS-LC v5.9.0)
+
+- work around mingw bug on Ubuntu 26.04 that would flag %zu as invalid
+  printf() specifier, breaking -Werror builds
+
+- GHA: explicitly set PKG_CONFIG_PATH for Android builds, build environment
+  dependencies for lz4 are different from host system dependencies
+
+- reliable: add unit tests for ACK and backoff DoS hardening
+
+
+Code improvements/general hardening
+-----------------------------------
+- buffer: make buf_valid() and buf_defined() NULL-safe
+
+
+Documentation improvements
+--------------------------
+- improve auth token related comments in the code
+
+- improve documentation for client-kill management command
+
+
 Overview of changes in 2.7.7
 ============================
 Security fixes
 --------------
+- improve on check_session_buf_not_used(), catch possible double-free in
+  the lame duck case (CVE-2026-84471).
+
+  (Bug reported by Andreas Gabriel Berbescu <aberbescu@gmail.com>,
+   tracked in Github: openvpn/openvpn-private-issues#157, and by
+   Haruki Oyama (Waseda University), tracked in private-issues#132)
+
 - reliability layer: Avoid unbounded reliable TLS timeout (CVE-2026-84732)
 
 - reliability layer: Ignore acks for packets that cannot be outstanding

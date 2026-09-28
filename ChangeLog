@@ -1,6 +1,52 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
 
+2026.10.07 -- Version 2.7.8
+
+Andrew Gonzalez (1):
+      buffer: make buf_valid() and buf_defined() NULL-safe
+
+Antonio Quartulli (6):
+      dco: do not exit the process when installing a DCO key fails
+      ssl: reject a pushed epoch data format tag with a non-AEAD cipher
+      dco_linux: read multicast notifications on a dedicated netlink socket
+      dco_linux: drop the now-redundant __is_locked re-entrancy guard
+      multi/dco: simplify dco_delete_iroutes call chain
+      dco: remove iroute at client exit time instead of delayed exit
+
+Arne Schwabe (1):
+      Improve auth token related comments
+
+Cole Munz (1):
+      options: fix unsigned underflow when clearing domain_search_list
+
+Frank Lichtenheld (3):
+      GHA: Explicitly set PKG_CONFIG_PATH in Android build
+      proxy: Work-around spurious warning on mingw builds
+      GHA: Maintenance update September 2026
+
+Gert Doering (1):
+      OpenVPN Release 2.7.8
+
+Gianmarco De Gregori (2):
+      mbuf: don't count dereferenced items in the queue length
+      multi_io: drop IOW_MBUF
+
+Lev Stipakov (4):
+      reliable: add unit tests for ACK and backoff DoS hardening
+      win32: stop cmd.exe from expanding variables in quoted arguments
+      ssl: do not trust the peer's request to resend the wrapped client key
+      dco_win: report per-peer ioctl failures instead of exiting
+
+Max Fillinger (1):
+      Check for null-bytes in certificate subjects
+
+Ralf Lici (1):
+      dco: stop fetching peer stats during client disconnect
+
+Sarvagya Chaturvedi (1):
+      doc: document optional message parameter for management command client-kill
+
 2026.09.03 -- Version 2.7.7
 
 Antonio Quartulli (3):
