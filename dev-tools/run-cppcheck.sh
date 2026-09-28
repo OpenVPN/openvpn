@@ -49,7 +49,7 @@ cppcheck $COMMON_ARGS $INCLUDE_FLAGS \
     tests/unit_tests/plugins/ || ret=$?
 cppcheck $COMMON_ARGS \
     --platform=win64 \
-    --library=windows.cfg \
+    --library=windows.cfg --library=${SCRIPT_DIR}/openvpn-cppcheck-windows.cfg \
     -D_WIN32 \
     -UTARGET_LINUX -UTARGET_FREEBSD -UTARGET_OPENBSD -UTARGET_NETBSD \
     -UTARGET_DARWIN -UTARGET_ANDROID -UTARGET_SOLARIS -UTARGET_DRAGONFLY \
