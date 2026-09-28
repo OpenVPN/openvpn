@@ -185,9 +185,9 @@ find_adapters(_In_ MSIHANDLE hInstall, _In_z_ LPCWSTR szzHardwareIDs,
         free(pAdapterAdresses);
         if (ulResult != ERROR_BUFFER_OVERFLOW)
         {
-            SetLastError(
-                ulResult); /* MSDN does not mention GetAdaptersAddresses() to set GetLastError().
-                              But we do have an error code. Set last error manually. */
+            /* MSDN does not mention GetAdaptersAddresses() to set GetLastError().
+             * But we do have an error code. Set last error manually. */
+            SetLastError(ulResult);
             msg(M_NONFATAL | M_ERRNO, "%s: GetAdaptersAddresses() failed", __FUNCTION__);
             uiResult = ulResult;
             goto cleanup_pAdapterList;
@@ -290,8 +290,9 @@ find_adapters(_In_ MSIHANDLE hInstall, _In_z_ LPCWSTR szzHardwareIDs,
     uiResult = MsiSetProperty(hInstall, szActiveAdaptersPropertyName, szAdaptersActive);
     if (uiResult != ERROR_SUCCESS)
     {
-        SetLastError(uiResult); /* MSDN does not mention MsiSetProperty() to set GetLastError(). But
-                                   we do have an error code. Set last error manually. */
+        /* MSDN does not mention MsiSetProperty() to set GetLastError(). But
+         * we do have an error code. Set last error manually. */
+        SetLastError(uiResult);
         msg(M_NONFATAL | M_ERRNO, "%s: MsiSetProperty(\"%s\") failed", __FUNCTION__,
             szActiveAdaptersPropertyName);
         goto cleanup_szAdaptersActive;
@@ -386,8 +387,9 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
     uiResult = MsiRecordSetString(hRecord, 0, L"\"[#bin.openvpn_gui.exe]\"");
     if (uiResult != ERROR_SUCCESS)
     {
-        SetLastError(uiResult); /* MSDN does not mention MsiRecordSetString() to set GetLastError().
-                                   But we do have an error code. Set last error manually. */
+        /* MSDN does not mention MsiRecordSetString() to set GetLastError().
+         * But we do have an error code. Set last error manually. */
+        SetLastError(uiResult);
         msg(M_NONFATAL | M_ERRNO, "%s: MsiRecordSetString failed", __FUNCTION__);
         goto cleanup_MsiCreateRecord;
     }
@@ -412,16 +414,17 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
     }
     if (uiResult != ERROR_SUCCESS)
     {
-        SetLastError(uiResult); /* MSDN does not mention MsiFormatRecord() to set GetLastError().
-                                   But we do have an error code. Set last error manually. */
+        /* MSDN does not mention MsiFormatRecord() to set GetLastError().
+         * But we do have an error code. Set last error manually. */
+        SetLastError(uiResult);
         msg(M_NONFATAL | M_ERRNO, "%s: MsiFormatRecord failed", __FUNCTION__);
         goto cleanup_malloc_szPath;
     }
 
     /* Launch the OpenVPN GUI. */
     SHELLEXECUTEINFO sei = { .cbSize = sizeof(SHELLEXECUTEINFO),
-                             .fMask =
-                                 SEE_MASK_FLAG_NO_UI, /* Don't show error UI, we'll display it. */
+                             /* Don't show error UI, we'll display it. */
+                             .fMask = SEE_MASK_FLAG_NO_UI,
                              .lpFile = szPath,
                              .nShow = SW_SHOWNORMAL };
     if (!ShellExecuteEx(&sei))
@@ -528,7 +531,8 @@ schedule_adapter_create(_Inout_ struct msica_arg_seq *seq,
                     break;
                 }
             }
-            break; /* Adapter names are unique. There should be no other adapter with this name. */
+            /* Adapter names are unique. There should be no other adapter with this name. */
+            break;
         }
     }
 
@@ -614,7 +618,8 @@ schedule_adapter_delete(_Inout_ struct msica_arg_seq *seq,
             }
 
             *iTicks += MSICA_ADAPTER_TICK_SIZE;
-            break; /* Adapter names are unique. There should be no other adapter with this name. */
+            /* Adapter names are unique. There should be no other adapter with this name. */
+            break;
         }
     }
 
@@ -678,9 +683,9 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
     uiResult = MsiDatabaseOpenView(hDatabase, szQuery, &hViewST);
     if (uiResult != ERROR_SUCCESS)
     {
-        SetLastError(
-            uiResult); /* MSDN does not mention MsiDatabaseOpenView() to set GetLastError(). But we
-                          do have an error code. Set last error manually. */
+        /* MSDN does not mention MsiDatabaseOpenView() to set GetLastError(). But we
+         * do have an error code. Set last error manually. */
+        SetLastError(uiResult);
         msg(M_NONFATAL | M_ERRNO, "%s: MsiDatabaseOpenView(\"%ls\") failed", __FUNCTION__, szQuery);
         goto cleanup_hDatabase;
     }
@@ -689,8 +694,9 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
     uiResult = MsiViewExecute(hViewST, 0);
     if (uiResult != ERROR_SUCCESS)
     {
-        SetLastError(uiResult); /* MSDN does not mention MsiViewExecute() to set GetLastError(). But
-                                   we do have an error code. Set last error manually. */
+        /* MSDN does not mention MsiViewExecute() to set GetLastError(). But
+         * we do have an error code. Set last error manually. */
+        SetLastError(uiResult);
         msg(M_NONFATAL | M_ERRNO, "%s: MsiViewExecute(\"%ls\") failed", __FUNCTION__, szQuery);
         goto cleanup_hViewST;
     }
@@ -715,8 +721,9 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
         }
         else if (uiResult != ERROR_SUCCESS)
         {
-            SetLastError(uiResult); /* MSDN does not mention MsiViewFetch() to set GetLastError().
-                                       But we do have an error code. Set last error manually. */
+            /* MSDN does not mention MsiViewFetch() to set GetLastError().
+             * But we do have an error code. Set last error manually. */
+            SetLastError(uiResult);
             msg(M_NONFATAL | M_ERRNO, "%s: MsiViewFetch failed", __FUNCTION__);
             goto cleanup_hRecordProg;
         }
@@ -735,9 +742,10 @@ EvaluateTUNTAPAdapters(_In_ MSIHANDLE hInstall)
             uiResult = MsiGetComponentState(hInstall, szValue, &iInstalled, &iAction);
             if (uiResult != ERROR_SUCCESS)
             {
-                SetLastError(uiResult); /* MSDN does not mention MsiGetComponentState() to set
-                                           GetLastError(). But we do have an error code. Set last
-                                           error manually. */
+                /* MSDN does not mention MsiGetComponentState() to set
+                 * GetLastError(). But we do have an error code. Set last
+                 * error manually. */
+                SetLastError(uiResult);
                 msg(M_NONFATAL | M_ERRNO, "%s: MsiGetComponentState(\"%ls\") failed", __FUNCTION__,
                     szValue);
                 free(szValue);
