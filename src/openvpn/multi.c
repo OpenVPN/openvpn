@@ -479,7 +479,12 @@ multi_del_iroutes(struct multi_context *m, struct multi_instance *mi)
     const struct iroute *ir;
     const struct iroute_ipv6 *ir6;
 
-    dco_delete_iroutes(&m->top.net_ctx, &mi->context);
+    /* check if DCO iroutes were already removed when scheduling a delayed exit */
+    if (mi->context.did_dco_iroutes)
+    {
+        mi->context.did_dco_iroutes = false;
+        dco_delete_iroutes(&m->top.net_ctx, &mi->context);
+    }
 
     if (TUNNEL_TYPE(mi->context.c1.tuntap) == DEV_TYPE_TUN)
     {
@@ -1275,6 +1280,8 @@ multi_add_iroutes(struct multi_context *m, struct multi_instance *mi)
     if (TUNNEL_TYPE(mi->context.c1.tuntap) == DEV_TYPE_TUN)
     {
         mi->did_iroutes = true;
+        /* multi_learn_in{6}_addr_t takes care of installing the DCO iroute */
+        mi->context.did_dco_iroutes = true;
         for (ir = mi->context.options.iroutes; ir != NULL; ir = ir->next)
         {
             if (ir->netbits >= 0)
