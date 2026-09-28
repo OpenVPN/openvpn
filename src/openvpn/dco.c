@@ -749,6 +749,8 @@ dco_delete_iroutes(openvpn_net_ctx_t *net_ctx, const struct context *c)
     }
     ASSERT(TUNNEL_TYPE(c->c1.tuntap) == DEV_TYPE_TUN);
 
+    msg(D_DCO, "DCO: attempt removing iroutes from system table");
+
     if (c->c2.push_ifconfig_defined)
     {
         for (const struct iroute *ir = c->options.iroutes; ir; ir = ir->next)

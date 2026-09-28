@@ -507,6 +507,8 @@ struct context
     bool did_we_daemonize;       /**< Whether demonization has already
                                   *   taken place. */
 
+    bool did_dco_iroutes;        /**< Whether DCO iroutes have been installed */
+
     struct context_persist persist;
     /**< Persistent %context. */
     struct context_0 *c0; /**< Level 0 %context. */
