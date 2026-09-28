@@ -62,14 +62,13 @@ construct_name_value(const char *name, const char *value, struct gc_arena *gc)
 static bool
 env_string_equal(const char *s1, const char *s2)
 {
-    int c1, c2;
     ASSERT(s1);
     ASSERT(s2);
 
     while (true)
     {
-        c1 = *s1++;
-        c2 = *s2++;
+        int c1 = *s1++;
+        int c2 = *s2++;
         if (c1 == '=')
         {
             c1 = 0;
@@ -214,12 +213,11 @@ env_set_print(msglvl_t msglevel, const struct env_set *es)
     if (check_debug_level(msglevel))
     {
         const struct env_item *e;
-        int i;
 
         if (es)
         {
+            int i = 0;
             e = es->list;
-            i = 0;
 
             while (e)
             {

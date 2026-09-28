@@ -1014,12 +1014,12 @@ void
 tls_ctx_personalise_random(struct tls_root_ctx *ctx)
 {
 #if MBEDTLS_VERSION_NUMBER < 0x04000000
-    static char old_sha256_hash[32] = { 0 };
-    unsigned char sha256_hash[32] = { 0 };
     mbedtls_ctr_drbg_context *cd_ctx = rand_ctx_get();
 
     if (NULL != ctx->crt_chain)
     {
+        static char old_sha256_hash[32] = { 0 };
+        unsigned char sha256_hash[32] = { 0 };
         mbedtls_x509_crt *cert = ctx->crt_chain;
         const mbedtls_md_info_t *kt = md_get("SHA256");
 

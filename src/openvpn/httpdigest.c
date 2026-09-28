@@ -34,12 +34,9 @@
 static void
 CvtHex(IN HASH Bin, OUT HASHHEX Hex)
 {
-    unsigned short i;
-    unsigned char j;
-
-    for (i = 0; i < HASHLEN; i++)
+    for (unsigned short i = 0; i < HASHLEN; i++)
     {
-        j = (Bin[i] >> 4) & 0xf;
+        unsigned char j = (Bin[i] >> 4) & 0xf;
         if (j <= 9)
         {
             Hex[i * 2] = (j + '0');

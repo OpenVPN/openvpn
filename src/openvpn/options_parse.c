@@ -351,7 +351,6 @@ read_config_file(struct options *options, const char *file, int level, const cha
 {
     const int max_recursive_levels = 10;
     FILE *fp;
-    int line_num;
     char line[OPTION_LINE_SIZE + 1];
     char *p[MAX_PARMS + 1];
 
@@ -368,7 +367,7 @@ read_config_file(struct options *options, const char *file, int level, const cha
         }
         if (fp)
         {
-            line_num = 0;
+            int line_num = 0;
             while (fgets(line, sizeof(line), fp))
             {
                 int offset = 0;

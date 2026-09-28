@@ -50,12 +50,11 @@ void
 print_client_nat_list(const struct client_nat_option_list *list, msglvl_t msglevel)
 {
     struct gc_arena gc = gc_new();
-    int i;
 
     msg(msglevel, "*** CNAT list");
     if (list)
     {
-        for (i = 0; i < list->n; ++i)
+        for (int i = 0; i < list->n; ++i)
         {
             const struct client_nat_entry *e = &list->entries[i];
             msg(msglevel, "  CNAT[%d] t=%d %s/%s/%s", i, e->type,

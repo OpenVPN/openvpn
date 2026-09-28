@@ -1784,10 +1784,7 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inli
 {
     STACK_OF(X509_INFO) *info_stack = NULL;
     STACK_OF(X509_NAME) *cert_names = NULL;
-    X509_LOOKUP *lookup = NULL;
     X509_STORE *store = NULL;
-    BIO *in = NULL;
-    openssl_stack_size_t added = 0, prev = 0;
 
     ASSERT(NULL != ctx);
 
@@ -1800,6 +1797,9 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inli
     /* Try to add certificates and CRLs from ca_file */
     if (ca_file)
     {
+        openssl_stack_size_t added = 0;
+        BIO *in = NULL;
+
         if (ca_file_inline)
         {
             in = BIO_new_mem_buf((char *)ca_file, -1);
@@ -1816,6 +1816,8 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inli
 
         if (info_stack)
         {
+            openssl_stack_size_t prev = 0;
+
             for (openssl_stack_size_t i = 0; i < sk_X509_INFO_num(info_stack); i++)
             {
                 X509_INFO *info = sk_X509_INFO_value(info_stack, i);
@@ -1916,7 +1918,7 @@ tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file_inli
     /* Set a store for certs (CA & CRL) with a lookup on the "capath" hash directory */
     if (ca_path)
     {
-        lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
+        X509_LOOKUP *lookup = X509_STORE_add_lookup(store, X509_LOOKUP_hash_dir());
         if (lookup && X509_LOOKUP_add_dir(lookup, ca_path, X509_FILETYPE_PEM))
         {
             msg(M_WARN, "WARNING: experimental option --capath %s", ca_path);

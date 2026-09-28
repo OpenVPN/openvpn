@@ -4206,13 +4206,11 @@ multi_get_timeout(struct multi_context *multi, struct timeval *timeval)
 static void
 tunnel_server_loop(struct multi_context *multi)
 {
-    int status;
-
     while (true)
     {
         /* wait on tun/socket list */
         multi_get_timeout(multi, &multi->top.c2.timeval);
-        status = multi_io_wait(multi);
+        const int status = multi_io_wait(multi);
         MULTI_CHECK_SIG(multi);
 
         /* check on status of coarse timers */

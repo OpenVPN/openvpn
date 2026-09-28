@@ -387,9 +387,6 @@ epoch_lookup_decrypt_key(struct crypto_options *opt, uint16_t epoch)
     else if (epoch > opt->key_ctx_bi.decrypt.epoch
              && epoch <= opt->key_ctx_bi.decrypt.epoch + opt->epoch_data_keys_future_count)
     {
-        /* Key in the range of future keys */
-        int index = epoch - (opt->key_ctx_bi.decrypt.epoch + 1);
-
         /* If we have reached the edge of the valid keys we do not return
          * the key anymore since regenerating the new keys would move us
          * over the window of valid keys and would need all kind of
@@ -400,6 +397,9 @@ epoch_lookup_decrypt_key(struct crypto_options *opt, uint16_t epoch)
         }
         else
         {
+            /* Key in the range of future keys */
+            const int index = epoch - (opt->key_ctx_bi.decrypt.epoch + 1);
+
             return &opt->epoch_data_keys_future[index];
         }
     }

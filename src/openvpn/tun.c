@@ -1891,7 +1891,6 @@ open_tun_dco_generic(const char *dev, const char *dev_type, struct tuntap *tt,
                      openvpn_net_ctx_t *ctx)
 {
     char dynamic_name[256];
-    bool dynamic_opened = false;
 
     /*
      * unlike "open_tun_generic()", DCO on Linux and FreeBSD follows
@@ -1903,6 +1902,8 @@ open_tun_dco_generic(const char *dev, const char *dev_type, struct tuntap *tt,
 
     if (strcmp(dev, "tun") == 0)
     {
+        bool dynamic_opened = false;
+
         for (int i = 0; i < 256; ++i)
         {
             snprintf(dynamic_name, sizeof(dynamic_name), "%s%d", dev, i);
@@ -3261,7 +3262,6 @@ tun_read_queue(struct tuntap *tt, int maxsize)
     if (tt->reads.iostate == IOSTATE_INITIAL)
     {
         BOOL status;
-        int err;
 
         /* reset buf to its initial state */
         tt->reads.buf = tt->reads.buf_init;
@@ -3288,7 +3288,7 @@ tun_read_queue(struct tuntap *tt, int maxsize)
         }
         else
         {
-            err = GetLastError();
+            const int err = GetLastError();
             if (err == ERROR_IO_PENDING) /* operation queued? */
             {
                 tt->reads.iostate = IOSTATE_QUEUED;
@@ -3316,7 +3316,6 @@ tun_write_queue(struct tuntap *tt, struct buffer *buf)
     if (tt->writes.iostate == IOSTATE_INITIAL)
     {
         BOOL status;
-        int err;
 
         /* make a private copy of buf */
         tt->writes.buf = tt->writes.buf_init;
@@ -3343,7 +3342,7 @@ tun_write_queue(struct tuntap *tt, struct buffer *buf)
         }
         else
         {
-            err = GetLastError();
+            const int err = GetLastError();
             if (err == ERROR_IO_PENDING) /* operation queued? */
             {
                 tt->writes.iostate = IOSTATE_QUEUED;
@@ -3540,8 +3539,6 @@ get_tap_reg(struct gc_arena *gc)
         char enum_name[256];
         char unit_string[256];
         HKEY unit_key;
-        char component_id_string[] = "ComponentId";
-        char component_id[256];
         const char net_cfg_instance_id_string[] = "NetCfgInstanceId";
         BYTE net_cfg_instance_id[256];
         DWORD data_type;
@@ -3571,6 +3568,8 @@ get_tap_reg(struct gc_arena *gc)
         }
         else
         {
+            const char component_id_string[] = "ComponentId";
+            char component_id[256];
             len = sizeof(component_id);
             status = RegQueryValueEx(unit_key, component_id_string, NULL, &data_type,
                                      (LPBYTE)component_id, &len);
@@ -3655,7 +3654,6 @@ get_panel_reg(struct gc_arena *gc)
         char enum_name[256];
         char connection_string[256];
         HKEY connection_key;
-        WCHAR name_data[256];
         DWORD name_type;
         const WCHAR name_string[] = L"Name";
 
@@ -3687,6 +3685,7 @@ get_panel_reg(struct gc_arena *gc)
         }
         else
         {
+            WCHAR name_data[256];
             len = sizeof(name_data);
             status = RegQueryValueExW(connection_key, name_string, NULL, &name_type,
                                       (LPBYTE)name_data, &len);
@@ -3811,8 +3810,6 @@ show_tap_win_adapters(msglvl_t msglevel, msglvl_t warnlevel)
     bool warn_panel_dup = false;
     bool warn_tap_dup = false;
 
-    int links;
-
     const struct tap_reg *tr;
     const struct tap_reg *tr1;
     const struct panel_reg *pr;
@@ -3825,7 +3822,7 @@ show_tap_win_adapters(msglvl_t msglevel, msglvl_t warnlevel)
     /* loop through each TAP-Windows adapter registry entry */
     for (tr = tap_reg; tr != NULL; tr = tr->next)
     {
-        links = 0;
+        int links = 0;
 
         /* loop through each network connections entry in the control panel */
         for (pr = panel_reg; pr != NULL; pr = pr->next)
@@ -4108,10 +4105,11 @@ get_per_adapter_info(const DWORD index, struct gc_arena *gc)
 {
     ULONG size = 0;
     IP_PER_ADAPTER_INFO *pi = NULL;
-    DWORD status;
 
     if (index != TUN_ADAPTER_INDEX_INVALID)
     {
+        DWORD status;
+
         if ((status = GetPerAdapterInfo(index, NULL, &size)) != ERROR_BUFFER_OVERFLOW)
         {
             msg(M_INFO, "GetPerAdapterInfo #1 failed (status=%lu) : %s", status,
@@ -4306,7 +4304,6 @@ get_tun_adapter(const struct tuntap *tt, const IP_ADAPTER_INFO *list)
 bool
 is_adapter_up(const struct tuntap *tt, const IP_ADAPTER_INFO *list)
 {
-    int i;
     bool ret = false;
 
     const IP_ADAPTER_INFO *ai = get_tun_adapter(tt, list);
@@ -4316,7 +4313,7 @@ is_adapter_up(const struct tuntap *tt, const IP_ADAPTER_INFO *list)
         const int n = get_adapter_n_ip_netmask(ai);
 
         /* loop once for every IP/netmask assigned to adapter */
-        for (i = 0; i < n; ++i)
+        for (int i = 0; i < n; ++i)
         {
             in_addr_t ip, netmask;
             if (get_adapter_ip_netmask(ai, i, &ip, &netmask))
@@ -4350,7 +4347,6 @@ is_adapter_up(const struct tuntap *tt, const IP_ADAPTER_INFO *list)
 bool
 is_ip_in_adapter_subnet(const IP_ADAPTER_INFO *ai, const in_addr_t ip, in_addr_t *highest_netmask)
 {
-    int i;
     bool ret = false;
 
     if (highest_netmask)
@@ -4361,7 +4357,7 @@ is_ip_in_adapter_subnet(const IP_ADAPTER_INFO *ai, const in_addr_t ip, in_addr_t
     if (ai)
     {
         const int n = get_adapter_n_ip_netmask(ai);
-        for (i = 0; i < n; ++i)
+        for (int i = 0; i < n; ++i)
         {
             in_addr_t adapter_ip, adapter_netmask;
             if (get_adapter_ip_netmask(ai, i, &adapter_ip, &adapter_netmask))

@@ -2771,7 +2771,6 @@ del_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt)
 {
     struct gc_arena gc = gc_new();
     bool ret = false;
-    DWORD status;
     const DWORD if_index = windows_route_find_if_index(r, tt);
 
     if (if_index != TUN_ADAPTER_INDEX_INVALID)
@@ -2785,8 +2784,7 @@ del_route_ipapi(const struct route_ipv4 *r, const struct tuntap *tt)
         fr.dwForwardNextHop = htonl(r->gateway);
         fr.dwForwardIfIndex = if_index;
 
-        status = DeleteIpForwardEntry(&fr);
-
+        const DWORD status = DeleteIpForwardEntry(&fr);
         if (status == NO_ERROR)
         {
             ret = true;
@@ -3824,12 +3822,11 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6, const struct in6_
 bool
 netmask_to_netbits(const in_addr_t network, const in_addr_t netmask, int *netbits)
 {
-    int i;
     const int addrlen = sizeof(in_addr_t) * 8;
 
     if ((network & netmask) == network)
     {
-        for (i = 0; i <= addrlen; ++i)
+        for (int i = 0; i <= addrlen; ++i)
         {
             in_addr_t mask = netbits_to_netmask(i);
             if (mask == netmask)

@@ -2056,13 +2056,13 @@ multi_io_process_flags(struct context *c, struct event_set *es, struct link_sock
     unsigned int socket = 0;
     unsigned int tuntap = 0;
     static uintptr_t tun_shift = TUN_SHIFT;
-    static uintptr_t err_shift = ERR_SHIFT;
 
     /*
      * Calculate the flags based on the provided 'flags' argument.
      */
     if ((c->options.mode != MODE_SERVER) && (flags & IOW_WAIT_SIGNAL))
     {
+        static uintptr_t err_shift = ERR_SHIFT;
         wait_signal(es, (void *)err_shift);
     }
 

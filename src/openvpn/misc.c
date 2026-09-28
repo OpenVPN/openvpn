@@ -474,7 +474,7 @@ void
 purge_user_pass(struct user_pass *up, const bool force)
 {
     const bool nocache = up->nocache;
-    static bool warn_shown = false;
+
     if (nocache || force)
     {
         secure_memzero(up, sizeof(*up));
@@ -482,6 +482,8 @@ purge_user_pass(struct user_pass *up, const bool force)
     }
     else
     {
+        static bool warn_shown = false;
+
         protect_user_pass(up);
         /*
          * don't show warning if the pass has been replaced by a token: this is an
@@ -721,11 +723,10 @@ sanitize_control_message(const char *src, struct gc_arena *gc)
 bool
 validate_peer_info_line(char *line)
 {
-    uint8_t c;
     int state = 0;
     while (*line)
     {
-        c = *line;
+        const uint8_t c = *line;
         switch (state)
         {
             case 0:

@@ -228,13 +228,13 @@ buf_printf(struct buffer *buf, const char *format, ...)
     int ret = false;
     if (buf_defined(buf))
     {
-        va_list arglist;
         uint8_t *ptr = BEND(buf);
         int cap = buf_forward_capacity(buf);
 
         if (cap > 0)
         {
             int stat;
+            va_list arglist;
             va_start(arglist, format);
             stat = vsnprintf((char *)ptr, cap, format, arglist);
             va_end(arglist);

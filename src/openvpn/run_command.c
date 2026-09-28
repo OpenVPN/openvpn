@@ -176,14 +176,13 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
 #if defined(ENABLE_FEATURE_EXECVE)
         if (openvpn_execve_allowed(flags))
         {
-            const char *cmd = a->argv[0];
-            char *const *argv = a->argv;
             char *const *envp = (char *const *)make_env_array(es, true, &gc);
-            pid_t pid;
 
-            pid = fork();
+            const pid_t pid = fork();
             if (pid == (pid_t)0) /* child side */
             {
+                const char *cmd = a->argv[0];
+                char *const *argv = a->argv;
                 execve(cmd, argv, envp);
                 exit(OPENVPN_EXECVE_FAILURE);
             }
@@ -283,17 +282,17 @@ openvpn_popen(const struct argv *a, const struct env_set *es)
         static bool warn_shown = false;
         if (script_security() >= SSEC_BUILT_IN)
         {
-            const char *cmd = a->argv[0];
-            char *const *argv = a->argv;
             char *const *envp = (char *const *)make_env_array(es, true, &gc);
-            pid_t pid;
+            const char *cmd = a->argv[0];
             int pipe_stdout[2];
 
             if (pipe(pipe_stdout) == 0)
             {
-                pid = fork();
-                if (pid == (pid_t)0)       /* child side */
+                const pid_t pid = fork();
+                if (pid == (pid_t)0) /* child side */
                 {
+                    char *const *argv = a->argv;
+
                     close(pipe_stdout[0]); /* Close read end */
                     dup2(pipe_stdout[1], 1);
                     execve(cmd, argv, envp);

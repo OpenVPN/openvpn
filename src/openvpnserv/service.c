@@ -21,7 +21,6 @@ openvpn_service_t openvpn_service[_service_max];
 BOOL
 ReportStatusToSCMgr(SERVICE_STATUS_HANDLE service, SERVICE_STATUS *status)
 {
-    static DWORD dwCheckPoint = 1;
     BOOL res = TRUE;
 
     if (status->dwCurrentState == SERVICE_START_PENDING)
@@ -39,6 +38,7 @@ ReportStatusToSCMgr(SERVICE_STATUS_HANDLE service, SERVICE_STATUS *status)
     }
     else
     {
+        static DWORD dwCheckPoint = 1;
         status->dwCheckPoint = dwCheckPoint++;
     }
 
@@ -55,7 +55,6 @@ ReportStatusToSCMgr(SERVICE_STATUS_HANDLE service, SERVICE_STATUS *status)
 static int
 CmdInstallServices(void)
 {
-    SC_HANDLE service;
     SC_HANDLE svc_ctl_mgr;
     WCHAR path[512];
     int i, ret = _service_max;
@@ -78,7 +77,7 @@ CmdInstallServices(void)
 
     for (i = 0; i < _service_max; i++)
     {
-        service = CreateService(
+        SC_HANDLE service = CreateService(
             svc_ctl_mgr, openvpn_service[i].name, openvpn_service[i].display_name,
             SERVICE_QUERY_STATUS, SERVICE_WIN32_SHARE_PROCESS, openvpn_service[i].start_type,
             SERVICE_ERROR_NORMAL, path, NULL, NULL, openvpn_service[i].dependencies, NULL, NULL);

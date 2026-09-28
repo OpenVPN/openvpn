@@ -1041,7 +1041,6 @@ int
 openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned int flags)
 {
     int ret = OPENVPN_EXECVE_ERROR;
-    static bool exec_warn = false;
 
     if (a && a->argv[0])
     {
@@ -1092,6 +1091,8 @@ openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned in
         }
         else
         {
+            static bool exec_warn = false;
+
             ret = OPENVPN_EXECVE_NOT_ALLOWED;
             if (!exec_warn && (script_security() < SSEC_SCRIPTS))
             {
@@ -1508,11 +1509,10 @@ get_openvpn_reg_value(const WCHAR *key, WCHAR *value, DWORD size)
 static void
 set_openssl_env_vars(void)
 {
-    const WCHAR *ssl_fallback_dir = L"C:\\Windows\\System32";
-
     WCHAR install_path[MAX_PATH] = { 0 };
     if (!get_openvpn_reg_value(NULL, install_path, _countof(install_path)))
     {
+        const WCHAR *ssl_fallback_dir = L"C:\\Windows\\System32";
         /* if we cannot find installation path from the registry,
          * use Windows directory as a fallback
          */

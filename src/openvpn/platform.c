@@ -539,8 +539,6 @@ platform_stat(const char *path, platform_stat_t *buf)
 const char *
 platform_create_temp_file(const char *directory, const char *prefix, struct gc_arena *gc)
 {
-    int fd;
-    const char *retfname = NULL;
     unsigned int attempts = 0;
     char fname[256] = { 0 };
     const char *fname_fmt = PACKAGE "_%.*s_%08" PRIx64 "%08" PRIx64 ".tmp";
@@ -557,7 +555,7 @@ platform_create_temp_file(const char *directory, const char *prefix, struct gc_a
             return NULL;
         }
 
-        retfname = platform_gen_path(directory, fname, gc);
+        const char *retfname = platform_gen_path(directory, fname, gc);
         if (!retfname)
         {
             msg(M_WARN, "Failed to create temporary filename and path");
@@ -566,7 +564,7 @@ platform_create_temp_file(const char *directory, const char *prefix, struct gc_a
 
         /* Atomically create the file.  Errors out if the file already
          * exists.  */
-        fd = platform_open(retfname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR);
+        const int fd = platform_open(retfname, O_CREAT | O_EXCL | O_WRONLY, S_IRUSR | S_IWUSR);
         if (fd != -1)
         {
             close(fd);

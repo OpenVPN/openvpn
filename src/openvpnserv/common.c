@@ -254,10 +254,8 @@ DWORD
 MsgToEventLog(DWORD flags, LPCWSTR format, ...)
 {
     HANDLE hEventSource;
-    WCHAR msg[2][256];
     DWORD error = 0;
     LPCWSTR err_msg = L"";
-    va_list arglist;
 
     if (flags & MSG_FLAGS_SYS_CODE)
     {
@@ -268,6 +266,9 @@ MsgToEventLog(DWORD flags, LPCWSTR format, ...)
     hEventSource = RegisterEventSource(NULL, APPNAME);
     if (hEventSource != NULL)
     {
+        va_list arglist;
+        WCHAR msg[2][256];
+
         swprintf(msg[0], _countof(msg[0]), L"%ls%ls%ls: %ls", APPNAME, service_instance,
                  (flags & MSG_FLAGS_ERROR) ? L" error" : L"", err_msg);
 
@@ -311,10 +312,10 @@ utf8to16_size(const char *utf8, int size)
 const wchar_t *
 get_win_sys_path(void)
 {
-    const wchar_t *default_sys_path = L"C:\\Windows\\system32";
-
     if (!GetSystemDirectoryW(win_sys_path, _countof(win_sys_path)))
     {
+        const wchar_t *default_sys_path = L"C:\\Windows\\system32";
+
         wcscpy_s(win_sys_path, _countof(win_sys_path), default_sys_path);
         win_sys_path[_countof(win_sys_path) - 1] = L'\0';
     }

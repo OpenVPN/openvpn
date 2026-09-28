@@ -1375,13 +1375,11 @@ static void
 sitnl_parse_rtattr_flags(struct rtattr *tb[], size_t max, struct rtattr *rta, size_t len,
                          unsigned short flags)
 {
-    unsigned short type;
-
     memset(tb, 0, sizeof(struct rtattr *) * (max + 1));
 
     while (RTA_OK(rta, len))
     {
-        type = rta->rta_type & ~flags;
+        const unsigned short type = rta->rta_type & ~flags;
 
         if ((type <= max) && (!tb[type]))
         {
@@ -1409,7 +1407,6 @@ sitnl_parse_rtattr(struct rtattr *tb[], size_t max, struct rtattr *rta, size_t l
 static int
 sitnl_type_save(struct nlmsghdr *n, void *arg)
 {
-    char *type = arg;
     struct ifinfomsg *ifi = NLMSG_DATA(n);
     struct rtattr *tb[IFLA_MAX + 1];
 
@@ -1418,6 +1415,7 @@ sitnl_type_save(struct nlmsghdr *n, void *arg)
     if (tb[IFLA_LINKINFO])
     {
         struct rtattr *tb_link[IFLA_INFO_MAX + 1];
+        char *type = arg;
 
         sitnl_parse_rtattr_nested(tb_link, IFLA_INFO_MAX, tb[IFLA_LINKINFO]);
 

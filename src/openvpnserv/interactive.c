@@ -933,7 +933,6 @@ static DWORD WINAPI
 RegisterDNS(LPVOID unused)
 {
     DWORD err;
-    size_t i;
     DWORD timeout = RDNS_TIMEOUT * 1000; /* in milliseconds */
 
     /* path of ipconfig command */
@@ -956,7 +955,7 @@ RegisterDNS(LPVOID unused)
     if (WaitForMultipleObjects(2, wait_handles, FALSE, timeout) == WAIT_OBJECT_0)
     {
         /* Semaphore locked */
-        for (i = 0; i < _countof(cmds); ++i)
+        for (size_t i = 0; i < _countof(cmds); ++i)
         {
             ExecCommand(cmds[i].argv0, cmds[i].cmdline, cmds[i].timeout);
         }

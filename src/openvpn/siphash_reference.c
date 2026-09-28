@@ -113,7 +113,6 @@ siphash_reference(const void *in, const size_t inlen, const void *k, uint8_t *ou
     uint64_t v3 = UINT64_C(0x7465646279746573);
     uint64_t k0 = U8TO64_LE(kk);
     uint64_t k1 = U8TO64_LE(kk + 8);
-    uint64_t m;
     int i;
     const unsigned char *end = ni + inlen - (inlen % sizeof(uint64_t));
     const int left = inlen & 7;
@@ -130,7 +129,7 @@ siphash_reference(const void *in, const size_t inlen, const void *k, uint8_t *ou
 
     for (; ni != end; ni += 8)
     {
-        m = U8TO64_LE(ni);
+        uint64_t m = U8TO64_LE(ni);
         v3 ^= m;
 
         TRACE;

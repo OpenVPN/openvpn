@@ -1155,7 +1155,6 @@ remove_iroutes_from_push_route_list(struct options *o)
         while (e)
         {
             char *p[MAX_PARMS + 1];
-            bool enable = true;
 
             /* parse the push item */
             CLEAR(p);
@@ -1163,6 +1162,8 @@ remove_iroutes_from_push_route_list(struct options *o)
                 && parse_line(e->option, p, SIZE(p) - 1, "[PUSH_ROUTE_REMOVE]", 1, D_ROUTE_DEBUG,
                               &gc))
             {
+                bool enable = true;
+
                 /* is the push item a route directive? */
                 if (p[0] && !strcmp(p[0], "route") && !p[3] && o->iroutes)
                 {

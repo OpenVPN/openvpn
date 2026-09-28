@@ -39,7 +39,6 @@ static bool
 is_ipv_X(int tunnel_type, struct buffer *buf, int ip_ver)
 {
     int offset;
-    uint16_t proto;
     const struct openvpn_iphdr *ih;
 
     verify_align_4(buf);
@@ -61,7 +60,7 @@ is_ipv_X(int tunnel_type, struct buffer *buf, int ip_ver)
         eh = (const struct openvpn_ethhdr *)BPTR(buf);
 
         /* start by assuming this is a standard Eth fram */
-        proto = eh->proto;
+        uint16_t proto = eh->proto;
         offset = sizeof(struct openvpn_ethhdr);
 
         /* if this is a 802.1q frame, parse the header using the according

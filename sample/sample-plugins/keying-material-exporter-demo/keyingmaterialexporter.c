@@ -120,13 +120,14 @@ session_user_set(struct session *sess, X509 *x509)
     ASN1_OBJECT *fn;
     ASN1_STRING *val;
     X509_NAME *x509_name;
-    X509_NAME_ENTRY *ent;
     const char *objbuf;
 
     x509_name = X509_get_subject_name(x509);
-    int i, n = X509_NAME_entry_count(x509_name);
-    for (i = 0; i < n; ++i)
+    int n = X509_NAME_entry_count(x509_name);
+    for (int i = 0; i < n; ++i)
     {
+        X509_NAME_ENTRY *ent;
+
         if (!(ent = X509_NAME_get_entry(x509_name, i)))
         {
             continue;

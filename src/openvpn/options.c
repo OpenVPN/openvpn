@@ -1019,10 +1019,9 @@ delete_all_dhcp_fo(struct options *o, struct env_item **list)
 
     for (current = *list, prev = NULL; current != NULL; current = current->next)
     {
-        char *tmp_value = NULL;
         if (!strncmp(current->string, "foreign_option_", sizeof("foreign_option_") - 1))
         {
-            tmp_value = strchr(current->string, '=');
+            const char *tmp_value = strchr(current->string, '=');
             if (tmp_value && ++tmp_value)
             {
                 if (!strncmp(tmp_value, "dhcp-option ", sizeof("dhcp-option ") - 1))

@@ -368,7 +368,6 @@ virtual_output_callback_func(void *arg, const unsigned int flags, const char *st
     {
         struct gc_arena gc = gc_new();
         struct log_entry e;
-        const char *out = NULL;
         unsigned int action_flags = 0;
 
         ++recursive_level;
@@ -391,6 +390,8 @@ virtual_output_callback_func(void *arg, const unsigned int flags, const char *st
 
         if (!man_password_needed(man))
         {
+            const char *out = NULL;
+
             if (flags == M_CLIENT)
             {
                 out = log_entry_print(&e, LOG_PRINT_CRLF, &gc);
@@ -3036,14 +3037,15 @@ management_notify_generic(const char *str)
 static void
 man_output_peer_info_env(struct management *man, const struct man_def_auth_context *mdac)
 {
-    char line[256];
     if (man->persist.callback.get_peer_info)
     {
         const char *peer_info =
             (*man->persist.callback.get_peer_info)(man->persist.callback.arg, mdac->cid);
         if (peer_info)
         {
+            char line[256];
             struct buffer buf;
+
             buf_set_read(&buf, (const uint8_t *)peer_info, strlen(peer_info));
             while (buf_parse(&buf, '\n', line, sizeof(line)))
             {
@@ -3820,13 +3822,12 @@ management_query_multiline_flatten_newline(struct management *man, const char *b
 {
     int ok;
     char *result = NULL;
-    const struct buffer *buf;
 
     ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
     if (ok && buffer_list_defined(*input))
     {
         buffer_list_aggregate_separator(*input, 10000, "\n");
-        buf = buffer_list_peek(*input);
+        const struct buffer *buf = buffer_list_peek(*input);
         if (buf && BLEN(buf) > 0)
         {
             result = (char *)malloc(BLENZ(buf) + 1);
@@ -3847,15 +3848,13 @@ static char *
 management_query_multiline_flatten(struct management *man, const char *b64_data, const char *prompt,
                                    const char *cmd, int *state, struct buffer_list **input)
 {
-    int ok;
     char *result = NULL;
-    const struct buffer *buf;
 
-    ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
+    const int ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
     if (ok && buffer_list_defined(*input))
     {
         buffer_list_aggregate(*input, 2048);
-        buf = buffer_list_peek(*input);
+        const struct buffer *buf = buffer_list_peek(*input);
         if (buf && BLEN(buf) > 0)
         {
             result = (char *)malloc(BLENZ(buf) + 1);

@@ -219,8 +219,6 @@ packet_id_reap(struct packet_id_rec *p)
 bool
 packet_id_test(struct packet_id_rec *p, const struct packet_id_net *pin)
 {
-    uint64_t diff;
-
     packet_id_debug(D_PID_DEBUG, p, pin, "PID_TEST", 0);
 
     ASSERT(p->initialized);
@@ -247,7 +245,7 @@ packet_id_test(struct packet_id_rec *p, const struct packet_id_net *pin)
             }
 
             /* check packet-id sliding window for original/replay status */
-            diff = p->id - pin->id;
+            const uint64_t diff = p->id - pin->id;
 
             /* keep track of maximum backtrack seen for debugging purposes */
             if (diff > p->max_backtrack_stat)
@@ -512,7 +510,6 @@ packet_id_persist_save(struct packet_id_persist *p)
     {
         struct packet_id_persist_file_image image;
         CLEAR(image);
-        ssize_t n;
         off_t seek_ret;
         struct gc_arena gc = gc_new();
 
@@ -521,7 +518,7 @@ packet_id_persist_save(struct packet_id_persist *p)
         seek_ret = lseek(p->fd, (off_t)0, SEEK_SET);
         if (seek_ret == (off_t)0)
         {
-            n = write(p->fd, &image, sizeof(image));
+            const ssize_t n = write(p->fd, &image, sizeof(image));
             if (n == sizeof(image))
             {
                 p->time_last_written = p->time;
@@ -599,7 +596,6 @@ packet_id_debug_print(msglvl_t msglevel, const struct packet_id_rec *p,
     {
         char c;
         time_t v;
-        int diff;
 
         v = CIRC_LIST_ITEM(sl, i);
         if (v == SEQ_UNSEEN)
@@ -612,7 +608,7 @@ packet_id_debug_print(msglvl_t msglevel, const struct packet_id_rec *p,
         }
         else
         {
-            diff = (int)(prev_now - v);
+            const int diff = (int)(prev_now - v);
             if (diff < 0)
             {
                 c = 'N';

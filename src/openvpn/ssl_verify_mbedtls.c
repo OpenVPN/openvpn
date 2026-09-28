@@ -701,7 +701,6 @@ x509_setenv_track(const struct x509_track *xt, struct env_set *es, const int dep
 void
 x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
 {
-    unsigned char c;
     const mbedtls_x509_name *name;
     char s[128] = { 0 };
 
@@ -729,7 +728,7 @@ x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
                 break;
             }
 
-            c = name->val.p[i];
+            const unsigned char c = name->val.p[i];
             if (c < 32 || c == 127 || (c > 128 && c < 160))
             {
                 s[i] = '?';

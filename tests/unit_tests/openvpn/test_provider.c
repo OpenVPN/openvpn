@@ -378,12 +378,11 @@ xkey_sign(void *handle, unsigned char *sig, size_t *siglen, const unsigned char 
 static void
 xkey_provider_test_generic_sign_cb(void **state)
 {
-    EVP_PKEY *pubkey;
     const char *dummy = "xkey_handle"; /* a dummy handle for the external key */
 
     for (size_t i = 0; i < _countof(pubkeys); i++)
     {
-        pubkey = load_pubkey(pubkeys[i]);
+        EVP_PKEY *pubkey = load_pubkey(pubkeys[i]);
         assert_non_null(pubkey);
 
         EVP_PKEY *privkey =

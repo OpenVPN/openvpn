@@ -271,7 +271,6 @@ write_dhcp_search_str(struct buffer *buf, const uint8_t type, const char *const 
 {
     char tmp_buf[256];
     size_t len = 0;
-    size_t label_length_pos;
 
     for (int i = 0; i < array_len; i++)
     {
@@ -290,7 +289,7 @@ write_dhcp_search_str(struct buffer *buf, const uint8_t type, const char *const 
 
         /* label_length_pos points to the byte to be replaced by the length
          * of the following domain label */
-        label_length_pos = len++;
+        size_t label_length_pos = len++;
 
         while (true)
         {

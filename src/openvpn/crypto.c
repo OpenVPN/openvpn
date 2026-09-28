@@ -1774,13 +1774,10 @@ print_cipher(const char *ciphername)
 static const cipher_name_pair *
 get_cipher_name_pair(const char *cipher_name)
 {
-    const cipher_name_pair *pair;
-    size_t i = 0;
-
     /* Search for a cipher name translation */
-    for (; i < cipher_name_translation_table_count; i++)
+    for (size_t i = 0; i < cipher_name_translation_table_count; i++)
     {
-        pair = &cipher_name_translation_table[i];
+        const cipher_name_pair *pair = &cipher_name_translation_table[i];
         if (0 == strcmp(cipher_name, pair->openvpn_name)
             || 0 == strcmp(cipher_name, pair->lib_name))
         {

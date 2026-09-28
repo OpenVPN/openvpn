@@ -197,7 +197,6 @@ x509_print_info(X509 *x509crt)
     ASN1_OBJECT *fn;
     ASN1_STRING *val;
     X509_NAME *x509_name;
-    X509_NAME_ENTRY *ent;
     const char *objbuf;
     unsigned char *buf = NULL;
 
@@ -205,7 +204,7 @@ x509_print_info(X509 *x509crt)
     n = X509_NAME_entry_count(x509_name);
     for (i = 0; i < n; ++i)
     {
-        ent = X509_NAME_get_entry(x509_name, i);
+        X509_NAME_ENTRY *ent = X509_NAME_get_entry(x509_name, i);
         if (!ent)
         {
             continue;

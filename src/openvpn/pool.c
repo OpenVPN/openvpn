@@ -494,22 +494,21 @@ ifconfig_pool_list(const struct ifconfig_pool *pool, struct status_output *out)
         for (i = 0; i < pool->size; ++i)
         {
             const struct ifconfig_pool_entry *e = &pool->list[i];
-            struct in6_addr ip6;
-            in_addr_t ip;
-            const char *ip6_str = "";
-            const char *ip_str = "";
 
             if (e->common_name)
             {
+                const char *ip6_str = "";
+                const char *ip_str = "";
+
                 if (pool->ipv4.enabled)
                 {
-                    ip = ifconfig_pool_handle_to_ip_base(pool, i);
+                    const in_addr_t ip = ifconfig_pool_handle_to_ip_base(pool, i);
                     ip_str = print_in_addr_t(ip, 0, &gc);
                 }
 
                 if (pool->ipv6.enabled)
                 {
-                    ip6 = ifconfig_pool_handle_to_ipv6_base(pool, i);
+                    const struct in6_addr ip6 = ifconfig_pool_handle_to_ipv6_base(pool, i);
                     ip6_str = print_in6_addr(ip6, 0, &gc);
                 }
 

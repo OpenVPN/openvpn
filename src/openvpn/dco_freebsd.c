@@ -444,7 +444,6 @@ static nvlist_t *
 key_to_nvlist(const uint8_t *key, const uint8_t *implicit_iv, const char *ciphername)
 {
     nvlist_t *nvl;
-    size_t key_len;
 
     nvl = nvlist_create(0);
 
@@ -452,7 +451,7 @@ key_to_nvlist(const uint8_t *key, const uint8_t *implicit_iv, const char *cipher
 
     if (strcmp(ciphername, "none") != 0)
     {
-        key_len = cipher_kt_key_size(ciphername);
+        const size_t key_len = cipher_kt_key_size(ciphername);
 
         nvlist_add_binary(nvl, "key", key, key_len);
         nvlist_add_binary(nvl, "iv", implicit_iv, 8);

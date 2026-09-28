@@ -23,9 +23,6 @@
   <suppress>
     <id>usleepCalled</id>
   </suppress>
-  <suppress>
-    <id>variableScope</id>
-  </suppress>
   <!-- We have a lot of library includes, not all of them are really required,
        so ignore them -->
   <suppress>
@@ -205,5 +202,16 @@
   <suppress>
     <id>unusedStructMember</id>
     <fileName>tests/unit_tests/openvpn/test_pkcs11.c</fileName>
+  </suppress>
+  <!-- IGN: nicer -->
+  <suppress>
+    <id>variableScope</id>
+    <fileName>src/openvpnserv/interactive.c</fileName>
+    <symbolName>cmds</symbolName>
+  </suppress>
+  <suppress>
+    <id>variableScope</id>
+    <fileName>src/openvpnserv/interactive.c</fileName>
+    <symbolName>sys_key</symbolName>
   </suppress>
 </suppressions>

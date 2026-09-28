@@ -74,8 +74,6 @@ swap_hmac(struct buffer *buf, const struct crypto_options *co, bool incoming)
 
         int e1, e2;
         uint8_t *b = BPTR(buf);
-        uint8_t buf1[SWAP_BUF_SIZE];
-        uint8_t buf2[SWAP_BUF_SIZE];
 
         if (incoming)
         {
@@ -92,6 +90,9 @@ swap_hmac(struct buffer *buf, const struct crypto_options *co, bool incoming)
 
         if (buf->len >= e1 + e2)
         {
+            uint8_t buf1[SWAP_BUF_SIZE];
+            uint8_t buf2[SWAP_BUF_SIZE];
+
             memcpy(buf1, b, e1);
             memcpy(buf2, b + e1, e2);
             memcpy(b, buf2, e2);
