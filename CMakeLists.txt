@@ -43,6 +43,8 @@ option(FAKE_ANDROID "Target Android but do not use actual cross compile/Android 
 option(ENABLE_DEBUG "Enable building with debug" OFF)
 
 option(ENABLE_DNS_UPDOWN_BY_DEFAULT "Run --dns-updown hook by default" ON)
+
+option(ENABLE_FBOUNDS_SAFETY "Enable experimental Clang -fbounds-safety annotations (OFF by default)" OFF)
 set(DNS_UPDOWN_PATH "${CMAKE_INSTALL_PREFIX}/libexec/openvpn/dns-updown" CACHE STRING "Default location for the DNS up/down script")
 
 set(PLUGIN_DIR "${CMAKE_INSTALL_PREFIX}/lib/openvpn/plugins" CACHE FILEPATH "Location of the plugin directory")
@@ -637,6 +639,11 @@ set(SOURCE_FILES
 add_executable(openvpn ${SOURCE_FILES})
 
 add_library_deps(openvpn)
+
+if(ENABLE_FBOUNDS_SAFETY)
+    target_compile_definitions(openvpn PRIVATE OVPN_SUPPORT_FBOUNDS_SAFETY)
+    target_compile_options(openvpn PRIVATE -fbounds-safety)
+endif()
 
 target_compile_options(openvpn PRIVATE -DDEFAULT_DNS_UPDOWN=\"${DNS_UPDOWN_PATH}\")
 

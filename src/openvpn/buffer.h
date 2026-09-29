@@ -75,7 +75,7 @@ struct buffer
                     *   within the allocated memory. */
     int len;       /**< Length in bytes of the actual content
                     *   within the allocated memory. */
-    uint8_t *data; /**< Pointer to the allocated memory. */
+    uint8_t *__sized_by_or_null(capacity) data; /**< Pointer to the allocated memory. */
 
 #ifdef BUF_INIT_TRACKING
     const char *debug_file;
