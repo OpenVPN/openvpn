@@ -37,7 +37,7 @@
 #include "buffer.h"
 #include "misc.h"
 
-#ifdef HAVE_TERMIOS_H
+#ifndef _WIN32
 #include <termios.h>
 #endif
 
@@ -133,10 +133,7 @@ get_console_input_win32(const char *prompt, const bool echo, char *input, const 
     return false;
 }
 
-#endif /* _WIN32 */
-
-
-#ifdef HAVE_TERMIOS_H
+#else
 
 /**
  * Open the current console TTY for read/write operations
@@ -175,7 +172,7 @@ close_tty(FILE *fp)
     }
 }
 
-#endif /* HAVE_TERMIOS_H */
+#endif
 
 
 /**
@@ -196,10 +193,8 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
     ASSERT(capacity > 0);
     input[0] = '\0';
 
-#if defined(_WIN32)
+#ifdef _WIN32
     return get_console_input_win32(prompt, echo, input, capacity);
-#elif !defined(HAVE_TERMIOS_H)
-    msg(M_FATAL, "Sorry, but I can't get console input on this OS (%s)", prompt);
 #else
     bool restore_tty = false;
     bool ret = false;
@@ -260,7 +255,7 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
 
     close_tty(fp);
     return ret;
-#endif /* if defined(_WIN32) */
+#endif
 }
 
 /**

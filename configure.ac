@@ -459,7 +459,7 @@ AC_CHECK_HEADERS([ \
 	sys/time.h sys/ioctl.h sys/stat.h \
 	sys/mman.h sys/file.h sys/wait.h \
 	libgen.h stropts.h \
-	syslog.h pwd.h grp.h termios.h \
+	syslog.h pwd.h grp.h \
 	sys/sockio.h sys/uio.h \
 	poll.h sys/epoll.h err.h \
 ])
