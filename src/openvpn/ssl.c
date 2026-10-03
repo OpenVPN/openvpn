@@ -1689,7 +1689,7 @@ tls_session_update_crypto_params_do_work(struct tls_multi *multi, struct tls_ses
                                    options->ping_rec_timeout, frame->mss_fix);
             if (ret < 0)
             {
-                msg(D_DCO, "Cannot set DCO peer parameters for peer (id=%u): %s",
+                msg(D_DCO, "Cannot set DCO peer parameters for peer (id=%d): %s",
                     multi->dco_peer_id, strerror(-ret));
                 return false;
             }

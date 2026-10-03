@@ -2818,7 +2818,7 @@ do_route_service(const bool add, const route_message_t *rt, const DWORD size, HA
         ret = (ack.error_number == ERROR_OBJECT_ALREADY_EXISTS) ? RTA_EEXIST : RTA_ERROR;
         if (ret == RTA_ERROR)
         {
-            msg(M_WARN, "ERROR: route %s failed using service: %s [status=%u if_index=%lu]",
+            msg(M_WARN, "ERROR: route %s failed using service: %s [status=%d if_index=%lu]",
                 (add ? "addition" : "deletion"), strerror_win32(ack.error_number, &gc),
                 ack.error_number, rt->iface.index);
         }

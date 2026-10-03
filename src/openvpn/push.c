@@ -351,7 +351,7 @@ receive_auth_pending(struct context *c, const struct buffer *buffer)
     parse_auth_pending_keywords(buffer, &server_timeout);
 
     msg(D_PUSH,
-        "AUTH_PENDING received, extending handshake timeout from %us "
+        "AUTH_PENDING received, extending handshake timeout from %ds "
         "to %us",
         c->options.handshake_window, min_uint(max_timeout, server_timeout));
 

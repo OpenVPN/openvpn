@@ -311,7 +311,7 @@ ReturnProcessId(HANDLE pipe, DWORD pid, DWORD count, LPHANDLE events)
      * Same format as error messages (3 line string) with error = 0 in
      * 0x%08x format, PID on line 2 and a description "Process ID" on line 3
      */
-    swprintf(buf, _countof(buf), L"0x%08x\n0x%08x\n%ls", 0, pid, msg);
+    swprintf(buf, _countof(buf), L"0x%08x\n0x%08lx\n%ls", 0, pid, msg);
 
     WritePipeAsync(pipe, buf, (DWORD)(wcslen(buf) * 2), count, events);
 }
@@ -380,7 +380,7 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options, WCHAR *
     if (!argv)
     {
         swprintf(errmsg, capacity,
-                 L"Cannot validate options: CommandLineToArgvW failed with error = 0x%08x",
+                 L"Cannot validate options: CommandLineToArgvW failed with error = 0x%08lx",
                  GetLastError());
         goto out;
     }

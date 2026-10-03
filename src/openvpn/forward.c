@@ -1305,7 +1305,7 @@ process_incoming_dco(dco_context_t *dco)
             break;
 
         default:
-            msg(D_DCO_DEBUG, "%s: received message of type %u - ignoring", __func__,
+            msg(D_DCO_DEBUG, "%s: received message of type %d - ignoring", __func__,
                 dco->dco_message_type);
             return;
     }

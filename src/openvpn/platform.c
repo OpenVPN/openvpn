@@ -549,7 +549,7 @@ platform_create_temp_file(const char *directory, const char *prefix, struct gc_a
         ++attempts;
 
         if (!checked_snprintf(fname, sizeof(fname), fname_fmt, max_prefix_len, prefix,
-                              get_random(), get_random()))
+                              (uint64_t)get_random(), (uint64_t)get_random()))
         {
             msg(M_WARN, "ERROR: temporary filename too long");
             return NULL;

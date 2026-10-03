@@ -153,7 +153,7 @@ do_address_service(const bool add, const short family, const struct tuntap *tt)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_WARN, "TUN: %s address failed using service: %s [status=%u if_index=%lu]",
+        msg(M_WARN, "TUN: %s address failed using service: %s [status=%d if_index=%lu]",
             (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc), ack.error_number,
             addr.iface.index);
         goto out;
@@ -224,7 +224,7 @@ do_dns_domain_service(bool add, const struct tuntap *tt)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_WARN, "TUN: %s DNS domains failed using service: %s [status=%u if_name=%s]",
+        msg(M_WARN, "TUN: %s DNS domains failed using service: %s [status=%d if_name=%s]",
             (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc), ack.error_number,
             dns.iface.name);
         goto out;
@@ -294,7 +294,7 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_WARN, "TUN: %s %s dns failed using service: %s [status=%u if_name=%s]",
+        msg(M_WARN, "TUN: %s %s dns failed using service: %s [status=%d if_name=%s]",
             (add ? "adding" : "deleting"), ip_proto_name, strerror_win32(ack.error_number, &gc),
             ack.error_number, dns.iface.name);
         goto out;
@@ -351,7 +351,7 @@ do_wins_service(bool add, const struct tuntap *tt)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_WARN, "TUN: %s WINS failed using service: %s [status=%u if_name=%s]",
+        msg(M_WARN, "TUN: %s WINS failed using service: %s [status=%d if_name=%s]",
             (add ? "adding" : "deleting"), strerror_win32(ack.error_number, &gc),
             ack.error_number, wins.iface.name);
         goto out;
@@ -389,7 +389,7 @@ do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_NONFATAL, "TUN: setting %s mtu using service failed: %s [status=%u if_index=%lu]",
+        msg(M_NONFATAL, "TUN: setting %s mtu using service failed: %s [status=%d if_index=%lu]",
             family_name, strerror_win32(ack.error_number, &gc), ack.error_number,
             mtu_msg.iface.index);
     }
@@ -467,7 +467,7 @@ do_create_adapter_service(HANDLE msg_channel, enum tun_driver_type driver_type)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_NONFATAL, "TUN: creating %s adapter using service failed: %s [status=%u]",
+        msg(M_NONFATAL, "TUN: creating %s adapter using service failed: %s [status=%d]",
             print_tun_backend_driver(driver_type), strerror_win32(ack.error_number, &gc),
             ack.error_number);
     }
@@ -5186,7 +5186,7 @@ service_enable_dhcp(const struct tuntap *tt)
 
     if (ack.error_number != NO_ERROR)
     {
-        msg(M_NONFATAL, "TUN: enabling dhcp using service failed: %s [status=%u if_index=%lu]",
+        msg(M_NONFATAL, "TUN: enabling dhcp using service failed: %s [status=%d if_index=%lu]",
             strerror_win32(ack.error_number, &gc), ack.error_number, dhcp.iface.index);
     }
     else
@@ -5435,7 +5435,7 @@ tuntap_get_version_info(const struct tuntap *tt)
     {
         msg(M_FATAL,
             "ERROR:  This version of " PACKAGE_NAME
-            " requires a TAP-Windows driver that is at least version %u.%u -- If you recently upgraded your " PACKAGE_NAME
+            " requires a TAP-Windows driver that is at least version %d.%d -- If you recently upgraded your " PACKAGE_NAME
             " distribution, a reboot is probably required at this point to get Windows to see the new driver.",
             TAP_WIN_MIN_MAJOR, TAP_WIN_MIN_MINOR);
     }

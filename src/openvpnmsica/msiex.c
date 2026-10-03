@@ -51,7 +51,7 @@ msi_get_string(_In_ MSIHANDLE hInstall, _In_z_ LPCWSTR szName, _Out_ LPWSTR *psz
         *pszValue = (LPWSTR)malloc(++dwLength * sizeof(WCHAR));
         if (*pszValue == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
+            msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
             return ERROR_OUTOFMEMORY;
         }
 
@@ -64,7 +64,7 @@ msi_get_string(_In_ MSIHANDLE hInstall, _In_z_ LPCWSTR szName, _Out_ LPWSTR *psz
         LPWSTR szBufHeap = (LPWSTR)malloc(++dwLength * sizeof(WCHAR));
         if (szBufHeap == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
+            msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
             return ERROR_OUTOFMEMORY;
         }
 
@@ -107,7 +107,7 @@ msi_get_record_string(_In_ MSIHANDLE hRecord, _In_ unsigned int iField, _Out_ LP
         *pszValue = (LPWSTR)malloc(++dwLength * sizeof(WCHAR));
         if (*pszValue == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
+            msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
             return ERROR_OUTOFMEMORY;
         }
 
@@ -120,7 +120,7 @@ msi_get_record_string(_In_ MSIHANDLE hRecord, _In_ unsigned int iField, _Out_ LP
         LPWSTR szBufHeap = (LPWSTR)malloc(++dwLength * sizeof(WCHAR));
         if (szBufHeap == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
+            msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
             return ERROR_OUTOFMEMORY;
         }
 
@@ -163,7 +163,7 @@ msi_format_record(_In_ MSIHANDLE hInstall, _In_ MSIHANDLE hRecord, _Out_ LPWSTR 
         *pszValue = (LPWSTR)malloc(++dwLength * sizeof(WCHAR));
         if (*pszValue == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
+            msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
             return ERROR_OUTOFMEMORY;
         }
 
@@ -176,7 +176,7 @@ msi_format_record(_In_ MSIHANDLE hInstall, _In_ MSIHANDLE hRecord, _Out_ LPWSTR 
         LPWSTR szBufHeap = (LPWSTR)malloc(++dwLength * sizeof(WCHAR));
         if (szBufHeap == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
+            msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__, dwLength * sizeof(WCHAR));
             return ERROR_OUTOFMEMORY;
         }
 

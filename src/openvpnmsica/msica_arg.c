@@ -57,7 +57,7 @@ msica_arg_seq_add_head(_Inout_ struct msica_arg_seq *seq, _In_z_ LPCWSTR argumen
     struct msica_arg *p = malloc(sizeof(struct msica_arg) + argument_size);
     if (p == NULL)
     {
-        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__,
+        msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__,
             sizeof(struct msica_arg) + argument_size);
     }
     memcpy(p->val, argument, argument_size);
@@ -77,7 +77,7 @@ msica_arg_seq_add_tail(_Inout_ struct msica_arg_seq *seq, _Inout_ LPCWSTR argume
     struct msica_arg *p = malloc(sizeof(struct msica_arg) + argument_size);
     if (p == NULL)
     {
-        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__,
+        msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__,
             sizeof(struct msica_arg) + argument_size);
     }
     memcpy(p->val, argument, argument_size);
@@ -102,7 +102,7 @@ msica_arg_seq_join(_In_ const struct msica_arg_seq *seq)
     LPWSTR str = malloc(size);
     if (str == NULL)
     {
-        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, size);
+        msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__, size);
         return NULL;
     }
 

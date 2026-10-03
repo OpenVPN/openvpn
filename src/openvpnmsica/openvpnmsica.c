@@ -165,7 +165,7 @@ find_adapters(_In_ MSIHANDLE hInstall, _In_z_ LPCWSTR szzHardwareIDs,
         pAdapterAdresses = (PIP_ADAPTER_ADDRESSES)malloc(ulAdapterAdressesSize);
         if (pAdapterAdresses == NULL)
         {
-            msg(M_NONFATAL, "%s: malloc(%u) failed", __FUNCTION__, ulAdapterAdressesSize);
+            msg(M_NONFATAL, "%s: malloc(%lu) failed", __FUNCTION__, ulAdapterAdressesSize);
             uiResult = ERROR_OUTOFMEMORY;
             goto cleanup_pAdapterList;
         }
@@ -208,7 +208,7 @@ find_adapters(_In_ MSIHANDLE hInstall, _In_z_ LPCWSTR szzHardwareIDs,
     szAdaptersTail = szAdapters;
     if (szAdapters == NULL)
     {
-        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__,
+        msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__,
             adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(WCHAR));
         uiResult = ERROR_OUTOFMEMORY;
         goto cleanup_pAdapterAdresses;
@@ -220,7 +220,7 @@ find_adapters(_In_ MSIHANDLE hInstall, _In_z_ LPCWSTR szzHardwareIDs,
     szAdaptersActiveTail = szAdaptersActive;
     if (szAdaptersActive == NULL)
     {
-        msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__,
+        msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__,
             adapter_count * (38 /*GUID*/ + 1 /*separator/terminator*/) * sizeof(WCHAR));
         uiResult = ERROR_OUTOFMEMORY;
         goto cleanup_szAdapters;
@@ -405,7 +405,7 @@ StartOpenVPNGUI(_In_ MSIHANDLE hInstall)
         szPath = (LPWSTR)malloc((++dwPathSize) * sizeof(WCHAR));
         if (szPath == NULL)
         {
-            msg(M_FATAL, "%s: malloc(%u) failed", __FUNCTION__, dwPathSize * sizeof(WCHAR));
+            msg(M_FATAL, "%s: malloc(%zu) failed", __FUNCTION__, dwPathSize * sizeof(WCHAR));
             uiResult = ERROR_OUTOFMEMORY;
             goto cleanup_MsiCreateRecord;
         }

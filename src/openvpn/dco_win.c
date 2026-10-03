@@ -835,7 +835,7 @@ dco_get_peer_stats_multi(dco_context_t *dco, const bool raise_sigusr1_on_err)
         struct multi_instance *mi = dco->c->multi->instances[stat->PeerId];
         if (!mi)
         {
-            msg(M_WARN, "%s: received data for a non-existing peer %u", __func__, stat->PeerId);
+            msg(M_WARN, "%s: received data for a non-existing peer %d", __func__, stat->PeerId);
             continue;
         }
 

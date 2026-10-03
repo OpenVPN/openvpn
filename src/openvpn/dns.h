@@ -89,7 +89,7 @@ struct dns_updown_runner_info
 };
 
 #ifndef N_DHCP_ADDR
-#define N_DHCP_ADDR 4
+#define N_DHCP_ADDR 4u
 #endif
 
 #ifndef N_SEARCH_LIST_LEN

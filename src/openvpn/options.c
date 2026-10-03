@@ -5138,7 +5138,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         }
         else
         {
-            msg(msglevel, "argument to --bind-dev is longer than allowed %u", IFNAMSIZ - 1);
+            msg(msglevel, "argument to --bind-dev is longer than allowed %d", IFNAMSIZ - 1);
             goto err;
         }
     }
