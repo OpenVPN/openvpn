@@ -831,7 +831,8 @@ socket_do_accept(socket_descriptor_t sd, struct link_socket_actual *act, const b
     else if (remote_len_af && remote_len != remote_len_af)
     {
         msg(D_LINK_ERRORS,
-            "TCP: Received strange incoming connection with unknown address length=%d", remote_len);
+            "TCP: Received strange incoming connection with unknown address length=%u",
+            (unsigned int)remote_len);
         openvpn_close_socket(new_sd);
         new_sd = SOCKET_UNDEFINED;
     }

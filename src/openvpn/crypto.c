@@ -261,7 +261,7 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
             if (!buf_safe(&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
             {
                 msg(D_CRYPT_ERRORS,
-                    "ENCRYPT: buffer size error, bc=%d bo=%d bl=%d wc=%d wo=%d wl=%d cbs=%d",
+                    "ENCRYPT: buffer size error, bc=%d bo=%d bl=%d wc=%d wo=%d wl=%d cbs=%u",
                     buf->capacity, buf->offset, buf->len, work.capacity, work.offset, work.len,
                     cipher_ctx_block_size(ctx->cipher));
                 goto err;

@@ -231,7 +231,7 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd, struct sockaddr *l
     {
         remotestr = print_sockaddr(remoteaddr, &gc);
     }
-    msg(D_DCO_DEBUG, "%s: peer-id %d, fd %d, remote addr: %s", __func__, peerid, sd, remotestr);
+    msg(D_DCO_DEBUG, "%s: peer-id %u, fd %d, remote addr: %s", __func__, peerid, sd, remotestr);
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_PEER_NEW);
     struct nlattr *attr = nla_nest_start(nl_msg, OVPN_A_PEER);
@@ -574,7 +574,7 @@ close_tun_dco(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 int
 dco_swap_keys(dco_context_t *dco, unsigned int peerid)
 {
-    msg(D_DCO_DEBUG, "%s: peer-id %d", __func__, peerid);
+    msg(D_DCO_DEBUG, "%s: peer-id %u", __func__, peerid);
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_KEY_SWAP);
     if (!nl_msg)
@@ -598,7 +598,7 @@ nla_put_failure:
 int
 dco_del_peer(dco_context_t *dco, unsigned int peerid)
 {
-    msg(D_DCO_DEBUG | M_NOIPREFIX, "%s: peer-id %d", __func__, peerid);
+    msg(D_DCO_DEBUG | M_NOIPREFIX, "%s: peer-id %u", __func__, peerid);
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_PEER_DEL);
     if (!nl_msg)
@@ -623,7 +623,7 @@ int
 dco_del_key(dco_context_t *dco, unsigned int peerid, dco_key_slot_t slot)
 {
     int ret = -EMSGSIZE;
-    msg(D_DCO_DEBUG, "%s: peer-id %d, slot %d", __func__, peerid, slot);
+    msg(D_DCO_DEBUG, "%s: peer-id %u, slot %d", __func__, peerid, slot);
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_KEY_DEL);
     if (!nl_msg)
@@ -648,7 +648,7 @@ dco_new_key(dco_context_t *dco, unsigned int peerid, int keyid, dco_key_slot_t s
             const uint8_t *encrypt_key, const uint8_t *encrypt_iv, const uint8_t *decrypt_key,
             const uint8_t *decrypt_iv, const char *ciphername, bool epoch)
 {
-    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %d, cipher %s, epoch %d", __func__, slot, keyid, peerid,
+    msg(D_DCO_DEBUG, "%s: slot %d, key-id %d, peer-id %u, cipher %s, epoch %d", __func__, slot, keyid, peerid,
         ciphername, epoch);
 
     const size_t key_len = cipher_kt_key_size(ciphername);
@@ -701,7 +701,7 @@ int
 dco_set_peer(dco_context_t *dco, unsigned int peerid, int keepalive_interval, int keepalive_timeout,
              int mss)
 {
-    msg(D_DCO_DEBUG, "%s: peer-id %d, keepalive %d/%d, mss %d", __func__, peerid,
+    msg(D_DCO_DEBUG, "%s: peer-id %u, keepalive %d/%d, mss %d", __func__, peerid,
         keepalive_interval, keepalive_timeout, mss);
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_PEER_SET);
@@ -968,7 +968,7 @@ ovpn_iface_check(dco_context_t *dco, struct nlattr *attrs[])
     uint32_t ifindex = nla_get_u32(attrs[OVPN_A_IFINDEX]);
     if (ifindex != dco->ifindex)
     {
-        msg(D_DCO_DEBUG, "ovpn-dco: ignoring message for foreign ifindex %d", ifindex);
+        msg(D_DCO_DEBUG, "ovpn-dco: ignoring message for foreign ifindex %u", ifindex);
         return false;
     }
 
@@ -1010,7 +1010,7 @@ ovpn_handle_peer_del_ntf(dco_context_t *dco, struct nlattr *attrs[])
     int reason = nla_get_u32(dp_attrs[OVPN_A_PEER_DEL_REASON]);
     unsigned int peerid = nla_get_u32(dp_attrs[OVPN_A_PEER_ID]);
 
-    msg(D_DCO_DEBUG | M_NOIPREFIX, "ovpn-dco: received CMD_PEER_DEL_NTF, ifindex: %d, peer-id %u, reason: %d",
+    msg(D_DCO_DEBUG | M_NOIPREFIX, "ovpn-dco: received CMD_PEER_DEL_NTF, ifindex: %u, peer-id %u, reason: %d",
         dco->ifindex, peerid, reason);
     dco->dco_message_peer_id = peerid;
     dco->dco_del_peer_reason = reason;
@@ -1097,7 +1097,7 @@ ovpn_handle_key_swap_ntf(dco_context_t *dco, struct nlattr *attrs[])
     int key_id = nla_get_u16(dp_attrs[OVPN_A_KEYCONF_KEY_ID]);
     unsigned int peer_id = nla_get_u32(dp_attrs[OVPN_A_KEYCONF_PEER_ID]);
 
-    msg(D_DCO_DEBUG, "ovpn-dco: received CMD_KEY_SWAP_NTF, ifindex: %d, peer-id %u, key-id: %d",
+    msg(D_DCO_DEBUG, "ovpn-dco: received CMD_KEY_SWAP_NTF, ifindex: %u, peer-id %u, key-id: %d",
         dco->ifindex, peer_id, key_id);
     dco->dco_message_peer_id = peer_id;
     dco->dco_message_key_id = key_id;

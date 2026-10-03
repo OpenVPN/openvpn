@@ -12,9 +12,6 @@
     <id>constParameterPointer</id>
   </suppress>
   <suppress>
-    <id>invalidPrintfArgType_sint</id>
-  </suppress>
-  <suppress>
     <id>invalidPrintfArgType_uint</id>
   </suppress>
   <suppress>

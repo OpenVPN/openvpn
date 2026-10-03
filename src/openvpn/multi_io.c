@@ -439,7 +439,7 @@ multi_io_post(struct multi_context *m, struct multi_instance *mi, const int acti
         default:
         {
             struct gc_arena gc = gc_new();
-            msg(M_FATAL, "MULTI IO: multi_io_post bad state, mi=%s flags=%d",
+            msg(M_FATAL, "MULTI IO: multi_io_post bad state, mi=%s flags=%u",
                 multi_instance_string(mi, false, &gc), flags);
             gc_free(&gc);
             break;

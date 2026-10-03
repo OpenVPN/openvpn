@@ -1503,7 +1503,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "pid"))
     {
-        msg(M_CLIENT, "SUCCESS: pid=%d", platform_getpid());
+        msg(M_CLIENT, "SUCCESS: pid=%u", platform_getpid());
     }
     else if (streq(p[0], "nclients"))
     {

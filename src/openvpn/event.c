@@ -117,7 +117,7 @@ we_set_event(struct we_set *wes, int i, event_t event, unsigned int rwflags, voi
     }
     else
     {
-        msg(M_FATAL, "fatal error in we_set_events: rwflags=%d", rwflags);
+        msg(M_FATAL, "fatal error in we_set_events: rwflags=%u", rwflags);
     }
 
     wes->esr[i].rwflags = rwflags;
@@ -378,7 +378,7 @@ we_ctl(struct event_set *es, event_t event, unsigned int rwflags, void *arg)
                 break;
 
             default:
-                msg(M_FATAL, "fatal error in we_ctl: rwflags=%d", rwflags);
+                msg(M_FATAL, "fatal error in we_ctl: rwflags=%u", rwflags);
         }
     }
     return;

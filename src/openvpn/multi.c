@@ -164,7 +164,7 @@ multi_reap_range(const struct multi_context *m, uint32_t start_bucket, uint32_t 
     struct hash_iterator hi;
     struct hash_element *he;
 
-    dmsg(D_MULTI_DEBUG, "MULTI: REAP range %d -> %d", start_bucket, end_bucket);
+    dmsg(D_MULTI_DEBUG, "MULTI: REAP range %u -> %u", start_bucket, end_bucket);
     hash_iterator_init_range(m->vhash, &hi, start_bucket, end_bucket);
     while ((he = hash_iterator_next(&hi)) != NULL)
     {
@@ -271,7 +271,7 @@ multi_init(struct context *t)
     struct multi_context *m = t->multi;
     int dev = DEV_TYPE_UNDEF;
 
-    msg(D_MULTI_LOW, "MULTI: multi_init called, r=%d v=%d", t->options.real_hash_size,
+    msg(D_MULTI_LOW, "MULTI: multi_init called, r=%u v=%u", t->options.real_hash_size,
         t->options.virtual_hash_size);
 
     /*
@@ -430,7 +430,7 @@ multi_instance_string(const struct multi_instance *mi, bool null, struct gc_aren
         if (mi->context.c2.tls_multi && check_debug_level(D_DCO_DEBUG)
             && dco_enabled(&mi->context.options))
         {
-            buf_printf(&out, " rx-peer-id=%d", mi->context.c2.tls_multi->rx_peer_id);
+            buf_printf(&out, " rx-peer-id=%u", mi->context.c2.tls_multi->rx_peer_id);
         }
         return BSTR(&out);
     }
@@ -735,7 +735,7 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
     if (hash_n_elements(m->hash) >= m->max_clients)
     {
         msg(D_MULTI_ERRORS,
-            "MULTI: new incoming connection would exceed maximum number of clients (%d)",
+            "MULTI: new incoming connection would exceed maximum number of clients (%u)",
             m->max_clients);
         goto err;
     }
@@ -996,7 +996,7 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
 #ifdef ENABLE_ASYNC_PUSH
     if (m->inotify_watchers)
     {
-        msg(D_MULTI_DEBUG, "inotify watchers count: %d", hash_n_elements(m->inotify_watchers));
+        msg(D_MULTI_DEBUG, "inotify watchers count: %u", hash_n_elements(m->inotify_watchers));
     }
 #endif
 }
@@ -1302,7 +1302,7 @@ multi_add_iroutes(struct multi_context *m, struct multi_instance *mi)
         }
         for (ir6 = mi->context.options.iroutes_ipv6; ir6 != NULL; ir6 = ir6->next)
         {
-            msg(D_MULTI_LOW, "MULTI: internal route %s/%d -> %s",
+            msg(D_MULTI_LOW, "MULTI: internal route %s/%u -> %s",
                 print_in6_addr(ir6->network, 0, &gc), ir6->netbits,
                 multi_instance_string(mi, false, &gc));
 

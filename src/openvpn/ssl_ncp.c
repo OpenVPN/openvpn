@@ -508,7 +508,7 @@ p2p_mode_ncp(struct tls_multi *multi, struct tls_session *session)
     }
 
     msg(D_TLS_DEBUG_LOW, "P2P mode NCP negotiation result: "
-                         "TLS_export=%d, DATA_v2=%d, rx-peer-id %d, tx-peer-id %d, epoch=%d, cipher=%s",
+                         "TLS_export=%d, DATA_v2=%d, rx-peer-id %u, tx-peer-id %u, epoch=%d, cipher=%s",
         (bool)(session->opt->crypto_flags & CO_USE_TLS_KEY_MATERIAL_EXPORT),
         multi->use_peer_id,
         multi->rx_peer_id,

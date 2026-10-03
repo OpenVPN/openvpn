@@ -4548,7 +4548,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         {
             if (netbits < 64 || netbits > 124)
             {
-                msg(msglevel, "ifconfig-ipv6: /netbits must be between 64 and 124, not '/%d'",
+                msg(msglevel, "ifconfig-ipv6: /netbits must be between 64 and 124, not '/%u'",
                     netbits);
                 goto err;
             }
@@ -5826,7 +5826,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         }
         if (netbits < 64 || netbits > 124)
         {
-            msg(msglevel, "--server-ipv6 settings: network must be between /64 and /124 (not /%d)",
+            msg(msglevel, "--server-ipv6 settings: network must be between /64 and /124 (not /%u)",
                 netbits);
 
             goto err;
@@ -5939,7 +5939,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         if (netbits < 64 || netbits > 124)
         {
             msg(msglevel,
-                "--ifconfig-ipv6-pool settings: network must be between /64 and /124 (not /%d)",
+                "--ifconfig-ipv6-pool settings: network must be between /64 and /124 (not /%u)",
                 netbits);
             goto err;
         }

@@ -136,7 +136,7 @@ show_p2mp_parms(const struct options *o)
     msg(D_SHOW_PARMS, "  server_network = %s", print_in_addr_t(o->server_network, 0, &gc));
     msg(D_SHOW_PARMS, "  server_netmask = %s", print_in_addr_t(o->server_netmask, 0, &gc));
     msg(D_SHOW_PARMS, "  server_network_ipv6 = %s", print_in6_addr(o->server_network_ipv6, 0, &gc));
-    SHOW_INT(server_netbits_ipv6);
+    SHOW_UINT(server_netbits_ipv6);
     msg(D_SHOW_PARMS, "  server_bridge_ip = %s", print_in_addr_t(o->server_bridge_ip, 0, &gc));
     msg(D_SHOW_PARMS, "  server_bridge_netmask = %s",
         print_in_addr_t(o->server_bridge_netmask, 0, &gc));
@@ -170,8 +170,8 @@ show_p2mp_parms(const struct options *o)
     SHOW_INT(ifconfig_ipv6_pool_netbits);
     SHOW_INT(n_bcast_buf);
     SHOW_INT(tcp_queue_limit);
-    SHOW_INT(real_hash_size);
-    SHOW_INT(virtual_hash_size);
+    SHOW_UINT(real_hash_size);
+    SHOW_UINT(virtual_hash_size);
     SHOW_STR(client_connect_script);
     SHOW_STR(learn_address_script);
     SHOW_STR(client_disconnect_script);
@@ -444,10 +444,10 @@ show_settings(const struct options *o)
 #if defined(TARGET_LINUX)
     SHOW_INT(mark);
 #endif
-    SHOW_INT(sockflags);
+    SHOW_UINT(sockflags);
 
     SHOW_INT(comp.alg);
-    SHOW_INT(comp.flags);
+    SHOW_UINT(comp.flags);
 
     SHOW_STR(route_script);
     SHOW_STR(route_default_gateway);
@@ -482,7 +482,7 @@ show_settings(const struct options *o)
     SHOW_INT(management_echo_buffer_size);
     SHOW_STR(management_client_user);
     SHOW_STR(management_client_group);
-    SHOW_INT(management_flags);
+    SHOW_UINT(management_flags);
 #endif
 #ifdef ENABLE_PLUGIN
     if (o->plugin_list)
@@ -547,7 +547,7 @@ show_settings(const struct options *o)
         int i;
         for (i = 0; i < MAX_PARMS; i++)
         {
-            SHOW_INT(remote_cert_ku[i]);
+            SHOW_UINT(remote_cert_ku[i]);
         }
     }
     SHOW_STR(remote_cert_eku);
@@ -567,7 +567,7 @@ show_settings(const struct options *o)
         }
         gc_free(&gc);
     }
-    SHOW_INT(ssl_flags);
+    SHOW_UINT(ssl_flags);
 
     SHOW_INT(tls_timeout);
 

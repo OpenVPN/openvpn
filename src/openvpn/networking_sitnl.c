@@ -222,7 +222,7 @@ sitnl_bind(int fd, uint32_t groups, uint32_t *local_pid)
 
     if (addr_len != sizeof(local))
     {
-        msg(M_WARN, "%s: wrong address length %d", __func__, addr_len);
+        msg(M_WARN, "%s: wrong address length %u", __func__, (unsigned int)addr_len);
         return -EINVAL;
     }
 
@@ -528,7 +528,7 @@ sitnl_route_save(struct nlmsghdr *n, void *arg)
 
     if (!if_indextoname(ifindex, res->iface))
     {
-        msg(M_WARN | M_ERRNO, "%s: rtnl: can't get ifname for index %d", __func__, ifindex);
+        msg(M_WARN | M_ERRNO, "%s: rtnl: can't get ifname for index %u", __func__, ifindex);
         return -1;
     }
 
@@ -1216,7 +1216,7 @@ net_route_v4_add(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen, co
         gw_ptr = &gw_be;
     }
 
-    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %d metric %d", __func__,
+    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %u metric %d", __func__,
         inet_ntop(AF_INET, &dst_be, dst_str, sizeof(dst_str)), prefixlen,
         inet_ntop(AF_INET, &gw_be, gw_str, sizeof(gw_str)), np(iface), table, metric);
 
@@ -1242,7 +1242,7 @@ net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixl
         gw_v6.ipv6 = *gw;
     }
 
-    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %d metric %d", __func__,
+    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %u metric %d", __func__,
         inet_ntop(AF_INET6, &dst_v6.ipv6, dst_str, sizeof(dst_str)), prefixlen,
         inet_ntop(AF_INET6, &gw_v6.ipv6, gw_str, sizeof(gw_str)), np(iface), table, metric);
 
@@ -1293,7 +1293,7 @@ net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen, co
         gw_v4.ipv4 = htonl(*gw);
     }
 
-    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %d metric %d", __func__,
+    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %u metric %d", __func__,
         inet_ntop(AF_INET, &dst_v4.ipv4, dst_str, sizeof(dst_str)), prefixlen,
         inet_ntop(AF_INET, &gw_v4.ipv4, gw_str, sizeof(gw_str)), np(iface), table, metric);
 
@@ -1319,7 +1319,7 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixl
         gw_v6.ipv6 = *gw;
     }
 
-    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %d metric %d", __func__,
+    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %u metric %d", __func__,
         inet_ntop(AF_INET6, &dst_v6.ipv6, dst_str, sizeof(dst_str)), prefixlen,
         inet_ntop(AF_INET6, &gw_v6.ipv6, gw_str, sizeof(gw_str)), np(iface), table, metric);
 

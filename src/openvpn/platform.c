@@ -578,7 +578,7 @@ platform_create_temp_file(const char *directory, const char *prefix, struct gc_a
         }
     }
 
-    msg(M_WARN, "Failed to create temporary file after %i attempts", attempts);
+    msg(M_WARN, "Failed to create temporary file after %u attempts", attempts);
     return NULL;
 }
 

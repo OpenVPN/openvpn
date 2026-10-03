@@ -823,7 +823,7 @@ init_route_ipv6_list(struct route_ipv6_list *rl6, const struct route_ipv6_option
                 {
                     need_remote_ipv6_route = true;
                     msg(D_ROUTE,
-                        "ROUTE6: %s/%d overlaps IPv6 remote %s, adding host route to VPN endpoint",
+                        "ROUTE6: %s/%u overlaps IPv6 remote %s, adding host route to VPN endpoint",
                         print_in6_addr(r6->network, 0, &gc), r6->netbits,
                         print_in6_addr(*remote_host_ipv6, 0, &gc));
                 }
@@ -1353,7 +1353,7 @@ setenv_route_ipv6(struct env_set *es, const struct route_ipv6 *r6, int i)
         struct buffer name2 = alloc_buf_gc(256, &gc);
 
         buf_printf(&name1, "route_ipv6_network_%d", i);
-        buf_printf(&val, "%s/%d", print_in6_addr(r6->network, 0, &gc), r6->netbits);
+        buf_printf(&val, "%s/%u", print_in6_addr(r6->network, 0, &gc), r6->netbits);
         setenv_str(es, BSTR(&name1), BSTR(&val));
 
         buf_printf(&name2, "route_ipv6_gateway_%d", i);
@@ -1801,10 +1801,10 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
 #endif
 
 #ifndef _WIN32
-    msg(D_ROUTE, "add_route_ipv6(%s/%d -> %s metric %d) dev %s", network, r6->netbits, gateway,
+    msg(D_ROUTE, "add_route_ipv6(%s/%u -> %s metric %d) dev %s", network, r6->netbits, gateway,
         r6->metric, device);
 #else
-    msg(D_ROUTE, "add_route_ipv6(%s/%d -> %s metric %d) IF %lu", network, r6->netbits, gateway,
+    msg(D_ROUTE, "add_route_ipv6(%s/%u -> %s metric %d) IF %lu", network, r6->netbits, gateway,
         r6->metric, r6->adapter_index ? r6->adapter_index : tt->adapter_index);
 #endif
 
@@ -1830,7 +1830,7 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
             "ROUTE6 WARNING: " PACKAGE_NAME " needs a gateway "
             "parameter for a --route-ipv6 option and no default was set via "
             "--ifconfig-ipv6 or --route-ipv6-gateway option.  Not installing "
-            "IPv6 route to %s/%d.",
+            "IPv6 route to %s/%u.",
             network, r6->netbits);
         status = 0;
         goto done;
@@ -2220,7 +2220,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt, const st
     }
 #endif
 
-    msg(D_ROUTE, "delete_route_ipv6(%s/%d)", network, r6->netbits);
+    msg(D_ROUTE, "delete_route_ipv6(%s/%u)", network, r6->netbits);
 
 #if defined(TARGET_LINUX)
     int metric = -1;
