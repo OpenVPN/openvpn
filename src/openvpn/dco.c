@@ -534,7 +534,7 @@ dco_p2p_add_new_peer(struct context *c)
     ASSERT(sock->info.connection_established);
 
     struct sockaddr *remoteaddr = &sock->info.lsa->actual.dest.addr.sa;
-    struct tls_multi *multi = c->c2.tls_multi;
+    const struct tls_multi *multi = c->c2.tls_multi;
 #ifdef TARGET_FREEBSD
     /* In Linux in P2P mode the kernel automatically removes an existing peer
      * when adding a new peer. FreeBSD needs to explicitly be told to do that */

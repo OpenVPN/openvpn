@@ -33,7 +33,7 @@ COMMON_ARGS="-j$(nproc) ${verbosity_arg} \
  --suppress-xml=${SCRIPT_DIR}/cppcheck-suppressions.xml --inline-suppr \
  --cppcheck-build-dir=${CPPCHECK_DIR} \
  --check-level=${CPPCHECK_CHECK_LEVEL} --max-configs=10 \
- --error-exitcode=1 --showtime=summary"
+ --error-exitcode=1"
 
 set -x
 

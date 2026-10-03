@@ -323,8 +323,7 @@ port_from_servname(const char *servname)
         return port;
     }
 
-    struct servent *service;
-    service = getservbyname(servname, NULL);
+    const struct servent *service = getservbyname(servname, NULL);
     if (service)
     {
         return service->s_port;

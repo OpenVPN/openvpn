@@ -316,10 +316,9 @@ static struct multi_instance *
 multi_get_instance_udp_real(struct multi_context *m, struct mroute_addr *real)
 {
     struct hash *hash = m->hash;
-    struct hash_element *he;
     const uint64_t hv = hash_value(hash, real);
     struct hash_bucket *bucket = hash_bucket(hash, hv);
-    he = hash_lookup_fast(hash, bucket, real, hv);
+    const struct hash_element *he = hash_lookup_fast(hash, bucket, real, hv);
     if (he)
     {
         return he->value;

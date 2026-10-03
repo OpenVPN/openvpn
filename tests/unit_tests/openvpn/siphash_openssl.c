@@ -101,7 +101,7 @@ siphash_openssl_init(size_t hash_size)
 bool
 siphash_openssl_available(void *sip_context)
 {
-    struct siphash_context *sip = sip_context;
+    const struct siphash_context *sip = sip_context;
 
     return (bool)(sip->mac);
 }

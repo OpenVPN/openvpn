@@ -184,7 +184,6 @@ xkey_pkcs11h_sign(void *handle, unsigned char *sig, size_t *siglen, const unsign
         {
             tbs = buf;
             tbslen = (size_t)buflen;
-            sigalg.op = "Sign";
         }
         else
         {
