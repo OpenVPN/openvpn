@@ -35,8 +35,7 @@ if WIN32
 sbin_PROGRAMS = tapctl
 tapctl_CFLAGS = \
 	-municode -D_UNICODE \
-	-UNTDDI_VERSION -U_WIN32_WINNT \
-	-D_WIN32_WINNT=_WIN32_WINNT_VISTA
+	-UNTDDI_VERSION	-D_WIN32_WINNT=_WIN32_WINNT_WIN10
 tapctl_LDADD = -ladvapi32 -lole32 -lsetupapi
 endif
 

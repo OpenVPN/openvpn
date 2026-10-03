@@ -34,8 +34,7 @@ if WIN32
 lib_LTLIBRARIES = libopenvpnmsica.la
 libopenvpnmsica_la_CFLAGS = \
 	-municode -D_UNICODE \
-	-UNTDDI_VERSION -U_WIN32_WINNT \
-	-D_WIN32_WINNT=_WIN32_WINNT_VISTA \
+	-UNTDDI_VERSION -D_WIN32_WINNT=_WIN32_WINNT_WIN10 \
 	-Wl,--kill-at
 libopenvpnmsica_la_LDFLAGS = -ladvapi32 -lole32 -lmsi -lsetupapi -liphlpapi -lshell32 -lshlwapi -lversion -lnewdev -no-undefined -avoid-version
 endif

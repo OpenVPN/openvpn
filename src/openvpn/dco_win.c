@@ -35,6 +35,7 @@
 #include "openvpn.h"
 
 #include <bcrypt.h>
+#include <ioapiset.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
@@ -222,17 +223,6 @@ static void
 dco_connect_wait(HANDLE handle, OVERLAPPED *ov, int timeout, struct signal_info *sig_info)
 {
     volatile int *signal_received = &sig_info->signal_received;
-    /* GetOverlappedResultEx is available starting from Windows 8 */
-    typedef BOOL(WINAPI * get_overlapped_result_ex_t)(HANDLE, LPOVERLAPPED, LPDWORD, DWORD, BOOL);
-    get_overlapped_result_ex_t get_overlapped_result_ex =
-        (get_overlapped_result_ex_t)GetProcAddress(GetModuleHandle("Kernel32.dll"),
-                                                   "GetOverlappedResultEx");
-
-    if (get_overlapped_result_ex == NULL)
-    {
-        msg(M_ERR, "Failed to load GetOverlappedResult()");
-    }
-
     DWORD timeout_msec = timeout * 1000;
     const int poll_interval_ms = 50;
 
@@ -241,7 +231,7 @@ dco_connect_wait(HANDLE handle, OVERLAPPED *ov, int timeout, struct signal_info 
         timeout_msec -= poll_interval_ms;
 
         DWORD transferred;
-        if (get_overlapped_result_ex(handle, ov, &transferred, poll_interval_ms, FALSE) != 0)
+        if (GetOverlappedResultEx(handle, ov, &transferred, poll_interval_ms, FALSE) != 0)
         {
             /* TCP connection established by dco */
             return;

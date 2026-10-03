@@ -23,8 +23,7 @@ if WIN32
 sbin_PROGRAMS = openvpnserv
 openvpnserv_CFLAGS = \
 	-municode -D_UNICODE \
-	-UNTDDI_VERSION -U_WIN32_WINNT \
-	-D_WIN32_WINNT=_WIN32_WINNT_VISTA
+	-UNTDDI_VERSION -D_WIN32_WINNT=_WIN32_WINNT_WIN10
 openvpnserv_LDADD = \
 	-ladvapi32 -luserenv -liphlpapi -lfwpuclnt -lrpcrt4 \
 	-lshlwapi -lnetapi32 -lws2_32 -lntdll -lole32 -lpathcch

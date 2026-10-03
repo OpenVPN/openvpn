@@ -251,6 +251,14 @@ check_symbol_exists(getrlimit sys/resource.h HAVE_GETRLIMIT)
 check_symbol_exists(strsep string.h HAVE_STRSEP)
 check_symbol_exists(strtok_r string.h HAVE_STRTOK_R)
 
+if (WIN32)
+    # Required due to a bug in MinGW where the .h file is correct
+    # but the symbol is missing from newdev.dll
+    set(CMAKE_REQUIRED_LIBRARIES newdev.lib)
+    check_symbol_exists(DiInstallDevice "windows.h;newdev.h" HAVE_DIINSTALLDEVICE)
+    unset(CMAKE_REQUIRED_LIBRARIES)
+endif ()
+
 # Some OS (e.g. FreeBSD) need some basic headers to allow
 # including network headers
 set(NETEXTRA sys/types.h)
@@ -344,7 +352,7 @@ function(add_library_deps target)
     if (MINGW)
         target_compile_definitions(${target} PRIVATE
                 WIN32_LEAN_AND_MEAN
-                NTDDI_VERSION=NTDDI_VISTA _WIN32_WINNT=_WIN32_WINNT_VISTA
+                NTDDI_VERSION=NTDDI_WIN10 _WIN32_WINNT=_WIN32_WINNT_WIN10
         )
     endif()
 

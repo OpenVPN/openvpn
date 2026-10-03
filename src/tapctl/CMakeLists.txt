@@ -21,10 +21,10 @@ target_sources(tapctl PRIVATE
 target_compile_options(tapctl PRIVATE
     -D_UNICODE
     -UNTDDI_VERSION
-    -D_WIN32_WINNT=_WIN32_WINNT_VISTA
+    -D_WIN32_WINNT=_WIN32_WINNT_WIN10
     )
 target_link_libraries(tapctl
-    advapi32.lib ole32.lib setupapi.lib)
+    advapi32.lib newdev.lib ole32.lib setupapi.lib)
 if (MINGW)
     target_compile_options(tapctl PRIVATE -municode)
     target_link_options(tapctl PRIVATE -municode)

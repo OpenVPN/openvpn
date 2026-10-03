@@ -21,7 +21,7 @@ function(add_common_options target)
     target_compile_options(${target} PRIVATE
         -D_UNICODE
         -UNTDDI_VERSION
-        -D_WIN32_WINNT=_WIN32_WINNT_VISTA
+        -D_WIN32_WINNT=_WIN32_WINNT_WIN10
     )
     target_link_libraries(${target} PRIVATE
         advapi32.lib userenv.lib iphlpapi.lib fwpuclnt.lib rpcrt4.lib

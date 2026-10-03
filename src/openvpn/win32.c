@@ -37,6 +37,7 @@
 #include <winsock2.h>
 #include <accctrl.h>
 #include <aclapi.h>
+#include <wow64apiset.h>
 
 #include "buffer.h"
 #include "error.h"
@@ -1334,67 +1335,47 @@ typedef enum
 static void
 win32_get_arch(arch_t *process_arch, arch_t *host_arch)
 {
-    *process_arch = ARCH_UNKNOWN;
-    *host_arch = ARCH_NATIVE;
-
-    typedef BOOL(WINAPI * is_wow64_process2_t)(HANDLE, USHORT *, USHORT *);
-    is_wow64_process2_t is_wow64_process2 =
-        (is_wow64_process2_t)GetProcAddress(GetModuleHandle("Kernel32.dll"), "IsWow64Process2");
-
 #ifdef _ARM64_
     *process_arch = ARCH_ARM64;
 #elif defined(_WIN64)
     *process_arch = ARCH_AMD64;
-    if (is_wow64_process2)
-    {
-        /* this could be amd64 on arm64 */
-        USHORT process_machine = 0;
-        USHORT native_machine = 0;
-        BOOL is_wow64 = is_wow64_process2(GetCurrentProcess(), &process_machine, &native_machine);
-        if (is_wow64 && native_machine == IMAGE_FILE_MACHINE_ARM64)
-        {
-            *host_arch = ARCH_ARM64;
-        }
-    }
-#elif defined(_WIN32)
+#else
     *process_arch = ARCH_X86;
+#endif
 
-    if (is_wow64_process2)
+    *host_arch = ARCH_NATIVE;
+    /* Determine if we're running on a different host-arch */
+    USHORT process_machine = 0;
+    USHORT native_machine = 0;
+
+    if (!IsWow64Process2(GetCurrentProcess(), &process_machine, &native_machine))
     {
-        /* check if we're running on arm64 or amd64 machine */
-        USHORT process_machine = 0;
-        USHORT native_machine = 0;
-        BOOL is_wow64 = is_wow64_process2(GetCurrentProcess(), &process_machine, &native_machine);
-        if (is_wow64)
-        {
-            switch (native_machine)
-            {
-                case IMAGE_FILE_MACHINE_ARM64:
-                    *host_arch = ARCH_ARM64;
-                    break;
-
-                case IMAGE_FILE_MACHINE_AMD64:
-                    *host_arch = ARCH_AMD64;
-                    break;
-
-                default:
-                    *host_arch = ARCH_UNKNOWN;
-                    break;
-            }
-        }
+        return;
     }
-    else
+
+    switch (native_machine)
     {
-        BOOL w64 = FALSE;
-        BOOL is_wow64 = IsWow64Process(GetCurrentProcess(), &w64) && w64;
-        if (is_wow64)
-        {
-            /* we are unable to differentiate between arm64 and amd64
-             * machines here, so assume we are running on amd64 */
+        case IMAGE_FILE_MACHINE_ARM64:
+            *host_arch = ARCH_ARM64;
+            break;
+
+        case IMAGE_FILE_MACHINE_AMD64:
             *host_arch = ARCH_AMD64;
-        }
+            break;
+
+        case IMAGE_FILE_MACHINE_I386:
+            *host_arch = ARCH_X86;
+            break;
+
+        default:
+            *host_arch = ARCH_UNKNOWN;
+            break;
     }
-#endif /* _ARM64_ */
+
+    if (*host_arch == *process_arch)
+    {
+        *host_arch = ARCH_NATIVE;
+    }
 }
 
 static void

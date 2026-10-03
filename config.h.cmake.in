@@ -330,6 +330,9 @@
 /* Define to 1 if you have the <valgrind/memcheck.h> header file. */
 #undef HAVE_VALGRIND_MEMCHECK_H
 
+/* Define to 1 if you have the `DiInstallDevice' function. */
+#cmakedefine HAVE_DIINSTALLDEVICE
+
 /* Availability of different mbed TLS features and APIs */
 #cmakedefine HAVE_PSA_CRYPTO_H
 

@@ -50,6 +50,7 @@ static const WCHAR szAdapterRegKeyPathTemplate[] =
     (_countof(L"SYSTEM\\CurrentControlSet\\Control\\Network\\") - 1 + 38 + _countof(L"\\") - 1 \
      + 38 + _countof(L"\\Connection"))
 
+#ifndef HAVE_DIINSTALLDEVICE
 /**
  * Dynamically load a library and find a function in it
  *
@@ -99,6 +100,7 @@ find_function(const WCHAR *libname, const char *funcname, HMODULE *m)
     }
     return fptr;
 }
+#endif
 
 /**
  * Returns length of string of strings

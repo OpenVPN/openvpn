@@ -24,7 +24,7 @@ target_sources(openvpnmsica PRIVATE
 target_compile_options(openvpnmsica PRIVATE
     -D_UNICODE
     -UNTDDI_VERSION
-    -D_WIN32_WINNT=_WIN32_WINNT_VISTA
+    -D_WIN32_WINNT=_WIN32_WINNT_WIN10
     )
 
 if (MSVC)
