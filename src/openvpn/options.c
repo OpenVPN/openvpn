@@ -5625,7 +5625,14 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             }
             else if (streq(p[j], "def1"))
             {
+#ifndef TARGET_ANDROID
+                /* The hack that def1 uses to split 0.0.0.0 into 0.0.0.0/1 and
+                 * 128.0.0.0/1 is not needed on Android and will even
+                 * make some Android implementations (e.g. Samsung)
+                 * misbehave, so silently ignore the flag and always use
+                 * 0.0.0.0/0 instead */
                 options->routes->flags |= RG_DEF1;
+#endif
             }
             else if (streq(p[j], "bypass-dhcp"))
             {
