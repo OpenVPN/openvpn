@@ -177,10 +177,6 @@ p2mp_iow_flags(const struct multi_context *m, struct link_socket *sock)
             flags |= IOW_TO_LINK;
         }
     }
-    else if (mbuf_defined(m->mbuf))
-    {
-        flags |= IOW_MBUF;
-    }
     else
     {
         flags |= IOW_READ;
@@ -565,7 +561,7 @@ multi_io_process_io(struct multi_context *m)
     multi_io->n_esr = 0;
 
     /*
-     * Process queued mbuf packets destined for TCP socket
+     * Drain the queued mbuf packets, datagram and TCP instances alike
      */
     {
         struct multi_instance *mi;
