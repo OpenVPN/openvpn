@@ -58,7 +58,6 @@
 #define IOW_SHAPER         (1 << 4)
 #define IOW_CHECK_RESIDUAL (1 << 5)
 #define IOW_FRAG           (1 << 6)
-#define IOW_MBUF           (1 << 7)
 #define IOW_READ_TUN_FORCE (1 << 8)
 #define IOW_WAIT_SIGNAL    (1 << 9)
 

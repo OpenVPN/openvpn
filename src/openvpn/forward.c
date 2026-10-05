@@ -2125,14 +2125,6 @@ multi_io_process_flags(struct context *c, struct event_set *es, struct link_sock
     }
 
     /*
-     * outgoing bcast buffer waiting to be sent?
-     */
-    if (flags & IOW_MBUF)
-    {
-        socket |= EVENT_WRITE;
-    }
-
-    /*
      * Force wait on TUN input, even if also waiting on TCP/UDP output
      */
     if (flags & IOW_READ_TUN_FORCE)
