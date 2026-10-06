@@ -29,6 +29,8 @@
 #define SOCKS_H
 
 #include "buffer.h"
+#include "interval.h"
+#include "sig.h"
 
 struct openvpn_sockaddr;
 struct link_socket_actual;

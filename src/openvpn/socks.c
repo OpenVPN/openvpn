@@ -34,6 +34,7 @@
 
 #include "syshead.h"
 
+#include "socks.h"
 #include "common.h"
 #include "misc.h"
 #include "win32.h"

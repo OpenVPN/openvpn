@@ -35,6 +35,7 @@
 #include "argv.h"
 #include "options.h"
 #include "socket.h"
+#include "tun_afunix.h"
 
 #ifndef WIN32
 /* Windows does implement some AF_UNIX functionality but key features
@@ -172,8 +173,7 @@ read_tun_afunix(struct tuntap *tt, uint8_t *buf, int len)
 }
 #else  /* ifndef WIN32 */
 void
-open_tun_afunix(const char *dev, const char *dev_type, int mtu, struct tuntap *tt,
-                struct env_set env)
+open_tun_afunix(struct options *o, int mtu, struct tuntap *tt, struct env_set *orig_env)
 {
     msg(M_ERR, "AF_UNIX socket support not available on this platform");
 }

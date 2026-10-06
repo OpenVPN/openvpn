@@ -26,6 +26,7 @@
 #endif
 
 #include "siphash.h"
+#include "siphash_openssl.h"
 
 #ifdef ENABLE_CRYPTO_OPENSSL
 #include <openssl/opensslv.h>
