@@ -27,6 +27,7 @@
 #include "syshead.h"
 
 #include "dco.h"
+#include "dco_win.h"
 #include "forward.h"
 #include "tun.h"
 #include "crypto.h"

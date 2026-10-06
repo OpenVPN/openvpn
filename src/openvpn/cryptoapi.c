@@ -47,6 +47,7 @@
 #include <ctype.h>
 
 #include "buffer.h"
+#include "cryptoapi.h"
 #include "openssl_compat.h"
 #include "win32.h"
 #include "xkey_common.h"

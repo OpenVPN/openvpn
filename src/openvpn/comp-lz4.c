@@ -31,6 +31,7 @@
 #include <lz4.h>
 
 #include "comp.h"
+#include "comp-lz4.h"
 #include "error.h"
 
 #include "memdbg.h"
