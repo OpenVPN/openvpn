@@ -69,6 +69,12 @@ bool atoi_constrained(const char *str, int *value, const char *name, int min, in
                       msglvl_t msglevel);
 
 /**
+ * Converts a str to an boolean if the string can be parsed as either 0 or 1.
+ * Otherwise print a warning with \p msglevel and return \c false.
+ */
+bool boolean_flag(const char *str, const char *name, msglvl_t msglevel);
+
+/**
  * Filter an option line by all pull filters.
  *
  * If a match is found, the line is modified depending on

@@ -194,6 +194,14 @@ atoi_constrained(const char *str, int *value, const char *name, int min, int max
     return true;
 }
 
+bool
+boolean_flag(const char *str, const char *name, msglvl_t msglevel)
+{
+    int number = 0;
+    atoi_constrained(str, &number, name, 0, 1, msglevel);
+    return (bool)number;
+}
+
 static const char *updatable_options[] = { "block-ipv6", "block-outside-dns",
                                            "dhcp-option", "dns",
                                            "ifconfig", "ifconfig-ipv6",

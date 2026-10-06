@@ -6402,7 +6402,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->sc_info.challenge_text = p[1];
-        if (atoi_warn(p[2], msglevel))
+        if (boolean_flag(p[2], "static-challenge echo", msglevel))
         {
             options->sc_info.flags |= SC_ECHO;
         }
@@ -6777,7 +6777,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         options->exit_event_name = p[1];
         if (p[2])
         {
-            options->exit_event_initial_state = (atoi_warn(p[2], msglevel) != 0);
+            options->exit_event_initial_state = boolean_flag(p[2], "service state", msglevel);
         }
     }
     else if (streq(p[0], "allow-nonadmin") && !p[2])
@@ -7734,7 +7734,8 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "show-pkcs11-ids") && !p[3])
     {
         const char *provider = p[1];
-        bool cert_private = (p[2] == NULL ? false : (atoi_warn(p[2], msglevel) != 0));
+        bool cert_private = (p[2] == NULL ? false
+                                          : boolean_flag(p[2], "show-pkcs11-ids private", msglevel));
 
 #ifdef DEFAULT_PKCS11_MODULE
         if (!provider)
@@ -7780,14 +7781,12 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "pkcs11-protected-authentication"))
     {
-        int j;
-
         VERIFY_PERMISSION(OPT_P_GENERAL);
 
-        for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+        for (int j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
         {
             options->pkcs11_protected_authentication[j - 1] =
-                atoi_warn(p[j], msglevel) != 0 ? 1 : 0;
+                boolean_flag(p[j], p[0], msglevel);
         }
     }
     else if (streq(p[0], "pkcs11-private-mode") && p[1])
@@ -7803,13 +7802,11 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "pkcs11-cert-private"))
     {
-        int j;
-
         VERIFY_PERMISSION(OPT_P_GENERAL);
 
-        for (j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
+        for (int j = 1; j < MAX_PARMS && p[j] != NULL; ++j)
         {
-            options->pkcs11_cert_private[j - 1] = (bool)(atoi_warn(p[j], msglevel));
+            options->pkcs11_cert_private[j - 1] = boolean_flag(p[j], p[0], msglevel);
         }
     }
     else if (streq(p[0], "pkcs11-pin-cache") && p[1] && !p[2])

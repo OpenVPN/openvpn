@@ -441,6 +441,22 @@ test_atoi_variants(void **state)
     assert_string_equal(mock_msg_buf, "test: Must be an integer >= 1, not 0");
     assert_int_equal(parameter, -42);
 
+    /* special tests for boolean_flag */
+    assert_false(boolean_flag("0", "test", msglevel));
+    assert_true(boolean_flag("1", "test", msglevel));
+
+    CLEAR(mock_msg_buf);
+    assert_false(boolean_flag("foo77", "test", msglevel));
+    assert_string_equal(mock_msg_buf, "test: Cannot parse 'foo77' as integer");
+
+    CLEAR(mock_msg_buf);
+    assert_false(boolean_flag("-77", "test", msglevel));
+    assert_string_equal(mock_msg_buf, "test: Must be an integer between 0 and 1, not -77");
+
+    CLEAR(mock_msg_buf);
+    assert_false(boolean_flag("77", "test", msglevel));
+    assert_string_equal(mock_msg_buf, "test: Must be an integer between 0 and 1, not 77");
+
     mock_set_debug_level(saved_log_level);
 }
 
