@@ -3,23 +3,20 @@
   <!-- We start with enable=all, but then suppress some issues that have too many
        occurences right now. They still should be fixed at some point -->
   <suppress>
-    <id>constParameter</id>
-  </suppress>
-  <suppress>
-    <id>constParameterCallback</id>
-  </suppress>
-  <suppress>
     <id>unusedFunction</id>
   </suppress>
   <suppress>
     <id>usleepCalled</id>
   </suppress>
-  <!-- We have a lot of library includes, not all of them are really required,
+  <!-- These are specific false-positives (FP) or ignored (IGN) issues
+       We might want to move some of them to inline-suppression to avoid
+       the static line-numbers -->
+  <!-- IGN: We have a lot of library includes, not all of them are really required,
        so ignore them -->
   <suppress>
     <id>missingIncludeSystem</id>
   </suppress>
-  <!-- cppcheck doesn't understand about check_malloc_return, so these are
+  <!-- FP: cppcheck doesn't understand about check_malloc_return, so these are
        usually misleading -->
   <suppress>
     <id>nullPointerOutOfMemory</id>
@@ -27,9 +24,6 @@
   <suppress>
     <id>nullPointerArithmeticOutOfMemory</id>
   </suppress>
-  <!-- These are specific false-positives (FP) or ignored (IGN) issues
-       We might want to move some of them to inline-suppression to avoid
-       the static line-numbers -->
   <!-- IGN: posix.cfg: We are not threadsafe -->
   <suppress>
     <id>getgrnamCalled</id>
@@ -62,6 +56,11 @@
     <id>badBitmaskCheck</id>
     <fileName>tests/unit_tests/openvpn/test_pkt.c</fileName>
   </suppress>
+  <!-- FP: All occurrences are either external types or types that
+       explicitly need to be non-const in some variants of the callback -->
+  <suppress>
+    <id>constParameterCallback</id>
+  </suppress>
   <!-- IGN: we use casts to remove const -->
   <suppress>
     <id>constParameterPointer</id>
@@ -74,12 +73,22 @@
     <fileName>src/openvpn/buffer.c</fileName>
     <symbolName>buf</symbolName>
   </suppress>
+  <!-- FP: can't change the signature of wmain -->
+  <suppress>
+    <id>constParameter</id>
+    <fileName>src/openvpn/openvpn.c</fileName>
+    <symbolName>wargv</symbolName>
+  </suppress>
   <!-- IGN: external -->
   <suppress>
     <id>constParameterPointer</id>
     <fileName>/usr/include/*</fileName>
   </suppress>
   <!-- IGN: too many false-positives due to stubs -->
+  <suppress>
+    <id>constParameter</id>
+    <fileName>tests/unit_tests/openvpn*/test_*</fileName>
+  </suppress>
   <suppress>
     <id>constParameterPointer</id>
     <fileName>tests/unit_tests/openvpn*/test_*</fileName>
