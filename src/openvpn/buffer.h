@@ -69,13 +69,14 @@
  */
 struct buffer
 {
-    int capacity;  /**< Size in bytes of memory allocated by
-                    *   \c malloc(). */
-    int offset;    /**< Offset in bytes of the actual content
-                    *   within the allocated memory. */
-    int len;       /**< Length in bytes of the actual content
-                    *   within the allocated memory. */
-    uint8_t *__sized_by_or_null(capacity) data; /**< Pointer to the allocated memory. */
+    int capacity; /**< Size in bytes of memory allocated by
+                   *   \c malloc(). */
+    int offset;   /**< Offset in bytes of the actual content
+                   *   within the allocated memory. */
+    int len;      /**< Length in bytes of the actual content
+                   *   within the allocated memory. */
+    /** Pointer to the allocated memory. */
+    uint8_t *__sized_by_or_null(capacity) data;
 
 #ifdef BUF_INIT_TRACKING
     const char *debug_file;
@@ -424,7 +425,7 @@ buf_valid(const struct buffer *buf)
  * @return Pointer to \c buf->data + \c buf->offset, or NULL if \c buf is
  *         not valid.
  */
-static inline const uint8_t *
+static inline const uint8_t *__bidi_indexable
 buf_cbptr(const struct buffer *buf)
 {
     if (buf_valid(buf))
@@ -445,7 +446,7 @@ buf_cbptr(const struct buffer *buf)
  * @return Pointer to \c buf->data + \c buf->offset, or NULL if \c buf is
  *         not valid.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_bptr(struct buffer *buf)
 {
     return (uint8_t *)buf_cbptr(buf);
@@ -478,7 +479,7 @@ buf_len(const struct buffer *buf)
  *
  * @return Pointer to the byte immediately after the last content byte.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_bend(struct buffer *buf)
 {
     return buf_bptr(buf) + buf_len(buf);
@@ -491,7 +492,7 @@ buf_bend(struct buffer *buf)
  *
  * @return Pointer to the byte immediately after the last content byte.
  */
-static inline const uint8_t *
+static inline const uint8_t *__bidi_indexable
 buf_cbend(const struct buffer *buf)
 {
     return buf_cbptr(buf) + buf_len(buf);
@@ -505,7 +506,7 @@ buf_cbend(const struct buffer *buf)
  * @return Pointer to the last byte, or NULL if the buffer is empty or
  *         invalid.
  */
-static inline const uint8_t *
+static inline const uint8_t *__bidi_indexable
 buf_cblast(const struct buffer *buf)
 {
     if (buf_len(buf) > 0)
@@ -526,7 +527,7 @@ buf_cblast(const struct buffer *buf)
  * @return Pointer to the last byte, or NULL if the buffer is empty or
  *         invalid.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_blast(struct buffer *buf)
 {
     return (uint8_t *)buf_cblast(buf);
@@ -568,7 +569,7 @@ buf_size_valid_signed(const int size)
  *
  * @return The content pointer as a \c char *, or NULL if \c buf is invalid.
  */
-static inline char *
+static inline char *__bidi_indexable
 buf_str(struct buffer *buf)
 {
     return (char *)buf_bptr(buf);
@@ -581,7 +582,7 @@ buf_str(struct buffer *buf)
  *
  * @return The content pointer as a \c const char *, or NULL if \c buf is invalid.
  */
-static inline const char *
+static inline const char *__bidi_indexable
 buf_cstr(const struct buffer *buf)
 {
     return (const char *)buf_cbptr(buf);
@@ -655,7 +656,7 @@ buf_init_dowork(struct buffer *buf, int offset)
  * @param size  Size of the memory region in bytes.
  */
 static inline void
-buf_set_write(struct buffer *buf, uint8_t *data, int size)
+buf_set_write(struct buffer *buf, uint8_t *__sized_by_or_null(size) data, int size)
 {
     if (!buf_size_valid(size))
     {
@@ -684,7 +685,7 @@ buf_set_write(struct buffer *buf, uint8_t *data, int size)
  * @param size  Size of the memory region in bytes.
  */
 static inline void
-buf_set_read(struct buffer *buf, const uint8_t *data, size_t size)
+buf_set_read(struct buffer *buf, const uint8_t *__sized_by_or_null(size) data, size_t size)
 {
     if (!buf_size_valid(size))
     {
@@ -707,12 +708,17 @@ buf_set_read(struct buffer *buf, const uint8_t *data, size_t size)
  * @param maxlen  Size of the destination buffer in bytes.
  */
 static inline void
-strncpynt(char *dest, const char *src, size_t maxlen)
+strncpynt(char *__counted_by(maxlen) dest, const char *src, size_t maxlen)
 {
     if (maxlen > 0)
     {
+#if defined(__has_ptrcheck) && __has_ptrcheck
+        /* strncpy is not available with -fbounds-safety */
+        strlcpy(dest, src, maxlen);
+#else
         strncpy(dest, src, maxlen - 1);
         dest[maxlen - 1] = 0;
+#endif
     }
 }
 
@@ -766,13 +772,13 @@ has_digit(const char *src)
  * @param len   Length of data, in bytes.
  */
 static inline void
-secure_memzero(void *data, size_t len)
+secure_memzero(void *__sized_by(len) data, size_t len)
 {
 #if defined(_WIN32)
     SecureZeroMemory(data, len);
 #elif defined(__GNUC__) || defined(__clang__)
     memset(data, 0, len);
-    __asm__ __volatile__("" : : "r"(data) : "memory");
+    __asm__ __volatile__("" : : "r"(__unsafe_forge_single(void *, data)) : "memory");
 #else
     volatile char *p = (volatile char *)data;
     while (len--)
@@ -1161,7 +1167,7 @@ buf_inc_len(struct buffer *buf, int inc)
  * @return Pointer to the newly reserved space (new content start), or NULL
  *         if \c buf is invalid or there is insufficient prepend capacity.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_prepend(struct buffer *buf, ssize_t size)
 {
     if (!buf_valid(buf) || size < 0 || size > buf->offset)
@@ -1208,7 +1214,7 @@ buf_advance(struct buffer *buf, ssize_t size)
  * @return Pointer to the start of the reserved space, or NULL if there is
  *         insufficient capacity.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_write_alloc(struct buffer *buf, size_t size)
 {
     uint8_t *ret;
@@ -1233,7 +1239,7 @@ buf_write_alloc(struct buffer *buf, size_t size)
  * @return Pointer to the start of the consumed region, or NULL if \c size
  *         is negative or exceeds the current length.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_read_alloc(struct buffer *buf, int size)
 {
     uint8_t *ret;
@@ -1259,7 +1265,7 @@ buf_read_alloc(struct buffer *buf, int size)
  * @return true on success, false if there is insufficient capacity.
  */
 static inline bool
-buf_write(struct buffer *dest, const void *src, size_t size)
+buf_write(struct buffer *dest, const void *__sized_by(size) src, size_t size)
 {
     uint8_t *cp = buf_write_alloc(dest, size);
     if (!cp)
@@ -1283,7 +1289,7 @@ buf_write(struct buffer *dest, const void *src, size_t size)
  * @return true on success, false if there is insufficient prepend capacity.
  */
 static inline bool
-buf_write_prepend(struct buffer *dest, const void *src, int size)
+buf_write_prepend(struct buffer *dest, const void *__sized_by(size) src, int size)
 {
     uint8_t *cp = buf_prepend(dest, size);
     if (!cp)
@@ -1471,7 +1477,7 @@ buf_copy_excess(struct buffer *dest, struct buffer *src, int len)
  * @return true on success, false if \c src has fewer than \c size bytes.
  */
 static inline bool
-buf_read(struct buffer *src, void *dest, int size)
+buf_read(struct buffer *src, void *__sized_by(size) dest, int size)
 {
     const uint8_t *cp = buf_read_alloc(src, size);
     if (!cp)
@@ -1619,7 +1625,7 @@ buf_equal(const struct buffer *a, const struct buffer *b)
  * *NOT* constant time. Do not use when comparing HMACs.
  */
 static inline bool
-buf_string_match(const struct buffer *src, const void *match, int size)
+buf_string_match(const struct buffer *src, const void *__sized_by(size) match, int size)
 {
     if (size != src->len)
     {
@@ -1633,7 +1639,7 @@ buf_string_match(const struct buffer *src, const void *match, int size)
  * *NOT* constant time. Do not use when comparing HMACs.
  */
 static inline bool
-buf_string_match_head(const struct buffer *src, const void *match, int size)
+buf_string_match_head(const struct buffer *src, const void *__sized_by(size) match, int size)
 {
     if (size < 0 || size > src->len)
     {

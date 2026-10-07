@@ -326,6 +326,11 @@ if (${MBED})
 endif()
 
 function(add_library_deps target)
+    if (ENABLE_FBOUNDS_SAFETY)
+        target_compile_definitions(${target} PRIVATE OVPN_SUPPORT_FBOUNDS_SAFETY)
+        target_compile_options(${target} PRIVATE -fbounds-safety)
+    endif ()
+
     if (${MBED})
         if (NOT (MBED_INCLUDE_PATH STREQUAL "") )
             target_include_directories(${target} PRIVATE ${MBED_INCLUDE_PATH})
@@ -647,11 +652,6 @@ set(SOURCE_FILES
 add_executable(openvpn ${SOURCE_FILES})
 
 add_library_deps(openvpn)
-
-if(ENABLE_FBOUNDS_SAFETY)
-    target_compile_definitions(openvpn PRIVATE OVPN_SUPPORT_FBOUNDS_SAFETY)
-    target_compile_options(openvpn PRIVATE -fbounds-safety)
-endif()
 
 target_compile_options(openvpn PRIVATE -DDEFAULT_DNS_UPDOWN=\"${DNS_UPDOWN_PATH}\")
 
