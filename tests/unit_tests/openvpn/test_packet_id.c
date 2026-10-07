@@ -516,6 +516,344 @@ test_reliable_purge_legitimate_ack(void **state)
     reliable_free(rel);
 }
 
+/*
+ * Reference implementations of the packet id comparisons as they behave today.
+ * The sweeps below assert reliable.c agrees with them at the anchors swept, so
+ * a change to an accepted id set there fails a test. Keep them standalone:
+ * expressing them in terms of reliable.c would make the sweeps tautologies.
+ */
+
+/* "p1 < p2" with the 2^31 horizon, i.e. ((int32_t)(p1 - p2) < 0) */
+static bool
+ref_pid_min(packet_id_type p1, packet_id_type p2)
+{
+    return (packet_id_type)(p1 - p2) >= 0x80000000u;
+}
+
+/* one short of RELIABLE_CAPACITY, which is what the code accepts today */
+#define CHARACTERIZED_SEND_WINDOW 11
+
+/* TLS_RELIABLE_N_SEND_BUFFERS and P_CONTROL_V1, from ssl_pkt.h, which this
+ * test binary does not pull in */
+#define CHAR_N_SEND_BUFFERS    6
+#define CHAR_OPCODE_CONTROL_V1 4
+
+static bool
+ref_pid_in_send_window(const struct reliable *rel, packet_id_type pid)
+{
+    const packet_id_type dist = (packet_id_type)(rel->packet_id - pid);
+
+    return dist >= 1 && dist <= CHARACTERIZED_SEND_WINDOW;
+}
+
+static bool
+ref_wont_break_sequentiality(const struct reliable *rel, packet_id_type id)
+{
+    const packet_id_type base = rel->packet_id;
+    const packet_id_type extent = (packet_id_type)rel->size;
+
+    /* char_anchors and char_anchors_high stay clear of the overflow, where
+     * reliable_pid_in_range2() used a 0x80000000 bias instead */
+    assert_true(base + extent >= base);
+
+    return id < base + extent;
+}
+
+static bool
+ref_not_replay(const struct reliable *rel, packet_id_type id)
+{
+    if (ref_pid_min(id, rel->packet_id))
+    {
+        return false;
+    }
+
+    for (int i = 0; i < rel->size; ++i)
+    {
+        if (rel->array[i].active && rel->array[i].packet_id == id)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/* The receive path verdict as ssl.c produces it: stored only if both checks
+ * pass, a replay still ACKed, a sequentiality break dropped without an ACK. */
+enum recv_verdict
+{
+    RECV_DROP,
+    RECV_ACK_ONLY,
+    RECV_STORE
+};
+
+static enum recv_verdict
+recv_filter(const struct reliable *rel, packet_id_type id)
+{
+    if (!reliable_wont_break_sequentiality(rel, id))
+    {
+        return RECV_DROP;
+    }
+
+    return reliable_not_replay(rel, id) ? RECV_STORE : RECV_ACK_ONLY;
+}
+
+static enum recv_verdict
+ref_recv_filter(const struct reliable *rel, packet_id_type id)
+{
+    if (!ref_wont_break_sequentiality(rel, id))
+    {
+        return RECV_DROP;
+    }
+
+    return ref_not_replay(rel, id) ? RECV_STORE : RECV_ACK_ONLY;
+}
+
+/* Anchors for rel->packet_id. reliable_wont_break_sequentiality() compares id
+ * against rel->packet_id + rel->size in absolute terms, so its accepted set
+ * depends on where rel->packet_id sits: up to 2^31 that leaves the composite
+ * verdict unchanged, above it it does not, hence the split. Bases past
+ * 0xFFFFFFF3 are excluded, rel->packet_id + rel->size overflowing there. */
+static const packet_id_type char_anchors[] = {
+    0x00000000,
+    0x00000001,
+    0x00000005,
+    0x0000000B,
+    0x0000000C,
+    0x0000000D,
+    0x000001F4,
+    0x7FFFFFF4,
+    0x7FFFFFFF,
+    0x80000000,
+};
+
+static const packet_id_type char_anchors_high[] = {
+    0x80000001,
+    0x8000000C,
+    0xFFFFFFF0,
+    0xFFFFFFF3,
+};
+
+/* offsets applied below and above each anchor */
+static const packet_id_type char_offsets[] = {
+    0,
+    1,
+    2,
+    10,
+    11,
+    12,
+    13,
+    14,
+    100,
+    0x3FFFFFFF,
+    0x40000000,
+    0x7FFFFFFE,
+    0x7FFFFFFF,
+    0x80000000,
+    0x80000001,
+    0x80000002,
+    0xFFFFFFF4,
+    0xFFFFFFFE,
+    0xFFFFFFFF,
+};
+
+static void
+sweep_recv_filter(const packet_id_type *anchors, size_t n_anchors,
+                  enum recv_verdict (*oracle)(const struct reliable *, packet_id_type))
+{
+    for (size_t a = 0; a < n_anchors; a++)
+    {
+        for (size_t o = 0; o < SIZE(char_offsets); o++)
+        {
+            /* probe both below and above the anchor */
+            const packet_id_type ids[] = {
+                (packet_id_type)(anchors[a] - char_offsets[o]),
+                (packet_id_type)(anchors[a] + char_offsets[o]),
+            };
+
+            for (size_t i = 0; i < SIZE(ids); i++)
+            {
+                struct reliable rel = { 0 };
+                rel.size = RELIABLE_CAPACITY;
+                rel.packet_id = anchors[a];
+
+                assert_int_equal(oracle(&rel, ids[i]), recv_filter(&rel, ids[i]));
+
+                /* with the id already in a receive slot it can only be
+                 * acknowledged or dropped, never stored again */
+                rel.array[3].active = true;
+                rel.array[3].packet_id = ids[i];
+
+                assert_int_equal(oracle(&rel, ids[i]), recv_filter(&rel, ids[i]));
+                assert_int_not_equal(RECV_STORE, recv_filter(&rel, ids[i]));
+            }
+        }
+    }
+}
+
+/* bases at or below 2^31, where old and new agree; never to change */
+static void
+test_recv_filter_characterization(void **state)
+{
+    sweep_recv_filter(char_anchors, SIZE(char_anchors), ref_recv_filter);
+}
+
+/* bases above 2^31, where they diverge, kept apart so a change confined
+ * there touches one test */
+static void
+test_recv_filter_high_base(void **state)
+{
+    sweep_recv_filter(char_anchors_high, SIZE(char_anchors_high), ref_recv_filter);
+}
+
+static void
+sweep_send_window(const packet_id_type *anchors, size_t n_anchors)
+{
+    for (size_t a = 0; a < n_anchors; a++)
+    {
+        for (size_t o = 0; o < SIZE(char_offsets); o++)
+        {
+            const packet_id_type ids[] = {
+                (packet_id_type)(anchors[a] - char_offsets[o]),
+                (packet_id_type)(anchors[a] + char_offsets[o]),
+            };
+
+            for (size_t i = 0; i < SIZE(ids); i++)
+            {
+                struct reliable rel = { 0 };
+                rel.size = CHAR_N_SEND_BUFFERS;
+                rel.packet_id = anchors[a];
+
+                assert_int_equal(ref_pid_in_send_window(&rel, ids[i]),
+                                 validate_packet_id_window(&rel, ids[i]) != 0);
+            }
+        }
+    }
+}
+
+/* a pure distance test, so identical at every base */
+static void
+test_send_window_characterization(void **state)
+{
+    sweep_send_window(char_anchors, SIZE(char_anchors));
+    sweep_send_window(char_anchors_high, SIZE(char_anchors_high));
+}
+
+/* reliable_send() picks the oldest eligible entry, across the wrap and the
+ * signed midpoint */
+static void
+test_reliable_send_picks_oldest(void **state)
+{
+    now = 1000;
+
+    struct reliable rel = { 0 };
+    rel.size = CHAR_N_SEND_BUFFERS;
+    rel.initial_timeout = 2;
+    rel.packet_id = 3;
+
+    /* 6, 2 and 1 below rel->packet_id; the first sits exactly on the window
+     * edge, where rel->size still admits it */
+    const packet_id_type wrapped[] = { 0xFFFFFFFD, 1, 2 };
+
+    for (size_t i = 0; i < SIZE(wrapped); i++)
+    {
+        rel.array[i].active = true;
+        rel.array[i].packet_id = wrapped[i];
+        rel.array[i].timeout = 2;
+        rel.array[i].next_try = 0;
+    }
+
+    int opcode = 0;
+    assert_ptr_equal(&rel.array[0].buf, reliable_send(&rel, &opcode));
+
+    /* same across the signed midpoint */
+    struct reliable rel2 = { 0 };
+    rel2.size = CHAR_N_SEND_BUFFERS;
+    rel2.initial_timeout = 2;
+    rel2.packet_id = 0x80000002;
+
+    const packet_id_type midpoint[] = { 0x7FFFFFFF, 0x80000000, 0x80000001 };
+
+    for (size_t i = 0; i < SIZE(midpoint); i++)
+    {
+        rel2.array[i].active = true;
+        rel2.array[i].packet_id = midpoint[i];
+        rel2.array[i].timeout = 2;
+        rel2.array[i].next_try = 0;
+    }
+
+    assert_ptr_equal(&rel2.array[0].buf, reliable_send(&rel2, &opcode));
+}
+
+/* reliable_get_buf_output_sequenced() stops issuing ids once rel->packet_id is
+ * a full window ahead of the oldest unacknowledged one */
+static void
+test_get_buf_output_sequenced_boundary(void **state)
+{
+    struct reliable *rel = test_reliable_new();
+
+    rel->array[0].active = true;
+    rel->array[0].packet_id = 100;
+
+    /* distance 7 < size 8: still allowed */
+    rel->packet_id = 107;
+    assert_non_null(reliable_get_buf_output_sequenced(rel));
+
+    /* distance 8 == size 8: refused */
+    rel->packet_id = 108;
+    assert_null(reliable_get_buf_output_sequenced(rel));
+
+    /* same boundary across the wrap */
+    rel->array[0].packet_id = 0xFFFFFFFC;
+    rel->packet_id = 3;
+    assert_non_null(reliable_get_buf_output_sequenced(rel));
+
+    rel->packet_id = 4;
+    assert_null(reliable_get_buf_output_sequenced(rel));
+
+    reliable_free(rel);
+}
+
+/* Ids at or just ahead of rel->packet_id are accepted */
+static void
+test_mark_active_incoming_accepts_window(void **state)
+{
+    struct reliable rel = { 0 };
+    rel.size = RELIABLE_CAPACITY;
+    rel.packet_id = 10;
+
+    reliable_mark_active_incoming(&rel, &rel.array[0].buf, 10, CHAR_OPCODE_CONTROL_V1);
+    assert_true(rel.array[0].active);
+    assert_int_equal(10, rel.array[0].packet_id);
+
+    reliable_mark_active_incoming(&rel, &rel.array[1].buf, 10 + RELIABLE_CAPACITY - 1,
+                                  CHAR_OPCODE_CONTROL_V1);
+    assert_true(rel.array[1].active);
+}
+
+/* Ids below rel->packet_id abort. The far-ahead case is left unpinned: callers
+ * cannot produce it, and the bound may legitimately tighten.
+ *
+ * NOTE: expect_assert_failure() does not work with MSVC. It catches the ASSERT
+ * by longjmp()ing out of assert_failed(), and MSVC's longjmp() unwinds the
+ * intervening frames through RtlUnwindEx() instead of just restoring the
+ * registers, which faults. */
+#ifndef _MSC_VER
+static void
+test_mark_active_incoming_rejects_past_ids(void **state)
+{
+    struct reliable rel = { 0 };
+    rel.size = RELIABLE_CAPACITY;
+    rel.packet_id = 10;
+
+    expect_assert_failure(
+        reliable_mark_active_incoming(&rel, &rel.array[0].buf, 5, CHAR_OPCODE_CONTROL_V1));
+    expect_assert_failure(
+        reliable_mark_active_incoming(&rel, &rel.array[1].buf, 0xFFFFFFFF, CHAR_OPCODE_CONTROL_V1));
+}
+#endif /* ifndef _MSC_VER */
+
+
 int
 main(void)
 {
@@ -541,8 +879,16 @@ main(void)
         cmocka_unit_test(test_packet_id_window),
         cmocka_unit_test(test_reliable_backoff_is_bounded),
         cmocka_unit_test(test_reliable_purge_ignores_forged_acks),
-        cmocka_unit_test(test_reliable_purge_legitimate_ack)
-
+        cmocka_unit_test(test_reliable_purge_legitimate_ack),
+        cmocka_unit_test(test_recv_filter_characterization),
+        cmocka_unit_test(test_recv_filter_high_base),
+        cmocka_unit_test(test_send_window_characterization),
+        cmocka_unit_test(test_reliable_send_picks_oldest),
+        cmocka_unit_test(test_get_buf_output_sequenced_boundary),
+        cmocka_unit_test(test_mark_active_incoming_accepts_window),
+#ifndef _MSC_VER
+        cmocka_unit_test(test_mark_active_incoming_rejects_past_ids),
+#endif
     };
 
     return cmocka_run_group_tests_name("packet_id tests", tests, NULL, NULL);
