@@ -190,15 +190,20 @@ reliable_ack_empty(struct reliable_ack *ack)
 }
 
 /**
- * check that pid is inside the window of possible outstanding packets
- * of size RELIABLE_CAPACITY, ie inside the range
- * [rel->packet_id - RELIABLE_CAPACITY, rel->packet_id).
+ * Check whether pid is one of the RELIABLE_CAPACITY ids below rel->packet_id,
+ * and so could still be outstanding. rel->packet_id is the *next* id to be
+ * sent, so it is not itself in the window.
  *
- * rel->packet is the *next* packet id to be sent out, so it is not
- * included in the valid range.
+ * pid comes off the wire; all 2^32 values are handled.
+ *
+ * @param rel The reliable structure holding this tunnel's sent packets.
+ * @param pid A packet ID from a received acknowledgment.
+ *
+ * @return
+ * @li True, if pid is inside the window.
+ * @li False, otherwise.
  */
-int
-validate_packet_id_window(struct reliable *rel, packet_id_type pid);
+bool reliable_pid_in_send_window(const struct reliable *rel, packet_id_type pid);
 
 /**
  * Returns the number of packets that need to be acked.
@@ -305,14 +310,15 @@ bool reliable_not_replay(const struct reliable *rel, packet_id_type id);
  * Check that a received packet's ID can safely be stored in
  *     the reliable structure's processing window.
  *
- * This function checks the difference between the received packet's ID
- * and the lowest non-acknowledged packet ID in the given reliable
- * structure.  If that difference is larger than the total number of
- * packets which can be stored, then this packet cannot be stored safely,
- * because the reliable structure could possibly fill up without leaving
- * room for all intervening packets.  In that case, this received packet
- * could break the reliable structure's sequentiality, and must therefore
- * be discarded.
+ * Checks the received packet's ID against rel->packet_id, the next ID the
+ * reliability layer expects to hand upwards. One too far ahead could fill the
+ * structure without leaving room for the intervening packets, so it is
+ * discarded.
+ *
+ * IDs numerically below rel->packet_id are accepted here, an absolute
+ * comparison that an ID from before a wraparound does not pass.
+ * reliable_not_replay() rejects them, and they are still acknowledged so a
+ * peer whose ACK was lost stops retransmitting.
  *
  * @param rel The reliable structure for handling this VPN tunnel's
  *     received packets.
@@ -353,6 +359,10 @@ struct buffer *reliable_get_buf(struct reliable *rel);
 /**
  * Mark the %reliable entry associated with the given buffer as active
  * incoming.
+ *
+ * pid must be less than rel->size ahead of rel->packet_id. This is asserted,
+ * so run reliable_wont_break_sequentiality() and reliable_not_replay()
+ * first.
  *
  * @param rel The reliable structure associated with this packet.
  * @param buf The buffer into which the packet has been copied.
@@ -446,7 +456,7 @@ struct buffer *reliable_get_buf_output_sequenced(struct reliable *rel);
  *  @return the number of buffer that are available for sending without
  *             breaking ack sequence
  * */
-int reliable_get_num_output_sequenced_available(struct reliable *rel);
+int reliable_get_num_output_sequenced_available(const struct reliable *rel);
 
 /**
  * Mark the reliable entry associated with the given buffer as

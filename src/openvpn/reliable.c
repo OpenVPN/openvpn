@@ -38,8 +38,9 @@
 
 #include "memdbg.h"
 
-/* calculates test - base while allowing for base or test wraparound. test is
- * assumed to be higher than base */
+/* calculates test - base while allowing for base or test wraparound. The
+ * result is only meaningful compared against a bound: on its own it does not
+ * say which id came first. */
 static inline packet_id_type
 subtract_pid(const packet_id_type test, const packet_id_type base)
 {
@@ -356,12 +357,11 @@ reliable_empty(const struct reliable *rel)
     return true;
 }
 
-int
-validate_packet_id_window(struct reliable *rel, packet_id_type pid)
+bool
+reliable_pid_in_send_window(const struct reliable *rel, packet_id_type pid)
 {
-    const packet_id_type dist = subtract_pid(rel->packet_id, pid);
-
-    return dist > 0 && dist < RELIABLE_CAPACITY;
+    return reliable_pid_in_range(pid, subtract_pid(rel->packet_id, RELIABLE_CAPACITY),
+                                 RELIABLE_CAPACITY);
 }
 
 /* del acknowledged items from send buf */
@@ -376,7 +376,7 @@ reliable_send_purge(struct reliable *rel, const struct reliable_ack *ack)
         packet_id_type pid = ack->packet_id[i];
 
 
-        if (!validate_packet_id_window(rel, pid))
+        if (!reliable_pid_in_send_window(rel, pid))
         {
             if (out_of_window == 0)
             {
@@ -566,7 +566,7 @@ reliable_oldest_active_distance(const struct reliable *rel)
 }
 
 int
-reliable_get_num_output_sequenced_available(struct reliable *rel)
+reliable_get_num_output_sequenced_available(const struct reliable *rel)
 {
     return rel->size - (int)reliable_oldest_active_distance(rel);
 }

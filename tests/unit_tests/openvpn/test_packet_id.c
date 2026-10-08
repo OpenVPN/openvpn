@@ -331,44 +331,50 @@ test_packet_id_window(void **state)
     struct reliable rel = { 0 };
     rel.packet_id = 1;
 
-    assert_true(validate_packet_id_window(&rel, 0));
+    assert_true(reliable_pid_in_send_window(&rel, 0));
 
     /* packet id 1 is outside the window as it is the *next* packet id */
-    assert_false(validate_packet_id_window(&rel, 1));
+    assert_false(reliable_pid_in_send_window(&rel, 1));
 
     /* wrapped around packet id, "-2" */
-    assert_true(validate_packet_id_window(&rel, 0xFFFFFFFD));
+    assert_true(reliable_pid_in_send_window(&rel, 0xFFFFFFFD));
 
     /* wrapped around packet id, "-10" */
-    assert_true(validate_packet_id_window(&rel, 0xFFFFFFF6));
+    assert_true(reliable_pid_in_send_window(&rel, 0xFFFFFFF6));
 
-    /* wrapped around packet id, "-11" */
-    assert_false(validate_packet_id_window(&rel, 0xFFFFFFF5));
-    assert_false(validate_packet_id_window(&rel, 0x80000000));
+    /* wrapped around packet id, "-11": the oldest id still in the window */
+    assert_true(reliable_pid_in_send_window(&rel, 0xFFFFFFF5));
+
+    /* one further back is outside it */
+    assert_false(reliable_pid_in_send_window(&rel, 0xFFFFFFF4));
+    assert_false(reliable_pid_in_send_window(&rel, 0x80000000));
 
     rel.packet_id = 0x80000000;
 
     /* near the signed/usigned integer area */
-    assert_false(validate_packet_id_window(&rel, 0x80000001));
-    assert_true(validate_packet_id_window(&rel, 0x7fffffff));
-    assert_true(validate_packet_id_window(&rel, 0x7ffffff5));
-    assert_false(validate_packet_id_window(&rel, 0x7ffffff4));
+    assert_false(reliable_pid_in_send_window(&rel, 0x80000001));
+    assert_true(reliable_pid_in_send_window(&rel, 0x7fffffff));
+    assert_true(reliable_pid_in_send_window(&rel, 0x7ffffff5));
+    assert_true(reliable_pid_in_send_window(&rel, 0x7ffffff4));
+    assert_false(reliable_pid_in_send_window(&rel, 0x7ffffff3));
 
     rel.packet_id = 0xFFFFFFFD;
-    assert_false(validate_packet_id_window(&rel, 0xFFFFFFFD));
-    assert_false(validate_packet_id_window(&rel, 0));
-    assert_false(validate_packet_id_window(&rel, 1));
-    assert_false(validate_packet_id_window(&rel, 0xFFFFFFFE));
-    assert_false(validate_packet_id_window(&rel, 0xFFFFFFFF));
-    assert_true(validate_packet_id_window(&rel, 0xFFFFFFF3));
-    assert_true(validate_packet_id_window(&rel, 0xFFFFFFF2));
-    assert_false(validate_packet_id_window(&rel, 0xFFFFFFF1));
+    assert_false(reliable_pid_in_send_window(&rel, 0xFFFFFFFD));
+    assert_false(reliable_pid_in_send_window(&rel, 0));
+    assert_false(reliable_pid_in_send_window(&rel, 1));
+    assert_false(reliable_pid_in_send_window(&rel, 0xFFFFFFFE));
+    assert_false(reliable_pid_in_send_window(&rel, 0xFFFFFFFF));
+    assert_true(reliable_pid_in_send_window(&rel, 0xFFFFFFF3));
+    assert_true(reliable_pid_in_send_window(&rel, 0xFFFFFFF2));
+    assert_true(reliable_pid_in_send_window(&rel, 0xFFFFFFF1));
+    assert_false(reliable_pid_in_send_window(&rel, 0xFFFFFFF0));
 
     rel.packet_id = 500;
-    assert_false(validate_packet_id_window(&rel, 501));
-    assert_true(validate_packet_id_window(&rel, 497));
-    assert_true(validate_packet_id_window(&rel, 500 - (RELIABLE_CAPACITY - 1)));
-    assert_false(validate_packet_id_window(&rel, 500 - RELIABLE_CAPACITY));
+    assert_false(reliable_pid_in_send_window(&rel, 501));
+    assert_true(reliable_pid_in_send_window(&rel, 497));
+    assert_true(reliable_pid_in_send_window(&rel, 500 - (RELIABLE_CAPACITY - 1)));
+    assert_true(reliable_pid_in_send_window(&rel, 500 - RELIABLE_CAPACITY));
+    assert_false(reliable_pid_in_send_window(&rel, 500 - (RELIABLE_CAPACITY + 1)));
 }
 
 
@@ -533,21 +539,19 @@ ref_pid_min(packet_id_type p1, packet_id_type p2)
     return (packet_id_type)(p1 - p2) >= 0x80000000u;
 }
 
-/* one short of RELIABLE_CAPACITY, which is what the code accepts today */
-#define CHARACTERIZED_SEND_WINDOW 11
-
 /* TLS_RELIABLE_N_SEND_BUFFERS and P_CONTROL_V1, from ssl_pkt.h, which this
  * test binary does not pull in */
 #define CHAR_N_SEND_BUFFERS    6
 #define CHAR_OPCODE_CONTROL_V1 4
 
-/* preserved: the ids validate_packet_id_window() accepts */
+/* introduced: the RELIABLE_CAPACITY ids below rel->packet_id.
+ * validate_packet_id_window() stopped one short of that. */
 static bool
 ref_pid_in_send_window(const struct reliable *rel, packet_id_type pid)
 {
     const packet_id_type dist = (packet_id_type)(rel->packet_id - pid);
 
-    return dist >= 1 && dist <= CHARACTERIZED_SEND_WINDOW;
+    return dist >= 1 && dist <= RELIABLE_CAPACITY;
 }
 
 /* preserved: reliable_pid_in_range2() */
@@ -798,7 +802,7 @@ sweep_send_window(const packet_id_type *anchors, size_t n_anchors)
                 rel.packet_id = anchors[a];
 
                 assert_int_equal(ref_pid_in_send_window(&rel, ids[i]),
-                                 validate_packet_id_window(&rel, ids[i]) != 0);
+                                 reliable_pid_in_send_window(&rel, ids[i]));
             }
         }
     }
