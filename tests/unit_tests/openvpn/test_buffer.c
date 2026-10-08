@@ -435,6 +435,44 @@ test_checked_snprintf(void **state)
 }
 
 void
+test_string_chomp(void **state)
+{
+    char string[10];
+
+    strcpy(string, "Foo\n");
+    chomp(string);
+    assert_string_equal(string, "Foo");
+
+    strcpy(string, "Foo\r\n\n\r");
+    chomp(string);
+    assert_string_equal(string, "Foo");
+
+    strcpy(string, "Foo");
+    chomp(string);
+    assert_string_equal(string, "Foo");
+
+    strcpy(string, "F\ro\no");
+    chomp(string);
+    assert_string_equal(string, "F\ro\no");
+
+    string[2] = '\0';
+    chomp(string);
+    assert_string_equal(string, "F");
+
+    strcpy(string, "");
+    chomp(string);
+    assert_string_equal(string, "");
+
+    strcpy(string, "Foo");
+    rm_trailing_chars(string, "o");
+    assert_string_equal(string, "F");
+
+    strcpy(string, "Foo");
+    rm_trailing_chars(string, "oF");
+    assert_string_equal(string, "");
+}
+
+void
 test_buffer_chomp(void **state)
 {
     struct gc_arena gc = gc_new();
@@ -616,6 +654,7 @@ main(void)
         cmocka_unit_test(test_character_string_mod_buf),
         cmocka_unit_test(test_snprintf),
         cmocka_unit_test(test_checked_snprintf),
+        cmocka_unit_test(test_string_chomp),
         cmocka_unit_test(test_buffer_chomp),
         cmocka_unit_test(test_buffer_null_terminate),
         cmocka_unit_test(test_buffer_null_predicates),

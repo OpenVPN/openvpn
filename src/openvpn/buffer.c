@@ -592,21 +592,11 @@ chomp(char *str)
 void
 rm_trailing_chars(char *str, const char *what_to_delete)
 {
-    bool modified;
-    do
+    size_t len = strlen(str);
+    while (len > 0 && strchr(what_to_delete, str[len - 1]) != NULL)
     {
-        const size_t len = strlen(str);
-        modified = false;
-        if (len > 0)
-        {
-            char *cp = str + (len - 1);
-            if (strchr(what_to_delete, *cp) != NULL)
-            {
-                *cp = '\0';
-                modified = true;
-            }
-        }
-    } while (modified);
+        str[--len] = '\0';
+    }
 }
 
 /*
