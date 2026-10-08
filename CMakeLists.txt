@@ -43,6 +43,8 @@ option(FAKE_ANDROID "Target Android but do not use actual cross compile/Android 
 option(ENABLE_DEBUG "Enable building with debug" OFF)
 
 option(ENABLE_DNS_UPDOWN_BY_DEFAULT "Run --dns-updown hook by default" ON)
+
+option(ENABLE_FBOUNDS_SAFETY "Enable experimental Clang -fbounds-safety annotations (OFF by default)" OFF)
 set(DNS_UPDOWN_PATH "${CMAKE_INSTALL_PREFIX}/libexec/openvpn/dns-updown" CACHE STRING "Default location for the DNS up/down script")
 
 set(PLUGIN_DIR "${CMAKE_INSTALL_PREFIX}/lib/openvpn/plugins" CACHE FILEPATH "Location of the plugin directory")
@@ -641,6 +643,15 @@ set(SOURCE_FILES
     src/openvpn/xkey_helper.c
     src/openvpn/xkey_provider.c
     )
+
+if (ENABLE_FBOUNDS_SAFETY)
+    # Only buffer.c is built with -fbounds-safety for now. This applies to
+    # every target in this directory that compiles it, including unit tests.
+    set_source_files_properties(src/openvpn/buffer.c PROPERTIES
+        COMPILE_OPTIONS -fbounds-safety
+        COMPILE_DEFINITIONS OVPN_SUPPORT_FBOUNDS_SAFETY
+        )
+endif ()
 
 add_executable(openvpn ${SOURCE_FILES})
 

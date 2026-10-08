@@ -1328,6 +1328,15 @@ AC_SUBST([systemdunitdir])
 AC_SUBST([tmpfilesdir])
 
 AC_ARG_ENABLE(
+	[fbounds-safety],
+	[AS_HELP_STRING([--enable-fbounds-safety],
+	                [enable experimental Clang -fbounds-safety annotations @<:@default=no@:>@])],
+	[enable_fbounds_safety="$enableval"],
+	[enable_fbounds_safety="no"]
+)
+AM_CONDITIONAL([ENABLE_FBOUNDS_SAFETY], [test "${enable_fbounds_safety}" = "yes"])
+
+AC_ARG_ENABLE(
      [unit-tests],
      [AS_HELP_STRING([--disable-unit-tests],
                      [Disables building and running the unit tests suite])],

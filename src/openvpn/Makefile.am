@@ -46,7 +46,7 @@ openvpn_SOURCES = \
 	auth_token.c auth_token.h \
 	base64.c base64.h \
 	basic.h \
-	buffer.c buffer.h \
+	buffer.h \
 	check_file_access.c check_file_access.h \
 	circ_list.h \
 	clinat.c clinat.h \
@@ -157,7 +157,17 @@ openvpn_SOURCES = \
 	win32.h win32.c \
 	win32-util.h win32-util.c \
 	cryptoapi.h cryptoapi.c
-openvpn_LDADD = \
+if ENABLE_FBOUNDS_SAFETY
+# Only buffer.c is built with -fbounds-safety for now
+noinst_LTLIBRARIES = libbuffer.la
+libbuffer_la_SOURCES = buffer.c
+libbuffer_la_CFLAGS = $(AM_CFLAGS) -fbounds-safety -DOVPN_SUPPORT_FBOUNDS_SAFETY
+openvpn_LDADD = libbuffer.la
+else
+openvpn_SOURCES += buffer.c
+openvpn_LDADD =
+endif
+openvpn_LDADD += \
 	$(top_builddir)/src/compat/libcompat.la \
 	$(SOCKETS_LIBS) \
 	$(OPTIONAL_LIBCAPNG_LIBS) \

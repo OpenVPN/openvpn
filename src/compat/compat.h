@@ -66,4 +66,53 @@ char *
 strtok_r(char *s, const char *delim, char **last);
 #endif
 
+/*
+ * Optional Clang -fbounds-safety annotations. <ptrcheck.h> turns them into
+ * no-ops when -fbounds-safety is not enabled, and some system headers include
+ * it unconditionally, so prefer it when available and only fall back to our
+ * own no-op definitions for annotations that are still undefined.
+ */
+#if defined(OVPN_SUPPORT_FBOUNDS_SAFETY)
+#include <ptrcheck.h>
+#elif defined(__has_include)
+#if __has_include(<ptrcheck.h>)
+#include <ptrcheck.h>
+#endif
+#endif
+
+#ifndef __sized_by
+#define __sized_by(n)
+#endif
+#ifndef __sized_by_or_null
+#define __sized_by_or_null(n)
+#endif
+#ifndef __counted_by
+#define __counted_by(n)
+#endif
+#ifndef __counted_by_or_null
+#define __counted_by_or_null(n)
+#endif
+#ifndef __null_terminated
+#define __null_terminated
+#endif
+#ifndef __unsafe_indexable
+#define __unsafe_indexable
+#endif
+#ifndef __unsafe_forge_single
+#define __unsafe_forge_single(T, P) ((T)(P))
+#endif
+#ifndef __null_terminated_to_indexable
+#define __null_terminated_to_indexable(P) (P)
+#endif
+#ifndef __unsafe_null_terminated_to_indexable
+#define __unsafe_null_terminated_to_indexable(P) (P)
+#endif
+#ifndef __unsafe_null_terminated_from_indexable
+#define __unsafe_null_terminated_from_indexable(P) (P)
+#endif
+/* not defined by <ptrcheck.h> without -fbounds-safety as it changes the ABI */
+#ifndef __bidi_indexable
+#define __bidi_indexable
+#endif
+
 #endif /* COMPAT_H */
