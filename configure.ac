@@ -1334,9 +1334,7 @@ AC_ARG_ENABLE(
 	[enable_fbounds_safety="$enableval"],
 	[enable_fbounds_safety="no"]
 )
-if test "${enable_fbounds_safety}" = "yes"; then
-	CFLAGS="${CFLAGS} -DOVPN_SUPPORT_FBOUNDS_SAFETY -fbounds-safety"
-fi
+AM_CONDITIONAL([ENABLE_FBOUNDS_SAFETY], [test "${enable_fbounds_safety}" = "yes"])
 
 AC_ARG_ENABLE(
      [unit-tests],

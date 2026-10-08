@@ -66,9 +66,10 @@ alloc_buf(size_t size)
     {
         buf_size_error(size);
     }
+    uint8_t *data = calloc(1, size);
+    check_malloc_return(data);
     buf.capacity = (int)size;
-    buf.data = calloc(1, size);
-    check_malloc_return(buf.data);
+    buf.data = data;
 
     return buf;
 }
@@ -83,8 +84,9 @@ alloc_buf_gc(size_t size, struct gc_arena *gc)
     {
         buf_size_error(size);
     }
+    uint8_t *data = gc_malloc(size, false, gc);
     buf.capacity = (int)size;
-    buf.data = (uint8_t *)gc_malloc(size, false, gc);
+    buf.data = data;
     if (size)
     {
         *buf.data = 0;
@@ -100,15 +102,16 @@ clone_buf(const struct buffer *buf)
 #endif
 {
     struct buffer ret;
+    uint8_t *data = malloc(buf->capacity);
+    check_malloc_return(data);
     ret.capacity = buf->capacity;
+    ret.data = data;
     ret.offset = buf->offset;
     ret.len = buf->len;
 #ifdef BUF_INIT_TRACKING
     ret.debug_file = buf->debug_file;
     ret.debug_line = buf->debug_line;
 #endif
-    ret.data = (uint8_t *)malloc(buf->capacity);
-    check_malloc_return(ret.data);
     memcpy(BPTR(&ret), CBPTR(buf), BLENZ(buf));
     return ret;
 }
@@ -182,7 +185,7 @@ free_buf_gc(struct buffer *buf, struct gc_arena *gc)
         while (*e)
         {
             /* check if this object is the one we want to delete */
-            if ((uint8_t *)(*e + 1) == buf->data)
+            if ((uintptr_t)*e + sizeof(struct gc_entry) == (uintptr_t)buf->data)
             {
                 struct gc_entry *to_delete = *e;
 
@@ -239,7 +242,7 @@ buf_printf(struct buffer *buf, const char *format, ...)
             stat = vsnprintf((char *)ptr, cap, format, arglist);
             va_end(arglist);
             *(buf->data + buf->capacity - 1) = 0; /* windows vsnprintf needs this */
-            buf->len += (int)strlen((char *)ptr);
+            buf->len += (int)strnlen((char *)ptr, cap);
             if (stat >= 0 && stat < cap)
             {
                 ret = true;
@@ -259,7 +262,7 @@ buf_puts(struct buffer *buf, const char *str)
     {
         strncpynt((char *)ptr, str, cap);
         *(buf->data + buf->capacity - 1) = 0; /* windows vsnprintf needs this */
-        buf->len += (int)strlen((char *)ptr);
+        buf->len += (int)strnlen((char *)ptr, cap);
         ret = true;
     }
     return ret;
@@ -277,7 +280,7 @@ buf_catrunc(struct buffer *buf, const char *str)
         size_t len = strlen(str) + 1;
         if (buf_size_valid(len) && (int)len < buf_forward_capacity_total(buf))
         {
-            memcpy(buf->data + buf->capacity - len, str, len);
+            memcpy(buf->data + buf->capacity - len, __unsafe_null_terminated_to_indexable(str), len);
         }
     }
 }
@@ -314,7 +317,7 @@ cleanup:
  * Garbage collection
  */
 
-void *
+void *__sized_by(size)
 gc_malloc(size_t size, bool clear, struct gc_arena *a)
 {
     void *ret;
@@ -449,7 +452,7 @@ gc_transfer(struct gc_arena *dest, struct gc_arena *src)
  */
 
 char *
-format_hex_ex(const uint8_t *data, size_t size, size_t maxoutput, unsigned int space_break_flags,
+format_hex_ex(const uint8_t *__counted_by(size) data, size_t size, size_t maxoutput, unsigned int space_break_flags,
               const char *separator, struct gc_arena *gc)
 {
     const size_t bytes_per_hexblock = space_break_flags & FHE_SPACE_BREAK_MASK;
@@ -581,7 +584,7 @@ string_null_terminate(char *str, int len, int capacity)
  * Remove trailing \r and \n chars.
  */
 void
-chomp(char *str)
+chomp(char *__null_terminated str)
 {
     rm_trailing_chars(str, "\r\n");
 }
@@ -590,7 +593,7 @@ chomp(char *str)
  * Remove trailing chars
  */
 void
-rm_trailing_chars(char *str, const char *what_to_delete)
+rm_trailing_chars(char *__null_terminated str, const char *what_to_delete)
 {
     bool modified;
     do
@@ -599,7 +602,7 @@ rm_trailing_chars(char *str, const char *what_to_delete)
         modified = false;
         if (len > 0)
         {
-            char *cp = str + (len - 1);
+            char *cp = __null_terminated_to_indexable(str) + (len - 1);
             if (strchr(what_to_delete, *cp) != NULL)
             {
                 *cp = '\0';
@@ -612,7 +615,7 @@ rm_trailing_chars(char *str, const char *what_to_delete)
 /*
  * Allocate a string
  */
-char *
+char *__null_terminated
 string_alloc(const char *str, struct gc_arena *gc)
 {
     if (str)
@@ -622,7 +625,7 @@ string_alloc(const char *str, struct gc_arena *gc)
 
         if (gc)
         {
-            ret = (char *)gc_malloc(n, false, gc);
+            ret = gc_malloc(n, false, gc);
         }
         else
         {
@@ -633,8 +636,8 @@ string_alloc(const char *str, struct gc_arena *gc)
             ret = calloc(1, n);
             check_malloc_return(ret);
         }
-        memcpy(ret, str, n);
-        return ret;
+        memcpy(ret, __unsafe_null_terminated_to_indexable(str), n);
+        return __unsafe_null_terminated_from_indexable(ret);
     }
     else
     {
@@ -646,11 +649,11 @@ string_alloc(const char *str, struct gc_arena *gc)
  * Erase all characters in a string
  */
 void
-string_clear(char *str)
+string_clear(char *__null_terminated str)
 {
     if (str)
     {
-        secure_memzero(str, strlen(str));
+        secure_memzero(__null_terminated_to_indexable(str), strlen(str));
     }
 }
 
@@ -658,12 +661,12 @@ string_clear(char *str)
  * Return the length of a string array
  */
 int
-string_array_len(const char **array)
+string_array_len(const char **__null_terminated array)
 {
     int i = 0;
     if (array)
     {
-        while (array[i])
+        for (; *array; ++array)
         {
             ++i;
         }
@@ -672,17 +675,13 @@ string_array_len(const char **array)
 }
 
 char *
-print_argv(const char **p, struct gc_arena *gc, const unsigned int flags)
+print_argv(const char **__null_terminated p, struct gc_arena *gc, const unsigned int flags)
 {
     struct buffer out = alloc_buf_gc(256, gc);
     int i = 0;
-    for (;;)
+    for (; *p; ++p)
     {
-        const char *cp = *p++;
-        if (!cp)
-        {
-            break;
-        }
+        const char *__null_terminated cp = *p;
         if (i)
         {
             buf_printf(&out, " ");
@@ -710,7 +709,8 @@ string_alloc_buf(const char *str, struct gc_arena *gc)
 
     ASSERT(str);
 
-    buf_set_read(&buf, (uint8_t *)string_alloc(str, gc), strlen(str) + 1);
+    buf_set_read(&buf, (uint8_t *)__unsafe_null_terminated_to_indexable(string_alloc(str, gc)),
+                 strlen(str) + 1);
 
     if (buf.len > 0) /* Don't count trailing '\0' as part of length */
     {
@@ -732,7 +732,7 @@ buf_string_match_head_str(const struct buffer *src, const char *match)
     {
         return false;
     }
-    return memcmp(CBPTR(src), match, size) == 0;
+    return memcmp(CBPTR(src), __null_terminated_to_indexable(match), size) == 0;
 }
 
 bool
@@ -772,7 +772,7 @@ buf_substring_len(const struct buffer *buf, int delim)
  */
 
 bool
-buf_parse(struct buffer *buf, const int delim, char *line, const int size)
+buf_parse(struct buffer *buf, const int delim, char *__counted_by(size) line, const int size)
 {
     bool eol = false;
     int n = 0;
@@ -804,7 +804,7 @@ buf_parse(struct buffer *buf, const int delim, char *line, const int size)
     } while (c);
 
     line[size - 1] = '\0';
-    return !(eol && !strlen(line));
+    return !(eol && line[0] == '\0');
 }
 
 /*
@@ -985,11 +985,10 @@ char_inc_exc(const char c, const unsigned int inclusive, const unsigned int excl
 bool
 string_class(const char *str, const unsigned int inclusive, const unsigned int exclusive)
 {
-    char c;
     ASSERT(str);
-    while ((c = *str++))
+    for (; *str; ++str)
     {
-        if (!char_inc_exc(c, inclusive, exclusive))
+        if (!char_inc_exc(*str, inclusive, exclusive))
         {
             return false;
         }
@@ -1002,13 +1001,15 @@ string_class(const char *str, const unsigned int inclusive, const unsigned int e
  * Guaranteed to not increase string length.
  */
 bool
-string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive,
+string_mod(char *__null_terminated str, const unsigned int inclusive, const unsigned int exclusive,
            const char replace)
 {
-    const char *in = str;
-    bool ret = true;
-
     ASSERT(str);
+
+    /* the terminator is rewritten in place, so it needs to be within bounds */
+    char *out = __unsafe_null_terminated_to_indexable(str);
+    const char *in = out;
+    bool ret = true;
 
     while (true)
     {
@@ -1022,12 +1023,12 @@ string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive
             }
             if (c)
             {
-                *str++ = c;
+                *out++ = c;
             }
         }
         else
         {
-            *str = '\0';
+            *out = '\0';
             break;
         }
     }
@@ -1057,7 +1058,7 @@ string_mod_const(const char *str, const unsigned int inclusive, const unsigned i
 {
     if (str)
     {
-        char *buf = string_alloc(str, gc);
+        char *__null_terminated buf = string_alloc(str, gc);
         string_mod(buf, inclusive, exclusive, replace);
         return buf;
     }
@@ -1068,7 +1069,7 @@ string_mod_const(const char *str, const unsigned int inclusive, const unsigned i
 }
 
 void
-string_replace_leading(char *str, const char match, const char replace)
+string_replace_leading(char *__null_terminated str, const char match, const char replace)
 {
     ASSERT(match != '\0');
     while (*str)
@@ -1101,24 +1102,19 @@ string_defined_equal(const char *s1, const char *s2)
 char *
 string_substitute(const char *src, char from, char to, struct gc_arena *gc)
 {
-    char *ret = (char *)gc_malloc(strlen(src) + 1, true, gc);
+    char *ret = gc_malloc(strlen(src) + 1, true, gc);
     char *dest = ret;
-    char c;
 
-    do
+    for (; *src; ++src)
     {
-        c = *src++;
-        if (c == from)
-        {
-            c = to;
-        }
-        *dest++ = c;
-    } while (c);
+        *dest++ = (*src == from) ? to : *src;
+    }
+    *dest = '\0';
     return ret;
 }
 
 bool
-checked_snprintf(char *str, size_t size, const char *format, ...)
+checked_snprintf(char *__counted_by(size) str, size_t size, const char *format, ...)
 {
     va_list arglist;
     va_start(arglist, format);
@@ -1198,7 +1194,8 @@ buffer_list_push(struct buffer_list *ol, const char *str)
     if (str)
     {
         const size_t len = strlen((const char *)str);
-        struct buffer_entry *e = buffer_list_push_data(ol, str, len + 1);
+        struct buffer_entry *e =
+            buffer_list_push_data(ol, __unsafe_null_terminated_to_indexable(str), len + 1);
         if (e)
         {
             e->buf.len--; /* Don't count trailing '\0' as part of length */
@@ -1207,7 +1204,7 @@ buffer_list_push(struct buffer_list *ol, const char *str)
 }
 
 struct buffer_entry *
-buffer_list_push_data(struct buffer_list *ol, const void *data, size_t size)
+buffer_list_push_data(struct buffer_list *ol, const void *__sized_by(size) data, size_t size)
 {
     struct buffer_entry *e = NULL;
     if (data)
@@ -1277,7 +1274,7 @@ buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max_len, co
         {
             struct buffer_entry *next = e->next;
             buf_copy(&f->buf, &e->buf);
-            buf_write(&f->buf, sep, sep_len);
+            buf_write(&f->buf, __null_terminated_to_indexable(sep), sep_len);
             free_buf(&e->buf);
             free(e);
             e = next;
@@ -1343,7 +1340,7 @@ buffer_list_file(const char *fn, int max_line_len)
             bl = buffer_list_new();
             while (fgets(line, max_line_len, fp) != NULL)
             {
-                buffer_list_push(bl, line);
+                buffer_list_push(bl, __unsafe_null_terminated_from_indexable(line));
             }
             free(line);
         }
@@ -1393,7 +1390,7 @@ buf_extract_field(struct buffer *buf, char sep, struct gc_arena *gc)
         return NULL;
     }
 
-    const uint8_t *seppos = memchr(CBPTR(buf), sep, buf_len(buf));
+    const uint8_t *__unsafe_indexable seppos = memchr(CBPTR(buf), sep, buf_len(buf));
     if (!seppos)
     {
         return NULL;

@@ -92,8 +92,23 @@ strtok_r(char *s, const char *delim, char **last);
 #ifndef __counted_by_or_null
 #define __counted_by_or_null(n)
 #endif
+#ifndef __null_terminated
+#define __null_terminated
+#endif
+#ifndef __unsafe_indexable
+#define __unsafe_indexable
+#endif
 #ifndef __unsafe_forge_single
 #define __unsafe_forge_single(T, P) ((T)(P))
+#endif
+#ifndef __null_terminated_to_indexable
+#define __null_terminated_to_indexable(P) (P)
+#endif
+#ifndef __unsafe_null_terminated_to_indexable
+#define __unsafe_null_terminated_to_indexable(P) (P)
+#endif
+#ifndef __unsafe_null_terminated_from_indexable
+#define __unsafe_null_terminated_from_indexable(P) (P)
 #endif
 /* not defined by <ptrcheck.h> without -fbounds-safety as it changes the ABI */
 #ifndef __bidi_indexable

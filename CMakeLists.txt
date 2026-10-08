@@ -326,11 +326,6 @@ if (${MBED})
 endif()
 
 function(add_library_deps target)
-    if (ENABLE_FBOUNDS_SAFETY)
-        target_compile_definitions(${target} PRIVATE OVPN_SUPPORT_FBOUNDS_SAFETY)
-        target_compile_options(${target} PRIVATE -fbounds-safety)
-    endif ()
-
     if (${MBED})
         if (NOT (MBED_INCLUDE_PATH STREQUAL "") )
             target_include_directories(${target} PRIVATE ${MBED_INCLUDE_PATH})
@@ -648,6 +643,15 @@ set(SOURCE_FILES
     src/openvpn/xkey_helper.c
     src/openvpn/xkey_provider.c
     )
+
+if (ENABLE_FBOUNDS_SAFETY)
+    # Only buffer.c is built with -fbounds-safety for now. This applies to
+    # every target in this directory that compiles it, including unit tests.
+    set_source_files_properties(src/openvpn/buffer.c PROPERTIES
+        COMPILE_OPTIONS -fbounds-safety
+        COMPILE_DEFINITIONS OVPN_SUPPORT_FBOUNDS_SAFETY
+        )
+endif ()
 
 add_executable(openvpn ${SOURCE_FILES})
 

@@ -200,7 +200,7 @@ bool buf_assign(struct buffer *dest, const struct buffer *src);
  *
  * @param str   The string to clear.
  */
-void string_clear(char *str);
+void string_clear(char *__null_terminated str);
 
 /**
  * Return the number of elements in a NULL-terminated array of strings.
@@ -209,7 +209,7 @@ void string_clear(char *str);
  *
  * @return Number of non-NULL elements.
  */
-int string_array_len(const char **array);
+int string_array_len(const char **__null_terminated array);
 
 /**
  * Safely compute the product of two sizes plus an extra amount.
@@ -237,7 +237,7 @@ size_t array_mult_safe(const size_t m1, const size_t m2, const size_t extra);
  *
  * @return Newly allocated string representation of \c p.
  */
-char *print_argv(const char **p, struct gc_arena *gc, const unsigned int flags);
+char *print_argv(const char **__null_terminated p, struct gc_arena *gc, const unsigned int flags);
 
 /**
  * Report a buffer size error and abort.
@@ -300,7 +300,7 @@ struct buffer clone_buf(const struct buffer *buf);
  *
  * @return Pointer to the newly allocated memory.
  */
-void *gc_malloc(size_t size, bool clear, struct gc_arena *a);
+void *__sized_by(size) gc_malloc(size_t size, bool clear, struct gc_arena *a);
 
 /**
  * Duplicate a string, allocating memory under garbage collection.
@@ -312,7 +312,7 @@ void *gc_malloc(size_t size, bool clear, struct gc_arena *a);
  *
  * @return A newly allocated copy of \c str, or NULL if \c str is NULL.
  */
-char *string_alloc(const char *str, struct gc_arena *gc);
+char *__null_terminated string_alloc(const char *str, struct gc_arena *gc);
 
 /**
  * Allocate a buffer containing a copy of the given string.
@@ -865,7 +865,7 @@ void buf_rmtail(struct buffer *buf, uint8_t remove);
  *
  * @param str   The null-terminated string to chomp.
  */
-void chomp(char *str);
+void chomp(char *__null_terminated str);
 
 /**
  * Remove all trailing characters that appear in a given set.
@@ -873,7 +873,7 @@ void chomp(char *str);
  * @param str             The null-terminated string to modify in place.
  * @param what_to_delete  Null-terminated set of characters to strip.
  */
-void rm_trailing_chars(char *str, const char *what_to_delete);
+void rm_trailing_chars(char *__null_terminated str, const char *what_to_delete);
 
 /**
  * Return a pointer past any leading whitespace in a string.
@@ -942,7 +942,7 @@ void buf_catrunc(struct buffer *buf, const char *str);
  *         extracted; true otherwise (including when a delimiter was found
  *         or \c line was truncated).
  */
-bool buf_parse(struct buffer *buf, const int delim, char *line, const int size);
+bool buf_parse(struct buffer *buf, const int delim, char *__counted_by(size) line, const int size);
 
 /** @name Hex Dump
  *  @brief Output a binary buffer to a hex string and return it.
@@ -970,7 +970,7 @@ bool buf_parse(struct buffer *buf, const int delim, char *line, const int size);
  *
  * @return Null-terminated hex string allocated from \c gc.
  */
-char *format_hex_ex(const uint8_t *data, size_t size, size_t maxoutput, unsigned int space_break_flags,
+char *format_hex_ex(const uint8_t *__counted_by(size) data, size_t size, size_t maxoutput, unsigned int space_break_flags,
                     const char *separator, struct gc_arena *gc);
 
 /**
@@ -986,7 +986,7 @@ char *format_hex_ex(const uint8_t *data, size_t size, size_t maxoutput, unsigned
  * @return Null-terminated hex string allocated from \c gc.
  */
 static inline char *
-format_hex(const uint8_t *data, size_t size, size_t maxoutput, struct gc_arena *gc)
+format_hex(const uint8_t *__counted_by(size) data, size_t size, size_t maxoutput, struct gc_arena *gc)
 {
     return format_hex_ex(data, size, maxoutput, 4, " ", gc);
 }
@@ -1778,7 +1778,7 @@ bool string_class(const char *str, const unsigned int inclusive, const unsigned 
  * @param replace The character to replace the specified character classes with.
  * @return True if the string was not modified, false otherwise.
  */
-bool string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive,
+bool string_mod(char *__null_terminated str, const unsigned int inclusive, const unsigned int exclusive,
                 const char replace);
 
 
@@ -1822,7 +1822,7 @@ const char *string_mod_const(const char *str, const unsigned int inclusive,
  * @param match    The character to replace.
  * @param replace  The replacement character.
  */
-void string_replace_leading(char *str, const char match, const char replace);
+void string_replace_leading(char *__null_terminated str, const char match, const char replace);
 
 /**
  * Return true iff \c str starts with \c prefix.
@@ -1853,7 +1853,7 @@ char *string_substitute(const char *src, char from, char to, struct gc_arena *gc
  *
  * @return true if snprintf() was successful and not truncated.
  */
-bool checked_snprintf(char *str, size_t size, const char *format, ...)
+bool checked_snprintf(char *__counted_by(size) str, size_t size, const char *format, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
     __attribute__((format(gnu_printf, 3, 4)))
@@ -2227,7 +2227,7 @@ void buffer_list_push(struct buffer_list *ol, const char *str);
  *
  * @return the new buffer
  */
-struct buffer_entry *buffer_list_push_data(struct buffer_list *ol, const void *data, size_t size);
+struct buffer_entry *buffer_list_push_data(struct buffer_list *ol, const void *__sized_by(size) data, size_t size);
 
 /**
  * Retrieve the head buffer
