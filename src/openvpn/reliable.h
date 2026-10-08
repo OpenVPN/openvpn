@@ -288,15 +288,16 @@ void reliable_free(struct reliable *rel);
 bool reliable_can_get(const struct reliable *rel);
 
 /**
- * Check that a received packet's ID is not a replay.
+ * Check that a received packet's ID is not a replay and is inside the receive
+ * window.
  *
  * @param rel The reliable structure for handling this VPN tunnel's
  *     received packets.
  * @param id The packet ID of the received packet.
  *
  * @return
- * @li True, if the packet ID is not a replay.
- * @li False, if the packet ID is a replay.
+ * @li True, if the packet ID is new and inside the receive window.
+ * @li False, if it is a replay, or too far ahead to be stored.
  */
 bool reliable_not_replay(const struct reliable *rel, packet_id_type id);
 

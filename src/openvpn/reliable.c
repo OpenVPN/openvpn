@@ -50,44 +50,10 @@ subtract_pid(const packet_id_type test, const packet_id_type base)
  * verify that test - base < extent while allowing for base or test wraparound
  */
 static inline bool
-reliable_pid_in_range1(const packet_id_type test, const packet_id_type base,
-                       const unsigned int extent)
+reliable_pid_in_range(const packet_id_type test, const packet_id_type base,
+                      const unsigned int extent)
 {
     return subtract_pid(test, base) < extent;
-}
-
-/*
- * verify that test < base + extent while allowing for base or test wraparound
- */
-static inline bool
-reliable_pid_in_range2(const packet_id_type test, const packet_id_type base,
-                       const unsigned int extent)
-{
-    if (base + extent >= base)
-    {
-        if (test < base + extent)
-        {
-            return true;
-        }
-    }
-    else
-    {
-        if ((test + 0x80000000u) < (base + 0x80000000u) + extent)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-/*
- * verify that p1 < p2  while allowing for p1 or p2 wraparound
- */
-static inline bool
-reliable_pid_min(const packet_id_type p1, const packet_id_type p2)
-{
-    return !reliable_pid_in_range1(p1, p2, 0x80000000u);
 }
 
 /* check if a particular packet_id is present in ack */
@@ -393,8 +359,9 @@ reliable_empty(const struct reliable *rel)
 int
 validate_packet_id_window(struct reliable *rel, packet_id_type pid)
 {
-    return reliable_pid_min(pid, rel->packet_id)
-           && reliable_pid_min(subtract_pid(rel->packet_id, RELIABLE_CAPACITY), pid);
+    const packet_id_type dist = subtract_pid(rel->packet_id, pid);
+
+    return dist > 0 && dist < RELIABLE_CAPACITY;
 }
 
 /* del acknowledged items from send buf */
@@ -440,14 +407,17 @@ reliable_send_purge(struct reliable *rel, const struct reliable_ack *ack)
                 e->active = false;
             }
 
-            if (e->active && reliable_pid_min(e->packet_id, pid))
+            /* Order the two by their distance below rel->packet_id, as
+             * comparing the ids directly misorders them across the wrap.
+             * Entries further back than rel->size are outside the send window
+             * and left alone. An ACK for a higher pid means this packet
+             * arrived out of order or was lost, and enough of them trigger
+             * the early resend. */
+            const packet_id_type e_dist = subtract_pid(rel->packet_id, e->packet_id);
+
+            if (e->active && e_dist <= (packet_id_type)rel->size
+                && e_dist > subtract_pid(rel->packet_id, pid))
             {
-                /* We have received an ACK for a packet with a higher PID. Either
-                 * we have received ACKs out of or order or the packet has been
-                 * lost. We count the number of ACKs to determine if we should
-                 * resend it early. The comparison needs to be wraparound aware,
-                 * otherwise a peer can inflate n_acks with an ACK for a pid from
-                 * the lower half of the id space and force a retransmit. */
                 e->n_acks++;
             }
         }
@@ -505,7 +475,9 @@ bool
 reliable_not_replay(const struct reliable *rel, packet_id_type id)
 {
     struct gc_arena gc = gc_new();
-    if (reliable_pid_min(id, rel->packet_id))
+
+    /* outside the receive window: already consumed, or too far ahead to store */
+    if (!reliable_pid_in_range(id, rel->packet_id, rel->size))
     {
         goto bad;
     }
@@ -531,7 +503,12 @@ bad:
 bool
 reliable_wont_break_sequentiality(const struct reliable *rel, packet_id_type id)
 {
-    const int ret = reliable_pid_in_range2(id, rel->packet_id, rel->size);
+    /* The first clause is the receive window. The second is an absolute
+     * comparison, kept so that already consumed ids still reach
+     * reliable_ack_acknowledge_packet_id() and a peer whose ACK was lost stops
+     * retransmitting; reliable_not_replay() rejects them. */
+    const bool ret = (subtract_pid(id, rel->packet_id) < (packet_id_type)rel->size
+                      || id < rel->packet_id);
 
     if (!ret)
     {
@@ -562,57 +539,46 @@ reliable_get_buf(struct reliable *rel)
     return NULL;
 }
 
-int
-reliable_get_num_output_sequenced_available(struct reliable *rel)
+/* Distance below rel->packet_id of the oldest unacknowledged entry, 0 if there
+ * is none. Entries more than rel->size away are outside the sequencing window
+ * and ignored, rather than taken for very old ones. */
+static packet_id_type
+reliable_oldest_active_distance(const struct reliable *rel)
 {
-    packet_id_type min_id = 0;
-    bool min_id_defined = false;
+    packet_id_type max_dist = 0;
 
-    /* find minimum active packet_id */
     for (int i = 0; i < rel->size; ++i)
     {
         const struct reliable_entry *e = &rel->array[i];
-        if (e->active)
+        if (!e->active)
         {
-            if (!min_id_defined || reliable_pid_min(e->packet_id, min_id))
-            {
-                min_id_defined = true;
-                min_id = e->packet_id;
-            }
+            continue;
+        }
+
+        const packet_id_type dist = subtract_pid(rel->packet_id, e->packet_id);
+        if (dist <= (packet_id_type)rel->size && dist > max_dist)
+        {
+            max_dist = dist;
         }
     }
 
-    int ret = rel->size;
-    if (min_id_defined)
-    {
-        ret -= subtract_pid(rel->packet_id, min_id);
-    }
-    return ret;
+    return max_dist;
+}
+
+int
+reliable_get_num_output_sequenced_available(struct reliable *rel)
+{
+    return rel->size - (int)reliable_oldest_active_distance(rel);
 }
 
 /* grab a free buffer, fail if buffer clogged by unacknowledged low packet IDs */
 struct buffer *
 reliable_get_buf_output_sequenced(struct reliable *rel)
 {
-    packet_id_type min_id = 0;
-    bool min_id_defined = false;
     struct buffer *ret = NULL;
 
-    /* find minimum active packet_id */
-    for (int i = 0; i < rel->size; ++i)
-    {
-        const struct reliable_entry *e = &rel->array[i];
-        if (e->active)
-        {
-            if (!min_id_defined || reliable_pid_min(e->packet_id, min_id))
-            {
-                min_id_defined = true;
-                min_id = e->packet_id;
-            }
-        }
-    }
-
-    if (!min_id_defined || reliable_pid_in_range1(rel->packet_id, min_id, rel->size))
+    /* keep the next id within rel->size of the oldest unacknowledged one */
+    if (reliable_oldest_active_distance(rel) < (packet_id_type)rel->size)
     {
         ret = reliable_get_buf(rel);
     }
@@ -671,6 +637,8 @@ struct buffer *
 reliable_send(struct reliable *rel, int *opcode)
 {
     struct reliable_entry *best = NULL;
+    struct reliable_entry *eligible = NULL;
+    packet_id_type best_dist = 0;
     const time_t local_now = now;
 
     for (int i = 0; i < rel->size; ++i)
@@ -682,11 +650,27 @@ reliable_send(struct reliable *rel, int *opcode)
          * not expired yet. */
         if (e->active && (e->n_acks >= N_ACK_RETRANSMIT || local_now >= e->next_try))
         {
-            if (!best || reliable_pid_min(e->packet_id, best->packet_id))
+            /* oldest = furthest below rel->packet_id, within the window */
+            const packet_id_type dist = subtract_pid(rel->packet_id, e->packet_id);
+            if (dist <= (packet_id_type)rel->size && dist > best_dist)
             {
                 best = e;
+                best_dist = dist;
+            }
+
+            if (!eligible)
+            {
+                eligible = e;
             }
         }
+    }
+
+    /* reliable_can_send() promises a non-NULL result for these same entries
+     * without applying the window bound, and its caller asserts on that, so
+     * never come back empty while one of them is eligible. */
+    if (!best)
+    {
+        best = eligible;
     }
 
     if (best)
@@ -776,13 +760,13 @@ reliable_mark_active_incoming(struct reliable *rel, struct buffer *buf, packet_i
         struct reliable_entry *e = &rel->array[i];
         if (buf == &e->buf)
         {
+            /* storable and not yet consumed, checked before touching the entry */
+            ASSERT(reliable_pid_in_range(pid, rel->packet_id, rel->size));
+
             e->active = true;
 
             /* packets may not arrive in sequential order */
             e->packet_id = pid;
-
-            /* check for replay */
-            ASSERT(!reliable_pid_min(pid, rel->packet_id));
 
             e->opcode = opcode;
             e->next_try = 0;

@@ -517,13 +517,16 @@ test_reliable_purge_legitimate_ack(void **state)
 }
 
 /*
- * Reference implementations of the packet id comparisons as they behave today.
- * The sweeps below assert reliable.c agrees with them at the anchors swept, so
- * a change to an accepted id set there fails a test. Keep them standalone:
- * expressing them in terms of reliable.c would make the sweeps tautologies.
+ * Independent models of the id sets the packet id comparisons accept. The
+ * sweeps below assert reliable.c agrees with them at the anchors swept, so a
+ * change to an accepted id set there fails a test. Each model is tagged
+ * "preserved" or "introduced" against the comparisons that came before. Keep
+ * them standalone: expressing them in terms of reliable.c would make the
+ * sweeps tautologies.
  */
 
-/* "p1 < p2" with the 2^31 horizon, i.e. ((int32_t)(p1 - p2) < 0) */
+/* the dropped reliable_pid_min(): "p1 < p2" with the 2^31 horizon,
+ * i.e. ((int32_t)(p1 - p2) < 0) */
 static bool
 ref_pid_min(packet_id_type p1, packet_id_type p2)
 {
@@ -538,6 +541,7 @@ ref_pid_min(packet_id_type p1, packet_id_type p2)
 #define CHAR_N_SEND_BUFFERS    6
 #define CHAR_OPCODE_CONTROL_V1 4
 
+/* preserved: the ids validate_packet_id_window() accepts */
 static bool
 ref_pid_in_send_window(const struct reliable *rel, packet_id_type pid)
 {
@@ -546,6 +550,7 @@ ref_pid_in_send_window(const struct reliable *rel, packet_id_type pid)
     return dist >= 1 && dist <= CHARACTERIZED_SEND_WINDOW;
 }
 
+/* preserved: reliable_pid_in_range2() */
 static bool
 ref_wont_break_sequentiality(const struct reliable *rel, packet_id_type id)
 {
@@ -559,6 +564,7 @@ ref_wont_break_sequentiality(const struct reliable *rel, packet_id_type id)
     return id < base + extent;
 }
 
+/* preserved: the horizon check, then the slot scan */
 static bool
 ref_not_replay(const struct reliable *rel, packet_id_type id)
 {
@@ -691,6 +697,54 @@ sweep_recv_filter(const packet_id_type *anchors, size_t n_anchors,
     }
 }
 
+/* Once rel->packet_id + rel->size overflows, the absolute clause makes
+ * reliable_wont_break_sequentiality() permissive; what may be stored is still
+ * the receive window, which wraps with it. */
+static void
+test_recv_window_bounded_at_wrap(void **state)
+{
+    struct reliable rel = { 0 };
+    rel.size = RELIABLE_CAPACITY;
+    rel.packet_id = 0xFFFFFFF8;
+
+    assert_int_equal(RECV_STORE, recv_filter(&rel, 0xFFFFFFF8));
+    assert_int_equal(RECV_STORE, recv_filter(&rel, 0xFFFFFFFF));
+    assert_int_equal(RECV_STORE, recv_filter(&rel, 3));
+
+    /* one past the window, and one behind it: acknowledged, never stored */
+    assert_int_equal(RECV_ACK_ONLY, recv_filter(&rel, 4));
+    assert_int_equal(RECV_ACK_ONLY, recv_filter(&rel, 0xFFFFFFF7));
+}
+
+/* The id the receiver is next waiting for has to be storable at every base,
+ * the packet id wrap included. */
+static void
+test_wont_break_sequentiality_accepts_next_id(void **state)
+{
+    const packet_id_type bases[] = {
+        0,
+        1,
+        500,
+        0x7FFFFFFF,
+        0x80000000,
+        0xFFFFFFF3,
+        0xFFFFFFF4,
+        0xFFFFFFF8,
+        0xFFFFFFFE,
+        0xFFFFFFFF,
+    };
+
+    for (size_t i = 0; i < SIZE(bases); i++)
+    {
+        struct reliable rel = { 0 };
+        rel.size = RELIABLE_CAPACITY;
+        rel.packet_id = bases[i];
+
+        assert_true(reliable_wont_break_sequentiality(&rel, rel.packet_id));
+        assert_true(reliable_not_replay(&rel, rel.packet_id));
+    }
+}
+
 /* bases at or below 2^31, where old and new agree; never to change */
 static void
 test_recv_filter_characterization(void **state)
@@ -698,12 +752,31 @@ test_recv_filter_characterization(void **state)
     sweep_recv_filter(char_anchors, SIZE(char_anchors), ref_recv_filter);
 }
 
+/* Introduced, for the bases above 2^31 only: storing also requires the id to
+ * be inside the receive window. The ids between one further ahead and
+ * rel->packet_id cannot all fit alongside it, so rel->packet_id never reaches
+ * it and the slot is held for the rest of the key state. Still ACKed, like a
+ * replay. */
+static enum recv_verdict
+ref_recv_filter_bounded(const struct reliable *rel, packet_id_type id)
+{
+    const enum recv_verdict verdict = ref_recv_filter(rel, id);
+
+    if (verdict == RECV_STORE
+        && (packet_id_type)(id - rel->packet_id) >= (packet_id_type)rel->size)
+    {
+        return RECV_ACK_ONLY;
+    }
+
+    return verdict;
+}
+
 /* bases above 2^31, where they diverge, kept apart so a change confined
  * there touches one test */
 static void
 test_recv_filter_high_base(void **state)
 {
-    sweep_recv_filter(char_anchors_high, SIZE(char_anchors_high), ref_recv_filter);
+    sweep_recv_filter(char_anchors_high, SIZE(char_anchors_high), ref_recv_filter_bounded);
 }
 
 static void
@@ -737,6 +810,60 @@ test_send_window_characterization(void **state)
 {
     sweep_send_window(char_anchors, SIZE(char_anchors));
     sweep_send_window(char_anchors_high, SIZE(char_anchors_high));
+}
+
+/* The window bound in the selection is what stops an entry sitting ahead of
+ * rel->packet_id from being taken for the oldest one: its distance below
+ * rel->packet_id is then nearly the whole id space. array[0] cannot arise
+ * through the API; array[1] is an ordinary outstanding packet. */
+static void
+test_reliable_send_ignores_entry_ahead(void **state)
+{
+    now = 1000;
+
+    struct reliable rel = { 0 };
+    rel.size = CHAR_N_SEND_BUFFERS;
+    rel.initial_timeout = 2;
+    rel.packet_id = 3;
+
+    /* scanned first, and outside the window */
+    rel.array[0].active = true;
+    rel.array[0].packet_id = 0x40000000;
+    rel.array[0].timeout = 2;
+    rel.array[0].next_try = 0;
+
+    /* a genuine outstanding packet, two below rel->packet_id */
+    rel.array[1].active = true;
+    rel.array[1].packet_id = 1;
+    rel.array[1].timeout = 2;
+    rel.array[1].next_try = 0;
+
+    int opcode = 0;
+    assert_ptr_equal(&rel.array[1].buf, reliable_send(&rel, &opcode));
+}
+
+/* reliable_can_send() promises reliable_send() will hand back a buffer, and
+ * its caller asserts on that. The state below cannot arise through the API --
+ * the entry sits outside the send window -- but the two must not be able to
+ * disagree. */
+static void
+test_reliable_send_matches_can_send(void **state)
+{
+    now = 1000;
+
+    struct reliable rel = { 0 };
+    rel.size = CHAR_N_SEND_BUFFERS;
+    rel.initial_timeout = 2;
+    rel.packet_id = 3;
+
+    rel.array[0].active = true;
+    rel.array[0].packet_id = 0x40000000;
+    rel.array[0].timeout = 2;
+    rel.array[0].next_try = 0;
+
+    int opcode = 0;
+    assert_true(reliable_can_send(&rel));
+    assert_non_null(reliable_send(&rel, &opcode));
 }
 
 /* reliable_send() picks the oldest eligible entry, across the wrap and the
@@ -880,10 +1007,14 @@ main(void)
         cmocka_unit_test(test_reliable_backoff_is_bounded),
         cmocka_unit_test(test_reliable_purge_ignores_forged_acks),
         cmocka_unit_test(test_reliable_purge_legitimate_ack),
+        cmocka_unit_test(test_wont_break_sequentiality_accepts_next_id),
+        cmocka_unit_test(test_recv_window_bounded_at_wrap),
         cmocka_unit_test(test_recv_filter_characterization),
         cmocka_unit_test(test_recv_filter_high_base),
         cmocka_unit_test(test_send_window_characterization),
         cmocka_unit_test(test_reliable_send_picks_oldest),
+        cmocka_unit_test(test_reliable_send_ignores_entry_ahead),
+        cmocka_unit_test(test_reliable_send_matches_can_send),
         cmocka_unit_test(test_get_buf_output_sequenced_boundary),
         cmocka_unit_test(test_mark_active_incoming_accepts_window),
 #ifndef _MSC_VER
