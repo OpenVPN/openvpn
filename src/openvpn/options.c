@@ -3117,6 +3117,10 @@ helper_hashmap_sizes(struct options *o)
     {
         o->virtual_hash_size = 4 * o->max_clients;
     }
+    if (!o->sid_hash_size)
+    {
+        o->sid_hash_size = o->real_hash_size;
+    }
 }
 
 static void
@@ -5955,7 +5959,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         options->ifconfig_ipv6_pool_base = network;
         options->ifconfig_ipv6_pool_netbits = netbits;
     }
-    else if (streq(p[0], "hash-size") && p[1] && p[2] && !p[3])
+    else if (streq(p[0], "hash-size") && p[1] && p[2] && !p[4])
     {
         int real, virtual;
 
@@ -5967,6 +5971,16 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         }
         options->real_hash_size = (uint32_t)real;
         options->virtual_hash_size = (uint32_t)virtual;
+
+        if (p[3])
+        {
+            int sid;
+            if (!atoi_constrained(p[3], &sid, "hash-size sid", 1, INT_MAX, msglevel))
+            {
+                goto err;
+            }
+            options->sid_hash_size = (uint32_t)sid;
+        }
     }
     else if (streq(p[0], "connect-freq") && p[1] && p[2] && !p[3])
     {

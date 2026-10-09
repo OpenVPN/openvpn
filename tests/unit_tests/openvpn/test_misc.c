@@ -40,11 +40,11 @@
 #include "list.h"
 #include "mock_msg.h"
 #include "crypto.h"
+#include "sid_hash.h"
 #ifdef _WIN32
 #include "win32-util.h"
 #endif
 #include "test_schedule.h"
-
 
 static void
 test_compat_lzo_string(void **state)
@@ -475,6 +475,65 @@ test_win_path_in_dir(void **state)
 }
 #endif /* _WIN32 */
 
+
+static void
+test_sid_hash_list(void **state)
+{
+    struct gc_arena gc = gc_new();
+    /* very simple tests to ensure the basic hash functions work */
+
+    struct multi_context m = { 0 };
+    m.sid_hash = hash_init(2048, session_id_hash_function, session_id_hash_equal);
+
+    struct session_id sid1;
+    struct session_id sid2;
+    struct session_id sid3;
+
+    struct multi_instance *m1, *m3;
+
+    /* multi_hash_sid_remove will call gc_free on the gc of a mi and
+     * free on the mi itself */
+    ALLOC_OBJ_CLEAR(m1, struct multi_instance);
+    ALLOC_OBJ_CLEAR(m3, struct multi_instance);
+
+    m1->gc = gc_new();
+    m3->gc = gc_new();
+
+    session_id_random(&sid1);
+    session_id_random(&sid2);
+    session_id_random(&sid3);
+
+    multi_hash_sid_add(&m, &sid1, m1);
+    multi_hash_sid_add(&m, &sid3, m3);
+
+
+    /* sid2 is not added and should not be returned */
+    struct hash_element *he_sid = multi_hash_sid_lookup(&m, &sid2);
+    assert_null(he_sid);
+
+    he_sid = multi_hash_sid_lookup(&m, &sid1);
+    assert_non_null(he_sid);
+    assert_ptr_equal(he_sid->value, m1);
+
+    /* Try removing elements, only that are in the map should return true */
+    assert_true(multi_hash_sid_remove(&m, &sid1));
+    assert_false(multi_hash_sid_remove(&m, &sid2));
+    assert_false(multi_hash_sid_remove(&m, &sid1));
+
+    /* should no longer find the element */
+    he_sid = multi_hash_sid_lookup(&m, &sid1);
+    assert_null(he_sid);
+
+    /* this element should still be in the hash table */
+    he_sid = multi_hash_sid_lookup(&m, &sid3);
+    assert_ptr_equal(he_sid->value, m3);
+
+    assert_true(multi_hash_sid_remove(&m, &sid3));
+
+    hash_free(m.sid_hash);
+    gc_free(&gc);
+}
+
 const struct CMUnitTest misc_tests[] = {
 #ifdef _WIN32
     cmocka_unit_test(test_win_path_in_dir),
@@ -485,7 +544,8 @@ const struct CMUnitTest misc_tests[] = {
     cmocka_unit_test(test_auth_fail_temp_flags_msg),
     cmocka_unit_test(test_list),
     cmocka_unit_test(test_atoi_variants),
-    cmocka_unit_test(schedule_test)
+    cmocka_unit_test(schedule_test),
+    cmocka_unit_test(test_sid_hash_list)
 };
 
 int

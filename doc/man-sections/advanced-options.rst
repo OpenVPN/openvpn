@@ -34,10 +34,14 @@ used when debugging or testing out special usage scenarios.
   Valid syntax:
   ::
 
-     hash-size r v
+     hash-size r v [s]
 
-  By default, both tables are sized at 4 times ``--max-clients`` buckets.
+  By default, all three tables are sized at 4 times ``--max-clients`` buckets.
   With the default of 1024 of ``--max-clients`` this gives 4096 buckets.
+
+  If ``s`` is specified, the size of session id hash table is set
+  to ``s``. Otherwise the session id hash table will be set to the same
+  value as ``r``.
 
 --bcast-buffers n
   Allocate ``n`` buffers for broadcast datagrams (default :code:`256`).

@@ -862,6 +862,7 @@ if (BUILD_TESTING)
         src/openvpn/siphash.h
         src/openvpn/siphash.c
         src/openvpn/siphash_reference.c
+        src/openvpn/session_id.c
     )
 
     target_sources(test_ncp PRIVATE

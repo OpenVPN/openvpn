@@ -42,6 +42,7 @@
 #include "vlan.h"
 #include "auth_token.h"
 #include "route.h"
+#include "sid_hash.h"
 #include <inttypes.h>
 #include <string.h>
 
@@ -271,8 +272,8 @@ multi_init(struct context *t)
     struct multi_context *m = t->multi;
     int dev = DEV_TYPE_UNDEF;
 
-    msg(D_MULTI_LOW, "MULTI: multi_init called, r=%u v=%u", t->options.real_hash_size,
-        t->options.virtual_hash_size);
+    msg(D_MULTI_LOW, "MULTI: multi_init called, r=%" PRIu32 " v=%" PRIu32 " s=%" PRIu32,
+        t->options.real_hash_size, t->options.virtual_hash_size, t->options.sid_hash_size);
 
     /*
      * Get tun/tap/null device type
@@ -299,6 +300,12 @@ multi_init(struct context *t)
      */
     m->vhash = hash_init(t->options.virtual_hash_size,
                          mroute_addr_hash_function, mroute_addr_compare_function);
+
+    /*
+     * Peer session id hash table. Used to lookup a session by the session
+     * id of one of its active sessions */
+    m->sid_hash = hash_init(t->options.sid_hash_size,
+                            session_id_hash_function, session_id_hash_equal);
 
 #ifdef ENABLE_MANAGEMENT
     m->cid_hash = hash_init(t->options.real_hash_size, cid_hash_function, cid_compare_function);
@@ -427,8 +434,11 @@ multi_instance_string(const struct multi_instance *mi, bool null, struct gc_aren
             buf_printf(&out, "%s/", cn);
         }
         buf_printf(&out, "%s", mroute_addr_print(&mi->real, gc));
-        if (mi->context.c2.tls_multi && check_debug_level(D_DCO_DEBUG)
-            && dco_enabled(&mi->context.options))
+
+        bool debug_rx_pid = (check_debug_level(D_DCO_DEBUG) && dco_enabled(&mi->context.options))
+                            || check_debug_level(D_MULTI_DEBUG);
+
+        if (mi->context.c2.tls_multi && debug_rx_pid)
         {
             buf_printf(&out, " rx-peer-id=%u", mi->context.c2.tls_multi->rx_peer_id);
         }
@@ -595,6 +605,12 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
         }
 #endif
 
+
+        if (session_id_defined(&mi->sid_hashed_value))
+        {
+            multi_hash_sid_remove(m, &mi->sid_hashed_value);
+        }
+
         if (mi->context.c2.tls_multi->rx_peer_id != MAX_PEER_ID)
         {
             m->instances[mi->context.c2.tls_multi->rx_peer_id] = NULL;
@@ -675,6 +691,7 @@ multi_uninit(struct multi_context *m)
 
         hash_free(m->hash);
         hash_free(m->vhash);
+        hash_free(m->sid_hash);
 #ifdef ENABLE_MANAGEMENT
         hash_free(m->cid_hash);
 #endif
@@ -2461,6 +2478,34 @@ multi_client_connect_early_setup(struct multi_context *m, struct multi_instance 
     multi_client_connect_setenv(mi);
 }
 
+static bool
+multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi, struct mroute_addr *real);
+
+/**
+ * This sets up the client real address (outer tunnel addr) in the
+ * hash map for data channel packet. If the address is already taken
+ * this steps fails
+ */
+static enum client_connect_return
+multi_client_connect_real_addr(struct multi_context *m, struct multi_instance *mi,
+                               bool deferred, uint64_t *option_types_found)
+{
+    /* If the address is already taken up by another client we fail the new
+     * connection */
+    if (!multi_check_dest_addr_allowed(m, mi, &mi->real))
+    {
+        msg(D_MULTI_ERRORS,
+            "MULTI: client IP address and port already assigned to another "
+            "client, terminating connection");
+        return CC_RET_FAILED;
+    }
+
+    ASSERT(!mi->did_real_hash);
+    ASSERT(hash_add(m->hash, &mi->real, mi, false));
+    mi->did_real_hash = true;
+    return CC_RET_SUCCEEDED;
+}
+
 /**
  *  Do the necessary modification for doing the compress migrate. This is
  *  implemented as a connect handler as it fits the modify config for a client
@@ -2555,6 +2600,7 @@ typedef enum client_connect_return (*multi_client_connect_handler)(
     uint64_t *option_types_found);
 
 static const multi_client_connect_handler client_connect_handlers[] = {
+    multi_client_connect_real_addr,
     multi_client_connect_compress_migrate,
     multi_client_connect_source_ccd,
     multi_client_connect_call_plugin_v1,
@@ -2623,6 +2669,7 @@ override_locked_username(struct multi_instance *mi)
     }
     return true;
 }
+
 /*
  * Called as soon as the SSL/TLS connection is authenticated.
  *
@@ -3109,7 +3156,7 @@ multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi
     /* do not allow if target address is taken by client with another cert */
     if (!cert_hash_compare(m1->locked_cert_hash_set, m2->locked_cert_hash_set))
     {
-        msg(D_MULTI_LOW, "Disallow float to an address taken by another client %s",
+        msg(D_MULTI_LOW, "Disallow float/connect to an address taken by another client %s",
             multi_instance_string(ex_mi, false, &gc));
 
         mi->context.c2.buf.len = 0;
@@ -3122,7 +3169,7 @@ multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi
         if (!m1->locked_username || !m2->locked_username
             || strcmp(m1->locked_username, m2->locked_username) != 0)
         {
-            msg(D_MULTI_LOW, "Disallow float to an address taken by another client %s",
+            msg(D_MULTI_LOW, "Disallow float/connect to an address taken by another client %s",
                 multi_instance_string(ex_mi, false, &gc));
             goto done;
         }

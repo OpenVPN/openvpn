@@ -498,6 +498,7 @@ struct options
 
     uint32_t real_hash_size;
     uint32_t virtual_hash_size;
+    uint32_t sid_hash_size;
     const char *client_connect_script;
     const char *client_disconnect_script;
     const char *learn_address_script;

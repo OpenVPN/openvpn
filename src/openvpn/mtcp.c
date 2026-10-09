@@ -42,36 +42,12 @@ multi_create_instance_tcp(struct multi_context *m, struct link_socket *sock)
 {
     struct gc_arena gc = gc_new();
     struct multi_instance *mi = NULL;
-    struct hash *hash = m->hash;
 
     mi = multi_create_instance(m, NULL, sock);
     if (mi)
     {
         mi->real.proto = sock->info.proto;
-        struct hash_element *he;
-        const uint64_t hv = hash_value(hash, &mi->real);
-        struct hash_bucket *bucket = hash_bucket(hash, hv);
-
         multi_assign_peer_id(m, mi);
-
-        he = hash_lookup_fast(hash, bucket, &mi->real, hv);
-
-        if (he)
-        {
-            struct multi_instance *oldmi = (struct multi_instance *)he->value;
-            msg(D_MULTI_LOW,
-                "MULTI TCP: new incoming client address matches existing client address -- new client takes precedence");
-            oldmi->did_real_hash = false;
-            multi_close_instance(m, oldmi, false);
-            he->key = &mi->real;
-            he->value = mi;
-        }
-        else
-        {
-            hash_add_fast(hash, bucket, &mi->real, hv, mi);
-        }
-
-        mi->did_real_hash = true;
     }
 
 #ifndef ENABLE_SMALL

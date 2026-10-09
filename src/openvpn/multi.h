@@ -131,7 +131,15 @@ struct multi_instance
     in_addr_t reporting_addr;            /* IP address shown in status listing */
     struct in6_addr reporting_addr_ipv6; /* IPv6 address in status listing */
 
+    /** Indicates that the real address/port of the client is hashed in
+     * the multi_context m->hash table. */
     bool did_real_hash;
+
+    /** If this is multi_instance is hashed in the sid lookup table the session
+     * id here is a non-null session id and the hash map's key pointer points
+     * to this field (the value pointer points to the whole struct) */
+    struct session_id sid_hashed_value;
+
 #ifdef ENABLE_MANAGEMENT
     bool did_cid_hash;
     struct buffer_list *cc_config;
@@ -170,6 +178,12 @@ struct multi_context
                                         *   address of the remote peer. */
     struct hash *vhash;                /**< VPN tunnel instances indexed by
                                         *   virtual address of remote hosts. */
+    struct hash *sid_hash;             /**< TLS sessions indexed by the peer's
+                                            session id. We do not care about
+                                            collisions here as clients should
+                                            have unique ids and supporting
+                                            clients with identical SIDs
+                                            is not needed */
     struct schedule *schedule;
     struct mbuf_set *mbuf;             /**< Set of buffers for passing data
                                         *   channel packets between VPN tunnel
