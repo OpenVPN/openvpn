@@ -109,7 +109,7 @@ struct gc_entry
 struct gc_entry_special
 {
     struct gc_entry_special *next;
-    void (*free_fnc)(void *);
+    void (*free_fnc)(void *__unsafe_indexable);
     void *addr;
 };
 
@@ -338,10 +338,12 @@ struct buffer string_alloc_buf(const char *str, struct gc_arena *gc);
  * something other than plain \c free(), such as \c freeaddrinfo().
  *
  * @param addr          Pointer to the memory to register.
- * @param free_function Function to call to free \c addr.
+ * @param free_function Function to call to free \c addr.  The parameter is
+ *                      \c __unsafe_indexable so that \c free() can be passed
+ *                      with -fbounds-safety.
  * @param a             Garbage collection arena to register with.
  */
-void gc_addspecial(void *addr, void (*free_function)(void *), struct gc_arena *a);
+void gc_addspecial(void *addr, void (*free_function)(void *__unsafe_indexable), struct gc_arena *a);
 
 /**
  * allows to realloc a pointer previously allocated by gc_malloc or gc_realloc
@@ -375,9 +377,9 @@ bool buf_init_debug(struct buffer *buf, int offset, const char *file, int line);
  * @param addr  Pointer to the \c struct \c addrinfo to free.
  */
 static inline void
-gc_freeaddrinfo_callback(void *addr)
+gc_freeaddrinfo_callback(void *__unsafe_indexable addr)
 {
-    freeaddrinfo((struct addrinfo *)addr);
+    freeaddrinfo(__unsafe_forge_single(struct addrinfo *, addr));
 }
 
 /** Return an empty, undefined \c struct \c buffer (all fields zero). */
