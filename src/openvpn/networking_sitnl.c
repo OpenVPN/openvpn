@@ -691,7 +691,7 @@ net_iface_up(openvpn_net_ctx_t *ctx, const char *iface, bool up)
 
     req.n.nlmsg_len = NLMSG_LENGTH(sizeof(req.i));
     req.n.nlmsg_flags = NLM_F_REQUEST;
-    req.n.nlmsg_type = RTM_NEWLINK;
+    req.n.nlmsg_type = RTM_SETLINK;
 
     req.i.ifi_family = AF_PACKET;
     req.i.ifi_index = ifindex;
@@ -727,7 +727,7 @@ net_iface_mtu_set(openvpn_net_ctx_t *ctx, const char *iface, uint32_t mtu)
 
     req.n.nlmsg_len = NLMSG_LENGTH(sizeof(req.i));
     req.n.nlmsg_flags = NLM_F_REQUEST;
-    req.n.nlmsg_type = RTM_NEWLINK;
+    req.n.nlmsg_type = RTM_SETLINK;
 
     req.i.ifi_family = AF_PACKET;
     req.i.ifi_index = ifindex;
@@ -758,7 +758,7 @@ net_addr_ll_set(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface, uint8_
 
     req.n.nlmsg_len = NLMSG_LENGTH(sizeof(req.i));
     req.n.nlmsg_flags = NLM_F_REQUEST;
-    req.n.nlmsg_type = RTM_NEWLINK;
+    req.n.nlmsg_type = RTM_SETLINK;
 
     req.i.ifi_family = AF_PACKET;
     req.i.ifi_index = ifindex;
