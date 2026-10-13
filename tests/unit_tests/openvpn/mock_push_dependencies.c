@@ -62,6 +62,13 @@ update_vhash(struct multi_context *m, struct multi_instance *mi, const char *new
 {
 }
 
+void
+uninit_options(struct options *options)
+{
+    gc_free(&options->gc);
+    gc_free(&options->dns_options.gc);
+}
+
 bool
 options_postprocess_pull(struct options *options, struct env_set *es)
 {

@@ -163,6 +163,7 @@ send_single_push_update(struct multi_context *m, struct multi_instance *mi, stru
     {
         if (!send_control_channel_string(c, BSTR(&e->buf), D_PUSH))
         {
+            uninit_options(&o);
             return false;
         }
 
@@ -217,6 +218,7 @@ send_single_push_update(struct multi_context *m, struct multi_instance *mi, stru
         update_vhash(m, mi, o.ifconfig_local, o.ifconfig_ipv6_local);
     }
 
+    uninit_options(&o);
     return true;
 }
 
