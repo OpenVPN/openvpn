@@ -2507,6 +2507,20 @@ pre_connect_save(struct options *o)
     o->pre_connect->comp = o->comp;
 }
 
+/**
+ * Free the DNS options and reset them to their state before the pull: the
+ * pulled settings are dropped, the local ones (--dns-updown, static --dns
+ * servers and search domains) are kept.
+ */
+static void
+dns_options_restore_pre_pull(struct options *o, const struct options_pre_connect *pp)
+{
+    gc_free(&o->dns_options.gc);
+    struct gc_arena dns_gc = gc_new();
+    o->dns_options = clone_dns_options(&pp->dns_options, &dns_gc);
+    o->dns_options.gc = dns_gc;
+}
+
 void
 pre_connect_restore(struct options *o, struct gc_arena *gc)
 {
@@ -2545,11 +2559,7 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
         o->route_default_gateway = pp->route_default_gateway;
         o->route_ipv6_default_gateway = pp->route_ipv6_default_gateway;
 
-        /* Free DNS options and reset them to pre-pull state */
-        gc_free(&o->dns_options.gc);
-        struct gc_arena dns_gc = gc_new();
-        o->dns_options = clone_dns_options(&pp->dns_options, &dns_gc);
-        o->dns_options.gc = dns_gc;
+        dns_options_restore_pre_pull(o, pp);
 
         if (pp->client_nat_defined)
         {
@@ -3751,8 +3761,7 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
     else if (streq(p[0], "dns") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        gc_free(&options->dns_options.gc);
-        CLEAR(options->dns_options);
+        dns_options_restore_pre_pull(options, options->pre_connect);
     }
     else if (streq(p[0], "topology") && !p[1])
     {
@@ -4069,8 +4078,7 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             {
                 goto err;
             }
-            gc_free(&options->dns_options.gc);
-            CLEAR(options->dns_options);
+            dns_options_restore_pre_pull(options, options->pre_connect);
             options->push_update_options_found |= OPT_P_U_DNS;
         }
     }
