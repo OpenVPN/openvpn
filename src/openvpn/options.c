@@ -1011,14 +1011,16 @@ setenv_foreign_option(struct options *o, const char *option, const char *value, 
 }
 
 static void
-delete_all_dhcp_fo(struct options *o, struct env_item **list)
+delete_all_dhcp_fo(struct options *o, struct env_set *es)
 {
-    struct env_item *current, *prev;
+    ASSERT(es);
 
-    ASSERT(list);
-
-    for (current = *list, prev = NULL; current != NULL; current = current->next)
+    struct env_item *current = es->list;
+    while (current)
     {
+        /* env_set_del() frees current, so fetch the successor first */
+        struct env_item *next = current->next;
+
         if (!strncmp(current->string, "foreign_option_", sizeof("foreign_option_") - 1))
         {
             const char *tmp_value = strchr(current->string, '=');
@@ -1026,19 +1028,12 @@ delete_all_dhcp_fo(struct options *o, struct env_item **list)
             {
                 if (!strncmp(tmp_value, "dhcp-option ", sizeof("dhcp-option ") - 1))
                 {
-                    if (prev)
-                    {
-                        prev->next = current->next;
-                    }
-                    else
-                    {
-                        *list = current->next;
-                    }
+                    env_set_del(es, current->string);
                     o->foreign_option_index--;
                 }
             }
         }
-        prev = current;
+        current = next;
     }
 }
 
@@ -3813,7 +3808,7 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
     else if (streq(p[0], "dhcp-option") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        delete_all_dhcp_fo(options, &es->list);
+        delete_all_dhcp_fo(options, es);
     }
 #endif
     else
@@ -4114,7 +4109,7 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
         if (!(options->push_update_options_found & OPT_P_U_DHCP))
         {
             VERIFY_PERMISSION(OPT_P_DHCPDNS);
-            delete_all_dhcp_fo(options, &es->list);
+            delete_all_dhcp_fo(options, es);
             options->push_update_options_found |= OPT_P_U_DHCP;
         }
     }
