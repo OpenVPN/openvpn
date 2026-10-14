@@ -346,7 +346,7 @@ jobs:
       ovpnlibdesc: LibreSSL
       # versioning=semver-coerced
       ghrepo: libressl/portable
-      gitref: v4.3.2
+      gitref: v4.3.3
       libconfigure: "LIBRESSL_GIT_OPTIONS=--no-single-branch ./autogen.sh && ./configure --prefix=$LIBPREFIX"
 
   openssl4:
