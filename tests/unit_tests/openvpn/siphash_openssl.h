@@ -60,5 +60,5 @@ siphash_openssl_uninit(void *sip_context);
  *
  */
 bool
-siphash_openssl_available(void *sip_context);
+siphash_openssl_available(const void *sip_context);
 #endif /* ifndef SIPHASH_OPENSSL_H */
