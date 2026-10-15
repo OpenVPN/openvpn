@@ -49,7 +49,7 @@
 
 
 static void
-tun_afunix_exec_child(const char *dev_node, struct tuntap *tt, struct env_set *env)
+tun_afunix_exec_child(const char *dev_node, struct tuntap *tt, const struct env_set *env)
 {
     const char *msgprefix = "ERROR: failure executing process for tun:";
     struct argv argv = argv_new();
@@ -74,7 +74,7 @@ tun_afunix_exec_child(const char *dev_node, struct tuntap *tt, struct env_set *e
 }
 
 void
-open_tun_afunix(struct options *o, int mtu, struct tuntap *tt, struct env_set *orig_env)
+open_tun_afunix(const struct options *o, int mtu, struct tuntap *tt, const struct env_set *orig_env)
 {
     struct gc_arena gc = gc_new();
 
@@ -146,7 +146,7 @@ close_tun_afunix(struct tuntap *tt)
 }
 
 ssize_t
-write_tun_afunix(struct tuntap *tt, uint8_t *buf, int len)
+write_tun_afunix(struct tuntap *tt, const uint8_t *buf, int len)
 {
     const char *msg = "ERROR: failure during write to AF_UNIX socket: ";
     if (!openvpn_waitpid_check(tt->afunix.childprocess, msg, M_WARN))
@@ -172,8 +172,11 @@ read_tun_afunix(struct tuntap *tt, uint8_t *buf, int len)
     return read(tt->fd, buf, len);
 }
 #else  /* ifndef WIN32 */
+
+// cppcheck-suppress-begin constParameterPointer ; stubs
+
 void
-open_tun_afunix(struct options *o, int mtu, struct tuntap *tt, struct env_set *orig_env)
+open_tun_afunix(const struct options *o, int mtu, struct tuntap *tt, const struct env_set *orig_env)
 {
     msg(M_ERR, "AF_UNIX socket support not available on this platform");
 }
@@ -186,7 +189,7 @@ close_tun_afunix(struct tuntap *tt)
 }
 
 ssize_t
-write_tun_afunix(struct tuntap *tt, uint8_t *buf, int len)
+write_tun_afunix(struct tuntap *tt, const uint8_t *buf, int len)
 {
     /* should never be called as open_tun_afunix always fails */
     ASSERT(0);
@@ -198,5 +201,7 @@ read_tun_afunix(struct tuntap *tt, uint8_t *buf, int len)
     /* should never be called as open_tun_afunix always fails */
     ASSERT(0);
 }
+
+// cppcheck-suppress-end constParameterPointer
 
 #endif /* ifndef WIN32 */

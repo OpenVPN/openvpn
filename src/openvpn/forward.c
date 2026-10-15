@@ -237,7 +237,7 @@ check_tls(struct context *c)
 }
 
 static void
-parse_incoming_control_channel_command(struct context *c, struct buffer *buf)
+parse_incoming_control_channel_command(struct context *c, const struct buffer *buf)
 {
     if (buf_string_match_head_str(buf, "AUTH_FAILED"))
     {
@@ -507,7 +507,7 @@ check_inactivity_timeout(struct context *c)
 }
 
 int
-get_server_poll_remaining_time(struct event_timeout *server_poll_timeout)
+get_server_poll_remaining_time(const struct event_timeout *server_poll_timeout)
 {
     update_time();
     int remaining = event_timeout_remaining(server_poll_timeout);
@@ -621,7 +621,7 @@ check_fragment(struct context *c)
  * Buffer reallocation, for use with null encryption.
  */
 static inline void
-buffer_turnover(const uint8_t *orig_buf, struct buffer *dest_stub, struct buffer *src_stub,
+buffer_turnover(const uint8_t *orig_buf, struct buffer *dest_stub, const struct buffer *src_stub,
                 struct buffer *storage)
 {
     if (orig_buf == src_stub->data && src_stub->data != storage->data)
@@ -908,7 +908,7 @@ check_timeout_random_component(struct context *c)
  */
 
 static inline void
-socks_postprocess_incoming_link(struct context *c, struct link_socket *sock)
+socks_postprocess_incoming_link(struct context *c, const struct link_socket *sock)
 {
     if (sock->socks_proxy && sock->info.proto == PROTO_UDP)
     {
@@ -1005,7 +1005,7 @@ read_incoming_link(struct context *c, struct link_socket *sock)
 }
 
 bool
-process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, bool floated)
+process_incoming_link_part1(struct context *c, const struct link_socket_info *lsi, bool floated)
 {
     struct gc_arena gc = gc_new();
     bool decrypt_status = false;
@@ -1555,7 +1555,7 @@ process_incoming_tun(struct context *c, struct link_socket *out_sock)
  * @param client    Determines whether to the send packet back via tun or link
  */
 void
-ipv6_send_icmp_unreachable(struct context *c, struct buffer *buf, bool client)
+ipv6_send_icmp_unreachable(struct context *c, const struct buffer *buf, bool client)
 {
 #define MAX_ICMPV6LEN 1280
     struct openvpn_icmp6hdr icmp6out;

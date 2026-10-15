@@ -49,7 +49,7 @@ void port_share_abort(struct port_share *ps);
 
 bool is_openvpn_protocol(const struct buffer *buf);
 
-void port_share_redirect(struct port_share *ps, const struct buffer *head, socket_descriptor_t sd);
+void port_share_redirect(const struct port_share *ps, const struct buffer *head, socket_descriptor_t sd);
 
 #endif /* if PORT_SHARE */
 #endif /* ifndef PS_H */

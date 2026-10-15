@@ -54,8 +54,9 @@
  * @param sock    the socket to send the reply on
  */
 static void
-send_standalone_reply(struct multi_context *m, struct buffer *buf, const char *prefix,
-                      const char *detail, struct link_socket *sock)
+send_standalone_reply(struct multi_context *m, const struct buffer *buf,
+                      const char *prefix, const char *detail,
+                      struct link_socket *sock)
 {
     struct context *c = &m->top;
 
@@ -75,7 +76,7 @@ send_standalone_reply(struct multi_context *m, struct buffer *buf, const char *p
 
 static void
 send_hmac_reset_packet(struct multi_context *m, struct tls_pre_decrypt_state *state,
-                       struct tls_auth_standalone *tas, struct session_id *sid,
+                       const struct tls_auth_standalone *tas, const struct session_id *sid,
                        bool request_resend_wkc, struct link_socket *sock)
 {
     reset_packet_id_send(&state->tls_wrap_tmp.opt.packet_id.send);
@@ -117,11 +118,11 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
 
     enum first_packet_verdict verdict;
 
-    struct tls_auth_standalone *tas = m->top.c2.tls_auth_standalone;
+    const struct tls_auth_standalone *tas = m->top.c2.tls_auth_standalone;
 
     verdict = tls_pre_decrypt_lite(tas, state, &m->top.c2.from, &m->top.c2.buf);
 
-    uint8_t *hmac_key = m->top.c2.session_id_key;
+    const uint8_t *hmac_key = m->top.c2.session_id_key;
     const struct openvpn_sockaddr *from = &m->top.c2.from.dest;
     int handwindow = m->top.options.handshake_window;
 
@@ -240,7 +241,7 @@ do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *stat
 static struct multi_instance *
 handle_connection_attempt(struct multi_context *m,
                           struct link_socket *sock,
-                          struct mroute_addr *real)
+                          const struct mroute_addr *real)
 {
     struct gc_arena gc = gc_new();
 
@@ -308,7 +309,7 @@ handle_connection_attempt(struct multi_context *m,
  * @return      instance matching the address, NULL otherwise
  */
 static struct multi_instance *
-multi_get_instance_udp_real(struct multi_context *m, struct mroute_addr *real)
+multi_get_instance_udp_real(struct multi_context *m, const struct mroute_addr *real)
 {
     struct hash *hash = m->hash;
     const uint64_t hv = hash_value(hash, real);
@@ -353,7 +354,9 @@ multi_get_instance_udp_control(struct multi_context *m)
  * maintaining real address hash table atomicity.
  */
 struct multi_instance *
-multi_get_instance_udp_data(struct multi_context *m, bool *floated, struct mroute_addr *real, struct link_socket *sock)
+multi_get_instance_udp_data(struct multi_context *m, bool *floated,
+                            const struct mroute_addr *real,
+                            const struct link_socket *sock)
 {
     struct multi_instance *mi = NULL;
 

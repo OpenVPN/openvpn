@@ -158,7 +158,7 @@ print_checksum(struct openvpn_iphdr *iph, const char *prefix)
 #endif
 
 static void
-print_pkt(struct openvpn_iphdr *iph, const char *prefix, const int direction, const msglvl_t msglevel)
+print_pkt(const struct openvpn_iphdr *iph, const char *prefix, const int direction, const msglvl_t msglevel)
 {
     struct gc_arena gc = gc_new();
 

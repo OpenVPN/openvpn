@@ -59,7 +59,7 @@ query_user_exec_builtin(void)
     return mock();
 }
 void
-management_auth_failure(struct management *man, const char *type, const char *reason)
+management_auth_failure(const struct management *man, const char *type, const char *reason)
 {
     assert_true(0);
 }

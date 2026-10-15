@@ -183,7 +183,7 @@ struct session_id calculate_session_id_hmac(struct session_id client_sid,
  * @return              the expected server session id
  */
 bool check_session_hmac_and_pkt_id(struct tls_pre_decrypt_state *state, const struct openvpn_sockaddr *from,
-                                   uint8_t *key, int handwindow, bool pkt_is_ack);
+                                   const uint8_t *key, int handwindow, bool pkt_is_ack);
 
 /*
  * Write a control channel authentication record.
@@ -210,8 +210,9 @@ bool read_control_auth(struct buffer *buf, struct tls_wrap_ctx *ctx,
  * from the tls pre decrypt state.
  *
  */
-struct buffer tls_reset_standalone(struct tls_wrap_ctx *ctx, struct tls_auth_standalone *tas,
-                                   struct session_id *own_sid, struct session_id *remote_sid,
+struct buffer tls_reset_standalone(struct tls_wrap_ctx *ctx, const struct tls_auth_standalone *tas,
+                                   const struct session_id *own_sid,
+                                   const struct session_id *remote_sid,
                                    uint8_t header, bool request_resend_wkc);
 
 

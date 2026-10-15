@@ -146,7 +146,7 @@ word_compare_function(const void *key1, const void *key2)
 }
 
 static struct hash_element *
-hash_lookup_by_value(struct hash *hash, void *value)
+hash_lookup_by_value(struct hash *hash, const void *value)
 {
     struct hash_iterator hi;
     struct hash_element *he;

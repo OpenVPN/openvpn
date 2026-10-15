@@ -31,7 +31,7 @@
  * the user provided taking care of implementing the actual tun
  * device.
  */
-void open_tun_afunix(struct options *o, int mtu, struct tuntap *tt, struct env_set *env);
+void open_tun_afunix(const struct options *o, int mtu, struct tuntap *tt, const struct env_set *env);
 
 
 /**
@@ -43,7 +43,7 @@ void close_tun_afunix(struct tuntap *tt);
 /**
  * Writes a packet to a AF_UNIX based tun device.
  */
-ssize_t write_tun_afunix(struct tuntap *tt, uint8_t *buf, int len);
+ssize_t write_tun_afunix(struct tuntap *tt, const uint8_t *buf, int len);
 
 /**
  * Reads a packet from a AF_UNIX based tun device.

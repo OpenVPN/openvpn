@@ -91,7 +91,7 @@ comp_non_stub_enabled(const struct compress_options *info)
  * flags of allow-compression and also the whether algorithms are compiled
  * in
  */
-bool check_compression_settings_valid(struct compress_options *info, msglvl_t msglevel);
+bool check_compression_settings_valid(const struct compress_options *info, msglvl_t msglevel);
 
 #ifdef USE_COMP
 #include "buffer.h"

@@ -835,7 +835,7 @@ init_tun(const char *dev,                          /* --dev option */
          const char *ifconfig_ipv6_local_parm,     /* --ifconfig parm 1 IPv6 */
          int ifconfig_ipv6_netbits_parm,
          const char *ifconfig_ipv6_remote_parm,    /* --ifconfig parm 2 IPv6 */
-         struct addrinfo *local_public, struct addrinfo *remote_public, const bool strict_warn,
+         const struct addrinfo *local_public, const struct addrinfo *remote_public, const bool strict_warn,
          struct env_set *es, openvpn_net_ctx_t *ctx, struct tuntap *tt)
 {
     if (!tt)
@@ -978,7 +978,7 @@ init_tun_post(struct tuntap *tt, const struct frame *frame, const struct tuntap_
  * -> helper function to simplify code below
  */
 static void
-add_route_connected_v6_net(struct tuntap *tt, const struct env_set *es)
+add_route_connected_v6_net(const struct tuntap *tt, const struct env_set *es)
 {
     struct route_ipv6 r6;
 
@@ -1020,7 +1020,7 @@ delete_route_connected_v6_net(const struct tuntap *tt)
  */
 
 in_addr_t
-create_arbitrary_remote(struct tuntap *tt)
+create_arbitrary_remote(const struct tuntap *tt)
 {
     in_addr_t remote;
 
@@ -1592,7 +1592,7 @@ do_ifconfig(struct tuntap *tt, const char *ifname, int tun_mtu, const struct env
 }
 
 static void
-undo_ifconfig_ipv4(struct tuntap *tt, openvpn_net_ctx_t *ctx)
+undo_ifconfig_ipv4(const struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
 #if defined(TARGET_LINUX)
     int netbits = netmask_to_netbits2(tt->remote_netmask);
@@ -1627,7 +1627,7 @@ undo_ifconfig_ipv4(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 }
 
 static void
-undo_ifconfig_ipv6(struct tuntap *tt, openvpn_net_ctx_t *ctx)
+undo_ifconfig_ipv6(const struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
 #if defined(TARGET_LINUX)
     if (net_addr_v6_del(ctx, tt->actual_name, &tt->local_ipv6, tt->netbits_ipv6) < 0)
@@ -1652,7 +1652,7 @@ undo_ifconfig_ipv6(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 }
 
 void
-undo_ifconfig(struct tuntap *tt, openvpn_net_ctx_t *ctx)
+undo_ifconfig(const struct tuntap *tt, openvpn_net_ctx_t *ctx)
 {
     if (tt->backend_driver != DRIVER_NULL && tt->backend_driver != DRIVER_AFUNIX)
     {
@@ -1720,13 +1720,13 @@ header_modify_read_write_return(ssize_t len)
 }
 
 static ssize_t
-write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
+write_tun_header(const struct tuntap *tt, const uint8_t *buf, int len)
 {
     if (tt->type == DEV_TYPE_TUN)
     {
         u_int32_t type;
         struct iovec iv[2];
-        const struct ip *iph = (struct ip *)buf;
+        const struct ip *iph = (const struct ip *)buf;
 
         if (iph->ip_v == 6)
         {
@@ -1737,9 +1737,11 @@ write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
             type = htonl(AF_INET);
         }
 
+        /* argument to writev is a pointer to const but we still need to drop
+         * the const from buf pointer here */
         iv[0].iov_base = &type;
         iv[0].iov_len = sizeof(type);
-        iv[1].iov_base = buf;
+        iv[1].iov_base = (void *)buf;
         iv[1].iov_len = len;
 
         return header_modify_read_write_return(writev(tt->fd, iv, 2));
@@ -1751,7 +1753,7 @@ write_tun_header(struct tuntap *tt, uint8_t *buf, int len)
 }
 
 static ssize_t
-read_tun_header(struct tuntap *tt, uint8_t *buf, int len)
+read_tun_header(const struct tuntap *tt, uint8_t *buf, int len)
 {
     if (tt->type == DEV_TYPE_TUN)
     {
@@ -1777,13 +1779,13 @@ read_tun_header(struct tuntap *tt, uint8_t *buf, int len)
  */
 #if !defined(TARGET_DARWIN)
 ssize_t
-write_tun(struct tuntap *tt, uint8_t *buf, int len)
+write_tun(const struct tuntap *tt, const uint8_t *buf, int len)
 {
     return write_tun_header(tt, buf, len);
 }
 
 ssize_t
-read_tun(struct tuntap *tt, uint8_t *buf, int len)
+read_tun(const struct tuntap *tt, uint8_t *buf, int len)
 {
     return read_tun_header(tt, buf, len);
 }
@@ -1799,7 +1801,7 @@ tun_name_is_fixed(const char *dev)
 
 #if defined(TARGET_LINUX) || defined(TARGET_FREEBSD)
 static bool
-tun_dco_enabled(struct tuntap *tt)
+tun_dco_enabled(const struct tuntap *tt)
 {
     return tt->backend_driver == DRIVER_DCO;
 }
@@ -2047,13 +2049,13 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 }
 
 ssize_t
-write_tun(struct tuntap *tt, uint8_t *buf, int len)
+write_tun(const struct tuntap *tt, const uint8_t *buf, int len)
 {
     return write(tt->fd, buf, len);
 }
 
 ssize_t
-read_tun(struct tuntap *tt, uint8_t *buf, int len)
+read_tun(const struct tuntap *tt, uint8_t *buf, int len)
 {
     return read(tt->fd, buf, len);
 }
@@ -2252,13 +2254,13 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 }
 
 ssize_t
-write_tun(struct tuntap *tt, uint8_t *buf, int len)
+write_tun(const struct tuntap *tt, const uint8_t *buf, int len)
 {
     return write(tt->fd, buf, len);
 }
 
 ssize_t
-read_tun(struct tuntap *tt, uint8_t *buf, int len)
+read_tun(const struct tuntap *tt, uint8_t *buf, int len)
 {
     return read(tt->fd, buf, len);
 }
@@ -2588,7 +2590,7 @@ solaris_error_close(struct tuntap *tt, const struct env_set *es, const char *act
 }
 
 ssize_t
-write_tun(struct tuntap *tt, uint8_t *buf, int len)
+write_tun(const struct tuntap *tt, const uint8_t *buf, int len)
 {
     struct strbuf sbuf;
     sbuf.len = len;
@@ -2597,7 +2599,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
 }
 
 ssize_t
-read_tun(struct tuntap *tt, uint8_t *buf, int len)
+read_tun(const struct tuntap *tt, uint8_t *buf, int len)
 {
     struct strbuf sbuf;
     int f = 0;
@@ -3095,7 +3097,7 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 }
 
 ssize_t
-write_tun(struct tuntap *tt, uint8_t *buf, int len)
+write_tun(const struct tuntap *tt, const uint8_t *buf, int len)
 {
     if (tt->backend_driver == DRIVER_UTUN)
     {
@@ -3108,7 +3110,7 @@ write_tun(struct tuntap *tt, uint8_t *buf, int len)
 }
 
 ssize_t
-read_tun(struct tuntap *tt, uint8_t *buf, int len)
+read_tun(const struct tuntap *tt, uint8_t *buf, int len)
 {
     if (tt->backend_driver == DRIVER_UTUN)
     {
@@ -3243,13 +3245,13 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 }
 
 ssize_t
-write_tun(struct tuntap *tt, uint8_t *buf, int len)
+write_tun(const struct tuntap *tt, const uint8_t *buf, int len)
 {
     return write(tt->fd, buf, len);
 }
 
 ssize_t
-read_tun(struct tuntap *tt, uint8_t *buf, int len)
+read_tun(const struct tuntap *tt, uint8_t *buf, int len)
 {
     return read(tt->fd, buf, len);
 }
@@ -3311,7 +3313,7 @@ tun_read_queue(struct tuntap *tt, int maxsize)
 }
 
 int
-tun_write_queue(struct tuntap *tt, struct buffer *buf)
+tun_write_queue(struct tuntap *tt, const struct buffer *buf)
 {
     if (tt->writes.iostate == IOSTATE_INITIAL)
     {
@@ -3365,7 +3367,7 @@ tun_write_queue(struct tuntap *tt, struct buffer *buf)
 }
 
 int
-tun_write_win32(struct tuntap *tt, struct buffer *buf)
+tun_write_win32(struct tuntap *tt, const struct buffer *buf)
 {
     int err = 0;
     int status = 0;
@@ -5370,7 +5372,7 @@ register_dns_service(const struct tuntap *tt)
 }
 
 void
-fork_register_dns_action(struct tuntap *tt)
+fork_register_dns_action(const struct tuntap *tt)
 {
     if (tt && tt->options.register_dns && tt->options.msg_channel)
     {
@@ -5460,7 +5462,7 @@ tuntap_get_version_info(const struct tuntap *tt)
 }
 
 static void
-tuntap_get_mtu(struct tuntap *tt)
+tuntap_get_mtu(const struct tuntap *tt)
 {
     ULONG mtu = 0;
     DWORD len;
@@ -6035,7 +6037,7 @@ tap_win_getinfo(const struct tuntap *tt, struct gc_arena *gc)
 }
 
 void
-tun_show_debug(struct tuntap *tt)
+tun_show_debug(const struct tuntap *tt)
 {
     if (tt->backend_driver == WINDOWS_DRIVER_TAP_WINDOWS6)
     {
@@ -6295,13 +6297,13 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 }
 
 ssize_t
-write_tun(struct tuntap *tt, uint8_t *buf, int len)
+write_tun(const struct tuntap *tt, const uint8_t *buf, int len)
 {
     return write(tt->fd, buf, len);
 }
 
 ssize_t
-read_tun(struct tuntap *tt, uint8_t *buf, int len)
+read_tun(const struct tuntap *tt, uint8_t *buf, int len)
 {
     return read(tt->fd, buf, len);
 }

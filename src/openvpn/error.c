@@ -623,7 +623,7 @@ set_check_status(unsigned int info_level, unsigned int verbose_level)
  * from the OS.
  */
 void
-x_check_status(ssize_t status, const char *description, struct link_socket *sock, struct tuntap *tt)
+x_check_status(ssize_t status, const char *description, struct link_socket *sock, const struct tuntap *tt)
 {
     const char *extended_msg = NULL;
 

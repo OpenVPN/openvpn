@@ -135,7 +135,7 @@ status_trigger(struct status_output *so)
 }
 
 void
-status_reset(struct status_output *so)
+status_reset(const struct status_output *so)
 {
     if (so && so->fd >= 0)
     {

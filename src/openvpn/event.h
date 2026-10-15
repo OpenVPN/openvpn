@@ -204,7 +204,7 @@ wait_signal(struct event_set *es, void *arg)
 #else /* ifdef _WIN32 */
 
 static inline void
-wait_signal(struct event_set *es, void *arg)
+wait_signal(const struct event_set *es, const void *arg)
 {
 }
 

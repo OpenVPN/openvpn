@@ -89,7 +89,7 @@ interval_test(struct interval *top)
 }
 
 static inline void
-interval_schedule_wakeup(struct interval *top, interval_t *wakeup)
+interval_schedule_wakeup(const struct interval *top, interval_t *wakeup)
 {
     const time_t local_now = now;
     interval_earliest_wakeup(wakeup, top->last_test_true + top->refresh, local_now);
@@ -214,7 +214,7 @@ event_timeout_modify_wakeup(struct event_timeout *et, interval_t n)
  * This function does not check if the timeout is actually valid.
  */
 static inline interval_t
-event_timeout_remaining(struct event_timeout *et)
+event_timeout_remaining(const struct event_timeout *et)
 {
     return (interval_t)((et->last + et->n) - now);
 }

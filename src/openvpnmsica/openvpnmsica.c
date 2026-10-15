@@ -77,7 +77,7 @@
  * @return ERROR_SUCCESS on success; An error code otherwise
  */
 static UINT
-setup_sequence(_In_ MSIHANDLE hInstall, _In_z_ LPCWSTR szProperty, _In_ struct msica_arg_seq *seq)
+setup_sequence(_In_ MSIHANDLE hInstall, _In_z_ LPCWSTR szProperty, _In_ const struct msica_arg_seq *seq)
 {
     UINT uiResult;
     LPWSTR szSequence = msica_arg_seq_join(seq);

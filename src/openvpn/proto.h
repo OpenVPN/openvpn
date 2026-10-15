@@ -248,7 +248,7 @@ struct ip_tcp_udp_hdr
  * and offset of IP header (via parameter).
  */
 static inline int
-get_tun_ip_ver(int tunnel_type, struct buffer *buf, int *ip_hdr_offset)
+get_tun_ip_ver(int tunnel_type, const struct buffer *buf, int *ip_hdr_offset)
 {
     int ip_ver = -1;
 

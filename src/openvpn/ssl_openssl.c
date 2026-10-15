@@ -129,7 +129,7 @@ tls_ctx_free(struct tls_root_ctx *ctx)
 }
 
 bool
-tls_ctx_initialised(struct tls_root_ctx *ctx)
+tls_ctx_initialised(const struct tls_root_ctx *ctx)
 {
     /* either this should be NULL or should be non-null and then have a
      * valid TLS ctx inside as well */
@@ -2025,7 +2025,7 @@ open_biofp(void)
 }
 
 static void
-bio_debug_data(const char *mode, BIO *bio, const uint8_t *buf, int len, const char *desc)
+bio_debug_data(const char *mode, const BIO *bio, const uint8_t *buf, int len, const char *desc)
 {
     struct gc_arena gc = gc_new();
     if (len > 0)
@@ -2039,7 +2039,7 @@ bio_debug_data(const char *mode, BIO *bio, const uint8_t *buf, int len, const ch
 }
 
 static void
-bio_debug_oc(const char *mode, BIO *bio)
+bio_debug_oc(const char *mode, const BIO *bio)
 {
     open_biofp();
     fprintf(biofp, "BIO %s time=%" PRIi64 " bio=" ptr_format "\n", mode, (int64_t)time(NULL),

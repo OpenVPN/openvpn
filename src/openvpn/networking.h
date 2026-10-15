@@ -44,7 +44,7 @@ typedef void *openvpn_net_iface_t;
  */
 #if !defined(ENABLE_IPROUTE)
 static inline int
-net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
+net_ctx_init(const struct context *c, openvpn_net_ctx_t *ctx)
 {
     (void)c;
     (void)ctx;
@@ -75,7 +75,7 @@ net_ctx_free(openvpn_net_ctx_t *ctx)
  *
  * @return          0 on success, a negative error code otherwise
  */
-int net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx);
+int net_ctx_init(const struct context *c, openvpn_net_ctx_t *ctx);
 
 /**
  * Release resources allocated by the internal garbage collector
@@ -102,7 +102,7 @@ void net_ctx_free(openvpn_net_ctx_t *ctx);
  * @return          0 on success, negative error code on error
  */
 int net_iface_new(openvpn_net_ctx_t *ctx, const openvpn_net_iface_t *iface, const char *type,
-                  void *arg);
+                  const void *arg);
 
 /**
  * Retrieve the interface type

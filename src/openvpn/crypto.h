@@ -414,7 +414,7 @@ void read_key_file(struct key2 *key2, const char *file, const unsigned int flags
  */
 int write_key_file(const int nkeys, const char *filename);
 
-bool check_key(struct key *key, const struct key_type *kt);
+bool check_key(const struct key *key, const struct key_type *kt);
 
 /**
  * Initialize a key_type structure with.
@@ -614,7 +614,7 @@ int64_t get_random(void);
 /** Print a cipher list entry */
 void print_cipher(const char *cipher);
 
-void test_crypto(struct crypto_options *co, struct frame *f);
+void test_crypto(struct crypto_options *co, const struct frame *f);
 
 
 /* key direction functions */

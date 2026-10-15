@@ -1105,7 +1105,7 @@ free_key_ctx_bi(struct key_ctx_bi *ctx)
 }
 
 static bool
-key_is_zero(struct key *key, const struct key_type *kt)
+key_is_zero(const struct key *key, const struct key_type *kt)
 {
     size_t cipher_length = cipher_kt_key_size(kt->cipher);
     for (size_t i = 0; i < cipher_length; ++i)
@@ -1123,7 +1123,7 @@ key_is_zero(struct key *key, const struct key_type *kt)
  * Make sure that cipher key is a valid key for current key_type.
  */
 bool
-check_key(struct key *key, const struct key_type *kt)
+check_key(const struct key *key, const struct key_type *kt)
 {
     if (cipher_defined(kt->cipher))
     {
@@ -1196,7 +1196,7 @@ key_parameters_from_key(struct key_parameters *key_params, const struct key *key
 }
 
 void
-test_crypto(struct crypto_options *co, struct frame *frame)
+test_crypto(struct crypto_options *co, const struct frame *frame)
 {
     int i, j;
     struct gc_arena gc = gc_new();

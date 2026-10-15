@@ -59,7 +59,7 @@ reliable_pid_in_range(const packet_id_type test, const packet_id_type base,
 
 /* check if a particular packet_id is present in ack */
 static inline bool
-reliable_ack_packet_id_present(struct reliable_ack *ack, packet_id_type pid)
+reliable_ack_packet_id_present(const struct reliable_ack *ack, packet_id_type pid)
 {
     for (int i = 0; i < ack->len; ++i)
     {
@@ -752,7 +752,7 @@ reliable_send_timeout(const struct reliable *rel)
  */
 
 void
-reliable_mark_active_incoming(struct reliable *rel, struct buffer *buf, packet_id_type pid,
+reliable_mark_active_incoming(struct reliable *rel, const struct buffer *buf, packet_id_type pid,
                               int opcode)
 {
     for (int i = 0; i < rel->size; ++i)
@@ -812,7 +812,7 @@ reliable_mark_active_outgoing(struct reliable *rel, struct buffer *buf, int opco
 
 /* delete a buffer previously activated by reliable_mark_active() */
 void
-reliable_mark_deleted(struct reliable *rel, struct buffer *buf)
+reliable_mark_deleted(struct reliable *rel, const struct buffer *buf)
 {
     for (int i = 0; i < rel->size; ++i)
     {

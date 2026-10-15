@@ -164,7 +164,7 @@ hash_add(struct hash *hash, const void *key, void *value, bool replace)
 }
 
 void
-hash_remove_by_value(struct hash *hash, void *value)
+hash_remove_by_value(struct hash *hash, const void *value)
 {
     struct hash_iterator hi;
     const struct hash_element *he;

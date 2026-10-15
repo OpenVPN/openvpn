@@ -430,7 +430,7 @@ send_auth_failed(struct context *c, const char *client_reason)
 }
 
 bool
-send_auth_pending_messages(struct tls_multi *tls_multi, struct tls_session *session,
+send_auth_pending_messages(const struct tls_multi *tls_multi, struct tls_session *session,
                            const char *extra, unsigned int timeout)
 {
     struct key_state *ks = &session->key[KS_PRIMARY];

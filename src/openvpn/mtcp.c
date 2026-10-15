@@ -67,7 +67,7 @@ multi_create_instance_tcp(struct multi_context *m, struct link_socket *sock)
 }
 
 bool
-multi_tcp_instance_specific_init(struct multi_context *m, struct multi_instance *mi)
+multi_tcp_instance_specific_init(const struct multi_context *m, struct multi_instance *mi)
 {
     /* buffer for queued TCP socket output packets */
     mi->tcp_link_out_deferred = mbuf_init(m->top.options.n_bcast_buf);

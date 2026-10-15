@@ -58,7 +58,7 @@
 
 #ifdef MULTI_DEBUG_EVENT_LOOP
 static const char *
-id(struct multi_instance *mi)
+id(const struct multi_instance *mi)
 {
     if (mi)
     {
@@ -1336,7 +1336,7 @@ multi_add_iroutes(struct multi_context *m, struct multi_instance *mi)
  * same common name.
  */
 static void
-multi_delete_dup(struct multi_context *m, struct multi_instance *new_mi)
+multi_delete_dup(struct multi_context *m, const struct multi_instance *new_mi)
 {
     if (new_mi)
     {
@@ -2281,7 +2281,7 @@ cleanup:
 }
 
 static bool
-multi_client_setup_dco_initial(struct multi_context *m, struct multi_instance *mi,
+multi_client_setup_dco_initial(const struct multi_context *m, struct multi_instance *mi,
                                struct gc_arena *gc)
 {
     if (!dco_enabled(&mi->context.options))
@@ -2479,7 +2479,7 @@ multi_client_connect_early_setup(struct multi_context *m, struct multi_instance 
 }
 
 static bool
-multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi, struct mroute_addr *real);
+multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi, const struct mroute_addr *real);
 
 /**
  * This sets up the client real address (outer tunnel addr) in the
@@ -3130,7 +3130,8 @@ multi_process_post(struct multi_context *m, struct multi_instance *mi, const uns
  * positive.
  */
 static bool
-multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi, struct mroute_addr *real)
+multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi,
+                              const struct mroute_addr *real)
 {
     struct hash *hash = m->hash;
     const uint64_t hv = hash_value(hash, real);
@@ -3289,7 +3290,7 @@ multi_signal_instance(struct multi_context *m, struct multi_instance *mi, const 
 
 #if defined(ENABLE_DCO)
 static void
-process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi, dco_context_t *dco)
+process_incoming_del_peer(struct multi_context *m, struct multi_instance *mi, const dco_context_t *dco)
 {
     const char *reason = "ovpn-dco: unknown reason";
     switch (dco->dco_del_peer_reason)
@@ -4342,7 +4343,7 @@ tunnel_server(struct context *top)
 
 /* Searches for the address and deletes it if it is owned by the multi_instance */
 static void
-multi_unlearn_addr(struct multi_context *m, struct multi_instance *mi, const struct mroute_addr *addr)
+multi_unlearn_addr(struct multi_context *m, const struct multi_instance *mi, const struct mroute_addr *addr)
 {
     struct hash_element *he;
     const uint64_t hv = hash_value(m->vhash, addr);
@@ -4377,7 +4378,7 @@ multi_unlearn_addr(struct multi_context *m, struct multi_instance *mi, const str
  * @param a     The new IPv4 address in network byte order
  */
 static void
-multi_unlearn_in_addr_t(struct multi_context *m, struct multi_instance *mi, in_addr_t a)
+multi_unlearn_in_addr_t(struct multi_context *m, const struct multi_instance *mi, in_addr_t a)
 {
     struct mroute_addr addr;
     CLEAR(addr);
@@ -4395,7 +4396,7 @@ multi_unlearn_in_addr_t(struct multi_context *m, struct multi_instance *mi, in_a
  * @param a6    The new IPv6 address
  */
 static void
-multi_unlearn_in6_addr(struct multi_context *m, struct multi_instance *mi, struct in6_addr a6)
+multi_unlearn_in6_addr(struct multi_context *m, const struct multi_instance *mi, struct in6_addr a6)
 {
     struct mroute_addr addr;
     CLEAR(addr);

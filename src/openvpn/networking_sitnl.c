@@ -1007,7 +1007,7 @@ sitnl_addr_add(sa_family_t af_family, const char *iface, const inet_address_t *a
 }
 
 static int
-sitnl_addr_del(sa_family_t af_family, const char *iface, inet_address_t *addr, int prefixlen)
+sitnl_addr_del(sa_family_t af_family, const char *iface, const inet_address_t *addr, int prefixlen)
 {
     int ifindex;
 
@@ -1250,8 +1250,8 @@ net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixl
 }
 
 static int
-sitnl_route_del(const char *iface, sa_family_t af_family, inet_address_t *dst, int prefixlen,
-                inet_address_t *gw, uint32_t table, int metric)
+sitnl_route_del(const char *iface, sa_family_t af_family, const inet_address_t *dst, int prefixlen,
+                const inet_address_t *gw, uint32_t table, int metric)
 {
     int ifindex = 0;
 
@@ -1328,7 +1328,7 @@ net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixl
 
 
 int
-net_iface_new(openvpn_net_ctx_t *ctx, const char *iface, const char *type, void *arg)
+net_iface_new(openvpn_net_ctx_t *ctx, const char *iface, const char *type, const void *arg)
 {
     struct sitnl_link_req req = {};
     int ret = -1;

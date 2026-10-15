@@ -898,8 +898,9 @@ del_route3(in_addr_t network, in_addr_t netmask, in_addr_t gateway, const struct
 }
 
 static bool
-add_bypass_routes(struct route_bypass *rb, in_addr_t gateway, const struct tuntap *tt,
-                  unsigned int flags, const struct route_gateway_info *rgi,
+add_bypass_routes(const struct route_bypass *rb, in_addr_t gateway,
+                  const struct tuntap *tt, unsigned int flags,
+                  const struct route_gateway_info *rgi,
                   const struct env_set *es, openvpn_net_ctx_t *ctx)
 {
     int ret = true;
@@ -916,8 +917,9 @@ add_bypass_routes(struct route_bypass *rb, in_addr_t gateway, const struct tunta
 }
 
 static void
-del_bypass_routes(struct route_bypass *rb, in_addr_t gateway, const struct tuntap *tt,
-                  unsigned int flags, const struct route_gateway_info *rgi,
+del_bypass_routes(const struct route_bypass *rb, in_addr_t gateway,
+                  const struct tuntap *tt, unsigned int flags,
+                  const struct route_gateway_info *rgi,
                   const struct env_set *es, openvpn_net_ctx_t *ctx)
 {
     int i;
@@ -3939,7 +3941,8 @@ get_bypass_addresses(struct route_bypass *rb, const unsigned int flags)
 #else  /* if defined(_WIN32) */
 
 static void
-get_bypass_addresses(struct route_bypass *rb, const unsigned int flags) /* PLATFORM-SPECIFIC */
+// cppcheck-suppress constParameterPointer ; stub
+get_bypass_addresses(struct route_bypass *rb, const unsigned int flags)
 {
 }
 

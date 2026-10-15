@@ -9,9 +9,6 @@
     <id>constParameterCallback</id>
   </suppress>
   <suppress>
-    <id>constParameterPointer</id>
-  </suppress>
-  <suppress>
     <id>unusedFunction</id>
   </suppress>
   <suppress>
@@ -64,6 +61,97 @@
   <suppress>
     <id>badBitmaskCheck</id>
     <fileName>tests/unit_tests/openvpn/test_pkt.c</fileName>
+  </suppress>
+  <!-- IGN: we use casts to remove const -->
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/buffer.h</fileName>
+    <symbolName>buf</symbolName>
+  </suppress>
+  <!-- FP: const silently removed due to pointer arithmetic -->
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/buffer.c</fileName>
+    <symbolName>buf</symbolName>
+  </suppress>
+  <!-- IGN: external -->
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>/usr/include/*</fileName>
+  </suppress>
+  <!-- IGN: too many false-positives due to stubs -->
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>tests/unit_tests/openvpn*/test_*</fileName>
+  </suppress>
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>tests/unit_tests/openvpn/mock_*</fileName>
+  </suppress>
+  <!-- IGN: too many false-positives due to library/platform-specific code -->
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/crypto*</fileName>
+  </suppress>
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/ssl_*</fileName>
+  </suppress>
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/dco*</fileName>
+  </suppress>
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/socket.*</fileName>
+  </suppress>
+  <!-- FP: const is only possible on some platforms
+       These might easily hide valid issues but we need to compromise
+       for developer sanity.
+       Inline suppressions are often too ugly since they need to go in
+       between our return type line and the function name...
+  -->
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/dns.c</fileName>
+    <symbolName>duri</symbolName>
+  </suppress>
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/error.c</fileName>
+    <symbolName>gc</symbolName>
+  </suppress>
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/forward.c</fileName>
+    <symbolName>dco</symbolName>
+  </suppress>
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/manage.c</fileName>
+    <symbolName>man</symbolName>
+  </suppress>
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/misc.c</fileName>
+    <symbolName>up</symbolName>
+  </suppress>
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/options.c</fileName>
+    <symbolName>options</symbolName>
+  </suppress>
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/tun.c</fileName>
+    <symbolName>gc</symbolName>
+  </suppress>
+  <!-- IGN: weird issue with MinGW debug build throwing -Werror=maybe-uninitialized
+       for no good reason -->
+  <suppress>
+    <id>constParameterPointer</id>
+    <fileName>src/openvpn/buffer.h</fileName>
+    <symbolName>p</symbolName>
   </suppress>
   <!-- FP: cppcheck seems to have wrong signature of DeviceIoControl() -->
   <suppress>

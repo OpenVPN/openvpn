@@ -803,7 +803,7 @@ close_port_share(void)
 }
 
 static void
-init_port_share(struct context *c)
+init_port_share(const struct context *c)
 {
     if (!port_share && (c->options.port_share_host && c->options.port_share_port))
     {
@@ -1245,7 +1245,7 @@ do_uid_gid_chroot(struct context *c, bool no_delay)
  * prepending to msg() output.
  */
 const char *
-format_common_name(struct context *c, struct gc_arena *gc)
+format_common_name(const struct context *c, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(256, gc);
     if (c->c2.tls_multi)
@@ -1731,7 +1731,7 @@ do_init_tun(struct context *c)
 
 
 static bool
-can_preserve_tun(struct tuntap *tt)
+can_preserve_tun(const struct tuntap *tt)
 {
     if (tt && tt->backend_driver == DRIVER_AFUNIX)
     {
@@ -1753,7 +1753,7 @@ can_preserve_tun(struct tuntap *tt)
  * @param c pointer to the connection context
  */
 static void
-add_wfp_block(struct context *c)
+add_wfp_block(const struct context *c)
 {
 #if defined(_WIN32)
     /* Fortify 'redirect-gateway block-local' with firewall rules? */
@@ -1779,7 +1779,7 @@ add_wfp_block(struct context *c)
  * @param adapter_index the VPN adapter index
  */
 static void
-del_wfp_block(struct context *c, unsigned long adapter_index)
+del_wfp_block(const struct context *c, unsigned long adapter_index)
 {
 #if defined(_WIN32)
     if (c->options.block_outside_dns || block_local_needed(c->c1.route_list))

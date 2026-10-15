@@ -137,7 +137,7 @@ void tls_ctx_free(struct tls_root_ctx *ctx);
  *
  * @return      true if the context is initialised, false if not.
  */
-bool tls_ctx_initialised(struct tls_root_ctx *ctx);
+bool tls_ctx_initialised(const struct tls_root_ctx *ctx);
 
 /**
  * Set any library specific options.

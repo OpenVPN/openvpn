@@ -127,7 +127,7 @@ typedef void OSSL_PROVIDER;
 /* Mimics the functions but only when the default context without
  * options is chosen */
 static inline const EVP_CIPHER *
-EVP_CIPHER_fetch(void *ctx, const char *algorithm, const char *properties)
+EVP_CIPHER_fetch(const void *ctx, const char *algorithm, const char *properties)
 {
     ASSERT(!ctx);
     ASSERT(!properties);
@@ -135,7 +135,7 @@ EVP_CIPHER_fetch(void *ctx, const char *algorithm, const char *properties)
 }
 
 static inline const EVP_MD *
-EVP_MD_fetch(void *ctx, const char *algorithm, const char *properties)
+EVP_MD_fetch(const void *ctx, const char *algorithm, const char *properties)
 {
     ASSERT(!ctx);
     ASSERT(!properties);

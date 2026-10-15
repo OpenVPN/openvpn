@@ -620,7 +620,7 @@ create_socket_udp(struct addrinfo *addrinfo, const unsigned int flags, bool opti
 }
 
 static void
-bind_local(struct link_socket *sock)
+bind_local(const struct link_socket *sock)
 {
     /* bind to local address/port */
     if (sock->bind_local)
@@ -916,8 +916,8 @@ socket_listen_accept(socket_descriptor_t sd, struct link_socket_actual *act,
 }
 
 void
-socket_bind(socket_descriptor_t sd, struct addrinfo *local, int ai_family, const char *prefix,
-            bool ipv6only)
+socket_bind(socket_descriptor_t sd, const struct addrinfo *local, int ai_family,
+            const char *prefix, bool ipv6only)
 {
     struct gc_arena gc = gc_new();
 
@@ -1125,8 +1125,8 @@ done:
  * such as TCP.
  */
 
-static void stream_buf_init(struct stream_buf *sb, struct buffer *buf, const unsigned int sockflags,
-                            const int proto);
+static void stream_buf_init(struct stream_buf *sb, const struct buffer *buf,
+                            const unsigned int sockflags, const int proto);
 
 static void stream_buf_close(struct stream_buf *sb);
 
@@ -1479,7 +1479,7 @@ link_socket_init_phase1(struct context *c, int sock_index, int mode)
 }
 
 static void
-phase2_set_socket_flags(struct link_socket *sock)
+phase2_set_socket_flags(const struct link_socket *sock)
 {
     /* TCP_NODELAY is enabled by default on every TCP socket; dco-win is
      * skipped as it manages its own socket */
@@ -2075,7 +2075,7 @@ stream_buf_reset(struct stream_buf *sb)
 }
 
 static void
-stream_buf_init(struct stream_buf *sb, struct buffer *buf, const unsigned int sockflags,
+stream_buf_init(struct stream_buf *sb, const struct buffer *buf, const unsigned int sockflags,
                 const int proto)
 {
     sb->buf_init = *buf;
@@ -2341,7 +2341,7 @@ link_socket_read_tcp(struct link_socket *sock, struct buffer *buf)
 #endif
 
 static ssize_t
-link_socket_read_udp_posix_recvmsg(struct link_socket *sock, struct buffer *buf,
+link_socket_read_udp_posix_recvmsg(const struct link_socket *sock, struct buffer *buf,
                                    struct link_socket_actual *from, socklen_t *fromlen)
 {
     struct iovec iov;
@@ -2413,7 +2413,7 @@ link_socket_read_udp_posix_recvmsg(struct link_socket *sock, struct buffer *buf,
 #endif /* if ENABLE_IP_PKTINFO */
 
 ssize_t
-link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
+link_socket_read_udp_posix(const struct link_socket *sock, struct buffer *buf,
                            struct link_socket_actual *from)
 {
     ssize_t recvlen;
@@ -2476,7 +2476,7 @@ link_socket_write_tcp(struct link_socket *sock, struct buffer *buf, struct link_
 #if ENABLE_IP_PKTINFO
 
 ssize_t
-link_socket_write_udp_posix_sendmsg(struct link_socket *sock, struct buffer *buf,
+link_socket_write_udp_posix_sendmsg(const struct link_socket *sock, const struct buffer *buf,
                                     struct link_socket_actual *to)
 {
     struct iovec iov;
@@ -2672,7 +2672,7 @@ socket_recv_queue(struct link_socket *sock, int maxsize)
 }
 
 int
-socket_send_queue(struct link_socket *sock, struct buffer *buf, const struct link_socket_actual *to)
+socket_send_queue(struct link_socket *sock, const struct buffer *buf, const struct link_socket_actual *to)
 {
     if (sock->writes.iostate == IOSTATE_INITIAL)
     {
@@ -2772,8 +2772,8 @@ socket_send_queue(struct link_socket *sock, struct buffer *buf, const struct lin
     return sock->writes.iostate;
 }
 
-void
-read_sockaddr_from_overlapped(struct overlapped_io *io, struct sockaddr *dst, int overlapped_ret)
+static void
+read_sockaddr_from_overlapped(const struct overlapped_io *io, struct sockaddr *dst, int overlapped_ret)
 {
     if (overlapped_ret >= 0 && io->addr_defined)
     {

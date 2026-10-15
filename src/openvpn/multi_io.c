@@ -159,7 +159,7 @@ multi_io_free(struct multi_io *multi_io)
  * a point-to-multipoint tunnel.
  */
 static unsigned int
-p2mp_iow_flags(const struct multi_context *m, struct link_socket *sock)
+p2mp_iow_flags(const struct multi_context *m, const struct link_socket *sock)
 {
     unsigned int flags = IOW_WAIT_SIGNAL;
 

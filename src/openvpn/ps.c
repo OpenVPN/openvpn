@@ -334,7 +334,7 @@ proxy_list_housekeeping(struct proxy_connection **list)
  * the proxy can determine true client origin.
  */
 static void
-journal_add(const char *journal_dir, struct proxy_connection *pc, struct proxy_connection *cp)
+journal_add(const char *journal_dir, const struct proxy_connection *pc, struct proxy_connection *cp)
 {
     struct openvpn_sockaddr from, to;
 
@@ -412,7 +412,7 @@ proxy_connection_io_requeue(struct proxy_connection *pc, const unsigned int rwfl
 static bool
 proxy_entry_new(struct proxy_connection **list, struct event_set *es,
                 const struct openvpn_sockaddr server_addr, const socket_descriptor_t sd_client,
-                struct buffer *initial_data, const char *journal_dir)
+                const struct buffer *initial_data, const char *journal_dir)
 {
     socket_descriptor_t sd_server;
     int status;
@@ -1015,7 +1015,7 @@ is_openvpn_protocol(const struct buffer *buf)
  * call.
  */
 void
-port_share_redirect(struct port_share *ps, const struct buffer *head, socket_descriptor_t sd)
+port_share_redirect(const struct port_share *ps, const struct buffer *head, socket_descriptor_t sd)
 {
     if (ps)
     {

@@ -35,7 +35,7 @@ struct context;
 
 void multi_tcp_dereference_instance(struct multi_io *multi_io, struct multi_instance *mi);
 
-bool multi_tcp_instance_specific_init(struct multi_context *m, struct multi_instance *mi);
+bool multi_tcp_instance_specific_init(const struct multi_context *m, struct multi_instance *mi);
 
 void multi_tcp_instance_specific_free(struct multi_instance *mi);
 

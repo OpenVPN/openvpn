@@ -65,7 +65,7 @@ void time_test(void);
 void update_now(const time_t system_time);
 
 extern time_t now_usec;
-void update_now_usec(struct timeval *tv);
+void update_now_usec(const struct timeval *tv);
 
 static inline int
 openvpn_gettimeofday(struct timeval *tv, void *tz)

@@ -83,7 +83,7 @@ socks_proxy_close(struct socks_proxy_info *sp)
 
 static bool
 socks_proxy_recv_char(uint8_t *c, const char *name, socket_descriptor_t sd,
-                      struct event_timeout *server_poll_timeout,
+                      const struct event_timeout *server_poll_timeout,
                       volatile int *signal_received)
 {
     fd_set reads;
@@ -98,8 +98,8 @@ socks_proxy_recv_char(uint8_t *c, const char *name, socket_descriptor_t sd,
 }
 
 static bool
-socks_username_password_auth(struct socks_proxy_info *p, socket_descriptor_t sd,
-                             struct event_timeout *server_poll_timeout,
+socks_username_password_auth(const struct socks_proxy_info *p, socket_descriptor_t sd,
+                             const struct event_timeout *server_poll_timeout,
                              volatile int *signal_received)
 {
     char to_send[516];
@@ -157,8 +157,8 @@ cleanup:
 }
 
 static bool
-socks_handshake(struct socks_proxy_info *p, socket_descriptor_t sd,
-                struct event_timeout *server_poll_timeout, volatile int *signal_received)
+socks_handshake(const struct socks_proxy_info *p, socket_descriptor_t sd,
+                const struct event_timeout *server_poll_timeout, volatile int *signal_received)
 {
     uint8_t buf[2];
     int len = 0;
@@ -232,7 +232,7 @@ socks_handshake(struct socks_proxy_info *p, socket_descriptor_t sd,
 
 static bool
 recv_socks_reply(socket_descriptor_t sd, struct openvpn_sockaddr *addr,
-                 struct event_timeout *server_poll_timeout, volatile int *signal_received)
+                 const struct event_timeout *server_poll_timeout, volatile int *signal_received)
 {
     uint8_t atyp = 0;
     int alen = 0;
@@ -334,11 +334,11 @@ port_from_servname(const char *servname)
 }
 
 void
-establish_socks_proxy_passthru(struct socks_proxy_info *p,
+establish_socks_proxy_passthru(const struct socks_proxy_info *p,
                                socket_descriptor_t sd, /* already open to proxy */
                                const char *host,       /* openvpn server remote */
                                const char *servname,   /* openvpn server port */
-                               struct event_timeout *server_poll_timeout,
+                               const struct event_timeout *server_poll_timeout,
                                struct signal_info *sig_info)
 {
     char buf[270];
@@ -392,10 +392,10 @@ error:
 }
 
 void
-establish_socks_proxy_udpassoc(struct socks_proxy_info *p,
+establish_socks_proxy_udpassoc(const struct socks_proxy_info *p,
                                socket_descriptor_t ctrl_sd, /* already open to proxy */
                                struct openvpn_sockaddr *relay_addr,
-                               struct event_timeout *server_poll_timeout,
+                               const struct event_timeout *server_poll_timeout,
                                struct signal_info *sig_info)
 {
     if (!socks_handshake(p, ctrl_sd, server_poll_timeout, &sig_info->signal_received))

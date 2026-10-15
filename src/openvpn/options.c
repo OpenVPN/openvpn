@@ -2429,7 +2429,7 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
 }
 
 static void
-options_postprocess_mutate_le(struct connection_entry *ce, struct local_entry *le, int mode)
+options_postprocess_mutate_le(const struct connection_entry *ce, struct local_entry *le, int mode)
 {
     /* use the global port if none is specified */
     if (!le->port)
@@ -3589,7 +3589,7 @@ atou(const char *str)
 static bool
 verify_permission(const char *name, const char *file, int line, const uint64_t type,
                   const uint64_t allowed, uint64_t *found, const msglvl_t msglevel,
-                  struct options *options, bool is_inline)
+                  const struct options *options, bool is_inline)
 {
     if (!(type & allowed))
     {
@@ -3665,7 +3665,7 @@ no_more_than_n_args(const msglvl_t msglevel, char *p[], const int max, const uns
 }
 
 static inline msglvl_t
-msglevel_forward_compatible(struct options *options, const msglvl_t msglevel)
+msglevel_forward_compatible(const struct options *options, const msglvl_t msglevel)
 {
     return options->forward_compatible ? M_WARN : msglevel;
 }
@@ -4154,7 +4154,7 @@ set_user_script(struct options *options, const char **script, const char *new_sc
 }
 
 static void
-show_compression_warning(struct compress_options *info)
+show_compression_warning(const struct compress_options *info)
 {
     if (comp_non_stub_enabled(info))
     {

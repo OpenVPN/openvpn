@@ -35,6 +35,6 @@ int16_t vlan_decapsulate(const struct context *c, struct buffer *buf);
 
 bool vlan_is_tagged(const struct buffer *buf);
 
-void vlan_process_outgoing_tun(struct multi_context *m, struct multi_instance *mi);
+void vlan_process_outgoing_tun(const struct multi_context *m, struct multi_instance *mi);
 
 #endif /* VLAN_H */

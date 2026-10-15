@@ -227,7 +227,7 @@ void overlapped_io_init(struct overlapped_io *o, const struct frame *frame, BOOL
 void overlapped_io_close(struct overlapped_io *o);
 
 static inline bool
-overlapped_io_active(struct overlapped_io *o)
+overlapped_io_active(const struct overlapped_io *o)
 {
     return o->iostate == IOSTATE_QUEUED || o->iostate == IOSTATE_IMMEDIATE_RETURN;
 }

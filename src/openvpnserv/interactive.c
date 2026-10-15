@@ -522,7 +522,7 @@ FreeStartupData(STARTUP_DATA *sud)
 
 
 static SOCKADDR_INET
-sockaddr_inet(short family, inet_address_t *addr)
+sockaddr_inet(short family, const inet_address_t *addr)
 {
     SOCKADDR_INET sa_inet;
     ZeroMemory(&sa_inet, sizeof(sa_inet));

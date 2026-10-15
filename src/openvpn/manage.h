@@ -368,7 +368,7 @@ bool management_query_user_pass(struct management *man, struct user_pass *up, co
                                 const unsigned int flags, const char *static_challenge);
 
 #ifdef TARGET_ANDROID
-bool management_android_control(struct management *man, const char *command, const char *msg);
+bool management_android_control(const struct management *man, const char *command, const char *msg);
 
 #define ANDROID_KEEP_OLD_TUN      1
 #define ANDROID_OPEN_BEFORE_CLOSE 2
@@ -382,7 +382,7 @@ bool management_hold(struct management *man, int holdtime);
 
 void management_event_loop_n_seconds(struct management *man, int sec);
 
-void management_up_down(struct management *man, const char *updown, const struct env_set *es);
+void management_up_down(const struct management *man, const char *updown, const struct env_set *es);
 
 void management_notify(const char *severity, const char *type,
                        const char *text);
@@ -482,7 +482,7 @@ void management_echo(struct management *man, const char *string, const bool pull
  * OpenVPN calls here to indicate a password failure
  */
 
-void management_auth_failure(struct management *man, const char *type, const char *reason);
+void management_auth_failure(const struct management *man, const char *type, const char *reason);
 
 /*
  * Echo an authentication token to management interface

@@ -187,7 +187,7 @@ tls_verify(struct openvpn_plugin_args_func_in const *args)
 }
 
 static void
-file_store(char *file, char *content)
+file_store(const char *file, const char *content)
 {
     FILE *f;
     if (!(f = fopen(file, "w+")))
@@ -203,7 +203,7 @@ static void
 server_store(struct openvpn_plugin_args_func_in const *args)
 {
     struct plugin *plugin = (struct plugin *)args->handle;
-    struct session *sess = (struct session *)args->per_client_context;
+    const struct session *sess = args->per_client_context;
 
     char file[MAXPATH];
     snprintf(file, sizeof(file) - 1, "/tmp/openvpn_sso_%s", sess->key);
@@ -215,7 +215,7 @@ static void
 client_store(struct openvpn_plugin_args_func_in const *args)
 {
     struct plugin *plugin = (struct plugin *)args->handle;
-    struct session *sess = (struct session *)args->per_client_context;
+    const struct session *sess = args->per_client_context;
 
     char *file = "/tmp/openvpn_sso_user";
     ovpn_note("app session file: %s", file);

@@ -69,7 +69,7 @@ struct status_output *status_open(const char *filename, const int refresh_freq, 
 
 bool status_trigger(struct status_output *so);
 
-void status_reset(struct status_output *so);
+void status_reset(const struct status_output *so);
 
 void status_flush(struct status_output *so);
 

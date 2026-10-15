@@ -100,7 +100,7 @@ siphash_openssl_init(size_t hash_size)
 }
 
 bool
-siphash_openssl_available(void *sip_context)
+siphash_openssl_available(const void *sip_context)
 {
     const struct siphash_context *sip = sip_context;
 
@@ -117,6 +117,8 @@ siphash_openssl_uninit(void *sip_context)
 }
 #else
 /* Do avoid a lot more ifdefs in the test we put dummy functions here */
+// cppcheck-suppress-begin constParameterPointer ; stubs
+
 int
 siphash_openssl(void *sip_context, const void *in, const size_t inlen,
                 const void *k, uint8_t *out, const size_t outlen)
@@ -125,7 +127,7 @@ siphash_openssl(void *sip_context, const void *in, const size_t inlen,
 }
 
 bool
-siphash_openssl_available(void *sip_context)
+siphash_openssl_available(const void *sip_context)
 {
     return false;
 }
@@ -141,5 +143,6 @@ siphash_openssl_uninit(void *sip_context)
 {
 }
 
+// cppcheck-suppress-end constParameterPointer
 
 #endif /* if defined(ENABLE_CRYPTO_OPENSSL) && OPENSSL_VERSION_NUMBER >= 0x30000000L */

@@ -126,7 +126,7 @@ void process_io(struct context *c, struct link_socket *sock);
  */
 void encrypt_sign(struct context *c, bool comp_frag);
 
-int get_server_poll_remaining_time(struct event_timeout *server_poll_timeout);
+int get_server_poll_remaining_time(const struct event_timeout *server_poll_timeout);
 
 /**********************************************************************/
 /**
@@ -177,7 +177,7 @@ void read_incoming_link(struct context *c, struct link_socket *sock);
  *
  * @return true if packet is authenticated, false otherwise.
  */
-bool process_incoming_link_part1(struct context *c, struct link_socket_info *lsi, bool floated);
+bool process_incoming_link_part1(struct context *c, const struct link_socket_info *lsi, bool floated);
 
 /**
  * Continues processing a packet read from the external network interface.

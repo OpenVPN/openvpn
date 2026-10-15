@@ -89,7 +89,7 @@ bool establish_http_proxy_passthru(struct http_proxy_info *p,
                                    socket_descriptor_t sd, /* already open to proxy */
                                    const char *host,       /* openvpn server remote */
                                    const char *port,       /* openvpn server port */
-                                   struct event_timeout *server_poll_timeout,
+                                   const struct event_timeout *server_poll_timeout,
                                    struct buffer *lookahead, struct signal_info *sig_info);
 
 uint8_t *make_base64_string2(const uint8_t *str, int str_len, struct gc_arena *gc);

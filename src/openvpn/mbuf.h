@@ -75,7 +75,7 @@ void mbuf_add_item(struct mbuf_set *ms, const struct mbuf_item *item);
 
 bool mbuf_extract_item(struct mbuf_set *ms, struct mbuf_item *item);
 
-void mbuf_dereference_instance(struct mbuf_set *ms, struct multi_instance *mi);
+void mbuf_dereference_instance(struct mbuf_set *ms, const struct multi_instance *mi);
 
 static inline bool
 mbuf_defined(const struct mbuf_set *ms)

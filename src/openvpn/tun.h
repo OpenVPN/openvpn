@@ -272,9 +272,9 @@ void tun_open_device(struct tuntap *tt, const char *dev_node, const char **devic
 
 void close_tun_handle(struct tuntap *tt);
 
-ssize_t write_tun(struct tuntap *tt, uint8_t *buf, int len);
+ssize_t write_tun(const struct tuntap *tt, const uint8_t *buf, int len);
 
-ssize_t read_tun(struct tuntap *tt, uint8_t *buf, int len);
+ssize_t read_tun(const struct tuntap *tt, uint8_t *buf, int len);
 
 #ifdef ENABLE_FEATURE_TUN_PERSIST
 void tuncfg(const char *dev, const char *dev_type, const char *dev_node, int persist_mode,
@@ -293,7 +293,7 @@ struct tuntap *init_tun(const char *dev,                          /* --dev optio
                         const char *ifconfig_ipv6_local_parm,     /* --ifconfig parm 1 / IPv6 */
                         int ifconfig_ipv6_netbits_parm,           /* --ifconfig parm 1 / bits */
                         const char *ifconfig_ipv6_remote_parm,    /* --ifconfig parm 2 / IPv6 */
-                        struct addrinfo *local_public, struct addrinfo *remote_public,
+                        const struct addrinfo *local_public, const struct addrinfo *remote_public,
                         const bool strict_warn, struct env_set *es, openvpn_net_ctx_t *ctx,
                         struct tuntap *tt);
 
@@ -320,7 +320,7 @@ void do_ifconfig(struct tuntap *tt, const char *ifname, int tun_mtu, const struc
  * @param tt    the tuntap interface context
  * @param ctx   the networking API opaque context
  */
-void undo_ifconfig(struct tuntap *tt, openvpn_net_ctx_t *ctx);
+void undo_ifconfig(const struct tuntap *tt, openvpn_net_ctx_t *ctx);
 
 bool is_dev_type(const char *dev, const char *dev_type, const char *match_type);
 
@@ -351,7 +351,7 @@ const char *print_tun_backend_driver(enum tun_driver_type driver);
 #define IFCONFIG_DEFAULT IFCONFIG_AFTER_TUN_OPEN
 
 static inline int
-ifconfig_order(struct tuntap *tt)
+ifconfig_order(const struct tuntap *tt)
 {
     if (tt->backend_driver == DRIVER_AFUNIX)
     {
@@ -381,7 +381,7 @@ ifconfig_order(struct tuntap *tt)
 #define ROUTE_ORDER_DEFAULT ROUTE_AFTER_TUN
 
 static inline int
-route_order(struct tuntap *tt)
+route_order(const struct tuntap *tt)
 {
     if (tt->backend_driver == DRIVER_AFUNIX)
     {
@@ -454,13 +454,13 @@ void show_valid_win32_tun_subnets(void);
 
 const char *tap_win_getinfo(const struct tuntap *tt, struct gc_arena *gc);
 
-void tun_show_debug(struct tuntap *tt);
+void tun_show_debug(const struct tuntap *tt);
 
 bool dhcp_release_by_adapter_index(const DWORD adapter_index);
 
 bool dhcp_renew_by_adapter_index(const DWORD adapter_index);
 
-void fork_register_dns_action(struct tuntap *tt);
+void fork_register_dns_action(const struct tuntap *tt);
 
 void ipconfig_register_dns(const struct env_set *es);
 
@@ -470,7 +470,7 @@ bool tun_standby(struct tuntap *tt);
 
 int tun_read_queue(struct tuntap *tt, int maxsize);
 
-int tun_write_queue(struct tuntap *tt, struct buffer *buf);
+int tun_write_queue(struct tuntap *tt, const struct buffer *buf);
 
 static inline bool
 tuntap_stop(int status)
@@ -499,7 +499,7 @@ tuntap_abort(int status)
     return false;
 }
 
-int tun_write_win32(struct tuntap *tt, struct buffer *buf);
+int tun_write_win32(struct tuntap *tt, const struct buffer *buf);
 
 static inline bool
 is_ip_packet_valid(const struct buffer *buf)
@@ -529,18 +529,20 @@ is_ip_packet_valid(const struct buffer *buf)
 }
 
 static inline bool
-tuntap_is_dco_win(struct tuntap *tt)
+tuntap_is_dco_win(const struct tuntap *tt)
 {
     return tt && tt->backend_driver == DRIVER_DCO;
 }
 
 static inline bool
-tuntap_is_dco_win_timeout(struct tuntap *tt, ssize_t status)
+tuntap_is_dco_win_timeout(const struct tuntap *tt, ssize_t status)
 {
     return tuntap_is_dco_win(tt) && (status < 0) && (openvpn_errno() == ERROR_NETNAME_DELETED);
 }
 
 #else  /* ifdef _WIN32 */
+
+// cppcheck-suppress-begin constParameterPointer ; stubs
 
 static inline bool
 tuntap_stop(int status)
@@ -565,18 +567,19 @@ tun_standby(struct tuntap *tt)
     return true;
 }
 
-
 static inline bool
-tuntap_is_dco_win(struct tuntap *tt)
+tuntap_is_dco_win(const struct tuntap *tt)
 {
     return false;
 }
 
 static inline bool
-tuntap_is_dco_win_timeout(struct tuntap *tt, ssize_t status)
+tuntap_is_dco_win_timeout(const struct tuntap *tt, ssize_t status)
 {
     return false;
 }
+
+// cppcheck-suppress-end constParameterPointer
 
 #endif /* ifdef _WIN32 */
 

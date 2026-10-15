@@ -529,7 +529,7 @@ void ungenerate_prefix(struct multi_instance *mi);
  */
 
 static inline void
-set_prefix(struct multi_instance *mi)
+set_prefix(const struct multi_instance *mi)
 {
 #ifdef MULTI_DEBUG_EVENT_LOOP
     if (mi->msg_prefix[0])

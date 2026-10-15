@@ -36,7 +36,7 @@
 struct management *management; /* GLOBAL */
 
 void
-management_auth_failure(struct management *man, const char *type, const char *reason)
+management_auth_failure(const struct management *man, const char *type, const char *reason)
 {
     ASSERT(false);
 }

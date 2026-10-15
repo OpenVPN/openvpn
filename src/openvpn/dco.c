@@ -573,7 +573,7 @@ dco_remove_peer(struct context *c)
 }
 
 static bool
-dco_multi_get_localaddr(struct multi_context *m, struct multi_instance *mi,
+dco_multi_get_localaddr(const struct multi_context *m, const struct multi_instance *mi,
                         struct sockaddr_storage *local)
 {
 #if ENABLE_IP_PKTINFO
@@ -585,7 +585,7 @@ dco_multi_get_localaddr(struct multi_context *m, struct multi_instance *mi,
         return false;
     }
 
-    struct link_socket_actual *actual = &c->c2.link_socket_infos[0]->lsa->actual;
+    const struct link_socket_actual *actual = &c->c2.link_socket_infos[0]->lsa->actual;
 
     switch (actual->dest.addr.sa.sa_family)
     {
@@ -623,7 +623,7 @@ dco_multi_get_localaddr(struct multi_context *m, struct multi_instance *mi,
 }
 
 int
-dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
+dco_multi_add_new_peer(const struct multi_context *m, struct multi_instance *mi)
 {
     const struct context *c = &mi->context;
 
@@ -677,7 +677,7 @@ dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
 }
 
 void
-dco_install_iroute(struct multi_context *m, struct multi_instance *mi, struct mroute_addr *addr)
+dco_install_iroute(struct multi_context *m, struct multi_instance *mi, const struct mroute_addr *addr)
 {
 #if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(_WIN32)
     if (!dco_enabled(&m->top.options))

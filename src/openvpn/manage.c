@@ -330,7 +330,7 @@ report_command_status(const bool status, const char *command)
 }
 
 static void
-man_delete_unix_socket(struct management *man)
+man_delete_unix_socket(const struct management *man)
 {
 #if UNIX_SOCK_SUPPORT
     if ((man->settings.flags & (MF_UNIX_SOCK | MF_CONNECT_AS_CLIENT)) == MF_UNIX_SOCK)
@@ -676,7 +676,7 @@ man_kill(struct management *man, const char *victim)
  * for the log and echo commands.
  */
 static void
-man_history(struct management *man, const char *parm, const char *type, struct log_history *log,
+man_history(struct management *man, const char *parm, const char *type, const struct log_history *log,
             bool *realtime, const unsigned int lep_flags)
 {
     struct gc_arena gc = gc_new();
@@ -852,7 +852,7 @@ man_forget_passwords(void)
 }
 
 static void
-man_net(struct management *man)
+man_net(const struct management *man)
 {
     if (man->persist.callback.show_net)
     {
@@ -888,7 +888,7 @@ man_send_cc_message(struct management *man, const char *message, const char *par
 #ifdef ENABLE_PKCS11
 
 static void
-man_pkcs11_id_count(struct management *man)
+man_pkcs11_id_count(const struct management *man)
 {
     msg(M_CLIENT, ">PKCS11ID-COUNT:%d", pkcs11_management_id_count());
 }
@@ -2366,7 +2366,7 @@ man_recv_with_fd(int fd, void *ptr, size_t nbytes, int flags, int *recvfd)
  * the route/ifconfig/open tun command.   See doc/android.txt for details.
  */
 bool
-management_android_control(struct management *man, const char *command, const char *msg)
+management_android_control(const struct management *man, const char *command, const char *msg)
 {
     if (!man)
     {
@@ -3013,7 +3013,7 @@ man_output_extra_env(struct management *man, const char *prefix)
 }
 
 void
-management_up_down(struct management *man, const char *updown, const struct env_set *es)
+management_up_down(const struct management *man, const char *updown, const struct env_set *es)
 {
     if (man->settings.flags & MF_UP_DOWN)
     {
@@ -3208,7 +3208,7 @@ management_pre_tunnel_close(struct management *man)
 }
 
 void
-management_auth_failure(struct management *man, const char *type, const char *reason)
+management_auth_failure(const struct management *man, const char *type, const char *reason)
 {
     if (reason)
     {

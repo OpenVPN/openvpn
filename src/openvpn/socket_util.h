@@ -439,7 +439,7 @@ addr_match_proto(const struct openvpn_sockaddr *a1, const struct openvpn_sockadd
 
 
 static inline bool
-addrlist_match_proto(const struct openvpn_sockaddr *a1, struct addrinfo *addr_list, const int proto)
+addrlist_match_proto(const struct openvpn_sockaddr *a1, const struct addrinfo *addr_list, const int proto)
 {
     return link_socket_proto_connection_oriented(proto) ? addrlist_match(a1, addr_list)
                                                         : addrlist_port_match(a1, addr_list);

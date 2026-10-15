@@ -1092,7 +1092,7 @@ dco_win_del_iroute_ipv6(dco_context_t *dco, struct in6_addr dst, unsigned int ne
 }
 
 bool
-dco_supports_epoch_data(struct context *c)
+dco_supports_epoch_data(const struct context *c)
 {
     OVPN_VERSION ver = { 0 };
     return dco_get_version(&ver) && ((ver.Major == 2 && ver.Minor >= 8) || (ver.Major > 2));

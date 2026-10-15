@@ -66,7 +66,7 @@ update_now(const time_t system_time)
 }
 
 void
-update_now_usec(struct timeval *tv)
+update_now_usec(const struct timeval *tv)
 {
     const time_t last = now;
     update_now(tv->tv_sec);

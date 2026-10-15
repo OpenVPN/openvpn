@@ -527,8 +527,9 @@ http_proxy_close(struct http_proxy_info *hp)
 }
 
 static bool
-add_proxy_headers(struct http_proxy_info *p, socket_descriptor_t sd, /* already open to proxy */
-                  const char *host                                   /* openvpn server remote */
+add_proxy_headers(const struct http_proxy_info *p,
+                  socket_descriptor_t sd, /* already open to proxy */
+                  const char *host        /* openvpn server remote */
 )
 {
     char buf[512];
@@ -597,8 +598,8 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
                               socket_descriptor_t sd, /* already open to proxy */
                               const char *host,       /* openvpn server remote */
                               const char *port,       /* openvpn server port */
-                              struct event_timeout *server_poll_timeout, struct buffer *lookahead,
-                              struct signal_info *sig_info)
+                              const struct event_timeout *server_poll_timeout,
+                              struct buffer *lookahead, struct signal_info *sig_info)
 {
     struct gc_arena gc = gc_new();
     char buf[512];

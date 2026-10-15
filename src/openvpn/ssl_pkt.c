@@ -119,7 +119,7 @@ swap_hmac(struct buffer *buf, const struct crypto_options *co, bool incoming)
  */
 static void
 tls_wrap_control(struct tls_wrap_ctx *ctx, uint8_t header, struct buffer *buf,
-                 struct session_id *session_id)
+                 const struct session_id *session_id)
 {
     if (ctx->mode == TLS_WRAP_AUTH || ctx->mode == TLS_WRAP_NONE)
     {
@@ -403,9 +403,9 @@ error:
 
 
 struct buffer
-tls_reset_standalone(struct tls_wrap_ctx *ctx, struct tls_auth_standalone *tas,
-                     struct session_id *own_sid, struct session_id *remote_sid, uint8_t header,
-                     bool request_resend_wkc)
+tls_reset_standalone(struct tls_wrap_ctx *ctx, const struct tls_auth_standalone *tas,
+                     const struct session_id *own_sid, const struct session_id *remote_sid,
+                     uint8_t header, bool request_resend_wkc)
 {
     /* Copy buffer here to point at the same data but allow tls_wrap_control
      * to potentially change buf to point to another buffer without
@@ -490,7 +490,7 @@ calculate_session_id_hmac(struct session_id client_sid, const struct openvpn_soc
 bool
 check_session_hmac_and_pkt_id(struct tls_pre_decrypt_state *state,
                               const struct openvpn_sockaddr *from,
-                              uint8_t *key,
+                              const uint8_t *key,
                               int handwindow,
                               bool pkt_is_ack)
 {

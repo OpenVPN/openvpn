@@ -1140,7 +1140,7 @@ static time_t cache_intervals[] = { 0, 0, 0, 0, 0, 1, 1, 2, 2, 4, 8 };
  * cache.
  */
 static bool
-tls_authentication_status_use_cache(struct tls_multi *multi)
+tls_authentication_status_use_cache(const struct tls_multi *multi)
 {
     unsigned int idx = min_uint(multi->tas_cache_num_updates, SIZE(cache_intervals) - 1);
     time_t latency = cache_intervals[idx];
@@ -1284,7 +1284,7 @@ tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, con
  * Check if the script/plugin left a message in the auth failed message
  * file and relay it to the user */
 static void
-check_for_client_reason(struct tls_multi *multi, struct auth_deferred_status *status)
+check_for_client_reason(struct tls_multi *multi, const struct auth_deferred_status *status)
 {
     struct gc_arena gc = gc_new();
     const char *msg = key_state_check_auth_failed_message_file(status, &gc);
@@ -1553,7 +1553,7 @@ verify_user_pass_management(struct tls_session *session, const struct user_pass 
 #endif /* ifdef ENABLE_MANAGEMENT */
 
 static bool
-set_verify_user_pass_env(struct user_pass *up, struct tls_multi *multi, struct tls_session *session)
+set_verify_user_pass_env(const struct user_pass *up, struct tls_multi *multi, struct tls_session *session)
 {
     /* Is username defined? */
     if ((session->opt->ssl_flags & SSLF_AUTH_USER_PASS_OPTIONAL) || strlen(up->username))
@@ -1581,7 +1581,7 @@ set_verify_user_pass_env(struct user_pass *up, struct tls_multi *multi, struct t
 }
 
 bool
-ssl_verify_username_length(struct tls_session *session, const char *username)
+ssl_verify_username_length(const struct tls_session *session, const char *username)
 {
     if ((session->opt->ssl_flags & SSLF_USERNAME_AS_COMMON_NAME)
         && strlen(username) > TLS_USERNAME_LEN)

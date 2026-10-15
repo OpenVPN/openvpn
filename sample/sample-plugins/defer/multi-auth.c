@@ -255,7 +255,7 @@ error:
 }
 
 static bool
-do_auth_user_pass(struct plugin_context *context, const char *username, const char *password)
+do_auth_user_pass(const struct plugin_context *context, const char *username, const char *password)
 {
     plog(context, PLOG_NOTE, "expect_user=%s, received_user=%s, expect_passw=%s, received_passw=%s",
          np(context->test_valid_user), np(username), np(context->test_valid_pass), np(password));
@@ -279,7 +279,7 @@ do_auth_user_pass(struct plugin_context *context, const char *username, const ch
 
 
 static int
-auth_user_pass_verify(struct plugin_context *context, struct plugin_per_client_context *pcc,
+auth_user_pass_verify(const struct plugin_context *context, struct plugin_per_client_context *pcc,
                       const char *argv[], const char *envp[])
 {
     /* get username/password from envp string array */

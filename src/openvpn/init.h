@@ -91,7 +91,7 @@ bool do_update(struct context *c, uint64_t option_types_found);
 
 uint64_t pull_permission_mask(const struct context *c);
 
-const char *format_common_name(struct context *c, struct gc_arena *gc);
+const char *format_common_name(const struct context *c, struct gc_arena *gc);
 
 void reset_coarse_timers(struct context *c);
 

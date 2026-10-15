@@ -1920,7 +1920,7 @@ void x_gc_freespecial(struct gc_arena *a);
  * @param a  The arena to test.
  */
 static inline bool
-gc_defined(struct gc_arena *a)
+gc_defined(const struct gc_arena *a)
 {
     return a->list != NULL;
 }

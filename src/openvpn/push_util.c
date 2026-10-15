@@ -222,7 +222,7 @@ send_single_push_update(struct multi_context *m, struct multi_instance *mi, stru
 
 /* Return true if the client supports push-update */
 static bool
-support_push_update(struct multi_instance *mi)
+support_push_update(const struct multi_instance *mi)
 {
     ASSERT(mi->context.c2.tls_multi);
     const unsigned int iv_proto_peer = extract_iv_proto(mi->context.c2.tls_multi->peer_info);

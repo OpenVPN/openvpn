@@ -202,7 +202,7 @@ void verify_user_pass(struct user_pass *up, struct tls_multi *multi, struct tls_
  * @return              true if name is under limit or username-as-common-name
  *                      is not active
  */
-bool ssl_verify_username_length(struct tls_session *session, const char *username);
+bool ssl_verify_username_length(const struct tls_session *session, const char *username);
 
 /**
  * Runs the --client-crresponse script if one is defined.
@@ -275,7 +275,7 @@ bool tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id
 void auth_set_client_reason(struct tls_multi *multi, const char *client_reason);
 
 static inline const char *
-tls_client_reason(struct tls_multi *multi)
+tls_client_reason(const struct tls_multi *multi)
 {
     return multi->client_reason;
 }

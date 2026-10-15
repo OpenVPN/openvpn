@@ -258,7 +258,7 @@ in_src_get(const struct in_src *is, char *line, const int size)
 }
 
 static char *
-read_inline_file(struct in_src *is, const char *close_tag, int *num_lines, struct gc_arena *gc)
+read_inline_file(const struct in_src *is, const char *close_tag, int *num_lines, struct gc_arena *gc)
 {
     char line[OPTION_LINE_SIZE];
     struct buffer buf = alloc_buf(8 * OPTION_LINE_SIZE);
@@ -302,7 +302,7 @@ read_inline_file(struct in_src *is, const char *close_tag, int *num_lines, struc
 }
 
 static int
-check_inline_file(struct in_src *is, char *p[], struct gc_arena *gc)
+check_inline_file(const struct in_src *is, char *p[], struct gc_arena *gc)
 {
     int num_inline_lines = 0;
 

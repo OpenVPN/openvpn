@@ -1012,7 +1012,7 @@ se_ctl(struct event_set *es, event_t event, unsigned int rwflags, void *arg)
 }
 
 static int
-se_wait_return(struct se_set *ses, fd_set *read, fd_set *write, struct event_set_return *out,
+se_wait_return(struct se_set *ses, const fd_set *read, const fd_set *write, struct event_set_return *out,
                int outlen)
 {
     int i, j = 0;

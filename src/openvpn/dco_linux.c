@@ -104,7 +104,7 @@ err_sock:
 }
 
 static struct nl_msg *
-ovpn_dco_nlmsg_create(dco_context_t *dco, uint8_t cmd)
+ovpn_dco_nlmsg_create(const dco_context_t *dco, uint8_t cmd)
 {
     struct nl_msg *nl_msg = nlmsg_alloc();
     if (!nl_msg)
@@ -842,7 +842,7 @@ ovpn_parse_float_addr(struct nlattr **attrs, struct sockaddr *out)
 
 /* libnl < 3.11.0 does not implement nla_get_uint() */
 static uint64_t
-ovpn_nla_get_uint(struct nlattr *attr)
+ovpn_nla_get_uint(const struct nlattr *attr)
 {
     if (nla_len(attr) == sizeof(uint32_t))
     {
@@ -954,7 +954,7 @@ ovpn_handle_peer(dco_context_t *dco, struct nlattr *attrs[])
 }
 
 static bool
-ovpn_iface_check(dco_context_t *dco, struct nlattr *attrs[])
+ovpn_iface_check(const dco_context_t *dco, struct nlattr *attrs[])
 {
     /* we must know which interface this message is referring to in order to
      * avoid mixing messages for other instances
@@ -1381,7 +1381,7 @@ dco_get_supported_ciphers(void)
 }
 
 bool
-dco_supports_epoch_data(struct context *c)
+dco_supports_epoch_data(const struct context *c)
 {
     return false;
 }

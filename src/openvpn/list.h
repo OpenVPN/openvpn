@@ -78,7 +78,7 @@ struct hash_element *hash_lookup_fast(struct hash *hash, struct hash_bucket *buc
 
 bool hash_remove_fast(struct hash *hash, struct hash_bucket *bucket, const void *key, uint64_t hv);
 
-void hash_remove_by_value(struct hash *hash, void *value);
+void hash_remove_by_value(struct hash *hash, const void *value);
 
 struct hash_iterator
 {

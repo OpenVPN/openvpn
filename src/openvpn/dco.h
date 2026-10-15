@@ -204,7 +204,7 @@ void dco_remove_peer(struct context *c);
  * @param mi        the client instance
  * @return          0 on success or a negative error code otherwise
  */
-int dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi);
+int dco_multi_add_new_peer(const struct multi_context *m, struct multi_instance *mi);
 
 /**
  * Install an iroute in DCO, which means adding a route to the system routing
@@ -215,7 +215,7 @@ int dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi);
  * @param addr      the route to add
  */
 void dco_install_iroute(struct multi_context *m, struct multi_instance *mi,
-                        struct mroute_addr *addr);
+                        const struct mroute_addr *addr);
 
 /**
  * Remove all routes added through the specified client
@@ -253,7 +253,7 @@ const char *dco_get_supported_ciphers(void);
  * a 64 bit packet counter and AEAD tag at the end.
  */
 bool
-dco_supports_epoch_data(struct context *c);
+dco_supports_epoch_data(const struct context *c);
 #else  /* if defined(ENABLE_DCO) */
 
 typedef void *dco_context_t;
@@ -350,7 +350,7 @@ dco_remove_peer(struct context *c)
 }
 
 static inline int
-dco_multi_add_new_peer(struct multi_context *m, struct multi_instance *mi)
+dco_multi_add_new_peer(const struct multi_context *m, struct multi_instance *mi)
 {
     return 0;
 }
@@ -384,7 +384,7 @@ dco_get_supported_ciphers(void)
 }
 
 static inline bool
-dco_supports_epoch_data(struct context *c)
+dco_supports_epoch_data(const struct context *c)
 {
     return false;
 }

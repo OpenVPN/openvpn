@@ -929,7 +929,7 @@ dco_get_supported_ciphers(void)
 }
 
 bool
-dco_supports_epoch_data(struct context *c)
+dco_supports_epoch_data(const struct context *c)
 {
     return false;
 }

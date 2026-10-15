@@ -239,8 +239,8 @@ get_ip_encap_overhead(const struct options *options, const struct link_socket_in
 }
 
 static void
-frame_calculate_fragment(struct frame *frame, struct key_type *kt, const struct options *options,
-                         struct link_socket_info *lsi)
+frame_calculate_fragment(struct frame *frame, const struct key_type *kt, const struct options *options,
+                         const struct link_socket_info *lsi)
 {
 #if defined(ENABLE_FRAGMENT)
     size_t overhead;
@@ -269,8 +269,8 @@ frame_calculate_fragment(struct frame *frame, struct key_type *kt, const struct 
 }
 
 static void
-frame_calculate_mssfix(struct frame *frame, struct key_type *kt, const struct options *options,
-                       struct link_socket_info *lsi)
+frame_calculate_mssfix(struct frame *frame, const struct key_type *kt, const struct options *options,
+                       const struct link_socket_info *lsi)
 {
     if (options->ce.mssfix_fixed)
     {
@@ -314,8 +314,8 @@ frame_calculate_mssfix(struct frame *frame, struct key_type *kt, const struct op
 }
 
 void
-frame_calculate_dynamic(struct frame *frame, struct key_type *kt, const struct options *options,
-                        struct link_socket_info *lsi)
+frame_calculate_dynamic(struct frame *frame, const struct key_type *kt, const struct options *options,
+                        const struct link_socket_info *lsi)
 {
     if (options->ce.fragment > 0)
     {

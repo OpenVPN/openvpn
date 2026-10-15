@@ -36,7 +36,7 @@
 #include <netinet/in.h>
 
 int
-net_ctx_init(struct context *c, openvpn_net_ctx_t *ctx)
+net_ctx_init(const struct context *c, openvpn_net_ctx_t *ctx)
 {
     ctx->es = NULL;
     if (c)
@@ -61,7 +61,7 @@ net_ctx_free(openvpn_net_ctx_t *ctx)
 }
 
 int
-net_iface_new(openvpn_net_ctx_t *ctx, const char *iface, const char *type, void *arg)
+net_iface_new(openvpn_net_ctx_t *ctx, const char *iface, const char *type, const void *arg)
 {
     struct argv argv = argv_new();
 

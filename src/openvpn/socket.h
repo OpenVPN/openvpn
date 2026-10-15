@@ -268,7 +268,7 @@ struct link_socket
 
 int socket_recv_queue(struct link_socket *sock, int maxsize);
 
-int socket_send_queue(struct link_socket *sock, struct buffer *buf,
+int socket_send_queue(struct link_socket *sock, const struct buffer *buf,
                       const struct link_socket_actual *to);
 
 typedef struct
@@ -348,8 +348,8 @@ openvpn_bind(socket_descriptor_t sockfd, const struct sockaddr *addr, size_t add
 
 struct link_socket *link_socket_new(void);
 
-void socket_bind(socket_descriptor_t sd, struct addrinfo *local, int af_family, const char *prefix,
-                 bool ipv6only);
+void socket_bind(socket_descriptor_t sd, const struct addrinfo *local, int af_family,
+                 const char *prefix, bool ipv6only);
 
 int openvpn_connect(socket_descriptor_t sd, const struct sockaddr *remote, int connect_timeout,
                     volatile int *signal_received);
@@ -496,7 +496,7 @@ socket_connection_reset(const struct link_socket *sock, ssize_t status)
 }
 
 static inline bool
-link_socket_verify_incoming_addr(struct buffer *buf, const struct link_socket_info *info,
+link_socket_verify_incoming_addr(const struct buffer *buf, const struct link_socket_info *info,
                                  const struct link_socket_actual *from_addr)
 {
     if (buf->len > 0)
@@ -620,7 +620,7 @@ link_socket_read_udp_win32(struct link_socket *sock, struct buffer *buf,
 
 #else  /* ifdef _WIN32 */
 
-ssize_t link_socket_read_udp_posix(struct link_socket *sock, struct buffer *buf,
+ssize_t link_socket_read_udp_posix(const struct link_socket *sock, struct buffer *buf,
                                    struct link_socket_actual *from);
 
 #endif /* ifdef _WIN32 */
@@ -706,12 +706,12 @@ link_socket_write_win32(struct link_socket *sock, struct buffer *buf, struct lin
 
 #else /* ifdef _WIN32 */
 
-ssize_t link_socket_write_udp_posix_sendmsg(struct link_socket *sock, struct buffer *buf,
+ssize_t link_socket_write_udp_posix_sendmsg(const struct link_socket *sock, const struct buffer *buf,
                                             struct link_socket_actual *to);
 
 
 static inline ssize_t
-link_socket_write_udp_posix(struct link_socket *sock, struct buffer *buf,
+link_socket_write_udp_posix(const struct link_socket *sock, const struct buffer *buf,
                             struct link_socket_actual *to)
 {
 #if ENABLE_IP_PKTINFO
@@ -727,7 +727,7 @@ link_socket_write_udp_posix(struct link_socket *sock, struct buffer *buf,
 }
 
 static inline ssize_t
-link_socket_write_tcp_posix(struct link_socket *sock, struct buffer *buf)
+link_socket_write_tcp_posix(const struct link_socket *sock, const struct buffer *buf)
 {
     return send(sock->sd, CBPTR(buf), BLENZ(buf), MSG_NOSIGNAL);
 }
@@ -785,7 +785,7 @@ link_socket_extract_tos(struct link_socket *sock, const struct buffer *ipbuf)
  * from tunnel packet.
  */
 static inline void
-link_socket_set_tos(struct link_socket *sock)
+link_socket_set_tos(const struct link_socket *sock)
 {
     if (sock && sock->ptos_defined)
     {

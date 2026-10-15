@@ -1171,7 +1171,7 @@ lame_duck_must_die(const struct tls_session *session, interval_t *wakeup)
 }
 
 struct tls_multi *
-tls_multi_init(struct tls_options *tls_options)
+tls_multi_init(const struct tls_options *tls_options)
 {
     struct tls_multi *ret;
 
@@ -1212,7 +1212,7 @@ tls_multi_init_finalize(struct tls_multi *multi, int tls_mtu)
  */
 
 struct tls_auth_standalone *
-tls_auth_standalone_init(struct tls_options *tls_options, struct gc_arena *gc)
+tls_auth_standalone_init(const struct tls_options *tls_options, struct gc_arena *gc)
 {
     struct tls_auth_standalone *tas;
 
@@ -1631,8 +1631,9 @@ cleanup:
 
 bool
 tls_session_update_crypto_params_do_work(struct tls_multi *multi, struct tls_session *session,
-                                         struct options *options, struct frame *frame,
-                                         struct frame *frame_fragment, struct link_socket_info *lsi,
+                                         const struct options *options, struct frame *frame,
+                                         struct frame *frame_fragment,
+                                         const struct link_socket_info *lsi,
                                          dco_context_t *dco)
 {
     if (session->key[KS_PRIMARY].crypto_options.key_ctx_bi.initialized)
@@ -1704,7 +1705,7 @@ tls_session_update_crypto_params_do_work(struct tls_multi *multi, struct tls_ses
 bool
 tls_session_update_crypto_params(struct tls_multi *multi, struct tls_session *session,
                                  struct options *options, struct frame *frame,
-                                 struct frame *frame_fragment, struct link_socket_info *lsi,
+                                 struct frame *frame_fragment, const struct link_socket_info *lsi,
                                  dco_context_t *dco)
 {
     if (!check_session_cipher(session, options))
@@ -1920,7 +1921,8 @@ read_string_alloc(struct buffer *buf)
 }
 
 static bool
-push_peer_info_peerid(struct buffer *out, struct tls_multi *multi, struct tls_session *session)
+push_peer_info_peerid(struct buffer *out, const struct tls_multi *multi,
+                      const struct tls_session *session)
 {
     if (multi->rx_peer_id == MAX_PEER_ID || session->opt->dco_enabled)
     {
@@ -1955,7 +1957,7 @@ push_peer_info_peerid(struct buffer *out, struct tls_multi *multi, struct tls_se
  * @return          true if no error was encountered
  */
 static bool
-push_peer_info(struct buffer *buf, struct tls_multi *multi, struct tls_session *session)
+push_peer_info(struct buffer *buf, const struct tls_multi *multi, struct tls_session *session)
 {
     struct gc_arena gc = gc_new();
     bool ret = false;
@@ -2599,8 +2601,8 @@ session_move_active(struct tls_multi *multi, struct tls_session *session,
 }
 
 bool
-session_skip_to_pre_start(struct tls_session *session, struct tls_pre_decrypt_state *state,
-                          struct link_socket_actual *from)
+session_skip_to_pre_start(struct tls_session *session, const struct tls_pre_decrypt_state *state,
+                          const struct link_socket_actual *from)
 {
     struct key_state *ks = &session->key[KS_PRIMARY];
     ks->session_id_remote = state->peer_session_id;
@@ -2829,7 +2831,7 @@ write_outgoing_tls_ciphertext(struct tls_session *session, bool *continue_tls_pr
 
 static bool
 check_outgoing_ciphertext(struct key_state *ks, struct tls_session *session,
-                          struct buffer *to_link, bool *continue_tls_process)
+                          const struct buffer *to_link, bool *continue_tls_process)
 {
     if (to_link->len)
     {
@@ -4193,7 +4195,7 @@ tls_prepend_opcode_v2(const struct tls_multi *multi, struct buffer *buf)
 }
 
 void
-tls_post_encrypt(struct tls_multi *multi, struct buffer *buf)
+tls_post_encrypt(struct tls_multi *multi, const struct buffer *buf)
 {
     struct key_state *ks = multi->save_ks;
     multi->save_ks = NULL;
@@ -4324,7 +4326,7 @@ show_available_tls_ciphers(const char *cipher_list, const char *cipher_list_tls1
  * into a garbage collectable string which is returned.
  */
 const char *
-protocol_dump(struct buffer *buffer, unsigned int flags, struct gc_arena *gc)
+protocol_dump(const struct buffer *buffer, unsigned int flags, struct gc_arena *gc)
 {
     struct buffer out = alloc_buf_gc(256, gc);
     struct buffer buf = *buffer;

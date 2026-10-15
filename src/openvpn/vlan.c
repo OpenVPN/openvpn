@@ -288,7 +288,7 @@ vlan_is_tagged(const struct buffer *buf)
 }
 
 void
-vlan_process_outgoing_tun(struct multi_context *m, struct multi_instance *mi)
+vlan_process_outgoing_tun(const struct multi_context *m, struct multi_instance *mi)
 {
     if (!m->top.options.vlan_tagging)
     {

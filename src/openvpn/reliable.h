@@ -184,7 +184,7 @@ void reliable_send_purge(struct reliable *rel, const struct reliable_ack *ack);
  * @li False, if there are packet IDs to be acknowledged.
  */
 static inline bool
-reliable_ack_empty(struct reliable_ack *ack)
+reliable_ack_empty(const struct reliable_ack *ack)
 {
     return !ack->len;
 }
@@ -213,7 +213,7 @@ bool reliable_pid_in_send_window(const struct reliable *rel, packet_id_type pid)
  * @returns the number of outstanding acks
  */
 static inline int
-reliable_ack_outstanding(struct reliable_ack *ack)
+reliable_ack_outstanding(const struct reliable_ack *ack)
 {
     return ack->len;
 }
@@ -369,7 +369,7 @@ struct buffer *reliable_get_buf(struct reliable *rel);
  * @param pid The packet's packet ID.
  * @param opcode The packet's opcode.
  */
-void reliable_mark_active_incoming(struct reliable *rel, struct buffer *buf, packet_id_type pid,
+void reliable_mark_active_incoming(struct reliable *rel, const struct buffer *buf, packet_id_type pid,
                                    int opcode);
 
 /**
@@ -422,7 +422,7 @@ void copy_acks_to_mru(struct reliable_ack *ack, struct reliable_ack *ack_mru, in
  * @param rel The reliable structure associated with the given buffer.
  * @param buf The buffer of the reliable entry which is to be removed.
  */
-void reliable_mark_deleted(struct reliable *rel, struct buffer *buf);
+void reliable_mark_deleted(struct reliable *rel, const struct buffer *buf);
 
 /** @} name Functions for extracting incoming packets */
 

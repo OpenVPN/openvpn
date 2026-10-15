@@ -166,7 +166,7 @@ struct tls_root_ctx *init_ssl(const struct options *options, bool in_chroot);
  *
  * @return A newly allocated and initialized \c tls_multi structure.
  */
-struct tls_multi *tls_multi_init(struct tls_options *tls_options);
+struct tls_multi *tls_multi_init(const struct tls_options *tls_options);
 
 /**
  * Finalize initialization of a \c tls_multi structure.
@@ -187,7 +187,7 @@ void tls_multi_init_finalize(struct tls_multi *multi, int tls_mtu);
 /*
  * Initialize a standalone tls-auth verification object.
  */
-struct tls_auth_standalone *tls_auth_standalone_init(struct tls_options *tls_options,
+struct tls_auth_standalone *tls_auth_standalone_init(const struct tls_options *tls_options,
                                                      struct gc_arena *gc);
 
 /**
@@ -373,7 +373,7 @@ void tls_prepend_opcode_v2(const struct tls_multi *multi, struct buffer *buf);
  * @param multi - The TLS state for this packet's destination VPN tunnel.
  * @param buf - The buffer containing the outgoing packet.
  */
-void tls_post_encrypt(struct tls_multi *multi, struct buffer *buf);
+void tls_post_encrypt(struct tls_multi *multi, const struct buffer *buf);
 
 /** @} name Functions for managing security parameter state for data channel packets */
 
@@ -463,7 +463,8 @@ void tls_update_remote_addr(struct tls_multi *multi, const struct link_socket_ac
  */
 bool tls_session_update_crypto_params(struct tls_multi *multi, struct tls_session *session,
                                       struct options *options, struct frame *frame,
-                                      struct frame *frame_fragment, struct link_socket_info *lsi,
+                                      struct frame *frame_fragment,
+                                      const struct link_socket_info *lsi,
                                       dco_context_t *dco);
 
 /*
@@ -527,7 +528,7 @@ tls_set_single_session(struct tls_multi *multi)
 #define PD_VERBOSE                 (1 << 10)
 #define PD_TLS_CRYPT               (1 << 11)
 
-const char *protocol_dump(struct buffer *buffer, unsigned int flags, struct gc_arena *gc);
+const char *protocol_dump(const struct buffer *buffer, unsigned int flags, struct gc_arena *gc);
 
 /*
  * debugging code
@@ -566,7 +567,7 @@ void load_xkey_provider(void);
 /* Special method to skip the three way handshake RESET stages. This is
  * used by the HMAC code when seeing a packet that matches the previous
  * HMAC based stateless server state */
-bool session_skip_to_pre_start(struct tls_session *session, struct tls_pre_decrypt_state *state,
-                               struct link_socket_actual *from);
+bool session_skip_to_pre_start(struct tls_session *session, const struct tls_pre_decrypt_state *state,
+                               const struct link_socket_actual *from);
 
 #endif /* ifndef OPENVPN_SSL_H */

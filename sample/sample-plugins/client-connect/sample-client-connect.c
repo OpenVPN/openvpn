@@ -344,7 +344,7 @@ cc_handle_deferred_v1(int seconds, const char *name, const char **envp)
 }
 
 int
-openvpn_plugin_client_connect(struct plugin_context *context, const char **argv, const char **envp)
+openvpn_plugin_client_connect(const struct plugin_context *context, const char **argv, const char **envp)
 {
     /* log environment variables handed to us by OpenVPN, but
      * only if "setenv verb" is 3 or higher (arbitrary number)
@@ -465,7 +465,7 @@ openvpn_plugin_client_connect_v2(struct plugin_context *context,
 
 int
 openvpn_plugin_client_connect_defer_v2(struct plugin_context *context,
-                                       struct plugin_per_client_context *pcc,
+                                       const struct plugin_per_client_context *pcc,
                                        struct openvpn_plugin_string_list **return_list)
 {
     time_t time_left = pcc->sleep_until - time(NULL);

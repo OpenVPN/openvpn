@@ -165,7 +165,7 @@ mbuf_peek_dowork(struct mbuf_set *ms)
 }
 
 void
-mbuf_dereference_instance(struct mbuf_set *ms, struct multi_instance *mi)
+mbuf_dereference_instance(struct mbuf_set *ms, const struct multi_instance *mi)
 {
     if (ms)
     {
