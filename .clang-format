@@ -32,6 +32,7 @@ IndentGotoLabels: false
 IndentWidth: '4'
 IndentWrappedFunctionNames: false
 InsertBraces: true
+InsertNewlineAtEOF: true
 KeepEmptyLines:
   AtEndOfFile: false
   AtStartOfBlock: false
