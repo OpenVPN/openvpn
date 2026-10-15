@@ -1,5 +1,8 @@
 name: test_ssllib
 
+permissions:
+  contents: read
+
 on:
   workflow_call:
     inputs:
