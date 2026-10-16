@@ -20,5 +20,6 @@ libcompat_la_SOURCES = \
 	compat-basename.c \
 	compat-gettimeofday.c \
 	compat-daemon.c \
+	compat-strlcpy.c \
 	compat-strsep.c \
 	compat-strtok_r.c

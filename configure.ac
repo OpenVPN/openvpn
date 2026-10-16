@@ -568,7 +568,7 @@ AC_CHECK_FUNCS([ \
 	setgroups flock gettimeofday \
 	setsid chdir \
 	chsize ftruncate execve getpeereid basename dirname \
-	epoll_create strsep strtok_r \
+	epoll_create strlcpy strsep strtok_r \
 ])
 
 AC_CHECK_LIB(

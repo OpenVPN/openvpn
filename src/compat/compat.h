@@ -56,6 +56,15 @@ int daemon(int nochdir, int noclose);
 
 #endif
 
+#ifndef HAVE_STRLCPY
+size_t
+strlcpy(char *dest, const char *src, size_t maxlen);
+
+size_t
+strlcat(char *dest, const char *src, size_t maxlen);
+
+#endif
+
 #ifndef HAVE_STRSEP
 char *strsep(char **stringp, const char *delim);
 

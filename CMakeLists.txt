@@ -248,6 +248,7 @@ endif()
 
 check_symbol_exists(chsize io.h HAVE_CHSIZE)
 check_symbol_exists(getrlimit sys/resource.h HAVE_GETRLIMIT)
+check_symbol_exists(strlcpy string.h HAVE_STRLCPY)
 check_symbol_exists(strsep string.h HAVE_STRSEP)
 check_symbol_exists(strtok_r string.h HAVE_STRTOK_R)
 
@@ -431,6 +432,7 @@ set(SOURCE_FILES
     src/compat/compat-daemon.c
     src/compat/compat-dirname.c
     src/compat/compat-gettimeofday.c
+    src/compat/compat-strlcpy.c
     src/compat/compat-strsep.c
     src/compat/compat-strtok_r.c
     src/openvpn/argv.c
@@ -764,6 +766,7 @@ if (BUILD_TESTING)
             src/openvpn/platform.c
             src/openvpn/win32-util.c
             src/compat/compat-gettimeofday.c
+            src/compat/compat-strlcpy.c
             src/compat/compat-strsep.c
             src/compat/compat-strtok_r.c
             )
