@@ -1,5 +1,9 @@
 *.[oa]
 *.l[oa]
+*.gcda
+*.gcno
+*-coverage/
+*-coverage.info
 *.dll
 *.exe
 *.exe.*
@@ -18,6 +22,7 @@ out
 Makefile
 Makefile.in
 aclocal.m4
+aminclude_static.am
 autodefs.h
 autom4te.cache
 config.guess

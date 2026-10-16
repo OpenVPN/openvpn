@@ -22,6 +22,8 @@
 #  with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 
+include $(top_srcdir)/aminclude_static.am
+
 ACLOCAL_AMFLAGS = -I m4
 
 MAINTAINERCLEANFILES = \
@@ -45,7 +47,8 @@ EXTRA_DIST = \
 	CMakeLists.txt \
 	CMakePresets.json \
 	config.h.cmake.in \
-	forked-test-driver
+	forked-test-driver \
+	lcovrc
 
 .PHONY: config-version.h doxygen
 
@@ -98,3 +101,7 @@ cppcheck:
 	INCLUDE_FLAGS="$(LIBNL_GENL_CFLAGS)" \
 	CPPCHECK_VERBOSE="$(AM_V_P)" \
 		"$(top_srcdir)/dev-tools/run-cppcheck.sh"
+
+CODE_COVERAGE_LCOV_SHOPTS=--config-file $(srcdir)/lcovrc
+clean-local: code-coverage-clean
+distclean-local: code-coverage-dist-clean
