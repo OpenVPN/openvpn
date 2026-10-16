@@ -273,7 +273,7 @@ setenv_str(struct env_set *es, const char *name, const char *value)
     }
     else if (streq(name, "session_id"))
     {
-        strncpy(last_session_id_value, value, sizeof(last_session_id_value));
+        strncpynt(last_session_id_value, value, sizeof(last_session_id_value));
     }
 }
 

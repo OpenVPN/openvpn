@@ -303,7 +303,7 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
 
                 if (password_buf[0])
                 {
-                    strncpy(up->password, password_buf, USER_PASS_LEN);
+                    strncpynt(up->password, password_buf, USER_PASS_LEN);
                 }
                 else
                 {
@@ -452,7 +452,7 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
         /* Use tag for blank password if we are not prompting for one */
         if (flags & GET_USER_PASS_USERNAME_ONLY)
         {
-            strncpy(up->password, blank_up, sizeof(up->password));
+            strncpynt(up->password, blank_up, sizeof(up->password));
         }
 
         string_mod(up->username, CC_PRINT, CC_CRLF, 0);

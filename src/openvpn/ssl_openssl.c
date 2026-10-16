@@ -433,7 +433,7 @@ convert_tls13_list_to_openssl(char *openssl_ciphers, size_t len, const char *cip
             len - 1);
     }
 
-    strncpy(openssl_ciphers, ciphers, len);
+    strncpynt(openssl_ciphers, ciphers, len);
 
     for (size_t i = 0; i < strlen(openssl_ciphers); i++)
     {

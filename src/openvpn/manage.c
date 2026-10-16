@@ -2374,7 +2374,7 @@ management_android_control(const struct management *man, const char *command, co
     }
     struct user_pass up;
     CLEAR(up);
-    strncpy(up.username, msg, sizeof(up.username) - 1);
+    strncpynt(up.username, msg, sizeof(up.username));
 
     management_query_user_pass(management, &up, command, GET_USER_PASS_NEED_OK, (void *)0);
     return strcmp("ok", up.password) == 0;

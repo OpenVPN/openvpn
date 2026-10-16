@@ -2970,8 +2970,7 @@ do_route_ipv6_service(const bool add, const struct route_ipv6 *r, const struct t
 
     if (msg.iface.index == TUN_ADAPTER_INDEX_INVALID)
     {
-        strncpy(msg.iface.name, tt->actual_name, sizeof(msg.iface.name));
-        msg.iface.name[sizeof(msg.iface.name) - 1] = '\0';
+        strncpynt(msg.iface.name, tt->actual_name, sizeof(msg.iface.name));
     }
 
     status = do_route_service(add, &msg, sizeof(msg), tt->options.msg_channel);
@@ -3749,7 +3748,7 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
         {
             rgi->gateway.addr = ntohl(((struct sockaddr_in *)route.gateway)->sin_addr.s_addr);
             rgi->flags = RGI_ADDR_DEFINED | RGI_IFACE_DEFINED;
-            strncpy(rgi->iface, interface->ifr_name, sizeof(rgi->iface));
+            strncpynt(rgi->iface, interface->ifr_name, sizeof(rgi->iface));
         }
 
         int32 address_size = 0;
