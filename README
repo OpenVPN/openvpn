@@ -1,4 +1,4 @@
-OpenVPN -- A Secure tunneling daemon
+# OpenVPN -- A Secure tunneling daemon
 
 Copyright (C) 2002-2026 OpenVPN Inc. This program is free software;
 you can redistribute it and/or modify
@@ -13,7 +13,7 @@ To get the latest release of OpenVPN, go to:
 
 To Build and Install,
 
-	tar -zxf openvpn-<version>.tar.gz
+	ar -zxf openvpn-<version>.tar.gz
 	cd openvpn-<version>
 	./configure
 	make
@@ -26,17 +26,17 @@ or MSVC see README.cmake.md.
 
 *************************************************************************
 
-For detailed information on OpenVPN, including examples, see the man page
-  http://openvpn.net/man.html
+For detailed information on OpenVPN, including examples, see the man page:
+	http://openvpn.net/man.html
 
-For a sample VPN configuration, see
-  http://openvpn.net/howto.html
+For a sample VPN configuration, see:
+	http://openvpn.net/howto.html
 
-To report an issue, see
-  https://github.com/OpenVPN/openvpn/issues/new
+To report an issue, see:
+	https://github.com/OpenVPN/openvpn/issues/new
 
 For a description of OpenVPN's underlying protocol,
-  see the file ssl.h included in the source distribution.
+see the file ssl.h included in the source distribution.
 
 *************************************************************************
 
@@ -69,7 +69,7 @@ Their source code is available here:
   https://github.com/OpenVPN/easy-rsa
   https://github.com/OpenVPN/tap-windows6
 
-Community-provided Windows installers (MSI) and Debian packages are built from
+Community-provided Windows installers (MSI) and Debian packages are built from:
 
   https://github.com/OpenVPN/openvpn-build
 
