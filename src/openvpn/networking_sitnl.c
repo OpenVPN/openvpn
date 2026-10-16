@@ -611,7 +611,7 @@ sitnl_route_best_gw(sa_family_t af_family, const inet_address_t *dst, void *best
 
     /* save result in output variables */
     memcpy(best_gw, &res.gw, res.addr_size);
-    strncpy(best_iface, res.iface, IFNAMSIZ);
+    strncpynt(best_iface, res.iface, IFNAMSIZ);
 err:
     return ret;
 }

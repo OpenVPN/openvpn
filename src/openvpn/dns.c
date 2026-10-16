@@ -110,7 +110,7 @@ dns_server_addr_parse(struct dns_server *server, const char *addr)
         {
             return false;
         }
-        strncpy(addrcopy, addr, copylen);
+        memcpy(addrcopy, addr, copylen);
         addr = addrcopy;
     }
 
@@ -391,7 +391,7 @@ make_domain_list(const char *what, const struct dns_domain *src, bool nrpt_domai
         {
             *(dst + offset++) = '.';
         }
-        strncpy(dst + offset, src->name, len);
+        memcpy(dst + offset, src->name, len);
         offset += len;
 
         src = src->next;

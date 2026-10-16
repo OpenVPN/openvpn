@@ -75,17 +75,6 @@ struct proxy_connection
     char *jfn;
 };
 
-#if 0
-static const char *
-headc(const struct buffer *buf)
-{
-    static char foo[16];
-    strncpy(foo, BSTR(buf), 15);
-    foo[15] = 0;
-    return foo;
-}
-#endif
-
 static inline void
 close_socket_if_defined(const socket_descriptor_t sd)
 {

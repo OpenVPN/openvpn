@@ -7712,12 +7712,12 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "override-username") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_INSTANCE);
-        if (strlen(p[1]) > USER_PASS_LEN)
+        if (strlen(p[1]) >= USER_PASS_LEN)
         {
             msg(msglevel,
                 "override-username exceeds the maximum length of %d "
                 "characters",
-                USER_PASS_LEN);
+                USER_PASS_LEN - 1);
 
             /* disable the connection since ignoring the request to
              * set another username might cause serious problems */

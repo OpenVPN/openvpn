@@ -127,8 +127,7 @@ do_address_service(const bool add, const short family, const struct tuntap *tt)
 
     if (addr.iface.index == TUN_ADAPTER_INDEX_INVALID)
     {
-        strncpy(addr.iface.name, tt->actual_name, sizeof(addr.iface.name));
-        addr.iface.name[sizeof(addr.iface.name) - 1] = '\0';
+        strncpynt(addr.iface.name, tt->actual_name, sizeof(addr.iface.name));
     }
 
     if (addr.family == AF_INET)
@@ -212,7 +211,7 @@ do_dns_domain_service(bool add, const struct tuntap *tt)
         {
             dns.domains[dstlen++] = ',';
         }
-        strncpy(dns.domains + dstlen, o->domain_search_list[i], srclen + 1);
+        memcpy(dns.domains + dstlen, o->domain_search_list[i], srclen + 1);
     }
 
     msg(D_LOW, "%s DNS domains on '%s' (if_index = %d) using service",
@@ -261,8 +260,7 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
                               .addr_len = addr_len };
 
     /* interface name is required */
-    strncpy(dns.iface.name, tt->actual_name, sizeof(dns.iface.name));
-    dns.iface.name[sizeof(dns.iface.name) - 1] = '\0';
+    strncpynt(dns.iface.name, tt->actual_name, sizeof(dns.iface.name));
 
     if (addr_len > _countof(dns.addr))
     {
@@ -326,8 +324,7 @@ do_wins_service(bool add, const struct tuntap *tt)
                                 .addr_len = addr_len };
 
     /* interface name is required */
-    strncpy(wins.iface.name, tt->actual_name, sizeof(wins.iface.name));
-    wins.iface.name[sizeof(wins.iface.name) - 1] = '\0';
+    strncpynt(wins.iface.name, tt->actual_name, sizeof(wins.iface.name));
 
     if (addr_len > _countof(wins.addr))
     {

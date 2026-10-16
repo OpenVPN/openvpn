@@ -1811,7 +1811,7 @@ SetDnsSearchDomains(PCSTR itf_name, PCSTR domains, PBOOL gpol, undo_lists_t *lis
             wide_domains = NULL;
             goto out;
         }
-        strncpy(undo_data->itf_name, itf_name, sizeof(undo_data->itf_name));
+        strncpy_s(undo_data->itf_name, sizeof(undo_data->itf_name), itf_name, _TRUNCATE);
         undo_data->domains = wide_domains;
 
         if (AddDnsSearchDomains(list_key, have_list, wide_domains) == FALSE

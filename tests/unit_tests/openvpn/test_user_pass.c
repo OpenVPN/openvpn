@@ -53,7 +53,7 @@ query_user_exec_builtin(void)
     for (int i = 0; i < QUERY_USER_NUMSLOTS && query_user[i].response != NULL; i++)
     {
         check_expected_ptr(query_user[i].prompt);
-        strncpy(query_user[i].response, mock_ptr_type(char *), query_user[i].response_len);
+        strncpynt(query_user[i].response, mock_ptr_type(char *), query_user[i].response_len);
     }
 
     return mock();
