@@ -329,7 +329,6 @@ pkcs11_addProvider(const char *const provider, const bool protected_auth,
 
     msg(M_INFO, "PKCS#11: Adding PKCS#11 provider '%s'", provider);
 
-#if PKCS11H_VERSION >= ((1 << 16) | (28 << 8) | (0 << 0))
     if ((rv = pkcs11h_registerProvider(provider)) != CKR_OK)
     {
         msg(M_WARN, "PKCS#11: Cannot register provider '%s' %ld-'%s'", provider, rv,
@@ -376,15 +375,6 @@ pkcs11_addProvider(const char *const provider, const bool protected_auth,
             pkcs11h_removeProvider(provider);
         }
     }
-#else  /* if PKCS11H_VERSION >= ((1<<16) | (28<<8) | (0<<0)) */
-    if ((rv = pkcs11h_addProvider(provider, provider, protected_auth, private_mode,
-                                  PKCS11H_SLOTEVENT_METHOD_AUTO, 0, cert_private))
-        != CKR_OK)
-    {
-        msg(M_WARN, "PKCS#11: Cannot initialize provider '%s' %ld-'%s'", provider, rv,
-            pkcs11h_getMessage(rv));
-    }
-#endif /* if PKCS11H_VERSION >= ((1<<16) | (28<<8) | (0<<0)) */
 
     dmsg(D_PKCS11_DEBUG, "PKCS#11: pkcs11_addProvider - return rv=%ld-'%s'", rv,
          pkcs11h_getMessage(rv));

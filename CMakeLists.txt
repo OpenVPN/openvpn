@@ -306,7 +306,7 @@ if (${ENABLE_LZO})
 endif ()
 
 if (${ENABLE_PKCS11})
-    pkg_search_module(pkcs11-helper libpkcs11-helper-1 REQUIRED IMPORTED_TARGET)
+    pkg_search_module(pkcs11-helper libpkcs11-helper-1>=1.28 REQUIRED IMPORTED_TARGET)
 endif ()
 
 function(check_mbed_configuration)

@@ -43,8 +43,6 @@
 #ifdef HAVE_XKEY_PROVIDER
 static XKEY_EXTERNAL_SIGN_fn xkey_pkcs11h_sign;
 
-#if PKCS11H_VERSION > ((1 << 16) | (27 << 8)) /* version > 1.27 */
-
 /* Table linking OpenSSL digest NID with CKM and CKG constants in PKCS#11 */
 #define MD_TYPE(n) { NID_sha##n, CKM_SHA##n, CKG_MGF1_SHA##n }
 static const struct
@@ -131,31 +129,6 @@ cleanup:
     }
     return ret;
 }
-
-#else  /* if PKCS11H_VERSION > ((1<<16) | (27<<8)) */
-
-/* Make set_pss_params a no-op that always succeeds */
-#define set_pss_params(...) (1)
-
-/* Use a wrapper for pkcs11h_certificate_signAny_ex() for versions < 1.28
- * where its not available.
- * We just call pkcs11h_certificate_signAny() unless the padding
- * is PSS in which case we return an error.
- */
-static CK_RV
-pkcs11h_certificate_signAny_ex(const pkcs11h_certificate_t cert, const CK_MECHANISM *mech,
-                               const unsigned char *tbs, size_t tbslen, unsigned char *sig,
-                               size_t *siglen)
-{
-    if (mech->mechanism == CKM_RSA_PKCS_PSS)
-    {
-        msg(M_NONFATAL, "PKCS#11: Error: PSS padding is not supported by "
-                        "this version of pkcs11-helper library.");
-        return CKR_MECHANISM_INVALID;
-    }
-    return pkcs11h_certificate_signAny(cert, mech->mechanism, tbs, tbslen, sig, siglen);
-}
-#endif /* PKCS11H_VERSION > 1.27 */
 
 /**
  * Sign op called from xkey provider

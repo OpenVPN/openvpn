@@ -1183,7 +1183,7 @@ AM_CONDITIONAL([HAVE_SOFTHSM2], [false])
 if test "${enable_pkcs11}" = "yes"; then
 	PKG_CHECK_MODULES(
 		[PKCS11_HELPER],
-		[libpkcs11-helper-1 >= 1.11],
+		[libpkcs11-helper-1 >= 1.28],
 		[have_pkcs11_helper="yes"],
 		[AC_MSG_ERROR([PKCS11 enabled but libpkcs11-helper is missing])]
 	)
