@@ -126,11 +126,11 @@ tls_limit_reneg_bytes(const char *ciphername, int64_t *reneg_bytes)
 }
 
 static uint64_t
-tls_get_limit_aead(const char *ciphername)
+tls_get_limit_aead(const char *ciphername, uint64_t override)
 {
     uint64_t limit = cipher_get_aead_limits(ciphername);
 
-    if (limit == 0)
+    if (limit == 0 && override == 0)
     {
         return 0;
     }
@@ -138,6 +138,11 @@ tls_get_limit_aead(const char *ciphername)
     /* set limit to 7/8 of the limit so the renegotiation can succeed before
      * we go over the limit */
     limit = limit / 8 * 7;
+
+    if (override > 0)
+    {
+        limit = override;
+    }
 
     msg(D_SHOW_KEYS,
         "Note: AEAD cipher %s will trigger a renegotiation"
@@ -1397,6 +1402,11 @@ init_epoch_keys(struct key_state *ks, struct tls_multi *multi, const struct key_
      * */
     epoch_init_key_ctx(co, key_type, &e1_send, &e1_recv, future_key_count);
 
+    if (multi->opt.aead_usage_limit_override)
+    {
+        co->aead_usage_limit = multi->opt.aead_usage_limit_override;
+    }
+
     secure_memzero(&e1_send, sizeof(e1_send));
     secure_memzero(&e1_recv, sizeof(e1_recv));
 }
@@ -1619,7 +1629,7 @@ tls_session_generate_data_channel_keys(struct tls_multi *multi, struct tls_sessi
     }
     tls_limit_reneg_bytes(session->opt->key_type.cipher, &session->opt->renegotiate_bytes);
 
-    session->opt->aead_usage_limit = tls_get_limit_aead(session->opt->key_type.cipher);
+    session->opt->aead_usage_limit = tls_get_limit_aead(session->opt->key_type.cipher, session->opt->aead_usage_limit_override);
 
     /* set the state of the keys for the session to generated */
     ks->state = S_GENERATED_KEYS;

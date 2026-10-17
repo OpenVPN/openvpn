@@ -647,6 +647,9 @@ struct options
     int renegotiate_seconds;
     int renegotiate_seconds_min;
 
+    /** Debug override to trigger AEAD usage limit early */
+    int64_t aead_usage_limit_override;
+
     /* Data channel key handshake must finalize
      * within n seconds of handshake initiation. */
     int handshake_window;

@@ -346,6 +346,11 @@ struct tls_options
     /** limit for AEAD cipher when not running in epoch data key mode,
      *  this is the sum of packets + blocks that are allowed to be used */
     uint64_t aead_usage_limit;
+    /**
+     * Debug only option that allows overriding the usage limit
+     * This allows testing key rotation by using very small limits
+     */
+    uint64_t aead_usage_limit_override;
     interval_t renegotiate_seconds;
 
     /* cert verification parms */

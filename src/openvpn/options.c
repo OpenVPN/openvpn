@@ -7609,6 +7609,20 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
             options->renegotiate_seconds_min = positive_atoi(p[2], msglevel);
         }
     }
+#ifdef ENABLE_DEBUG
+    else if (streq(p[0], "debug-aead-usage-limit-override"))
+    {
+        /* This option is undocumented since it should not be used by normal
+         * users */
+        VERIFY_PERMISSION(OPT_P_TLS_PARMS);
+        if (!positive_atoll(p[1], &options->aead_usage_limit_override, p[0], msglevel))
+        {
+            msg(M_VERB0, "Warning: --debug-aead-usage-limit-override should "
+                         "only be used by developers and in specific tests.");
+            goto err;
+        }
+    }
+#endif
     else if (streq(p[0], "hand-window") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_TLS_PARMS);

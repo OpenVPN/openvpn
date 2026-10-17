@@ -3286,6 +3286,7 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     to.packet_timeout = options->tls_timeout;
     to.renegotiate_bytes = options->renegotiate_bytes;
     to.renegotiate_packets = options->renegotiate_packets;
+    to.aead_usage_limit_override = options->aead_usage_limit_override;
     if (options->renegotiate_seconds_min < 0)
     {
         /* Add 10% jitter to reneg-sec by default (server side only) */
