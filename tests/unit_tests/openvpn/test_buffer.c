@@ -62,6 +62,10 @@ test_buffer_printf_catrunc(void **state)
     buf_printf(&buf, "%d", 123);
     buf_printf(&buf, "%s", "some text, too long to fit");
     assert_buf_equals_str(&buf, "123some text, t");
+    assert_int_equal(BCAP(&buf), 1); /* \0 byte not part of len */
+
+    buf_printf(&buf, "%s", "more");
+    assert_buf_equals_str(&buf, "123some text, t");
 
     buf_catrunc(&buf, "...");
     assert_buf_equals_str(&buf, "123some text...");
@@ -74,6 +78,30 @@ test_buffer_printf_catrunc(void **state)
 
     buf_catrunc(&buf, "something other"); /* 1 byte too long */
     assert_buf_equals_str(&buf, "1something else");
+
+    gc_free(&gc);
+}
+
+static void
+test_buffer_puts(void **state)
+{
+    struct gc_arena gc = gc_new();
+    struct buffer buf = alloc_buf_gc(5, &gc);
+
+    buf_puts(&buf, "1234");
+    assert_string_equal(BSTR(&buf), "1234");
+
+    buf_reset_len(&buf);
+    buf_puts(&buf, "12345");
+    assert_string_equal(BSTR(&buf), "1234");
+
+    /* buf already full */
+    buf_puts(&buf, "12345");
+    assert_string_equal(BSTR(&buf), "1234");
+
+    struct buffer one_byte_buf = alloc_buf_gc(1, &gc);
+    buf_puts(&one_byte_buf, "x");
+    assert_string_equal(BSTR(&one_byte_buf), "");
 
     gc_free(&gc);
 }
@@ -632,6 +660,7 @@ main(void)
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_buffer_strprefix),
         cmocka_unit_test(test_buffer_printf_catrunc),
+        cmocka_unit_test(test_buffer_puts),
         cmocka_unit_test(test_buffer_format_hex_ex),
         cmocka_unit_test_setup_teardown(test_buffer_list_aggregate_separator_empty,
                                         test_buffer_list_setup, test_buffer_list_teardown),

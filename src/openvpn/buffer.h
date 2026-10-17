@@ -791,10 +791,8 @@ bool buf_printf(struct buffer *buf, const char *format, ...)
  *
  * @param buf   The buffer to append to.
  * @param str   The null-terminated string to append.
- *
- * @return true if the string fit in the buffer, false if it was truncated.
  */
-bool buf_puts(struct buffer *buf, const char *str);
+void buf_puts(struct buffer *buf, const char *str);
 
 
 /*

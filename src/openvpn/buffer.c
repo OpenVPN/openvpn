@@ -225,21 +225,20 @@ buf_sub(struct buffer *buf, int size, bool prepend)
 bool
 buf_printf(struct buffer *buf, const char *format, ...)
 {
-    int ret = false;
+    bool ret = false;
     if (buf_defined(buf))
     {
-        uint8_t *ptr = BEND(buf);
+        char *ptr = (char *)BEND(buf);
         int cap = buf_forward_capacity(buf);
 
-        if (cap > 0)
+        if (cap > 1) /* can write more than \0 */
         {
             int stat;
             va_list arglist;
             va_start(arglist, format);
-            stat = vsnprintf((char *)ptr, cap, format, arglist);
+            stat = vsnprintf(ptr, cap, format, arglist);
             va_end(arglist);
-            *(buf->data + buf->capacity - 1) = 0; /* windows vsnprintf needs this */
-            buf->len += (int)strlen((char *)ptr);
+            buf->len += (int)strlen(ptr);
             if (stat >= 0 && stat < cap)
             {
                 ret = true;
@@ -249,19 +248,16 @@ buf_printf(struct buffer *buf, const char *format, ...)
     return ret;
 }
 
-bool
+void
 buf_puts(struct buffer *buf, const char *str)
 {
-    int ret = false;
-    uint8_t *ptr = BEND(buf);
+    char *ptr = (char *)BEND(buf);
     int cap = buf_forward_capacity(buf);
-    if (cap > 0)
+    if (cap > 1) /* can write more than \0 */
     {
-        int str_len = (int)strlcpy((char *)ptr, str, cap);
+        int str_len = (int)strlcpy(ptr, str, cap);
         buf->len += (str_len < cap) ? str_len : cap - 1;
-        ret = true;
     }
-    return ret;
 }
 
 /*
