@@ -47,10 +47,11 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
     }
 
     size_t tosearchlen = strlen(tosearch);
+    size_t searchforlen = strlen(searchfor);
     size_t replacewithlen = strlen(replacewith);
     size_t templen = tosearchlen * replacewithlen;
 
-    if (tosearchlen == 0 || strlen(searchfor) == 0 || replacewithlen == 0)
+    if (tosearchlen == 0 || searchforlen == 0 || replacewithlen == 0)
     {
         return NULL;
     }
@@ -65,23 +66,26 @@ searchandreplace(const char *tosearch, const char *searchfor, const char *replac
 
     /* state: all parameters are valid */
 
-    const char *searching = tosearch;
-
-    char temp[templen + 1];
-    temp[0] = 0;
-
-    const char *scratch = strstr(searching, searchfor);
+    const char *scratch = strstr(tosearch, searchfor);
     if (!scratch)
     {
         return strdup(tosearch);
     }
 
+    const char *searching = tosearch;
+    char temp[templen + 1];
+    memset(temp, 0, sizeof(temp));
+    char *target = temp;
+
     while (scratch)
     {
-        strncat(temp, searching, (size_t)(scratch - searching));
-        strcat(temp, replacewith);
+        size_t skipped = (size_t)(scratch - searching);
+        memcpy(target, searching, skipped);
+        target += skipped;
+        memcpy(target, replacewith, replacewithlen);
+        target += replacewithlen;
 
-        searching = scratch + strlen(searchfor);
+        searching = scratch + searchforlen;
         scratch = strstr(searching, searchfor);
     }
     return strdup(temp);

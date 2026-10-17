@@ -234,14 +234,11 @@ status_printf(struct status_output *so, const char *format, ...)
 
         if (so->fd >= 0 && !so->errors)
         {
-            strcat(buf, "\n");
-            ssize_t len = strlen(buf);
-            if (len > 0)
+            size_t len = strlcat(buf, "\n", sizeof(buf));
+            ASSERT(len < sizeof(buf));
+            if (write(so->fd, buf, (unsigned int)len) != (ssize_t)len)
             {
-                if (write(so->fd, buf, (unsigned int)len) != len)
-                {
-                    so->errors = true;
-                }
+                so->errors = true;
             }
         }
 

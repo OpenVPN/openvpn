@@ -244,10 +244,7 @@ in_src_get(const struct in_src *is, char *line, const int size)
     else if (is->type == IS_TYPE_BUF)
     {
         bool status = buf_parse(is->u.multiline, '\n', line, size);
-        if ((int)strlen(line) + 1 < size)
-        {
-            strcat(line, "\n");
-        }
+        strlcat(line, "\n", size);
         return status;
     }
     else

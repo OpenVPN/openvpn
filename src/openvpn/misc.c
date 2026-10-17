@@ -437,12 +437,11 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
                     }
                     else
                     {
-                        if (strlen(up->password) + strlen(response) >= USER_PASS_LEN)
+                        if (strlcat(up->password, response, USER_PASS_LEN) >= USER_PASS_LEN)
                         {
                             msg(M_FATAL,
                                 "ERROR: could not concatenate password/static_response: string too long");
                         }
-                        strncat(up->password, response, USER_PASS_LEN - strlen(up->password) - 1);
                     }
                 }
 #endif /* ifdef ENABLE_MANAGEMENT */

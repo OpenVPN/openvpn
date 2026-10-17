@@ -157,7 +157,7 @@ xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
  * @param tbslen        len of data in dgst
  * @param sigalg        extra signature parameters
  *
- * @return              signature length or -1 on error.
+ * @return              1 on success or 0 on error.
  */
 int
 xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen, const unsigned char *tbs,
@@ -247,7 +247,10 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen, const uns
 
     if (is_message)
     {
-        strncat(alg_str, ",data=message", sizeof(alg_str) - strlen(alg_str) - 1);
+        if (strlcat(alg_str, ",data=message", sizeof(alg_str)) >= sizeof(alg_str))
+        {
+            return 0;
+        }
     }
 
     dmsg(D_LOW, "xkey management_sign: requesting sig with algorithm <%s>", alg_str);
