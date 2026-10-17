@@ -385,9 +385,9 @@ options_warning(char *actual, const char *expected)
 const char *
 options_string_version(const char *s, struct gc_arena *gc)
 {
-    struct buffer out = alloc_buf_gc(4, gc);
-    strncpynt((char *)BPTR(&out), s, 3);
-    return BSTR(&out);
+    char *out = gc_malloc(3, false, gc);
+    strlcpy(out, s, 3);
+    return out;
 }
 
 #if defined(__GNUC__) || defined(__clang__)

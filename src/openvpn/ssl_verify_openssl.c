@@ -157,14 +157,16 @@ extract_x509_extension(X509 *cert, char *fieldname, char *out, size_t size)
                     if ((ssize_t)strlen(buf) != ASN1_STRING_length(name->d.rfc822Name))
                     {
                         msg(D_TLS_ERRORS, "ASN1 ERROR: string contained terminating zero");
-                        OPENSSL_free(buf);
+                    }
+                    else if (strlcpy(out, buf, size) >= size)
+                    {
+                        msg(D_TLS_ERRORS, "ASN1 ERROR: string too long");
                     }
                     else
                     {
-                        strncpynt(out, buf, size);
-                        OPENSSL_free(buf);
                         retval = true;
                     }
+                    OPENSSL_free(buf);
                     break;
 
                 default:
@@ -243,9 +245,7 @@ extract_x509_field_ssl(const X509_NAME *x509, const char *field_name, char *out,
         goto exit;
     }
 
-    strncpynt(out, (char *)buf, size);
-
-    ret = (strlen((char *)buf) < size) ? SUCCESS : FAILURE;
+    ret = (strlcpy(out, (char *)buf, size) < size) ? SUCCESS : FAILURE;
 
 exit:
     OPENSSL_free(buf);

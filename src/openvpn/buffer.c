@@ -257,9 +257,8 @@ buf_puts(struct buffer *buf, const char *str)
     int cap = buf_forward_capacity(buf);
     if (cap > 0)
     {
-        strncpynt((char *)ptr, str, cap);
-        *(buf->data + buf->capacity - 1) = 0; /* windows vsnprintf needs this */
-        buf->len += (int)strlen((char *)ptr);
+        int str_len = (int)strlcpy((char *)ptr, str, cap);
+        buf->len += (str_len < cap) ? str_len : cap - 1;
         ret = true;
     }
     return ret;

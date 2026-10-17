@@ -784,7 +784,7 @@ man_query_user_pass(struct management *man, const char *type, const char *string
         ASSERT(man->connection.up_query_type);
         if (streq(man->connection.up_query_type, type))
         {
-            strncpynt(dest, string, len);
+            strlcpy(dest, string, len);
             man_up_finalize(man);
             msg(M_CLIENT, "SUCCESS: '%s' %s entered, but not yet verified", type, prompt);
         }
@@ -2374,7 +2374,7 @@ management_android_control(const struct management *man, const char *command, co
     }
     struct user_pass up;
     CLEAR(up);
-    strncpynt(up.username, msg, sizeof(up.username));
+    strlcpy(up.username, msg, sizeof(up.username));
 
     management_query_user_pass(management, &up, command, GET_USER_PASS_NEED_OK, (void *)0);
     return strcmp("ok", up.password) == 0;

@@ -602,7 +602,7 @@ sitnl_route_best_gw(sa_family_t af_family, const inet_address_t *dst, void *best
 
     /* save result in output variables */
     memcpy(best_gw, &res.gw, res.addr_size);
-    strncpynt(best_iface, res.iface, IFNAMSIZ);
+    strlcpy(best_iface, res.iface, IFNAMSIZ);
 err:
     return ret;
 }
@@ -1424,7 +1424,7 @@ sitnl_type_save(struct nlmsghdr *n, void *arg)
             return -ENOENT;
         }
 
-        strncpynt(type, RTA_DATA(tb_link[IFLA_INFO_KIND]), IFACE_TYPE_LEN_MAX);
+        strlcpy(type, RTA_DATA(tb_link[IFLA_INFO_KIND]), IFACE_TYPE_LEN_MAX);
     }
 
     return 0;

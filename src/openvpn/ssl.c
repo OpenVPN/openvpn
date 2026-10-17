@@ -272,7 +272,7 @@ pem_password_callback(char *buf, int size, int rwflag, void *u)
         /* prompt for password even if --askpass wasn't specified */
         pem_password_setup(NULL);
         ASSERT(!passbuf.protected);
-        strncpynt(buf, passbuf.password, (size_t)size);
+        strlcpy(buf, passbuf.password, (size_t)size);
         purge_user_pass(&passbuf, false);
 
         return (int)strlen(buf);
@@ -2230,7 +2230,7 @@ key_method_2_write(struct buffer *buf, struct tls_multi *multi, struct tls_sessi
         if (session->opt->pull && up != &auth_token)
         {
             unprotect_user_pass(&auth_token);
-            strncpynt(auth_token.username, up->username, USER_PASS_LEN);
+            strlcpy(auth_token.username, up->username, USER_PASS_LEN);
             protect_user_pass(&auth_token);
         }
         protect_user_pass(up);

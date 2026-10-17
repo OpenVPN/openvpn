@@ -2970,7 +2970,7 @@ do_route_ipv6_service(const bool add, const struct route_ipv6 *r, const struct t
 
     if (msg.iface.index == TUN_ADAPTER_INDEX_INVALID)
     {
-        strncpynt(msg.iface.name, tt->actual_name, sizeof(msg.iface.name));
+        strlcpy(msg.iface.name, tt->actual_name, sizeof(msg.iface.name));
     }
 
     status = do_route_service(add, &msg, sizeof(msg), tt->options.msg_channel);
@@ -3139,7 +3139,7 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
                 addr = ntohl(((struct sockaddr_in *)&ifr->ifr_addr)->sin_addr.s_addr);
 
                 /* get interface name */
-                strncpynt(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
+                strlcpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
 
                 /* check that the interface is up */
                 if (ioctl(sd, SIOCGIFFLAGS, &ifreq) < 0)
@@ -3192,7 +3192,7 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
                 }
 
                 /* save iface name */
-                strncpynt(rgi->iface, ifreq.ifr_name, sizeof(rgi->iface));
+                strlcpy(rgi->iface, ifreq.ifr_name, sizeof(rgi->iface));
                 rgi->flags |= RGI_IFACE_DEFINED;
 
                 /* now get the hardware address. */
@@ -3460,7 +3460,7 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
 
         CLEAR(ifr);
         ifr.ifr_addr.sa_family = AF_INET;
-        strncpynt(ifr.ifr_name, rgi->iface, IFNAMSIZ);
+        strlcpy(ifr.ifr_name, rgi->iface, IFNAMSIZ);
 
         if (ioctl(sockfd, SIOCGIFNETMASK, (char *)&ifr) < 0)
         {
@@ -3489,7 +3489,7 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
         struct ifreq ifreq = { 0 };
 
         /* now get the hardware address. */
-        strncpynt(ifreq.ifr_name, rgi->iface, sizeof(ifreq.ifr_name));
+        strlcpy(ifreq.ifr_name, rgi->iface, sizeof(ifreq.ifr_name));
         if (ioctl(sockfd, SIOCGIFHWADDR, &ifreq) < 0)
         {
             msg(M_WARN, "GDG: SIOCGIFHWADDR(%s) failed", ifreq.ifr_name);
@@ -3748,7 +3748,7 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
         {
             rgi->gateway.addr = ntohl(((struct sockaddr_in *)route.gateway)->sin_addr.s_addr);
             rgi->flags = RGI_ADDR_DEFINED | RGI_IFACE_DEFINED;
-            strncpynt(rgi->iface, interface->ifr_name, sizeof(rgi->iface));
+            strlcpy(rgi->iface, interface->ifr_name, sizeof(rgi->iface));
         }
 
         int32 address_size = 0;

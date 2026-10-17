@@ -104,10 +104,10 @@ EVP_PKEY_get_group_name(EVP_PKEY *pkey, char *gname, size_t gname_sz, size_t *gn
         curve = "(error fetching curve name)";
     }
 
-    strncpynt(gname, curve, gname_sz);
+    strlcpy(gname, curve, gname_sz);
 
-    /* strncpynt ensures null termination so just strlen is fine here */
-    *gname_len = strlen(curve);
+    /* strlcpy ensures null termination so just strlen is fine here */
+    *gname_len = strlen(gname);
     return 1;
 }
 #endif /* if OPENSSL_VERSION_NUMBER < 0x30000000L && !defined(OPENSSL_NO_EC) */

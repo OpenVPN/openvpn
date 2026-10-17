@@ -427,15 +427,14 @@ convert_tls13_list_to_openssl(char *openssl_ciphers, size_t len, const char *cip
      * historically used names with - in them. Silently convert names
      * with - to names with _ to support both
      */
-    if (strlen(ciphers) >= (len - 1))
+    size_t ciphers_len = strlcpy(openssl_ciphers, ciphers, len);
+    if (ciphers_len >= len)
     {
-        msg(M_FATAL, "Failed to set restricted TLS 1.3 cipher list, too long (>%zd).",
+        msg(M_FATAL, "Failed to set restricted TLS 1.3 cipher list, too long (>%zu).",
             len - 1);
     }
 
-    strncpynt(openssl_ciphers, ciphers, len);
-
-    for (size_t i = 0; i < strlen(openssl_ciphers); i++)
+    for (size_t i = 0; i < ciphers_len; i++)
     {
         if (openssl_ciphers[i] == '-')
         {

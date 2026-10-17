@@ -696,27 +696,6 @@ buf_set_read(struct buffer *buf, const uint8_t *data, size_t size)
 }
 
 /**
- * Like \c strncpy() but always null-terminates the destination.
- *
- * Copies at most \c maxlen - 1 characters from \c src into \c dest and
- * writes a null terminator at \c dest[\c maxlen - 1].  Does nothing if
- * \c maxlen is zero.
- *
- * @param dest    Destination buffer.
- * @param src     Source string.
- * @param maxlen  Size of the destination buffer in bytes.
- */
-static inline void
-strncpynt(char *dest, const char *src, size_t maxlen)
-{
-    if (maxlen > 0)
-    {
-        strncpy(dest, src, maxlen - 1);
-        dest[maxlen - 1] = 0;
-    }
-}
-
-/**
  * Return true if the string contains at least one decimal digit.
  *
  * @param src   The null-terminated string to scan.

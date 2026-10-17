@@ -444,7 +444,7 @@ run_up_down_service(bool add, const struct options *o, const struct tuntap *tt)
         .iface = { .index = tt->adapter_index, .name = "" },
         .flags = server->dnssec == DNS_SECURITY_YES ? nrpt_dnssec : 0,
     };
-    strncpynt(nrpt.iface.name, tt->actual_name, sizeof(nrpt.iface.name));
+    strlcpy(nrpt.iface.name, tt->actual_name, sizeof(nrpt.iface.name));
 
     for (size_t i = 0; i < NRPT_ADDR_NUM; ++i)
     {

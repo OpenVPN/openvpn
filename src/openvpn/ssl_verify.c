@@ -1640,7 +1640,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi, struct tls_sessi
             "TLS: Replacing client provided username '%s' with "
             "username from override-user '%s'",
             up->username, multi->locked_username);
-        strncpynt(up->username, multi->locked_username, sizeof(up->username));
+        strlcpy(up->username, multi->locked_username, sizeof(up->username));
     }
 
     /*

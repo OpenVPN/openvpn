@@ -3077,7 +3077,7 @@ void
 sockaddr_unix_init(struct sockaddr_un *local, const char *path)
 {
     local->sun_family = PF_UNIX;
-    strncpynt(local->sun_path, path, sizeof(local->sun_path));
+    strlcpy(local->sun_path, path, sizeof(local->sun_path));
 }
 
 void

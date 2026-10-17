@@ -461,7 +461,7 @@ generate_prefix(struct multi_instance *mi)
     const char *prefix = multi_instance_string(mi, true, &gc);
     if (prefix)
     {
-        strncpynt(mi->msg_prefix, prefix, sizeof(mi->msg_prefix));
+        strlcpy(mi->msg_prefix, prefix, sizeof(mi->msg_prefix));
     }
     else
     {
@@ -2657,7 +2657,7 @@ override_locked_username(struct multi_instance *mi)
         {
             struct user_pass up;
             CLEAR(up);
-            strncpynt(up.username, multi->locked_username, sizeof(up.username));
+            strlcpy(up.username, multi->locked_username, sizeof(up.username));
 
             generate_auth_token(&up, multi);
         }

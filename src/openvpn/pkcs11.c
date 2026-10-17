@@ -224,7 +224,7 @@ _pkcs11_openvpn_pin_prompt(void *const global_data, void *const user_data,
     }
     else
     {
-        strncpynt(pin, token_pass.password, pin_max);
+        strlcpy(pin, token_pass.password, pin_max);
         purge_user_pass(&token_pass, true);
 
         if (strlen(pin) == 0)

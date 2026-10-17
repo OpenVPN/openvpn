@@ -58,12 +58,12 @@ socks_proxy_new(const char *server, const char *port, const char *authfile)
     ASSERT(server);
     ASSERT(port);
 
-    strncpynt(p->server, server, sizeof(p->server));
+    strlcpy(p->server, server, sizeof(p->server));
     p->port = port;
 
     if (authfile)
     {
-        strncpynt(p->authfile, authfile, sizeof(p->authfile));
+        strlcpy(p->authfile, authfile, sizeof(p->authfile));
     }
     else
     {

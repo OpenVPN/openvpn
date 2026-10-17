@@ -303,7 +303,7 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
 
                 if (password_buf[0])
                 {
-                    strncpynt(up->password, password_buf, USER_PASS_LEN);
+                    strlcpy(up->password, password_buf, USER_PASS_LEN);
                 }
                 else
                 {
@@ -364,7 +364,7 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
                     {
                         msg(M_FATAL, "ERROR: could not read challenge response from stdin");
                     }
-                    strncpynt(up->username, ac->user, USER_PASS_LEN);
+                    strlcpy(up->username, ac->user, USER_PASS_LEN);
                     buf_printf(&packed_resp, "CRV1::%s::%s", ac->state_id, response);
                 }
                 else
@@ -452,7 +452,7 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
         /* Use tag for blank password if we are not prompting for one */
         if (flags & GET_USER_PASS_USERNAME_ONLY)
         {
-            strncpynt(up->password, blank_up, sizeof(up->password));
+            strlcpy(up->password, blank_up, sizeof(up->password));
         }
 
         string_mod(up->username, CC_PRINT, CC_CRLF, 0);
@@ -504,7 +504,7 @@ set_auth_token(struct user_pass *tk, const char *token)
     if (strlen(token))
     {
         unprotect_user_pass(tk);
-        strncpynt(tk->password, token, USER_PASS_LEN);
+        strlcpy(tk->password, token, USER_PASS_LEN);
         tk->token_defined = true;
 
         /*

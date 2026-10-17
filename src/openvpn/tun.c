@@ -127,7 +127,7 @@ do_address_service(const bool add, const short family, const struct tuntap *tt)
 
     if (addr.iface.index == TUN_ADAPTER_INDEX_INVALID)
     {
-        strncpynt(addr.iface.name, tt->actual_name, sizeof(addr.iface.name));
+        strlcpy(addr.iface.name, tt->actual_name, sizeof(addr.iface.name));
     }
 
     if (addr.family == AF_INET)
@@ -188,12 +188,12 @@ do_dns_domain_service(bool add, const struct tuntap *tt)
     };
 
     /* interface name is required */
-    strncpynt(dns.iface.name, tt->actual_name, sizeof(dns.iface.name));
+    strlcpy(dns.iface.name, tt->actual_name, sizeof(dns.iface.name));
 
     /* only use domain when there are no search domains */
     if (o->domain && !o->domain_search_list[0])
     {
-        strncpynt(dns.domains, o->domain, sizeof(dns.domains));
+        strlcpy(dns.domains, o->domain, sizeof(dns.domains));
     }
 
     /* Create a comma separated list of search domains */
@@ -260,7 +260,7 @@ do_dns_service(bool add, const short family, const struct tuntap *tt)
                               .addr_len = addr_len };
 
     /* interface name is required */
-    strncpynt(dns.iface.name, tt->actual_name, sizeof(dns.iface.name));
+    strlcpy(dns.iface.name, tt->actual_name, sizeof(dns.iface.name));
 
     if (addr_len > _countof(dns.addr))
     {
@@ -324,7 +324,7 @@ do_wins_service(bool add, const struct tuntap *tt)
                                 .addr_len = addr_len };
 
     /* interface name is required */
-    strncpynt(wins.iface.name, tt->actual_name, sizeof(wins.iface.name));
+    strlcpy(wins.iface.name, tt->actual_name, sizeof(wins.iface.name));
 
     if (addr_len > _countof(wins.addr))
     {
@@ -372,7 +372,7 @@ do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
                                   .iface = { .index = tt->adapter_index },
                                   .mtu = mtu,
                                   .family = family };
-    strncpynt(mtu_msg.iface.name, tt->actual_name, sizeof(mtu_msg.iface.name));
+    strlcpy(mtu_msg.iface.name, tt->actual_name, sizeof(mtu_msg.iface.name));
     if (family == AF_INET6 && mtu < 1280)
     {
         msg(M_INFO,
@@ -2121,7 +2121,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
          */
         if (strcmp(dev, "tun") && strcmp(dev, "tap"))
         {
-            strncpynt(ifr.ifr_name, dev, IFNAMSIZ);
+            strlcpy(ifr.ifr_name, dev, IFNAMSIZ);
         }
 
         /*
@@ -2147,7 +2147,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             if ((ctl_fd = socket(AF_INET, SOCK_DGRAM, 0)) >= 0)
             {
                 CLEAR(netifr);
-                strncpynt(netifr.ifr_name, ifr.ifr_name, IFNAMSIZ);
+                strlcpy(netifr.ifr_name, ifr.ifr_name, IFNAMSIZ);
                 netifr.ifr_qlen = tt->options.txqueuelen;
                 if (ioctl(ctl_fd, SIOCSIFTXQLEN, (void *)&netifr) >= 0)
                 {
@@ -2403,7 +2403,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         {
             msg(M_ERR, "Can't get flags");
         }
-        strncpynt(ifr.lifr_name, tt->actual_name, sizeof(ifr.lifr_name));
+        strlcpy(ifr.lifr_name, tt->actual_name, sizeof(ifr.lifr_name));
         ifr.lifr_ppa = ppa;
         /* Assign ppa according to the unit number returned by tun device */
         if (ioctl(if_fd, SIOCSLIFNAME, &ifr) < 0)
@@ -2471,7 +2471,7 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
     }
 
     CLEAR(ifr);
-    strncpynt(ifr.lifr_name, tt->actual_name, sizeof(ifr.lifr_name));
+    strlcpy(ifr.lifr_name, tt->actual_name, sizeof(ifr.lifr_name));
     ifr.lifr_ip_muxid = ip_muxid;
     if (tt->type == DEV_TYPE_TAP)
     {
@@ -2512,7 +2512,7 @@ solaris_close_tun(struct tuntap *tt)
     {
         struct lifreq ifr;
         CLEAR(ifr);
-        strncpynt(ifr.lifr_name, tt->actual_name, sizeof(ifr.lifr_name));
+        strlcpy(ifr.lifr_name, tt->actual_name, sizeof(ifr.lifr_name));
 
         if (ioctl(tt->ip_fd, SIOCGLIFFLAGS, &ifr) < 0)
         {

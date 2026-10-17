@@ -164,7 +164,7 @@ get_user_pass_cr(struct user_pass *up, const char *auth_file, const char *prefix
     if (!strcmp(prefix, "pkcs11-id-request") && flags & GET_USER_PASS_NEED_STR)
     {
         assert_true(pkcs11_id_management);
-        strncpynt(up->password, pkcs11_id_current, sizeof(up->password));
+        strlcpy(up->password, pkcs11_id_current, sizeof(up->password));
     }
     else if (flags & GET_USER_PASS_PASSWORD_ONLY)
     {

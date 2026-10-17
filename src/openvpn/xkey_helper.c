@@ -198,7 +198,7 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen, const uns
     {
         if (!strcmp(alg.op, "Sign"))
         {
-            strncpynt(alg_str, "ECDSA", sizeof(alg_str));
+            strlcpy(alg_str, "ECDSA", sizeof(alg_str));
         }
         else
         {
@@ -207,7 +207,7 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen, const uns
     }
     else if (!strcmp(alg.keytype, "ED448") || !strcmp(alg.keytype, "ED25519"))
     {
-        strncpynt(alg_str, alg.keytype, sizeof(alg_str));
+        strlcpy(alg_str, alg.keytype, sizeof(alg_str));
     }
     /* else assume RSA key */
     else if (!strcmp(alg.padmode, "pkcs1") && (flags & MF_EXTERNAL_KEY_PKCS1PAD))
@@ -221,7 +221,7 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen, const uns
             }
             tbs = enc;
             tbslen = enc_len;
-            strncpynt(alg_str, "RSA_PKCS1_PADDING", sizeof(alg_str));
+            strlcpy(alg_str, "RSA_PKCS1_PADDING", sizeof(alg_str));
         }
         /* For undigested message, add hashalg=digest parameter */
         else
@@ -232,7 +232,7 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen, const uns
     else if (!strcmp(alg.padmode, "none") && (flags & MF_EXTERNAL_KEY_NOPADDING)
              && !strcmp(alg.op, "Sign")) /* NO_PADDING requires digested data */
     {
-        strncpynt(alg_str, "RSA_NO_PADDING", sizeof(alg_str));
+        strlcpy(alg_str, "RSA_NO_PADDING", sizeof(alg_str));
     }
     else if (!strcmp(alg.padmode, "pss") && (flags & MF_EXTERNAL_KEY_PSSPAD))
     {

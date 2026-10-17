@@ -464,7 +464,7 @@ check_send_auth_token(struct context *c)
 
     struct user_pass up;
     CLEAR(up);
-    strncpynt(up.username, multi->locked_username, sizeof(up.username));
+    strlcpy(up.username, multi->locked_username, sizeof(up.username));
 
     generate_auth_token(&up, multi);
 

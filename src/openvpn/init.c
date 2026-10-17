@@ -393,8 +393,8 @@ management_callback_remote_cmd(void *arg, const char **p)
                     ALLOC_OBJ_CLEAR_GC(rhs, struct remote_host_store, &c->options.gc);
                     c->options.rh_store = rhs;
                 }
-                strncpynt(rhs->host, p[2], RH_HOST_LEN);
-                strncpynt(rhs->port, p[3], RH_PORT_LEN);
+                strlcpy(rhs->host, p[2], RH_HOST_LEN);
+                strlcpy(rhs->port, p[3], RH_PORT_LEN);
 
                 ce->remote = rhs->host;
                 ce->remote_port = rhs->port;
