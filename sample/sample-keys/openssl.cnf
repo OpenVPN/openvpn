@@ -14,7 +14,7 @@ database	= $dir/index.txt	# database index file.
 new_certs_dir	= $dir			# default place for new certs.
 
 certificate	= $dir/ca.crt	 	# The CA certificate
-serial		= $dir/serial 		# The current serial number
+rand_serial	= yes			# Use random serial numbers
 crl		= $dir/crl.pem 		# The current CRL
 private_key	= $dir/ca.key		# The private key
 RANDFILE	= $dir/.rand		# private random number file

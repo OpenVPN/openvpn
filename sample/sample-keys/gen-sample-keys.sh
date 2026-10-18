@@ -22,7 +22,6 @@ ${top_builddir}/src/openvpn/openvpn --genkey tls-auth ta.key
 mkdir -p sample-ca
 rm -f sample-ca/index.txt
 touch sample-ca/index.txt
-echo "01" > sample-ca/serial
 
 # Generate CA key and cert
 openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
