@@ -578,6 +578,8 @@ set(SOURCE_FILES
     src/openvpn/reflect_filter.h
     src/openvpn/reliable.c
     src/openvpn/reliable.h
+    src/openvpn/resolve.c
+    src/openvpn/resolve.h
     src/openvpn/route.c
     src/openvpn/route.h
     src/openvpn/run_command.c

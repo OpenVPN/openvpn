@@ -27,7 +27,7 @@
 #include "syshead.h"
 
 #include "dns.h"
-#include "socket_util.h"
+#include "resolve.h"
 #include "options.h"
 #include "run_command.h"
 #include "domain_helper.h"

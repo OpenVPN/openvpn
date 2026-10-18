@@ -42,6 +42,7 @@
 #include "options.h"
 #include "networking.h"
 #include "integer.h"
+#include "resolve.h"
 
 #include "memdbg.h"
 

@@ -1083,6 +1083,23 @@ string_defined_equal(const char *s1, const char *s2)
     }
 }
 
+bool
+streqnull(const char *a, const char *b)
+{
+    if (a == NULL && b == NULL)
+    {
+        return true;
+    }
+    else if (a == NULL || b == NULL)
+    {
+        return false;
+    }
+    else
+    {
+        return streq(a, b);
+    }
+}
+
 char *
 string_substitute(const char *src, char from, char to, struct gc_arena *gc)
 {

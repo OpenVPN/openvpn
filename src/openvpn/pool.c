@@ -31,6 +31,7 @@
 #include "error.h"
 #include "socket_util.h"
 #include "otime.h"
+#include "resolve.h"
 
 #include "memdbg.h"
 

@@ -64,6 +64,7 @@
 #include "domain_helper.h"
 #include "mbuf.h"
 #include "check_file_access.h"
+#include "resolve.h"
 
 #include <ctype.h>
 
@@ -1044,26 +1045,6 @@ delete_all_dhcp_fo(struct options *o, struct env_item **list)
 
 #endif /* ifndef _WIN32 */
 
-static in_addr_t
-get_ip_addr(const char *ip_string, msglvl_t msglevel, bool *error)
-{
-    unsigned int flags = GETADDR_HOST_ORDER;
-    bool succeeded = false;
-    in_addr_t ret;
-
-    if (msglevel & M_FATAL)
-    {
-        flags |= GETADDR_FATAL;
-    }
-
-    ret = getaddr(flags, ip_string, 0, &succeeded, NULL);
-    if (!succeeded && error)
-    {
-        *error = true;
-    }
-    return ret;
-}
-
 /**
  * Returns newly allocated string containing address part without "/nn".
  *
@@ -1086,13 +1067,6 @@ get_ipv6_addr_no_netbits(const char *addr, struct gc_arena *gc)
     }
     return ret;
 }
-
-static bool
-ipv6_addr_safe_hexplusbits(const char *ipv6_prefix_spec)
-{
-    return get_ipv6_addr(ipv6_prefix_spec, NULL, NULL, M_WARN);
-}
-
 /**
  * Parses a hexstring and checks if the string has the correct length. Return
  * a verify_hash_list containing the parsed hash string.
@@ -3330,7 +3304,7 @@ options_postprocess(struct options *options, struct env_set *es)
     options_postprocess_verify(options);
 #ifndef ENABLE_SMALL
     options_postprocess_filechecks(options);
-#endif /* !ENABLE_SMALL */
+#endif
 }
 
 /*

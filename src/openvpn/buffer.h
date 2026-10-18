@@ -1807,6 +1807,18 @@ strprefix(const char *str, const char *prefix)
     return 0 == strncmp(str, prefix, strlen(prefix));
 }
 
+/** helper to work around the semantics of the strcmp() return value
+ * @return true if the strings are equal according to strcmp()
+ */
+#define streq(x, y) (!strcmp((x), (y)))
+
+/** compare two strings which might be NULL
+ * @return true if both strings are NULL, or if they are equal according to strcmp()
+ */
+bool streqnull(const char *a, const char *b);
+/** compare two strings which might be NULL, but NULL is never equal
+ * @return true if neither string is NULL and they are equal according to strcmp()
+ */
 bool string_defined_equal(const char *s1, const char *s2);
 char *string_substitute(const char *src, char from, char to, struct gc_arena *gc);
 

@@ -110,44 +110,6 @@ void setenv_in6_addr(struct env_set *es, const char *name_prefix, const struct i
 void setenv_link_socket_actual(struct env_set *es, const char *name_prefix,
                                const struct link_socket_actual *act, const unsigned int flags);
 
-/*
- * DNS resolution
- */
-
-#define GETADDR_RESOLVE                 (1u << 0)
-#define GETADDR_FATAL                   (1u << 1)
-#define GETADDR_HOST_ORDER              (1u << 2)
-#define GETADDR_MENTION_RESOLVE_RETRY   (1u << 3)
-#define GETADDR_FATAL_ON_SIGNAL         (1u << 4)
-#define GETADDR_WARN_ON_SIGNAL          (1u << 5)
-#define GETADDR_MSG_VIRT_OUT            (1u << 6)
-#define GETADDR_TRY_ONCE                (1u << 7)
-#define GETADDR_UPDATE_MANAGEMENT_STATE (1u << 8)
-#define GETADDR_RANDOMIZE               (1u << 9)
-#define GETADDR_PASSIVE                 (1u << 10)
-#define GETADDR_DATAGRAM                (1u << 11)
-
-#define GETADDR_CACHE_MASK (GETADDR_DATAGRAM | GETADDR_PASSIVE)
-
-/**
- * Translate an IPv4 addr or hostname from string form to in_addr_t
- *
- * In case of resolve error, it will try again for
- * resolve_retry_seconds seconds.
- */
-in_addr_t getaddr(unsigned int flags, const char *hostname, int resolve_retry_seconds,
-                  bool *succeeded, struct signal_info *sig_info);
-
-/**
- * Translate an IPv6 addr or hostname from string form to in6_addr
- */
-bool get_ipv6_addr(const char *hostname, struct in6_addr *network, unsigned int *netbits,
-                   msglvl_t msglevel);
-
-int openvpn_getaddrinfo(unsigned int flags, const char *hostname, const char *servname,
-                        int resolve_retry_seconds, struct signal_info *sig_info, int ai_family,
-                        struct addrinfo **res);
-
 /* return values of openvpn_inet_aton */
 #define OIA_HOSTNAME 0
 #define OIA_IP       1
@@ -301,7 +263,7 @@ addr_defined_ipi(const struct link_socket_actual *lsa)
 }
 #endif
 
-/*
+/**
  * Overhead added to packets by various protocols.
  */
 static inline int

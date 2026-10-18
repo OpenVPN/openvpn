@@ -30,6 +30,7 @@
 #include "proto.h"
 #include "socket_util.h"
 #include "memdbg.h"
+#include "resolve.h"
 
 static bool
 add_entry(struct client_nat_option_list *dest, const struct client_nat_entry *e)

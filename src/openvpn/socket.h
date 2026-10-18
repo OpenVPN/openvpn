@@ -62,17 +62,6 @@ typedef uint16_t packet_size_type;
 /* convert a packet_size_type from network to host order */
 #define ntohps(x) ntohs(x)
 
-/* struct to hold preresolved host names */
-struct cached_dns_entry
-{
-    const char *hostname;
-    const char *servname;
-    int ai_family;
-    unsigned int flags;
-    struct addrinfo *ai;
-    struct cached_dns_entry *next;
-};
-
 /* IP addresses which are persistent across SIGUSR1s */
 struct link_socket_addr
 {
@@ -361,8 +350,6 @@ int openvpn_connect(socket_descriptor_t sd, const struct sockaddr *remote, int c
 void link_socket_init_phase1(struct context *c, int sock_index, int mode);
 
 void link_socket_init_phase2(struct context *c, struct link_socket *sock);
-
-void do_preresolve(struct context *c);
 
 void link_socket_close(struct link_socket *sock);
 

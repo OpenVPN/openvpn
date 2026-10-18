@@ -727,8 +727,6 @@ struct options
     unsigned int imported_protocol_flags;
 };
 
-#define streq(x, y) (!strcmp((x), (y)))
-
 /*
  * Option classes.
  */

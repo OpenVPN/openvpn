@@ -32,6 +32,7 @@
 #include "socket.h"
 #include "fdmisc.h"
 #include "crypto.h"
+#include "resolve.h"
 #include "ps.h"
 
 #include "memdbg.h"

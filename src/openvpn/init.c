@@ -55,6 +55,7 @@
 #include "tun_afunix.h"
 #include "schedule.h"
 #include "options_string.h"
+#include "resolve.h"
 
 #include "memdbg.h"
 

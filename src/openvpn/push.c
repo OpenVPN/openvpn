@@ -37,6 +37,7 @@
 #include "memdbg.h"
 #include "ssl_util.h"
 #include "options_util.h"
+#include "resolve.h"
 
 /*
  * Auth username/password

@@ -44,6 +44,7 @@
 #include "dco.h"
 #include "push.h"
 #include "multi.h"
+#include "resolve.h"
 
 #include "memdbg.h"
 
