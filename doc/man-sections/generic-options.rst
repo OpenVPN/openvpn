@@ -397,6 +397,15 @@ which mode OpenVPN is configured as.
   :code:`3`
       Identical to :code:`2`, but fields are tab-separated.
 
+  In OpenVPN 2.7 and later, the ``Real Address`` field in the client list
+  includes the transport protocol as well as the peer address and port. This
+  format is used both by status files and by the management interface
+  ``status 2`` and ``status 3`` commands. For example, an IPv4 TCP server
+  connection is reported as ``tcp4-server:127.0.0.1:53188`` and an IPv6 UDP
+  connection as ``udp6:[2001:db8::1]:53188``. Software parsing this field
+  must handle the protocol prefix and the brackets around IPv6 addresses with
+  a port.
+
 --test-crypto
   Do a self-test of OpenVPN's crypto options by encrypting and decrypting
   test packets using the data channel encryption options specified above.
