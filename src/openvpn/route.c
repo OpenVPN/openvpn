@@ -1862,7 +1862,7 @@ add_route_ipv6(struct route_ipv6 *r6, const struct tuntap *tt, unsigned int flag
 #elif defined(TARGET_ANDROID)
     char out[64];
 
-    snprintf(out, sizeof(out), "%s/%d %s", network, r6->netbits, device);
+    snprintf(out, sizeof(out), "%s/%u %s", network, r6->netbits, device);
 
     status = management_android_control(management, "ROUTE6", out);
 
@@ -3348,10 +3348,10 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
     rtm_addrs = RTA_DST | RTA_NETMASK | RTA_IFP;
 #endif
 
-    bzero(&m_rtmsg, sizeof(m_rtmsg));
-    bzero(&so_dst, sizeof(so_dst));
-    bzero(&so_mask, sizeof(so_mask));
-    bzero(&rtm, sizeof(struct rt_msghdr));
+    CLEAR(m_rtmsg);
+    CLEAR(so_dst);
+    CLEAR(so_mask);
+    CLEAR(rtm);
 
     rtm.rtm_type = RTM_GET;
     rtm.rtm_flags = RTF_UP | RTF_GATEWAY;
@@ -3566,10 +3566,10 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6, const struct in6_
     rtm_addrs = RTA_DST | RTA_NETMASK | RTA_IFP;
 #endif
 
-    bzero(&m_rtmsg, sizeof(m_rtmsg));
-    bzero(&so_dst, sizeof(so_dst));
-    bzero(&so_mask, sizeof(so_mask));
-    bzero(&rtm, sizeof(struct rt_msghdr));
+    CLEAR(m_rtmsg);
+    CLEAR(so_dst);
+    CLEAR(so_mask);
+    CLEAR(rtm);
 
     rtm.rtm_type = RTM_GET;
     rtm.rtm_flags = RTF_UP;
@@ -3654,7 +3654,7 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6, const struct in6_
     /* get gateway addr and interface name */
     if (gate != NULL)
     {
-        struct sockaddr_in6 *s6 = (struct sockaddr_in6 *)gate;
+        const struct sockaddr_in6 *s6 = (struct sockaddr_in6 *)gate;
         struct in6_addr gw = s6->sin6_addr;
 
 #ifndef TARGET_SOLARIS

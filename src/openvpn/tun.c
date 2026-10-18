@@ -1833,7 +1833,7 @@ open_tun_generic(const char *dev, const char *dev_type, const char *dev_node, st
             for (int i = 0; i < 256; ++i)
             {
                 /* some platforms have a dedicated directory per driver */
-                char *sep = "";
+                const char *sep = "";
 #if defined(TARGET_HAIKU)
                 sep = "/";
 #endif
