@@ -72,11 +72,6 @@ set_std_files_to_null(bool stdin_only)
 #endif
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 #ifdef ENABLE_MANAGEMENT
 /* Get username/password from the management interface */
 static bool
@@ -127,19 +122,23 @@ static struct auth_challenge_info *
 parse_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
 {
     ASSERT(auth_challenge);
+    const size_t len = strlen(auth_challenge);
+    if (!buf_size_valid(len))
+    {
+        return NULL;
+    }
 
-    struct auth_challenge_info *ac;
-    const int len = strlen(auth_challenge);
-    char *work = (char *)gc_malloc(len + 1, false, gc);
-    const char *cp;
+    const int work_len = (int)len + 1;
+    char *work = (char *)gc_malloc(work_len, false, gc);
 
     struct buffer b;
     buf_set_read(&b, (const uint8_t *)auth_challenge, len);
 
+    struct auth_challenge_info *ac;
     ALLOC_OBJ_CLEAR_GC(ac, struct auth_challenge_info, gc);
 
     /* parse prefix */
-    if (!buf_parse(&b, ':', work, len))
+    if (!buf_parse(&b, ':', work, work_len))
     {
         return NULL;
     }
@@ -149,11 +148,11 @@ parse_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
     }
 
     /* parse flags */
-    if (!buf_parse(&b, ':', work, len))
+    if (!buf_parse(&b, ':', work, work_len))
     {
         return NULL;
     }
-    for (cp = work; *cp != '\0'; ++cp)
+    for (const char *cp = work; *cp != '\0'; ++cp)
     {
         const char c = *cp;
         if (c == 'E')
@@ -167,14 +166,14 @@ parse_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
     }
 
     /* parse state ID */
-    if (!buf_parse(&b, ':', work, len))
+    if (!buf_parse(&b, ':', work, work_len))
     {
         return NULL;
     }
     ac->state_id = string_alloc(work, gc);
 
     /* parse user name */
-    if (!buf_parse(&b, ':', work, len))
+    if (!buf_parse(&b, ':', work, work_len))
     {
         return NULL;
     }
@@ -188,10 +187,6 @@ parse_auth_challenge(const char *auth_challenge, struct gc_arena *gc)
 }
 
 #endif /* ifdef ENABLE_MANAGEMENT */
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /*
  * Get and store a username/password
