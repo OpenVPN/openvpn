@@ -1172,20 +1172,11 @@ hmac_ctx_cleanup(HMAC_CTX *ctx)
     HMAC_CTX_reset(ctx);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 int
 hmac_ctx_size(HMAC_CTX *ctx)
 {
-    return HMAC_size(ctx);
+    return (int)HMAC_size(ctx);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 hmac_ctx_reset(HMAC_CTX *ctx)
