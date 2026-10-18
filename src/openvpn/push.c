@@ -733,11 +733,6 @@ prepare_push_reply(struct context *c, struct gc_arena *gc, struct push_list *pus
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#endif
-
 static bool
 send_push_options(struct context *c, struct buffer *buf, struct push_list *push_list, int safe_cap,
                   bool *push_sent, bool *multi_push)
@@ -748,8 +743,13 @@ send_push_options(struct context *c, struct buffer *buf, struct push_list *push_
     {
         if (e->enable)
         {
-            const int l = strlen(e->option);
-            if (BLEN(buf) + l >= safe_cap)
+            const size_t l = strlen(e->option);
+            if (!buf_size_valid(l))
+            {
+                msg(M_WARN, "--push option is too long");
+                return false;
+            }
+            if (BLEN(buf) + (int)l >= safe_cap)
             {
                 buf_printf(buf, ",push-continuation 2");
                 {
@@ -764,7 +764,7 @@ send_push_options(struct context *c, struct buffer *buf, struct push_list *push_
                     buf_printf(buf, "%s", push_reply_cmd);
                 }
             }
-            if (BLEN(buf) + l >= safe_cap)
+            if (BLEN(buf) + (int)l >= safe_cap)
             {
                 msg(M_WARN, "--push option is too long");
                 return false;
@@ -775,10 +775,6 @@ send_push_options(struct context *c, struct buffer *buf, struct push_list *push_
     }
     return true;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 send_push_reply_auth_token(struct tls_multi *multi)
