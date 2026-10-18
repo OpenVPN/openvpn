@@ -31,7 +31,7 @@ openssl req -new -newkey rsa:4096 -days 3650 -nodes -x509 \
     -config openssl.cnf
 
 # Create server key and cert
-openssl req -new -nodes -config openssl.cnf -extensions server \
+openssl req -new -nodes -config openssl.cnf \
     -keyout sample-ca/server.key -out sample-ca/server.csr \
     -subj "/C=KG/ST=NA/O=OpenVPN-TEST/CN=Test-Server/emailAddress=me@myhost.mydomain"
 openssl ca -batch -config openssl.cnf -extensions server \
@@ -66,7 +66,6 @@ openssl ca -config openssl.cnf -gencrl -out sample-ca/ca.crl
 openssl dsaparam -out sample-ca/dsaparams.pem 2048
 
 openssl req -new -newkey dsa:sample-ca/dsaparams.pem -nodes -config openssl.cnf \
-    -extensions server \
     -keyout sample-ca/server-dsa.key -out sample-ca/server-dsa.csr \
     -subj "/C=KG/ST=NA/O=OpenVPN-TEST/CN=Test-Server-DSA/emailAddress=me@myhost.mydomain"
 openssl ca -batch -config openssl.cnf -extensions server \
@@ -82,7 +81,6 @@ openssl ca -batch -config openssl.cnf \
 openssl ecparam -out sample-ca/secp256k1.pem -name secp256k1
 
 openssl req -new -newkey ec:sample-ca/secp256k1.pem -nodes -config openssl.cnf \
-    -extensions server \
     -keyout sample-ca/server-ec.key -out sample-ca/server-ec.csr \
     -subj "/C=KG/ST=NA/O=OpenVPN-TEST/CN=Test-Server-EC/emailAddress=me@myhost.mydomain"
 openssl ca -batch -config openssl.cnf -extensions server \
