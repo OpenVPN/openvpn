@@ -3286,20 +3286,27 @@ HandleMessage(HANDLE pipe, PPROCESS_INFORMATION proc_info, DWORD bytes, DWORD co
 
         case msg_add_dns_cfg:
         case msg_del_dns_cfg:
-            ack.error_number = HandleDNSConfigMessage(&msg.dns, lists);
+            if (msg.header.size == sizeof(msg.dns))
+            {
+                ack.error_number = HandleDNSConfigMessage(&msg.dns, lists);
+            }
             break;
 
         case msg_add_nrpt_cfg:
         case msg_del_nrpt_cfg:
-        {
-            DWORD ovpn_pid = proc_info->dwProcessId;
-            ack.error_number = HandleDNSConfigNrptMessage(&msg.nrpt_dns, ovpn_pid, lists);
-        }
-        break;
+            if (msg.header.size == sizeof(msg.nrpt_dns))
+            {
+                DWORD ovpn_pid = proc_info->dwProcessId;
+                ack.error_number = HandleDNSConfigNrptMessage(&msg.nrpt_dns, ovpn_pid, lists);
+            }
+            break;
 
         case msg_add_wins_cfg:
         case msg_del_wins_cfg:
-            ack.error_number = HandleWINSConfigMessage(&msg.wins, lists);
+            if (msg.header.size == sizeof(msg.wins))
+            {
+                ack.error_number = HandleWINSConfigMessage(&msg.wins, lists);
+            }
             break;
 
         case msg_enable_dhcp:
