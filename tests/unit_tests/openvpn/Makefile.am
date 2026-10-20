@@ -445,3 +445,5 @@ socket_testdriver_SOURCES = test_socket.c \
 	$(top_srcdir)/src/openvpn/env_set.c \
 	$(top_srcdir)/src/openvpn/run_command.c \
 	$(top_srcdir)/src/openvpn/socket_util.c
+
+build-tests-local: $(check_PROGRAMS)

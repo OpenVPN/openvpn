@@ -15,3 +15,5 @@ example_testdriver_SOURCES = test.c
 example2_testdriver_CFLAGS  = @TEST_CFLAGS@
 example2_testdriver_LDFLAGS = @TEST_LDFLAGS@
 example2_testdriver_SOURCES = test2.c
+
+build-tests-local: $(check_PROGRAMS)
