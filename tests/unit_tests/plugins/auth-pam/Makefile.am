@@ -12,3 +12,5 @@ endif
 auth_pam_testdriver_SOURCES = test_search_and_replace.c  $(top_srcdir)/src/plugins/auth-pam/utils.h $(top_srcdir)/src/plugins/auth-pam/utils.c
 auth_pam_testdriver_CFLAGS  = @TEST_CFLAGS@ -I$(top_srcdir)/src/plugins/auth-pam
 auth_pam_testdriver_LDFLAGS = @TEST_LDFLAGS@
+
+build-tests-local: $(check_PROGRAMS)

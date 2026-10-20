@@ -13,3 +13,5 @@ openvpnserv_testdriver_SOURCES = test_openvpnserv.c \
 	$(top_srcdir)/src/openvpnserv/validate.c \
 	$(top_srcdir)/src//openvpn/wfp_block.c \
 	$(top_srcdir)/src//openvpn/wfp_block.h
+
+build-tests-local: $(check_PROGRAMS)
