@@ -579,13 +579,14 @@ test_calc_session_id_hmac_static(void **ut_state)
 
     struct session_id expected_server_id = { { 0xec, 0xa3, 0xd5, 0xcc, 0xb4, 0x7c, 0xa1, 0xee } };
     /* We have to deal with different structs here annoyingly */
-    /* Linux has an unsigned short int as family_t and this is field is always
+    /* Some systems have an unsigned short int as family_t and the field is always
      * stored in host endianness even though the rest of the struct isn't...,
-     * so Linux little endian differs from all BSD and Linux big endian */
+     * This affects at least Linux, Windows, and OpenIndiana.
+     */
     if (sizeof(addr.addr.in4.sin_family) == sizeof(unsigned short int) && ntohs(AF_INET) != AF_INET)
     {
-        struct session_id linuxle = { { 0x70, 0x04, 0x8c, 0x0f, 0xfe, 0x30, 0x85, 0x12 } };
-        expected_server_id = linuxle;
+        struct session_id short_le = { { 0x70, 0x04, 0x8c, 0x0f, 0xfe, 0x30, 0x85, 0x12 } };
+        expected_server_id = short_le;
     }
     assert_memory_equal(expected_server_id.id, server_id.id, SID_SIZE);
 
