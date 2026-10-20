@@ -73,6 +73,8 @@ AM_INIT_AUTOMAKE(foreign serial_tests subdir_objects 1.9) dnl NB: Do not [quote]
 AC_CANONICAL_HOST
 AC_USE_SYSTEM_EXTENSIONS
 
+AM_EXTRA_RECURSIVE_TARGETS([build-tests])
+
 AC_ARG_ENABLE(
 	[lzo],
 	[AS_HELP_STRING([--disable-lzo], [disable LZO compression support @<:@default=yes@:>@])],
