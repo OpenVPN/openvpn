@@ -40,21 +40,9 @@ AC_CONFIG_HEADERS([config.h include/openvpn-plugin.h])
 AC_CONFIG_SRCDIR([src/openvpn/syshead.h])
 AC_CONFIG_MACRO_DIR([m4])
 
-dnl Automake 1.14+ warns if sources are in sub-directories but subdir-objects
-dnl options is not enabled. However, automake before 1.15a has a bug that causes
-dnl variable expansion to fail in foo_SOURCES when this option is used.
-dnl As most of our build systems are now likely to use automake 1.16+ add a
-dnl work around to conditionally add subdir-objects option.
-m4_define([subdir_objects], [
-    m4_esyscmd([automake --version |
-                head -1 |
-                awk '{split ($NF,a,"."); if (a[1] == 1 && a[2] >= 16) { print "subdir-objects" }}'
-    ])
-])
-
 # This foreign option prevents autoreconf from overriding our COPYING and
 # INSTALL targets:
-AM_INIT_AUTOMAKE(foreign subdir_objects 1.9) dnl NB: Do not [quote] this parameter.
+AM_INIT_AUTOMAKE(foreign subdir-objects 1.16) dnl NB: Do not [quote] this parameter.
 AM_SILENT_RULES([yes])
 AC_CANONICAL_HOST
 AC_USE_SYSTEM_EXTENSIONS
