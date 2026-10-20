@@ -568,6 +568,15 @@ cipher_get(const char *ciphername)
 {
     ASSERT(ciphername);
 
+    /* "none" is a valid OpenVPN cipher name that OpenSSL does not know.
+     * Return NULL without asking OpenSSL: a failed EVP_CIPHER_fetch() would
+     * leave an "unsupported" entry on the error queue that the cipher_kt_*()
+     * callers never clear. */
+    if (strcmp("none", ciphername) == 0)
+    {
+        return NULL;
+    }
+
     ciphername = translate_cipher_name_from_openvpn(ciphername);
     return EVP_CIPHER_fetch(NULL, ciphername, NULL);
 }
@@ -981,6 +990,14 @@ md_get(const char *digest)
 {
     evp_md_type *md = NULL;
     ASSERT(digest);
+
+    /* "none" is a valid OpenVPN digest name that OpenSSL does not know.
+     * Return NULL without asking OpenSSL, see cipher_get(). */
+    if (strcmp("none", digest) == 0)
+    {
+        return NULL;
+    }
+
     md = EVP_MD_fetch(NULL, digest, NULL);
     if (!md)
     {
