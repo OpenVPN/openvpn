@@ -575,6 +575,9 @@ HandleAddressMessage(address_message_t *msg, undo_lists_t *lists)
     PMIB_UNICASTIPADDRESS_ROW addr_row;
     BOOL add = msg->header.type == msg_add_address;
 
+    /* enforce null-termination of the interface name from client */
+    msg->iface.name[_countof(msg->iface.name) - 1] = '\0';
+
     addr_row = malloc(sizeof(*addr_row));
     if (addr_row == NULL)
     {
@@ -652,6 +655,9 @@ HandleRouteMessage(route_message_t *msg, undo_lists_t *lists)
     DWORD err;
     PMIB_IPFORWARD_ROW2 fwd_row;
     BOOL add = msg->header.type == msg_add_route;
+
+    /* enforce null-termination of the interface name from client */
+    msg->iface.name[_countof(msg->iface.name) - 1] = '\0';
 
     fwd_row = malloc(sizeof(*fwd_row));
     if (fwd_row == NULL)
