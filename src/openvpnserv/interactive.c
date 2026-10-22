@@ -3692,10 +3692,59 @@ RunOpenvpn(LPVOID p)
         goto out;
     }
 
+    /*
+     * Add a SACL to the openvpn security descriptor with a medium integrity label ACE.
+     * This makes it possible to still query the process info and terminate the process
+     * from the GUI. The high integrity label assigned to the process' primary token
+     * would otherwise prevent this.
+     */
+    BYTE medium_sid[SECURITY_MAX_SID_SIZE];
+    DWORD medium_sid_size = sizeof(medium_sid);
+    DWORD sacl_buf[(sizeof(ACL) + sizeof(SYSTEM_MANDATORY_LABEL_ACE) + SECURITY_MAX_SID_SIZE) / sizeof(DWORD) + 1]; /* must be DWORD aligned */
+    PACL sacl = (PACL)sacl_buf;
+    if (!CreateWellKnownSid(WinMediumLabelSid, NULL, medium_sid, &medium_sid_size)
+        || !InitializeAcl(sacl, (DWORD)sizeof(sacl_buf), ACL_REVISION)
+        || !AddMandatoryAce(sacl, ACL_REVISION, 0, SYSTEM_MANDATORY_LABEL_NO_WRITE_UP, medium_sid)
+        || !SetSecurityDescriptorSacl(&ovpn_sd, TRUE, sacl, FALSE))
+    {
+        ReturnLastError(pipe, L"SetSecurityDescriptorSacl");
+        goto out;
+    }
+
     /* Create primary token from impersonation token */
     if (!DuplicateTokenEx(imp_token, TOKEN_ALL_ACCESS, NULL, 0, TokenPrimary, &pri_token))
     {
         ReturnLastError(pipe, L"DuplicateTokenEx");
+        goto out;
+    }
+
+    /*
+     * Run openvpn at high integrity, so that the user cannot write to its threads.
+     * Raising the level requires the privileges of the service, so stop
+     * impersonating the user while doing it.
+     */
+    BYTE high_sid[SECURITY_MAX_SID_SIZE];
+    DWORD high_sid_size = sizeof(high_sid);
+    if (!RevertToSelf())
+    {
+        ReturnLastError(pipe, L"RevertToSelf");
+        goto out;
+    }
+    if (!CreateWellKnownSid(WinHighLabelSid, NULL, high_sid, &high_sid_size))
+    {
+        ReturnLastError(pipe, L"CreateWellKnownSid");
+        goto out;
+    }
+    TOKEN_MANDATORY_LABEL label = { .Label = { .Sid = high_sid, .Attributes = SE_GROUP_INTEGRITY } };
+    DWORD label_size = sizeof(label) + GetLengthSid(high_sid);
+    if (!SetTokenInformation(pri_token, TokenIntegrityLevel, &label, label_size))
+    {
+        ReturnLastError(pipe, L"SetTokenInformation");
+        goto out;
+    }
+    if (!SetThreadToken(NULL, imp_token))
+    {
+        ReturnLastError(pipe, L"SetThreadToken");
         goto out;
     }
 
