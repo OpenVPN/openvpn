@@ -381,6 +381,10 @@ else
 fi
 
 AC_PROG_CC
+# AC_PROG_CC doesn't output any useful information
+AC_MSG_CHECKING([compiler version])
+CC_version=$($CC --version | head -n1)
+AC_MSG_RESULT([$CC_version])
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
