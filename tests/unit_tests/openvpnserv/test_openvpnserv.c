@@ -262,6 +262,45 @@ test_remove_search_list_tokens(void **state)
     assert_int_equal(wcscmp(list, L"a,"), 0);
 }
 
+/* Merge the environments and compare the result with the expected block,
+ * including the terminating empty string. A macro, so that failures are
+ * reported with the line of the test case. */
+#define assert_merge_result(sys_env, usr_env, expected)         \
+    do                                                          \
+    {                                                           \
+        PWSTR env_ = MergeOpenvpnEnvironment(sys_env, usr_env); \
+        assert_non_null(env_);                                  \
+        size_t size_ = EnvBlockSize(expected);                  \
+        assert_int_equal(EnvBlockSize(env_), size_);            \
+        assert_memory_equal(env_, expected, size_);             \
+        free(env_);                                             \
+    } while (0)
+
+static void
+test_merge_openvpn_environment(void **state)
+{
+    /* string literals add the second terminating '\0' of the block */
+    PCWSTR sys_env = L"A=sys\0PATH=sys\0TEMP=sys\0USERNAME=sys\0";
+
+    /* user-specific variables come from the user, everything else from the
+     * system, and variables only the user defined are dropped */
+    assert_merge_result(
+        sys_env,
+        L"A=usr\0APPDATA=usr\0PATH=usr\0TEMP=usr\0TMP=usr\0USERNAME=usr\0USERPROFILE=usr\0USR_ONLY=usr\0",
+        L"A=sys\0PATH=sys\0APPDATA=usr\0TEMP=usr\0TMP=usr\0USERNAME=usr\0USERPROFILE=usr\0");
+
+    /* user-specific variables missing from the user environment are not set */
+    assert_merge_result(sys_env, L"TEMP=usr\0", L"A=sys\0PATH=sys\0TEMP=usr\0");
+
+    /* only full names are user-specific variables, not prefixes */
+    assert_merge_result(sys_env, L"TEMPDIR=usr\0USER=usr\0", L"A=sys\0PATH=sys\0");
+
+    /* empty environments */
+    assert_merge_result(sys_env, L"", L"A=sys\0PATH=sys\0");
+    assert_merge_result(L"", L"TEMP=usr\0USR_ONLY=usr\0", L"TEMP=usr\0");
+    assert_merge_result(L"", L"", L"");
+}
+
 int
 wmain(void)
 {
@@ -271,6 +310,7 @@ wmain(void)
         cmocka_unit_test(test_convert_itf_dns_domains),
         cmocka_unit_test(test_append_search_list),
         cmocka_unit_test(test_remove_search_list_tokens),
+        cmocka_unit_test(test_merge_openvpn_environment),
     };
 
     int ret = cmocka_run_group_tests_name("openvpnserv tests", tests, NULL, NULL);

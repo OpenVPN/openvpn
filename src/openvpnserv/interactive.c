@@ -3422,6 +3422,133 @@ Undo(undo_lists_t *lists)
     }
 }
 
+/**
+ * Check if an environment variable is user-specific
+ *
+ * @param  var  "name=value" string of the variable
+ *
+ * @return BOOL to indicate if the variable is user-specific
+ */
+static BOOL
+IsUserEnvVar(PCWSTR var)
+{
+    static PCWSTR user_vars[] = { L"APPDATA=", L"LOCALAPPDATA=", L"TEMP=", L"TMP=",
+                                  L"USERDOMAIN=", L"USERNAME=", L"USERPROFILE=" };
+
+    for (size_t i = 0; i < _countof(user_vars); ++i)
+    {
+        if (wcsncmp(var, user_vars[i], wcslen(user_vars[i])) == 0)
+        {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+/**
+ * Return the size of an environment block
+ *
+ * @param  env  environment block to get the size of
+ *
+ * @return size_t size of @p env in bytes, including the terminating empty string
+ */
+static size_t
+EnvBlockSize(PCWSTR env)
+{
+    PCWSTR var = env;
+    while (*var)
+    {
+        var += wcslen(var) + 1;
+    }
+    return ((size_t)(var - env) + 1) * sizeof(*env);
+}
+
+/**
+ * Merge the environment for the openvpn process
+ *
+ * The result consists of the variables in @p sys_env, except the
+ * user-specific ones, which are taken from @p usr_env instead. Other
+ * variables the user defined are not passed on, as they could be used to
+ * load code into the openvpn process.
+ *
+ * @param  sys_env  system wide environment block
+ * @param  usr_env  environment block of the user
+ *
+ * @return PWSTR to the merged environment block, or NULL if out of memory.
+ *         It must be released with free().
+ */
+static PWSTR
+MergeOpenvpnEnvironment(PCWSTR sys_env, PCWSTR usr_env)
+{
+    PWSTR block = malloc(EnvBlockSize(sys_env) + EnvBlockSize(usr_env));
+    if (!block)
+    {
+        return NULL;
+    }
+
+    PWSTR pos = block;
+    for (PCWSTR var = sys_env; *var; var += wcslen(var) + 1)
+    {
+        if (!IsUserEnvVar(var))
+        {
+            size_t len = wcslen(var) + 1;
+            wmemcpy(pos, var, len);
+            pos += len;
+        }
+    }
+    for (PCWSTR var = usr_env; *var; var += wcslen(var) + 1)
+    {
+        if (IsUserEnvVar(var))
+        {
+            size_t len = wcslen(var) + 1;
+            wmemcpy(pos, var, len);
+            pos += len;
+        }
+    }
+    *pos = L'\0';
+
+    return block;
+}
+
+/**
+ * Create the environment for the openvpn process
+ *
+ * See MergeOpenvpnEnvironment() for what it contains.
+ *
+ * @param  token  HANDLE of the token of the user openvpn is run for
+ * @param  env    pointer the environment block is returned in. It must be
+ *                released with free().
+ *
+ * @return BOOL to indicate success or failure, the reason for a failure is
+ *         set as last error
+ */
+static BOOL
+CreateOpenvpnEnvironment(HANDLE token, PWSTR *env)
+{
+    LPVOID sys_env = NULL;
+    LPVOID usr_env = NULL;
+    BOOL ret = FALSE;
+
+    if (!CreateEnvironmentBlock(&sys_env, NULL, FALSE)
+        || !CreateEnvironmentBlock(&usr_env, token, FALSE))
+    {
+        goto out;
+    }
+
+    *env = MergeOpenvpnEnvironment(sys_env, usr_env);
+    if (!*env)
+    {
+        SetLastError(ERROR_OUTOFMEMORY);
+        goto out;
+    }
+    ret = TRUE;
+
+out:
+    DestroyEnvironmentBlock(sys_env);
+    DestroyEnvironmentBlock(usr_env);
+    return ret;
+}
+
 static DWORD WINAPI
 RunOpenvpn(LPVOID p)
 {
@@ -3435,7 +3562,7 @@ RunOpenvpn(LPVOID p)
     STARTUP_DATA sud = { 0, 0, 0 };
     STARTUPINFOW startup_info;
     PROCESS_INFORMATION proc_info;
-    LPVOID user_env = NULL;
+    PWSTR ovpn_env = NULL;
     WCHAR ovpn_pipe_name[256]; /* The entire pipe name string can be up to 256 characters long
                                   according to MSDN. */
     LPCWSTR exe_path;
@@ -3677,9 +3804,9 @@ RunOpenvpn(LPVOID p)
         goto out;
     }
 
-    if (!CreateEnvironmentBlock(&user_env, imp_token, FALSE))
+    if (!CreateOpenvpnEnvironment(imp_token, &ovpn_env))
     {
-        ReturnLastError(pipe, L"CreateEnvironmentBlock");
+        ReturnLastError(pipe, L"CreateOpenvpnEnvironment");
         goto out;
     }
 
@@ -3694,7 +3821,7 @@ RunOpenvpn(LPVOID p)
     /* TODO: make sure HKCU is correct or call LoadUserProfile() */
     if (!CreateProcessAsUserW(pri_token, exe_path, cmdline, &ovpn_sa, NULL, TRUE,
                               settings.priority | CREATE_NO_WINDOW | CREATE_UNICODE_ENVIRONMENT,
-                              user_env, sud.directory, &startup_info, &proc_info))
+                              ovpn_env, sud.directory, &startup_info, &proc_info))
     {
         ReturnLastError(pipe, L"CreateProcessAsUser");
         goto out;
@@ -3770,7 +3897,7 @@ out:
     free(cmdline);
     LocalFree(pSD);
     LocalFree(ovpn_dacl);
-    DestroyEnvironmentBlock(user_env);
+    free(ovpn_env);
     FreeStartupData(&sud);
     CloseHandleEx(&proc_info.hProcess);
     CloseHandleEx(&proc_info.hThread);
