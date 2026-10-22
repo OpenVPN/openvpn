@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -eu
 
@@ -17,12 +17,18 @@ if [ "${CPPCHECK_CHECK_LEVEL}" != exhaustive ]; then
     disable_arg="--disable=information"
 fi
 
-SCRIPT_DIR=$(dirname $(readlink -e "${BASH_SOURCE[0]}"))
+if [ $(uname) = "Darwin" ] || [ $(uname) = "FreeBSD" ]; then
+    SCRIPT_DIR=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
+    num_procs=$(sysctl -n hw.ncpu)
+else
+    SCRIPT_DIR=$(dirname $(readlink -e "${BASH_SOURCE[0]}"))
+    num_procs=$(nprocs)
+fi
 : ${SOURCE_DIR:=$SCRIPT_DIR/..}
 : ${BUILD_DIR:=$PWD}
 : ${INCLUDE_FLAGS:=}
 CPPCHECK_DIR="${BUILD_DIR}/cppcheck_build_dir"
-COMMON_ARGS="-j$(nproc) ${verbosity_arg} \
+COMMON_ARGS="-j${num_procs} ${verbosity_arg} \
  -DMBEDTLS_SSL_PROTO_TLS1_3 -DMBEDTLS_SSL_KEYING_MATERIAL_EXPORT \
  -I./include/ -I./tests/unit_tests/openvpn/ \
  -I./src/compat/ -I./src/openvpn/ -I./src/openvpnserv/ -I./src/plugins/auth-pam/ \
