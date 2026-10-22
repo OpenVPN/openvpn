@@ -357,10 +357,12 @@ ReturnLastError(HANDLE pipe, LPCWSTR func)
 /*
  * Validate options against a white list. Also check the config_file is
  * inside the config_dir. The white list is defined in validate.c
+ * The options are taken from the command line openvpn is started with,
+ * so that they are split exactly like openvpn.exe does it.
  * Returns true on success, false on error with reason set in errmsg.
  */
 static BOOL
-ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options, WCHAR *errmsg,
+ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *cmdline, WCHAR *errmsg,
                 DWORD capacity)
 {
     WCHAR **argv;
@@ -375,7 +377,10 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options, WCHAR *
                         L" only with admin approval. This error may be avoided"
                         L" by adding your account to the \"%ls\" group";
 
-    argv = CommandLineToArgvW(options, &argc);
+    /* Skip "openvpn --msg-channel <handle>" added by the service */
+    const int first = 3;
+
+    argv = CommandLineToArgvW(cmdline, &argc);
 
     if (!argv)
     {
@@ -385,8 +390,7 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options, WCHAR *
         goto out;
     }
 
-    /* Note: argv[0] is the first option */
-    if (argc < 1) /* no options */
+    if (argc <= first) /* no options */
     {
         ret = TRUE;
         goto out;
@@ -395,18 +399,18 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *options, WCHAR *
     /*
      * If only one argument, it is the config file
      */
-    if (argc == 1)
+    if (argc == first + 1)
     {
-        WCHAR *argv_tmp[2] = { L"--config", argv[0] };
+        WCHAR *argv_tmp[2] = { L"--config", argv[first] };
 
         if (!CheckOption(workdir, 2, argv_tmp, &settings))
         {
-            swprintf(errmsg, capacity, msg1, argv[0], workdir, settings.ovpn_admin_group);
+            swprintf(errmsg, capacity, msg1, argv[first], workdir, settings.ovpn_admin_group);
         }
         goto out;
     }
 
-    for (i = 0; i < argc; ++i)
+    for (i = first; i < argc; ++i)
     {
         if (!IsOption(argv[i]))
         {
@@ -3529,21 +3533,6 @@ RunOpenvpn(LPVOID p)
         goto out;
     }
 
-    /*
-     * Only authorized users are allowed to use any command line options or
-     * have the config file in locations other than the global config directory.
-     *
-     * Check options are white-listed and config is in the global directory
-     * OR user is authorized to run any config.
-     */
-    if (!ValidateOptions(pipe, sud.directory, sud.options, errmsg, _countof(errmsg))
-        && !IsAuthorizedUser(ovpn_user->User.Sid, imp_token, settings.ovpn_admin_group,
-                             settings.ovpn_service_user))
-    {
-        ReturnError(pipe, ERROR_STARTUP_DATA, errmsg, 1, &exit_event);
-        goto out;
-    }
-
     /* OpenVPN process DACL entry for access by service and user */
     ea[0].grfAccessPermissions = SPECIFIC_RIGHTS_ALL | STANDARD_RIGHTS_ALL;
     ea[0].grfAccessMode = SET_ACCESS;
@@ -3670,8 +3659,23 @@ RunOpenvpn(LPVOID p)
     /* there seem to be no common printf specifier that works on all
      * mingw/msvc platforms without trickery, so convert to void* and use
      * PRIuPTR to print that as best compromise */
-    swprintf(cmdline, cmdline_size, L"openvpn %ls --msg-channel %" PRIuPTR, sud.options,
-             (uintptr_t)svc_pipe);
+    swprintf(cmdline, cmdline_size, L"openvpn --msg-channel %" PRIuPTR L" %ls",
+             (uintptr_t)svc_pipe, sud.options);
+
+    /*
+     * Only authorized users are allowed to use any command line options or
+     * have the config file in locations other than the global config directory.
+     *
+     * Check options are white-listed and config is in the global directory
+     * OR user is authorized to run any config.
+     */
+    if (!ValidateOptions(pipe, sud.directory, cmdline, errmsg, _countof(errmsg))
+        && !IsAuthorizedUser(ovpn_user->User.Sid, imp_token, settings.ovpn_admin_group,
+                             settings.ovpn_service_user))
+    {
+        ReturnError(pipe, ERROR_STARTUP_DATA, errmsg, 1, &exit_event);
+        goto out;
+    }
 
     if (!CreateEnvironmentBlock(&user_env, imp_token, FALSE))
     {
