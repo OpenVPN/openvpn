@@ -45,6 +45,11 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(foreign subdir-objects 1.16) dnl NB: Do not [quote] this parameter.
 AM_SILENT_RULES([yes])
 AC_CANONICAL_HOST
+AC_PROG_CC
+# AC_PROG_CC doesn't output any useful information
+AC_MSG_CHECKING([compiler version])
+CC_version=$($CC --version | head -n1)
+AC_MSG_RESULT([$CC_version])
 AC_USE_SYSTEM_EXTENSIONS
 
 AM_EXTRA_RECURSIVE_TARGETS([build-tests])
@@ -380,11 +385,6 @@ else
 	pkg_config_found="(${PKG_CONFIG})"
 fi
 
-AC_PROG_CC
-# AC_PROG_CC doesn't output any useful information
-AC_MSG_CHECKING([compiler version])
-CC_version=$($CC --version | head -n1)
-AC_MSG_RESULT([$CC_version])
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
