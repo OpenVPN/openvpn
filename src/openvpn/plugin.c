@@ -303,7 +303,9 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
             normalized_plugin_path);
     }
 
-    p->module = LoadLibraryW(normalized_plugin_path);
+    /* Resolve the plugin's dependencies from its own directory, not from PATH */
+    p->module = LoadLibraryExW(normalized_plugin_path, NULL,
+                               LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
     if (!p->module)
     {
         msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls", normalized_plugin_path);
