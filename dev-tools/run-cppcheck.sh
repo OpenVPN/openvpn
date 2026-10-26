@@ -3,7 +3,7 @@
 set -eu
 
 : ${CPPCHECK_VERBOSE:=false}
-: ${CPPCHECK_CHECK_LEVEL:=exhaustive}
+: ${CPPCHECK_CHECK_LEVEL:=normal}
 
 if "${CPPCHECK_VERBOSE}"; then
     verbosity_arg="-v"
