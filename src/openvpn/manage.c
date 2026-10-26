@@ -71,6 +71,7 @@ enum mcv
     MCV_PKSIGN_ALG = 3,
     MCV_USERNAME_ONLY = 4,
     MCV_MULTILINE_PASSWORD = 5,
+    MCV_CORRECT_PKCS11_RESPONSE = 6,
 };
 
 struct management *management; /* GLOBAL */
@@ -117,7 +118,7 @@ man_help(void)
     msg(M_CLIENT, "pid                    : Show process ID of the current OpenVPN process.");
 #ifdef ENABLE_PKCS11
     msg(M_CLIENT, "pkcs11-id-count        : Get number of available PKCS#11 identities.");
-    msg(M_CLIENT, "pkcs11-id-get index    : Get PKCS#11 identity at index.");
+    msg(M_CLIENT, "pkcs11-id-get index|all : Get PKCS#11 identity at index or all at once.");
 #endif
     msg(M_CLIENT, "client-auth CID KID    : Authenticate client-id/key-id CID/KID (MULTILINE)");
     msg(M_CLIENT, "client-auth-nt CID KID : Authenticate client-id/key-id CID/KID");
@@ -891,26 +892,69 @@ man_send_cc_message(struct management *man, const char *message, const char *par
 static void
 man_pkcs11_id_count(const struct management *man)
 {
-    msg(M_CLIENT, ">PKCS11ID-COUNT:%d", pkcs11_management_id_count());
+    if (man->connection.client_version >= MCV_CORRECT_PKCS11_RESPONSE)
+    {
+        msg(M_CLIENT, "%d", pkcs11_management_id_count());
+        msg(M_CLIENT, "END");
+    }
+    else
+    {
+        msg(M_CLIENT, ">PKCS11ID-COUNT:%d", pkcs11_management_id_count());
+    }
 }
 
 static void
-man_pkcs11_id_get(struct management *man, const int index)
+man_pkcs11_id_get(struct management *man, const int index, bool single)
 {
     char *id = NULL;
     char *base64 = NULL;
 
     if (pkcs11_management_id_get(index, &id, &base64))
     {
-        msg(M_CLIENT, ">PKCS11ID-ENTRY:'%d', ID:'%s', BLOB:'%s'", index, id, base64);
+        if (man->connection.client_version >= MCV_CORRECT_PKCS11_RESPONSE)
+        {
+            msg(M_CLIENT, "ID:'%s', BLOB:'%s'", id, base64);
+        }
+        else
+        {
+            msg(M_CLIENT, ">PKCS11ID-ENTRY:'%d', ID:'%s', BLOB:'%s'", index, id, base64);
+        }
     }
     else
     {
-        msg(M_CLIENT, ">PKCS11ID-ENTRY:'%d'", index);
+        if (man->connection.client_version >= MCV_CORRECT_PKCS11_RESPONSE)
+        {
+            msg(M_CLIENT, "ERROR: failed to load pkcs11-id at index:'%d'", index);
+        }
+        else
+        {
+            msg(M_CLIENT, ">PKCS11ID-ENTRY:'%d'", index);
+        }
     }
 
     free(id);
     free(base64);
+
+    if (single && man->connection.client_version >= MCV_CORRECT_PKCS11_RESPONSE)
+    {
+        msg(M_CLIENT, "END");
+    }
+}
+
+static void
+man_pkcs11_id_get_all(struct management *man)
+{
+    if (man->connection.client_version < MCV_CORRECT_PKCS11_RESPONSE)
+    {
+        msg(M_CLIENT, "ERROR: listing all ids is only available for version >= %d", MCV_CORRECT_PKCS11_RESPONSE);
+        return;
+    }
+
+    for (int i = 0; i < pkcs11_management_id_count(); ++i)
+    {
+        man_pkcs11_id_get(man, i, false);
+    }
+    msg(M_CLIENT, "END");
 }
 
 #endif /* ifdef ENABLE_PKCS11 */
@@ -1778,7 +1822,14 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     {
         if (man_need(p, 1, 0))
         {
-            man_pkcs11_id_get(man, atoi(p[1]));
+            if (streq(p[1], "all"))
+            {
+                man_pkcs11_id_get_all(man);
+            }
+            else
+            {
+                man_pkcs11_id_get(man, atoi(p[1]), true);
+            }
         }
     }
 #endif
