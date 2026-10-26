@@ -66,8 +66,8 @@ alloc_buf(size_t size)
     {
         buf_size_error(size);
     }
-    buf.capacity = (int)size;
     buf.data = calloc(1, size);
+    buf.capacity = (int)size;
     check_malloc_return(buf.data);
 
     return buf;
@@ -83,8 +83,8 @@ alloc_buf_gc(size_t size, struct gc_arena *gc)
     {
         buf_size_error(size);
     }
+    buf.data = gc_malloc(size, false, gc);
     buf.capacity = (int)size;
-    buf.data = (uint8_t *)gc_malloc(size, false, gc);
     if (size)
     {
         *buf.data = 0;
@@ -100,15 +100,15 @@ clone_buf(const struct buffer *buf)
 #endif
 {
     struct buffer ret;
+    ret.data = malloc(buf->capacity);
     ret.capacity = buf->capacity;
+    check_malloc_return(ret.data);
     ret.offset = buf->offset;
     ret.len = buf->len;
 #ifdef BUF_INIT_TRACKING
     ret.debug_file = buf->debug_file;
     ret.debug_line = buf->debug_line;
 #endif
-    ret.data = (uint8_t *)malloc(buf->capacity);
-    check_malloc_return(ret.data);
     memcpy(BPTR(&ret), CBPTR(buf), BLENZ(buf));
     return ret;
 }
@@ -182,7 +182,7 @@ free_buf_gc(struct buffer *buf, struct gc_arena *gc)
         while (*e)
         {
             /* check if this object is the one we want to delete */
-            if ((uint8_t *)(*e + 1) == buf->data)
+            if ((uintptr_t)*e + sizeof(struct gc_entry) == (uintptr_t)buf->data)
             {
                 struct gc_entry *to_delete = *e;
 
@@ -238,7 +238,7 @@ buf_printf(struct buffer *buf, const char *format, ...)
             va_start(arglist, format);
             stat = vsnprintf(ptr, cap, format, arglist);
             va_end(arglist);
-            buf->len += (int)strlen(ptr);
+            buf->len += (int)strnlen(ptr, cap);
             if (stat >= 0 && stat < cap)
             {
                 ret = true;
@@ -607,7 +607,7 @@ string_alloc(const char *str, struct gc_arena *gc)
 
         if (gc)
         {
-            ret = (char *)gc_malloc(n, false, gc);
+            ret = gc_malloc(n, false, gc);
         }
         else
         {
@@ -648,7 +648,7 @@ string_array_len(const char **array)
     int i = 0;
     if (array)
     {
-        while (array[i])
+        for (; *array; ++array)
         {
             ++i;
         }
@@ -661,13 +661,9 @@ print_argv(const char **p, struct gc_arena *gc, const unsigned int flags)
 {
     struct buffer out = alloc_buf_gc(256, gc);
     int i = 0;
-    for (;;)
+    for (; *p; ++p)
     {
-        const char *cp = *p++;
-        if (!cp)
-        {
-            break;
-        }
+        const char *cp = *p;
         if (i)
         {
             buf_printf(&out, " ");
@@ -695,7 +691,8 @@ string_alloc_buf(const char *str, struct gc_arena *gc)
 
     ASSERT(str);
 
-    buf_set_read(&buf, (uint8_t *)string_alloc(str, gc), strlen(str) + 1);
+    const char *copy = string_alloc(str, gc);
+    buf_set_read(&buf, (const uint8_t *)copy, strlen(str) + 1);
 
     if (buf.len > 0) /* Don't count trailing '\0' as part of length */
     {
@@ -789,7 +786,7 @@ buf_parse(struct buffer *buf, const int delim, char *line, const int size)
     } while (c);
 
     line[size - 1] = '\0';
-    return !(eol && !strlen(line));
+    return !(eol && line[0] == '\0');
 }
 
 /*
@@ -970,11 +967,10 @@ char_inc_exc(const char c, const unsigned int inclusive, const unsigned int excl
 bool
 string_class(const char *str, const unsigned int inclusive, const unsigned int exclusive)
 {
-    char c;
     ASSERT(str);
-    while ((c = *str++))
+    for (; *str; ++str)
     {
-        if (!char_inc_exc(c, inclusive, exclusive))
+        if (!char_inc_exc(*str, inclusive, exclusive))
         {
             return false;
         }
@@ -990,10 +986,11 @@ bool
 string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive,
            const char replace)
 {
-    const char *in = str;
-    bool ret = true;
-
     ASSERT(str);
+
+    char *out = str;
+    const char *in = out;
+    bool ret = true;
 
     while (true)
     {
@@ -1007,12 +1004,12 @@ string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive
             }
             if (c)
             {
-                *str++ = c;
+                *out++ = c;
             }
         }
         else
         {
-            *str = '\0';
+            *out = '\0';
             break;
         }
     }
@@ -1103,19 +1100,14 @@ streqnull(const char *a, const char *b)
 char *
 string_substitute(const char *src, char from, char to, struct gc_arena *gc)
 {
-    char *ret = (char *)gc_malloc(strlen(src) + 1, true, gc);
+    char *ret = gc_malloc(strlen(src) + 1, true, gc);
     char *dest = ret;
-    char c;
 
-    do
+    for (; *src; ++src)
     {
-        c = *src++;
-        if (c == from)
-        {
-            c = to;
-        }
-        *dest++ = c;
-    } while (c);
+        *dest++ = (*src == from) ? to : *src;
+    }
+    *dest = '\0';
     return ret;
 }
 
