@@ -22,7 +22,7 @@ if [ $(uname) = "Darwin" ] || [ $(uname) = "FreeBSD" ]; then
     num_procs=$(sysctl -n hw.ncpu)
 else
     SCRIPT_DIR=$(dirname $(readlink -e "${BASH_SOURCE[0]}"))
-    num_procs=$(nprocs)
+    num_procs=$(nproc)
 fi
 : ${SOURCE_DIR:=$SCRIPT_DIR/..}
 : ${BUILD_DIR:=$PWD}
