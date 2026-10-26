@@ -584,6 +584,13 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
         m->earliest_wakeup = NULL;
     }
 
+    /* The sid hash holds a reference on the instance: drop it on
+     * instance close, otherwise the instance is never freed */
+    if (session_id_defined(&mi->sid_hashed_value))
+    {
+        multi_hash_sid_remove(m, &mi->sid_hashed_value);
+    }
+
     if (!shutdown)
     {
         if (mi->did_real_hash)
@@ -604,12 +611,6 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
             mi->inotify_watch = -1;
         }
 #endif
-
-
-        if (session_id_defined(&mi->sid_hashed_value))
-        {
-            multi_hash_sid_remove(m, &mi->sid_hashed_value);
-        }
 
         if (mi->context.c2.tls_multi->rx_peer_id != MAX_PEER_ID)
         {
