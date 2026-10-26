@@ -267,7 +267,7 @@ jobs:
       - name: autoconf
         run: autoreconf -fvi
       - name: configure
-        run: ./configure --enable-werror ${{matrix.configureflags}}
+        run: ./configure --enable-werror --enable-fbounds-safety ${{matrix.configureflags}}
       - name: make all
         run: make -j4
       - name: configure checks
