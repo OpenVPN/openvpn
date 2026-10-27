@@ -284,8 +284,14 @@ plugin_init_item(struct plugin *p, const struct plugin_option *o)
     WCHAR *wpath = wide_string(p->so_pathname, &gc);
     WCHAR normalized_plugin_path[MAX_PATH] = { 0 };
     /* Normalize the plugin path, converting any relative paths to absolute paths. */
-    if (!GetFullPathNameW(wpath, MAX_PATH, normalized_plugin_path, NULL))
+    DWORD len = GetFullPathNameW(wpath, _countof(normalized_plugin_path), normalized_plugin_path, NULL);
+    if (len == 0 || len >= _countof(normalized_plugin_path))
     {
+        /* GetFullPathNameW() sets no error code if the buffer is too small */
+        if (len != 0)
+        {
+            SetLastError(ERROR_FILENAME_EXCED_RANGE);
+        }
         msg(M_ERR, "PLUGIN_INIT: could not load plugin DLL: %ls. Failed to normalize plugin path.",
             wpath);
     }
