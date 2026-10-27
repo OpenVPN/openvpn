@@ -29,6 +29,7 @@
 #include "multi.h"
 #include <inttypes.h>
 #include "forward.h"
+#include "multi_io.h"
 
 #include "memdbg.h"
 #include "ssl_pkt.h"
@@ -470,7 +471,7 @@ multi_process_outgoing_link(struct multi_context *m, const unsigned int mpp_flag
 {
     if (m->pending)
     {
-        multi_process_outgoing_link_dowork(m, m->pending, mpp_flags);
+        multi_io_send_link(m, m->pending, mpp_flags);
     }
 }
 

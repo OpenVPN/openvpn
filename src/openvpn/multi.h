@@ -294,7 +294,7 @@ bool multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags
  * may need updating and some follow-up action may be required.  This
  * function controls the necessary postprocessing.  It is called by many
  * other functions that handle VPN tunnel related activity, such as \c
- * multi_process_incoming_link(), \c multi_process_outgoing_link(), \c
+ * multi_process_incoming_link(), \c multi_io_write_link(), \c
  * multi_process_incoming_tun(), \c multi_io_write_tun(), and \c
  * multi_process_timeout(), among others.
  *
@@ -410,27 +410,6 @@ multi_output_queue_ready(const struct multi_context *m, const struct multi_insta
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
-
-/*
- * Determine which instance has pending output
- * and prepare the output for sending in
- * the to_link buffer.
- */
-static inline struct multi_instance *
-multi_process_outgoing_link_pre(struct multi_context *m)
-{
-    struct multi_instance *mi = NULL;
-
-    if (m->pending)
-    {
-        mi = m->pending;
-    }
-    else if (mbuf_defined(m->mbuf))
-    {
-        mi = multi_get_queue(m->mbuf);
-    }
-    return mi;
-}
 
 /*
  * Per-client route quota management
@@ -628,18 +607,6 @@ multi_get_timeout_instance(struct multi_context *m, struct timeval *dest)
 #define CLIENT_CONNECT_OPT_MASK                                                            \
     (OPT_P_INSTANCE | OPT_P_INHERIT | OPT_P_PUSH | OPT_P_TIMER | OPT_P_CONFIG | OPT_P_ECHO \
      | OPT_P_COMP | OPT_P_SOCKFLAGS)
-
-static inline bool
-multi_process_outgoing_link_dowork(struct multi_context *m, struct multi_instance *mi,
-                                   const unsigned int mpp_flags)
-{
-    bool ret = true;
-    set_prefix(mi);
-    process_outgoing_link(&mi->context, mi->context.c2.link_sockets[0]);
-    ret = multi_process_post(m, mi, mpp_flags);
-    clear_prefix();
-    return ret;
-}
 
 /**
  * Determines if the ifconfig_push_local address falls into the range of the local

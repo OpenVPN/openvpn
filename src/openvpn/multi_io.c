@@ -346,6 +346,104 @@ multi_io_drop_tun(struct multi_context *m, const unsigned int mpp_flags)
     clear_prefix();
 }
 
+/*
+ * Determine which instance has pending output
+ * and prepare the output for sending in
+ * the to_link buffer.
+ */
+static struct multi_instance *
+multi_io_write_link_pre(struct multi_context *m)
+{
+    struct multi_instance *mi = NULL;
+
+    if (m->pending)
+    {
+        mi = m->pending;
+    }
+    else if (mbuf_defined(m->mbuf))
+    {
+        mi = multi_get_queue(m->mbuf);
+    }
+    return mi;
+}
+
+bool
+multi_io_send_link(struct multi_context *m, struct multi_instance *mi, const unsigned int mpp_flags)
+{
+    bool ret = true;
+    set_prefix(mi);
+    process_outgoing_link(&mi->context, mi->context.c2.link_sockets[0]);
+    ret = multi_process_post(m, mi, mpp_flags);
+    clear_prefix();
+    return ret;
+}
+
+static bool
+multi_io_write_link_deferred(struct multi_context *m, struct multi_instance *mi,
+                             const unsigned int mpp_flags)
+{
+    struct mbuf_item item;
+    bool ret = true;
+    ASSERT(mi);
+
+    /* extract from queue */
+    if (mbuf_extract_item(mi->tcp_link_out_deferred, &item)) /* ciphertext IP packet */
+    {
+        dmsg(D_MULTI_TCP, "MULTI TCP: transmitting previously deferred packet");
+
+        ASSERT(mi == item.instance);
+        mi->context.c2.to_link = item.buffer->buf;
+        ret = multi_io_send_link(m, mi, mpp_flags);
+        mbuf_free_buf(item.buffer);
+    }
+    return ret;
+}
+
+static bool
+multi_io_write_link(struct multi_context *m, bool defer, const unsigned int mpp_flags)
+{
+    struct multi_instance *mi = multi_io_write_link_pre(m);
+    bool ret = true;
+
+    if (mi)
+    {
+        if ((defer && !proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto))
+            || mbuf_defined(mi->tcp_link_out_deferred))
+        {
+            /* save to queue */
+            struct buffer *buf = &mi->context.c2.to_link;
+            if (BLEN(buf) > 0)
+            {
+                struct mbuf_buffer *mb = mbuf_alloc_buf(buf);
+                struct mbuf_item item;
+
+                set_prefix(mi);
+                dmsg(D_MULTI_TCP, "MULTI TCP: queuing deferred packet");
+                item.buffer = mb;
+                item.instance = mi;
+                mbuf_add_item(mi->tcp_link_out_deferred, &item);
+                mbuf_free_buf(mb);
+                buf_reset(buf);
+                ret = multi_process_post(m, mi, mpp_flags);
+                if (!ret)
+                {
+                    mi = NULL;
+                }
+                clear_prefix();
+            }
+        }
+        else
+        {
+            ret = multi_io_send_link(m, mi, mpp_flags);
+            if (!ret)
+            {
+                mi = NULL;
+            }
+        }
+    }
+    return ret;
+}
+
 static struct multi_instance *
 multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int action)
 {
@@ -399,15 +497,15 @@ multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int 
 
         case TA_SOCKET_WRITE_READY:
             ASSERT(mi);
-            multi_tcp_process_outgoing_link_ready(m, mi, mpp_flags);
+            multi_io_write_link_deferred(m, mi, mpp_flags);
             break;
 
         case TA_SOCKET_WRITE:
-            multi_tcp_process_outgoing_link(m, false, mpp_flags);
+            multi_io_write_link(m, false, mpp_flags);
             break;
 
         case TA_SOCKET_WRITE_DEFERRED:
-            multi_tcp_process_outgoing_link(m, true, mpp_flags);
+            multi_io_write_link(m, true, mpp_flags);
             break;
 
         case TA_INITIAL:

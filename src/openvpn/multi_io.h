@@ -72,4 +72,7 @@ void multi_io_action(struct multi_context *m, struct multi_instance *mi, int act
 
 void multi_io_delete_event(struct multi_io *multi_io, event_t event);
 
+bool multi_io_send_link(struct multi_context *m, struct multi_instance *mi,
+                        const unsigned int mpp_flags);
+
 #endif /* ifndef MULTI_IO_H */
