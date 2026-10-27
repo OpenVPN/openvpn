@@ -39,6 +39,8 @@ bool multi_tcp_instance_specific_init(const struct multi_context *m, struct mult
 
 void multi_tcp_instance_specific_free(struct multi_instance *mi);
 
+void multi_tcp_set_global_rw_flags(struct multi_context *m, struct multi_instance *mi);
+
 bool multi_tcp_process_outgoing_link(struct multi_context *m, bool defer,
                                      const unsigned int mpp_flags);
 

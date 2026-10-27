@@ -122,28 +122,6 @@ multi_io_init(const int maxclients)
 }
 
 void
-multi_io_set_global_rw_flags(struct multi_context *m, struct multi_instance *mi)
-{
-    if (!mi)
-    {
-        return;
-    }
-
-    mi->socket_set_called = true;
-    if (proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto))
-    {
-        socket_set(mi->context.c2.link_sockets[0], m->multi_io->es, EVENT_READ,
-                   &mi->context.c2.link_sockets[0]->ev_arg, NULL);
-    }
-    else
-    {
-        socket_set(mi->context.c2.link_sockets[0], m->multi_io->es,
-                   mbuf_defined(mi->tcp_link_out_deferred) ? EVENT_WRITE : EVENT_READ, &mi->ev_arg,
-                   &mi->tcp_rwflags);
-    }
-}
-
-void
 multi_io_free(struct multi_io *multi_io)
 {
     if (multi_io)
@@ -378,7 +356,7 @@ multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int 
 
         case TA_INITIAL:
             ASSERT(mi);
-            multi_io_set_global_rw_flags(m, mi);
+            multi_tcp_set_global_rw_flags(m, mi);
             multi_process_post(m, mi, mpp_flags);
             break;
 
@@ -428,7 +406,7 @@ multi_io_post(struct multi_context *m, struct multi_instance *mi, const int acti
             }
             else
             {
-                multi_io_set_global_rw_flags(m, mi);
+                multi_tcp_set_global_rw_flags(m, mi);
             }
             break;
 
