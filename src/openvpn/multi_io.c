@@ -168,27 +168,17 @@ multi_io_wait(struct multi_context *m)
     int status;
     unsigned int *persistent = &m->multi_io->tun_rwflags;
 
-    if (!tuntap_is_dco_win(m->top.c1.tuntap))
+    for (int i = 0; i < m->top.c1.link_sockets_num; i++)
     {
-        for (int i = 0; i < m->top.c1.link_sockets_num; i++)
+        struct link_socket *sock = m->top.c2.link_sockets[i];
+
+        if (proto_is_dgram(sock->info.proto))
         {
-            socket_set_listen_persistent(m->top.c2.link_sockets[i], m->multi_io->es,
-                                         &m->top.c2.link_sockets[i]->ev_arg);
+            multi_io_process_flags(&m->top, m->multi_io->es, sock, p2mp_iow_flags(m, sock));
         }
-    }
-
-    if (has_udp_in_local_list(&m->top.options))
-    {
-        for (int i = 0; i < m->top.c1.link_sockets_num; i++)
+        else if (!tuntap_is_dco_win(m->top.c1.tuntap))
         {
-            struct link_socket *sock = m->top.c2.link_sockets[i];
-
-            if ((m->top.options.mode == MODE_SERVER) && proto_is_dgram(sock->info.proto))
-            {
-                unsigned int flags = p2mp_iow_flags(m, sock);
-
-                multi_io_process_flags(&m->top, m->multi_io->es, sock, flags);
-            }
+            socket_set_listen_persistent(sock, m->multi_io->es, &sock->ev_arg);
         }
     }
 
