@@ -290,6 +290,62 @@ multi_io_wait_lite(struct multi_context *m, struct multi_instance *mi, const int
     }
 }
 
+/**
+ * Send a packet over the virtual tun/tap network interface to its locally
+ * reachable destination.
+ * @ingroup internal_multiplexer
+ *
+ * This function calls \c process_outgoing_tun() to perform the actual
+ * sending of the packet.  Afterwards, it calls \c multi_process_post() to
+ * perform server-mode postprocessing.
+ *
+ * @param m            - The single \c multi_context structure.
+ * @param mpp_flags    - Fast I/O optimization flags.
+ *
+ * @return
+ *  - True, if the \c multi_instance associated with the packet sent was
+ *    not closed due to a signal during processing.
+ *  - Falls, if the \c multi_instance was closed.
+ */
+static bool
+multi_io_write_tun(struct multi_context *m, const unsigned int mpp_flags)
+{
+    struct multi_instance *mi = m->pending;
+    bool ret = true;
+
+    ASSERT(mi);
+#ifdef MULTI_DEBUG_EVENT_LOOP
+    printf("%s -> TUN len=%d\n", id(mi), mi->context.c2.to_tun.len);
+#endif
+    set_prefix(mi);
+    vlan_process_outgoing_tun(m, mi);
+    process_outgoing_tun(&mi->context, mi->context.c2.link_sockets[0]);
+    ret = multi_process_post(m, mi, mpp_flags);
+    clear_prefix();
+    return ret;
+}
+
+/*
+ * Drop a TUN/TAP outgoing packet..
+ */
+static void
+multi_io_drop_tun(struct multi_context *m, const unsigned int mpp_flags)
+{
+    struct multi_instance *mi = m->pending;
+
+    ASSERT(mi);
+
+    set_prefix(mi);
+
+    msg(D_MULTI_ERRORS, "MULTI: Outgoing TUN queue full, dropped packet len=%d",
+        mi->context.c2.to_tun.len);
+
+    buf_reset(&mi->context.c2.to_tun);
+
+    multi_process_post(m, mi, mpp_flags);
+    clear_prefix();
+}
+
 static struct multi_instance *
 multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int action)
 {
@@ -334,11 +390,11 @@ multi_io_dispatch(struct multi_context *m, struct multi_instance *mi, const int 
             break;
 
         case TA_TUN_WRITE:
-            multi_process_outgoing_tun(m, mpp_flags);
+            multi_io_write_tun(m, mpp_flags);
             break;
 
         case TA_TUN_WRITE_TIMEOUT:
-            multi_process_drop_outgoing_tun(m, mpp_flags);
+            multi_io_drop_tun(m, mpp_flags);
             break;
 
         case TA_SOCKET_WRITE_READY:

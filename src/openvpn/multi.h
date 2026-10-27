@@ -295,7 +295,7 @@ bool multi_process_timeout(struct multi_context *m, const unsigned int mpp_flags
  * function controls the necessary postprocessing.  It is called by many
  * other functions that handle VPN tunnel related activity, such as \c
  * multi_process_incoming_link(), \c multi_process_outgoing_link(), \c
- * multi_process_incoming_tun(), \c multi_process_outgoing_tun(), and \c
+ * multi_process_incoming_tun(), \c multi_io_write_tun(), and \c
  * multi_process_timeout(), among others.
  *
  * @param m            - The single \c multi_context structure.
@@ -363,8 +363,6 @@ bool multi_process_incoming_link(struct multi_context *m, struct multi_instance 
  */
 bool multi_process_incoming_tun(struct multi_context *m, const unsigned int mpp_flags);
 
-
-void multi_process_drop_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags);
 
 struct multi_instance *multi_get_queue(struct mbuf_set *ms);
 
@@ -626,41 +624,6 @@ multi_get_timeout_instance(struct multi_context *m, struct timeval *dest)
     }
 }
 
-
-/**
- * Send a packet over the virtual tun/tap network interface to its locally
- * reachable destination.
- * @ingroup internal_multiplexer
- *
- * This function calls \c process_outgoing_tun() to perform the actual
- * sending of the packet.  Afterwards, it calls \c multi_process_post() to
- * perform server-mode postprocessing.
- *
- * @param m            - The single \c multi_context structure.
- * @param mpp_flags    - Fast I/O optimization flags.
- *
- * @return
- *  - True, if the \c multi_instance associated with the packet sent was
- *    not closed due to a signal during processing.
- *  - Falls, if the \c multi_instance was closed.
- */
-static inline bool
-multi_process_outgoing_tun(struct multi_context *m, const unsigned int mpp_flags)
-{
-    struct multi_instance *mi = m->pending;
-    bool ret = true;
-
-    ASSERT(mi);
-#ifdef MULTI_DEBUG_EVENT_LOOP
-    printf("%s -> TUN len=%d\n", id(mi), mi->context.c2.to_tun.len);
-#endif
-    set_prefix(mi);
-    vlan_process_outgoing_tun(m, mi);
-    process_outgoing_tun(&mi->context, mi->context.c2.link_sockets[0]);
-    ret = multi_process_post(m, mi, mpp_flags);
-    clear_prefix();
-    return ret;
-}
 
 #define CLIENT_CONNECT_OPT_MASK                                                            \
     (OPT_P_INSTANCE | OPT_P_INHERIT | OPT_P_PUSH | OPT_P_TIMER | OPT_P_CONFIG | OPT_P_ECHO \
