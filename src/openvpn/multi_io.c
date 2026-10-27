@@ -235,18 +235,6 @@ multi_io_wait_lite(struct multi_context *m, struct multi_instance *mi, const int
 
     switch (action)
     {
-        case TA_TUN_READ:
-            looking_for = TUN_READ;
-            tun_input_pending = NULL;
-            io_wait(c, IOW_READ_TUN);
-            break;
-
-        case TA_SOCKET_READ:
-            looking_for = SOCKET_READ;
-            tun_input_pending = NULL;
-            io_wait(c, IOW_READ_LINK);
-            break;
-
         case TA_TUN_WRITE:
             looking_for = TUN_WRITE;
             tun_input_pending = NULL;
