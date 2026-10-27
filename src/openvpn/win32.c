@@ -1510,7 +1510,7 @@ set_openssl_env_vars(void)
     const WCHAR *ssl_fallback_dir = L"C:\\Windows\\System32";
 
     WCHAR install_path[MAX_PATH] = { 0 };
-    if (!get_openvpn_reg_value(NULL, install_path, _countof(install_path)))
+    if (!get_openvpn_reg_value(NULL, install_path, sizeof(install_path)))
     {
         /* if we cannot find installation path from the registry,
          * use Windows directory as a fallback
@@ -1603,8 +1603,8 @@ plugin_in_trusted_dir(const WCHAR *plugin_path)
 
     /* Attempt to retrieve the trusted plugin directory path from the registry,
      * using installation path as a fallback */
-    if (!get_openvpn_reg_value(L"plugin_dir", plugin_dir, _countof(plugin_dir))
-        && !get_openvpn_reg_value(NULL, plugin_dir, _countof(plugin_dir)))
+    if (!get_openvpn_reg_value(L"plugin_dir", plugin_dir, sizeof(plugin_dir))
+        && !get_openvpn_reg_value(NULL, plugin_dir, sizeof(plugin_dir)))
     {
         msg(M_WARN, "Installation path could not be determined.");
     }
