@@ -3172,6 +3172,7 @@ multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi
         {
             msg(D_MULTI_LOW, "Disallow float/connect to an address taken by another client %s",
                 multi_instance_string(ex_mi, false, &gc));
+            mi->context.c2.buf.len = 0;
             goto done;
         }
     }
