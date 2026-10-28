@@ -345,29 +345,29 @@ COMMAND -- password and username
   The PASSWORD real-time message type can also be used to
   indicate password or other types of authentication failure:
 
-  Example 3: The private key password is incorrect and OpenVPN
+  Example 4: The private key password is incorrect and OpenVPN
   is exiting:
 
     >PASSWORD:Verification Failed: 'Private Key'
 
-  Example 4: The --auth-user-pass username/password failed,
+  Example 5: The --auth-user-pass username/password failed,
   and OpenVPN will exit with a fatal error if '--auth-retry none'
   (which is the default) is in effect:
 
     >PASSWORD:Verification Failed: 'Auth'
 
-  Example 5: The --auth-user-pass username/password failed,
+  Example 6: The --auth-user-pass username/password failed,
   and the server provided a custom client-reason-text string
   using the client-deny server-side management interface command.
 
     >PASSWORD:Verification Failed: 'custom server-generated string'
 
-  Example 6: If server pushes --auth-token to the client, the OpenVPN
+  Example 7: If server pushes --auth-token to the client, the OpenVPN
   will produce a real-time PASSWORD message:
 
     >PASSWORD:Auth-Token:foobar
 
-  Example 7: Static challenge/response:
+  Example 8: Static challenge/response:
 
     >PASSWORD:Need 'Auth' username/password SC:1,Please enter token PIN
 
@@ -378,7 +378,7 @@ COMMAND -- password and username
   formatted as described in the Challenge/Response Protocol section
   below.
 
-  Example 8: Dynamic challenge/response:
+  Example 9: Dynamic challenge/response:
 
     >PASSWORD:Verification Failed: ['CRV1:R,E:Om01u7Fh4LrGBS7uh0SWmzwabUiGiW6l:Y3Ix:Please enter token PIN']
 
@@ -395,7 +395,7 @@ COMMAND -- password and username
   in the Challenge/Response Protocol section below
 
 See the "Challenge/Response Protocol" section below for more details
-about examples 7 and 8, including how the management interface client
+about examples 8 and 9, including how the management interface client
 should respond.
 
 COMMAND -- forget-passwords
