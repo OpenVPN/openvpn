@@ -174,6 +174,8 @@ struct multi_context
     uint32_t max_peerid;               /**< highest currently allocated peer-id
                                         * and maximum allocated/valid index in
                                         * instances */
+    uint32_t assigned_peer_ids;        /**< Number of peer-ids that are
+                                        *   currently assigned */
     struct hash *hash;                 /**< VPN tunnel instances indexed by real
                                         *   address of the remote peer. */
     struct hash *vhash;                /**< VPN tunnel instances indexed by

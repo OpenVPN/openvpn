@@ -621,6 +621,8 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
             {
                 m->max_peerid--;
             }
+
+            m->assigned_peer_ids--;
         }
 
         schedule_remove_entry(m->schedule, (struct schedule_entry *)mi);
@@ -749,7 +751,7 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
 
     mi->context.c2.tls_multi->multi_state = CAS_NOT_CONNECTED;
 
-    if (hash_n_elements(m->hash) >= m->max_clients)
+    if (m->assigned_peer_ids >= m->max_clients)
     {
         msg(D_MULTI_ERRORS,
             "MULTI: new incoming connection would exceed maximum number of clients (%u)",
@@ -4199,6 +4201,8 @@ multi_assign_peer_id(struct multi_context *m, struct multi_instance *mi)
     {
         m->max_peerid = mi->context.c2.tls_multi->rx_peer_id;
     }
+
+    m->assigned_peer_ids++;
 }
 
 /**
