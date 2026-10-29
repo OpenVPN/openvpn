@@ -7,8 +7,7 @@ To build and install,
 	make
 	make install
 
-This version requires mbed TLS version >= 3.2.1. Support for TLS 1.3 requires
-an Mbed TLS version >= 3.6.4.
+This version requires mbed TLS version >= 4.0.0.
 
 *************************************************************************
 

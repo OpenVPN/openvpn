@@ -33,7 +33,6 @@
 
 #include <mbedtls/ssl.h>
 #include <mbedtls/x509_crt.h>
-#include <mbedtls/version.h>
 
 #if defined(ENABLE_PKCS11)
 #include <pkcs11-helper-1.0/pkcs11h-certificate.h>
@@ -77,33 +76,6 @@ typedef struct
 typedef bool (*external_sign_func)(void *sign_ctx, const void *src, size_t src_size, void *dst,
                                    size_t dst_size);
 
-/** Context used by external_pkcs1_sign() */
-struct external_context
-{
-    size_t signature_length;
-    external_sign_func sign;
-    void *sign_ctx;
-};
-
-#if !defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT)
-/**
- * struct to cache TLS secrets for keying material exporter (RFC 5705).
- * Not needed if the library itself implements the keying material exporter.
- *
- * The constants 64 and 48 are inherent to TLS 1.2. For TLS 1.3, it is not
- * possible to obtain the exporter master secret from mbed TLS. */
-struct tls_key_cache
-{
-    unsigned char client_server_random[64];
-    mbedtls_tls_prf_types tls_prf_type;
-    unsigned char master_secret[48];
-};
-#else /* !defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT) */
-struct tls_key_cache
-{
-};
-#endif
-
 /**
  * Structure that wraps the TLS context. Contents differ depending on the
  * SSL library used.
@@ -112,11 +84,8 @@ struct tls_key_cache
  */
 struct tls_root_ctx
 {
-    bool initialised; /**< True if the context has been initialised */
+    bool initialised;                      /**< True if the context has been initialised */
 
-#if MBEDTLS_VERSION_NUMBER < 0x04000000
-    mbedtls_dhm_context *dhm_ctx;          /**< Diffie-Helmann-Merkle context */
-#endif
     mbedtls_x509_crt *crt_chain;           /**< Local Certificate chain */
     mbedtls_x509_crt *ca_chain;            /**< CA chain for remote verification */
     mbedtls_pk_context *priv_key;          /**< Local private key */
@@ -126,7 +95,6 @@ struct tls_root_ctx
 #ifdef ENABLE_PKCS11
     pkcs11h_certificate_t pkcs11_cert;     /**< PKCS11 certificate */
 #endif
-    struct external_context external_key;  /**< External key context */
     int *allowed_ciphers;                  /**< List of allowed ciphers for this connection */
     uint16_t *groups;                      /**< List of allowed groups for this connection */
     mbedtls_x509_crt_profile cert_profile; /**< Allowed certificate types */
@@ -137,8 +105,6 @@ struct key_state_ssl
     mbedtls_ssl_config *ssl_config; /**< mbedTLS global ssl config */
     mbedtls_ssl_context *ctx;       /**< mbedTLS connection context */
     bio_ctx *bio_ctx;
-
-    struct tls_key_cache tls_key_cache;
 };
 
 /**

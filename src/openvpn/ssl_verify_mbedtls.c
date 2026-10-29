@@ -34,17 +34,7 @@
 
 #if defined(ENABLE_CRYPTO_MBEDTLS)
 
-#include <mbedtls/version.h>
-
-#if MBEDTLS_VERSION_NUMBER < 0x04000000
-#include "crypto_mbedtls_legacy.h"
-#include <mbedtls/bignum.h>
-#include <mbedtls/sha1.h>
-#else
 #include "crypto_mbedtls.h"
-#endif
-
-#include "mbedtls_compat.h"
 
 #include "ssl_verify.h"
 #include <mbedtls/asn1.h>
@@ -317,7 +307,6 @@ fail:
     return FAILURE;
 }
 
-#if MBEDTLS_VERSION_NUMBER >= 0x04000000
 /* Mbed TLS 4 has no function to print the certificate serial number and does
  * not expose the bignum functions anymore. So in order to write the serial
  * number as a decimal string, we implement bignum % 10 and bignum / 10. */
@@ -441,7 +430,6 @@ write_bignum(char *out, size_t out_size, const uint8_t *bignum, size_t bignum_le
     free(bignum_copy);
     return bytes_needed;
 }
-#endif /* MBEDTLS_VERSION_NUMBER >= 0x04000000 */
 
 char *
 backend_x509_get_serial(mbedtls_x509_crt *cert, struct gc_arena *gc)
@@ -449,33 +437,6 @@ backend_x509_get_serial(mbedtls_x509_crt *cert, struct gc_arena *gc)
     char *buf = NULL;
     size_t buflen = 0;
 
-#if MBEDTLS_VERSION_NUMBER < 0x04000000
-    mbedtls_mpi serial_mpi = { 0 };
-
-    /* Transform asn1 integer serial into mbed TLS MPI */
-    mbedtls_mpi_init(&serial_mpi);
-    if (!mbed_ok(mbedtls_mpi_read_binary(&serial_mpi, cert->serial.p, cert->serial.len)))
-    {
-        msg(M_WARN, "Failed to retrieve serial from certificate.");
-        goto end;
-    }
-
-    /* Determine decimal representation length, allocate buffer */
-    mbedtls_mpi_write_string(&serial_mpi, 10, NULL, 0, &buflen);
-    buf = gc_malloc(buflen, true, gc);
-
-    /* Write MPI serial as decimal string into buffer */
-    if (!mbed_ok(mbedtls_mpi_write_string(&serial_mpi, 10, buf, buflen, &buflen)))
-    {
-        msg(M_WARN, "Failed to write serial to string.");
-        buf = NULL;
-        goto end;
-    }
-
-end:
-    mbedtls_mpi_free(&serial_mpi);
-    return buf;
-#else
     buflen = write_bignum(NULL, 0, cert->serial.p, cert->serial.len);
     if (buflen == 0)
     {
@@ -489,7 +450,6 @@ end:
         return NULL;
     }
     return buf;
-#endif /* MBEDTLS_VERSION_NUMBER < 0x04000000 */
 }
 
 char *
@@ -613,6 +573,92 @@ asn1_buf_to_c_string(const mbedtls_asn1_buf *orig, struct gc_arena *gc)
     return val;
 }
 
+static inline int
+oid_get_attr_short_name(const mbedtls_asn1_buf *oid, const char **desc)
+{
+    /* The relevant OIDs all have equal length. */
+    if (oid->tag != MBEDTLS_ASN1_OID || oid->len != strlen(MBEDTLS_OID_AT_CN))
+    {
+        *desc = NULL;
+        return -1;
+    }
+
+    if (memcmp(oid->p, MBEDTLS_OID_AT_CN, oid->len) == 0)
+    {
+        *desc = "CN";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_SUR_NAME, oid->len) == 0)
+    {
+        *desc = "SN";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_SERIAL_NUMBER, oid->len) == 0)
+    {
+        *desc = "serialNumber";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_COUNTRY, oid->len) == 0)
+    {
+        *desc = "C";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_LOCALITY, oid->len) == 0)
+    {
+        *desc = "L";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_STATE, oid->len) == 0)
+    {
+        *desc = "ST";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_ORGANIZATION, oid->len) == 0)
+    {
+        *desc = "O";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_ORG_UNIT, oid->len) == 0)
+    {
+        *desc = "OU";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_TITLE, oid->len) == 0)
+    {
+        *desc = "title";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_POSTAL_ADDRESS, oid->len) == 0)
+    {
+        *desc = "postalAddress";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_POSTAL_CODE, oid->len) == 0)
+    {
+        *desc = "postalCode";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_GIVEN_NAME, oid->len) == 0)
+    {
+        *desc = "GN";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_INITIALS, oid->len) == 0)
+    {
+        *desc = "initials";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_GENERATION_QUALIFIER, oid->len) == 0)
+    {
+        *desc = "generationQualifier";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_UNIQUE_IDENTIFIER, oid->len) == 0)
+    {
+        *desc = "uniqueIdentifier";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_DN_QUALIFIER, oid->len) == 0)
+    {
+        *desc = "dnQualifier";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_AT_PSEUDONYM, oid->len) == 0)
+    {
+        *desc = "pseudonym";
+    }
+    else
+    {
+        *desc = NULL;
+        return -1;
+    }
+    return 0;
+}
+
 static void
 do_setenv_name(struct env_set *es, const struct x509_track *xt, const mbedtls_x509_crt *cert,
                int depth, struct gc_arena *gc)
@@ -621,7 +667,7 @@ do_setenv_name(struct env_set *es, const struct x509_track *xt, const mbedtls_x5
     for (xn = &cert->subject; xn != NULL; xn = xn->next)
     {
         const char *xn_short_name = NULL;
-        if (0 == mbedtls_oid_get_attr_short_name(&xn->oid, &xn_short_name)
+        if (0 == oid_get_attr_short_name(&xn->oid, &xn_short_name)
             && 0 == strcmp(xt->name, xn_short_name))
         {
             char *val_str = asn1_buf_to_c_string(&xn->val, gc);
@@ -702,7 +748,7 @@ x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
         char name_expand[64 + 8];
         const char *shortname;
 
-        if (0 == mbedtls_oid_get_attr_short_name(&name->oid, &shortname))
+        if (0 == oid_get_attr_short_name(&name->oid, &shortname))
         {
             snprintf(name_expand, sizeof(name_expand), "X509_%d_%s", cert_depth, shortname);
         }
@@ -791,6 +837,49 @@ x509_verify_cert_ku(mbedtls_x509_crt *cert, const unsigned int *const expected_k
     return fFound;
 }
 
+static inline int
+oid_get_extended_key_usage(const mbedtls_asn1_buf *oid, const char **desc)
+{
+    /* The relevant OIDs all have equal length. */
+    if (oid->tag != MBEDTLS_ASN1_OID || oid->len != strlen(MBEDTLS_OID_SERVER_AUTH))
+    {
+        *desc = NULL;
+        return -1;
+    }
+
+    if (memcmp(oid->p, MBEDTLS_OID_SERVER_AUTH, oid->len) == 0)
+    {
+        *desc = "TLS Web Server Authentication";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_CLIENT_AUTH, oid->len) == 0)
+    {
+        *desc = "TLS Web Client Authentication";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_CODE_SIGNING, oid->len) == 0)
+    {
+        *desc = "Code Signing";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_EMAIL_PROTECTION, oid->len) == 0)
+    {
+        *desc = "E-mail Protection";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_TIME_STAMPING, oid->len) == 0)
+    {
+        *desc = "Time Stamping";
+    }
+    else if (memcmp(oid->p, MBEDTLS_OID_OCSP_SIGNING, oid->len) == 0)
+    {
+        *desc = "OCSP Signing";
+    }
+    else
+    {
+        *desc = NULL;
+        return -1;
+    }
+
+    return 0;
+}
+
 result_t
 x509_verify_cert_eku(mbedtls_x509_crt *cert, const char *const expected_oid)
 {
@@ -811,7 +900,7 @@ x509_verify_cert_eku(mbedtls_x509_crt *cert, const char *const expected_oid)
             char oid_num_str[1024];
             const char *oid_str;
 
-            if (0 == mbedtls_oid_get_extended_key_usage(oid, &oid_str))
+            if (0 == oid_get_extended_key_usage(oid, &oid_str))
             {
                 msg(D_HANDSHAKE, "++ Certificate has EKU (str) %s, expects %s", oid_str,
                     expected_oid);

@@ -29,6 +29,9 @@
   and the verbose logging is now always included unless `--enable-small`
   is enabled.
 
+- Support for Mbed TLS 3 is dropped. If you build OpenVPN with the Mbed TLS crypto
+  backend, you need to upgrade to Mbed TLS 4.
+
 # Overview of changes in 2.7
 
 ## New features

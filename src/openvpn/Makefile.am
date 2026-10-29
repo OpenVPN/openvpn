@@ -58,7 +58,6 @@ openvpn_SOURCES = \
 	comp-lz4.c comp-lz4.h \
 	crypto.c crypto.h crypto_backend.h \
 	crypto_openssl.c crypto_openssl.h \
-	crypto_mbedtls_legacy.c crypto_mbedtls_legacy.h \
 	crypto_mbedtls.c crypto_mbedtls.h \
 	crypto_epoch.c crypto_epoch.h \
 	dco.c dco.h dco_internal.h \
@@ -93,7 +92,6 @@ openvpn_SOURCES = \
 	ovpn_dco_win.h \
 	platform.c platform.h \
 	console.c console.h console_builtin.c console_systemd.c \
-	mbedtls_compat.h \
 	mroute.c mroute.h \
 	mss.c mss.h \
 	mtcp.c mtcp.h \

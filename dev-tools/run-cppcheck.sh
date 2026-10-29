@@ -29,7 +29,7 @@ fi
 : ${INCLUDE_FLAGS:=}
 CPPCHECK_DIR="${BUILD_DIR}/cppcheck_build_dir"
 COMMON_ARGS="-j${num_procs} ${verbosity_arg} \
- -DMBEDTLS_SSL_PROTO_TLS1_3 -DMBEDTLS_SSL_KEYING_MATERIAL_EXPORT \
+ -DMBEDTLS_SSL_PROTO_TLS1_3 \
  -I./include/ -I./tests/unit_tests/openvpn/ \
  -I./src/compat/ -I./src/openvpn/ -I./src/openvpnserv/ -I./src/plugins/auth-pam/ \
  -I${BUILD_DIR} -I${BUILD_DIR}/include/ \

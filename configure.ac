@@ -862,7 +862,7 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 	if test -z "${MBEDTLS_CFLAGS}" -a -z "${MBEDTLS_LIBS}"; then
 		# if the user did not explicitly specify flags, try to autodetect
 		PKG_CHECK_MODULES([MBEDTLS],
-			[mbedtls >= 3.2.1 mbedx509 >= 3.2.1 mbedcrypto >= 3.2.1],
+			[mbedtls >= 4.0.0 mbedx509 >= 4.0.0 mbedcrypto >= 4.0.0],
 			[have_mbedtls="yes"],
 			[LIBS="${LIBS} -lmbedtls -lmbedx509 -lmbedcrypto"]
 		)
@@ -887,16 +887,43 @@ elif test "${with_crypto_library}" = "mbedtls"; then
 #include <mbedtls/version.h>
 			]],
 			[[
-#if MBEDTLS_VERSION_NUMBER < 0x03020100
+#if MBEDTLS_VERSION_NUMBER < 0x04000000
 #error invalid version
 #endif
 			]]
 		)],
 		[AC_MSG_RESULT([ok])],
-		[AC_MSG_ERROR([mbed TLS version >= 3.2.1 required])]
+		[AC_MSG_ERROR([mbed TLS version >= 4.0.0 required])]
 	)
 
-	AC_CHECK_HEADERS(psa/crypto.h)
+	dnl
+	dnl Non-exhaustive check for unusable mbed TLS configurations.
+	dnl
+	AC_MSG_CHECKING([mbedtls configuration])
+	AC_COMPILE_IFELSE(
+		[AC_LANG_PROGRAM(
+			[[
+#include <mbedtls/mbedtls_config.h>
+#include <psa/crypto_config.h>
+			]],
+			[[
+#if !defined(MBEDTLS_SSL_PROTO_TLS1_2) && !defined(MBEDTLS_SSL_PROTO_TLS1_3)
+#error no tls protocol enabled
+#endif
+#if !defined(MBEDTLS_SSL_KEYING_MATERIAL_EXPORT)
+#error no keying material export
+#endif
+#if !defined(PSA_WANT_ALG_SHA_256) || !defined(PSA_WANT_KEY_TYPE_HMAC)
+#error no HMAC-SHA256
+#endif
+#if !defined(PSA_WANT_ALG_CTR) || !defined(PSA_WANT_KEY_TYPE_AES)
+#error no AES-CTR
+#endif
+			]]
+		)],
+		[AC_MSG_RESULT([ok])],
+		[AC_MSG_ERROR([unusable mbed TLS configuration])]
+	)
 
 	CFLAGS="${saved_CFLAGS}"
 	LIBS="${saved_LIBS}"
