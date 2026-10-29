@@ -42,7 +42,9 @@
 #include "test_common.h"
 
 struct management *management; /* global */
+#ifdef ENABLE_MANAGEMENT
 static int mgmt_callback_called;
+#endif
 
 #ifndef _countof
 #define _countof(x) sizeof((x)) / sizeof(*(x))
@@ -156,8 +158,9 @@ management_query_pk_sig(struct management *man, const char *b64_data, const char
     char *out = NULL;
 
     /* indicate entry to the callback */
+#ifdef ENABLE_MANAGEMENT
     mgmt_callback_called = 1;
-
+#endif
     const char *expected_tbs = test_digest_b64;
     if (strstr(algorithm, "data=message"))
     {
