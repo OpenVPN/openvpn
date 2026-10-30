@@ -2097,6 +2097,10 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         ifr.ifr_flags |= IFF_ONE_QUEUE;
 #endif
 
+#ifdef IFF_BACKPRESSURE
+        ifr.ifr_flags |= IFF_BACKPRESSURE;
+#endif
+
         /*
          * Figure out if tun or tap device
          */
