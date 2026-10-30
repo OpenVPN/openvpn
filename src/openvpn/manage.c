@@ -70,6 +70,7 @@ enum mcv
     MCV_PKSIGN_ALG = 3,
     MCV_USERNAME_ONLY = 4,
     MCV_MULTILINE_PASSWORD = 5,
+    MCV_PREFERRED_USERNAME = 6,
 };
 
 struct management *management; /* GLOBAL */
@@ -3671,6 +3672,26 @@ management_query_user_pass(struct management *man, struct user_pass *up, const c
         if (flags & (GET_USER_PASS_NEED_OK | GET_USER_PASS_NEED_STR))
         {
             buf_printf(&alert_msg, " MSG:%s", up->username);
+        }
+
+        if (up_query_mode == UP_QUERY_USER_PASS
+            && (man->connection.client_version >= MCV_PREFERRED_USERNAME)
+            && up->username[0])
+        {
+            /*
+             * The buffer up is prefilled with username from auth-file or inline.
+             * Indicate it in the prompt as base64 encoded.
+             */
+            char *user64 = NULL;
+            if (openvpn_base64_encode(up->username, (int)strlen(up->username), &user64) != -1)
+            {
+                buf_printf(&alert_msg, " UN:%s", user64);
+            }
+            else
+            {
+                msg(M_NONFATAL, "ERROR: could not base64-encode username");
+            }
+            free(user64);
         }
 
         if (sc)
