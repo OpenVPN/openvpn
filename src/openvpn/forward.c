@@ -42,6 +42,7 @@
 #include "dco.h"
 #include "auth_token.h"
 #include "tun_afunix.h"
+#include "acc.h"
 
 #include "memdbg.h"
 
@@ -257,11 +258,11 @@ parse_incoming_control_channel_command(struct context *c, const struct buffer *b
     }
     else if (buf_string_match_head_str(buf, "INFO_PRE"))
     {
-        server_pushed_info(buf, 8);
+        peer_pushed_info(c, buf, 8);
     }
     else if (buf_string_match_head_str(buf, "INFO"))
     {
-        server_pushed_info(buf, 4);
+        peer_pushed_info(c, buf, 4);
     }
     else if (buf_string_match_head_str(buf, "CR_RESPONSE"))
     {
@@ -270,6 +271,10 @@ parse_incoming_control_channel_command(struct context *c, const struct buffer *b
     else if (buf_string_match_head_str(buf, "AUTH_PENDING"))
     {
         receive_auth_pending(c, buf);
+    }
+    else if (buf_string_match_head_str(buf, "ACC"))
+    {
+        receive_acc_message(c, buf);
     }
     else if (buf_string_match_head_str(buf, "EXIT"))
     {

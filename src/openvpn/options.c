@@ -35,6 +35,7 @@
 
 #include "syshead.h"
 
+#include "acc.h"
 #include "buffer.h"
 #include "error.h"
 #include "common.h"
@@ -2552,6 +2553,8 @@ pre_connect_restore(struct options *o, struct gc_arena *gc)
     o->push_option_types_found = 0;
     o->push_update_options_found = 0;
     o->imported_protocol_flags = 0;
+    o->pushed_acc_max_message_length = 0;
+    o->pushed_acc_negotiated_protocols = NULL;
 }
 
 static void
@@ -7097,6 +7100,47 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
         options->force_key_material_export = true;
+    }
+    else if (streq(p[0], "app-custom-control") && p[1] && !p[2])
+    {
+        VERIFY_PERMISSION(OPT_P_GENERAL);
+        if (!string_class(p[1], CC_ALNUM | CC_COLON | CC_UNDERBAR | CC_DASH, 0))
+        {
+            msg(msglevel, "App custom control protocols must only contain "
+                          "alphanumeric characters, '-', and '_'.");
+            goto err;
+        }
+        options->acc_protocols = p[1];
+    }
+    else if (streq(p[0], "custom-control") && p[1] && p[2] && p[3] && !p[4])
+    {
+        VERIFY_PERMISSION(OPT_P_ACC);
+
+        /* check if the list from the server is a real subset of our list */
+        struct gc_arena gc_local = gc_new();
+        struct buffer common_list = get_list_intersection(&gc_local, p[3], options->acc_protocols);
+
+        if (buf_len(&common_list) == 0 || !streq(p[3], buf_cstr(&common_list)))
+        {
+            msg(msglevel, "App custom control list from server contains "
+                          "unsupported protocols");
+            gc_free(&gc_local);
+            goto err;
+        }
+        gc_free(&gc_local);
+
+        if (!streq(p[2], "6:A") && !streq(p[2], "A:6"))
+        {
+            msg(msglevel, "App custom control encoding must be base64 and ascii");
+            goto err;
+        }
+
+        if (!atoi_constrained(p[1], &options->pushed_acc_max_message_length,
+                              "app custom message message length", ACC_MIN_MSG_LEN, ACC_MAX_MSG_LEN, msglevel))
+        {
+            goto err;
+        }
+        options->pushed_acc_negotiated_protocols = p[3];
     }
     else if (streq(p[0], "prng") && p[1] && !p[3])
     {

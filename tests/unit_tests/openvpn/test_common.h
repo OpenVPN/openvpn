@@ -43,11 +43,13 @@
 #define LargestIntegralType uintmax_t
 #endif
 /* redefine 2.x API in terms of 1.x API */
-#define CMockaValueData             LargestIntegralType
-#define check_expected_uint         check_expected
-#define expect_uint_value           expect_value
-#define expect_check_data           expect_check
-#define cast_ptr_to_cmocka_value(x) (x)
+#define CMockaValueData                       LargestIntegralType
+#define check_expected_uint                   check_expected
+#define expect_uint_value                     expect_value
+#define expect_check_data                     expect_check
+#define cast_ptr_to_cmocka_value(x)           (x)
+#define assert_int_in_range(value, min, max)  assert_in_range((value), (min), (max))
+#define assert_uint_in_range(value, min, max) assert_in_range((value), (min), (max))
 #endif
 
 /**

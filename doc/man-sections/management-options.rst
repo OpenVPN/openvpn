@@ -134,3 +134,17 @@ server and client mode operations.
 
 --management-up-down
   Report tunnel up/down events to management interface.
+
+--app-custom-control protocol-list
+  Sets the list of supported app custom control protocols.
+  These protocols are announced to the server via the IV_ACC peer info
+  variable when this option is used on a client.
+  If the option is set on a server it will negotiate common protocols
+  with the client.
+
+  The protocol-list is a : separated list of protocol identifiers. Protocol
+  identifiers must consist of alphanumeric characters, :code:`-`, and
+  :code:`_`.
+
+  See management-notes.txt in the OpenVPN distribution and the OpenVPN RFC
+  draft for a description of app custom control protocol support.

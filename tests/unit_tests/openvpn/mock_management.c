@@ -29,6 +29,7 @@
 
 #include "syshead.h"
 
+#include <stdlib.h>
 #include "manage.h"
 
 #ifdef ENABLE_MANAGEMENT

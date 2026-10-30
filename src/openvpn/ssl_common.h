@@ -457,6 +457,9 @@ struct tls_options
     size_t ekm_size;
 
     bool dco_enabled; /**< Whether keys have to be installed in DCO or not */
+
+    /** The app custom control protocols we should announce as supported */
+    const char *acc_protocols;
 };
 
 /** @addtogroup control_processor
@@ -730,6 +733,12 @@ struct tls_multi
     int dco_peer_id;
 
     dco_context_t *dco;
+
+    /** the protocols that are negotiated with the peer. */
+    char *acc_negotiated_protocols;
+
+    /** the maximum length of an ACC control channel message */
+    int acc_max_message_length;
 };
 
 /**  gets an item  of \c key_state objects in the

@@ -434,6 +434,8 @@ set(SOURCE_FILES
     src/compat/compat-strlcpy.c
     src/compat/compat-strsep.c
     src/compat/compat-strtok_r.c
+    src/openvpn/acc.c
+    src/openvpn/acc.h
     src/openvpn/argv.c
     src/openvpn/argv.h
     src/openvpn/base64.c
@@ -821,6 +823,8 @@ if (BUILD_TESTING)
             tests/unit_tests/openvpn/mock_management.c
             tests/unit_tests/openvpn/mock_ssl_dependencies.c
             tests/unit_tests/openvpn/mock_win32_execve.c
+            tests/unit_tests/openvpn/test_acc.c
+            src/openvpn/acc.c
             src/openvpn/argv.c
             src/openvpn/base64.c
             src/openvpn/crypto_epoch.c
@@ -836,6 +840,7 @@ if (BUILD_TESTING)
             src/openvpn/packet_id.c
             src/openvpn/run_command.c
             src/openvpn/ssl_mbedtls.c
+            src/openvpn/ssl_ncp.c
             src/openvpn/ssl_openssl.c
             src/openvpn/ssl_util.c
             src/openvpn/ssl_verify_mbedtls.c

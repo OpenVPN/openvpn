@@ -713,6 +713,18 @@ struct options
     /* force using TLS key material export for data channel key generation */
     bool force_key_material_export;
 
+    /** The app custom control protocols we should announce as supported */
+    const char *acc_protocols;
+
+    /** the protocols that are negotiated with the peer. This is a
+     *  a temporary variable since options.c push parser cannot access
+     *  tls multi struct */
+    const char *pushed_acc_negotiated_protocols;
+
+    /** the maximum length of an ACC control channel message via push message
+     * */
+    int pushed_acc_max_message_length;
+
     bool vlan_tagging;
     enum vlan_acceptable_frames vlan_accept;
     uint16_t vlan_pvid;
@@ -762,8 +774,10 @@ struct options
 #define OPT_P_INLINE          (1u << 29)
 #define OPT_P_PUSH_MTU        (1u << 30)
 #define OPT_P_ROUTE_TABLE     (1u << 31)
+#define OPT_P_ACC             (1ull << 32)
 
-#define OPT_P_DEFAULT (~(OPT_P_INSTANCE | OPT_P_PULL_MODE | OPT_P_PEER_ID | 0x0ull))
+/* Options allowed in the normal configuration file (vs pushed options or in ccd files) */
+#define OPT_P_DEFAULT (~(OPT_P_INSTANCE | OPT_P_PULL_MODE | OPT_P_PEER_ID | OPT_P_ACC))
 
 #define PULL_DEFINED(opt) ((opt)->pull)
 

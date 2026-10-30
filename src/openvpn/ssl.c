@@ -55,6 +55,7 @@
 
 #include "crypto_epoch.h"
 #include "ssl.h"
+#include "acc.h"
 #include "ssl_verify.h"
 #include "ssl_backend.h"
 #include "ssl_ncp.h"
@@ -1279,6 +1280,7 @@ tls_multi_free(struct tls_multi *multi, bool clear)
     free(multi->locked_cn);
     free(multi->locked_username);
     free(multi->locked_original_username);
+    free(multi->acc_negotiated_protocols);
 
     cert_hash_free(multi->locked_cert_hash_set);
 
@@ -2090,6 +2092,11 @@ push_peer_info(struct buffer *buf, const struct tls_multi *multi, struct tls_ses
 #endif
         }
 
+        if (session->opt->acc_protocols)
+        {
+            buf_printf(&out, "IV_ACC=%d,A:6,%s\n", ACC_MAX_MSG_LEN, session->opt->acc_protocols);
+        }
+
         if (session->opt->push_peer_info_detail > 1)
         {
             struct env_set *es = session->opt->es;
@@ -2389,6 +2396,8 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
         free(multi->remote_ciphername);
         multi->remote_ciphername = string_alloc("none", NULL);
     }
+
+    determine_common_acc_protocols(multi, session);
 
     if (username_len < 0 || password_len < 0)
     {

@@ -1006,3 +1006,12 @@ instances.
        X509_1_L=BISHKEK
        X509_1_ST=NA
        X509_1_C=KG
+
+:code:`acc_protocols`
+    If ``--app-custom-control`` is configured and the client supports any of the
+    protocols that server also supports, this variable contains a list of
+    common protocols separated by :.
+
+:code:`acc_message_len`
+    if :code:`acc_protocols` is set, this variable contains the maximum
+    message length for app custom protocol message.

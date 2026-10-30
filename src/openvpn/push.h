@@ -52,6 +52,7 @@ typedef enum
 
 int process_incoming_push_request(struct context *c);
 
+
 /**
  * @brief Handles the receiving of a push-update message and applies updates to the specified
  * options.
@@ -92,7 +93,15 @@ void server_pushed_signal(struct context *c, const struct buffer *buffer, const 
 
 void receive_exit_message(struct context *c);
 
-void server_pushed_info(const struct buffer *buffer, const int adv);
+/**
+ * This message is called when an INFO or INFO_PRE message is received from
+ * a peer.
+ *
+ * @param c         Context of the peer.
+ * @param buffer    Buffer containing the INFO/INFO_PRE message.
+ * @param adv       number of character to advance past the INFO/INFO_PRE header
+ */
+void peer_pushed_info(struct context *c, const struct buffer *buffer, const int adv);
 
 void receive_cr_response(struct context *c, const struct buffer *buffer);
 

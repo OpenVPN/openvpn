@@ -183,12 +183,19 @@ struct management_callback
     int (*n_clients)(void *arg);
     bool (*send_cc_message)(void *arg, const char *message, const char *parameter);
     bool (*kill_by_cid)(void *arg, const unsigned long cid, const char *kill_msg);
+
     bool (*client_auth)(void *arg, const unsigned long cid, const unsigned int mda_key_id,
                         const bool auth, const char *reason, const char *client_reason,
                         struct buffer_list *cc_config); /* ownership transferred */
     bool (*client_pending_auth)(void *arg, const unsigned long cid, const unsigned int kid,
                                 const char *extra, unsigned int timeout);
     char *(*get_peer_info)(void *arg, const unsigned long cid);
+    bool (*client_acc_msg)(void *arg,
+                           const unsigned long cid,
+                           const unsigned int mda_key_id,
+                           struct buffer_list *msg);
+    bool (*acc_msg)(void *arg,
+                    struct buffer_list *msg);
     bool (*proxy_cmd)(void *arg, const char **p);
     bool (*remote_cmd)(void *arg, const char **p);
 #ifdef TARGET_ANDROID
@@ -291,13 +298,15 @@ struct man_connection
     struct command_line *in;
     struct buffer_list *out;
 
-#define IEC_UNDEF       0
-#define IEC_CLIENT_AUTH 1
+#define IEC_UNDEF          0
+#define IEC_CLIENT_AUTH    1
 /* #define IEC_CLIENT_PF   2 *REMOVED FEATURE* */
-#define IEC_RSA_SIGN    3
-#define IEC_CERTIFICATE 4
-#define IEC_PK_SIGN     5
-#define IEC_PASSWORD    6
+#define IEC_RSA_SIGN       3
+#define IEC_CERTIFICATE    4
+#define IEC_PK_SIGN        5
+#define IEC_PASSWORD       6
+#define IEC_CLIENT_ACC_MSG 7
+#define IEC_ACC_MSG        8
     int in_extra_cmd;
     struct buffer_list *in_extra;
     unsigned long in_extra_cid;
@@ -499,6 +508,14 @@ void management_check_bytecount_server(struct multi_context *multi, struct timev
 
 void man_persist_client_stats(struct management *man, struct context *c);
 
+/** Parses the ACC message from the input buffer_list and send to the
+ * session identified by session and multi
+ */
+struct tls_session;
+struct tls_multi;
+bool
+management_send_acc_message(struct context *c, struct tls_multi *multi,
+                            struct tls_session *session, struct buffer_list *input);
 #endif /* ifdef ENABLE_MANAGEMENT */
 
 /**

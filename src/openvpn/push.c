@@ -27,6 +27,8 @@
 #include "syshead.h"
 
 #include "push.h"
+
+#include "acc.h"
 #include "options.h"
 #include "crypto.h"
 #include "ssl.h"
@@ -221,9 +223,56 @@ receive_exit_message(struct context *c)
 #endif
 }
 
+static void
+parse_server_pushed_info_acc(struct context *c, struct buffer *buf)
+{
+    int max_acc_len = 0;
+    struct tls_multi *multi = c->c2.tls_multi;
+
+    if (multi->acc_negotiated_protocols)
+    {
+        return;
+    }
+
+    if (!multi->opt.acc_protocols || !c->options.pull)
+    {
+        msg(D_PUSH_ERRORS, "Peer tried to push app custom control list "
+                           "without client announcing support for it");
+        return;
+    }
+
+    /* example string to parse: ACC:1400 A:6 flower:happy */
+    /* Skip over the ACC: prefix */
+    buf_advance(buf, 4);
+
+    struct gc_arena gc = gc_new();
+    const char *protocols = parse_acc_parameters(buf_cstr(buf), " ", &max_acc_len, false, &gc);
+    if (!protocols)
+    {
+        msg(D_PUSH_ERRORS, "WARNING: Received ACC info command with invalid parameters");
+        gc_free(&gc);
+        return;
+    }
+
+    /* check if the list from the server is a real subset of our list */
+    struct buffer common_list = get_list_intersection(&gc, protocols, multi->opt.acc_protocols);
+
+    if (buf_len(&common_list) == 0 || !streq(protocols, buf_cstr(&common_list)))
+    {
+        msg(D_PUSH_ERRORS, "App custom control list from server contains "
+                           "unsupported protocols");
+        gc_free(&gc);
+        return;
+    }
+
+    multi->acc_negotiated_protocols = string_alloc(protocols, NULL);
+    multi->acc_max_message_length = max_acc_len;
+    notify_client_acc_protocols(multi);
+    gc_free(&gc);
+}
 
 void
-server_pushed_info(const struct buffer *buffer, const int adv)
+peer_pushed_info(struct context *c, const struct buffer *buffer, const int adv)
 {
     const char *m = "";
     struct buffer buf = *buffer;
@@ -231,6 +280,12 @@ server_pushed_info(const struct buffer *buffer, const int adv)
     if (buf_advance(&buf, adv) && buf_read_u8(&buf) == ',' && BLEN(&buf))
     {
         m = BSTR(&buf);
+    }
+
+    if (strncmp(m, "ACC:", 4) == 0)
+    {
+        parse_server_pushed_info_acc(c, &buf);
+        return;
     }
 
 #ifdef ENABLE_MANAGEMENT
@@ -257,7 +312,7 @@ server_pushed_info(const struct buffer *buffer, const int adv)
         gc_free(&gc);
     }
 #endif
-    msg(D_PUSH, "Info command was pushed by server ('%s')", m);
+    msg(D_PUSH, "Info command was pushed by peer ('%s')", m);
 }
 
 void
@@ -284,6 +339,7 @@ receive_cr_response(struct context *c, const struct buffer *buffer)
     verify_crresponse_script(c->c2.tls_multi, m);
     msg(D_PUSH, "CR response was sent by client ('%s')", m);
 }
+
 
 /**
  * Parse the keyword for the AUTH_PENDING request
@@ -440,7 +496,6 @@ send_auth_pending_messages(const struct tls_multi *tls_multi, struct tls_session
 
     const char *const peer_info = tls_multi->peer_info;
     unsigned int proto = extract_iv_proto(peer_info);
-
 
     /* Calculate the maximum timeout and subtract the time we already waited */
     unsigned int max_timeout =
@@ -731,6 +786,12 @@ prepare_push_reply(struct context *c, struct gc_arena *gc, struct push_list *pus
                 "to client configuration.",
                 client_max_mtu, o->ce.tun_mtu, o->ce.tun_mtu);
         }
+    }
+
+    if (tls_multi->acc_negotiated_protocols)
+    {
+        push_option_fmt(gc, push_list, M_USAGE, "custom-control %d A:6 %s",
+                        tls_multi->acc_max_message_length, tls_multi->acc_negotiated_protocols);
     }
 }
 

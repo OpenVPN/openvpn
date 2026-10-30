@@ -437,6 +437,12 @@ configuration.
         Additional authentication methods supported by the client.
         This may be set by the client UI/GUI using ``--setenv``.
 
+  :code:`IV_ACC=<max_msg_len>,<flags>,<protocols>`
+        If the option ``--app-custom-control`` is set, the client will
+        send the supported max ACC message length, the supported formats
+        as (:code:`A:6`) and the list of configured protocols (e.g.
+        :code:`flower:happy:power`)
+
   The following flags depend on which compression formats are compiled in
   and whether compression is allowed by options. See `Protocol options`_
   for more details.

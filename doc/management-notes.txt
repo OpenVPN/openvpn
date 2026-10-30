@@ -853,6 +853,59 @@ Since the notify pending auth is not requiring any action on the client side
 that is required to continue the connection (unlike MFA or opening a browser)
 this message is not negotiated but can just be sent as a gratuitous message.
 
+app custom control
+==================
+If the special string "ACC" is passed as {EXTRA} OpenVPN will determine
+the common app custom protocols between the client and the server and instruct
+the client that the server will send control messages to the client using
+the ACC protocol.
+
+The server should then use client-acc-msg command to send app custom
+control messages to the client to facilitate the pending authentication.
+
+COMMAND -- client-acc-msg (OpenVPN 2.8 or higher)
+-------------------------------------------------
+
+On an OpenVPN instance running in server mode this command sends an
+app custom control message to a client. The format of the command is:
+
+  client-acc-msg {CID} {KID}
+  {protocol}
+  {flags}
+  {message}
+  END
+
+CID,KID -- client ID and Key ID. See documentation for ">CLIENT:"
+notification for more info.
+
+protocol -- the ACC protocol identifier that this message should be
+            tagged with.
+
+flags    -- a concatenation of letters for the encoding ('A' or '6')
+            and the lette 'F' if the message is a fragment. E.g.
+            "6F" for a base64 encoded message that is also a fragment
+            and not complete yet.
+
+message  -- The message encoded in the encoding specified in flags
+
+
+COMMAND -- acc-msg (OpenVPN 2.8 or higher)
+------------------------------------------
+
+When OpenVPN is running in --client mode this command sends an app
+custom command to the server. The format of the command is
+
+  acc-msg
+  {protocol}
+  {flags}
+  {message}
+  END
+
+See the client-acc-msg command for more details about the format of the
+message. Since a client has only one peer there is no need to specify the
+client id and key id.
+
+
 COMMAND -- client-deny  (OpenVPN 2.1 or higher)
 -----------------------------------------------
 
@@ -1327,6 +1380,52 @@ CLIENT notification types:
    response. Mechanisms that need multiple rounds or more complex answers
    should implement a different response type than CR_RESPONSE.
 
+(6) App custom control message
+
+    This message is an application specific payload message that is transported
+    over the OpenVPN control channel.
+
+    In server mode:
+
+    >CLIENT:ACC,{CID},{KID},{protocol},{fragment},{msg_base64}
+
+    In client mode:
+
+    >ACC:{protocol},{fragment},{msg_base64}
+
+    The protocol is a short ascii string identifying the app specific custom
+    protocol. If fragment is set to 1, the message is not complete and the
+    next message should be concatenated to this message to form a complete
+    message.
+
+    Note that the OpenVPN implementation operates here with the robustness
+    principle ("be conservative in what you send, be liberal in what you
+    accept" - RFC 793 and others) and allows receiving messages longer than
+    maximum allowed message length. Implementations should be prepared to
+    handle messages that are longer than the maximum allowed message length.
+
+    OpenVPN does not verify that the message is valid base64. A peer that
+    sends invalid base64 payload will be passed to the management interface.
+    An implementation should be prepared to handle invalid base64 and
+    handle accordingly (e.g. disconnect the client via client-deny or
+    ignore such messages).
+
+(7) App custom control protocol message
+
+   This message informs the client about the common ACC
+   protocols and the maximum message length for an ACC message.
+
+   In client mode:
+
+   >ACC_PROTOCOLS:protocols={protocol_list},message_len={max_msg_len}
+
+   protocol_list is the list of supported protocols by both server and client.
+   For example flower:power:sys_info would indicate these three protocols
+   are supported. max_msg_len specifies the maximum message length that the
+   peer supports.
+
+   In server mode these information are available in the acc_protocols and
+   acc_message_len variables of the client environment.
 
 Variables:
 
