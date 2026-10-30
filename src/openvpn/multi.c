@@ -2486,13 +2486,22 @@ multi_check_dest_addr_allowed(struct multi_context *m, struct multi_instance *mi
 
 /**
  * This sets up the client real address (outer tunnel addr) in the
- * hash map for data channel packet. If the address is already taken
- * this steps fails
+ * hash map for data channel packet lookup for DATA_V1 packets.
+ * If the address is already taken this steps fails.
  */
 static enum client_connect_return
 multi_client_connect_real_addr(struct multi_context *m, struct multi_instance *mi,
                                bool deferred, uint64_t *option_types_found)
 {
+    if (proto_is_tcp(mi->real.proto))
+    {
+        /* For TCP connection we neither need to be able to map incoming
+         * DATA_V1 packets to the multi_instance nor do we need to ensure
+         * that two TCP connections are not using the same address as the
+         * OS takes care of that. */
+        return CC_RET_SUCCEEDED;
+    }
+
     /* If the address is already taken up by another client we fail the new
      * connection */
     if (!multi_check_dest_addr_allowed(m, mi, &mi->real))
