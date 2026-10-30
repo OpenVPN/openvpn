@@ -304,6 +304,9 @@ COMMAND -- password and username
     username "Auth" foo
     password "Auth" bar
 
+  The same format is used for HTTP and SOCKS proxy username and password
+  with 'Auth' replaced by 'HTTP Proxy' and 'SOCKS Proxy' respectively.
+
   Example 3:
 
     >PASSWORD:Need 'Auth' username
@@ -393,6 +396,31 @@ COMMAND -- password and username
   should be obtained and included in the management interface client's
   response along with the username and password formatted as described
   in the Challenge/Response Protocol section below
+
+  Example 10:
+
+    >PASSWORD:Need '<UP_TYPE>' username/password UN:<user-base64>
+    >PASSWORD:Need 'Auth' username/password UN:<user-base64> SC:1,Please enter token PIN
+
+  where <UP_TYPE> is any supported type that requires username and password.
+  (see Example 2).
+
+  These work exactly as Examples 2 and 8, respectively, with the following
+  difference. The prompt has an additional word "UN:<user-base64>" where
+  <user-base64> is the base64 encoded form of a pre-defined username. This
+  may be a username inlined in the config file or read from an external
+  user-pass file.
+
+  The management client is expected to show the base64 decoded value to
+  the user. Whether the user can change this username or not is left to
+  the client implementation.
+
+  The response from the management client should follow the same format
+  as in example 2 or example 8, as applicable.
+
+  This prompt is shown only if the management-client announces a
+  version >= 6. Older clients will see the prompt shown in Example 2
+  or 8.
 
 See the "Challenge/Response Protocol" section below for more details
 about examples 8 and 9, including how the management interface client
@@ -530,6 +558,7 @@ Minimum client version required for certain features is listed below:
     >PK_SIGN:[base64],[alg]     -- version 3 or greater
     >PASSWORD:Need 'Auth' username -- version 4 or greater
     multiline password from client -- version 5 or greater
+    preferred username in >PASSWORD prompt -- version 6 or greater
 
 COMMAND -- auth-retry
 ---------------------
@@ -1454,6 +1483,12 @@ When credentials are needed and the --static-challenge option is
 used, the management interface will send:
 
   >PASSWORD:Need 'Auth' username/password SC:<flag>,<TEXT>
+  or
+  >PASSWORD:Need 'Auth' username/password UN:<user64> SC:<flag>,<TEXT>
+
+  The second form is used only if the client version is >=6, and a
+  preferred username is available. See also Example 10 in the section
+  titled "COMMAND -- password and username"
 
   flag: an integer whose least significant bit is the ECHO flag and
         the next significant bit is the FORMAT flag.
@@ -1463,6 +1498,7 @@ used, the management interface will send:
         as described below. Thus flag could take values 0, 1, 2, or 3.
   TEXT: challenge text that should be shown to the user to
       facilitate their response
+  user64: Preferred username, if available, base64 encoded.
 
 For example:
 
