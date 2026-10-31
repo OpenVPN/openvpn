@@ -590,21 +590,75 @@ COMMAND -- pkcs11-id-count  (OpenVPN 2.1 or higher)
 
 Retrieve available number of certificates.
 
-Example:
+Example for client version < 6:
 
      pkcs11-id-count
      >PKCS11ID-COUNT:5
 
+Example for client version >= 6:
+
+     pkcs11-id-count
+     5
+     END
+
 COMMAND -- pkcs11-id-get  (OpenVPN 2.1 or higher)
 -------------------------------------------------
+
+  pkcs11-id-get <index>
 
 Retrieve certificate by index, the ID string should be provided
 as PKCS#11 identity, the blob is a base 64 encoded certificate.
 
-Example:
+Example for client version < 6:
 
      pkcs11-id-get 1
      PKCS11ID-ENTRY:'1', ID:'<snip>', BLOB:'<snip>'
+
+For client versions >= 6 it is also possible to retrieve mulitiple
+PKCS#11 identities from index <start> to <end>-1. Alternatively
+<start> = "all" retrieves all PKCS#11 identities. A comma separated
+list including index, PKCS#11 id and the base 64 encoded certificate
+will be returned.
+
+  pkcs11-id-get <index>
+  pkcs11-id-get <start> <end>
+  pkcs11-id-get all
+
+Example 1:
+
+  Management interface client sends:
+
+    pkcs11-id-get 1
+
+  OpenVPN daemon responds with:
+
+    1,<id>,<blob>
+    END
+
+Example 2:
+
+  Management interface client sends:
+
+    pkcs11-id-get 1 3
+
+  OpenVPN daemon responds with:
+
+    1,<id_a>,<blob_a>
+    2,<id_b>,<blob_b>
+    END
+
+Example 3:
+
+  Management interface client sends:
+
+    pkcs11-id-get all
+
+  OpenVPN daemon with 3 PKCS#11 identities responds with:
+
+    0,<id_a>,<blob_a>
+    1,<id_b>,<blob_b>
+    2,<id_c>,<blob_c>
+    END
 
 COMMAND -- client-auth  (OpenVPN 2.1 or higher)
 -----------------------------------------------
