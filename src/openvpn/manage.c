@@ -3621,7 +3621,7 @@ management_query_user_pass(struct management *man, struct user_pass *up, const c
     {
         volatile int signal_received = 0;
         const bool standalone_disabled_save = man->persist.standalone_disabled;
-        struct buffer alert_msg = alloc_buf_gc(128, &gc);
+        struct buffer alert_msg = alloc_buf_gc(256, &gc);
         const char *alert_type = NULL;
         const char *prefix = NULL;
         unsigned int up_query_mode = 0;
@@ -3683,23 +3683,31 @@ management_query_user_pass(struct management *man, struct user_pass *up, const c
              * Indicate it in the prompt as base64 encoded.
              */
             char *user64 = NULL;
-            if (openvpn_base64_encode(up->username, (int)strlen(up->username), &user64) != -1)
+            const int user64_len = openvpn_base64_encode(up->username, (int)strlen(up->username), &user64);
+            if (user64_len == -1)
             {
-                buf_printf(&alert_msg, " UN:%s", user64);
+                msg(M_NONFATAL, "ERROR: could not base64-encode username");
+            }
+            else if (user64_len + 4 > 128)
+            {
+                msg(M_WARN | M_INFO, "Preferred username too long for user-pass prompt sent to management; omitting UN:<username> hint.");
             }
             else
             {
-                msg(M_NONFATAL, "ERROR: could not base64-encode username");
+                buf_printf(&alert_msg, " UN:%s", user64);
             }
             free(user64);
         }
 
         if (sc)
         {
-            buf_printf(&alert_msg, " SC:%d,%s",
-                       BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO)
-                           | (BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_CONCAT) << 1),
-                       sc);
+            if (!buf_printf(&alert_msg, " SC:%d,%s",
+                            BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_ECHO)
+                                | (BOOL_CAST(flags & GET_USER_PASS_STATIC_CHALLENGE_CONCAT) << 1),
+                            sc))
+            {
+                msg(M_WARN | M_INFO, "SC:<challenge-text> in user-pass prompt sent to management got truncated.");
+            }
         }
 
         man_wait_for_client_connection(man, &signal_received, 0, MWCC_PASSWORD_WAIT);
