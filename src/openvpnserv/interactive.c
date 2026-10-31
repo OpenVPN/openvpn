@@ -2279,6 +2279,7 @@ ListContainsDomain(PCWSTR list, PCWSTR domain, size_t len)
  * In case of an error \p size is set to 0 and the contents of \p domains
  * are invalid.
  * Note that domains are deleted from the string if they match a search domain.
+ * Empty entries (e.g. from leading, trailing or double commas) are skipped.
  *
  * @param[in]     search_domains  optional string of comma separated search domains
  * @param[in,out] domains         buffer that contains the input comma-separated
@@ -2320,7 +2321,7 @@ ConvertItfDnsDomains(PCWSTR search_domains, PWSTR domains, PDWORD size, const DW
         PWCHAR comma = wcschr(domain, L',');
         size_t domain_len = comma ? (size_t)(comma - domain) : wcslen(domain);
 
-        if (ListContainsDomain(search_domains, domain, domain_len))
+        if (domain_len == 0 || ListContainsDomain(search_domains, domain, domain_len))
         {
             /* Skip this domain */
             domain = comma ? comma + 1 : domain + domain_len;
@@ -2373,7 +2374,7 @@ done:
 /**
  * Return interface specific domain suffix(es)
  *
- * The \p domains paramter will be set to a MULTI_SZ domains string.
+ * The \p domains parameter will be set to a MULTI_SZ domains string.
  * In case of an error or if no domains are found for the interface
  * \p size is set to 0 and the contents of \p domains are invalid.
  * Note that the domains could have been set by DHCP or manually.
