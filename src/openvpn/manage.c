@@ -118,7 +118,8 @@ man_help(void)
     msg(M_CLIENT, "pid                    : Show process ID of the current OpenVPN process.");
 #ifdef ENABLE_PKCS11
     msg(M_CLIENT, "pkcs11-id-count        : Get number of available PKCS#11 identities.");
-    msg(M_CLIENT, "pkcs11-id-get index|all : Get PKCS#11 identity at index or all at once.");
+    msg(M_CLIENT, "pkcs11-id-get i|all [j] : Get PKCS#11 identity at index = i.");
+    msg(M_CLIENT, "                          For version >= 6 also i to j-1 or all.");
 #endif
     msg(M_CLIENT, "client-auth CID KID    : Authenticate client-id/key-id CID/KID (MULTILINE)");
     msg(M_CLIENT, "client-auth-nt CID KID : Authenticate client-id/key-id CID/KID");
@@ -903,58 +904,78 @@ man_pkcs11_id_count(const struct management *man)
     }
 }
 
-static void
-man_pkcs11_id_get(struct management *man, const int index, bool single)
+static unsigned int
+parse_range_start(const char *p1)
 {
-    char *id = NULL;
-    char *base64 = NULL;
-
-    if (pkcs11_management_id_get(index, &id, &base64))
+    if (streq(p1, "all"))
     {
-        if (man->connection.client_version >= MCV_CORRECT_PKCS11_RESPONSE)
+        return 0;
+    }
+    return (unsigned int)atoi(p1);
+}
+
+static unsigned int
+parse_range_end(const char *p1, const char *p2, unsigned int max)
+{
+    unsigned int from = (unsigned int)atoi(p1);
+    unsigned int to = p2 ? (unsigned int)atoi(p2) : from + 1;
+
+    if (streq(p1, "all"))
+    {
+        to = max;
+    }
+
+    return min_uint(to, max);
+}
+
+static void
+man_pkcs11_id_get(struct management *man, const char *p1, const char *p2)
+{
+    ASSERT(p1);
+
+    if ((streq(p1, "all") || p2 != NULL) && man->connection.client_version < MCV_CORRECT_PKCS11_RESPONSE)
+    {
+        msg(M_CLIENT, "ERROR: Listing multiple ids is only supported for version >= %d", MCV_CORRECT_PKCS11_RESPONSE);
+        return;
+    }
+
+    if (man->connection.client_version >= MCV_CORRECT_PKCS11_RESPONSE)
+    {
+        unsigned int from = parse_range_start(p1);
+        unsigned int to = parse_range_end(p1, p2, pkcs11_management_id_count());
+
+        for (unsigned int i = from; i < to; i++)
         {
-            msg(M_CLIENT, "ID:'%s', BLOB:'%s'", id, base64);
+            char *id = NULL;
+            char *base64 = NULL;
+
+            if (pkcs11_management_id_get(i, &id, &base64))
+            {
+                msg(M_CLIENT, "ID:'%s', BLOB:'%s'", id, base64);
+            }
+            free(id);
+            free(base64);
         }
-        else
-        {
-            msg(M_CLIENT, ">PKCS11ID-ENTRY:'%d', ID:'%s', BLOB:'%s'", index, id, base64);
-        }
+        msg(M_CLIENT, "END");
     }
     else
     {
-        if (man->connection.client_version >= MCV_CORRECT_PKCS11_RESPONSE)
+        int index = atoi(p1);
+
+        char *id = NULL;
+        char *base64 = NULL;
+
+        if (pkcs11_management_id_get(index, &id, &base64))
         {
-            msg(M_CLIENT, "ERROR: failed to load pkcs11-id at index:'%d'", index);
+            msg(M_CLIENT, ">PKCS11ID-ENTRY:'%d', ID:'%s', BLOB:'%s'", index, id, base64);
         }
         else
         {
             msg(M_CLIENT, ">PKCS11ID-ENTRY:'%d'", index);
         }
+        free(id);
+        free(base64);
     }
-
-    free(id);
-    free(base64);
-
-    if (single && man->connection.client_version >= MCV_CORRECT_PKCS11_RESPONSE)
-    {
-        msg(M_CLIENT, "END");
-    }
-}
-
-static void
-man_pkcs11_id_get_all(struct management *man)
-{
-    if (man->connection.client_version < MCV_CORRECT_PKCS11_RESPONSE)
-    {
-        msg(M_CLIENT, "ERROR: listing all ids is only available for version >= %d", MCV_CORRECT_PKCS11_RESPONSE);
-        return;
-    }
-
-    for (int i = 0; i < pkcs11_management_id_count(); ++i)
-    {
-        man_pkcs11_id_get(man, i, false);
-    }
-    msg(M_CLIENT, "END");
 }
 
 #endif /* ifdef ENABLE_PKCS11 */
@@ -983,16 +1004,10 @@ man_remote_entry_get(struct management *man, const char *p1, const char *p2)
     {
         unsigned int count = (*man->persist.callback.remote_entry_count)(man->persist.callback.arg);
 
-        unsigned int from = (unsigned int)atoi(p1);
-        unsigned int to = p2 ? (unsigned int)atoi(p2) : from + 1;
+        unsigned int from = parse_range_start(p1);
+        unsigned int to = parse_range_end(p1, p2, count);
 
-        if (!strcmp(p1, "all"))
-        {
-            from = 0;
-            to = count;
-        }
-
-        for (unsigned int i = from; i < min_uint(to, count); i++)
+        for (unsigned int i = from; i < to; i++)
         {
             char *remote = NULL;
             bool res =
@@ -1820,16 +1835,9 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     }
     else if (streq(p[0], "pkcs11-id-get"))
     {
-        if (man_need(p, 1, 0))
+        if (man_need(p, 1, MN_AT_LEAST))
         {
-            if (streq(p[1], "all"))
-            {
-                man_pkcs11_id_get_all(man);
-            }
-            else
-            {
-                man_pkcs11_id_get(man, atoi(p[1]), true);
-            }
+            man_pkcs11_id_get(man, p[1], p[2]);
         }
     }
 #endif
