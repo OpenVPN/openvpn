@@ -951,7 +951,7 @@ man_pkcs11_id_get(struct management *man, const char *p1, const char *p2)
 
             if (pkcs11_management_id_get(i, &id, &base64))
             {
-                msg(M_CLIENT, "ID:'%s', BLOB:'%s'", id, base64);
+                msg(M_CLIENT, "%u,%s,%s", i, id, base64);
             }
             free(id);
             free(base64);
