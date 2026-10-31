@@ -56,101 +56,102 @@ test_list_contains_domain(void **state)
     assert_false(ListContainsDomain(L"internal.openvpn.net,openvpn.com", domain, domain_len));
 }
 
+/*
+ * Run ConvertItfDnsDomains() on a heap buffer of exactly capacity bytes,
+ * so that ASAN can detect overruns, with everything after the input string
+ * poisoned, so that terminators which are counted but not written show.
+ */
+static void
+check_convert(PCWSTR search_domains, PCWSTR input, DWORD capacity,
+              LSTATUS expected_err, PCWSTR expected)
+{
+    const DWORD glyph_size = sizeof(wchar_t);
+
+    /* Size of the expected MULTI_SZ including both terminators, or 0 */
+    DWORD expected_size = 0;
+    if (expected)
+    {
+        PCWSTR end = expected;
+        while (*end)
+        {
+            end += wcslen(end) + 1;
+        }
+        expected_size = (DWORD)(end - expected + 1) * glyph_size;
+    }
+
+    DWORD size = (DWORD)(wcslen(input) + 1) * glyph_size;
+    assert_true(size <= capacity);
+
+    wchar_t *domains = malloc(capacity);
+    assert_non_null(domains);
+    memset(domains, 0x41, capacity);
+    memcpy(domains, input, size);
+
+    LSTATUS err = ConvertItfDnsDomains(search_domains, domains, &size, capacity);
+    assert_int_equal(err, expected_err);
+    assert_int_equal(size, expected_size);
+    if (expected_size)
+    {
+        assert_memory_equal(domains, expected, expected_size);
+    }
+    free(domains);
+}
+
 #define BUF_SIZE 64
 static void
 test_convert_itf_dns_domains(void **state)
 {
-    DWORD size, len;
-    LSTATUS err;
     const DWORD glyph_size = sizeof(wchar_t);
+    const DWORD cap = BUF_SIZE * glyph_size;
 
     /* Remove the domain from a single-entry list */
-    wchar_t domains_0[BUF_SIZE] = L"openvpn.com";
-    len = (DWORD)wcslen(domains_0) + 1;
-    size = len * glyph_size;
-    err = ConvertItfDnsDomains(L"openvpn.com", domains_0, &size, sizeof(domains_0));
-    assert_int_equal(size, 0);
-    assert_int_equal(err, ERROR_FILE_NOT_FOUND);
+    check_convert(L"openvpn.com", L"openvpn.com", cap, ERROR_FILE_NOT_FOUND, NULL);
 
     /* Remove no domain from a single-entry list */
-    wchar_t domains_1[BUF_SIZE] = L"openvpn.com";
-    len = (DWORD)wcslen(domains_1) + 1;
-    size = len * glyph_size;
-    wchar_t domains_1_res[] = L".openvpn.com\0";
-    err = ConvertItfDnsDomains(L"openvpn.net", domains_1, &size, sizeof(domains_1));
-    assert_memory_equal(domains_1, domains_1_res, size);
-    assert_int_equal(size, sizeof(domains_1_res));
-    assert_int_equal(err, NO_ERROR);
+    check_convert(L"openvpn.net", L"openvpn.com", cap, NO_ERROR, L".openvpn.com\0");
 
     /* Remove the second domain from a two-entry list */
-    wchar_t domains_2[BUF_SIZE] = L"openvpn.com,openvpn.net";
-    len = (DWORD)wcslen(domains_2) + 1;
-    size = len * glyph_size;
-    wchar_t domains_2_res[] = L".openvpn.com\0";
-    err = ConvertItfDnsDomains(L"openvpn.net", domains_2, &size, sizeof(domains_2));
-    assert_memory_equal(domains_2, domains_2_res, size);
-    assert_int_equal(size, sizeof(domains_2_res));
-    assert_int_equal(err, NO_ERROR);
+    check_convert(L"openvpn.net", L"openvpn.com,openvpn.net", cap, NO_ERROR, L".openvpn.com\0");
 
     /* Remove the first domain from a two-entry list */
-    wchar_t domains_3[BUF_SIZE] = L"openvpn.com,openvpn.net";
-    len = (DWORD)wcslen(domains_3) + 1;
-    size = len * glyph_size;
-    wchar_t domains_3_res[] = L".openvpn.net\0";
-    err = ConvertItfDnsDomains(L"openvpn.com", domains_3, &size, sizeof(domains_3));
-    assert_memory_equal(domains_3, domains_3_res, size);
-    assert_int_equal(size, sizeof(domains_3_res));
-    assert_int_equal(err, NO_ERROR);
+    check_convert(L"openvpn.com", L"openvpn.com,openvpn.net", cap, NO_ERROR, L".openvpn.net\0");
 
     /* Remove no domain from a two-entry list */
-    wchar_t domains_4[BUF_SIZE] = L"openvpn.com,openvpn.net";
-    len = (DWORD)wcslen(domains_4) + 1;
-    size = len * glyph_size;
-    wchar_t domains_4_res[] = L".openvpn.com\0.openvpn.net\0";
-    err = ConvertItfDnsDomains(NULL, domains_4, &size, sizeof(domains_4));
-    assert_memory_equal(domains_4, domains_4_res, size);
-    assert_int_equal(size, sizeof(domains_4_res));
-    assert_int_equal(err, NO_ERROR);
+    check_convert(NULL, L"openvpn.com,openvpn.net", cap, NO_ERROR, L".openvpn.com\0.openvpn.net\0");
 
     /* Remove the first domain from a three-entry list */
-    wchar_t domains_5[BUF_SIZE] = L"openvpn.com,openvpn.net,openvpn.org";
-    len = (DWORD)wcslen(domains_5) + 1;
-    size = len * glyph_size;
-    wchar_t domains_5_res[] = L".openvpn.net\0.openvpn.org\0";
-    err = ConvertItfDnsDomains(L"openvpn.com", domains_5, &size, sizeof(domains_5));
-    assert_memory_equal(domains_5, domains_5_res, size);
-    assert_int_equal(size, sizeof(domains_5_res));
-    assert_int_equal(err, NO_ERROR);
+    check_convert(L"openvpn.com", L"openvpn.com,openvpn.net,openvpn.org", cap, NO_ERROR,
+                  L".openvpn.net\0.openvpn.org\0");
 
     /* Remove the middle domain from a three-entry list */
-    wchar_t domains_6[BUF_SIZE] = L"openvpn.com,openvpn.net,openvpn.org";
-    len = (DWORD)wcslen(domains_6) + 1;
-    size = len * glyph_size;
-    wchar_t domains_6_res[] = L".openvpn.com\0.openvpn.org\0";
-    err = ConvertItfDnsDomains(L"openvpn.net", domains_6, &size, sizeof(domains_6));
-    assert_memory_equal(domains_6, domains_6_res, size);
-    assert_int_equal(size, sizeof(domains_6_res));
-    assert_int_equal(err, NO_ERROR);
+    check_convert(L"openvpn.net", L"openvpn.com,openvpn.net,openvpn.org", cap, NO_ERROR,
+                  L".openvpn.com\0.openvpn.org\0");
 
     /* Remove the last domain from a three-entry list */
-    wchar_t domains_7[BUF_SIZE] = L"openvpn.com,openvpn.net,openvpn.org";
-    len = (DWORD)wcslen(domains_7) + 1;
-    size = len * glyph_size;
-    wchar_t domains_7_res[] = L".openvpn.com\0.openvpn.net\0";
-    err = ConvertItfDnsDomains(L"openvpn.org", domains_7, &size, sizeof(domains_7));
-    assert_memory_equal(domains_7, domains_7_res, size);
-    assert_int_equal(size, sizeof(domains_7_res));
-    assert_int_equal(err, NO_ERROR);
+    check_convert(L"openvpn.org", L"openvpn.com,openvpn.net,openvpn.org", cap, NO_ERROR,
+                  L".openvpn.com\0.openvpn.net\0");
 
-    /* Remove the last domain from a four-entry list because of size constraints*/
-    wchar_t domains_8[BUF_SIZE] = L"openvpn.com,openvpn.net,openvpn.org,am-ende-noch-eine-lange.de";
-    len = (DWORD)wcslen(domains_8) + 1;
-    size = len * glyph_size;
-    wchar_t domains_8_res[] = L".openvpn.com\0.openvpn.net\0.openvpn.org\0";
-    err = ConvertItfDnsDomains(NULL, domains_8, &size, sizeof(domains_8));
-    assert_memory_equal(domains_8, domains_8_res, size);
-    assert_int_equal(size, sizeof(domains_8_res));
-    assert_int_equal(err, ERROR_MORE_DATA);
+    /* Empty entries are skipped */
+    check_convert(NULL, L",a.com", cap, NO_ERROR, L".a.com\0");
+    check_convert(NULL, L"a.com,", cap, NO_ERROR, L".a.com\0");
+    check_convert(NULL, L"a.com,,b.com", cap, NO_ERROR, L".a.com\0.b.com\0");
+    check_convert(L"a.com", L",a.com,", cap, ERROR_FILE_NOT_FOUND, NULL);
+    check_convert(NULL, L",,,", cap, ERROR_FILE_NOT_FOUND, NULL);
+    check_convert(NULL, L"", cap, ERROR_FILE_NOT_FOUND, NULL);
+
+    /* Size is 0 if all domains are removed */
+    check_convert(L"a.com,b.com", L"b.com,a.com", cap, ERROR_FILE_NOT_FOUND, NULL);
+
+    /* Output exactly fills the buffer: 2 * (dot + 5 + NUL) + NUL */
+    check_convert(NULL, L"a.com,b.com", 15 * glyph_size, NO_ERROR, L".a.com\0.b.com\0");
+
+    /* Remove the last domain from a four-entry list because of size constraints,
+     * all four would need 3 * 13 + 28 + 1 = 68 glyphs, the buffer is one glyph short */
+    check_convert(NULL, L"openvpn.com,openvpn.net,openvpn.org,am-ende-noch-eine-lange.de",
+                  67 * glyph_size, ERROR_MORE_DATA, L".openvpn.com\0.openvpn.net\0.openvpn.org\0");
+
+    /* Input fills the buffer, no space for dot and terminators */
+    check_convert(NULL, L"a.com", 6 * glyph_size, ERROR_MORE_DATA, NULL);
 }
 
 static void
