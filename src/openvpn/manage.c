@@ -71,7 +71,7 @@ enum mcv
     MCV_PKSIGN_ALG = 3,
     MCV_USERNAME_ONLY = 4,
     MCV_MULTILINE_PASSWORD = 5,
-    MCV_CORRECT_PKCS11_RESPONSE = 6,
+    MCV_MULTILINE_PKCS11_RESPONSE = 6,
 };
 
 struct management *management; /* GLOBAL */
@@ -893,7 +893,7 @@ man_send_cc_message(struct management *man, const char *message, const char *par
 static void
 man_pkcs11_id_count(const struct management *man)
 {
-    if (man->connection.client_version >= MCV_CORRECT_PKCS11_RESPONSE)
+    if (man->connection.client_version >= MCV_MULTILINE_PKCS11_RESPONSE)
     {
         msg(M_CLIENT, "%d", pkcs11_management_id_count());
         msg(M_CLIENT, "END");
@@ -933,13 +933,13 @@ man_pkcs11_id_get(struct management *man, const char *p1, const char *p2)
 {
     ASSERT(p1);
 
-    if ((streq(p1, "all") || p2 != NULL) && man->connection.client_version < MCV_CORRECT_PKCS11_RESPONSE)
+    if ((streq(p1, "all") || p2 != NULL) && man->connection.client_version < MCV_MULTILINE_PKCS11_RESPONSE)
     {
-        msg(M_CLIENT, "ERROR: Listing multiple ids is only supported for version >= %d", MCV_CORRECT_PKCS11_RESPONSE);
+        msg(M_CLIENT, "ERROR: Listing multiple ids is only supported for version >= %d", MCV_MULTILINE_PKCS11_RESPONSE);
         return;
     }
 
-    if (man->connection.client_version >= MCV_CORRECT_PKCS11_RESPONSE)
+    if (man->connection.client_version >= MCV_MULTILINE_PKCS11_RESPONSE)
     {
         unsigned int from = parse_range_start(p1);
         unsigned int to = parse_range_end(p1, p2, pkcs11_management_id_count());
