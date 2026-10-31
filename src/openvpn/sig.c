@@ -504,12 +504,6 @@ print_status(struct context *c, struct status_output *so)
         comp_print_stats(c->c2.comp_context, so);
     }
 #endif
-#ifdef PACKET_TRUNCATION_CHECK
-    status_printf(so, "TUN read truncations," counter_format, c->c2.n_trunc_tun_read);
-    status_printf(so, "TUN write truncations," counter_format, c->c2.n_trunc_tun_write);
-    status_printf(so, "Pre-encrypt truncations," counter_format, c->c2.n_trunc_pre_encrypt);
-    status_printf(so, "Post-decrypt truncations," counter_format, c->c2.n_trunc_post_decrypt);
-#endif
 #ifdef _WIN32
     if (tuntap_defined(c->c1.tuntap))
     {

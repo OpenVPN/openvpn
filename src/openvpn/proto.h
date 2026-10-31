@@ -307,11 +307,6 @@ bool is_ipv6(int tunnel_type, struct buffer *buf);
 uint16_t ip_checksum(const sa_family_t af, const uint8_t *payload, const int len_payload,
                      const uint8_t *src_addr, const uint8_t *dest_addr, const int proto);
 
-#ifdef PACKET_TRUNCATION_CHECK
-void ipv4_packet_size_verify(const uint8_t *data, const int size, const int tunnel_type,
-                             const char *prefix, counter_type *errors);
-
-#endif
 
 #define OPENVPN_8021Q_MIN_VID 1
 #define OPENVPN_8021Q_MAX_VID 4094

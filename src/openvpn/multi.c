@@ -981,31 +981,6 @@ multi_print_status(struct multi_context *m, struct status_output *so, const int 
         status_printf(so, "ERROR: bad status format version number");
     }
 
-#ifdef PACKET_TRUNCATION_CHECK
-    {
-        status_printf(so, "HEADER,ERRORS,Common Name,TUN Read Trunc,TUN Write Trunc,Pre-encrypt Trunc,Post-decrypt Trunc");
-        hash_iterator_init(m->hash, &hi);
-        while ((he = hash_iterator_next(&hi)))
-        {
-            struct gc_arena gc = gc_new();
-            const struct multi_instance *mi = (struct multi_instance *)he->value;
-
-            if (!mi->halt)
-            {
-                status_printf(so,
-                              "ERRORS,%s," counter_format "," counter_format "," counter_format
-                              "," counter_format,
-                              tls_common_name(mi->context.c2.tls_multi, false),
-                              m->top.c2.n_trunc_tun_read, mi->context.c2.n_trunc_tun_write,
-                              mi->context.c2.n_trunc_pre_encrypt,
-                              mi->context.c2.n_trunc_post_decrypt);
-            }
-            gc_free(&gc);
-        }
-        hash_iterator_free(&hi);
-    }
-#endif /* ifdef PACKET_TRUNCATION_CHECK */
-
     status_flush(so);
     gc_free(&gc_top);
 
