@@ -293,6 +293,16 @@ static inline int
 optimal_fragment_size(int len, int max_frag_size)
 {
     const int mfs_aligned = (max_frag_size & ~FRAG_SIZE_ROUND_MASK);
+    /* If max_frag_size is too small to round up to a non-zero multiple of the
+    * fragment size granularity, we cannot fragment at all. Guard against the
+    * division by zero and let the caller's MAX_FRAGS check reject the datagram
+    * gracefully instead of crashing with SIGFPE. This can be reached e.g. with
+    * a very small --fragment combined with CBC data-channel overhead. */
+    if (mfs_aligned <= 0)
+    {
+        return max_frag_size;
+    }
+
     const int div = len / mfs_aligned;
     const int mod = len % mfs_aligned;
 
