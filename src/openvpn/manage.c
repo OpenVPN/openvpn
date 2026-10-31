@@ -888,21 +888,6 @@ man_send_cc_message(struct management *man, const char *message, const char *par
         man_command_unsupported("cr-repsonse");
     }
 }
-#ifdef ENABLE_PKCS11
-
-static void
-man_pkcs11_id_count(const struct management *man)
-{
-    if (man->connection.client_version >= MCV_MULTILINE_PKCS11_RESPONSE)
-    {
-        msg(M_CLIENT, "%d", pkcs11_management_id_count());
-        msg(M_CLIENT, "END");
-    }
-    else
-    {
-        msg(M_CLIENT, ">PKCS11ID-COUNT:%d", pkcs11_management_id_count());
-    }
-}
 
 static unsigned int
 parse_range_start(const char *p1)
@@ -926,6 +911,22 @@ parse_range_end(const char *p1, const char *p2, unsigned int max)
     }
 
     return min_uint(to, max);
+}
+
+#ifdef ENABLE_PKCS11
+
+static void
+man_pkcs11_id_count(const struct management *man)
+{
+    if (man->connection.client_version >= MCV_MULTILINE_PKCS11_RESPONSE)
+    {
+        msg(M_CLIENT, "%d", pkcs11_management_id_count());
+        msg(M_CLIENT, "END");
+    }
+    else
+    {
+        msg(M_CLIENT, ">PKCS11ID-COUNT:%d", pkcs11_management_id_count());
+    }
 }
 
 static void
