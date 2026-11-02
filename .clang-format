@@ -17,6 +17,7 @@ AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: Never
 AllowShortLoopsOnASingleLine: false
+AttributeMacros: [__counted_by, __counted_by_or_null, __sized_by, __sized_by_or_null]
 BinPackArguments: true
 BinPackParameters: true
 BreakAfterReturnType: AllDefinitions

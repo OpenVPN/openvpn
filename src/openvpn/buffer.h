@@ -69,13 +69,14 @@
  */
 struct buffer
 {
-    int capacity;  /**< Size in bytes of memory allocated by
-                    *   \c malloc(). */
-    int offset;    /**< Offset in bytes of the actual content
-                    *   within the allocated memory. */
-    int len;       /**< Length in bytes of the actual content
-                    *   within the allocated memory. */
-    uint8_t *data; /**< Pointer to the allocated memory. */
+    int capacity; /**< Size in bytes of memory allocated by
+                   *   \c malloc(). */
+    int offset;   /**< Offset in bytes of the actual content
+                   *   within the allocated memory. */
+    int len;      /**< Length in bytes of the actual content
+                   *   within the allocated memory. */
+    /** Pointer to the allocated memory. */
+    uint8_t *__sized_by_or_null(capacity) data;
 
 #ifdef BUF_INIT_TRACKING
     const char *debug_file;
@@ -108,7 +109,7 @@ struct gc_entry
 struct gc_entry_special
 {
     struct gc_entry_special *next;
-    void (*free_fnc)(void *);
+    void (*free_fnc)(void *__unsafe_indexable);
     void *addr;
 };
 
@@ -199,7 +200,7 @@ bool buf_assign(struct buffer *dest, const struct buffer *src);
  *
  * @param str   The string to clear.
  */
-void string_clear(char *str);
+void string_clear(char *__null_terminated str);
 
 /**
  * Return the number of elements in a NULL-terminated array of strings.
@@ -208,7 +209,7 @@ void string_clear(char *str);
  *
  * @return Number of non-NULL elements.
  */
-int string_array_len(const char **array);
+int string_array_len(const char **__null_terminated array);
 
 /**
  * Safely compute the product of two sizes plus an extra amount.
@@ -236,7 +237,7 @@ size_t array_mult_safe(const size_t m1, const size_t m2, const size_t extra);
  *
  * @return Newly allocated string representation of \c p.
  */
-char *print_argv(const char **p, struct gc_arena *gc, const unsigned int flags);
+char *print_argv(const char **__null_terminated p, struct gc_arena *gc, const unsigned int flags);
 
 /**
  * Report a buffer size error and abort.
@@ -299,7 +300,7 @@ struct buffer clone_buf(const struct buffer *buf);
  *
  * @return Pointer to the newly allocated memory.
  */
-void *gc_malloc(size_t size, bool clear, struct gc_arena *a);
+void *__sized_by(size) gc_malloc(size_t size, bool clear, struct gc_arena *a);
 
 /**
  * Duplicate a string, allocating memory under garbage collection.
@@ -311,7 +312,7 @@ void *gc_malloc(size_t size, bool clear, struct gc_arena *a);
  *
  * @return A newly allocated copy of \c str, or NULL if \c str is NULL.
  */
-char *string_alloc(const char *str, struct gc_arena *gc);
+char *__null_terminated string_alloc(const char *str, struct gc_arena *gc);
 
 /**
  * Allocate a buffer containing a copy of the given string.
@@ -337,10 +338,12 @@ struct buffer string_alloc_buf(const char *str, struct gc_arena *gc);
  * something other than plain \c free(), such as \c freeaddrinfo().
  *
  * @param addr          Pointer to the memory to register.
- * @param free_function Function to call to free \c addr.
+ * @param free_function Function to call to free \c addr.  The parameter is
+ *                      \c __unsafe_indexable so that \c free() can be passed
+ *                      with -fbounds-safety.
  * @param a             Garbage collection arena to register with.
  */
-void gc_addspecial(void *addr, void (*free_function)(void *), struct gc_arena *a);
+void gc_addspecial(void *addr, void (*free_function)(void *__unsafe_indexable), struct gc_arena *a);
 
 /**
  * allows to realloc a pointer previously allocated by gc_malloc or gc_realloc
@@ -374,9 +377,9 @@ bool buf_init_debug(struct buffer *buf, int offset, const char *file, int line);
  * @param addr  Pointer to the \c struct \c addrinfo to free.
  */
 static inline void
-gc_freeaddrinfo_callback(void *addr)
+gc_freeaddrinfo_callback(void *__unsafe_indexable addr)
 {
-    freeaddrinfo((struct addrinfo *)addr);
+    freeaddrinfo(__unsafe_forge_single(struct addrinfo *, addr));
 }
 
 /** Return an empty, undefined \c struct \c buffer (all fields zero). */
@@ -424,7 +427,7 @@ buf_valid(const struct buffer *buf)
  * @return Pointer to \c buf->data + \c buf->offset, or NULL if \c buf is
  *         not valid.
  */
-static inline const uint8_t *
+static inline const uint8_t *__bidi_indexable
 buf_cbptr(const struct buffer *buf)
 {
     if (buf_valid(buf))
@@ -445,7 +448,7 @@ buf_cbptr(const struct buffer *buf)
  * @return Pointer to \c buf->data + \c buf->offset, or NULL if \c buf is
  *         not valid.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_bptr(struct buffer *buf)
 {
     return (uint8_t *)buf_cbptr(buf);
@@ -478,7 +481,7 @@ buf_len(const struct buffer *buf)
  *
  * @return Pointer to the byte immediately after the last content byte.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_bend(struct buffer *buf)
 {
     return buf_bptr(buf) + buf_len(buf);
@@ -491,7 +494,7 @@ buf_bend(struct buffer *buf)
  *
  * @return Pointer to the byte immediately after the last content byte.
  */
-static inline const uint8_t *
+static inline const uint8_t *__bidi_indexable
 buf_cbend(const struct buffer *buf)
 {
     return buf_cbptr(buf) + buf_len(buf);
@@ -505,7 +508,7 @@ buf_cbend(const struct buffer *buf)
  * @return Pointer to the last byte, or NULL if the buffer is empty or
  *         invalid.
  */
-static inline const uint8_t *
+static inline const uint8_t *__bidi_indexable
 buf_cblast(const struct buffer *buf)
 {
     if (buf_len(buf) > 0)
@@ -526,7 +529,7 @@ buf_cblast(const struct buffer *buf)
  * @return Pointer to the last byte, or NULL if the buffer is empty or
  *         invalid.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_blast(struct buffer *buf)
 {
     return (uint8_t *)buf_cblast(buf);
@@ -568,7 +571,7 @@ buf_size_valid_signed(const int size)
  *
  * @return The content pointer as a \c char *, or NULL if \c buf is invalid.
  */
-static inline char *
+static inline char *__bidi_indexable
 buf_str(struct buffer *buf)
 {
     return (char *)buf_bptr(buf);
@@ -581,7 +584,7 @@ buf_str(struct buffer *buf)
  *
  * @return The content pointer as a \c const char *, or NULL if \c buf is invalid.
  */
-static inline const char *
+static inline const char *__bidi_indexable
 buf_cstr(const struct buffer *buf)
 {
     return (const char *)buf_cbptr(buf);
@@ -655,7 +658,7 @@ buf_init_dowork(struct buffer *buf, int offset)
  * @param size  Size of the memory region in bytes.
  */
 static inline void
-buf_set_write(struct buffer *buf, uint8_t *data, int size)
+buf_set_write(struct buffer *buf, uint8_t *__sized_by_or_null(size) data, int size)
 {
     if (!buf_size_valid(size))
     {
@@ -684,7 +687,7 @@ buf_set_write(struct buffer *buf, uint8_t *data, int size)
  * @param size  Size of the memory region in bytes.
  */
 static inline void
-buf_set_read(struct buffer *buf, const uint8_t *data, size_t size)
+buf_set_read(struct buffer *buf, const uint8_t *__sized_by_or_null(size) data, size_t size)
 {
     if (!buf_size_valid(size))
     {
@@ -745,13 +748,13 @@ has_digit(const char *src)
  * @param len   Length of data, in bytes.
  */
 static inline void
-secure_memzero(void *data, size_t len)
+secure_memzero(void *__sized_by(len) data, size_t len)
 {
 #if defined(_WIN32)
     SecureZeroMemory(data, len);
 #elif defined(__GNUC__) || defined(__clang__)
     memset(data, 0, len);
-    __asm__ __volatile__("" : : "r"(data) : "memory");
+    __asm__ __volatile__("" : : "r"(__unsafe_forge_single(void *, data)) : "memory");
 #else
     volatile char *p = (volatile char *)data;
     while (len--)
@@ -836,7 +839,7 @@ void buf_rmtail(struct buffer *buf, uint8_t remove);
  *
  * @param str   The null-terminated string to chomp.
  */
-void chomp(char *str);
+void chomp(char *__null_terminated str);
 
 /**
  * Remove all trailing characters that appear in a given set.
@@ -844,7 +847,7 @@ void chomp(char *str);
  * @param str             The null-terminated string to modify in place.
  * @param what_to_delete  Null-terminated set of characters to strip.
  */
-void rm_trailing_chars(char *str, const char *what_to_delete);
+void rm_trailing_chars(char *__null_terminated str, const char *what_to_delete);
 
 /**
  * Return a pointer past any leading whitespace in a string.
@@ -913,7 +916,7 @@ void buf_catrunc(struct buffer *buf, const char *str);
  *         extracted; true otherwise (including when a delimiter was found
  *         or \c line was truncated).
  */
-bool buf_parse(struct buffer *buf, const int delim, char *line, const int size);
+bool buf_parse(struct buffer *buf, const int delim, char *__counted_by(size) line, const int size);
 
 /** @name Hex Dump
  *  @brief Output a binary buffer to a hex string and return it.
@@ -941,7 +944,7 @@ bool buf_parse(struct buffer *buf, const int delim, char *line, const int size);
  *
  * @return Null-terminated hex string allocated from \c gc.
  */
-char *format_hex_ex(const uint8_t *data, size_t size, size_t maxoutput, unsigned int space_break_flags,
+char *format_hex_ex(const uint8_t *__counted_by(size) data, size_t size, size_t maxoutput, unsigned int space_break_flags,
                     const char *separator, struct gc_arena *gc);
 
 /**
@@ -957,7 +960,7 @@ char *format_hex_ex(const uint8_t *data, size_t size, size_t maxoutput, unsigned
  * @return Null-terminated hex string allocated from \c gc.
  */
 static inline char *
-format_hex(const uint8_t *data, size_t size, size_t maxoutput, struct gc_arena *gc)
+format_hex(const uint8_t *__counted_by(size) data, size_t size, size_t maxoutput, struct gc_arena *gc)
 {
     return format_hex_ex(data, size, maxoutput, 4, " ", gc);
 }
@@ -1138,7 +1141,7 @@ buf_inc_len(struct buffer *buf, int inc)
  * @return Pointer to the newly reserved space (new content start), or NULL
  *         if \c buf is invalid or there is insufficient prepend capacity.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_prepend(struct buffer *buf, ssize_t size)
 {
     if (!buf_valid(buf) || size < 0 || size > buf->offset)
@@ -1185,7 +1188,7 @@ buf_advance(struct buffer *buf, ssize_t size)
  * @return Pointer to the start of the reserved space, or NULL if there is
  *         insufficient capacity.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_write_alloc(struct buffer *buf, size_t size)
 {
     uint8_t *ret;
@@ -1210,7 +1213,7 @@ buf_write_alloc(struct buffer *buf, size_t size)
  * @return Pointer to the start of the consumed region, or NULL if \c size
  *         is negative or exceeds the current length.
  */
-static inline uint8_t *
+static inline uint8_t *__bidi_indexable
 buf_read_alloc(struct buffer *buf, int size)
 {
     uint8_t *ret;
@@ -1236,7 +1239,7 @@ buf_read_alloc(struct buffer *buf, int size)
  * @return true on success, false if there is insufficient capacity.
  */
 static inline bool
-buf_write(struct buffer *dest, const void *src, size_t size)
+buf_write(struct buffer *dest, const void *__sized_by(size) src, size_t size)
 {
     uint8_t *cp = buf_write_alloc(dest, size);
     if (!cp)
@@ -1260,7 +1263,7 @@ buf_write(struct buffer *dest, const void *src, size_t size)
  * @return true on success, false if there is insufficient prepend capacity.
  */
 static inline bool
-buf_write_prepend(struct buffer *dest, const void *src, int size)
+buf_write_prepend(struct buffer *dest, const void *__sized_by(size) src, int size)
 {
     uint8_t *cp = buf_prepend(dest, size);
     if (!cp)
@@ -1448,7 +1451,7 @@ buf_copy_excess(struct buffer *dest, struct buffer *src, int len)
  * @return true on success, false if \c src has fewer than \c size bytes.
  */
 static inline bool
-buf_read(struct buffer *src, void *dest, int size)
+buf_read(struct buffer *src, void *__sized_by(size) dest, int size)
 {
     const uint8_t *cp = buf_read_alloc(src, size);
     if (!cp)
@@ -1596,7 +1599,7 @@ buf_equal(const struct buffer *a, const struct buffer *b)
  * *NOT* constant time. Do not use when comparing HMACs.
  */
 static inline bool
-buf_string_match(const struct buffer *src, const void *match, int size)
+buf_string_match(const struct buffer *src, const void *__sized_by(size) match, int size)
 {
     if (size != src->len)
     {
@@ -1610,7 +1613,7 @@ buf_string_match(const struct buffer *src, const void *match, int size)
  * *NOT* constant time. Do not use when comparing HMACs.
  */
 static inline bool
-buf_string_match_head(const struct buffer *src, const void *match, int size)
+buf_string_match_head(const struct buffer *src, const void *__sized_by(size) match, int size)
 {
     if (size < 0 || size > src->len)
     {
@@ -1749,7 +1752,7 @@ bool string_class(const char *str, const unsigned int inclusive, const unsigned 
  * @param replace The character to replace the specified character classes with.
  * @return True if the string was not modified, false otherwise.
  */
-bool string_mod(char *str, const unsigned int inclusive, const unsigned int exclusive,
+bool string_mod(char *__null_terminated str, const unsigned int inclusive, const unsigned int exclusive,
                 const char replace);
 
 
@@ -1793,7 +1796,7 @@ const char *string_mod_const(const char *str, const unsigned int inclusive,
  * @param match    The character to replace.
  * @param replace  The replacement character.
  */
-void string_replace_leading(char *str, const char match, const char replace);
+void string_replace_leading(char *__null_terminated str, const char match, const char replace);
 
 /**
  * Return true iff \c str starts with \c prefix.
@@ -1836,7 +1839,7 @@ char *string_substitute(const char *src, char from, char to, struct gc_arena *gc
  *
  * @return true if snprintf() was successful and not truncated.
  */
-bool checked_snprintf(char *str, size_t size, const char *format, ...)
+bool checked_snprintf(char *__counted_by(size) str, size_t size, const char *format, ...)
 #ifdef __GNUC__
 #if __USE_MINGW_ANSI_STDIO
     __attribute__((format(gnu_printf, 3, 4)))
@@ -2210,7 +2213,7 @@ void buffer_list_push(struct buffer_list *ol, const char *str);
  *
  * @return the new buffer
  */
-struct buffer_entry *buffer_list_push_data(struct buffer_list *ol, const void *data, size_t size);
+struct buffer_entry *buffer_list_push_data(struct buffer_list *ol, const void *__sized_by(size) data, size_t size);
 
 /**
  * Retrieve the head buffer
