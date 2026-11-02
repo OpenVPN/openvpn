@@ -331,6 +331,7 @@ tls_crypt_v2_init_client_key(struct key_ctx_bi *key, struct key2 *original_key,
 
     tls_crypt_v2_load_client_key(key, &key2, false);
     *original_key = key2;
+    secure_memzero(&key2, sizeof(key2));
 
     *wkc_buf = client_key;
 }
@@ -784,6 +785,7 @@ tls_crypt_v2_write_client_key_file(const char *filename, const char *b64_metadat
     tls_crypt_v2_init_client_key(&test_client_key, &keydata, &test_wrapped_client_key, client_file,
                                  client_inline);
     free_key_ctx_bi(&test_client_key);
+    secure_memzero(&keydata, sizeof(keydata));
 
     /* Sanity check: unwrap and load client key (as "server") */
     struct buffer test_metadata = alloc_buf_gc(TLS_CRYPT_V2_MAX_METADATA_LEN, &gc);
@@ -794,6 +796,7 @@ tls_crypt_v2_write_client_key_file(const char *filename, const char *b64_metadat
     ASSERT(tls_crypt_v2_unwrap_client_key(&test_client_key2, &test_metadata,
                                           test_wrapped_client_key, &server_key));
     secure_memzero(&test_client_key2, sizeof(test_client_key2));
+    buf_clear(&test_wrapped_client_key);
     free_buf(&test_wrapped_client_key);
 
 cleanup:
