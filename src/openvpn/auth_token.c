@@ -172,6 +172,9 @@ auth_token_init_secret(struct key_ctx *key_ctx, const char *key_file, bool key_i
     key_parameters_from_key(&key_params, &key);
     init_key_ctx(key_ctx, &key_params, &kt, false, "auth-token secret");
 
+    secure_memzero(&key, sizeof(key));
+    secure_memzero(&key_params, sizeof(key_params));
+    buf_clear(&server_secret_key);
     free_buf(&server_secret_key);
 }
 
