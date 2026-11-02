@@ -440,6 +440,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     struct gc_arena gc;
     gc_init(&gc);
 
+    ASSERT(opt);
     struct key_ctx *ctx = &opt->key_ctx_bi.decrypt;
     const bool use_epoch_data_format = opt->flags & CO_EPOCH_DATA_KEY_FORMAT;
     if (!use_epoch_data_format && cipher_decrypt_verify_fail_exceeded(ctx))
@@ -450,7 +451,6 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     const int tag_size = OPENVPN_AEAD_TAG_LENGTH;
 
 
-    ASSERT(opt);
     ASSERT(frame);
     ASSERT(buf->len > 0);
     ASSERT(ctx->cipher);
