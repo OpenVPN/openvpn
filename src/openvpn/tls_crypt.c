@@ -191,7 +191,7 @@ tls_crypt_wrap(const struct buffer *src, struct buffer *dst, struct crypto_optio
         int outlen = 0;
         ASSERT(cipher_ctx_update(ctx->cipher, BEND(dst), &outlen, BPTR(src), BLEN(src)));
         ASSERT(buf_inc_len(dst, outlen));
-        ASSERT(cipher_ctx_final(ctx->cipher, BPTR(dst), &outlen));
+        ASSERT(cipher_ctx_final(ctx->cipher, BEND(dst), &outlen));
         ASSERT(buf_inc_len(dst, outlen));
     }
 
@@ -247,7 +247,7 @@ tls_crypt_unwrap(const struct buffer *src, struct buffer *dst, struct crypto_opt
             CRYPT_ERROR("cipher update failed");
         }
         ASSERT(buf_inc_len(dst, outlen));
-        if (!cipher_ctx_final(ctx->cipher, BPTR(dst), &outlen))
+        if (!cipher_ctx_final(ctx->cipher, BEND(dst), &outlen))
         {
             CRYPT_ERROR("cipher final failed");
         }
