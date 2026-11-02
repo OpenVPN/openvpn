@@ -528,6 +528,7 @@ crypto_pem_decode(const char *name, struct buffer *dst, const struct buffer *src
 cleanup:
     OPENSSL_free(name_read);
     OPENSSL_free(header_read);
+    OPENSSL_cleanse(data_read, data_read_len);
     OPENSSL_free(data_read);
     if (!BIO_free(bio))
     {
