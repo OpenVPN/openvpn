@@ -4224,7 +4224,7 @@ options_postprocess_filechecks(struct options *options)
     errs |= check_file_access_inline(options->cert_file_inline, CHKACC_FILE | CHKACC_ACCEPT_URI,
                                      options->cert_file, R_OK, "--cert");
 
-    errs |= check_file_access_inline(options->extra_certs_file, CHKACC_FILE,
+    errs |= check_file_access_inline(options->extra_certs_file_inline, CHKACC_FILE,
                                      options->extra_certs_file, R_OK, "--extra-certs");
 
     if (!(options->management_flags & MF_EXTERNAL_KEY))
