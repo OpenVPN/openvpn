@@ -631,7 +631,7 @@ init_route_list(struct route_list *rl, const struct route_option_list *opt,
     {
         setenv_route_addr(es, "net_gateway", rl->ngi.gateway.addr, -1);
 #if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
-        print_default_gateway(D_ROUTE, &rl->rgi, NULL);
+        print_default_gateway(D_ROUTE, &rl->ngi, NULL);
 #endif
     }
     else
@@ -782,7 +782,7 @@ init_route_ipv6_list(struct route_ipv6_list *rl6, const struct route_ipv6_option
     {
         setenv_str(es, "net_gateway_ipv6", print_in6_addr(rl6->ngi6.gateway.addr_ipv6, 0, &gc));
 #if defined(ENABLE_DEBUG) && !defined(ENABLE_SMALL)
-        print_default_gateway(D_ROUTE, NULL, &rl6->rgi6);
+        print_default_gateway(D_ROUTE, NULL, &rl6->ngi6);
 #endif
     }
     else
