@@ -198,12 +198,6 @@
     <fileName>src/openvpn/dco_freebsd.c</fileName>
     <symbolName>buf</symbolName>
   </suppress>
-  <!-- IGN: strlen(NULL) is not nice code, but seems to work -->
-  <suppress>
-    <id>nullPointerRedundantCheck</id>
-    <fileName>src/openvpn/init.c</fileName>
-    <symbolName>parameters</symbolName>
-  </suppress>
   <!-- FP: cppcheck doesn't understand ZeroMemory -->
   <suppress>
     <id>redundantAssignment</id>
