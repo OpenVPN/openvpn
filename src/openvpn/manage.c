@@ -3998,8 +3998,8 @@ management_query_cert(struct management *man, const char *cert_name)
 
     char *result;
     result = management_query_multiline_flatten_newline(
-        management, NULL, (char *)buf_bptr(&buf_prompt), "certificate",
-        &man->connection.ext_cert_state, &man->connection.ext_cert_input);
+        man, NULL, (char *)buf_bptr(&buf_prompt), "certificate", &man->connection.ext_cert_state,
+        &man->connection.ext_cert_input);
     free_buf(&buf_prompt);
     return result;
 }
