@@ -489,6 +489,10 @@ fast hardware. SSL/TLS authentication must be used in this mode.
   the origin of the connection. Each generated file will be automatically
   deleted when the proxied connection is torn down.
 
+  The files in ``dir`` are created and removed with the privileges of the
+  OpenVPN process, so ``dir`` must not be writable by any user other than
+  the one OpenVPN runs as.
+
   Not implemented on Windows.
 
 --push option
