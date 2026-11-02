@@ -1583,15 +1583,7 @@ generate_key_expansion(struct tls_multi *multi, struct key_state *ks, struct tls
     key2_print(&key2, &session->opt->key_type, "Master Encrypt", "Master Decrypt");
 
     /* check for weak keys */
-    for (int i = 0; i < 2; ++i)
-    {
-        if (!check_key(&key2.keys[i], &session->opt->key_type))
-        {
-            msg(D_TLS_ERRORS, "TLS Error: Bad dynamic key generated");
-            goto exit;
-        }
-    }
-
+    check_key2(&key2);
     ret = init_key_contexts(ks, multi, &session->opt->key_type, server, &key2,
                             session->opt->dco_enabled);
 

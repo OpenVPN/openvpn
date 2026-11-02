@@ -414,8 +414,6 @@ void read_key_file(struct key2 *key2, const char *file, const unsigned int flags
  */
 int write_key_file(const int nkeys, const char *filename);
 
-bool check_key(const struct key *key, const struct key_type *kt);
-
 /**
  * Initialize a key_type structure with.
  *
@@ -621,7 +619,7 @@ void test_crypto(struct crypto_options *co, const struct frame *f);
 
 void key_direction_state_init(struct key_direction_state *kds, int key_direction);
 
-void verify_fix_key2(struct key2 *key2, const struct key_type *kt, const char *shared_secret_file);
+void check_key2(struct key2 *key2);
 
 void must_have_n_keys(const char *filename, const char *option, const struct key2 *key2, int n);
 

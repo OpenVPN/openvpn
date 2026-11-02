@@ -1104,40 +1104,6 @@ free_key_ctx_bi(struct key_ctx_bi *ctx)
     ctx->initialized = false;
 }
 
-static bool
-key_is_zero(const struct key *key, const struct key_type *kt)
-{
-    size_t cipher_length = cipher_kt_key_size(kt->cipher);
-    for (size_t i = 0; i < cipher_length; ++i)
-    {
-        if (key->cipher[i])
-        {
-            return false;
-        }
-    }
-    msg(D_CRYPT_ERRORS, "CRYPTO INFO: WARNING: zero key detected");
-    return true;
-}
-
-/*
- * Make sure that cipher key is a valid key for current key_type.
- */
-bool
-check_key(const struct key *key, const struct key_type *kt)
-{
-    if (cipher_defined(kt->cipher))
-    {
-        /*
-         * Check for zero key
-         */
-        if (key_is_zero(key, kt))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
 /*
  * Generate a random key.
  */
@@ -1307,8 +1273,8 @@ crypto_read_openvpn_key(const struct key_type *key_type, struct key_ctx_bi *ctx,
             print_key_filename(key_file, key_inline));
     }
 
-    /* check for and fix highly unlikely key problems */
-    verify_fix_key2(&key2, key_type, key_file);
+    /* check for highly unlikely key problems */
+    check_key2(&key2);
 
     /* handle key direction */
     key_direction_state_init(&kds, key_direction);
@@ -1708,18 +1674,19 @@ key_direction_state_init(struct key_direction_state *kds, int key_direction)
 }
 
 void
-verify_fix_key2(struct key2 *key2, const struct key_type *kt, const char *shared_secret_file)
+check_key2(struct key2 *key2)
 {
-    int i;
+    /* Check the first 128 bit of every key slot to be not 0. This is
+     * not a comprehensive check, but no valid key should fail this check */
 
-    for (i = 0; i < key2->n; ++i)
+    uint8_t zero_key[16] = { 0 };
+
+    if (memcmp_constant_time(key2->keys[0].cipher, zero_key, sizeof(zero_key)) == 0
+        || memcmp_constant_time(key2->keys[1].cipher, zero_key, sizeof(zero_key)) == 0
+        || memcmp_constant_time(key2->keys[0].hmac, zero_key, sizeof(zero_key)) == 0
+        || memcmp_constant_time(key2->keys[1].hmac, zero_key, sizeof(zero_key)) == 0)
     {
-        /* This should be a very improbable failure */
-        if (!check_key(&key2->keys[i], kt))
-        {
-            msg(M_FATAL, "Key #%d in '%s' is bad.  Try making a new key with --genkey.", i + 1,
-                shared_secret_file);
-        }
+        msg(M_FATAL, "One key in static key/generated key  is all zero.");
     }
 }
 
