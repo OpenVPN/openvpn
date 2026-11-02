@@ -1505,6 +1505,7 @@ static bool
 generate_key_expansion_openvpn_prf(const struct tls_session *session, struct key2 *key2)
 {
     uint8_t master[48] = { 0 };
+    bool ret = false;
 
     const struct key_state *ks = &session->key[KS_PRIMARY];
     const struct key_source2 *key_src = ks->key_src;
@@ -1523,7 +1524,7 @@ generate_key_expansion_openvpn_prf(const struct tls_session *session, struct key
                      sizeof(key_src->client.random1), key_src->server.random1,
                      sizeof(key_src->server.random1), NULL, NULL, master, sizeof(master)))
     {
-        return false;
+        goto exit;
     }
 
     /* compute key expansion */
@@ -1532,13 +1533,15 @@ generate_key_expansion_openvpn_prf(const struct tls_session *session, struct key
                      key_src->server.random2, sizeof(key_src->server.random2), client_sid,
                      server_sid, (uint8_t *)key2->keys, sizeof(key2->keys)))
     {
-        return false;
+        goto exit;
     }
-    secure_memzero(&master, sizeof(master));
 
     key2->n = 2;
+    ret = true;
 
-    return true;
+exit:
+    secure_memzero(&master, sizeof(master));
+    return ret;
 }
 
 /*
