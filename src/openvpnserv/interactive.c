@@ -2217,7 +2217,7 @@ GetItfDnsServersV6(HKEY itf_key, PSTR addrs, PDWORD size)
                 s--;
             }
 
-            if (inet_ntop(AF_INET6, &in_addrs[i], pos, s) != NULL)
+            if (inet_ntop(AF_INET6, &in_addrs[i], pos, s) == NULL)
             {
                 *size = 0;
                 return ERROR_MORE_DATA;
