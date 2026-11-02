@@ -17,3 +17,5 @@ client.p12          -- sample client pkcs12 bundle
                        password = "password"
 client-ec.{crt,key} -- sample elliptic curve client key/cert
 server-ec.{crt,key} -- sample elliptic curve server key/cert
+tc2.key             -- sample tls-crypt-v2 server key
+tc2-client.key      -- sample tls-crypt-v2 client key, for use with tc2.key

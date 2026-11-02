@@ -18,6 +18,11 @@ fi
 top_builddir="${top_builddir:-$(dirname ${0})/../..}"
 ${top_builddir}/src/openvpn/openvpn --genkey tls-auth ta.key
 
+# Generate tls-crypt-v2 server key, and a client key wrapped with that key
+${top_builddir}/src/openvpn/openvpn --genkey tls-crypt-v2-server tc2.key
+${top_builddir}/src/openvpn/openvpn --tls-crypt-v2 tc2.key \
+    --genkey tls-crypt-v2-client tc2-client.key
+
 # Create required directories and files
 mkdir -p sample-ca
 rm -f sample-ca/index.txt
