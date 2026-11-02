@@ -201,4 +201,9 @@ SSL_get0_group_name(SSL *s)
 #define EVP_CIPH_FLAG_ENC_THEN_MAC 0x10000000
 #endif
 
+/* Introduced in OpenSSL 4.1.0 */
+#if OPENSSL_VERSION_NUMBER < 0x40100000
+#define ASN1_STRING_get_length (size_t)ASN1_STRING_length
+#endif
+
 #endif /* OPENSSL_COMPAT_H_ */

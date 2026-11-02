@@ -154,7 +154,7 @@ extract_x509_extension(X509 *cert, char *fieldname, char *out, size_t size)
                     {
                         continue;
                     }
-                    if ((ssize_t)strlen(buf) != ASN1_STRING_length(name->d.rfc822Name))
+                    if (strlen(buf) != ASN1_STRING_get_length(name->d.rfc822Name))
                     {
                         msg(D_TLS_ERRORS, "ASN1 ERROR: string contained terminating zero");
                         OPENSSL_free(buf);
