@@ -5203,7 +5203,6 @@ static void
 windows_set_mtu(const int iface_index, const short family, const int mtu)
 {
     DWORD err = 0;
-    struct gc_arena gc = gc_new();
     MIB_IPINTERFACE_ROW ipiface;
     InitializeIpInterfaceEntry(&ipiface);
     const char *family_name = (family == AF_INET6) ? "IPv6" : "IPv4";
@@ -5228,8 +5227,10 @@ windows_set_mtu(const int iface_index, const short family, const int mtu)
 
     if (err != NO_ERROR)
     {
+        struct gc_arena gc = gc_new();
         msg(M_WARN, "TUN: Setting %s mtu failed: %s [status=%lu if_index=%d]", family_name,
             strerror_win32(err, &gc), err, iface_index);
+        gc_free(&gc);
     }
     else
     {
