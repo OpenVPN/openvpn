@@ -4390,12 +4390,14 @@ management_check_bytecount_server(struct multi_context *multi, struct timeval *t
         }
 
         /* iterate over peers and report counters for each connected peer */
-        struct hash_iterator hi;
-        struct hash_element *he;
-        hash_iterator_init(multi->hash, &hi);
-        while ((he = hash_iterator_next(&hi)))
+        for (uint32_t i = 0; i <= multi->max_peerid; i++)
         {
-            struct multi_instance *mi = (struct multi_instance *)he->value;
+            struct multi_instance *mi = multi->instances[i];
+
+            if (!mi)
+            {
+                continue;
+            }
             struct context_2 *c2 = &mi->context.c2;
 
             if ((c2->mda_context.flags & (DAF_CONNECTION_ESTABLISHED | DAF_CONNECTION_CLOSED)) == DAF_CONNECTION_ESTABLISHED)
@@ -4403,7 +4405,6 @@ management_check_bytecount_server(struct multi_context *multi, struct timeval *t
                 man_bytecount_output_server(c2->dco_read_bytes + c2->link_read_bytes, c2->dco_write_bytes + c2->link_write_bytes, &c2->mda_context);
             }
         }
-        hash_iterator_free(&hi);
     }
 }
 

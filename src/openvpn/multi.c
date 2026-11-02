@@ -809,210 +809,205 @@ err:
 static void
 multi_print_status(struct multi_context *m, struct status_output *so, const int version)
 {
-    if (m->hash)
+    struct gc_arena gc_top = gc_new();
+    struct hash_iterator hi;
+    const struct hash_element *he;
+
+    status_reset(so);
+
+    if (dco_enabled(&m->top.options))
     {
-        struct gc_arena gc_top = gc_new();
-        struct hash_iterator hi;
-        const struct hash_element *he;
-
-        status_reset(so);
-
-        if (dco_enabled(&m->top.options))
+        if (dco_get_peer_stats_multi(&m->top.c1.tuntap->dco, true) < 0)
         {
-            if (dco_get_peer_stats_multi(&m->top.c1.tuntap->dco, true) < 0)
+            return;
+        }
+    }
+
+    if (version == 1)
+    {
+        /*
+         * Status file version 1
+         */
+        status_printf(so, "OpenVPN CLIENT LIST");
+        status_printf(so, "Updated,%s", time_string(0, 0, false, &gc_top));
+        status_printf(so, "Common Name,Real Address,Bytes Received,Bytes Sent,Connected Since");
+
+        for (uint32_t i = 0; i <= m->max_peerid; i++)
+        {
+            const struct multi_instance *mi = m->instances[i];
+
+            struct gc_arena gc = gc_new();
+            if (mi && !mi->halt)
             {
-                return;
+                status_printf(so, "%s,%s," counter_format "," counter_format ",%s",
+                              tls_common_name(mi->context.c2.tls_multi, false),
+                              mroute_addr_print(&mi->real, &gc),
+                              mi->context.c2.link_read_bytes + mi->context.c2.dco_read_bytes,
+                              mi->context.c2.link_write_bytes + mi->context.c2.dco_write_bytes,
+                              time_string(mi->created, 0, false, &gc));
             }
+            gc_free(&gc);
         }
 
-        if (version == 1)
+        status_printf(so, "ROUTING TABLE");
+        status_printf(so, "Virtual Address,Common Name,Real Address,Last Ref");
+        hash_iterator_init(m->vhash, &hi);
+        while ((he = hash_iterator_next(&hi)))
         {
-            /*
-             * Status file version 1
-             */
-            status_printf(so, "OpenVPN CLIENT LIST");
-            status_printf(so, "Updated,%s", time_string(0, 0, false, &gc_top));
-            status_printf(so, "Common Name,Real Address,Bytes Received,Bytes Sent,Connected Since");
-            hash_iterator_init(m->hash, &hi);
-            while ((he = hash_iterator_next(&hi)))
-            {
-                struct gc_arena gc = gc_new();
-                const struct multi_instance *mi = (struct multi_instance *)he->value;
+            struct gc_arena gc = gc_new();
+            const struct multi_route *route = (struct multi_route *)he->value;
 
-                if (!mi->halt)
+            if (multi_route_defined(m, route))
+            {
+                const struct multi_instance *mi = route->instance;
+                const struct mroute_addr *ma = &route->addr;
+                char flags[2] = { 0, 0 };
+
+                if (route->flags & MULTI_ROUTE_CACHE)
                 {
-                    status_printf(so, "%s,%s," counter_format "," counter_format ",%s",
-                                  tls_common_name(mi->context.c2.tls_multi, false),
-                                  mroute_addr_print(&mi->real, &gc),
-                                  mi->context.c2.link_read_bytes + mi->context.c2.dco_read_bytes,
-                                  mi->context.c2.link_write_bytes + mi->context.c2.dco_write_bytes,
-                                  time_string(mi->created, 0, false, &gc));
+                    flags[0] = 'C';
                 }
-                gc_free(&gc);
+                status_printf(so, "%s%s,%s,%s,%s", mroute_addr_print(ma, &gc), flags,
+                              tls_common_name(mi->context.c2.tls_multi, false),
+                              mroute_addr_print(&mi->real, &gc),
+                              time_string(route->last_reference, 0, false, &gc));
             }
-            hash_iterator_free(&hi);
-
-            status_printf(so, "ROUTING TABLE");
-            status_printf(so, "Virtual Address,Common Name,Real Address,Last Ref");
-            hash_iterator_init(m->vhash, &hi);
-            while ((he = hash_iterator_next(&hi)))
-            {
-                struct gc_arena gc = gc_new();
-                const struct multi_route *route = (struct multi_route *)he->value;
-
-                if (multi_route_defined(m, route))
-                {
-                    const struct multi_instance *mi = route->instance;
-                    const struct mroute_addr *ma = &route->addr;
-                    char flags[2] = { 0, 0 };
-
-                    if (route->flags & MULTI_ROUTE_CACHE)
-                    {
-                        flags[0] = 'C';
-                    }
-                    status_printf(so, "%s%s,%s,%s,%s", mroute_addr_print(ma, &gc), flags,
-                                  tls_common_name(mi->context.c2.tls_multi, false),
-                                  mroute_addr_print(&mi->real, &gc),
-                                  time_string(route->last_reference, 0, false, &gc));
-                }
-                gc_free(&gc);
-            }
-            hash_iterator_free(&hi);
-
-            status_printf(so, "GLOBAL STATS");
-            if (m->mbuf)
-            {
-                status_printf(so, "Max bcast/mcast queue length,%d", mbuf_maximum_queued(m->mbuf));
-            }
-
-            status_printf(so, "END");
+            gc_free(&gc);
         }
-        else if (version == 2 || version == 3)
+        hash_iterator_free(&hi);
+
+        status_printf(so, "GLOBAL STATS");
+        if (m->mbuf)
         {
-            const char sep = (version == 3) ? '\t' : ',';
+            status_printf(so, "Max bcast/mcast queue length,%d", mbuf_maximum_queued(m->mbuf));
+        }
 
-            /*
-             * Status file version 2 and 3
-             */
-            status_printf(so, "TITLE%c%s", sep, title_string);
-            status_printf(so, "TIME%c%s%c%u", sep, time_string(now, 0, false, &gc_top), sep,
-                          (unsigned int)now);
-            status_printf(
-                so,
-                "HEADER%cCLIENT_LIST%cCommon Name%cReal Address%cVirtual Address%cVirtual IPv6 Address%cBytes Received%cBytes Sent%cConnected Since%cConnected Since (time_t)%cUsername%cClient ID%cPeer ID%cData Channel Cipher",
-                sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep);
-            hash_iterator_init(m->hash, &hi);
-            while ((he = hash_iterator_next(&hi)))
+        status_printf(so, "END");
+    }
+    else if (version == 2 || version == 3)
+    {
+        const char sep = (version == 3) ? '\t' : ',';
+
+        /*
+         * Status file version 2 and 3
+         */
+        status_printf(so, "TITLE%c%s", sep, title_string);
+        status_printf(so, "TIME%c%s%c%u", sep, time_string(now, 0, false, &gc_top), sep,
+                      (unsigned int)now);
+        status_printf(
+            so,
+            "HEADER%cCLIENT_LIST%cCommon Name%cReal Address%cVirtual Address%cVirtual IPv6 Address%cBytes Received%cBytes Sent%cConnected Since%cConnected Since (time_t)%cUsername%cClient ID%cPeer ID%cData Channel Cipher",
+            sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep, sep);
+
+        for (uint32_t i = 0; i <= m->max_peerid; i++)
+        {
+            const struct multi_instance *mi = m->instances[i];
+            struct gc_arena gc = gc_new();
+
+            if (mi && !mi->halt)
             {
-                struct gc_arena gc = gc_new();
-                const struct multi_instance *mi = (struct multi_instance *)he->value;
-
-                if (!mi->halt)
-                {
-                    status_printf(
-                        so,
-                        "CLIENT_LIST%c%s%c%s%c%s%c%s%c" counter_format "%c" counter_format
-                        "%c%s%c%u%c%s%c"
+                status_printf(
+                    so,
+                    "CLIENT_LIST%c%s%c%s%c%s%c%s%c" counter_format "%c" counter_format
+                    "%c%s%c%u%c%s%c"
 #ifdef ENABLE_MANAGEMENT
-                        "%lu"
+                    "%lu"
 #else
-                        ""
+                    ""
 #endif
-                        "%c%" PRIu32 "%c%s",
-                        sep, tls_common_name(mi->context.c2.tls_multi, false), sep,
-                        mroute_addr_print(&mi->real, &gc), sep,
-                        print_in_addr_t(mi->reporting_addr, IA_EMPTY_IF_UNDEF, &gc), sep,
-                        print_in6_addr(mi->reporting_addr_ipv6, IA_EMPTY_IF_UNDEF, &gc), sep,
-                        mi->context.c2.link_read_bytes + mi->context.c2.dco_read_bytes, sep,
-                        mi->context.c2.link_write_bytes + mi->context.c2.dco_write_bytes, sep,
-                        time_string(mi->created, 0, false, &gc), sep, (unsigned int)mi->created,
-                        sep, tls_username(mi->context.c2.tls_multi, false),
+                    "%c%" PRIu32 "%c%s",
+                    sep, tls_common_name(mi->context.c2.tls_multi, false), sep,
+                    mroute_addr_print(&mi->real, &gc), sep,
+                    print_in_addr_t(mi->reporting_addr, IA_EMPTY_IF_UNDEF, &gc), sep,
+                    print_in6_addr(mi->reporting_addr_ipv6, IA_EMPTY_IF_UNDEF, &gc), sep,
+                    mi->context.c2.link_read_bytes + mi->context.c2.dco_read_bytes, sep,
+                    mi->context.c2.link_write_bytes + mi->context.c2.dco_write_bytes, sep,
+                    time_string(mi->created, 0, false, &gc), sep, (unsigned int)mi->created,
+                    sep, tls_username(mi->context.c2.tls_multi, false),
 #ifdef ENABLE_MANAGEMENT
-                        sep, mi->context.c2.mda_context.cid,
+                    sep, mi->context.c2.mda_context.cid,
 #else
-                        sep,
+                    sep,
 #endif
-                        sep, mi->context.c2.tls_multi ? mi->context.c2.tls_multi->rx_peer_id : MAX_PEER_ID,
-                        sep, translate_cipher_name_to_openvpn(mi->context.options.ciphername));
-                }
-                gc_free(&gc);
+                    sep, mi->context.c2.tls_multi ? mi->context.c2.tls_multi->rx_peer_id : MAX_PEER_ID,
+                    sep, translate_cipher_name_to_openvpn(mi->context.options.ciphername));
             }
-            hash_iterator_free(&hi);
-
-            status_printf(
-                so,
-                "HEADER%cROUTING_TABLE%cVirtual Address%cCommon Name%cReal Address%cLast Ref%cLast Ref (time_t)",
-                sep, sep, sep, sep, sep, sep);
-            hash_iterator_init(m->vhash, &hi);
-            while ((he = hash_iterator_next(&hi)))
-            {
-                struct gc_arena gc = gc_new();
-                const struct multi_route *route = (struct multi_route *)he->value;
-
-                if (multi_route_defined(m, route))
-                {
-                    const struct multi_instance *mi = route->instance;
-                    const struct mroute_addr *ma = &route->addr;
-                    char flags[2] = { 0, 0 };
-
-                    if (route->flags & MULTI_ROUTE_CACHE)
-                    {
-                        flags[0] = 'C';
-                    }
-                    status_printf(so, "ROUTING_TABLE%c%s%s%c%s%c%s%c%s%c%u", sep,
-                                  mroute_addr_print(ma, &gc), flags, sep,
-                                  tls_common_name(mi->context.c2.tls_multi, false), sep,
-                                  mroute_addr_print(&mi->real, &gc), sep,
-                                  time_string(route->last_reference, 0, false, &gc), sep,
-                                  (unsigned int)route->last_reference);
-                }
-                gc_free(&gc);
-            }
-            hash_iterator_free(&hi);
-
-            if (m->mbuf)
-            {
-                status_printf(so, "GLOBAL_STATS%cMax bcast/mcast queue length%c%d", sep, sep,
-                              mbuf_maximum_queued(m->mbuf));
-            }
-
-            status_printf(so, "GLOBAL_STATS%cdco_enabled%c%d", sep, sep,
-                          dco_enabled(&m->top.options));
-            status_printf(so, "END");
+            gc_free(&gc);
         }
-        else
+
+        status_printf(
+            so,
+            "HEADER%cROUTING_TABLE%cVirtual Address%cCommon Name%cReal Address%cLast Ref%cLast Ref (time_t)",
+            sep, sep, sep, sep, sep, sep);
+        hash_iterator_init(m->vhash, &hi);
+        while ((he = hash_iterator_next(&hi)))
         {
-            status_printf(so, "ERROR: bad status format version number");
+            struct gc_arena gc = gc_new();
+            const struct multi_route *route = (struct multi_route *)he->value;
+
+            if (multi_route_defined(m, route))
+            {
+                const struct multi_instance *mi = route->instance;
+                const struct mroute_addr *ma = &route->addr;
+                char flags[2] = { 0, 0 };
+
+                if (route->flags & MULTI_ROUTE_CACHE)
+                {
+                    flags[0] = 'C';
+                }
+                status_printf(so, "ROUTING_TABLE%c%s%s%c%s%c%s%c%s%c%u", sep,
+                              mroute_addr_print(ma, &gc), flags, sep,
+                              tls_common_name(mi->context.c2.tls_multi, false), sep,
+                              mroute_addr_print(&mi->real, &gc), sep,
+                              time_string(route->last_reference, 0, false, &gc), sep,
+                              (unsigned int)route->last_reference);
+            }
+            gc_free(&gc);
         }
+        hash_iterator_free(&hi);
+
+        if (m->mbuf)
+        {
+            status_printf(so, "GLOBAL_STATS%cMax bcast/mcast queue length%c%d", sep, sep,
+                          mbuf_maximum_queued(m->mbuf));
+        }
+
+        status_printf(so, "GLOBAL_STATS%cdco_enabled%c%d", sep, sep,
+                      dco_enabled(&m->top.options));
+        status_printf(so, "END");
+    }
+    else
+    {
+        status_printf(so, "ERROR: bad status format version number");
+    }
 
 #ifdef PACKET_TRUNCATION_CHECK
+    {
+        status_printf(so, "HEADER,ERRORS,Common Name,TUN Read Trunc,TUN Write Trunc,Pre-encrypt Trunc,Post-decrypt Trunc");
+        hash_iterator_init(m->hash, &hi);
+        while ((he = hash_iterator_next(&hi)))
         {
-            status_printf(so, "HEADER,ERRORS,Common Name,TUN Read Trunc,TUN Write Trunc,Pre-encrypt Trunc,Post-decrypt Trunc");
-            hash_iterator_init(m->hash, &hi);
-            while ((he = hash_iterator_next(&hi)))
-            {
-                struct gc_arena gc = gc_new();
-                const struct multi_instance *mi = (struct multi_instance *)he->value;
+            struct gc_arena gc = gc_new();
+            const struct multi_instance *mi = (struct multi_instance *)he->value;
 
-                if (!mi->halt)
-                {
-                    status_printf(so,
-                                  "ERRORS,%s," counter_format "," counter_format "," counter_format
-                                  "," counter_format,
-                                  tls_common_name(mi->context.c2.tls_multi, false),
-                                  m->top.c2.n_trunc_tun_read, mi->context.c2.n_trunc_tun_write,
-                                  mi->context.c2.n_trunc_pre_encrypt,
-                                  mi->context.c2.n_trunc_post_decrypt);
-                }
-                gc_free(&gc);
+            if (!mi->halt)
+            {
+                status_printf(so,
+                              "ERRORS,%s," counter_format "," counter_format "," counter_format
+                              "," counter_format,
+                              tls_common_name(mi->context.c2.tls_multi, false),
+                              m->top.c2.n_trunc_tun_read, mi->context.c2.n_trunc_tun_write,
+                              mi->context.c2.n_trunc_pre_encrypt,
+                              mi->context.c2.n_trunc_post_decrypt);
             }
-            hash_iterator_free(&hi);
+            gc_free(&gc);
         }
+        hash_iterator_free(&hi);
+    }
 #endif /* ifdef PACKET_TRUNCATION_CHECK */
 
-        status_flush(so);
-        gc_free(&gc_top);
-    }
+    status_flush(so);
+    gc_free(&gc_top);
 
 #ifdef ENABLE_ASYNC_PUSH
     if (m->inotify_watchers)
