@@ -3759,12 +3759,14 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
     if (ioctl(sockfd, SIOCGRTSIZE, &config, sizeof(struct ifconf)) < 0)
     {
         msg(M_ERRNO, "%s: Error getting routing table size", __func__);
+        close(sockfd);
         return;
     }
 
     uint32 size = (uint32)config.ifc_value;
     if (size == 0)
     {
+        close(sockfd);
         return;
     }
 
@@ -3773,7 +3775,9 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
 
     config.ifc_len = size;
     config.ifc_buf = buffer;
-    if (ioctl(sockfd, SIOCGRTTABLE, &config, sizeof(struct ifconf)) < 0)
+    int ret = ioctl(sockfd, SIOCGRTTABLE, &config, sizeof(struct ifconf));
+    close(sockfd);
+    if (ret < 0)
     {
         free(buffer);
         return;
