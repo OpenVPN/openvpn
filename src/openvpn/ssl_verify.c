@@ -515,7 +515,6 @@ verify_cert_call_command(const char *verify_command, struct env_set *es, int cer
                          char *subject)
 {
     int ret;
-    struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
 
     setenv_str(es, "script_type", "tls-verify");
@@ -526,7 +525,6 @@ verify_cert_call_command(const char *verify_command, struct env_set *es, int cer
     argv_msg_prefix(D_TLS_DEBUG, &argv, "TLS: executing verify command");
     ret = openvpn_run_script(&argv, es, 0, "--tls-verify script");
 
-    gc_free(&gc);
     argv_free(&argv);
 
     if (ret)

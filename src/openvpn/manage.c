@@ -1532,16 +1532,12 @@ man_push_update(struct management *man, const char **p, const push_update_type t
 }
 
 static void
-man_dispatch_command(struct management *man, struct status_output *so, const char **p,
-                     const int nparms)
+man_dispatch_command(struct management *man, struct status_output *so, const char **p)
 {
-    struct gc_arena gc = gc_new();
-
     ASSERT(p[0]);
     if (streq(p[0], "exit") || streq(p[0], "quit"))
     {
         man->connection.halt = true;
-        goto done;
     }
     else if (streq(p[0], "help"))
     {
@@ -1906,9 +1902,6 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     {
         msg(M_CLIENT, "ERROR: unknown command [%s], enter 'help' for more options", p[0]);
     }
-
-done:
-    gc_free(&gc);
 }
 
 #ifdef _WIN32
@@ -2315,7 +2308,7 @@ man_process_command(struct management *man, const char *line)
 
         if (nparms > 0)
         {
-            man_dispatch_command(man, so, (const char **)parms, nparms);
+            man_dispatch_command(man, so, (const char **)parms);
         }
     }
 

@@ -121,9 +121,6 @@ tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session)
 
     const int key_direction = session->opt->server ? KEY_DIRECTION_NORMAL : KEY_DIRECTION_INVERSE;
 
-    struct key_direction_state kds;
-    key_direction_state_init(&kds, key_direction);
-
     struct key_type kt = tls_crypt_kt();
 
     init_key_ctx_bi(&session->tls_wrap_reneg.opt.key_ctx_bi, &rengokeys, key_direction, &kt,
