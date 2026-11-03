@@ -1250,22 +1250,24 @@ bool
 tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, const bool auth,
                      const char *client_reason)
 {
-    bool ret = false;
+    struct key_state *ks = NULL;
     if (multi)
     {
-        int i;
         auth_set_client_reason(multi, client_reason);
-        for (i = 0; i < KEY_SCAN_SIZE; ++i)
+        ks = get_key_by_management_key_id(multi, mda_key_id);
+
+        if (ks)
         {
-            struct key_state *ks = get_key_scan(multi, i);
-            if (ks->mda_key_id == mda_key_id)
-            {
-                ks->mda_status = auth ? ACF_SUCCEEDED : ACF_FAILED;
-                ret = true;
-            }
+            ks->mda_status = auth ? ACF_SUCCEEDED : ACF_FAILED;
+        }
+        else
+        {
+            msg(D_TLS_DEBUG_LOW,
+                "%s: no key state found for management key id %u",
+                __func__, mda_key_id);
         }
     }
-    return ret;
+    return (bool)ks;
 }
 #endif /* ifdef ENABLE_MANAGEMENT */
 

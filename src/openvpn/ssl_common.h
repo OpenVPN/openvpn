@@ -764,4 +764,24 @@ get_primary_key(const struct tls_multi *multi)
     return &multi->session[TM_ACTIVE].key[KS_PRIMARY];
 }
 
+#ifdef ENABLE_MANAGEMENT
+/**
+ * Gets the \c key_state object that belongs to the management key id or
+ * return NULL if not found.
+ */
+static inline struct key_state *
+get_key_by_management_key_id(struct tls_multi *multi, unsigned int mda_key_id)
+{
+    for (int i = 0; i < KEY_SCAN_SIZE; ++i)
+    {
+        struct key_state *ks = get_key_scan(multi, i);
+        if (ks->mda_key_id == mda_key_id && ks->state > S_UNDEF)
+        {
+            return ks;
+        }
+    }
+    return NULL;
+}
+#endif
+
 #endif /* SSL_COMMON_H_ */
