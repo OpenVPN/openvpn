@@ -180,7 +180,7 @@ epoch_init_send_key_ctx(struct crypto_options *co)
 
     init_key_bi_ctx_send(&co->key_ctx_bi.encrypt, &send_key, &co->epoch_key_type, name);
     reset_packet_id_send(&co->packet_id.send);
-    CLEAR(send_key);
+    secure_memzero(&send_key, sizeof(send_key));
 }
 
 
@@ -195,7 +195,7 @@ epoch_init_recv_key(struct key_ctx *ctx, struct crypto_options *co)
     snprintf(name, sizeof(name), "Epoch Data key %" PRIu16, co->epoch_key_recv.epoch);
 
     init_key_bi_ctx_recv(ctx, &recv_key, &co->epoch_key_type, name);
-    CLEAR(recv_key);
+    secure_memzero(&recv_key, sizeof(recv_key));
 }
 
 void
@@ -345,8 +345,8 @@ free_epoch_key_ctx(struct crypto_options *co)
     free(co->epoch_data_keys_future);
     free_key_ctx(&co->epoch_retiring_data_receive_key);
     free(co->epoch_retiring_key_pid_recv.seq_list);
-    CLEAR(co->epoch_key_recv);
-    CLEAR(co->epoch_key_send);
+    secure_memzero(&co->epoch_key_recv, sizeof(co->epoch_key_recv));
+    secure_memzero(&co->epoch_key_send, sizeof(co->epoch_key_send));
 }
 
 void
