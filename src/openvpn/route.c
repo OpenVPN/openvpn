@@ -2309,7 +2309,7 @@ delete_route_ipv6(const struct route_ipv6 *r6, const struct tuntap *tt, const st
 
     argv_printf(&argv, "%s delete -inet6 %s/%d %s", ROUTE_PATH, network, r6->netbits, gateway);
     argv_msg(D_ROUTE, &argv);
-    openvpn_execve_check(&argv, es, 0, "ERROR: AIX route add command failed");
+    openvpn_execve_check(&argv, es, 0, "ERROR: AIX route delete command failed");
 
 #elif defined(TARGET_ANDROID)
     msg(D_ROUTE_DEBUG, "Deleting routes on Android is not possible/not "
