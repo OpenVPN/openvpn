@@ -943,8 +943,6 @@ void options_server_import(struct options *o, const char *filename, msglvl_t msg
                            uint64_t permission_mask, uint64_t *option_types_found,
                            struct env_set *es);
 
-void pre_pull_default(struct options *o);
-
 void rol_check_alloc(struct options *options);
 
 int parse_line(const char *line, char *p[], const int n, const char *file, const int line_num,
