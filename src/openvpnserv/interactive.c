@@ -2152,7 +2152,7 @@ GetItfDnsServersV4(HKEY itf_key, PSTR addrs, PDWORD size)
     if (!strchr(addrs, '.') && IsDhcpEnabled(itf_key))
     {
         s = *size;
-        RegGetValueA(itf_key, NULL, "DhcpNameServer", RRF_RT_REG_SZ, NULL, (PBYTE)addrs, &s);
+        err = RegGetValueA(itf_key, NULL, "DhcpNameServer", RRF_RT_REG_SZ, NULL, (PBYTE)addrs, &s);
         if (err)
         {
             *size = 0;
