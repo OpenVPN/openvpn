@@ -523,6 +523,10 @@ http_proxy_new(const struct http_proxy_options *o)
 void
 http_proxy_close(struct http_proxy_info *hp)
 {
+    if (hp)
+    {
+        free(hp->proxy_authenticate);
+    }
     free(hp);
 }
 
