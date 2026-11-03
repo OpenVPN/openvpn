@@ -37,7 +37,7 @@ GetRegString(HKEY key, LPCWSTR value, LPWSTR data, DWORD size, LPCWSTR default_v
     if (status == ERROR_FILE_NOT_FOUND && default_value)
     {
         size_t len = size / sizeof(data[0]);
-        if (swprintf(data, len, default_value))
+        if (swprintf(data, len, L"%ls", default_value) >= 0)
         {
             status = ERROR_SUCCESS;
         }
