@@ -15,7 +15,7 @@
 
 #ifdef TARGET_LINUX
 static int
-set_lladdr_linux(openvpn_net_ctx_t *ctx, const char *ifname, const char *lladdr)
+set_lladdr_linux(const openvpn_net_ctx_t *ctx, const char *ifname, const char *lladdr)
 {
     uint8_t addr[OPENVPN_ETH_ALEN];
 
@@ -48,7 +48,7 @@ set_lladdr_ifconfig(const char *ifname, const char *lladdr, const struct env_set
 #endif /* TARGET_LINUX */
 
 int
-set_lladdr(openvpn_net_ctx_t *ctx, const char *ifname, const char *lladdr, const struct env_set *es)
+set_lladdr(const openvpn_net_ctx_t *ctx, const char *ifname, const char *lladdr, const struct env_set *es)
 {
     if (!ifname || !lladdr)
     {
