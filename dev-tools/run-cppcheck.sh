@@ -20,9 +20,11 @@ fi
 if [ $(uname) = "Darwin" ] || [ $(uname) = "FreeBSD" ]; then
     SCRIPT_DIR=$(dirname $(readlink -f "${BASH_SOURCE[0]}"))
     num_procs=$(sysctl -n hw.ncpu)
+    EXTRA_LIBRARY="--library=${SCRIPT_DIR}/openvpn-cppcheck-netlink.cfg"
 else
     SCRIPT_DIR=$(dirname $(readlink -e "${BASH_SOURCE[0]}"))
     num_procs=$(nproc)
+    EXTRA_LIBRARY=""
 fi
 : ${SOURCE_DIR:=$SCRIPT_DIR/..}
 : ${BUILD_DIR:=$PWD}
@@ -35,6 +37,7 @@ COMMON_ARGS="-j${num_procs} ${verbosity_arg} \
  -I${BUILD_DIR} -I${BUILD_DIR}/include/ \
  --enable=all ${disable_arg} \
  --library=${SCRIPT_DIR}/openvpn-cppcheck-library.cfg \
+ ${EXTRA_LIBRARY} \
  --library=openssl.cfg \
  --suppress-xml=${SCRIPT_DIR}/cppcheck-suppressions.xml --inline-suppr \
  --cppcheck-build-dir=${CPPCHECK_DIR} \
