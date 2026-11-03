@@ -973,7 +973,14 @@ if (BUILD_TESTING)
     if (TARGET test_networking)
         target_link_options(test_networking PRIVATE -Wl,--wrap=parse_line)
         target_compile_options(test_networking PRIVATE -UNDEBUG)
+        target_link_libraries(test_networking PUBLIC ${RESOLV_LIBRARIES})
         target_sources(test_networking PRIVATE
+            tests/unit_tests/openvpn/test_route.c
+            tests/unit_tests/openvpn/mock_management.c
+            src/openvpn/route.c
+            src/openvpn/env_set.c
+            src/openvpn/run_command.c
+            src/openvpn/socket_util.c
             src/openvpn/networking_sitnl.c
             src/openvpn/crypto_epoch.c
             src/openvpn/crypto_mbedtls.c

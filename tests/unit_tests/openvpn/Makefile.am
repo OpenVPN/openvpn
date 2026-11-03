@@ -219,8 +219,14 @@ networking_testdriver_CFLAGS = \
 networking_testdriver_LDFLAGS = @TEST_LDFLAGS@ -L$(top_srcdir)/src/openvpn \
 	$(OPTIONAL_CRYPTO_LIBS)
 networking_testdriver_SOURCES = test_networking.c mock_msg.c \
+	test_route.c test_route.h test_common.h \
+	mock_management.c \
 	$(top_srcdir)/src/compat/compat-strlcpy.c \
 	$(top_srcdir)/src/openvpn/networking_sitnl.c \
+	$(top_srcdir)/src/openvpn/route.c \
+	$(top_srcdir)/src/openvpn/env_set.c \
+	$(top_srcdir)/src/openvpn/run_command.c \
+	$(top_srcdir)/src/openvpn/socket_util.c \
 	$(top_srcdir)/src/openvpn/buffer.c \
 	$(top_srcdir)/src/openvpn/crypto.c \
 	$(top_srcdir)/src/openvpn/crypto_epoch.c \

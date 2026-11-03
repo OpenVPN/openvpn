@@ -2,6 +2,8 @@
 #include "syshead.h"
 #include "networking.h"
 
+#include "test_route.h"
+
 #include <setjmp.h>
 #include <cmocka.h>
 
@@ -212,7 +214,7 @@ net__route_v6_add_gw(const char *dst_str, int prefixlen, const char *gw_str, int
 static void
 usage(char *name)
 {
-    printf("Usage: %s <0-8>\n", name);
+    printf("Usage: %s <0-9>\n", name);
 }
 
 int
@@ -271,6 +273,9 @@ main(int argc, char *argv[])
             assert_int_equal(net__iface_del("dummy0815"), 0);
             assert_int_equal(net__iface_type("dummy0815", NULL), -ENODEV);
             return 0;
+
+        case 9:
+            return route_tests();
 
         default:
             printf("invalid test: %d\n", test);

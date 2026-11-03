@@ -3,7 +3,7 @@
 IFACE="ovpn-dummy0"
 UNIT_TEST="./unit_tests/openvpn/networking_testdriver"
 LAST_AUTO_TEST=7
-LAST_TEST=8
+LAST_TEST=9
 
 srcdir="${srcdir:-.}"
 top_builddir="${top_builddir:-..}"
