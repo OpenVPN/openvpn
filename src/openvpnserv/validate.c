@@ -227,6 +227,7 @@ GetTokenGroups(const HANDLE token)
     {
         MsgToEventLog(M_SYSERR, L"GetTokenInformation");
         free(groups);
+        groups = NULL;
     }
     return groups;
 }
