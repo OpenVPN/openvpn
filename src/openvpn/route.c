@@ -1322,7 +1322,6 @@ print_default_gateway(const msglvl_t msglevel, const struct route_gateway_info *
 static void
 setenv_route(struct env_set *es, const struct route_ipv4 *r, int i)
 {
-    struct gc_arena gc = gc_new();
     if (r->flags & RT_DEFINED)
     {
         setenv_route_addr(es, "network", r->network, i);
@@ -1331,12 +1330,9 @@ setenv_route(struct env_set *es, const struct route_ipv4 *r, int i)
 
         if (r->flags & RT_METRIC_DEFINED)
         {
-            struct buffer name = alloc_buf_gc(256, &gc);
-            buf_printf(&name, "route_metric_%d", i);
-            setenv_int(es, BSTR(&name), r->metric);
+            setenv_int_i(es, "route_metric", r->metric, i);
         }
     }
-    gc_free(&gc);
 }
 
 void
@@ -1356,22 +1352,15 @@ setenv_route_ipv6(struct env_set *es, const struct route_ipv6 *r6, int i)
     struct gc_arena gc = gc_new();
     if (r6->flags & RT_DEFINED)
     {
-        struct buffer name1 = alloc_buf_gc(256, &gc);
         struct buffer val = alloc_buf_gc(256, &gc);
-        struct buffer name2 = alloc_buf_gc(256, &gc);
 
-        buf_printf(&name1, "route_ipv6_network_%d", i);
         buf_printf(&val, "%s/%u", print_in6_addr(r6->network, 0, &gc), r6->netbits);
-        setenv_str(es, BSTR(&name1), BSTR(&val));
-
-        buf_printf(&name2, "route_ipv6_gateway_%d", i);
-        setenv_str(es, BSTR(&name2), print_in6_addr(r6->gateway, 0, &gc));
+        setenv_str_i(es, "route_ipv6_network", BSTR(&val), i);
+        setenv_str_i(es, "route_ipv6_gateway", print_in6_addr(r6->gateway, 0, &gc), i);
 
         if (r6->flags & RT_METRIC_DEFINED)
         {
-            struct buffer name3 = alloc_buf_gc(256, &gc);
-            buf_printf(&name3, "route_ipv6_metric_%d", i);
-            setenv_int(es, BSTR(&name3), r6->metric);
+            setenv_int_i(es, "route_ipv6_metric", r6->metric, i);
         }
     }
     gc_free(&gc);
