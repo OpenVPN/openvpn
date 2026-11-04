@@ -4130,6 +4130,7 @@ get_per_adapter_info(const DWORD index, struct gc_arena *gc)
             {
                 msg(M_INFO, "GetPerAdapterInfo #2 failed (status=%u) : %s", (unsigned int)status,
                     strerror_win32(status, gc));
+                pi = NULL;
             }
         }
     }
@@ -4159,6 +4160,7 @@ get_interface_info_list(struct gc_arena *gc)
         {
             msg(M_INFO, "GetInterfaceInfo #2 failed (status=%u) : %s", (unsigned int)status,
                 strerror_win32(status, gc));
+            ii = NULL;
         }
     }
     return ii;
