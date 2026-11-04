@@ -3444,7 +3444,8 @@ RunOpenvpn(LPVOID p)
                                         .lpSecurityDescriptor = NULL,
                                         .bInheritHandle = TRUE };
 
-    PACL ovpn_dacl;
+    PACL ovpn_dacl = NULL;
+    PSECURITY_DESCRIPTOR pSD = NULL;
     EXPLICIT_ACCESS ea[2];
     SECURITY_DESCRIPTOR ovpn_sd;
     SECURITY_ATTRIBUTES ovpn_sa = { .nLength = sizeof(ovpn_sa),
@@ -3624,7 +3625,6 @@ RunOpenvpn(LPVOID p)
      */
 
     SECURITY_ATTRIBUTES sa;
-    PSECURITY_DESCRIPTOR pSD = NULL;
     LPCWSTR szSDDL = L"D:(A;;GA;;;SY)(A;;GA;;;OW)";
     if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(
             szSDDL, SDDL_REVISION_1, &pSD, NULL))
@@ -3764,6 +3764,8 @@ out:
     free(ovpn_user);
     free(svc_user);
     free(cmdline);
+    LocalFree(pSD);
+    LocalFree(ovpn_dacl);
     DestroyEnvironmentBlock(user_env);
     FreeStartupData(&sud);
     CloseHandleEx(&proc_info.hProcess);
