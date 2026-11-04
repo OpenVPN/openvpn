@@ -3856,7 +3856,7 @@ management_query_user_pass(struct management *man, struct user_pass *up, const c
 
 static int
 management_query_multiline(struct management *man, const char *b64_data, const char *prompt,
-                           const char *cmd, int *state, struct buffer_list **input)
+                           const char *cmd, int *state)
 {
     struct gc_arena gc = gc_new();
     int ret = 0;
@@ -3940,7 +3940,7 @@ management_query_multiline_flatten_newline(struct management *man, const char *b
     int ok;
     char *result = NULL;
 
-    ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
+    ok = management_query_multiline(man, b64_data, prompt, cmd, state);
     if (ok && buffer_list_defined(*input))
     {
         buffer_list_aggregate_separator(*input, 10000, "\n");
@@ -3967,7 +3967,7 @@ management_query_multiline_flatten(struct management *man, const char *b64_data,
 {
     char *result = NULL;
 
-    const int ok = management_query_multiline(man, b64_data, prompt, cmd, state, input);
+    const int ok = management_query_multiline(man, b64_data, prompt, cmd, state);
     if (ok && buffer_list_defined(*input))
     {
         buffer_list_aggregate(*input, 2048);
