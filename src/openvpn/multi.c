@@ -3996,7 +3996,7 @@ management_delete_event(void *arg, event_t event)
     struct multi_context *m = (struct multi_context *)arg;
     if (m->multi_io)
     {
-        multi_tcp_delete_event(m->multi_io, event);
+        multi_io_delete_event(m->multi_io, event);
     }
 }
 

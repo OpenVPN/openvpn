@@ -104,15 +104,6 @@ multi_tcp_instance_specific_free(struct multi_instance *mi)
 }
 
 void
-multi_tcp_delete_event(struct multi_io *multi_io, event_t event)
-{
-    if (multi_io && multi_io->es)
-    {
-        event_del(multi_io->es, event);
-    }
-}
-
-void
 multi_tcp_dereference_instance(struct multi_io *multi_io, struct multi_instance *mi)
 {
     const struct link_socket *sock = mi->context.c2.link_sockets[0];

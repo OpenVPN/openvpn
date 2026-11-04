@@ -43,6 +43,4 @@ void multi_tcp_set_global_rw_flags(struct multi_context *m, struct multi_instanc
 
 struct multi_instance *multi_create_instance_tcp(struct multi_context *m, struct link_socket *sock);
 
-void multi_tcp_delete_event(struct multi_io *multi_io, event_t event);
-
 #endif /* ifndef MTCP_H */
