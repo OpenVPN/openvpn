@@ -3329,12 +3329,9 @@ struct rtmsg
 #define ADVANCE(x, n) (x += ROUNDUP((n)->sa_len))
 #endif
 
-#define max(a, b) ((a) > (b) ? (a) : (b))
-
 void
 get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_ctx_t *ctx)
 {
-    struct gc_arena gc = gc_new();
     struct rtmsg m_rtmsg;
     int sockfd = -1;
     int rtm_addrs;
@@ -3536,7 +3533,6 @@ done:
     {
         close(sockfd);
     }
-    gc_free(&gc);
 }
 
 /* BSD implementation using routing socket (as does IPv4)
@@ -3704,8 +3700,6 @@ done:
         close(sockfd);
     }
 }
-
-#undef max
 
 #elif defined(TARGET_HAIKU)
 
