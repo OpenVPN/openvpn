@@ -3305,7 +3305,7 @@ tun_read_queue(struct tuntap *tt, int maxsize)
                 tt->reads.iostate = IOSTATE_IMMEDIATE_RETURN;
                 tt->reads.status = err;
                 dmsg(D_WIN32_IO, "WIN32 I/O: TAP Read error [%d] : %s", len,
-                     strerror_win32(status, &gc));
+                     strerror_win32(err, &gc));
                 gc_free(&gc);
             }
         }
