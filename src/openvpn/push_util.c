@@ -78,17 +78,8 @@ forge_msg(const char *src, const char *continuation, struct gc_arena *gc)
     return buf;
 }
 
-static char *
-gc_strdup(const char *src, struct gc_arena *gc)
-{
-    char *ret = gc_malloc((strlen(src) + 1) * sizeof(char), true, gc);
-
-    strcpy(ret, src);
-    return ret;
-}
-
-/* It split the messagge (if necessary) and fill msgs with the message chunks.
- * Return `false` on failure an `true` on success.
+/* Split the message (if necessary) and fill msgs with the message chunks.
+ * Return `false` on failure and `true` on success.
  */
 static bool
 message_splitter(const char *s, struct buffer_list *msgs, struct gc_arena *gc, const size_t safe_cap)
@@ -98,7 +89,7 @@ message_splitter(const char *s, struct buffer_list *msgs, struct gc_arena *gc, c
         return false;
     }
 
-    char *str = gc_strdup(s, gc);
+    char *str = string_alloc(s, gc);
 
     while (*str)
     {
