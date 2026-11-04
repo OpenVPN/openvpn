@@ -882,7 +882,7 @@ man_send_cc_message(struct management *man, const char *message, const char *par
     }
     else
     {
-        man_command_unsupported("cr-repsonse");
+        man_command_unsupported("cr-response");
     }
 }
 #ifdef ENABLE_PKCS11
