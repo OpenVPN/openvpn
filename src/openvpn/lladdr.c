@@ -36,7 +36,7 @@ set_lladdr_ifconfig(const char *ifname, const char *lladdr, const struct env_set
     struct argv argv = argv_new();
     argv_printf(&argv, IFCONFIG_LLADDR_FMT, IFCONFIG_PATH, ifname, lladdr);
     argv_msg(M_INFO, &argv);
-    int r = openvpn_execve_check(&argv, es, M_WARN, "ERROR: Unable to set link layer address.");
+    int r = openvpn_execve_check(&argv, es, 0, "ERROR: Unable to set link layer address.");
     argv_free(&argv);
     return r;
 #else
