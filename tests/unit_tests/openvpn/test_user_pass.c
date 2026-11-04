@@ -366,6 +366,68 @@ test_get_user_pass_authfile_file(void **state)
     assert_string_equal(up.password, "fuser");
 }
 
+static void
+test_get_user_pass_long_username(void **state)
+{
+    struct gc_arena gc = gc_new();
+#ifdef _WIN32
+    const char *tmpdir = win_get_tempdir();
+#else
+    const char *tmpdir = getenv("TMPDIR");
+    if (!tmpdir)
+    {
+        tmpdir = "/tmp";
+    }
+#endif
+    assert_non_null(tmpdir);
+    const char *authfile = platform_create_temp_file(tmpdir, "user_pass", &gc);
+    assert_non_null(authfile);
+    const size_t lengths[] = { USER_PASS_LEN - 2, USER_PASS_LEN - 1, USER_PASS_LEN + 10 };
+    const char *endings[] = { "", "\n", "\n\n", "\nfpassword\n", "\r\nfpassword\r\n" };
+
+    const bool inline_mode[] = { false, true };
+    for (size_t mode = 0; mode < SIZE(inline_mode); mode++)
+    {
+        const bool use_inline_creds = inline_mode[mode];
+        for (size_t i = 0; i < SIZE(lengths); i++)
+        {
+            for (size_t j = 0; j < SIZE(endings); j++)
+            {
+                struct user_pass up = { 0 };
+                char creds[USER_PASS_LEN + 64];
+                memset(creds, 'u', lengths[i]);
+                strcpy(creds + lengths[i], endings[j]);
+                if (!use_inline_creds)
+                {
+                    FILE *fp = platform_fopen(authfile, "w");
+                    assert_non_null(fp);
+                    assert_true(fputs(creds, fp) >= 0);
+                    assert_int_equal(fclose(fp), 0);
+                }
+
+                const bool missing_password = j < 3;
+                if (missing_password)
+                {
+                    expect_string(query_user_exec_builtin, query_user[i].prompt,
+                                  "Enter UT Password:");
+                    will_return(query_user_exec_builtin, "cpassword");
+                }
+                will_return(query_user_exec_builtin, true);
+                assert_true(get_user_pass_cr(&up, use_inline_creds ? creds : authfile, "UT",
+                                             use_inline_creds ? GET_USER_PASS_INLINE_CREDS : 0, NULL));
+                /* Truncation must not change where the password line starts. */
+                creds[lengths[i] < USER_PASS_LEN ? lengths[i] : USER_PASS_LEN - 1] = '\0';
+                assert_true(up.defined);
+                assert_string_equal(up.username, creds);
+                assert_string_equal(up.password,
+                                    missing_password ? "cpassword" : "fpassword");
+            }
+        }
+    }
+    assert_true(platform_unlink(authfile));
+    gc_free(&gc);
+}
+
 #ifdef ENABLE_MANAGEMENT
 static void
 test_get_user_pass_dynamic_challenge(void **state)
@@ -474,6 +536,7 @@ const struct CMUnitTest user_pass_tests[] = {
     cmocka_unit_test(test_get_user_pass_inline_creds),
     cmocka_unit_test(test_get_user_pass_authfile_stdin),
     cmocka_unit_test(test_get_user_pass_authfile_file),
+    cmocka_unit_test(test_get_user_pass_long_username),
 #ifdef ENABLE_MANAGEMENT
     cmocka_unit_test(test_get_user_pass_dynamic_challenge),
     cmocka_unit_test(test_get_user_pass_static_challenge),
