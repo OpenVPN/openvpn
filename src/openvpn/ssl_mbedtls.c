@@ -767,14 +767,6 @@ my_debug(void *ctx, int level, const char *file, int line, const char *str)
     msg(my_loglevel, "mbed TLS msg (%s:%d): %s", file, line, str);
 }
 
-/*
- * Further personalise the RNG using a hash of the public key
- */
-void
-tls_ctx_personalise_random(struct tls_root_ctx *ctx)
-{
-}
-
 int
 tls_version_max(void)
 {

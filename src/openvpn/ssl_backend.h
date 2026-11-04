@@ -327,17 +327,6 @@ void tls_ctx_load_ca(struct tls_root_ctx *ctx, const char *ca_file, bool ca_file
 void tls_ctx_load_extra_certs(struct tls_root_ctx *ctx, const char *extra_certs_file,
                               bool extra_certs_file_inline);
 
-#ifdef ENABLE_CRYPTO_MBEDTLS
-/**
- * Add a personalisation string to the mbed TLS RNG, based on the certificate
- * loaded into the given context.
- *
- * @param ctx                   TLS context to use
- */
-void tls_ctx_personalise_random(struct tls_root_ctx *ctx);
-
-#endif
-
 /* **************************************
  *
  * Key-state specific functions
