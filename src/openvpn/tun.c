@@ -1000,7 +1000,7 @@ add_route_connected_v6_net(const struct tuntap *tt, const struct env_set *es)
     add_route_ipv6(&r6, tt, 0, es, NULL);
 }
 
-void
+static void
 delete_route_connected_v6_net(const struct tuntap *tt)
 {
     struct route_ipv6 r6;
@@ -1017,8 +1017,7 @@ delete_route_connected_v6_net(const struct tuntap *tt)
 #endif /* if defined(_WIN32) || defined(TARGET_DARWIN) || defined(TARGET_NETBSD) || \
           defined(TARGET_OPENBSD) */
 
-#if defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY) || defined(TARGET_NETBSD) \
-    || defined(TARGET_OPENBSD)
+#if defined(TARGET_NETBSD) || defined(TARGET_OPENBSD)
 /* we can't use true subnet mode on tun on all platforms, as that
  * conflicts with IPv6 (wants to use ND then, which we don't do),
  * but the OSes want "a remote address that is different from ours"
@@ -1028,7 +1027,7 @@ delete_route_connected_v6_net(const struct tuntap *tt)
  * is still point to point and no layer 2 resolution is done...
  */
 
-in_addr_t
+static in_addr_t
 create_arbitrary_remote(const struct tuntap *tt)
 {
     in_addr_t remote;
