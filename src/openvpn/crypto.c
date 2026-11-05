@@ -1075,6 +1075,9 @@ init_key_ctx_bi(struct key_ctx_bi *ctx, const struct key2 *key2, int key_directi
     init_key_bi_ctx_send(&ctx->encrypt, &send_key, kt, name);
     init_key_bi_ctx_recv(&ctx->decrypt, &recv_key, kt, name);
     ctx->initialized = true;
+
+    secure_memzero(&send_key, sizeof(send_key));
+    secure_memzero(&recv_key, sizeof(recv_key));
 }
 
 void

@@ -356,6 +356,7 @@ tls_crypt_v2_init_server_key(struct key_ctx *key_ctx, bool encrypt, const char *
 
     init_key_ctx(key_ctx, &srv_key_params, &kt, encrypt, "tls-crypt-v2 server key");
     secure_memzero(&srv_key, sizeof(srv_key));
+    secure_memzero(&srv_key_params, sizeof(srv_key_params));
 }
 
 static bool
