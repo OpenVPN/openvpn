@@ -935,6 +935,10 @@ key_state_free(struct key_state *ks, bool clear, struct buffer *to_link)
 
     free(ks->rec_ack);
     free(ks->lru_acks);
+    if (ks->key_src)
+    {
+        secure_memzero(ks->key_src, sizeof(*ks->key_src));
+    }
     free(ks->key_src);
 
     packet_id_free(&ks->crypto_options.packet_id);
