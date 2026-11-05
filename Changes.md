@@ -1,3 +1,178 @@
+# Overview of changes in 2.7.9
+
+## Security fixes
+
+- win32: restrict loading plugin dependencies (DLLs) to plugin, app
+  and system directories.
+
+- win32: run openvpn.exe from the interactive service at "high integrity
+  level", that is, process memory of openvpn.exe and all its threads are
+  protected from tampering.  Signals/Events are still permitted.
+
+- win32: openvpnserv: strictly filter user-defined environment variables
+  before passing to openvpn.exe (CVE-2026-121720)
+
+  (Issue found by Heiko Hund, <heiko@ist.eigentlich.net>, tracked in
+   Github: OpenVPN/openvpn-private-issues#186)
+
+- win32: openvpnserv: make validation of openvpn command line more robust
+  to invalid-quoting attacks (CVE-2026-115342)
+
+- win32: openvpn.exe: change parsing of commandline to use the same
+  function that the interactive service uses (CommandLineToArgvW())
+  (CVE-2026-115342)
+
+  (Issue found by Heiko Hund, <heiko@ist.eigentlich.net>, tracked in
+   Github: OpenVPN/openvpn-private-issues#184)
+
+## Bug fixes
+
+- Username/Password parsing from --auth-user-pass file (or inline)
+  left parts of overlong usernames in the password field.  Fix.
+  (GH OpenVPN/openvpn#1140)
+
+- win32: openvpnserv: fix memory leak for security descriptors
+
+- win32: repair logging of errors in Windows tun_read_queue()
+
+- win32: avoid accessing uninitialized structure data if GetInterfaceInfo()
+  or GetPerAdapterInfo() fail
+
+- win32: openvpnserv: avoid double free() if GetTokenInformation() fails
+
+- win32: openvpnserv: avoid potential format-string issue on registry defaults
+
+- win32: openvpnserv: repair error reporting on RegGetValueA() failures
+  inside GetItfDnsServersV4()
+
+- win32: openvpnserv: fix inet_ntop() return code check in
+  GetItfDnsServersV6(), making it ignore DHCP-provided DNS servers.
+
+- route: repair printing of ROUTE_GATEWAY/ROUTE6_GATEWAY info broken
+  by commit 2777cdd3 - the actual gateway handling was correct, just not
+  printing anything anymore.
+
+- config: check_file_access: fix --extra-certs access check
+
+- win32: tun: free gc arena in windows_set_mtu() (mem leak in error path)
+
+- route: close socket in Haiku get_default_gateway() (FD leak)
+
+- win32: openvpnserv: skip conversion of empty domain names
+
+- win32: cmake+mingw: don't prefix the event message DLL with lib
+  (it was building 'libopenvpnservmsg.dll' instead of 'openvpnservmsg.dll')
+
+- win32: pass the buffer size in bytes to get_openvpn_reg_value()
+
+- PUSH_UPDATE server: free temporary options after sending message (memleak)
+
+
+## User-visible Changes
+
+- Linux: set IFF_BACKPRESSURE on Linux (if available)
+
+  This helps the kernel tun/tap to apply proper prioritization (qdisc etc)
+  to incoming packets if userspace is slow to process them.  Without the
+  flag, the kernel would just drop everything.
+
+- Management/GUI: Optionally indicate username in >PASSWORD '<UP_TYPE>' prompts
+
+  If an openvpn config has a username set but no password, and OpenVPN
+  wants to prompt for the password, the GUI could not see the username
+  today and prompted for both.  With this change, OpenVPN sends a hint to
+  the management interface, so a GUI can pre-fill the username field, or
+  only prompt for the password.
+
+  This is only done if the management interface client announces
+  support for it (compatibility level >= 6).
+
+
+## Building/Testing improvements
+
+- test_provider: Fix compiler warning with clang 23
+
+- configure: Call AC_PROG_CC before AC_USE_SYSTEM_EXTENSIONS
+
+- configure: Output compiler version
+
+- automake: Add build-tests recursive target
+
+- configure: Require automake 1.16
+
+- clang-format: Enable InsertNewlineAtEOF
+
+- t_client.sh.in: Check whether addresses are in "tentative" state
+
+- config.h.cmake.in: Fix issues with string functions
+
+- Add missing includes for C files and their own headers
+
+## Code improvements/general hardening
+
+- crypto_epoch: wipe key material with secure_memzero()
+
+- do not look up "none" cipher in OpenSSL - this avoids leaving an "error"
+  on the OpenSSL error stack, which can then later lead to spurious
+  SSL error prints on CRL loading.
+
+- Make CRL reload EOF detection independent of stale error queue entries
+  (GH: OpenVPN/openvpn#1104)
+
+- tls_crypt: fix handling of "cipher final output" (which is always empty
+  on today's SSL libraries, so no impact today, but might not be in future)
+
+- crypto: ASSERT() opt before first use in openvpn_decrypt_aead()
+
+- auth_token: wipe the server secret key after loading it
+
+- port-share: do not write journal file through symlinks or hardlinks
+  (and also document how port-share directory should be set up)
+  (GH OpenVPN/openvpn#1124)
+
+- dns-updown: close first pipe if creating the second one fails
+  (avoid leaking file descriptors on error)
+
+- init: check parameters for NULL before strlen() in send_cc_message
+  (not triggerable today)
+
+- crypto_openssl: Clear PEM decoded key data before freeing it
+
+- Increase the buffer size for alert-message in management user-pass query
+  (so long usernames can be hinted towards the GUI)
+
+- win32: openvpnserv: validate message size for dns/nrpt/wins handlers
+  (GH: OpenVPN/openvpn#1129)
+
+- win32: plugin: detect too long plugin paths on Windows
+
+- win32: openvpnserv: null-terminate iface.name in address and route handlers
+  (GH: OpenVPN/openvpn#1130)
+
+
+## Documentation improvements
+
+- Fix numbering of examples in management-notes.txt
+
+- Document "notify" as auth pending method
+
+- Convert Changes.rst to Markdown (2.7)
+
+
+## Long-term code maintenance
+
+- OpenSSL 4.1 compatibility: use ASN1_STRING_get_length() now, providing
+  a fallback to ASN1_STRING_length() for older SSL libraries.
+
+- Linux: sitnl: use RTM_SETLINK for updating existing interfaces
+  (instead of RTM_NEWLINK)
+
+- gen-sample-keys.sh: Don't apply server extensions to CSRs
+
+- review all usages of strncpy()
+  (change to strncpynt(), memcpy(), etc. where appropriate)
+
+
 # Overview of changes in 2.7.8
 
 ## Security fixes

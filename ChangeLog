@@ -1,6 +1,89 @@
 OpenVPN ChangeLog
 Copyright (C) 2002-2026 OpenVPN Inc <sales@openvpn.net>
 
+2026.11.05 -- Version 2.7.9
+
+Arne Schwabe (2):
+      Document notify as auth pending method
+      Use ASN1_STRING_get_length instead of ASN1_STRING_length
+
+Drew Blokzyl (2):
+      Make CRL reload EOF detection independent of stale error queue entries
+      Do not look up the "none" cipher in OpenSSL
+
+Frank Lichtenheld (10):
+      Add missing includes for C files and their own headers
+      config.h.cmake.in: Fix issues with string functions
+      t_client.sh.in: Check whether addresses are in "tentative" state
+      clang-format: Enable InsertNewlineAtEOF
+      Convert Changes.rst to Markdown (2.7)
+      Review usage of strncpy
+      configure: Require automake 1.16
+      automake: Add build-tests recursive target
+      configure: Output compiler version
+      test_provider: Fix compiler warning with clang 23
+
+Gert Doering (1):
+      Fix broken unit tests after commit 5c6fbd0a11
+
+Gianmarco De Gregori (1):
+      sitnl: use RTM_SETLINK for updating existing interfaces
+
+Hansaem Wi (2):
+      crypto_openssl: Clear PEM decoded key data before freeing it
+      auth_token: Wipe the server secret key after loading it
+
+Heiko Hund (9):
+      win32: pass the buffer size in bytes to get_openvpn_reg_value()
+      plugin: detect too long plugin paths on Windows
+      cmake: don't prefix the event message DLL with lib
+      openvpnserv: skip conversion of empty domain names
+      win: split command line with CommandLineToArgvW()
+      openvpnserv: validate the command line openvpn is started with
+      openvpnserv: don't pass user env to openvpn
+      openvpnserv: run openvpn at high integrity level
+      plugin: resolve plugin dependencies from the plugin directory
+
+Marco Baffo (1):
+      PUSH_UPDATE server: free temporary options after sending message
+
+Naveed Khan (3):
+      interactive: null-terminate iface.name in address and route handlers
+      interactive: validate message size for dns/nrpt/wins handlers
+      port-share: do not write journal file through symlinks or hardlinks
+
+Razvan Cojocaru (17):
+      configure: Call AC_PROG_CC before AC_USE_SYSTEM_EXTENSIONS
+      init: check parameters for NULL before strlen() in send_cc_message
+      tun: free gc arena in windows_set_mtu()
+      route: close socket in Haiku get_default_gateway()
+      dns: close first pipe if creating the second one fails
+      check_file_access: fix --extra-certs access check
+      crypto: assert opt before first use in openvpn_decrypt_aead()
+      route: print net_gateway info instead of unset rgi/rgi6
+      openvpnserv: fix inverted inet_ntop() check in GetItfDnsServersV6()
+      tls_crypt: append cipher final output at buffer end
+      openvpnserv: check DhcpNameServer lookup in GetItfDnsServersV4()
+      openvpnserv: don't use registry default as format string
+      crypto_epoch: wipe key material with secure_memzero()
+      openvpnserv: don't return freed token groups from GetTokenGroups()
+      tun: return NULL when the second adapter info query fails
+      tun: log the actual error in Windows tun_read_queue()
+      openvpnserv: free security descriptors in RunOpenvpn()
+
+Selva Nair (4):
+      Fix numbering of examples in management-notes.txt
+      Optionally indicate username in >PASSWORD '<UP_TYPE>' prompts
+      Increase the buffer size for alert-message in management user-pass query
+      misc: Fix username overflow spilling into password
+
+Simon Schippers (1):
+      tun: set IFF_BACKPRESSURE on Linux
+
+Steffan Karger (1):
+      gen-sample-keys.sh: Don't apply server extensions to CSRs
+
+
 2026.10.07 -- Version 2.7.8
 
 Andrew Gonzalez (1):
