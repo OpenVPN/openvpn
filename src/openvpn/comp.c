@@ -100,7 +100,7 @@ compv2_escape_data_ifneeded(struct buffer *buf)
 
     head = BPTR(buf);
     head[0] = COMP_ALGV2_INDICATOR_BYTE;
-    head[1] = COMP_ALGV2_UNCOMPRESSED;
+    head[1] = COMP_ALGV2_UNCOMPRESSED_BYTE;
 }
 
 
