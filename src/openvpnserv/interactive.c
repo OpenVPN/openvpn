@@ -3015,7 +3015,7 @@ HandleDNSConfigNrptMessage(const nrpt_dns_cfg_message_t *msg, DWORD ovpn_pid, un
     LSTATUS err = OpenNrptBaseKey(&key, &gpol_nrpt);
     if (err)
     {
-        goto out;
+        return err;
     }
 
     /* Add undo information first in case there's no heap left */
@@ -3066,6 +3066,7 @@ HandleDNSConfigNrptMessage(const nrpt_dns_cfg_message_t *msg, DWORD ovpn_pid, un
     ApplyDnsSettings(gpol_nrpt || gpol_list);
 
 out:
+    RegCloseKey(key);
     return err;
 }
 
