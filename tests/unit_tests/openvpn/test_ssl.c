@@ -922,6 +922,46 @@ ssl_test_extract_last_matching_field(void **state)
     free_certificate(cert);
 }
 
+#if !defined(ENABLE_CRYPTO_MBEDTLS)
+/* Certificate with two email addresses in the subjectAltName. The second one
+ * is longer than TLS_USERNAME_LEN.
+ *
+ * Generated with:
+ * openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout - -noenc -sha256 -days 3650 \
+ * -subj '/CN=ovpn-test-san-email' \
+ * -addext 'subjectAltName=email:short@example.com,email:this-address-is-longer-than-the-64-byte-username-limit@example.com'
+ */
+static const char *cert_with_long_san_email =
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIICMzCCAbigAwIBAgIUJ1ph1uxbkx2Vwf4PpUClUvB2v50wCgYIKoZIzj0EAwIw\n"
+    "HjEcMBoGA1UEAwwTb3Zwbi10ZXN0LXNhbi1lbWFpbDAeFw0yNjExMDcwNjE2MjBa\n"
+    "Fw0zNjExMDQwNjE2MjBaMB4xHDAaBgNVBAMME292cG4tdGVzdC1zYW4tZW1haWww\n"
+    "djAQBgcqhkjOPQIBBgUrgQQAIgNiAARbSFGCRE9lt55e2Hhlo4TjmKSwNwlHjeoM\n"
+    "NoDhxxTuwuYgrIsDhv4Cc5TuwvkH0R+R5JqgQQL3jehBqFvjF87kJjzZx1xqmodC\n"
+    "ylM/AT9hWZupeMdp3vBsJ1qqXDwy4RajgbYwgbMwHQYDVR0OBBYEFAAMvwM/4Pjt\n"
+    "Y06/pVU4ZFsPvEABMB8GA1UdIwQYMBaAFAAMvwM/4PjtY06/pVU4ZFsPvEABMA8G\n"
+    "A1UdEwEB/wQFMAMBAf8wYAYDVR0RBFkwV4ERc2hvcnRAZXhhbXBsZS5jb22BQnRo\n"
+    "aXMtYWRkcmVzcy1pcy1sb25nZXItdGhhbi10aGUtNjQtYnl0ZS11c2VybmFtZS1s\n"
+    "aW1pdEBleGFtcGxlLmNvbTAKBggqhkjOPQQDAgNpADBmAjEAh9nEitjw58Qp+BMN\n"
+    "cUMCWdIhAG/rTOs/T7IPn3PxBZXwhM7+zlvuo4OEzQ1zs0CmAjEA7crPVHw4LOlZ\n"
+    "iUlGSawTaatug0asyXF/+rorRUqfp3pHS/yVaJ/1Bl1Sw6XcIRyD\n"
+    "-----END CERTIFICATE-----\n";
+
+void
+ssl_test_skip_too_long_san_email(void **state)
+{
+    /* An email address that does not fit into the username buffer must be
+     * skipped and not show up truncated as the username. */
+    openvpn_x509_cert_t *cert = get_certificate(cert_with_long_san_email);
+
+    char username[TLS_USERNAME_LEN + 1] = { 0 };
+    assert_int_equal(backend_x509_get_username(username, sizeof(username), "ext:subjectAltName", cert),
+                     SUCCESS);
+    assert_string_equal(username, "short@example.com");
+    free_certificate(cert);
+}
+#endif /* if !defined(ENABLE_CRYPTO_MBEDTLS) */
+
 /* Certificate with a null-byte embedded in the CN.
  *
  * Generated with the following Python script:
@@ -1125,6 +1165,9 @@ main(void)
         cmocka_unit_test(test_data_channel_known_vectors_shortpktid),
         cmocka_unit_test(crypto_test_print_cert_details),
         cmocka_unit_test(ssl_test_extract_last_matching_field),
+#if !defined(ENABLE_CRYPTO_MBEDTLS)
+        cmocka_unit_test(ssl_test_skip_too_long_san_email),
+#endif
         cmocka_unit_test(ssl_test_reject_null_in_cert_subject),
         cmocka_unit_test(ssl_test_escape_rfc_2253_chars_in_subject),
         cmocka_unit_test(ssl_test_extract_peer_info),
