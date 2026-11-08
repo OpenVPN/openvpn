@@ -190,10 +190,10 @@ receive_acc_message(struct context *c, const struct buffer *buffer)
     }
 
     /* We do not check the length here. We make no promises to support
-     * anything larger than our announced message length but according to
-     * the robustness principle
-     * ("be conservative in what you send, be liberal in what you accept" - RFC 793 and others)
-     * we accept also longer messages */
+     * anything larger than our announced message length but we accept also
+     * longer messages if they manage to get through all the other layers
+     * that restrict the message size like TLS_CHANNEL_BUF_SIZE.
+     */
 
     int payload_len;
     const char *payload_len_str = buf_extract_field(&buf, ',', &gc);
@@ -426,8 +426,20 @@ determine_common_acc_protocols(struct tls_multi *multi, struct tls_session *sess
     multi->acc_negotiated_protocols = string_alloc(buf_str(&common_protocols), NULL);
     multi->acc_max_message_length = max_acc_len;
 
-    setenv_str(session->opt->es, "acc_protocols", multi->acc_negotiated_protocols);
-    setenv_int(session->opt->es, "acc_message_len", multi->acc_max_message_length);
+    /* The normal case is that this is a server where we notify the client
+     * capabilities via environment variables */
+    if (multi->opt.mode == MODE_SERVER)
+    {
+        setenv_str(session->opt->es, "acc_protocols", multi->acc_negotiated_protocols);
+        setenv_int(session->opt->es, "acc_message_len", multi->acc_max_message_length);
+    }
+    else
+    {
+        /* We can also end up here in p2p or if the server has --push-peer-info
+         * We do not set variables in that case to keep behavior consistent with
+         * the other paths on the client that also do not set variables */
+        notify_client_acc_protocols(multi);
+    }
 
     gc_free(&gc);
 }

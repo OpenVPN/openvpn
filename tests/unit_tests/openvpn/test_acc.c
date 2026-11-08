@@ -181,7 +181,11 @@ test_parse_acc_parameters(void **state)
     int max_len = 0;
     const char *protocols = parse_acc_parameters(info_acc_msg, " ", &max_len, true, &gc);
     assert_string_equal(protocols, "flower:happy");
-    assert_int_equal(max_len, 1280);
+
+    /* Check that the ACC_MAX_MSG_LEN is 1920 to ensure that the tests get
+     * adjusted if it changes */
+    assert_int_equal(ACC_MAX_MSG_LEN, 1920);
+    assert_int_equal(max_len, ACC_MAX_MSG_LEN);
 
     /* a client does not accept a length longer than it supports */
     protocols = parse_acc_parameters(info_acc_msg, " ", &max_len, false, &gc);
@@ -247,14 +251,15 @@ test_acc_common_protocols(void **state)
     multi->opt.acc_protocols = c->options.acc_protocols;
     multi->session[TM_ACTIVE].opt = &multi->opt;
     multi->opt.es = env_set_create(&c->options.gc);
+    multi->opt.mode = MODE_SERVER;
 
     determine_common_acc_protocols(multi, &c->c2.tls_multi->session[TM_ACTIVE]);
 
-    assert_int_equal(multi->acc_max_message_length, ACC_MAX_MSG_LEN);
+    assert_int_equal(multi->acc_max_message_length, 1400);
     assert_string_equal(multi->acc_negotiated_protocols, "power:flower");
 
     assert_string_equal(env_set_get(multi->opt.es, "acc_protocols"), "acc_protocols=power:flower");
-    assert_string_equal(env_set_get(multi->opt.es, "acc_message_len"), "acc_message_len=1280");
+    assert_string_equal(env_set_get(multi->opt.es, "acc_message_len"), "acc_message_len=1400");
 
     free(multi->acc_negotiated_protocols);
     gc_free(&c->options.gc);

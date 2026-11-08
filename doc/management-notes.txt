@@ -1398,11 +1398,17 @@ CLIENT notification types:
     next message should be concatenated to this message to form a complete
     message.
 
-    Note that the OpenVPN implementation operates here with the robustness
-    principle ("be conservative in what you send, be liberal in what you
-    accept" - RFC 793 and others) and allows receiving messages longer than
-    maximum allowed message length. Implementations should be prepared to
-    handle messages that are longer than the maximum allowed message length.
+    Note that fragment is basically a flag for allowing peers communicating
+    over ACC to indicate if multiple ACC messages should be considered to
+    be a single message. If the ACC protocol is a stream based protocol
+    then all messages can be sent without fragment flag.
+
+    Note that the OpenVPN implementation allows receiving messages longer than
+    announced maximum allowed message length. Implementations must be prepared
+    to handle messages that are longer than the maximum allowed message length.
+    Overlong messages are considered invalid and indicate that the peer is
+    misbehaving. Disconnecting/dropping the peer is considered a valid
+    response to such messages.
 
     OpenVPN does not verify that the message is valid base64. A peer that
     sends invalid base64 payload will be passed to the management interface.

@@ -29,7 +29,9 @@
 #include "openvpn.h"
 
 #define ACC_MIN_MSG_LEN 64
-#define ACC_MAX_MSG_LEN 1280
+/* This is a conservative limit. The theoretical maximum
+ * is much closer to the TLS_CHANNEL_BUF_SIZE */
+#define ACC_MAX_MSG_LEN (TLS_CHANNEL_BUF_SIZE - 128)
 
 /**
  * This method parses an app custom control message and delivers it to the
