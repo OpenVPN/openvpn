@@ -536,7 +536,7 @@ ovpn_dco_uninit_netlink(dco_context_t *dco)
     nl_cb_put(dco->nl_cb);
     nl_cb_put(dco->nl_cb_notify);
 
-    CLEAR(dco);
+    CLEAR(*dco);
 }
 
 int
