@@ -95,6 +95,7 @@ initial_rate_limit_init(int max_per_period, int period_length)
     irl->period_length = period_length;
     irl->curr_period_counter = 0;
     irl->last_period_reset = 0;
+    irl->warning_displayed = false;
 
     return irl;
 }
