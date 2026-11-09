@@ -344,7 +344,6 @@ options_warning_safe_ml(const msglvl_t msglevel, char *actual, const char *expec
 bool
 options_cmp_equal_safe(char *actual, const char *expected, size_t actual_n)
 {
-    struct gc_arena gc = gc_new();
     bool ret = true;
 
     if (actual_n > 0)
@@ -360,7 +359,6 @@ options_cmp_equal_safe(char *actual, const char *expected, size_t actual_n)
             ret = !strcmp(actual, expected);
         }
     }
-    gc_free(&gc);
     return ret;
 }
 

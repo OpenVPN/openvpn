@@ -726,7 +726,6 @@ struct multi_instance *
 multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
                       struct link_socket *sock)
 {
-    struct gc_arena gc = gc_new();
     struct multi_instance *mi;
 
     msg(D_MULTI_MEDIUM, "MULTI: multi_create_instance called");
@@ -792,12 +791,10 @@ multi_create_instance(struct multi_context *m, const struct mroute_addr *real,
     mi->ev_arg.type = EVENT_ARG_MULTI_INSTANCE;
     mi->ev_arg.u.mi = mi;
 
-    gc_free(&gc);
     return mi;
 
 err:
     multi_close_instance(m, mi, false);
-    gc_free(&gc);
     return NULL;
 }
 
@@ -2213,7 +2210,6 @@ multi_client_connect_call_script(struct multi_context *m, struct multi_instance 
     if (mi->context.options.client_connect_script)
     {
         struct argv argv = argv_new();
-        struct gc_arena gc = gc_new();
 
         setenv_str(mi->context.c2.es, "script_type", "client-connect");
 
@@ -2249,7 +2245,6 @@ cleanup:
             ccs_delete_deferred_ret_file(mi);
         }
         argv_free(&argv);
-        gc_free(&gc);
     }
     return ret;
 }

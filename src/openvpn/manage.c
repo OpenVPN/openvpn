@@ -2325,9 +2325,7 @@ man_io_error(struct management *man, const char *prefix)
 
     if (!ignore_sys_error(err, crt_error))
     {
-        struct gc_arena gc = gc_new();
         msg(D_MANAGEMENT, "MANAGEMENT: TCP %s error: %s", prefix, strerror(err));
-        gc_free(&gc);
         return true;
     }
     else
@@ -3151,11 +3149,8 @@ void
 management_notify_client_cr_response(unsigned mda_key_id, const struct man_def_auth_context *mdac,
                                      const struct env_set *es, const char *response)
 {
-    struct gc_arena gc;
     if (management)
     {
-        gc = gc_new();
-
         msg(M_CLIENT, ">CLIENT:CR_RESPONSE,%lu,%u,%s", mdac->cid, mda_key_id, response);
         man_output_extra_env(management, "CLIENT");
         if (management->connection.env_filter_level > 0)
@@ -3163,7 +3158,6 @@ management_notify_client_cr_response(unsigned mda_key_id, const struct man_def_a
             man_output_peer_info_env(management, mdac);
         }
         man_output_env(es, true, management->connection.env_filter_level, "CLIENT");
-        gc_free(&gc);
     }
 }
 

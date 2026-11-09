@@ -560,7 +560,6 @@ plugin_call_item(const struct plugin *p, void *per_client_context, const int typ
 
     if (p->plugin_handle && (p->plugin_type_mask & OPENVPN_PLUGIN_MASK(type)))
     {
-        struct gc_arena gc = gc_new();
         struct argv a = argv_insert_head(av, p->so_pathname);
 
         dmsg(D_PLUGIN_DEBUG, "PLUGIN_CALL: PRE type=%s", plugin_type_name(type));
@@ -609,7 +608,6 @@ plugin_call_item(const struct plugin *p, void *per_client_context, const int typ
         }
 
         argv_free(&a);
-        gc_free(&gc);
     }
     return status;
 }

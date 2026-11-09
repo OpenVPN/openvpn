@@ -666,7 +666,6 @@ check_addr_clash(const char *name, int type, in_addr_t public, in_addr_t local,
 void
 warn_on_use_of_common_subnets(openvpn_net_ctx_t *ctx)
 {
-    struct gc_arena gc = gc_new();
     struct route_gateway_info rgi;
     const unsigned int needed = (RGI_ADDR_DEFINED | RGI_NETMASK_DEFINED);
 
@@ -680,7 +679,6 @@ warn_on_use_of_common_subnets(openvpn_net_ctx_t *ctx)
                 "NOTE: your local LAN uses the extremely common subnet address 192.168.0.x or 192.168.1.x.  Be aware that this might create routing conflicts if you connect to the VPN server from public locations such as internet cafes that use the same subnet.");
         }
     }
-    gc_free(&gc);
 }
 
 /*

@@ -117,8 +117,6 @@ run_up_down(const char *command, const struct plugin_list *plugins, int plugin_t
             const char *ifconfig_remote, const char *context, const char *signal_text,
             const char *script_type, struct env_set *es)
 {
-    struct gc_arena gc = gc_new();
-
     if (signal_text)
     {
         setenv_str(es, "signal", signal_text);
@@ -174,8 +172,6 @@ run_up_down(const char *command, const struct plugin_list *plugins, int plugin_t
         openvpn_run_script(&argv, es, S_FATAL, "--up/--down");
         argv_free(&argv);
     }
-
-    gc_free(&gc);
 }
 
 /*

@@ -3090,7 +3090,6 @@ get_default_gateway_ipv6(struct route_ipv6_gateway_info *rgi6, const struct in6_
 void
 get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_ctx_t *ctx)
 {
-    struct gc_arena gc = gc_new();
     int sd = -1;
     char best_name[IFNAMSIZ];
 
@@ -3216,7 +3215,6 @@ done:
     {
         close(sd);
     }
-    gc_free(&gc);
 }
 
 /* IPv6 implementation using netlink
