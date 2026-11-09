@@ -67,7 +67,6 @@ static const char *saved_pid_file_name; /* GLOBAL */
 /*
  * Crypto initialization flags
  */
-#define CF_LOAD_PERSISTED_PACKET_ID (1 << 0)
 #define CF_INIT_TLS_MULTI           (1 << 1)
 #define CF_INIT_TLS_AUTH_STANDALONE (1 << 2)
 
@@ -738,8 +737,6 @@ context_init_1(struct context *c)
 {
     context_clear_1(c);
 
-    packet_id_persist_init(&c->c1.pid_persist);
-
     init_connection_list(c);
 
     c->c1.link_sockets_num = c->options.ce.local_list->len;
@@ -1345,12 +1342,6 @@ do_init_timers(struct context *c, bool deferred)
         {
             event_timeout_init(&c->c2.occ_mtu_load_test_interval, OCC_MTU_LOAD_INTERVAL_SECONDS,
                                now);
-        }
-
-        /* initialize packet_id persistence timer */
-        if (c->options.packet_id_file)
-        {
-            event_timeout_init(&c->c2.packet_id_persist_interval, 60, now);
         }
 
         /* initialize tmp_int optimization that limits the number of times we call
@@ -2976,31 +2967,15 @@ key_schedule_free(struct key_schedule *ks, bool free_ssl_ctx)
 }
 
 static void
-init_crypto_pre(struct context *c, const unsigned int flags)
-{
-    if (c->options.engine)
-    {
-        crypto_init_lib_engine(c->options.engine);
-    }
-
-    if (flags & CF_LOAD_PERSISTED_PACKET_ID)
-    {
-        /* load a persisted packet-id for cross-session replay-protection */
-        if (c->options.packet_id_file)
-        {
-            packet_id_persist_load(&c->c1.pid_persist, c->options.packet_id_file);
-        }
-    }
-}
-
-
-static void
 do_init_crypto_test(struct context *c)
 {
     const struct options *options = &c->options;
     ASSERT(options->test_crypto);
 
-    init_crypto_pre(c, 0);
+    if (c->options.engine)
+    {
+        crypto_init_lib_engine(c->options.engine);
+    }
 
     c->c2.crypto_options.flags |= CO_PACKET_ID_LONG_FORM;
 
@@ -3201,7 +3176,10 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     ASSERT(options->tls_server || options->tls_client);
     ASSERT(!options->test_crypto);
 
-    init_crypto_pre(c, flags);
+    if (c->options.engine)
+    {
+        crypto_init_lib_engine(c->options.engine);
+    }
 
     /* Make sure we are either a TLS client or server but not both */
     ASSERT(options->tls_server == !options->tls_client);
@@ -3380,7 +3358,6 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
     if (to.tls_wrap.mode == TLS_WRAP_AUTH || to.tls_wrap.mode == TLS_WRAP_CRYPT)
     {
         to.tls_wrap.opt.key_ctx_bi = c->c1.ks.tls_wrap_key;
-        to.tls_wrap.opt.pid_persist = &c->c1.pid_persist;
         to.tls_wrap.opt.flags |= CO_PACKET_ID_LONG_FORM;
         to.tls_wrap.original_wrap_keydata = c->c1.ks.original_wrap_keydata;
     }
@@ -3939,11 +3916,6 @@ static void
 do_close_packet_id(struct context *c)
 {
     packet_id_free(&c->c2.crypto_options.packet_id);
-    packet_id_persist_save(&c->c1.pid_persist);
-    if (!(c->sig->signal_received == SIGUSR1))
-    {
-        packet_id_persist_close(&c->c1.pid_persist);
-    }
 }
 
 #ifdef ENABLE_FRAGMENT
@@ -4498,7 +4470,7 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         }
         else if (c->mode == CM_P2P)
         {
-            crypto_flags = CF_LOAD_PERSISTED_PACKET_ID | CF_INIT_TLS_MULTI;
+            crypto_flags = CF_INIT_TLS_MULTI;
         }
         else if (child)
         {
@@ -4756,7 +4728,6 @@ inherit_context_child(struct context *dest, const struct context *src, struct li
     ALLOC_OBJ_CLEAR_GC(dest->sig, struct signal_info, &dest->gc);
 
     /* c1 init */
-    packet_id_persist_init(&dest->c1.pid_persist);
     dest->c1.link_sockets_num = 1;
     do_link_socket_addr_new(dest);
 

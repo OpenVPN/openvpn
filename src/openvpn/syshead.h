@@ -127,10 +127,6 @@ typedef SSIZE_T ssize_t;
 #include <fcntl.h>
 #endif
 
-#ifdef HAVE_SYS_FILE_H
-#include <sys/file.h>
-#endif
-
 /* These headers belong to C99 and should be always be present */
 #include <stdlib.h>
 #include <inttypes.h>

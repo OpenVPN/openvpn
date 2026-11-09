@@ -403,10 +403,6 @@ crypto_check_replay(struct crypto_options *opt, const struct packet_id_net *pin,
     if (packet_id_test(recv, pin))
     {
         packet_id_add(recv, pin);
-        if (opt->pid_persist && (opt->flags & CO_PACKET_ID_LONG_FORM))
-        {
-            packet_id_persist_save_obj(opt->pid_persist, &opt->packet_id);
-        }
         ret = true;
     }
     else

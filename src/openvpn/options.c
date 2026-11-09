@@ -571,8 +571,6 @@ static const char usage_message[] =
     "--replay-window n [t]  : Use a replay protection sliding window of size n\n"
     "                         and a time window of t seconds.\n"
     "                         Default n=%d t=%d\n"
-    "--replay-persist file : Persist replay-protection state across sessions\n"
-    "                  using file.\n"
     "--test-crypto   : Run a self-test of crypto features enabled.\n"
     "                  For debugging only.\n"
     "\n"
@@ -7088,7 +7086,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     else if (streq(p[0], "replay-persist") && p[1] && !p[2])
     {
         VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->packet_id_file = p[1];
+        msg(M_WARN, "DEPRECATED OPTION: --replay-persist option ignored.");
     }
     else if (streq(p[0], "test-crypto") && !p[1])
     {

@@ -749,14 +749,6 @@ check_session_timeout(struct context *c)
 static void
 process_coarse_timers(struct context *c)
 {
-    /* flush current packet-id to file once per 60
-     * seconds if --replay-persist was specified */
-    if (packet_id_persist_enabled(&c->c1.pid_persist)
-        && event_timeout_trigger(&c->c2.packet_id_persist_interval, &c->c2.timeval, ETT_DEFAULT))
-    {
-        packet_id_persist_save(&c->c1.pid_persist);
-    }
-
     /* Should we write timer-triggered status file */
     if (c->c1.status_output
         && event_timeout_trigger(&c->c1.status_output->et, &c->c2.timeval, ETT_DEFAULT))

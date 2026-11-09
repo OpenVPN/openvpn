@@ -874,8 +874,6 @@ key_state_init(struct tls_session *session, struct key_state *ks)
     packet_id_init(&ks->crypto_options.packet_id, session->opt->replay_window,
                    session->opt->replay_time, "SSL", ks->key_id);
 
-    ks->crypto_options.pid_persist = NULL;
-
 #ifdef ENABLE_MANAGEMENT
     ks->mda_key_id = session->opt->mda_context->mda_key_id_counter++;
 #endif
@@ -1036,9 +1034,6 @@ tls_session_init(struct tls_multi *multi, struct tls_session *session)
         session->tls_wrap.opt.packet_id.send.time = now;
         session->tls_wrap.opt.packet_id.send.id = EARLY_NEG_START;
     }
-
-    /* load most recent packet-id to replay protect on --tls-auth */
-    packet_id_persist_load_obj(session->tls_wrap.opt.pid_persist, &session->tls_wrap.opt.packet_id);
 
     key_state_init(session, &session->key[KS_PRIMARY]);
 

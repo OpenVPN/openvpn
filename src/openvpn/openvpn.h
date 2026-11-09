@@ -75,21 +75,6 @@ struct key_schedule
 };
 
 /*
- * struct packet_id_persist should be empty if we are not
- * building with crypto.
- */
-#ifndef PACKET_ID_H
-struct packet_id_persist
-{
-    int dummy;
-};
-static inline void
-packet_id_persist_init(struct packet_id_persist *p)
-{
-}
-#endif
-
-/*
  * Packet processing buffers.
  */
 struct context_buffers
@@ -166,9 +151,6 @@ struct context_1
 
     /* preresolved and cached host names */
     struct cached_dns_entry *dns_cache;
-
-    /* persist crypto sequence number to/from file */
-    struct packet_id_persist pid_persist;
 
     struct tuntap *tuntap; /**< Tun/tap virtual network interface. */
     bool tuntap_owned;     /**< Whether the tun/tap interface should
@@ -345,8 +327,6 @@ struct context_2
      *   used by the \link data_crypto Data
      *   Channel Crypto module\endlink to
      *   process data channel packet. */
-
-    struct event_timeout packet_id_persist_interval;
 
 #ifdef USE_COMP
     struct compress_context *comp_context;

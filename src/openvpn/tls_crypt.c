@@ -109,7 +109,6 @@ tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session)
     session->tls_wrap_reneg.mode = TLS_WRAP_CRYPT;
     session->tls_wrap_reneg.cleanup_key_ctx = true;
     session->tls_wrap_reneg.work = alloc_buf(BUF_SIZE(&session->opt->frame));
-    session->tls_wrap_reneg.opt.pid_persist = NULL;
 
     packet_id_init(&session->tls_wrap_reneg.opt.packet_id, session->opt->replay_window,
                    session->opt->replay_time, "TLS_WRAP_RENEG", session->key_id);

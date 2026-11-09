@@ -125,26 +125,6 @@ struct packet_id_rec
 };
 
 /*
- * file to facilitate cross-session persistence
- * of time/id
- */
-struct packet_id_persist
-{
-    const char *filename;
-    int fd;
-    time_t time;       /* time stamp */
-    packet_id_type id; /* sequence number */
-    time_t time_last_written;
-    packet_id_type id_last_written;
-};
-
-struct packet_id_persist_file_image
-{
-    time_t time;       /* time stamp */
-    packet_id_type id; /* sequence number */
-};
-
-/*
  * Keep a record of our current packet-id state
  * on the sending side.
  */
@@ -222,28 +202,6 @@ void packet_id_add(struct packet_id_rec *p, const struct packet_id_net *pin);
 void packet_id_reap(struct packet_id_rec *p);
 
 /*
- * packet ID persistence
- */
-
-/* initialize the packet_id_persist structure in a disabled state */
-void packet_id_persist_init(struct packet_id_persist *p);
-
-/* close the file descriptor if it is open, and switch to disabled state */
-void packet_id_persist_close(struct packet_id_persist *p);
-
-/* load persisted rec packet_id (time and id) only once from file, and set state to enabled */
-void packet_id_persist_load(struct packet_id_persist *p, const char *filename);
-
-/* save persisted rec packet_id (time and id) to file (only if enabled state) */
-void packet_id_persist_save(struct packet_id_persist *p);
-
-/* transfer packet_id_persist -> packet_id */
-void packet_id_persist_load_obj(const struct packet_id_persist *p, struct packet_id *pid);
-
-/* return an ascii string representing a packet_id_persist object */
-const char *packet_id_persist_print(const struct packet_id_persist *p, struct gc_arena *gc);
-
-/*
  * Read/write a packet ID to/from the buffer.  Short form is sequence number
  * only.  Long form is sequence number and timestamp.
  */
@@ -271,27 +229,6 @@ static inline bool
 packet_id_initialized(const struct packet_id *pid)
 {
     return pid->rec.initialized;
-}
-
-/* are we in enabled state? */
-static inline bool
-packet_id_persist_enabled(const struct packet_id_persist *p)
-{
-    return p->fd >= 0;
-}
-
-/* transfer packet_id -> packet_id_persist
-   Note: Only supported for non-epoch format (i.e. 32bit ID, not 64bit format),
-   must be enforced at the caller.
- */
-static inline void
-packet_id_persist_save_obj(struct packet_id_persist *p, const struct packet_id *pid)
-{
-    if (packet_id_persist_enabled(p) && pid->rec.time && pid->rec.id <= PACKET_ID_MAX)
-    {
-        p->time = pid->rec.time;
-        p->id = (packet_id_type)pid->rec.id;
-    }
 }
 
 /**

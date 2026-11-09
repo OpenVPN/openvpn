@@ -79,3 +79,8 @@ longer supported
 
 --allow-deprecated-insecure-static-crypto
   Removed in OpenVPN 2.8 as --secret was also removed.
+
+--replay-persist
+  Removed in OpenVPN 2.8. This option never really worked well with ``--server``
+  and the usefulness of this option in p2p setups is not very high either.
+  It is now ignored if present in the configuration file.

@@ -30,6 +30,12 @@
   "too complicated", using `--peer-fingerprint` makes TLS mode about as easy as
   using `--secret`.
 
+* **`replay-persist` has been removed**
+
+  This feature has been removed as it was never properly implemented for
+  server mode and generally was a niche feature. If the option is present
+  it will be ignored.
+
 ## Maintainer-visible changes
 
 - The configure-time option `--enable-debug` is no longer  available

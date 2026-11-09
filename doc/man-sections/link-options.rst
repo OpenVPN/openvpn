@@ -440,19 +440,6 @@ the local and the remote host.
   physical IP layer. The problem is easily fixed by simply using TCP as
   the VPN transport layer.
 
---replay-persist file
-  Persist replay-protection state across sessions using ``file`` to save
-  and reload the state.
-
-  This option will keep a disk copy of the current replay protection state
-  (i.e. the most recent packet timestamp and sequence number received from
-  the remote peer), so that if an OpenVPN session is stopped and
-  restarted, it will reject any replays of packets which were already
-  received by the prior session.
-
-  This option only makes sense when replay protection is enabled (the
-  default) and you are using TLS mode with ``--tls-auth``.
-
 --session-timeout n
   Raises :code:`SIGTERM` for the client instance after ``n`` seconds since
   the beginning of the session, forcing OpenVPN to disconnect.

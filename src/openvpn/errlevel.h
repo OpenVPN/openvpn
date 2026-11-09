@@ -64,7 +64,6 @@
 #define D_MULTI_ERRORS   LOGLEV(1, 9, M_NONFATAL)  /* show multi-client server errors */
 #define D_EVENT_ERRORS   LOGLEV(1, 10, M_NONFATAL) /* show event.[ch] errors */
 #define D_PUSH_ERRORS    LOGLEV(1, 11, M_NONFATAL) /* show push/pull errors */
-#define D_PID_PERSIST    LOGLEV(1, 12, M_NONFATAL) /* show packet_id persist errors */
 #define D_FRAG_ERRORS    LOGLEV(1, 13, M_NONFATAL) /* show fragmentation errors */
 #define D_ALIGN_ERRORS   LOGLEV(1, 14, M_NONFATAL) /* show bad struct alignments */
 
@@ -159,16 +158,15 @@
 #define D_EVENT_WAIT        LOGLEV(8, 70, M_DEBUG)      /* show detailed info from event waits */
 #define D_MULTI_TCP         LOGLEV(8, 70, M_DEBUG)      /* show debug info from mtcp.c */
 
-#define D_TLS_DEBUG         LOGLEV(9, 70, M_DEBUG)      /* show detailed info from TLS routines */
-#define D_COMP              LOGLEV(9, 70, M_DEBUG)      /* show compression info */
-#define D_READ_WRITE        LOGLEV(9, 70, M_DEBUG)      /* show all tun/tcp/udp reads/writes/opens */
-#define D_PACKET_CONTENT    LOGLEV(9, 70, M_DEBUG)      /* show before/after encryption packet content */
-#define D_TLS_NO_SEND_KEY   LOGLEV(9, 70, M_DEBUG)      /* show when no data channel send-key exists */
-#define D_PID_PERSIST_DEBUG LOGLEV(9, 70, M_DEBUG)      /* show packet-id persist debugging info */
-#define D_LINK_RW_VERBOSE   LOGLEV(9, 70, M_DEBUG)      /* increase link reads/writes verbosity */
-#define D_STREAM_DEBUG      LOGLEV(9, 70, M_DEBUG)      /* show TCP stream debug info */
-#define D_WIN32_IO          LOGLEV(9, 70, M_DEBUG)      /* win32 I/O debugging info */
-#define D_PKCS11_DEBUG      LOGLEV(9, 70, M_DEBUG)      /* show PKCS#11 debugging */
+#define D_TLS_DEBUG       LOGLEV(9, 70, M_DEBUG)        /* show detailed info from TLS routines */
+#define D_COMP            LOGLEV(9, 70, M_DEBUG)        /* show compression info */
+#define D_READ_WRITE      LOGLEV(9, 70, M_DEBUG)        /* show all tun/tcp/udp reads/writes/opens */
+#define D_PACKET_CONTENT  LOGLEV(9, 70, M_DEBUG)        /* show before/after encryption packet content */
+#define D_TLS_NO_SEND_KEY LOGLEV(9, 70, M_DEBUG)        /* show when no data channel send-key exists */
+#define D_LINK_RW_VERBOSE LOGLEV(9, 70, M_DEBUG)        /* increase link reads/writes verbosity */
+#define D_STREAM_DEBUG    LOGLEV(9, 70, M_DEBUG)        /* show TCP stream debug info */
+#define D_WIN32_IO        LOGLEV(9, 70, M_DEBUG)        /* win32 I/O debugging info */
+#define D_PKCS11_DEBUG    LOGLEV(9, 70, M_DEBUG)        /* show PKCS#11 debugging */
 
 #define D_SHAPER_DEBUG LOGLEV(10, 70, M_DEBUG)          /* show traffic shaper info */
 

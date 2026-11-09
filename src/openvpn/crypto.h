@@ -332,11 +332,6 @@ struct crypto_options
                                  *   The packet id also used as the IV
                                  *   for AEAD/OFB/CFG ciphers.
                                  */
-    struct packet_id_persist *pid_persist;
-    /**< Persistent packet ID state for
-     *   keeping state between successive
-     *   OpenVPN process startups. */
-
 #define CO_PACKET_ID_LONG_FORM         (1u << 0)
     /**< Bit-flag indicating whether to use
      *   OpenVPN's long packet ID format. */

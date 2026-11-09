@@ -582,7 +582,6 @@ struct options
     bool mute_replay_warnings;
     int replay_window;
     int replay_time;
-    const char *packet_id_file;
     bool test_crypto;
 
     /* TLS (control channel) parms */

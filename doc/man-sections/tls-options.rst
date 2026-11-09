@@ -370,10 +370,7 @@ certificates and keys: https://github.com/OpenVPN/easy-rsa
   level has had a chance to authenticate the peer. The result is that
   packets without the correct signature can be dropped immediately upon
   reception, before they have a chance to consume additional system
-  resources such as by initiating a TLS handshake. ``--tls-auth`` can be
-  strengthened by adding the ``--replay-persist`` option which will keep
-  OpenVPN's replay protection state in a file so that it is not lost
-  across restarts.
+  resources such as by initiating a TLS handshake.
 
   It should be emphasized that this feature is optional and that the key
   file used with ``--tls-auth`` gives a peer nothing more than the power

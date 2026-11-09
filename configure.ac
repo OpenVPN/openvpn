@@ -453,7 +453,7 @@ AC_CHECK_HEADERS([ \
 ])
 AC_CHECK_HEADERS([ \
 	sys/time.h sys/ioctl.h sys/stat.h \
-	sys/mman.h sys/file.h sys/wait.h \
+	sys/mman.h sys/wait.h \
 	libgen.h stropts.h \
 	syslog.h pwd.h grp.h \
 	sys/sockio.h sys/uio.h \
@@ -561,8 +561,7 @@ AC_FUNC_FORK
 AC_CHECK_FUNCS([ \
 	daemon chroot getpwnam setuid nice dup dup2 \
 	syslog openlog mlockall getrlimit getgrnam setgid \
-	setgroups flock gettimeofday \
-	setsid chdir \
+	setgroups gettimeofday setsid chdir \
 	chsize ftruncate execve getpeereid basename dirname \
 	epoll_create strlcpy strsep strtok_r \
 ])
