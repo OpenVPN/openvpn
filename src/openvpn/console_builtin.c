@@ -234,7 +234,7 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
     if (!echo && (tcgetattr(fileno(fp), &tty_tmp) == 0))
     {
         tty_save = tty_tmp;
-        tty_tmp.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL | ISIG);
+        tty_tmp.c_lflag &= ~(unsigned int)(ECHO | ECHOE | ECHOK | ECHONL | ISIG);
         restore_tty = (tcsetattr(fileno(fp), TCSAFLUSH, &tty_tmp) == 0);
     }
 

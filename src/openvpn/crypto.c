@@ -139,7 +139,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
         ASSERT(cipher_ctx_reset(ctx->cipher, iv));
     }
 
-    dmsg(D_PACKET_CONTENT, "ENCRYPT FROM: %s", format_hex(BPTR(buf), BLEN(buf), 80, &gc));
+    dmsg(D_PACKET_CONTENT, "ENCRYPT FROM: %s", format_hex(BPTR(buf), BLENZ(buf), 80, &gc));
 
     /* Buffer overflow check */
     if (!buf_safe(&work, buf->len + mac_len + cipher_ctx_block_size(ctx->cipher)))
@@ -151,7 +151,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
 
     /* For AEAD ciphers, authenticate Additional Data, including opcode */
     ASSERT(cipher_ctx_update_ad(ctx->cipher, BPTR(&work), BLEN(&work)));
-    dmsg(D_PACKET_CONTENT, "ENCRYPT AD: %s", format_hex(BPTR(&work), BLEN(&work), 0, &gc));
+    dmsg(D_PACKET_CONTENT, "ENCRYPT AD: %s", format_hex(BPTR(&work), BLENZ(&work), 0, &gc));
 
     if (!use_epoch_data_format)
     {
@@ -170,8 +170,8 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
 
     /* update number of plaintext blocks encrypted. Use the (x + (n-1))/n trick
      * to round up the result to the number of blocks used */
-    const int blocksize = AEAD_LIMIT_BLOCKSIZE;
-    opt->key_ctx_bi.encrypt.plaintext_blocks += (BLEN(&work) + (blocksize - 1)) / blocksize;
+    const unsigned int blocksize = AEAD_LIMIT_BLOCKSIZE;
+    opt->key_ctx_bi.encrypt.plaintext_blocks += (BLENZ(&work) + (blocksize - 1)) / blocksize;
 
     /* if the tag is at end the end, allocate it now */
     if (use_epoch_data_format)
@@ -186,7 +186,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
 
     *buf = work;
 
-    dmsg(D_PACKET_CONTENT, "ENCRYPT TO: %s", format_hex(BPTR(buf), BLEN(buf), 80, &gc));
+    dmsg(D_PACKET_CONTENT, "ENCRYPT TO: %s", format_hex(BPTR(buf), BLENZ(buf), 80, &gc));
 
     gc_free(&gc);
     return;
@@ -257,13 +257,13 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
             ASSERT(buf_write(&work, iv_buf, iv_size));
             dmsg(D_PACKET_CONTENT, "ENCRYPT IV: %s", format_hex(iv_buf, iv_size, 0, &gc));
 
-            dmsg(D_PACKET_CONTENT, "ENCRYPT FROM: %s", format_hex(BPTR(buf), BLEN(buf), 80, &gc));
+            dmsg(D_PACKET_CONTENT, "ENCRYPT FROM: %s", format_hex(BPTR(buf), BLENZ(buf), 80, &gc));
 
             /* cipher_ctx was already initialized with key & keylen */
             ASSERT(cipher_ctx_reset(ctx->cipher, iv_buf));
 
             /* Buffer overflow check */
-            if (!buf_safe(&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
+            if (!buf_safe(&work, BLENZ(buf) + cipher_ctx_block_size(ctx->cipher)))
             {
                 msg(D_CRYPT_ERRORS,
                     "ENCRYPT: buffer size error, bc=%d bo=%d bl=%d wc=%d wo=%d wl=%d cbs=%u",
@@ -317,7 +317,7 @@ openvpn_encrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
 
         *buf = work;
 
-        dmsg(D_PACKET_CONTENT, "ENCRYPT TO: %s", format_hex(BPTR(&work), BLEN(&work), 80, &gc));
+        dmsg(D_PACKET_CONTENT, "ENCRYPT TO: %s", format_hex(BPTR(&work), BLENZ(&work), 80, &gc));
     }
 
     gc_free(&gc);
@@ -456,7 +456,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     ASSERT(buf->len > 0);
     ASSERT(ctx->cipher);
 
-    dmsg(D_PACKET_CONTENT, "DECRYPT FROM: %s", format_hex(BPTR(buf), BLEN(buf), 80, &gc));
+    dmsg(D_PACKET_CONTENT, "DECRYPT FROM: %s", format_hex(BPTR(buf), BLENZ(buf), 80, &gc));
 
     ASSERT(ad_start >= buf->data && ad_start <= BPTR(buf));
 
@@ -554,10 +554,10 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     }
 
     dmsg(D_PACKET_CONTENT, "DECRYPT MAC: %s", format_hex(tag_ptr, tag_size, 0, &gc));
-    dmsg(D_PACKET_CONTENT, "DECRYPT FROM: %s", format_hex(BPTR(buf), BLEN(buf), 0, &gc));
+    dmsg(D_PACKET_CONTENT, "DECRYPT FROM: %s", format_hex(BPTR(buf), BLENZ(buf), 0, &gc));
 
     /* Buffer overflow check (should never fail) */
-    if (!buf_safe(&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
+    if (!buf_safe(&work, BLENZ(buf) + cipher_ctx_block_size(ctx->cipher)))
     {
         CRYPT_ERROR("potential buffer overflow");
     }
@@ -581,7 +581,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     }
     ASSERT(buf_inc_len(&work, outlen));
 
-    dmsg(D_PACKET_CONTENT, "DECRYPT TO: %s", format_hex(BPTR(&work), BLEN(&work), 80, &gc));
+    dmsg(D_PACKET_CONTENT, "DECRYPT TO: %s", format_hex(BPTR(&work), BLENZ(&work), 80, &gc));
 
     if (!crypto_check_replay(opt, &pin, epoch, error_prefix, &gc))
     {
@@ -590,8 +590,8 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
 
     /* update number of plaintext blocks decrypted. Use the (x + (n-1))/n trick
      * to round up the result to the number of blocks used. */
-    const int blocksize = AEAD_LIMIT_BLOCKSIZE;
-    opt->key_ctx_bi.decrypt.plaintext_blocks += (BLEN(&work) + (blocksize - 1)) / blocksize;
+    const unsigned int blocksize = AEAD_LIMIT_BLOCKSIZE;
+    opt->key_ctx_bi.decrypt.plaintext_blocks += (BLENZ(&work) + (blocksize - 1)) / blocksize;
 
     *buf = work;
 
@@ -627,7 +627,7 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
         struct packet_id_net pin;
         bool have_pin = false;
 
-        dmsg(D_PACKET_CONTENT, "DECRYPT FROM: %s", format_hex(BPTR(buf), BLEN(buf), 80, &gc));
+        dmsg(D_PACKET_CONTENT, "DECRYPT FROM: %s", format_hex(BPTR(buf), BLENZ(buf), 80, &gc));
 
         /* Verify the HMAC */
         if (ctx->hmac)
@@ -690,7 +690,7 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
             }
 
             /* Buffer overflow check (should never happen) */
-            if (!buf_safe(&work, buf->len + cipher_ctx_block_size(ctx->cipher)))
+            if (!buf_safe(&work, BLENZ(buf) + cipher_ctx_block_size(ctx->cipher)))
             {
                 CRYPT_ERROR("packet too big to decrypt");
             }
@@ -709,7 +709,7 @@ openvpn_decrypt_v1(struct buffer *buf, struct buffer work, struct crypto_options
             }
             ASSERT(buf_inc_len(&work, outlen));
 
-            dmsg(D_PACKET_CONTENT, "DECRYPT TO: %s", format_hex(BPTR(&work), BLEN(&work), 80, &gc));
+            dmsg(D_PACKET_CONTENT, "DECRYPT TO: %s", format_hex(BPTR(&work), BLENZ(&work), 80, &gc));
 
             /* Get packet ID from plaintext buffer or IV, depending on cipher mode */
             {
@@ -851,7 +851,7 @@ unsigned int
 crypto_max_overhead(void)
 {
     return packet_id_size(true) + OPENVPN_MAX_IV_LENGTH + OPENVPN_MAX_CIPHER_BLOCK_SIZE
-           + max_int(OPENVPN_MAX_HMAC_SIZE, OPENVPN_AEAD_TAG_LENGTH);
+           + max_uint(OPENVPN_MAX_HMAC_SIZE, OPENVPN_AEAD_TAG_LENGTH);
 }
 
 static void
@@ -1362,7 +1362,7 @@ read_key_file(struct key2 *key2, const char *file, const unsigned int flags)
         size_t buf_size = strlen(file) + 1;
         ASSERT(buf_size <= INT_MAX);
         size = (int)buf_size;
-        buf_set_read(&in, (const uint8_t *)file, size);
+        buf_set_read(&in, (const uint8_t *)file, buf_size);
     }
     else /* 'file' is a filename which refers to a file containing the ascii key */
     {
@@ -1531,7 +1531,7 @@ write_key_file(const int nkeys, const char *filename)
     struct buffer out = alloc_buf_gc(2048, &gc);
 
     /* how to format the ascii file representation of key */
-    const int bytes_per_line = 16;
+    const unsigned int bytes_per_line = 16;
 
     /* write header */
     buf_printf(&out, "#\n# %d bit OpenVPN static key\n#\n", nbits);

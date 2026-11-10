@@ -36,11 +36,6 @@ static_assert(AUTH_TOKEN_SESSION_ID_LEN % 3 == 0, "AUTH_TOKEN_SESSION_ID_LEN mus
  * padding */
 static_assert(TOKEN_DATA_LEN % 3 == 0, "TOKEN_DATA_LEN is not a multiple of 3");
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 bool
 is_auth_token(const char *password)
 {
@@ -67,7 +62,7 @@ add_session_token_env(struct tls_session *session, struct tls_multi *multi,
         return;
     }
 
-    int auth_token_state_flags = session->key[KS_PRIMARY].auth_token_state_flags;
+    unsigned int auth_token_state_flags = session->key[KS_PRIMARY].auth_token_state_flags;
 
     const char *state;
 
@@ -188,7 +183,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
 {
     struct gc_arena gc = gc_new();
 
-    int64_t timestamp = htonll((uint64_t)now);
+    int64_t timestamp = (int64_t)htonll((uint64_t)now);
     int64_t initial_timestamp = timestamp;
 
     hmac_ctx_t *ctx = multi->opt.auth_token_key.hmac;
@@ -273,7 +268,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
         alloc_buf_gc(strlen(SESSION_ID_PREFIX) + strlen(b64output) + 1, &gc);
 
     ASSERT(buf_write(&session_token, SESSION_ID_PREFIX, strlen(SESSION_ID_PREFIX)));
-    ASSERT(buf_write(&session_token, b64output, (int)strlen(b64output)));
+    ASSERT(buf_write(&session_token, b64output, strlen(b64output)));
     ASSERT(buf_write_u8(&session_token, 0));
 
     free(b64output);
@@ -295,10 +290,6 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
 
     gc_free(&gc);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static bool
 check_hmac_token(hmac_ctx_t *ctx, const uint8_t *b64decoded, const char *username)

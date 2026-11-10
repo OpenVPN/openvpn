@@ -618,11 +618,6 @@ test_calc_session_id_hmac_static(void **ut_state)
     assert_memory_equal(server_id2_p1.id, server_id_p2.id, SID_SIZE);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 static void
 test_generate_reset_packet_plain(void **ut_state)
 {
@@ -700,10 +695,6 @@ test_generate_reset_packet_tls_auth(void **ut_state)
     free_tas(&tas_client);
     free_tas(&tas_server);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /* A peer can ask us to append the wrapped client key (WKc) to our next
  * control packet. Only a tls-crypt-v2 client has one, so check that we

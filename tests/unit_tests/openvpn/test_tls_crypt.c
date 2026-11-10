@@ -352,7 +352,7 @@ tls_crypt_loopback_max_len(void **state)
     skip_if_tls_crypt_not_supported(ctx);
 
     buf_clear(&ctx->source);
-    assert_non_null(buf_write_alloc(&ctx->source, TESTBUF_SIZE - BLEN(&ctx->ciphertext)
+    assert_non_null(buf_write_alloc(&ctx->source, TESTBUF_SIZE - BLENZ(&ctx->ciphertext)
                                                       - tls_crypt_buf_overhead()));
 
     assert_true(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
@@ -373,7 +373,7 @@ tls_crypt_fail_msg_too_long(void **state)
     skip_if_tls_crypt_not_supported(ctx);
 
     buf_clear(&ctx->source);
-    assert_non_null(buf_write_alloc(&ctx->source, TESTBUF_SIZE - BLEN(&ctx->ciphertext)
+    assert_non_null(buf_write_alloc(&ctx->source, TESTBUF_SIZE - BLENZ(&ctx->ciphertext)
                                                       - tls_crypt_buf_overhead() + 1));
     assert_false(tls_crypt_wrap(&ctx->source, &ctx->ciphertext, &ctx->co));
 }
@@ -553,7 +553,7 @@ tls_crypt_v2_wrap_unwrap_max_metadata(void **state)
     assert_false(tls_crypt_v2_extract_client_key(&ctx->wkc, &wrap_ctx, NULL));
 
     /* add a opcode in front of the key to make it valid to extract */
-    struct buffer wkcop = alloc_buf_gc(buf_len(&ctx->wkc) + 1, &ctx->gc);
+    struct buffer wkcop = alloc_buf_gc(BLENZ(&ctx->wkc) + 1, &ctx->gc);
     buf_write_u8(&wkcop, 0x50);
     buf_copy(&wkcop, &ctx->wkc);
     assert_true(tls_crypt_v2_extract_client_key(&wkcop, &wrap_ctx, NULL));
@@ -638,7 +638,7 @@ create_metadata_days_ago(struct gc_arena *gc, int days_ago)
     int64_t create_time = now - (days_ago * 24 * 60 * 60);
     assert_true(create_time > 0);
 
-    int64_t timestamp = htonll((uint64_t)create_time);
+    uint64_t timestamp = htonll((uint64_t)create_time);
     ASSERT(buf_write(&metadata, &TLS_CRYPT_METADATA_TYPE_TIMESTAMP, 1));
     ASSERT(buf_write(&metadata, &timestamp, sizeof(timestamp)));
 
@@ -660,7 +660,7 @@ create_client_key_input(struct test_tls_crypt_v2_context *ctx, int days_ago)
                                              &ctx->server_keys.encrypt, &ctx->gc));
 
     /* add a opcode in front of the key to make it valid to extract */
-    struct buffer pseudo_packet = alloc_buf_gc(buf_len(&ctx->wkc) + 1, &ctx->gc);
+    struct buffer pseudo_packet = alloc_buf_gc(BLENZ(&ctx->wkc) + 1, &ctx->gc);
 
     buf_write_u8(&pseudo_packet, 0x50);
     buf_copy(&pseudo_packet, &ctx->wkc);
@@ -745,7 +745,7 @@ tls_crypt_v2_unwrap_checks(void **state)
     struct buffer expected_metadata = create_metadata_days_ago(&ctx->gc, 29);
     buf_advance(&expected_metadata, 1);
 
-    expect_memory(__wrap_buffer_write_file, pem, buf_bptr(&expected_metadata), buf_len(&expected_metadata));
+    expect_memory(__wrap_buffer_write_file, pem, buf_bptr(&expected_metadata), BLENZ(&expected_metadata));
     will_return(__wrap_buffer_write_file, true);
 
     tmp = create_client_key_input(ctx, 29);
@@ -760,7 +760,7 @@ tls_crypt_v2_unwrap_checks(void **state)
     }
 
     expect_string(__wrap_buffer_write_file, filename, tmpfile_path);
-    expect_memory(__wrap_buffer_write_file, pem, buf_bptr(&expected_metadata), buf_len(&expected_metadata));
+    expect_memory(__wrap_buffer_write_file, pem, buf_bptr(&expected_metadata), BLENZ(&expected_metadata));
     will_return(__wrap_buffer_write_file, true);
 
     tmp = create_client_key_input(ctx, 29);

@@ -1119,7 +1119,7 @@ key_state_write_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
         return 0;
     }
 
-    retval = endless_buf_write(&ks->bio_ctx->in, BPTR(buf), buf->len);
+    retval = endless_buf_write(&ks->bio_ctx->in, BPTR(buf), BLENZ(buf));
 
     if (retval < 0)
     {

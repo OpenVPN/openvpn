@@ -40,22 +40,13 @@ net__iface_del(const char *name)
     return net_iface_del(NULL, name);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 static int
-net__iface_mtu_set(int mtu)
+net__iface_mtu_set(uint32_t mtu)
 {
-    printf("CMD: ip link set %s mtu %d\n", iface, mtu);
+    printf("CMD: ip link set %s mtu %u\n", iface, mtu);
 
     return net_iface_mtu_set(NULL, iface, mtu);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static int
 net__addr_v4_add(const char *addr_str, int prefixlen)

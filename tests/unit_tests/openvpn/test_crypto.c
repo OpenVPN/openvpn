@@ -52,11 +52,6 @@
 
 static const char testtext[] = "Dummy text to test PEM encoding";
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 static void
 crypto_pem_encode_decode_loopback(void **state)
 {
@@ -438,14 +433,14 @@ crypto_test_aead_limits(void **state)
      * current mode (FIPS), this will still return -1 */
     assert_int_equal(cipher_get_aead_limits("CHACHA20-POLY1305"), 0);
 
-    int64_t aeslimit = cipher_get_aead_limits("AES-128-GCM");
+    uint64_t aeslimit = cipher_get_aead_limits("AES-128-GCM");
 
     assert_int_equal(aeslimit, (1ull << 36) - 1);
 
     /* Check if this matches our exception for 1600 size packets assuming
      * AEAD_LIMIT_BLOCKSIZE (128 bits/ 16 bytes). Gives us 100 blocks
      * + 1 for the packet */
-    int64_t L = 101;
+    uint64_t L = 101;
     /* 2 ^ 29.34, using the result here to avoid linking to libm */
     assert_int_equal(aeslimit / L, 680390858);
 
@@ -491,7 +486,7 @@ crypto_test_hkdf_expand_testa2(void **state)
                          0xec, 0xed, 0xee, 0xef, 0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
                          0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff };
 
-    const int L = 82;
+    const size_t L = 82;
     uint8_t okm[82] = { 0xb1, 0x1e, 0x39, 0x8d, 0xc8, 0x03, 0x27, 0xa1, 0xc8, 0xe7, 0xf7, 0x8c,
                         0x59, 0x6a, 0x49, 0x34, 0x4f, 0x01, 0x2e, 0xda, 0x2d, 0x4e, 0xfa, 0xd8,
                         0xa0, 0x50, 0xcc, 0x4c, 0x19, 0xaf, 0xa9, 0x7c, 0x59, 0x04, 0x5a, 0x99,
@@ -516,7 +511,7 @@ crypto_test_hkdf_expand_testa3(void **state)
 
     const uint8_t info[] = { 0 };
 
-    int L = 42;
+    const size_t L = 42;
     uint8_t okm[42] = { 0x8d, 0xa4, 0xe7, 0x75, 0xa5, 0x63, 0xc1, 0x8f, 0x71, 0x5f, 0x80,
                         0x2a, 0x06, 0x3c, 0x5a, 0x31, 0xb8, 0xa1, 0x1f, 0x5c, 0x5e, 0xe1,
                         0x87, 0x9e, 0xc3, 0x45, 0x4e, 0x5f, 0x3c, 0x73, 0x8d, 0x2d, 0x9d,
@@ -541,7 +536,7 @@ crypto_test_hkdf_expand_test_ovpn(void **state)
     uint8_t info[18] = { 0x00, 0x1b, 0x0e, 0x6f, 0x76, 0x70, 0x6e, 0x20, 0x75,
                          0x6e, 0x69, 0x74, 0x20, 0x74, 0x65, 0x73, 0x74, 0x00 };
 
-    int L = 27;
+    const size_t L = 27;
     uint8_t okm[27] = { 0x87, 0x5a, 0x8e, 0xec, 0x18, 0x55, 0x63, 0x80, 0xb8,
                         0xd9, 0x33, 0xed, 0x32, 0x3c, 0x2d, 0xf8, 0xe8, 0xec,
                         0xcf, 0x49, 0x72, 0xe6, 0x83, 0xf0, 0x6a, 0x83, 0xac };
@@ -753,7 +748,7 @@ crypto_test_epoch_key_receive_lookup(void **state)
 
     /* lookup some wacky things that should fail */
     assert_null(epoch_lookup_decrypt_key(co, 2000));
-    assert_null(epoch_lookup_decrypt_key(co, -1));
+    assert_null(epoch_lookup_decrypt_key(co, UINT16_MAX));
     assert_null(epoch_lookup_decrypt_key(co, 0xefff));
 
     /* Lookup the edges of the current window */
@@ -803,10 +798,6 @@ crypto_test_epoch_key_receive_lookup(void **state)
     assert_null(epoch_lookup_decrypt_key(co, 22));
     assert_null(epoch_lookup_decrypt_key(co, 23));
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 crypto_test_epoch_key_overflow(void **state)

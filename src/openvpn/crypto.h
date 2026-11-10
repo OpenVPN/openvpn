@@ -746,12 +746,12 @@ bool check_tls_prf_working(void);
  * to read.
  */
 static inline bool
-aead_usage_limit_reached(const uint64_t limit, const struct key_ctx *key_ctx, int64_t higest_pid)
+aead_usage_limit_reached(const uint64_t limit, const struct key_ctx *key_ctx, uint64_t higest_pid)
 {
     /* This is the  q + s <=  p^(1/2) * 2^(129/2) - 1 calculation where
      * q is the number of protected messages (highest_pid)
      * s Total plaintext length in all messages (in blocks) */
-    return (limit > 0 && key_ctx->plaintext_blocks + (uint64_t)higest_pid > limit);
+    return (limit > 0 && key_ctx->plaintext_blocks + higest_pid > limit);
 }
 
 #endif /* CRYPTO_H */

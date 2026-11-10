@@ -2758,7 +2758,7 @@ man_settings_init(struct man_settings *ms, const char *addr, const char *port,
             else
             {
                 int status;
-                int resolve_flags = GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL;
+                unsigned int resolve_flags = GETADDR_RESOLVE | GETADDR_WARN_ON_SIGNAL | GETADDR_FATAL;
 
                 if (!(flags & MF_CONNECT_AS_CLIENT))
                 {
@@ -4001,11 +4001,11 @@ management_query_pk_sig(struct management *man, const char *b64_data, const char
         desc = "rsa-sign";
     }
 
-    buf_write(&buf_data, b64_data, (int)strlen(b64_data));
+    buf_write(&buf_data, b64_data, strlen(b64_data));
     if (man->connection.client_version >= MCV_PKSIGN_ALG)
     {
-        buf_write(&buf_data, ",", (int)strlen(","));
-        buf_write(&buf_data, algorithm, (int)strlen(algorithm));
+        buf_write(&buf_data, ",", strlen(","));
+        buf_write(&buf_data, algorithm, strlen(algorithm));
     }
     char *ret = management_query_multiline_flatten(man, (char *)buf_bptr(&buf_data), prompt, desc,
                                                    &man->connection.ext_key_state,

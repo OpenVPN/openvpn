@@ -98,7 +98,7 @@ ovpn_expand_label(const uint8_t *secret, size_t secret_len, const uint8_t *label
     const uint8_t *label_prefix = (const uint8_t *)("ovpn ");
     uint8_t prefix_len = 5;
 
-    size_t hkdf_label_len = 2 + prefix_len + 1 + label_len + 1 + context_len;
+    size_t hkdf_label_len = 2u + prefix_len + 1u + label_len + 1u + context_len;
     struct buffer hkdf_label = alloc_buf_gc(hkdf_label_len, &gc);
 
     buf_write_u16(&hkdf_label, (uint16_t)out_len);
