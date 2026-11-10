@@ -872,7 +872,7 @@ const char *skip_leading_whitespace(const char *str);
  * @param capacity  Total size of the character buffer in bytes.
  */
 #ifdef _WIN32
-void string_null_terminate(char *str, int len, int capacity);
+void string_null_terminate(char *str, size_t len, size_t capacity);
 #endif
 /**@}*/
 /* End of string utility functions */

@@ -41,11 +41,6 @@
 #include <termios.h>
 #endif
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 #ifdef _WIN32
 
 #include "win32.h"
@@ -62,11 +57,11 @@
  *         exit event is signaled.
  */
 static bool
-get_console_input_win32(const char *prompt, const bool echo, char *input, const int capacity)
+get_console_input_win32(const char *prompt, const bool echo, char *input, const size_t capacity)
 {
     ASSERT(prompt);
     ASSERT(input);
-    ASSERT(capacity > 0);
+    ASSERT(capacity > 0 && capacity < INT_MAX);
 
     input[0] = '\0';
 
@@ -110,16 +105,16 @@ get_console_input_win32(const char *prompt, const bool echo, char *input, const 
             return false;
         }
 
-        status = ReadConsoleW(in, winput, capacity, &len, NULL);
-        WideCharToMultiByte(CP_UTF8, 0, winput, len, input, capacity, NULL, NULL);
+        status = ReadConsoleW(in, winput, (DWORD)capacity, &len, NULL);
+        WideCharToMultiByte(CP_UTF8, 0, winput, (int)len, input, (int)capacity, NULL, NULL);
         free(winput);
     }
     else
     {
-        status = ReadFile(in, input, capacity, &len, NULL);
+        status = ReadFile(in, input, (DWORD)capacity, &len, NULL);
     }
 
-    string_null_terminate(input, (int)len, capacity);
+    string_null_terminate(input, len, capacity);
     chomp(input);
 
     if (!echo)
@@ -191,11 +186,11 @@ close_tty(FILE *fp)
  *  @returns Returns True if user input was gathered
  */
 static bool
-get_console_input(const char *prompt, const bool echo, char *input, const int capacity)
+get_console_input(const char *prompt, const bool echo, char *input, const size_t capacity)
 {
     ASSERT(prompt);
     ASSERT(input);
-    ASSERT(capacity > 0);
+    ASSERT(capacity > 0 && capacity <= INT_MAX);
     input[0] = '\0';
 
 #ifdef _WIN32
@@ -238,7 +233,7 @@ get_console_input(const char *prompt, const bool echo, char *input, const int ca
         restore_tty = (tcsetattr(fileno(fp), TCSAFLUSH, &tty_tmp) == 0);
     }
 
-    if (fgets(input, capacity, fp) != NULL)
+    if (fgets(input, (int)capacity, fp) != NULL)
     {
         chomp(input);
         ret = true;
@@ -294,7 +289,3 @@ query_user_exec_builtin(void)
 
     return ret;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif

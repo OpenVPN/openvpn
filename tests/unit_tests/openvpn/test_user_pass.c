@@ -47,11 +47,6 @@ query_user_exec_systemd(void)
 }
 #endif
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 bool
 query_user_exec_builtin(void)
 {
@@ -64,10 +59,6 @@ query_user_exec_builtin(void)
 
     return mock();
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 management_auth_failure(const struct management *man, const char *type, const char *reason)

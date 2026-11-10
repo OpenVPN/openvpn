@@ -576,9 +576,9 @@ skip_leading_whitespace(const char *str)
  * like buf_null_terminate, but operate on strings
  */
 void
-string_null_terminate(char *str, int len, int capacity)
+string_null_terminate(char *str, size_t len, size_t capacity)
 {
-    ASSERT(len >= 0 && len <= capacity && capacity > 0);
+    ASSERT(len <= capacity && capacity > 0);
     if (len < capacity)
     {
         *(str + len) = '\0';

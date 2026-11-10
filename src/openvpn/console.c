@@ -53,7 +53,7 @@ query_user_clear(void)
 
 
 void
-query_user_add(char *prompt, char *resp, int resp_len, bool echo)
+query_user_add(char *prompt, char *resp, size_t resp_len, bool echo)
 {
     int i;
 
