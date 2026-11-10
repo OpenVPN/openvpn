@@ -699,6 +699,13 @@ verify_cert(struct tls_session *session, openvpn_x509_cert_t *cert, int cert_dep
                 goto cleanup;
         }
 
+        if (BLEN(&cert_fp) == 0)
+        {
+            msg(D_TLS_ERRORS, "TLS Error: cannot compute the certificate fingerprint for "
+                              "--verify-hash/--peer-fingerprint");
+            goto cleanup;
+        }
+
         struct verify_hash_list *current_hash = opt->verify_hash;
 
         while (current_hash)
