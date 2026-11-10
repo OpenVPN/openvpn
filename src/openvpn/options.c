@@ -1062,6 +1062,7 @@ setenv_foreign_option(struct options *o, const char *option, const char *value, 
     gc_free(&gc);
 }
 
+#if !defined(TARGET_ANDROID)
 static void
 delete_all_dhcp_fo(struct options *o, struct env_item **list)
 {
@@ -1094,6 +1095,7 @@ delete_all_dhcp_fo(struct options *o, struct env_item **list)
         prev = current;
     }
 }
+#endif /* if !defined(TARGET_ANDROID) */
 
 #endif /* ifndef _WIN32 */
 
@@ -5099,12 +5101,107 @@ msglevel_forward_compatible(struct options *options, const msglvl_t msglevel)
     return options->forward_compatible ? M_WARN : msglevel;
 }
 
-#define RESET_OPTION_ROUTES(option_ptr, field) \
-    if (option_ptr)                            \
-    {                                          \
-        option_ptr->field = NULL;              \
-        option_ptr->flags = 0;                 \
+/* Return M_WARN for an unknown option listed in --ignore-unknown-option */
+static msglvl_t
+msglevel_unknown_option(const struct options *options, const char *name, const msglvl_t msglevel)
+{
+    for (int i = 0; options->ignore_unknown_option && options->ignore_unknown_option[i]; i++)
+    {
+        if (streq(name, options->ignore_unknown_option[i]))
+        {
+            return M_WARN;
+        }
     }
+    return msglevel;
+}
+
+/* If IPv4 routes were installed, delete them and forget the configured ones */
+static void
+reset_routes_v4(struct context *c, struct options *options, const struct env_set *es)
+{
+    if (c->c1.route_list)
+    {
+        delete_routes_v4(c->c1.route_list, c->c1.tuntap, ROUTE_OPTION_FLAGS(&c->options), es,
+                         &c->net_ctx);
+        if (options->routes)
+        {
+            options->routes->routes = NULL;
+            options->routes->flags = 0;
+        }
+    }
+}
+
+/* If IPv6 routes were installed, delete them and forget the configured ones */
+static void
+reset_routes_v6(struct context *c, struct options *options, const struct env_set *es)
+{
+    if (c->c1.route_ipv6_list)
+    {
+        delete_routes_v6(c->c1.route_ipv6_list, c->c1.tuntap, ROUTE_OPTION_FLAGS(&c->options),
+                         es, &c->net_ctx);
+        if (options->routes_ipv6)
+        {
+            options->routes_ipv6->routes_ipv6 = NULL;
+            options->routes_ipv6->flags = 0;
+        }
+    }
+}
+
+static void
+reset_redirect_gateway(struct options *options, struct env_set *es)
+{
+    if (options->routes)
+    {
+        options->routes->flags = 0;
+    }
+    if (options->routes_ipv6)
+    {
+        options->routes_ipv6->flags = 0;
+    }
+    env_set_del(es, "route_redirect_gateway_ipv4");
+    env_set_del(es, "route_redirect_gateway_ipv6");
+}
+
+static void
+reset_dns_options(struct options *options)
+{
+    gc_free(&options->dns_options.gc);
+    CLEAR(options->dns_options);
+}
+
+static void
+reset_dhcp_options(struct options *options, struct env_set *es)
+{
+#if defined(_WIN32) || defined(TARGET_ANDROID)
+    struct tuntap_options *o = &options->tuntap_options;
+
+    o->domain = NULL;
+    o->netbios_scope = NULL;
+    o->netbios_node_type = 0;
+    o->dns6_len = 0;
+    CLEAR(o->dns6);
+    o->dns_len = 0;
+    CLEAR(o->dns);
+    o->wins_len = 0;
+    CLEAR(o->wins);
+    o->ntp_len = 0;
+    CLEAR(o->ntp);
+    o->nbdd_len = 0;
+    CLEAR(o->nbdd);
+    o->domain_search_list_len = 0;
+    CLEAR(o->domain_search_list);
+    o->disable_nbt = 0;
+    o->dhcp_options = 0;
+    CLEAR(options->dns_options.from_dhcp);
+
+#if defined(TARGET_ANDROID)
+    o->http_proxy_port = 0;
+    o->http_proxy = NULL;
+#endif
+#else  /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+    delete_all_dhcp_fo(options, &es->list);
+#endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
+}
 
 void
 remove_option(struct context *c, struct options *options, char *p[], bool is_inline,
@@ -5130,22 +5227,12 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
     else if (streq(p[0], "route") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_ROUTE);
-        if (c->c1.route_list)
-        {
-            delete_routes_v4(c->c1.route_list, c->c1.tuntap, ROUTE_OPTION_FLAGS(&c->options), es,
-                             &c->net_ctx);
-            RESET_OPTION_ROUTES(options->routes, routes);
-        }
+        reset_routes_v4(c, options, es);
     }
     else if (streq(p[0], "route-ipv6") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_ROUTE);
-        if (c->c1.route_ipv6_list)
-        {
-            delete_routes_v6(c->c1.route_ipv6_list, c->c1.tuntap, ROUTE_OPTION_FLAGS(&c->options),
-                             es, &c->net_ctx);
-            RESET_OPTION_ROUTES(options->routes_ipv6, routes_ipv6);
-        }
+        reset_routes_v6(c, options, es);
     }
     else if (streq(p[0], "route-gateway") && !p[1])
     {
@@ -5166,22 +5253,12 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
     else if ((streq(p[0], "redirect-gateway") || streq(p[0], "redirect-private")) && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_ROUTE);
-        if (options->routes)
-        {
-            options->routes->flags = 0;
-        }
-        if (options->routes_ipv6)
-        {
-            options->routes_ipv6->flags = 0;
-        }
-        env_set_del(es, "route_redirect_gateway_ipv4");
-        env_set_del(es, "route_redirect_gateway_ipv6");
+        reset_redirect_gateway(options, es);
     }
     else if (streq(p[0], "dns") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        gc_free(&options->dns_options.gc);
-        CLEAR(options->dns_options);
+        reset_dns_options(options);
     }
     else if (streq(p[0], "topology") && !p[1])
     {
@@ -5201,64 +5278,21 @@ remove_option(struct context *c, struct options *options, char *p[], bool is_inl
         VERIFY_PERMISSION(OPT_P_ROUTE);
         options->block_ipv6 = false;
     }
-#if defined(_WIN32) || defined(TARGET_ANDROID)
     else if (streq(p[0], "dhcp-option") && !p[1])
     {
-        struct tuntap_options *o = &options->tuntap_options;
         VERIFY_PERMISSION(OPT_P_DHCPDNS);
-
-        o->domain = NULL;
-        o->netbios_scope = NULL;
-        o->netbios_node_type = 0;
-        o->dns6_len = 0;
-        memset(o->dns6, 0, sizeof(o->dns6));
-        o->dns_len = 0;
-        memset(o->dns, 0, sizeof(o->dns));
-        o->wins_len = 0;
-        memset(o->wins, 0, sizeof(o->wins));
-        o->ntp_len = 0;
-        memset(o->ntp, 0, sizeof(o->ntp));
-        o->nbdd_len = 0;
-        memset(o->nbdd, 0, sizeof(o->nbdd));
-        o->domain_search_list_len = 0;
-        CLEAR(o->domain_search_list);
-        o->disable_nbt = 0;
-        o->dhcp_options = 0;
-        CLEAR(options->dns_options.from_dhcp);
-
-#if defined(TARGET_ANDROID)
-        o->http_proxy_port = 0;
-        o->http_proxy = NULL;
-#endif
+        reset_dhcp_options(options, es);
     }
-#endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
 #ifdef _WIN32
     else if (streq(p[0], "block-outside-dns") && !p[1])
     {
         VERIFY_PERMISSION(OPT_P_DHCPDNS);
         options->block_outside_dns = false;
     }
-#else /* ifdef _WIN32 */
-    else if (streq(p[0], "dhcp-option") && !p[1])
-    {
-        VERIFY_PERMISSION(OPT_P_DHCPDNS);
-        delete_all_dhcp_fo(options, &es->list);
-    }
 #endif
     else
     {
-        msglvl_t msglevel_unknown = msglevel_fc;
-        /* Check if an option is in --ignore-unknown-option and
-         * set warning level to non fatal */
-        for (int i = 0; options->ignore_unknown_option && options->ignore_unknown_option[i]; i++)
-        {
-            if (streq(p[0], options->ignore_unknown_option[i]))
-            {
-                msglevel_unknown = M_WARN;
-                break;
-            }
-        }
-        msg(msglevel_unknown,
+        msg(msglevel_unknown_option(options, p[0], msglevel_fc),
             "Unrecognized option or missing or extra parameter(s) in %s:%d: -%s (%s)", file, line,
             p[0], PACKAGE_VERSION);
     }
@@ -5444,12 +5478,7 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             {
                 goto err;
             }
-            if (c->c1.route_list)
-            {
-                delete_routes_v4(c->c1.route_list, c->c1.tuntap, ROUTE_OPTION_FLAGS(&c->options),
-                                 es, &c->net_ctx);
-                RESET_OPTION_ROUTES(options->routes, routes);
-            }
+            reset_routes_v4(c, options, es);
             options->push_update_options_found |= OPT_P_U_ROUTE;
         }
     }
@@ -5462,12 +5491,7 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             {
                 goto err;
             }
-            if (c->c1.route_ipv6_list)
-            {
-                delete_routes_v6(c->c1.route_ipv6_list, c->c1.tuntap,
-                                 ROUTE_OPTION_FLAGS(&c->options), es, &c->net_ctx);
-                RESET_OPTION_ROUTES(options->routes_ipv6, routes_ipv6);
-            }
+            reset_routes_v6(c, options, es);
             options->push_update_options_found |= OPT_P_U_ROUTE6;
         }
     }
@@ -5476,16 +5500,7 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
         if (!(options->push_update_options_found & OPT_P_U_REDIR_GATEWAY))
         {
             VERIFY_PERMISSION(OPT_P_ROUTE);
-            if (options->routes)
-            {
-                options->routes->flags = 0;
-            }
-            if (options->routes_ipv6)
-            {
-                options->routes_ipv6->flags = 0;
-            }
-            env_set_del(es, "route_redirect_gateway_ipv4");
-            env_set_del(es, "route_redirect_gateway_ipv6");
+            reset_redirect_gateway(options, es);
             options->push_update_options_found |= OPT_P_U_REDIR_GATEWAY;
         }
     }
@@ -5498,56 +5513,19 @@ update_option(struct context *c, struct options *options, char *p[], bool is_inl
             {
                 goto err;
             }
-            gc_free(&options->dns_options.gc);
-            CLEAR(options->dns_options);
+            reset_dns_options(options);
             options->push_update_options_found |= OPT_P_U_DNS;
         }
     }
-#if defined(_WIN32) || defined(TARGET_ANDROID)
-    else if (streq(p[0], "dhcp-option") && p[1] && !p[3])
-    {
-        if (!(options->push_update_options_found & OPT_P_U_DHCP))
-        {
-            struct tuntap_options *o = &options->tuntap_options;
-            VERIFY_PERMISSION(OPT_P_DHCPDNS);
-
-            o->domain = NULL;
-            o->netbios_scope = NULL;
-            o->netbios_node_type = 0;
-            o->dns6_len = 0;
-            CLEAR(o->dns6);
-            o->dns_len = 0;
-            CLEAR(o->dns);
-            o->wins_len = 0;
-            CLEAR(o->wins);
-            o->ntp_len = 0;
-            CLEAR(o->ntp);
-            o->nbdd_len = 0;
-            CLEAR(o->nbdd);
-            o->domain_search_list_len = 0;
-            CLEAR(o->domain_search_list);
-            o->disable_nbt = 0;
-            o->dhcp_options = 0;
-
-            CLEAR(options->dns_options.from_dhcp);
-#if defined(TARGET_ANDROID)
-            o->http_proxy_port = 0;
-            o->http_proxy = NULL;
-#endif
-            options->push_update_options_found |= OPT_P_U_DHCP;
-        }
-    }
-#else  /* if defined(_WIN32) || defined(TARGET_ANDROID) */
     else if (streq(p[0], "dhcp-option") && p[1] && !p[3])
     {
         if (!(options->push_update_options_found & OPT_P_U_DHCP))
         {
             VERIFY_PERMISSION(OPT_P_DHCPDNS);
-            delete_all_dhcp_fo(options, &es->list);
+            reset_dhcp_options(options, es);
             options->push_update_options_found |= OPT_P_U_DHCP;
         }
     }
-#endif /* if defined(_WIN32) || defined(TARGET_ANDROID) */
     add_option(options, p, is_inline, file, line, level, msglevel, permission_mask,
                option_types_found, es);
     return;
@@ -9323,18 +9301,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else
     {
-        int i;
-        msglvl_t msglevel_unknown = msglevel_fc;
-        /* Check if an option is in --ignore-unknown-option and
-         * set warning level to non fatal */
-        for (i = 0; options->ignore_unknown_option && options->ignore_unknown_option[i]; i++)
-        {
-            if (streq(p[0], options->ignore_unknown_option[i]))
-            {
-                msglevel_unknown = M_WARN;
-                break;
-            }
-        }
+        const msglvl_t msglevel_unknown = msglevel_unknown_option(options, p[0], msglevel_fc);
         if (file)
         {
             msg(msglevel_unknown,
