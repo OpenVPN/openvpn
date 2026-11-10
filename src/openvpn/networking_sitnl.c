@@ -621,9 +621,11 @@ int
 net_route_v6_best_gw(openvpn_net_ctx_t *ctx, const struct in6_addr *dst, struct in6_addr *best_gw,
                      char *best_iface)
 {
-    inet_address_t dst_v6 = { 0 };
+    inet_address_t dst_v6;
     char buf[INET6_ADDRSTRLEN];
     int ret;
+
+    CLEAR(dst_v6);
 
     if (dst)
     {
@@ -649,9 +651,11 @@ int
 net_route_v4_best_gw(openvpn_net_ctx_t *ctx, const in_addr_t *dst, in_addr_t *best_gw,
                      char *best_iface)
 {
-    inet_address_t dst_v4 = { 0 };
+    inet_address_t dst_v4;
     char buf[INET_ADDRSTRLEN];
     int ret;
+
+    CLEAR(dst_v4);
 
     if (dst)
     {
@@ -1049,8 +1053,10 @@ sitnl_addr_del(sa_family_t af_family, const char *iface, inet_address_t *addr, i
 int
 net_addr_v4_add(openvpn_net_ctx_t *ctx, const char *iface, const in_addr_t *addr, int prefixlen)
 {
-    inet_address_t addr_v4 = { 0 };
+    inet_address_t addr_v4;
     char buf[INET_ADDRSTRLEN];
+
+    CLEAR(addr_v4);
 
     if (!addr)
     {
@@ -1069,8 +1075,10 @@ int
 net_addr_v6_add(openvpn_net_ctx_t *ctx, const char *iface, const struct in6_addr *addr,
                 int prefixlen)
 {
-    inet_address_t addr_v6 = { 0 };
+    inet_address_t addr_v6;
     char buf[INET6_ADDRSTRLEN];
+
+    CLEAR(addr_v6);
 
     if (!addr)
     {
@@ -1088,8 +1096,10 @@ net_addr_v6_add(openvpn_net_ctx_t *ctx, const char *iface, const struct in6_addr
 int
 net_addr_v4_del(openvpn_net_ctx_t *ctx, const char *iface, const in_addr_t *addr, int prefixlen)
 {
-    inet_address_t addr_v4 = { 0 };
+    inet_address_t addr_v4;
     char buf[INET_ADDRSTRLEN];
+
+    CLEAR(addr_v4);
 
     if (!addr)
     {
@@ -1108,8 +1118,10 @@ int
 net_addr_v6_del(openvpn_net_ctx_t *ctx, const char *iface, const struct in6_addr *addr,
                 int prefixlen)
 {
-    inet_address_t addr_v6 = { 0 };
+    inet_address_t addr_v6;
     char buf[INET6_ADDRSTRLEN];
+
+    CLEAR(addr_v6);
 
     if (!addr)
     {
@@ -1128,10 +1140,13 @@ int
 net_addr_ptp_v4_add(openvpn_net_ctx_t *ctx, const char *iface, const in_addr_t *local,
                     const in_addr_t *remote)
 {
-    inet_address_t local_v4 = { 0 };
-    inet_address_t remote_v4 = { 0 };
+    inet_address_t local_v4;
+    inet_address_t remote_v4;
     char buf1[INET_ADDRSTRLEN];
     char buf2[INET_ADDRSTRLEN];
+
+    CLEAR(local_v4);
+    CLEAR(remote_v4);
 
     if (!local)
     {
@@ -1156,9 +1171,10 @@ int
 net_addr_ptp_v4_del(openvpn_net_ctx_t *ctx, const char *iface, const in_addr_t *local,
                     const in_addr_t *remote)
 {
-    inet_address_t local_v4 = { 0 };
+    inet_address_t local_v4;
     char buf[INET6_ADDRSTRLEN];
 
+    CLEAR(local_v4);
 
     if (!local)
     {
@@ -1236,10 +1252,13 @@ int
 net_route_v6_add(openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixlen,
                  const struct in6_addr *gw, const char *iface, uint32_t table, int metric)
 {
-    inet_address_t dst_v6 = { 0 };
-    inet_address_t gw_v6 = { 0 };
+    inet_address_t dst_v6;
+    inet_address_t gw_v6;
     char dst_str[INET6_ADDRSTRLEN];
     char gw_str[INET6_ADDRSTRLEN];
+
+    CLEAR(dst_v6);
+    CLEAR(gw_v6);
 
     if (dst)
     {
@@ -1287,10 +1306,13 @@ int
 net_route_v4_del(openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen, const in_addr_t *gw,
                  const char *iface, uint32_t table, int metric)
 {
-    inet_address_t dst_v4 = { 0 };
-    inet_address_t gw_v4 = { 0 };
+    inet_address_t dst_v4;
+    inet_address_t gw_v4;
     char dst_str[INET_ADDRSTRLEN];
     char gw_str[INET_ADDRSTRLEN];
+
+    CLEAR(dst_v4);
+    CLEAR(gw_v4);
 
     if (dst)
     {
@@ -1313,10 +1335,13 @@ int
 net_route_v6_del(openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixlen,
                  const struct in6_addr *gw, const char *iface, uint32_t table, int metric)
 {
-    inet_address_t dst_v6 = { 0 };
-    inet_address_t gw_v6 = { 0 };
+    inet_address_t dst_v6;
+    inet_address_t gw_v6;
     char dst_str[INET6_ADDRSTRLEN];
     char gw_str[INET6_ADDRSTRLEN];
+
+    CLEAR(dst_v6);
+    CLEAR(gw_v6);
 
     if (dst)
     {
