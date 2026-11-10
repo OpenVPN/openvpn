@@ -1068,7 +1068,7 @@ buf_forward_capacity(const struct buffer *buf)
  *
  * @return Capacity minus offset, or 0 if \c buf is invalid.
  */
-static inline int
+static inline size_t
 buf_forward_capacity_total(const struct buffer *buf)
 {
     if (buf_valid(buf))
@@ -1078,7 +1078,7 @@ buf_forward_capacity_total(const struct buffer *buf)
         {
             ret = 0;
         }
-        return ret;
+        return (size_t)ret;
     }
     else
     {

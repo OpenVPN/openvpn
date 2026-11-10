@@ -275,7 +275,7 @@ buf_catrunc(struct buffer *buf, const char *str)
     if (buf_forward_capacity(buf) <= 1)
     {
         size_t len = strlen(str) + 1;
-        if (buf_size_valid(len) && (int)len < buf_forward_capacity_total(buf))
+        if (buf_size_valid(len) && len < buf_forward_capacity_total(buf))
         {
             memcpy(buf->data + buf->capacity - len, str, len);
         }
