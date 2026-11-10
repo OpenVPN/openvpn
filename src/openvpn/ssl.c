@@ -3881,6 +3881,21 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
                 goto error;
             }
 
+            /*
+             * Do not allow incoming renegotiation unless our primary key is
+             * fully authenticated and past the deferred-auth/transition gate.
+             */
+            time_t auth_deferred_left = ks->auth_deferred_expire - now;
+            if (ks->authenticated != KS_AUTH_TRUE || auth_deferred_left > 0)
+            {
+                msg(D_TLS_ERRORS,
+                    "TLS: refusing premature incoming renegotiation request for key-id %d: "
+                    "auth=%s, auth_deferred_expire in %d seconds",
+                    ks->key_id, ks_auth_name(ks->authenticated),
+                    auth_deferred_left > 0 ? (int)auth_deferred_left : 0);
+                goto done;
+            }
+
             key_state_soft_reset(session, NULL);
 
             dmsg(D_TLS_DEBUG, "TLS: received P_CONTROL_SOFT_RESET_V1 s=%d sid=%s", i,
