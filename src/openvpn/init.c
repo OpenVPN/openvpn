@@ -4737,9 +4737,6 @@ inherit_context_child(struct context *dest, const struct context *src, struct li
     dest->c1.ks.tls_wrap_key = src->c1.ks.tls_wrap_key;
     dest->c1.ks.tls_auth_key_type = src->c1.ks.tls_auth_key_type;
     dest->c1.ks.tls_crypt_v2_server_key = src->c1.ks.tls_crypt_v2_server_key;
-    /* inherit pre-NCP ciphers */
-    dest->options.ciphername = src->options.ciphername;
-    dest->options.authname = src->options.authname;
 
     /* inherit auth-token */
     dest->c1.ks.auth_token_key = src->c1.ks.auth_token_key;
@@ -4796,10 +4793,6 @@ inherit_context_child(struct context *dest, const struct context *src, struct li
     }
 
     init_instance(dest, src->c2.es, CC_NO_CLOSE | CC_USR1_TO_HUP);
-    if (IS_SIG(dest))
-    {
-        return;
-    }
 }
 
 void
