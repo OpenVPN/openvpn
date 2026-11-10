@@ -48,10 +48,8 @@ platforms.
 OpenVPN is tightly bound to the OpenSSL library, and derives much of its
 crypto capabilities from it.
 
-OpenVPN supports conventional encryption using a pre-shared secret key
-**(Static Key mode)** or public key security **(SSL/TLS mode)** using
-client & server certificates. OpenVPN also supports non-encrypted
-TCP/UDP tunnels.
+OpenVPN supports conventional encryption using public key security
+with TLS **(SSL/TLS mode)** using client & server certificates.
 
 OpenVPN is designed to work with the **TUN/TAP** virtual networking
 interface that exists on most platforms.

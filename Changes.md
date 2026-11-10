@@ -23,6 +23,13 @@
   the characters mentioned above were already escaped. However, the behavior of
   Mbed TLS is slightly different from OpenSSL in that it also escapes "=".
 
+* **`secret` has been removed**
+
+  Static key mode (non-TLS) is no longer considered "good and secure enough" for
+  today's requirements. Use TLS mode instead. If deploying a PKI CA is considered
+  "too complicated", using `--peer-fingerprint` makes TLS mode about as easy as
+  using `--secret`.
+
 ## Maintainer-visible changes
 
 - The configure-time option `--enable-debug` is no longer  available

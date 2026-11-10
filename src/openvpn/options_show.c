@@ -491,7 +491,6 @@ show_settings(const struct options *o)
     }
 #endif
 
-    SHOW_STR_INLINE(shared_secret_file);
     SHOW_PARM(key_direction, keydirection2ascii(o->key_direction, false, true), "%s");
     SHOW_STR(ciphername);
     SHOW_STR(ncp_ciphers);

@@ -58,16 +58,12 @@
  * <tt>[ * xxx * ]</tt> = encrypted and authenticated
  *
  * @par
- * <b>CBC data channel cypto format</b> \n
- * In CBC mode, both TLS-mode and static key mode are supported. The IV
- * consists of random bits to provide unpredictable IVs. \n
+ * <b>CBC data channel crypto format</b> \n
+ * The IV consists of random bits to provide unpredictable IVs. \n
  * <i>CBC IV format:</i> \n
  * <tt> [ - random - ] </tt> \n
- * <i>CBC data channel crypto format in TLS-mode:</i> \n
+ * <i>CBC data channel crypto format:</i> \n
  * <tt> [ HMAC ] [ - IV - ] [ * packet ID * ] [ * packet payload * ] </tt> \n
- * <i>CBC data channel crypto format in static key mode:</i> \n
- * <tt> [ HMAC ] [ - IV - ] [ * packet ID * ] [ * timestamp * ]
- * [ * packet payload * ] </tt>
  *
  * @par
  * <b>CFB/OFB data channel crypto format</b> \n
@@ -109,14 +105,11 @@
  *
  * @par
  * <b>No-crypto data channel format</b> \n
- * In no-crypto mode (\c \-\-cipher \c none is specified), both TLS-mode and
- * static key mode are supported. No encryption will be performed on the packet,
- * but packets can still be authenticated. This mode does not require an IV.\n
- * <i>No-crypto data channel crypto format in TLS-mode:</i> \n
+ * In no-crypto mode (\c \-\-cipher \c none is specified), no encryption
+ * will be performed on the packet,  but packets can still be authenticated.
+ * This mode does not require an IV.\n
+ * <i>No-crypto data channel crypto format:</i> \n
  * <tt> [ HMAC ] [ - packet ID - ] [ - packet payload - ] </tt> \n
- * <i>No-crypto data channel crypto format in static key mode:</i> \n
- * <tt> [ HMAC ] [ - packet ID - ] [ - timestamp - ] [ - packet payload - ] </tt>
- *
  */
 
 #ifndef CRYPTO_H
@@ -420,11 +413,9 @@ int write_key_file(const int nkeys, const char *filename);
  * @param kt          The struct key_type to initialize
  * @param ciphername  The name of the cipher to use
  * @param authname    The name of the HMAC digest to use
- * @param tls_mode    Specifies whether we are running in TLS mode, which allows
- *                    more ciphers than static key mode.
  * @param warn        Print warnings when null cipher / auth is used.
  */
-void init_key_type(struct key_type *kt, const char *ciphername, const char *authname, bool tls_mode,
+void init_key_type(struct key_type *kt, const char *ciphername, const char *authname,
                    bool warn);
 
 /*

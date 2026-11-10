@@ -51,7 +51,6 @@ alloc_buf_sock_tun(struct buffer *buf, const struct frame *frame)
 unsigned int
 calc_packet_id_size_dc(const struct options *options, const struct key_type *kt)
 {
-    bool tlsmode = options->tls_server || options->tls_client;
     bool epoch = options->imported_protocol_flags & CO_EPOCH_DATA_KEY_FORMAT;
 
     /* epoch format uses a 64-bit packet id: 16 bit epoch + 48 bit per-epoch counter */
@@ -60,7 +59,7 @@ calc_packet_id_size_dc(const struct options *options, const struct key_type *kt)
         return sizeof(uint64_t);
     }
 
-    bool packet_id_long_form = !tlsmode || cipher_kt_mode_ofb_cfb(kt->cipher);
+    bool packet_id_long_form = cipher_kt_mode_ofb_cfb(kt->cipher);
 
     return packet_id_size(packet_id_long_form);
 }
@@ -71,8 +70,6 @@ frame_calculate_protocol_header_size(const struct key_type *kt, const struct opt
 {
     /* Sum of all the overhead that reduces the usable packet size */
     size_t header_size = 0;
-
-    bool tlsmode = options->tls_server || options->tls_client;
 
     /* A socks proxy adds extra header to each packet
      * (we only support Socks with IPv4, this value is different for IPv6) */
@@ -88,10 +85,7 @@ frame_calculate_protocol_header_size(const struct key_type *kt, const struct opt
     }
 
     /* Add the opcode and peerid */
-    if (tlsmode)
-    {
-        header_size += options->use_peer_id ? 4 : 1;
-    }
+    header_size += options->use_peer_id ? 4 : 1;
 
     unsigned int pkt_id_size = calc_packet_id_size_dc(options, kt);
 
@@ -156,13 +150,6 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
 {
     struct key_type occ_kt;
 
-    /* neither --secret nor TLS mode */
-    if (!o->tls_client && !o->tls_server && !o->shared_secret_file)
-    {
-        init_key_type(&occ_kt, "none", "none", false, false);
-        return frame_calculate_payload_size(frame, o, &occ_kt);
-    }
-
     /* o->ciphername might be BF-CBC even though the underlying SSL library
      * does not support it. For this reason we workaround this corner case
      * by pretending to have no encryption enabled and by manually adding
@@ -184,9 +171,7 @@ calc_options_string_link_mtu(const struct options *o, const struct frame *frame)
         ciphername = "none";
     }
 
-    /* We pass tlsmode always true here since as we do not need to check if
-     * the ciphers are actually valid for non tls in occ calucation */
-    init_key_type(&occ_kt, ciphername, o->authname, true, false);
+    init_key_type(&occ_kt, ciphername, o->authname, false);
 
     size_t payload = frame_calculate_payload_size(frame, o, &occ_kt);
     overhead += frame_calculate_protocol_header_size(&occ_kt, o, true);

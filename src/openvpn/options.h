@@ -569,9 +569,6 @@ struct options
     struct static_challenge_info sc_info;
 #endif
     /* Cipher parms */
-    const char *shared_secret_file;
-    bool shared_secret_file_inline;
-    bool allow_deprecated_insecure_static_crypto;
     int key_direction;
     const char *ciphername;
     bool enable_ncp_fallback; /**< If defined fall back to

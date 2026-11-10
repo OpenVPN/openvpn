@@ -173,7 +173,7 @@ init_tas_auth(int key_direction)
     tas.tls_wrap.opt.flags |= (CO_IGNORE_PACKET_ID | CO_PACKET_ID_LONG_FORM);
 
     struct key_type tls_crypt_kt;
-    init_key_type(&tls_crypt_kt, "none", "SHA1", true, false);
+    init_key_type(&tls_crypt_kt, "none", "SHA1", false);
 
     crypto_read_openvpn_key(&tls_crypt_kt, &tas.tls_wrap.opt.key_ctx_bi, static_key, true,
                             key_direction, "Control Channel Authentication", "tls-auth", NULL);

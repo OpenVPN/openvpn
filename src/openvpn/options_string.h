@@ -59,7 +59,6 @@ const char *options_string_version(const char *s, struct gc_arena *gc);
  *
  * --cipher
  * --auth
- * --secret
  *
  * SSL Options:
  *

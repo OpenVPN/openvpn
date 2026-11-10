@@ -558,14 +558,11 @@ static const char usage_message[] =
     "                  server/remote. n = # of retries, default=1.\n"
     "\n"
     "Data Channel Encryption Options (must be compatible between peers):\n"
-    "(These options are meaningful for both Static Key & TLS-mode)\n"
     "--auth alg      : Authenticate packets with HMAC using message\n"
     "                  digest algorithm alg (default=%s).\n"
     "                  (usually adds 16 or 20 bytes per packet)\n"
     "                  Set alg=none to disable authentication.\n"
-    "--cipher alg    : Encrypt packets with cipher algorithm alg.\n"
-    "                  You should usually use --data-ciphers instead.\n"
-    "                  Set alg=none to disable encryption.\n"
+    "--cipher alg    : Ignored. You should usually use --data-ciphers instead.\n"
     "--data-ciphers list : List of ciphers that are allowed to be negotiated.\n"
 #ifndef ENABLE_CRYPTO_MBEDTLS
     "--engine [name] : Enable OpenSSL hardware crypto engine functionality.\n"
@@ -1588,16 +1585,17 @@ check_ca_required(const struct options *options)
 static void
 options_postprocess_verify_ce(const struct options *options, const struct connection_entry *ce)
 {
+    if (options->test_crypto)
+    {
+        return;
+    }
     struct options defaults;
     int dev = DEV_TYPE_UNDEF;
     bool pull = false;
 
     init_options(&defaults);
 
-    if (!options->test_crypto)
-    {
-        notnull(options->dev, "TUN/TAP device (--dev)");
-    }
+    notnull(options->dev, "TUN/TAP device (--dev)");
 
     /*
      * Get tun/tap/null device type
@@ -2013,27 +2011,9 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
     /*
      * SSL/TLS mode sanity checks.
      */
-    if (options->tls_server + options->tls_client + (options->shared_secret_file != NULL) > 1)
+    if (options->tls_server == options->tls_client)
     {
-        msg(M_USAGE, "specify only one of --tls-server, --tls-client, or --secret");
-    }
-
-    if (!options->tls_server && !options->tls_client && !options->test_crypto)
-    {
-        msglvl_t msglevel = M_USAGE;
-        if (options->allow_deprecated_insecure_static_crypto)
-        {
-            msglevel = M_INFO;
-        }
-
-        msg(msglevel, "DEPRECATION: No tls-client or tls-server option in "
-                      "configuration detected. OpenVPN 2.8 will remove the "
-                      "functionality to run a VPN without TLS. "
-                      "See the examples section in the manual page for "
-                      "examples of a similar quick setup with peer-fingerprint. "
-                      "OpenVPN 2.7 allows using this configuration when using "
-                      "--allow-deprecated-insecure-static-crypto but you should move "
-                      "to a proper configuration using TLS as soon as possible.");
+        msg(M_USAGE, "OpenVPN configuration must use either --tls-server or --tls-client");
     }
 
     if (options->ssl_flags & (SSLF_CLIENT_CERT_NOT_REQUIRED | SSLF_CLIENT_CERT_OPTIONAL))
@@ -2053,188 +2033,135 @@ options_postprocess_verify_ce(const struct options *options, const struct connec
         msg(M_USAGE, "--tls-version-min bigger than --tls-version-max");
     }
 
-    if (options->tls_server || options->tls_client)
-    {
-        check_ca_required(options);
+    check_ca_required(options);
 #ifdef ENABLE_PKCS11
-        if (!options->pkcs11_providers[0] && options->pkcs11_id)
-        {
-            msg(M_WARN, "Option pkcs11-id is ignored as no pkcs11-providers are specified");
-        }
-        else if (!options->pkcs11_providers[0] && options->pkcs11_id_management)
-        {
-            msg(M_WARN,
-                "Option pkcs11-id-management is ignored as no pkcs11-providers are specified");
-        }
+    if (!options->pkcs11_providers[0] && options->pkcs11_id)
+    {
+        msg(M_WARN, "Option pkcs11-id is ignored as no pkcs11-providers are specified");
+    }
+    else if (!options->pkcs11_providers[0] && options->pkcs11_id_management)
+    {
+        msg(M_WARN,
+            "Option pkcs11-id-management is ignored as no pkcs11-providers are specified");
+    }
 
-        if (options->pkcs11_providers[0])
-        {
-            if (options->pkcs11_id_management && options->pkcs11_id != NULL)
-            {
-                msg(M_USAGE,
-                    "Parameter --pkcs11-id cannot be used when --pkcs11-id-management is also specified.");
-            }
-            if (!options->pkcs11_id_management && options->pkcs11_id == NULL)
-            {
-                msg(M_USAGE,
-                    "Parameter --pkcs11-id or --pkcs11-id-management should be specified.");
-            }
-            const char use_err[] =
-                "Parameter --%s cannot be used when --pkcs11-provider is also specified.";
-            MUST_BE_UNDEF(cert_file, "cert");
-            MUST_BE_UNDEF(priv_key_file, "key");
-            MUST_BE_UNDEF(pkcs12_file, "pkcs12");
-            MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_KEY, "management-external-key");
-            MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_CERT, "management-external-cert");
-#ifdef ENABLE_CRYPTOAPI
-            MUST_BE_UNDEF(cryptoapi_cert, "cryptoapicert");
-#endif
-        }
-        else
-#endif /* ifdef ENABLE_PKCS11 */
-#ifdef ENABLE_CRYPTOAPI
-            if (options->cryptoapi_cert)
-        {
-            const char use_err[] =
-                "Parameter --%s cannot be used when --cryptoapicert is also specified.";
-            MUST_BE_UNDEF(cert_file, "cert");
-            MUST_BE_UNDEF(priv_key_file, "key");
-            MUST_BE_UNDEF(pkcs12_file, "pkcs12");
-            MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_KEY, "management-external-key");
-            MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_CERT, "management-external-cert");
-        }
-        else
-#endif
-            if (options->pkcs12_file)
-        {
-#ifdef ENABLE_CRYPTO_MBEDTLS
-            msg(M_USAGE, "Parameter --pkcs12 cannot be used with the mbed TLS version of OpenVPN.");
-#else
-            const char use_err[] = "Parameter --%s cannot be used when --pkcs12 is also specified.";
-            MUST_BE_UNDEF(ca_path, "capath");
-            MUST_BE_UNDEF(cert_file, "cert");
-            MUST_BE_UNDEF(priv_key_file, "key");
-            MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_KEY, "management-external-key");
-            MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_CERT, "management-external-cert");
-#endif       /* ifdef ENABLE_CRYPTO_MBEDTLS */
-        }
-        else /* cert/key from none of pkcs11, pkcs12, cryptoapi */
-        {
-            if ((options->management_flags & MF_EXTERNAL_KEY) && options->priv_key_file)
-            {
-                msg(M_USAGE, "--key and --management-external-key are mutually exclusive");
-            }
-            if ((options->management_flags & MF_EXTERNAL_CERT))
-            {
-                if (options->cert_file)
-                {
-                    msg(M_USAGE, "--cert and --management-external-cert are mutually exclusive");
-                }
-                else if (!(options->management_flags & MF_EXTERNAL_KEY))
-                {
-                    msg(M_USAGE,
-                        "--management-external-cert must be used with --management-external-key");
-                }
-            }
-            if (pull)
-            {
-                const int sum =
-                    ((options->cert_file != NULL) || (options->management_flags & MF_EXTERNAL_CERT))
-                    + ((options->priv_key_file != NULL)
-                       || (options->management_flags & MF_EXTERNAL_KEY));
-
-                if (sum == 0)
-                {
-                    if (!options->auth_user_pass_file)
-                    {
-                        msg(M_USAGE, "No client-side authentication method is "
-                                     "specified.  You must use either "
-                                     "--cert/--key, --pkcs12, or "
-                                     "--auth-user-pass");
-                    }
-                }
-                else if (sum != 2)
-                {
-                    msg(M_USAGE, "If you use one of --cert or --key, you must use them both");
-                }
-            }
-            else
-            {
-                if (!(options->management_flags & MF_EXTERNAL_CERT))
-                {
-                    notnull(options->cert_file,
-                            "certificate file (--cert) or PKCS#12 file (--pkcs12)");
-                }
-                if (!(options->management_flags & MF_EXTERNAL_KEY))
-                {
-                    notnull(options->priv_key_file,
-                            "private key file (--key) or PKCS#12 file (--pkcs12)");
-                }
-            }
-        }
-        if (ce->tls_auth_file && ce->tls_crypt_file)
-        {
-            msg(M_USAGE, "--tls-auth and --tls-crypt are mutually exclusive");
-        }
-        if (options->tls_client && ce->tls_crypt_v2_file
-            && (ce->tls_auth_file || ce->tls_crypt_file))
+    if (options->pkcs11_providers[0])
+    {
+        if (options->pkcs11_id_management && options->pkcs11_id != NULL)
         {
             msg(M_USAGE,
-                "--tls-crypt-v2, --tls-auth and --tls-crypt are mutually exclusive in client mode");
+                "Parameter --pkcs11-id cannot be used when --pkcs11-id-management is also specified.");
         }
-    }
-    else
-    {
-        /*
-         * Make sure user doesn't specify any TLS options
-         * when in non-TLS mode.
-         */
-
-        const char use_err[] = "Parameter %s can only be specified in TLS-mode, "
-                               "i.e. where --tls-server or --tls-client is also specified.";
-
-        MUST_BE_UNDEF(ca_file, "ca");
-        MUST_BE_UNDEF(ca_path, "capath");
-        MUST_BE_UNDEF(dh_file, "dh");
+        if (!options->pkcs11_id_management && options->pkcs11_id == NULL)
+        {
+            msg(M_USAGE,
+                "Parameter --pkcs11-id or --pkcs11-id-management should be specified.");
+        }
+        const char use_err[] =
+            "Parameter --%s cannot be used when --pkcs11-provider is also specified.";
         MUST_BE_UNDEF(cert_file, "cert");
         MUST_BE_UNDEF(priv_key_file, "key");
-#ifndef ENABLE_CRYPTO_MBEDTLS
         MUST_BE_UNDEF(pkcs12_file, "pkcs12");
+        MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_KEY, "management-external-key");
+        MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_CERT, "management-external-cert");
+#ifdef ENABLE_CRYPTOAPI
+        MUST_BE_UNDEF(cryptoapi_cert, "cryptoapicert");
 #endif
-        MUST_BE_UNDEF(cipher_list, "tls-cipher");
-        MUST_BE_UNDEF(cipher_list_tls13, "tls-ciphersuites");
-        MUST_BE_UNDEF(tls_cert_profile, "tls-cert-profile");
-        MUST_BE_UNDEF(tls_verify, "tls-verify");
-        MUST_BE_UNDEF(tls_export_peer_cert_dir, "tls-export-cert");
-        MUST_BE_UNDEF(verify_x509_name, "verify-x509-name");
-        MUST_BE_UNDEF(tls_timeout, "tls-timeout");
-        MUST_BE_UNDEF(renegotiate_bytes, "reneg-bytes");
-        MUST_BE_UNDEF(renegotiate_packets, "reneg-pkts");
-        MUST_BE_UNDEF(renegotiate_seconds, "reneg-sec");
-        MUST_BE_UNDEF(handshake_window, "hand-window");
-        MUST_BE_UNDEF(transition_window, "tran-window");
-        MUST_BE_UNDEF(tls_auth_file, "tls-auth");
-        MUST_BE_UNDEF(tls_crypt_file, "tls-crypt");
-        MUST_BE_UNDEF(tls_crypt_v2_file, "tls-crypt-v2");
-        MUST_BE_UNDEF(single_session, "single-session");
-        MUST_BE_UNDEF(push_peer_info, "push-peer-info");
-        MUST_BE_UNDEF(tls_exit, "tls-exit");
-        MUST_BE_UNDEF(crl_file, "crl-verify");
-        MUST_BE_UNDEF(ns_cert_type, "ns-cert-type");
-        MUST_BE_UNDEF(remote_cert_ku[0], "remote-cert-ku");
-        MUST_BE_UNDEF(remote_cert_eku, "remote-cert-eku");
-#ifdef ENABLE_PKCS11
-        MUST_BE_UNDEF(pkcs11_providers[0], "pkcs11-providers");
-        MUST_BE_UNDEF(pkcs11_private_mode[0], "pkcs11-private-mode");
-        MUST_BE_UNDEF(pkcs11_id, "pkcs11-id");
-        MUST_BE_UNDEF(pkcs11_id_management, "pkcs11-id-management");
+    }
+    else
+#endif /* ifdef ENABLE_PKCS11 */
+#ifdef ENABLE_CRYPTOAPI
+        if (options->cryptoapi_cert)
+    {
+        const char use_err[] =
+            "Parameter --%s cannot be used when --cryptoapicert is also specified.";
+        MUST_BE_UNDEF(cert_file, "cert");
+        MUST_BE_UNDEF(priv_key_file, "key");
+        MUST_BE_UNDEF(pkcs12_file, "pkcs12");
+        MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_KEY, "management-external-key");
+        MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_CERT, "management-external-cert");
+    }
+    else
 #endif
-
+        if (options->pkcs12_file)
+    {
+#ifdef ENABLE_CRYPTO_MBEDTLS
+        msg(M_USAGE, "Parameter --pkcs12 cannot be used with the mbed TLS version of OpenVPN.");
+#else
+        const char use_err[] = "Parameter --%s cannot be used when --pkcs12 is also specified.";
+        MUST_BE_UNDEF(ca_path, "capath");
+        MUST_BE_UNDEF(cert_file, "cert");
+        MUST_BE_UNDEF(priv_key_file, "key");
+        MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_KEY, "management-external-key");
+        MUST_BE_FALSE(options->management_flags & MF_EXTERNAL_CERT, "management-external-cert");
+#endif   /* ifdef ENABLE_CRYPTO_MBEDTLS */
+    }
+    else /* cert/key from none of pkcs11, pkcs12, cryptoapi */
+    {
+        if ((options->management_flags & MF_EXTERNAL_KEY) && options->priv_key_file)
+        {
+            msg(M_USAGE, "--key and --management-external-key are mutually exclusive");
+        }
+        if ((options->management_flags & MF_EXTERNAL_CERT))
+        {
+            if (options->cert_file)
+            {
+                msg(M_USAGE, "--cert and --management-external-cert are mutually exclusive");
+            }
+            else if (!(options->management_flags & MF_EXTERNAL_KEY))
+            {
+                msg(M_USAGE,
+                    "--management-external-cert must be used with --management-external-key");
+            }
+        }
         if (pull)
         {
-            msg(M_USAGE, use_err, "--pull");
+            const int sum =
+                ((options->cert_file != NULL) || (options->management_flags & MF_EXTERNAL_CERT))
+                + ((options->priv_key_file != NULL)
+                   || (options->management_flags & MF_EXTERNAL_KEY));
+
+            if (sum == 0)
+            {
+                if (!options->auth_user_pass_file)
+                {
+                    msg(M_USAGE, "No client-side authentication method is "
+                                 "specified.  You must use either "
+                                 "--cert/--key, --pkcs12, or "
+                                 "--auth-user-pass");
+                }
+            }
+            else if (sum != 2)
+            {
+                msg(M_USAGE, "If you use one of --cert or --key, you must use them both");
+            }
+        }
+        else
+        {
+            if (!(options->management_flags & MF_EXTERNAL_CERT))
+            {
+                notnull(options->cert_file,
+                        "certificate file (--cert) or PKCS#12 file (--pkcs12)");
+            }
+            if (!(options->management_flags & MF_EXTERNAL_KEY))
+            {
+                notnull(options->priv_key_file,
+                        "private key file (--key) or PKCS#12 file (--pkcs12)");
+            }
         }
     }
+    if (ce->tls_auth_file && ce->tls_crypt_file)
+    {
+        msg(M_USAGE, "--tls-auth and --tls-crypt are mutually exclusive");
+    }
+    if (options->tls_client && ce->tls_crypt_v2_file
+        && (ce->tls_auth_file || ce->tls_crypt_file))
+    {
+        msg(M_USAGE,
+            "--tls-crypt-v2, --tls-auth and --tls-crypt are mutually exclusive in client mode");
+    }
+
+
     if (options->auth_user_pass_file && !options->pull)
     {
         msg(M_USAGE, "--auth-user-pass requires --pull");
@@ -6959,32 +6886,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         {
             goto err;
         }
-    }
-    else if (streq(p[0], "secret") && p[1] && !p[3])
-    {
-        msg(M_WARN, "DEPRECATED OPTION: The option --secret is deprecated.");
-        VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_INLINE);
-        options->shared_secret_file = p[1];
-        options->shared_secret_file_inline = is_inline;
-        if (!is_inline && p[2])
-        {
-            int key_direction;
-
-            key_direction = ascii2keydirection(msglevel, p[2]);
-            if (key_direction >= 0)
-            {
-                options->key_direction = key_direction;
-            }
-            else
-            {
-                goto err;
-            }
-        }
-    }
-    else if (streq(p[0], "allow-deprecated-insecure-static-crypto"))
-    {
-        VERIFY_PERMISSION(OPT_P_GENERAL);
-        options->allow_deprecated_insecure_static_crypto = true;
     }
     else if (streq(p[0], "genkey") && !p[4])
     {

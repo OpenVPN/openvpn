@@ -312,10 +312,6 @@ options_postprocess_filechecks(struct options *options)
                                          ce->tls_crypt_v2_file, R_OK, "--tls-crypt-v2");
     }
 
-    errs |=
-        check_file_access_inline(options->shared_secret_file_inline, CHKACC_FILE | CHKACC_PRIVATE,
-                                 options->shared_secret_file, R_OK, "--secret");
-
     errs |= check_file_access(CHKACC_DIRPATH | CHKACC_FILEXSTWR, options->packet_id_file,
                               R_OK | W_OK, "--replay-persist");
 

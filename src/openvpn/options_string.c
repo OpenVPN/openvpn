@@ -140,83 +140,72 @@ options_string(const struct options *o, const struct frame *frame, struct tuntap
     /*
      * Crypto Options
      */
-    if (o->shared_secret_file || TLS_CLIENT || TLS_SERVER)
+    struct key_type kt;
+
+    ASSERT((TLS_CLIENT == true) + (TLS_SERVER == true) <= 1);
+
+    /* Skip resolving BF-CBC to allow SSL libraries without BF-CBC
+     * to work here in the default configuration */
+    const char *ciphername = o->ciphername;
+    size_t keysize = 0;
+
+    if (strcmp(o->ciphername, "BF-CBC") == 0)
     {
-        struct key_type kt;
-
-        ASSERT((o->shared_secret_file != NULL) + (TLS_CLIENT == true) + (TLS_SERVER == true) <= 1);
-
-        /* Skip resolving BF-CBC to allow SSL libraries without BF-CBC
-         * to work here in the default configuration */
-        const char *ciphername = o->ciphername;
-        size_t keysize = 0;
-
-        if (strcmp(o->ciphername, "BF-CBC") == 0)
+        init_key_type(&kt, "none", o->authname, false);
+        keysize = 128;
+    }
+    else
+    {
+        init_key_type(&kt, o->ciphername, o->authname, false);
+        ciphername = cipher_kt_name(kt.cipher);
+        if (cipher_defined(o->ciphername))
         {
-            init_key_type(&kt, "none", o->authname, true, false);
-            keysize = 128;
-        }
-        else
-        {
-            init_key_type(&kt, o->ciphername, o->authname, true, false);
-            ciphername = cipher_kt_name(kt.cipher);
-            if (cipher_defined(o->ciphername))
-            {
-                keysize = cipher_kt_key_size(kt.cipher) * 8;
-            }
-        }
-        /* Only announce the cipher to our peer if we are willing to
-         * support it */
-        if (p2p_nopull || tls_item_in_cipher_list(ciphername, o->ncp_ciphers))
-        {
-            buf_printf(&out, ",cipher %s", ciphername);
-        }
-        buf_printf(&out, ",auth %s", md_kt_name(kt.digest));
-        buf_printf(&out, ",keysize %zu", keysize);
-        if (o->shared_secret_file)
-        {
-            buf_printf(&out, ",secret");
+            keysize = cipher_kt_key_size(kt.cipher) * 8;
         }
     }
+    /* Only announce the cipher to our peer if we are willing to
+     * support it */
+    if (p2p_nopull || tls_item_in_cipher_list(ciphername, o->ncp_ciphers))
+    {
+        buf_printf(&out, ",cipher %s", ciphername);
+    }
+    buf_printf(&out, ",auth %s", md_kt_name(kt.digest));
+    buf_printf(&out, ",keysize %zu", keysize);
 
     /*
      * SSL Options
      */
+    if (o->ce.tls_auth_file)
     {
-        if (TLS_CLIENT || TLS_SERVER)
-        {
-            if (o->ce.tls_auth_file)
-            {
-                buf_printf(&out, ",tls-auth");
-            }
-            /* Not adding tls-crypt here, because we won't reach this code if
-             * tls-auth/tls-crypt does not match.  Removing tls-auth here would
-             * break stuff, so leaving that in place. */
+        buf_printf(&out, ",tls-auth");
+    }
+    /* Not adding tls-crypt here, because we won't reach this code if
+     * tls-auth/tls-crypt does not match.  Removing tls-auth here would
+     * break stuff, so leaving that in place. */
 
-            buf_printf(&out, ",key-method %d", KEY_METHOD_2);
-        }
+    buf_printf(&out, ",key-method %d", KEY_METHOD_2);
 
-        if (remote)
+
+    if (remote)
+    {
+        if (TLS_CLIENT)
         {
-            if (TLS_CLIENT)
-            {
-                buf_printf(&out, ",tls-server");
-            }
-            else if (TLS_SERVER)
-            {
-                buf_printf(&out, ",tls-client");
-            }
+            buf_printf(&out, ",tls-server");
         }
-        else
+        else if (TLS_SERVER)
         {
-            if (TLS_CLIENT)
-            {
-                buf_printf(&out, ",tls-client");
-            }
-            else if (TLS_SERVER)
-            {
-                buf_printf(&out, ",tls-server");
-            }
+            buf_printf(&out, ",tls-client");
+        }
+    }
+    else
+    {
+        if (TLS_CLIENT)
+        {
+            buf_printf(&out, ",tls-client");
+        }
+        else if (TLS_SERVER)
+        {
+            buf_printf(&out, ",tls-server");
         }
     }
 

@@ -1648,7 +1648,7 @@ tls_session_update_crypto_params_do_work(struct tls_multi *multi, struct tls_ses
         return true;
     }
 
-    init_key_type(&session->opt->key_type, options->ciphername, options->authname, true, true);
+    init_key_type(&session->opt->key_type, options->ciphername, options->authname, true);
 
     bool packet_id_long_form = cipher_kt_mode_ofb_cfb(session->opt->key_type.cipher);
     session->opt->crypto_flags &= ~(CO_PACKET_ID_LONG_FORM);

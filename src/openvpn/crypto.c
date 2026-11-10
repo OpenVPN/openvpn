@@ -872,7 +872,7 @@ warn_insecure_key_type(const char *ciphername)
  * Build a struct key_type.
  */
 void
-init_key_type(struct key_type *kt, const char *ciphername, const char *authname, bool tls_mode,
+init_key_type(struct key_type *kt, const char *ciphername, const char *authname,
               bool warn)
 {
     bool aead_cipher = false;
@@ -891,9 +891,9 @@ init_key_type(struct key_type *kt, const char *ciphername, const char *authname,
 
         /* check legal cipher mode */
         aead_cipher = cipher_kt_mode_aead(kt->cipher);
-        if (!(cipher_kt_mode_cbc(kt->cipher) || (tls_mode && aead_cipher)
+        if (!(cipher_kt_mode_cbc(kt->cipher) || aead_cipher
 #ifdef ENABLE_OFB_CFB_MODE
-              || (tls_mode && cipher_kt_mode_ofb_cfb(kt->cipher))
+              || cipher_kt_mode_ofb_cfb(kt->cipher)
 #endif
                   ))
         {

@@ -108,7 +108,7 @@ which mode OpenVPN is configured as.
   For example on Windows, use double backslashes to represent pathnames:
   ::
 
-      secret "c:\\OpenVPN\\secret.key"
+      tls-auth "c:\\OpenVPN\\secret.key"
 
 
   For examples of configuration files, see
@@ -119,7 +119,7 @@ which mode OpenVPN is configured as.
 
       #
       # Sample OpenVPN configuration file for
-      # using a pre-shared static key.
+      # using a p2p connection.
       #
       # '#' or ';' may be used to delimit comments.
 
@@ -133,8 +133,11 @@ which mode OpenVPN is configured as.
       # 10.1.0.2 is our remote VPN endpoint
       ifconfig 10.1.0.1 10.1.0.2
 
-      # Our pre-shared static key
-      secret static.key
+      # Our TLS configuration
+      tls-client
+      key mynode.key
+      cert mynode.crt
+      ca myca.crt
 
 --daemon progname
   Become a daemon after all initialization functions are completed.

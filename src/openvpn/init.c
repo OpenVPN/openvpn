@@ -997,35 +997,10 @@ do_genkey(const struct options *options)
         platform_mlockall(true);
     }
 
-    /*
-     * We do not want user to use --genkey with --secret. In the transistion
-     * phase we for secret.
-     */
-    if (options->genkey && options->genkey_type != GENKEY_SECRET && options->shared_secret_file)
-    {
-        msg(M_USAGE, "Using --genkey type with --secret filename is "
-                     "not supported.  Use --genkey type filename instead.");
-    }
     if (options->genkey && options->genkey_type == GENKEY_SECRET)
     {
         int nbits_written;
         const char *genkey_filename = options->genkey_filename;
-        if (options->shared_secret_file && options->genkey_filename)
-        {
-            msg(M_USAGE, "You must provide a filename to either --genkey "
-                         "or --secret, not both");
-        }
-
-        /*
-         * Copy filename from shared_secret_file to genkey_filename to support
-         * the old --genkey --secret foo.file syntax.
-         */
-        if (options->shared_secret_file)
-        {
-            msg(M_WARN, "WARNING: Using --genkey --secret filename is "
-                        "DEPRECATED.  Use --genkey secret filename instead.");
-            genkey_filename = options->shared_secret_file;
-        }
 
         nbits_written = write_key_file(2, genkey_filename);
         if (nbits_written < 0)
@@ -1034,7 +1009,7 @@ do_genkey(const struct options *options)
         }
 
         msg(D_GENKEY | M_NOPREFIX, "Randomly generated %d bit key written to %s", nbits_written,
-            options->shared_secret_file);
+            genkey_filename ? genkey_filename : "stdout");
         return true;
     }
     else if (options->genkey && options->genkey_type == GENKEY_TLS_CRYPTV2_SERVER)
@@ -1080,7 +1055,7 @@ do_persist_tuntap(struct options *options, openvpn_net_ctx_t *ctx)
     /* sanity check on options for --mktun or --rmtun */
     notnull(options->dev, "TUN/TAP device (--dev)");
     if (options->ce.remote || options->ifconfig_local || options->ifconfig_remote_netmask
-        || options->shared_secret_file || options->tls_server || options->tls_client)
+        || options->tls_server || options->tls_client)
     {
         msg(M_FATAL | M_OPTERR,
             "options --mktun or --rmtun should only be used together with --dev");
@@ -3036,55 +3011,10 @@ do_init_crypto_test(struct context *c)
     ASSERT(!key_ctx_bi_defined(&c->c1.ks.static_key));
 
     /* Init cipher and hash algorithm */
-    init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname,
-                  options->test_crypto, true);
+    init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname, true);
 
     generate_test_crypto_random_key(&c->c1.ks.key_type, &c->c1.ks.static_key,
                                     "test crypto key");
-
-    /* Get key schedule */
-    c->c2.crypto_options.key_ctx_bi = c->c1.ks.static_key;
-}
-
-/*
- * Static Key Mode (using a pre-shared key)
- */
-static void
-do_init_crypto_static(struct context *c, const unsigned int flags)
-{
-    const struct options *options = &c->options;
-    ASSERT(options->shared_secret_file);
-
-    init_crypto_pre(c, flags);
-
-    /* Initialize flags */
-    if (c->options.mute_replay_warnings)
-    {
-        c->c2.crypto_options.flags |= CO_MUTE_REPLAY_WARNINGS;
-    }
-
-    /* Initialize packet ID tracking */
-    packet_id_init(&c->c2.crypto_options.packet_id, options->replay_window, options->replay_time,
-                   "STATIC", 0);
-    c->c2.crypto_options.pid_persist = &c->c1.pid_persist;
-    c->c2.crypto_options.flags |= CO_PACKET_ID_LONG_FORM;
-    packet_id_persist_load_obj(&c->c1.pid_persist, &c->c2.crypto_options.packet_id);
-
-    if (!key_ctx_bi_defined(&c->c1.ks.static_key))
-    {
-        /* Get cipher & hash algorithms */
-        init_key_type(&c->c1.ks.key_type, options->ciphername, options->authname,
-                      options->test_crypto, true);
-
-        /* Read cipher and hmac keys from shared secret file */
-        crypto_read_openvpn_key(&c->c1.ks.key_type, &c->c1.ks.static_key,
-                                options->shared_secret_file, options->shared_secret_file_inline,
-                                options->key_direction, "Static Key Encryption", "secret", NULL);
-    }
-    else
-    {
-        msg(M_INFO, "Re-using pre-shared static key");
-    }
 
     /* Get key schedule */
     c->c2.crypto_options.key_ctx_bi = c->c1.ks.static_key;
@@ -3229,7 +3159,7 @@ do_init_crypto_tls_c1(struct context *c)
 
         /* Do not warn if the cipher is used only in OCC */
         bool warn = options->enable_ncp_fallback;
-        init_key_type(&c->c1.ks.key_type, ciphername, options->authname, true, warn);
+        init_key_type(&c->c1.ks.key_type, ciphername, options->authname, warn);
 
         /* initialize tls-auth/crypt/crypt-v2 key */
         do_init_tls_wrap_key(c);
@@ -3515,41 +3445,6 @@ do_init_frame_tls(struct context *c)
         frame_print(&c->c2.tls_auth_standalone->frame, D_MTU_INFO, "TLS-Auth MTU parms");
         c->c2.tls_auth_standalone->tls_wrap.work = alloc_buf_gc(BUF_SIZE(&c->c2.frame), &c->c2.gc);
         c->c2.tls_auth_standalone->workbuf = alloc_buf_gc(BUF_SIZE(&c->c2.frame), &c->c2.gc);
-    }
-}
-
-/*
- * No encryption or authentication.
- */
-static void
-do_init_crypto_none(struct context *c)
-{
-    ASSERT(!c->options.test_crypto);
-
-    /* Initialise key_type with auth/cipher "none", so the key_type struct is
-     * valid */
-    init_key_type(&c->c1.ks.key_type, "none", "none", c->options.test_crypto, true);
-
-    msg(M_WARN, "******* WARNING *******: All encryption and authentication features "
-                "disabled -- All data will be tunnelled as clear text and will not be "
-                "protected against man-in-the-middle changes. "
-                "PLEASE DO RECONSIDER THIS CONFIGURATION!");
-}
-
-static void
-do_init_crypto(struct context *c, const unsigned int flags)
-{
-    if (c->options.shared_secret_file)
-    {
-        do_init_crypto_static(c, flags);
-    }
-    else if (c->options.tls_server || c->options.tls_client)
-    {
-        do_init_crypto_tls(c, flags);
-    }
-    else /* no encryption or authentication. */
-    {
-        do_init_crypto_none(c);
     }
 }
 
@@ -4609,7 +4504,7 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
         {
             crypto_flags = CF_INIT_TLS_MULTI;
         }
-        do_init_crypto(c, crypto_flags);
+        do_init_crypto_tls(c, crypto_flags);
         if (IS_SIG(c) && !child)
         {
             goto sig;

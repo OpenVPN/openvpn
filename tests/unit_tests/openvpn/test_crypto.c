@@ -237,69 +237,57 @@ test_occ_mtu_calculation(void **state)
     /* common defaults */
     o.ce.tun_mtu = 1400;
     o.ce.proto = PROTO_UDP;
+    o.tls_client = true;
+    o.pull = true;
 
-    /* No crypto at all */
+    /*  auth none, cipher none */
     o.ciphername = "none";
     o.authname = "none";
     linkmtu = calc_options_string_link_mtu(&o, &f);
-    assert_int_equal(linkmtu, 1400);
+    assert_int_equal(linkmtu, 1405);
 
-    /* Static key OCC examples */
-    o.shared_secret_file = "not null";
-
-    /* secret, auth none, cipher none */
-    o.ciphername = "none";
-    o.authname = "none";
-    linkmtu = calc_options_string_link_mtu(&o, &f);
-    assert_int_equal(linkmtu, 1408);
-
-    /* secret, cipher AES-128-CBC, auth none */
+    /* cipher AES-128-CBC, auth none */
     o.ciphername = "AES-128-CBC";
     o.authname = "none";
     linkmtu = calc_options_string_link_mtu(&o, &f);
-    assert_int_equal(linkmtu, 1440);
+    assert_int_equal(linkmtu, 1437);
 
-    /* secret, cipher none, auth SHA256 */
+    /* cipher none, auth SHA256 */
     o.ciphername = "none";
     o.authname = "SHA256";
     linkmtu = calc_options_string_link_mtu(&o, &f);
-    assert_int_equal(linkmtu, 1440);
+    assert_int_equal(linkmtu, 1437);
 
-    /* secret, cipher BF-CBC, auth SHA1 */
+    /* cipher BF-CBC, auth SHA1 */
     o.ciphername = "BF-CBC";
     o.authname = "SHA1";
     linkmtu = calc_options_string_link_mtu(&o, &f);
-    assert_int_equal(linkmtu, 1444);
+    assert_int_equal(linkmtu, 1441);
 
-    /* secret, cipher BF-CBC, auth SHA1, tcp-client */
+    /* cipher BF-CBC, auth SHA1, tcp-client */
     o.ce.proto = PROTO_TCP_CLIENT;
     linkmtu = calc_options_string_link_mtu(&o, &f);
-    assert_int_equal(linkmtu, 1446);
+    assert_int_equal(linkmtu, 1443);
 
     o.ce.proto = PROTO_UDP;
 
 #if defined(USE_COMP)
     o.comp.alg = COMP_ALG_LZO;
 
-    /* secret, comp-lzo yes, cipher BF-CBC, auth SHA1 */
+    /*  comp-lzo yes, cipher BF-CBC, auth SHA1 */
     linkmtu = calc_options_string_link_mtu(&o, &f);
-    assert_int_equal(linkmtu, 1445);
+    assert_int_equal(linkmtu, 1442);
 
 #if defined(ENABLE_FRAGMENT)
-    /* secret, comp-lzo yes, cipher BF-CBC, auth SHA1, fragment 1200 */
+    /* comp-lzo yes, cipher BF-CBC, auth SHA1, fragment 1200 */
     o.ce.fragment = 1200;
     linkmtu = calc_options_string_link_mtu(&o, &f);
-    assert_int_equal(linkmtu, 1449);
+    assert_int_equal(linkmtu, 1446);
     o.ce.fragment = 0;
 #endif
 
     o.comp.alg = COMP_ALG_UNDEF;
 #endif
-
-    /* TLS mode */
-    o.shared_secret_file = NULL;
-    o.tls_client = true;
-    o.pull = true;
 
     /* tls client, cipher AES-128-CBC, auth SHA1, tls-auth */
     o.authname = "SHA1";
@@ -315,15 +303,8 @@ test_occ_mtu_calculation(void **state)
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1457);
 
-    /* tls client, cipher none, auth none */
+    /* tls client, auth none, cipher AES-256-GCM */
     o.authname = "none";
-    o.ciphername = "none";
-
-    linkmtu = calc_options_string_link_mtu(&o, &f);
-    assert_int_equal(linkmtu, 1405);
-
-    /* tls client, auth SHA1, cipher AES-256-GCM */
-    o.authname = "SHA1";
     o.ciphername = "AES-256-GCM";
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1449);
@@ -332,12 +313,12 @@ test_occ_mtu_calculation(void **state)
 #if defined(USE_COMP) && defined(ENABLE_FRAGMENT)
     o.comp.alg = COMP_ALG_LZO;
 
-    /* tls client, auth SHA1, cipher AES-256-GCM, fragment, comp-lzo yes */
+    /* tls client, auth none, cipher AES-256-GCM, fragment, comp-lzo yes */
     o.ce.fragment = 1200;
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1454);
 
-    /* tls client, auth SHA1, cipher AES-256-GCM, fragment, comp-lzo yes, socks */
+    /* tls client, auth none, cipher AES-256-GCM, fragment, comp-lzo yes, socks */
     o.ce.socks_proxy_server = "socks.example.com";
     linkmtu = calc_options_string_link_mtu(&o, &f);
     assert_int_equal(linkmtu, 1464);
@@ -358,50 +339,41 @@ test_mssfix_mtu_calculation(void **state)
     o.ce.tun_mtu = 1400;
     o.ce.mssfix = 1000;
     o.ce.proto = PROTO_UDP;
+    o.tls_client = true;
 
-    /* No crypto at all */
+    /*auth none, cipher none */
     o.ciphername = "none";
     o.authname = "none";
     struct key_type kt;
-    init_key_type(&kt, o.ciphername, o.authname, false, false);
+    init_key_type(&kt, o.ciphername, o.authname, false);
 
-    /* No encryption, just packet id (8) + TCP payload(20) + IP payload(20) */
+    /* No encryption, just packet id (4) + opcode (1) + TCP payload(20) + IP payload(20) */
     frame_calculate_dynamic(&f, &kt, &o, NULL);
-    assert_int_equal(f.mss_fix, 952);
+    assert_int_equal(f.mss_fix, 955);
 
-    /* Static key OCC examples */
-    o.shared_secret_file = "not null";
-
-    /* secret, auth none, cipher none */
-    o.ciphername = "none";
-    o.authname = "none";
-    init_key_type(&kt, o.ciphername, o.authname, false, false);
-    frame_calculate_dynamic(&f, &kt, &o, NULL);
-    assert_int_equal(f.mss_fix, 952);
-
-    /* secret, cipher AES-128-CBC, auth none */
+    /* cipher AES-128-CBC, auth none */
     o.ciphername = "AES-128-CBC";
     o.authname = "none";
-    init_key_type(&kt, o.ciphername, o.authname, false, false);
+    init_key_type(&kt, o.ciphername, o.authname, false);
 
-    for (int i = 990; i <= 1010; i++)
+    for (int i = 990; i <= 1015; i++)
     {
         /* 992 - 1008 should end up with the same mssfix value all they
-         * all result in the same CBC block size/padding and <= 991 and >=1008
+         * all result in the same CBC block size/padding and <= 992 and >=1009
          * should be one block less and more respectively */
         o.ce.mssfix = i;
         frame_calculate_dynamic(&f, &kt, &o, NULL);
-        if (i <= 991)
+        if (i <= 992)
         {
-            assert_int_equal(f.mss_fix, 911);
+            assert_int_equal(f.mss_fix, 915);
         }
-        else if (i >= 1008)
+        else if (i >= 1009)
         {
-            assert_int_equal(f.mss_fix, 943);
+            assert_int_equal(f.mss_fix, 947);
         }
         else
         {
-            assert_int_equal(f.mss_fix, 927);
+            assert_int_equal(f.mss_fix, 931);
         }
     }
 #ifdef USE_COMP
@@ -410,36 +382,35 @@ test_mssfix_mtu_calculation(void **state)
     /* Same but with compression added. Compression adds one byte extra to the
      * payload so the payload should be reduced by compared to the no
      * compression calculation before */
-    for (int i = 990; i <= 1010; i++)
+    for (int i = 990; i <= 1015; i++)
     {
         /* 992 - 1008 should end up with the same mssfix value all they
-         * all result in the same CBC block size/padding and <= 991 and >=1008
+         * all result in the same CBC block size/padding and <= 992 and >=1009
          * should be one block less and more respectively */
         o.ce.mssfix = i;
         frame_calculate_dynamic(&f, &kt, &o, NULL);
-        if (i <= 991)
+        if (i <= 992)
         {
-            assert_int_equal(f.mss_fix, 910);
+            assert_int_equal(f.mss_fix, 914);
         }
-        else if (i >= 1008)
+        else if (i >= 1009)
         {
-            assert_int_equal(f.mss_fix, 942);
+            assert_int_equal(f.mss_fix, 946);
         }
         else
         {
-            assert_int_equal(f.mss_fix, 926);
+            assert_int_equal(f.mss_fix, 930);
         }
     }
     o.comp.alg = COMP_ALG_UNDEF;
 #endif /* ifdef USE_COMP */
 
-    /* tls client, auth SHA1, cipher AES-256-GCM */
+    /*  auth SHA1, cipher AES-256-GCM */
     o.authname = "SHA1";
     o.ciphername = "AES-256-GCM";
-    o.tls_client = true;
     o.peer_id = 77;
     o.use_peer_id = true;
-    init_key_type(&kt, o.ciphername, o.authname, true, false);
+    init_key_type(&kt, o.ciphername, o.authname, false);
 
     for (int i = 900; i <= 1200; i++)
     {
@@ -685,7 +656,7 @@ crypto_test_epoch_setup(void **state)
 
     data->gc = gc_new();
 
-    init_key_type(&data->kt, "AES-128-GCM", "none", true, false);
+    init_key_type(&data->kt, "AES-128-GCM", "none", false);
 
     /* have an epoch key that uses 0x23 for the key for all bytes */
     struct epoch_key epoch1send = { .epoch = 1, .epoch_key = { 0x23 } };
@@ -907,7 +878,7 @@ epoch_test_derive_data_key(void **state)
     struct epoch_key e17 = { .epoch = 17, .epoch_key = { 19, 12 } };
     struct key_type kt = { 0 };
     struct key_parameters key_parameters = { 0 };
-    init_key_type(&kt, "AES-192-GCM", "none", true, false);
+    init_key_type(&kt, "AES-192-GCM", "none", false);
 
 
     epoch_data_key_derive(&key_parameters, &e17, &kt);
