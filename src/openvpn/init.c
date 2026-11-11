@@ -1801,7 +1801,7 @@ open_tun_backend(struct context *c)
 
 
 static bool
-do_open_tun(struct context *c, int *error_flags)
+do_open_tun(struct context *c, unsigned int *error_flags)
 {
     struct gc_arena gc = gc_new();
     bool ret = false;
@@ -2303,7 +2303,7 @@ do_deferred_options_part2(struct context *c)
 bool
 do_up(struct context *c, bool pulled_options, uint64_t option_types_found)
 {
-    int error_flags = 0;
+    unsigned int error_flags = 0;
     if (!c->c2.do_up_ran)
     {
         reset_coarse_timers(c);
@@ -2462,7 +2462,7 @@ do_update(struct context *c, uint64_t option_types_found)
     do_close_tun(c, true);
 
     management_sleep(1);
-    int error_flags = 0;
+    unsigned int error_flags = 0;
     c->c2.did_open_tun = do_open_tun(c, &error_flags);
     update_time();
 
@@ -4530,7 +4530,7 @@ init_instance(struct context *c, const struct env_set *env, const unsigned int f
      * open tun/tap device, ifconfig, run up script, etc. */
     if (!(options->up_delay || PULL_DEFINED(options)) && (c->mode == CM_P2P || c->mode == CM_TOP))
     {
-        int error_flags = 0;
+        unsigned int error_flags = 0;
         c->c2.did_open_tun = do_open_tun(c, &error_flags);
     }
 
