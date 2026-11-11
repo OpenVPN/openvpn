@@ -38,11 +38,6 @@
 #include "buffer.h"
 #include "integer.h"
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 void
 ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, size_t info_len,
                  uint8_t *out, size_t out_len)
@@ -51,26 +46,23 @@ ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, size_t info_len,
     hmac_ctx_init(hmac_ctx, secret, "SHA256");
 
     ASSERT(info_len <= INT_MAX);
-    const unsigned int digest_size = SHA256_DIGEST_LENGTH;
 
     /* T(0) = empty string */
     uint8_t t_prev[SHA256_DIGEST_LENGTH];
-    unsigned int t_prev_len = 0;
 
-    for (uint8_t block = 1; (block - 1) * digest_size < out_len; block++)
+    for (uint8_t block = 1; (block - 1u) * SHA256_DIGEST_LENGTH < out_len; block++)
     {
         hmac_ctx_reset(hmac_ctx);
 
         /* calculate T(block) */
-        hmac_ctx_update(hmac_ctx, t_prev, t_prev_len);
+        hmac_ctx_update(hmac_ctx, t_prev, block == 1 ? 0 : SHA256_DIGEST_LENGTH);
         hmac_ctx_update(hmac_ctx, info, (int)info_len);
         hmac_ctx_update(hmac_ctx, &block, 1);
         hmac_ctx_final(hmac_ctx, t_prev);
-        t_prev_len = digest_size;
 
         /* Copy a full hmac output or remaining bytes */
-        size_t out_offset = (block - 1) * digest_size;
-        size_t copylen = min_size(digest_size, out_len - out_offset);
+        size_t out_offset = (block - 1u) * SHA256_DIGEST_LENGTH;
+        size_t copylen = min_size(SHA256_DIGEST_LENGTH, out_len - out_offset);
 
         memcpy(out + out_offset, t_prev, copylen);
     }
@@ -463,7 +455,3 @@ epoch_check_send_iterate(struct crypto_options *opt)
         epoch_iterate_send_key(opt);
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif

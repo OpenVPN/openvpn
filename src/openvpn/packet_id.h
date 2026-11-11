@@ -249,7 +249,7 @@ reset_packet_id_send(struct packet_id_send *p)
 const char *packet_id_net_print(const struct packet_id_net *pin, bool print_timestamp,
                                 struct gc_arena *gc);
 
-static inline int
+static inline unsigned int
 packet_id_size(bool long_form)
 {
     return sizeof(packet_id_type) + (long_form ? sizeof(net_time_t) : 0);

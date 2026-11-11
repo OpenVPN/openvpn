@@ -52,7 +52,7 @@ tls_crypt_kt(void)
     return create_kt("AES-256-CTR", "SHA256", "tls-crypt");
 }
 
-int
+unsigned int
 tls_crypt_buf_overhead(void)
 {
     return packet_id_size(true) + TLS_CRYPT_TAG_SIZE + TLS_CRYPT_BLOCK_SIZE;

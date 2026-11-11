@@ -130,7 +130,7 @@ bool tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session);
  * Returns the maximum overhead (in bytes) added to the destination buffer by
  * tls_crypt_wrap().
  */
-int tls_crypt_buf_overhead(void);
+unsigned int tls_crypt_buf_overhead(void);
 
 /**
  * Wrap a control channel packet (both authenticates and encrypts the data).

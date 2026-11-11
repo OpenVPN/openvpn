@@ -232,11 +232,6 @@ skip_if_tls_crypt_not_supported(struct test_tls_crypt_context *ctx)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 /**
  * Check that short messages are successfully wrapped-and-unwrapped.
  */
@@ -777,10 +772,6 @@ tls_crypt_v2_unwrap_checks(void **state)
     script_security_set(0);
     tls_wrap_free(&wrap_ctx);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static void
 test_tls_crypt_v2_write_server_key_file(void **state)

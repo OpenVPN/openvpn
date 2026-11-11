@@ -81,7 +81,6 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
 
     const struct key_ctx *ctx = &opt->key_ctx_bi.encrypt;
     uint8_t *mac_out = NULL;
-    const int mac_len = OPENVPN_AEAD_TAG_LENGTH;
 
     /* IV, packet-ID and implicit IV required for this mode. */
     ASSERT(ctx->cipher);
@@ -142,7 +141,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     dmsg(D_PACKET_CONTENT, "ENCRYPT FROM: %s", format_hex(BPTR(buf), BLENZ(buf), 80, &gc));
 
     /* Buffer overflow check */
-    if (!buf_safe(&work, buf->len + mac_len + cipher_ctx_block_size(ctx->cipher)))
+    if (!buf_safe(&work, BLENZ(buf) + OPENVPN_AEAD_TAG_LENGTH + cipher_ctx_block_size(ctx->cipher)))
     {
         msg(D_CRYPT_ERRORS, "ENCRYPT: buffer size error, bc=%d bo=%d bl=%d wc=%d wo=%d wl=%d",
             buf->capacity, buf->offset, buf->len, work.capacity, work.offset, work.len);
@@ -156,7 +155,7 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     if (!use_epoch_data_format)
     {
         /* Reserve space for authentication tag */
-        mac_out = buf_write_alloc(&work, mac_len);
+        mac_out = buf_write_alloc(&work, OPENVPN_AEAD_TAG_LENGTH);
         ASSERT(mac_out);
     }
 
@@ -177,12 +176,12 @@ openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     if (use_epoch_data_format)
     {
         /* Reserve space for authentication tag */
-        mac_out = buf_write_alloc(&work, mac_len);
+        mac_out = buf_write_alloc(&work, OPENVPN_AEAD_TAG_LENGTH);
         ASSERT(mac_out);
     }
 
     /* Write authentication tag */
-    ASSERT(cipher_ctx_get_tag(ctx->cipher, mac_out, mac_len));
+    ASSERT(cipher_ctx_get_tag(ctx->cipher, mac_out, OPENVPN_AEAD_TAG_LENGTH));
 
     *buf = work;
 
@@ -449,9 +448,6 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
         CRYPT_DROP("Decryption failed verification limit reached.");
     }
 
-    const int tag_size = OPENVPN_AEAD_TAG_LENGTH;
-
-
     ASSERT(frame);
     ASSERT(buf->len > 0);
     ASSERT(ctx->cipher);
@@ -466,14 +462,14 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     ASSERT(packet_id_initialized(&opt->packet_id));
 
     /* Ensure that the packet size is long enough */
-    int min_packet_len = packet_id_size(false) + tag_size + 1;
+    size_t min_packet_len = packet_id_size(false) + OPENVPN_AEAD_TAG_LENGTH + 1;
 
     if (use_epoch_data_format)
     {
         min_packet_len += sizeof(uint32_t);
     }
 
-    if (buf->len < min_packet_len)
+    if (BLENZ(buf) < min_packet_len)
     {
         CRYPT_ERROR("missing IV info, missing tag or no payload");
     }
@@ -536,24 +532,24 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
         }
     }
 
-    const int ad_size = (int)(BPTR(buf) - ad_start);
+    const uintptr_t ad_size = (uintptr_t)(BPTR(buf) - ad_start);
 
     uint8_t *tag_ptr = NULL;
     int data_len = 0;
 
     if (use_epoch_data_format)
     {
-        data_len = BLEN(buf) - tag_size;
+        data_len = BLEN(buf) - OPENVPN_AEAD_TAG_LENGTH;
         tag_ptr = BPTR(buf) + data_len;
     }
     else
     {
         tag_ptr = BPTR(buf);
-        ASSERT(buf_advance(buf, tag_size));
+        ASSERT(buf_advance(buf, OPENVPN_AEAD_TAG_LENGTH));
         data_len = BLEN(buf);
     }
 
-    dmsg(D_PACKET_CONTENT, "DECRYPT MAC: %s", format_hex(tag_ptr, tag_size, 0, &gc));
+    dmsg(D_PACKET_CONTENT, "DECRYPT MAC: %s", format_hex(tag_ptr, OPENVPN_AEAD_TAG_LENGTH, 0, &gc));
     dmsg(D_PACKET_CONTENT, "DECRYPT FROM: %s", format_hex(BPTR(buf), BLENZ(buf), 0, &gc));
 
     /* Buffer overflow check (should never fail) */
@@ -563,7 +559,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     }
 
     /* feed in tag and the authenticated data */
-    ASSERT(cipher_ctx_update_ad(ctx->cipher, ad_start, ad_size));
+    ASSERT(cipher_ctx_update_ad(ctx->cipher, ad_start, (int)ad_size));
     dmsg(D_PACKET_CONTENT, "DECRYPT AD: %s", format_hex(ad_start, ad_size, 0, &gc));
 
     /* Decrypt and authenticate packet */
@@ -574,7 +570,7 @@ openvpn_decrypt_aead(struct buffer *buf, struct buffer work, struct crypto_optio
     }
 
     ASSERT(buf_inc_len(&work, outlen));
-    if (!cipher_ctx_final_check_tag(ctx->cipher, BPTR(&work) + outlen, &outlen, tag_ptr, tag_size))
+    if (!cipher_ctx_final_check_tag(ctx->cipher, BPTR(&work) + outlen, &outlen, tag_ptr, OPENVPN_AEAD_TAG_LENGTH))
     {
         ctx->failed_verifications++;
         CRYPT_DROP("packet tag authentication failed");
@@ -1114,20 +1110,19 @@ free_key_ctx_bi(struct key_ctx_bi *ctx)
 static void
 generate_key_random(struct key *key)
 {
-    int cipher_len = MAX_CIPHER_KEY_LENGTH;
-    int hmac_len = MAX_HMAC_KEY_LENGTH;
-
     struct gc_arena gc = gc_new();
 
     CLEAR(*key);
-    if (!rand_bytes(key->cipher, cipher_len) || !rand_bytes(key->hmac, hmac_len))
+    if (!rand_bytes(key->cipher, MAX_CIPHER_KEY_LENGTH)
+        || !rand_bytes(key->hmac, MAX_HMAC_KEY_LENGTH))
     {
         msg(M_FATAL, "ERROR: Random number generator cannot obtain entropy for key generation");
     }
 
     dmsg(D_SHOW_KEY_SOURCE, "Cipher source entropy: %s",
-         format_hex(key->cipher, cipher_len, 0, &gc));
-    dmsg(D_SHOW_KEY_SOURCE, "HMAC source entropy: %s", format_hex(key->hmac, hmac_len, 0, &gc));
+         format_hex(key->cipher, MAX_CIPHER_KEY_LENGTH, 0, &gc));
+    dmsg(D_SHOW_KEY_SOURCE, "HMAC source entropy: %s",
+         format_hex(key->hmac, MAX_HMAC_KEY_LENGTH, 0, &gc));
 
     gc_free(&gc);
 }
