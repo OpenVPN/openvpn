@@ -1040,7 +1040,7 @@ create_arbitrary_remote(const struct tuntap *tt)
  * @param ctx       the networking API opaque context
  */
 static void
-do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu, const struct env_set *es,
+do_ifconfig_ipv6(const struct tuntap *tt, const char *ifname, int tun_mtu, const struct env_set *es,
                  openvpn_net_ctx_t *ctx)
 {
 #if !defined(TARGET_LINUX)
@@ -1231,7 +1231,7 @@ do_ifconfig_ipv6(struct tuntap *tt, const char *ifname, int tun_mtu, const struc
  * @param ctx       the networking API opaque context
  */
 static void
-do_ifconfig_ipv4(struct tuntap *tt, const char *ifname, int tun_mtu, const struct env_set *es,
+do_ifconfig_ipv4(const struct tuntap *tt, const char *ifname, int tun_mtu, const struct env_set *es,
                  openvpn_net_ctx_t *ctx)
 {
 #if !defined(_WIN32) && !defined(TARGET_ANDROID)
@@ -1587,7 +1587,7 @@ do_ifconfig(struct tuntap *tt, const char *ifname, int tun_mtu, const struct env
 }
 
 static void
-undo_ifconfig_ipv4(const struct tuntap *tt, openvpn_net_ctx_t *ctx)
+undo_ifconfig_ipv4(const struct tuntap *tt, const openvpn_net_ctx_t *ctx)
 {
 #if defined(TARGET_LINUX)
     int netbits = netmask_to_netbits2(tt->remote_netmask);
@@ -1622,7 +1622,7 @@ undo_ifconfig_ipv4(const struct tuntap *tt, openvpn_net_ctx_t *ctx)
 }
 
 static void
-undo_ifconfig_ipv6(const struct tuntap *tt, openvpn_net_ctx_t *ctx)
+undo_ifconfig_ipv6(const struct tuntap *tt, const openvpn_net_ctx_t *ctx)
 {
 #if defined(TARGET_LINUX)
     if (net_addr_v6_del(ctx, tt->actual_name, &tt->local_ipv6, tt->netbits_ipv6) < 0)

@@ -3331,7 +3331,6 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
     int rtm_addrs;
     struct sockaddr so_dst, so_mask;
     char *cp = m_rtmsg.m_space;
-    struct sockaddr *gate = NULL, *ifp = NULL, *sa;
     struct rt_msghdr *rtm_aux;
 
 #define rtm m_rtmsg.m_rtm
@@ -3396,6 +3395,8 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
     sockfd = -1;
 
     /* extract return data from routing socket */
+    const struct sockaddr_in *gate = NULL;
+    const struct sockaddr_dl *adl = NULL;
     rtm_aux = &rtm;
     cp = (char *)(rtm_aux + 1);
     if (rtm_aux->rtm_addrs)
@@ -3404,14 +3405,14 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
         {
             if (i & rtm_aux->rtm_addrs)
             {
-                sa = (struct sockaddr *)cp;
+                const struct sockaddr *sa = (const struct sockaddr *)cp;
                 if (i == RTA_GATEWAY)
                 {
-                    gate = sa;
+                    gate = (const struct sockaddr_in *)sa;
                 }
                 else if (i == RTA_IFP)
                 {
-                    ifp = sa;
+                    adl = (const struct sockaddr_dl *)sa;
                 }
                 ADVANCE(cp, sa);
             }
@@ -3423,19 +3424,18 @@ get_default_gateway(struct route_gateway_info *rgi, in_addr_t dest, openvpn_net_
     }
 
     /* get gateway addr and interface name */
-    if (gate != NULL)
+    if (gate)
     {
         /* get default gateway addr */
-        rgi->gateway.addr = ntohl(((struct sockaddr_in *)gate)->sin_addr.s_addr);
+        rgi->gateway.addr = ntohl((gate)->sin_addr.s_addr);
         if (rgi->gateway.addr)
         {
             rgi->flags |= RGI_ADDR_DEFINED;
         }
 
-        if (ifp)
+        if (adl)
         {
             /* get interface name */
-            const struct sockaddr_dl *adl = (struct sockaddr_dl *)ifp;
             if (adl->sdl_nlen && adl->sdl_nlen < sizeof(rgi->iface))
             {
                 memcpy(rgi->iface, adl->sdl_data, adl->sdl_nlen);
