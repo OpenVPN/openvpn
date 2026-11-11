@@ -3725,6 +3725,46 @@ done:
     *opt = NULL;
 }
 
+/**
+ * Does a very coarse check on the received opcode. It only checks if the
+ * opcode is an allowed op code for the peer to send at all, not if this
+ * opcode is valid for the current state.
+ */
+static bool
+tls_pre_decrypt_verify_opcode(int op, bool server, const struct link_socket_actual *from)
+{
+    if (op < P_FIRST_OPCODE || op > P_LAST_OPCODE)
+    {
+        if (op == P_CONTROL_HARD_RESET_CLIENT_V1 || op == P_CONTROL_HARD_RESET_SERVER_V1)
+        {
+            msg(D_TLS_ERRORS, "Peer tried unsupported key-method 1");
+        }
+        struct gc_arena gc = gc_new();
+        msg(D_TLS_ERRORS, "TLS Error: unknown opcode received from %s op=%d",
+            print_link_socket_actual(from, &gc), op);
+        gc_free(&gc);
+        return false;
+    }
+
+    /* hard reset ? */
+    if (is_hard_reset_method2(op))
+    {
+        /* verify client -> server or server -> client connection */
+        if (((op == P_CONTROL_HARD_RESET_CLIENT_V2 || op == P_CONTROL_HARD_RESET_CLIENT_V3)
+             && !server)
+            || ((op == P_CONTROL_HARD_RESET_SERVER_V2) && server))
+        {
+            struct gc_arena gc = gc_new();
+            msg(D_TLS_ERRORS,
+                "TLS Error: client->client or server->server connection attempted from %s",
+                print_link_socket_actual(from, &gc));
+            gc_free(&gc);
+            return false;
+        }
+    }
+    return true;
+}
+
 /*
  *
  * When we are in TLS mode, this is the first routine which sees
@@ -3783,30 +3823,9 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
     struct session_id sid; /* remote session ID */
 
     /* verify legal opcode */
-    if (op < P_FIRST_OPCODE || op > P_LAST_OPCODE)
+    if (!tls_pre_decrypt_verify_opcode(op, multi->opt.server, from))
     {
-        if (op == P_CONTROL_HARD_RESET_CLIENT_V1 || op == P_CONTROL_HARD_RESET_SERVER_V1)
-        {
-            msg(D_TLS_ERRORS, "Peer tried unsupported key-method 1");
-        }
-        msg(D_TLS_ERRORS, "TLS Error: unknown opcode received from %s op=%d",
-            print_link_socket_actual(from, &gc), op);
         goto error;
-    }
-
-    /* hard reset ? */
-    if (is_hard_reset_method2(op))
-    {
-        /* verify client -> server or server -> client connection */
-        if (((op == P_CONTROL_HARD_RESET_CLIENT_V2 || op == P_CONTROL_HARD_RESET_CLIENT_V3)
-             && !multi->opt.server)
-            || ((op == P_CONTROL_HARD_RESET_SERVER_V2) && multi->opt.server))
-        {
-            msg(D_TLS_ERRORS,
-                "TLS Error: client->client or server->server connection attempted from %s",
-                print_link_socket_actual(from, &gc));
-            goto error;
-        }
     }
 
     /*
