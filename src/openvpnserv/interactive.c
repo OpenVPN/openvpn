@@ -354,6 +354,29 @@ ReturnLastError(HANDLE pipe, LPCWSTR func)
     ReturnError(pipe, GetLastError(), func, 1, &exit_event);
 }
 
+/**
+ * Check whether the user options start with a non-option
+ *
+ * openvpn.exe takes a lone argument as the config file only when there are
+ * no other arguments, and takes non-options after the --msg-channel handle
+ * as its extra parameters.
+ *
+ * @param  cmdline  openvpn.exe command line built by the service
+ *
+ * @return BOOL to indicate if the first user argument is not an option
+ */
+static BOOL
+StartsWithNonOption(const WCHAR *cmdline)
+{
+    int argc;
+    WCHAR **argv = CommandLineToArgvW(cmdline, &argc);
+    /* "openvpn --msg-channel <handle> <arg>..." */
+    BOOL ret = argv && argc > 3 && !IsOption(argv[3]);
+
+    LocalFree(argv);
+    return ret;
+}
+
 /*
  * Validate options against a white list. Also check the config_file is
  * inside the config_dir. The white list is defined in validate.c
@@ -393,20 +416,6 @@ ValidateOptions(HANDLE pipe, const WCHAR *workdir, const WCHAR *cmdline, WCHAR *
     if (argc <= first) /* no options */
     {
         ret = TRUE;
-        goto out;
-    }
-
-    /*
-     * If only one argument, it is the config file
-     */
-    if (argc == first + 1)
-    {
-        WCHAR *argv_tmp[2] = { L"--config", argv[first] };
-
-        if (!CheckOption(workdir, 2, argv_tmp, &settings))
-        {
-            swprintf(errmsg, capacity, msg1, argv[first], workdir, settings.ovpn_admin_group);
-        }
         goto out;
     }
 
@@ -3848,6 +3857,14 @@ RunOpenvpn(LPVOID p)
      * PRIuPTR to print that as best compromise */
     swprintf(cmdline, cmdline_size, L"openvpn --msg-channel %" PRIuPTR L" %ls",
              (uintptr_t)svc_pipe, sud.options);
+
+    if (StartsWithNonOption(cmdline))
+    {
+        ReturnError(pipe, ERROR_STARTUP_DATA,
+                    L"Options must start with an option, pass the config file with --config", 1,
+                    &exit_event);
+        goto out;
+    }
 
     /*
      * Only authorized users are allowed to use any command line options or

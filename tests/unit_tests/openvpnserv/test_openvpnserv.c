@@ -301,6 +301,33 @@ test_merge_openvpn_environment(void **state)
     assert_merge_result(L"", L"", L"");
 }
 
+static void
+test_starts_with_non_option(void **state)
+{
+    assert_true(StartsWithNonOption(L"openvpn --msg-channel 1 foo.ovpn"));
+    assert_true(StartsWithNonOption(L"openvpn --msg-channel 1 \"my vpn.ovpn\""));
+    assert_true(StartsWithNonOption(L"openvpn --msg-channel 1 foo.ovpn --verb 3"));
+    assert_true(StartsWithNonOption(L"openvpn --msg-channel 1 foo.ovpn bar"));
+    assert_true(StartsWithNonOption(L"openvpn --msg-channel 1 \"\""));
+
+    assert_false(StartsWithNonOption(L"openvpn --msg-channel 1 "));
+    assert_false(StartsWithNonOption(L"openvpn --msg-channel 1 --persist-tun"));
+    assert_false(StartsWithNonOption(L"openvpn --msg-channel 1 --config foo.ovpn"));
+}
+
+static void
+test_validate_lone_option(void **state)
+{
+    WCHAR errmsg[512];
+
+    assert_true(ValidateOptions(NULL, L"C:\\OpenVPN\\config\\",
+                                L"openvpn --msg-channel 1 --script-security", errmsg,
+                                _countof(errmsg)));
+    assert_false(ValidateOptions(NULL, L"C:\\OpenVPN\\config\\",
+                                 L"openvpn --msg-channel 1 --persist-tun", errmsg,
+                                 _countof(errmsg)));
+}
+
 int
 wmain(void)
 {
@@ -311,6 +338,8 @@ wmain(void)
         cmocka_unit_test(test_append_search_list),
         cmocka_unit_test(test_remove_search_list_tokens),
         cmocka_unit_test(test_merge_openvpn_environment),
+        cmocka_unit_test(test_starts_with_non_option),
+        cmocka_unit_test(test_validate_lone_option),
     };
 
     int ret = cmocka_run_group_tests_name("openvpnserv tests", tests, NULL, NULL);
