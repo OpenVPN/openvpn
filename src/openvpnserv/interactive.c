@@ -2147,6 +2147,24 @@ SetNameServerAddresses(PWSTR itf_id, const nrpt_address_t *addresses)
 }
 
 /**
+ * Remove trailing delimiters from a name server list
+ *
+ * @param  addrs      NUL-terminated list of addresses
+ *
+ * @return the size of the list in bytes, including the terminating NUL
+ */
+static DWORD
+TrimNameServers(PSTR addrs)
+{
+    size_t len = strlen(addrs);
+    while (len && (addrs[len - 1] == ',' || addrs[len - 1] == ' '))
+    {
+        addrs[--len] = '\0';
+    }
+    return (DWORD)len + 1;
+}
+
+/**
  * Get DNS server IPv4 addresses of an interface
  *
  * @param  itf_key    registry key of the IPv4 interface data
@@ -2159,6 +2177,7 @@ SetNameServerAddresses(PWSTR itf_id, const nrpt_address_t *addresses)
 static LSTATUS
 GetItfDnsServersV4(HKEY itf_key, PSTR addrs, PDWORD size)
 {
+    addrs[0] = '\0';
     addrs[*size - 1] = '\0';
 
     LSTATUS err;
@@ -2184,7 +2203,7 @@ GetItfDnsServersV4(HKEY itf_key, PSTR addrs, PDWORD size)
 
     if (strchr(addrs, '.'))
     {
-        *size = s;
+        *size = TrimNameServers(addrs);
         return NO_ERROR;
     }
 
@@ -2197,13 +2216,15 @@ GetItfDnsServersV4(HKEY itf_key, PSTR addrs, PDWORD size)
  *
  * @param  itf_key    registry key of the IPv6 interface data
  * @param  addrs      pointer to the buffer addresses are returned in
- * @param  size       pointer to the size of the buffer
+ * @param  size       pointer to the size of the buffer, contains the
+ *                    size of the addresses on return
  *
  * @return LSTATUS NO_ERROR on success, a Windows error code otherwise
  */
 static LSTATUS
 GetItfDnsServersV6(HKEY itf_key, PSTR addrs, PDWORD size)
 {
+    addrs[0] = '\0';
     addrs[*size - 1] = '\0';
 
     LSTATUS err;
@@ -2250,12 +2271,11 @@ GetItfDnsServersV6(HKEY itf_key, PSTR addrs, PDWORD size)
             pos += addr_len;
             s -= (DWORD)addr_len;
         }
-        s = (DWORD)strlen(addrs) + 1;
     }
 
     if (strchr(addrs, ':'))
     {
-        *size = s;
+        *size = TrimNameServers(addrs);
         return NO_ERROR;
     }
 
@@ -2581,6 +2601,11 @@ GetNrptExcludeData(PCWSTR search_domains, nrpt_exclude_data_t *data, size_t data
                 MsgToEventLog(M_SYSERR, L"%S: could not read interface %s v6 name servers (%ld)",
                               __func__, itf_guid, err);
                 goto next_itf;
+            }
+            if (v4_addrs_size && v6_addrs_size)
+            {
+                /* Join the lists: replace the v4 terminating NUL with a delimiter */
+                data[i].addresses[v4_addrs_size - 1] = ',';
             }
         }
 
