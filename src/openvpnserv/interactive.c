@@ -1755,10 +1755,10 @@ UndoDnsSearchDomains(dns_domains_undo_data_t *undo_data)
         RemoveDnsSearchDomains(dns_searchlist_key, undo_data->domains);
         RegCloseKey(dns_searchlist_key);
         ApplyDnsSettings(gpol);
-
-        free(undo_data->domains);
-        undo_data->domains = NULL;
     }
+
+    free(undo_data->domains);
+    undo_data->domains = NULL;
 }
 
 /**
