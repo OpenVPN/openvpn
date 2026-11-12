@@ -71,12 +71,13 @@ xkey_digest(const unsigned char *src, size_t srclen, unsigned char *buf, size_t 
     }
 
     unsigned int len = (unsigned int)*buflen;
-    if (EVP_Digest(src, srclen, buf, &len, md, NULL) != 1)
+    int ret = EVP_Digest(src, srclen, buf, &len, md, NULL);
+    EVP_MD_free(md);
+    if (ret != 1)
     {
         msg(M_WARN, "WARN: xkey_digest: EVP_Digest failed");
         return 0;
     }
-    EVP_MD_free(md);
 
     *buflen = len;
     return 1;
