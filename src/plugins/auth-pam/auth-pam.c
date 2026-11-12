@@ -789,6 +789,14 @@ my_conv(int num_msg, const struct pam_message **msg_array, struct pam_response *
     }
     else
     {
+        for (int i = 0; i < num_msg; ++i)
+        {
+            if (aresp[i].resp)
+            {
+                plugin_secure_memzero(aresp[i].resp, strlen(aresp[i].resp));
+                free(aresp[i].resp);
+            }
+        }
         free(aresp);
     }
 
