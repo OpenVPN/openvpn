@@ -643,6 +643,11 @@ buf_init_dowork(struct buffer *buf, int offset)
     return true;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /**
  * Initialise a buffer with an externally provided writable memory region.
  *
@@ -1618,6 +1623,10 @@ buf_string_match_head(const struct buffer *src, const void *match, int size)
     }
     return memcmp(CBPTR(src), match, size) == 0;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  * Return true if the head of \c src matches the string \c match.

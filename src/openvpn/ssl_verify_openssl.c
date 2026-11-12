@@ -317,6 +317,11 @@ backend_x509_get_serial(openvpn_x509_cert_t *cert, struct gc_arena *gc)
     return serial;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 char *
 backend_x509_get_serial_hex(openvpn_x509_cert_t *cert, struct gc_arena *gc)
 {
@@ -572,6 +577,10 @@ x509_setenv_track(const struct x509_track *xt, struct env_set *es, const int dep
     }
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Save X509 fields to environment, using the naming convention:

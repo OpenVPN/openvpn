@@ -41,6 +41,11 @@
 #include <termios.h>
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 #ifdef _WIN32
 
 #include "win32.h"
@@ -289,3 +294,7 @@ query_user_exec_builtin(void)
 
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

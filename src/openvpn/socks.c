@@ -226,6 +226,11 @@ socks_handshake(const struct socks_proxy_info *p, socket_descriptor_t sd,
     return true;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static bool
 recv_socks_reply(socket_descriptor_t sd, struct openvpn_sockaddr *addr,
                  const struct event_timeout *server_poll_timeout, volatile int *signal_received)
@@ -309,6 +314,10 @@ recv_socks_reply(socket_descriptor_t sd, struct openvpn_sockaddr *addr,
 
     return true;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static int
 port_from_servname(const char *servname)

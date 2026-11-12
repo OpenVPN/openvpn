@@ -146,6 +146,11 @@ xkey_load_generic_key(OSSL_LIB_CTX *libctx, void *handle, EVP_PKEY *pubkey,
 }
 
 #ifdef ENABLE_MANAGEMENT
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 /**
  * Signature callback for xkey_provider with management-external-key
  *
@@ -276,6 +281,10 @@ xkey_management_sign(void *unused, unsigned char *sig, size_t *siglen, const uns
 
     return (*siglen > 0);
 }
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 #endif /* ENABLE MANAGEMENT */
 
 /**

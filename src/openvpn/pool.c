@@ -137,6 +137,11 @@ ifconfig_pool_verify_range(const msglvl_t msglevel, const in_addr_t start, const
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 struct ifconfig_pool *
 ifconfig_pool_init(const bool ipv4_pool, enum pool_type type, in_addr_t start, in_addr_t end,
                    const bool duplicate_cn, const bool ipv6_pool, const struct in6_addr ipv6_base,
@@ -707,6 +712,10 @@ ifconfig_pool_read(struct ifconfig_pool_persist *persist, struct ifconfig_pool *
         gc_free(&gc);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 ifconfig_pool_write(struct ifconfig_pool_persist *persist, const struct ifconfig_pool *pool)

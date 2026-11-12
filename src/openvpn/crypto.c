@@ -62,6 +62,11 @@
  * happen unless the frame parameters are wrong.
  */
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 openvpn_encrypt_aead(struct buffer *buf, struct buffer work, struct crypto_options *opt)
 {
@@ -1572,6 +1577,10 @@ write_key_file(const int nkeys, const char *filename)
 
     return nbits;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 must_have_n_keys(const char *filename, const char *option, const struct key2 *key2, int n)

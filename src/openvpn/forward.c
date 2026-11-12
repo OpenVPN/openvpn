@@ -286,6 +286,11 @@ parse_incoming_control_channel_command(struct context *c, const struct buffer *b
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /*
  * Handle incoming configuration
  * messages on the control channel.
@@ -2024,6 +2029,10 @@ pre_select(struct context *c)
     /* Update random component of timeout */
     check_timeout_random_component(c);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 multi_io_process_flags(struct context *c, struct event_set *es, struct link_socket *sock, const unsigned int flags)

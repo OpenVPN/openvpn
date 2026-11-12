@@ -54,6 +54,11 @@ __mygettimeofday(struct timeval *tv)
 }
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 __mysleep(unsigned long usec)
 {
@@ -812,4 +817,9 @@ cleanup:
     pkcs11h_terminate();
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 #endif /* ENABLE_PKCS11 */

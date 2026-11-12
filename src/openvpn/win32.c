@@ -545,6 +545,11 @@ win32_signal_clear(struct win32_signal *ws)
     CLEAR(*ws);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 win32_signal_open(struct win32_signal *ws, int force, const char *exit_event_name,
                   bool exit_event_initial_state)
@@ -1660,5 +1665,9 @@ unprotect_buffer_win32(char *buf, DWORD len)
     }
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* ifdef _WIN32 */

@@ -393,6 +393,11 @@ get_p2p_ncp_cipher(struct tls_session *session, const char *peer_info, struct gc
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 p2p_ncp_set_options(struct tls_multi *multi, struct tls_session *session, const char *common_cipher)
 {
@@ -575,6 +580,10 @@ replace_default_in_ncp_ciphers_option(struct options *o, const char *replace)
 
     o->ncp_ciphers = (char *)ncp_ciphers;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  * Checks for availibility of Chacha20-Poly1305 and sets

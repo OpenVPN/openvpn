@@ -194,6 +194,11 @@ mss_fixup_dowork(struct buffer *buf, uint16_t maxmss)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static inline size_t
 adjust_payload_max_cbc(const struct key_type *kt, size_t target)
 {
@@ -312,6 +317,10 @@ frame_calculate_mssfix(struct frame *frame, const struct key_type *kt, const str
     size_t target = options->ce.mssfix - overhead;
     frame->mss_fix = (uint16_t)(adjust_payload_max_cbc(kt, target) - payload_overhead);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 frame_calculate_dynamic(struct frame *frame, const struct key_type *kt, const struct options *options,

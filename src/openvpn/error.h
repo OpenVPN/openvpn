@@ -406,6 +406,11 @@ nonfatal(const msglvl_t err)
 }
 #endif
 
+#if defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static inline int
 openvpn_errno_maybe_crt(bool *crt_error)
 {
@@ -425,6 +430,10 @@ openvpn_errno_maybe_crt(bool *crt_error)
 #endif
     return err;
 }
+
+#if defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
+#pragma GCC diagnostic pop
+#endif
 
 #include "errlevel.h"
 

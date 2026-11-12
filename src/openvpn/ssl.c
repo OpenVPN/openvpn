@@ -152,6 +152,11 @@ tls_get_limit_aead(const char *ciphername, uint64_t override)
     return limit;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 tls_init_control_channel_frame_parameters(struct frame *frame, int tls_mtu)
 {
@@ -235,6 +240,10 @@ calc_control_channel_frame_overhead(const struct tls_session *session)
 
     return overhead;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 init_ssl_lib(void)
@@ -797,6 +806,11 @@ is_hard_reset_method2(int op)
     return false;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /** @addtogroup control_processor
  *  @{ */
 
@@ -1042,6 +1056,10 @@ tls_session_init(struct tls_multi *multi, struct tls_session *session)
 
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  * Clean up a \c tls_session structure.
@@ -1324,6 +1342,11 @@ key_source2_print(const struct key_source2 *k)
     key_source_print(&k->client, "Client");
     key_source_print(&k->server, "Server");
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 static bool
 openvpn_PRF(const uint8_t *secret, size_t secret_len, const char *label, const uint8_t *client_seed,
@@ -4550,3 +4573,7 @@ print_data:
 done:
     return BSTR(&out);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

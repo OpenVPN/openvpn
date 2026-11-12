@@ -222,6 +222,11 @@ asn1_buf_is_cstr_compatible(const mbedtls_asn1_buf *asn1_buf)
     return true;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 result_t
 backend_x509_get_username(char *cn, size_t cn_len, char *x509_username_field, mbedtls_x509_crt *cert)
 {
@@ -785,6 +790,10 @@ x509_setenv(struct env_set *es, int cert_depth, mbedtls_x509_crt *cert)
         name = name->next;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /* Dummy function because Netscape certificate types are not supported in OpenVPN with mbedtls.
  * Returns SUCCESS if usage is NS_CERT_CHECK_NONE, FAILURE otherwise. */

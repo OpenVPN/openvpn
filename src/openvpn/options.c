@@ -945,6 +945,11 @@ setenv_local_entry(struct env_set *es, const struct local_entry *e, const int i)
     setenv_str_i(es, "local_port", e->port, i);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 setenv_settings(struct env_set *es, const struct options *o)
 {
@@ -7871,6 +7876,7 @@ err:
 }
 
 #if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
 #pragma GCC diagnostic pop
 #endif
 

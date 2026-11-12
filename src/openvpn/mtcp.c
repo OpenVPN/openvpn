@@ -37,6 +37,11 @@
 #include <sys/inotify.h>
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 struct multi_instance *
 multi_create_instance_tcp(struct multi_context *m, struct link_socket *sock)
 {
@@ -87,6 +92,10 @@ multi_tcp_instance_specific_init(const struct multi_context *m, struct multi_ins
     }
     return true;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 multi_tcp_instance_specific_free(struct multi_instance *mi)

@@ -524,6 +524,10 @@ FreeStartupData(STARTUP_DATA *sud)
     free(sud->directory);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 static SOCKADDR_INET
 sockaddr_inet(short family, const inet_address_t *addr)
@@ -3970,6 +3974,9 @@ out:
     return 0;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static DWORD WINAPI
 ServiceCtrlInteractive(DWORD ctrl_code, DWORD event, LPVOID data, LPVOID ctx)

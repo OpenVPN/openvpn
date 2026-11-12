@@ -56,6 +56,11 @@ vlanhdr_set_vid(struct openvpn_8021qhdr *hdr, const uint16_t vid)
         (hdr->pcp_cfi_vid & ~OPENVPN_8021Q_MASK_VID) | (htons(vid) & OPENVPN_8021Q_MASK_VID);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /*
  * vlan_decapsulate - remove 802.1q header and return VID
  *
@@ -169,6 +174,10 @@ drop:
     buf->len = 0;
     return -1;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * vlan_encapsulate - add 802.1q header and set the context related VID

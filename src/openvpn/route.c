@@ -582,6 +582,11 @@ add_block_local_routes(struct route_list *rl)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 bool
 block_local_needed(const struct route_list *rl)
 {
@@ -3216,6 +3221,10 @@ done:
         close(sd);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /* IPv6 implementation using netlink
  * https://www.linuxjournal.com/article/7356 - "Kernel Korner - Why and How to Use Netlink Socket"

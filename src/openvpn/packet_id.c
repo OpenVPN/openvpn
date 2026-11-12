@@ -71,6 +71,11 @@ packet_id_debug(msglvl_t msglevel, const struct packet_id_rec *p,
 #endif
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 packet_id_init_recv(struct packet_id_rec *rec, int seq_backtrack, int time_backtrack,
                     const char *name, int unit)
@@ -174,6 +179,10 @@ packet_id_add(struct packet_id_rec *p, const struct packet_id_net *pin)
         p->id = pin->id;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Expire sequence numbers which can no longer

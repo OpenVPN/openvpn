@@ -389,6 +389,11 @@ parse_auth_pending_keywords(const struct buffer *buffer, unsigned int *server_ti
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 receive_auth_pending(struct context *c, const struct buffer *buffer)
 {
@@ -794,6 +799,10 @@ prepare_push_reply(struct context *c, struct gc_arena *gc, struct push_list *pus
                         tls_multi->acc_max_message_length, tls_multi->acc_negotiated_protocols);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static bool
 send_push_options(struct context *c, struct buffer *buf, struct push_list *push_list, int safe_cap,

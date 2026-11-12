@@ -93,6 +93,11 @@ xor_key2(struct key2 *key, const struct key2 *other)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 bool
 tls_session_generate_dynamic_tls_crypt_key(struct tls_session *session)
 {
@@ -517,6 +522,10 @@ error_exit:
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 static bool
 tls_crypt_v2_check_client_key_age(const struct buffer *tls_crypt_v2_metadata, int max_days)
 {
@@ -697,6 +706,11 @@ tls_crypt_v2_write_server_key_file(const char *filename)
     write_pem_key_file(filename, tls_crypt_v2_srv_pem_name);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 tls_crypt_v2_write_client_key_file(const char *filename, const char *b64_metadata,
                                    const char *server_key_file, bool server_key_inline)
@@ -800,3 +814,7 @@ cleanup:
 
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

@@ -37,6 +37,11 @@
 #include "memdbg.h"
 #include "ssl_common.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /* allocate a buffer for socket or tun layer */
 void
 alloc_buf_sock_tun(struct buffer *buf, const struct frame *frame)
@@ -382,6 +387,10 @@ exit:
     buf_rmtail(&out, '|');
     return BSTR(&out);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 set_sock_extended_error_passing(int sd, sa_family_t proto_af)

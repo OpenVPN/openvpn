@@ -940,6 +940,11 @@ xkey_sign_dispatch(XKEY_SIGNATURE_CTX *sctx, unsigned char *sig, size_t *siglen,
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static int
 signature_sign(void *ctx, unsigned char *sig, size_t *siglen, size_t sigsize,
                const unsigned char *tbs, size_t tbslen)
@@ -1073,6 +1078,10 @@ signature_digest_sign(void *ctx, unsigned char *sig, size_t *siglen, size_t sigs
 
     return signature_sign(ctx, sig, siglen, sigsize, buf, sz);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /* Sign digest using native sign function -- will only work for native keys
  */

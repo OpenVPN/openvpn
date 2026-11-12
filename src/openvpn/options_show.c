@@ -341,6 +341,11 @@ show_pull_filter_list(const struct pull_filter_list *l)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 show_settings(const struct options *o)
 {
@@ -627,5 +632,9 @@ show_settings(const struct options *o)
     show_tuntap_options(&o->tuntap_options);
 #endif
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* ifndef ENABLE_SMALL */

@@ -72,6 +72,11 @@ set_std_files_to_null(bool stdin_only)
 #endif
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 #ifdef ENABLE_MANAGEMENT
 /* Get username/password from the management interface */
 static bool
@@ -761,6 +766,10 @@ validate_peer_info_line(char *line)
     }
     return (state == 2);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 output_peer_info_env(struct env_set *es, const char *peer_info)

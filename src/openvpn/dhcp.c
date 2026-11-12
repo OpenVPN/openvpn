@@ -72,6 +72,11 @@ get_dhcp_message_type(const struct dhcp *dhcp, const int optlen)
     return -1;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static in_addr_t
 do_extract(struct dhcp *dhcp, int optlen)
 {
@@ -185,6 +190,10 @@ dhcp_extract_router_msg(struct buffer *ipbuf)
     }
     return 0;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #if defined(_WIN32) || defined(DHCP_UNIT_TEST)
 
@@ -327,6 +336,11 @@ write_dhcp_search_str(struct buffer *buf, const uint8_t type, const char *const 
     buf_write(buf, tmp_buf, len);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 bool
 build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)
 {
@@ -374,5 +388,9 @@ build_dhcp_options_string(struct buffer *buf, const struct tuntap_options *o)
     }
     return !error;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* defined(_WIN32) */

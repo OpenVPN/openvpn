@@ -30,6 +30,11 @@
 LPCWSTR service_instance = L"";
 static wchar_t win_sys_path[MAX_PATH];
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static DWORD
 GetRegString(HKEY key, LPCWSTR value, LPWSTR data, DWORD size, LPCWSTR default_value)
 {
@@ -308,6 +313,10 @@ utf8to16_size(const char *utf8, int size)
     MultiByteToWideChar(CP_UTF8, 0, utf8, size, utf16, n);
     return utf16;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 const wchar_t *
 get_win_sys_path(void)

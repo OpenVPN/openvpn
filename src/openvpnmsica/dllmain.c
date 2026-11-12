@@ -98,6 +98,11 @@ dont_mute(unsigned int flags)
     return true;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 x_msg_va(const unsigned int flags, const char *format, va_list arglist)
 {
@@ -189,3 +194,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
                       hRecordProg);
     MsiCloseHandle(hRecordProg);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

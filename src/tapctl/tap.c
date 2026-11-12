@@ -102,6 +102,11 @@ find_function(const WCHAR *libname, const char *funcname, HMODULE *m)
 }
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /**
  * Returns length of string of strings
  *
@@ -1226,6 +1231,9 @@ cleanup_hDevInfoList:
     return dwResult;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 tap_free_adapter_list(_In_ struct tap_adapter_node *pAdapterList)

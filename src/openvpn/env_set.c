@@ -432,6 +432,11 @@ env_allowed(const char *str)
     return (script_security() >= SSEC_PW_ENV || !is_password_env_var(str));
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /* Make arrays of strings */
 
 const char **
@@ -470,3 +475,7 @@ make_env_array(const struct env_set *es, const bool check_allowed, struct gc_are
     ret[i] = NULL;
     return (const char **)ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

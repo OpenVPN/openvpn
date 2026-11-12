@@ -463,6 +463,11 @@ static struct openvpn_plugin_callbacks callbacks = {
 #define _OPENVPN_PATCH_LEVEL "git:" CONFIGURE_GIT_REVISION CONFIGURE_GIT_FLAGS
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 plugin_open_item(struct plugin *p, const struct plugin_option *o,
                  struct openvpn_plugin_string_list **retlist, const char **envp,
@@ -544,6 +549,10 @@ plugin_open_item(struct plugin *p, const struct plugin_option *o,
         gc_free(&gc);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static int
 plugin_call_item(const struct plugin *p, void *per_client_context, const int type,

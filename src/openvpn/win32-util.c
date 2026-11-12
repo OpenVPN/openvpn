@@ -36,6 +36,11 @@
 #include "buffer.h"
 #include "win32-util.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 WCHAR *
 wide_string(const char *utf8, struct gc_arena *gc)
 {
@@ -130,6 +135,10 @@ utf16to8(const wchar_t *utf16, struct gc_arena *gc)
     }
     return utf8;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Return true if filename is safe to be used on Windows,

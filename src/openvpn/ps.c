@@ -165,6 +165,11 @@ cmsg_size(void)
     return CMSG_SPACE(sizeof(socket_descriptor_t));
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /*
  * Send a command (char), data (head), and a file descriptor (sd_send) to a local process
  * over unix socket sd.  Unfortunately, there's no portable way to send file descriptors
@@ -617,6 +622,10 @@ proxy_connection_io_send(struct proxy_connection *pc, int *bytes_sent)
     }
     return IOSTAT_GOOD;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Forward data from pc to pc->counterpart.

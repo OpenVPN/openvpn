@@ -247,6 +247,11 @@ cid_compare_function(const void *key1, const void *key2)
 
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 #ifdef ENABLE_ASYNC_PUSH
 static uint64_t
 /*
@@ -4555,3 +4560,7 @@ multi_check_push_ifconfig_ipv6_extra_route(const struct options *o, const struct
     return (!ipv6_net_contains_host(&ifconfig_local, o->ifconfig_ipv6_netbits,
                                     dest));
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

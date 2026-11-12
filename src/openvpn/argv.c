@@ -323,6 +323,11 @@ argv_prep_format(const char *format, const char delim, size_t *count, struct gc_
     return f;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /**
  *  Create a struct argv based on a format string
  *
@@ -417,6 +422,10 @@ argv_printf_arglist(struct argv *argres, const char *format, va_list arglist)
 out:
     return res;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  *  printf() variant which populates a struct argv.  It processes the

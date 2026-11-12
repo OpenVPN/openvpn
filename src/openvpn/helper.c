@@ -148,6 +148,11 @@ helper_setdefault_topology(struct options *o)
 }
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /*
  * Process server, server-bridge, and client helper
  * directives after the parameters themselves have been
@@ -506,6 +511,10 @@ helper_client_server(struct options *o)
 
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  *

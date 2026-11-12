@@ -92,6 +92,11 @@ alloc_buf_gc(size_t size, struct gc_arena *gc)
     return buf;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 struct buffer
 #ifdef BUF_INIT_TRACKING
 clone_buf_debug(const struct buffer *buf, const char *file, int line)
@@ -305,6 +310,10 @@ cleanup:
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 /*
  * Garbage collection
  */
@@ -439,6 +448,11 @@ gc_transfer(struct gc_arena *dest, struct gc_arena *src)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /*
  * Hex dump -- Output a binary buffer to a hex string and return it.
  */
@@ -537,6 +551,10 @@ buf_chomp(struct buffer *buf)
     }
     buf_null_terminate(buf);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 const char *
 skip_leading_whitespace(const char *str)
@@ -717,6 +735,11 @@ buf_string_match_head_str(const struct buffer *src, const char *match)
     return memcmp(CBPTR(src), match, size) == 0;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 bool
 buf_string_compare_advance(struct buffer *src, const char *match)
 {
@@ -730,6 +753,10 @@ buf_string_compare_advance(struct buffer *src, const char *match)
         return false;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 int
 buf_substring_len(const struct buffer *buf, int delim)
@@ -957,12 +984,21 @@ char_class(const unsigned char c, const unsigned int flags)
     return false;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static inline bool
 char_inc_exc(const char c, const unsigned int inclusive, const unsigned int exclusive)
 {
     return char_class((unsigned char)c, inclusive)
            && !char_class((unsigned char)c, exclusive);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 bool
 string_class(const char *str, const unsigned int inclusive, const unsigned int exclusive)
@@ -1241,6 +1277,11 @@ buffer_list_peek(struct buffer_list *ol)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max_len, const char *sep)
 {
@@ -1286,6 +1327,10 @@ buffer_list_aggregate_separator(struct buffer_list *bl, const size_t max_len, co
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 void
 buffer_list_aggregate(struct buffer_list *bl, const size_t max)
 {
@@ -1322,6 +1367,11 @@ buffer_list_advance(struct buffer_list *ol, ssize_t n)
         }
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 struct buffer_list *
 buffer_list_file(const char *fn, int max_line_len)
@@ -1402,3 +1452,7 @@ buf_extract_field(struct buffer *buf, char sep, struct gc_arena *gc)
     buf_advance(buf, field_len + 1);
     return field;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

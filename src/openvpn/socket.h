@@ -288,11 +288,20 @@ SocketHandleGetLastError(sockethandle_t sh)
     return sh.is_handle ? (int)GetLastError() : WSAGetLastError();
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 inline static void
 SocketHandleSetLastError(sockethandle_t sh, DWORD err)
 {
     sh.is_handle ? SetLastError(err) : WSASetLastError(err);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static inline void
 SocketHandleSetInvalError(sockethandle_t sh)
@@ -459,6 +468,11 @@ socket_foreign_protocol_sd(const struct link_socket *sock)
 
 #endif /* if PORT_SHARE */
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static inline bool
 socket_connection_reset(const struct link_socket *sock, ssize_t status)
 {
@@ -481,6 +495,10 @@ socket_connection_reset(const struct link_socket *sock, ssize_t status)
     }
     return false;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static inline bool
 link_socket_verify_incoming_addr(const struct buffer *buf, const struct link_socket_info *info,
@@ -649,6 +667,11 @@ link_socket_read(struct link_socket *sock, struct buffer *buf, struct link_socke
 ssize_t link_socket_write_tcp(struct link_socket *sock, struct buffer *buf,
                               struct link_socket_actual *to);
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 #ifdef _WIN32
 
 static inline int
@@ -720,6 +743,10 @@ link_socket_write_tcp_posix(const struct link_socket *sock, const struct buffer 
 }
 
 #endif /* ifdef _WIN32 */
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static inline ssize_t
 link_socket_write_udp(struct link_socket *sock, struct buffer *buf, struct link_socket_actual *to)

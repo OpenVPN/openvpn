@@ -400,6 +400,11 @@ verify_peer_cert(const struct tls_options *opt, openvpn_x509_cert_t *peer_cert, 
     return SUCCESS;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /*
  * Export the subject, common_name, and raw certificate fields to the
  * environment for later verification by scripts and plugins.
@@ -810,6 +815,10 @@ cleanup:
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 /* ***************************************************************************
  * Functions for the management of deferred authentication when using
  * user/password authentication.
@@ -891,6 +900,11 @@ check_auth_pending_method(const char *peer_info, const char *method)
     return supported;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /**
  *  Checks if the deferred state should also send auth pending
  *  request to the client. Also removes the auth_pending control file
@@ -964,6 +978,10 @@ key_state_check_auth_pending_file(struct auth_deferred_status *ads,
     key_state_rm_auth_pending_file(ads);
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  *  Removes auth_pending and auth_control files from file system

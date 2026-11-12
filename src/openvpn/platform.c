@@ -76,6 +76,11 @@ platform_chroot(const char *path)
 
 /* Get/Set UID of process */
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 bool
 platform_user_get(const char *username, struct platform_state_user *state)
 {
@@ -657,6 +662,10 @@ platform_gen_path(const char *directory, const char *filename, struct gc_arena *
         return NULL;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 bool
 platform_absolute_pathname(const char *pathname)

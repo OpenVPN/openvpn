@@ -40,6 +40,11 @@
  */
 #define SWAP_BUF_SIZE 256
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /**
  * Move a packet authentication HMAC + related fields to or from the front
  * of the buffer so it can be processed by encrypt/decrypt.
@@ -591,3 +596,7 @@ extract_command_buffer(struct buffer *buf, struct gc_arena *gc)
     buf_advance(buf, cmdlen);
     return cmdbuf;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

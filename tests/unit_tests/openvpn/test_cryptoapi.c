@@ -137,6 +137,11 @@ lookup_cert(const char *friendly_name)
     return c->cert ? c : NULL;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /* import sample certificates into windows cert store */
 static void
 import_certs(void **state)
@@ -222,6 +227,10 @@ import_certs(void **state)
     }
     certs_loaded = true;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static int
 cleanup(void **state)

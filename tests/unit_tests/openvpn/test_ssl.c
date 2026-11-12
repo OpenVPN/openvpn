@@ -265,6 +265,10 @@ test_load_certificate_and_key_uri(void **state)
 #endif /* HAVE_OPENSSL_STORE */
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 static void
 init_frame_parameters(struct frame *frame)
@@ -885,6 +889,10 @@ crypto_test_print_cert_details(void **state)
     gc_free(&gc);
     free_certificate(cert);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /* Certificate with two CNs, "foo" and "bar".
  *

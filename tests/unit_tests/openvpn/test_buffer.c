@@ -106,6 +106,11 @@ test_buffer_puts(void **state)
     gc_free(&gc);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 test_buffer_format_hex_ex(void **state)
 {
@@ -138,6 +143,10 @@ test_buffer_format_hex_ex(void **state)
 
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 struct test_buffer_list_aggregate_ctx
 {

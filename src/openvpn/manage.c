@@ -779,6 +779,11 @@ man_up_finalize(struct management *man)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 man_query_user_pass(struct management *man, const char *type, const char *string, const bool needed,
                     const char *prompt, char *dest, int len)
@@ -803,6 +808,10 @@ man_query_user_pass(struct management *man, const char *type, const char *string
         msg(M_CLIENT, "ERROR: no %s is currently needed at this time", prompt);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static void
 man_query_username(struct management *man, const char *type, const char *string)
@@ -2473,6 +2482,11 @@ managment_android_persisttun_action(struct management *man)
 
 #endif /* ifdef TARGET_ANDROID */
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static ssize_t
 man_read(struct management *man)
 {
@@ -2611,6 +2625,10 @@ man_write(struct management *man)
     return sent;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 static void
 man_connection_clear(struct man_connection *mc)
 {
@@ -2681,6 +2699,11 @@ man_persist_close(struct man_persist *mp)
 
     CLEAR(*mp);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 static void
 man_settings_init(struct man_settings *ms, const char *addr, const char *port,
@@ -3297,6 +3320,10 @@ man_persist_state(unsigned int *persistent, const int n)
     return true;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 #ifdef _WIN32
 
 void
@@ -3605,6 +3632,11 @@ man_wait_for_client_connection(struct management *man, volatile int *signal_rece
         } while (man->connection.state == MS_LISTEN || man_password_needed(man));
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 /*
  * Process the management event loop for sec seconds
@@ -4341,6 +4373,10 @@ management_sleep(const int n)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 void
 management_check_bytecount_client(struct context *c, struct management *man, struct timeval *timeval)
 {
@@ -4475,6 +4511,12 @@ error:
 #else /* ifdef ENABLE_MANAGEMENT */
 
 #include "win32.h"
+
+#if !defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 management_sleep(const int n)
 {
@@ -4487,5 +4529,9 @@ management_sleep(const int n)
     }
 #endif /* ifdef _WIN32 */
 }
+
+#if !defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* ENABLE_MANAGEMENT */

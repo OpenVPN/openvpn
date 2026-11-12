@@ -123,6 +123,11 @@ print_link_socket_actual(const struct link_socket_actual *act, struct gc_arena *
 #define IF_NAMESIZE 16
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 const char *
 print_link_socket_actual_ex(const struct link_socket_actual *act, const char *separator,
                             const unsigned int flags, struct gc_arena *gc)
@@ -187,6 +192,10 @@ print_link_socket_actual_ex(const struct link_socket_actual *act, const char *se
         return "[NULL]";
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Convert an in_addr_t in host byte order

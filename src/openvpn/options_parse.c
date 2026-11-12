@@ -234,6 +234,11 @@ struct in_src
     } u;
 };
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static bool
 in_src_get(const struct in_src *is, char *line, const int size)
 {
@@ -297,6 +302,10 @@ read_inline_file(const struct in_src *is, const char *close_tag, int *num_lines,
     secure_memzero(line, sizeof(line));
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static int
 check_inline_file(const struct in_src *is, char *p[], struct gc_arena *gc)

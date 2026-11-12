@@ -53,6 +53,11 @@ check_systemd_running(void)
     return (sd_booted() > 0) && (stat(SYSTEMD_ASK_PASSWORD_PATH, &c) == 0);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static bool
 get_console_input_systemd(const char *prompt, const bool echo, char *input, const int capacity)
 {
@@ -85,6 +90,10 @@ get_console_input_systemd(const char *prompt, const bool echo, char *input, cons
 
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  *  Systemd aware implementation of query_user_exec().  If systemd is not running

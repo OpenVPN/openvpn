@@ -102,6 +102,11 @@ context_clear_all_except_first_time(struct context *c)
     c->persist = cpsave;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /*
  * Pass tunnel endpoint and MTU parms to a user-supplied script.
  * Used to execute the up/down script/plugins.
@@ -3663,6 +3668,10 @@ do_link_socket_new(struct context *c)
     }
     c->c2.link_socket_owned = true;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * bind TCP/UDP sockets

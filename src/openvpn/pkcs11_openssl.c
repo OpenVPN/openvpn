@@ -130,6 +130,11 @@ cleanup:
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /**
  * Sign op called from xkey provider
  *
@@ -229,6 +234,10 @@ xkey_pkcs11h_sign(void *handle, unsigned char *sig, size_t *siglen, const unsign
 
     return 1;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /* wrapper for handle free */
 static void

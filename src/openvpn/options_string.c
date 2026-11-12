@@ -380,6 +380,7 @@ options_string_version(const char *s, struct gc_arena *gc)
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
 #endif
 
 char *

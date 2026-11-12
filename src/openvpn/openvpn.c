@@ -351,6 +351,12 @@ openvpn_main(int argc, char *argv[])
 }
 
 #ifdef _WIN32
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 int
 wmain(int argc, wchar_t *wargv[])
 {
@@ -394,6 +400,11 @@ wmain(int argc, wchar_t *wargv[])
 
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 #else  /* ifdef _WIN32 */
 int
 main(int argc, char *argv[])

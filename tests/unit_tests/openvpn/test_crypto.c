@@ -52,6 +52,11 @@
 
 static const char testtext[] = "Dummy text to test PEM encoding";
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 crypto_pem_encode_decode_loopback(void **state)
 {
@@ -799,6 +804,10 @@ crypto_test_epoch_key_receive_lookup(void **state)
     assert_null(epoch_lookup_decrypt_key(co, 23));
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 void
 crypto_test_epoch_key_overflow(void **state)
 {
@@ -914,6 +923,11 @@ test_siphash(void **state)
     assert_memory_equal(out, expected_hash, UT_SIPHASH_HASH_SIZE);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 test_siphash_openssl(void **state)
 {
@@ -959,6 +973,9 @@ test_siphash_openssl(void **state)
     siphash_openssl_uninit(sipctx);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 int
 main(void)

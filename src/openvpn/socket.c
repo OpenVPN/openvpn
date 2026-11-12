@@ -422,6 +422,11 @@ socket_do_listen(socket_descriptor_t sd, const struct addrinfo *local, bool do_l
     gc_free(&gc);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 socket_descriptor_t
 socket_do_accept(socket_descriptor_t sd, struct link_socket_actual *act, const bool nowait)
 {
@@ -2083,6 +2088,10 @@ link_socket_read_udp_posix(const struct link_socket *sock, struct buffer *buf,
     }
     return buf->len;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* ifndef _WIN32 */
 

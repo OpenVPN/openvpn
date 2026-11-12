@@ -104,6 +104,11 @@ multi_get_context(struct multi_context *m, struct multi_instance *mi)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 struct multi_io *
 multi_io_init(const int maxclients)
 {
@@ -120,6 +125,10 @@ multi_io_init(const int maxclients)
         multi_io->maxevents);
     return multi_io;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 multi_io_free(struct multi_io *multi_io)

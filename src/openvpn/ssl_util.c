@@ -86,6 +86,10 @@ extract_var_peer_info(const char *peer_info, const char *var, struct gc_arena *g
     return var_value;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 unsigned int
 peer_info_extract_int(const char *peer_info, const char *field, const char *format, unsigned int default_value)
@@ -165,6 +169,10 @@ options_string_compat_lzo(const char *options, struct gc_arena *gc)
 
     return BSTR(&buf);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /**
  * SSL/TLS Cipher suite name translation table

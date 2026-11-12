@@ -112,6 +112,11 @@ static void exec_command(const char *prefix, const struct argv *a, int n, msglvl
 
 static const char *netsh_get_id(const char *dev_node, struct gc_arena *gc);
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static bool
 do_address_service(const bool add, const short family, const struct tuntap *tt)
 {
@@ -479,6 +484,10 @@ out:
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 #endif /* ifdef _WIN32 */
 
 #ifdef TARGET_SOLARIS
@@ -814,6 +823,11 @@ do_ifconfig_setenv(const struct tuntap *tt, struct env_set *es)
 
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 /*
  * Init tun/tap object.
@@ -1556,6 +1570,10 @@ do_ifconfig_ipv4(const struct tuntap *tt, const char *ifname, int tun_mtu, const
 #endif
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 /* execute the ifconfig command through the shell */
 void
 do_ifconfig(struct tuntap *tt, const char *ifname, int tun_mtu, const struct env_set *es,
@@ -1701,6 +1719,11 @@ clear_tuntap(struct tuntap *tuntap)
 #include <netinet/ip.h>
 #include <sys/uio.h>
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static inline ssize_t
 header_modify_read_write_return(ssize_t len)
 {
@@ -1784,6 +1807,10 @@ read_tun(const struct tuntap *tt, uint8_t *buf, int len)
 {
     return read_tun_header(tt, buf, len);
 }
+#endif
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
 #endif
 
 #endif /* if defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY) || defined(TARGET_NETBSD) || defined (TARGET_OPENBSD) || defined(TARGET_DARWIN) */
@@ -2043,6 +2070,11 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     free(tt);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 ssize_t
 write_tun(const struct tuntap *tt, const uint8_t *buf, int len)
 {
@@ -2054,6 +2086,10 @@ read_tun(const struct tuntap *tt, uint8_t *buf, int len)
 {
     return read(tt->fd, buf, len);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #elif defined(TARGET_LINUX)
 
@@ -2252,6 +2288,11 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     free(tt);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 ssize_t
 write_tun(const struct tuntap *tt, const uint8_t *buf, int len)
 {
@@ -2263,6 +2304,10 @@ read_tun(const struct tuntap *tt, uint8_t *buf, int len)
 {
     return read(tt->fd, buf, len);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #elif defined(TARGET_SOLARIS)
 
@@ -2881,6 +2926,11 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
 #elif defined(TARGET_DARWIN)
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /* Darwin (MacOS X) is mostly "just use the generic stuff", but there
  * is always one caveat...:
  *
@@ -2945,6 +2995,10 @@ utun_open_helper(struct ctl_info ctlInfo, int utunnum)
 
     return fd;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 void
 open_darwin_utun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt)
@@ -3095,6 +3149,11 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
     gc_free(&gc);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 ssize_t
 write_tun(const struct tuntap *tt, const uint8_t *buf, int len)
 {
@@ -3120,6 +3179,10 @@ read_tun(const struct tuntap *tt, uint8_t *buf, int len)
         return read(tt->fd, buf, len);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #elif defined(TARGET_AIX)
 
@@ -3256,6 +3319,11 @@ read_tun(const struct tuntap *tt, uint8_t *buf, int len)
 }
 
 #elif defined(_WIN32)
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 int
 tun_read_queue(struct tuntap *tt, int maxsize)
@@ -6101,6 +6169,10 @@ netsh_delete_address_dns(const struct tuntap *tt, bool ipv6, struct gc_arena *gc
     argv_free(&argv);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 void
 close_tun_handle(struct tuntap *tt)
 {
@@ -6280,7 +6352,7 @@ ipset2ascii_all(struct gc_arena *gc)
     return BSTR(&out);
 }
 
-#else                        /* generic */
+#else  /* generic */
 
 void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
@@ -6310,4 +6382,4 @@ read_tun(const struct tuntap *tt, uint8_t *buf, int len)
     return read(tt->fd, buf, len);
 }
 
-#endif                       /* if defined (TARGET_ANDROID) */
+#endif /* if defined (TARGET_ANDROID) */

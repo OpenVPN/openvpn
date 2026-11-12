@@ -64,6 +64,11 @@ trigger_ping_timeout_signal(struct context *c)
     gc_free(&gc);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /*
  * Should we ping the remote?
  */
@@ -84,3 +89,7 @@ check_ping_send_dowork(struct context *c)
     c->c2.buf.len = 0;
     dmsg(D_PING, "SENT PING");
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

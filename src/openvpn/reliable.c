@@ -311,6 +311,11 @@ done:
  * struct reliable member functions.
  */
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 reliable_init(struct reliable *rel, int buf_size, int offset, int array_size, bool hold)
 {
@@ -779,6 +784,10 @@ reliable_mark_active_incoming(struct reliable *rel, const struct buffer *buf, pa
     }
     ASSERT(0); /* buf not found in rel */
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Enable an outgoing buffer previously returned by a get function as active.

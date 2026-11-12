@@ -35,6 +35,11 @@ void set_nonblock(socket_descriptor_t fd);
 
 void set_cloexec(socket_descriptor_t fd);
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static inline void
 openvpn_fd_set(socket_descriptor_t fd, fd_set *setp)
 {
@@ -45,4 +50,8 @@ openvpn_fd_set(socket_descriptor_t fd, fd_set *setp)
 }
 #undef FD_SET /* prevent direct use of FD_SET() */
 
-#endif        /* FD_MISC_H */
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
+#endif /* FD_MISC_H */

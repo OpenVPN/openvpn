@@ -211,6 +211,11 @@ static const char *updatable_options[] = { "block-ipv6", "block-outside-dns",
                                            "route-metric", "topology",
                                            "tun-mtu", "keepalive" };
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 bool
 check_push_update_option_flags(char *line, int *i, uint64_t *flags)
 {
@@ -272,6 +277,10 @@ check_push_update_option_flags(char *line, int *i, uint64_t *flags)
 
     return true;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 bool
 apply_pull_filter(const struct options *o, char *line)

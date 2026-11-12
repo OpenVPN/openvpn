@@ -50,6 +50,11 @@
 #include <cap-ng.h>
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static int
 dco_install_key(struct tls_multi *multi, struct key_state *ks, const uint8_t *encrypt_key,
                 const uint8_t *encrypt_iv, const uint8_t *decrypt_key, const uint8_t *decrypt_iv,
@@ -806,5 +811,9 @@ dco_delete_iroutes(openvpn_net_ctx_t *net_ctx, const struct context *c)
     }
 #endif /* if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(_WIN32) */
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* defined(ENABLE_DCO) */

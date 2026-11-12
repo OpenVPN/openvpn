@@ -55,6 +55,11 @@ print_status_mode(unsigned int flags)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 struct status_output *
 status_open(const char *filename, const int refresh_freq, const int msglevel,
             const struct virtual_output *vout, const unsigned int flags)
@@ -118,6 +123,10 @@ status_open(const char *filename, const int refresh_freq, const int msglevel,
     }
     return so;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 bool
 status_trigger(struct status_output *so)
@@ -205,6 +214,11 @@ status_close(struct status_output *so)
     }
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 #define STATUS_PRINTF_MAXLEN 512
 
@@ -297,3 +311,7 @@ status_read(struct status_output *so, struct buffer *buf)
 
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

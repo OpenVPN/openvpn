@@ -53,6 +53,11 @@ init_http_proxy_options_once(struct http_proxy_options **hpo, struct gc_arena *g
 }
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /* cached proxy username/password */
 static struct user_pass static_proxy_user_pass;
 
@@ -287,6 +292,10 @@ get_user_pass_http(struct http_proxy_info *p, const bool force)
     p->queried_creds = true;
     p->up = static_proxy_user_pass; /* this is a copy of protected memory */
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #if 0
 /* function only used in #if 0 debug statement */

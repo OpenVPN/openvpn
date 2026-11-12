@@ -486,6 +486,11 @@ we_wait(struct event_set *es, const struct timeval *tv, struct event_set_return 
 #endif
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static struct event_set *
 we_init(int *maxevents, unsigned int flags)
 {
@@ -524,7 +529,16 @@ we_init(int *maxevents, unsigned int flags)
     return (struct event_set *)wes;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 #endif /* _WIN32 */
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 #if EPOLL
 
@@ -1121,6 +1135,10 @@ se_init(int *maxevents, unsigned int flags)
     return (struct event_set *)ses;
 }
 #endif /* SELECT */
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 static struct event_set *
 event_set_init_simple(int *maxevents, unsigned int flags)

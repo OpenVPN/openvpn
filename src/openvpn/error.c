@@ -219,6 +219,11 @@ x_msg(const msglvl_t flags, const char *format, ...)
     va_end(arglist);
 }
 
+#if defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static const char *
 openvpn_strerror(int err, bool crt_error, struct gc_arena *gc)
 {
@@ -688,6 +693,10 @@ x_check_status(ssize_t status, const char *description, struct link_socket *sock
         gc_free(&gc);
     }
 }
+
+#if defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * In multiclient mode, put a client-specific prefix

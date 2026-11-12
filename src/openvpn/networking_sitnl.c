@@ -243,6 +243,11 @@ sitnl_bind(int fd, uint32_t groups, uint32_t *local_pid)
     return 0;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /**
  * Send Netlink message and run callback on reply (if specified)
  */
@@ -1509,6 +1514,10 @@ net_iface_del(const openvpn_net_ctx_t *ctx, const char *iface)
 
     return sitnl_send(&req.n, 0, 0, NULL, NULL);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif /* !ENABLE_SITNL */
 

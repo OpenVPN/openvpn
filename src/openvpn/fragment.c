@@ -40,6 +40,11 @@
         goto error; \
     }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 fragment_list_buf_init(struct fragment_list *list, const struct frame *frame)
 {
@@ -283,6 +288,10 @@ fragment_prepend_flags(struct buffer *buf, int type, int seq_id, int frag_id, in
     flags = hton_fragment_header_type(flags);
     ASSERT(buf_write_prepend(buf, &flags, sizeof(flags)));
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Without changing the number of fragments, return a possibly smaller

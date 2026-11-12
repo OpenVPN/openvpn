@@ -220,6 +220,11 @@ mapped_v4_to_v6(struct sockaddr *sock, struct gc_arena *gc)
     return sock;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 int
 dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd, struct sockaddr *localaddr,
              struct sockaddr *remoteaddr, const struct in_addr *vpn_ipv4,
@@ -1256,6 +1261,10 @@ nla_put_failure:
     }
     return ret;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 int
 dco_get_peer_stats(struct context *c, const bool raise_sigusr1_on_err)

@@ -487,6 +487,11 @@ cleanup:
     return ret;
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 bool
 crypto_pem_decode(const char *name, struct buffer *dst, const struct buffer *src)
 {
@@ -1305,6 +1310,10 @@ hmac_ctx_final(hmac_ctx_t *ctx, uint8_t *dst)
     EVP_MAC_final(ctx->ctx, dst, &in_hmac_len, in_hmac_len);
 }
 #endif /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 int
 memcmp_constant_time(const void *a, const void *b, size_t size)

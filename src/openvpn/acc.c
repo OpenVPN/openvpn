@@ -148,6 +148,11 @@ parse_acc_message_flags_buf(struct buffer *buf, const char **err_reason, struct 
     return parse_acc_message_flags(flags, err_reason, gc);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 receive_acc_message(struct context *c, const struct buffer *buffer)
 {
@@ -235,6 +240,10 @@ err:
     gc_free(&gc);
 }
 
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 bool
 send_acc_message(struct context *c,

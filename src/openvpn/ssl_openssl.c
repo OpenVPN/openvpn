@@ -277,7 +277,14 @@ tls_ctx_set_options(struct tls_root_ctx *ctx, unsigned int ssl_flags)
     sslopt |= SSL_OP_NO_RENEGOTIATION;
 #endif
 
+#if defined(LIBRESSL_VERSION_NUMBER) && (defined(__GNUC__) || defined(__clang__))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
     SSL_CTX_set_options(ctx->ctx, sslopt);
+#if defined(LIBRESSL_VERSION_NUMBER) && (defined(__GNUC__) || defined(__clang__))
+#pragma GCC diagnostic pop
+#endif
 
     if (!tls_ctx_set_tls_versions(ctx, ssl_flags))
     {
@@ -511,6 +518,11 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
 {
     ASSERT(ctx);
 #if OPENSSL_VERSION_NUMBER < 0x30000000L && !defined(ENABLE_CRYPTO_WOLFSSL)
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
     struct gc_arena gc = gc_new();
     /* This method could be as easy as
      *  SSL_CTX_set1_groups_list(ctx->ctx, groups)
@@ -556,6 +568,10 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
         crypto_msg(M_FATAL, "Failed to set allowed TLS group list: %s", groups);
     }
     gc_free(&gc);
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 #else  /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
     if (!SSL_CTX_set1_groups_list(ctx->ctx, groups))
     {
@@ -1466,6 +1482,11 @@ get_rsa_padding_name(const int padding)
     }
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /**
  * Pass the input hash in 'dgst' to management and get the signature back.
  *
@@ -1710,6 +1731,11 @@ err:
     return 0;
 }
 #endif /* !defined(OPENSSL_NO_EC) */
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 #endif /* ENABLE_MANAGEMENT && !HAVE_XKEY_PROVIDER */
 
 #ifdef ENABLE_MANAGEMENT
@@ -2099,6 +2125,11 @@ bio_write(BIO *bio, const uint8_t *data, int size, const char *desc)
  * to BIOs.
  */
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 bio_write_post(const int status, struct buffer *buf)
 {
@@ -2109,6 +2140,10 @@ bio_write_post(const int status, struct buffer *buf)
         buf->len = 0;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 /*
  * Read from an OpenSSL BIO in non-blocking mode.

@@ -48,6 +48,11 @@
 #include <stdlib.h>
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 tun_afunix_exec_child(const char *dev_node, struct tuntap *tt, const struct env_set *env)
 {
@@ -171,6 +176,11 @@ read_tun_afunix(struct tuntap *tt, uint8_t *buf, int len)
      * with error messages */
     return read(tt->fd, buf, len);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
 #else  /* ifndef WIN32 */
 
 // cppcheck-suppress-begin constParameterPointer ; stubs

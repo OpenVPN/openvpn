@@ -40,6 +40,11 @@
 #include "memdbg.h"
 
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 lzo_compress_init(struct compress_context *compctx)
 {
@@ -119,6 +124,10 @@ lzo_decompress(struct buffer *buf, struct buffer work, struct compress_context *
         buf->len = 0;
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 const struct compress_alg lzo_alg = { "lzo", lzo_compress_init, lzo_compress_uninit, lzo_compress,
                                       lzo_decompress };

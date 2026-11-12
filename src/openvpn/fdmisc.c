@@ -31,6 +31,11 @@
 
 #include "memdbg.h"
 
+#if defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 /* Set a file descriptor to non-blocking */
 bool
 set_nonblock_action(socket_descriptor_t fd)
@@ -49,6 +54,10 @@ set_nonblock_action(socket_descriptor_t fd)
 #endif
     return true;
 }
+
+#if defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
+#pragma GCC diagnostic pop
+#endif
 
 /* Set a file descriptor to not be passed across execs */
 bool

@@ -50,6 +50,11 @@ print_in_addr_t(in_addr_t addr, unsigned int flags, struct gc_arena *gc)
     return "dummy";
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 static void
 test_write_dhcp_search_str(void **state)
 {
@@ -140,6 +145,10 @@ test_write_dhcp_search_str(void **state)
 
     gc_free(&gc);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 int
 main(void)

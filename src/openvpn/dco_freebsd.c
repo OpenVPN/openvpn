@@ -577,6 +577,11 @@ dco_update_peer_stat(struct multi_context *m, uint32_t peerid, const nvlist_t *n
         __func__, peerid, mi->context.c2.dco_read_bytes, mi->context.c2.dco_write_bytes);
 }
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 int
 dco_read_and_process(dco_context_t *dco)
 {
@@ -761,6 +766,10 @@ out:
 
     return available;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 const char *
 dco_version_string(struct gc_arena *gc)

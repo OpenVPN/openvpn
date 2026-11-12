@@ -38,6 +38,11 @@
 #include "buffer.h"
 #include "integer.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
+
 void
 ovpn_hkdf_expand(const uint8_t *secret, const uint8_t *info, size_t info_len,
                  uint8_t *out, size_t out_len)
@@ -458,3 +463,7 @@ epoch_check_send_iterate(struct crypto_options *opt)
         epoch_iterate_send_key(opt);
     }
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
