@@ -1824,13 +1824,19 @@ SetDnsSearchDomains(PCSTR itf_name, PCSTR domains, PBOOL gpol, undo_lists_t *lis
         strncpy_s(undo_data->itf_name, sizeof(undo_data->itf_name), itf_name, _TRUNCATE);
         undo_data->domains = wide_domains;
 
-        if (AddDnsSearchDomains(list_key, have_list, wide_domains) == FALSE
-            || AddListItem(&(*lists)[undo_domains], undo_data) != NO_ERROR)
+        /* Add undo information first in case there's no heap left */
+        if (AddListItem(&(*lists)[undo_domains], undo_data) != NO_ERROR)
         {
-            RemoveDnsSearchDomains(list_key, wide_domains);
             free(wide_domains);
             free(undo_data);
-            undo_data = NULL;
+            goto out;
+        }
+
+        if (!AddDnsSearchDomains(list_key, have_list, wide_domains))
+        {
+            RemoveListItem(&(*lists)[undo_domains], CmpAny, NULL);
+            free(wide_domains);
+            free(undo_data);
             goto out;
         }
     }
