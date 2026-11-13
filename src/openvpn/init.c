@@ -1816,6 +1816,7 @@ do_open_tun(struct context *c, unsigned int *error_flags)
         if (c->c1.tuntap)
         {
             oldtunfd = c->c1.tuntap->fd;
+            free(c->c1.tuntap->actual_name);
             free(c->c1.tuntap);
             c->c1.tuntap = NULL;
             c->c1.tuntap_owned = false;
