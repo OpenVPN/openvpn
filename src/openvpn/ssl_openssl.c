@@ -1025,6 +1025,7 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file, bool pkcs
                 }
             }
         }
+        sk_X509_pop_free(ca, X509_free);
     }
     else
     {
@@ -1045,7 +1046,11 @@ tls_ctx_load_pkcs12(struct tls_root_ctx *ctx, const char *pkcs12_file, bool pkcs
                 }
             }
         }
+        /* the certs now belong to ctx */
+        sk_X509_free(ca);
     }
+    X509_free(cert);
+    EVP_PKEY_free(pkey);
     return 0;
 }
 
