@@ -3765,6 +3765,76 @@ tls_pre_decrypt_verify_opcode(int op, bool server, const struct link_socket_actu
     return true;
 }
 
+/**
+ * Read the session form the packet buffer buf and puts it into the
+ * parameter sid.
+ *
+ * @return true if the extraction was successful, false otherwise
+ */
+static bool
+tls_pre_decrypt_extract_session_id(const struct link_socket_actual *from,
+                                   struct buffer buf, struct session_id *sid)
+{
+    /* skip op code */
+    buf_advance(&buf, 1);
+    if (!session_id_read(sid, &buf) || !session_id_defined(sid))
+    {
+        struct gc_arena gc = gc_new();
+        msg(D_TLS_ERRORS, "TLS Error: session-id not found in packet from %s",
+            print_link_socket_actual(from, &gc));
+        gc_free(&gc);
+        return false;
+    }
+    return true;
+}
+
+/**
+ *  Find session matching the session id in sid in multi.session array
+ *
+ * @return index of session in multi.session array, TM_SIZE if not found
+ *         and -1 on error
+ */
+static int
+tls_pre_decrypt_find_session(struct tls_multi *multi, const struct link_socket_actual *from,
+                             const struct session_id *sid)
+{
+    struct gc_arena gc = gc_new();
+    int i;
+    /* use session ID to match up packet with appropriate tls_session object */
+    for (i = 0; i < TM_SIZE; ++i)
+    {
+        struct tls_session *session = &multi->session[i];
+        struct key_state *ks = &session->key[KS_PRIMARY];
+
+        dmsg(
+            D_TLS_DEBUG,
+            "TLS: initial packet test, i=%d state=%s, mysid=%s, rec-sid=%s, rec-ip=%s, stored-sid=%s, stored-ip=%s",
+            i, state_name(ks->state), session_id_print(&session->session_id, &gc),
+            session_id_print(sid, &gc), print_link_socket_actual(from, &gc),
+            session_id_print(&ks->session_id_remote, &gc),
+            print_link_socket_actual(&ks->remote_addr, &gc));
+
+        if (session_id_equal(&ks->session_id_remote, sid))
+        /* found a match */
+        {
+            if (i == TM_LAME_DUCK)
+            {
+                msg(D_TLS_ERRORS, "TLS ERROR: received control packet with stale session-id=%s",
+                    session_id_print(sid, &gc));
+                i = -1;
+                goto done;
+            }
+            dmsg(D_TLS_DEBUG, "TLS: found match, session[%d], sid=%s", i,
+                 session_id_print(sid, &gc));
+            break;
+        }
+    }
+
+done:
+    gc_free(&gc);
+    return i;
+}
+
 /*
  *
  * When we are in TLS mode, this is the first routine which sees
@@ -3820,7 +3890,6 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
     /* control channel packet */
     bool do_burst = false;
     bool new_link = false;
-    struct session_id sid; /* remote session ID */
 
     /* verify legal opcode */
     if (!tls_pre_decrypt_verify_opcode(op, multi->opt.server, from))
@@ -3834,46 +3903,16 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
     dmsg(D_TLS_DEBUG, "TLS: control channel, op=%s, IP=%s", packet_opcode_name(op),
          print_link_socket_actual(from, &gc));
 
-    /* get remote session-id */
+    struct session_id sid; /* remote session ID */
+    if (!tls_pre_decrypt_extract_session_id(from, *buf, &sid))
     {
-        struct buffer tmp = *buf;
-        buf_advance(&tmp, 1);
-        if (!session_id_read(&sid, &tmp) || !session_id_defined(&sid))
-        {
-            msg(D_TLS_ERRORS, "TLS Error: session-id not found in packet from %s",
-                print_link_socket_actual(from, &gc));
-            goto error;
-        }
+        goto error;
     }
 
-    int i;
-    /* use session ID to match up packet with appropriate tls_session object */
-    for (i = 0; i < TM_SIZE; ++i)
+    int i = tls_pre_decrypt_find_session(multi, from, &sid);
+    if (i == -1)
     {
-        struct tls_session *session = &multi->session[i];
-        struct key_state *ks = &session->key[KS_PRIMARY];
-
-        dmsg(
-            D_TLS_DEBUG,
-            "TLS: initial packet test, i=%d state=%s, mysid=%s, rec-sid=%s, rec-ip=%s, stored-sid=%s, stored-ip=%s",
-            i, state_name(ks->state), session_id_print(&session->session_id, &gc),
-            session_id_print(&sid, &gc), print_link_socket_actual(from, &gc),
-            session_id_print(&ks->session_id_remote, &gc),
-            print_link_socket_actual(&ks->remote_addr, &gc));
-
-        if (session_id_equal(&ks->session_id_remote, &sid))
-        /* found a match */
-        {
-            if (i == TM_LAME_DUCK)
-            {
-                msg(D_TLS_ERRORS, "TLS ERROR: received control packet with stale session-id=%s",
-                    session_id_print(&sid, &gc));
-                goto error;
-            }
-            dmsg(D_TLS_DEBUG, "TLS: found match, session[%d], sid=%s", i,
-                 session_id_print(&sid, &gc));
-            break;
-        }
+        goto error;
     }
 
     /*
