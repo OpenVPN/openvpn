@@ -35,6 +35,20 @@
 
 #include "memdbg.h"
 
+static in_addr_t ifconfig_pool_handle_to_ip_base(const struct ifconfig_pool *pool,
+                                                 ifconfig_pool_handle hand);
+
+static struct in6_addr ifconfig_pool_handle_to_ipv6_base(const struct ifconfig_pool *pool,
+                                                         ifconfig_pool_handle hand);
+
+/* Return the last 32 bits of an IPv6 address in host byte order */
+static inline uint32_t
+in6_addr_low32(const struct in6_addr *a)
+{
+    return ((uint32_t)a->s6_addr[12] << 24) | ((uint32_t)a->s6_addr[13] << 16)
+           | ((uint32_t)a->s6_addr[14] << 8) | a->s6_addr[15];
+}
+
 static void
 ifconfig_pool_entry_free(struct ifconfig_pool_entry *ipe, bool hard)
 {
@@ -197,8 +211,7 @@ ifconfig_pool_init(const bool ipv4_pool, enum pool_type type, in_addr_t start, i
          * 4 bytes, therefore we can just extract that and use it as base in
          * integer form
          */
-        uint32_t base = (ipv6_base.s6_addr[12] << 24) | (ipv6_base.s6_addr[13] << 16)
-                        | (ipv6_base.s6_addr[14] << 8) | ipv6_base.s6_addr[15];
+        uint32_t base = in6_addr_low32(&ipv6_base);
         /* some bits of the last 4 bytes may still be part of the network
          * portion of the address, therefore we need to set them to 0
          */
@@ -319,33 +332,22 @@ ifconfig_pool_acquire(struct ifconfig_pool *pool, in_addr_t *local, in_addr_t *r
 
         if (pool->ipv4.enabled && local && remote)
         {
-            switch (pool->ipv4.type)
+            const in_addr_t b = ifconfig_pool_handle_to_ip_base(pool, i);
+            if (pool->ipv4.type == IFCONFIG_POOL_30NET)
             {
-                case IFCONFIG_POOL_30NET:
-                {
-                    in_addr_t b = pool->ipv4.base + (i << 2);
-                    *local = b + 1;
-                    *remote = b + 2;
-                    break;
-                }
-
-                case IFCONFIG_POOL_INDIV:
-                {
-                    in_addr_t b = pool->ipv4.base + i;
-                    *local = 0;
-                    *remote = b;
-                    break;
-                }
-
-                default:
-                    ASSERT(0);
+                *local = b + 1;
+                *remote = b + 2;
+            }
+            else
+            {
+                *local = 0;
+                *remote = b;
             }
         }
 
-        /* IPv6 pools are always INDIV (--linear) */
         if (pool->ipv6.enabled && remote_ipv6)
         {
-            *remote_ipv6 = add_in6_addr(pool->ipv6.base, i);
+            *remote_ipv6 = ifconfig_pool_handle_to_ipv6_base(pool, i);
         }
     }
     return i;
@@ -420,11 +422,8 @@ ifconfig_pool_ipv6_base_to_handle(const struct ifconfig_pool *pool, const struct
         }
     }
 
-    base = (pool->ipv6.base.s6_addr[12] << 24) | (pool->ipv6.base.s6_addr[13] << 16)
-           | (pool->ipv6.base.s6_addr[14] << 8) | pool->ipv6.base.s6_addr[15];
-
-    addr = (in_addr->s6_addr[12] << 24) | (in_addr->s6_addr[13] << 16) | (in_addr->s6_addr[14] << 8)
-           | in_addr->s6_addr[15];
+    base = in6_addr_low32(&pool->ipv6.base);
+    addr = in6_addr_low32(in_addr);
 
     ret = addr - base;
     if (ret < 0 || ret >= pool->size)
