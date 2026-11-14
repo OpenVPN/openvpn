@@ -1408,7 +1408,6 @@ setenv_routes_ipv6(struct env_set *es, const struct route_ipv6_list *rl6)
 /* local_route() return values */
 #define LR_NOMATCH 0 /* route is not local */
 #define LR_MATCH   1 /* route is local */
-#define LR_ERROR   2 /* caller should abort adding route */
 
 static int
 local_route(in_addr_t network, in_addr_t netmask, in_addr_t gateway,
@@ -1443,10 +1442,11 @@ local_route(in_addr_t network, in_addr_t netmask, in_addr_t gateway,
  * a route is specified as an interface rather than an address. */
 #if defined(TARGET_LINUX) || defined(_WIN32) || defined(TARGET_DARWIN)
 static inline bool
-is_on_link(const int is_local_route, const unsigned int flags, const struct route_gateway_info *rgi)
+is_on_link(const struct route_ipv4 *r, const unsigned int flags,
+           const struct route_gateway_info *rgi)
 {
     return rgi
-           && (is_local_route == LR_MATCH
+           && (local_route(r->network, r->netmask, r->gateway, rgi) == LR_MATCH
                || ((flags & ROUTE_REF_GW) && (rgi->flags & RGI_ON_LINK)));
 }
 #endif
@@ -1457,7 +1457,6 @@ add_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
           const struct env_set *es, openvpn_net_ctx_t *ctx)
 {
     int status = 0;
-    int is_local_route;
 
     if (!(r->flags & RT_DEFINED))
     {
@@ -1475,17 +1474,12 @@ add_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
     const char *gateway = print_in_addr_t(r->gateway, 0, &gc);
 #endif
 
-    is_local_route = local_route(r->network, r->netmask, r->gateway, rgi);
-    if (is_local_route == LR_ERROR)
-    {
-        goto done;
-    }
 
 #if defined(TARGET_LINUX)
     const char *iface = NULL;
     int metric = -1;
 
-    if (is_on_link(is_local_route, flags, rgi))
+    if (is_on_link(r, flags, rgi))
     {
         iface = rgi->iface;
     }
@@ -1533,7 +1527,7 @@ add_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
         {
             argv_printf_cat(&argv, "METRIC %d", r->metric);
         }
-        if (is_on_link(is_local_route, flags, rgi))
+        if (is_on_link(r, flags, rgi))
         {
             ai = rgi->adapter_index;
             argv_printf_cat(&argv, "IF %lu", ai);
@@ -1659,7 +1653,7 @@ add_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
     }
 #endif
 
-    if (is_on_link(is_local_route, flags, rgi))
+    if (is_on_link(r, flags, rgi))
     {
         /* Mac OS X route syntax for ON_LINK:
          * route add -cloning -net 10.10.0.1 -netmask 255.255.255.255 -interface en0 */
@@ -1718,7 +1712,6 @@ add_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
         "Sorry, but I don't know how to do 'route' commands on this operating system.  Try putting your routes in a --route-up script");
 #endif /* if defined(TARGET_LINUX) */
 
-done:
     if (status == RTA_SUCCESS)
     {
         r->flags |= RT_ADDED;
@@ -2009,7 +2002,6 @@ delete_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
 #else /* if !defined(TARGET_LINUX) */
     int metric;
 #endif
-    int is_local_route;
 
     if ((r->flags & (RT_DEFINED | RT_ADDED)) != (RT_DEFINED | RT_ADDED))
     {
@@ -2027,11 +2019,6 @@ delete_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
     gateway = print_in_addr_t(r->gateway, 0, &gc);
 #endif
 
-    is_local_route = local_route(r->network, r->netmask, r->gateway, rgi);
-    if (is_local_route == LR_ERROR)
-    {
-        goto done;
-    }
 
 #if defined(TARGET_LINUX)
     metric = -1;
@@ -2110,7 +2097,7 @@ delete_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
 
 #elif defined(TARGET_DARWIN)
 
-    if (is_on_link(is_local_route, flags, rgi))
+    if (is_on_link(r, flags, rgi))
     {
         argv_printf(&argv, "%s delete -cloning -net %s -netmask %s -interface %s", ROUTE_PATH,
                     network, netmask, rgi->iface);
@@ -2160,7 +2147,6 @@ delete_route(struct route_ipv4 *r, const struct tuntap *tt, unsigned int flags,
         "Sorry, but I don't know how to do 'route' commands on this operating system.  Try putting your routes in a --route-up script");
 #endif /* if defined(TARGET_LINUX) */
 
-done:
     r->flags &= ~RT_ADDED;
     argv_free(&argv);
     gc_free(&gc);
