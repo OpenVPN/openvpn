@@ -486,6 +486,7 @@ tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file, bool
             status = mbedtls_pk_parse_key(
                 ctx->priv_key, (const unsigned char *)priv_key_file, strlen(priv_key_file) + 1,
                 (unsigned char *)passbuf, strlen(passbuf));
+            secure_memzero(passbuf, sizeof(passbuf));
         }
     }
     else
@@ -496,6 +497,7 @@ tls_ctx_load_priv_file(struct tls_root_ctx *ctx, const char *priv_key_file, bool
             char passbuf[512] = { 0 };
             pem_password_callback(passbuf, 512, 0, NULL);
             status = mbedtls_pk_parse_keyfile(ctx->priv_key, priv_key_file, passbuf);
+            secure_memzero(passbuf, sizeof(passbuf));
         }
     }
     if (!mbed_ok(status))
