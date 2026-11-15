@@ -275,7 +275,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
 
     /* free the auth-token if defined, we will replace it with a new one */
     free(multi->auth_token);
-    multi->auth_token = strdup((char *)BPTR(&session_token));
+    multi->auth_token = string_alloc((char *)BPTR(&session_token), NULL);
 
     dmsg(D_SHOW_KEYS, "Generated token for client: %s (%s)", multi->auth_token, up->username);
 
@@ -285,7 +285,7 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
          * Save the initial auth token to continue using the same session ID
          * and timestamp in updates
          */
-        multi->auth_token_initial = strdup(multi->auth_token);
+        multi->auth_token_initial = string_alloc(multi->auth_token, NULL);
     }
 
     gc_free(&gc);

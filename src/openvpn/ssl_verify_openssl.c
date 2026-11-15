@@ -323,11 +323,10 @@ backend_x509_get_serial_hex(openvpn_x509_cert_t *cert, struct gc_arena *gc)
     const ASN1_INTEGER *asn1_i = X509_get_serialNumber(cert);
     BIGNUM *bn_serial = ASN1_INTEGER_to_BN(asn1_i, NULL);
     int len_serial = BN_num_bytes(bn_serial);
-    unsigned char *buf = malloc(len_serial);
+    unsigned char *buf = gc_malloc(len_serial, false, gc);
     BN_bn2binpad(bn_serial, buf, len_serial);
 
     char *ret = format_hex_ex(buf, len_serial, 0, 1, ":", gc);
-    free(buf);
     BN_free(bn_serial);
 
     return ret;

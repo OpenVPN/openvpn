@@ -395,6 +395,7 @@ multi_init(struct context *t)
     m->max_clients = t->options.max_clients;
 
     m->instances = calloc(m->max_clients, sizeof(struct multi_instance *));
+    check_malloc_return(m->instances);
 
     m->top.c2.event_set = t->c2.event_set;
 
@@ -2618,7 +2619,7 @@ override_locked_username(struct multi_instance *mi)
         }
 
         multi->locked_original_username = multi->locked_username;
-        multi->locked_username = strdup(options->override_username);
+        multi->locked_username = string_alloc(options->override_username, NULL);
 
         /* Override also the common name if username should be set as common
          * name */

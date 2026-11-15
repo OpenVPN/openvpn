@@ -1662,7 +1662,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi, struct tls_sessi
          * using the same session ID and initial timestamp in new tokens */
         if (!multi->auth_token_initial && (ks->auth_token_state_flags & AUTH_TOKEN_HMAC_OK))
         {
-            multi->auth_token_initial = strdup(up->password);
+            multi->auth_token_initial = string_alloc(up->password, NULL);
         }
 
         if (session->opt->auth_token_call_auth)
@@ -1781,7 +1781,7 @@ verify_user_pass(struct user_pass *up, struct tls_multi *multi, struct tls_sessi
             if (!multi->auth_token && (ks->auth_token_state_flags & AUTH_TOKEN_HMAC_OK)
                 && !(ks->auth_token_state_flags & AUTH_TOKEN_EXPIRED))
             {
-                multi->auth_token = strdup(up->password);
+                multi->auth_token = string_alloc(up->password, NULL);
             }
 
             /*
