@@ -212,8 +212,8 @@ get_ifconfig_route()
                 LANG=C @NETSTAT@ -rn -4 -6
             fi
             ;;
-        FreeBSD | NetBSD | Darwin)
-            echo "-- FreeBSD/NetBSD/Darwin [MacOS X] --"
+        FreeBSD | DragonFly | NetBSD | Darwin)
+            echo "-- FreeBSD/DragonFly/NetBSD/Darwin [MacOS X] --"
             @IFCONFIG@ -a | egrep "(flags=|inet)"
             @NETSTAT@ -rn | awk '$3 !~ /^UHL/ { print $1,$2,$3,$NF }'
             ;;

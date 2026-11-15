@@ -979,7 +979,7 @@ init_tun_post(struct tuntap *tt, const struct frame *frame, const struct tuntap_
 #endif /* ifdef _WIN32 */
 }
 
-#if defined(_WIN32)
+#if defined(_WIN32) || defined(TARGET_DRAGONFLY)
 
 /* some of the platforms will auto-add a "network route" pointing
  * to the interface on "ifconfig tunX 2001:db8::1/64", others need
@@ -1014,8 +1014,7 @@ delete_route_connected_v6_net(const struct tuntap *tt)
     route_ipv6_clear_host_bits(&r6);
     delete_route_ipv6(&r6, tt, NULL, NULL);
 }
-#endif /* if defined(_WIN32) || defined(TARGET_DARWIN) || defined(TARGET_NETBSD) || \
-          defined(TARGET_OPENBSD) */
+#endif /* if defined(_WIN32) || defined(TARGET_DRAGONFLY) */
 
 #if defined(TARGET_NETBSD) || defined(TARGET_OPENBSD)
 /* we can't use true subnet mode on tun on all platforms, as that
@@ -1158,6 +1157,10 @@ do_ifconfig_ipv6(const struct tuntap *tt, const char *ifname, int tun_mtu, const
     argv_msg(M_INFO, &argv);
 
     openvpn_execve_check(&argv, es, S_FATAL, "FreeBSD BSD 'ifconfig inet6 -ifdisabled' failed");
+#endif
+
+#ifdef TARGET_DRAGONFLY
+    add_route_connected_v6_net(tt, es);
 #endif
 
 #elif defined(TARGET_AIX)
@@ -1490,7 +1493,7 @@ do_ifconfig_ipv4(const struct tuntap *tt, const char *ifname, int tun_mtu, const
     }
 
     argv_msg(M_INFO, &argv);
-    openvpn_execve_check(&argv, es, S_FATAL, "FreeBSD ifconfig failed");
+    openvpn_execve_check(&argv, es, S_FATAL, "FreeBSD/DragonFly ifconfig failed");
 
 #elif defined(TARGET_AIX)
     {
@@ -1623,14 +1626,14 @@ undo_ifconfig_ipv4(const struct tuntap *tt, const openvpn_net_ctx_t *ctx)
             msg(M_WARN, "Linux can't del IP from iface %s", tt->actual_name);
         }
     }
-#elif defined(TARGET_FREEBSD)
+#elif defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY)
     struct gc_arena gc = gc_new();
     const char *ifconfig_local = print_in_addr_t(tt->local, 0, &gc);
     struct argv argv = argv_new();
 
     argv_printf(&argv, "%s %s %s -alias", IFCONFIG_PATH, tt->actual_name, ifconfig_local);
     argv_msg(M_INFO, &argv);
-    openvpn_execve_check(&argv, NULL, 0, "FreeBSD ip addr del failed");
+    openvpn_execve_check(&argv, NULL, 0, "FreeBSD/DragonFly ip addr del failed");
 
     argv_free(&argv);
     gc_free(&gc);
@@ -1646,7 +1649,12 @@ undo_ifconfig_ipv6(const struct tuntap *tt, const openvpn_net_ctx_t *ctx)
     {
         msg(M_WARN, "Linux can't del IPv6 from iface %s", tt->actual_name);
     }
-#elif defined(TARGET_FREEBSD)
+#elif defined(TARGET_FREEBSD) || defined(TARGET_DRAGONFLY)
+
+#ifdef TARGET_DRAGONFLY
+    delete_route_connected_v6_net(tt);
+#endif
+
     struct gc_arena gc = gc_new();
     const char *ifconfig_ipv6_local = print_in6_addr(tt->local_ipv6, 0, &gc);
     struct argv argv = argv_new();
@@ -1655,7 +1663,7 @@ undo_ifconfig_ipv6(const struct tuntap *tt, const openvpn_net_ctx_t *ctx)
                 ifconfig_ipv6_local, tt->netbits_ipv6);
 
     argv_msg(M_INFO, &argv);
-    openvpn_execve_check(&argv, NULL, 0, "FreeBSD ip -6 addr del failed");
+    openvpn_execve_check(&argv, NULL, 0, "FreeBSD/DragonFly ip -6 addr del failed");
 
     argv_free(&argv);
     gc_free(&gc);
@@ -2888,20 +2896,70 @@ close_tun(struct tuntap *tt, openvpn_net_ctx_t *ctx)
 
 #elif defined(TARGET_DRAGONFLY)
 
+/* DragonFly tun/tap devices are similar to NetBSD
+ *  - for a dynamic tun/tap, open /dev/tun or /dev/tap, get assigned
+ *    the first free device, ask with (f)devname(3) what you got, and
+ *    the interface will auto-destruct on close
+ *  - for a pre-created tun/tap, open "/dev/tun3"
+ *  - using "--dev tun3" and have it dynamically created needs a call
+ *    to "ifconfig tun3 create" which we don't currently do
+ */
+
 void
 open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tuntap *tt,
          openvpn_net_ctx_t *ctx)
 {
-    open_tun_generic(dev, dev_type, dev_node, tt);
-
-    if (tt->fd >= 0)
+    if (!dev_node && (strcmp(dev, "tap") == 0 || strcmp(dev, "tun") == 0))
     {
-        int i = 0;
+        char tunname[256];
+        snprintf(tunname, sizeof(tunname), "/dev/%s", dev);
 
-        /* Disable extended modes */
+        if ((tt->fd = open(tunname, O_RDWR)) < 0)
+        {
+            msg(M_ERR, "Cannot allocate DragonFly TUN/TAP %s dynamically", tunname);
+        }
+
+        char *devname = fdevname(tt->fd);
+        if (devname == NULL)
+        {
+            msg(M_ERR, "Cannot query DragonFly TUN/TAP device name");
+        }
+        set_nonblock(tt->fd);
+        set_cloexec(tt->fd); /* don't pass fd to scripts */
+        msg(M_INFO, "TUN/TAP device %s opened", devname);
+
+        tt->actual_name = string_alloc(devname, NULL);
+    }
+    else
+    {
+        open_tun_generic(dev, dev_type, dev_node, tt);
+    }
+
+    if (tt->fd >= 0 && tt->type == DEV_TYPE_TUN)
+    {
+        /* see "Interface Flags" in ifnet(9) */
+        int i = IFF_POINTOPOINT | IFF_MULTICAST;
+        if (tt->topology == TOP_SUBNET)
+        {
+            i = IFF_BROADCAST | IFF_MULTICAST;
+        }
+
+        if (ioctl(tt->fd, TUNSIFMODE, &i) < 0)
+        {
+            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFMODE)");
+        }
+
+        /* Disable "link layer" mode (would prepend route-nexthop address
+         * on read, but is incompatible with TUNSIFHEAD multi-af mode) */
+        i = 0;
         ioctl(tt->fd, TUNSLMODE, &i);
+
+        /* multi_af mode for v4+v6, see "tun(4)" */
         i = 1;
-        ioctl(tt->fd, TUNSIFHEAD, &i);
+        if (ioctl(tt->fd, TUNSIFHEAD, &i) < 0)
+        {
+            msg(M_WARN | M_ERRNO, "ioctl(TUNSIFHEAD)");
+        }
     }
 }
 

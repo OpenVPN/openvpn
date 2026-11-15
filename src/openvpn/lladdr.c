@@ -24,7 +24,7 @@ set_lladdr_linux(const openvpn_net_ctx_t *ctx, const char *ifname, const char *l
 }
 #else /* TARGET_LINUX */
 
-#if defined(TARGET_OPENBSD) || defined(TARGET_FREEBSD) || defined(TARGET_DARWIN)
+#if defined(TARGET_OPENBSD) || defined(TARGET_FREEBSD) || defined(TARGET_DARWIN) || defined(TARGET_DRAGONFLY)
 #define IFCONFIG_LLADDR_FMT "%s %s lladdr %s"
 #elif defined(TARGET_NETBSD)
 #define IFCONFIG_LLADDR_FMT "%s %s link %s active"
