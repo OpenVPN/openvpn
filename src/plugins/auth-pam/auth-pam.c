@@ -32,6 +32,7 @@
 #include <security/pam_appl.h>
 
 #ifdef USE_PAM_DLOPEN
+#include <dlfcn.h>
 #include "pamdl.h"
 #endif
 
