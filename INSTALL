@@ -226,13 +226,10 @@ https://community.openvpn.net/openvpn/wiki/OpenvpnSoftwareRepos
 
 TUN/TAP Driver References:
 
-* Linux 2.6 or higher (with integrated TUN/TAP driver):
+* Linux (with integrated TUN/TAP driver):
 
-  (1) load driver:              modprobe tun
-  (2) enable routing:           echo 1 > /proc/sys/net/ipv4/ip_forward
-
-  Note that (1) needs to be done once per reboot.  If you install from RPM (see
-  above) and use the openvpn.init script, these steps are taken care of for you.
+  (1) load driver (only if /dev/net/tun is missing):  modprobe tun
+  (2) enable routing:  echo 1 > /proc/sys/net/ipv4/ip_forward
 
 * FreeBSD:
 

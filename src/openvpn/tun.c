@@ -2123,15 +2123,8 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
             msg(M_ERR, "ERROR: Cannot open TUN/TAP dev %s", node);
         }
 
-        /*
-         * Process --tun-ipv6
-         */
         CLEAR(ifr);
         ifr.ifr_flags = IFF_NO_PI;
-
-#if defined(IFF_ONE_QUEUE) && defined(SIOCSIFTXQLEN)
-        ifr.ifr_flags |= IFF_ONE_QUEUE;
-#endif
 
 #ifdef IFF_BACKPRESSURE
         ifr.ifr_flags |= IFF_BACKPRESSURE;
@@ -2175,7 +2168,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
         /*
          * Try making the TX send queue bigger
          */
-#if defined(IFF_ONE_QUEUE) && defined(SIOCSIFTXQLEN)
         if (tt->options.txqueuelen)
         {
             struct ifreq netifr;
@@ -2201,7 +2193,6 @@ open_tun(const char *dev, const char *dev_type, const char *dev_node, struct tun
                 msg(M_WARN | M_ERRNO, "Note: Cannot open control socket on %s", ifr.ifr_name);
             }
         }
-#endif /* if defined(IFF_ONE_QUEUE) && defined(SIOCSIFTXQLEN) */
 
         set_nonblock(tt->fd);
         set_cloexec(tt->fd);
