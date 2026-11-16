@@ -239,6 +239,12 @@ dco_new_peer(dco_context_t *dco, unsigned int peerid, int sd, struct sockaddr *l
     msg(D_DCO_DEBUG, "%s: peer-id %u, fd %d, remote addr: %s", __func__, peerid, sd, remotestr);
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_PEER_NEW);
+    if (!nl_msg)
+    {
+        gc_free(&gc);
+        return -ENOMEM;
+    }
+
     struct nlattr *attr = nla_nest_start(nl_msg, OVPN_A_PEER);
     int ret = -EMSGSIZE;
 
@@ -1234,6 +1240,11 @@ dco_get_peer(dco_context_t *dco, int peer_id, const bool raise_sigusr1_on_err)
     msg(D_DCO_DEBUG | M_NOIPREFIX, "%s: peer-id %d", __func__, peer_id);
 
     struct nl_msg *nl_msg = ovpn_dco_nlmsg_create(dco, OVPN_CMD_PEER_GET);
+    if (!nl_msg)
+    {
+        return -ENOMEM;
+    }
+
     struct nlattr *attr = nla_nest_start(nl_msg, OVPN_A_PEER);
     int ret = -EMSGSIZE;
 
