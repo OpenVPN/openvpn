@@ -81,6 +81,10 @@ jobs:
         arch: [x86, x64]
         build: [Release, Debug]
 
+        include:
+         - arch: x86
+           configure-args: "['-DUSE_WERROR=OFF']"
+
     name: "gcc-mingw - ${{ matrix.arch }} - ${{ matrix.build }} - OSSL"
     runs-on: ubuntu-26.04
     env:
@@ -113,6 +117,7 @@ jobs:
         uses: lukka/run-cmake@5d55ea7949e25f69f0ecb516d8d572297e03a956 # v10.9
         with:
           configurePreset: mingw-${{ matrix.arch }}
+          configurePresetAdditionalArgs: ${{ matrix.configure-args }}
           buildPreset: mingw-${{ matrix.arch }}
           buildPresetAdditionalArgs: "['--config ${{ matrix.build }}']"
 

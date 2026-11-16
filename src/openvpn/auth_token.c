@@ -364,7 +364,6 @@ verify_auth_token(struct user_pass *up, struct tls_multi *multi, struct tls_sess
 
     /* Accept session tokens only if their timestamp is in the acceptable range
      * for renegotiations.
-     * Cast is required for systems with 32bit time_t, e.g. Windows x86.
      */
     const time_t token_reneg_deadline = (time_t)timestamp + 2 * session->opt->auth_token_renewal;
     bool in_renegotiation_time = now >= (time_t)timestamp && now < token_reneg_deadline;
