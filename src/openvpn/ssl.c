@@ -52,6 +52,7 @@
 #include "pkcs11.h"
 #include "route.h"
 #include "tls_crypt.h"
+#include "control_msg.h"
 
 #include "crypto_epoch.h"
 #include "ssl.h"
@@ -2662,26 +2663,21 @@ parse_early_negotiation_tlvs(struct buffer *buf, const struct tls_session *sessi
 {
     while (buf->len > 0)
     {
-        if (buf_len(buf) < 4)
-        {
-            goto error;
-        }
-        /* read type */
-        int type = buf_read_u16(buf);
-        int len = buf_read_u16(buf);
-        if (type < 0 || len < 0 || buf_len(buf) < len)
+        struct ctrl_msg_tlv_header hdr;
+        struct buffer value;
+        if (!ctrl_msg_tlv_next(buf, &hdr, &value))
         {
             goto error;
         }
 
-        switch (type)
+        switch (hdr.type)
         {
             case TLV_TYPE_EARLY_NEG_FLAGS:
-                if (len != sizeof(uint16_t))
+                if (BLEN(&value) != sizeof(uint16_t))
                 {
                     goto error;
                 }
-                int flags = buf_read_u16(buf);
+                int flags = buf_read_u16(&value);
 
                 if (flags & EARLY_NEG_FLAG_RESEND_WKC)
                 {
@@ -2700,8 +2696,8 @@ parse_early_negotiation_tlvs(struct buffer *buf, const struct tls_session *sessi
                 break;
 
             default:
-                /* Skip types we do not parse */
-                buf_advance(buf, len);
+                /* Skip types we do not parse, marked optional or not */
+                break;
         }
     }
     reliable_mark_deleted(ks->rec_reliable, buf);

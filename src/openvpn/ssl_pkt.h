@@ -306,10 +306,8 @@ tls_session_get_tls_wrap(struct tls_session *session, int key_id)
 #define EARLY_NEG_START 0x0f000000
 
 
-/* Early negotiation that part of the server response in the RESET_V2 packet.
- * Since clients that announce early negotiation support will treat the payload
- * of reset packets special and parse it as TLV messages.
- * as TLV (type, length, value) */
-#define TLV_TYPE_EARLY_NEG_FLAGS  0x0001
+/* Early negotiation: clients that announce support for it parse the payload of
+ * the reset packets as TLVs (see control_msg.h). Flags carried in the value of
+ * the TLV_TYPE_EARLY_NEG_FLAGS TLV: */
 #define EARLY_NEG_FLAG_RESEND_WKC 0x0001
 #endif /* ifndef SSL_PKT_H */

@@ -37,12 +37,14 @@
 #include "crypto.h"
 #include "options.h"
 #include "ssl_backend.h"
+#include "control_msg.h"
 #include "ssl_pkt.h"
 #include "tls_crypt.h"
 
 #include "mss.h"
 #include "reliable.h"
 #include "siphash.h"
+#include "test_control_msg.h"
 
 int
 parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
@@ -655,6 +657,45 @@ test_generate_reset_packet_plain(void **ut_state)
     free_buf(&tas.workbuf);
 }
 
+/* A reset reply asking a tls-crypt-v2 client to resend its WKc ends in the
+ * early negotiation flags TLV, and that TLV parses back. */
+static void
+test_generate_reset_packet_resend_wkc(void **ut_state)
+{
+    struct tls_auth_standalone tas = { 0 };
+
+    struct session_id client_id = { { 0, 1, 2, 3, 4, 5, 6, 7 } };
+    struct session_id server_id = { { 8, 9, 0, 9, 8, 7, 6, 2 } };
+
+    tas.tls_wrap.mode = TLS_WRAP_NONE;
+    struct frame frame = { .buf = { .headroom = 200, .payload_size = 1400 }, 0 };
+    tas.frame = frame;
+    tas.workbuf = alloc_buf(1600);
+
+    uint8_t header = 0 | (P_CONTROL_HARD_RESET_SERVER_V2 << P_OPCODE_SHIFT);
+
+    struct buffer plain =
+        tls_reset_standalone(&tas.tls_wrap, &tas, &client_id, &server_id, header, false);
+    const int plain_len = BLEN(&plain);
+    struct buffer buf =
+        tls_reset_standalone(&tas.tls_wrap, &tas, &client_id, &server_id, header, true);
+
+    const uint8_t tlv[] = { 0x00, 0x01, 0x00, 0x02, 0x00, 0x01 };
+    assert_int_equal(BLEN(&buf), plain_len + (int)sizeof(tlv));
+    assert_memory_equal(BPTR(&buf) + plain_len, tlv, sizeof(tlv));
+
+    struct buffer payload = buf;
+    assert_true(buf_advance(&payload, plain_len));
+    struct ctrl_msg_tlv_header hdr;
+    struct buffer value;
+    assert_true(ctrl_msg_tlv_next(&payload, &hdr, &value));
+    assert_int_equal(hdr.type, TLV_TYPE_EARLY_NEG_FLAGS);
+    assert_int_equal(buf_read_u16(&value), EARLY_NEG_FLAG_RESEND_WKC);
+    assert_int_equal(BLEN(&payload), 0);
+
+    free_buf(&tas.workbuf);
+}
+
 static void
 test_generate_reset_packet_tls_auth(void **ut_state)
 {
@@ -791,9 +832,16 @@ main(void)
         cmocka_unit_test(test_verify_hmac_tls_auth),
         cmocka_unit_test(test_verify_hmac_none_out_of_range_ack),
         cmocka_unit_test(test_generate_reset_packet_plain),
+        cmocka_unit_test(test_generate_reset_packet_resend_wkc),
         cmocka_unit_test(test_generate_reset_packet_tls_auth),
         cmocka_unit_test(test_wkc_not_appended_without_key),
-        cmocka_unit_test(test_extract_control_message)
+        cmocka_unit_test(test_extract_control_message),
+        cmocka_unit_test(test_tlv_write_u16_wire_format),
+        cmocka_unit_test(test_tlv_header_roundtrip),
+        cmocka_unit_test(test_tlv_next_walks_payload),
+        cmocka_unit_test(test_tlv_next_value_truncated),
+        cmocka_unit_test(test_tlv_header_truncated),
+        cmocka_unit_test(test_tlv_write_no_room)
     };
 
     return cmocka_run_group_tests_name("pkt tests", tests, NULL, NULL);
