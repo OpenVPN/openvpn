@@ -18,10 +18,18 @@
 # Extract a patch from Gerrit and transform it in a file suitable as input
 # for git send-email.
 
+# Note: This generally works without authentication since it only reads
+# information and doesn't change any state in Gerrit itself.
+# To access changes in projects that are not viewable by anonymous
+# visitors set GERRIT_USER and GERRIT_PASS environment variables.
+# GERRIT_PASS can be a token as generated on your user settings page
+# under "HTTP Credentials".
+
 import argparse
 import base64
 from datetime import timezone
 import json
+import os
 import sys
 from urllib.parse import urlparse
 
@@ -29,9 +37,11 @@ import dateutil.parser
 import requests
 
 
-def get_details(args):
+def get_details(args, gerrit_api_url, auth):
     params = {"o": ["CURRENT_REVISION", "LABELS", "DETAILED_ACCOUNTS"]}
-    r = requests.get(f"{args.url}/changes/{args.changeid}", params=params)
+    r = requests.get(
+        f"{gerrit_api_url}/changes/{args.changeid}", params=params, auth=auth
+    )
     print(r.url)
     json_txt = r.text.removeprefix(")]}'\n")
     json_data = json.loads(json_txt)
@@ -76,9 +86,10 @@ def get_details(args):
     }
 
 
-def get_patch(details, args):
+def get_patch(details, args, gerrit_api_url, auth):
     r = requests.get(
-        f"{args.url}/changes/{args.changeid}/revisions/{details['revision']}/patch?download"
+        f"{gerrit_api_url}/changes/{args.changeid}/revisions/{details['revision']}/patch?download",
+        auth=auth,
     )
     print(r.url)
     patch_text = base64.b64decode(r.text).decode()
@@ -138,8 +149,16 @@ def main():
     parser.add_argument("-u", "--url", default="https://gerrit.openvpn.net")
     args = parser.parse_args()
 
-    details = get_details(args)
-    patch = get_patch(details, args)
+    auth = None
+    gerrit_api_url = args.url
+    if "GERRIT_USER" in os.environ:
+        gerrit_user = os.environ["GERRIT_USER"]
+        gerrit_pass = os.environ["GERRIT_PASS"]
+        auth = requests.auth.HTTPBasicAuth(gerrit_user, gerrit_pass)
+        gerrit_api_url += "/a"
+
+    details = get_details(args, gerrit_api_url, auth)
+    patch = get_patch(details, args, gerrit_api_url, auth)
     apply_patch_mods(patch, details, args)
 
 
