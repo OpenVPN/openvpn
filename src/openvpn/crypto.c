@@ -1040,7 +1040,6 @@ init_key_bi_ctx_send(struct key_ctx *ctx, const struct key_parameters *key_param
     snprintf(log_prefix, sizeof(log_prefix), "Outgoing %s", name);
     init_key_ctx(ctx, key_params, kt, OPENVPN_OP_ENCRYPT, log_prefix);
     key_ctx_update_implicit_iv(ctx, key_params);
-    ctx->epoch = key_params->epoch;
 }
 
 void
@@ -1052,7 +1051,6 @@ init_key_bi_ctx_recv(struct key_ctx *ctx, const struct key_parameters *key_param
     snprintf(log_prefix, sizeof(log_prefix), "Incoming %s", name);
     init_key_ctx(ctx, key_params, kt, OPENVPN_OP_DECRYPT, log_prefix);
     key_ctx_update_implicit_iv(ctx, key_params);
-    ctx->epoch = key_params->epoch;
 }
 
 void
