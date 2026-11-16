@@ -70,14 +70,6 @@ lzo_compress_uninit(struct compress_context *compctx)
 }
 
 static void
-lzo_compress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
-             const struct frame *frame)
-{
-    uint8_t *header = buf_prepend(buf, 1);
-    *header = NO_COMPRESS_BYTE;
-}
-
-static void
 lzo_decompress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
                const struct frame *frame)
 {
@@ -129,6 +121,6 @@ lzo_decompress(struct buffer *buf, struct buffer work, struct compress_context *
 #pragma GCC diagnostic pop
 #endif
 
-const struct compress_alg lzo_alg = { "lzo", lzo_compress_init, lzo_compress_uninit, lzo_compress,
-                                      lzo_decompress };
+const struct compress_alg lzo_alg = { "lzo", lzo_compress_init, lzo_compress_uninit,
+                                      comp_stub_compress, lzo_decompress };
 #endif /* ENABLE_LZO */

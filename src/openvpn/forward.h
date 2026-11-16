@@ -102,7 +102,7 @@ void process_io(struct context *c, struct link_socket *sock);
  * - Check that the client authentication has succeeded; if not, drop the
  *   packet.
  * - If the \a comp_frag argument is true:
- *   - Call \c lzo_compress() of the \link compression Data Channel Compression
+ *   - Call the \c compress method of the \link compression Data Channel Compression
  *     module\endlink to (possibly) compress the packet.
  *   - Call \c fragment_outgoing() of the \link fragmentation Data Channel Fragmentation
  *     module\endlink to (possibly) fragment the packet.
@@ -191,7 +191,7 @@ bool process_incoming_link_part1(struct context *c, const struct link_socket_inf
  * - Call \c fragment_incoming() of the \link fragmentation Data Channel
  *   Fragmentation module\endlink to reassemble the packet if it's
  *   fragmented.
- * - Call \c lzo_decompress() of the \link compression Data Channel
+ * - Call the \c decompress method of the \link compression Data Channel
  *   Compression module\endlink to decompress the packet if it's
  *   compressed.
  * - Place the resulting packet in \c c->c2.to_tun so that it can be sent

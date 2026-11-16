@@ -44,9 +44,9 @@ stub_compress_uninit(struct compress_context *compctx)
 {
 }
 
-static void
-stub_compress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
-              const struct frame *frame)
+void
+comp_stub_compress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
+                   const struct frame *frame)
 {
     if (buf->len <= 0)
     {
@@ -104,9 +104,9 @@ stub_decompress(struct buffer *buf, struct buffer work, struct compress_context 
 }
 
 
-static void
-stubv2_compress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
-                const struct frame *frame)
+void
+compv2_stub_compress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
+                     const struct frame *frame)
 {
     if (buf->len <= 0)
     {
@@ -154,8 +154,8 @@ stubv2_decompress(struct buffer *buf, struct buffer work, struct compress_contex
 }
 
 const struct compress_alg compv2_stub_alg = { "stubv2", stub_compress_init, stub_compress_uninit,
-                                              stubv2_compress, stubv2_decompress };
+                                              compv2_stub_compress, stubv2_decompress };
 
 const struct compress_alg comp_stub_alg = { "stub", stub_compress_init, stub_compress_uninit,
-                                            stub_compress, stub_decompress };
+                                            comp_stub_compress, stub_decompress };
 #endif /* USE_STUB */

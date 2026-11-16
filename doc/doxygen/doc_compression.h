@@ -60,10 +60,10 @@
  * Data Channel Control module\endlink and processes them according to the
  * settings of the packet's VPN tunnel.  The \link data_control Data
  * Channel Control module\endlink uses the following interface functions:
- * - For packets which will be sent to a remote OpenVPN peer: \c
- *   lzo_compress()
- * - For packets which have been received from a remote OpenVPN peer: \c
- *   lzo_decompress()
+ * - For packets which will be sent to a remote OpenVPN peer: the \c
+ *   compress method of \c compress_alg
+ * - For packets which have been received from a remote OpenVPN peer: the
+ *   \c decompress method of \c compress_alg
  *
  * @par Settings that control this module's activity
  * Whether or not the Data Channel Compression module is active depends on

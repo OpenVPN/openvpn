@@ -38,47 +38,41 @@
 struct compress_context *
 comp_init(const struct compress_options *opt)
 {
-    struct compress_context *compctx = NULL;
+    const struct compress_alg *alg;
     switch (opt->alg)
     {
         case COMP_ALG_STUB:
-            ALLOC_OBJ_CLEAR(compctx, struct compress_context);
-            compctx->flags = opt->flags;
-            compctx->alg = comp_stub_alg;
+            alg = &comp_stub_alg;
             break;
 
         case COMP_ALGV2_UNCOMPRESSED:
-            ALLOC_OBJ_CLEAR(compctx, struct compress_context);
-            compctx->flags = opt->flags;
-            compctx->alg = compv2_stub_alg;
+            alg = &compv2_stub_alg;
             break;
 
 #ifdef ENABLE_LZO
         case COMP_ALG_LZO:
-            ALLOC_OBJ_CLEAR(compctx, struct compress_context);
-            compctx->flags = opt->flags;
-            compctx->alg = lzo_alg;
+            alg = &lzo_alg;
             break;
 
 #endif
 #ifdef ENABLE_LZ4
         case COMP_ALG_LZ4:
-            ALLOC_OBJ_CLEAR(compctx, struct compress_context);
-            compctx->flags = opt->flags;
-            compctx->alg = lz4_alg;
+            alg = &lz4_alg;
             break;
 
         case COMP_ALGV2_LZ4:
-            ALLOC_OBJ_CLEAR(compctx, struct compress_context);
-            compctx->flags = opt->flags;
-            compctx->alg = lz4v2_alg;
+            alg = &lz4v2_alg;
             break;
 #endif
+        default:
+            return NULL;
     }
-    if (compctx)
-    {
-        (*compctx->alg.compress_init)(compctx);
-    }
+
+    struct compress_context *compctx;
+    ALLOC_OBJ_CLEAR(compctx, struct compress_context);
+    compctx->flags = opt->flags;
+    compctx->alg = *alg;
+    (*compctx->alg.compress_init)(compctx);
 
     return compctx;
 }

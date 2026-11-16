@@ -208,6 +208,14 @@ void comp_generate_peer_info_string(const struct compress_options *opt, struct b
 
 void compv2_escape_data_ifneeded(struct buffer *buf);
 
+/* Compress methods of the stub algorithms, also used by LZO and LZ4, which
+ * no longer compress on send */
+void comp_stub_compress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
+                        const struct frame *frame);
+
+void compv2_stub_compress(struct buffer *buf, struct buffer work, struct compress_context *compctx,
+                          const struct frame *frame);
+
 static inline bool
 comp_enabled(const struct compress_options *info)
 {
