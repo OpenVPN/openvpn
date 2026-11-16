@@ -159,7 +159,7 @@ send_control(const socket_descriptor_t fd, int code)
     }
 }
 
-static int
+static socklen_t
 cmsg_size(void)
 {
     return CMSG_SPACE(sizeof(socket_descriptor_t));
@@ -357,8 +357,8 @@ journal_add(const char *journal_dir, const struct proxy_connection *pc, struct p
         }
         if (fd != -1)
         {
-            ssize_t write_len = strlen(f);
-            if (write(fd, f, write_len) != write_len)
+            const size_t write_len = strlen(f);
+            if (write(fd, f, write_len) != (ssize_t)write_len)
             {
                 msg(M_WARN, "PORT SHARE: writing to journal file (%s) failed", jfn);
             }

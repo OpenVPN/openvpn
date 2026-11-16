@@ -779,14 +779,9 @@ man_up_finalize(struct management *man)
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 static void
 man_query_user_pass(struct management *man, const char *type, const char *string, const bool needed,
-                    const char *prompt, char *dest, int len)
+                    const char *prompt, char *dest, size_t len)
 {
     if (needed)
     {
@@ -808,10 +803,6 @@ man_query_user_pass(struct management *man, const char *type, const char *string
         msg(M_CLIENT, "ERROR: no %s is currently needed at this time", prompt);
     }
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static void
 man_query_username(struct management *man, const char *type, const char *string)
@@ -2700,11 +2691,6 @@ man_persist_close(struct man_persist *mp)
     CLEAR(*mp);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 static void
 man_settings_init(struct man_settings *ms, const char *addr, const char *port,
                   const char *pass_file, const char *client_user, const char *client_group,
@@ -3315,14 +3301,10 @@ man_persist_state(unsigned int *persistent, const int n)
         {
             return false;
         }
-        *persistent = n;
+        *persistent = (unsigned int)n;
     }
     return true;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #ifdef _WIN32
 
@@ -3708,7 +3690,7 @@ management_query_user_pass(struct management *man, struct user_pass *up, const c
         struct buffer alert_msg = alloc_buf_gc(256, &gc);
         const char *alert_type = NULL;
         const char *prefix = NULL;
-        unsigned int up_query_mode = 0;
+        int up_query_mode = 0;
         const char *sc = NULL;
         ret = true;
         /* This is so M_CLIENT messages will be correctly passed through msg() */
@@ -4052,8 +4034,8 @@ management_hold(struct management *man, int holdtime)
         const bool standalone_disabled_save = man->persist.standalone_disabled;
         struct gc_arena gc = gc_new();
 
-        man->persist.standalone_disabled =
-            false; /* This is so M_CLIENT messages will be correctly passed through msg() */
+        /* This is so M_CLIENT messages will be correctly passed through msg() */
+        man->persist.standalone_disabled = false;
         man->persist.special_state_msg = NULL;
         man->settings.mansig |= MANSIG_IGNORE_USR1_HUP;
 

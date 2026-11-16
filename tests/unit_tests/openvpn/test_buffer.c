@@ -106,20 +106,15 @@ test_buffer_puts(void **state)
     gc_free(&gc);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 static void
 test_buffer_format_hex_ex(void **state)
 {
-    const int input_size = 10;
+    const size_t input_size = 10;
     const uint8_t input[] = { 0x01, 0x00, 0xff, 0x10, 0xff, 0x00, 0xf0, 0x0f, 0x09, 0x0a };
     char *output;
     struct gc_arena gc = gc_new();
 
-    int maxoutput = 0;
+    size_t maxoutput = 0;
     unsigned int blocksize = 5;
     const char *separator = " ";
     output = format_hex_ex(input, input_size, maxoutput, blocksize, separator, &gc);
@@ -143,10 +138,6 @@ test_buffer_format_hex_ex(void **state)
 
     gc_free(&gc);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 struct test_buffer_list_aggregate_ctx
 {

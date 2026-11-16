@@ -1012,7 +1012,7 @@ key_state_write_plaintext(struct key_state_ssl *ks, struct buffer *buf)
 
     if (1 == retval)
     {
-        memset(BPTR(buf), 0, BLEN(buf)); /* erase data just written */
+        memset(BPTR(buf), 0, BLENZ(buf)); /* erase data just written */
         buf->len = 0;
     }
 
@@ -1034,7 +1034,7 @@ key_state_write_plaintext_const(struct key_state_ssl *ks, const uint8_t *data, i
 
     ASSERT(data);
 
-    retval = mbedtls_ssl_write(ks->ctx, data, len);
+    retval = mbedtls_ssl_write(ks->ctx, data, (size_t)len);
 
     if (retval < 0)
     {
@@ -1138,7 +1138,7 @@ key_state_write_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
     /* successful write */
     dmsg(D_HANDSHAKE_VERBOSE, "write tls_write_ciphertext %d bytes", retval);
 
-    memset(BPTR(buf), 0, BLEN(buf)); /* erase data just written */
+    memset(BPTR(buf), 0, BLENZ(buf)); /* erase data just written */
     buf->len = 0;
 
     return 1;
