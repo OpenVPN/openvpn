@@ -480,11 +480,6 @@ socket_defined(const socket_descriptor_t sd)
 #endif
 
 /*
- * Should we include proxy digest auth functionality
- */
-#define PROXY_DIGEST_AUTH 1
-
-/*
  * Do we have CryptoAPI capability?
  */
 #if defined(_WIN32) && defined(ENABLE_CRYPTO_OPENSSL) && !defined(ENABLE_CRYPTO_WOLFSSL)

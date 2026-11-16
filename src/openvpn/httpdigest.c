@@ -26,8 +26,6 @@
 
 #include "syshead.h"
 
-#if PROXY_DIGEST_AUTH
-
 #include "crypto.h"
 #include "httpdigest.h"
 
@@ -141,5 +139,3 @@ DigestCalcResponse(const HASHHEX HA1,         /* H(A1) */
     md_ctx_free(md5_ctx);
     CvtHex(RespHash, Response);
 }
-
-#endif /* if PROXY_DIGEST_AUTH */

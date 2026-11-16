@@ -20,8 +20,6 @@
  *  with this program; if not, see <https://www.gnu.org/licenses/>.
  */
 
-#if PROXY_DIGEST_AUTH
-
 #define HASHLEN 16
 typedef unsigned char HASH[HASHLEN];
 #define HASHHEXLEN 32
@@ -42,5 +40,3 @@ void DigestCalcResponse(const HASHHEX HA1,         /* H(A1) */
                         const HASHHEX HEntity,     /* H(entity body) if qop="auth-int" */
                         HASHHEX Response           /* request-digest or response-digest */
 );
-
-#endif /* if PROXY_DIGEST_AUTH */

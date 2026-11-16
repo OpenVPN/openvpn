@@ -348,14 +348,12 @@ get_proxy_authenticate(socket_descriptor_t sd, int timeout, char **data,
                 *data = string_alloc(buf + 26, NULL);
                 ret = HTTP_AUTH_BASIC;
             }
-#if PROXY_DIGEST_AUTH
             else if (!strncmp(buf + 20, "Digest ", 7))
             {
                 msg(D_PROXY, "PROXY AUTH DIGEST: '%s'", buf);
                 *data = string_alloc(buf + 27, NULL);
                 ret = HTTP_AUTH_DIGEST;
             }
-#endif
         }
     }
 }
@@ -714,121 +712,108 @@ establish_http_proxy_passthru(struct http_proxy_info *p,
         {
             processed = true;
         }
-#if PROXY_DIGEST_AUTH
         else if (p->auth_method == HTTP_AUTH_DIGEST && !processed)
         {
             const char *pa = p->proxy_authenticate;
-            const int method = p->auth_method;
             ASSERT(pa);
 
-            if (method == HTTP_AUTH_DIGEST)
+            const char *http_method = "CONNECT";
+            const char *nonce_count = "00000001";
+            const char *qop = "auth";
+            const char *username = p->up.username;
+            const char *password = p->up.password;
+            char *opaque_kv = "";
+            char uri[128];
+            uint8_t cnonce_raw[8];
+            HASHHEX session_key;
+            HASHHEX response;
+
+            const char *realm = get_pa_var("realm", pa, &gc);
+            const char *nonce = get_pa_var("nonce", pa, &gc);
+            const char *algor = get_pa_var("algorithm", pa, &gc);
+            const char *opaque = get_pa_var("opaque", pa, &gc);
+
+            if (!realm || !nonce)
             {
-                const char *http_method = "CONNECT";
-                const char *nonce_count = "00000001";
-                const char *qop = "auth";
-                const char *username = p->up.username;
-                const char *password = p->up.password;
-                char *opaque_kv = "";
-                char uri[128];
-                uint8_t cnonce_raw[8];
-                uint8_t *cnonce;
-                HASHHEX session_key;
-                HASHHEX response;
-
-                const char *realm = get_pa_var("realm", pa, &gc);
-                const char *nonce = get_pa_var("nonce", pa, &gc);
-                const char *algor = get_pa_var("algorithm", pa, &gc);
-                const char *opaque = get_pa_var("opaque", pa, &gc);
-
-                if (!realm || !nonce)
-                {
-                    msg(D_LINK_ERRORS, "HTTP proxy: digest auth failed, malformed response "
-                                       "from server: realm= or nonce= missing");
-                    goto error;
-                }
-
-                /* generate a client nonce */
-                prng_bytes(cnonce_raw, sizeof(cnonce_raw));
-                cnonce = make_base64_string2(cnonce_raw, sizeof(cnonce_raw), &gc);
-
-
-                /* build the digest response */
-                snprintf(uri, sizeof(uri), "%s:%s", host, port);
-
-                if (opaque)
-                {
-                    const size_t len = strlen(opaque) + 16;
-                    opaque_kv = gc_malloc(len, false, &gc);
-                    snprintf(opaque_kv, len, ", opaque=\"%s\"", opaque);
-                }
-
-                DigestCalcHA1(algor, username, realm, password, nonce, (char *)cnonce, session_key);
-                DigestCalcResponse(session_key, nonce, nonce_count, (char *)cnonce, qop,
-                                   http_method, uri, NULL, response);
-
-                /* format HTTP CONNECT message */
-                snprintf(buf, sizeof(buf), "%s %s HTTP/%s", http_method, uri,
-                         p->options.http_version);
-
-                msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
-
-                /* send HTTP CONNECT message to proxy */
-                if (!send_line_crlf(sd, buf))
-                {
-                    goto error;
-                }
-
-                /* send HOST etc, */
-                if (!add_proxy_headers(p, sd, host))
-                {
-                    goto error;
-                }
-
-                /* send digest response */
-                if (!checked_snprintf(
-                        buf, sizeof(buf),
-                        "Proxy-Authorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", qop=%s, nc=%s, cnonce=\"%s\", response=\"%s\"%s",
-                        username, realm, nonce, uri, qop, nonce_count, cnonce, response, opaque_kv))
-                {
-                    goto error;
-                }
-
-                msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
-                if (!send_line_crlf(sd, buf))
-                {
-                    goto error;
-                }
-                if (!send_crlf(sd))
-                {
-                    goto error;
-                }
-                /* clear any sensitive content in buf */
-                secure_memzero(buf, sizeof(buf));
-
-                /* receive reply from proxy */
-                if (!recv_line(sd, buf, sizeof(buf),
-                               get_server_poll_remaining_time(server_poll_timeout), true, NULL,
-                               signal_received))
-                {
-                    goto error;
-                }
-
-                /* remove trailing CR, LF */
-                chomp(buf);
-
-                msg(D_PROXY, "HTTP proxy returned: '%s'", buf);
-
-                /* parse return string */
-                nparms = sscanf(buf, "%*s %d", &status);
-                processed = true;
-            }
-            else
-            {
-                msg(D_PROXY, "HTTP proxy: digest method not supported");
+                msg(D_LINK_ERRORS, "HTTP proxy: digest auth failed, malformed response "
+                                   "from server: realm= or nonce= missing");
                 goto error;
             }
+
+            /* generate a client nonce */
+            prng_bytes(cnonce_raw, sizeof(cnonce_raw));
+            uint8_t *cnonce = make_base64_string2(cnonce_raw, sizeof(cnonce_raw), &gc);
+
+            /* build the digest response */
+            snprintf(uri, sizeof(uri), "%s:%s", host, port);
+
+            if (opaque)
+            {
+                const size_t len = strlen(opaque) + 16;
+                opaque_kv = gc_malloc(len, false, &gc);
+                snprintf(opaque_kv, len, ", opaque=\"%s\"", opaque);
+            }
+
+            DigestCalcHA1(algor, username, realm, password, nonce, (char *)cnonce, session_key);
+            DigestCalcResponse(session_key, nonce, nonce_count, (char *)cnonce, qop,
+                               http_method, uri, NULL, response);
+
+            /* format HTTP CONNECT message */
+            snprintf(buf, sizeof(buf), "%s %s HTTP/%s", http_method, uri,
+                     p->options.http_version);
+
+            msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
+
+            /* send HTTP CONNECT message to proxy */
+            if (!send_line_crlf(sd, buf))
+            {
+                goto error;
+            }
+
+            /* send HOST etc, */
+            if (!add_proxy_headers(p, sd, host))
+            {
+                goto error;
+            }
+
+            /* send digest response */
+            if (!checked_snprintf(
+                    buf, sizeof(buf),
+                    "Proxy-Authorization: Digest username=\"%s\", realm=\"%s\", nonce=\"%s\", uri=\"%s\", qop=%s, nc=%s, cnonce=\"%s\", response=\"%s\"%s",
+                    username, realm, nonce, uri, qop, nonce_count, cnonce, response, opaque_kv))
+            {
+                goto error;
+            }
+
+            msg(D_PROXY, "Send to HTTP proxy: '%s'", buf);
+            if (!send_line_crlf(sd, buf))
+            {
+                goto error;
+            }
+            if (!send_crlf(sd))
+            {
+                goto error;
+            }
+            /* clear any sensitive content in buf */
+            secure_memzero(buf, sizeof(buf));
+
+            /* receive reply from proxy */
+            if (!recv_line(sd, buf, sizeof(buf),
+                           get_server_poll_remaining_time(server_poll_timeout), true, NULL,
+                           signal_received))
+            {
+                goto error;
+            }
+
+            /* remove trailing CR, LF */
+            chomp(buf);
+
+            msg(D_PROXY, "HTTP proxy returned: '%s'", buf);
+
+            /* parse return string */
+            nparms = sscanf(buf, "%*s %d", &status);
+            processed = true;
         }
-#endif /* if PROXY_DIGEST_AUTH */
         else if (p->options.auth_retry)
         {
             /* figure out what kind of authentication the proxy needs */
