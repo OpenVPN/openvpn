@@ -125,6 +125,6 @@ const tls_cipher_name_pair *tls_get_cipher_name_pair(const char *cipher_name, si
  * @param delimiter     the delimiter to count, typically ':'
  * @return              occrrences of delimiter + 1
  */
-int get_num_elements(const char *string, char delimiter);
+size_t get_num_elements(const char *string, char delimiter);
 
 #endif /* ifndef SSL_UTIL_H_ */

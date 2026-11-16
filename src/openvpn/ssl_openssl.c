@@ -518,11 +518,6 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
 {
     ASSERT(ctx);
 #if OPENSSL_VERSION_NUMBER < 0x30000000L && !defined(ENABLE_CRYPTO_WOLFSSL)
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
     struct gc_arena gc = gc_new();
     /* This method could be as easy as
      *  SSL_CTX_set1_groups_list(ctx->ctx, groups)
@@ -533,7 +528,7 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
      * Also note that the code is wrong in the presence of OpenSSL3 providers.
      */
 
-    int groups_count = get_num_elements(groups, ':');
+    size_t groups_count = get_num_elements(groups, ':');
 
     int *glist;
     /* Allocate an array for them */
@@ -569,9 +564,6 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
     }
     gc_free(&gc);
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 #else  /* if OPENSSL_VERSION_NUMBER < 0x30000000L */
     if (!SSL_CTX_set1_groups_list(ctx->ctx, groups))
     {

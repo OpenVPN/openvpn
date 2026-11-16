@@ -359,14 +359,14 @@ tls_get_cipher_name_pair(const char *cipher_name, size_t len)
     return NULL;
 }
 
-int
+size_t
 get_num_elements(const char *string, char delimiter)
 {
     const size_t string_len = strlen(string);
 
     ASSERT(0 != string_len);
 
-    int element_count = 1;
+    size_t element_count = 1;
     /* Get number of ciphers */
     for (size_t i = 0; i < string_len; i++)
     {

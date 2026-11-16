@@ -199,11 +199,6 @@ tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)
         ciphers);
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 void
 tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
 {
@@ -217,7 +212,7 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
     ASSERT(NULL != ctx);
 
     /* Get number of ciphers */
-    int cipher_count = get_num_elements(ciphers, ':');
+    size_t cipher_count = get_num_elements(ciphers, ':');
 
     /* Allocate an array for them */
     ALLOC_ARRAY_CLEAR(ctx->allowed_ciphers, int, cipher_count + 1)
@@ -339,7 +334,7 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
     struct gc_arena gc = gc_new();
 
     /* Get number of groups and allocate an array in ctx */
-    int groups_count = get_num_elements(groups, ':');
+    size_t groups_count = get_num_elements(groups, ':');
     ALLOC_ARRAY_CLEAR(ctx->groups, uint16_t, groups_count + 1)
 
     /* Parse allowed ciphers, getting IDs */
@@ -1193,10 +1188,6 @@ key_state_read_plaintext(struct key_state_ssl *ks, struct buffer *buf)
 
     return 1;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /* **************************************
  *
