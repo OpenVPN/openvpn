@@ -323,7 +323,7 @@ bool send_msg_iservice(HANDLE pipe, const void *data, DWORD size, ack_message_t 
 int openvpn_execve(const struct argv *a, const struct env_set *es, const unsigned int flags);
 
 /* Sleep that can be interrupted by signals and exit event */
-void win32_sleep(const int n);
+void win32_sleep(const unsigned int n);
 
 /**
  * @brief Fetches a registry value for OpenVPN registry key.

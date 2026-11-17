@@ -387,9 +387,9 @@ int managment_android_persisttun_action(struct management *man);
 
 bool management_would_hold(struct management *man);
 
-bool management_hold(struct management *man, int holdtime);
+bool management_hold(struct management *man, unsigned int holdtime);
 
-void management_event_loop_n_seconds(struct management *man, int sec);
+void management_event_loop_n_seconds(struct management *man, unsigned int sec);
 
 void management_up_down(const struct management *man, const char *updown, const struct env_set *es);
 
@@ -522,6 +522,6 @@ management_send_acc_message(struct context *c, struct tls_multi *multi,
  * A sleep function that services the management layer for n seconds rather
  * than doing nothing.
  */
-void management_sleep(const int n);
+void management_sleep(const unsigned int n);
 
 #endif /* ifndef MANAGE_H */

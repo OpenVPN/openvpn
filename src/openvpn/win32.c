@@ -1533,13 +1533,8 @@ set_openssl_env_vars(void)
 }
 
 void
-win32_sleep(const int n)
+win32_sleep(const unsigned int n)
 {
-    if (n < 0)
-    {
-        return;
-    }
-
     /* Sleep() is not interruptible. Use a WAIT_OBJECT to catch signal */
 
     if (!HANDLE_DEFINED(win32_signal.in.read))

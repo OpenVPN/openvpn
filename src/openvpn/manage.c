@@ -3615,32 +3615,23 @@ man_wait_for_client_connection(struct management *man, volatile int *signal_rece
     }
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 /*
  * Process the management event loop for sec seconds
  */
 void
-management_event_loop_n_seconds(struct management *man, int sec)
+management_event_loop_n_seconds(struct management *man, unsigned int sec)
 {
     if (man_standalone_ok(man))
     {
         volatile int signal_received = 0;
         const bool standalone_disabled_save = man->persist.standalone_disabled;
-        time_t expire = 0;
+        time_t expire = now + sec;
 
         /* This is so M_CLIENT messages will be correctly passed through msg() */
         man->persist.standalone_disabled = false;
 
         /* set expire time */
         update_time();
-        if (sec >= 0)
-        {
-            expire = now + sec;
-        }
 
         /* if no client connection, wait for one */
         man_wait_for_client_connection(man, &signal_received, expire, 0);
@@ -3662,7 +3653,7 @@ management_event_loop_n_seconds(struct management *man, int sec)
                 return;
             }
             update_time();
-        } while (expire && expire > now);
+        } while (expire > now);
 
         /* revert state */
         man->persist.standalone_disabled = standalone_disabled_save;
@@ -4026,7 +4017,7 @@ management_would_hold(struct management *man)
  * Return true if the caller should not sleep for an additional time interval.
  */
 bool
-management_hold(struct management *man, int holdtime)
+management_hold(struct management *man, unsigned int holdtime)
 {
     if (management_would_hold(man))
     {
@@ -4044,7 +4035,7 @@ management_hold(struct management *man, int holdtime)
         if (!signal_received)
         {
             struct buffer out = alloc_buf_gc(128, &gc);
-            buf_printf(&out, ">HOLD:Waiting for hold release:%d", holdtime);
+            buf_printf(&out, ">HOLD:Waiting for hold release:%u", holdtime);
             man->persist.special_state_msg = BSTR(&out);
             msg(M_CLIENT, "%s", man->persist.special_state_msg);
 
@@ -4244,8 +4235,9 @@ static void
 log_history_obj_init(struct log_history *h, int capacity)
 {
     CLEAR(*h);
+    ASSERT(capacity > 0);
     h->capacity = capacity;
-    ALLOC_ARRAY_CLEAR(h->array, struct log_entry, capacity);
+    ALLOC_ARRAY_CLEAR(h->array, struct log_entry, (size_t)capacity);
 }
 
 struct log_history *
@@ -4330,34 +4322,6 @@ log_history_ref(const struct log_history *h, const int index)
         return NULL;
     }
 }
-
-void
-management_sleep(const int n)
-{
-    if (n < 0)
-    {
-        return;
-    }
-    else if (management)
-    {
-        management_event_loop_n_seconds(management, n);
-    }
-    else
-    {
-#ifdef _WIN32
-        win32_sleep(n);
-#else
-        if (n > 0)
-        {
-            sleep(n);
-        }
-#endif
-    }
-}
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 void
 management_check_bytecount_client(struct context *c, struct management *man, struct timeval *timeval)
@@ -4490,30 +4454,28 @@ error:
     gc_free(&gc);
     return false;
 }
-#else /* ifdef ENABLE_MANAGEMENT */
+#endif /* ENABLE_MANAGEMENT */
 
 #include "win32.h"
 
-#if !defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 void
-management_sleep(const int n)
+management_sleep(const unsigned int n)
 {
-#ifdef _WIN32
-    win32_sleep(n);
-#else
-    if (n > 0)
+#ifdef ENABLE_MANAGEMENT
+    if (management)
     {
-        sleep(n);
+        management_event_loop_n_seconds(management, n);
     }
-#endif /* ifdef _WIN32 */
-}
-
-#if !defined(_WIN32) && (defined(__GNUC__) || defined(__clang__))
-#pragma GCC diagnostic pop
+    else
 #endif
-
-#endif /* ENABLE_MANAGEMENT */
+    {
+#ifdef _WIN32
+        win32_sleep(n);
+#else
+        if (n > 0)
+        {
+            sleep(n);
+        }
+#endif
+    }
+}

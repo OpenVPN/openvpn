@@ -161,13 +161,13 @@ openvpn_getaddrinfo(unsigned int flags, const char *hostname, const char *servna
     }
 
     status = getaddrinfo(hostname, servname, &hints, res);
-
-    if (status != 0)                      /* parse as numeric address failed? */
+    /* parse as numeric address failed? */
+    if (status != 0)
     {
-        const int fail_wait_interval = 5; /* seconds */
+        const unsigned int fail_wait_interval = 5; /* seconds */
         /* Add +4 to cause integer division rounding up (1 + 4) = 5, (0+4)/5=0 */
         int resolve_retries =
-            (flags & GETADDR_TRY_ONCE) ? 1 : ((resolve_retry_seconds + 4) / fail_wait_interval);
+            (flags & GETADDR_TRY_ONCE) ? 1 : ((resolve_retry_seconds + 4) / (int)fail_wait_interval);
         const char *fmt;
         msglvl_t level = 0;
 

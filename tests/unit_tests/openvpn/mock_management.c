@@ -59,6 +59,6 @@ management_set_state(struct management *man, const int state, const char *detail
 #endif
 
 void
-management_sleep(const int n)
+management_sleep(const unsigned int n)
 {
 }
