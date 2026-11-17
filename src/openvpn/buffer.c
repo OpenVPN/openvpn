@@ -234,17 +234,16 @@ buf_printf(struct buffer *buf, const char *format, ...)
     if (buf_defined(buf))
     {
         char *ptr = (char *)BEND(buf);
-        int cap = buf_forward_capacity(buf);
+        size_t cap = buf_forward_capacity(buf);
 
         if (cap > 1) /* can write more than \0 */
         {
-            int stat;
             va_list arglist;
             va_start(arglist, format);
-            stat = vsnprintf(ptr, cap, format, arglist);
+            int stat = vsnprintf(ptr, cap, format, arglist);
             va_end(arglist);
             buf->len += (int)strnlen(ptr, cap);
-            if (stat >= 0 && stat < cap)
+            if (stat >= 0 && stat < (int)cap)
             {
                 ret = true;
             }
@@ -257,11 +256,11 @@ void
 buf_puts(struct buffer *buf, const char *str)
 {
     char *ptr = (char *)BEND(buf);
-    int cap = buf_forward_capacity(buf);
+    size_t cap = buf_forward_capacity(buf);
     if (cap > 1) /* can write more than \0 */
     {
-        int str_len = (int)strlcpy(ptr, str, cap);
-        buf->len += (str_len < cap) ? str_len : cap - 1;
+        size_t str_len = strlcpy(ptr, str, cap);
+        buf->len += (str_len < cap) ? (int)str_len : (int)cap - 1;
     }
 }
 

@@ -805,7 +805,7 @@ prepare_push_reply(struct context *c, struct gc_arena *gc, struct push_list *pus
 #endif
 
 static bool
-send_push_options(struct context *c, struct buffer *buf, struct push_list *push_list, int safe_cap,
+send_push_options(struct context *c, struct buffer *buf, struct push_list *push_list, size_t safe_cap,
                   bool *push_sent, bool *multi_push)
 {
     struct push_entry *e = push_list->head;
@@ -820,7 +820,7 @@ send_push_options(struct context *c, struct buffer *buf, struct push_list *push_
                 msg(M_WARN, "--push option is too long");
                 return false;
             }
-            if (BLEN(buf) + (int)l >= safe_cap)
+            if (BLENZ(buf) + l >= safe_cap)
             {
                 buf_printf(buf, ",push-continuation 2");
                 {
@@ -835,7 +835,7 @@ send_push_options(struct context *c, struct buffer *buf, struct push_list *push_
                     buf_printf(buf, "%s", push_reply_cmd);
                 }
             }
-            if (BLEN(buf) + (int)l >= safe_cap)
+            if (BLENZ(buf) + l >= safe_cap)
             {
                 msg(M_WARN, "--push option is too long");
                 return false;
@@ -873,8 +873,8 @@ send_push_reply(struct context *c, struct push_list *per_client_push_list)
     struct gc_arena gc = gc_new();
     struct buffer buf = alloc_buf_gc(PUSH_BUNDLE_SIZE, &gc);
     bool multi_push = false;
-    const int extra = 84; /* extra space for possible trailing ifconfig and push-continuation */
-    const int safe_cap = BCAP(&buf) - extra;
+    const size_t extra = 84; /* extra space for possible trailing ifconfig and push-continuation */
+    const size_t safe_cap = BCAP(&buf) - extra;
     bool push_sent = false;
 
     buf_printf(&buf, "%s", push_reply_cmd);

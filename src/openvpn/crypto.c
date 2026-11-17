@@ -1825,7 +1825,7 @@ cleanup:
 bool
 generate_ephemeral_key(struct buffer *key, const char *key_name)
 {
-    const int len = BCAP(key);
+    const int len = (int)BCAP(key);
 
     msg(M_INFO, "Using random %s.", key_name);
 

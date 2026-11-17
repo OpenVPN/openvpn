@@ -2155,13 +2155,12 @@ bio_read(BIO *bio, struct buffer *buf, const char *desc)
          * if the buffer is not empty */
         return 0;
     }
-    int len = buf_forward_capacity(buf);
 
     /*
      * BIO_read brackets most of the serious RSA
      * key negotiation number crunching.
      */
-    int i = BIO_read(bio, BPTR(buf), len);
+    int i = BIO_read(bio, BPTR(buf), (int)BCAP(buf));
 
     VALGRIND_MAKE_READABLE((void *)&i, sizeof(i));
 

@@ -4008,7 +4008,7 @@ at_least_one_tap_win(const struct tap_reg *tap_reg)
  * registry for the TAP device # = device_number.
  */
 static const char *
-get_unspecified_device_guid(const int device_number, uint8_t *actual_name, int actual_name_size,
+get_unspecified_device_guid(const int device_number, uint8_t *actual_name, size_t actual_name_size,
                             const struct tap_reg *tap_reg_src,
                             const struct panel_reg *panel_reg_src,
                             enum tun_driver_type *windows_driver, struct gc_arena *gc)
@@ -4071,7 +4071,7 @@ get_unspecified_device_guid(const int device_number, uint8_t *actual_name, int a
  * returning the GUID and optional actual_name and device type
  */
 static const char *
-get_device_guid(const char *name, uint8_t *actual_name, int actual_name_size,
+get_device_guid(const char *name, uint8_t *actual_name, size_t actual_name_size,
                 enum tun_driver_type *windows_driver, const struct tap_reg *tap_reg,
                 const struct panel_reg *panel_reg, struct gc_arena *gc)
 {
@@ -6087,8 +6087,9 @@ tap_win_getinfo(const struct tuntap *tt, struct gc_arena *gc)
     {
         struct buffer out = alloc_buf_gc(256, gc);
         DWORD len;
-        if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_INFO, BSTR(&out), BCAP(&out), BSTR(&out),
-                            BCAP(&out), &len, NULL))
+        if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_INFO, BSTR(&out),
+                            (DWORD)BCAP(&out), BSTR(&out),
+                            (DWORD)BCAP(&out), &len, NULL))
         {
             return BSTR(&out);
         }
@@ -6103,8 +6104,8 @@ tun_show_debug(const struct tuntap *tt)
     {
         struct buffer out = alloc_buf(1024);
         DWORD len;
-        while (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_LOG_LINE, BSTR(&out), BCAP(&out),
-                               BSTR(&out), BCAP(&out), &len, NULL))
+        while (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_LOG_LINE, BSTR(&out), (DWORD)BCAP(&out),
+                               BSTR(&out), (DWORD)BCAP(&out), &len, NULL))
         {
             msg(D_TAP_WIN_DEBUG, "TAP-Windows: %s", BSTR(&out));
         }

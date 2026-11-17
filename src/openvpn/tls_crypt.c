@@ -380,8 +380,8 @@ tls_crypt_v2_wrap_client_key(struct buffer *wkc, const struct key2 *src_key,
         msg(M_WARN, "ERROR: could not write tag");
         return false;
     }
-    const int data_len = BLEN(src_metadata) + sizeof(src_key->keys) + sizeof(uint16_t);
-    const int tagged_len = data_len + TLS_CRYPT_TAG_SIZE;
+    const size_t data_len = BLENZ(src_metadata) + sizeof(src_key->keys) + sizeof(uint16_t);
+    const size_t tagged_len = data_len + TLS_CRYPT_TAG_SIZE;
     const uint16_t net_len = htons((uint16_t)tagged_len);
     hmac_ctx_t *hmac_ctx = server_key->hmac;
     hmac_ctx_reset(hmac_ctx);
@@ -396,7 +396,7 @@ tls_crypt_v2_wrap_client_key(struct buffer *wkc, const struct key2 *src_key,
     ASSERT(cipher_ctx_reset(cipher_ctx, tag));
 
     /* Overflow check (OpenSSL requires an extra block in the dst buffer) */
-    const int padded_len = data_len + cipher_ctx_block_size(cipher_ctx);
+    const size_t padded_len = data_len + cipher_ctx_block_size(cipher_ctx);
     if (buf_forward_capacity(&work) < padded_len)
     {
         msg(M_WARN, "ERROR: could not crypt: insufficient space in dst");
@@ -735,7 +735,7 @@ tls_crypt_v2_write_client_key_file(const char *filename, const char *b64_metadat
         size_t b64_length = strlen(b64_metadata);
         metadata = alloc_buf_gc(OPENVPN_BASE64_DECODED_LENGTH(b64_length) + 1, &gc);
         ASSERT(buf_write(&metadata, &TLS_CRYPT_METADATA_TYPE_USER, 1));
-        int decoded_len = openvpn_base64_decode(b64_metadata, BEND(&metadata), BCAP(&metadata));
+        int decoded_len = openvpn_base64_decode(b64_metadata, BEND(&metadata), (int)BCAP(&metadata));
         if (decoded_len < 0)
         {
             msg(M_FATAL, "ERROR: failed to base64 decode provided metadata");

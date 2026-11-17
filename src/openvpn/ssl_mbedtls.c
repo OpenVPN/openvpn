@@ -1063,7 +1063,6 @@ int
 key_state_read_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
 {
     int retval = 0;
-    int len = 0;
 
     ASSERT(NULL != ks);
     ASSERT(buf);
@@ -1074,9 +1073,7 @@ key_state_read_ciphertext(struct key_state_ssl *ks, struct buffer *buf)
         return 0;
     }
 
-    len = buf_forward_capacity(buf);
-
-    retval = endless_buf_read(&ks->bio_ctx->out, BPTR(buf), len);
+    retval = endless_buf_read(&ks->bio_ctx->out, BPTR(buf), BCAP(buf));
 
     /* Error during read, check for retry error */
     if (retval < 0)
@@ -1148,7 +1145,6 @@ int
 key_state_read_plaintext(struct key_state_ssl *ks, struct buffer *buf)
 {
     int retval = 0;
-    int len = 0;
 
     ASSERT(NULL != ks);
     ASSERT(buf);
@@ -1159,9 +1155,7 @@ key_state_read_plaintext(struct key_state_ssl *ks, struct buffer *buf)
         return 0;
     }
 
-    len = buf_forward_capacity(buf);
-
-    retval = mbedtls_ssl_read(ks->ctx, BPTR(buf), len);
+    retval = mbedtls_ssl_read(ks->ctx, BPTR(buf), BCAP(buf));
 
     /* Error during read, check for retry error */
     if (retval < 0)

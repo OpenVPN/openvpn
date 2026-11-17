@@ -643,11 +643,6 @@ buf_init_dowork(struct buffer *buf, int offset)
     return true;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 /**
  * Initialise a buffer with an externally provided writable memory region.
  *
@@ -660,7 +655,7 @@ buf_init_dowork(struct buffer *buf, int offset)
  * @param size  Size of the memory region in bytes.
  */
 static inline void
-buf_set_write(struct buffer *buf, uint8_t *data, int size)
+buf_set_write(struct buffer *buf, uint8_t *data, size_t size)
 {
     if (!buf_size_valid(size))
     {
@@ -668,7 +663,7 @@ buf_set_write(struct buffer *buf, uint8_t *data, int size)
     }
     buf->len = 0;
     buf->offset = 0;
-    buf->capacity = size;
+    buf->capacity = (int)size;
     buf->data = data;
     if (size > 0 && data)
     {
@@ -1039,7 +1034,7 @@ buf_safe_bidir(const struct buffer *buf, int len)
  * @return Number of bytes available for appending, or 0 if \c buf is
  *         invalid.
  */
-static inline int
+static inline size_t
 buf_forward_capacity(const struct buffer *buf)
 {
     if (buf_valid(buf))
@@ -1049,7 +1044,7 @@ buf_forward_capacity(const struct buffer *buf)
         {
             ret = 0;
         }
-        return ret;
+        return (size_t)ret;
     }
     else
     {
@@ -1251,6 +1246,11 @@ buf_write(struct buffer *dest, const void *src, size_t size)
     memcpy(cp, src, size);
     return true;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#endif
 
 /**
  * Prepend data to a buffer.

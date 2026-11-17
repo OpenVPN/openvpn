@@ -523,7 +523,7 @@ crypto_pem_decode(const char *name, struct buffer *dst, const struct buffer *src
     uint8_t *dst_data = buf_write_alloc(dst, data_read_len);
     if (!dst_data)
     {
-        dmsg(D_CRYPT_ERRORS, "%s: dst too small (%i, needs %li)", __func__, BCAP(dst),
+        dmsg(D_CRYPT_ERRORS, "%s: dst too small (%zu, needs %li)", __func__, BCAP(dst),
              data_read_len);
         goto cleanup;
     }
