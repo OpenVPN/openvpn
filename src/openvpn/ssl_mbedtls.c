@@ -892,15 +892,6 @@ key_state_ssl_init(struct key_state_ssl *ks_ssl, const struct tls_root_ctx *ssl_
     mbedtls_ssl_conf_renegotiation(ks_ssl->ssl_config, MBEDTLS_SSL_RENEGOTIATION_DISABLED);
 #endif /* MBEDTLS_SSL_RENEGOTIATION */
 
-    /* Disable record splitting (for now).  OpenVPN assumes records are sent
-     * unfragmented, and changing that will require thorough review and
-     * testing.  Since OpenVPN is not susceptible to BEAST, we can just
-     * disable record splitting as a quick fix. */
-#if defined(MBEDTLS_SSL_CBC_RECORD_SPLITTING)
-    mbedtls_ssl_conf_cbc_record_splitting(ks_ssl->ssl_config,
-                                          MBEDTLS_SSL_CBC_RECORD_SPLITTING_DISABLED);
-#endif /* MBEDTLS_SSL_CBC_RECORD_SPLITTING */
-
     /* Initialise authentication information */
     (void)mbed_ok(mbedtls_ssl_conf_own_cert(ks_ssl->ssl_config, ssl_ctx->crt_chain, ssl_ctx->priv_key));
 

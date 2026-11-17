@@ -159,11 +159,8 @@ key_state_export_keying_material(struct tls_session *session, const char *label,
  * Print debugging information on SSL/TLS session negotiation.
  */
 
-#ifndef INFO_CALLBACK_SSL_CONST
-#define INFO_CALLBACK_SSL_CONST const
-#endif
 static void
-info_callback(INFO_CALLBACK_SSL_CONST SSL *s, int where, int ret)
+info_callback(const SSL *s, int where, int ret)
 {
     if (where & SSL_CB_LOOP)
     {
@@ -425,7 +422,6 @@ tls_ctx_restrict_ciphers(struct tls_root_ctx *ctx, const char *ciphers)
     }
 }
 
-#ifdef TLS1_3_VERSION
 static void
 convert_tls13_list_to_openssl(char *openssl_ciphers, size_t len, const char *ciphers)
 {
@@ -449,7 +445,6 @@ convert_tls13_list_to_openssl(char *openssl_ciphers, size_t len, const char *cip
         }
     }
 }
-#endif
 
 void
 tls_ctx_restrict_ciphers_tls13(struct tls_root_ctx *ctx, const char *ciphers)
