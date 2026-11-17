@@ -535,7 +535,7 @@ tls_ctx_set_tls_groups(struct tls_root_ctx *ctx, const char *groups)
     ALLOC_ARRAY_CLEAR_GC(glist, int, groups_count, &gc);
 
     /* Parse allowed ciphers, getting IDs */
-    int glistlen = 0;
+    openssl_groups_len_t glistlen = 0;
     char *tmp_groups = string_alloc(groups, &gc);
 
     const char *token;
