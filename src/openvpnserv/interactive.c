@@ -4022,6 +4022,16 @@ ServiceCtrlInteractive(DWORD ctrl_code, DWORD event, LPVOID data, LPVOID ctx)
 }
 
 
+/**
+ * Create an instance of the service pipe clients connect to
+ *
+ * The first call also creates a private instance with FILE_FLAG_FIRST_PIPE_INSTANCE,
+ * which fails if the pipe name already exists. It is kept disconnected, so clients
+ * cannot connect to it, and holds the pipe name for the lifetime of the service.
+ * This way the pipe name is blocked from other processes using it.
+ *
+ * @return HANDLE of the pipe instance, or INVALID_HANDLE_VALUE on error
+ */
 static HANDLE
 CreateClientPipeInstance(VOID)
 {
@@ -4049,21 +4059,33 @@ CreateClientPipeInstance(VOID)
     sa.bInheritHandle = FALSE;
 
     DWORD flags = PIPE_ACCESS_DUPLEX | WRITE_DAC | FILE_FLAG_OVERLAPPED;
-
-    static BOOL first = TRUE;
-    if (first)
-    {
-        flags |= FILE_FLAG_FIRST_PIPE_INSTANCE;
-        first = FALSE;
-    }
+    DWORD mode = PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_REJECT_REMOTE_CLIENTS;
 
     WCHAR pipe_name[256]; /* The entire pipe name string can be up to 256 characters long according
                              to MSDN. */
     swprintf(pipe_name, _countof(pipe_name), L"\\\\.\\pipe\\" _L(PACKAGE) L"%ls\\service",
              service_instance);
-    HANDLE pipe = CreateNamedPipe(
-        pipe_name, flags, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_REJECT_REMOTE_CLIENTS,
-        PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0, &sa);
+
+    static HANDLE blocker = INVALID_HANDLE_VALUE;
+    if (blocker == INVALID_HANDLE_VALUE)
+    {
+        blocker = CreateNamedPipe(pipe_name, flags | FILE_FLAG_FIRST_PIPE_INSTANCE, mode,
+                                  PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0, &sa);
+        if (blocker != INVALID_HANDLE_VALUE && !DisconnectNamedPipe(blocker))
+        {
+            DWORD error = GetLastError();
+            CloseHandleEx(&blocker);
+            SetLastError(error);
+        }
+    }
+
+    /* Without the first instance, fail and try again with the next call */
+    HANDLE pipe = INVALID_HANDLE_VALUE;
+    if (blocker != INVALID_HANDLE_VALUE)
+    {
+        pipe = CreateNamedPipe(pipe_name, flags, mode, PIPE_UNLIMITED_INSTANCES, 1024, 1024, 0,
+                               &sa);
+    }
 
     LocalFree(sd);
 
