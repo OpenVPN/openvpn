@@ -42,16 +42,6 @@
 static bool
 pkcs11_get_x509_cert(pkcs11h_certificate_t pkcs11_cert, mbedtls_x509_crt *cert)
 {
-    /* We set a maximum size for certificates so that the PKCS provider cannot crash OpenVPN by
-     * making it try to allocate 2^64 bytes. The maximum of 100.000 bytes is picked as a round
-     * number that easily accomodates the currently standardized quantum-safe signature algorithms.
-     * It is twice the size of a SLH-DSA (aka SPHINCS+) signature plus public key.
-     *
-     * However, there are additional digital signature schemes currently on the NIST on-ramp
-     * (e.g., some parameter settings for LESS) that have even larger public keys or signatures, so
-     * if those ever see use on smartcards, we will need to increase this number. */
-    const size_t max_cert_size = 100000;
-
     unsigned char *cert_blob = NULL;
     size_t cert_blob_size = 0;
     bool ret = false;
@@ -62,9 +52,10 @@ pkcs11_get_x509_cert(pkcs11h_certificate_t pkcs11_cert, mbedtls_x509_crt *cert)
         goto cleanup;
     }
 
-    if (cert_blob_size > max_cert_size)
+    if (cert_blob_size > PKCS11_MAX_CERT_SIZE)
     {
-        msg(M_WARN, "PKCS#11: Certificate too large: %zu bytes, maximum is %zu", cert_blob_size, max_cert_size);
+        msg(M_WARN, "PKCS#11: Certificate too large: %zu bytes, maximum is %zu", cert_blob_size,
+            PKCS11_MAX_CERT_SIZE);
         goto cleanup;
     }
 

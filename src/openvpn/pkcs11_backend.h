@@ -37,6 +37,20 @@
 
 #include <pkcs11-helper-1.0/pkcs11h-certificate.h>
 
+/*
+ * Maximum size of a certificate retrieved from a PKCS #11 provider, so that
+ * the provider cannot crash OpenVPN by making it try to allocate 2^64 bytes.
+ * The maximum of 100.000 bytes is picked as a round number that easily
+ * accomodates the currently standardized quantum-safe signature algorithms.
+ * It is twice the size of a SLH-DSA (aka SPHINCS+) signature plus public key.
+ *
+ * However, there are additional digital signature schemes currently on the
+ * NIST on-ramp (e.g., some parameter settings for LESS) that have even larger
+ * public keys or signatures, so if those ever see use on smartcards, we will
+ * need to increase this number.
+ */
+#define PKCS11_MAX_CERT_SIZE ((size_t)100000)
+
 /**
  * Retrieve PKCS #11 Certificate's DN in a printable format.
  *
