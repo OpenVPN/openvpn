@@ -35,6 +35,10 @@
 
 #include "memdbg.h"
 
+/* Size of the buffers ifconfig_pool_read() parses each field of a
+ * --ifconfig-pool-persist line into. */
+#define IFCONFIG_POOL_PERSIST_BUF_SIZE 128
+
 static in_addr_t ifconfig_pool_handle_to_ip_base(const struct ifconfig_pool *pool,
                                                  ifconfig_pool_handle hand);
 
@@ -500,7 +504,13 @@ ifconfig_pool_list(const struct ifconfig_pool *pool, struct status_output *out)
         {
             const struct ifconfig_pool_entry *e = &pool->list[i];
 
-            if (e->common_name)
+            /* The list is comma separated and ifconfig_pool_read() splits
+             * at the first comma into buffers of IFCONFIG_POOL_PERSIST_BUF_SIZE,
+             * so a common name containing a comma or not fitting into that
+             * buffer would be read back as a different common name and
+             * address. */
+            if (e->common_name && !strchr(e->common_name, ',')
+                && strlen(e->common_name) < IFCONFIG_POOL_PERSIST_BUF_SIZE)
             {
                 const char *ip6_str = "";
                 const char *ip_str = "";
@@ -589,7 +599,7 @@ ifconfig_pool_write_trigger(struct ifconfig_pool_persist *persist)
 void
 ifconfig_pool_read(struct ifconfig_pool_persist *persist, struct ifconfig_pool *pool)
 {
-    const int buf_size = 128;
+    const int buf_size = IFCONFIG_POOL_PERSIST_BUF_SIZE;
 
     update_time();
 
