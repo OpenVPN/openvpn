@@ -1379,7 +1379,7 @@ alloc_local_list_if_undef(struct connection_entry *ce, struct gc_arena *gc)
 }
 
 static struct local_entry *
-alloc_local_entry(struct connection_entry *ce, const msglvl_t msglevel, struct gc_arena *gc)
+alloc_local_entry(struct connection_entry *ce, struct gc_arena *gc)
 {
     struct local_list *l = alloc_local_list_if_undef(ce, gc);
     struct local_entry *e;
@@ -1389,16 +1389,7 @@ alloc_local_entry(struct connection_entry *ce, const msglvl_t msglevel, struct g
         const int new_cap = l->capacity + 1;
         const size_t elem_size = sizeof(*l->array);
 
-        struct local_entry **new_array = gc_realloc(l->array, new_cap * elem_size, gc);
-        if (!new_array)
-        {
-            msg(msglevel,
-                "Unable to process more local options: out of memory. Number of entries = %d",
-                l->len);
-            return NULL;
-        }
-
-        l->array = new_array;
+        l->array = gc_realloc(l->array, new_cap * elem_size, gc);
         l->capacity = new_cap;
     }
 
@@ -1420,7 +1411,7 @@ alloc_connection_list_if_undef(struct options *options)
 }
 
 static struct connection_entry *
-alloc_connection_entry(struct options *options, const msglvl_t msglevel)
+alloc_connection_entry(struct options *options)
 {
     struct connection_list *l = alloc_connection_list_if_undef(options);
     struct connection_entry *e;
@@ -1428,16 +1419,7 @@ alloc_connection_entry(struct options *options, const msglvl_t msglevel)
     if (l->len == l->capacity)
     {
         int capacity = l->capacity + CONNECTION_LIST_SIZE;
-        struct connection_entry **ce =
-            gc_realloc(l->array, capacity * sizeof(struct connection_entry *), &options->gc);
-        if (ce == NULL)
-        {
-            msg(msglevel,
-                "Unable to process more connection options: out of memory. Number of entries = %d",
-                l->len);
-            return NULL;
-        }
-        l->array = ce;
+        l->array = gc_realloc(l->array, capacity * sizeof(struct connection_entry *), &options->gc);
         l->capacity = capacity;
     }
     ALLOC_OBJ_GC(e, struct connection_entry, &options->gc);
@@ -1456,7 +1438,7 @@ alloc_remote_list_if_undef(struct options *options)
 }
 
 static struct remote_entry *
-alloc_remote_entry(struct options *options, const msglvl_t msglevel)
+alloc_remote_entry(struct options *options)
 {
     struct remote_list *l = alloc_remote_list_if_undef(options);
     struct remote_entry *e;
@@ -1464,16 +1446,7 @@ alloc_remote_entry(struct options *options, const msglvl_t msglevel)
     if (l->len == l->capacity)
     {
         int capacity = l->capacity + CONNECTION_LIST_SIZE;
-        struct remote_entry **re =
-            gc_realloc(l->array, capacity * sizeof(struct remote_entry *), &options->gc);
-        if (re == NULL)
-        {
-            msg(msglevel,
-                "Unable to process more remote options: out of memory. Number of entries = %d",
-                l->len);
-            return NULL;
-        }
-        l->array = re;
+        l->array = gc_realloc(l->array, capacity * sizeof(struct remote_entry *), &options->gc);
         l->capacity = capacity;
     }
     ALLOC_OBJ_GC(e, struct remote_entry, &options->gc);
@@ -3071,20 +3044,16 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
         {
             const struct remote_entry *re = rl->array[i];
             struct connection_entry ce = o->ce;
-            struct connection_entry *ace;
 
             ASSERT(re->remote);
             connection_entry_load_re(&ce, re);
-            ace = alloc_connection_entry(o, M_USAGE);
-            ASSERT(ace);
+            struct connection_entry *ace = alloc_connection_entry(o);
             *ace = ce;
         }
     }
     else if (!o->remote_list && !o->connection_list)
     {
-        struct connection_entry *ace;
-        ace = alloc_connection_entry(o, M_USAGE);
-        ASSERT(ace);
+        struct connection_entry *ace = alloc_connection_entry(o);
         *ace = o->ce;
     }
 
@@ -3117,8 +3086,7 @@ options_postprocess_mutate(struct options *o, struct env_set *es)
     {
         /* if no 'local' directive was specified, convert the global port
          * setting to a listen entry */
-        struct local_entry *e = alloc_local_entry(&o->ce, M_USAGE, &o->gc);
-        ASSERT(e);
+        struct local_entry *e = alloc_local_entry(&o->ce, &o->gc);
         e->port = o->ce.local_port;
         e->proto = o->ce.proto;
     }
@@ -4464,12 +4432,9 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "local") && p[1] && !p[4])
     {
-        struct local_entry *e;
-
         VERIFY_PERMISSION(OPT_P_GENERAL | OPT_P_CONNECTION);
 
-        e = alloc_local_entry(&options->ce, M_USAGE, &options->gc);
-        ASSERT(e);
+        struct local_entry *e = alloc_local_entry(&options->ce, &options->gc);
 
         /* '*' is treated as 'ask the system to get some socket',
          * therefore force binding on a particular address only when
@@ -4500,7 +4465,6 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         if (is_inline)
         {
             struct options sub;
-            struct connection_entry *e;
 
             init_options(&sub);
             sub.ce = options->ce;
@@ -4514,12 +4478,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
                 goto err;
             }
 
-            e = alloc_connection_entry(options, msglevel);
-            if (!e)
-            {
-                uninit_options(&sub);
-                goto err;
-            }
+            struct connection_entry *e = alloc_connection_entry(options);
             *e = sub.ce;
             gc_transfer(&options->gc, &sub.gc);
             uninit_options(&sub);
@@ -4608,11 +4567,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         }
         if (permission_mask & OPT_P_GENERAL)
         {
-            struct remote_entry *e = alloc_remote_entry(options, msglevel);
-            if (!e)
-            {
-                goto err;
-            }
+            struct remote_entry *e = alloc_remote_entry(options);
             *e = re;
         }
         else if (permission_mask & OPT_P_CONNECTION)
