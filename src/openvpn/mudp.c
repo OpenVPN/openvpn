@@ -113,7 +113,7 @@ enum pre_decrypt_verdict
 /** Returns a verdict if this packet should create a new session */
 static enum pre_decrypt_verdict
 do_pre_decrypt_check(struct multi_context *m, struct tls_pre_decrypt_state *state,
-                     struct mroute_addr addr, struct link_socket *sock)
+                     struct link_socket *sock)
 {
     ASSERT(m->top.c2.tls_auth_standalone);
 
@@ -259,7 +259,7 @@ handle_connection_attempt(struct multi_context *m,
     struct tls_pre_decrypt_state state = { 0 };
     struct multi_instance *mi = NULL;
 
-    enum pre_decrypt_verdict verdict = do_pre_decrypt_check(m, &state, *real, sock);
+    enum pre_decrypt_verdict verdict = do_pre_decrypt_check(m, &state, sock);
 
     if (verdict != PRE_DECRYPT_NO_ACTION)
     {
