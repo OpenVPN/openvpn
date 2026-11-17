@@ -500,7 +500,10 @@ ifconfig_pool_list(const struct ifconfig_pool *pool, struct status_output *out)
         {
             const struct ifconfig_pool_entry *e = &pool->list[i];
 
-            if (e->common_name)
+            /* The list is comma separated and ifconfig_pool_read() splits
+             * at the first comma, so a common name containing one would be
+             * read back as a different common name and address. */
+            if (e->common_name && !strchr(e->common_name, ','))
             {
                 const char *ip6_str = "";
                 const char *ip_str = "";
