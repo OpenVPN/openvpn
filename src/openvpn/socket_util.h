@@ -351,6 +351,10 @@ addrlist_match(const struct openvpn_sockaddr *a1, const struct addrinfo *addrlis
     const struct addrinfo *curele;
     for (curele = addrlist; curele; curele = curele->ai_next)
     {
+        if (a1->addr.sa.sa_family != curele->ai_family)
+        {
+            continue;
+        }
         switch (a1->addr.sa.sa_family)
         {
             case AF_INET:
