@@ -1478,7 +1478,8 @@ backend_tls_ctx_reload_crl(struct tls_root_ctx *ssl_ctx, const char *crl_file, b
         }
         num_crls_loaded++;
     }
-    msg(M_INFO, "CRL: loaded %d CRLs from file %s", num_crls_loaded, crl_file);
+    msg(M_INFO, "CRL: loaded %d CRLs from file %s", num_crls_loaded,
+        print_key_filename(crl_file, crl_inline));
     ssl_ctx->crls = crls;
     BIO_free(in);
 }
