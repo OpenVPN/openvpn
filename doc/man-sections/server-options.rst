@@ -418,6 +418,9 @@ fast hardware. SSL/TLS authentication must be used in this mode.
 --max-clients n
   Limit server to a maximum of ``n`` concurrent clients. Defaults to 1024.
 
+  With a TCP listener, the soft limit on open files is raised up to the hard
+  limit if needed to accept ``n`` clients (not on Windows and macOS).
+
 --max-routes-per-client n
   Allow a maximum of ``n`` internal routes per client (default
   :code:`256`). This is designed to help contain DoS attacks where an
