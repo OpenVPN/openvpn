@@ -3004,13 +3004,13 @@ do_init_crypto_test(struct context *c)
 /*
  * Initialize the tls-auth/crypt key context
  */
-static void
-do_init_tls_wrap_key(struct context *c)
+void
+do_init_tls_wrap_key(struct context *c, const struct connection_entry *ce)
 {
     const struct options *options = &c->options;
 
     /* TLS handshake authentication (--tls-auth) */
-    if (options->ce.tls_auth_file)
+    if (ce->tls_auth_file)
     {
         /* Initialize key_type for tls-auth with auth only */
         CLEAR(c->c1.ks.tls_auth_key_type);
@@ -3025,33 +3025,31 @@ do_init_tls_wrap_key(struct context *c)
         }
 
         crypto_read_openvpn_key(&c->c1.ks.tls_auth_key_type, &c->c1.ks.tls_wrap_key,
-                                options->ce.tls_auth_file, options->ce.tls_auth_file_inline,
-                                options->ce.key_direction, "Control Channel Authentication",
-                                "tls-auth", &c->c1.ks.original_wrap_keydata);
+                                ce->tls_auth_file, ce->tls_auth_file_inline, ce->key_direction,
+                                "Control Channel Authentication", "tls-auth",
+                                &c->c1.ks.original_wrap_keydata);
     }
 
     /* TLS handshake encryption+authentication (--tls-crypt) */
-    if (options->ce.tls_crypt_file)
+    if (ce->tls_crypt_file)
     {
         tls_crypt_init_key(&c->c1.ks.tls_wrap_key, &c->c1.ks.original_wrap_keydata,
-                           options->ce.tls_crypt_file, options->ce.tls_crypt_file_inline,
-                           options->tls_server);
+                           ce->tls_crypt_file, ce->tls_crypt_file_inline, options->tls_server);
     }
 
     /* tls-crypt with client-specific keys (--tls-crypt-v2) */
-    if (options->ce.tls_crypt_v2_file)
+    if (ce->tls_crypt_v2_file)
     {
         if (options->tls_server)
         {
             tls_crypt_v2_init_server_key(&c->c1.ks.tls_crypt_v2_server_key, true,
-                                         options->ce.tls_crypt_v2_file,
-                                         options->ce.tls_crypt_v2_file_inline);
+                                         ce->tls_crypt_v2_file, ce->tls_crypt_v2_file_inline);
         }
         else
         {
             tls_crypt_v2_init_client_key(&c->c1.ks.tls_wrap_key, &c->c1.ks.original_wrap_keydata,
-                                         &c->c1.ks.tls_crypt_v2_wkc, options->ce.tls_crypt_v2_file,
-                                         options->ce.tls_crypt_v2_file_inline);
+                                         &c->c1.ks.tls_crypt_v2_wkc, ce->tls_crypt_v2_file,
+                                         ce->tls_crypt_v2_file_inline);
         }
         /* We have to ensure that the loaded tls-crypt key is small enough
          * to fit into the initial hard reset v3 packet */
@@ -3060,15 +3058,41 @@ do_init_tls_wrap_key(struct context *c)
         /* empty ACK/message id, tls-crypt, Opcode, UDP, ipv6 */
         int required_size = 5 + wkc_len + tls_crypt_buf_overhead() + 1 + 8 + 40;
 
-        if (required_size > c->options.ce.tls_mtu)
+        if (required_size > ce->tls_mtu)
         {
             msg(M_WARN,
                 "ERROR: tls-crypt-v2 client key too large to work with "
                 "requested --max-packet-size %d, requires at least "
                 "--max-packet-size %d. Packets will ignore requested "
                 "maximum packet size",
-                c->options.ce.tls_mtu, required_size);
+                ce->tls_mtu, required_size);
         }
+    }
+}
+
+void
+init_tls_wrap_ctx(struct tls_wrap_ctx *tls_wrap, const struct connection_entry *ce, bool tls_client,
+                  const struct key_schedule *ks)
+{
+    CLEAR(*tls_wrap);
+
+    /* TLS handshake authentication (--tls-auth) */
+    if (ce->tls_auth_file)
+    {
+        tls_wrap->mode = TLS_WRAP_AUTH;
+    }
+
+    /* TLS handshake encryption (--tls-crypt) */
+    if (ce->tls_crypt_file || (ce->tls_crypt_v2_file && tls_client))
+    {
+        tls_wrap->mode = TLS_WRAP_CRYPT;
+    }
+
+    if (tls_wrap->mode == TLS_WRAP_AUTH || tls_wrap->mode == TLS_WRAP_CRYPT)
+    {
+        tls_wrap->opt.key_ctx_bi = ks->tls_wrap_key;
+        tls_wrap->opt.flags |= CO_PACKET_ID_LONG_FORM;
+        tls_wrap->original_wrap_keydata = ks->original_wrap_keydata;
     }
 }
 
@@ -3143,7 +3167,7 @@ do_init_crypto_tls_c1(struct context *c)
         init_key_type(&c->c1.ks.key_type, ciphername, options->authname, warn);
 
         /* initialize tls-auth/crypt/crypt-v2 key */
-        do_init_tls_wrap_key(c);
+        do_init_tls_wrap_key(c, &c->options.ce);
 
         /* initialise auth-token crypto support */
         if (c->options.auth_token_generate)
@@ -3168,7 +3192,7 @@ do_init_crypto_tls_c1(struct context *c)
          * tls-auth/crypt key can be configured per connection block, therefore
          * we must reload it as it may have changed
          */
-        do_init_tls_wrap_key(c);
+        do_init_tls_wrap_key(c, &c->options.ce);
     }
 }
 
@@ -3349,24 +3373,8 @@ do_init_crypto_tls(struct context *c, const unsigned int flags)
         to.ekm_size = 0;
     }
 
-    /* TLS handshake authentication (--tls-auth) */
-    if (options->ce.tls_auth_file)
-    {
-        to.tls_wrap.mode = TLS_WRAP_AUTH;
-    }
-
-    /* TLS handshake encryption (--tls-crypt) */
-    if (options->ce.tls_crypt_file || (options->ce.tls_crypt_v2_file && options->tls_client))
-    {
-        to.tls_wrap.mode = TLS_WRAP_CRYPT;
-    }
-
-    if (to.tls_wrap.mode == TLS_WRAP_AUTH || to.tls_wrap.mode == TLS_WRAP_CRYPT)
-    {
-        to.tls_wrap.opt.key_ctx_bi = c->c1.ks.tls_wrap_key;
-        to.tls_wrap.opt.flags |= CO_PACKET_ID_LONG_FORM;
-        to.tls_wrap.original_wrap_keydata = c->c1.ks.original_wrap_keydata;
-    }
+    /* Control-channel wrapping (--tls-auth / --tls-crypt) */
+    init_tls_wrap_ctx(&to.tls_wrap, &c->options.ce, options->tls_client, &c->c1.ks);
 
     if (options->ce.tls_crypt_v2_file)
     {

@@ -73,6 +73,37 @@ void close_instance(struct context *c);
 
 void do_test_crypto(struct context *o);
 
+/**
+ * @brief Load the tls-auth/tls-crypt(-v2) key material into c->c1.ks.
+ *
+ * Reads the key from the file configured on connection entry ce (--tls-auth,
+ * --tls-crypt or --tls-crypt-v2); a no-op when none of them is set. May be
+ * called more than once (the key can be configured per connection block, so it
+ * is reloaded for each connection).
+ *
+ * @param c  The context whose c1.ks key schedule is populated.
+ * @param ce The connection entry whose tls-wrap key file is loaded.
+ */
+void do_init_tls_wrap_key(struct context *c, const struct connection_entry *ce);
+
+/**
+ * @brief Configure a control-channel wrapping context from a connection entry
+ *        and previously loaded tls-wrap key material.
+ *
+ * Sets tls_wrap to TLS_WRAP_AUTH (--tls-auth) or TLS_WRAP_CRYPT
+ * (--tls-crypt / client --tls-crypt-v2) and installs the key context, or
+ * leaves it in TLS_WRAP_NONE when neither is configured. The key material must
+ * already have been loaded with do_init_tls_wrap_key(). tls-crypt-v2 specifics
+ * (the wrapped client key and the server key) are left to the caller.
+ *
+ * @param tls_wrap   The wrapping context to configure.
+ * @param ce         The connection entry selecting the wrapping mode.
+ * @param tls_client Whether this is a TLS client (selects tls-crypt-v2 mode).
+ * @param ks         Key schedule holding the loaded tls-wrap key material.
+ */
+void init_tls_wrap_ctx(struct tls_wrap_ctx *tls_wrap, const struct connection_entry *ce,
+                       bool tls_client, const struct key_schedule *ks);
+
 void context_gc_free(struct context *c);
 
 bool do_up(struct context *c, bool pulled_options, uint64_t option_types_found);
