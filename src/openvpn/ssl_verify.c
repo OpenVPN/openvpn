@@ -1487,6 +1487,10 @@ verify_crresponse_script(struct tls_multi *multi, const char *cr_response)
         tls_deauthenticate(multi);
     }
 done:
+    if (tmp_file)
+    {
+        platform_unlink(tmp_file);
+    }
     argv_free(&argv);
     gc_free(&gc);
 }
