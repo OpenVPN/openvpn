@@ -270,6 +270,68 @@ int_compare_function(const void *key1, const void *key2)
 #endif
 
 /*
+ * Every TCP client takes a file descriptor, and accept() happens before the
+ * --max-clients check: raise the soft limit so that --max-clients is reached
+ * first, or warn if the hard limit does not allow it.
+ */
+static void
+multi_check_nofile_limit(const struct context *t)
+{
+#if defined(HAVE_GETRLIMIT) && defined(RLIMIT_NOFILE) && !defined(TARGET_DARWIN)
+    bool tcp = false;
+    for (int i = 0; i < t->c1.link_sockets_num; i++)
+    {
+        if (!proto_is_dgram(t->c2.link_sockets[i]->info.proto))
+        {
+            tcp = true;
+            break;
+        }
+    }
+    if (!tcp)
+    {
+        return;
+    }
+
+    /* room for the tun device, the listeners, log, management, scripts... */
+    const rlim_t needed = (rlim_t)t->options.max_clients + 64;
+
+    struct rlimit rl;
+    if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
+    {
+        msg(M_WARN | M_ERRNO, "WARNING: getrlimit(RLIMIT_NOFILE) failed");
+        return;
+    }
+    if (rl.rlim_cur >= needed)
+    {
+        return;
+    }
+
+    const rlim_t old = rl.rlim_cur;
+    rl.rlim_cur = rl.rlim_max < needed ? rl.rlim_max : needed;
+    if (rl.rlim_cur > old)
+    {
+        if (setrlimit(RLIMIT_NOFILE, &rl) == 0)
+        {
+            msg(M_INFO, "NOTE: raised the open files limit from %lu to %lu", (unsigned long)old,
+                (unsigned long)rl.rlim_cur);
+        }
+        else
+        {
+            msg(M_WARN | M_ERRNO, "WARNING: setrlimit(RLIMIT_NOFILE) failed");
+            rl.rlim_cur = old;
+        }
+    }
+    if (rl.rlim_cur < needed)
+    {
+        msg(M_WARN,
+            "WARNING: the open files limit (soft %lu, hard %lu) is too low for "
+            "--max-clients %" PRIu32 ", TCP clients may be refused before --max-clients is reached",
+            (unsigned long)rl.rlim_cur, (unsigned long)rl.rlim_max, t->options.max_clients);
+    }
+#endif /* if defined(HAVE_GETRLIMIT) && defined(RLIMIT_NOFILE) && !defined(TARGET_DARWIN) */
+}
+
+/*
  * Main initialization function, init multi_context object.
  */
 static void
@@ -398,6 +460,7 @@ multi_init(struct context *t)
      * Per-client limits
      */
     m->max_clients = t->options.max_clients;
+    multi_check_nofile_limit(t);
 
     m->instances = calloc(m->max_clients, sizeof(struct multi_instance *));
     check_malloc_return(m->instances);
