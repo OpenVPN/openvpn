@@ -8,6 +8,13 @@ The preferred procedure to send patches to the "openvpn-devel" mailing list:
 
 - https://lists.sourceforge.net/lists/listinfo/openvpn-devel
 
+Alternatively, you can use Gerrit for code review:
+
+- Web UI: https://gerrit.openvpn.net/
+- Best practices & account setup: https://community.openvpn.net/Development/GerritBestPractices
+
+Note: final, approved patches are still sent to the mailing list.
+
 While we do not merge GitHub pull requests as-is, we do allow their use for code
 review purposes. After the patch has been ACKed (reviewed and accepted), it must
 be sent to the mailing list. This last step does not necessarily need to be done
