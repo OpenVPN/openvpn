@@ -3274,6 +3274,14 @@ options_postprocess_mutate_invariant(struct options *options)
         options->ifconfig_noexec = false;
     }
 
+    /* the service adds the routes, --route-method must not override it */
+    if (options->msg_channel && options->route_method != ROUTE_METHOD_SERVICE)
+    {
+        msg(M_WARN, "WARNING: ignoring --route-method, routes are added by the interactive service");
+        options->route_method = ROUTE_METHOD_SERVICE;
+    }
+
+    /* this depends on options->route_method, which is set above */
     remap_redirect_gateway_flags(options);
 
     /*
