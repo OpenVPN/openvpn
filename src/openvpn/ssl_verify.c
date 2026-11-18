@@ -1037,24 +1037,22 @@ key_state_gen_auth_control_files(struct auth_deferred_status *ads, const struct 
 }
 
 /**
- * Checks if the auth failed reason file has any content and if yes it will
- * be returned as string allocated in gc to the caller.
- */
-static char *
-key_state_check_auth_failed_message_file(const struct auth_deferred_status *ads,
-                                         struct gc_arena *gc)
+ * Check if the script/plugin left a message in the auth failed message
+ * file and relay it to the user */
+static void
+check_for_client_reason(struct tls_multi *multi, const struct auth_deferred_status *ads)
 {
-    char *ret = NULL;
     if (ads->auth_failed_reason_file)
     {
-        struct buffer reason = buffer_read_from_file(ads->auth_failed_reason_file, gc);
+        struct gc_arena gc = gc_new();
+        struct buffer reason = buffer_read_from_file(ads->auth_failed_reason_file, &gc);
 
         if (BLEN(&reason))
         {
-            ret = BSTR(&reason);
+            auth_set_client_reason(multi, BSTR(&reason));
         }
+        gc_free(&gc);
     }
-    return ret;
 }
 
 
@@ -1221,21 +1219,9 @@ tls_authentication_status(struct tls_multi *multi)
 #endif
     if (failed_auth)
     {
-        struct gc_arena gc = gc_new();
         const struct key_state *ks = get_primary_key(multi);
-        const char *plugin_message =
-            key_state_check_auth_failed_message_file(&ks->plugin_auth, &gc);
-        const char *script_message =
-            key_state_check_auth_failed_message_file(&ks->script_auth, &gc);
-
-        if (plugin_message)
-        {
-            auth_set_client_reason(multi, plugin_message);
-        }
-        if (script_message)
-        {
-            auth_set_client_reason(multi, script_message);
-        }
+        check_for_client_reason(multi, &ks->plugin_auth);
+        check_for_client_reason(multi, &ks->script_auth);
 
         /* We have at least one session that failed authentication. There
          * might be still another session with valid keys.
@@ -1243,7 +1229,6 @@ tls_authentication_status(struct tls_multi *multi)
          * with the other session (and we actually did that in earlier
          * version, this behaviour is really strange from a user (admin)
          * experience */
-        gc_free(&gc);
         return TLS_AUTHENTICATION_FAILED;
     }
     else if (success)
@@ -1305,20 +1290,6 @@ tls_authenticate_key(struct tls_multi *multi, const unsigned int mda_key_id, con
  * this is the place to start.
  *************************************************************************** */
 
-/**
- * Check if the script/plugin left a message in the auth failed message
- * file and relay it to the user */
-static void
-check_for_client_reason(struct tls_multi *multi, const struct auth_deferred_status *status)
-{
-    struct gc_arena gc = gc_new();
-    const char *msg = key_state_check_auth_failed_message_file(status, &gc);
-    if (msg)
-    {
-        auth_set_client_reason(multi, msg);
-    }
-    gc_free(&gc);
-}
 /*
  * Verify the user name and password using a script
  */
