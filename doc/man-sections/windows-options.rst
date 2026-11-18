@@ -179,6 +179,10 @@ errors.
   :code:`exe`
         Call the route.exe shell command.
 
+  When OpenVPN is started by the interactive service, the service adds
+  the routes and a ``--route-method`` given in the configuration is
+  ignored.
+
 --service args
   Should be used when OpenVPN is being automatically executed by another
   program in such a context that no interaction with the user via display
