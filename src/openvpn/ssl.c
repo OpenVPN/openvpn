@@ -2409,7 +2409,7 @@ key_method_2_read(struct buffer *buf, struct tls_multi *multi, struct tls_sessio
 
     free(multi->remote_ciphername);
     multi->remote_ciphername = options_string_extract_option(options, "cipher", NULL);
-    multi->remote_usescomp = strstr(options, ",comp-lzo,");
+    multi->remote_usescomp = (strstr(options, ",comp-lzo,") != NULL);
 
     /* In OCC we send '[null-cipher]' instead 'none' */
     if (multi->remote_ciphername && strcmp(multi->remote_ciphername, "[null-cipher]") == 0)
