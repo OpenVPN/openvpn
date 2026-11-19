@@ -174,7 +174,8 @@ write_control_auth(struct tls_session *session, struct key_state *ks, struct buf
                    bool prepend_ack)
 {
     ASSERT(ks->key_id >= 0 && ks->key_id <= P_KEY_ID_MASK);
-    ASSERT(opcode >= 0 && opcode <= P_LAST_OPCODE);
+    /* this writes the message id and ACK array, which only these opcodes have */
+    ASSERT(opcode_is_reliable_control(opcode));
     uint8_t header = (uint8_t)(ks->key_id | (opcode << P_OPCODE_SHIFT));
 
     /* Workaround for Softether servers. Softether has a bug that it only

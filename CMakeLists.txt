@@ -565,6 +565,8 @@ set(SOURCE_FILES
     src/openvpn/plugin.h
     src/openvpn/pool.c
     src/openvpn/pool.h
+    src/openvpn/probe.c
+    src/openvpn/probe.h
     src/openvpn/proto.c
     src/openvpn/proto.h
     src/openvpn/proxy.c
@@ -899,7 +901,9 @@ if (BUILD_TESTING)
     target_sources(test_pkt PRIVATE
         tests/unit_tests/openvpn/mock_win32_execve.c
         tests/unit_tests/openvpn/test_control_msg.c
+        tests/unit_tests/openvpn/test_probe.c
         src/openvpn/control_msg.c
+        src/openvpn/probe.c
         src/openvpn/argv.c
         src/openvpn/base64.c
         src/openvpn/crypto_epoch.c

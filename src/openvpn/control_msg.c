@@ -91,3 +91,32 @@ ctrl_msg_tlv_next(struct buffer *buf, struct ctrl_msg_tlv_header *hdr, struct bu
     buf_set_read(value, v, hdr->value_len);
     return true;
 }
+
+bool
+ctrl_msg_find_tlv(struct buffer *payload, uint16_t wanted_type, struct buffer *value)
+{
+    bool found = false;
+    while (BLEN(payload) > 0)
+    {
+        struct ctrl_msg_tlv_header hdr;
+        struct buffer v;
+        if (!ctrl_msg_tlv_next(payload, &hdr, &v))
+        {
+            return false;
+        }
+        if (hdr.type == wanted_type)
+        {
+            if (found)
+            {
+                return false; /* the TLV may occur only once */
+            }
+            *value = v;
+            found = true;
+        }
+        else if (!hdr.optional)
+        {
+            return false; /* a mandatory TLV we do not understand, wherever it sits */
+        }
+    }
+    return found;
+}

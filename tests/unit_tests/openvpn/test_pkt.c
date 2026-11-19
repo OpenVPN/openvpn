@@ -45,6 +45,7 @@
 #include "reliable.h"
 #include "siphash.h"
 #include "test_control_msg.h"
+#include "test_probe.h"
 
 int
 parse_line(const char *line, char **p, const int n, const char *file, const int line_num,
@@ -841,7 +842,21 @@ main(void)
         cmocka_unit_test(test_tlv_next_walks_payload),
         cmocka_unit_test(test_tlv_next_value_truncated),
         cmocka_unit_test(test_tlv_header_truncated),
-        cmocka_unit_test(test_tlv_write_no_room)
+        cmocka_unit_test(test_tlv_write_no_room),
+        cmocka_unit_test(test_probe_request_roundtrip),
+        cmocka_unit_test(test_probe_request_wire_format),
+        cmocka_unit_test(test_probe_reply_roundtrip),
+        cmocka_unit_test(test_probe_reply_wire_format),
+        cmocka_unit_test(test_probe_request_forward_compat),
+        cmocka_unit_test(test_probe_request_too_short),
+        cmocka_unit_test(test_probe_reply_too_short),
+        cmocka_unit_test(test_probe_reply_flags_contradict),
+        cmocka_unit_test(test_find_tlv_value_truncated),
+        cmocka_unit_test(test_find_tlv_trailing_bytes),
+        cmocka_unit_test(test_find_tlv_skips_optional_after_wanted),
+        cmocka_unit_test(test_find_tlv_rejects_unknown_mandatory),
+        cmocka_unit_test(test_find_tlv_rejects_duplicate),
+        cmocka_unit_test(test_find_tlv_empty_payload)
     };
 
     return cmocka_run_group_tests_name("pkt tests", tests, NULL, NULL);

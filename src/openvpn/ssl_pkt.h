@@ -58,11 +58,50 @@
  * like P_CONTROL_HARD_RESET_CLIENT_V3 */
 #define P_CONTROL_WKC_V1 11
 
-/* define the range of legal opcodes
- * Since we do no longer support key-method 1 we consider
- * the v1 op codes invalid */
-#define P_FIRST_OPCODE 3
-#define P_LAST_OPCODE  11
+/* Control channel packet carrying a TLV payload, e.g. a server probe. Framed
+ * like P_CONTROL_V1 but without the fields of the reliability layer: a session
+ * id and then the TLVs, with no message id and no ACK array. It is wrapped by
+ * tls-auth or tls-crypt like any other control channel packet, and with
+ * neither configured it travels unauthenticated, as they do. */
+#define P_CONTROL_V2 12
+
+/* Variant of P_CONTROL_V2 with the wrapped client key appended,
+ * like P_CONTROL_WKC_V1 is to P_CONTROL_V1 */
+#define P_CONTROL_WKC_V2 13
+
+/**
+ * Is a packet with opcode op carried by the reliable control channel?
+ *
+ * These opcodes are followed by an ACK array and a control message id, which
+ * is what the reliable path reads once it is past the session id. An opcode
+ * that is not one of them has something else there: P_CONTROL_V2 has its TLVs.
+ * Handing such a packet to that path would read the first bytes of that
+ * payload as an ACK count and a message id, and ACK or queue whatever it made
+ * of them.
+ *
+ * The opcodes are listed rather than bounded by a range, so that defining one
+ * does not silently add it to the set. Key method 1 is no longer supported, so
+ * its two reset opcodes are not here, and the data channel opcodes are handled
+ * before this is reached.
+ */
+static inline bool
+opcode_is_reliable_control(int op)
+{
+    switch (op)
+    {
+        case P_CONTROL_SOFT_RESET_V1:
+        case P_CONTROL_V1:
+        case P_ACK_V1:
+        case P_CONTROL_HARD_RESET_CLIENT_V2:
+        case P_CONTROL_HARD_RESET_SERVER_V2:
+        case P_CONTROL_HARD_RESET_CLIENT_V3:
+        case P_CONTROL_WKC_V1:
+            return true;
+
+        default:
+            return false;
+    }
+}
 
 /*
  * Define number of buffers for send and receive in the reliability layer.
@@ -256,6 +295,12 @@ packet_opcode_name(int op)
 
         case P_CONTROL_WKC_V1:
             return "P_CONTROL_WKC_V1";
+
+        case P_CONTROL_V2:
+            return "P_CONTROL_V2";
+
+        case P_CONTROL_WKC_V2:
+            return "P_CONTROL_WKC_V2";
 
         case P_ACK_V1:
             return "P_ACK_V1";

@@ -166,6 +166,7 @@ pkt_testdriver_CFLAGS  = \
 pkt_testdriver_LDFLAGS = @TEST_LDFLAGS@
 pkt_testdriver_SOURCES = test_pkt.c \
 	test_control_msg.c test_control_msg.h \
+	test_probe.c test_probe.h \
 	mock_msg.c mock_msg.h mock_win32_execve.c \
 	test_common.h \
 	$(top_srcdir)/src/compat/compat-strlcpy.c \
@@ -181,6 +182,7 @@ pkt_testdriver_SOURCES = test_pkt.c \
 	$(top_srcdir)/src/openvpn/otime.c \
 	$(top_srcdir)/src/openvpn/packet_id.c \
 	$(top_srcdir)/src/openvpn/platform.c \
+	$(top_srcdir)/src/openvpn/probe.c \
 	$(top_srcdir)/src/openvpn/reliable.c \
 	$(top_srcdir)/src/openvpn/run_command.c \
 	$(top_srcdir)/src/openvpn/session_id.c \

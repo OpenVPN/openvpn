@@ -3745,21 +3745,32 @@ done:
 
 /**
  * Does a very coarse check on the received opcode. It only checks if the
- * opcode is an allowed op code for the peer to send at all, not if this
- * opcode is valid for the current state.
+ * opcode is one the peer may send on the reliable control channel at all,
+ * not if this opcode is valid for the current state.
  */
 static bool
 tls_pre_decrypt_verify_opcode(int op, bool server, const struct link_socket_actual *from)
 {
-    if (op < P_FIRST_OPCODE || op > P_LAST_OPCODE)
+    if (!opcode_is_reliable_control(op))
     {
         if (op == P_CONTROL_HARD_RESET_CLIENT_V1 || op == P_CONTROL_HARD_RESET_SERVER_V1)
         {
             msg(D_TLS_ERRORS, "Peer tried unsupported key-method 1");
         }
         struct gc_arena gc = gc_new();
-        msg(D_TLS_ERRORS, "TLS Error: unknown opcode received from %s op=%d",
-            print_link_socket_actual(from, &gc), op);
+        if (op == P_CONTROL_V2 || op == P_CONTROL_WKC_V2)
+        {
+            /* a defined opcode, just not one this path can parse */
+            msg(D_TLS_ERRORS,
+                "TLS Error: %s received from %s, which is not part of "
+                "the reliable control channel",
+                packet_opcode_name(op), print_link_socket_actual(from, &gc));
+        }
+        else
+        {
+            msg(D_TLS_ERRORS, "TLS Error: unknown opcode received from %s op=%d",
+                print_link_socket_actual(from, &gc), op);
+        }
         gc_free(&gc);
         return false;
     }
