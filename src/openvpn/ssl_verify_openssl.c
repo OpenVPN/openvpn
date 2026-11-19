@@ -158,12 +158,13 @@ extract_x509_extension(X509 *cert, char *fieldname, char *out, size_t size)
                     {
                         msg(D_TLS_ERRORS, "ASN1 ERROR: string contained terminating zero");
                     }
-                    else if (strlcpy(out, buf, size) >= size)
+                    else if (strlen(buf) >= size)
                     {
                         msg(D_TLS_ERRORS, "ASN1 ERROR: string too long");
                     }
                     else
                     {
+                        strlcpy(out, buf, size);
                         retval = true;
                     }
                     OPENSSL_free(buf);
