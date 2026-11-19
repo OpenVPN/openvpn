@@ -1351,7 +1351,7 @@ verify_user_pass_script(struct tls_session *session, struct tls_multi *multi,
             "could not create deferred auth control file",
             __func__);
         retval = OPENVPN_PLUGIN_FUNC_ERROR;
-        goto error;
+        goto done;
     }
 
     /* call command */
@@ -1394,7 +1394,6 @@ done:
         platform_unlink(tmp_file);
     }
 
-error:
     if (!session->opt->auth_user_pass_verify_script_via_file)
     {
         setenv_del(session->opt->es, "password");
@@ -1466,6 +1465,10 @@ verify_crresponse_script(struct tls_multi *multi, const char *cr_response)
         tls_deauthenticate(multi);
     }
 done:
+    if (tmp_file)
+    {
+        platform_unlink(tmp_file);
+    }
     argv_free(&argv);
     gc_free(&gc);
 }
