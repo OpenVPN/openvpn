@@ -304,15 +304,18 @@ test_merge_openvpn_environment(void **state)
 static void
 test_starts_with_non_option(void **state)
 {
-    assert_true(StartsWithNonOption(L"openvpn --msg-channel 1 foo.ovpn"));
-    assert_true(StartsWithNonOption(L"openvpn --msg-channel 1 \"my vpn.ovpn\""));
-    assert_true(StartsWithNonOption(L"openvpn --msg-channel 1 foo.ovpn --verb 3"));
-    assert_true(StartsWithNonOption(L"openvpn --msg-channel 1 foo.ovpn bar"));
-    assert_true(StartsWithNonOption(L"openvpn --msg-channel 1 \"\""));
+    assert_true(StartsWithNonOption(L"foo.ovpn"));
+    assert_true(StartsWithNonOption(L"\"my vpn.ovpn\""));
+    assert_true(StartsWithNonOption(L"foo.ovpn --verb 3"));
+    assert_true(StartsWithNonOption(L"foo.ovpn bar"));
+    assert_true(StartsWithNonOption(L" \tfoo.ovpn"));
+    assert_true(StartsWithNonOption(L"\"\""));
+    assert_true(StartsWithNonOption(L""));
+    assert_true(StartsWithNonOption(L" "));
 
-    assert_false(StartsWithNonOption(L"openvpn --msg-channel 1 "));
-    assert_false(StartsWithNonOption(L"openvpn --msg-channel 1 --persist-tun"));
-    assert_false(StartsWithNonOption(L"openvpn --msg-channel 1 --config foo.ovpn"));
+    assert_false(StartsWithNonOption(L"--persist-tun"));
+    assert_false(StartsWithNonOption(L"--config foo.ovpn"));
+    assert_false(StartsWithNonOption(L" \t--config foo.ovpn"));
 }
 
 static void
