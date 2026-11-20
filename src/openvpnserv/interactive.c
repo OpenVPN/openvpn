@@ -354,24 +354,17 @@ ReturnLastError(HANDLE pipe, LPCWSTR func)
 /**
  * Check whether the user options start with a non-option
  *
- * openvpn.exe takes a lone argument as the config file only when there are
- * no other arguments, and takes non-options after the --msg-channel handle
- * as its extra parameters.
+ * openvpn.exe takes non-options after the --msg-channel handle the service
+ * prepends as its extra parameters, not as the config file.
  *
- * @param  cmdline  openvpn.exe command line built by the service
+ * @param  options  user options from the startup data
  *
  * @return BOOL to indicate if the first user argument is not an option
  */
 static BOOL
-StartsWithNonOption(const WCHAR *cmdline)
+StartsWithNonOption(const WCHAR *options)
 {
-    int argc;
-    WCHAR **argv = CommandLineToArgvW(cmdline, &argc);
-    /* "openvpn --msg-channel <handle> <arg>..." */
-    BOOL ret = argv && argc > 3 && !IsOption(argv[3]);
-
-    LocalFree(argv);
-    return ret;
+    return !IsOption(options + wcsspn(options, L" \t"));
 }
 
 /*
@@ -3634,6 +3627,14 @@ RunOpenvpn(LPVOID p)
         goto out;
     }
 
+    if (StartsWithNonOption(sud.options))
+    {
+        ReturnError(pipe, ERROR_STARTUP_DATA,
+                    L"Options must start with an option, pass the config file with --config", 1,
+                    &exit_event);
+        goto out;
+    }
+
     if (!InitializeSecurityDescriptor(&ovpn_sd, SECURITY_DESCRIPTOR_REVISION))
     {
         ReturnLastError(pipe, L"InitializeSecurityDescriptor");
@@ -3877,14 +3878,6 @@ RunOpenvpn(LPVOID p)
      * PRIuPTR to print that as best compromise */
     swprintf(cmdline, cmdline_size, L"openvpn --msg-channel %" PRIuPTR L" %ls",
              (uintptr_t)svc_pipe, sud.options);
-
-    if (StartsWithNonOption(cmdline))
-    {
-        ReturnError(pipe, ERROR_STARTUP_DATA,
-                    L"Options must start with an option, pass the config file with --config", 1,
-                    &exit_event);
-        goto out;
-    }
 
     /*
      * Only authorized users are allowed to use any command line options or
