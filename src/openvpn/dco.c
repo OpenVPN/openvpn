@@ -721,7 +721,7 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi, const str
         }
 
         net_route_v6_add(&m->top.net_ctx, &addr->v6.addr, addr->netbits,
-                         gateway, c->c1.tuntap->actual_name, 0,
+                         gateway, c->c1.tuntap->actual_name, NET_ROUTE_TABLE_DEFAULT,
                          DCO_IROUTE_METRIC);
 #endif
     }
@@ -739,7 +739,7 @@ dco_install_iroute(struct multi_context *m, struct multi_instance *mi, const str
         }
 
         net_route_v4_add(&m->top.net_ctx, &dest, addr->netbits, gateway,
-                         c->c1.tuntap->actual_name, 0, DCO_IROUTE_METRIC);
+                         c->c1.tuntap->actual_name, NET_ROUTE_TABLE_DEFAULT, DCO_IROUTE_METRIC);
 #endif
     }
 #endif /* if defined(TARGET_LINUX) || defined(TARGET_FREEBSD) || defined(_WIN32) */
@@ -765,7 +765,7 @@ dco_delete_iroutes(openvpn_net_ctx_t *net_ctx, const struct context *c)
             dco_win_del_iroute_ipv4(&c->c1.tuntap->dco, htonl(ir->network), ir->netbits);
 #else
             net_route_v4_del(net_ctx, &ir->network, ir->netbits,
-                             &c->c2.push_ifconfig_local, c->c1.tuntap->actual_name, 0,
+                             &c->c2.push_ifconfig_local, c->c1.tuntap->actual_name, NET_ROUTE_TABLE_DEFAULT,
                              DCO_IROUTE_METRIC);
 #endif
         }
@@ -779,7 +779,7 @@ dco_delete_iroutes(openvpn_net_ctx_t *net_ctx, const struct context *c)
         {
             /* On windows we do not install these routes, so we also do not need to delete them */
             net_route_v4_del(net_ctx, &ifconfig_local, 32, NULL,
-                             c->c1.tuntap->actual_name, 0, DCO_IROUTE_METRIC);
+                             c->c1.tuntap->actual_name, NET_ROUTE_TABLE_DEFAULT, DCO_IROUTE_METRIC);
         }
 #endif
     }
@@ -792,7 +792,7 @@ dco_delete_iroutes(openvpn_net_ctx_t *net_ctx, const struct context *c)
             dco_win_del_iroute_ipv6(&c->c1.tuntap->dco, ir6->network, ir6->netbits);
 #else
             net_route_v6_del(net_ctx, &ir6->network, ir6->netbits,
-                             &c->c2.push_ifconfig_ipv6_local, c->c1.tuntap->actual_name, 0,
+                             &c->c2.push_ifconfig_ipv6_local, c->c1.tuntap->actual_name, NET_ROUTE_TABLE_DEFAULT,
                              DCO_IROUTE_METRIC);
 #endif
         }
@@ -805,7 +805,7 @@ dco_delete_iroutes(openvpn_net_ctx_t *net_ctx, const struct context *c)
         {
             /* On windows we do not install these routes, so we also do not need to delete them */
             net_route_v6_del(net_ctx, dest, 128, NULL,
-                             c->c1.tuntap->actual_name, 0, DCO_IROUTE_METRIC);
+                             c->c1.tuntap->actual_name, NET_ROUTE_TABLE_DEFAULT, DCO_IROUTE_METRIC);
         }
 #endif
     }

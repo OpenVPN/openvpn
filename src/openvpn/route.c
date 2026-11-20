@@ -545,6 +545,7 @@ add_block_local_item(struct route_list *rl, const struct route_gateway_address *
         /* split a route into two smaller blocking routes, and direct them to target */
         l2 = ((~gateway->netmask) + 1) >> 1;
         r1->flags = RT_DEFINED;
+        r1->table_id = NET_ROUTE_TABLE_DEFAULT;
         r1->gateway = target;
         r1->network = gateway->addr & gateway->netmask;
         r1->netmask = ~(l2 - 1);
@@ -854,6 +855,7 @@ init_route_ipv6_list(struct route_ipv6_list *rl6, const struct route_ipv6_option
                 r6->gateway = rl6->rgi6.gateway.addr_ipv6;
             }
             r6->metric = 1;
+            r6->table_id = NET_ROUTE_TABLE_DEFAULT;
 #ifdef _WIN32
             r6->adapter_index = rl6->rgi6.adapter_index;
 #else
@@ -883,6 +885,7 @@ add_route3(in_addr_t network, in_addr_t netmask, in_addr_t gateway, const struct
     struct route_ipv4 r;
     CLEAR(r);
     r.flags = RT_DEFINED;
+    r.table_id = NET_ROUTE_TABLE_DEFAULT;
     r.network = network;
     r.netmask = netmask;
     r.gateway = gateway;
@@ -897,6 +900,7 @@ del_route3(in_addr_t network, in_addr_t netmask, in_addr_t gateway, const struct
     struct route_ipv4 r;
     CLEAR(r);
     r.flags = RT_DEFINED | RT_ADDED;
+    r.table_id = NET_ROUTE_TABLE_DEFAULT;
     r.network = network;
     r.netmask = netmask;
     r.gateway = gateway;

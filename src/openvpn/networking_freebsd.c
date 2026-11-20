@@ -10,7 +10,7 @@
 
 static int
 net_route_v4(const char *op, const in_addr_t *dst, int prefixlen, const in_addr_t *gw,
-             const char *iface, uint32_t table, int metric)
+             const char *iface, int table, int metric)
 {
     char buf1[INET_ADDRSTRLEN], buf2[INET_ADDRSTRLEN];
     in_addr_t _dst, _gw;
@@ -27,15 +27,20 @@ net_route_v4(const char *op, const in_addr_t *dst, int prefixlen, const in_addr_
     if (gw)
     {
         _gw = ntohl(*gw);
-        argv_printf(&argv, "%s %s -net %s/%d %s -fib %d", ROUTE_PATH, op,
+        argv_printf(&argv, "%s %s -net %s/%d %s", ROUTE_PATH, op,
                     inet_ntop(AF_INET, &_dst, buf1, sizeof(buf1)), prefixlen,
-                    inet_ntop(AF_INET, &_gw, buf2, sizeof(buf2)), table);
+                    inet_ntop(AF_INET, &_gw, buf2, sizeof(buf2)));
     }
     else
     {
-        argv_printf(&argv, "%s %s -net %s/%d -iface %s -fib %d", ROUTE_PATH, op,
+        argv_printf(&argv, "%s %s -net %s/%d -iface %s", ROUTE_PATH, op,
                     inet_ntop(AF_INET, &_dst, buf1, sizeof(buf1)), prefixlen,
-                    iface, table);
+                    iface);
+    }
+    /* without -fib, route(8) uses the FIB of the process */
+    if (table >= 0)
+    {
+        argv_printf_cat(&argv, "-fib %d", table);
     }
 
     argv_msg(M_INFO, &argv);
@@ -48,7 +53,7 @@ net_route_v4(const char *op, const in_addr_t *dst, int prefixlen, const in_addr_
 
 static int
 net_route_v6(const char *op, const struct in6_addr *dst, int prefixlen, const struct in6_addr *gw,
-             const char *iface, uint32_t table, int metric)
+             const char *iface, int table, int metric)
 {
     char buf1[INET6_ADDRSTRLEN], buf2[INET6_ADDRSTRLEN];
     struct argv argv = argv_new();
@@ -61,15 +66,19 @@ net_route_v6(const char *op, const struct in6_addr *dst, int prefixlen, const st
      */
     if (gw)
     {
-        argv_printf(&argv, "%s -6 %s -net %s/%d %s -fib %d", ROUTE_PATH, op,
+        argv_printf(&argv, "%s -6 %s -net %s/%d %s", ROUTE_PATH, op,
                     inet_ntop(AF_INET6, dst, buf1, sizeof(buf1)), prefixlen,
-                    inet_ntop(AF_INET6, gw, buf2, sizeof(buf2)), table);
+                    inet_ntop(AF_INET6, gw, buf2, sizeof(buf2)));
     }
     else
     {
-        argv_printf(&argv, "%s -6 %s -net %s/%d -iface %s -fib %d", ROUTE_PATH, op,
+        argv_printf(&argv, "%s -6 %s -net %s/%d -iface %s", ROUTE_PATH, op,
                     inet_ntop(AF_INET6, dst, buf1, sizeof(buf1)), prefixlen,
-                    iface, table);
+                    iface);
+    }
+    if (table >= 0)
+    {
+        argv_printf_cat(&argv, "-fib %d", table);
     }
 
 
@@ -83,28 +92,28 @@ net_route_v6(const char *op, const struct in6_addr *dst, int prefixlen, const st
 
 int
 net_route_v4_add(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen, const in_addr_t *gw,
-                 const char *iface, uint32_t table, int metric)
+                 const char *iface, int table, int metric)
 {
     return net_route_v4("add", dst, prefixlen, gw, iface, table, metric);
 }
 
 int
 net_route_v6_add(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixlen,
-                 const struct in6_addr *gw, const char *iface, uint32_t table, int metric)
+                 const struct in6_addr *gw, const char *iface, int table, int metric)
 {
     return net_route_v6("add", dst, prefixlen, gw, iface, table, metric);
 }
 
 int
 net_route_v4_del(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen, const in_addr_t *gw,
-                 const char *iface, uint32_t table, int metric)
+                 const char *iface, int table, int metric)
 {
     return net_route_v4("del", dst, prefixlen, gw, iface, table, metric);
 }
 
 int
 net_route_v6_del(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixlen,
-                 const struct in6_addr *gw, const char *iface, uint32_t table, int metric)
+                 const struct in6_addr *gw, const char *iface, int table, int metric)
 {
     return net_route_v6("del", dst, prefixlen, gw, iface, table, metric);
 }

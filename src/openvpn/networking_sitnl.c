@@ -1115,14 +1115,11 @@ net_addr_ptp_v4_del(const openvpn_net_ctx_t *ctx, const char *iface, const in_ad
 
 static int
 sitnl_route_add(const char *iface, sa_family_t af_family, const void *dst, int prefixlen,
-                const void *gw, uint32_t table, int metric)
+                const void *gw, int table, int metric)
 {
     enum rt_scope_t scope = RT_SCOPE_UNIVERSE;
-
-    if (table == 0)
-    {
-        table = RT_TABLE_MAIN;
-    }
+    /* table 0 is RT_TABLE_UNSPEC */
+    const uint32_t rt_table = table > 0 ? (uint32_t)table : RT_TABLE_MAIN;
 
     if (!gw && iface)
     {
@@ -1130,12 +1127,12 @@ sitnl_route_add(const char *iface, sa_family_t af_family, const void *dst, int p
     }
 
     return sitnl_route_set(RTM_NEWROUTE, NLM_F_CREATE, iface, af_family, dst, prefixlen, gw,
-                           table, metric, scope, RTPROT_BOOT, RTN_UNICAST);
+                           rt_table, metric, scope, RTPROT_BOOT, RTN_UNICAST);
 }
 
 int
 net_route_v4_add(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen, const in_addr_t *gw,
-                 const char *iface, uint32_t table, int metric)
+                 const char *iface, int table, int metric)
 {
     const in_addr_t *dst_ptr = NULL, *gw_ptr = NULL;
     in_addr_t dst_be = 0, gw_be = 0;
@@ -1154,7 +1151,7 @@ net_route_v4_add(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixl
         gw_ptr = &gw_be;
     }
 
-    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %u metric %d", __func__,
+    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %d metric %d", __func__,
         inet_ntop(AF_INET, &dst_be, dst_str, sizeof(dst_str)), prefixlen,
         inet_ntop(AF_INET, &gw_be, gw_str, sizeof(gw_str)), np(iface), table, metric);
 
@@ -1163,7 +1160,7 @@ net_route_v4_add(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixl
 
 int
 net_route_v6_add(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixlen,
-                 const struct in6_addr *gw, const char *iface, uint32_t table, int metric)
+                 const struct in6_addr *gw, const char *iface, int table, int metric)
 {
     inet_address_t dst_v6;
     inet_address_t gw_v6;
@@ -1183,7 +1180,7 @@ net_route_v6_add(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int p
         gw_v6.ipv6 = *gw;
     }
 
-    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %u metric %d", __func__,
+    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %d metric %d", __func__,
         inet_ntop(AF_INET6, &dst_v6.ipv6, dst_str, sizeof(dst_str)), prefixlen,
         inet_ntop(AF_INET6, &gw_v6.ipv6, gw_str, sizeof(gw_str)), np(iface), table, metric);
 
@@ -1192,20 +1189,18 @@ net_route_v6_add(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int p
 
 static int
 sitnl_route_del(const char *iface, sa_family_t af_family, const inet_address_t *dst, int prefixlen,
-                const inet_address_t *gw, uint32_t table, int metric)
+                const inet_address_t *gw, int table, int metric)
 {
-    if (table == 0)
-    {
-        table = RT_TABLE_MAIN;
-    }
+    /* table 0 is RT_TABLE_UNSPEC */
+    const uint32_t rt_table = table > 0 ? (uint32_t)table : RT_TABLE_MAIN;
 
-    return sitnl_route_set(RTM_DELROUTE, 0, iface, af_family, dst, prefixlen, gw, table, metric,
+    return sitnl_route_set(RTM_DELROUTE, 0, iface, af_family, dst, prefixlen, gw, rt_table, metric,
                            RT_SCOPE_NOWHERE, 0, 0);
 }
 
 int
 net_route_v4_del(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen, const in_addr_t *gw,
-                 const char *iface, uint32_t table, int metric)
+                 const char *iface, int table, int metric)
 {
     inet_address_t dst_v4;
     inet_address_t gw_v4;
@@ -1225,7 +1220,7 @@ net_route_v4_del(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixl
         gw_v4.ipv4 = htonl(*gw);
     }
 
-    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %u metric %d", __func__,
+    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %d metric %d", __func__,
         inet_ntop(AF_INET, &dst_v4.ipv4, dst_str, sizeof(dst_str)), prefixlen,
         inet_ntop(AF_INET, &gw_v4.ipv4, gw_str, sizeof(gw_str)), np(iface), table, metric);
 
@@ -1234,7 +1229,7 @@ net_route_v4_del(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixl
 
 int
 net_route_v6_del(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixlen,
-                 const struct in6_addr *gw, const char *iface, uint32_t table, int metric)
+                 const struct in6_addr *gw, const char *iface, int table, int metric)
 {
     inet_address_t dst_v6;
     inet_address_t gw_v6;
@@ -1254,7 +1249,7 @@ net_route_v6_del(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int p
         gw_v6.ipv6 = *gw;
     }
 
-    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %u metric %d", __func__,
+    msg(D_ROUTE, "%s: %s/%d via %s dev %s table %d metric %d", __func__,
         inet_ntop(AF_INET6, &dst_v6.ipv6, dst_str, sizeof(dst_str)), prefixlen,
         inet_ntop(AF_INET6, &gw_v6.ipv6, gw_str, sizeof(gw_str)), np(iface), table, metric);
 

@@ -831,7 +831,7 @@ init_options(struct options *o)
     o->ce.mssfix = 0;
     o->ce.mssfix_default = true;
     o->ce.mssfix_encap = true;
-    o->route_default_table_id = 0;
+    o->route_default_table_id = NET_ROUTE_TABLE_DEFAULT;
     o->route_delay_window = 30;
     o->resolve_retry_seconds = RESOLV_RETRY_INFINITE;
     o->resolve_in_advance = false;
@@ -5297,7 +5297,11 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
         msg(M_WARN, "NOTE: --route-table is supported only on Linux when SITNL is built-in");
 #endif
         VERIFY_PERMISSION(OPT_P_ROUTE_TABLE);
-        options->route_default_table_id = positive_atoi(p[1], msglevel);
+        if (!atoi_constrained(p[1], &options->route_default_table_id, p[0], 0, INT_MAX,
+                              msglevel))
+        {
+            goto err;
+        }
     }
     else if (streq(p[0], "route") && p[1] && !p[5])
     {

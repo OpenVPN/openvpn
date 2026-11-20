@@ -112,7 +112,7 @@ net__route_v4_add(const char *dst_str, int prefixlen, int metric)
     }
     printf("\n");
 
-    return net_route_v4_add(NULL, &dst, prefixlen, NULL, iface, 0, metric);
+    return net_route_v4_add(NULL, &dst, prefixlen, NULL, iface, NET_ROUTE_TABLE_DEFAULT, metric);
 }
 
 static int
@@ -148,7 +148,7 @@ net__route_v4_add_gw(const char *dst_str, int prefixlen, const char *gw_str, int
     }
     printf("\n");
 
-    return net_route_v4_add(NULL, &dst, prefixlen, &gw, iface, 0, metric);
+    return net_route_v4_add(NULL, &dst, prefixlen, &gw, iface, NET_ROUTE_TABLE_DEFAULT, metric);
 }
 
 static int
@@ -175,7 +175,7 @@ net__route_v6_add(const char *dst_str, int prefixlen, int metric)
     }
     printf("\n");
 
-    return net_route_v6_add(NULL, &dst, prefixlen, NULL, iface, 0, metric);
+    return net_route_v6_add(NULL, &dst, prefixlen, NULL, iface, NET_ROUTE_TABLE_DEFAULT, metric);
 }
 
 static int
@@ -208,7 +208,7 @@ net__route_v6_add_gw(const char *dst_str, int prefixlen, const char *gw_str, int
     }
     printf("\n");
 
-    return net_route_v6_add(NULL, &dst, prefixlen, &gw, iface, 0, metric);
+    return net_route_v6_add(NULL, &dst, prefixlen, &gw, iface, NET_ROUTE_TABLE_DEFAULT, metric);
 }
 
 static void

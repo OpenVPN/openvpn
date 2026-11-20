@@ -24,6 +24,9 @@
 
 #define IFACE_TYPE_LEN_MAX 64
 
+/** net_route_*() table: Linux main table, FreeBSD FIB of the process */
+#define NET_ROUTE_TABLE_DEFAULT -1
+
 struct context;
 
 #ifdef ENABLE_SITNL
@@ -245,14 +248,13 @@ int net_addr_ptp_v4_del(const openvpn_net_ctx_t *ctx, const openvpn_net_iface_t 
  * @param prefixlen the length of the prefix of the destination
  * @param gw        the gateway for this route
  * @param iface     the interface for this route (can be NULL)
- * @param table     the table to add this route to (if 0, will be added to the
- *                  main table)
+ * @param table     the table to add this route to, or NET_ROUTE_TABLE_DEFAULT
  * @param metric    the metric associated with the route
  *
  * @return          0 on success, a negative error code otherwise
  */
 int net_route_v4_add(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
-                     const in_addr_t *gw, const openvpn_net_iface_t *iface, uint32_t table,
+                     const in_addr_t *gw, const openvpn_net_iface_t *iface, int table,
                      int metric);
 
 /**
@@ -263,14 +265,13 @@ int net_route_v4_add(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int pre
  * @param prefixlen the length of the prefix of the destination
  * @param gw        the gateway for this route
  * @param iface     the interface for this route (can be NULL)
- * @param table     the table to add this route to (if 0, will be added to the
- *                  main table)
+ * @param table     the table to add this route to, or NET_ROUTE_TABLE_DEFAULT
  * @param metric    the metric associated with the route
  *
  * @return          0 on success, a negative error code otherwise
  */
 int net_route_v6_add(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixlen,
-                     const struct in6_addr *gw, const openvpn_net_iface_t *iface, uint32_t table,
+                     const struct in6_addr *gw, const openvpn_net_iface_t *iface, int table,
                      int metric);
 
 /**
@@ -281,14 +282,13 @@ int net_route_v6_add(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, i
  * @param prefixlen the length of the prefix of the destination
  * @param gw        the gateway for this route
  * @param iface     the interface for this route (can be NULL)
- * @param table     the table to add this route to (if 0, will be added to the
- *                  main table)
+ * @param table     the table to add this route to, or NET_ROUTE_TABLE_DEFAULT
  * @param metric    the metric associated with the route
  *
  * @return          0 on success, a negative error code otherwise
  */
 int net_route_v4_del(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen,
-                     const in_addr_t *gw, const openvpn_net_iface_t *iface, uint32_t table,
+                     const in_addr_t *gw, const openvpn_net_iface_t *iface, int table,
                      int metric);
 
 /**
@@ -299,14 +299,13 @@ int net_route_v4_del(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int pre
  * @param prefixlen the length of the prefix of the destination
  * @param gw        the gateway for this route
  * @param iface     the interface for this route (can be NULL)
- * @param table     the table to add this route to (if 0, will be added to the
- *                  main table)
+ * @param table     the table to add this route to, or NET_ROUTE_TABLE_DEFAULT
  * @param metric    the metric associated with the route
  *
  * @return          0 on success, a negative error code otherwise
  */
 int net_route_v6_del(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixlen,
-                     const struct in6_addr *gw, const openvpn_net_iface_t *iface, uint32_t table,
+                     const struct in6_addr *gw, const openvpn_net_iface_t *iface, int table,
                      int metric);
 
 #endif /* ENABLE_SITNL || ENABLE_IPROUTE || TARGET_FREEBSD */

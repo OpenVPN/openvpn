@@ -243,7 +243,7 @@ net_addr_ptp_v4_del(const openvpn_net_ctx_t *ctx, const char *iface, const in_ad
 
 int
 net_route_v4_add(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen, const in_addr_t *gw,
-                 const char *iface, uint32_t table, int metric)
+                 const char *iface, int table, int metric)
 {
     struct argv argv = argv_new();
     const char *dst_str = print_in_addr_t(*dst, 0, &argv.gc);
@@ -281,7 +281,7 @@ net_route_v4_add(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixl
 
 int
 net_route_v6_add(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixlen,
-                 const struct in6_addr *gw, const char *iface, uint32_t table, int metric)
+                 const struct in6_addr *gw, const char *iface, int table, int metric)
 {
     struct argv argv = argv_new();
     char *dst_str = (char *)print_in6_addr(*dst, 0, &argv.gc);
@@ -314,7 +314,7 @@ net_route_v6_add(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int p
 
 int
 net_route_v4_del(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixlen, const in_addr_t *gw,
-                 const char *iface, uint32_t table, int metric)
+                 const char *iface, int table, int metric)
 {
     struct argv argv = argv_new();
     const char *dst_str = print_in_addr_t(*dst, 0, &argv.gc);
@@ -340,7 +340,7 @@ net_route_v4_del(const openvpn_net_ctx_t *ctx, const in_addr_t *dst, int prefixl
 
 int
 net_route_v6_del(const openvpn_net_ctx_t *ctx, const struct in6_addr *dst, int prefixlen,
-                 const struct in6_addr *gw, const char *iface, uint32_t table, int metric)
+                 const struct in6_addr *gw, const char *iface, int table, int metric)
 {
     struct argv argv = argv_new();
     char *dst_str = (char *)print_in6_addr(*dst, 0, &argv.gc);
