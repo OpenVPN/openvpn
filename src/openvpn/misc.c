@@ -730,10 +730,20 @@ sanitize_control_message(const char *src, struct gc_arena *gc)
 
 /* helper to parse peer_info received from multi client, validate
  * (this is untrusted data) and put into environment
+ *
+ * A valid line is NAME=VALUE where NAME starts with IV_, UV_ or ID and
+ * consists only of [A-Za-z0-9_].  In VALUE, non-printable characters,
+ * whitespace and the shell meta characters $ ( ` are replaced with '_'.
  */
 bool
 validate_peer_info_line(char *line)
 {
+    if (strncmp(line, "IV_", 3) != 0 && strncmp(line, "UV_", 3) != 0
+        && strncmp(line, "ID", 2) != 0)
+    {
+        return false;
+    }
+
     int state = 0;
     while (*line)
     {
@@ -780,9 +790,7 @@ output_peer_info_env(struct env_set *es, const char *peer_info)
     while (buf_parse(&buf, '\n', line, sizeof(line)))
     {
         chomp(line);
-        if (validate_peer_info_line(line)
-            && (strncmp(line, "IV_", 3) == 0 || strncmp(line, "UV_", 3) == 0
-                || strncmp(line, "ID", 2) == 0))
+        if (validate_peer_info_line(line))
         {
             msg(M_INFO, "peer info: %s", line);
             env_set_add(es, line);
