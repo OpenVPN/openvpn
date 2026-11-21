@@ -6902,6 +6902,7 @@ add_option(struct options *options, char *p[], bool is_inline, const char *file,
     }
     else if (streq(p[0], "route-ipv6-gateway") && p[1] && !p[2])
     {
+        VERIFY_PERMISSION(OPT_P_ROUTE_EXTRAS);
         if (ipv6_addr_safe(p[1]))
         {
             options->route_ipv6_default_gateway = p[1];
