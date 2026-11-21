@@ -557,6 +557,7 @@ add_block_local_item(struct route_list *rl, const struct route_gateway_address *
         /* split a route into two smaller blocking routes, and direct them to target */
         l2 = ((~gateway->netmask) + 1) >> 1;
         r1->flags = RT_DEFINED;
+        r1->table_id = 0;
         r1->gateway = target;
         r1->network = gateway->addr & gateway->netmask;
         r1->netmask = ~(l2 - 1);
