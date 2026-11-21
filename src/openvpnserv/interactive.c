@@ -2494,13 +2494,13 @@ GetNrptExcludeData(PCWSTR search_domains, nrpt_exclude_data_t *data, size_t data
 {
     HKEY v4_itfs = INVALID_HANDLE_VALUE;
     HKEY v6_itfs = INVALID_HANDLE_VALUE;
+    size_t i = 0;
 
     if (!GetInterfacesKey(AF_INET, &v4_itfs) || !GetInterfacesKey(AF_INET6, &v6_itfs))
     {
         goto out;
     }
 
-    size_t i = 0;
     DWORD enum_index = 0;
     while (i < data_size)
     {
@@ -2600,6 +2600,11 @@ next_itf:
     }
 
 out:
+    /* Clear data left by an interface that was not usable */
+    if (i < data_size)
+    {
+        ZeroMemory(&data[i], sizeof(data[i]));
+    }
     RegCloseKey(v6_itfs);
     RegCloseKey(v4_itfs);
 }
