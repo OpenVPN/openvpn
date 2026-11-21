@@ -2174,8 +2174,7 @@ TrimNameServers(PSTR addrs)
 static LSTATUS
 GetItfDnsServersV4(HKEY itf_key, PSTR addrs, PDWORD size)
 {
-    addrs[0] = '\0';
-    addrs[*size - 1] = '\0';
+    ZeroMemory(addrs, *size);
 
     LSTATUS err;
     DWORD s = *size;
@@ -2221,8 +2220,7 @@ GetItfDnsServersV4(HKEY itf_key, PSTR addrs, PDWORD size)
 static LSTATUS
 GetItfDnsServersV6(HKEY itf_key, PSTR addrs, PDWORD size)
 {
-    addrs[0] = '\0';
-    addrs[*size - 1] = '\0';
+    ZeroMemory(addrs, *size);
 
     LSTATUS err;
     DWORD s = *size;
