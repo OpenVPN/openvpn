@@ -55,9 +55,6 @@ static settings_t settings;
 static HANDLE rdns_semaphore = NULL;
 #define RDNS_TIMEOUT 600 /* seconds to wait for the semaphore */
 
-#define TUN_IOCTL_REGISTER_RINGS \
-    CTL_CODE(51820U, 0x970U, METHOD_BUFFERED, FILE_READ_DATA | FILE_WRITE_DATA)
-
 openvpn_service_t interactive_service = { interactive, _L(PACKAGE_NAME) L"ServiceInteractive",
                                           _L(PACKAGE_NAME) L" Interactive Service",
                                           SERVICE_DEPENDENCIES, SERVICE_AUTO_START };
