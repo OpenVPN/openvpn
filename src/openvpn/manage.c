@@ -1286,14 +1286,7 @@ man_client_deny(struct management *man, const char *cid_str, const char *kid_str
         {
             const bool status = (*man->persist.callback.client_auth)(
                 man->persist.callback.arg, cid, kid, false, reason, client_reason, NULL);
-            if (status)
-            {
-                msg(M_CLIENT, "SUCCESS: client-deny command succeeded");
-            }
-            else
-            {
-                msg(M_CLIENT, "ERROR: client-deny command failed");
-            }
+            report_command_status(status, "client-deny");
         }
         else
         {
@@ -1312,14 +1305,7 @@ man_client_kill(struct management *man, const char *cid_str, const char *kill_ms
         {
             const bool status =
                 (*man->persist.callback.kill_by_cid)(man->persist.callback.arg, cid, kill_msg);
-            if (status)
-            {
-                msg(M_CLIENT, "SUCCESS: client-kill command succeeded");
-            }
-            else
-            {
-                msg(M_CLIENT, "ERROR: client-kill command failed");
-            }
+            report_command_status(status, "client-kill");
         }
         else
         {
@@ -1523,12 +1509,7 @@ man_push_update(struct management *man, const char **p, const push_update_type t
         status = (*man->persist.callback.push_update_by_cid)(man->persist.callback.arg, cid, p[2]);
     }
 
-    if (status)
-    {
-        msg(M_CLIENT, "SUCCESS: push-update command succeeded");
-        return;
-    }
-    msg(M_CLIENT, "ERROR: push-update command failed");
+    report_command_status(status, "push-update");
 }
 
 static void
