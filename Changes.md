@@ -36,6 +36,18 @@
   server mode and generally was a niche feature. If the option is present
   it will be ignored.
 
+* **Windows: DLLs are no longer loaded from the current directory or PATH**
+
+  OpenVPN now only loads DLLs from its installation directory, the Windows
+  system directory and the trusted plugin directory. DLLs a plugin depends on
+  are also looked up in the directory of the plugin itself. The current
+  directory and the directories in `PATH` are not searched anymore.
+
+  If a plugin depends on DLLs that were only found via `PATH`, install them
+  next to the plugin. PKCS#11 providers given by name only, e.g.
+  `--pkcs11-providers provider.dll`, need to be given with their full path,
+  unless they are located in one of the directories listed above.
+
 ## Maintainer-visible changes
 
 - The configure-time option `--enable-debug` is no longer  available

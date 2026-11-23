@@ -1571,6 +1571,30 @@ win32_sleep(const unsigned int n)
     }
 }
 
+BOOL
+get_plugin_dir(PWSTR dir, DWORD size)
+{
+    WCHAR plugin_dir[MAX_PATH] = { 0 };
+
+    /* Attempt to retrieve the trusted plugin directory path from the registry,
+     * using installation path as a fallback */
+    if (!get_openvpn_reg_value(L"plugin_dir", plugin_dir, sizeof(plugin_dir))
+        && !get_openvpn_reg_value(NULL, plugin_dir, sizeof(plugin_dir)))
+    {
+        msg(M_WARN, "Installation path could not be determined.");
+        return FALSE;
+    }
+
+    DWORD len = GetFullPathNameW(plugin_dir, size, dir, NULL);
+    if (len == 0 || len >= size)
+    {
+        msg(M_NONFATAL | M_ERRNO, "Failed to normalize plugin dir.");
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 bool
 plugin_in_trusted_dir(const WCHAR *plugin_path)
 {
@@ -1581,47 +1605,22 @@ plugin_in_trusted_dir(const WCHAR *plugin_path)
         return false;
     }
 
-    WCHAR plugin_dir[MAX_PATH] = { 0 };
-
-    /* Attempt to retrieve the trusted plugin directory path from the registry,
-     * using installation path as a fallback */
-    if (!get_openvpn_reg_value(L"plugin_dir", plugin_dir, sizeof(plugin_dir))
-        && !get_openvpn_reg_value(NULL, plugin_dir, sizeof(plugin_dir)))
-    {
-        msg(M_WARN, "Installation path could not be determined.");
-    }
-
-    /* Get the system directory */
-    WCHAR system_dir[MAX_PATH] = { 0 };
-    if (GetSystemDirectoryW(system_dir, _countof(system_dir)) == 0)
-    {
-        msg(M_NONFATAL | M_ERRNO, "Failed to get system directory.");
-    }
-
-    if ((wcslen(plugin_dir) == 0) && (wcslen(system_dir) == 0))
-    {
-        return false;
-    }
-
-    WCHAR normalized_plugin_dir[MAX_PATH] = { 0 };
-
-    /* Normalize the plugin dir */
-    if (wcslen(plugin_dir) > 0)
-    {
-        if (!GetFullPathNameW(plugin_dir, MAX_PATH, normalized_plugin_dir, NULL))
-        {
-            msg(M_NONFATAL | M_ERRNO, "Failed to normalize plugin dir.");
-            return false;
-        }
-    }
-
     /* Check if the plugin path resides within the plugin/install directory */
-    if (win_path_in_dir(plugin_path, normalized_plugin_dir))
+    WCHAR plugin_dir[MAX_PATH] = { 0 };
+    if (get_plugin_dir(plugin_dir, _countof(plugin_dir))
+        && win_path_in_dir(plugin_path, plugin_dir))
     {
         return true;
     }
 
     /* Fallback to the system directory */
+    WCHAR system_dir[MAX_PATH] = { 0 };
+    if (GetSystemDirectoryW(system_dir, _countof(system_dir)) == 0)
+    {
+        msg(M_NONFATAL | M_ERRNO, "Failed to get system directory.");
+        return false;
+    }
+
     return win_path_in_dir(plugin_path, system_dir);
 }
 

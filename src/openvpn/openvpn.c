@@ -364,6 +364,23 @@ wmain(int argc, wchar_t *wargv[])
     int ret;
     int i;
 
+    /* Initialize the message output, so that msg() can be used below */
+    error_reset();
+
+    /* Load DLLs only from the application and system directories */
+    if (!SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS))
+    {
+        msg(M_FATAL | M_ERRNO, "Failed to restrict the DLL search path.");
+    }
+
+    /* Also allow loading DLLs from the trusted plugin directory */
+    WCHAR plugin_dir[MAX_PATH];
+    BOOL have_plugin_dir = get_plugin_dir(plugin_dir, _countof(plugin_dir));
+    if (have_plugin_dir && !AddDllDirectory(plugin_dir))
+    {
+        msg(M_WARN | M_ERRNO, "Failed to add the plugin directory to the DLL search path.");
+    }
+
     /*
      * Do not use the argv provided by the CRT. Split the command line with
      * CommandLineToArgvW() instead, which is what the interactive service uses

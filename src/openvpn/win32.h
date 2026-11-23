@@ -336,6 +336,19 @@ void win32_sleep(const unsigned int n);
 bool get_openvpn_reg_value(const WCHAR *key, WCHAR *value, DWORD size);
 
 /**
+ * Get the trusted plugin directory
+ *
+ * The directory is taken from the "plugin_dir" registry value, or the
+ * installation path, if that value is missing. The path is normalized.
+ *
+ * @param  dir      buffer to store the directory in
+ * @param  size     size of the @p dir buffer in characters
+ *
+ * @return BOOL to indicate success or failure
+ */
+BOOL get_plugin_dir(PWSTR dir, DWORD size);
+
+/**
  * @brief Checks if a plugin is located in a trusted directory.
  *
  * Verifies the plugin's path against a trusted directory, which is:
