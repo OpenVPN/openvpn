@@ -502,33 +502,6 @@ tuntap_abort(int status)
 int tun_write_win32(struct tuntap *tt, const struct buffer *buf);
 
 static inline bool
-is_ip_packet_valid(const struct buffer *buf)
-{
-    const struct openvpn_iphdr *ih = (const struct openvpn_iphdr *)CBPTR(buf);
-
-    if (OPENVPN_IPH_GET_VER(ih->version_len) == 4)
-    {
-        if (BLENZ(buf) < sizeof(struct openvpn_iphdr))
-        {
-            return false;
-        }
-    }
-    else if (OPENVPN_IPH_GET_VER(ih->version_len) == 6)
-    {
-        if (BLENZ(buf) < sizeof(struct openvpn_ipv6hdr))
-        {
-            return false;
-        }
-    }
-    else
-    {
-        return false;
-    }
-
-    return true;
-}
-
-static inline bool
 tuntap_is_dco_win(const struct tuntap *tt)
 {
     return tt && tt->backend_driver == DRIVER_DCO;
