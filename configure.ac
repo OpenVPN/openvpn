@@ -1001,11 +1001,11 @@ if test -z "${LZO_CFLAGS}" -a -z "${LZO_LIBS}"; then
 	have_lzo="yes"
 	AC_CHECK_LIB(
 		[lzo2],
-		[lzo1x_1_15_compress],
+		[lzo1x_decompress_safe],
 		[LZO_LIBS="-llzo2"],
 		[AC_CHECK_LIB(
 			[lzo],
-			[lzo1x_1_15_compress],
+			[lzo1x_decompress_safe],
 			[LZO_LIBS="-llzo"],
 			[have_lzo="no"]
 		)]

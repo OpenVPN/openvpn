@@ -132,11 +132,6 @@ bool check_compression_settings_valid(const struct compress_options *info, msglv
  */
 #define COMP_EXTRA_BUFFER(len) ((len) / 6 + 128 + 3 + COMP_PREFIX_LEN)
 
-/*
- * Don't try to compress any packet smaller than this.
- */
-#define COMPRESS_THRESHOLD 100
-
 /* Forward declaration of compression context */
 struct compress_context;
 
@@ -167,26 +162,12 @@ struct compress_alg
 #endif
 
 /*
- * Workspace union of all supported compression algorithms
- */
-union compress_workspace_union
-{
-#ifdef ENABLE_LZO
-    struct lzo_compress_workspace lzo;
-#endif
-#ifdef ENABLE_LZ4
-    struct lz4_workspace lz4;
-#endif
-};
-
-/*
  * Context for active compression session
  */
 struct compress_context
 {
     unsigned int flags;
     struct compress_alg alg;
-    union compress_workspace_union wu;
 
     /* statistics */
     counter_type pre_decompress;

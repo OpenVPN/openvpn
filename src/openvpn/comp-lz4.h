@@ -31,10 +31,5 @@
 extern const struct compress_alg lz4_alg;
 extern const struct compress_alg lz4v2_alg;
 
-struct lz4_workspace
-{
-    int dummy;
-};
-
 #endif /* ENABLE_LZ4 */
 #endif

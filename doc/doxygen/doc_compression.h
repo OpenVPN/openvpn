@@ -29,31 +29,21 @@
 /**
  * @defgroup compression Data Channel Compression module
  *
- * This module offers compression of data channel packets.
+ * This module decompresses incoming data channel packets and adds
+ * compression framing to outgoing ones.
  *
  * @par State structures
  * The Data Channel Compression module stores its internal state in a \c
- * lzo_compress_workspace structure.  This state includes flags which
- * control the module's behavior and preallocated working memory.  One
- * such structure is present for each VPN tunnel, and is stored in the \c
- * context.c2.lzo_compwork of the \c context associated with that VPN
- * tunnel.
+ * compress_context structure.  One such structure is present for each VPN
+ * tunnel, and is stored in the \c context.c2.comp_context of the \c
+ * context associated with that VPN tunnel.
  *
  * @par Initialization and cleanup
- * Every time a new \c lzo_compress_workspace is needed, it must be
- * initialized using the \c lzo_compress_init() function.  Similarly,
- * every time a \c lzo_compress_workspace is no longer needed, it must be
- * cleaned up using the \c lzo_compress_uninit() function.  These
- * functions take care of the allocation and freeing of internal working
- * memory, but not of the \c lzo_compress_workspace structures themselves.
- *
- * @par
- * Because of the one-to-one relationship between \c
- * lzo_compress_workspace structures and VPN tunnels, the above-mentioned
- * initialization and cleanup functions are called directly from the \c
- * init_instance() and \c close_instance() functions, which control the
- * initialization and cleanup of VPN tunnel instances and their associated
- * \c context structures.
+ * \c comp_init() allocates a \c compress_context and calls the \c
+ * compress_init method of its \c compress_alg; \c comp_uninit() calls
+ * the \c compress_uninit method and frees the structure.  Both are called
+ * from \c init_instance() and \c close_instance(), and when pushed
+ * options change.
  *
  * @par Packet processing functions
  * This module receives data channel packets from the \link data_control
@@ -67,25 +57,25 @@
  *
  * @par Settings that control this module's activity
  * Whether or not the Data Channel Compression module is active depends on
- * the compile-time \c ENABLE_LZO preprocessor macro and the runtime flags
- * stored in \c lzo_compress_workspace.flags of the associated VPN tunnel.
- * The latter are initialized from \c options.lzo, which gets its value
- * from the process's configuration sources, such as its configuration
- * file or command line %options.
+ * the compile-time \c USE_COMP preprocessor macro and on \c
+ * options.comp.alg, which gets its value from the process's configuration
+ * sources, such as its configuration file or command line %options.
+ * \c comp_init() creates no \c compress_context if no algorithm is set.
+ * The flags in \c compress_context.flags, copied from \c
+ * options.comp.flags, only adjust framing, option checks and which
+ * algorithms are advertised to the peer.
  *
- * @par Adaptive compression
- * The compression module supports adaptive compression.  If this feature
- * is enabled, the compression routines monitor their own performance and
- * turn compression on or off depending on whether it is leading to
- * significantly reduced payload size.
+ * @par Outgoing packets
+ * Outgoing packets are never compressed, only framed so that the peer
+ * can parse them.
  *
  * @par Compression algorithms
- * This module uses the Lempel-Ziv-Oberhumer (LZO) compression algorithms.
- * These offer lossless compression and are designed for high-performance
- * decompression.  This module uses the external \c lzo library's
- * implementation of the algorithms.
+ * This module supports the Lempel-Ziv-Oberhumer (LZO) and LZ4
+ * algorithms, as implemented by the external \c lzo and \c lz4
+ * libraries.
  *
  * @par
- * For more information on the LZO library, see:\n
- * https://www.oberhumer.com/opensource/lzo/
+ * For more information on these libraries, see:\n
+ * https://www.oberhumer.com/opensource/lzo/ \n
+ * https://lz4.org/
  */
