@@ -294,6 +294,10 @@ link_socket_actual_defined(const struct link_socket_actual *act)
 static inline bool
 addr_match(const struct openvpn_sockaddr *a1, const struct openvpn_sockaddr *a2)
 {
+    if (a1->addr.sa.sa_family != a2->addr.sa.sa_family)
+    {
+        return false;
+    }
     switch (a1->addr.sa.sa_family)
     {
         case AF_INET:
@@ -381,6 +385,10 @@ addrlist_port_match(const struct openvpn_sockaddr *a1, const struct addrinfo *a2
 static inline bool
 addr_port_match(const struct openvpn_sockaddr *a1, const struct openvpn_sockaddr *a2)
 {
+    if (a1->addr.sa.sa_family != a2->addr.sa.sa_family)
+    {
+        return false;
+    }
     switch (a1->addr.sa.sa_family)
     {
         case AF_INET:
