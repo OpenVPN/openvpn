@@ -1051,7 +1051,7 @@ man_query_password_base64(struct management *man, const char *type)
         msg(M_CLIENT, "ERROR: no password is currently needed at this time");
         return;
     }
-    if (!man->connection.up_query_type || !streq(man->connection.up_query_type, type))
+    if (!streq(man->connection.up_query_type, type))
     {
         msg(M_CLIENT, "ERROR: password of type '%s' entered, but we need one of type '%s'",
             type, man->connection.up_query_type);
@@ -1665,10 +1665,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     {
         if (man_need(p, 1, MN_AT_LEAST))
         {
-            if (p[1])
-            {
-                man_log(man, p[1]);
-            }
+            man_log(man, p[1]);
             if (p[2])
             {
                 man_log(man, p[2]);
@@ -1679,10 +1676,7 @@ man_dispatch_command(struct management *man, struct status_output *so, const cha
     {
         if (man_need(p, 1, MN_AT_LEAST))
         {
-            if (p[1])
-            {
-                man_echo(man, p[1]);
-            }
+            man_echo(man, p[1]);
             if (p[2])
             {
                 man_echo(man, p[2]);
