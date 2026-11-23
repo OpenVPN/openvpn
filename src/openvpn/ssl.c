@@ -4002,7 +4002,7 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
         /*
          * Verify remote IP address
          */
-        if (!new_link && !link_socket_actual_match(&ks->remote_addr, from))
+        if (!link_socket_actual_match(&ks->remote_addr, from))
         {
             msg(D_TLS_ERRORS, "TLS Error: Received control packet from unexpected IP addr: %s",
                 print_link_socket_actual(from, &gc));
@@ -4103,13 +4103,6 @@ tls_pre_decrypt(struct tls_multi *multi, const struct link_socket_actual *from, 
         ks->session_id_remote = sid;
         ks->remote_addr = *from;
         ++multi->n_sessions;
-    }
-    else if (!link_socket_actual_match(&ks->remote_addr, from))
-    {
-        msg(D_TLS_ERRORS,
-            "TLS Error: Existing session control channel packet from unknown IP address: %s",
-            print_link_socket_actual(from, &gc));
-        goto error;
     }
 
     /*
