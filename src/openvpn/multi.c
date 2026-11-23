@@ -2434,6 +2434,16 @@ multi_client_connect_late_setup(struct multi_context *m, struct multi_instance *
         mi->context.c2.tls_multi->multi_state = CAS_FAILED;
     }
 
+    /* All client-connect handlers have succeeded at this point, but
+     * multi_close_instance() only runs the client-disconnect handlers
+     * for CAS_CONNECT_DONE. Run them here, so that a successful
+     * client-connect is always paired with a client-disconnect even
+     * if the client is rejected by the late setup. */
+    if (mi->context.c2.tls_multi->multi_state == CAS_FAILED)
+    {
+        multi_client_disconnect_script(mi);
+    }
+
     /* dco peer has been added, it is now safe for Windows to add iroutes */
 
     /*
