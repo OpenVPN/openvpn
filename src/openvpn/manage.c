@@ -2841,8 +2841,9 @@ man_connection_close(struct management *man)
 
     event_timeout_clear(&mc->bytecount_update_interval);
 
-    in_extra_reset(&man->connection, IER_RESET);
+    in_extra_reset(mc, IER_RESET);
     buffer_list_free(mc->ext_key_input);
+    buffer_list_free(mc->ext_cert_input);
     man_connection_clear(mc);
 }
 
