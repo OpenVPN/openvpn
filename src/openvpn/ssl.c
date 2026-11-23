@@ -3504,7 +3504,6 @@ tls_multi_process(struct tls_multi *multi, struct buffer *to_link,
             enum key_gen_status status = tls_session_generate_data_channel_keys(multi, session);
             if (status != KEY_GEN_OK)
             {
-                msg(D_TLS_ERRORS, "TLS Error: generate_key_expansion failed");
                 ks->authenticated = KS_AUTH_FALSE;
                 key_state_ssl_shutdown(&ks->ks_ssl);
                 ks->state = S_ERROR_PRE;
