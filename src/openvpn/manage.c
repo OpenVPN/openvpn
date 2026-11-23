@@ -3881,45 +3881,17 @@ done:
 }
 
 static char *
-/* returns allocated base64 signature */
-management_query_multiline_flatten_newline(struct management *man, const char *b64_data,
-                                           const char *prompt, const char *cmd, int *state,
-                                           struct buffer_list **input)
-{
-    int ok;
-    char *result = NULL;
-
-    ok = management_query_multiline(man, b64_data, prompt, cmd, state);
-    if (ok && buffer_list_defined(*input))
-    {
-        buffer_list_aggregate_separator(*input, 10000, "\n");
-        const struct buffer *buf = buffer_list_peek(*input);
-        if (buf && BLEN(buf) > 0)
-        {
-            result = (char *)malloc(BLENZ(buf) + 1);
-            check_malloc_return(result);
-            memcpy(result, buf->data, BLENZ(buf));
-            result[BLEN(buf)] = '\0';
-        }
-    }
-
-    buffer_list_free(*input);
-    *input = NULL;
-
-    return result;
-}
-
-static char *
-/* returns allocated base64 signature */
+/* returns allocated, flattened multiline input */
 management_query_multiline_flatten(struct management *man, const char *b64_data, const char *prompt,
-                                   const char *cmd, int *state, struct buffer_list **input)
+                                   const char *cmd, int *state, struct buffer_list **input,
+                                   const size_t max_len, const char *sep)
 {
     char *result = NULL;
 
     const int ok = management_query_multiline(man, b64_data, prompt, cmd, state);
     if (ok && buffer_list_defined(*input))
     {
-        buffer_list_aggregate(*input, 2048);
+        buffer_list_aggregate_separator(*input, max_len, sep);
         const struct buffer *buf = buffer_list_peek(*input);
         if (buf && BLEN(buf) > 0)
         {
@@ -3958,7 +3930,7 @@ management_query_pk_sig(struct management *man, const char *b64_data, const char
     }
     char *ret = management_query_multiline_flatten(man, (char *)buf_bptr(&buf_data), prompt, desc,
                                                    &man->connection.ext_key_state,
-                                                   &man->connection.ext_key_input);
+                                                   &man->connection.ext_key_input, 2048, "");
     free_buf(&buf_data);
     return ret;
 }
@@ -3971,10 +3943,9 @@ management_query_cert(struct management *man, const char *cert_name)
     buf_write(&buf_prompt, prompt_1, strlen(prompt_1));
     buf_write(&buf_prompt, cert_name, strlen(cert_name) + 1); /* +1 for \0 */
 
-    char *result;
-    result = management_query_multiline_flatten_newline(
+    char *result = management_query_multiline_flatten(
         man, NULL, (char *)buf_bptr(&buf_prompt), "certificate", &man->connection.ext_cert_state,
-        &man->connection.ext_cert_input);
+        &man->connection.ext_cert_input, 10000, "\n");
     free_buf(&buf_prompt);
     return result;
 }
