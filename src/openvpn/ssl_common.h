@@ -263,7 +263,6 @@ struct key_state
     unsigned int mda_key_id;
     enum auth_deferred_result mda_status;
 #endif
-    time_t acf_last_mod;
 
     struct auth_deferred_status plugin_auth;
     struct auth_deferred_status script_auth;
