@@ -3926,14 +3926,25 @@ is_exit_restart(int sig)
 static void
 multi_push_restart_schedule_exit(struct multi_context *m, bool next_server)
 {
+    /* Preserve auth-token on restart for OpenVPN 3 clients.
+     * Keep the next-server case unchanged for compatibility. */
+    const char *restart_msg = "RESTART";
+    if (next_server)
+    {
+        restart_msg = "RESTART,[N]";
+    }
+    else if (m->top.options.auth_token_generate)
+    {
+        restart_msg = "RESTART,[P]:";
+    }
+
     /* tell all clients to restart */
     for (uint32_t i = 0; i <= m->max_peerid; i++)
     {
         struct multi_instance *mi = m->instances[i];
         if (mi && !mi->halt && proto_is_dgram(mi->context.c2.link_sockets[0]->info.proto))
         {
-            send_control_channel_string(&mi->context, next_server ? "RESTART,[N]" : "RESTART",
-                                        D_PUSH);
+            send_control_channel_string(&mi->context, restart_msg, D_PUSH);
             multi_schedule_context_wakeup(m, mi);
         }
     }

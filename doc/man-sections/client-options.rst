@@ -285,6 +285,12 @@ configuration.
   reconnect to the same server, with ``n`` = :code:`2` client will advance
   to the next server.
 
+  If ``--auth-gen-token`` is also used and ``n`` = :code:`1`, the server
+  sends :code:`RESTART,[P]:` instead, asking clients to keep their cached
+  credentials and auth-token. Clients can then reconnect with the token
+  without user interaction, provided the token is still valid after the
+  restart (see ``--auth-gen-token-secret``).
+
   OpenVPN will not send any exit notifications unless this option is
   enabled.
 

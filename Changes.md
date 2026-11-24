@@ -2,6 +2,14 @@
 
 ## User-visible Changes
 
+* **`explicit-exit-notify` preserves auth-tokens on server restart**
+
+  When a UDP server with `--explicit-exit-notify 1` and `--auth-gen-token`
+  restarts or exits, it now sends `RESTART,[P]:` instead of a bare `RESTART`.
+  This lets OpenVPN 3 based clients (e.g. OpenVPN Connect) reconnect with
+  their auth-token instead of asking the user to authenticate again.
+  OpenVPN 2.x clients now also keep their cached username/password.
+
 * **Parsing Distinguished Names in certificates**
 
   (OpenSSL backend:) OpenVPN now rejects certificates that have a null-byte
