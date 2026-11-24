@@ -294,12 +294,9 @@ hash_iterator_next(struct hash_iterator *hi)
             {
                 hash_iterator_lock(hi, b);
                 hi->elem = b->list;
-                if (hi->elem)
-                {
-                    ret = hi->elem;
-                    hash_iterator_advance(hi);
-                    break;
-                }
+                ret = hi->elem;
+                hash_iterator_advance(hi);
+                break;
             }
         }
     }
