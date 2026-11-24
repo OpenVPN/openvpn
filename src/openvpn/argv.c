@@ -323,11 +323,6 @@ argv_prep_format(const char *format, const char delim, size_t *count, struct gc_
     return f;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 /**
  *  Create a struct argv based on a format string
  *
@@ -378,9 +373,9 @@ argv_printf_arglist(struct argv *argres, const char *format, va_list arglist)
      */
     va_list tmplist;
     va_copy(tmplist, arglist);
-    int len = vsnprintf(NULL, 0, f, tmplist);
+    int test_len = vsnprintf(NULL, 0, f, tmplist);
     va_end(tmplist);
-    if (len < 0)
+    if (test_len < 0)
     {
         goto out;
     }
@@ -389,10 +384,10 @@ argv_printf_arglist(struct argv *argres, const char *format, va_list arglist)
      *  Do the actual vsnprintf() operation, which expands the format
      *  string with the provided arguments.
      */
-    int size = len + 1;
+    size_t size = (size_t)test_len + 1;
     char *buf = gc_malloc(size, false, &argres->gc);
-    len = vsnprintf(buf, size, f, arglist);
-    if (len < 0 || len >= size)
+    int len = vsnprintf(buf, size, f, arglist);
+    if (len < 0 || len > test_len)
     {
         goto out;
     }
@@ -422,10 +417,6 @@ argv_printf_arglist(struct argv *argres, const char *format, va_list arglist)
 out:
     return res;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 /**
  *  printf() variant which populates a struct argv.  It processes the
