@@ -718,7 +718,10 @@ multi_close_instance(struct multi_context *m, struct multi_instance *mi, bool sh
     set_cc_config(mi, NULL);
 #endif
 
-    if (mi->context.c2.tls_multi->multi_state >= CAS_CONNECT_DONE)
+    /* A client that failed in multi_client_connect_late_setup() is in
+     * CAS_FAILED, but its client-connect handlers did succeed */
+    if (mi->context.c2.tls_multi->multi_state >= CAS_CONNECT_DONE
+        || (mi->did_client_connect && mi->context.c2.tls_multi->multi_state == CAS_FAILED))
     {
         multi_client_disconnect_script(mi);
     }
@@ -2414,6 +2417,15 @@ multi_client_connect_late_setup(struct multi_context *m, struct multi_instance *
     /* set context-level authentication flag */
     mi->context.c2.tls_multi->multi_state = CAS_CONNECT_DONE;
 
+    /* We only get here if all client-connect handlers succeeded, so a
+     * defined client-connect plugin or script has been called with
+     * success. Remember this, as the steps below may still set
+     * CAS_FAILED, and the client-disconnect handlers must then be called
+     * when the instance is closed. */
+    mi->did_client_connect = plugin_defined(mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT)
+                             || plugin_defined(mi->context.plugins, OPENVPN_PLUGIN_CLIENT_CONNECT_V2)
+                             || mi->context.options.client_connect_script != NULL;
+
     /* Since dco-win maintains iroute routing table (subnet -> peer),
      * peer must be added before iroutes. For other platforms it doesn't matter. */
 
@@ -2432,16 +2444,6 @@ multi_client_connect_late_setup(struct multi_context *m, struct multi_instance *
     else if (!multi_client_generate_tls_keys(&mi->context))
     {
         mi->context.c2.tls_multi->multi_state = CAS_FAILED;
-    }
-
-    /* All client-connect handlers have succeeded at this point, but
-     * multi_close_instance() only runs the client-disconnect handlers
-     * for CAS_CONNECT_DONE. Run them here, so that a successful
-     * client-connect is always paired with a client-disconnect even
-     * if the client is rejected by the late setup. */
-    if (mi->context.c2.tls_multi->multi_state == CAS_FAILED)
-    {
-        multi_client_disconnect_script(mi);
     }
 
     /* dco peer has been added, it is now safe for Windows to add iroutes */

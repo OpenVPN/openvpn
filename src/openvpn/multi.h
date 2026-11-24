@@ -145,6 +145,9 @@ struct multi_instance
     struct buffer_list *cc_config;
 #endif
     bool did_iroutes;
+    /** a client-connect plugin or script was called and succeeded, so
+     * client-disconnect must be called when the instance is closed */
+    bool did_client_connect;
     int n_clients_delta;    /* added to multi_context.n_clients when instance is closed */
 
     struct context context; /**< The context structure storing state
