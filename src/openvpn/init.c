@@ -2768,6 +2768,9 @@ socket_restart_pause(struct context *c)
         case CM_CHILD_TCP:
             sec = c->options.ce.connect_retry_seconds;
             break;
+
+        default:
+            break;
     }
 
 #ifdef ENABLE_DEBUG

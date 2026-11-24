@@ -430,6 +430,16 @@ struct context_2
 };
 
 
+/** Role of a context within the OpenVPN process */
+enum context_mode
+{
+    CM_P2P,       /**< standalone point-to-point session or client */
+    CM_TOP,       /**< top level of a multi-client or point-to-multipoint server */
+    CM_TOP_CLONE, /**< clone of a CM_TOP context for one thread */
+    CM_CHILD_UDP, /**< child context of a CM_TOP */
+    CM_CHILD_TCP, /**< child context of a CM_TOP */
+};
+
 /**
  * Contains all state information for one tunnel.
  *
@@ -443,22 +453,14 @@ struct context_2
  */
 struct context
 {
-    struct options options; /**< Options loaded from command line or
-                             *   configuration file. */
+    struct options options;      /**< Options loaded from command line or
+                                  *   configuration file. */
 
-    bool first_time;        /**< True on the first iteration of
-                             *   OpenVPN's main loop. */
+    bool first_time;             /**< True on the first iteration of
+                                  *   OpenVPN's main loop. */
 
-    /* context modes */
-#define CM_P2P       0           /* standalone point-to-point session or client */
-#define CM_TOP       1           /* top level of a multi-client or point-to-multipoint server */
-#define CM_TOP_CLONE 2           /* clone of a CM_TOP context for one thread */
-#define CM_CHILD_UDP 3           /* child context of a CM_TOP or CM_THREAD */
-#define CM_CHILD_TCP 4           /* child context of a CM_TOP or CM_THREAD */
-    int mode;                    /**< Role of this context within the
-                                  *   OpenVPN process.  Valid values are \c
-                                  *   CM_P2P, \c CM_TOP, \c CM_TOP_CLONE,
-                                  *   \c CM_CHILD_UDP, and \c CM_CHILD_TCP. */
+    enum context_mode mode;      /**< Role of this context within the
+                                  *   OpenVPN process. */
 
     struct multi_context *multi; /**< Pointer to the main P2MP context.
                                   *   Non-NULL only when mode == CM_TOP. */
