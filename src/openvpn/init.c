@@ -39,7 +39,6 @@
 #include "otime.h"
 #include "pool.h"
 #include "gremlin.h"
-#include "occ.h"
 #include "pkcs11.h"
 #include "ps.h"
 #include "lladdr.h"
@@ -2363,7 +2362,7 @@ do_up(struct context *c, bool pulled_options, uint64_t option_types_found)
     if (!c->c2.do_up_ran
         || (c->c2.tls_multi && c->c2.tls_multi->multi_state == CAS_RECONNECT_PENDING))
     {
-        if (c->mode == MODE_POINT_TO_POINT)
+        if (c->mode == CM_P2P)
         {
             /* ovpn-dco requires adding the peer now, before any option can be set,
              * but *after* having parsed the pushed peer-id in do_deferred_options()
@@ -2391,7 +2390,7 @@ do_up(struct context *c, bool pulled_options, uint64_t option_types_found)
         }
         else
         {
-            if (c->mode == MODE_POINT_TO_POINT)
+            if (c->mode == CM_P2P)
             {
                 if (!do_deferred_p2p_ncp(c))
                 {
