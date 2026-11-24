@@ -2309,7 +2309,7 @@ options_postprocess_mutate_ce(struct options *o, struct connection_entry *ce)
 }
 
 static void
-options_postprocess_mutate_le(const struct connection_entry *ce, struct local_entry *le, int mode)
+options_postprocess_mutate_le(const struct connection_entry *ce, struct local_entry *le, enum options_mode mode)
 {
     /* use the global port if none is specified */
     if (!le->port)

@@ -255,7 +255,7 @@ dco_update_keys(dco_context_t *dco, struct tls_multi *multi)
 }
 
 static bool
-dco_check_option_ce(const struct connection_entry *ce, msglvl_t msglevel, int mode)
+dco_check_option_ce(const struct connection_entry *ce, msglvl_t msglevel, enum options_mode mode)
 {
     if (ce->fragment)
     {

@@ -252,6 +252,13 @@ struct verify_hash_list
     struct verify_hash_list *next;
 };
 
+/** Major mode */
+enum options_mode
+{
+    MODE_POINT_TO_POINT,
+    MODE_SERVER,
+};
+
 /* Command line options */
 struct options
 {
@@ -260,10 +267,7 @@ struct options
     /* first config file */
     const char *config;
 
-    /* major mode */
-#define MODE_POINT_TO_POINT 0
-#define MODE_SERVER         1
-    int mode;
+    enum options_mode mode;
 
     /* enable forward compatibility for post-2.1 features */
     bool forward_compatible;

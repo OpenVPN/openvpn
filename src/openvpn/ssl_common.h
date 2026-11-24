@@ -324,7 +324,7 @@ struct tls_options
 
     /* from command line */
     bool single_session;
-    int mode;
+    enum options_mode mode;
     bool pull;
     /**
      * The detail of info we push in peer info
