@@ -2448,11 +2448,6 @@ managment_android_persisttun_action(struct management *man)
 
 #endif /* ifdef TARGET_ANDROID */
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 static ssize_t
 man_read(struct management *man)
 {
@@ -2550,14 +2545,14 @@ man_read(struct management *man)
 static ssize_t
 man_write(struct management *man)
 {
-    const int size_hint = 1024;
+    const size_t size_hint = 1024;
     ssize_t sent = 0;
 
     buffer_list_aggregate(man->connection.out, size_hint);
     const struct buffer *buf = buffer_list_peek(man->connection.out);
-    if (buf && BLEN(buf))
+    if (buf && BLEN(buf) > 0)
     {
-        const int len = min_int(size_hint, BLEN(buf));
+        const size_t len = min_size(size_hint, BLENZ(buf));
 #ifdef TARGET_ANDROID
         if (man->connection.fdtosend > 0)
         {
@@ -2568,7 +2563,7 @@ man_write(struct management *man)
         else
 #endif
         {
-            sent = send(man->connection.sd_cli, CBSTR(buf), len, MSG_NOSIGNAL);
+            sent = openvpn_send(man->connection.sd_cli, CBSTR(buf), len, MSG_NOSIGNAL);
         }
         if (sent >= 0)
         {
@@ -2590,10 +2585,6 @@ man_write(struct management *man)
 
     return sent;
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 static void
 man_connection_clear(struct man_connection *mc)
