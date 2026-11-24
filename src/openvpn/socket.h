@@ -346,8 +346,15 @@ openvpn_bind(socket_descriptor_t sockfd, const struct sockaddr *addr, size_t add
 
 struct link_socket *link_socket_new(void);
 
-void socket_bind(socket_descriptor_t sd, const struct addrinfo *local, int af_family,
-                 const char *prefix, bool ipv6only);
+/**
+ * Bind @p sd to the first @p af_family address of @p local. A failure is
+ * reported at @p msglevel, so a caller that can do without the bind passes a
+ * non-fatal level and checks the result.
+ *
+ * @return whether the socket was bound
+ */
+bool socket_bind(socket_descriptor_t sd, const struct addrinfo *local, int af_family,
+                 const char *prefix, bool ipv6only, msglvl_t msglevel);
 
 int openvpn_connect(socket_descriptor_t sd, const struct sockaddr *remote, int connect_timeout,
                     volatile int *signal_received);
@@ -401,9 +408,9 @@ socket_descriptor_t create_socket_tcp(struct addrinfo *);
  * Create a UDP socket for @p af set up the way a link socket is: --sndbuf/--rcvbuf,
  * --mark, --bind-dev and, when @p bind_addr is given, the local bind (IPV6_V6ONLY
  * per @p bind_ipv6_only). Shared by create_socket() and the --server-probe sockets,
- * so a probe socket is the connection socket it may become. A failed bind is
- * fatal; with @p optional a socket the host cannot create is not, so
- * --server-probe can skip that address family (SOCKET_UNDEFINED is returned).
+ * so a probe socket is the connection socket it may become. With @p optional a
+ * socket the host cannot create or bind is not fatal, so --server-probe can skip
+ * that address family (SOCKET_UNDEFINED is returned).
  */
 socket_descriptor_t create_socket_udp_configured(sa_family_t af, unsigned int sockflags,
                                                  const struct socket_buffer_size *sbs, int mark,

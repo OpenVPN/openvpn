@@ -2080,7 +2080,7 @@ man_listen(struct management *man)
         {
             man->connection.sd_top = create_socket_tcp(man->settings.local);
             socket_bind(man->connection.sd_top, man->settings.local, man->settings.local->ai_family,
-                        "MANAGEMENT", false);
+                        "MANAGEMENT", false, M_FATAL);
         }
 
         /*
