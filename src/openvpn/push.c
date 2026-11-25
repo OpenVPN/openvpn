@@ -75,7 +75,6 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
         parse_auth_failed_temp(&c->options, reason + strlen("TEMP"));
         register_signal(c->sig, SIGUSR1, "auth-temp-failure (server temporary reject)");
     }
-
     /* Before checking how to react on AUTH_FAILED, first check if the
      * failed auth might be the result of an expired auth-token.
      * Note that a server restart will trigger a generic AUTH_FAILED
@@ -85,7 +84,6 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
     {
         /* SOFT-SIGUSR1 -- Auth failure error */
         register_signal(c->sig, SIGUSR1, "auth-failure (auth-token)");
-        c->options.no_advance = true;
     }
     else
     {
@@ -117,7 +115,7 @@ receive_auth_failed(struct context *c, const struct buffer *buffer)
     /*
      * Save the dynamic-challenge text even when management is defined
      */
-    if (authfail_extended && buf_string_match_head_str(&buf, "CRV1:") && BLEN(&buf))
+    if (authfail_extended && buf_string_match_head_str(&buf, "CRV1:"))
     {
         ssl_put_auth_challenge(CBSTR(&buf));
     }
@@ -931,7 +929,7 @@ fail:
 }
 
 static void
-push_option_ex(struct gc_arena *gc, struct push_list *push_list, const char *opt, bool enable,
+push_option_ex(struct gc_arena *gc, struct push_list *push_list, const char *opt,
                msglvl_t msglevel)
 {
     if (!string_class(opt, CC_ANY, CC_COMMA))
@@ -962,7 +960,7 @@ push_option_ex(struct gc_arena *gc, struct push_list *push_list, const char *opt
 void
 push_option(struct options *o, const char *opt, msglvl_t msglevel)
 {
-    push_option_ex(&o->gc, &o->push_list, opt, true, msglevel);
+    push_option_ex(&o->gc, &o->push_list, opt, msglevel);
 }
 
 void
@@ -974,7 +972,7 @@ clone_push_list(struct options *o)
         push_reset(o);
         while (e)
         {
-            push_option_ex(&o->gc, &o->push_list, string_alloc(e->option, &o->gc), true, M_FATAL);
+            push_option_ex(&o->gc, &o->push_list, string_alloc(e->option, &o->gc), M_FATAL);
             e = e->next;
         }
     }
@@ -1002,7 +1000,7 @@ push_option_fmt(struct gc_arena *gc, struct push_list *push_list,
     {
         return false;
     }
-    push_option_ex(gc, push_list, string_alloc(tmp, gc), true, msglevel);
+    push_option_ex(gc, push_list, string_alloc(tmp, gc), msglevel);
     return true;
 }
 
@@ -1031,7 +1029,7 @@ push_remove_option(struct options *o, const char *p)
         return;
     }
 
-    if (o && o->push_list.head)
+    if (o->push_list.head)
     {
         struct push_entry *e = o->push_list.head;
 
