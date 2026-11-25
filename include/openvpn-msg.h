@@ -80,7 +80,7 @@ typedef enum
 typedef struct
 {
     message_header_t header;
-    short family;
+    ADDRESS_FAMILY family;
     inet_address_t address;
     int prefix_len;
     interface_t iface;
@@ -89,7 +89,7 @@ typedef struct
 typedef struct
 {
     message_header_t header;
-    short family;
+    ADDRESS_FAMILY family;
     inet_address_t prefix;
     int prefix_len;
     inet_address_t gateway;
@@ -102,7 +102,7 @@ typedef struct
     message_header_t header;
     interface_t iface;
     char domains[512];
-    short family;
+    ADDRESS_FAMILY family;
     unsigned int addr_len;
     inet_address_t addr[4]; /* support up to 4 dns addresses */
 } dns_cfg_message_t;
@@ -150,7 +150,7 @@ typedef struct
 typedef struct
 {
     message_header_t header;
-    short family;
+    ADDRESS_FAMILY family;
     interface_t iface;
 } flush_neighbors_message_t;
 
@@ -177,7 +177,7 @@ typedef struct
 {
     message_header_t header;
     interface_t iface;
-    short family;
+    ADDRESS_FAMILY family;
     int mtu;
 } set_mtu_message_t;
 

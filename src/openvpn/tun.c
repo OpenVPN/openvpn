@@ -101,7 +101,7 @@ static const GUID GUID_DEVINTERFACE_NET = {
 static void netsh_ifconfig(const struct tuntap_options *to, DWORD adapter_index, const in_addr_t ip,
                            const in_addr_t netmask, const unsigned int flags);
 
-static void windows_set_mtu(const int iface_index, const short family, const int mtu);
+static void windows_set_mtu(const int iface_index, const ADDRESS_FAMILY family, const int mtu);
 
 static void netsh_set_dns6_servers(const struct in6_addr *addr_list, const unsigned int addr_len,
                                    DWORD adapter_index);
@@ -118,7 +118,7 @@ static const char *netsh_get_id(const char *dev_node, struct gc_arena *gc);
 #endif
 
 static bool
-do_address_service(const bool add, const short family, const struct tuntap *tt)
+do_address_service(const bool add, const ADDRESS_FAMILY family, const struct tuntap *tt)
 {
     bool ret = false;
     ack_message_t ack;
@@ -241,7 +241,7 @@ out:
 }
 
 static void
-do_dns_service(bool add, const short family, const struct tuntap *tt)
+do_dns_service(bool add, const ADDRESS_FAMILY family, const struct tuntap *tt)
 {
     ack_message_t ack;
     struct gc_arena gc = gc_new();
@@ -366,7 +366,7 @@ out:
 }
 
 static bool
-do_set_mtu_service(const struct tuntap *tt, const short family, const int mtu)
+do_set_mtu_service(const struct tuntap *tt, const ADDRESS_FAMILY family, const int mtu)
 {
     bool ret = false;
     ack_message_t ack;
@@ -5320,7 +5320,7 @@ out:
 }
 
 static void
-windows_set_mtu(const int iface_index, const short family, const int mtu)
+windows_set_mtu(const int iface_index, const ADDRESS_FAMILY family, const int mtu)
 {
     DWORD err = 0;
     MIB_IPINTERFACE_ROW ipiface;

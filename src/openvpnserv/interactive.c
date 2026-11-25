@@ -529,7 +529,7 @@ FreeStartupData(STARTUP_DATA *sud)
 #endif
 
 static SOCKADDR_INET
-sockaddr_inet(short family, const inet_address_t *addr)
+sockaddr_inet(ADDRESS_FAMILY family, const inet_address_t *addr)
 {
     SOCKADDR_INET sa_inet;
     ZeroMemory(&sa_inet, sizeof(sa_inet));
@@ -1858,7 +1858,7 @@ out:
  * @return BOOL to indicate success or failure
  */
 static BOOL
-GetInterfacesKey(short family, PHKEY key)
+GetInterfacesKey(ADDRESS_FAMILY family, PHKEY key)
 {
     PCSTR itfs_key = family == AF_INET6
                          ? "SYSTEM\\CurrentControlSet\\Services\\Tcpip6\\Parameters\\Interfaces"
@@ -1868,7 +1868,7 @@ GetInterfacesKey(short family, PHKEY key)
     if (err)
     {
         *key = INVALID_HANDLE_VALUE;
-        MsgToEventLog(M_SYSERR, L"%S: could not open interfaces registry key for family %d (%lu)",
+        MsgToEventLog(M_SYSERR, L"%S: could not open interfaces registry key for family %hu (%lu)",
                       __func__, family, err);
     }
 
@@ -1885,7 +1885,7 @@ GetInterfacesKey(short family, PHKEY key)
  * @return DWORD NO_ERROR on success, a Windows error code otherwise
  */
 static DWORD
-SetNameServersValue(PCWSTR itf_id, short family, PCSTR value)
+SetNameServersValue(PCWSTR itf_id, ADDRESS_FAMILY family, PCSTR value)
 {
     DWORD err;
 
@@ -1899,7 +1899,7 @@ SetNameServersValue(PCWSTR itf_id, short family, PCSTR value)
     err = RegOpenKeyExW(itfs, itf_id, 0, KEY_ALL_ACCESS, &itf);
     if (err)
     {
-        MsgToEventLog(M_SYSERR, L"%S: could not open interface key for %s family %d (%lu)",
+        MsgToEventLog(M_SYSERR, L"%S: could not open interface key for %s family %hu (%lu)",
                       __func__, itf_id, family, err);
         goto out;
     }
@@ -1907,7 +1907,7 @@ SetNameServersValue(PCWSTR itf_id, short family, PCSTR value)
     err = RegSetValueExA(itf, "NameServer", 0, REG_SZ, (PBYTE)value, (DWORD)strlen(value) + 1);
     if (err)
     {
-        MsgToEventLog(M_SYSERR, L"%S: could not set name servers '%S' for %s family %d (%lu)",
+        MsgToEventLog(M_SYSERR, L"%S: could not set name servers '%S' for %s family %hu (%lu)",
                       __func__, value, itf_id, family, err);
     }
 
@@ -1924,21 +1924,6 @@ out:
 }
 
 /**
- * Set the DNS name servers in a registry interface configuration
- *
- * @param itf_id    the interface id to set the servers for
- * @param family    internet address family to set the servers for
- * @param addrs     comma separated list of name server addresses
- *
- * @return DWORD NO_ERROR on success, a Windows error code otherwise
- */
-static DWORD
-SetNameServers(PCWSTR itf_id, short family, PCSTR addrs)
-{
-    return SetNameServersValue(itf_id, family, addrs);
-}
-
-/**
  * Delete all DNS name servers from a registry interface configuration
  *
  * @param itf_id    the interface id to clear the servers for
@@ -1947,7 +1932,7 @@ SetNameServers(PCWSTR itf_id, short family, PCSTR addrs)
  * @return DWORD NO_ERROR on success, a Windows error code otherwise
  */
 static DWORD
-ResetNameServers(PCWSTR itf_id, short family)
+ResetNameServers(PCWSTR itf_id, ADDRESS_FAMILY family)
 {
     return SetNameServersValue(itf_id, family, "");
 }
@@ -2035,7 +2020,7 @@ HandleDNSConfigMessage(const dns_cfg_message_t *msg, undo_lists_t *lists)
             offset = strlen(addrs);
         }
 
-        err = SetNameServers(iid, msg->family, addrs);
+        err = SetNameServersValue(iid, msg->family, addrs);
         if (err)
         {
             return err;
@@ -2096,10 +2081,10 @@ IsDhcpEnabled(HKEY key)
 static LSTATUS
 SetNameServerAddresses(PWSTR itf_id, const nrpt_address_t *addresses)
 {
-    const short families[] = { AF_INET, AF_INET6 };
+    const ADDRESS_FAMILY families[] = { AF_INET, AF_INET6 };
     for (size_t i = 0; i < _countof(families); i++)
     {
-        short family = families[i];
+        ADDRESS_FAMILY family = families[i];
 
         /* Create a comma sparated list of addresses of this family */
         size_t offset = 0;
@@ -2127,7 +2112,7 @@ SetNameServerAddresses(PWSTR itf_id, const nrpt_address_t *addresses)
         }
 
         /* Set name server addresses */
-        LSTATUS err = SetNameServers(itf_id, family, addr_list);
+        LSTATUS err = SetNameServersValue(itf_id, family, addr_list);
         if (err)
         {
             return err;
