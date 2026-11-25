@@ -196,12 +196,12 @@ ovpn_dco_init(struct context *c)
 
     switch (c->mode)
     {
-        case MODE_POINT_TO_POINT:
+        case CM_P2P:
             dco->ifmode = DCO_MODE_P2P;
             dco_p2p_start_vpn(dco->tt);
             break;
 
-        case MODE_SERVER:
+        case CM_TOP:
             ovpn_dco_init_mp(dco, c->options.dev_node);
             break;
 
