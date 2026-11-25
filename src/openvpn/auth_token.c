@@ -271,10 +271,15 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
     ASSERT(buf_write(&session_token, b64output, (int)strlen(b64output)));
     ASSERT(buf_write_u8(&session_token, 0));
 
+    secure_memzero(b64output, strlen(b64output));
     free(b64output);
 
     /* free the auth-token if defined, we will replace it with a new one */
-    free(multi->auth_token);
+    if (multi->auth_token)
+    {
+        secure_memzero(multi->auth_token, strlen(multi->auth_token));
+        free(multi->auth_token);
+    }
     multi->auth_token = string_alloc((char *)BPTR(&session_token), NULL);
 
     dmsg(D_SHOW_KEYS, "Generated token for client: %s (%s)", multi->auth_token, up->username);
@@ -288,6 +293,8 @@ generate_auth_token(const struct user_pass *up, struct tls_multi *multi)
         multi->auth_token_initial = string_alloc(multi->auth_token, NULL);
     }
 
+    buf_clear(&token);
+    buf_clear(&session_token);
     gc_free(&gc);
 }
 
