@@ -112,7 +112,7 @@ net_iface_mtu_set(const openvpn_net_ctx_t *ctx, const char *iface, uint32_t mtu)
 {
     struct argv argv = argv_new();
 
-    argv_printf(&argv, "%s link set dev %s up mtu %d", iproute_path, iface, mtu);
+    argv_printf(&argv, "%s link set dev %s up mtu %u", iproute_path, iface, mtu);
     argv_msg(M_INFO, &argv);
     openvpn_execve_check(&argv, ctx->es, S_FATAL, "Linux ip link set failed");
 

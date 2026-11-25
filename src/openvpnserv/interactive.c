@@ -459,7 +459,7 @@ GetStartupData(HANDLE pipe, STARTUP_DATA *sud)
     size = bytes / sizeof(*data);
     if ((size == 0) || (size > 4096)) /* our startup data is 1024 wchars at the moment */
     {
-        MsgToEventLog(M_SYSERR, L"malformed startup data: %lu bytes received", size);
+        MsgToEventLog(M_SYSERR, L"malformed startup data: %zu bytes received", size);
         ReturnError(pipe, ERROR_STARTUP_DATA, L"GetStartupData", 1, &exit_event);
         goto err;
     }
