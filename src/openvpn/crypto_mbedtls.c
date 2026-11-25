@@ -1150,6 +1150,7 @@ crypto_pem_decode(const char *name, struct buffer *dst, const struct buffer *src
     }
 
     mbedtls_pem_free(&ctx);
+    buf_clear(&input);
     gc_free(&gc);
     return ret;
 }
