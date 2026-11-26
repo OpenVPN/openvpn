@@ -548,6 +548,7 @@ do_preresolve_host(struct context *c, const char *hostname, const char *servname
         ph->ai = ai;
         ph->hostname = hostname;
         ph->servname = servname;
+        ph->ai_family = af;
         ph->flags = flags & GETADDR_CACHE_MASK;
 
         if (!c->c1.dns_cache)
