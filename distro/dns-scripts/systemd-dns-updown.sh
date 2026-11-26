@@ -227,7 +227,7 @@ function do_resolv_conf_file {
 
         test -z "$dns_search_domain_1" || {
             for i in $(seq 1 6); do
-                eval domains=\"$domains\$dns_search_domain_${i} \" || break
+                eval domains=\"\$domains\$dns_search_domain_${i} \" || break
             done
             text="${text}search $domains\n"
         }
