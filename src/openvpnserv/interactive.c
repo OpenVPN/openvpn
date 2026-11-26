@@ -2766,7 +2766,7 @@ SetNrptRules(HKEY nrpt_key, const nrpt_address_t *addresses, const char *domains
         size_t domains_len = strlen(domains);
         dom_size = (DWORD)domains_len + 2; /* len + the trailing NULs */
 
-        wide_domains = utf8to16_size(domains, dom_size);
+        wide_domains = utf8to16_size(domains, (int)dom_size);
         if (!wide_domains)
         {
             return ERROR_OUTOFMEMORY;
@@ -3920,9 +3920,9 @@ RunOpenvpn(LPVOID p)
     CloseHandleEx(&stdin_read);
     CloseHandleEx(&svc_pipe);
 
-    DWORD input_size = WideCharToMultiByte(CP_UTF8, 0, sud.std_input, -1, NULL, 0, NULL, NULL);
+    int input_size = WideCharToMultiByte(CP_UTF8, 0, sud.std_input, -1, NULL, 0, NULL, NULL);
     LPSTR input = NULL;
-    if (input_size && (input = malloc(input_size)))
+    if (input_size > 0 && (input = malloc((size_t)input_size)))
     {
         DWORD written;
         WideCharToMultiByte(CP_UTF8, 0, sud.std_input, -1, input, input_size, NULL, NULL);
