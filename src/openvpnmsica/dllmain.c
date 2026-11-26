@@ -98,11 +98,6 @@ dont_mute(unsigned int flags)
     return true;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wsign-conversion"
-#endif
-
 void
 x_msg_va(const unsigned int flags, const char *format, va_list arglist)
 {
@@ -124,26 +119,29 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         /* Field 2: The message string. */
         char szBufStack[128];
         int iResultLen = vsnprintf(szBufStack, _countof(szBufStack), format, arglist);
-        if (iResultLen > 0 && (unsigned int)iResultLen < _countof(szBufStack))
+        if (iResultLen > 0)
         {
-            /* Use from stack. */
-            MsiRecordSetStringA(hRecordProg, 2, szBufStack);
-        }
-        else
-        {
-            /* Allocate on heap and retry. */
-            char *szMessage = (char *)malloc(++iResultLen * sizeof(char));
-            if (szMessage != NULL)
+            const size_t alloc_size = (size_t)iResultLen + 1;
+            if (alloc_size <= _countof(szBufStack))
             {
-                vsnprintf(szMessage, iResultLen, format, arglist);
-                MsiRecordSetStringA(hRecordProg, 2, szMessage);
-                free(szMessage);
+                /* Use from stack. */
+                MsiRecordSetStringA(hRecordProg, 2, szBufStack);
             }
             else
             {
-                /* Use stack variant anyway, but make sure it's zero-terminated. */
-                szBufStack[_countof(szBufStack) - 1] = 0;
-                MsiRecordSetStringA(hRecordProg, 2, szBufStack);
+                /* Allocate on heap and retry. */
+                char *szMessage = malloc(alloc_size);
+                if (szMessage != NULL)
+                {
+                    vsnprintf(szMessage, alloc_size, format, arglist);
+                    MsiRecordSetStringA(hRecordProg, 2, szMessage);
+                    free(szMessage);
+                }
+                else
+                {
+                    /* Use truncated stack variant anyway */
+                    MsiRecordSetStringA(hRecordProg, 2, szBufStack);
+                }
             }
         }
     }
@@ -159,7 +157,7 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
         MsiRecordSetInteger(hRecordProg, 1, ERROR_MSICA_ERRNO);
 
         /* Field 3: The Windows error number. */
-        MsiRecordSetInteger(hRecordProg, 3, dwResult);
+        MsiRecordSetInteger(hRecordProg, 3, (int)dwResult);
 
         /* Field 4: The Windows error description. */
         LPWSTR szErrMessage = NULL;
@@ -194,7 +192,3 @@ x_msg_va(const unsigned int flags, const char *format, va_list arglist)
                       hRecordProg);
     MsiCloseHandle(hRecordProg);
 }
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
