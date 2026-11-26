@@ -3435,6 +3435,10 @@ man_check_for_signals(volatile int *signal_received)
 {
     if (signal_received)
     {
+        if (*signal_received)
+        {
+            return true;
+        }
         get_signal(signal_received);
         if (*signal_received)
         {
@@ -3611,11 +3615,7 @@ management_event_loop_n_seconds(struct management *man, unsigned int sec)
         do
         {
             man_standalone_event_loop(man, &signal_received, expire);
-            if (!signal_received)
-            {
-                man_check_for_signals(&signal_received);
-            }
-            if (signal_received)
+            if (man_check_for_signals(&signal_received))
             {
                 return;
             }
@@ -3753,11 +3753,7 @@ management_query_user_pass(struct management *man, struct user_pass *up, const c
             do
             {
                 man_standalone_event_loop(man, &signal_received, 0);
-                if (!signal_received)
-                {
-                    man_check_for_signals(&signal_received);
-                }
-                if (signal_received)
+                if (man_check_for_signals(&signal_received))
                 {
                     ret = false;
                     break;
@@ -3838,11 +3834,7 @@ management_query_multiline(struct management *man, const char *b64_data, const c
         do
         {
             man_standalone_event_loop(man, &signal_received, 0);
-            if (!signal_received)
-            {
-                man_check_for_signals(&signal_received);
-            }
-            if (signal_received)
+            if (man_check_for_signals(&signal_received))
             {
                 goto done;
             }
@@ -3981,11 +3973,7 @@ management_hold(struct management *man, unsigned int holdtime)
             do
             {
                 man_standalone_event_loop(man, &signal_received, 0);
-                if (!signal_received)
-                {
-                    man_check_for_signals(&signal_received);
-                }
-                if (signal_received)
+                if (man_check_for_signals(&signal_received))
                 {
                     break;
                 }
