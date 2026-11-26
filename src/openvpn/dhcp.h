@@ -80,15 +80,6 @@ struct dhcp
     uint32_t magic;     /* must be 0x63825363 (network order) */
 };
 
-struct dhcp_full
-{
-    struct openvpn_iphdr ip;
-    struct openvpn_udphdr udp;
-    struct dhcp dhcp;
-#define DHCP_OPTIONS_BUFFER_SIZE 256
-    uint8_t options[DHCP_OPTIONS_BUFFER_SIZE];
-};
-
 #pragma pack()
 
 in_addr_t dhcp_extract_router_msg(struct buffer *ipbuf);

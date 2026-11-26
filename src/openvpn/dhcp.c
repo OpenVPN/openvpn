@@ -152,27 +152,49 @@ do_extract(struct dhcp *dhcp, int optlen)
 in_addr_t
 dhcp_extract_router_msg(struct buffer *ipbuf)
 {
-    struct dhcp_full *df = (struct dhcp_full *)BPTR(ipbuf);
-    const int optlen =
-        BLEN(ipbuf)
-        - (int)(sizeof(struct openvpn_iphdr) + sizeof(struct openvpn_udphdr) + sizeof(struct dhcp));
-
-    if (optlen >= 0 && df->ip.protocol == OPENVPN_IPPROTO_UDP
-        && df->udp.source == htons(BOOTPS_PORT) && df->udp.dest == htons(BOOTPC_PORT)
-        && df->dhcp.op == BOOTREPLY)
+    if (BLENZ(ipbuf) < sizeof(struct openvpn_iphdr))
     {
-        const int message_type = get_dhcp_message_type(&df->dhcp, optlen);
+        return 0;
+    }
+
+    const struct openvpn_iphdr *ip = (const struct openvpn_iphdr *)BPTR(ipbuf);
+    const int hlen = OPENVPN_IPH_GET_LEN(ip->version_len);
+
+    /* Skip fragments: later ones carry no UDP header, and the checksum
+     * covers the whole datagram. */
+    if (ntohs(ip->frag_off) & (OPENVPN_IP_MF | OPENVPN_IP_OFFMASK))
+    {
+        return 0;
+    }
+
+    /* The UDP header follows any IP options. */
+    struct buffer udpbuf = *ipbuf;
+    if (hlen < (int)sizeof(struct openvpn_iphdr) || !buf_advance(&udpbuf, hlen))
+    {
+        return 0;
+    }
+
+    struct openvpn_udphdr *udp = (struct openvpn_udphdr *)BPTR(&udpbuf);
+    struct dhcp *dhcp = (struct dhcp *)(udp + 1);
+    const int optlen =
+        BLEN(&udpbuf) - (int)(sizeof(struct openvpn_udphdr) + sizeof(struct dhcp));
+
+    if (optlen >= 0 && ip->protocol == OPENVPN_IPPROTO_UDP
+        && udp->source == htons(BOOTPS_PORT) && udp->dest == htons(BOOTPC_PORT)
+        && dhcp->op == BOOTREPLY)
+    {
+        const int message_type = get_dhcp_message_type(dhcp, optlen);
         if (message_type == DHCPACK || message_type == DHCPOFFER)
         {
             /* get the router IP address while padding out all DHCP router options */
-            const in_addr_t ret = do_extract(&df->dhcp, optlen);
+            const in_addr_t ret = do_extract(dhcp, optlen);
 
             /* recompute the UDP checksum */
-            df->udp.check = 0;
-            df->udp.check = htons(ip_checksum(
-                AF_INET, (uint8_t *)&df->udp,
+            udp->check = 0;
+            udp->check = htons(ip_checksum(
+                AF_INET, (uint8_t *)udp,
                 sizeof(struct openvpn_udphdr) + sizeof(struct dhcp) + optlen,
-                (uint8_t *)&df->ip.saddr, (uint8_t *)&df->ip.daddr, OPENVPN_IPPROTO_UDP));
+                (const uint8_t *)&ip->saddr, (const uint8_t *)&ip->daddr, OPENVPN_IPPROTO_UDP));
 
             /* only return the extracted Router address if DHCPACK */
             if (message_type == DHCPACK)
