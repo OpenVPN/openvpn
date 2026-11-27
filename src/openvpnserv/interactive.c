@@ -332,7 +332,7 @@ ReturnError(HANDLE pipe, DWORD error, LPCWSTR func, DWORD count, LPHANDLE events
         L"0x%1!08x!\n%2!s!\n%3!s!", 0, 0, (LPWSTR)&result, 0, (va_list *)args);
 
     WritePipeAsync(pipe, result, (DWORD)(wcslen(result) * 2), count, events);
-    MsgToEventLog(MSG_FLAGS_ERROR, result);
+    MsgToEventLog(MSG_FLAGS_ERROR, L"%ls", result);
 
     if (error != ERROR_OPENVPN_STARTUP)
     {
