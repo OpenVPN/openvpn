@@ -407,6 +407,37 @@ out:
     return ret;
 }
 
+/**
+ * Escape a string for use inside a PowerShell single-quoted string.
+ *
+ * Besides ' PowerShell also ends a single-quoted string at the typographic
+ * quotes U+2018..U+201B, which validate_domain() lets through as UTF-8.
+ * Doubling any of them makes PowerShell treat it as a literal character.
+ */
+static const char *
+escape_pwsh_single_quoted(const char *str, struct gc_arena *gc)
+{
+    struct buffer out = alloc_buf_gc(2 * strlen(str) + 1, gc);
+
+    for (const uint8_t *c = (const uint8_t *)str; *c; ++c)
+    {
+        size_t len = 1;
+        if (c[0] == 0xe2 && c[1] == 0x80 && c[2] >= 0x98 && c[2] <= 0x9b)
+        {
+            len = 3;
+        }
+        buf_write(&out, c, len);
+        if (len == 3 || *c == '\'')
+        {
+            buf_write(&out, c, len);
+        }
+        c += len - 1;
+    }
+    buf_write_u8(&out, '\0');
+
+    return BSTR(&out);
+}
+
 static void
 do_dns_domain_pwsh(bool add, const struct tuntap *tt)
 {
@@ -415,16 +446,18 @@ do_dns_domain_pwsh(bool add, const struct tuntap *tt)
         return;
     }
 
+    struct gc_arena gc = gc_new();
     struct argv argv = argv_new();
     argv_printf(&argv,
                 "%s%s -NoProfile -NonInteractive -Command Set-DnsClient -InterfaceIndex %lu -ConnectionSpecificSuffix '%s'",
                 get_win_sys_path(),
                 POWERSHELL_PATH_SUFFIX,
                 tt->adapter_index,
-                add ? tt->options.domain : "");
+                add ? escape_pwsh_single_quoted(tt->options.domain, &gc) : "");
     exec_command("PowerShell", &argv, 1, M_WARN);
 
     argv_free(&argv);
+    gc_free(&gc);
 }
 
 /**
